@@ -1,0 +1,207 @@
+﻿@model E_Form_Best.Models.ITForm.Mail
+@{
+    ViewData["Title"] = "Tạo Mail";
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+}
+
+<div style="width:100%; background:#f0f0f0; padding:20px 0; box-sizing:border-box;">
+    <div style="width:210mm; min-height:297mm; margin:0 auto; padding:20mm; background:#fff; box-shadow:0 0 5px rgba(0,0,0,0.2); font-family:Arial, sans-serif; box-sizing:border-box;">
+
+        <!-- Tiêu đề chính -->
+        <div style="text-align:center; margin-bottom:20px;">
+            <h1 style="font-size:28px; margin:0;">Email Account Application Form</h1>
+            <p style="font-size:12px; margin:2px 0 10px 0; color:#555;">
+                (Đăng ký sử dụng E-mail / Application for E-mail Access Permit)
+            </p>
+            <hr style="border:1px solid #ccc; margin-top:10px;" />
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div style="background-color:#d4edda; color:#155724; padding:10px; border-radius:5px; margin-bottom:15px;">
+                @TempData["Success"]
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div style="background-color:#f8d7da; color:#721c24; padding:10px; border-radius:5px; margin-bottom:15px;">
+                @TempData["Error"]
+            </div>
+        }
+
+        <form id="mailForm" method="post" style="width:100%; max-width:170mm; margin:auto;">
+            @Html.AntiForgeryToken()
+            <input id="TenForm" name="TenForm" type="hidden" value="Email Account Application Form" />
+
+            <!-- Thông tin cơ bản & checkbox 2 cột -->
+            <div style="width:100%; display:flex; gap:4%; flex-wrap:wrap;">
+                <!-- Cột trái: Thông tin cơ bản -->
+                <div style="width:48%;">
+                    <div style="margin-bottom:14px;">
+                        <label for="Ngay" style="font-weight:bold; display:block; margin-bottom:4px; font-size:12px;">(Ngày / Date):</label>
+                        <input id="Ngay" type="date" value="@DateTime.Now.ToString("yyyy-MM-dd")" readonly style="width:100%; padding:6px; font-size:14px; border:1px solid #ccc; border-radius:4px;" />
+                    </div>
+                    @{
+                        var userRole = Context.Session.GetString("PhongBan") ?? "";
+                    }
+                    <div style="margin-bottom:14px;">
+                        <label for="BoPhan" style="font-weight:bold; display:block; margin-bottom:4px; font-size:12px;">
+                            (Bộ phận / Department):
+                        </label>
+                        <input id="BoPhan" type="text" value="@userRole" readonly style="width:100%; padding:6px; font-size:14px; border:1px solid #ccc; border-radius:4px; background:#e9ecef;" />
+                    </div>
+
+
+                    <div style="margin-bottom:14px;">
+                        <label for="SoNhanVien" style="font-weight:bold; display:block; margin-bottom:4px; font-size:12px;">(Số nhân viên / Employee No.):</label>
+                        <input id="SoNhanVien" type="text" style="width:100%; padding:6px; font-size:14px; border:1px solid #ccc; border-radius:4px;" />
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label for="HoVaTen" style="font-weight:bold; display:block; margin-bottom:4px; font-size:12px;">(Họ và tên / Full name):</label>
+                        <input id="HoVaTen" type="text" style="width:100%; padding:6px; font-size:14px; border:1px solid #ccc; border-radius:4px;" />
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label for="Email" style="font-weight:bold; display:block; margin-bottom:4px; font-size:12px;">(Email):</label>
+                        <input id="Email" type="email" placeholder="Ví dụ: Tom.le" style="width:100%; padding:6px; font-size:14px; border:1px solid #ccc; border-radius:4px;" />
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label for="ViTri" style="font-weight:bold; display:block; margin-bottom:4px; font-size:12px;">(Vị trí / Position):</label>
+                        <input id="ViTri" type="text" style="width:100%; padding:6px; font-size:14px; border:1px solid #ccc; border-radius:4px;" />
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label for="SoNoiBo" style="font-weight:bold; display:block; margin-bottom:4px; font-size:12px;">(Số nội bộ / Ext. No.):</label>
+                        <input id="SoNoiBo" type="text" style="width:100%; padding:6px; font-size:14px; border:1px solid #ccc; border-radius:4px;" />
+                    </div>
+                </div>
+
+                <!-- Cột phải: Checkboxes -->
+                <div style="width:48%;">
+                    <div style="margin-bottom:12px;">
+                        <input id="GuiRaNgoai" type="checkbox" style="margin-right:6px; vertical-align:middle;" />
+                        <label for="GuiRaNgoai" style="vertical-align:middle; font-size:12px;">(Gửi ra ngoài / Mail to Outside)</label>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <input id="SuDungTrenDienThoai" type="checkbox" style="margin-right:6px; vertical-align:middle;" />
+                        <label for="SuDungTrenDienThoai" style="vertical-align:middle; font-size:12px;">(Sử dụng trên điện thoại / User Mail on cellphone)</label>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <input id="SuDungWedMail" type="checkbox" style="margin-right:6px; vertical-align:middle;" />
+                        <label for="SuDungWedMail" style="vertical-align:middle; font-size:12px;">(Sử dụng webmail / User Mail on website)</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mục đích sử dụng -->
+            <div style="margin-top:20px; margin-bottom:14px;">
+                <hr style="border:1px solid #ccc; margin-bottom:10px;" />
+                <label for="MucDichSuDung" style="font-weight:bold; display:block; margin-bottom:4px; text-align:center;">Mục đích sử dụng</label>
+                <div style="text-align:center; font-size:12px; color:#555; margin-bottom:4px;">(Sử dụng vào mục đích / For the purpose(s) as specified below)</div>
+                <textarea id="MucDichSuDung" style="width:100%; padding:6px; height:100px; font-size:14px; border:1px solid #ccc; border-radius:4px;"></textarea>
+            </div>
+
+            <!-- Bản cam kết -->
+            <div style="text-align:center; font-weight:bold; font-size:16px; margin-top:30px; margin-bottom:5px;">（BẢN CAM KẾT）</div>
+            <p style="text-align:center; font-size:12px; color:#555; margin:0 0 10px 0;">（Tôi sẽ sử dụng Email của công ty tuân theo các điều kiện đặc biệt sau / I shall use company e-mail under the specified conditions as below.）</p>
+            <ol style="font-size:12px; color:#555; padding-left:20px; line-height:1.6;">
+                <li>（Tôi sẽ quản lý và không để thông tin Account được cấp rò rỉ sang Người thứ 3 / I shall prevent the information of the issued account from being leaked out to any third party.）</li>
+                <li>（Tôi sẽ phòng ngừa nhiễm Virus bằng phần mềm anti-virus khi sử dụng e-mail công ty / I shall prevent virus infection by installing anti-virus software in PCs to make use of company e-mail.）</li>
+                <li>（Tôi sẽ chú ý và quản lý không để rò rỉ các thông tin đã biết trong Nghiệp vụ của mình cho Người thứ 3 biết / I shall keep in confidence any information and prevent it from being leaked out to any third party.）</li>
+                <li>（Tôi sẽ khóa Máy tính của mình khi không sử dụng để tránh rò rỉ thông tin / I shall lock the computer when I leave in order to prevent others from using.）</li>
+                <li>（Tôi sẽ không gửi mail mà có nội dung không tốt hoặc không hữu ích cho công việc / I shall not send any mail which is slanderous or unuseful to my business.）</li>
+                <li>（Tôi sẽ không gửi mail tới ai ngoài bổn phận trách nhiệm / I shall not send any mail to somebody beyond his/her duty.）</li>
+                <li>（Tôi sẽ không gửi dữ liệu của Công ty ra ngoài / I shall not send the data of company to outside.）</li>
+                <li>（Tôi sẽ thực hiện các biện pháp tốt nhất có thể để không làm giảm mức độ an toàn của toàn Công ty / I shall take the utmost measures not to lower the security level of the whole company.）</li>
+            </ol>
+
+            <!-- Checkbox xác nhận cam kết -->
+            <div style="margin-top:20px; margin-bottom:20px; text-align:center;">
+                <div style="display:inline-block;">
+                    <input type="checkbox" id="XacNhanCamKet" style="margin-right:6px;" />
+                    <label for="XacNhanCamKet" style="font-size:12px;">Tôi xác nhận các cam kết trên / I acknowledge the above commitments</label>
+                </div>
+            </div>
+
+            <!-- Hidden creator fields -->
+            <input id="IdNguoiTao" type="hidden" />
+            <input id="TenNguoiTao" type="hidden" />
+
+            <!-- Button đăng ký -->
+            <button id="BtnDangKy" type="submit" disabled style="display:block; width:200px; margin:20px auto; padding:10px; font-size:16px; background-color:#007bff; color:#fff; border:none; border-radius:4px; cursor:pointer; opacity:0.6;">Đăng ký</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Bật / tắt nút Đăng ký theo checkbox cam kết
+            const chk = document.getElementById('XacNhanCamKet');
+            const btn = document.getElementById('BtnDangKy');
+
+            chk.addEventListener('change', function () {
+                btn.disabled = !this.checked;
+                btn.style.opacity = this.checked ? '1' : '0.6';
+                btn.style.cursor = this.checked ? 'pointer' : 'not-allowed';
+            });
+
+            // Lấy form và xử lý submit bằng AJAX
+            const form = document.getElementById('mailForm');
+            form.addEventListener('submit', function (e) {
+                e.preventDefault(); // Ngăn submit mặc định
+
+                // Tạo object dữ liệu gửi lên server
+                const mailData = {
+                    TenForm: document.getElementById('TenForm').value,
+                    Ngay: document.getElementById('Ngay').value,
+                    BoPhan: document.getElementById('BoPhan').value,
+                    SoNhanVien: document.getElementById('SoNhanVien').value,
+                    HoVaTen: document.getElementById('HoVaTen').value,
+                    Email: document.getElementById('Email').value,
+                    ViTri: document.getElementById('ViTri').value,
+                    SoNoiBo: document.getElementById('SoNoiBo').value,
+                    GuiRaNgoai: document.getElementById('GuiRaNgoai').checked,
+                    SuDungTrenDienThoai: document.getElementById('SuDungTrenDienThoai').checked,
+                    SuDungWedMail: document.getElementById('SuDungWedMail').checked,
+                    MucDichSuDung: document.getElementById('MucDichSuDung').value
+                };
+
+                // Gửi dữ liệu AJAX lên server
+                fetch('/Mail/TaoMail', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(mailData)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    // Hiển thị thông báo
+                    alert(data.message || 'Đã gửi dữ liệu thành công');
+
+                    // Nếu gửi thành công, reset form và lấy id trả về
+                    if (data.success) {
+                        form.reset();
+                        // Hiển thị ID vừa tạo (nếu server trả về)
+                        if (data.id) {
+                            console.log('ID Mail vừa tạo:', data.id);
+                            // Có thể hiển thị lên giao diện hoặc redirect nếu muốn
+                            // Ví dụ: window.location.href = `/Mail/ChiTiet/${data.id}`;
+                        }
+
+                        // Tắt nút đăng ký sau khi reset form
+                        btn.disabled = true;
+                        btn.style.opacity = '0.6';
+                        btn.style.cursor = 'not-allowed';
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Có lỗi xảy ra, vui lòng thử lại!');
+                });
+            });
+        });
+    </script>
+
+}

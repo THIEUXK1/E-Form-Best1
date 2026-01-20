@@ -1,0 +1,159 @@
+﻿@{
+    ViewData["Title"] = "Quản lý Người hỗ trợ IT";
+    Layout = "~/Areas/AdminForm/Views/Shared/_Layout.cshtml";
+}
+
+<div style="max-width: 1100px; margin: 0 auto; padding: 20px; font-family: 'Segoe UI', sans-serif;">
+    <h2 style="text-align: center; color: #2d3748; margin-bottom: 30px;">🛠 Quản lý Người Hỗ Trợ IT</h2>
+
+    <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 30px; border: 1px solid #e2e8f0;">
+        <input type="hidden" id="txtId" value="0" />
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div>
+                <label style="font-weight: 600; font-size: 13px; margin-left: 2.5%;">Mã nhân viên</label>
+                <input type="text" id="txtMaNv" placeholder="Nhập mã NV..."
+                       style="width: 95%; display: block; margin: 5px auto 0; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e0;" />
+            </div>
+            <div>
+                <label style="font-weight: 600; font-size: 13px; margin-left: 2.5%;">Họ tên</label>
+                <input type="text" id="txtTen" placeholder="Nhập tên..."
+                       style="width: 95%; display: block; margin: 5px auto 0; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e0;" />
+            </div>
+            <div>
+                <label style="font-weight: 600; font-size: 13px; margin-left: 2.5%;">Bộ phận</label>
+                <input type="text" id="txtBoPhan" placeholder="Nhập bộ phận..."
+                       style="width: 95%; display: block; margin: 5px auto 0; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e0;" />
+            </div>
+            <div>
+                <label style="font-weight: 600; font-size: 13px; margin-left: 2.5%;">Ghi chú</label>
+                <input type="text" id="txtGhiChu" placeholder="Ghi chú thêm..."
+                       style="width: 95%; display: block; margin: 5px auto 0; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e0;" />
+            </div>
+        </div>
+        <div style="margin-top: 20px; text-align: right; padding-right: 2.5%;">
+            <button id="btnCancel" onclick="resetForm()" style="display:none; padding: 10px 20px; background: #a0aec0; color: white; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px;">Hủy</button>
+            <button id="btnSave" onclick="saveData()" style="padding: 10px 25px; background: #3182ce; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">LƯU THÔNG TIN</button>
+        </div>
+    </div>
+    <div style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #2d3748; color: white; text-align: left;">
+                    <th style="padding: 15px;">Mã NV</th>
+                    <th style="padding: 15px;">Tên</th>
+                    <th style="padding: 15px;">Bộ phận</th>
+                    <th style="padding: 15px;">Ghi chú</th>
+                    <th style="padding: 15px; text-align: center;">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', loadData);
+
+    // 1. Load danh sách
+    function loadData() {
+        fetch('/QLtaiKhoan/GetAllNguoiHoTro')
+            .then(res => res.json())
+            .then(data => {
+                const html = data.map(item => `
+                    <tr style="border-bottom: 1px solid #edf2f7;">
+                        <td style="padding: 15px; font-weight: 600;">${item.maNv || ''}</td>
+                        <td style="padding: 15px;">${item.ten || ''}</td>
+                        <td style="padding: 15px;">${item.boPhan || ''}</td>
+                        <td style="padding: 15px; font-size: 13px; color: #718096;">${item.ghiChu || ''}</td>
+                        <td style="padding: 15px; text-align: center;">
+                            <button onclick='editItem(${JSON.stringify(item)})' style="background: #48bb78; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px;">Sửa</button>
+                            <button onclick="deleteItem(${item.id})" style="background: #f56565; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Xóa</button>
+                        </td>
+                    </tr>
+                `).join('');
+                document.getElementById('tableBody').innerHTML = html || '<tr><td colspan="5" style="text-align:center; padding:20px;">Trống</td></tr>';
+            });
+    }
+
+    // 2. Lưu (Thêm mới hoặc Cập nhật)
+    function saveData() {
+        const id = document.getElementById('txtId').value;
+        const data = {
+            Id: parseInt(id),
+            MaNv: document.getElementById('txtMaNv').value,
+            Ten: document.getElementById('txtTen').value,
+            BoPhan: document.getElementById('txtBoPhan').value,
+            GhiChu: document.getElementById('txtGhiChu').value
+        };
+
+        if (!data.MaNv || !data.Ten) {
+            return Swal.fire('Lỗi', 'Vui lòng nhập Mã NV và Tên', 'error');
+        }
+
+        const url = id == "0" ? '/QLtaiKhoan/AddNguoiHoTro' : '/QLtaiKhoan/UpdateNguoiHoTro';
+
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(data)
+        }).then(res => {
+            if (res.ok) {
+                Swal.fire('Thành công', 'Dữ liệu đã được lưu', 'success');
+                resetForm();
+                loadData();
+            } else {
+                Swal.fire('Lỗi', 'Không thể lưu dữ liệu', 'error');
+            }
+        });
+    }
+
+    // 3. Xóa
+    function deleteItem(id) {
+        Swal.fire({
+            title: 'Xác nhận xóa?',
+            text: "Bạn không thể hoàn tác hành động này!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#f56565',
+            confirmButtonText: 'Đúng, xóa nó!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/QLtaiKhoan/DeleteNguoiHoTro?id=' + id, { method: 'POST' })
+                .then(res => {
+                    if (res.ok) {
+                        Swal.fire('Đã xóa', '', 'success');
+                        loadData();
+                    }
+                });
+            }
+        });
+    }
+
+    // 4. Sửa (Đưa dữ liệu lên form)
+    function editItem(item) {
+        document.getElementById('txtId').value = item.id;
+        document.getElementById('txtMaNv').value = item.maNv;
+        document.getElementById('txtTen').value = item.ten;
+        document.getElementById('txtBoPhan').value = item.boPhan;
+        document.getElementById('txtGhiChu').value = item.ghiChu;
+
+        document.getElementById('btnSave').innerText = "CẬP NHẬT THAY ĐỔI";
+        document.getElementById('btnSave').style.background = "#ed8936";
+        document.getElementById('btnCancel').style.display = "inline-block";
+    }
+
+    // 5. Reset form
+    function resetForm() {
+        document.getElementById('txtId').value = "0";
+        document.getElementById('txtMaNv').value = "";
+        document.getElementById('txtTen').value = "";
+        document.getElementById('txtBoPhan').value = "";
+        document.getElementById('txtGhiChu').value = "";
+
+        document.getElementById('btnSave').innerText = "LƯU THÔNG TIN";
+        document.getElementById('btnSave').style.background = "#3182ce";
+        document.getElementById('btnCancel').style.display = "none";
+    }
+</script>

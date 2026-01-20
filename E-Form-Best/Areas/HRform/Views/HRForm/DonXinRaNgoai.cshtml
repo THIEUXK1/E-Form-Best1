@@ -1,0 +1,204 @@
+﻿@model E_Form_Best.Models.ITForm.FormHr
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Đăng ký đơn xin ra ngoài";
+    Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
+
+    // --- CHUYỂN ĐỔI TỪ SESSION SANG COOKIE CLAIMS (CK) ---
+    var tenNguoiNv = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+    var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
+
+    // Styles nội bộ với tông màu Đỏ
+    string inputStyle = "width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #fca5a5; background: #fffcfc; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: #7f1d1d;";
+    string labelStyle = "font-weight: 700; color: #7f1d1d; font-size: 11px; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px;";
+    string pasteZoneStyle = "width: 100%; border: 2px dotted #fca5a5; height: 180px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #fff5f5; color: #b91c1c; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 600; transition: 0.3s; margin-top: 10px; position: relative; outline: none;";
+}
+
+<div style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); padding: 40px 15px; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
+
+    @* Form chính thức *@
+    <form id="hrForm" method="post" enctype="multipart/form-data" action="/FormHR/DonXinRaNgoai"
+          style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 30px; box-shadow: 0 20px 50px rgba(185, 28, 28, 0.1); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
+
+        @Html.AntiForgeryToken()
+
+        @* --- HEADER (Tông màu Đỏ) --- *@
+        <div style="background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); padding: 40px; color: #ffffff; text-align: center; position: relative;">
+            <div style="position: absolute; top: 15px; right: 25px; font-size: 11px; opacity: 0.8; font-weight: 500; letter-spacing: 1px;">HỆ THỐNG E-FORM V3.0</div>
+            <h2 style="margin: 0; font-size: 24px; text-transform: uppercase; font-weight: 900; letter-spacing: 1.5px;">Đăng ký đơn xin ra ngoài</h2>
+            <div style="margin-top: 12px; display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.15); border-radius: 50px; font-size: 13px;">
+                📅 Ngày lập đơn: <span style="font-weight: 700; color: #fecaca;">@ngayHienThi</span>
+            </div>
+        </div>
+
+        <div style="padding: 40px;">
+            @* --- PHẦN 1: THÔNG TIN NHÂN SỰ (Lấy từ CK) --- *@
+            <div style="margin-bottom: 35px;">
+                <h3 style="color: #991b1b; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: #dc2626; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">1</span>
+                    Thông tin người đăng ký
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                    <div><label style="@labelStyle">Họ tên nhân viên</label><input name="TenNguoiNv" value="@tenNguoiNv" readonly style="@inputStyle; background: #fef2f2; border-color: #fee2e2;"></div>
+                    <div><label style="@labelStyle">Phòng ban</label><input name="PhanBo" value="@phongBan" readonly style="@inputStyle; background: #fef2f2; border-color: #fee2e2;"></div>
+                    <div><label style="@labelStyle">Mã nhân viên</label><input value="@soNhanVien" readonly style="@inputStyle; background: #fef2f2; border-color: #fee2e2;"></div>
+                </div>
+            </div>
+
+            @* --- PHẦN 2: CHI TIẾT RA NGOÀI --- *@
+            <div style="background: #fffafa; padding: 25px; border-radius: 20px; border: 1px solid #fecaca; margin-bottom: 30px; box-shadow: inset 0 2px 4px rgba(220, 38, 38, 0.02);">
+                <h3 style="color: #991b1b; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: #b91c1c; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">2</span>
+                    Nội dung và Thời gian
+                </h3>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="@labelStyle">Lý do cụ thể <span style="color:#dc2626">*</span></label>
+                    <textarea name="LiDo" placeholder="Vui lòng nhập lý do ra ngoài chi tiết..." required style="@inputStyle; height: 80px; resize: none; border: 1px solid #ef4444;"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                    <div>
+                        <label style="@labelStyle">📍 Địa điểm đến</label>
+                        <input name="DiaDiem" placeholder="Ví dụ: Ngân hàng, Bệnh viện..." required style="@inputStyle">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">🕒 Thời gian ra</label>
+                        <input type="datetime-local" id="inpThoiGianRa" name="ThoiGianRa" required style="@inputStyle; border: 1px solid #ef4444;">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">🔄 Thời gian về dự kiến</label>
+                        <input type="datetime-local" id="inpThoiGianVe" name="ThoiGianVeDuTinh" required style="@inputStyle; border: 1px solid #ef4444;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label style="@labelStyle">Ảnh minh chứng (Click & Ctrl+V)</label>
+                        <div id="paste_AnhXinRaNgoai" class="paste-zone" style="@pasteZoneStyle" tabindex="0">
+                            Nhấp vào đây và nhấn Ctrl+V để dán ảnh
+                        </div>
+                        <input type="file" id="AnhXinRaNgoai" name="AnhXinRaNgoai" hidden accept="image/*">
+                    </div>
+
+                    <div>
+                        <label style="@labelStyle">Tài liệu đính kèm (PDF/Scan)</label>
+                        <div style="margin-top:10px; background: #ffffff; padding: 15px; border-radius: 12px; border: 1px dashed #fca5a5; height: 180px; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box;">
+                            <input type="file" name="UploadFile" style="font-size: 13px; width: 100%;">
+                            <p style="font-size: 11px; color: #991b1b; margin-top: 15px; line-height: 1.4; opacity: 0.7;">Đính kèm các văn bản liên quan nếu có.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* --- PHẦN 3: QUY ĐỊNH & CAM KẾT --- *@
+            <div style="background: #fef2f2; border: 1.5px solid #ef4444; border-radius: 20px; padding: 25px; margin-bottom: 30px;">
+                <h3 style="color: #991b1b; font-size: 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-weight: 800; text-transform: uppercase;">
+                    <i class="fa fa-gavel"></i> Quy định ra khỏi cổng
+                </h3>
+                <ul style="margin: 0 0 20px 20px; padding: 0; color: #7f1d1d; font-size: 12px; line-height: 1.8; font-weight: 600; list-style-type: disc;">
+                    <li>Nhân viên chỉ được ra ngoài sau khi đơn được cấp quản lý và phòng HR phê duyệt.</li>
+                    <li>Phải xuất trình đơn phê duyệt (hoặc mã QR) cho bộ phận an ninh tại cổng.</li>
+                    <li>Nghiêm cấm việc sử dụng lý do công việc để giải quyết việc cá nhân không trung thực.</li>
+                    <li>Mọi sự chậm trễ so với thời gian dự kiến phải thông báo ngay cho quản lý trực tiếp.</li>
+                </ul>
+
+                <label id="containerCamKet" style="cursor: pointer; display: flex; align-items: flex-start; gap: 12px; background: #ffffff; padding: 15px; border-radius: 12px; border: 2px solid #fca5a5; transition: 0.3s;">
+                    <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; margin-top: 2px; accent-color: #dc2626; cursor: pointer;">
+                    <span style="font-size: 13px; font-weight: 800; color: #991b1b; line-height: 1.5;">
+                        Tôi cam kết nội dung khai báo là hoàn toàn đúng sự thật. Tôi sẽ tuân thủ đúng thời gian ra/vào và chịu trách nhiệm trước nội quy công ty nếu vi phạm.
+                    </span>
+                </label>
+            </div>
+
+            @* --- NÚT GỬI --- *@
+            <div style="text-align: center;">
+                <button type="button" onclick="xuLyLuuDon()"
+                        style="width: 100%; padding: 20px; background: linear-gradient(to right, #dc2626, #991b1b); color: #fff; border: none; border-radius: 15px; font-weight: 900; font-size: 18px; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 25px rgba(220, 38, 38, 0.3); text-transform: uppercase; letter-spacing: 1px;">
+                    <i class="fa fa-paper-plane" style="margin-right: 10px;"></i> Xác nhận gửi đơn phê duyệt
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // 1. Tự động gán thời gian hiện tại và thời gian về dự kiến
+    window.onload = function() {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        const timeString = now.toISOString().slice(0, 16);
+        document.getElementById('inpThoiGianRa').value = timeString;
+
+        const returnTime = new Date(now.getTime() + (1 * 60 * 60 * 1000));
+        document.getElementById('inpThoiGianVe').value = returnTime.toISOString().slice(0, 16);
+    };
+
+    // 2. Xử lý dán ảnh từ Clipboard
+    function handlePaste(e, inputId, zoneId) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        let blob = null;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                blob = items[i].getAsFile();
+                break;
+            }
+        }
+        if (blob) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const zone = document.getElementById(zoneId);
+                zone.innerHTML = `<img src="${event.target.result}" style="width:100%; height:100%; object-fit:contain; border-radius:10px;">`;
+                zone.style.border = "2px solid #dc2626";
+
+                const fileInput = document.getElementById(inputId);
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(blob);
+                fileInput.files = dataTransfer.files;
+            };
+            reader.readAsDataURL(blob);
+        }
+    }
+
+    const zoneEl = document.getElementById("paste_AnhXinRaNgoai");
+    if (zoneEl) {
+        zoneEl.addEventListener('paste', (e) => handlePaste(e, "AnhXinRaNgoai", "paste_AnhXinRaNgoai"));
+        zoneEl.addEventListener('focus', () => { zoneEl.style.borderColor = "#dc2626"; zoneEl.style.boxShadow = "0 0 10px rgba(220,38,38,0.1)"; });
+        zoneEl.addEventListener('blur', () => { zoneEl.style.borderColor = "#fca5a5"; zoneEl.style.boxShadow = "none"; });
+    }
+
+    // 3. Kiểm tra tính hợp lệ và Submit
+    function xuLyLuuDon() {
+        const liDo = document.querySelector('textarea[name="LiDo"]').value.trim();
+        const tgRa = document.getElementById('inpThoiGianRa').value;
+        const tgVe = document.getElementById('inpThoiGianVe').value;
+        const chk = document.getElementById('chkCamKet');
+        const containerCamKet = document.getElementById('containerCamKet');
+
+        if (liDo.length < 5) {
+            alert("⚠️ Vui lòng nhập lý do ra ngoài cụ thể (tối thiểu 5 ký tự)!");
+            return;
+        }
+        if (!tgRa || !tgVe) {
+            alert("⚠️ Vui lòng chọn đầy đủ thời gian đi và về!");
+            return;
+        }
+        if (new Date(tgVe) <= new Date(tgRa)) {
+            alert("⚠️ Lỗi: Thời gian về phải sau thời gian ra!");
+            return;
+        }
+        if (!chk.checked) {
+            alert("⚠️ Bạn chưa tích chọn cam kết tuân thủ quy định!");
+            containerCamKet.style.borderColor = "#dc2626";
+            containerCamKet.style.background = "#fff1f1";
+            return;
+        }
+
+        if (confirm("Hệ thống sẽ gửi đơn xin ra ngoài đến cấp trên. Bạn xác nhận thông tin đã chính xác?")) {
+            document.getElementById("hrForm").submit();
+        }
+    }
+</script>

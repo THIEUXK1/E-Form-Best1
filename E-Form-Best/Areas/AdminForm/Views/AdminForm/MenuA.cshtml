@@ -1,0 +1,118 @@
+﻿@{
+    ViewData["Title"] = "MenuA";
+}
+
+<div style="
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    /* Gradient mới: Xanh đậm sang xanh đại dương */
+    background: radial-gradient(circle at center, #001f3f, #003366, #000c18);
+    background-attachment: fixed;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    padding: 20px;
+">
+
+    <div style="text-align: center; margin-bottom: 60px;">
+        <h1 style="
+            color: #00d4ff; /* Màu xanh neon nhẹ */
+            font-size: 3.5rem;
+            font-weight: 900;
+            letter-spacing: 10px;
+            margin: 0;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+            text-transform: uppercase;
+        ">
+            SYSTEM MENU
+        </h1>
+        <div style="width: 100px; height: 4px; background: #00d4ff; margin: 15px auto; border-radius: 2px; opacity: 0.6;"></div>
+    </div>
+
+    <div style="display: flex; gap: 40px; flex-wrap: wrap; justify-content: center;">
+
+        <a href="/QL"
+           style="
+            width: 220px;
+            height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3), inset 0 0 15px rgba(0, 212, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+           "
+           onmouseover="this.style.transform='translateY(-15px)'; this.style.boxShadow='0 20px 40px rgba(0, 212, 255, 0.4)'; this.style.background='rgba(0, 212, 255, 0.15)'; this.style.borderColor='rgba(0, 212, 255, 0.6)'"
+           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 15px 35px rgba(0, 0, 0, 0.3)'; this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(0, 212, 255, 0.2)'">
+
+            <div style="font-size: 50px; margin-bottom: 10px;">📊</div>
+            <span style="font-size: 28px; font-weight: 800; letter-spacing: 2px;">QL</span>
+            <small style="font-size: 11px; opacity: 0.7; margin-top: 5px; text-transform: uppercase;">Management</small>
+        </a>
+
+        <a href="/Logo"
+           style="
+            width: 220px;
+            height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3), inset 0 0 15px rgba(0, 212, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+           "
+           onmouseover="this.style.transform='translateY(-15px)'; this.style.boxShadow='0 20px 40px rgba(0, 212, 255, 0.4)'; this.style.background='rgba(0, 212, 255, 0.15)'; this.style.borderColor='rgba(0, 212, 255, 0.6)'"
+           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 15px 35px rgba(0, 0, 0, 0.3)'; this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(0, 212, 255, 0.2)'">
+
+            <div style="font-size: 50px; margin-bottom: 10px;">💻</div>
+            <span style="font-size: 28px; font-weight: 800; letter-spacing: 2px;">IT</span>
+            <small style="font-size: 11px; opacity: 0.7; margin-top: 5px; text-transform: uppercase;">Technology</small>
+        </a>
+
+        <a href="/HRForm/logo"
+           style="
+            width: 220px;
+            height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3), inset 0 0 15px rgba(0, 212, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+           "
+           onmouseover="this.style.transform='translateY(-15px)'; this.style.boxShadow='0 20px 40px rgba(0, 212, 255, 0.4)'; this.style.background='rgba(0, 212, 255, 0.15)'; this.style.borderColor='rgba(0, 212, 255, 0.6)'"
+           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 15px 35px rgba(0, 0, 0, 0.3)'; this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(0, 212, 255, 0.2)'">
+
+            <div style="font-size: 50px; margin-bottom: 10px;">🤝</div>
+            <span style="font-size: 28px; font-weight: 800; letter-spacing: 2px;">HR</span>
+            <small style="font-size: 11px; opacity: 0.7; margin-top: 5px; text-transform: uppercase;">Human Resource</small>
+        </a>
+
+    </div>
+
+    <p style="margin-top: 80px; color: #00d4ff; opacity: 0.5; font-size: 13px; letter-spacing: 1px;">
+        © 2025 E-PORTAL SYSTEM - SMART MANAGEMENT
+    </p>
+</div>

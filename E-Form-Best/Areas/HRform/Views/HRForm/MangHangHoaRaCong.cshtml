@@ -1,0 +1,204 @@
+﻿@model E_Form_Best.Models.ITForm.FormHr
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Mang hàng hóa ra cổng";
+    Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
+
+    // --- CHUYỂN ĐỔI TỪ SESSION SANG COOKIE CLAIMS (CK) ---
+    var tenNguoiNv = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+    var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
+
+    // Toolkit Style màu Xanh Lá chủ đạo (Security)
+    string primaryGreen = "#10b981"; // Emerald 500
+    string darkGreen = "#064e3b";    // Emerald 900
+    string lightGreenBg = "#f0fdf4"; // Emerald 50
+
+    string inputStyle = $"width: 100%; padding: 12px; border-radius: 12px; border: 1.5px solid #d1fae5; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: {darkGreen};";
+    string labelStyle = "font-weight: 800; color: #065f46; font-size: 11px; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 1px;";
+    string boxStyle = $"background: #ffffff; padding: 30px; border-radius: 24px; border: 1px solid #d1fae5; margin-bottom: 25px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.05);";
+}
+
+<div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 50px 15px; min-height: 100vh; font-family: 'Inter', sans-serif;">
+
+    <form id="hrForm" method="post" enctype="multipart/form-data" action="/FormHR/MangHangHoaRaCong"
+          style="max-width: 850px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(6, 78, 59, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
+
+        @Html.AntiForgeryToken()
+
+        @* --- HEADER GRADIENT --- *@
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 45px 40px; color: #ffffff; text-align: center; position: relative;">
+            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.7; font-weight: 700; letter-spacing: 2px;">E-FORM SECURITY</div>
+            <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px;">Đăng ký mang hàng hóa ra cổng</h2>
+            <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 6px 18px; background: rgba(255,255,255,0.2); border-radius: 100px; font-size: 13px; backdrop-filter: blur(4px);">
+                <span>📅 Ngày lập đơn:</span>
+                <span style="font-weight: 800;">@ngayHienThi</span>
+            </div>
+        </div>
+
+        <div style="padding: 40px;">
+
+            @* --- PHẦN 1: THÔNG TIN NHÂN SỰ (Lấy từ CK) --- *@
+            <div style="margin-bottom: 35px;">
+                <h3 style="color: #065f46; font-size: 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <i class="fa fa-user-shield" style="font-size: 18px; color: #10b981;"></i> Thông tin người đăng ký
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div><label style="@labelStyle">Họ tên nhân viên</label><input name="TenNguoiNv" value="@tenNguoiNv" readonly style="@inputStyle; background: #f9fafb; border-color: #f3f4f6;"></div>
+                    <div><label style="@labelStyle">Phòng ban</label><input name="PhanBo" value="@phongBan" readonly style="@inputStyle; background: #f9fafb; border-color: #f3f4f6;"></div>
+                    <div><label style="@labelStyle">Mã nhân viên</label><input value="@soNhanVien" readonly style="@inputStyle; background: #f9fafb; border-color: #f3f4f6;"></div>
+                </div>
+            </div>
+
+            @* --- PHẦN 2: CHI TIẾT HÀNG HÓA --- *@
+            <div style="@boxStyle">
+                <h3 style="color: #065f46; font-size: 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 25px; font-weight: 800; text-transform: uppercase;">
+                    <i class="fa fa-boxes" style="font-size: 18px; color: #10b981;"></i> Chi tiết hàng hóa & Thời gian
+                </h3>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="@labelStyle">Thời gian dự tính mang hàng ra <span style="color:#ef4444">*</span></label>
+                    <input type="datetime-local" id="inpTimeDuTinh" name="TimeDuTinh"
+                           style="@inputStyle; border-color: #10b981; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.05);" required>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="@labelStyle">Mô tả hàng hóa (Số lượng, chủng loại, lý do...) <span style="color:#ef4444">*</span></label>
+                    <textarea name="MoTa" placeholder="Ví dụ: 02 Thùng linh kiện gửi bảo hành cho đối tác A..."
+                              style="@inputStyle; height: 110px; resize: none;" required></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+                    @* Khu vực dán ảnh minh chứng *@
+                    <div>
+                        <label style="@labelStyle">Ảnh hàng hóa thực tế (Ctrl+V)</label>
+                        <div id="paste_AnhHangHoa" tabindex="0"
+                             style="width: 100%; border: 2.5px dashed #10b981; height: 180px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f0fdf4; color: #059669; cursor: pointer; transition: 0.3s; gap: 10px; outline: none;">
+                            <i class="fa fa-camera" style="font-size: 24px;"></i>
+                            <span style="font-size: 11px; font-weight: 700; text-align:center; padding: 0 10px;">Click tại đây rồi nhấn Ctrl+V để dán ảnh hàng hóa</span>
+                        </div>
+                        <input type="file" id="AnhHangHoa" name="AnhHangHoa" hidden accept="image/*">
+                    </div>
+
+                    @* Khu vực đính kèm file chính thức *@
+                    <div>
+                        <label style="@labelStyle">Chứng từ kèm theo (PDF/Scan)</label>
+                        <div style="background: #ffffff; border: 2px dashed #cbd5e0; border-radius: 18px; padding: 20px; height: 180px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.3s;">
+                            <i class="fa fa-file-pdf-o" style="font-size: 24px; color: #94a3b8; margin-bottom: 10px;"></i>
+                            <input type="file" name="UploadFile" style="font-size: 12px; width: 100%; color: #64748b;">
+                            <p style="font-size: 10px; color: #94a3b8; margin-top: 12px; text-align: center; line-height: 1.4;">Tải lên phiếu xuất kho hoặc biên bản bàn giao (nếu có)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* --- PHẦN 3: CAM KẾT & QUY ĐỊNH AN NINH --- *@
+            <div style="@boxStyle; border-color: #6ee7b7; background: #f0fdf4; padding: 25px;">
+                <h3 style="color: #065f46; font-size: 13px; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-weight: 800; text-transform: uppercase;">
+                    <i class="fa fa-info-circle"></i> Quy định về việc mang tài sản ra khỏi công ty
+                </h3>
+                <ul style="margin: 0 0 20px 20px; padding: 0; color: #065f46; font-size: 12px; line-height: 1.8; font-weight: 600; list-style-type: square;">
+                    <li>Mọi hàng hóa/tài sản mang ra phải đúng với mô tả và số lượng trong phiếu này.</li>
+                    <li>Bộ phận An ninh có quyền kiểm tra thực tế hàng hóa tại cổng trước khi cho phép ra.</li>
+                    <li>Nhân viên chịu hoàn toàn trách nhiệm trước pháp luật và công ty về tính trung thực của việc khai báo.</li>
+                </ul>
+
+                @* Ô CHECKBOX CAM KẾT *@
+                <label id="containerCamKet" style="display: flex; align-items: center; gap: 15px; cursor: pointer; padding: 15px; background: #ffffff; border-radius: 15px; border: 2px solid #10b981; transition: 0.3s;">
+                    <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; cursor: pointer; accent-color: #10b981;">
+                    <span style="font-size: 13px; color: #064e3b; font-weight: 800; line-height: 1.4;">
+                        Tôi xác nhận hàng hóa mang ra là đúng quy định và chịu trách nhiệm về tính chính xác của thông tin trên.
+                    </span>
+                </label>
+            </div>
+
+            @* --- NÚT GỬI --- *@
+            <div style="margin-top: 30px; text-align: center;">
+                <button type="button" onclick="xuLyLuuDon()"
+                        style="width: 100%; padding: 20px; background: linear-gradient(to right, #10b981, #059669); color: #fff; border: none; border-radius: 20px; font-weight: 900; font-size: 17px; cursor: pointer; transition: 0.3s; box-shadow: 0 15px 30px -5px rgba(16, 185, 129, 0.4); text-transform: uppercase; letter-spacing: 1px;">
+                    <i class="fa fa-check-square-o" style="margin-right: 10px;"></i> Gửi phiếu đăng ký
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // 1. Tự động gán thời gian hiện tại cho Input
+    window.onload = function() {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('inpTimeDuTinh').value = now.toISOString().slice(0, 16);
+    };
+
+    // 2. Logic dán ảnh (Paste) từ Clipboard (Ctrl+V)
+    const zone = document.getElementById("paste_AnhHangHoa");
+    if (zone) {
+        zone.addEventListener('paste', (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf("image") !== -1) {
+                    const blob = items[i].getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        zone.innerHTML = `<img src="${event.target.result}" style="width:100%; height:100%; object-fit:contain; border-radius:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">`;
+                        zone.style.borderColor = "#10b981";
+                        zone.style.background = "#ffffff";
+
+                        const fileInput = document.getElementById("AnhHangHoa");
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(blob);
+                        fileInput.files = dataTransfer.files;
+                    };
+                    reader.readAsDataURL(blob);
+                }
+            }
+        });
+        zone.addEventListener('click', () => zone.focus());
+        zone.addEventListener('focus', () => {
+            zone.style.borderColor = "#059669";
+            zone.style.boxShadow = "0 0 0 4px rgba(16, 185, 129, 0.1)";
+        });
+        zone.addEventListener('blur', () => {
+            zone.style.borderColor = "#10b981";
+            zone.style.boxShadow = "none";
+        });
+    }
+
+    // 3. Hàm kiểm tra và nộp form
+    function xuLyLuuDon() {
+        const timeValue = document.getElementById('inpTimeDuTinh').value;
+        const moTa = document.querySelector('textarea[name="MoTa"]').value;
+        const containerCamKet = document.getElementById("containerCamKet");
+
+        // Kiểm tra thời gian
+        if (!timeValue) {
+            alert("⚠️ Vui lòng chọn thời gian dự tính mang hàng ra!");
+            return;
+        }
+
+        // Kiểm tra mô tả
+        if (moTa.trim().length < 5) {
+            alert("⚠️ Vui lòng mô tả chi tiết hàng hóa và số lượng!");
+            return;
+        }
+
+        // Kiểm tra cam kết (Bắt buộc)
+        if (!document.getElementById('chkCamKet').checked) {
+            alert("⚠️ Bạn chưa xác nhận cam kết thông tin chính xác!");
+            containerCamKet.style.borderColor = "#ef4444";
+            containerCamKet.style.background = "#fee2e2";
+            return;
+        }
+
+        // Reset màu sắc cam kết nếu đã hợp lệ
+        containerCamKet.style.borderColor = "#10b981";
+        containerCamKet.style.background = "#ffffff";
+
+        if (confirm("Xác nhận gửi phiếu đăng ký mang hàng hóa ra cổng này?")) {
+            document.getElementById("hrForm").submit();
+        }
+    }
+</script>

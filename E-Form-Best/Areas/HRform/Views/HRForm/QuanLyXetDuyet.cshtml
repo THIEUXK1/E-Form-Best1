@@ -1,0 +1,150 @@
+﻿@model IEnumerable<E_Form_Best.Models.ITForm.FormHr>
+
+@{
+    ViewData["Title"] = "Quản Lý Xét Duyệt";
+    Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
+
+    // 1. Tính toán số liệu thống kê (Giữ nguyên logic của bạn)
+    var total = Model?.Count() ?? 0;
+    var choQuanLy = Model?.Count(x => x.IdNguoiDuyet == null && !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
+    var choAdmin = Model?.Count(x => x.IdNguoiDuyet != null && x.IdAdmin == null && !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
+    var daHuy = Model?.Count(x => (x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
+
+    // 2. Lấy Role từ Claims (Thay thế Session)
+    var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Guest";
+}
+
+<div style="padding: 20px; background: #f1f5f9; min-height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif;">
+
+    @* --- TOP BAR --- *@
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px;">
+        <h2 style="margin: 0; color: #0f172a; font-weight: 900; font-size: 22px; letter-spacing: -0.5px;">
+            <i class="fa fa-check-circle" style="color: #2563eb; margin-right: 8px;"></i>XÉT DUYỆT ĐƠN TỪ
+        </h2>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <div style="position: relative;">
+                <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px;"></i>
+                <input type="text" id="quickSearch" onkeyup="filterTable()" placeholder="Tìm tên, loại đơn..."
+                       style="padding: 10px 12px 10px 38px; border-radius: 10px; border: 2px solid #e2e8f0; font-size: 14px; width: 250px; outline: none; box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-weight: 600;">
+            </div>
+            @* Hiển thị Role từ Cookie *@
+            <div style="font-size: 12px; background: #1e293b; padding: 8px 15px; border-radius: 8px; font-weight: 800; color: #ffffff; text-transform: uppercase;">
+                @userRole
+            </div>
+        </div>
+    </div>
+
+    @* --- STATS ROW (Giữ nguyên các thẻ thống kê màu sắc) --- *@
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px;">
+        @{
+            var stats = new[] {
+                new { Label = "TỔNG ĐƠN", Value = total, Color = "#1e293b", Bg = "white", Filter = "" },
+                new { Label = "CHỜ QUẢN LÝ", Value = choQuanLy, Color = "#9a3412", Bg = "#fffbeb", Filter = "CHỜ QL" },
+                new { Label = "CHỜ ADMIN", Value = choAdmin, Color = "#1e40af", Bg = "#eff6ff", Filter = "ADMIN" },
+                new { Label = "ĐÃ HỦY", Value = daHuy, Color = "#991b1b", Bg = "#fef2f2", Filter = "ĐÃ HỦY" }
+                };
+        }
+        @foreach (var s in stats)
+        {
+            <div onclick="filterByStatus('@s.Filter')" style="background: @s.Bg; padding: 15px 20px; border-radius: 14px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
+                 onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='@s.Color'" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(0,0,0,0.03)'">
+                <span style="font-size: 12px; font-weight: 900; color: @s.Color; letter-spacing: 0.5px;">@s.Label</span>
+                <span style="font-size: 24px; font-weight: 1000; color: @s.Color;">@s.Value</span>
+            </div>
+        }
+    </div>
+
+    @* --- TABLE AREA --- *@
+    <div style="background: white; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+        <table id="dataTable" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                    <th style="padding: 15px 20px; text-align: left; color: #475569; font-size: 12px; font-weight: 800; text-transform: uppercase;">Nhân viên</th>
+                    <th style="padding: 15px 20px; text-align: left; color: #475569; font-size: 12px; font-weight: 800; text-transform: uppercase;">Thông tin đơn</th>
+                    <th style="padding: 15px 20px; text-align: left; color: #475569; font-size: 12px; font-weight: 800; text-transform: uppercase; width: 200px;">Tiến độ</th>
+                    <th style="padding: 15px 20px; text-align: center; color: #475569; font-size: 12px; font-weight: 800; text-transform: uppercase;">Trạng thái</th>
+                    <th style="padding: 15px 20px; text-align: right;">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null)
+                {
+                    foreach (var item in Model)
+                    {
+                        bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]");
+                        bool isFinished = item.IdAdmin != null;
+                        bool isApprovedByManager = item.IdNguoiDuyet != null;
+
+                        // Logic tính toán Progress Bar
+                        string pWidth = "5%"; string pColor = "#94a3b8"; string pText = "Mới tạo";
+                        if (isCancelled) { pWidth = "100%"; pColor = "#ef4444"; pText = "Đã hủy"; }
+                        else if (isFinished) { pWidth = "100%"; pColor = "#10b981"; pText = "Hoàn tất"; }
+                        else if (isApprovedByManager) { pWidth = "66%"; pColor = "#2563eb"; pText = "Chờ Admin"; }
+                        else { pWidth = "33%"; pColor = "#f59e0b"; pText = "Chờ QL"; }
+
+                        <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">
+                            <td style="padding: 15px 20px;">
+                                <div style="font-weight: 800; color: #0f172a; font-size: 14px;">@item.TenNguoiNv</div>
+                                <div style="font-size: 12px; color: #64748b; font-weight: 600;">@item.PhanBo</div>
+                            </td>
+                            <td style="padding: 15px 20px;">
+                                <div style="font-weight: 700; color: #1e293b; font-size: 14px;">@item.TenForm?.Replace("[ĐÃ HỦY]", "")</div>
+                                <div style="font-size: 11px; color: #64748b; font-weight: 700;">
+                                    <span style="color: #2563eb;">#@item.Id</span> • <i class="fa fa-clock-o"></i> @item.TimeNguoiTao?.ToString("dd/MM HH:mm")
+                                </div>
+                            </td>
+                            <td style="padding: 15px 20px;">
+                                <div style="font-size: 10px; font-weight: 900; color: @pColor; text-transform: uppercase; margin-bottom: 6px; display: flex; justify-content: space-between;">
+                                    <span>@pText</span>
+                                    <span>@pWidth</span>
+                                </div>
+                                <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden;">
+                                    <div style="width: @pWidth; height: 100%; background: @pColor; border-radius: 10px; transition: 0.5s;"></div>
+                                </div>
+                            </td>
+                            <td style="padding: 15px 20px; text-align: center;">
+                                @{
+                                    var (bg, fg, txt) = isCancelled ? ("#fee2e2", "#b91c1c", "ĐÃ HỦY") :
+                                    isFinished ? ("#d1fae5", "#047857", "XONG") :
+                                    isApprovedByManager ? ("#dbeafe", "#1e40af", "ADMIN") : ("#fef3c7", "#b45309", "CHỜ QL");
+                                }
+                                <span style="background:@bg; color:@fg; padding:5px 12px; border-radius:8px; font-size:11px; font-weight:900; display: inline-block; min-width: 80px; border: 1px solid rgba(0,0,0,0.05);">@txt</span>
+                            </td>
+                            <td style="padding: 15px 20px; text-align: right;">
+                                <a href="/FormHR/ChiTiet/@item.Id"
+                                   style="text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 800; transition: 0.3s; display: inline-block;
+                                                  background: @(isFinished || isCancelled ? "#f8fafc" : "#1e293b");
+                                                  color: @(isFinished || isCancelled ? "#64748b" : "#ffffff");
+                                                  border: 2px solid @(isFinished || isCancelled ? "#e2e8f0" : "#1e293b");
+                                                  text-transform: uppercase;">
+                                    @(isFinished || isCancelled ? "Xem lại" : "Duyệt đơn")
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Hàm tìm kiếm nhanh
+        function filterTable() {
+            const f = document.getElementById("quickSearch").value.toUpperCase();
+            const rows = document.querySelectorAll("#dataTable tbody tr");
+            rows.forEach(r => {
+                const text = r.innerText.toUpperCase();
+                r.style.display = text.includes(f) ? "" : "none";
+            });
+        }
+
+        // Hàm lọc theo trạng thái khi click vào stats
+        function filterByStatus(s) {
+            document.getElementById("quickSearch").value = s;
+            filterTable();
+        }
+    </script>
+}

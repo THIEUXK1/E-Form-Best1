@@ -1,0 +1,202 @@
+﻿@model E_Form_Best.Models.ITForm.FormHr
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Đăng ký xe công tác";
+    Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
+
+    // --- CHUYỂN ĐỔI TỪ SESSION SANG COOKIE CLAIMS (CK) ---
+    var tenNguoiNv = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+    var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
+
+    // Toolkit Style màu Xanh Dương chủ đạo
+    string primaryBlue = "#3b82f6";
+    string darkBlue = "#1e3a8a";
+    string lightBlueBg = "#eff6ff";
+
+    string inputStyle = $"width: 100%; padding: 12px; border-radius: 12px; border: 1.5px solid #dbeafe; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: {darkBlue};";
+    string labelStyle = "font-weight: 800; color: #1e40af; font-size: 11px; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 1px;";
+    string boxStyle = $"background: #ffffff; padding: 30px; border-radius: 24px; border: 1px solid #dbeafe; margin-bottom: 25px; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.05);";
+}
+
+<div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 50px 15px; min-height: 100vh; font-family: 'Inter', sans-serif;">
+
+    <form id="carForm" method="post" enctype="multipart/form-data" action="/FormHR/DangKySuDungXeCongTac"
+          style="max-width: 850px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(30, 58, 138, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
+
+        @Html.AntiForgeryToken()
+
+        @* --- HEADER GRADIENT --- *@
+        <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 45px 40px; color: #ffffff; text-align: center; position: relative;">
+            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.7; font-weight: 700; letter-spacing: 2px;">E-FORM LOGISTICS</div>
+            <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px;">Đăng ký sử dụng xe công tác</h2>
+            <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 6px 18px; background: rgba(255,255,255,0.2); border-radius: 100px; font-size: 13px; backdrop-filter: blur(4px);">
+                <span>📅 Ngày lập đơn:</span>
+                <span style="font-weight: 800;">@ngayHienThi</span>
+            </div>
+        </div>
+
+        <div style="padding: 40px;">
+
+            @* --- PHẦN 1: THÔNG TIN NHÂN SỰ (Lấy từ CK) --- *@
+            <div style="margin-bottom: 35px;">
+                <h3 style="color: #1e40af; font-size: 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <i class="fa fa-user-circle" style="font-size: 18px; color: #3b82f6;"></i> Thông tin người đăng ký
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div><label style="@labelStyle">Họ tên nhân viên</label><input name="TenNguoiNv" value="@tenNguoiNv" readonly style="@inputStyle; background: #f8fafc; border-color: #f1f5f9;"></div>
+                    <div><label style="@labelStyle">Phòng ban</label><input name="PhanBo" value="@phongBan" readonly style="@inputStyle; background: #f8fafc; border-color: #f1f5f9;"></div>
+                    <div><label style="@labelStyle">Mã nhân viên</label><input value="@soNhanVien" readonly style="@inputStyle; background: #f8fafc; border-color: #f1f5f9;"></div>
+                </div>
+            </div>
+
+            @* --- PHẦN 2: CHI TIẾT LỊCH TRÌNH XE --- *@
+            <div style="@boxStyle">
+                <h3 style="color: #1e40af; font-size: 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 25px; font-weight: 800; text-transform: uppercase;">
+                    <i class="fa fa-car" style="font-size: 18px; color: #3b82f6;"></i> Lịch trình & Mục đích
+                </h3>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="@labelStyle">Thời gian dự tính sử dụng xe <span style="color:#ef4444">*</span></label>
+                    <input type="datetime-local" id="inpTimeDuTinh" name="TimeDuTinh"
+                           style="@inputStyle; border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.05);" required>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="@labelStyle">Mục đích sử dụng / Lịch trình chi tiết <span style="color:#ef4444">*</span></label>
+                    <textarea name="LiDo" placeholder="Ví dụ: Đi công tác tại nhà máy khách hàng A, địa chỉ..., số lượng người đi cùng..."
+                              style="@inputStyle; height: 110px; resize: none;" required></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+                    @* Khu vực dán ảnh minh chứng *@
+                    <div>
+                        <label style="@labelStyle">Ảnh minh chứng (Ctrl+V)</label>
+                        <div id="paste_AnhXe" tabindex="0" class="paste-zone"
+                             style="width: 100%; border: 2.5px dashed #3b82f6; height: 180px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #eff6ff; color: #2563eb; cursor: pointer; transition: 0.3s; gap: 10px; outline: none;">
+                            <i class="fa fa-image" style="font-size: 24px;"></i>
+                            <span style="font-size: 11px; font-weight: 700; text-align:center; padding:0 10px;">Dán lệnh điều động hoặc kế hoạch tại đây</span>
+                        </div>
+                        <input type="file" id="AnhXe" name="AnhXe" hidden accept="image/*">
+                    </div>
+
+                    @* Khu vực đính kèm file chính thức *@
+                    <div>
+                        <label style="@labelStyle">Tài liệu kèm theo (PDF/Docx)</label>
+                        <div style="background: #ffffff; border: 2px dashed #cbd5e0; border-radius: 18px; padding: 20px; height: 180px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.3s;">
+                            <i class="fa fa-file-text-o" style="font-size: 24px; color: #94a3b8; margin-bottom: 10px;"></i>
+                            <input type="file" name="UploadFile" style="font-size: 12px; width: 100%; color: #64748b;">
+                            <p style="font-size: 10px; color: #94a3b8; margin-top: 12px; text-align: center; line-height: 1.4;">Tải lên bản scan kế hoạch đã phê duyệt nếu có</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* --- PHẦN 3: CAM KẾT & NỘI QUY --- *@
+            <div style="@boxStyle; border-color: #bfdbfe; background: #f0f9ff; padding: 25px;">
+                <h3 style="color: #1e40af; font-size: 13px; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-weight: 800; text-transform: uppercase;">
+                    <i class="fa fa-shield"></i> Quy định sử dụng xe công tác
+                </h3>
+                <ul style="margin: 0 0 20px 20px; padding: 0; color: #1e40af; font-size: 12px; line-height: 1.8; font-weight: 600; list-style-type: circle;">
+                    <li>Chỉ sử dụng xe cho mục đích công việc đã đăng ký.</li>
+                    <li>Phải có mặt tại điểm xuất phát đúng giờ theo lịch trình.</li>
+                    <li>Giữ gìn vệ sinh và tài sản trên xe trong suốt chuyến đi.</li>
+                </ul>
+
+                @* Ô CHECKBOX XÁC NHẬN *@
+                <label id="containerCamKet" style="display: flex; align-items: center; gap: 15px; cursor: pointer; padding: 15px; background: #ffffff; border-radius: 15px; border: 2px solid #3b82f6; transition: 0.3s;">
+                    <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; cursor: pointer; accent-color: #3b82f6;">
+                    <span style="font-size: 13px; color: #1e3a8a; font-weight: 800; line-height: 1.4;">
+                        Tôi xác nhận nội dung đăng ký là đúng sự thật và cam kết tuân thủ quy chế sử dụng xe của công ty.
+                    </span>
+                </label>
+            </div>
+
+            @* --- NÚT GỬI --- *@
+            <div style="margin-top: 30px; text-align: center;">
+                <button type="button" onclick="xuLyLuuDon()"
+                        style="width: 100%; padding: 20px; background: linear-gradient(to right, #3b82f6, #2563eb); color: #fff; border: none; border-radius: 20px; font-weight: 900; font-size: 17px; cursor: pointer; transition: 0.3s; box-shadow: 0 15px 30px -5px rgba(59, 130, 246, 0.4); text-transform: uppercase; letter-spacing: 1px;">
+                    <i class="fa fa-paper-plane" style="margin-right: 10px;"></i> Xác nhận gửi yêu cầu
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // 1. Tự động thiết lập thời gian hiện tại
+    window.onload = function() {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('inpTimeDuTinh').value = now.toISOString().slice(0, 16);
+    };
+
+    // 2. Logic dán ảnh (Paste) từ Clipboard
+    const zone = document.getElementById("paste_AnhXe");
+    if (zone) {
+        zone.addEventListener('paste', (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf("image") !== -1) {
+                    const blob = items[i].getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        zone.innerHTML = `<img src="${event.target.result}" style="width:100%; height:100%; object-fit:contain; border-radius:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">`;
+                        zone.style.borderColor = "#3b82f6";
+                        zone.style.background = "#ffffff";
+
+                        const fileInput = document.getElementById("AnhXe");
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(blob);
+                        fileInput.files = dataTransfer.files;
+                    };
+                    reader.readAsDataURL(blob);
+                }
+            }
+        });
+        zone.addEventListener('click', () => zone.focus());
+        zone.addEventListener('focus', () => zone.style.borderColor = "#2563eb");
+        zone.addEventListener('blur', () => {
+            if (!document.getElementById("AnhXe").files.length) {
+                zone.style.borderColor = "#3b82f6";
+            }
+        });
+    }
+
+    // 3. Hàm gửi đơn và kiểm tra dữ liệu đầy đủ
+    function xuLyLuuDon() {
+        const timeValue = document.getElementById('inpTimeDuTinh').value;
+        const lyDo = document.querySelector('textarea[name="LiDo"]').value;
+        const containerCamKet = document.getElementById("containerCamKet");
+
+        // Kiểm tra thời gian
+        if (!timeValue) {
+            alert("⚠️ Vui lòng chọn thời gian bắt đầu sử dụng xe!");
+            return;
+        }
+
+        // Kiểm tra lý do
+        if (lyDo.trim().length < 10) {
+            alert("⚠️ Vui lòng mô tả chi tiết lộ trình và mục đích (tối thiểu 10 ký tự)!");
+            return;
+        }
+
+        // Kiểm tra Cam kết (Bắt buộc)
+        if (!document.getElementById('chkCamKet').checked) {
+            alert("⚠️ Bạn chưa xác nhận cam kết quy định sử dụng xe!");
+            containerCamKet.style.borderColor = "#ef4444";
+            containerCamKet.style.background = "#fee2e2";
+            return;
+        }
+
+        // Reset màu sắc nếu đã hợp lệ
+        containerCamKet.style.borderColor = "#3b82f6";
+        containerCamKet.style.background = "#ffffff";
+
+        if (confirm("Hệ thống sẽ gửi yêu cầu điều xe công tác. Bạn chắc chắn chứ?")) {
+            document.getElementById("carForm").submit();
+        }
+    }
+</script>
