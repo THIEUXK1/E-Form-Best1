@@ -1,0 +1,420 @@
+﻿@model E_Form_Best.Models.ITForm.FormIt
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Chi tiết yêu cầu IT";
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+
+    var currentUserName = User.Identity.Name ?? "";
+    var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value
+                          ?? User.FindFirst("UserRole")?.Value ?? "";
+
+    var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    int currentUserId = string.IsNullOrEmpty(userIdStr) ? 0 : int.Parse(userIdStr);
+
+    // --- LOGIC TRẠNG THÁI ---
+    bool isCancelled = Model.TenForm != null && Model.TenForm.Contains("[ĐÃ HỦY]");
+    bool isFinished = Model.IdAdmin != null || Model.TrangThai == "HoanTat";
+    bool isApprovedByManager = Model.IdNguoiDuyet != null || Model.TrangThai == "DaDuyet";
+
+    string statusColor = "#3b82f6";
+    string statusText = "CHỜ QUẢN LÝ";
+
+    if (isCancelled) { statusColor = "#dc2626"; statusText = "ĐÃ HỦY"; }
+    else if (isFinished) { statusColor = "#059669"; statusText = "ĐÃ XỬ LÝ (IT)"; }
+    else if (isApprovedByManager) { statusColor = "#d97706"; statusText = "CHỜ IT XỬ LÝ"; }
+
+    string headerGradient = "linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)";
+    if (isCancelled) headerGradient = "linear-gradient(135deg, #991b1b 0%, #dc2626 100%)";
+    if (isFinished) headerGradient = "linear-gradient(135deg, #065f46 0%, #059669 100%)";
+
+    List<string> listImages = new List<string>();
+    string chiTietNoiDung = "";
+
+    // --- XỬ LÝ FILE ĐÍNH KÈM ---
+    string fileUrl = "";
+    string fileName = "";
+    if (!string.IsNullOrEmpty(Model.FileDinhKem))
+    {
+        fileName = System.IO.Path.GetFileName(Model.FileDinhKem);
+        fileUrl = "/FileIT/" + fileName;
+    }
+
+    // --- XỬ LÝ DỮ LIỆU CHI TIẾT THEO LOẠI ĐƠN ---
+    if (Model.ItMail1s != null && Model.ItMail1s.Any())
+    {
+        var ct = Model.ItMail1s.First();
+        if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+        chiTietNoiDung += RenderInfoRow("📧", "Địa chỉ Email", ct.Email, "#eef2ff", "#1e40af");
+        chiTietNoiDung += RenderInfoRow("💼", "Vị trí/Chức vụ", ct.ViTri, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("📞", "Số nội bộ", ct.SoNoiBo, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🌍", "Gửi nhận ngoài", ct.GuiRaNgoai, "#fff7ed", "#c2410c");
+        chiTietNoiDung += RenderInfoRow("📱", "Dùng trên Mobile", ct.SuDungTrenDienThoai, "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("🌐", "Sử dụng Webmail", ct.SuDungWebMail, "#f5f3ff", "#5b21b6");
+        chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDich, "#f1f5f9", "#334155");
+    }
+    else if (Model.ItOrderIt2s != null && Model.ItOrderIt2s.Any())
+    {
+        var ct = Model.ItOrderIt2s.First();
+        if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+        chiTietNoiDung += RenderInfoRow("🛠️", "Loại yêu cầu", "Sửa chữa / Cấp thiết bị", "#fef2f2", "#991b1b");
+        chiTietNoiDung += RenderInfoRow("💬", "Mô tả lỗi/Yêu cầu", ct.GhiChu, "#f8fafc", "#0f172a");
+    }
+    else if (Model.ItDangKiSuDungWifi3s != null && Model.ItDangKiSuDungWifi3s.Any())
+    {
+        var ct = Model.ItDangKiSuDungWifi3s.First();
+        if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+        chiTietNoiDung += RenderInfoRow("📶", "Thiết bị", ct.LoaiThietBi, "#f0f9ff", "#0369a1");
+        chiTietNoiDung += RenderInfoRow("🆔", "Địa chỉ MAC", ct.MacTb, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("⏱️", "Thời gian", ct.LoaiThoiGian, "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("📅", "Từ ngày", ct.ThoiGianBatDau?.ToString("dd/MM/yyyy HH:mm"), "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("📅", "Đến ngày", ct.ThoiGianKetThuc?.ToString("dd/MM/yyyy HH:mm"), "#f8fafc", "#0f172a");
+    }
+    else if (Model.ItDangKiSuDungDtban4s != null && Model.ItDangKiSuDungDtban4s.Any())
+    {
+        var ct = Model.ItDangKiSuDungDtban4s.First();
+        if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+        chiTietNoiDung += RenderInfoRow("☎️", "Loại đơn", "Đăng ký sử dụng điện thoại bàn", "#fff1f2", "#be123c");
+        chiTietNoiDung += RenderInfoRow("ℹ️", "Thông tin", ct.ThongTin, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🎯", "Mục đích", ct.MucDich, "#f0fdf4", "#166534");
+    }
+
+    string RenderInfoRow(string icon, string label, string value, string bgColor, string textColor)
+    {
+        return $@"<div class='info-row-item' style='margin-bottom:12px; display:flex; align-items:center; gap:12px; background:#fff; padding:12px; border-radius:12px; border:1.5px solid #e2e8f0; transition: all 0.2s;'>
+                    <span style='background:{bgColor}; padding:8px; border-radius:10px; min-width:40px; text-align:center; font-size:18px;'>{icon}</span>
+                    <div style='display:flex; flex-direction:column;'>
+                        <strong style='color:{textColor}; font-size:10px; font-weight:900; text-transform:uppercase;'>{label}</strong>
+                        <span style='font-size:15px; color:#0f172a; font-weight:700;'>{value}</span>
+                    </div>
+                  </div>";
+    }
+}
+
+@Html.AntiForgeryToken()
+
+<style>
+    .action-btn {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            filter: brightness(1.1);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+    .info-row-item:hover {
+        border-color: #3b82f6 !important;
+        background: #f0f9ff !important;
+        transform: translateX(5px);
+    }
+
+    .timeline-dot {
+        position: absolute;
+        left: -31px;
+        top: 0;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: white;
+        border: 3px solid #cbd5e1;
+        z-index: 2;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 25px;
+    }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -25px;
+            top: 14px;
+            height: 100%;
+            width: 2px;
+            background: #e2e8f0;
+            z-index: 1;
+        }
+
+        .timeline-item:last-child::before {
+            display: none;
+        }
+</style>
+
+<div style="max-width: 1200px; margin: 0 auto; padding: 25px; font-family: 'Inter', system-ui, -apple-system, sans-serif;">
+    <div style="margin-bottom: 25px;">
+        <a href="/FormIT/DonCho" style="display: inline-flex; align-items: center; gap: 10px; padding: 12px 24px; background: #fff; color: #1e40af; text-decoration: none; border-radius: 12px; font-weight: 800; border: 2.5px solid #1e40af;">
+            <i class="fa fa-arrow-left"></i> DANH SÁCH PHIẾU
+        </a>
+    </div>
+
+    <div style="background: white; border-radius: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #f1f5f9;">
+        @* HEADER *@
+        <div style="background: @headerGradient; padding: 40px; color: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span style="background: rgba(255,255,255,0.2); padding: 6px 15px; border-radius: 50px; font-size: 12px; font-weight: 800; text-transform: uppercase;">Mã số: #@Model.Id</span>
+                    <h1 style="margin: 15px 0 8px 0; font-size: 32px; font-weight: 900;">@Model.TenForm</h1>
+                    <div style="opacity: 0.9; font-weight: 500;">
+                        <span><i class="fa fa-calendar"></i> @Model.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                </div>
+                <div style="background: white; padding: 15px 30px; border-radius: 20px; text-align: center;">
+                    <div style="font-size: 11px; font-weight: 900; color: #94a3b8; text-transform: uppercase;">Trạng thái</div>
+                    <div style="font-size: 20px; font-weight: 900; color: @statusColor">@statusText</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="padding: 40px;">
+            <div style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 40px;">
+                @* CỘT TRÁI *@
+                <div>
+                    <h3 style="margin-bottom: 25px; color: #1e293b; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+                        <span style="width: 4px; height: 24px; background: #1e40af; border-radius: 4px;"></span> THÔNG TIN CHI TIẾT
+                    </h3>
+
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px;">
+                        <div style="background: #f8fafc; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0;">
+                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 10px;">Mã nhân viên</small>
+                            <div style="font-weight: 700; color: #1e293b;">@Model.SoNhanVien</div>
+                        </div>
+                        <div style="background: #f8fafc; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0;">
+                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 10px;">Bộ phận</small>
+                            <div style="font-weight: 700; color: #1e40af;">@Model.BoPhan</div>
+                        </div>
+                        <div style="background: #f8fafc; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0;">
+                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 10px;">Họ tên</small>
+                            <div style="font-weight: 700; color: #1e40af;">@Model.TenNguoiNv</div>
+                        </div>
+                    </div>
+
+                    <div style="background: #f1f5f9; padding: 25px; border-radius: 20px; margin-bottom: 40px;">
+                        @Html.Raw(chiTietNoiDung)
+                    </div>
+
+                    @* NHÂN VIÊN IT *@
+                    <h3 style="margin-bottom: 20px; color: #ea580c; font-size: 18px; font-weight: 800;">ĐỘI NGŨ IT HỖ TRỢ</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                        @if (Model.ItCtNguoiHoTros != null && Model.ItCtNguoiHoTros.Any())
+                        {
+                            var currentSupport = Model.ItCtNguoiHoTros.OrderByDescending(x => x.Stt).First();
+                            foreach (var hoTro in Model.ItCtNguoiHoTros.OrderBy(x => x.Stt))
+                            {
+                                <div style="background: white; border: 1.5px solid #fed7aa; padding: 18px; border-radius: 18px; display: flex; align-items: center; gap: 15px; position: relative;">
+                                    <div style="background: #ffedd5; color: #9a3412; width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900;">
+                                        @(hoTro.IdItNguoiHoTroNavigation?.Ten?.Substring(0, 1).ToUpper() ?? "IT")
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 800; color: #9a3412; font-size: 15px;">@hoTro.IdItNguoiHoTroNavigation?.Ten</div>
+                                        <div style="font-size: 12px; color: #c2410c;">@hoTro.IdItNguoiHoTroNavigation?.MaNv</div>
+                                    </div>
+                                    @if (hoTro.Id == currentSupport.Id)
+                                    {
+                                        <span style="position:absolute; top:-10px; right:10px; background:#ea580c; color:white; font-size:9px; padding:2px 8px; border-radius:10px; font-weight:bold;">HIỆN TẠI</span>
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+
+                    @* FORM CHỈ ĐỊNH IT (Dành cho Admin/IT) *@
+                    @if ((currentUserRole == "Admin" || currentUserRole == "All" || currentUserRole == "IT") && !isCancelled && !isFinished)
+                    {
+                        <div style="background: #fff7ed; border: 1.5px dashed #fb923c; padding: 20px; border-radius: 20px; margin-bottom: 40px;">
+                            <p style="margin:0 0 10px 0; font-size:12px; font-weight:800; color:#9a3412;">CHỈ ĐỊNH / THAY ĐỔI NGƯỜI HỖ TRỢ:</p>
+                            <div style="display: flex; gap: 10px;">
+                                <select id="selectIT" style="flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #fdba74; font-weight: 600;">
+                                    <option value="">-- Chọn nhân viên IT --</option>
+                                    @if (ViewBag.ListNguoiHoTro != null)
+                                    {
+                                        foreach (var it in (List<E_Form_Best.Models.ITForm.ItNguoiHoTro>)ViewBag.ListNguoiHoTro)
+                                        {
+                                            <option value="@it.MaNv">@it.Ten (@it.MaNv)</option>
+                                        }
+                                    }
+                                </select>
+                                <button onclick="changeSupporter()" style="background: #ea580c; color: white; border: none; padding: 0 25px; border-radius: 10px; font-weight: 800; cursor: pointer;">
+                                    XÁC NHẬN
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    @* NHẬT KÝ *@
+                    <h3 style="margin-bottom: 25px; color: #1e293b; font-size: 18px; font-weight: 800;">NHẬT KÝ THAO TÁC</h3>
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 24px; padding: 30px;">
+                        <div style="margin-left: 30px;">
+                            @if (Model.LichSus != null && Model.LichSus.Any())
+                            {
+                                foreach (var ls in Model.LichSus.OrderByDescending(x => x.Time))
+                                {
+                                    <div class="timeline-item">
+                                        <div class="timeline-dot"></div>
+                                        <div style="display: flex; justify-content: space-between; background: #f8fafc; padding: 15px; border-radius: 15px;">
+                                            <div>
+                                                <div style="font-weight: 800; color: #1e293b; font-size: 14px;">@ls.TieuDe</div>
+                                                <div style="color: #64748b; font-size: 13px;">@ls.Mota</div>
+                                            </div>
+                                            <div style="text-align: right;">
+                                                <div style="font-weight: 800; color: #3b82f6; font-size: 13px;">@ls.Time?.ToString("HH:mm")</div>
+                                                <div style="color: #94a3b8; font-size: 11px;">@ls.Time?.ToString("dd/MM/yyyy")</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                @* CỘT PHẢI *@
+                <div>
+                    @if (listImages.Count > 0)
+                    {
+                        <h3 style="margin-bottom: 15px; color: #0f172a; font-size: 16px; font-weight: 800;">HÌNH ẢNH</h3>
+                        foreach (var img in listImages)
+                        {
+                            <div style="border: 2px dashed #cbd5e1; border-radius: 20px; overflow: hidden; margin-bottom: 20px;">
+                                <img src="@img" style="width: 100%; cursor: zoom-in;" onclick="openZoom(this.src)" />
+                            </div>
+                        }
+                    }
+
+                    @if (!string.IsNullOrEmpty(fileUrl))
+                    {
+                        <div style="background: #f0f9ff; border: 1.5px solid #bae6fd; padding: 18px; border-radius: 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px;">
+                            <span style="font-size: 13px; font-weight: 800; color: #0369a1; overflow: hidden; text-overflow: ellipsis;">@fileName</span>
+                            <a href="@fileUrl" download style="background: #0369a1; color: white; padding: 10px 18px; border-radius: 10px; font-weight: 800; text-decoration: none;">TẢI VỀ</a>
+                        </div>
+                    }
+
+                    @* TIẾN ĐỘ *@
+                    <div style="background: #f8fafc; padding: 25px; border-radius: 25px; border: 1px solid #e2e8f0; margin-bottom: 30px;">
+                        <h4 style="margin: 0 0 20px 0; font-size: 14px; font-weight: 900; color: #475569;">TIẾN TRÌNH</h4>
+                        <div style="position: relative; padding-left: 25px; border-left: 2px solid #cbd5e1;">
+                            <div style="margin-bottom: 20px; position: relative;">
+                                <div style="position: absolute; left: -32px; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #059669;"></div>
+                                <div style="font-weight: 800; font-size: 14px;">Người tạo: @Model.TenNguoiTao</div>
+                                <div style="font-size: 12px; color: #64748b;">@Model.TimeNguoiTao?.ToString("HH:mm dd/MM/yyyy")</div>
+                            </div>
+                            <div style="margin-bottom: 20px; position: relative;">
+                                <div style="position: absolute; left: -32px; top: 0; width: 12px; height: 12px; border-radius: 50%; background: @(isApprovedByManager ? "#d97706" : "#cbd5e1");"></div>
+                                <div style="font-weight: 800; font-size: 14px;">Quản lý: @(Model.TenNguoiDuyet ?? "---")</div>
+                                <div style="font-size: 12px; color: #64748b;">@(Model.TimeNguoiDuyet?.ToString("HH:mm dd/MM/yyyy") ?? "Đang chờ...")</div>
+                            </div>
+                            <div style="position: relative;">
+                                <div style="position: absolute; left: -32px; top: 0; width: 12px; height: 12px; border-radius: 50%; background: @(isFinished ? "#1e40af" : "#cbd5e1");"></div>
+                                <div style="font-weight: 800; font-size: 14px;">IT Xử lý: @(Model.TenAdmin ?? "---")</div>
+                                <div style="font-size: 12px; color: #64748b;">@(Model.TimeAdmin?.ToString("HH:mm dd/MM/yyyy") ?? "Đang chờ...")</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* NÚT THAO TÁC *@
+                    @if (!isCancelled && !isFinished)
+                    {
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            @if (!isApprovedByManager && (currentUserRole == "QuanLy" || currentUserRole == "Admin" || currentUserRole == "All"))
+                            {
+                                <button id="btnDuyet" onclick="handleAction('Duyet')" class="action-btn" style="background: #059669; color: white; border: none; padding: 18px; border-radius: 15px; font-weight: 900; cursor: pointer;">
+                                    DUYỆT ĐƠN (QUẢN LÝ)
+                                </button>
+                            }
+                            @if (isApprovedByManager && (currentUserRole == "Admin" || currentUserRole == "All" || currentUserRole == "IT"))
+                            {
+                                <button id="btnHoanThanh" onclick="handleXacNhanHoanThanh()" class="action-btn" style="background: #1e40af; color: white; border: none; padding: 18px; border-radius: 15px; font-weight: 900; cursor: pointer;">
+                                    XÁC NHẬN HOÀN TẤT (IT)
+                                </button>
+                            }
+                            @if (currentUserRole == "QuanLy" || currentUserRole == "Admin" || currentUserRole == "All")
+                            {
+                                <button id="btnHuy" onclick="handleAction('Huy')" class="action-btn" style="background: white; color: #dc2626; border: 2px solid #dc2626; padding: 15px; border-radius: 15px; font-weight: 800; cursor: pointer;">
+                                    HỦY ĐƠN
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="imageOverlay" onclick="closeZoom()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9999; justify-content:center; align-items:center;">
+    <img id="fullImage" src="" style="max-width:90%; max-height:90%; border-radius: 10px;">
+</div>
+
+<script>
+    async function apiPost(url, body, btnIds) {
+        if(btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if(b) b.disabled = true; });
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify(body)
+            });
+            const data = await response.json();
+            if (data.success) {
+                alert(data.message || "Thành công!");
+                location.reload();
+            } else {
+                alert(data.message || "Thất bại");
+                if(btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if(b) b.disabled = false; });
+            }
+        } catch (err) {
+            alert("Lỗi kết nối máy chủ.");
+            if(btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if(b) b.disabled = false; });
+        }
+    }
+
+    function handleAction(type) {
+        let reason = null;
+        if (type === 'Huy') {
+            reason = prompt("Lý do hủy:");
+            if (reason === null || reason.trim() === "") return;
+        }
+        if (confirm("Xác nhận thao tác?")) {
+            apiPost('/FormIT/XuLyDon', { id: @Model.Id, action: type, reason: reason }, ['btnDuyet', 'btnHuy']);
+        }
+    }
+
+    function handleXacNhanHoanThanh() {
+        if (confirm("Xác nhận đã hoàn thành công việc này?")) {
+            apiPost('/FormIT/XacNhanHoanThanh', { id: @Model.Id }, ['btnHoanThanh']);
+        }
+    }
+
+    // Hàm gọi Action ThemNguoiHoTro mới của bạn
+    function changeSupporter() {
+        const maNv = document.getElementById('selectIT').value;
+        if (!maNv) {
+            alert("Vui lòng chọn một nhân viên IT!");
+            return;
+        }
+        if (confirm("Bạn có chắc chắn muốn thay đổi người hỗ trợ cho đơn này?")) {
+            apiPost('/FormIT/ThemNguoiHoTro', { idFormIt: @Model.Id, maNv: maNv });
+        }
+    }
+
+    function openZoom(src) {
+        document.getElementById('fullImage').src = src;
+        document.getElementById('imageOverlay').style.display = 'flex';
+    }
+
+    function closeZoom() {
+        document.getElementById('imageOverlay').style.display = 'none';
+    }
+</script>

@@ -1,0 +1,234 @@
+﻿@model E_Form_Best.Models.ITForm.FormIt
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Đăng ký sử dụng Wifi - IT System";
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+
+    // --- THAY ĐỔI TỪ SESSION SANG COOKIE (CK) ---
+    var tenNguoiNv = User.Identity.Name ?? "";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+    var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
+
+    // Tông màu: Xanh lá (Emerald) - An toàn & Hệ thống
+    string colorPrimary = "#10b981";
+    string colorDark = "#064e3b";
+    string colorLight = "#ecfdf5";
+    string colorBorder = "#6ee7b7";
+
+    string inputBase = $"width: 100%; padding: 12px; border-radius: 12px; border: 1px solid {colorBorder}; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; color: {colorDark}; transition: all 0.3s;";
+    string labelBase = $"font-weight: 800; color: {colorDark}; font-size: 11px; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.8px;";
+    string boxDetail = $"background: #ffffff; padding: 25px; border-radius: 24px; border: 1px solid {colorLight}; margin-bottom: 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);";
+}
+
+<style>
+    .input-hover:focus {
+        border-color: @colorPrimary !important;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1) !important;
+    }
+
+    #paste_AnhWifi:hover {
+        border-color: @colorDark !important;
+        background: #f0fdf4 !important;
+    }
+</style>
+
+<div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', sans-serif;">
+
+    <form id="itWifiForm" method="post" enctype="multipart/form-data" asp-action="TaoIT_Wifi" asp-controller="FormIT" asp-area="ITForm"
+          style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(6, 78, 59, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
+
+        @Html.AntiForgeryToken()
+
+        @* --- HEADER --- *@
+        <div style="background: linear-gradient(135deg, @colorPrimary 0%, @colorDark 100%); padding: 45px 20px; color: #ffffff; text-align: center; position: relative;">
+            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.7; font-weight: 700; letter-spacing: 2px;">NETWORK ACCESS V3.0</div>
+            <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">Phiếu đăng ký sử dụng Wifi</h2>
+            <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: rgba(255,255,255,0.2); border-radius: 50px; font-size: 13px; backdrop-filter: blur(4px);">
+                <span>📅 Ngày yêu cầu:</span>
+                <span style="font-weight: 800; color: #ccfbf1;">@ngayHienThi</span>
+            </div>
+        </div>
+
+        <div style="padding: 40px;">
+
+            @* --- PHẦN 1: THÔNG TIN NHÂN VIÊN --- *@
+            <div style="margin-bottom: 40px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);">1</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin chủ sở hữu</h3>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                    <div style="background: #f0fdf4; padding: 15px; border-radius: 15px; border: 1px solid #dcfce7;">
+                        <label style="@labelBase">Mã nhân viên</label>
+                        <div style="font-weight: 700; color: #065f46; font-size: 15px;">@soNhanVien</div>
+                    </div>
+                    <div style="background: #f0fdf4; padding: 15px; border-radius: 15px; border: 1px solid #dcfce7;">
+                        <label style="@labelBase">Họ tên</label>
+                        <div style="font-weight: 700; color: #065f46; font-size: 15px;">@tenNguoiNv</div>
+                    </div>
+                    <div style="background: #f0fdf4; padding: 15px; border-radius: 15px; border: 1px solid #dcfce7;">
+                        <label style="@labelBase">Bộ phận</label>
+                        <div style="font-weight: 700; color: #065f46; font-size: 15px;">@phongBan</div>
+                    </div>
+                </div>
+            </div>
+
+            @* --- PHẦN 2: CHI TIẾT WIFI --- *@
+            <div style="@boxDetail">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông số thiết bị & Thời gian</h3>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+                    <div>
+                        <label style="@labelBase">Loại thiết bị <span style="color:red">*</span></label>
+                        <input type="text" name="LoaiThietBi" placeholder="Ví dụ: Laptop, Phone..." required class="input-hover" style="@inputBase">
+                    </div>
+                    <div>
+                        <label style="@labelBase">Địa chỉ MAC <span style="color:red">*</span></label>
+                        <input type="text" name="MacTb" id="MacTb" placeholder="00:00:00:00:00:00" required class="input-hover" style="@inputBase">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+                    <div>
+                        <label style="@labelBase">Từ ngày</label>
+                        <input type="datetime-local" name="ThoiGianBatDau" class="input-hover" style="@inputBase">
+                    </div>
+                    <div>
+                        <label style="@labelBase">Đến ngày</label>
+                        <input type="datetime-local" name="ThoiGianKetThuc" class="input-hover" style="@inputBase">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="@labelBase">Lý do sử dụng</label>
+                    <textarea name="LyDo" placeholder="Nhập mục đích truy cập..." class="input-hover" style="@inputBase height: 80px; resize: none;"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label style="@labelBase">Ảnh minh họa MAC Address (Ctrl+V)</label>
+                        <div id="paste_AnhWifi" tabindex="0"
+                             style="width: 100%; border: 2px dashed @colorBorder; height: 160px; border-radius: 15px; display: flex; align-items: center; justify-content: center; background: #f9fefc; color: @colorPrimary; cursor: pointer; overflow: hidden; transition: 0.3s; outline: none;">
+                            <div style="text-align:center;"><i style="font-size: 20px; margin-bottom:8px;" class="fa fa-wifi"></i><br><span style="font-size: 11px; font-weight: 700;">Bấm vào đây rồi Ctrl+V</span></div>
+                        </div>
+                        <input type="file" id="input_Anh" name="Anh" hidden accept="image/*">
+                    </div>
+
+                    <div>
+                        <label style="@labelBase">File đính kèm (PDF/Excel...)</label>
+                        <div style="border: 2px dashed #cbd5e1; height: 160px; border-radius: 15px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; background: #ffffff;">
+                            <input type="file" name="UploadFile" style="font-size: 12px; width: 100%;">
+                            <p style="font-size: 11px; color: #64748b; margin-top: 15px; line-height: 1.4;">Hỗ trợ hồ sơ xác nhận bộ phận</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* --- PHẦN 3: NGƯỜI HỖ TRỢ (MỚI THÊM - CHỈ CHỌN 1) --- *@
+            <div style="@boxDetail">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">3</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Nhân sự IT hỗ trợ</h3>
+                </div>
+
+                <div>
+                    <label style="@labelBase">Chọn nhân viên IT xử lý đơn <span style="color:red">*</span></label>
+                    <select name="SelectedNguoiHoTroIds" id="SelectedNguoiHoTroIds" class="input-hover" style="@inputBase cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23064e3b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
+                        <option value="">-- Vui lòng chọn 1 người hỗ trợ --</option>
+                        @if (ViewBag.ListNguoiHoTro != null)
+                        {
+                            foreach (var item in (List<E_Form_Best.Models.ITForm.ItNguoiHoTro>)ViewBag.ListNguoiHoTro)
+                            {
+                                <option value="@item.Id">@item.MaNv - @item.Ten (@item.BoPhan) @(string.IsNullOrEmpty(item.GhiChu) ? "" : $" | {item.GhiChu}")</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+
+            @* --- PHẦN 4: BẢN CAM KẾT --- *@
+            <div style="margin-bottom: 30px; background: #f0fdf4; border: 1px dashed @colorBorder; border-radius: 24px; padding: 25px;">
+                <h3 style="margin: 0 0 15px 0; color: @colorDark; font-size: 15px; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 1px;">
+                    CAM KẾT BẢO MẬT & SỬ DỤNG MẠNG
+                </h3>
+
+                <div style="max-height: 180px; overflow-y: auto; padding-right: 10px; margin-bottom: 20px; font-size: 12.5px; line-height: 1.6; color: @colorDark;">
+                    <ol style="margin: 0; padding-left: 20px; display: grid; gap: 10px;">
+                        <li><strong>Tuân thủ chính sách:</strong> Tôi cam kết sử dụng mạng Wifi đúng mục đích công việc.</li>
+                        <li><strong>Bảo mật tài khoản:</strong> Không chia sẻ thông tin truy cập mạng cho người khác.</li>
+                        <li><strong>An toàn thiết bị:</strong> Đảm bảo thiết bị sạch virus, không gây hại cho mạng nội bộ.</li>
+                        <li><strong>Trách nhiệm:</strong> Hoàn toàn chịu trách nhiệm nếu xảy ra rò rỉ dữ liệu từ thiết bị.</li>
+                    </ol>
+                </div>
+
+                <label style="cursor: pointer; display: flex; align-items: flex-start; gap: 12px; background: #ffffff; padding: 15px; border-radius: 15px; border: 1px solid @colorBorder; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                    <input type="checkbox" id="chkCamKet" style="width: 20px; height: 20px; margin-top: 3px; accent-color: @colorPrimary;">
+                    <span style="font-size: 13px; font-weight: 800; color: @colorDark; line-height: 1.4;">
+                        Tôi đã đọc, hiểu và cam kết tuân thủ các điều khoản trên.
+                    </span>
+                </label>
+            </div>
+
+            <button type="button" id="btnSubmit" onclick="xuLyLuuWifi()"
+                    style="width: 100%; padding: 22px; background: linear-gradient(to right, @colorPrimary, @colorDark); color: #ffffff; border: none; border-radius: 20px; font-weight: 900; font-size: 18px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4); transition: 0.3s;">
+                Xác nhận đăng ký Wifi
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Xử lý dán ảnh
+    document.getElementById("paste_AnhWifi").addEventListener('paste', function(e) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    this.innerHTML = `<img src="${event.target.result}" style="height:100%; width:100%; object-fit:contain; border-radius:12px;">`;
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(blob);
+                    document.getElementById("input_Anh").files = dataTransfer.files;
+                };
+                reader.readAsDataURL(blob);
+            }
+        }
+    });
+
+    function xuLyLuuWifi() {
+        const mac = document.getElementById("MacTb").value;
+        const hoTro = document.getElementById("SelectedNguoiHoTroIds").value;
+        const chk = document.getElementById("chkCamKet");
+        const btn = document.getElementById("btnSubmit");
+
+        if (!mac.trim()) {
+            alert("⚠️ Vui lòng nhập địa chỉ MAC!");
+            document.getElementById("MacTb").focus();
+            return;
+        }
+
+        if (!hoTro) {
+            alert("⚠️ Vui lòng chọn một nhân viên IT hỗ trợ!");
+            return;
+        }
+
+        if (!chk.checked) {
+            alert("⚠️ Bạn phải xác nhận cam kết bảo mật!");
+            return;
+        }
+
+        if (confirm("Gửi yêu cầu truy cập Wifi cho thiết bị này?")) {
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG KHỞI TẠO...';
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
+            document.getElementById("itWifiForm").submit();
+        }
+    }
+</script>

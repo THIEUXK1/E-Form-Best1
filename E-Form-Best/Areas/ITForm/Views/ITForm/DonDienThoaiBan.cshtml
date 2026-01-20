@@ -1,0 +1,224 @@
+﻿@model E_Form_Best.Models.ITForm.FormIt
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Đăng ký sử dụng điện thoại bàn";
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+
+    // --- THAY ĐỔI TỪ SESSION SANG COOKIE (CK) ---
+    var tenNguoiNv = User.Identity.Name ?? "";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+    var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+
+    var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
+
+    // Định nghĩa tông màu Xanh Dương (Indigo/Blue)
+    string colorPrimary = "#3f51b5"; // Indigo 500
+    string colorDark = "#1a237e";    // Indigo 900
+    string colorLight = "#e8eaf6";   // Indigo 50
+    string colorBorder = "#9fa8da";  // Indigo 200
+
+    string inputBase = $"width: 100%; padding: 12px; border-radius: 12px; border: 1px solid {colorBorder}; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; color: {colorDark}; transition: all 0.3s;";
+    string labelBase = $"font-weight: 800; color: {colorDark}; font-size: 11px; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.8px;";
+    string boxDetail = $"background: #ffffff; padding: 25px; border-radius: 24px; border: 1px solid {colorLight}; margin-bottom: 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);";
+}
+
+<style>
+    .input-focus:focus {
+        border-color: @colorPrimary !important;
+        box-shadow: 0 0 0 4px rgba(63, 81, 181, 0.1) !important;
+    }
+
+    #paste_AnhDt:hover {
+        border-color: @colorPrimary !important;
+        background: #f0f3ff !important;
+    }
+</style>
+
+<div style="background: linear-gradient(135deg, #f5f7ff 0%, #e8eaf6 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif;">
+
+    <form id="itPhoneForm" method="post" enctype="multipart/form-data" asp-action="DonDienThoaiBan" asp-controller="FormIT" asp-area="ITForm"
+          style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(26, 35, 126, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
+
+        @Html.AntiForgeryToken()
+
+        @* --- HEADER --- *@
+        <div style="background: linear-gradient(135deg, @colorPrimary 0%, @colorDark 100%); padding: 45px 20px; color: #ffffff; text-align: center; position: relative;">
+            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">VOIP SYSTEM V1.0</div>
+            <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Phiếu đăng ký điện thoại bàn</h2>
+            <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: rgba(255,255,255,0.2); border-radius: 50px; font-size: 13px; backdrop-filter: blur(4px);">
+                <span>📅 Ngày yêu cầu:</span>
+                <span style="font-weight: 800; color: #ffffff;">@ngayHienThi</span>
+            </div>
+        </div>
+
+        <div style="padding: 40px;">
+
+            @* --- PHẦN 1: THÔNG TIN NGƯỜI YÊU CẦU --- *@
+            <div style="margin-bottom: 40px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 10px rgba(63, 81, 181, 0.3);">1</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin người yêu cầu</h3>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                    <div style="background: #f8faff; padding: 15px; border-radius: 15px; border: 1px solid #e8eaf6;">
+                        <label style="@labelBase">Mã nhân viên</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 15px;">@soNhanVien</div>
+                    </div>
+                    <div style="background: #f8faff; padding: 15px; border-radius: 15px; border: 1px solid #e8eaf6;">
+                        <label style="@labelBase">Họ tên</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 15px;">@tenNguoiNv</div>
+                    </div>
+                    <div style="background: #f8faff; padding: 15px; border-radius: 15px; border: 1px solid #e8eaf6;">
+                        <label style="@labelBase">Bộ phận</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 15px;">@phongBan</div>
+                    </div>
+                </div>
+            </div>
+
+            @* --- PHẦN 2: NỘI DUNG ĐĂNG KÝ --- *@
+            <div style="@boxDetail">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Nội dung đăng ký</h3>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    @* Tên name="ThongTin" để khớp với Model ItDangKiSuDungDtban4 *@
+                    <label style="@labelBase">Thông tin yêu cầu (Số máy/Vị trí lắp đặt) <span style="color:red">*</span></label>
+                    <input type="text" name="ThongTin" id="ThongTin" placeholder="Ví dụ: Lắp mới tại Line 4 - Xưởng B hoặc gia hạn số 1234..." required
+                           class="input-focus" style="@inputBase">
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="@labelBase">Mục đích sử dụng <span style="color:red">*</span></label>
+                    <textarea name="MucDich" id="MucDich" placeholder="Ví dụ: Liên hệ nhà cung cấp quốc tế, trực tổng đài nội bộ..." required
+                              class="input-focus" style="@inputBase height: 80px; resize: none;"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label style="@labelBase">Ảnh sơ đồ/Vị trí (Ctrl+V)</label>
+                        <div id="paste_AnhDt" tabindex="0"
+                             style="width: 100%; border: 2px dashed @colorBorder; height: 160px; border-radius: 15px; display: flex; align-items: center; justify-content: center; background: #f8faff; color: @colorPrimary; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 700; transition: 0.3s; position: relative; outline: none;">
+                            <div style="text-align:center;"><i style="font-size: 20px; margin-bottom:8px;" class="fa fa-phone-square"></i><br>Bấm vào đây và Ctrl+V</div>
+                        </div>
+                        <input type="file" id="input_Anh" name="Anh" hidden accept="image/*">
+                    </div>
+                    <div>
+                        <label style="@labelBase">Tài liệu kèm theo</label>
+                        <div style="border: 2px dashed #e2e8f0; height: 160px; border-radius: 15px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; background: #ffffff;">
+                            <input type="file" name="UploadFile" style="font-size: 12px; width: 100%;">
+                            <p style="font-size: 11px; color: #64748b; margin-top: 15px; line-height: 1.5;">Đính kèm danh sách số điện thoại hoặc file vị trí nếu cần.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* --- PHẦN 3: CHỌN NGƯỜI HỖ TRỢ (Chỉ chọn 1 người) --- *@
+            <div style="@boxDetail">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">3</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Nhân sự IT hỗ trợ</h3>
+                </div>
+
+                <div>
+                    <label style="@labelBase">Chọn 1 nhân viên IT xử lý <span style="color:red">*</span></label>
+                    <select name="SelectedNguoiHoTroId" id="SelectedNguoiHoTroId" class="input-focus"
+                            style="@inputBase cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231a237e%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
+                        <option value="">-- Vui lòng chọn người hỗ trợ --</option>
+                        @if (ViewBag.ListNguoiHoTro != null)
+                        {
+                            foreach (var item in (List<E_Form_Best.Models.ITForm.ItNguoiHoTro>)ViewBag.ListNguoiHoTro)
+                            {
+                                <option value="@item.Id">@item.MaNv - @item.Ten (@item.BoPhan)</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+
+            @* --- PHẦN 4: BẢN CAM KẾT --- *@
+            <div style="margin-bottom: 35px; background: #f5f7ff; border: 1px dashed @colorBorder; border-radius: 24px; padding: 25px;">
+                <h3 style="margin: 0 0 15px 0; color: @colorDark; font-size: 15px; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 1px;">
+                    CAM KẾT SỬ DỤNG VÀ BẢO QUẢN THIẾT BỊ
+                </h3>
+
+                <div style="max-height: 180px; overflow-y: auto; padding-right: 10px; margin-bottom: 20px; font-size: 12.5px; line-height: 1.6; color: @colorDark;">
+                    <ol style="margin: 0; padding-left: 20px; display: grid; gap: 8px;">
+                        <li><strong>Mục đích:</strong> Chỉ sử dụng điện thoại bàn phục vụ cho mục đích công việc.</li>
+                        <li><strong>Bảo quản:</strong> Có trách nhiệm bảo quản thiết bị tại vị trí được bàn giao.</li>
+                        <li><strong>Cước phí:</strong> Tuân thủ định mức cước phí điện thoại theo quy định.</li>
+                        <li><strong>Bồi thường:</strong> Chịu trách nhiệm bồi thường nếu làm hư hỏng do lỗi chủ quan.</li>
+                    </ol>
+                </div>
+
+                <label style="cursor: pointer; display: flex; align-items: flex-start; gap: 12px; background: #ffffff; padding: 15px; border-radius: 15px; border: 1px solid @colorBorder; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                    <input type="checkbox" id="chkCamKet" style="width: 20px; height: 20px; margin-top: 3px; accent-color: @colorPrimary;">
+                    <span style="font-size: 13px; font-weight: 800; color: @colorDark; line-height: 1.4;">
+                        Tôi đã đọc, hiểu rõ và cam kết tuân thủ các điều khoản trên.
+                    </span>
+                </label>
+            </div>
+
+            @* --- NÚT GỬI --- *@
+            <button type="button" id="btnSubmit" onclick="xuLyLuuDonDT()"
+                    style="width: 100%; padding: 22px; background: linear-gradient(to right, @colorPrimary, @colorDark); color: #ffffff; border: none; border-radius: 20px; font-weight: 900; font-size: 18px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 25px -5px rgba(63, 81, 181, 0.4); transition: 0.3s;">
+                Xác nhận đăng ký điện thoại
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Paste Image Logic
+    document.getElementById("paste_AnhDt").addEventListener('paste', function(e) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    this.innerHTML = `<img src="${event.target.result}" style="height:100%; width:100%; object-fit:contain; border-radius:12px;">`;
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(blob);
+                    document.getElementById("input_Anh").files = dataTransfer.files;
+                };
+                reader.readAsDataURL(blob);
+            }
+        }
+    });
+
+    function xuLyLuuDonDT() {
+        const thongTin = document.getElementById("ThongTin").value;
+        const mucDich = document.getElementById("MucDich").value;
+        const hoTro = document.getElementById("SelectedNguoiHoTroId").value;
+        const chk = document.getElementById("chkCamKet");
+        const btn = document.getElementById("btnSubmit");
+
+        if (!thongTin.trim()) {
+            alert("⚠️ Vui lòng nhập thông tin vị trí lắp đặt!");
+            return;
+        }
+        if (!mucDich.trim()) {
+            alert("⚠️ Vui lòng nhập mục đích sử dụng!");
+            return;
+        }
+        if (!hoTro) {
+            alert("⚠️ Vui lòng chọn một nhân viên IT hỗ trợ!");
+            return;
+        }
+        if (!chk.checked) {
+            alert("⚠️ Bạn phải tích chọn cam kết sử dụng thiết bị!");
+            return;
+        }
+
+        if (confirm("Gửi đơn đăng ký điện thoại bàn này tới bộ phận IT?")) {
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG XỬ LÝ...';
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
+            document.getElementById("itPhoneForm").submit();
+        }
+    }
+</script>

@@ -1,0 +1,271 @@
+﻿@model E_Form_Best.Models.ITForm.FormIt
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Đăng ký/Sửa đổi tài khoản Email";
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+
+    // Lấy thông tin từ hệ thống
+    var tenNguoiNv = User.Identity.Name ?? "";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+    var emailHienTai = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    var userRole = User.FindFirst("UserRole")?.Value ?? "";
+    var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
+
+    // Định nghĩa tông màu Vàng (Amber Theme)
+    string colorPrimary = "#f59e0b";
+    string colorDark = "#78350f";
+    string colorLight = "#fef3c7";
+    string colorBorder = "#fbbf24";
+
+    // Styles cơ bản
+    string inputBase = $"width: 100%; padding: 12px; border-radius: 12px; border: 1px solid {colorBorder}; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; color: {colorDark}; transition: all 0.3s;";
+    string labelBase = $"font-weight: 800; color: {colorDark}; font-size: 11px; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.8px;";
+    string boxDetail = $"background: #ffffff; padding: 25px; border-radius: 24px; border: 1px solid {colorLight}; margin-bottom: 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);";
+}
+
+<style>
+    .input-hover:focus {
+        border-color: @colorPrimary !important;
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1) !important;
+    }
+
+    .btn-grad:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px -5px rgba(245, 158, 11, 0.5) !important;
+        opacity: 0.95;
+    }
+
+    #paste_AnhMail:hover {
+        border-color: @colorPrimary !important;
+        background: #fffbeb !important;
+    }
+</style>
+
+<div style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif;">
+
+    <form id="itMailForm" method="post" enctype="multipart/form-data" asp-action="DonMail" asp-controller="FormIT" asp-area="ITForm"
+          style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(120, 53, 15, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
+
+        @Html.AntiForgeryToken()
+
+        @* --- HEADER --- *@
+        <div style="background: linear-gradient(135deg, @colorPrimary 0%, #d97706 100%); padding: 45px 20px; color: #ffffff; text-align: center; position: relative;">
+            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">MAIL SERVICE V4.0</div>
+            <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Phiếu yêu cầu cấp/đổi Mail</h2>
+            <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: rgba(255,255,255,0.25); border-radius: 50px; font-size: 13px; backdrop-filter: blur(4px);">
+                <span>📅 Ngày yêu cầu:</span>
+                <span style="font-weight: 800; color: #ffffff;">@ngayHienThi</span>
+            </div>
+        </div>
+
+        <div style="padding: 40px;">
+
+            @* --- PHẦN 1: THÔNG TIN NHÂN VIÊN --- *@
+            <div style="margin-bottom: 40px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);">1</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin nhân viên</h3>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                    <div style="background: #fffdf5; padding: 15px; border-radius: 15px; border: 1px solid #fef3c7;">
+                        <label style="@labelBase">Họ tên</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 15px;">@tenNguoiNv</div>
+                    </div>
+                    <div style="background: #fffdf5; padding: 15px; border-radius: 15px; border: 1px solid #fef3c7;">
+                        <label style="@labelBase">Bộ phận</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 15px;">@phongBan</div>
+                    </div>
+                    <div style="background: #fffdf5; padding: 15px; border-radius: 15px; border: 1px solid #fef3c7;">
+                        <label style="@labelBase">Email hiện tại</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 15px;">@emailHienTai</div>
+                    </div>
+                </div>
+            </div>
+
+            @* --- PHẦN 2: CHI TIẾT YÊU CẦU --- *@
+            <div style="@boxDetail">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Cấu hình tài khoản</h3>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                    <div>
+                        <label style="@labelBase">Email đề xuất <span style="color:red">*</span></label>
+                        <input type="text" name="Email" id="Email" placeholder="Ví dụ: hoa.nguyen" required
+                               class="input-hover" style="@inputBase">
+                    </div>
+                    <div>
+                        <label style="@labelBase">Vị trí (Chức vụ)</label>
+                        <input type="text" name="ViTri" value="@userRole" placeholder="Staff/Leader..." class="input-hover" style="@inputBase">
+                    </div>
+                    <div>
+                        <label style="@labelBase">Số nội bộ (Ext)</label>
+                        <input type="text" name="SoNoiBo" placeholder="1234" class="input-hover" style="@inputBase">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; padding: 20px; background: #fffbeb; border-radius: 18px; border: 1px solid #fde68a;">
+                    <div>
+                        <label style="@labelBase font-size: 10px;">Phạm vi gửi nhận</label>
+                        <select name="GuiRaNgoai" class="input-hover" style="@inputBase">
+                            <option value="No">Chỉ nội bộ</option>
+                            <option value="Yes">Gửi/Nhận Quốc tế</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="@labelBase font-size: 10px;">Sử dụng Outlook Phone</label>
+                        <select name="SuDungTrenDienThoai" class="input-hover" style="@inputBase">
+                            <option value="No">Không dùng</option>
+                            <option value="Yes">Có dùng</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="@labelBase font-size: 10px;">Webmail Access</label>
+                        <select name="SuDungWebMail" class="input-hover" style="@inputBase">
+                            <option value="Yes">Mở truy cập</option>
+                            <option value="No">Khóa Webmail</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="@labelBase">Mục đích sử dụng / Lý do</label>
+                    <textarea name="MucDich" placeholder="Vui lòng ghi rõ lý do (Ví dụ: Cấp mới cho nhân viên mới, Đổi tên do sai lệch...)"
+                              class="input-hover" style="@inputBase height: 100px; resize: none;"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label style="@labelBase">Ảnh minh họa (Dán từ Clipboard)</label>
+                        <div id="paste_AnhMail" tabindex="0"
+                             style="width: 100%; border: 2px dashed @colorBorder; height: 160px; border-radius: 15px; display: flex; align-items: center; justify-content: center; background: #fffdf5; color: @colorDark; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 700; transition: 0.3s; position: relative; outline: none;">
+                            <div style="text-align:center;"><i style="font-size: 20px; margin-bottom:8px;" class="fa fa-picture-o"></i><br>Bấm vào đây rồi Ctrl+V</div>
+                        </div>
+                        @* Cực kỳ quan trọng: name="Anh" để Controller nhận file ảnh dán *@
+                        <input type="file" id="input_Anh" name="Anh" hidden accept="image/*">
+                    </div>
+                    <div>
+                        <label style="@labelBase">File đính kèm (Nếu có)</label>
+                        <div style="border: 2px dashed #e2e8f0; height: 160px; border-radius: 15px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; background: #ffffff; transition: 0.3s;">
+                            <input type="file" name="UploadFile" style="font-size: 12px; width: 100%;">
+                            <p style="font-size: 11px; color: #92400e; margin-top: 15px; line-height: 1.5;">Hỗ trợ: PDF, Excel, Docx, Zip...<br>Tối đa 10MB</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* --- PHẦN 3: NGƯỜI HỖ TRỢ --- *@
+            <div style="@boxDetail">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">3</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Nhân sự IT hỗ trợ</h3>
+                </div>
+
+                <div>
+                    <label style="@labelBase">Chọn nhân viên xử lý đơn <span style="color:red">*</span></label>
+                    <select name="SelectedNguoiHoTroIds" id="SelectedNguoiHoTroIds" class="input-hover" style="@inputBase cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2378350f%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
+                        <option value="">-- Vui lòng chọn người hỗ trợ từ bộ phận IT --</option>
+                        @if (ViewBag.ListNguoiHoTro != null)
+                        {
+                            foreach (var item in (List<E_Form_Best.Models.ITForm.ItNguoiHoTro>)ViewBag.ListNguoiHoTro)
+                            {
+                                <option value="@item.Id">
+                                    @item.MaNv - @item.Ten (@item.BoPhan) @(string.IsNullOrEmpty(item.GhiChu) ? "" : $" | {item.GhiChu}")
+                                </option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+
+            @* --- PHẦN 4: BẢN CAM KẾT --- *@
+            <div style="margin-bottom: 30px; background: #fffdf5; border: 1px dashed @colorBorder; border-radius: 24px; padding: 25px;">
+                <h3 style="margin: 0 0 20px 0; color: @colorDark; font-size: 15px; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 1px;">
+                    BẢN CAM KẾT SỬ DỤNG EMAIL
+                </h3>
+
+                <div style="max-height: 200px; overflow-y: auto; padding-right: 10px; margin-bottom: 20px; font-size: 13px; line-height: 1.6; color: @colorDark;">
+                    <ol style="margin: 0; padding-left: 20px; display: grid; gap: 10px;">
+                        <li><strong>Bảo mật:</strong> Tôi cam kết không tiết lộ mật khẩu và chịu trách nhiệm về mọi hoạt động của tài khoản này.</li>
+                        <li><strong>An toàn thông tin:</strong> Không click vào các link lạ, không tải các file không rõ nguồn gốc gây nguy cơ virus.</li>
+                        <li><strong>Nội dung:</strong> Chỉ sử dụng Mail cho mục đích công việc, không phát tán thư rác hoặc nội dung độc hại.</li>
+                        <li><strong>Quy định:</strong> Tuân thủ mọi chính sách bảo mật dữ liệu của Công ty.</li>
+                    </ol>
+                </div>
+
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 12px; background: #ffffff; padding: 18px; border-radius: 15px; border: 1px solid @colorBorder; transition: 0.3s;">
+                    <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; cursor: pointer; accent-color: @colorPrimary;">
+                    <span style="font-size: 14px; font-weight: 800; color: @colorDark;">
+                        Tôi đã đọc và cam kết tuân thủ các điều khoản trên.
+                    </span>
+                </label>
+            </div>
+
+            <button type="button" id="btnSubmit" onclick="xuLyLuuDonIT()" class="btn-grad"
+                    style="width: 100%; padding: 22px; background: linear-gradient(to right, @colorPrimary, #d97706); color: #ffffff; border: none; border-radius: 20px; font-weight: 900; font-size: 18px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.4); transition: 0.3s;">
+                Gửi yêu cầu phê duyệt
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Xử lý dán ảnh từ Clipboard
+    document.getElementById("paste_AnhMail").addEventListener('paste', function(e) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    this.innerHTML = `<img src="${event.target.result}" style="height:100%; width:100%; object-fit:contain; border-radius:12px;">`;
+
+                    // Gán file vào input ẩn để gửi lên server
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(blob);
+                    document.getElementById("input_Anh").files = dataTransfer.files;
+                };
+                reader.readAsDataURL(blob);
+            }
+        }
+    });
+
+    // Hàm Validate và Submit
+    function xuLyLuuDonIT() {
+        const email = document.getElementById("Email").value;
+        const hoTro = document.getElementById('SelectedNguoiHoTroIds').value;
+        const chk = document.getElementById('chkCamKet');
+        const btn = document.getElementById("btnSubmit");
+
+        // 1. Kiểm tra Email đề xuất
+        if (!email.trim()) {
+            Swal.fire("Lỗi", "Vui lòng nhập Email đề xuất!", "warning"); // Nếu bạn có SweetAlert2
+            // alert("⚠️ Vui lòng nhập Email đề xuất!");
+            document.getElementById("Email").focus();
+            return;
+        }
+
+        // 2. Kiểm tra chọn người hỗ trợ
+        if (!hoTro) {
+            alert("⚠️ Vui lòng chọn một nhân viên IT hỗ trợ!");
+            return;
+        }
+
+        // 3. Kiểm tra cam kết
+        if (!chk.checked) {
+            alert("⚠️ Bạn cần xác nhận vào ô cam kết trước khi gửi!");
+            return;
+        }
+
+        // 4. Xác nhận gửi
+        if (confirm("Xác nhận gửi đơn đăng ký Mail này?")) {
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG XỬ LÝ...';
+            btn.style.opacity = '0.6';
+            btn.style.pointerEvents = 'none';
+            document.getElementById("itMailForm").submit();
+        }
+    }
+</script>

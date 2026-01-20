@@ -1,0 +1,179 @@
+﻿@model E_Form_Best.Models.ITForm.FormHr
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Đăng ký Tiếp khách / Khác";
+    Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
+
+    // --- CHUYỂN ĐỔI TỪ SESSION SANG COOKIE CLAIMS (CK) ---
+    var tenNguoiNv = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+    var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
+
+    // Toolkit Style: Tông màu Hồng Rose / Indigo sang trọng cho Tiếp khách
+    string primaryColor = "#e11d48"; // Rose 600
+    string darkColor = "#4c0519";
+    string lightBg = "#fff1f2";
+
+    string inputStyle = $"width: 100%; padding: 12px; border-radius: 12px; border: 1.5px solid #fecdd3; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: {darkColor};";
+    string labelStyle = "font-weight: 800; color: #9f1239; font-size: 11px; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 1px;";
+    string boxStyle = $"background: #ffffff; padding: 30px; border-radius: 24px; border: 1px solid #fecdd3; margin-bottom: 25px; box-shadow: 0 10px 15px -3px rgba(225, 29, 72, 0.05);";
+}
+
+<div style="background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); padding: 50px 15px; min-height: 100vh; font-family: 'Inter', sans-serif;">
+
+    <form id="tiepKhacForm" method="post" enctype="multipart/form-data" action="/FormHR/DonTiepKhac"
+          style="max-width: 850px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(76, 5, 25, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
+
+        @Html.AntiForgeryToken()
+
+        @* --- HEADER --- *@
+        <div style="background: linear-gradient(135deg, #e11d48 0%, #be123c 100%); padding: 45px 40px; color: #ffffff; text-align: center; position: relative;">
+            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">E-FORM HOSPITALITY</div>
+            <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px;">Đăng ký Tiếp khách / Khác</h2>
+            <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 6px 18px; background: rgba(255,255,255,0.2); border-radius: 100px; font-size: 13px; backdrop-filter: blur(4px);">
+                <span>📅 Ngày yêu cầu:</span>
+                <span style="font-weight: 800;">@ngayHienThi</span>
+            </div>
+        </div>
+
+        <div style="padding: 40px;">
+
+            @* --- THÔNG TIN NHÂN VIÊN (Lấy từ CK) --- *@
+            <div style="margin-bottom: 35px;">
+                <h3 style="color: #9f1239; font-size: 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <i class="fa fa-user-circle" style="font-size: 18px; color: #e11d48;"></i> Người yêu cầu
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div><label style="@labelStyle">Họ tên</label><input name="TenNguoiNv" value="@tenNguoiNv" readonly style="@inputStyle; background: #fff8f8;"></div>
+                    <div><label style="@labelStyle">Bộ phận</label><input name="PhanBo" value="@phongBan" readonly style="@inputStyle; background: #fff8f8;"></div>
+                    <div><label style="@labelStyle">Mã NV / Email</label><input value="@soNhanVien" readonly style="@inputStyle; background: #fff8f8;"></div>
+                </div>
+            </div>
+
+            @* --- CHI TIẾT TIẾP KHÁCH --- *@
+            <div style="@boxStyle">
+                <h3 style="color: #9f1239; font-size: 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 25px; font-weight: 800; text-transform: uppercase;">
+                    <i class="fa fa-handshake-o" style="font-size: 18px; color: #e11d48;"></i> Nội dung tiếp khách & Minh chứng
+                </h3>
+
+                @* VÙNG DÁN ẢNH 1: ĐẶT PHÒNG *@
+                <div style="margin-bottom: 25px;">
+                    <label style="@labelStyle">1. Minh chứng đặt phòng (Ctrl+V)</label>
+                    <div id="paste_AnhPhong" tabindex="0" class="paste-zone"
+                         style="width: 100%; border: 2.5px dashed #e11d48; height: 180px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff1f2; color: #be123c; cursor: pointer; transition: 0.3s; gap: 10px; outline: none;">
+                        <i class="fa fa-building-o" style="font-size: 28px;"></i>
+                        <span style="font-size: 11px; font-weight: 700; text-align:center;">Dán ảnh xác nhận đặt phòng họp/khách sạn tại đây</span>
+                    </div>
+                    <input type="file" id="AnhPhong" name="AnhPhong" hidden accept="image/*">
+                </div>
+
+                @* VÙNG DÁN ẢNH 2: ĐẶT CƠM *@
+                <div style="margin-bottom: 25px;">
+                    <label style="@labelStyle">2. Minh chứng đặt cơm / Tiệc (Ctrl+V)</label>
+                    <div id="paste_AnhDatCom" tabindex="0" class="paste-zone"
+                         style="width: 100%; border: 2.5px dashed #e11d48; height: 180px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff1f2; color: #be123c; cursor: pointer; transition: 0.3s; gap: 10px; outline: none;">
+                        <i class="fa fa-cutlery" style="font-size: 28px;"></i>
+                        <span style="font-size: 11px; font-weight: 700; text-align:center;">Dán ảnh thực đơn hoặc email xác nhận đặt cơm tại đây</span>
+                    </div>
+                    <input type="file" id="AnhDatCom" name="AnhDatCom" hidden accept="image/*">
+                </div>
+
+                @* FILE ĐÍNH KÈM TỔNG HỢP *@
+                <div>
+                    <label style="@labelStyle">Tài liệu đi kèm khác (Nếu có)</label>
+                    <div style="background: #ffffff; border: 2px dashed #e2e8f0; border-radius: 18px; padding: 15px; display: flex; align-items: center; gap: 15px;">
+                        <i class="fa fa-paperclip" style="font-size: 20px; color: #cbd5e1;"></i>
+                        <input type="file" name="UploadFile" style="font-size: 12px; color: #64748b; flex: 1;">
+                    </div>
+                </div>
+            </div>
+
+            @* --- Ô CAM KẾT --- *@
+            <div style="@boxStyle; border-color: #fde68a; background: #fffbeb; padding: 25px;">
+                <h3 style="color: #92400e; font-size: 13px; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-weight: 800; text-transform: uppercase;">
+                    <i class="fa fa-exclamation-triangle"></i> Cam kết & Nội quy tiếp khách
+                </h3>
+                <ul style="margin: 0 0 20px 20px; padding: 0; color: #92400e; font-size: 12px; line-height: 1.8; font-weight: 600; list-style-type: square;">
+                    <li>Mọi chi phí tiếp khách phải đúng theo định mức và quy định của công ty.</li>
+                    <li>Nội dung tiếp khách phải phục vụ mục đích công việc chính đáng.</li>
+                    <li>Cung cấp đầy đủ hóa đơn, chứng từ hợp lệ sau khi kết thúc sự kiện.</li>
+                </ul>
+
+                <label style="display: flex; align-items: center; gap: 15px; cursor: pointer; padding: 15px; background: #ffffff; border-radius: 15px; border: 2px solid #fcd34d; transition: 0.3s;" id="labelCamKet">
+                    <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; cursor: pointer; accent-color: #e11d48;">
+                    <span style="font-size: 13px; color: #4c0519; font-weight: 800; line-height: 1.4;">
+                        Tôi xác nhận nội dung tiếp khách trên là đúng sự thật và cam kết tuân thủ quy định công ty.
+                    </span>
+                </label>
+            </div>
+
+            @* --- NÚT GỬI --- *@
+            <div style="text-align: center; margin-top: 30px;">
+                <button type="button" onclick="guiDonTiepKhac()"
+                        style="width: 100%; padding: 20px; background: linear-gradient(to right, #e11d48, #be123c); color: #fff; border: none; border-radius: 20px; font-weight: 900; font-size: 17px; cursor: pointer; transition: 0.3s; box-shadow: 0 15px 30px -5px rgba(225, 29, 72, 0.4); text-transform: uppercase;">
+                    <i class="fa fa-send" style="margin-right: 10px;"></i> Gửi yêu cầu tiếp khách
+                </button>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+<script>
+    // Hàm xử lý dán ảnh dùng chung
+    function setupPasteImage(zoneId, inputId) {
+        const zone = document.getElementById(zoneId);
+        const input = document.getElementById(inputId);
+
+        zone.addEventListener('paste', (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf("image") !== -1) {
+                    const blob = items[i].getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        zone.innerHTML = `<img src="${event.target.result}" style="width:100%; height:100%; object-fit:contain; border-radius:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">`;
+                        zone.style.background = "#ffffff";
+                        zone.style.borderColor = "#e11d48";
+
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(blob);
+                        input.files = dataTransfer.files;
+                    };
+                    reader.readAsDataURL(blob);
+                }
+            }
+        });
+
+        // Click để focus hỗ trợ dán ảnh
+        zone.addEventListener('click', () => zone.focus());
+        zone.addEventListener('focus', () => zone.style.borderColor = "#4c0519");
+        zone.addEventListener('blur', () => {
+            if(!input.files.length) zone.style.borderColor = "#e11d48";
+        });
+    }
+
+    // Khởi tạo cho 2 vùng dán
+    setupPasteImage("paste_AnhPhong", "AnhPhong");
+    setupPasteImage("paste_AnhDatCom", "AnhDatCom");
+
+    function guiDonTiepKhac() {
+        // 1. Kiểm tra xác nhận cam kết
+        const chkCamKet = document.getElementById("chkCamKet");
+        const labelCamKet = document.getElementById("labelCamKet");
+        if (!chkCamKet.checked) {
+            alert("⚠️ Bạn phải tích chọn xác nhận cam kết trước khi gửi đơn.");
+            labelCamKet.style.borderColor = "#dc2626"; // Chuyển viền sang đỏ báo lỗi
+            return;
+        } else {
+            labelCamKet.style.borderColor = "#fcd34d";
+        }
+
+        // 2. Xác nhận và submit
+        if (confirm("Xác nhận gửi đơn đăng ký tiếp khách này?")) {
+            document.getElementById("tiepKhacForm").submit();
+        }
+    }
+</script>

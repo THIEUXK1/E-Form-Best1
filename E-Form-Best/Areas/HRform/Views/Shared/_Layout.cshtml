@@ -1,0 +1,240 @@
+﻿@using System.Security.Claims
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+
+    // CẬP NHẬT: Kiểm tra Controller TaiKhoan hoặc DonXetDuyet tùy theo cấu hình Route của bạn
+    var isLoginPage = (currentController == "TaiKhoan" || currentController == "DonXetDuyet") && currentAction == "DangNhap";
+
+    // --- THAY ĐỔI QUAN TRỌNG: Lấy dữ liệu từ Cookie (Claims) thay vì Session ---
+    var currentUserName = User.Identity.IsAuthenticated ? User.Identity.Name : "";
+    var currentUserRole = User.FindFirst("UserRole")?.Value ?? "";
+
+    // CẬP NHẬT ĐẦY ĐỦ: Danh sách các Action thuộc menu Đăng ký để giữ menu luôn mở
+    string[] subPages = {
+        "DonXinRaNgoai",
+        "MangHangHoaRaCong",
+        "DangKySuDungXeCongTac",
+        "DangKySuDungXeDaily",
+        "DonTiepKhac",
+        "NhaThauQuaCong",
+        "HoTroTienDienThoai",
+        "DoiCaLam",
+    };
+    bool isSubPageActive = subPages.Contains(currentAction);
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - HR E-Form</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+
+<body style="margin:0; font-family:'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background:#f0f2f5; min-height:100vh; display:flex; color: #2d3748;">
+
+    @if (!isLoginPage)
+    {
+        <aside id="sidebar" style="width:280px; background:linear-gradient(180deg, #1a365d 0%, #2d3748 100%); color:#fff; padding:25px 15px; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; box-shadow:5px 0 25px rgba(0,0,0,0.15); z-index:1000;">
+
+            <a href="/" style="text-decoration:none; display:flex; align-items:center; gap:12px; margin-bottom:40px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);">
+                <div style="width:45px; height:45px; background:#fff; border-radius:12px; display:flex; justify-content:center; align-items:center; font-weight:900; font-size:1.2rem; color:#1a365d; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                    HR
+                </div>
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-size:1.3rem; font-weight:800; letter-spacing:1px; color:#fff; line-height:1;">E-FORM</span>
+                    <span style="font-size:0.65rem; font-weight:400; color:#a0aec0; text-transform:uppercase; margin-top:4px;">Smart Management</span>
+                </div>
+            </a>
+
+            <nav style="flex:1; overflow-y:auto; padding-right:5px;">
+
+                <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; letter-spacing: 1.2px; margin: 15px 0 8px 15px; font-weight: 800;">Cá nhân & Đăng ký</div>
+
+                @if (User.Identity.IsAuthenticated && (currentUserRole == "NhanVien" || currentUserRole == "QuanLy" || currentUserRole == "Admin" || currentUserRole == "All"))
+                {
+                    <div id="btnRegistrationMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-radius: 12px; color: #fff; font-weight: 600; margin-bottom: 4px; transition: 0.3s; background: @(isSubPageActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
+                        <span>
+                            <i class="fa fa-pencil-square-o" style="margin-right:12px; width:20px; color:#63b3ed;"></i> Đăng ký mẫu đơn
+                        </span>
+                        <i class="fa fa-angle-down" id="regArrow" style="transition: 0.3s; transform: @(isSubPageActive ? "rotate(180deg)" : "rotate(0deg)");"></i>
+                    </div>
+
+                    <div id="registrationSubmenu" style="display: @(isSubPageActive ? "flex" : "none"); flex-direction: column; padding-left: 15px; background: rgba(0, 0, 0, 0.15); border-radius: 12px; margin-bottom: 10px; padding-top: 5px; padding-bottom: 5px;">
+
+                        <a href="/FormHR/DonXinRaNgoai" style="padding: 10px 15px; color: @(currentAction == "DonXinRaNgoai" ? "#fff" : "rgba(255,255,255,0.7)"); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; transition: 0.3s; font-weight: @(currentAction == "DonXinRaNgoai" ? "700" : "400");">
+                            <i class="fa fa-external-link" style="margin-right:10px; font-size: 12px; color: #ff4d4d;"></i> Đơn xin ra ngoài
+                        </a>
+
+                        <a href="/FormHR/MangHangHoaRaCong" style="padding: 10px 15px; color: @(currentAction == "MangHangHoaRaCong" ? "#fff" : "rgba(255,255,255,0.7)"); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; transition: 0.3s; font-weight: @(currentAction == "MangHangHoaRaCong" ? "700" : "400");">
+                            <i class="fa fa-archive" style="margin-right:10px; font-size: 12px; color:#48bb78;"></i> Mang hàng hóa ra cổng
+                        </a>
+
+                        <a href="/FormHR/DangKySuDungXeCongTac" style="padding: 10px 15px; color: @(currentAction == "DangKySuDungXeCongTac" ? "#fff" : "rgba(255,255,255,0.7)"); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; transition: 0.3s; font-weight: @(currentAction == "DangKySuDungXeCongTac" ? "700" : "400");">
+                            <i class="fa fa-car" style="margin-right:10px; font-size: 12px; color:#3182ce;"></i> Đăng ký xe công tác
+                        </a>
+
+                        <a href="/FormHR/DangKySuDungXeDaily" style="padding: 10px 15px; color: @(currentAction == "DangKySuDungXeDaily" ? "#fff" : "rgba(255,255,255,0.7)"); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; transition: 0.3s; font-weight: @(currentAction == "DangKySuDungXeDaily" ? "700" : "400");">
+                            <i class="fa fa-bus" style="margin-right:10px; font-size: 12px; color:#ed8936;"></i> Đăng ký xe Daily
+                        </a>
+
+                        <a href="/FormHR/DonTiepKhac" style="padding: 10px 15px; color: @(currentAction == "DonTiepKhac" ? "#fff" : "rgba(255,255,255,0.7)"); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; transition: 0.3s; font-weight: @(currentAction == "DonTiepKhac" ? "700" : "400");">
+                            <i class="fa fa-handshake-o" style="margin-right:10px; font-size: 12px; color:#f472b6;"></i> Đơn tiếp khách / Khác
+                        </a>
+
+                        <a href="/FormHR/NhaThauQuaCong" style="padding: 10px 15px; color: @(currentAction == "NhaThauQuaCong" ? "#fff" : "rgba(255,255,255,0.7)"); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; transition: 0.3s; font-weight: @(currentAction == "NhaThauQuaCong" ? "700" : "400");">
+                            <i class="fa fa-id-badge" style="margin-right:10px; font-size: 12px; color:#2dd4bf;"></i> Nhà thầu qua cổng
+                        </a>
+
+                        <a href="/FormHR/HoTroTienDienThoai" style="padding: 10px 15px; color: @(currentAction == "HoTroTienDienThoai" ? "#fff" : "rgba(255,255,255,0.7)"); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; transition: 0.3s; font-weight: @(currentAction == "HoTroTienDienThoai" ? "700" : "400");">
+                            <i class="fa fa-phone" style="margin-right:10px; font-size: 12px; color:#3b82f6;"></i> Hỗ trợ tiền điện thoại
+                        </a>
+
+                        <a href="/FormHR/DoiCaLam" style="padding: 10px 15px; color: @(currentAction == "DoiCaLam" ? "#fff" : "rgba(255,255,255,0.7)"); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; transition: 0.3s; font-weight: @(currentAction == "DoiCaLam" ? "700" : "400");">
+                            <i class="fa fa-calendar-check-o" style="margin-right:10px; font-size: 12px; color:#f59e0b;"></i> Đổi ca làm việc
+                        </a>
+
+                    </div>
+
+                    <a href="/FormHR/DonCho" style="display: flex; align-items: center; padding: 14px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; margin-bottom: 4px; transition: 0.3s; background: @(currentAction == "DonCho" ? "rgba(255,255,255,0.25)" : "transparent"); box-shadow: @(currentAction == "DonCho" ? "inset 4px 0 0 #fff" : "none");">
+                        <i class="fa fa-clock-o" style="margin-right:12px; width:20px; color:#63b3ed;"></i> Đơn chờ xét duyệt
+                    </a>
+                }
+
+                @if (User.Identity.IsAuthenticated && (currentUserRole == "QuanLy" || currentUserRole == "Admin" || currentUserRole == "All"))
+                {
+                    <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
+                    <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; letter-spacing: 1.2px; margin: 15px 0 8px 15px; font-weight: 800;">Quản lý bộ phận</div>
+
+                    <a href="/FormHR/QuanLyXetDuyet" style="display: flex; align-items: center; padding: 14px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; margin-bottom: 4px; transition: 0.3s; background: @(currentAction == "QuanLyXetDuyet" ? "rgba(255,255,255,0.25)" : "transparent"); box-shadow: @(currentAction == "QuanLyXetDuyet" ? "inset 4px 0 0 #fff" : "none");">
+                        <i class="fa fa-check-circle-o" style="margin-right:12px; width:20px; color:#f6e05e;"></i> Xét duyệt đơn
+                        <span style="margin-left:auto; background:#f56565; color:white; font-size:9px; padding:2px 6px; border-radius:6px; font-weight:800;">NEW</span>
+                    </a>
+                }
+
+                @if (User.Identity.IsAuthenticated && (currentUserRole == "Admin" || currentUserRole == "All"))
+                {
+                    <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
+                    <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; letter-spacing: 1.2px; margin: 15px 0 8px 15px; font-weight: 800;">Hệ thống Admin</div>
+
+                    <a href="/FormHR/HoanTatDon" style="display: flex; align-items: center; padding: 14px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; margin-bottom: 4px; transition: 0.3s; background: @(currentAction == "HoanTatDon" ? "rgba(255,255,255,0.25)" : "transparent");">
+                        <i class="fa fa-archive" style="margin-right:12px; width:20px; color:#68d391;"></i> Hoàn tất đơn
+                    </a>
+
+                    <a href="/FormHR/BaoCaoThongKe" style="display: flex; align-items: center; padding: 14px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; margin-bottom: 4px; transition: 0.3s; background: @(currentAction == "BaoCaoThongKe" ? "rgba(255,255,255,0.25)" : "transparent");">
+                        <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; color:#68d391;"></i> Báo cáo thống kê
+                    </a>
+                }
+
+                @if (User.Identity.IsAuthenticated && (currentUserRole == "BaoVe" || currentUserRole == "Admin" || currentUserRole == "All"))
+                {
+                    <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
+                    <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; letter-spacing: 1.2px; margin: 15px 0 8px 15px; font-weight: 800;">An ninh & Cổng</div>
+
+                    <a href="/FormHR/DanhSachBaoVe" style="display: flex; align-items: center; padding: 14px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; margin-bottom: 4px; transition: 0.3s; background: @(currentAction == "DanhSachBaoVe" ? "rgba(255,255,255,0.25)" : "transparent");">
+                        <i class="fa fa-shield" style="margin-right:12px; width:20px; color:#63b3ed;"></i> Kiểm soát ra vào
+                    </a>
+                }
+            </nav>
+
+            <div style="margin-top:20px; padding: 15px; background: rgba(0,0,0,0.25); border-radius: 15px; position:relative; border: 1px solid rgba(255,255,255,0.05);">
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <div id="userMenuButton" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <div style="width:38px; height:38px; border-radius:50%; background:linear-gradient(45deg, #4299e1, #667eea); display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:1rem; border:2px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                            @(string.IsNullOrEmpty(currentUserName) ? "U" : currentUserName.Substring(0, 1).ToUpper())
+                        </div>
+                        <div style="flex:1; overflow:hidden;">
+                            <div style="font-weight:700; font-size:0.9rem; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">@currentUserName</div>
+                            <div style="font-size:0.7rem; color:#a0aec0;">@currentUserRole</div>
+                        </div>
+                        <i class="fa fa-angle-up" id="arrowIcon" style="font-size:14px; transition: 0.3s;"></i>
+                    </div>
+
+                    <div id="userDropdown" style="position:absolute; bottom:80px; left:0; right:0; background:#fff; border-radius:12px; box-shadow:0 -10px 25px rgba(0,0,0,0.2); display:none; flex-direction:column; overflow:hidden; z-index:1001; border: 1px solid #edf2f7;">
+                        <a href="/DonXetDuyet/HoSo" style="padding:12px 15px; color:#2d3748; text-decoration:none; font-size:0.9rem; border-bottom:1px solid #edf2f7; display:flex; align-items:center; transition: 0.2s;">
+                            <i class="fa fa-user-circle" style="margin-right:10px; color:#4a5568;"></i> Hồ sơ cá nhân
+                        </a>
+                        <a href="/DonXetDuyet/DangXuat" style="padding:12px 15px; color:#e53e3e; text-decoration:none; font-size:0.9rem; font-weight:700; display:flex; align-items:center; transition: 0.2s;">
+                            <i class="fa fa-sign-out" style="margin-right:10px;"></i> Đăng xuất
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <a href="/DonXetDuyet/DangNhap" style="display:flex; align-items:center; justify-content:center; gap:10px; padding:12px; border-radius:10px; background:#fff; color:#1a365d; text-decoration:none; font-weight:800; transition:0.3s; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+                        <i class="fa fa-lock"></i> ĐĂNG NHẬP
+                    </a>
+                }
+            </div>
+
+        </aside>
+
+        <main style="margin-left:280px; width:calc(100% - 280px); padding:40px; box-sizing: border-box; min-height:100vh;">
+            <div style="background:#fff; border-radius:24px; box-shadow:0 10px 40px rgba(0,0,0,0.06); padding:40px; min-height:82vh; border:1px solid rgba(0,0,0,0.03);">
+                @RenderBody()
+            </div>
+
+            <footer style="margin-top:30px; text-align:center; color:#a0aec0; font-size:0.85rem; padding-bottom: 20px;">
+                &copy; @DateTime.Now.Year - <strong>HR E-Form System</strong> - Best Management Solution
+            </footer>
+        </main>
+    }
+    else
+    {
+        <div style="width:100%;">
+            @RenderBody()
+        </div>
+    }
+
+    @RenderSection("Scripts", required: false)
+
+    <script>
+        // XỬ LÝ USER DROPDOWN
+        const userBtn = document.getElementById('userMenuButton');
+        const userDrop = document.getElementById('userDropdown');
+        const arrow = document.getElementById('arrowIcon');
+
+        if (userBtn) {
+            userBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpened = userDrop.style.display === 'flex';
+                userDrop.style.display = isOpened ? 'none' : 'flex';
+                if(arrow) arrow.style.transform = isOpened ? 'rotate(0deg)' : 'rotate(180deg)';
+            });
+
+            document.addEventListener('click', e => {
+                if (userDrop && !userBtn.contains(e.target) && !userDrop.contains(e.target)) {
+                    userDrop.style.display = 'none';
+                    if(arrow) arrow.style.transform = 'rotate(0deg)';
+                }
+            });
+        }
+
+        // XỬ LÝ SUBMENU ĐĂNG KÝ
+        const regBtn = document.getElementById('btnRegistrationMenu');
+        const regSub = document.getElementById('registrationSubmenu');
+        const regArrow = document.getElementById('regArrow');
+
+        if (regBtn) {
+            regBtn.addEventListener('click', (e) => {
+                const isHidden = regSub.style.display === 'none' || regSub.style.display === '';
+                regSub.style.display = isHidden ? 'flex' : 'none';
+                regArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+                regBtn.style.background = isHidden ? 'rgba(255, 255, 255, 0.15)' : 'transparent';
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const isSubActive = @isSubPageActive.ToString().ToLower();
+            if (isSubActive && regSub) {
+                regSub.style.display = 'flex';
+                regArrow.style.transform = 'rotate(180deg)';
+                regBtn.style.background = 'rgba(255, 255, 255, 0.15)';
+            }
+        });
+    </script>
+</body>
+</html>

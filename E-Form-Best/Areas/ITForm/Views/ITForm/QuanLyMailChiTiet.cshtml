@@ -1,0 +1,106 @@
+﻿@model E_Form_Best.Models.ITForm.Mail
+
+@{
+    ViewData["Title"] = "Chi Tiết Mail";
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+}
+<div style="width:100%; display:flex; justify-content:space-between; margin-bottom:10px;">
+    <!-- Nút bên trái: Quay lại -->
+    <div>
+        <a href="/Mail/QuanLyMail"
+           style="padding:8px 16px; font-size:14px; background-color:#007bff; color:#fff; border:2px solid #007bff; border-radius:4px; text-decoration:none;">
+            Quay lại danh sách
+        </a>
+    </div>
+
+    <!-- Nút bên phải: Hủy bỏ & Xác nhận -->
+    <div style="display:flex; gap:10px;">
+        <!-- Form Hủy bỏ -->
+        <form method="post" action="/Mail/A/HuyBoMail/@Model.Id" style="display:inline;"
+              onsubmit="return confirm('Bạn có chắc chắn muốn hủy bỏ mail này không?');">
+            <button type="submit"
+                    style="padding:8px 16px; font-size:14px; background-color:#dc3545; color:#fff; border:2px solid #dc3545; border-radius:4px; cursor:pointer;"
+                    @(Model.IdAdmin != null ? "disabled style='opacity:0.6; cursor:not-allowed;'" : "")>
+                Hủy bỏ
+            </button>
+        </form>
+
+        <!-- Form Xác nhận -->
+        <form method="post" action="/Mail/A/XacNhanMail/@Model.Id" style="display:inline;"
+              onsubmit="return confirm('Bạn có chắc chắn muốn xác nhận mail này không?');">
+            <button type="submit"
+                    style="padding:8px 16px; font-size:14px; background-color:#28a745; color:#fff; border:2px solid #28a745; border-radius:4px; cursor:pointer;"
+                    @(Model.IdAdmin != null ? "disabled style='opacity:0.6; cursor:not-allowed;'" : "")>
+                Xác nhận
+            </button>
+        </form>
+    </div>
+</div>
+
+
+
+<!-- Container chính -->
+<div style="width:100%; background:#f0f0f0; padding:20px 0; box-sizing:border-box;">
+    <div style="width:210mm; min-height:297mm; margin:0 auto; padding:20mm; background:#fff; box-shadow:0 0 5px rgba(0,0,0,0.2); font-family:Arial, sans-serif; box-sizing:border-box;">
+
+        <!-- Tiêu đề -->
+        <div style="text-align:center; margin-bottom:20px;">
+            <h1 style="font-size:28px; margin:0;">Chi Tiết Form Mail</h1>
+            <hr style="border:1px solid #ccc; margin-top:10px;" />
+        </div>
+
+        <!-- Thông tin Mail -->
+        <div style="display:flex; gap:4%; flex-wrap:wrap;">
+            <!-- Cột trái: thông tin cơ bản -->
+            <div style="width:48%;">
+                <div style="margin-bottom:14px;"><strong>Tên Form:</strong> @Model.TenForm</div>
+                <div style="margin-bottom:14px;"><strong>Ngày:</strong> @(Model.Ngay?.ToString("dd/MM/yyyy") ?? "")</div>
+                <div style="margin-bottom:14px;"><strong>Bộ phận:</strong> @Model.BoPhan</div>
+                <div style="margin-bottom:14px;"><strong>Số nhân viên:</strong> @Model.SoNhanVien</div>
+                <div style="margin-bottom:14px;"><strong>Họ và tên:</strong> @Model.HoVaTen</div>
+                <div style="margin-bottom:14px;"><strong>Email:</strong> @Model.Email</div>
+                <div style="margin-bottom:14px;"><strong>Vị trí:</strong> @Model.ViTri</div>
+                <div style="margin-bottom:14px;"><strong>Số nội bộ:</strong> @Model.SoNoiBo</div>
+            </div>
+
+            <!-- Cột phải: người xử lý & checkbox -->
+            <div style="width:48%;">
+                <div style="margin-bottom:14px;"><strong>Người tạo:</strong> @Model.TenNguoiTao</div>
+                <div style="margin-bottom:14px;"><strong>Thời gian tạo:</strong> @(Model.TimeTao?.ToString("dd/MM/yyyy HH:mm") ?? "")</div>
+                <div style="margin-bottom:14px;"><strong>Người duyệt:</strong> @Model.TenNguoiDuyet</div>
+                <div style="margin-bottom:14px;"><strong>Thời gian duyệt:</strong> @(Model.TimeNguoiDuyet?.ToString("dd/MM/yyyy HH:mm") ?? "")</div>
+                <div style="margin-bottom:14px;"><strong>Admin:</strong> @Model.TenAdmin</div>
+                <div style="margin-bottom:14px;"><strong>Thời gian Admin:</strong> @(Model.TimeAdmin?.ToString("dd/MM/yyyy HH:mm") ?? "")</div>
+
+                <div style="margin-bottom:14px;"><strong>Gửi ra ngoài:</strong> @(Model.GuiRaNgoai == true ? "Có" : "Không")</div>
+                <div style="margin-bottom:14px;"><strong>Sử dụng trên điện thoại:</strong> @(Model.SuDungTrenDienThoai == true ? "Có" : "Không")</div>
+                <div style="margin-bottom:14px;"><strong>Sử dụng webmail:</strong> @(Model.SuDungWedMail == true ? "Có" : "Không")</div>
+            </div>
+        </div>
+
+        <!-- Mục đích sử dụng -->
+        <div style="margin-top:20px; margin-bottom:14px;">
+            <hr style="border:1px solid #ccc; margin-bottom:10px;" />
+            <div style="font-weight:bold; text-align:center; margin-bottom:4px;">Mục đích sử dụng</div>
+            <div style="text-align:center; font-size:12px; color:#555; margin-bottom:4px;">(Sử dụng vào mục đích / For the purpose(s) as specified below)</div>
+            <div style="border:1px solid #ccc; border-radius:4px; padding:10px; min-height:100px;">@Model.MucDichSuDung</div>
+        </div>
+
+        <!-- Bản cam kết -->
+        <div style="text-align:center; font-weight:bold; font-size:16px; margin-top:30px; margin-bottom:5px;">（BẢN CAM KẾT）</div>
+        <p style="text-align:center; font-size:12px; color:#555; margin:0 0 10px 0;">
+            （Tôi sẽ sử dụng Email của công ty tuân theo các điều kiện đặc biệt sau / I shall use company e-mail under the specified conditions as below.）
+        </p>
+        <ol style="font-size:12px; color:#555; padding-left:20px; line-height:1.6;">
+            <li>（Tôi sẽ quản lý và không để thông tin Account được cấp rò rỉ sang Người thứ 3）</li>
+            <li>（Tôi sẽ phòng ngừa nhiễm Virus bằng phần mềm anti-virus khi sử dụng e-mail công ty）</li>
+            <li>（Tôi sẽ chú ý và quản lý không để rò rỉ các thông tin đã biết trong Nghiệp vụ của mình cho Người thứ 3 biết）</li>
+            <li>（Tôi sẽ khóa Máy tính của mình khi không sử dụng để tránh rò rỉ thông tin）</li>
+            <li>（Tôi sẽ không gửi mail mà có nội dung không tốt hoặc không hữu ích cho công việc）</li>
+            <li>（Tôi sẽ không gửi mail tới ai ngoài bổn phận trách nhiệm）</li>
+            <li>（Tôi sẽ không gửi dữ liệu của Công ty ra ngoài）</li>
+            <li>（Tôi sẽ thực hiện các biện pháp tốt nhất có thể để không làm giảm mức độ an toàn của toàn Công ty）</li>
+        </ol>
+
+    </div>
+</div>

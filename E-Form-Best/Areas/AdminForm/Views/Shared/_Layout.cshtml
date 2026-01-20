@@ -1,0 +1,141 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - Hệ thống quản trị</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+    <style>
+        /* Tối ưu hóa thanh cuộn (Scrollbar) */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 10px;
+        }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: #a0aec0;
+            }
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body style="margin:0; background:#f4f7fa; min-height:100vh; display:flex; color: #1a202c;">
+
+    <aside style="
+        width: 260px;
+        background: #1a202c;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        position: sticky;
+        top: 0;
+        height: 100vh;
+    ">
+        <a href="/MenuA" style="text-decoration: none; color: inherit; display: block;">
+            <div style="padding: 25px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); transition: background 0.3s;"
+                 onmouseover="this.style.background='rgba(255,255,255,0.05)'"
+                 onmouseout="this.style.background='transparent'">
+                <h2 style="margin: 0; font-size: 20px; letter-spacing: 1px; font-weight: 800; color: #4a90e2;">BEST PACIFIC</h2>
+                <span style="font-size: 10px; opacity: 0.6;">ADMIN MANAGEMENT</span>
+            </div>
+        </a>
+
+        <nav style="padding: 20px 0; flex-grow: 1;">
+            <a href="/QLtaiKhoan" style="
+                display: flex;
+                align-items: center;
+                padding: 13px 25px;
+                color: rgba(255,255,255,0.8);
+                text-decoration: none;
+                transition: all 0.2s;
+                gap: 12px;
+                font-size: 14px;
+                background: @(Context.Request.Path.Value == "/QLtaiKhoan" ? "rgba(74, 144, 226, 0.15)" : "transparent");
+                border-left: 4px solid @(Context.Request.Path.Value == "/QLtaiKhoan" ? "#4a90e2" : "transparent");
+            " onmouseover="this.style.background='rgba(255,255,255,0.05)'"
+               onmouseout="if('@Context.Request.Path.Value' != '/QLtaiKhoan') this.style.background='transparent'">
+                <i class="fas fa-users-cog" style="width: 20px;"></i>
+                <span>Quản lý tài khoản</span>
+            </a>
+
+            <a href="/QLtaiKhoan/NguoiHoTro" style="
+                display: flex;
+                align-items: center;
+                padding: 13px 25px;
+                color: rgba(255,255,255,0.8);
+                text-decoration: none;
+                transition: all 0.2s;
+                gap: 12px;
+                font-size: 14px;
+                background: @(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTro" ? "rgba(74, 144, 226, 0.15)" : "transparent");
+                border-left: 4px solid @(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTro" ? "#4a90e2" : "transparent");
+            " onmouseover="this.style.background='rgba(255,255,255,0.05)'"
+               onmouseout="if('@Context.Request.Path.Value' != '/QLtaiKhoan/NguoiHoTro') this.style.background='transparent'">
+                <i class="fas fa-user-shield" style="width: 20px;"></i>
+                <span>Người hỗ trợ IT</span>
+            </a>
+
+            <a href="/Dashboard" style="
+                display: flex;
+                align-items: center;
+                padding: 13px 25px;
+                color: rgba(255,255,255,0.8);
+                text-decoration: none;
+                transition: all 0.2s;
+                gap: 12px;
+                font-size: 14px;
+                background: @(Context.Request.Path.Value == "/Dashboard" ? "rgba(74, 144, 226, 0.15)" : "transparent");
+                border-left: 4px solid @(Context.Request.Path.Value == "/Dashboard" ? "#4a90e2" : "transparent");
+            " onmouseover="this.style.background='rgba(255,255,255,0.05)'"
+               onmouseout="if('@Context.Request.Path.Value' != '/Dashboard') this.style.background='transparent'">
+                <i class="fas fa-chart-line" style="width: 20px;"></i>
+                <span>Bảng điều khiển</span>
+            </a>
+        </nav>
+
+        <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <a href="/Logout" style="color: #feb2b2; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 10px; padding: 10px 5px; border-radius: 5px; transition: background 0.2s;"
+               onmouseover="this.style.background='rgba(245, 101, 101, 0.1)'" onmouseout="this.style.background='transparent'">
+                <i class="fas fa-sign-out-alt"></i>
+                <strong>Đăng xuất</strong>
+            </a>
+        </div>
+    </aside>
+
+    <main style="flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto;">
+        <header style="background: white; padding: 15px 30px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; justify-content: flex-end; align-items: center;">
+            <div style="font-size: 13px; color: #718096;">
+                Hệ thống quản lý E-Form <i class="fas fa-check-circle" style="color: #38a169; margin-left: 5px;"></i>
+            </div>
+        </header>
+
+        <div style="padding: 30px; width: 100%; box-sizing: border-box;">
+            @RenderBody()
+        </div>
+    </main>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

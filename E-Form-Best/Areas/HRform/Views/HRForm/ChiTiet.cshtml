@@ -1,0 +1,309 @@
+﻿@model E_Form_Best.Models.ITForm.FormHr
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Chi tiết đơn đăng ký";
+    Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
+
+    // --- 1. LẤY VÀ CHUẨN HÓA ROLE TỪ COOKIE (QUAN TRỌNG) ---
+    // Sử dụng ToUpper() để tránh lỗi so sánh chữ hoa/thường (Ví dụ: Admin != ADMIN)
+    var currentUserRole = (User.FindFirst(ClaimTypes.Role)?.Value
+                          ?? User.FindFirst("UserRole")?.Value
+                          ?? "").Trim().ToUpper();
+
+    var currentUserName = User.Identity.Name ?? "";
+    var currentUserIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    int? currentUserId = !string.IsNullOrEmpty(currentUserIdStr) ? int.Parse(currentUserIdStr) : null;
+
+    // --- 2. TRẠNG THÁI ĐƠN ---
+    bool isCancelled = Model.TenForm != null && Model.TenForm.Contains("[ĐÃ HỦY]");
+    bool isFinished = Model.IdAdmin != null;
+    bool isApprovedByManager = Model.IdNguoiDuyet != null;
+
+    // --- 3. MÀU SẮC TRẠNG THÁI ---
+    string statusColor = "#3b82f6";
+    string statusText = "CHỜ QUẢN LÝ";
+
+    if (isCancelled) { statusColor = "#dc2626"; statusText = "ĐÃ HỦY"; }
+    else if (isFinished) { statusColor = "#059669"; statusText = "HOÀN TẤT"; }
+    else if (isApprovedByManager) { statusColor = "#d97706"; statusText = "CHỜ ADMIN"; }
+
+    string headerGradient = $"linear-gradient(135deg, {statusColor} 0%, {statusColor} 100%)";
+
+    List<string> listImages = new List<string>();
+    string chiTietNoiDung = "";
+
+    // --- 4. XỬ LÝ DỮ LIỆU ĐỦ 8 LOẠI FORM (KHÔNG BỎ BỚT) ---
+    if (Model.IdForm == "CT_XinRaNgoai_1")
+    {
+        var ct = Model.CtXinRaNgoai1s?.FirstOrDefault();
+        if (ct != null)
+        {
+            if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+            chiTietNoiDung += RenderInfoRow("📍", "Địa điểm", ct.DiaDiem, "#eff6ff", "#1e40af");
+            chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#eff6ff", "#1e40af");
+            chiTietNoiDung += RenderInfoRow("🕒", "Giờ ra đăng ký", ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy") ?? "...", "#fef2f2", "#991b1b");
+            chiTietNoiDung += RenderInfoRow("🔄", "Dự kiến về", ct.ThoiGianVeDuTinh?.ToString("HH:mm dd/MM/yyyy") ?? "...", "#ecfdf5", "#065f46");
+            chiTietNoiDung += RenderSecurityBox(ct.BaoVeTruc, ct.ThoiGianVao?.ToString("HH:mm dd/MM/yyyy"), "vào lại thực tế");
+        }
+    }
+    else if (Model.IdForm == "CT_MangHangHoaRaCong_2")
+    {
+        var ct = Model.CtMangHangHoaRaCong2s?.FirstOrDefault();
+        if (ct != null)
+        {
+            if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+            chiTietNoiDung += RenderInfoRow("📦", "Loại đơn", "Mang hàng hóa ra cổng", "#f0fdf4", "#166534");
+            chiTietNoiDung += RenderInfoRow("📋", "Mô tả hàng hóa", ct.MoTa, "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("📅", "Thời gian dự tính", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#f0fdf4", "#166534");
+            chiTietNoiDung += RenderSecurityBox(ct.BaoVeTruc, ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "hàng ra thực tế");
+        }
+    }
+    else if (Model.IdForm == "CT_DangKySuDungXeCongTac_3")
+    {
+        var ct = Model.CtDangKySuDungXeCongTac3s?.FirstOrDefault();
+        if (ct != null)
+        {
+            if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+            chiTietNoiDung += RenderInfoRow("🚗", "Dịch vụ", "Đăng ký xe công tác", "#eef2ff", "#1e40af");
+            chiTietNoiDung += RenderInfoRow("📅", "Thời gian dự tính sử dụng", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#eff6ff", "#1e40af");
+            chiTietNoiDung += RenderInfoRow("💬", "Mục đích / Lịch trình", ct.LiDo, "#f8fafc", "#0f172a");
+        }
+    }
+    else if (Model.IdForm == "CT_DangKySuDungXeDaily_4")
+    {
+        var ct = Model.CtDangKySuDungXeDaily4s?.FirstOrDefault();
+        if (ct != null)
+        {
+            if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+            chiTietNoiDung += RenderInfoRow("🚌", "Dịch vụ", "Đăng ký xe Daily hàng ngày", "#fff7ed", "#9a3412");
+            chiTietNoiDung += RenderInfoRow("🕒", "Thời gian bắt đầu đi", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy") ?? "...", "#fff7ed", "#9a3412");
+            chiTietNoiDung += RenderInfoRow("📍", "Điểm đón / Tuyến xe", ct.DiemDon, "#f0f9ff", "#0369a1");
+            chiTietNoiDung += RenderInfoRow("📝", "Lý do / Ghi chú", ct.LiDo, "#f8fafc", "#0f172a");
+        }
+    }
+    else if (Model.IdForm == "CT_DonTiepKhac_5")
+    {
+        var ct = Model.CtDonTiepKhac5s?.FirstOrDefault();
+        if (ct != null)
+        {
+            if (ct.AnhPhong != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.AnhPhong));
+            if (ct.AnhDatCom != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.AnhDatCom));
+            chiTietNoiDung += RenderInfoRow("🤝", "Loại dịch vụ", "Tiếp khách / Ngoại giao", "#fdf2f8", "#9d174d");
+            chiTietNoiDung += RenderInfoRow("📅", "Ngày yêu cầu", Model.Ngay?.ToString("dd/MM/yyyy"), "#fff1f2", "#be123c");
+        }
+    }
+    else if (Model.IdForm == "CT_NhaThauQuaCong_6")
+    {
+        var ct = Model.CtNhaThauQuaCong6s?.FirstOrDefault();
+        if (ct != null)
+        {
+            if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+            chiTietNoiDung += RenderInfoRow("🏗️", "Loại đơn", "Nhà thầu qua cổng", "#f1f5f9", "#334155");
+            chiTietNoiDung += RenderInfoRow("📝", "Thông tin", "Chi tiết nhà thầu", "#f1f5f9", "#0f172a");
+        }
+    }
+    else if (Model.IdForm == "CT_HoTroTienDienThoai_7")
+    {
+        var ct = Model.CtHoTroTienDienThoai7s?.FirstOrDefault();
+        if (ct != null)
+        {
+            if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+            chiTietNoiDung += RenderInfoRow("📱", "Dịch vụ", "Hỗ trợ tiền điện thoại", "#f0fdf4", "#166534");
+        }
+    }
+    else if (Model.IdForm == "CT_DoiCaLam_8")
+    {
+        var ct = Model.CtDoiCaLam8s?.FirstOrDefault();
+        if (ct != null)
+        {
+            if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+            chiTietNoiDung += RenderInfoRow("⏰", "Loại đơn", "Đăng ký đổi ca làm việc", "#fff7ed", "#c2410c");
+        }
+    }
+
+    // --- HELPER FUNCTIONS ---
+    string RenderInfoRow(string icon, string label, string value, string bgColor, string textColor)
+    {
+        return $@"<div style='margin-bottom:15px; display:flex; align-items:center; gap:15px; background:#fff; padding:15px; border-radius:15px; border:2px solid #e2e8f0;'>
+                    <span style='background:{bgColor}; padding:10px; border-radius:12px; min-width:45px; text-align:center; font-size:20px;'>{icon}</span>
+                    <div style='display:flex; flex-direction:column;'>
+                        <strong style='color:{textColor}; font-size:11px; font-weight:900; text-transform:uppercase;'>{label}</strong>
+                        <span style='font-size:16px; color:#0f172a; font-weight:800;'>{value}</span>
+                    </div>
+                  </div>";
+    }
+
+    string RenderSecurityBox(string bvTen, string tgThucTe, string note)
+    {
+        string ten = string.IsNullOrEmpty(bvTen) ? "<span style='color:#94a3b8;'>Chưa xác nhận</span>" : $"<span style='color:#0f172a; font-weight:900;'>{bvTen}</span>";
+        string tg = string.IsNullOrEmpty(tgThucTe) ? $"<span style='color:#94a3b8; font-style:italic;'>Chưa ghi nhận</span>" : $"<span style='color:#059669; font-weight:900;'>{tgThucTe}</span>";
+        return $@"<div style='margin-top:20px; padding:20px; background:#f8fafc; border-radius:20px; border:2.5px dashed #94a3b8;'>
+                    <h4 style='margin:0 0 15px 0; font-size:13px; color:#1e293b; font-weight:1000; text-transform:uppercase;'>🛡️ Xác nhận bảo vệ</h4>
+                    <div style='font-size:14px; margin-bottom:5px;'><strong>Trực ban:</strong> {ten}</div>
+                    <div style='font-size:14px;'><strong>Xác nhận {note}:</strong> {tg}</div>
+                  </div>";
+    }
+}
+
+@* GIAO DIỆN HIỂN THỊ *@
+<div style="max-width: 1100px; margin: 0 auto; padding: 20px 15px 60px 15px; font-family: 'Inter', sans-serif;">
+
+    @* NÚT ĐIỀU HƯỚNG *@
+    <div style="display: flex; justify-content: space-between; margin-bottom: 25px;">
+        <a href="javascript:history.back()" style="display: flex; align-items: center; gap: 8px; padding: 12px 22px; background: white; color: #0f172a; text-decoration: none; border-radius: 12px; font-weight: 800; border: 2.5px solid #e2e8f0;">
+            <i class="fa fa-chevron-left"></i> QUAY LẠI
+        </a>
+        <button onclick="window.print()" style="display: flex; align-items: center; gap: 8px; padding: 12px 24px; background: #0f172a; color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer;">
+            <i class="fa fa-print"></i> IN PHIẾU
+        </button>
+    </div>
+
+    <div style="background: white; border-radius: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; border: 2px solid #e2e8f0;">
+
+        @* HEADER *@
+        <div style="background: @headerGradient; padding: 40px; color: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                <div>
+                    <h1 style="margin: 0; font-size: 30px; font-weight: 1000; text-transform: uppercase;">Mã đơn: #@Model.Id</h1>
+                    <p style="margin: 5px 0 0 0; font-size: 18px; font-weight: 700; opacity: 0.9;">@Model.TenForm?.Replace("[ĐÃ HỦY]", "")</p>
+                </div>
+                <div style="background: white; color: #0f172a; padding: 12px 30px; border-radius: 18px; text-align: center; border: 4px solid #f1f5f9;">
+                    <div style="font-size: 11px; font-weight: 900; color: #64748b; text-transform: uppercase;">Trạng thái</div>
+                    <div style="font-size: 20px; font-weight: 1000; color: @statusColor">@statusText</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="padding: 40px;">
+            <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 40px;">
+
+                @* CỘT TRÁI *@
+                <div>
+                    <h3 style="margin: 0 0 25px 0; color: #0f172a; font-size: 20px; border-left: 6px solid @statusColor; padding-left: 15px; font-weight: 1000; text-transform: uppercase;">Thông tin đăng ký</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                        <div style="background: #f1f5f9; padding: 18px; border-radius: 15px;">
+                            <small style="color: #64748b; font-weight: 900; text-transform: uppercase; font-size: 10px;">Nhân viên</small>
+                            <div style="font-weight: 800; color: #0f172a;">@Model.TenNguoiNv</div>
+                        </div>
+                        <div style="background: #f1f5f9; padding: 18px; border-radius: 15px;">
+                            <small style="color: #64748b; font-weight: 900; text-transform: uppercase; font-size: 10px;">Phòng ban</small>
+                            <div style="font-weight: 800; color: #0f172a;">@Model.PhanBo</div>
+                        </div>
+                    </div>
+                    <div style="background: #ffffff; border: 2px solid #f1f5f9; padding: 25px; border-radius: 20px;">
+                        @Html.Raw(chiTietNoiDung)
+                    </div>
+                </div>
+
+                @* CỘT PHẢI *@
+                <div>
+                    <h3 style="margin: 0 0 15px 0; color: #0f172a; font-size: 16px; font-weight: 1000; text-transform: uppercase;">Minh chứng & Phê duyệt</h3>
+
+                    @* HIỂN THỊ ẢNH *@
+                    @if (listImages.Count > 0)
+                    {
+                        @foreach (var img in listImages)
+                        {
+                            <div style="background: #f8fafc; border: 3px dashed #cbd5e1; border-radius: 25px; overflow: hidden; margin-bottom: 15px;">
+                                <img src="@img" style="width: 100%; cursor: zoom-in;" onclick="openZoom(this.src)" />
+                            </div>
+                        }
+                    }
+
+                    @* TIẾN ĐỘ DUYỆT ĐƠN *@
+                    <div style="background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px solid #e2e8f0; margin: 25px 0;">
+                        <h4 style="margin: 0 0 15px 0; font-size: 14px; font-weight: 1000; text-transform: uppercase;">Tiến độ</h4>
+                        <div style="position: relative; padding-left: 25px; border-left: 3px solid #e2e8f0;">
+                            <div style="margin-bottom: 20px; position: relative;">
+                                <div style="position: absolute; left: -34px; top: 0; width: 16px; height: 16px; border-radius: 50%; background: #059669; border: 3px solid white;"></div>
+                                <div style="font-weight: 800; font-size: 14px;">TẠO ĐƠN: @Model.TenNguoiTao</div>
+                                <div style="font-size: 11px; color: #64748b;">@Model.TimeNguoiTao?.ToString("HH:mm dd/MM/yyyy")</div>
+                            </div>
+                            <div style="margin-bottom: 20px; position: relative;">
+                                <div style="position: absolute; left: -34px; top: 0; width: 16px; height: 16px; border-radius: 50%; background: @(isApprovedByManager ? "#059669" : "#cbd5e1"); border: 3px solid white;"></div>
+                                <div style="font-weight: 800; font-size: 14px;">QUẢN LÝ: @(Model.TenNguoiDuyet ?? "---")</div>
+                                <div style="font-size: 11px; color: #64748b;">@(Model.TimeNguoiDuyet?.ToString("HH:mm dd/MM/yyyy") ?? "Đang chờ...")</div>
+                            </div>
+                            <div style="position: relative;">
+                                <div style="position: absolute; left: -34px; top: 0; width: 16px; height: 16px; border-radius: 50%; background: @(isFinished ? "#059669" : "#cbd5e1"); border: 3px solid white;"></div>
+                                <div style="font-weight: 800; font-size: 14px;">ADMIN: @(Model.TenAdmin ?? "---")</div>
+                                <div style="font-size: 11px; color: #64748b;">@(Model.TimeAdmin?.ToString("HH:mm dd/MM/yyyy") ?? "Đang chờ...")</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* KHỐI NÚT XỬ LÝ (ĐÃ TỐI ƯU SO SÁNH QUYỀN) *@
+                    @if (!isCancelled && !isFinished)
+                    {
+                        <div style="padding: 20px; background: #fff7ed; border-radius: 20px; border: 2px solid #fdba74;">
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+
+                                @* 1. Nút Duyệt cho Quản Lý (So sánh viết hoa ADMIN, QUANLY) *@
+                                @if (!isApprovedByManager && (currentUserRole == "QUANLY" || currentUserRole == "ADMIN" || currentUserRole == "ALL"))
+                                {
+                                    <button onclick="handleAction('Duyet')" style="background: #059669; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 1000; cursor: pointer; font-size: 15px;">
+                                        <i class="fa fa-check-circle"></i> DUYỆT ĐƠN (QUẢN LÝ)
+                                    </button>
+                                }
+
+                                @* 2. Nút Hoàn tất cho Admin *@
+                                @if (isApprovedByManager && (currentUserRole == "ADMIN" || currentUserRole == "ALL"))
+                                {
+                                    <button onclick="handleXacNhanHoanThanh()" style="background: #2563eb; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 1000; cursor: pointer; font-size: 15px;">
+                                        <i class="fa fa-star"></i> XÁC NHẬN HOÀN TẤT (ADMIN)
+                                    </button>
+                                }
+
+                                @* 3. Nút Hủy *@
+                                @if (currentUserRole == "QUANLY" || currentUserRole == "ADMIN" || currentUserRole == "ALL")
+                                {
+                                    <button onclick="handleAction('Huy')" style="background: white; color: #dc2626; border: 2px solid #fca5a5; padding: 12px; border-radius: 12px; font-weight: 1000; cursor: pointer;">
+                                        <i class="fa fa-times-circle"></i> HỦY BỎ ĐƠN
+                                    </button>
+                                }
+                            </div>
+                            <div style="margin-top:10px; font-size:10px; color:#9a3412; text-align:center;">
+                                Đang truy cập với quyền: <strong>@currentUserRole</strong>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ZOOM OVERLAY & SCRIPTS *@
+<div id="imageOverlay" onclick="closeZoom()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9999; justify-content:center; align-items:center;">
+    <img id="fullImage" src="" style="max-width:95%; max-height:95%; border-radius:10px; border: 4px solid white;">
+</div>
+
+<script>
+    async function apiPost(url, body) {
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if(data.success) { location.reload(); } else { alert(data.message); }
+        } catch (e) { alert("Lỗi kết nối server."); }
+    }
+
+    function handleAction(type) {
+        if (confirm("Xác nhận thao tác: " + type + "?")) apiPost('/FormHR/XuLyDon', { id: @Model.Id, action: type });
+    }
+
+    function handleXacNhanHoanThanh() {
+        if (confirm("Xác nhận Admin hoàn tất đơn này?")) apiPost('/FormHR/XacNhanHoanThanh', { id: @Model.Id });
+    }
+
+    function openZoom(src) {
+        document.getElementById('fullImage').src = src;
+        document.getElementById('imageOverlay').style.display = 'flex';
+    }
+
+    function closeZoom() { document.getElementById('imageOverlay').style.display = 'none'; }
+</script>
