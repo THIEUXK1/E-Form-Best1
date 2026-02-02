@@ -20,6 +20,8 @@ public partial class ItOrderIt2
 
     public byte[]? Anh { get; set; }
 
+    public string? Ten { get; set; }
+
     [ForeignKey("IdFormIt")]
     [InverseProperty("ItOrderIt2s")]
     public virtual FormIt? IdFormItNavigation { get; set; }

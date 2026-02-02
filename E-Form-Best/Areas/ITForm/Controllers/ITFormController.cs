@@ -592,7 +592,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Redirect("/DonXetDuyet/DangNhap");
 
             ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros
-                                             .Where(x => x.BoPhan == "IT")
+                                             .Where(x => x.BoPhan == "IT"&& x.MaNv == "V200887")
                                              .ToList();
 
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -737,7 +737,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/TaoIT_Order")]
         public async Task<IActionResult> TaoIT_Order()
         {
-            // --- LẤY THÔNG TIN TỪ CLAIMS (CK) ---
+            // --- LẤY THÔNG TIN TỪ CLAIMS ---
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim)) return Redirect("/DonXetDuyet/DangNhap");
 
@@ -748,10 +748,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             ?? User.FindFirst("UserRole")?.Value ?? "";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
 
-            // Lấy danh sách nhân viên hỗ trợ IT để truyền ra View
-            ViewBag.NguoiHoTroList = await _context.ItNguoiHoTros.Where(x => x.BoPhan == "IT").ToListAsync();
+            ViewBag.NguoiHoTroList = await _context.ItNguoiHoTros
+                                            .Where(x => x.BoPhan == "IT")
+                                            .OrderBy(x => x.Ten)
+                                            .ToListAsync();
 
-            // Khởi tạo Model mặc định
             var model = new FormIt
             {
                 TenNguoiNv = userName,
@@ -762,16 +763,18 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 IdNguoiTao = userId,
                 TenNguoiTao = userName,
                 TimeNguoiTao = DateTime.Now,
-                TrangThai = "ChoDuyet"
+                TrangThai = "ChoDuyet",
+                IdForm = "IT_ORDER_2",
+                TenForm = "Yêu cầu sửa chữa/Hỗ trợ kỹ thuật"
             };
 
             return View(model);
         }
 
         [HttpPost("/FormIT/TaoIT_Order")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> TaoIT_Order(FormIt form, [FromForm] ItOrderIt2 itOrder, int[] selectedSupporters)
         {
-            // --- LẤY THÔNG TIN ĐỊNH DANH TỪ CLAIMS ---
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim)) return Redirect("/DonXetDuyet/DangNhap");
 
@@ -786,7 +789,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 try
                 {
-                    // --- BƯỚC 1: LƯU BẢNG CHÍNH (FormIt) ---
+                    // --- 2. LƯU BẢNG CHÍNH (FormIt) ---
                     form.Ngay = DateOnly.FromDateTime(DateTime.Now);
                     form.IdNguoiTao = userId;
                     form.TenNguoiTao = userName;
@@ -802,17 +805,20 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     _context.FormIts.Add(form);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 2: XỬ LÝ CHI TIẾT LỖI (ItOrderIt2) ---
+                    // --- 3. XỬ LÝ CHI TIẾT LỖI (ItOrderIt2) ---
                     if (itOrder != null)
                     {
                         itOrder.IdFormIt = form.Id;
-                        itOrder.Anh = await GetFileBytesAsync2("Anh"); // Hàm helper cũ của bạn
+                        // Trường itOrder.Ten và itOrder.GhiChu sẽ tự động mapping từ Form nếu name trong HTML khớp
+                        itOrder.Anh = await GetFileBytesAsync2("Anh");
+
                         _context.ItOrderIt2s.Add(itOrder);
                     }
 
-                    // --- BƯỚC 3: XỬ LÝ FILE ĐÍNH KÈM (UploadFile) ---
+                    // --- 4. XỬ LÝ FILE ĐÍNH KÈM ---
                     var uploadFile = Request.Form.Files["UploadFile"];
                     string fileLog = "Không có tệp đính kèm";
+
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
                         string folderName = "FileIT";
@@ -829,12 +835,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         {
                             await uploadFile.CopyToAsync(fileStream);
                         }
+
                         form.FileDinhKem = fileName;
                         _context.Entry(form).Property(x => x.FileDinhKem).IsModified = true;
                         fileLog = $"Đính kèm tệp: {fileName}";
                     }
 
-                    // --- BƯỚC 4: LƯU NGƯỜI HỖ TRỢ (Selected Supporters) ---
+                    // --- 5. LƯU NGƯỜI HỖ TRỢ ---
                     string supporterLog = "Chưa gán người hỗ trợ";
                     if (selectedSupporters != null && selectedSupporters.Length > 0)
                     {
@@ -851,12 +858,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         supporterLog = $"Đã gán {selectedSupporters.Length} nhân viên hỗ trợ";
                     }
 
-                    // --- BƯỚC 5: LƯU LỊCH SỬ CHI TIẾT ---
+                    // --- 6. LƯU LỊCH SỬ CHI TIẾT (Bổ sung Tên thiết bị vào log nếu có) ---
+                    string tenThietBi = itOrder != null && !string.IsNullOrEmpty(itOrder.Ten) ? $" | Thiết bị: {itOrder.Ten}" : "";
+
                     var lichSu = new LichSu
                     {
                         IdFormIt = form.Id,
                         TieuDe = "Khởi tạo yêu cầu",
-                        Mota = $"Người tạo: {userName} (ID: {userId}) | Email: {userEmail}. " +
+                        Mota = $"Người tạo: {userName} (ID: {userId}){tenThietBi}. " +
                                $"Nội dung: Gửi yêu cầu sửa chữa. {supporterLog}. {fileLog}.",
                         Time = DateTime.Now
                     };
@@ -872,14 +881,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     await transaction.RollbackAsync();
                     ViewBag.NguoiHoTroList = await _context.ItNguoiHoTros.Where(x => x.BoPhan == "IT").ToListAsync();
-                    ModelState.AddModelError("", "Lỗi: " + ex.Message);
+                    ModelState.AddModelError("", "Hệ thống gặp lỗi: " + ex.Message);
                     return View(form);
                 }
             }
         }
 
         #endregion
-
         #region IT Wifi - Đăng ký sử dụng Wifi (Form IT)
 
         [HttpGet("/FormIT/TaoIT_Wifi")]
@@ -896,9 +904,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
 
             // --- LẤY DANH SÁCH NGƯỜI HỖ TRỢ IT ---
+            var allowedMaNv = new List<string> { "V240822", "V200888", "V200887" };
+
             ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros
-                                             .Where(x => x.BoPhan == "IT")
-                                             .ToList();
+                .Where(x => x.BoPhan == "IT" && allowedMaNv.Contains(x.MaNv))
+                .ToList();
 
             var model = new FormIt
             {
@@ -1047,7 +1057,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
 
             // --- LẤY DANH SÁCH NGƯỜI HỖ TRỢ IT ---
-            ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros.Where(x => x.BoPhan == "IT").ToList();
+            var allowedMaNv = new List<string> { "V240822", "V200888", "V200887", "V170192" };
+
+            ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros
+                .Where(x => x.BoPhan == "IT" && allowedMaNv.Contains(x.MaNv))
+                .ToList();
+
 
             // Khởi tạo Model bảng chính
             var model = new FormIt
@@ -1748,7 +1763,53 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var logs = await query.OrderByDescending(l => l.Time).AsNoTracking().ToListAsync();
             return View(logs);
         }
+        // Sử dụng dấu gạch chéo "/" ở đầu để chỉ định đường dẫn tuyệt đối, 
+        // giúp bỏ qua tiền tố [Route] của Controller nếu có.
+        [HttpGet("/FormIT/GetNotifications")]
+        public async Task<IActionResult> GetNotifications()
+        {
+            // 1. Lấy thông tin User từ Claims (Giữ nguyên các phần hiện có)
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+
+            int userId = int.Parse(userIdStr);
+            var userRole = User.FindFirst("UserRole")?.Value ?? "";
+            var userMaNv = User.Identity.Name;
+
+            // 2. Khởi tạo truy vấn (Giữ nguyên các phần hiện có)
+            var query = _context.LichSus
+                .Include(l => l.IdFormItNavigation)
+                .AsQueryable();
+
+            // 3. Logic phân quyền (Giữ nguyên toàn bộ điều kiện của bạn)
+            if (userRole != "Admin" && userRole != "All")
+            {
+                query = query.Where(l =>
+                    l.IdFormItNavigation.IdNguoiTao == userId ||
+                    l.IdFormItNavigation.IdNguoiDuyet == userId ||
+                    l.IdFormItNavigation.IdAdmin == userId ||
+                    l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userMaNv)
+                );
+            }
+
+            // 4. Thực thi truy vấn và lấy dữ liệu (Giữ nguyên các phần hiện có)
+            var logs = await query
+                .OrderByDescending(l => l.Time)
+                .Take(8) // Lấy 8 thông báo mới nhất như code cũ
+                .Select(l => new {
+                    idForm = l.IdFormIt,
+                    tieuDe = l.TieuDe,
+                    moTa = l.Mota,
+                    thoiGian = l.Time.HasValue ? l.Time.Value.ToString("HH:mm dd/MM") : ""
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
+            // Trả về kết quả dưới dạng JSON
+            return Json(logs);
+        }
         #endregion
+
 
 
     }

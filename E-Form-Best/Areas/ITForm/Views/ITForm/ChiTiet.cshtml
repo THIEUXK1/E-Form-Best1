@@ -56,9 +56,14 @@
     else if (Model.ItOrderIt2s != null && Model.ItOrderIt2s.Any())
     {
         var ct = Model.ItOrderIt2s.First();
-        if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+        if (ct.Anh != null && ct.Anh.Length > 0)
+        {
+            listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+        }
         chiTietNoiDung += RenderInfoRow("🛠️", "Loại yêu cầu", "Sửa chữa / Cấp thiết bị", "#fef2f2", "#991b1b");
-        chiTietNoiDung += RenderInfoRow("💬", "Mô tả lỗi/Yêu cầu", ct.GhiChu, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("📦", "Tên thiết bị/Sự cố", ct.Ten, "#f0f9ff", "#075985");
+        string moTa = !string.IsNullOrEmpty(ct.GhiChu) ? ct.GhiChu : "Không có mô tả chi tiết";
+        chiTietNoiDung += RenderInfoRow("💬", "Mô tả lỗi/Yêu cầu", moTa, "#f8fafc", "#0f172a");
     }
     else if (Model.ItDangKiSuDungWifi3s != null && Model.ItDangKiSuDungWifi3s.Any())
     {
