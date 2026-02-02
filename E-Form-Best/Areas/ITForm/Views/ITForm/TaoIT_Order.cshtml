@@ -77,7 +77,8 @@
                     {
                         foreach (var it in (IEnumerable<E_Form_Best.Models.ITForm.ItNguoiHoTro>)ViewBag.NguoiHoTroList)
                         {
-                            <option value="@it.Id">@it.Ten - Bộ phận: @it.BoPhan</option>
+                            @* Thay đổi ở đây: Chỉ hiển thị @it.GhiChu *@
+                            <option value="@it.Id">@it.GhiChu</option>
                         }
                     }
                 </select>
@@ -89,10 +90,15 @@
                     <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">3</span>
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Mô tả lỗi thiết bị</h3>
                 </div>
+                @* PHẦN MỚI: TIÊU ĐỀ YÊU CẦU (Lưu vào itOrder.Ten) *@
+                <div style="margin-bottom: 20px;">
+                    <label style="@labelBase">Tiêu đề yêu cầu <span style="color:red">*</span></label>
+                    <input type="text" name="itOrder.Ten" id="TieuDe" required placeholder="VD: Lỗi máy in, Không vào được mạng..." style="@inputBase" />
+                </div>
+
 
                 <div style="margin-bottom: 25px;">
                     <label style="@labelBase">Nội dung chi tiết <span style="color:red">*</span></label>
-                    @* Name để 'itOrder.GhiChu' để Controller tự Bind vào object itOrder *@
                     <textarea name="itOrder.GhiChu" id="GhiChu" required placeholder="Vui lòng mô tả chi tiết lỗi thiết bị của bạn tại đây..."
                               style="@inputBase height: 120px; resize: none;"></textarea>
                 </div>

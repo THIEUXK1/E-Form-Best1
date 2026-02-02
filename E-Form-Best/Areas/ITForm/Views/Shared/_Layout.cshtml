@@ -5,14 +5,12 @@
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     var isLoginPage = currentController == "TaiKhoan" && currentAction == "DangNhap";
 
-    // --- Lấy thông tin từ Cookie Claims ---
     var currentUserName = User.Identity.IsAuthenticated ? User.Identity.Name : "";
     var currentUserRole = User.FindFirst("UserRole")?.Value ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
 
     bool isITSystem = currentController.Contains("IT") || currentController == "Mail" || currentController.Contains("Order");
 
-    // Menu Active Logic
     string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan" };
     bool isITSubActive = itSubPages.Contains(currentAction);
 
@@ -28,239 +26,139 @@
     <title>@ViewData["Title"] - Portal System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            background: #f4f7fa;
-            color: #1a202c;
-        }
-
-            body::-webkit-scrollbar {
-                width: 8px;
-            }
-
-            body::-webkit-scrollbar-thumb {
-                background: #cbd5e1;
-                border-radius: 10px;
-            }
-
-        /* Sidebar Submenu */
-        .submenu-item {
-            transition: 0.3s;
-            border-radius: 8px;
-            margin: 2px 5px;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            font-size: 0.85rem;
-            padding: 10px 15px;
-            color: #cbd5e1;
-        }
-
-            .submenu-item:hover {
-                color: #fff !important;
-                transform: translateX(5px);
-                background: rgba(255,255,255,0.05);
-            }
-
-            .submenu-item.active {
-                color: #fff !important;
-                background: rgba(255,255,255,0.1);
-                font-weight: 700;
-            }
-
-        /* Notification Styles */
-        #notificationDropdown {
-            position: absolute;
-            top: 60px;
-            right: 40px;
-            width: 350px;
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            display: none;
-            flex-direction: column;
-            z-index: 2000;
-            border: 1px solid #edf2f7;
-            overflow: hidden;
-            animation: fadeIn 0.2s ease-out;
-        }
-
-        @@keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .notification-item {
-            padding: 15px;
-            border-bottom: 1px solid #f7fafc;
-            transition: 0.2s;
-            cursor: pointer;
-            display: flex;
-            gap: 12px;
-            text-decoration: none;
-            color: inherit;
-        }
-
-            .notification-item:hover {
-                background: #f8fafc;
-            }
-
-        .unread-dot {
-            width: 8px;
-            height: 8px;
-            background: #ef4444;
-            border-radius: 50%;
-            display: inline-block;
-        }
-    </style>
 </head>
 
-<body style="display:flex; min-height:100vh;">
+<body style="font-family: 'Inter', sans-serif; margin: 0; background: #f8fafc; color: #1e293b; display: flex; min-height: 100vh; overflow-x: hidden;">
 
     @if (!isLoginPage)
     {
-        <aside id="sidebar" style="width:280px; background:@primaryGradient; color:#fff; padding:25px 15px; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; box-shadow:5px 0 30px rgba(0,0,0,0.2); z-index:1000;">
+        <aside id="sidebar" style="width:280px; background:@primaryGradient; color:#fff; padding:25px 15px; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; box-shadow:10px 0 40px rgba(0,0,0,0.15); z-index:1000; transition: all 0.3s ease;">
 
-            <a href="/" style="text-decoration:none; display:flex; align-items:center; gap:12px; margin-bottom:30px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
-                <div style="width:45px; height:45px; background:#fff; border-radius:12px; display:flex; justify-content:center; align-items:center; font-weight:900; font-size:1.2rem; color:#1e40af;">
+            <a href="/" style="text-decoration:none; display:flex; align-items:center; gap:12px; margin-bottom:35px; padding: 15px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(10px);">
+                <div style="width:48px; height:48px; background:#fff; border-radius:14px; display:flex; justify-content:center; align-items:center; font-weight:900; font-size:1.3rem; color:#1e40af; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                     @(isITSystem ? "IT" : "HR")
                 </div>
                 <div style="display:flex; flex-direction:column;">
-                    <span style="font-size:1.3rem; font-weight:800; letter-spacing:1px; color:#fff; line-height:1;">@(isITSystem ? "SERVICE" : "E-FORM")</span>
-                    <span style="font-size:0.65rem; color:#93c5fd; text-transform:uppercase; margin-top:4px; font-weight:600;">Digital Portal</span>
+                    <span style="font-size:1.35rem; font-weight:800; letter-spacing:1px; color:#fff; line-height:1;">@(isITSystem ? "SERVICE" : "E-FORM")</span>
+                    <span style="font-size:0.7rem; color:rgba(255,255,255,0.6); text-transform:uppercase; margin-top:4px; font-weight:600; letter-spacing: 0.5px;">Digital Portal</span>
                 </div>
             </a>
 
-            <nav style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:5px;">
-                <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.2px; margin: 10px 0 8px 10px; font-weight: 800;">Chức năng chính</div>
+            <nav style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right: 5px;">
+                <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 700;">Chức năng chính</div>
 
                 @if (User.Identity.IsAuthenticated)
                 {
-                    <div id="btnMainMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; border-radius: 12px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isITSubActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
-                        <span><i class="fa @(isITSystem ? "fa-plus-circle" : "fa-pencil-square-o")" style="margin-right:12px; width:20px; color:@accentColor;"></i> Đăng ký đơn</span>
+                    <div id="btnMainMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-radius: 14px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isITSubActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
+                        <span style="display:flex; align-items:center;">
+                            <i class="fa @(isITSystem ? "fa-plus-circle" : "fa-pencil-square-o")" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i> Đăng ký đơn
+                        </span>
                         <i class="fa fa-angle-down" id="menuArrow" style="transition: 0.3s; transform: @(isITSubActive ? "rotate(180deg)" : "rotate(0deg)");"></i>
                     </div>
 
-                    <div id="mainSubmenu" style="display: @(isITSubActive ? "flex" : "none"); flex-direction: column; padding-left: 10px; background: rgba(0, 0, 0, 0.1); border-radius: 12px; margin: 5px 0;">
+                    <div id="mainSubmenu" style="display: @(isITSubActive ? "flex" : "none"); flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
                         @if (isITSystem)
                         {
-                            <a href="/FormIT/DonMail" class="submenu-item @(currentAction == "DonMail" ? "active" : "")">
-                                <i class="fa fa-envelope-o" style="margin-right:10px; width:15px; color: #fbbf24;"></i> 1. Đăng ký Mail
+                            <a href="/FormIT/DonMail" style="text-decoration:none; display:flex; align-items:center; font-size:0.88rem; padding:12px 18px; color: @(currentAction == "DonMail" ? "#fff" : "#cbd5e1"); background: @(currentAction == "DonMail" ? "rgba(255,255,255,0.1)" : "transparent"); border-radius:10px; font-weight: @(currentAction == "DonMail" ? "700" : "400"); transition: 0.2s;">
+                                <i class="fa fa-envelope-o" style="margin-right:12px; width:15px; color: #fbbf24;"></i> 1. Đăng ký Mail
                             </a>
-                            <a href="/FormIT/TaoIT_Order" class="submenu-item @(currentAction == "TaoIT_Order" ? "active" : "")">
-                                <i class="fa fa-wrench" style="margin-right:10px; width:15px; color: #ea580c;"></i> 2. Sửa chữa thiết bị
+                            <a href="/FormIT/TaoIT_Order" style="text-decoration:none; display:flex; align-items:center; font-size:0.88rem; padding:12px 18px; color: @(currentAction == "TaoIT_Order" ? "#fff" : "#cbd5e1"); background: @(currentAction == "TaoIT_Order" ? "rgba(255,255,255,0.1)" : "transparent"); border-radius:10px; font-weight: @(currentAction == "TaoIT_Order" ? "700" : "400"); transition: 0.2s;">
+                                <i class="fa fa-wrench" style="margin-right:12px; width:15px; color: #ea580c;"></i> 2. Sửa chữa thiết bị
                             </a>
-                            <a href="/FormIT/TaoIT_Wifi" class="submenu-item @(currentAction == "TaoIT_Wifi" ? "active" : "")">
-                                <i class="fa fa-wifi" style="margin-right:10px; width:15px; color: #059669;"></i> 3. Đăng ký Wifi
+                            <a href="/FormIT/TaoIT_Wifi" style="text-decoration:none; display:flex; align-items:center; font-size:0.88rem; padding:12px 18px; color: @(currentAction == "TaoIT_Wifi" ? "#fff" : "#cbd5e1"); background: @(currentAction == "TaoIT_Wifi" ? "rgba(255,255,255,0.1)" : "transparent"); border-radius:10px; font-weight: @(currentAction == "TaoIT_Wifi" ? "700" : "400"); transition: 0.2s;">
+                                <i class="fa fa-wifi" style="margin-right:12px; width:15px; color: #059669;"></i> 3. Đăng ký Wifi
                             </a>
-                            <a href="/FormIT/DonDienThoaiBan" class="submenu-item @(currentAction == "DonDienThoaiBan" ? "active" : "")">
-                                <i class="fa fa-phone" style="margin-right:10px; width:15px; color: #4f46e5;"></i> 4. Đăng ký ĐT bàn
+                            <a href="/FormIT/DonDienThoaiBan" style="text-decoration:none; display:flex; align-items:center; font-size:0.88rem; padding:12px 18px; color: @(currentAction == "DonDienThoaiBan" ? "#fff" : "#cbd5e1"); background: @(currentAction == "DonDienThoaiBan" ? "rgba(255,255,255,0.1)" : "transparent"); border-radius:10px; font-weight: @(currentAction == "DonDienThoaiBan" ? "700" : "400"); transition: 0.2s;">
+                                <i class="fa fa-phone" style="margin-right:12px; width:15px; color: #4f46e5;"></i> 4. Đăng ký ĐT bàn
                             </a>
                         }
                     </div>
 
                     <a href="@(isITSystem ? "/FormIT/DonCho" : "/FormHR/DonCho")"
-                       style="display: flex; align-items: center; padding: 13px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; transition: 0.3s; background: @(currentAction == "DonCho" ? "rgba(255,255,255,0.2)" : "transparent");">
-                        <i class="fa fa-list-alt" style="margin-right:12px; width:20px; color:#34d399;"></i> Đơn của tôi
+                       style="display: flex; align-items: center; padding: 14px 18px; border-radius: 14px; color: #fff; text-decoration: none; font-weight: 600; transition: 0.3s; background: @(currentAction == "DonCho" ? "rgba(255,255,255,0.2)" : "transparent"); margin-bottom: 2px;">
+                        <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> Đơn của tôi
                     </a>
 
                     <a href="/FormIT/LichSuIT"
-                       style="display: flex; align-items: center; padding: 13px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; transition: 0.3s; background: @(currentAction == "LichSuIT" ? "rgba(255,255,255,0.2)" : "transparent");">
-                        <i class="fa fa-history" style="margin-right:12px; width:20px; color:#60a5fa;"></i> Nhật ký hệ thống
+                       style="display: flex; align-items: center; padding: 14px 18px; border-radius: 14px; color: #fff; text-decoration: none; font-weight: 600; transition: 0.3s; background: @(currentAction == "LichSuIT" ? "rgba(255,255,255,0.2)" : "transparent"); margin-bottom: 2px;">
+                        <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> Nhật ký hệ thống
                     </a>
 
                     @if (currentUserRole == "QuanLy" || currentUserRole == "Admin" || currentUserRole == "All")
                     {
-                        <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
-                        <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.2px; margin: 10px 0 8px 10px; font-weight: 800;">Phê duyệt</div>
+                        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
+                        <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Phê duyệt</div>
                         <a href="@(isITSystem ? "/FormIT/QuanLyXetDuyet" : "/FormHR/QuanLyXetDuyet")"
-                           style="display: flex; align-items: center; padding: 13px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; transition: 0.3s; background: @(currentAction == "QuanLyXetDuyet" ? "rgba(255,255,255,0.2)" : "transparent");">
-                            <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; color:#f6e05e;"></i> Quản lý xét duyệt
+                           style="display: flex; align-items: center; padding: 14px 18px; border-radius: 14px; color: #fff; text-decoration: none; font-weight: 600; transition: 0.3s; background: @(currentAction == "QuanLyXetDuyet" ? "rgba(255,255,255,0.2)" : "transparent");">
+                            <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> Quản lý xét duyệt
                         </a>
                     }
 
                     @if (isITSystem && (currentUserRole == "Admin" || currentUserRole == "All") && phongBan.Contains("Phòng thông tin"))
                     {
-                        <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
-                        <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.2px; margin: 10px 0 8px 10px; font-weight: 800;">Quản trị IT</div>
-                        <a href="/FormIT/HoanTatDon" class="submenu-item @(currentAction == "HoanTatDon" ? "active" : "")" style="padding: 13px 18px; margin:0;">
-                            <i class="fa fa-archive" style="margin-right:12px; width:20px; color:#a78bfa;"></i> Lưu trữ đơn
+                        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
+                        <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị IT</div>
+                        <a href="/FormIT/HoanTatDon" style="text-decoration:none; display:flex; align-items:center; padding: 14px 18px; border-radius: 14px; color:#fff; font-weight: 600; transition:0.3s; background: @(currentAction == "HoanTatDon" ? "rgba(255,255,255,0.2)" : "transparent"); margin-bottom: 4px;">
+                            <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> Lưu trữ đơn
                         </a>
-                        <a href="/FormIT/BaoCaoThongKe" class="submenu-item @(currentAction == "BaoCaoThongKe" ? "active" : "")" style="padding: 13px 18px; margin:0;">
-                            <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; color:#10b981;"></i> Thống kê báo cáo
+                        <a href="/FormIT/BaoCaoThongKe" style="text-decoration:none; display:flex; align-items:center; padding: 14px 18px; border-radius: 14px; color:#fff; font-weight: 600; transition:0.3s; background: @(currentAction == "BaoCaoThongKe" ? "rgba(255,255,255,0.2)" : "transparent");">
+                            <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> Thống kê báo cáo
                         </a>
                     }
                 }
             </nav>
 
-            <div style="margin-top:20px; padding: 15px; background: rgba(0,0,0,0.25); border-radius: 15px; position:relative;">
+            <div style="margin-top:25px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 20px; position:relative; border: 1px solid rgba(255,255,255,0.05);">
                 @if (User.Identity.IsAuthenticated)
                 {
-                    <div id="userMenuButton" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-                        <div style="width:38px; height:38px; border-radius:50%; background:linear-gradient(45deg, #4299e1, #667eea); display:flex; justify-content:center; align-items:center; font-weight:bold; border:2px solid rgba(255,255,255,0.2);">
+                    <div id="userMenuButton" style="display:flex; align-items:center; gap:12px; cursor:pointer;">
+                        <div style="width:42px; height:42px; border-radius:14px; background:linear-gradient(135deg, #60a5fa, #3b82f6); display:flex; justify-content:center; align-items:center; font-weight:bold; border:2px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
                             @(string.IsNullOrEmpty(currentUserName) ? "?" : currentUserName.Substring(0, 1).ToUpper())
                         </div>
                         <div style="flex:1; overflow:hidden;">
-                            <div style="font-weight:700; font-size:0.9rem; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">@currentUserName</div>
-                            <div style="font-size:0.7rem; color:#a0aec0;">@currentUserRole</div>
+                            <div style="font-weight:700; font-size:0.92rem; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; color: #fff;">@currentUserName</div>
+                            <div style="font-size:0.75rem; color:rgba(255,255,255,0.5); font-weight: 500;">@currentUserRole</div>
                         </div>
-                        <i class="fa fa-angle-up" id="arrowIcon" style="transition: 0.3s;"></i>
+                        <i class="fa fa-angle-up" id="arrowIcon" style="transition: 0.3s; color: rgba(255,255,255,0.5);"></i>
                     </div>
 
-                    <div id="userDropdown" style="position:absolute; bottom:80px; left:0; right:0; background:#fff; border-radius:12px; box-shadow:0 -10px 25px rgba(0,0,0,0.2); display:none; flex-direction:column; overflow:hidden; border: 1px solid #edf2f7;">
-                        <a href="/DonXetDuyet/HoSo" style="padding:12px 15px; color:#2d3748; text-decoration:none; font-size:0.9rem; border-bottom:1px solid #edf2f7; display:flex; align-items:center;">
-                            <i class="fa fa-user-circle" style="margin-right:10px; color:#4a5568;"></i> Hồ sơ cá nhân
+                    <div id="userDropdown" style="position:absolute; bottom:90px; left:0; right:0; background:#fff; border-radius:16px; box-shadow:0 -15px 35px rgba(0,0,0,0.25); display:none; flex-direction:column; overflow:hidden; border: 1px solid #edf2f7; z-index: 1001;">
+                        <a href="/DonXetDuyet/HoSo" style="padding:15px 20px; color:#334155; text-decoration:none; font-size:0.92rem; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; font-weight: 500;">
+                            <i class="fa fa-user-circle" style="margin-right:12px; color:#64748b; font-size: 1.1rem;"></i> Hồ sơ cá nhân
                         </a>
-                        <a href="/DonXetDuyet/DangXuat" style="padding:12px 15px; color:#e53e3e; text-decoration:none; font-size:0.9rem; font-weight:700; display:flex; align-items:center;">
-                            <i class="fa fa-sign-out" style="margin-right:10px;"></i> Đăng xuất
+                        <a href="/DonXetDuyet/DangXuat" style="padding:15px 20px; color:#ef4444; text-decoration:none; font-size:0.92rem; font-weight:700; display:flex; align-items:center;">
+                            <i class="fa fa-sign-out" style="margin-right:12px; font-size: 1.1rem;"></i> Đăng xuất
                         </a>
                     </div>
                 }
             </div>
         </aside>
 
-        <main style="margin-left:280px; width:calc(100% - 280px); box-sizing: border-box; min-height:100vh; position:relative;">
+        <main style="margin-left:280px; width:calc(100% - 280px); box-sizing: border-box; min-height:100vh; position:relative; display: flex; flex-direction: column;">
 
-            <header style="padding: 15px 40px; display: flex; justify-content: flex-end; align-items: center; background: transparent; position: sticky; top: 0; z-index: 999;">
+            <header style="padding: 20px 50px; display: flex; justify-content: flex-end; align-items: center; background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 999;">
                 <div style="position: relative;">
-                    <div id="notiBell" style="width: 45px; height: 45px; background: #fff; border-radius: 12px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; color: #4a5568; transition: 0.3s;">
-                        <i class="fa fa-bell-o" style="font-size: 1.2rem;"></i>
-                        <span style="position: absolute; top: 10px; right: 10px; width: 10px; height: 10px; background: #ef4444; border-radius: 50%; border: 2px solid #fff;"></span>
+                    <div id="notiBell" style="width: 48px; height: 48px; background: #fff; border-radius: 15px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; color: #64748b; transition: all 0.3s ease;">
+                        <i class="fa fa-bell-o" style="font-size: 1.3rem;"></i>
+                        <span id="notiBadge" style="position: absolute; top: 12px; right: 12px; width: 10px; height: 10px; background: #ef4444; border-radius: 50%; border: 2px solid #fff; display:none; box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);"></span>
                     </div>
 
-                    <div id="notificationDropdown">
-                        <div style="padding: 15px; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: 800; color: #1a202c;">Thông báo mới</span>
-                            <a href="/FormIT/LichSuIT" style="font-size: 0.75rem; color: #3b82f6; text-decoration: none; font-weight: 600;">Xem tất cả</a>
+                    <div id="notificationDropdown" style="position: absolute; top: 65px; right: 0; width: 380px; background: #fff; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); display: none; flex-direction: column; z-index: 2000; border: 1px solid #f1f5f9; overflow: hidden; transform-origin: top right;">
+                        <div style="padding: 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+                            <span style="font-weight: 800; color: #1e293b; font-size: 1.1rem;">Thông báo mới</span>
+                            <a href="/FormIT/LichSuIT" style="font-size: 0.8rem; color: #3b82f6; text-decoration: none; font-weight: 700; background: #eff6ff; padding: 6px 12px; border-radius: 8px;">Xem tất cả</a>
                         </div>
-                        <div id="notiList" style="max-height: 400px; overflow-y: auto;">
-                            <a href="#" class="notification-item">
-                                <div style="width: 40px; height: 40px; border-radius: 10px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                    <i class="fa fa-check-circle"></i>
-                                </div>
-                                <div>
-                                    <div style="font-size: 0.85rem; font-weight: 700; color: #2d3748;">Đơn hàng đã được duyệt</div>
-                                    <div style="font-size: 0.75rem; color: #718096; margin-top: 2px;">Đơn sửa chữa #123 của bạn đã hoàn tất.</div>
-                                    <div style="font-size: 0.65rem; color: #a0aec0; margin-top: 5px;">2 phút trước</div>
-                                </div>
-                                <div class="unread-dot"></div>
-                            </a>
+                        <div id="notiList" style="max-height: 450px; overflow-y: auto;">
+                            <div style="padding: 30px; text-align: center; color: #94a3b8; font-size: 0.9rem;">
+                                <i class="fa fa-circle-o-notch fa-spin" style="margin-bottom: 10px; font-size: 1.5rem;"></i><br>Đang tải thông báo...
+                            </div>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <div style="padding: 0 40px 40px 40px;">
-                <div style="background:#fff; border-radius:30px; box-shadow:0 10px 40px rgba(0,0,0,0.03); padding:40px; min-height:80vh; border:1px solid #e2e8f0;">
+            <div style="padding: 10px 50px 50px 50px; flex: 1;">
+                <div style="background:#fff; border-radius:35px; box-shadow: 0 20px 60px rgba(0,0,0,0.04); padding:45px; min-height:82vh; border:1px solid rgba(226, 232, 240, 0.8);">
                     @RenderBody()
                 </div>
             </div>
@@ -271,9 +169,8 @@
         <div style="width:100%;">@RenderBody()</div>
     }
 
-    @* --- PHẦN JAVASCRIPT GỐC --- *@
     <script>
-        // Toggle Sidebar Submenu
+        // --- 1. Sidebar & Dropdown Logic ---
         const btnMenu = document.getElementById('btnMainMenu');
         const submenu = document.getElementById('mainSubmenu');
         const arrow = document.getElementById('menuArrow');
@@ -283,10 +180,10 @@
                 const isHidden = submenu.style.display === 'none' || submenu.style.display === '';
                 submenu.style.display = isHidden ? 'flex' : 'none';
                 arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+                btnMenu.style.background = isHidden ? 'rgba(255, 255, 255, 0.15)' : 'transparent';
             });
         }
 
-        // Toggle User Profile Dropdown
         const userBtn = document.getElementById('userMenuButton');
         const userDrop = document.getElementById('userDropdown');
         const userArrow = document.getElementById('arrowIcon');
@@ -300,7 +197,6 @@
             });
         }
 
-        // Toggle Notification Dropdown
         const notiBell = document.getElementById('notiBell');
         const notiDrop = document.getElementById('notificationDropdown');
 
@@ -309,18 +205,65 @@
                 e.stopPropagation();
                 const isHidden = notiDrop.style.display === 'none' || notiDrop.style.display === '';
                 notiDrop.style.display = isHidden ? 'flex' : 'none';
-                notiBell.style.background = isHidden ? '#f8fafc' : '#fff';
+                notiBell.style.transform = isHidden ? 'scale(0.95)' : 'scale(1)';
+                notiBell.style.background = isHidden ? '#f1f5f9' : '#fff';
+
+                if (isHidden) {
+                    loadNotifications();
+                }
             });
         }
 
-        // Click outside to close all
         document.addEventListener('click', () => {
             if (userDrop) userDrop.style.display = 'none';
             if (userArrow) userArrow.style.transform = 'rotate(0deg)';
             if (notiDrop) notiDrop.style.display = 'none';
+            if (notiBell) {
+                notiBell.style.background = '#fff';
+                notiBell.style.transform = 'scale(1)';
+            }
         });
+
+        // --- 2. AJAX Load Notifications (Giữ nguyên logic của bạn) ---
+        async function loadNotifications() {
+            const notiList = document.getElementById('notiList');
+            const notiBadge = document.getElementById('notiBadge');
+
+            try {
+                const response = await fetch('/FormIT/GetNotifications');
+                if (!response.ok) throw new Error('Network response was not ok');
+
+                const data = await response.json();
+
+                if (data.length === 0) {
+                    notiList.innerHTML = '<div style="padding: 40px; text-align: center; color: #94a3b8; font-size: 0.9rem;">Bạn không có thông báo nào mới.</div>';
+                    notiBadge.style.display = 'none';
+                    return;
+                }
+
+                notiBadge.style.display = 'block';
+
+                notiList.innerHTML = data.map(item => `
+                    <a href="/FormIT/LichSuIT?idForm=${item.idForm}" style="text-decoration:none; display:flex; gap:15px; padding:20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.2rem;">
+                            <i class="fa fa-info-circle"></i>
+                        </div>
+                        <div style="flex:1">
+                            <div style="font-size: 0.92rem; font-weight: 700; color: #1e293b; line-height: 1.4;">${item.tieuDe}</div>
+                            <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">${item.moTa || 'Cập nhật trạng thái đơn.'}</div>
+                            <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 8px; font-weight: 500;"><i class="fa fa-clock-o" style="margin-right:4px;"></i> ${item.thoiGian}</div>
+                        </div>
+                        <div style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%; margin-top: 5px;"></div>
+                    </a>
+                `).join('');
+            } catch (error) {
+                console.error('Error fetching notifications:', error);
+                notiList.innerHTML = '<div style="padding: 30px; text-align: center; color: #ef4444; font-size: 0.85rem; font-weight: 600;">Lỗi kết nối máy chủ.</div>';
+            }
+        }
+
+        setInterval(loadNotifications, 300000);
+        loadNotifications();
     </script>
-
-
 </body>
 </html>
