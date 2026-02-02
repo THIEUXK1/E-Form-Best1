@@ -26,6 +26,12 @@ public partial class UserDevice
 
     public bool? IsTrusted { get; set; }
 
+    public string? PushEndpoint { get; set; }
+
+    public string? PushP256dh { get; set; }
+
+    public string? PushAuth { get; set; }
+
     [ForeignKey("IdNguoiDung")]
     [InverseProperty("UserDevices")]
     public virtual User IdNguoiDungNavigation { get; set; } = null!;

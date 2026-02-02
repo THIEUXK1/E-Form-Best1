@@ -5,21 +5,16 @@
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     var isLoginPage = currentController == "TaiKhoan" && currentAction == "DangNhap";
 
-    // --- SỬA ĐỔI: Lấy thông tin từ Cookie Claims thay vì Session ---
+    // --- Lấy thông tin từ Cookie Claims ---
     var currentUserName = User.Identity.IsAuthenticated ? User.Identity.Name : "";
-    var currentUserRole = User.FindFirst("UserRole")?.Value ?? ""; // Tên Claim phải khớp với lúc SignIn
+    var currentUserRole = User.FindFirst("UserRole")?.Value ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
-    // -----------------------------------------------------------
 
     bool isITSystem = currentController.Contains("IT") || currentController == "Mail" || currentController.Contains("Order");
 
-    // Danh sách để giữ Menu Active
-    string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan" };
-    string[] hrSubPages = { "DonXinRaNgoai", "DangKySuDungXeCongTac" };
-
+    // Menu Active Logic
+    string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan" };
     bool isITSubActive = itSubPages.Contains(currentAction);
-    bool isHRSubActive = hrSubPages.Contains(currentAction);
-    bool isAnySubActive = isITSubActive || isHRSubActive;
 
     string primaryGradient = isITSystem ? "linear-gradient(180deg, #0f172a 0%, #1e40af 100%)" : "linear-gradient(180deg, #1a365d 0%, #2d3748 100%)";
     string accentColor = isITSystem ? "#60a5fa" : "#34d399";
@@ -32,16 +27,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] - Portal System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body::-webkit-scrollbar {
-            width: 8px;
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background: #f4f7fa;
+            color: #1a202c;
         }
 
-        body::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
+            body::-webkit-scrollbar {
+                width: 8px;
+            }
 
+            body::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 10px;
+            }
+
+        /* Sidebar Submenu */
         .submenu-item {
             transition: 0.3s;
             border-radius: 8px;
@@ -51,6 +55,7 @@
             align-items: center;
             font-size: 0.85rem;
             padding: 10px 15px;
+            color: #cbd5e1;
         }
 
             .submenu-item:hover {
@@ -59,25 +64,73 @@
                 background: rgba(255,255,255,0.05);
             }
 
-        aside nav::-webkit-scrollbar {
-            width: 4px;
+            .submenu-item.active {
+                color: #fff !important;
+                background: rgba(255,255,255,0.1);
+                font-weight: 700;
+            }
+
+        /* Notification Styles */
+        #notificationDropdown {
+            position: absolute;
+            top: 60px;
+            right: 40px;
+            width: 350px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            display: none;
+            flex-direction: column;
+            z-index: 2000;
+            border: 1px solid #edf2f7;
+            overflow: hidden;
+            animation: fadeIn 0.2s ease-out;
         }
 
-        aside nav::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.2);
-            border-radius: 10px;
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .notification-item {
+            padding: 15px;
+            border-bottom: 1px solid #f7fafc;
+            transition: 0.2s;
+            cursor: pointer;
+            display: flex;
+            gap: 12px;
+            text-decoration: none;
+            color: inherit;
+        }
+
+            .notification-item:hover {
+                background: #f8fafc;
+            }
+
+        .unread-dot {
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            display: inline-block;
         }
     </style>
 </head>
 
-<body style="margin:0; font-family:'Inter', 'Segoe UI', sans-serif; background:#f4f7fa; min-height:100vh; display:flex; color: #1a202c;">
+<body style="display:flex; min-height:100vh;">
 
     @if (!isLoginPage)
     {
         <aside id="sidebar" style="width:280px; background:@primaryGradient; color:#fff; padding:25px 15px; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; box-shadow:5px 0 30px rgba(0,0,0,0.2); z-index:1000;">
 
-            @* Logo Section *@
-            <a href="/" style="text-decoration:none; display:flex; align-items:center; gap:12px; margin-bottom:35px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+            <a href="/" style="text-decoration:none; display:flex; align-items:center; gap:12px; margin-bottom:30px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
                 <div style="width:45px; height:45px; background:#fff; border-radius:12px; display:flex; justify-content:center; align-items:center; font-weight:900; font-size:1.2rem; color:#1e40af;">
                     @(isITSystem ? "IT" : "HR")
                 </div>
@@ -87,36 +140,30 @@
                 </div>
             </a>
 
-            <nav style="flex:1; overflow-y:auto; padding-right:5px; display:flex; flex-direction:column; gap:5px;">
+            <nav style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:5px;">
                 <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.2px; margin: 10px 0 8px 10px; font-weight: 800;">Chức năng chính</div>
 
                 @if (User.Identity.IsAuthenticated)
                 {
-                    <div id="btnMainMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; border-radius: 12px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isAnySubActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
+                    <div id="btnMainMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; border-radius: 12px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isITSubActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
                         <span><i class="fa @(isITSystem ? "fa-plus-circle" : "fa-pencil-square-o")" style="margin-right:12px; width:20px; color:@accentColor;"></i> Đăng ký đơn</span>
-                        <i class="fa fa-angle-down" id="menuArrow" style="transition: 0.3s; transform: @(isAnySubActive ? "rotate(180deg)" : "rotate(0deg)");"></i>
+                        <i class="fa fa-angle-down" id="menuArrow" style="transition: 0.3s; transform: @(isITSubActive ? "rotate(180deg)" : "rotate(0deg)");"></i>
                     </div>
 
-                    <div id="mainSubmenu" style="display: @(isAnySubActive ? "flex" : "none"); flex-direction: column; padding-left: 10px; background: rgba(0, 0, 0, 0.1); border-radius: 12px; margin: 5px 0;">
+                    <div id="mainSubmenu" style="display: @(isITSubActive ? "flex" : "none"); flex-direction: column; padding-left: 10px; background: rgba(0, 0, 0, 0.1); border-radius: 12px; margin: 5px 0;">
                         @if (isITSystem)
                         {
-                            <a href="/FormIT/DonMail" class="submenu-item" style="color: @(currentAction == "DonMail" ? "#fff" : "#cbd5e1");">
+                            <a href="/FormIT/DonMail" class="submenu-item @(currentAction == "DonMail" ? "active" : "")">
                                 <i class="fa fa-envelope-o" style="margin-right:10px; width:15px; color: #fbbf24;"></i> 1. Đăng ký Mail
                             </a>
-                            <a href="/FormIT/TaoIT_Order" class="submenu-item" style="color: @(currentAction == "TaoIT_Order" ? "#fff" : "#cbd5e1");">
+                            <a href="/FormIT/TaoIT_Order" class="submenu-item @(currentAction == "TaoIT_Order" ? "active" : "")">
                                 <i class="fa fa-wrench" style="margin-right:10px; width:15px; color: #ea580c;"></i> 2. Sửa chữa thiết bị
                             </a>
-                            <a href="/FormIT/TaoIT_Wifi" class="submenu-item" style="color: @(currentAction == "TaoIT_Wifi" ? "#fff" : "#cbd5e1");">
+                            <a href="/FormIT/TaoIT_Wifi" class="submenu-item @(currentAction == "TaoIT_Wifi" ? "active" : "")">
                                 <i class="fa fa-wifi" style="margin-right:10px; width:15px; color: #059669;"></i> 3. Đăng ký Wifi
                             </a>
-                            <a href="/FormIT/DonDienThoaiBan" class="submenu-item" style="color: @(currentAction == "TaoIT_DtBan" ? "#fff" : "#cbd5e1");">
+                            <a href="/FormIT/DonDienThoaiBan" class="submenu-item @(currentAction == "DonDienThoaiBan" ? "active" : "")">
                                 <i class="fa fa-phone" style="margin-right:10px; width:15px; color: #4f46e5;"></i> 4. Đăng ký ĐT bàn
-                            </a>
-                        }
-                        else
-                        {
-                            <a href="/FormHR/DonXinRaNgoai" class="submenu-item" style="color: @(currentAction == "DonXinRaNgoai" ? "#fff" : "#cbd5e1");">
-                                <i class="fa fa-external-link" style="margin-right:10px; width:15px; color: #ff4d4d;"></i> Đơn ra ngoài
                             </a>
                         }
                     </div>
@@ -126,10 +173,15 @@
                         <i class="fa fa-list-alt" style="margin-right:12px; width:20px; color:#34d399;"></i> Đơn của tôi
                     </a>
 
+                    <a href="/FormIT/LichSuIT"
+                       style="display: flex; align-items: center; padding: 13px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; transition: 0.3s; background: @(currentAction == "LichSuIT" ? "rgba(255,255,255,0.2)" : "transparent");">
+                        <i class="fa fa-history" style="margin-right:12px; width:20px; color:#60a5fa;"></i> Nhật ký hệ thống
+                    </a>
+
                     @if (currentUserRole == "QuanLy" || currentUserRole == "Admin" || currentUserRole == "All")
                     {
                         <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
-                        <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.2px; margin: 10px 0 8px 10px; font-weight: 800;">Duyệt đơn</div>
+                        <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.2px; margin: 10px 0 8px 10px; font-weight: 800;">Phê duyệt</div>
                         <a href="@(isITSystem ? "/FormIT/QuanLyXetDuyet" : "/FormHR/QuanLyXetDuyet")"
                            style="display: flex; align-items: center; padding: 13px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; transition: 0.3s; background: @(currentAction == "QuanLyXetDuyet" ? "rgba(255,255,255,0.2)" : "transparent");">
                             <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; color:#f6e05e;"></i> Quản lý xét duyệt
@@ -139,35 +191,32 @@
                     @if (isITSystem && (currentUserRole == "Admin" || currentUserRole == "All") && phongBan.Contains("Phòng thông tin"))
                     {
                         <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
-                        <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.2px; margin: 10px 0 8px 10px; font-weight: 800;">IT System Admin</div>
-                        <a href="/FormIT/HoanTatDon"
-                           style="display: flex; align-items: center; padding: 13px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; transition: 0.3s; background: @(currentAction == "HoanTatDon" ? "rgba(255,255,255,0.2)" : "transparent");">
-                            <i class="fa fa-archive" style="margin-right:12px; width:20px; color:#a78bfa;"></i> Hoàn tất đơn IT
+                        <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.2px; margin: 10px 0 8px 10px; font-weight: 800;">Quản trị IT</div>
+                        <a href="/FormIT/HoanTatDon" class="submenu-item @(currentAction == "HoanTatDon" ? "active" : "")" style="padding: 13px 18px; margin:0;">
+                            <i class="fa fa-archive" style="margin-right:12px; width:20px; color:#a78bfa;"></i> Lưu trữ đơn
                         </a>
-                        <a href="/FormIT/BaoCaoThongKe"
-                           style="display: flex; align-items: center; padding: 13px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; transition: 0.3s; background: @(currentAction == "BaoCaoThongKe" ? "rgba(255,255,255,0.2)" : "transparent");">
-                            <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; color:#10b981;"></i> Thống kê đơn IT
+                        <a href="/FormIT/BaoCaoThongKe" class="submenu-item @(currentAction == "BaoCaoThongKe" ? "active" : "")" style="padding: 13px 18px; margin:0;">
+                            <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; color:#10b981;"></i> Thống kê báo cáo
                         </a>
                     }
                 }
             </nav>
 
-            @* --- USER INFO & DROPDOWN --- *@
-            <div style="margin-top:20px; padding: 15px; background: rgba(0,0,0,0.25); border-radius: 15px; position:relative; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="margin-top:20px; padding: 15px; background: rgba(0,0,0,0.25); border-radius: 15px; position:relative;">
                 @if (User.Identity.IsAuthenticated)
                 {
                     <div id="userMenuButton" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-                        <div style="width:38px; height:38px; border-radius:50%; background:linear-gradient(45deg, #4299e1, #667eea); display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:1rem; border:2px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                        <div style="width:38px; height:38px; border-radius:50%; background:linear-gradient(45deg, #4299e1, #667eea); display:flex; justify-content:center; align-items:center; font-weight:bold; border:2px solid rgba(255,255,255,0.2);">
                             @(string.IsNullOrEmpty(currentUserName) ? "?" : currentUserName.Substring(0, 1).ToUpper())
                         </div>
                         <div style="flex:1; overflow:hidden;">
                             <div style="font-weight:700; font-size:0.9rem; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">@currentUserName</div>
                             <div style="font-size:0.7rem; color:#a0aec0;">@currentUserRole</div>
                         </div>
-                        <i class="fa fa-angle-up" id="arrowIcon" style="font-size:14px; transition: 0.3s;"></i>
+                        <i class="fa fa-angle-up" id="arrowIcon" style="transition: 0.3s;"></i>
                     </div>
 
-                    <div id="userDropdown" style="position:absolute; bottom:80px; left:0; right:0; background:#fff; border-radius:12px; box-shadow:0 -10px 25px rgba(0,0,0,0.2); display:none; flex-direction:column; overflow:hidden; z-index:1001; border: 1px solid #edf2f7;">
+                    <div id="userDropdown" style="position:absolute; bottom:80px; left:0; right:0; background:#fff; border-radius:12px; box-shadow:0 -10px 25px rgba(0,0,0,0.2); display:none; flex-direction:column; overflow:hidden; border: 1px solid #edf2f7;">
                         <a href="/DonXetDuyet/HoSo" style="padding:12px 15px; color:#2d3748; text-decoration:none; font-size:0.9rem; border-bottom:1px solid #edf2f7; display:flex; align-items:center;">
                             <i class="fa fa-user-circle" style="margin-right:10px; color:#4a5568;"></i> Hồ sơ cá nhân
                         </a>
@@ -176,18 +225,44 @@
                         </a>
                     </div>
                 }
-                else
-                {
-                    <a href="/DonXetDuyet/DangNhap" style="display:flex; align-items:center; justify-content:center; gap:10px; padding:12px; border-radius:10px; background:#fff; color:#1a365d; text-decoration:none; font-weight:800; transition:0.3s; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
-                        <i class="fa fa-lock"></i> ĐĂNG NHẬP
-                    </a>
-                }
             </div>
         </aside>
 
-        <main style="margin-left:280px; width:calc(100% - 280px); padding:40px; box-sizing: border-box; min-height:100vh;">
-            <div style="background:#fff; border-radius:30px; box-shadow:0 10px 40px rgba(0,0,0,0.03); padding:40px; min-height:80vh; border:1px solid #e2e8f0;">
-                @RenderBody()
+        <main style="margin-left:280px; width:calc(100% - 280px); box-sizing: border-box; min-height:100vh; position:relative;">
+
+            <header style="padding: 15px 40px; display: flex; justify-content: flex-end; align-items: center; background: transparent; position: sticky; top: 0; z-index: 999;">
+                <div style="position: relative;">
+                    <div id="notiBell" style="width: 45px; height: 45px; background: #fff; border-radius: 12px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; color: #4a5568; transition: 0.3s;">
+                        <i class="fa fa-bell-o" style="font-size: 1.2rem;"></i>
+                        <span style="position: absolute; top: 10px; right: 10px; width: 10px; height: 10px; background: #ef4444; border-radius: 50%; border: 2px solid #fff;"></span>
+                    </div>
+
+                    <div id="notificationDropdown">
+                        <div style="padding: 15px; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 800; color: #1a202c;">Thông báo mới</span>
+                            <a href="/FormIT/LichSuIT" style="font-size: 0.75rem; color: #3b82f6; text-decoration: none; font-weight: 600;">Xem tất cả</a>
+                        </div>
+                        <div id="notiList" style="max-height: 400px; overflow-y: auto;">
+                            <a href="#" class="notification-item">
+                                <div style="width: 40px; height: 40px; border-radius: 10px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <i class="fa fa-check-circle"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.85rem; font-weight: 700; color: #2d3748;">Đơn hàng đã được duyệt</div>
+                                    <div style="font-size: 0.75rem; color: #718096; margin-top: 2px;">Đơn sửa chữa #123 của bạn đã hoàn tất.</div>
+                                    <div style="font-size: 0.65rem; color: #a0aec0; margin-top: 5px;">2 phút trước</div>
+                                </div>
+                                <div class="unread-dot"></div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div style="padding: 0 40px 40px 40px;">
+                <div style="background:#fff; border-radius:30px; box-shadow:0 10px 40px rgba(0,0,0,0.03); padding:40px; min-height:80vh; border:1px solid #e2e8f0;">
+                    @RenderBody()
+                </div>
             </div>
         </main>
     }
@@ -196,8 +271,9 @@
         <div style="width:100%;">@RenderBody()</div>
     }
 
+    @* --- PHẦN JAVASCRIPT GỐC --- *@
     <script>
-        // Toggle Dropdown menu
+        // Toggle Sidebar Submenu
         const btnMenu = document.getElementById('btnMainMenu');
         const submenu = document.getElementById('mainSubmenu');
         const arrow = document.getElementById('menuArrow');
@@ -210,7 +286,7 @@
             });
         }
 
-        // Toggle User Dropdown
+        // Toggle User Profile Dropdown
         const userBtn = document.getElementById('userMenuButton');
         const userDrop = document.getElementById('userDropdown');
         const userArrow = document.getElementById('arrowIcon');
@@ -222,11 +298,29 @@
                 userDrop.style.display = isHidden ? 'flex' : 'none';
                 userArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
             });
-            document.addEventListener('click', () => {
-                userDrop.style.display = 'none';
-                userArrow.style.transform = 'rotate(0deg)';
+        }
+
+        // Toggle Notification Dropdown
+        const notiBell = document.getElementById('notiBell');
+        const notiDrop = document.getElementById('notificationDropdown');
+
+        if (notiBell) {
+            notiBell.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = notiDrop.style.display === 'none' || notiDrop.style.display === '';
+                notiDrop.style.display = isHidden ? 'flex' : 'none';
+                notiBell.style.background = isHidden ? '#f8fafc' : '#fff';
             });
         }
+
+        // Click outside to close all
+        document.addEventListener('click', () => {
+            if (userDrop) userDrop.style.display = 'none';
+            if (userArrow) userArrow.style.transform = 'rotate(0deg)';
+            if (notiDrop) notiDrop.style.display = 'none';
+        });
     </script>
+
+
 </body>
 </html>

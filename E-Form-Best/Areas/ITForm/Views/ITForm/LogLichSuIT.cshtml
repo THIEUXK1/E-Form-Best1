@@ -1,0 +1,163 @@
+﻿@model IEnumerable<E_Form_Best.Models.ITForm.LichSu>
+@{
+    ViewData["Title"] = "Nhật ký hoạt động IT";
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+}
+
+<div style="background: #f8fafc; min-height: 100vh; padding: 30px; font-family: 'Inter', sans-serif;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+
+        @* --- HEADER --- *@
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <div>
+                <h2 style="margin: 0; color: #1e293b; font-weight: 800; display: flex; align-items: center; gap: 12px;">
+                    <i class="fa fa-history" style="color: #6366f1;"></i> NHẬT KÝ HỆ THỐNG IT
+                </h2>
+                <p style="margin: 5px 0 0 0; color: #64748b; font-size: 14px;">Hiển thị các hoạt động liên quan đến bạn hoặc đơn hàng bạn phụ trách.</p>
+            </div>
+
+            @* Search Box *@
+            <div style="position: relative;">
+                <i class="fa fa-search" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                <input type="text" id="logSearch" onkeyup="filterLogs()" placeholder="Tìm kiếm nội dung, mã đơn..."
+                       style="padding: 12px 15px 12px 45px; border-radius: 12px; border: 1px solid #e2e8f0; width: 320px; outline: none; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); font-size: 14px;">
+            </div>
+        </div>
+
+        @* --- LOG LIST --- *@
+        <div id="logContainer" style="display: flex; flex-direction: column; gap: 12px;">
+            @foreach (var log in Model)
+            {
+                // Logic màu sắc Badge
+                string badgeColor = "#6366f1";
+                if (log.TieuDe?.Contains("DUYỆT") == true) badgeColor = "#10b981";
+                if (log.TieuDe?.Contains("HỦY") == true || log.TieuDe?.Contains("TỪ CHỐI") == true) badgeColor = "#ef4444";
+                if (log.TieuDe?.Contains("HỖ TRỢ") == true) badgeColor = "#f59e0b";
+
+                // Lấy người hỗ trợ mới nhất (người có STT cao nhất trong danh sách ItCtNguoiHoTros)
+                var currentSupporter = log.IdFormItNavigation?.ItCtNguoiHoTros
+                .OrderByDescending(x => x.Stt)
+                .FirstOrDefault()?.IdItNguoiHoTroNavigation;
+
+                <a href="/FormIT/ChiTiet/@log.IdFormIt" style="text-decoration: none; display: block; transition: 0.2s;" class="log-item">
+                    <div style="background: white; border-radius: 16px; padding: 18px 24px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+
+                        @* Cột thời gian *@
+                        <div style="min-width: 90px; text-align: center; border-right: 2px solid #f1f5f9; padding-right: 20px;">
+                            <div style="font-size: 18px; font-weight: 800; color: #1e293b;">@log.Time?.ToString("HH:mm")</div>
+                            <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-top: 2px;">@log.Time?.ToString("dd/MM/yyyy")</div>
+                        </div>
+
+                        @* Cột nội dung chính *@
+                        <div style="flex-grow: 1;">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                <span style="background: @(badgeColor)15; color: @badgeColor; padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; border: 1px solid @(badgeColor)30;">
+                                    @log.TieuDe
+                                </span>
+
+                                <span style="color: #64748b; font-size: 13px; font-weight: 600;">
+                                    <i class="fa fa-tag" style="margin-right: 4px; opacity: 0.7;"></i>
+                                    Đơn #@log.IdFormIt: <span style="color: #334155;">@(log.IdFormItNavigation?.TenForm ?? "N/A")</span>
+                                </span>
+                            </div>
+
+                            <div style="color: #475569; font-size: 14px; line-height: 1.6; font-weight: 500;">
+                                @log.Mota
+                            </div>
+
+                            @* HIỂN THỊ NHÂN SỰ LIÊN QUAN *@
+                            <div style="margin-top: 10px; display: flex; gap: 20px; align-items: center;">
+                                @* Người phụ trách (Admin) *@
+                                <div style="font-size: 12px; color: #64748b; display: flex; align-items: center; gap: 5px;">
+                                    <i class="fa fa-user-circle-o" style="color: #6366f1;"></i>
+                                    <span style="font-weight: 600;">Admin:</span>
+                                    @(log.IdFormItNavigation?.TenAdmin ?? "Đang chờ...")
+                                </div>
+
+                                @* Người hỗ trợ kỹ thuật hiện tại *@
+                                @if (currentSupporter != null)
+                                {
+                                    <div style="font-size: 12px; color: #059669; background: #f0fdf4; padding: 3px 10px; border-radius: 20px; border: 1px solid #dcfce7; display: flex; align-items: center; gap: 6px;">
+                                        <span style="display: inline-block; width: 6px; height: 6px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite;"></span>
+                                        <span style="font-weight: 600;">Kỹ thuật: @currentSupporter.Ten</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        @* Icon mũi tên dẫn hướng *@
+                        <div class="arrow-icon" style="align-self: center; color: #cbd5e1; transition: 0.3s;">
+                            <i class="fa fa-chevron-right" style="font-size: 18px;"></i>
+                        </div>
+                    </div>
+                </a>
+            }
+
+            @if (Model == null || !Model.Any())
+            {
+                <div style="text-align: center; padding: 80px 20px; background: white; border-radius: 20px; border: 2px dashed #e2e8f0; color: #94a3b8;">
+                    <div style="font-size: 50px; margin-bottom: 15px; opacity: 0.5;"><i class="fa fa-folder-open-o"></i></div>
+                    <h3 style="margin: 0; color: #64748b; font-weight: 700;">Không có hoạt động nào</h3>
+                    <p style="margin: 5px 0 0 0;">Dữ liệu lịch sử liên quan đến tài khoản của bạn đang trống.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    .log-item:hover {
+        transform: translateX(8px);
+    }
+
+        .log-item:hover > div {
+            border-color: #6366f1 !important;
+            background: #fcfcff !important;
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.1) !important;
+        }
+
+        .log-item:hover .arrow-icon {
+            color: #6366f1 !important;
+            transform: scale(1.2);
+        }
+
+    #logSearch:focus {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
+        width: 380px;
+    }
+
+    @@keyframes pulse {
+        0% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.4;
+        }
+
+        100% {
+            opacity: 1;
+        }
+    }
+</style>
+
+<script>
+    function filterLogs() {
+        const input = document.getElementById("logSearch");
+        const filter = input.value.toUpperCase();
+        const container = document.getElementById("logContainer");
+        const items = container.getElementsByClassName("log-item");
+
+        for (let i = 0; i < items.length; i++) {
+            const text = items[i].innerText || items[i].textContent;
+            if (text.toUpperCase().indexOf(filter) > -1) {
+                items[i].style.display = "";
+            } else {
+                items[i].style.display = "none";
+            }
+        }
+    }
+</script>

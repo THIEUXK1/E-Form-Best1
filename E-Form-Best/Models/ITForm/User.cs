@@ -47,6 +47,15 @@ public partial class User
     [Column("ngay_cap_nhat")]
     public DateTime? NgayCapNhat { get; set; }
 
+    [Column("push_endpoint")]
+    public string? PushEndpoint { get; set; }
+
+    [Column("push_p256dh")]
+    public string? PushP256dh { get; set; }
+
+    [Column("push_auth")]
+    public string? PushAuth { get; set; }
+
     [InverseProperty("IdNguoiDungNavigation")]
     public virtual ICollection<UserDevice> UserDevices { get; set; } = new List<UserDevice>();
 }

@@ -1721,21 +1721,35 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/LichSuIT")]
         public async Task<IActionResult> LogLichSuIT()
         {
-            // Kiểm tra đăng nhập
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return RedirectToAction("DangNhap", "DonXetDuyet");
 
-            // Lấy toàn bộ lịch sử, nạp kèm thông tin đơn IT liên quan
-            // Sắp xếp theo thời gian mới nhất
-            var logs = await _context.LichSus
-                .Include(l => l.IdFormItNavigation)
-                .OrderByDescending(l => l.Time)
-                .AsNoTracking()
-                .ToListAsync();
+            int userId = int.Parse(userIdStr);
+            var userRole = User.FindFirst("UserRole")?.Value ?? "";
+            var userMaNv = User.Identity.Name;
 
+            var query = _context.LichSus
+                .Include(l => l.IdFormItNavigation)
+                    .ThenInclude(f => f.ItCtNguoiHoTros)
+                        .ThenInclude(ct => ct.IdItNguoiHoTroNavigation) // Lấy tên người hỗ trợ
+                .AsQueryable();
+
+            // Logic phân quyền (Giữ nguyên hoàn toàn như yêu cầu của bạn)
+            if (userRole != "Admin" && userRole != "All")
+            {
+                query = query.Where(l =>
+                    l.IdFormItNavigation.IdNguoiTao == userId ||
+                    l.IdFormItNavigation.IdNguoiDuyet == userId ||
+                    l.IdFormItNavigation.IdAdmin == userId ||
+                    l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userMaNv)
+                );
+            }
+
+            var logs = await query.OrderByDescending(l => l.Time).AsNoTracking().ToListAsync();
             return View(logs);
         }
         #endregion
+
 
     }
 }
