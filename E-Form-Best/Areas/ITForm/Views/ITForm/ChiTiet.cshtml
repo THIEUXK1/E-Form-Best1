@@ -16,6 +16,7 @@
     bool isCancelled = Model.TenForm != null && Model.TenForm.Contains("[ĐÃ HỦY]");
     bool isFinished = Model.IdAdmin != null || Model.TrangThai == "HoanTat";
     bool isApprovedByManager = Model.IdNguoiDuyet != null || Model.TrangThai == "DaDuyet";
+    bool daDanhGia = Model.DanhGia != null && Model.DanhGia.Any();
 
     string statusColor = "#3b82f6";
     string statusText = "CHỜ QUẢN LÝ";
@@ -86,7 +87,7 @@
 
     string RenderInfoRow(string icon, string label, string value, string bgColor, string textColor)
     {
-        return $@"<div class='info-row-item' style='margin-bottom:12px; display:flex; align-items:center; gap:12px; background:#fff; padding:12px; border-radius:12px; border:1.5px solid #e2e8f0; transition: all 0.2s;'>
+        return $@"<div style='margin-bottom:12px; display:flex; align-items:center; gap:12px; background:#fff; padding:12px; border-radius:12px; border:1.5px solid #e2e8f0; transition: all 0.2s;'>
                     <span style='background:{bgColor}; padding:8px; border-radius:10px; min-width:40px; text-align:center; font-size:18px;'>{icon}</span>
                     <div style='display:flex; flex-direction:column;'>
                         <strong style='color:{textColor}; font-size:10px; font-weight:900; text-transform:uppercase;'>{label}</strong>
@@ -98,147 +99,98 @@
 
 @Html.AntiForgeryToken()
 
-<style>
-    .action-btn {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-    }
-
-        .action-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .action-btn:hover:not(:disabled) {
-            filter: brightness(1.1);
-            transform: translateY(-3px);
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-        }
-
-    .info-row-item:hover {
-        border-color: #3b82f6 !important;
-        background: #f0f9ff !important;
-        transform: translateX(5px);
-    }
-
-    .timeline-dot {
-        position: absolute;
-        left: -31px;
-        top: 0;
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: white;
-        border: 3px solid #cbd5e1;
-        z-index: 2;
-    }
-
-    .timeline-item {
-        position: relative;
-        padding-bottom: 25px;
-    }
-
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -25px;
-            top: 14px;
-            height: 100%;
-            width: 2px;
-            background: #e2e8f0;
-            z-index: 1;
-        }
-
-        .timeline-item:last-child::before {
-            display: none;
-        }
-</style>
-
-<div style="max-width: 1200px; margin: 0 auto; padding: 25px; font-family: 'Inter', system-ui, -apple-system, sans-serif;">
+<div style="max-width: 1200px; margin: 0 auto; padding: 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc;">
     <div style="margin-bottom: 25px;">
-        <a href="/FormIT/DonCho" style="display: inline-flex; align-items: center; gap: 10px; padding: 12px 24px; background: #fff; color: #1e40af; text-decoration: none; border-radius: 12px; font-weight: 800; border: 2.5px solid #1e40af;">
+        <a href="/FormIT/DonCho" style="display: inline-flex; align-items: center; gap: 10px; padding: 12px 24px; background: #ffffff; color: #1e40af; text-decoration: none; border-radius: 12px; font-weight: 800; border: 2px solid #e2e8f0; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 15px -3px rgba(0,0,0,0.15)';" onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.1)';">
             <i class="fa fa-arrow-left"></i> DANH SÁCH PHIẾU
         </a>
     </div>
 
-    <div style="background: white; border-radius: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #f1f5f9;">
-        @* HEADER *@
-        <div style="background: @headerGradient; padding: 40px; color: white;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div style="background: white; border-radius: 30px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #f1f5f9;">
+        <!-- HEADER -->
+        <div style="background: @headerGradient; padding: 50px 40px; color: white; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
                 <div>
-                    <span style="background: rgba(255,255,255,0.2); padding: 6px 15px; border-radius: 50px; font-size: 12px; font-weight: 800; text-transform: uppercase;">Mã số: #@Model.Id</span>
-                    <h1 style="margin: 15px 0 8px 0; font-size: 32px; font-weight: 900;">@Model.TenForm</h1>
-                    <div style="opacity: 0.9; font-weight: 500;">
-                        <span><i class="fa fa-calendar"></i> @Model.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm")</span>
+                    <span style="background: rgba(255,255,255,0.25); padding: 8px 20px; border-radius: 50px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; backdrop-filter: blur(4px);">Mã số: #@Model.Id</span>
+                    <h1 style="margin: 20px 0 10px 0; font-size: 36px; font-weight: 900; letter-spacing: -0.025em; line-height: 1.2;">@Model.TenForm</h1>
+                    <div style="display: flex; align-items: center; gap: 15px; opacity: 0.95; font-weight: 500; font-size: 15px;">
+                        <span><i class="fa fa-calendar-alt"></i> @Model.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm")</span>
+                        <span style="width: 4px; height: 4px; background: white; border-radius: 50%;"></span>
+                        <span><i class="fa fa-user"></i> @Model.TenNguoiTao</span>
                     </div>
                 </div>
-                <div style="background: white; padding: 15px 30px; border-radius: 20px; text-align: center;">
-                    <div style="font-size: 11px; font-weight: 900; color: #94a3b8; text-transform: uppercase;">Trạng thái</div>
-                    <div style="font-size: 20px; font-weight: 900; color: @statusColor">@statusText</div>
+                <div style="background: white; padding: 20px 35px; border-radius: 24px; text-align: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+                    <div style="font-size: 12px; font-weight: 900; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px;">Trạng thái</div>
+                    <div style="font-size: 22px; font-weight: 900; color: @statusColor">@statusText</div>
                 </div>
             </div>
         </div>
 
+        <!-- BODY CONTENT -->
         <div style="padding: 40px;">
             <div style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 40px;">
-                @* CỘT TRÁI *@
+                <!-- LEFT COLUMN -->
                 <div>
-                    <h3 style="margin-bottom: 25px; color: #1e293b; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
-                        <span style="width: 4px; height: 24px; background: #1e40af; border-radius: 4px;"></span> THÔNG TIN CHI TIẾT
+                    <!-- THÔNG TIN CHI TIẾT -->
+                    <h3 style="margin: 0 0 25px 0; color: #1e293b; font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 12px;">
+                        <span style="width: 6px; height: 28px; background: #1e40af; border-radius: 10px;"></span> THÔNG TIN CHI TIẾT
                     </h3>
-
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px;">
-                        <div style="background: #f8fafc; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0;">
-                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 10px;">Mã nhân viên</small>
-                            <div style="font-weight: 700; color: #1e293b;">@Model.SoNhanVien</div>
+                        <div style="background: #ffffff; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px;">Mã nhân viên</small>
+                            <div style="font-weight: 700; color: #1e293b; font-size: 16px;">@Model.SoNhanVien</div>
                         </div>
-                        <div style="background: #f8fafc; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0;">
-                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 10px;">Bộ phận</small>
-                            <div style="font-weight: 700; color: #1e40af;">@Model.BoPhan</div>
+                        <div style="background: #ffffff; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px;">Bộ phận</small>
+                            <div style="font-weight: 700; color: #1e40af; font-size: 16px;">@Model.BoPhan</div>
                         </div>
-                        <div style="background: #f8fafc; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0;">
-                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 10px;">Họ tên</small>
-                            <div style="font-weight: 700; color: #1e40af;">@Model.TenNguoiNv</div>
+                        <div style="background: #ffffff; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px;">Họ tên</small>
+                            <div style="font-weight: 700; color: #1e40af; font-size: 16px;">@Model.TenNguoiNv</div>
                         </div>
                     </div>
 
-                    <div style="background: #f1f5f9; padding: 25px; border-radius: 20px; margin-bottom: 40px;">
+                    <!-- CHI TIẾT NỘI DUNG -->
+                    <div style="background: #f8fafc; padding: 30px; border-radius: 24px; margin-bottom: 40px; border: 1px solid #f1f5f9; line-height: 1.6; color: #334155; font-size: 16px;">
                         @Html.Raw(chiTietNoiDung)
                     </div>
 
-                    @* NHÂN VIÊN IT *@
-                    <h3 style="margin-bottom: 20px; color: #ea580c; font-size: 18px; font-weight: 800;">ĐỘI NGŨ IT HỖ TRỢ</h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <!-- ĐỘI NGŨ IT HỖ TRỢ -->
+                    <h3 style="margin-bottom: 20px; color: #ea580c; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+                        <i class="fa fa-tools"></i> ĐỘI NGŨ IT HỖ TRỢ
+                    </h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; margin-bottom: 35px;">
                         @if (Model.ItCtNguoiHoTros != null && Model.ItCtNguoiHoTros.Any())
                         {
                             var currentSupport = Model.ItCtNguoiHoTros.OrderByDescending(x => x.Stt).First();
                             foreach (var hoTro in Model.ItCtNguoiHoTros.OrderBy(x => x.Stt))
                             {
-                                <div style="background: white; border: 1.5px solid #fed7aa; padding: 18px; border-radius: 18px; display: flex; align-items: center; gap: 15px; position: relative;">
-                                    <div style="background: #ffedd5; color: #9a3412; width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900;">
+                                <div style="background: white; border: 2px solid #fed7aa; padding: 20px; border-radius: 22px; display: flex; align-items: center; gap: 15px; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                                    <div style="background: #ffedd5; color: #9a3412; width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px;">
                                         @(hoTro.IdItNguoiHoTroNavigation?.Ten?.Substring(0, 1).ToUpper() ?? "IT")
                                     </div>
                                     <div>
-                                        <div style="font-weight: 800; color: #9a3412; font-size: 15px;">@hoTro.IdItNguoiHoTroNavigation?.Ten</div>
-                                        <div style="font-size: 12px; color: #c2410c;">@hoTro.IdItNguoiHoTroNavigation?.MaNv</div>
+                                        <div style="font-weight: 800; color: #9a3412; font-size: 16px;">@hoTro.IdItNguoiHoTroNavigation?.Ten</div>
+                                        <div style="font-size: 13px; color: #c2410c; margin-top: 2px;">@hoTro.IdItNguoiHoTroNavigation?.MaNv</div>
                                     </div>
                                     @if (hoTro.Id == currentSupport.Id)
                                     {
-                                        <span style="position:absolute; top:-10px; right:10px; background:#ea580c; color:white; font-size:9px; padding:2px 8px; border-radius:10px; font-weight:bold;">HIỆN TẠI</span>
+                                        <span style="position:absolute; top:-12px; right:15px; background:#ea580c; color:white; font-size:10px; padding:4px 12px; border-radius:12px; font-weight:800; box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.3);">HIỆN TẠI</span>
                                     }
                                 </div>
                             }
                         }
                     </div>
 
-                    @* FORM CHỈ ĐỊNH IT (Dành cho Admin/IT) *@
+                    <!-- CHỈ ĐỊNH NGƯỜI HỖ TRỢ (CHỈ IT) -->
                     @if ((currentUserRole == "Admin" || currentUserRole == "All" || currentUserRole == "IT") && !isCancelled && !isFinished)
                     {
-                        <div style="background: #fff7ed; border: 1.5px dashed #fb923c; padding: 20px; border-radius: 20px; margin-bottom: 40px;">
-                            <p style="margin:0 0 10px 0; font-size:12px; font-weight:800; color:#9a3412;">CHỈ ĐỊNH / THAY ĐỔI NGƯỜI HỖ TRỢ:</p>
-                            <div style="display: flex; gap: 10px;">
-                                <select id="selectIT" style="flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #fdba74; font-weight: 600;">
+                        <div style="background: #fff7ed; border: 2px dashed #fb923c; padding: 25px; border-radius: 24px; margin-bottom: 45px;">
+                            <p style="margin:0 0 15px 0; font-size:13px; font-weight:800; color:#9a3412; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa fa-user-edit"></i> CHỈ ĐỊNH / THAY ĐỔI NGƯỜI HỖ TRỢ:
+                            </p>
+                            <div style="display: flex; gap: 12px;">
+                                <select id="selectIT" style="flex: 1; padding: 14px; border-radius: 12px; border: 1px solid #fdba74; font-weight: 600; outline: none; background: white; font-size: 15px;">
                                     <option value="">-- Chọn nhân viên IT --</option>
                                     @if (ViewBag.ListNguoiHoTro != null)
                                     {
@@ -248,31 +200,33 @@
                                         }
                                     }
                                 </select>
-                                <button onclick="changeSupporter()" style="background: #ea580c; color: white; border: none; padding: 0 25px; border-radius: 10px; font-weight: 800; cursor: pointer;">
+                                <button onclick="changeSupporter()" style="background: #ea580c; color: white; border: none; padding: 0 30px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: all 0.2s; font-size: 15px;" onmouseover="this.style.background='#c2410c'" onmouseout="this.style.background='#ea580c'">
                                     XÁC NHẬN
                                 </button>
                             </div>
                         </div>
                     }
 
-                    @* NHẬT KÝ *@
-                    <h3 style="margin-bottom: 25px; color: #1e293b; font-size: 18px; font-weight: 800;">NHẬT KÝ THAO TÁC</h3>
-                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 24px; padding: 30px;">
-                        <div style="margin-left: 30px;">
+                    <!-- NHẬT KÝ THAO TÁC -->
+                    <h3 style="margin-bottom: 25px; color: #1e293b; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+                        <i class="fa fa-history"></i> NHẬT KÝ THAO TÁC
+                    </h3>
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 28px; padding: 35px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+                        <div style="margin-left: 10px; border-left: 2px dashed #e2e8f0; padding-left: 30px;">
                             @if (Model.LichSus != null && Model.LichSus.Any())
                             {
                                 foreach (var ls in Model.LichSus.OrderByDescending(x => x.Time))
                                 {
-                                    <div class="timeline-item">
-                                        <div class="timeline-dot"></div>
-                                        <div style="display: flex; justify-content: space-between; background: #f8fafc; padding: 15px; border-radius: 15px;">
-                                            <div>
-                                                <div style="font-weight: 800; color: #1e293b; font-size: 14px;">@ls.TieuDe</div>
-                                                <div style="color: #64748b; font-size: 13px;">@ls.Mota</div>
+                                    <div style="position: relative; margin-bottom: 30px;">
+                                        <div style="position: absolute; left: -41px; top: 0; width: 20px; height: 20px; background: white; border: 4px solid #3b82f6; border-radius: 50%; z-index: 1;"></div>
+                                        <div style="display: flex; justify-content: space-between; background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9; transition: transform 0.2s ease;">
+                                            <div style="flex: 1;">
+                                                <div style="font-weight: 800; color: #1e293b; font-size: 15px; margin-bottom: 4px;">@ls.TieuDe</div>
+                                                <div style="color: #64748b; font-size: 14px; line-height: 1.6; white-space: pre-line;">@ls.Mota</div>
                                             </div>
-                                            <div style="text-align: right;">
-                                                <div style="font-weight: 800; color: #3b82f6; font-size: 13px;">@ls.Time?.ToString("HH:mm")</div>
-                                                <div style="color: #94a3b8; font-size: 11px;">@ls.Time?.ToString("dd/MM/yyyy")</div>
+                                            <div style="text-align: right; min-width: 100px; margin-left: 15px; flex-shrink: 0;">
+                                                <div style="font-weight: 800; color: #3b82f6; font-size: 14px;">@ls.Time?.ToString("HH:mm")</div>
+                                                <div style="color: #94a3b8; font-size: 12px; margin-top: 2px;">@ls.Time?.ToString("dd/MM/yyyy")</div>
                                             </div>
                                         </div>
                                     </div>
@@ -282,84 +236,167 @@
                     </div>
                 </div>
 
-                @* CỘT PHẢI *@
+                <!-- RIGHT COLUMN -->
                 <div>
+                    <!-- HÌNH ẢNH ĐÍNH KÈM -->
                     @if (listImages.Count > 0)
                     {
-                        <h3 style="margin-bottom: 15px; color: #0f172a; font-size: 16px; font-weight: 800;">HÌNH ẢNH</h3>
+                        <h3 style="margin-bottom: 20px; color: #0f172a; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa fa-image"></i> HÌNH ẢNH ĐÍNH KÈM
+                        </h3>
                         foreach (var img in listImages)
                         {
-                            <div style="border: 2px dashed #cbd5e1; border-radius: 20px; overflow: hidden; margin-bottom: 20px;">
-                                <img src="@img" style="width: 100%; cursor: zoom-in;" onclick="openZoom(this.src)" />
+                            <div style="border: 2px solid #f1f5f9; border-radius: 24px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: #f8fafc; transition: all 0.3s ease;">
+                                <img src="@img" style="width: 100%; cursor: zoom-in; display: block; object-fit: cover; max-height: 300px;" onclick="openZoom(this.src)" />
                             </div>
                         }
                     }
 
+                    <!-- FILE ĐÍNH KÈM -->
                     @if (!string.IsNullOrEmpty(fileUrl))
                     {
-                        <div style="background: #f0f9ff; border: 1.5px solid #bae6fd; padding: 18px; border-radius: 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px;">
-                            <span style="font-size: 13px; font-weight: 800; color: #0369a1; overflow: hidden; text-overflow: ellipsis;">@fileName</span>
-                            <a href="@fileUrl" download style="background: #0369a1; color: white; padding: 10px 18px; border-radius: 10px; font-weight: 800; text-decoration: none;">TẢI VỀ</a>
+                        <div style="background: #f0f9ff; border: 2px solid #bae6fd; padding: 22px; border-radius: 24px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 35px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                            <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
+                                <i class="fa fa-file-download" style="font-size: 24px; color: #0369a1;"></i>
+                                <span style="font-size: 14px; font-weight: 800; color: #0369a1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@fileName</span>
+                            </div>
+                            <a href="@fileUrl" download style="background: #0369a1; color: white; padding: 12px 24px; border-radius: 14px; font-weight: 800; text-decoration: none; font-size: 13px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(3, 105, 161, 0.3);" onmouseover="this.style.background='#075985'" onmouseout="this.style.background='#0369a1'">TẢI VỀ</a>
                         </div>
                     }
 
-                    @* TIẾN ĐỘ *@
-                    <div style="background: #f8fafc; padding: 25px; border-radius: 25px; border: 1px solid #e2e8f0; margin-bottom: 30px;">
-                        <h4 style="margin: 0 0 20px 0; font-size: 14px; font-weight: 900; color: #475569;">TIẾN TRÌNH</h4>
-                        <div style="position: relative; padding-left: 25px; border-left: 2px solid #cbd5e1;">
-                            <div style="margin-bottom: 20px; position: relative;">
-                                <div style="position: absolute; left: -32px; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #059669;"></div>
-                                <div style="font-weight: 800; font-size: 14px;">Người tạo: @Model.TenNguoiTao</div>
-                                <div style="font-size: 12px; color: #64748b;">@Model.TimeNguoiTao?.ToString("HH:mm dd/MM/yyyy")</div>
+                    <!-- TIẾN TRÌNH XỬ LÝ -->
+                    <div style="background: #ffffff; padding: 30px; border-radius: 28px; border: 1px solid #e2e8f0; margin-bottom: 35px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);">
+                        <h4 style="margin: 0 0 25px 0; font-size: 15px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa fa-tasks"></i> TIẾN TRÌNH XỬ LÝ
+                        </h4>
+                        <div style="position: relative; padding-left: 30px; border-left: 2px solid #f1f5f9;">
+                            <div style="margin-bottom: 25px; position: relative;">
+                                <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: #059669; border: 3px solid white; box-shadow: 0 0 0 2px #059669;"></div>
+                                <div style="font-weight: 800; font-size: 15px; color: #1e293b;">Người tạo: @Model.TenNguoiTao</div>
+                                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@Model.TimeNguoiTao?.ToString("HH:mm dd/MM/yyyy")</div>
                             </div>
-                            <div style="margin-bottom: 20px; position: relative;">
-                                <div style="position: absolute; left: -32px; top: 0; width: 12px; height: 12px; border-radius: 50%; background: @(isApprovedByManager ? "#d97706" : "#cbd5e1");"></div>
-                                <div style="font-weight: 800; font-size: 14px;">Quản lý: @(Model.TenNguoiDuyet ?? "---")</div>
-                                <div style="font-size: 12px; color: #64748b;">@(Model.TimeNguoiDuyet?.ToString("HH:mm dd/MM/yyyy") ?? "Đang chờ...")</div>
+                            <div style="margin-bottom: 25px; position: relative;">
+                                <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: @(isApprovedByManager ? "#d97706" : "#cbd5e1"); border: 3px solid white; box-shadow: 0 0 0 2px @(isApprovedByManager ? "#d97706" : "#cbd5e1");"></div>
+                                <div style="font-weight: 800; font-size: 15px; color: #1e293b;">Quản lý: @(Model.TenNguoiDuyet ?? "---")</div>
+                                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@(Model.TimeNguoiDuyet?.ToString("HH:mm dd/MM/yyyy") ?? "Đang chờ duyệt...")</div>
                             </div>
                             <div style="position: relative;">
-                                <div style="position: absolute; left: -32px; top: 0; width: 12px; height: 12px; border-radius: 50%; background: @(isFinished ? "#1e40af" : "#cbd5e1");"></div>
-                                <div style="font-weight: 800; font-size: 14px;">IT Xử lý: @(Model.TenAdmin ?? "---")</div>
-                                <div style="font-size: 12px; color: #64748b;">@(Model.TimeAdmin?.ToString("HH:mm dd/MM/yyyy") ?? "Đang chờ...")</div>
+                                <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: @(isFinished ? "#1e40af" : "#cbd5e1"); border: 3px solid white; box-shadow: 0 0 0 2px @(isFinished ? "#1e40af" : "#cbd5e1");"></div>
+                                <div style="font-weight: 800; font-size: 15px; color: #1e293b;">IT Xử lý: @(Model.TenAdmin ?? "---")</div>
+                                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@(Model.TimeAdmin?.ToString("HH:mm dd/MM/yyyy") ?? "Đang xử lý...")</div>
                             </div>
                         </div>
                     </div>
 
-                    @* NÚT THAO TÁC *@
+                    <!-- NÚT THAO TÁC -->
                     @if (!isCancelled && !isFinished)
                     {
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div style="display: flex; flex-direction: column; gap: 15px;">
                             @if (!isApprovedByManager && (currentUserRole == "QuanLy" || currentUserRole == "Admin" || currentUserRole == "All"))
                             {
-                                <button id="btnDuyet" onclick="handleAction('Duyet')" class="action-btn" style="background: #059669; color: white; border: none; padding: 18px; border-radius: 15px; font-weight: 900; cursor: pointer;">
-                                    DUYỆT ĐƠN (QUẢN LÝ)
+                                <button id="btnDuyet" onclick="handleAction('Duyet')" style="background: #059669; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(5, 150, 105, 0.4)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(5, 150, 105, 0.3)'">
+                                    <i class="fa fa-check-circle"></i> DUYỆT ĐƠN (QUẢN LÝ)
                                 </button>
                             }
                             @if (isApprovedByManager && (currentUserRole == "Admin" || currentUserRole == "All" || currentUserRole == "IT"))
                             {
-                                <button id="btnHoanThanh" onclick="handleXacNhanHoanThanh()" class="action-btn" style="background: #1e40af; color: white; border: none; padding: 18px; border-radius: 15px; font-weight: 900; cursor: pointer;">
-                                    XÁC NHẬN HOÀN TẤT (IT)
+                                <button id="btnHoanThanh" onclick="handleXacNhanHoanThanh()" style="background: #1e40af; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(30, 64, 175, 0.4)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(30, 64, 175, 0.3)'">
+                                    <i class="fa fa-star"></i> XÁC NHẬN HOÀN TẤT (IT)
                                 </button>
                             }
                             @if (currentUserRole == "QuanLy" || currentUserRole == "Admin" || currentUserRole == "All")
                             {
-                                <button id="btnHuy" onclick="handleAction('Huy')" class="action-btn" style="background: white; color: #dc2626; border: 2px solid #dc2626; padding: 15px; border-radius: 15px; font-weight: 800; cursor: pointer;">
-                                    HỦY ĐƠN
+                                <button id="btnHuy" onclick="handleAction('Huy')" style="background: white; color: #dc2626; border: 2px solid #dc2626; padding: 18px; border-radius: 18px; font-weight: 800; cursor: pointer; font-size: 15px; transition: all 0.2s;" onmouseover="this.style.background='#fef2f2'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='white'; this.style.transform=''">
+                                    <i class="fa fa-times-circle"></i> HỦY ĐƠN PHIẾU
                                 </button>
                             }
                         </div>
+                    }
+
+                    @* PHẦN ĐÁNH GIÁ & HOÀN TÁC - CHỈ NGƯỜI TẠO ĐƠN *@
+                    @if (Model.TrangThai == "HoanTat" && ViewBag.CurrentUserId != null && (int)ViewBag.CurrentUserId == Model.IdNguoiTao)
+                    {
+                        @if (!daDanhGia)
+                        {
+                            @* Chưa đánh giá - Hiển thị form đánh giá và nút hoàn tác *@
+                            <div style="margin-top: 15px;">
+                                <!-- FORM ĐÁNH GIÁ -->
+                                <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 25px; border-radius: 20px; border: 2px solid #10b981; margin-bottom: 15px;">
+                                    <h4 style="margin: 0 0 15px 0; color: #065f46; font-size: 16px; font-weight: 900; display: flex; align-items: center; gap: 8px;">
+                                        <i class="fa fa-star"></i> BẠN CÓ HÀI LÒNG VỚI DỊCH VỤ?
+                                    </h4>
+                                    <p style="color: #047857; font-size: 14px; margin-bottom: 15px; line-height: 1.5;">
+                                        Vui lòng đánh giá mức độ hài lòng của bạn (1-5 sao):
+                                    </p>
+                                    <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;">
+                                        <button onclick="chonSao(1)" id="star1" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(1)" onmouseout="resetHover()">★</button>
+                                        <button onclick="chonSao(2)" id="star2" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(2)" onmouseout="resetHover()">★</button>
+                                        <button onclick="chonSao(3)" id="star3" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(3)" onmouseout="resetHover()">★</button>
+                                        <button onclick="chonSao(4)" id="star4" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(4)" onmouseout="resetHover()">★</button>
+                                        <button onclick="chonSao(5)" id="star5" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(5)" onmouseout="resetHover()">★</button>
+                                    </div>
+                                    <textarea id="txtNhanXet" placeholder="Nhận xét của bạn (tùy chọn)..." style="width: 100%; padding: 12px; border: 2px solid #d1fae5; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; font-family: 'Segoe UI', sans-serif; box-sizing: border-box;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#d1fae5'"></textarea>
+                                    <button id="btnGuiDanhGia" onclick="handleDanhGia()" disabled style="width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 900; cursor: not-allowed; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); transition: all 0.2s; margin-top: 12px; opacity: 0.5;">
+                                        <i class="fa fa-paper-plane"></i> GỬI ĐÁNH GIÁ
+                                    </button>
+                                </div>
+
+                                <!-- NÚT HOÀN TÁC -->
+                                <div style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); padding: 20px; border-radius: 20px; border: 2px solid #fb923c;">
+                                    <button id="btnChuaHoanThanh" onclick="handleChuaHoanThanh()" style="width: 100%; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 15px; box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(245, 158, 11, 0.4)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(245, 158, 11, 0.3)'">
+                                        <i class="fa fa-undo"></i> TÔI VẪN CHƯA HÀI LÒNG / CHƯA XONG
+                                    </button>
+                                    <p style="color: #92400e; font-size: 13px; font-style: italic; margin: 12px 0 0 0; text-align: center; line-height: 1.5;">
+                                        <i class="fa fa-info-circle"></i> Nếu IT xác nhận hoàn tất nhưng thực tế chưa xong, bạn có thể bấm nút này.
+                                    </p>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            @* Đã đánh giá - Hiển thị kết quả *@
+                            var dg = Model.DanhGia.First();
+                            string starDisplay = new string('⭐', dg.MucDo ?? 0);
+                            <div style="margin-top: 15px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 30px; border-radius: 20px; border: 2px solid #22c55e; box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.2);">
+                                <div style="text-align: center;">
+                                    <div style="background: white; width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.3);">
+                                        <i class="fa fa-check-circle" style="font-size: 48px; color: #16a34a;"></i>
+                                    </div>
+                                    <h4 style="margin: 0 0 10px 0; color: #166534; font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">
+                                        ĐƠN ĐÃ HOÀN THÀNH 100%
+                                    </h4>
+                                    <p style="color: #15803d; font-size: 14px; margin-bottom: 20px;">
+                                        Bạn đã đánh giá đơn này vào lúc @dg.TimeNguoiDanhGia?.ToString("HH:mm dd/MM/yyyy")
+                                    </p>
+                                    <div style="font-size: 42px; margin: 20px 0; line-height: 1;">@starDisplay</div>
+                                    <div style="background: white; padding: 20px; border-radius: 16px; margin-top: 20px; border: 2px solid #bbf7d0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                                        <strong style="color: #166534; display: block; margin-bottom: 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                            Đánh giá của bạn:
+                                        </strong>
+                                        <span style="color: #15803d; font-size: 28px; font-weight: 900;">@dg.MucDo / 5 sao</span>
+                                    </div>
+                                    <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 15px; border-radius: 12px; margin-top: 20px; border: 2px solid #fbbf24;">
+                                        <p style="color: #92400e; font-size: 13px; font-style: italic; margin: 0; line-height: 1.5; font-weight: 600;">
+                                            <i class="fa fa-lock"></i> Đơn đã được khóa cứng. Bạn không thể hoàn tác sau khi đã đánh giá.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     }
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div id="imageOverlay" onclick="closeZoom()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9999; justify-content:center; align-items:center;">
-    <img id="fullImage" src="" style="max-width:90%; max-height:90%; border-radius: 10px;">
+    <!-- IMAGE OVERLAY -->
+    <div id="imageOverlay" onclick="closeZoom()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.95); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(8px);">
+        <img id="fullImage" src="" style="max-width:95%; max-height:95%; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.1);">
+    </div>
 </div>
 
 <script>
+    // === API POST CHUNG ===
     async function apiPost(url, body, btnIds) {
         if(btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if(b) b.disabled = true; });
         try {
@@ -385,6 +422,7 @@
         }
     }
 
+    // === XỬ LÝ DUYỆT/HỦY ĐƠN ===
     function handleAction(type) {
         let reason = null;
         if (type === 'Huy') {
@@ -396,13 +434,27 @@
         }
     }
 
+    // === XÁC NHẬN HOÀN THÀNH (IT) ===
     function handleXacNhanHoanThanh() {
         if (confirm("Xác nhận đã hoàn thành công việc này?")) {
             apiPost('/FormIT/XacNhanHoanThanh', { id: @Model.Id }, ['btnHoanThanh']);
         }
     }
 
-    // Hàm gọi Action ThemNguoiHoTro mới của bạn
+    // === HOÀN TÁC ===
+    function handleChuaHoanThanh() {
+        let reason = prompt("Vui lòng nhập lý do bạn xác nhận đơn này chưa hoàn thành:");
+        if (reason === null) return;
+        if (reason.trim() === "") {
+            alert("Bạn phải nhập lý do!");
+            return;
+        }
+        if (confirm("Hệ thống sẽ chuyển đơn về trạng thái IT tiếp nhận. Xác nhận?")) {
+            apiPost('/FormIT/XacNhanChuaHoanThanh', { id: @Model.Id, reason: reason }, ['btnChuaHoanThanh']);
+        }
+    }
+
+    // === THAY ĐỔI NGƯỜI HỖ TRỢ ===
     function changeSupporter() {
         const maNv = document.getElementById('selectIT').value;
         if (!maNv) {
@@ -414,6 +466,81 @@
         }
     }
 
+    // === ĐÁNH GIÁ SAO ===
+    let soSaoChon = 0;
+
+    function chonSao(sao) {
+        soSaoChon = sao;
+        capNhatGiaoDienSao();
+
+        // Enable nút gửi
+        const btnGui = document.getElementById('btnGuiDanhGia');
+        if (btnGui) {
+            btnGui.disabled = false;
+            btnGui.style.cursor = 'pointer';
+            btnGui.style.opacity = '1';
+        }
+    }
+
+    function hoverSao(sao) {
+        for (let i = 1; i <= 5; i++) {
+            const star = document.getElementById('star' + i);
+            if (!star) continue;
+            if (i <= sao) {
+                star.style.background = 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
+                star.style.borderColor = '#f59e0b';
+                star.style.color = '#f59e0b';
+                star.style.transform = 'scale(1.1)';
+            } else {
+                star.style.background = 'white';
+                star.style.borderColor = '#d1d5db';
+                star.style.color = '#9ca3af';
+                star.style.transform = '';
+            }
+        }
+    }
+
+    function resetHover() {
+        capNhatGiaoDienSao();
+    }
+
+    function capNhatGiaoDienSao() {
+        for (let i = 1; i <= 5; i++) {
+            const star = document.getElementById('star' + i);
+            if (!star) continue;
+            if (i <= soSaoChon) {
+                star.style.background = 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
+                star.style.borderColor = '#f59e0b';
+                star.style.color = '#f59e0b';
+                star.style.transform = 'scale(1.05)';
+            } else {
+                star.style.background = 'white';
+                star.style.borderColor = '#d1d5db';
+                star.style.color = '#9ca3af';
+                star.style.transform = '';
+            }
+        }
+    }
+
+    function handleDanhGia() {
+        if (soSaoChon === 0) {
+            alert("Vui lòng chọn số sao đánh giá!");
+            return;
+        }
+
+        const txtNhanXet = document.getElementById('txtNhanXet');
+        const nhanXet = txtNhanXet ? txtNhanXet.value.trim() : '';
+
+        if (confirm(`Xác nhận đánh giá ${soSaoChon} sao?\n\n⚠️ LƯU Ý: Sau khi đánh giá, bạn sẽ KHÔNG THỂ hoàn tác đơn này nữa!`)) {
+            apiPost('/FormIT/DanhGiaDon', {
+                id: @Model.Id,
+                mucDo: soSaoChon,
+                nhanXet: nhanXet
+            }, ['btnGuiDanhGia']);
+        }
+    }
+
+    // === ZOOM ẢNH ===
     function openZoom(src) {
         document.getElementById('fullImage').src = src;
         document.getElementById('imageOverlay').style.display = 'flex';
