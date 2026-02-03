@@ -25,6 +25,8 @@ public partial class LichSu
     [Column(TypeName = "datetime")]
     public DateTime? Time { get; set; }
 
+    public bool? IsRead { get; set; }
+
     [ForeignKey("IdFormIt")]
     [InverseProperty("LichSus")]
     public virtual FormIt? IdFormItNavigation { get; set; }
