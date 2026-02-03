@@ -1975,10 +1975,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var query = _context.LichSus
                 .Include(l => l.IdFormItNavigation)
                     .ThenInclude(f => f.ItCtNguoiHoTros)
-                        .ThenInclude(ct => ct.IdItNguoiHoTroNavigation) // Lấy tên người hỗ trợ
+                        .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
+                .Include(l => l.IdFormItNavigation)
+                    .ThenInclude(f => f.DanhGia) // Thêm để check hoàn tất
                 .AsQueryable();
 
-            // Logic phân quyền (Giữ nguyên hoàn toàn như yêu cầu của bạn)
+            // Logic phân quyền (Giữ nguyên hoàn toàn)
             if (userRole != "Admin" && userRole != "All")
             {
                 query = query.Where(l =>
@@ -1992,12 +1994,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var logs = await query.OrderByDescending(l => l.Time).AsNoTracking().ToListAsync();
             return View(logs);
         }
-        // Sử dụng dấu gạch chéo "/" ở đầu để chỉ định đường dẫn tuyệt đối, 
-        // giúp bỏ qua tiền tố [Route] của Controller nếu có.
+
         [HttpGet("/FormIT/GetNotifications")]
         public async Task<IActionResult> GetNotifications()
         {
-            // 1. Lấy thông tin User từ Claims (Giữ nguyên các phần hiện có)
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
@@ -2005,12 +2005,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userRole = User.FindFirst("UserRole")?.Value ?? "";
             var userMaNv = User.Identity.Name;
 
-            // 2. Khởi tạo truy vấn (Giữ nguyên các phần hiện có)
             var query = _context.LichSus
                 .Include(l => l.IdFormItNavigation)
+                    .ThenInclude(f => f.DanhGia) // Thêm để check hoàn tất
                 .AsQueryable();
 
-            // 3. Logic phân quyền (Giữ nguyên toàn bộ điều kiện của bạn)
+            // Logic phân quyền (Giữ nguyên hoàn toàn)
             if (userRole != "Admin" && userRole != "All")
             {
                 query = query.Where(l =>
@@ -2021,23 +2021,27 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 );
             }
 
-            // 4. Thực thi truy vấn và lấy dữ liệu (Giữ nguyên các phần hiện có)
             var logs = await query
                 .OrderByDescending(l => l.Time)
-                .Take(8) // Lấy 8 thông báo mới nhất như code cũ
+                .Take(8)
                 .Select(l => new {
                     idForm = l.IdFormIt,
                     tieuDe = l.TieuDe,
                     moTa = l.Mota,
-                    thoiGian = l.Time.HasValue ? l.Time.Value.ToString("HH:mm dd/MM") : ""
+                    thoiGian = l.Time.HasValue ? l.Time.Value.ToString("HH:mm dd/MM") : "",
+                    // Logic 4 trạng thái cho thông báo
+                    statusText = l.IdFormItNavigation.TimeNguoiDuyet == null ? "Chờ duyệt" :
+                                 l.IdFormItNavigation.TimeAdmin == null ? "Đang chờ xử lý" :
+                                 !l.IdFormItNavigation.DanhGia.Any() ? "Chờ phản hồi" : "Hoàn tất 100%",
+                    statusColor = l.IdFormItNavigation.TimeNguoiDuyet == null ? "#f59e0b" :
+                                  l.IdFormItNavigation.TimeAdmin == null ? "#3b82f6" :
+                                  !l.IdFormItNavigation.DanhGia.Any() ? "#8b5cf6" : "#10b981"
                 })
                 .AsNoTracking()
                 .ToListAsync();
 
-            // Trả về kết quả dưới dạng JSON
             return Json(logs);
         }
         #endregion
-
     }
 }
