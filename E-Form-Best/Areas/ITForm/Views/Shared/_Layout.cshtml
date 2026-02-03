@@ -161,7 +161,8 @@
                             <span style="font-weight: 800; color: #1e293b; font-size: 1rem; letter-spacing: -0.5px;">Thông báo</span>
                             <button onclick="markAllAsRead(event)" style="background: #eff6ff; border: none; color: #3b82f6; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 8px;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">Đọc tất cả</button>
                         </div>
-                        <div id="notiList" style="max-height: 450px; overflow-y: auto; scrollbar-width: thin;"></div>
+                        <div id="notiList" style="max-height: 450px; overflow-y: auto; scrollbar-width: thin;">
+                        </div>
                         <div style="padding: 12px; text-align: center; border-top: 1px solid #f1f5f9; background: #f8fafc;">
                             <a href="/FormIT/TatCaThongBao" style="text-decoration: none; color: #94a3b8; font-size: 0.75rem; font-weight: 600;">Xem tất cả</a>
                         </div>
@@ -170,18 +171,56 @@
             </header>
 
             <script>
-                // 1. Cấu hình âm thanh
-                const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-                notificationSound.volume = 0.6;
+                // ==========================================
+                // 1. Quản lý Sidebar & User Dropdown
+                // ==========================================
+                const btnMenu = document.getElementById('btnMainMenu');
+                const submenu = document.getElementById('mainSubmenu');
+                const arrow = document.getElementById('menuArrow');
 
-                // 2. Biến theo dõi trạng thái
-                let lastUnreadCount = 0;
-                let currentSkip = 0;
-                const take = 20;
-                let isLoading = false;
-                let hasMoreData = true;
+                if (btnMenu && submenu) {
+                    btnMenu.addEventListener('click', () => {
+                        const isHidden = submenu.style.display === 'none' || submenu.style.display === '';
+                        submenu.style.display = isHidden ? 'flex' : 'none';
+                        if (arrow) arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+                        btnMenu.style.background = isHidden ? 'rgba(255, 255, 255, 0.15)' : 'transparent';
+                    });
+                }
 
-                // 3. Cookie quản lý trạng thái đã đọc
+                const userBtn = document.getElementById('userMenuButton');
+                const userDrop = document.getElementById('userDropdown');
+                const userArrow = document.getElementById('arrowIcon');
+
+                if (userBtn && userDrop) {
+                    userBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const isHidden = userDrop.style.display === 'none' || userDrop.style.display === '';
+                        userDrop.style.display = isHidden ? 'flex' : 'none';
+                        if (userArrow) userArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+                    });
+                }
+
+                // ==========================================
+                // 2. Quản lý Thông báo (Âm thanh & Cookie)
+                // ==========================================
+                const notiSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                notiSound.volume = 0.6;
+
+                // Kích hoạt âm thanh sau tương tác đầu tiên
+                document.addEventListener('click', function unlockAudio() {
+                    notiSound.play().then(() => {
+                        notiSound.pause();
+                        notiSound.currentTime = 0;
+                    }).catch(e => console.log("Waiting for user interaction for audio..."));
+                    document.removeEventListener('click', unlockAudio);
+                }, { once: true });
+
+                function setReadCookie(ids) {
+                    const d = new Date();
+                    d.setTime(d.getTime() + (30 * 24 * 60 * 60 * 1000));
+                    document.cookie = "read_notifications=" + ids.join(',') + ";expires=" + d.toUTCString() + ";path=/";
+                }
+
                 function getReadIds() {
                     const name = "read_notifications=";
                     const ca = document.cookie.split(';');
@@ -192,23 +231,71 @@
                     return [];
                 }
 
-                function setReadCookie(ids) {
-                    const d = new Date();
-                    d.setTime(d.getTime() + (30 * 24 * 60 * 60 * 1000));
-                    document.cookie = "read_notifications=" + ids.join(',') + ";expires=" + d.toUTCString() + ";path=/";
+                // ==========================================
+                // 3. Logic Thông báo & Hiệu ứng
+                // ==========================================
+                let lastTopId = localStorage.getItem('lastNotifiedId') || null;
+                let currentSkip = 0;
+                const take = 20;
+                let isLoading = false;
+                let hasMoreData = true;
+                let allFetchedIds = [];
+
+                const notiBell = document.getElementById('notiBell');
+                const notiDrop = document.getElementById('notificationDropdown');
+                const notiList = document.getElementById('notiList');
+                const notiBadge = document.getElementById('notiBadge');
+                const latestTag = document.getElementById('latestNotiTag');
+                const latestText = document.getElementById('latestNotiText');
+
+                if (notiBell) {
+                    notiBell.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const isHidden = notiDrop.style.display === 'none' || notiDrop.style.display === '';
+
+                        // Hiệu ứng click chuông của bạn
+                        notiDrop.style.display = isHidden ? 'flex' : 'none';
+                        notiBell.style.transform = isHidden ? 'scale(0.95)' : 'scale(1)';
+                        notiBell.style.background = isHidden ? '#f1f5f9' : '#fff';
+
+                        if (isHidden) {
+                            if (latestTag) latestTag.style.display = 'none';
+                            loadNotifications(true, false);
+                        }
+                    });
                 }
 
-                // 4. Hàm chính Load thông báo và xử lý Âm thanh
-                async function loadNotifications(isOpen = false, isLoadMore = false) {
-                    if (isLoading || (isLoadMore && !hasMoreData)) return;
+                // Đóng tất cả dropdown khi click ngoài
+                document.addEventListener('click', () => {
+                    if (userDrop) userDrop.style.display = 'none';
+                    if (userArrow) userArrow.style.transform = 'rotate(0deg)';
+                    if (notiDrop) {
+                        notiDrop.style.display = 'none';
+                        notiBell.style.background = '#fff';
+                        notiBell.style.transform = 'scale(1)';
+                    }
+                });
 
-                    const notiBadge = document.getElementById('notiBadge');
+                // Ngăn chặn đóng dropdown khi click bên trong thông báo
+                if (notiDrop) notiDrop.addEventListener('click', (e) => e.stopPropagation());
+
+                function triggerNewNotificationEffect(item) {
+                    localStorage.setItem('lastNotifiedId', item.id.toString());
+                    if (latestText) latestText.innerText = item.tieuDe;
+                    if (latestTag) latestTag.style.display = 'flex';
+
+                    notiSound.play().catch(e => console.log("Sound policy block."));
+
+                    setTimeout(() => {
+                        if (latestTag) latestTag.style.display = 'none';
+                    }, 8000);
+                }
+
+                async function loadNotifications(isOpen = false, isLoadMore = false) {
+                    if (isLoading) return;
                     const readIdsFromCookie = getReadIds();
 
-                    if (!isLoadMore) {
-                        currentSkip = 0;
-                        hasMoreData = true;
-                    }
+                    if (!isLoadMore) { currentSkip = 0; hasMoreData = true; }
 
                     try {
                         isLoading = true;
@@ -216,130 +303,106 @@
                         const data = await res.json();
                         const listItems = data.top5 || data.dataList || [];
 
-                        // TÍNH TOÁN SỐ LƯỢNG CHƯA ĐỌC
+                        if (listItems.length > 0) {
+                            const currentTopId = listItems[0].id.toString();
+                            // Nếu có ID mới so với lần cuối cùng lưu
+                            if (lastTopId !== null && currentTopId !== lastTopId && !readIdsFromCookie.includes(currentTopId)) {
+                                triggerNewNotificationEffect(listItems[0]);
+                            }
+                            lastTopId = currentTopId;
+                            localStorage.setItem('lastNotifiedId', currentTopId);
+                        }
+
+                        // Cập nhật Badge
                         const unreadCount = listItems.filter(item => !readIdsFromCookie.includes(item.id.toString())).length;
-
-                        // XỬ LÝ PHÁT TIẾNG:
-                        if (unreadCount > lastUnreadCount) {
-                            if (lastUnreadCount !== 0 || sessionStorage.getItem('firstLoadDone')) {
-                                notificationSound.play().catch(e => console.log("Chờ tương tác người dùng"));
-
-                                if (listItems.length > 0) {
-                                    document.getElementById('latestNotiText').innerText = listItems[0].tieuDe;
-                                    document.getElementById('latestNotiTag').style.display = 'flex';
-                                    setTimeout(() => { document.getElementById('latestNotiTag').style.display = 'none'; }, 7000);
-                                }
+                        if (notiBadge) {
+                            if (unreadCount > 0) {
+                                notiBadge.innerText = unreadCount > 99 ? "99+" : unreadCount;
+                                notiBadge.style.display = 'flex';
+                            } else {
+                                notiBadge.style.display = 'none';
                             }
                         }
 
-                        lastUnreadCount = unreadCount;
-                        sessionStorage.setItem('firstLoadDone', 'true');
+                        const html = listItems.map(item => {
+                            const isRead = readIdsFromCookie.includes(item.id.toString());
+                            const isError = item.tieuDe && (item.tieuDe.includes('Hủy') || item.tieuDe.includes('Từ chối'));
+                            if(!allFetchedIds.includes(item.id.toString())) allFetchedIds.push(item.id.toString());
 
-                        // Cập nhật Badge
-                        if (unreadCount > 0) {
-                            notiBadge.innerText = unreadCount > 99 ? "99+" : unreadCount;
-                            notiBadge.style.display = 'flex';
-                        } else {
-                            notiBadge.style.display = 'none';
+                            return `
+                            <a href="/FormIT/LichSuIT?idForm=${item.idFormIt}"
+                               onclick="markAsRead('${item.id}')"
+                               style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit; background: ${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.05)'};"
+                               onmouseover="this.style.background='#f1f5f9'"
+                               onmouseout="this.style.background='${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.05)'}'">
+                                <div style="width: 44px; height: 44px; border-radius: 12px; background: ${isError ? '#fff7ed' : '#eff6ff'}; color: ${isError ? '#ea580c' : '#3b82f6'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <i class="fa ${item.icon || 'fa-bell'}"></i>
+                                </div>
+                                <div style="flex:1; min-width: 0;">
+                                    <div style="font-size: 0.88rem; font-weight: ${isRead ? '600' : '800'}; color: #1e293b; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        ${item.tieuDe}
+                                    </div>
+                                    <div style="font-size: 0.8rem; color: #64748b; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                        ${item.mota || ''}
+                                    </div>
+                                    <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 6px;">
+                                        <i class="fa fa-clock-o"></i> ${item.time}
+                                    </div>
+                                </div>
+                                ${!isRead ? '<div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; align-self: center; flex-shrink: 0;"></div>' : ''}
+                            </a>`;
+                        }).join('');
+
+                        if (isOpen && notiList) {
+                            if (isLoadMore) {
+                                notiList.insertAdjacentHTML('beforeend', html);
+                            } else {
+                                notiList.innerHTML = html;
+                            }
                         }
 
-                        if (isOpen) {
-                            const notiList = document.getElementById('notiList');
-                            if (!isLoadMore) notiList.innerHTML = '';
+                        currentSkip += listItems.length;
+                        if (listItems.length < take) hasMoreData = false;
 
-                            const html = listItems.map(item => renderItem(item, readIdsFromCookie)).join('');
-                            notiList.insertAdjacentHTML('beforeend', html);
+                    } catch (err) { console.error("Error loading notifications:", err); } finally { isLoading = false; }
+                }
 
-                            currentSkip += listItems.length;
-                            if (listItems.length < take) hasMoreData = false;
+                if (notiList) {
+                    notiList.addEventListener('scroll', () => {
+                        if (notiList.scrollTop + notiList.clientHeight >= notiList.scrollHeight - 10) {
+                            if (hasMoreData && !isLoading) loadNotifications(true, true);
                         }
-
-                    } catch (err) {
-                        console.error("Lỗi fetch:", err);
-                    } finally {
-                        isLoading = false;
-                    }
+                    });
                 }
 
-                function renderItem(item, readIds) {
-                    const isRead = readIds.includes(item.id.toString());
-                    return `
-                        <a href="/FormIT/LichSuIT?idForm=${item.idFormIt}" onclick="markAsRead('${item.id}')" style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit; background: ${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.03)'};">
-                            <div style="width: 44px; height: 44px; border-radius: 12px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fa fa-bell"></i></div>
-                            <div style="flex:1; min-width: 0;">
-                                <div style="font-size: 0.88rem; font-weight: ${isRead ? '600' : '800'}; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.tieuDe}</div>
-                                <div style="font-size: 0.8rem; color: #64748b; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.mota || ''}</div>
-                            </div>
-                        </a>`;
-                }
+                // Chạy ngầm mỗi 30s
+                setInterval(() => loadNotifications(false, false), 30000);
+                // Khởi tạo lần đầu
+                loadNotifications(false, false);
 
-                // --- CÁC PHẦN BỔ SUNG MỚI ---
-
-                // 1. Đánh dấu 1 cái đã đọc
                 function markAsRead(id) {
                     let readIds = getReadIds();
                     if (!readIds.includes(id.toString())) {
                         readIds.push(id.toString());
                         setReadCookie(readIds);
+                        setTimeout(() => loadNotifications(false, false), 300);
                     }
                 }
 
-                // 2. Đánh dấu tất cả là đã đọc
-                async function markAllAsRead(event) {
-                    event.stopPropagation();
-                    try {
-                        // Lấy danh sách hiện tại từ server hoặc chỉ lấy các ID đang hiển thị
-                        const res = await fetch(`/FormIT/GetNotifications?skip=0&take=100`);
-                        const data = await res.json();
-                        const listItems = data.top5 || data.dataList || [];
-
-                        let readIds = getReadIds();
-                        listItems.forEach(item => {
-                            if (!readIds.includes(item.id.toString())) {
-                                readIds.push(item.id.toString());
-                            }
+                function markAllAsRead(e) {
+                    if(e) e.stopPropagation();
+                    setReadCookie(allFetchedIds);
+                    loadNotifications(false, false);
+                    if (notiList) {
+                        const items = notiList.querySelectorAll('a');
+                        items.forEach(item => {
+                            item.style.background = '#ffffff';
+                            const dot = item.querySelector('div[style*="background: #3b82f6"]');
+                            if(dot) dot.style.display = 'none';
                         });
-
-                        setReadCookie(readIds);
-                        // Reload lại giao diện
-                        loadNotifications(true, false);
-                    } catch (err) {
-                        console.error("Lỗi khi đọc tất cả:", err);
                     }
                 }
-
-                // 3. Xử lý cuộn để tải thêm (Infinite Scroll)
-                document.getElementById('notiList').addEventListener('scroll', function() {
-                    const { scrollTop, scrollHeight, clientHeight } = this;
-                    // Nếu cuộn gần tới đáy (còn 10px) thì load thêm
-                    if (scrollTop + clientHeight >= scrollHeight - 10) {
-                        loadNotifications(true, true);
-                    }
-                });
-
-                // 5. Các sự kiện điều khiển
-                document.getElementById('notiBell').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const drop = document.getElementById('notificationDropdown');
-                    const isOpening = drop.style.display === 'none';
-                    drop.style.display = isOpening ? 'flex' : 'none';
-                    if (isOpening) loadNotifications(true, false);
-                });
-
-                document.addEventListener('click', () => {
-                    document.getElementById('notificationDropdown').style.display = 'none';
-                });
-
-                // Ngăn chặn đóng dropdown khi click vào bên trong nó
-                document.getElementById('notificationDropdown').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                });
-
-                // Tự động kiểm tra sau mỗi 30 giây
-                setInterval(() => loadNotifications(false, false), 30000);
-                loadNotifications(false, false);
             </script>
-
             <div style="padding: 10px 50px 50px 50px; flex: 1;">
                 <div style="background:#fff; border-radius:35px; box-shadow: 0 20px 60px rgba(0,0,0,0.04); padding:45px; min-height:82vh; border:1px solid rgba(226, 232, 240, 0.8);">
                     @RenderBody()
