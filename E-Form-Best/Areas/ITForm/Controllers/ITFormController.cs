@@ -888,6 +888,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
+
         #region IT Wifi - Đăng ký sử dụng Wifi (Form IT)
 
         [HttpGet("/FormIT/TaoIT_Wifi")]
@@ -1195,7 +1196,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #endregion
 
         #region CHI TIẾT ĐƠN FORM IT (TẤT CẢ LOẠI ĐƠN)
-
         [HttpGet("/FormIT/ChiTiet/{id}")]
         public async Task<IActionResult> ChiTiet(int id)
         {
@@ -1219,6 +1219,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .Include(f => f.LichSus)
+                .Include(f => f.DanhGia) // 🔴 THÊM DÒNG NÀY
                 .FirstOrDefaultAsync(m => m.Id == id);
 
             if (don == null)
@@ -1244,12 +1245,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 don.LichSus = don.LichSus.OrderByDescending(x => x.Time).ToList();
             }
 
-            // Nạp danh sách IT
             ViewBag.ListNguoiHoTro = await _context.ItNguoiHoTros
                                              .Where(x => x.BoPhan == "IT")
                                              .ToListAsync();
 
             ViewBag.UserPhongBan = userPhongBan;
+            ViewBag.CurrentUserId = userId; // 🔴 QUAN TRỌNG
+
             return View(don);
         }
 
@@ -1677,6 +1679,233 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
         #endregion
 
+        #region Xác nhận chưa hoàn thành 
+        [HttpPost("/FormIT/XacNhanChuaHoanThanh")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> XacNhanChuaHoanThanh([FromBody] ITNotCompleteRequest request)
+        {
+            if (request == null || request.Id <= 0 || string.IsNullOrWhiteSpace(request.Reason))
+            {
+                return Json(new { success = false, message = "Vui lòng nhập đầy đủ thông tin và lý do." });
+            }
+
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userName = User.Identity.Name ?? "N/A";
+            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value ?? "N/A";
+
+            if (string.IsNullOrEmpty(userIdStr))
+            {
+                return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." });
+            }
+
+            int userId = int.Parse(userIdStr);
+
+            // 🔴 QUAN TRỌNG: Include DanhGia để kiểm tra
+            var form = await _context.FormIts
+                .Include(f => f.DanhGia)
+                .FirstOrDefaultAsync(x => x.Id == request.Id);
+
+            if (form == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy đơn yêu cầu trong hệ thống." });
+            }
+
+            // CHỈ NGƯỜI TẠO ĐƠN
+            if (form.IdNguoiTao != userId)
+            {
+                return Json(new { success = false, message = "Bạn không có quyền thao tác đơn này." });
+            }
+
+            // CHỈ ÁP DỤNG KHI ĐÃ HOÀN TẤT
+            if (form.TrangThai != "HoanTat")
+            {
+                return Json(new { success = false, message = "Chỉ có thể hoàn tác các đơn đã được IT xác nhận hoàn tất." });
+            }
+
+            // 🔴 CHẶN NẾU ĐÃ ĐÁNH GIÁ
+            if (form.DanhGia != null && form.DanhGia.Any())
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Bạn đã đánh giá đơn này rồi! Không thể hoàn tác sau khi đánh giá. Đơn đã được xác nhận hoàn thành 100%."
+                });
+            }
+
+            // Kiểm tra nếu đơn đã bị hủy
+            if (form.TenForm != null && form.TenForm.Contains("[ĐÃ HỦY]"))
+            {
+                return Json(new { success = false, message = "Đơn đã bị hủy, không thể thao tác." });
+            }
+
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    DateTime now = DateTime.Now;
+
+                    string itDaXuLy = form.TenAdmin ?? "N/A";
+                    DateTime? timeItXuLy = form.TimeAdmin;
+
+                    // RESET TRẠNG THÁI IT
+                    form.IdAdmin = null;
+                    form.TenAdmin = null;
+                    form.TimeAdmin = null;
+                    form.TrangThai = "DaDuyet";
+
+                    // LƯU LỊCH SỬ CHI TIẾT
+                    var lichSu = new LichSu
+                    {
+                        IdFormIt = form.Id,
+                        TieuDe = "NGƯỜI TẠO XÁC NHẬN CHƯA HOÀN THÀNH",
+                        Mota = $"Người tạo đơn: {userName} ({userEmail})\n" +
+                               $"Đã yêu cầu IT xử lý lại do chưa hoàn thành.\n" +
+                               $"IT đã xử lý trước đó: {itDaXuLy} (lúc {timeItXuLy?.ToString("HH:mm dd/MM/yyyy")})\n" +
+                               $"Lý do phản hồi: {request.Reason.Trim()}",
+                        Time = now
+                    };
+
+                    _context.LichSus.Add(lichSu);
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return Json(new
+                    {
+                        success = true,
+                        message = "Đã ghi nhận phản hồi của bạn. Đơn được chuyển về cho bộ phận IT xử lý lại."
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+                }
+            }
+        }
+        public class ITNotCompleteRequest
+        {
+            public int Id { get; set; }
+            public string Reason { get; set; }
+        }
+        #endregion
+
+        #region Đánh giá đơn IT
+        [HttpPost("/FormIT/DanhGiaDon")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DanhGiaDon([FromBody] DanhGiaRequest request)
+        {
+            // 1. Kiểm tra đầu vào
+            if (request == null || request.Id <= 0 || request.MucDo < 1 || request.MucDo > 5)
+            {
+                return Json(new { success = false, message = "Dữ liệu không hợp lệ. Mức độ đánh giá từ 1-5 sao." });
+            }
+
+            // 2. Lấy thông tin người dùng
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userName = User.Identity.Name ?? "N/A";
+            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value ?? "N/A";
+
+            if (string.IsNullOrEmpty(userIdStr))
+            {
+                return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." });
+            }
+
+            int userId = int.Parse(userIdStr);
+
+            // 3. Tìm đơn
+            var form = await _context.FormIts
+                .Include(f => f.DanhGia)
+                .FirstOrDefaultAsync(x => x.Id == request.Id);
+
+            if (form == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy đơn yêu cầu." });
+            }
+
+            // 4. CHỈ NGƯỜI TẠO ĐƠN
+            if (form.IdNguoiTao != userId)
+            {
+                return Json(new { success = false, message = "Bạn không có quyền đánh giá đơn này." });
+            }
+
+            // 5. CHỈ ĐÁNH GIÁ KHI HOÀN TẤT
+            if (form.TrangThai != "HoanTat")
+            {
+                return Json(new { success = false, message = "Chỉ có thể đánh giá các đơn đã hoàn thành." });
+            }
+
+            // 6. KIỂM TRA ĐÃ ĐÁNH GIÁ CHƯA
+            if (form.DanhGia != null && form.DanhGia.Any())
+            {
+                return Json(new { success = false, message = "Bạn đã đánh giá đơn này rồi!" });
+            }
+
+            // 7. KIỂM TRA ĐƠN ĐÃ HỦY
+            if (form.TenForm != null && form.TenForm.Contains("[ĐÃ HỦY]"))
+            {
+                return Json(new { success = false, message = "Đơn đã bị hủy, không thể đánh giá." });
+            }
+
+            // 8. Transaction
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    DateTime now = DateTime.Now;
+
+                    // 9. TẠO BẢN GHI ĐÁNH GIÁ
+                    var danhGia = new DanhGium
+                    {
+                        IdFormIt = form.Id,
+                        IdNguoiDanhGia = userId,
+                        TenNguoiDanhGia = userName,
+                        TimeNguoiDanhGia = now,
+                        MucDo = request.MucDo
+                    };
+
+                    _context.DanhGia.Add(danhGia);
+
+                    // 10. LƯU LỊCH SỬ
+                    string stars = new string('⭐', request.MucDo);
+                    var lichSu = new LichSu
+                    {
+                        IdFormIt = form.Id,
+                        TieuDe = "NGƯỜI TẠO ĐƠN ĐÁNH GIÁ",
+                        Mota = $"Người tạo đơn: {userName} ({userEmail})\n" +
+                               $"Đã đánh giá mức độ hài lòng: {stars} ({request.MucDo}/5 sao)\n" +
+                               $"{(string.IsNullOrWhiteSpace(request.NhanXet) ? "" : $"Nhận xét: {request.NhanXet.Trim()}")}",
+                        Time = now
+                    };
+
+                    _context.LichSus.Add(lichSu);
+
+                    // 11. Lưu thay đổi
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return Json(new
+                    {
+                        success = true,
+                        message = $"Cảm ơn bạn đã đánh giá {request.MucDo} sao! Đơn đã được xác nhận hoàn thành 100%."
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+                }
+            }
+        }
+
+        public class DanhGiaRequest
+        {
+            public int Id { get; set; }
+            public int MucDo { get; set; } // 1-5 sao
+            public string NhanXet { get; set; } // Tùy chọn
+        }
+        #endregion
+
         #region BÁO CÁO THỐNG KÊ FORM IT
         [HttpGet("/FormIT/BaoCaoThongKe")]
         public async Task<IActionResult> BaoCaoThongKe()
@@ -1809,8 +2038,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return Json(logs);
         }
         #endregion
-
-
 
     }
 }
