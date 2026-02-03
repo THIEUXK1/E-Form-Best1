@@ -136,25 +136,209 @@
 
         <main style="margin-left:280px; width:calc(100% - 280px); box-sizing: border-box; min-height:100vh; position:relative; display: flex; flex-direction: column;">
 
-            <header style="padding: 20px 50px; display: flex; justify-content: flex-end; align-items: center; background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 999;">
-                <div style="position: relative;">
-                    <div id="notiBell" style="width: 48px; height: 48px; background: #fff; border-radius: 15px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; color: #64748b; transition: all 0.3s ease; position: relative;">
-                        <i class="fa fa-bell-o" style="font-size: 1.3rem;"></i>
-                        @* Cập nhật Badge để hiển thị số lượng thật *@
-                        <span id="notiBadge" style="position: absolute; top: -2px; right: -2px; min-width: 20px; height: 20px; background: #ef4444; border-radius: 50%; border: 2px solid #fff; display:none; color: white; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);">0</span>
+            <header style="padding: 20px 50px; display: flex; justify-content: flex-end; align-items: center; background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 999; font-family: 'Inter', system-ui, -apple-system, sans-serif;">
+                <div style="position: relative; display: flex; align-items: center; gap: 15px;">
+
+                    <div id="latestNotiTag" style="display: none; position: absolute; right: 65px; white-space: nowrap; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 10px 16px; border-radius: 12px; font-size: 0.85rem; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2); z-index: 1001; border-left: 4px solid #fff; align-items: center; gap: 10px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa fa-info-circle"></i>
+                            <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                                <span style="font-size: 0.65rem; text-transform: uppercase; font-weight: 800; opacity: 0.8;">Vừa xong</span>
+                                <span id="latestNotiText" style="font-weight: 600;">Có thông báo mới!</span>
+                            </div>
+                            <i class="fa fa-times" onclick="this.parentElement.parentElement.style.display='none'" style="cursor: pointer; margin-left: 8px; opacity: 0.7;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'"></i>
+                        </div>
+                        <div style="position: absolute; right: -6px; top: 50%; transform: translateY(-50%); border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 6px solid #1d4ed8;"></div>
                     </div>
 
-                    <div id="notificationDropdown" style="position: absolute; top: 65px; right: 0; width: 380px; background: #fff; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); display: none; flex-direction: column; z-index: 2000; border: 1px solid #f1f5f9; overflow: hidden; transform-origin: top right;">
-                        <div style="padding: 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
-                            <span style="font-weight: 800; color: #1e293b; font-size: 1.1rem;">Thông báo mới</span>
-                            <a href="/FormIT/LichSuIT" style="font-size: 0.8rem; color: #3b82f6; text-decoration: none; font-weight: 700; background: #eff6ff; padding: 6px 12px; border-radius: 8px;">Xem tất cả</a>
+                    <div id="notiBell" style="width: 48px; height: 48px; background: #fff; border-radius: 15px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; color: #64748b; position: relative;" onmouseover="this.style.borderColor='#3b82f6'; this.style.color='#3b82f6'" onmouseout="this.style.borderColor='#e2e8f0'; this.style.color='#64748b'">
+                        <i class="fa fa-bell-o" style="font-size: 1.3rem;"></i>
+                        <span id="notiBadge" style="position: absolute; top: -2px; right: -2px; min-width: 20px; height: 20px; background: #ef4444; border-radius: 50%; border: 2px solid #fff; display: none; color: white; font-size: 10px; font-weight: 800; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);">0</span>
+                    </div>
+
+                    <div id="notificationDropdown" style="display: none; flex-direction: column; width: 360px; position: absolute; right: 0; top: 60px; background: white; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); overflow: hidden; z-index: 1000; border: 1px solid #f1f5f9;">
+                        <div style="padding: 15px 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fff;">
+                            <span style="font-weight: 800; color: #1e293b; font-size: 1rem; letter-spacing: -0.5px;">Thông báo</span>
+                            <button onclick="markAllAsRead(event)" style="background: #eff6ff; border: none; color: #3b82f6; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 8px;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">Đọc tất cả</button>
                         </div>
-                        <div id="notiList" style="max-height: 450px; overflow-y: auto;">
-                            @* Nội dung thông báo sẽ load ở đây *@
+                        <div id="notiList" style="max-height: 450px; overflow-y: auto; scrollbar-width: thin;"></div>
+                        <div style="padding: 12px; text-align: center; border-top: 1px solid #f1f5f9; background: #f8fafc;">
+                            <a href="/FormIT/TatCaThongBao" style="text-decoration: none; color: #94a3b8; font-size: 0.75rem; font-weight: 600;">Xem tất cả</a>
                         </div>
                     </div>
                 </div>
             </header>
+
+            <script>
+                // 1. Cấu hình âm thanh
+                const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                notificationSound.volume = 0.6;
+
+                // 2. Biến theo dõi trạng thái
+                let lastUnreadCount = 0;
+                let currentSkip = 0;
+                const take = 20;
+                let isLoading = false;
+                let hasMoreData = true;
+
+                // 3. Cookie quản lý trạng thái đã đọc
+                function getReadIds() {
+                    const name = "read_notifications=";
+                    const ca = document.cookie.split(';');
+                    for (let i = 0; i < ca.length; i++) {
+                        let c = ca[i].trim();
+                        if (c.indexOf(name) === 0) return c.substring(name.length).split(',').filter(id => id !== "");
+                    }
+                    return [];
+                }
+
+                function setReadCookie(ids) {
+                    const d = new Date();
+                    d.setTime(d.getTime() + (30 * 24 * 60 * 60 * 1000));
+                    document.cookie = "read_notifications=" + ids.join(',') + ";expires=" + d.toUTCString() + ";path=/";
+                }
+
+                // 4. Hàm chính Load thông báo và xử lý Âm thanh
+                async function loadNotifications(isOpen = false, isLoadMore = false) {
+                    if (isLoading || (isLoadMore && !hasMoreData)) return;
+
+                    const notiBadge = document.getElementById('notiBadge');
+                    const readIdsFromCookie = getReadIds();
+
+                    if (!isLoadMore) {
+                        currentSkip = 0;
+                        hasMoreData = true;
+                    }
+
+                    try {
+                        isLoading = true;
+                        const res = await fetch(`/FormIT/GetNotifications?skip=${currentSkip}&take=${take}`);
+                        const data = await res.json();
+                        const listItems = data.top5 || data.dataList || [];
+
+                        // TÍNH TOÁN SỐ LƯỢNG CHƯA ĐỌC
+                        const unreadCount = listItems.filter(item => !readIdsFromCookie.includes(item.id.toString())).length;
+
+                        // XỬ LÝ PHÁT TIẾNG:
+                        if (unreadCount > lastUnreadCount) {
+                            if (lastUnreadCount !== 0 || sessionStorage.getItem('firstLoadDone')) {
+                                notificationSound.play().catch(e => console.log("Chờ tương tác người dùng"));
+
+                                if (listItems.length > 0) {
+                                    document.getElementById('latestNotiText').innerText = listItems[0].tieuDe;
+                                    document.getElementById('latestNotiTag').style.display = 'flex';
+                                    setTimeout(() => { document.getElementById('latestNotiTag').style.display = 'none'; }, 7000);
+                                }
+                            }
+                        }
+
+                        lastUnreadCount = unreadCount;
+                        sessionStorage.setItem('firstLoadDone', 'true');
+
+                        // Cập nhật Badge
+                        if (unreadCount > 0) {
+                            notiBadge.innerText = unreadCount > 99 ? "99+" : unreadCount;
+                            notiBadge.style.display = 'flex';
+                        } else {
+                            notiBadge.style.display = 'none';
+                        }
+
+                        if (isOpen) {
+                            const notiList = document.getElementById('notiList');
+                            if (!isLoadMore) notiList.innerHTML = '';
+
+                            const html = listItems.map(item => renderItem(item, readIdsFromCookie)).join('');
+                            notiList.insertAdjacentHTML('beforeend', html);
+
+                            currentSkip += listItems.length;
+                            if (listItems.length < take) hasMoreData = false;
+                        }
+
+                    } catch (err) {
+                        console.error("Lỗi fetch:", err);
+                    } finally {
+                        isLoading = false;
+                    }
+                }
+
+                function renderItem(item, readIds) {
+                    const isRead = readIds.includes(item.id.toString());
+                    return `
+                        <a href="/FormIT/LichSuIT?idForm=${item.idFormIt}" onclick="markAsRead('${item.id}')" style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit; background: ${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.03)'};">
+                            <div style="width: 44px; height: 44px; border-radius: 12px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fa fa-bell"></i></div>
+                            <div style="flex:1; min-width: 0;">
+                                <div style="font-size: 0.88rem; font-weight: ${isRead ? '600' : '800'}; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.tieuDe}</div>
+                                <div style="font-size: 0.8rem; color: #64748b; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.mota || ''}</div>
+                            </div>
+                        </a>`;
+                }
+
+                // --- CÁC PHẦN BỔ SUNG MỚI ---
+
+                // 1. Đánh dấu 1 cái đã đọc
+                function markAsRead(id) {
+                    let readIds = getReadIds();
+                    if (!readIds.includes(id.toString())) {
+                        readIds.push(id.toString());
+                        setReadCookie(readIds);
+                    }
+                }
+
+                // 2. Đánh dấu tất cả là đã đọc
+                async function markAllAsRead(event) {
+                    event.stopPropagation();
+                    try {
+                        // Lấy danh sách hiện tại từ server hoặc chỉ lấy các ID đang hiển thị
+                        const res = await fetch(`/FormIT/GetNotifications?skip=0&take=100`);
+                        const data = await res.json();
+                        const listItems = data.top5 || data.dataList || [];
+
+                        let readIds = getReadIds();
+                        listItems.forEach(item => {
+                            if (!readIds.includes(item.id.toString())) {
+                                readIds.push(item.id.toString());
+                            }
+                        });
+
+                        setReadCookie(readIds);
+                        // Reload lại giao diện
+                        loadNotifications(true, false);
+                    } catch (err) {
+                        console.error("Lỗi khi đọc tất cả:", err);
+                    }
+                }
+
+                // 3. Xử lý cuộn để tải thêm (Infinite Scroll)
+                document.getElementById('notiList').addEventListener('scroll', function() {
+                    const { scrollTop, scrollHeight, clientHeight } = this;
+                    // Nếu cuộn gần tới đáy (còn 10px) thì load thêm
+                    if (scrollTop + clientHeight >= scrollHeight - 10) {
+                        loadNotifications(true, true);
+                    }
+                });
+
+                // 5. Các sự kiện điều khiển
+                document.getElementById('notiBell').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const drop = document.getElementById('notificationDropdown');
+                    const isOpening = drop.style.display === 'none';
+                    drop.style.display = isOpening ? 'flex' : 'none';
+                    if (isOpening) loadNotifications(true, false);
+                });
+
+                document.addEventListener('click', () => {
+                    document.getElementById('notificationDropdown').style.display = 'none';
+                });
+
+                // Ngăn chặn đóng dropdown khi click vào bên trong nó
+                document.getElementById('notificationDropdown').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+
+                // Tự động kiểm tra sau mỗi 30 giây
+                setInterval(() => loadNotifications(false, false), 30000);
+                loadNotifications(false, false);
+            </script>
 
             <div style="padding: 10px 50px 50px 50px; flex: 1;">
                 <div style="background:#fff; border-radius:35px; box-shadow: 0 20px 60px rgba(0,0,0,0.04); padding:45px; min-height:82vh; border:1px solid rgba(226, 232, 240, 0.8);">
@@ -168,119 +352,5 @@
         <div style="width:100%;">@RenderBody()</div>
     }
 
-    <script>
-        // --- 1. Sidebar & Dropdown Logic ---
-        const btnMenu = document.getElementById('btnMainMenu');
-        const submenu = document.getElementById('mainSubmenu');
-        const arrow = document.getElementById('menuArrow');
-
-        if (btnMenu) {
-            btnMenu.addEventListener('click', () => {
-                const isHidden = submenu.style.display === 'none' || submenu.style.display === '';
-                submenu.style.display = isHidden ? 'flex' : 'none';
-                arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
-                btnMenu.style.background = isHidden ? 'rgba(255, 255, 255, 0.15)' : 'transparent';
-            });
-        }
-
-        const userBtn = document.getElementById('userMenuButton');
-        const userDrop = document.getElementById('userDropdown');
-        const userArrow = document.getElementById('arrowIcon');
-
-        if (userBtn) {
-            userBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const isHidden = userDrop.style.display === 'none' || userDrop.style.display === '';
-                userDrop.style.display = isHidden ? 'flex' : 'none';
-                userArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
-            });
-        }
-
-        const notiBell = document.getElementById('notiBell');
-        const notiDrop = document.getElementById('notificationDropdown');
-
-        if (notiBell) {
-            notiBell.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const isHidden = notiDrop.style.display === 'none' || notiDrop.style.display === '';
-                notiDrop.style.display = isHidden ? 'flex' : 'none';
-
-                if (isHidden) {
-                    loadNotifications(true); // Load khi mở
-                }
-            });
-        }
-
-        document.addEventListener('click', () => {
-            if (userDrop) userDrop.style.display = 'none';
-            if (userArrow) userArrow.style.transform = 'rotate(0deg)';
-            if (notiDrop) notiDrop.style.display = 'none';
-        });
-
-            // --- 2. AJAX Load Notifications (Cập nhật để hiển thị thông báo thật) ---
-        async function loadNotifications(isOpen = false) {
-            const notiList = document.getElementById('notiList');
-            const notiBadge = document.getElementById('notiBadge');
-
-            // Hiển thị loading chỉ khi mở dropdown
-            if (isOpen && notiList.innerHTML.trim() === "") {
-                notiList.innerHTML = '<div style="padding: 30px; text-align: center; color: #94a3b8;"><i class="fa fa-circle-o-notch fa-spin"></i> Đang tải...</div>';
-            }
-
-            try {
-                const response = await fetch('/FormIT/GetNotifications');
-                if (!response.ok) throw new Error('Network response error');
-
-                const data = await response.json();
-
-                // 1. Cập nhật Badge (Sử dụng trường unreadCount từ dữ liệu bạn gửi)
-                const unreadCount = data.unreadCount;
-                if (unreadCount > 0) {
-                    notiBadge.innerText = unreadCount > 99 ? "99+" : unreadCount;
-                    notiBadge.style.display = 'flex';
-                } else {
-                    notiBadge.style.display = 'none';
-                }
-
-                // 2. Cập nhật Danh sách (Dữ liệu nằm trong data.top5)
-                if (isOpen || notiList.innerHTML.trim() !== "") {
-                    const listNoti = data.top5; // Truy cập vào mảng top5
-
-                    if (!listNoti || listNoti.length === 0) {
-                        notiList.innerHTML = '<div style="padding: 40px; text-align: center; color: #94a3b8; font-size: 0.9rem;">Bạn không có thông báo nào mới.</div>';
-                        return;
-                    }
-
-                    notiList.innerHTML = listNoti.map(item => `
-                        <a href="/FormIT/LichSuIT?idForm=${item.idFormIt}" style="text-decoration:none; display:flex; gap:15px; padding:18px 20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                            <div style="width: 44px; height: 44px; border-radius: 12px; background: ${item.tieuDe.includes('Hủy') || item.tieuDe.includes('lỗi') ? '#fff7ed' : '#eff6ff'}; color: ${item.tieuDe.includes('Hủy') || item.tieuDe.includes('lỗi') ? '#ea580c' : '#3b82f6'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.1rem; border: 1px solid rgba(0,0,0,0.03);">
-                                <i class="fa ${item.icon || 'fa-bell'}"></i>
-                            </div>
-                            <div style="flex:1">
-                                <div style="font-size: 0.9rem; font-weight: 700; color: #1e293b; line-height: 1.4; margin-bottom: 2px;">${item.tieuDe}</div>
-                                <div style="font-size: 0.8rem; color: #64748b; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.mota || 'Cập nhật trạng thái đơn.'}</div>
-                                <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                                    <i class="fa fa-clock-o" style="margin-right:4px;"></i> ${item.time}
-                                </div>
-                            </div>
-                            ${!item.isRead ? '<div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; margin-top: 5px; flex-shrink: 0;"></div>' : ''}
-                        </a>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                if (isOpen) {
-                    // Sử dụng thông báo lỗi chung khi không thể fetch hoặc parse dữ liệu
-                    notiList.innerHTML = '<div style="padding: 20px; text-align: center; color: #ef4444; font-size: 0.8rem;">Không thể kết nối máy chủ hoặc dữ liệu lỗi.</div>';
-                }
-            }
-        }
-
-        // Tự động kiểm tra thông báo mới mỗi 2 phút
-        setInterval(() => loadNotifications(false), 120000);
-
-        // Chạy lần đầu khi load trang
-        loadNotifications(false);
-    </script>
 </body>
 </html>

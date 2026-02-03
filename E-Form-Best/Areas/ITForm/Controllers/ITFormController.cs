@@ -1998,7 +1998,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpGet("/FormIT/GetNotifications")]
-        public async Task<IActionResult> GetNotifications()
+        public async Task<IActionResult> GetNotifications(int skip = 0, int take = 20)
         {
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
@@ -2013,7 +2013,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .AsQueryable();
 
-            // Logic phân quyền đồng nhất với trang Index
+            // Logic phân quyền (Giữ nguyên hoàn toàn của bạn)
             if (userRole != "Admin" && userRole != "All")
             {
                 query = query.Where(l =>
@@ -2024,19 +2024,25 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 );
             }
 
-            var allLogs = await query.OrderByDescending(l => l.Time).AsNoTracking().ToListAsync();
+            // Tính tổng số chưa đọc (không bị ảnh hưởng bởi skip/take)
+            var unreadCount = await query.CountAsync(l => l.IsRead != true);
 
-            var unreadCount = allLogs.Count(l => l.IsRead != true);
-            var top5 = allLogs.Take(5).Select(l => new {
-                l.Id,
-                l.IdFormIt,
-                l.TieuDe,
-                l.Mota,
-                Time = l.Time.HasValue ? l.Time.Value.ToString("dd/MM HH:mm") : "",
-                IsRead = l.IsRead ?? false
-            });
+            // Lấy dữ liệu phân trang
+            var logs = await query.OrderByDescending(l => l.Time)
+                                  .Skip(skip)
+                                  .Take(take)
+                                  .Select(l => new {
+                                      l.Id,
+                                      l.IdFormIt,
+                                      l.TieuDe,
+                                      l.Mota,
+                                      Time = l.Time.HasValue ? l.Time.Value.ToString("dd/MM HH:mm") : "",
+                                      IsRead = l.IsRead ?? false
+                                  })
+                                  .AsNoTracking()
+                                  .ToListAsync();
 
-            return Ok(new { top5, unreadCount });
+            return Ok(new { dataList = logs, unreadCount });
         }
 
         // ACTION MỚI: Đánh dấu một thông báo là đã đọc
