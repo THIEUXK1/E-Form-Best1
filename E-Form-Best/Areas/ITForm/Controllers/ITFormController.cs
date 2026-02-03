@@ -1961,7 +1961,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         };
         #endregion
 
-        #region LỊCH SỬ FORM IT
+        #region LỊCH SỬ VÀ THÔNG BÁO FORM IT
+
         [HttpGet("/FormIT/LichSuIT")]
         public async Task<IActionResult> LogLichSuIT()
         {
@@ -1977,7 +1978,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .ThenInclude(f => f.ItCtNguoiHoTros)
                         .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .Include(l => l.IdFormItNavigation)
-                    .ThenInclude(f => f.DanhGia) // Thêm để check hoàn tất
+                    .ThenInclude(f => f.DanhGia)
                 .AsQueryable();
 
             // Logic phân quyền (Giữ nguyên hoàn toàn)
@@ -1991,7 +1992,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 );
             }
 
-            var logs = await query.OrderByDescending(l => l.Time).AsNoTracking().ToListAsync();
+            // Không dùng AsNoTracking ở đây nếu bạn muốn cập nhật IsRead ngay trong action này (tùy chọn)
+            var logs = await query.OrderByDescending(l => l.Time).ToListAsync();
             return View(logs);
         }
 
@@ -2007,10 +2009,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             var query = _context.LichSus
                 .Include(l => l.IdFormItNavigation)
-                    .ThenInclude(f => f.DanhGia) // Thêm để check hoàn tất
+                    .ThenInclude(f => f.ItCtNguoiHoTros)
+                        .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .AsQueryable();
 
-            // Logic phân quyền (Giữ nguyên hoàn toàn)
+            // Logic phân quyền đồng nhất với trang Index
             if (userRole != "Admin" && userRole != "All")
             {
                 query = query.Where(l =>
@@ -2021,27 +2024,70 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 );
             }
 
-            var logs = await query
-                .OrderByDescending(l => l.Time)
-                .Take(8)
-                .Select(l => new {
-                    idForm = l.IdFormIt,
-                    tieuDe = l.TieuDe,
-                    moTa = l.Mota,
-                    thoiGian = l.Time.HasValue ? l.Time.Value.ToString("HH:mm dd/MM") : "",
-                    // Logic 4 trạng thái cho thông báo
-                    statusText = l.IdFormItNavigation.TimeNguoiDuyet == null ? "Chờ duyệt" :
-                                 l.IdFormItNavigation.TimeAdmin == null ? "Đang chờ xử lý" :
-                                 !l.IdFormItNavigation.DanhGia.Any() ? "Chờ phản hồi" : "Hoàn tất 100%",
-                    statusColor = l.IdFormItNavigation.TimeNguoiDuyet == null ? "#f59e0b" :
-                                  l.IdFormItNavigation.TimeAdmin == null ? "#3b82f6" :
-                                  !l.IdFormItNavigation.DanhGia.Any() ? "#8b5cf6" : "#10b981"
-                })
-                .AsNoTracking()
-                .ToListAsync();
+            var allLogs = await query.OrderByDescending(l => l.Time).AsNoTracking().ToListAsync();
 
-            return Json(logs);
+            var unreadCount = allLogs.Count(l => l.IsRead != true);
+            var top5 = allLogs.Take(5).Select(l => new {
+                l.Id,
+                l.IdFormIt,
+                l.TieuDe,
+                l.Mota,
+                Time = l.Time.HasValue ? l.Time.Value.ToString("dd/MM HH:mm") : "",
+                IsRead = l.IsRead ?? false
+            });
+
+            return Ok(new { top5, unreadCount });
         }
+
+        // ACTION MỚI: Đánh dấu một thông báo là đã đọc
+        [HttpPost("/FormIT/MarkAsRead/{id}")]
+        public async Task<IActionResult> MarkAsRead(int id)
+        {
+            var log = await _context.LichSus.FindAsync(id);
+            if (log == null) return NotFound();
+
+            if (log.IsRead != true)
+            {
+                log.IsRead = true;
+                await _context.SaveChangesAsync();
+            }
+            return Ok();
+        }
+
+        // ACTION MỚI: Đánh dấu tất cả là đã đọc
+        [HttpPost("/FormIT/MarkAllAsRead")]
+        public async Task<IActionResult> MarkAllAsRead()
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+
+            int userId = int.Parse(userIdStr);
+            var userRole = User.FindFirst("UserRole")?.Value ?? "";
+            var userMaNv = User.Identity.Name;
+
+            // Lấy tất cả thông báo chưa đọc dựa trên phân quyền
+            var query = _context.LichSus.Where(l => l.IsRead != true);
+
+            if (userRole != "Admin" && userRole != "All")
+            {
+                query = query.Where(l =>
+                    l.IdFormItNavigation.IdNguoiTao == userId ||
+                    l.IdFormItNavigation.IdNguoiDuyet == userId ||
+                    l.IdFormItNavigation.IdAdmin == userId ||
+                    l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userMaNv)
+                );
+            }
+
+            var unreadLogs = await query.ToListAsync();
+            foreach (var log in unreadLogs)
+            {
+                log.IsRead = true;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
         #endregion
     }
-}
+    }
