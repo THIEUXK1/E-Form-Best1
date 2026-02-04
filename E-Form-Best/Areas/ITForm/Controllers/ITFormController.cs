@@ -291,116 +291,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
-        #region Duyet Mail
-
-        [HttpGet("/Mail/DuyetMail")]
-        public IActionResult DuyetMail()
-        {
-            if (!HasAccess("QuanLy", "Admin", "All"))
-                return Redirect("/DonXetDuyet/KhongDuQuyen");
-
-            // Lấy phòng ban từ Claims Cookie
-            string phongBanHienTai = User.FindFirst("PhongBan")?.Value ?? "";
-
-            // Lấy danh sách mail chỉ của phòng ban đó
-            var mails = _context.Mail
-                      .Where(m => m.BoPhan == phongBanHienTai)
-                      .OrderByDescending(m => m.Id)
-                      .ToList();
-
-            return View(mails);
-        }
-
-        // GET: Chi tiết mail
-        [HttpGet("/Mail/DuyetMail/ChiTiet/{id}")]
-        public IActionResult DuyetMailChiTiet(int id)
-        {
-            if (!HasAccess("QuanLy", "Admin", "All"))
-                return Redirect("/DonXetDuyet/KhongDuQuyen");
-
-            string phongBanHienTai = User.FindFirst("PhongBan")?.Value ?? "";
-
-            var mail = _context.Mail
-                               .Where(m => m.BoPhan == phongBanHienTai)
-                               .FirstOrDefault(m => m.Id == id);
-
-            if (mail == null)
-                return NotFound();
-
-            return View(mail);
-        }
-
-        // POST Hủy bỏ Mail
-        [HttpPost("/Mail/HuyBoMail/{id}")]
-        public IActionResult HuyBoMail(int id)
-        {
-            if (!HasAccess("QuanLy", "Admin", "All"))
-                return Redirect("/DonXetDuyet/KhongDuQuyen");
-
-            var mail = _context.Mail.FirstOrDefault(m => m.Id == id);
-            if (mail == null)
-                return NotFound();
-
-            // Nếu đã có người duyệt rồi thì không đổi
-            if (mail.IdNguoiDuyet != null)
-            {
-                TempData["Error"] = "Mail này đã được xử lý, không thể hủy bỏ lại!";
-                return Redirect($"/Mail/DuyetMail/ChiTiet/{id}");
-            }
-
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            string userName = User.Identity.Name ?? "";
-
-            if (string.IsNullOrEmpty(userIdClaim))
-                return Redirect("/DonXetDuyet/DangNhap");
-
-            // Cập nhật thông tin hủy
-            mail.IdNguoiDuyet = int.Parse(userIdClaim);
-            mail.TenNguoiDuyet = "Đơn đã hủy: " + userName;
-            mail.TimeNguoiDuyet = DateTime.Now;
-
-            _context.SaveChanges();
-
-            TempData["Success"] = "Mail đã được hủy bỏ thành công!";
-            return Redirect($"/Mail/DuyetMail/ChiTiet/{id}");
-        }
-
-        // POST Xác nhận Mail
-        [HttpPost("/Mail/XacNhanMail/{id}")]
-        public IActionResult XacNhanMail(int id)
-        {
-            if (!HasAccess("QuanLy", "Admin", "All"))
-                return Redirect("/DonXetDuyet/KhongDuQuyen");
-
-            var mail = _context.Mail.FirstOrDefault(m => m.Id == id);
-            if (mail == null)
-                return NotFound();
-
-            // Nếu đã có người duyệt rồi thì không đổi
-            if (mail.IdNguoiDuyet != null)
-            {
-                TempData["Error"] = "Mail này đã được xử lý, không thể xác nhận lại!";
-                return Redirect($"/Mail/DuyetMail/ChiTiet/{id}");
-            }
-
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            string userName = User.Identity.Name ?? "";
-
-            if (string.IsNullOrEmpty(userIdClaim))
-                return Redirect("/DonXetDuyet/DangNhap");
-
-            // Cập nhật thông tin xác nhận
-            mail.IdNguoiDuyet = int.Parse(userIdClaim);
-            mail.TenNguoiDuyet = userName;
-            mail.TimeNguoiDuyet = DateTime.Now;
-
-            _context.SaveChanges();
-
-            TempData["Success"] = "Mail đã được xác nhận thành công!";
-            return Redirect($"/Mail/DuyetMail/ChiTiet/{id}");
-        }
-        #endregion
-
         #region Admin Quan Ly Mail
 
         [HttpGet("/Mail/QuanLyMail")]
@@ -591,9 +481,22 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (User == null || !User.Identity.IsAuthenticated)
                 return Redirect("/DonXetDuyet/DangNhap");
 
+            // Lọc danh sách nhân viên IT và CHỈ lấy những công việc có tên "Đăng kí mail"
             ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros
-                                             .Where(x => x.BoPhan == "IT"&& x.MaNv == "V200887")
-                                             .ToList();
+                .Include(x => x.CongViecs)
+                .Where(x => x.BoPhan == "IT")
+                .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
+                {
+                    Id = x.Id,
+                    MaNv = x.MaNv,
+                    Ten = x.Ten,
+                    BoPhan = x.BoPhan,
+                    GhiChu = x.GhiChu,
+                    // Chỉ nạp các công việc có tên chính xác là "Đăng kí mail"
+                    CongViecs = x.CongViecs.Where(cv => cv.Ten == "Đăng kí mail").ToList()
+                })
+                .Where(x => x.CongViecs.Any()) // Chỉ lấy những người có công việc này
+                .ToList();
 
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             int? userId = !string.IsNullOrEmpty(userIdStr) ? int.Parse(userIdStr) : null;
@@ -622,11 +525,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpPost("/FormIT/DonMail")]
         public async Task<IActionResult> DonMail(FormIt form, [FromForm] ItMail1 itMail, int[] SelectedNguoiHoTroIds)
         {
+            // Kiểm tra đăng nhập
             if (User == null || !User.Identity.IsAuthenticated)
                 return Redirect("/DonXetDuyet/DangNhap");
 
+            // Lấy thông tin User (sử dụng TryParse để an toàn hơn)
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            int userId = int.Parse(userIdStr);
+            int.TryParse(userIdStr, out int userId);
+
             var userName = User.Identity.Name ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
             var viTri = User.FindFirst("UserRole")?.Value ?? "";
@@ -636,7 +542,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 try
                 {
-                    // --- BƯỚC 1: LƯU BẢNG CHÍNH ---
+                    // --- BƯỚC 1: LƯU BẢNG CHÍNH (FORMIT) ---
                     form.Ngay = DateOnly.FromDateTime(DateTime.Now);
                     form.IdNguoiTao = userId;
                     form.TenNguoiTao = userName;
@@ -648,6 +554,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.TrangThai = "ChoDuyet";
                     form.IdForm = "IT_MAIL_1";
                     form.TenForm = "Đơn đăng ký/sửa đổi Mail";
+
+                    // Thêm danh mục theo yêu cầu riêng của bạn
+                    form.Danhmuc = "Đăng kí mail";
 
                     _context.FormIts.Add(form);
                     await _context.SaveChangesAsync();
@@ -683,10 +592,35 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         _context.ItMail1s.Add(itMail);
                         await _context.SaveChangesAsync();
                     }
-
                     // --- BƯỚC 4: LƯU NGƯỜI HỖ TRỢ ---
+                    string danhSachTenHoTro = "Chưa chọn";
+
+                    // PHẦN THÊM MỚI: Nếu là "Đăng kí mail", tự động tìm SelectedNguoiHoTroIds từ bảng CongViec
+                    if (form.Danhmuc == "Đăng kí mail")
+                    {
+                        var idsTuCongViec = await _context.CongViecs
+                            .Where(cv => cv.Ten == "Đăng kí mail" && cv.IdItNguoiHoTro != null)
+                            .Select(cv => cv.IdItNguoiHoTro.Value)
+                            .Distinct()
+                            .ToArrayAsync();
+
+                        // Gán lại cho SelectedNguoiHoTroIds để các bước sau xử lý như bình thường
+                        if (idsTuCongViec.Any())
+                        {
+                            SelectedNguoiHoTroIds = idsTuCongViec;
+                        }
+                    }
+
+                    // Giữ nguyên logic xử lý của bạn bên dưới
                     if (SelectedNguoiHoTroIds != null && SelectedNguoiHoTroIds.Length > 0)
                     {
+                        // Lấy danh sách tên để ghi vào lịch sử cho chi tiết
+                        var listHoTro = _context.ItNguoiHoTros
+                            .Where(x => SelectedNguoiHoTroIds.Contains(x.Id))
+                            .Select(x => x.Ten)
+                            .ToList();
+                        danhSachTenHoTro = string.Join(", ", listHoTro);
+
                         int stt = 1;
                         foreach (var idHoTro in SelectedNguoiHoTroIds)
                         {
@@ -701,10 +635,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 5: LƯU LỊCH SỬ THAY ĐỔI (CẬP NHẬT CHI TIẾT HƠN) ---
-                    string moTaChiTiet = $"[Khởi tạo đơn] Người tạo: {userName} (ID: {userId}) | Email: {userEmail}. " +
-                                         $"Nội dung: Đăng ký Email đề xuất '{itMail?.Email}'. " +
-                                         $"Đã chỉ định {SelectedNguoiHoTroIds?.Length ?? 0} người hỗ trợ xử lý.";
+                    // --- BƯỚC 5: LƯU LỊCH SỬ THAY ĐỔI (CHI TIẾT TỐI ĐA) ---
+                    string emailDeXuat = itMail?.Email ?? "N/A";
+
+                    string moTaChiTiet = $"[Khởi tạo đơn] Người tạo: {userName} (ID: {userId}) | Bộ phận: {phongBan}\n" +
+                                         $"- Danh mục: {form.Danhmuc}\n" +
+                                         $"- Email đề xuất: {emailDeXuat}\n" +
+                                         $"- File đính kèm: {(string.IsNullOrEmpty(form.FileDinhKem) ? "Không có" : form.FileDinhKem)}\n" +
+                                         $"- Người hỗ trợ chỉ định: {danhSachTenHoTro}.";
 
                     var lichSu = new LichSu
                     {
@@ -723,13 +661,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
+                    // Đảm bảo khi lỗi vẫn load lại được dữ liệu cho View
                     ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros.Where(x => x.BoPhan == "IT").ToList();
-                    ModelState.AddModelError("", "Lỗi: " + ex.Message);
+                    ModelState.AddModelError("", "Lỗi trong quá trình lưu: " + ex.Message);
                     return View(form);
                 }
             }
         }
-
         #endregion
 
         #region IT Order - Sửa chữa/Yêu cầu thiết bị (Form IT) - CẬP NHẬT LỊCH SỬ & NGƯỜI HỖ TRỢ
