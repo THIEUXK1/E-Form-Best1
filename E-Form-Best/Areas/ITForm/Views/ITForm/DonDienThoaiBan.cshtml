@@ -33,6 +33,13 @@
         border-color: @colorPrimary !important;
         background: #f0f3ff !important;
     }
+
+    /* Hiệu ứng hover cho nút bấm */
+    #btnSubmit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px -5px rgba(63, 81, 181, 0.5);
+        filter: brightness(1.1);
+    }
 </style>
 
 <div style="background: linear-gradient(135deg, #f5f7ff 0%, #e8eaf6 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif;">
@@ -85,7 +92,6 @@
                 </div>
 
                 <div style="margin-bottom: 25px;">
-                    @* Tên name="ThongTin" để khớp với Model ItDangKiSuDungDtban4 *@
                     <label style="@labelBase">Thông tin yêu cầu (Số máy/Vị trí lắp đặt) <span style="color:red">*</span></label>
                     <input type="text" name="ThongTin" id="ThongTin" placeholder="Ví dụ: Lắp mới tại Line 4 - Xưởng B hoặc gia hạn số 1234..." required
                            class="input-focus" style="@inputBase">
@@ -102,7 +108,7 @@
                         <label style="@labelBase">Ảnh sơ đồ/Vị trí (Ctrl+V)</label>
                         <div id="paste_AnhDt" tabindex="0"
                              style="width: 100%; border: 2px dashed @colorBorder; height: 160px; border-radius: 15px; display: flex; align-items: center; justify-content: center; background: #f8faff; color: @colorPrimary; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 700; transition: 0.3s; position: relative; outline: none;">
-                            <div style="text-align:center;"><i style="font-size: 20px; margin-bottom:8px;" class="fa fa-phone-square"></i><br>Bấm vào đây và Ctrl+V</div>
+                            <div style="text-align:center;"><i style="font-size: 24px; margin-bottom:8px; display:block;" class="fa fa-image"></i>Bấm vào đây và Ctrl+V</div>
                         </div>
                         <input type="file" id="input_Anh" name="Anh" hidden accept="image/*">
                     </div>
@@ -116,27 +122,25 @@
                 </div>
             </div>
 
-            @* --- PHẦN 3: CHỌN NGƯỜI HỖ TRỢ (Chỉ chọn 1 người) --- *@
+            @* --- PHẦN 3: LOẠI YÊU CẦU HỖ TRỢ --- *@
             <div style="@boxDetail">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">3</span>
-                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Nhân sự IT hỗ trợ</h3>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Loại yêu cầu hỗ trợ</h3>
                 </div>
 
-                <div>
-                    <label style="@labelBase">Chọn 1 nhân viên IT xử lý <span style="color:red">*</span></label>
-                    <select name="SelectedNguoiHoTroId" id="SelectedNguoiHoTroId" class="input-focus"
-                            style="@inputBase cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231a237e%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
-                        <option value="">-- Vui lòng chọn người hỗ trợ --</option>
-                        @if (ViewBag.ListNguoiHoTro != null)
+                <label style="@labelBase">Vui lòng chọn vấn đề bạn đang gặp <span style="color:red">*</span></label>
+
+                <select name="selectedCongViecId" id="selectedCongViecId" required style="@inputBase cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231a237e%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
+                    <option value="">-- Click để chọn loại công việc --</option>
+                    @if (ViewBag.CongViecList != null)
+                    {
+                        foreach (var cv in (IEnumerable<E_Form_Best.Models.ITForm.CongViec>)ViewBag.CongViecList)
                         {
-                            foreach (var item in (List<E_Form_Best.Models.ITForm.ItNguoiHoTro>)ViewBag.ListNguoiHoTro)
-                            {
-                                <option value="@item.Id">@item.MaNv - @item.Ten (@item.BoPhan)</option>
-                            }
+                            <option value="@cv.Id">@cv.Ten</option>
                         }
-                    </select>
-                </div>
+                    }
+                </select>
             </div>
 
             @* --- PHẦN 4: BẢN CAM KẾT --- *@
@@ -172,7 +176,7 @@
 </div>
 
 <script>
-    // Paste Image Logic
+    // Logic Paste Image (Dán ảnh từ clipboard)
     document.getElementById("paste_AnhDt").addEventListener('paste', function(e) {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         for (let i = 0; i < items.length; i++) {
@@ -181,6 +185,8 @@
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     this.innerHTML = `<img src="${event.target.result}" style="height:100%; width:100%; object-fit:contain; border-radius:12px;">`;
+
+                    // Gán file vào input hidden để submit form
                     const dataTransfer = new DataTransfer();
                     dataTransfer.items.add(blob);
                     document.getElementById("input_Anh").files = dataTransfer.files;
@@ -190,23 +196,28 @@
         }
     });
 
+    // Hàm xử lý khi nhấn nút gửi
     function xuLyLuuDonDT() {
         const thongTin = document.getElementById("ThongTin").value;
         const mucDich = document.getElementById("MucDich").value;
-        const hoTro = document.getElementById("SelectedNguoiHoTroId").value;
+        const congViec = document.getElementById("selectedCongViecId").value; // Đã sửa ID đúng với HTML
         const chk = document.getElementById("chkCamKet");
         const btn = document.getElementById("btnSubmit");
 
+        // Kiểm tra dữ liệu
         if (!thongTin.trim()) {
             alert("⚠️ Vui lòng nhập thông tin vị trí lắp đặt!");
+            document.getElementById("ThongTin").focus();
             return;
         }
         if (!mucDich.trim()) {
             alert("⚠️ Vui lòng nhập mục đích sử dụng!");
+            document.getElementById("MucDich").focus();
             return;
         }
-        if (!hoTro) {
-            alert("⚠️ Vui lòng chọn một nhân viên IT hỗ trợ!");
+        if (!congViec) {
+            alert("⚠️ Vui lòng chọn loại công việc cần hỗ trợ!");
+            document.getElementById("selectedCongViecId").focus();
             return;
         }
         if (!chk.checked) {
@@ -214,6 +225,7 @@
             return;
         }
 
+        // Xác nhận gửi
         if (confirm("Gửi đơn đăng ký điện thoại bàn này tới bộ phận IT?")) {
             btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG XỬ LÝ...';
             btn.style.opacity = '0.7';
