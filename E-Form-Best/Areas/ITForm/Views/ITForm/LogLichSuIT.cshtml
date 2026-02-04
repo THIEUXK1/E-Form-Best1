@@ -22,7 +22,7 @@
 
             <div style="position: relative;">
                 <i class="fa fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #6366f1; z-index: 10;"></i>
-                <input type="text" id="logSearch" onkeyup="combinedFilter()" placeholder="Tìm tên đơn, mã đơn, nội dung..."
+                <input type="text" id="logSearch" onkeyup="combinedFilter()" placeholder="Tìm tên đơn, mã đơn, nội dung, danh mục..."
                        style="padding: 14px 20px 14px 45px; border-radius: 14px; border: 2px solid white; width: 350px; outline: none; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-size: 14px; font-weight: 600; color: #1e293b;">
             </div>
         </div>
@@ -123,6 +123,15 @@
                                     <span style="color: @(isCanceled ? "#991b1b" : "#475569"); font-size: 14px; font-weight: 700; background: @(isCanceled ? "#fee2e2" : "#f8fafc"); padding: 3px 10px; border-radius: 8px; border: 1px solid @(isCanceled ? "#fecaca" : "#e2e8f0");">
                                         #@log.IdFormIt - @(f?.TenForm ?? "N/A")
                                     </span>
+
+                                    @* --- PHẦN THÊM MỚI: Badge Danh mục --- *@
+                                    @if (!string.IsNullOrEmpty(f?.Danhmuc))
+                                    {
+                                        <span style="background: #f1f5f9; color: #475569; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; border: 1px solid #cbd5e1; display: flex; align-items: center; gap: 5px;">
+                                            <i class="fa fa-folder-open" style="color: #64748b;"></i>
+                                            @f.Danhmuc
+                                        </span>
+                                    }
                                 </div>
 
                                 @* Mô tả chi tiết *@
@@ -190,7 +199,7 @@
 <script>
     let currentFilterStatus = 'all';
 
-    // Xử lý hiệu ứng Hover bằng JS (như bản gốc của bạn)
+    // Xử lý hiệu ứng Hover bằng JS
     function initHoverEffects() {
         document.querySelectorAll('.log-item').forEach(item => {
             const isCanceled = item.getAttribute('data-canceled') === 'true';
@@ -232,7 +241,7 @@
 
         for (let i = 0; i < items.length; i++) {
             const itemStatus = items[i].getAttribute('data-status-text');
-            // Lấy text content tinh gọn để search chính xác hơn
+            // itemContent bao gồm cả text của Badge Danh mục vừa thêm
             const itemContent = items[i].innerText.toLowerCase();
 
             const matchStatus = (currentFilterStatus === 'all' || itemStatus === currentFilterStatus);
@@ -240,7 +249,6 @@
 
             if (matchStatus && matchSearch) {
                 items[i].style.display = "";
-                // Thêm hiệu ứng xuất hiện nhẹ
                 items[i].style.opacity = "1";
             } else {
                 items[i].style.display = "none";

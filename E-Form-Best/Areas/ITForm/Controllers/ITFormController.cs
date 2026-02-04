@@ -1163,6 +1163,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
+
         #region CHI TIẾT ĐƠN FORM IT (TẤT CẢ LOẠI ĐƠN)
         [HttpGet("/FormIT/ChiTiet/{id}")]
         public async Task<IActionResult> ChiTiet(int id)
@@ -1498,27 +1499,32 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             // --- 1. LẤY THÔNG TIN TỪ CLAIMS (CK) ---
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdStr)) return Redirect("/DonXetDuyet/DangNhap");
+            if (string.IsNullOrEmpty(userIdStr))
+                return Redirect("/DonXetDuyet/DangNhap");
 
             int userId = int.Parse(userIdStr);
             var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
                            ?? User.FindFirst("UserRole")?.Value ?? "";
             var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
 
-            // --- 2. KHỞI TẠO QUERY (Thêm Include để lấy người hỗ trợ) ---
+            // --- 2. KHỞI TẠO QUERY ---
+            // Giữ nguyên logic: Chỉ lấy những đơn đã có Người Duyệt (IdNguoiDuyet != null)
+            // Thêm Include để lấy đầy đủ thông tin danh sách người hỗ trợ và Navigation liên quan
             IQueryable<FormIt> query = _context.FormIts
                 .Include(f => f.ItCtNguoiHoTros)
-                    .ThenInclude(ct => ct.IdItNguoiHoTroNavigation) // Để lấy Tên IT từ bảng danh mục
+                    .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .Where(f => f.IdNguoiDuyet != null && f.TenNguoiDuyet != null);
 
-            // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU (Giữ nguyên logic của bạn) ---
+            // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU (Giữ nguyên tuyệt đối logic của bạn) ---
             if (userRole == "All" || userRole == "Admin")
             {
+                // Quyền Admin/All: Thấy đơn của phòng IT hoặc các đơn đã có Admin xử lý (hoàn tất)
                 string IT_Dept_Name = "Phòng thông tin 资讯科技部";
                 query = query.Where(f => f.BoPhan == IT_Dept_Name || f.IdAdmin != null);
             }
             else if (userRole == "QuanLy")
             {
+                // Quyền Quản Lý: Chỉ thấy đơn thuộc bộ phận mình quản lý
                 if (!string.IsNullOrEmpty(phongBanSession))
                 {
                     query = query.Where(f => f.BoPhan != null &&
@@ -1526,25 +1532,28 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
                 else
                 {
+                    // Nếu không có thông tin phòng ban trong Session/Cookie thì không trả về dữ liệu
                     query = query.Where(f => false);
                 }
             }
             else
             {
+                // Quyền Nhân Viên: Chỉ thấy đơn do chính mình tạo ra
                 query = query.Where(f => f.IdNguoiTao == userId);
             }
 
             // --- 4. THỰC THI TRUY VẤN ---
+            // Sắp xếp theo thời gian duyệt mới nhất lên đầu
             var danhSachDon = await query
                 .OrderByDescending(f => f.TimeNguoiDuyet)
-                .AsNoTracking()
+                .AsNoTracking() // Tăng hiệu năng cho tác vụ chỉ đọc
                 .ToListAsync();
 
+            // Trả về View kèm theo danh sách dữ liệu
             return View(danhSachDon);
         }
-
         // Các hàm XacNhanHoanThanh và class Request giữ nguyên như bạn đã viết
-        
+
         // Nút bấm dành cho Đội IT - Xác nhận đã sửa xong/cấp xong thiết bị
         [HttpPost("/FormIT/XacNhanHoanThanh")]
         [ValidateAntiForgeryToken] // Thêm bảo mật CSRF
