@@ -27,5 +27,8 @@ public partial class ItNguoiHoTro
     public string? BoPhan { get; set; }
 
     [InverseProperty("IdItNguoiHoTroNavigation")]
+    public virtual ICollection<CongViec> CongViecs { get; set; } = new List<CongViec>();
+
+    [InverseProperty("IdItNguoiHoTroNavigation")]
     public virtual ICollection<ItCtNguoiHoTro> ItCtNguoiHoTros { get; set; } = new List<ItCtNguoiHoTro>();
 }

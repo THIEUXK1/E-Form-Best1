@@ -1,6 +1,7 @@
 ﻿using E_Form_Best.Context;
 using E_Form_Best.Models.ITForm;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -311,7 +312,6 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         #endregion
 
         #region QL người Hỗ trợ
-
         [HttpGet("/QLtaiKhoan/NguoiHoTro")]
         public IActionResult NguoiHoTro()
         {
@@ -319,59 +319,111 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             return View();
         }
 
-        // Lấy danh sách
         [HttpGet("/QLtaiKhoan/GetAllNguoiHoTro")]
         public IActionResult GetAllNguoiHoTro()
         {
             if (!IsLoggedIn()) return Unauthorized();
-            var list = _context.ItNguoiHoTros.OrderByDescending(x => x.Id).ToList();
-            return Json(list);
+            return Json(_context.ItNguoiHoTros.OrderByDescending(x => x.Id).ToList());
         }
 
-        // Thêm mới
         [HttpPost("/QLtaiKhoan/AddNguoiHoTro")]
         public async Task<IActionResult> AddNguoiHoTro(ItNguoiHoTro model)
         {
             if (!IsLoggedIn()) return Unauthorized();
             if (string.IsNullOrEmpty(model.MaNv)) return BadRequest("Vui lòng nhập Mã nhân viên");
-
             _context.ItNguoiHoTros.Add(model);
             await _context.SaveChangesAsync();
             return Ok(model);
         }
 
-        // Cập nhật
         [HttpPost("/QLtaiKhoan/UpdateNguoiHoTro")]
         public async Task<IActionResult> UpdateNguoiHoTro(ItNguoiHoTro model)
         {
             if (!IsLoggedIn()) return Unauthorized();
-
             var nht = await _context.ItNguoiHoTros.FindAsync(model.Id);
             if (nht == null) return NotFound();
-
-            nht.MaNv = model.MaNv;
-            nht.Ten = model.Ten;
-            nht.BoPhan = model.BoPhan;
-            nht.GhiChu = model.GhiChu;
-
+            nht.MaNv = model.MaNv; nht.Ten = model.Ten; nht.BoPhan = model.BoPhan; nht.GhiChu = model.GhiChu;
             await _context.SaveChangesAsync();
             return Ok();
         }
 
-        // Xóa
         [HttpPost("/QLtaiKhoan/DeleteNguoiHoTro")]
         public async Task<IActionResult> DeleteNguoiHoTro(int id)
         {
             if (!IsLoggedIn()) return Unauthorized();
-
             var nht = await _context.ItNguoiHoTros.FindAsync(id);
             if (nht == null) return NotFound();
-
             _context.ItNguoiHoTros.Remove(nht);
             await _context.SaveChangesAsync();
             return Ok();
         }
-
         #endregion
+
+        #region QL Công Việc
+        [HttpGet("/QLtaiKhoan/GetAllCongViec")]
+        public IActionResult GetAllCongViec()
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            // Select ra object mới để tránh lỗi vòng lặp JSON và lấy được tên người hỗ trợ
+            var list = _context.CongViecs
+                .OrderByDescending(x => x.Id)
+                .Select(x => new {
+                    x.Id,
+                    x.Ten,
+                    x.TrangThai,
+                    x.IdItNguoiHoTro,
+                    TenNguoiHoTro = x.IdItNguoiHoTroNavigation != null ? x.IdItNguoiHoTroNavigation.Ten : "Chưa phân công"
+                }).ToList();
+            return Json(list);
+        }
+
+        [HttpPost("/QLtaiKhoan/AddCongViec")]
+        public async Task<IActionResult> AddCongViec(CongViec model)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            model.TrangThai = "Hiển thị"; // Mặc định là hiển thị như bạn yêu cầu
+            _context.CongViecs.Add(model);
+            await _context.SaveChangesAsync();
+            return Ok(model);
+        }
+
+        [HttpPost("/QLtaiKhoan/UpdateCongViec")]
+        public async Task<IActionResult> UpdateCongViec(CongViec model)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            var cv = await _context.CongViecs.FindAsync(model.Id);
+            if (cv == null) return NotFound();
+            cv.Ten = model.Ten;
+            cv.IdItNguoiHoTro = model.IdItNguoiHoTro;
+            // Có thể cập nhật trạng thái nếu cần, ở đây tôi giữ nguyên hoặc mặc định
+            cv.TrangThai = model.TrangThai ?? "Hiển thị";
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpPost("/QLtaiKhoan/DeleteCongViec")]
+        public async Task<IActionResult> DeleteCongViec(int id)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            var cv = await _context.CongViecs.FindAsync(id);
+            if (cv == null) return NotFound();
+            _context.CongViecs.Remove(cv);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+        [HttpPost("/QLtaiKhoan/UpdateStatusCV")]
+        public async Task<IActionResult> UpdateStatusCV(int id)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            var cv = await _context.CongViecs.FindAsync(id);
+            if (cv == null) return NotFound();
+
+            // Đổi trạng thái qua lại
+            cv.TrangThai = (cv.TrangThai == "Hiển thị" || string.IsNullOrEmpty(cv.TrangThai)) ? "Ẩn" : "Hiển thị";
+
+            await _context.SaveChangesAsync();
+            return Ok(new { success = true, newStatus = cv.TrangThai });
+        }
+        #endregion  
     }
-}
+    }
