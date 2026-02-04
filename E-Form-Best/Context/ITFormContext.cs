@@ -16,6 +16,8 @@ public partial class ITFormContext : DbContext
     {
     }
 
+    public virtual DbSet<CongViec> CongViecs { get; set; }
+
     public virtual DbSet<CtDangKySuDungXeCongTac3> CtDangKySuDungXeCongTac3s { get; set; }
 
     public virtual DbSet<CtDangKySuDungXeDaily4> CtDangKySuDungXeDaily4s { get; set; }
@@ -64,6 +66,13 @@ public partial class ITFormContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<CongViec>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__CongViec__3213E83F5D615D57");
+
+            entity.HasOne(d => d.IdItNguoiHoTroNavigation).WithMany(p => p.CongViecs).HasConstraintName("FK_CongViec_NguoiHoTro");
+        });
+
         modelBuilder.Entity<CtDangKySuDungXeCongTac3>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__CT_DangK__3213E83F55A9ACA6");
