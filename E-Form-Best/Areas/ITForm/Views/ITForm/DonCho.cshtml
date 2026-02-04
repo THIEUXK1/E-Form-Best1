@@ -26,7 +26,7 @@
         <div style="display: flex; gap: 12px; align-items: center;">
             <div style="position: relative;">
                 <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px;"></i>
-                <input type="text" id="myInput" onkeyup="filterTable()" placeholder="Tìm mã đơn, tên form..."
+                <input type="text" id="myInput" onkeyup="filterTable()" placeholder="Tìm mã đơn, danh mục..."
                        style="padding: 10px 12px 10px 38px; border-radius: 10px; border: 2px solid #bae6fd; font-size: 14px; width: 220px; outline: none; font-weight: 600; color: #0c4a6e;">
             </div>
             <a href="/FormIT/DonMail" style="padding: 10px 20px; background: linear-gradient(135deg, #0284c7, #0c4a6e); color: #fff; text-decoration: none; border-radius: 10px; font-weight: 800; font-size: 13px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);">
@@ -61,9 +61,11 @@
             <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
                 <tr>
                     <th style="padding: 15px; text-align: left; color: #475569; font-weight: 900; width: 80px; text-transform: uppercase; font-size: 11px;">Mã Đơn</th>
+                    @* Thêm tiêu đề cho cột Danh mục *@
+                    <th style="padding: 15px; text-align: left; color: #475569; font-weight: 900; width: 150px; text-transform: uppercase; font-size: 11px;">Danh mục</th>
                     <th style="padding: 15px; text-align: left; color: #475569; font-weight: 900; text-transform: uppercase; font-size: 11px;">Loại Yêu Cầu & Thời Gian</th>
-                    <th style="padding: 15px; text-align: left; color: #475569; font-weight: 900; width: 200px; text-transform: uppercase; font-size: 11px;">Người Hỗ Trợ</th>
-                    <th style="padding: 15px; text-align: left; color: #475569; font-weight: 900; width: 220px; text-transform: uppercase; font-size: 11px;">Tiến Độ Hệ Thống</th>
+                    <th style="padding: 15px; text-align: left; color: #475569; font-weight: 900; width: 180px; text-transform: uppercase; font-size: 11px;">Người Hỗ Trợ</th>
+                    <th style="padding: 15px; text-align: left; color: #475569; font-weight: 900; width: 200px; text-transform: uppercase; font-size: 11px;">Tiến Độ Hệ Thống</th>
                     <th style="padding: 15px; text-align: center; color: #475569; font-weight: 900; text-transform: uppercase; font-size: 11px;">Trạng Thái</th>
                     <th style="padding: 15px; text-align: center; width: 60px;"></th>
                 </tr>
@@ -77,7 +79,6 @@
                         bool isFinished = item.IdAdmin != null;
                         bool isManagerApproved = item.IdNguoiDuyet != null;
 
-                        // --- LOGIC LẤY NGƯỜI HỖ TRỢ CUỐI CÙNG ---
                         var lastSupport = item.ItCtNguoiHoTros?.OrderByDescending(x => x.Stt).FirstOrDefault();
                         string supportName = lastSupport?.IdItNguoiHoTroNavigation?.Ten ?? "Đang chờ IT...";
 
@@ -89,6 +90,15 @@
 
                         <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='transparent'">
                             <td style="padding: 15px; font-family: 'JetBrains Mono', monospace; font-weight: 800; color: #0284c7;">#@item.Id</td>
+
+                            @* Hiển thị nội dung Danh mục *@
+                            <td style="padding: 15px;">
+                                <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; border: 1px solid #e2e8f0; display: inline-block;">
+                                    <i class="fa fa-tag" style="font-size: 10px; margin-right: 4px; opacity: 0.6;"></i>
+                                    @(string.IsNullOrEmpty(item.Danhmuc) ? "Chưa phân loại" : item.Danhmuc)
+                                </span>
+                            </td>
+
                             <td style="padding: 15px;">
                                 <div style="font-weight: 800; color: #0c4a6e; font-size: 15px; margin-bottom: 4px;">@item.TenForm?.Replace("[ĐÃ HỦY]", "")</div>
                                 <div style="font-size: 12px; color: #64748b; font-weight: 700; display: flex; gap: 10px;">
@@ -101,7 +111,6 @@
                                 </div>
                             </td>
 
-                            @* --- CỘT NGƯỜI HỖ TRỢ IT --- *@
                             <td style="padding: 15px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <div style="width: 28px; height: 28px; background: #e0f2fe; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #0284c7; font-size: 11px; font-weight: 900; border: 1px solid #bae6fd;">
@@ -142,7 +151,8 @@
                 else
                 {
                     <tr>
-                        <td colspan="6" style="padding: 40px; text-align: center; color: #64748b; font-weight: 600;">
+                        @* Cập nhật colspan lên 7 vì đã thêm cột Danh mục *@
+                        <td colspan="7" style="padding: 40px; text-align: center; color: #64748b; font-weight: 600;">
                             <i class="fa fa-folder-open" style="font-size: 40px; display: block; margin-bottom: 10px; opacity: 0.3;"></i>
                             Bạn chưa có yêu cầu IT nào.
                         </td>

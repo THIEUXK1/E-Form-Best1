@@ -68,9 +68,10 @@
             <thead>
                 <tr style="background: #f8fafc; border-bottom: 3px solid #e2e8f0;">
                     <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Nhân viên yêu cầu</th>
+                    <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Danh mục</th> @* THÊM CỘT MỚI *@
                     <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Nội dung thiết bị</th>
                     <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Người Hỗ Trợ</th>
-                    <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase; width: 160px;">Tiến trình</th>
+                    <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase; width: 140px;">Tiến trình</th>
                     <th style="padding: 18px 20px; text-align: center; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Trạng thái</th>
                     <th style="padding: 18px 20px; text-align: right;"></th>
                 </tr>
@@ -102,13 +103,23 @@
                                     @item.BoPhan • <span style="color: #1e40af;">MS: @item.SoNhanVien</span>
                                 </div>
                             </td>
+
+                            @* --- CỘT DANH MỤC MỚI --- *@
+                            <td style="padding: 15px 20px;">
+                                <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid #e2e8f0; display: inline-block;">
+                                    <i class="fa fa-tag" style="margin-right: 4px; font-size: 10px;"></i>
+                                    @(string.IsNullOrEmpty(item.Danhmuc) ? "Phổ thông" : item.Danhmuc)
+                                </span>
+                            </td>
+
                             <td style="padding: 15px 20px;">
                                 <div style="font-weight: 800; color: #1e293b; font-size: 14px;">@item.TenForm?.Replace("[ĐÃ HỦY]", "")</div>
                                 <div style="font-size: 11px; color: #64748b; font-weight: 700;">
                                     ID: #@item.Id • @item.TimeNguoiTao?.ToString("dd/MM/yyyy")
                                 </div>
                             </td>
-                            @* --- CỘT NGƯỜI HỖ TRỢ IT MỚI --- *@
+
+                            @* --- CỘT NGƯỜI HỖ TRỢ IT --- *@
                             <td style="padding: 15px 20px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <div style="width: 28px; height: 28px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #1e40af;">
@@ -117,6 +128,7 @@
                                     <div style="font-weight: 700; color: #334155; font-size: 13px;">@supportName</div>
                                 </div>
                             </td>
+
                             <td style="padding: 15px 20px;">
                                 <div style="font-size: 9px; font-weight: 1000; color: @pColor; margin-bottom: 4px; display: flex; justify-content: space-between;">
                                     <span>@pText</span> <span>@pWidth</span>
@@ -125,6 +137,7 @@
                                     <div style="width: @pWidth; height: 100%; background: @pColor; border-radius: 10px;"></div>
                                 </div>
                             </td>
+
                             <td style="padding: 15px 20px; text-align: center;">
                                 @{
                                     var (bg, fg, txt) = isCancelled ? ("#fee2e2", "#b91c1c", "ĐÃ HỦY") :
@@ -133,6 +146,7 @@
                                 }
                                 <span style="background:@bg; color:@fg; padding:6px 12px; border-radius:8px; font-size:10px; font-weight:1000; border: 1.5px solid @fg; display: inline-block; min-width: 80px;">@txt</span>
                             </td>
+
                             <td style="padding: 15px 20px; text-align: right;">
                                 <a href="/FormIT/ChiTiet/@item.Id"
                                    style="text-decoration: none; padding: 8px 16px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s;
