@@ -4,7 +4,15 @@
     ViewData["Title"] = "Thống kê & Báo cáo IT";
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 
+    // Lấy dữ liệu từ ViewBag và xử lý mặc định
     var statusCounts = ViewBag.StatusCounts as List<int> ?? new List<int> { 0, 0, 0, 0, 0 };
+    var typeLabels = ViewBag.TypeLabels as List<string> ?? new List<string>();
+    var typeCounts = ViewBag.TypeCounts as List<int> ?? new List<int>();
+    var danhmucLabels = ViewBag.DanhMucLabels as List<string> ?? new List<string>();
+    var danhmucCounts = ViewBag.DanhMucCounts as List<int> ?? new List<int>();
+    var statusLabels = ViewBag.StatusLabels as List<string> ?? new List<string>();
+    var supportStats = ViewBag.SupportStats as List<dynamic> ?? new List<dynamic>();
+
     var total = Model?.Count() ?? 0;
 
     // Màu sắc chủ đạo
@@ -13,6 +21,42 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<style>
+    .stat-card {
+        background: white;
+        padding: 18px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: #cbd5e1;
+        }
+
+    .it-row:hover {
+        background-color: #f8fafc;
+    }
+
+    canvas {
+        width: 100% !important;
+    }
+
+    .support-row {
+        transition: all 0.2s ease;
+    }
+
+        .support-row:hover {
+            background-color: #f8fafc;
+            transform: translateX(3px);
+        }
+</style>
 
 <div class="report-container" style="font-family: 'Inter', sans-serif; max-width: 1400px; margin: auto; padding: 25px; background: #f8fafc; min-height: 100vh;">
 
@@ -25,67 +69,66 @@
             <p style="margin: 5px 0 0 0; color: #64748b; font-size: 14px;">Thống kê Email, Wifi, Sửa chữa, Điện thoại bàn và Danh mục</p>
         </div>
         <button onclick="location.reload()" style="padding: 10px 22px; background: @cGreen; color: #fff; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2); transition: all 0.2s;">
-            Làm mới
+            <i class="fa fa-sync-alt"></i> Làm mới
         </button>
     </div>
 
     @* Cards Statistics *@
     <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px;">
 
-        @* Card Template Function - Dùng inline trực tiếp *@
-        <div onclick="filterByStatus('ALL')" style="background: white; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0; border-left: 5px solid @cGray; cursor: pointer; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div class="stat-card" onclick="filterByStatus('ALL')" style="border-left: 5px solid @cGray;">
             <span style="font-size: 0.7rem; font-weight: 800; color: #64748b; letter-spacing: 0.05em;">TỔNG PHIẾU</span>
             <div style="font-size: 1.6rem; font-weight: 800; margin: 5px 0; color: #1e293b;">@total</div>
             <div style="height: 6px; background: #f1f5f9; border-radius: 10px; overflow: hidden;">
-                <div style="height: 100%; width: 100%; background: @cGray; transition: 0.8s;"></div>
+                <div style="height: 100%; width: 100%; background: @cGray;"></div>
             </div>
         </div>
 
-        <div onclick="filterByStatus('HOANTAT')" style="background: white; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0; border-left: 5px solid @cGreen; cursor: pointer; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div class="stat-card" onclick="filterByStatus('HOANTAT')" style="border-left: 5px solid @cGreen;">
             <span style="font-size: 0.7rem; font-weight: 800; color: @cGreen; letter-spacing: 0.05em;">HOÀN TẤT</span>
             <div style="font-size: 1.6rem; font-weight: 800; margin: 5px 0; color: @cGreen;">@statusCounts[0]</div>
             <div style="height: 6px; background: #f1f5f9; border-radius: 10px; overflow: hidden;">
-                <div style="height: 100%; width: @(total > 0 ? (statusCounts[0] * 100 / total) : 0)%; background: @cGreen; transition: 0.8s;"></div>
+                <div style="height: 100%; width: @(total > 0 ? (statusCounts[0] * 100 / total) : 0)%; background: @cGreen;"></div>
             </div>
         </div>
 
-        <div onclick="filterByStatus('CHODANHGIA')" style="background: white; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0; border-left: 5px solid @cPurple; cursor: pointer; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div class="stat-card" onclick="filterByStatus('CHODANHGIA')" style="border-left: 5px solid @cPurple;">
             <span style="font-size: 0.7rem; font-weight: 800; color: @cPurple; letter-spacing: 0.05em;">CHỜ ĐÁNH GIÁ</span>
             <div style="font-size: 1.6rem; font-weight: 800; margin: 5px 0; color: @cPurple;">@statusCounts[1]</div>
             <div style="height: 6px; background: #f1f5f9; border-radius: 10px; overflow: hidden;">
-                <div style="height: 100%; width: @(total > 0 ? (statusCounts[1] * 100 / total) : 0)%; background: @cPurple; transition: 0.8s;"></div>
+                <div style="height: 100%; width: @(total > 0 ? (statusCounts[1] * 100 / total) : 0)%; background: @cPurple;"></div>
             </div>
         </div>
 
-        <div onclick="filterByStatus('DANGXULY')" style="background: white; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0; border-left: 5px solid @cBlue; cursor: pointer; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div class="stat-card" onclick="filterByStatus('DANGXULY')" style="border-left: 5px solid @cBlue;">
             <span style="font-size: 0.7rem; font-weight: 800; color: @cBlue; letter-spacing: 0.05em;">ĐANG XỬ LÝ</span>
             <div style="font-size: 1.6rem; font-weight: 800; margin: 5px 0; color: @cBlue;">@statusCounts[2]</div>
             <div style="height: 6px; background: #f1f5f9; border-radius: 10px; overflow: hidden;">
-                <div style="height: 100%; width: @(total > 0 ? (statusCounts[2] * 100 / total) : 0)%; background: @cBlue; transition: 0.8s;"></div>
+                <div style="height: 100%; width: @(total > 0 ? (statusCounts[2] * 100 / total) : 0)%; background: @cBlue;"></div>
             </div>
         </div>
 
-        <div onclick="filterByStatus('CHO')" style="background: white; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0; border-left: 5px solid @cOrange; cursor: pointer; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div class="stat-card" onclick="filterByStatus('CHO')" style="border-left: 5px solid @cOrange;">
             <span style="font-size: 0.7rem; font-weight: 800; color: @cOrange; letter-spacing: 0.05em;">CHỜ DUYỆT</span>
             <div style="font-size: 1.6rem; font-weight: 800; margin: 5px 0; color: @cOrange;">@statusCounts[3]</div>
             <div style="height: 6px; background: #f1f5f9; border-radius: 10px; overflow: hidden;">
-                <div style="height: 100%; width: @(total > 0 ? (statusCounts[3] * 100 / total) : 0)%; background: @cOrange; transition: 0.8s;"></div>
+                <div style="height: 100%; width: @(total > 0 ? (statusCounts[3] * 100 / total) : 0)%; background: @cOrange;"></div>
             </div>
         </div>
 
-        <div onclick="filterByStatus('HUY')" style="background: white; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0; border-left: 5px solid @cRed; cursor: pointer; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div class="stat-card" onclick="filterByStatus('HUY')" style="border-left: 5px solid @cRed;">
             <span style="font-size: 0.7rem; font-weight: 800; color: @cRed; letter-spacing: 0.05em;">ĐÃ HỦY</span>
             <div style="font-size: 1.6rem; font-weight: 800; margin: 5px 0; color: @cRed;">@statusCounts[4]</div>
             <div style="height: 6px; background: #f1f5f9; border-radius: 10px; overflow: hidden;">
-                <div style="height: 100%; width: @(total > 0 ? (statusCounts[4] * 100 / total) : 0)%; background: @cRed; transition: 0.8s;"></div>
+                <div style="height: 100%; width: @(total > 0 ? (statusCounts[4] * 100 / total) : 0)%; background: @cRed;"></div>
             </div>
         </div>
     </div>
 
     @* Charts Section *@
-    <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+    <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-bottom: 30px;">
         @* Chart 1 *@
-        <div style="background: white; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+        <div style="background: white; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center;">
                 <h3 style="margin: 0; font-size: 0.9rem; font-weight: 800; border-left: 4px solid @cGreen; padding-left: 10px; color: #1e293b;">SỐ LƯỢNG THEO LOẠI FORM</h3>
                 <button onclick="zoomChart('itTypeChart', 'SỐ LƯỢNG THEO LOẠI FORM')" style="background: #f1f5f9; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; color: #64748b;"><i class="fa fa-expand"></i></button>
@@ -93,7 +136,7 @@
             <div style="height: 280px; position: relative;"><canvas id="itTypeChart"></canvas></div>
         </div>
         @* Chart 2 *@
-        <div style="background: white; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+        <div style="background: white; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center;">
                 <h3 style="margin: 0; font-size: 0.9rem; font-weight: 800; border-left: 4px solid @cPurple; padding-left: 10px; color: #1e293b;">SỐ LƯỢNG THEO DANH MỤC</h3>
                 <button onclick="zoomChart('itDanhMucChart', 'SỐ LƯỢNG THEO DANH MỤC')" style="background: #f1f5f9; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; color: #64748b;"><i class="fa fa-expand"></i></button>
@@ -101,7 +144,7 @@
             <div style="height: 280px; position: relative;"><canvas id="itDanhMucChart"></canvas></div>
         </div>
         @* Chart 3 *@
-        <div style="background: white; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+        <div style="background: white; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center;">
                 <h3 style="margin: 0; font-size: 0.9rem; font-weight: 800; border-left: 4px solid @cBlue; padding-left: 10px; color: #1e293b;">TỶ LỆ TRẠNG THÁI (%)</h3>
                 <button onclick="zoomChart('itStatusChart', 'TỶ LỆ TRẠNG THÁI (%)')" style="background: #f1f5f9; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; color: #64748b;"><i class="fa fa-expand"></i></button>
@@ -110,15 +153,149 @@
         </div>
     </div>
 
-    @* Table Section *@
+    @* Support Staff Statistics Section *@
+    <div style="background: white; border-radius: 15px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 30px;">
+        <div style="padding: 18px 20px; border-bottom: 1px solid #f1f5f9; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);">
+            <h3 style="margin: 0; font-size: 1rem; font-weight: 800; color: #1e293b; display: flex; align-items: center;">
+                <i class="fa fa-users" style="color: @cBlue; margin-right: 10px;"></i>
+                THỐNG KÊ THEO NGƯỜI HỖ TRỢ
+            </h3>
+            <p style="margin: 5px 0 0 0; color: #64748b; font-size: 13px;">Chi tiết số lượng và trạng thái đơn của từng nhân viên IT</p>
+        </div>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f8fafc;">
+                        <th style="padding: 15px 20px; text-align: center; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; width: 60px;">STT</th>
+                        <th style="padding: 15px 20px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Người Hỗ Trợ</th>
+                        <th style="padding: 15px 20px; text-align: center; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
+                                <i class="fa fa-tasks" style="font-size: 14px;"></i>
+                                <span>Tổng Đơn</span>
+                            </div>
+                        </th>
+                        <th style="padding: 15px 20px; text-align: center; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">
+                            <span style="background: #ecfdf5; color: #10b981; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800;">Hoàn Tất</span>
+                        </th>
+                        <th style="padding: 15px 20px; text-align: center; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">
+                            <span style="background: #f5f3ff; color: #8b5cf6; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800;">Chờ Đánh Giá</span>
+                        </th>
+                        <th style="padding: 15px 20px; text-align: center; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">
+                            <span style="background: #eff6ff; color: #3b82f6; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800;">Đang Xử Lý</span>
+                        </th>
+                        <th style="padding: 15px 20px; text-align: center; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">
+                            <span style="background: #fffbeb; color: #f59e0b; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800;">Chờ Duyệt</span>
+                        </th>
+                        <th style="padding: 15px 20px; text-align: center; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">
+                            <span style="background: #fef2f2; color: #ef4444; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800;">Đã Hủy</span>
+                        </th>
+                        <th style="padding: 15px 20px; text-align: center; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Biểu Đồ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (supportStats != null && supportStats.Any())
+                    {
+                        int stt = 1;
+                        foreach (var stat in supportStats)
+                        {
+                            int tongDon = stat.Tong;
+                            <tr class="support-row" style="border-bottom: 1px solid #f1f5f9;">
+                                <td style="padding: 12px 20px; text-align: center;">
+                                    <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, @cGray, #475569); display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 13px; margin: 0 auto;">
+                                        @(stt++)
+                                    </div>
+                                </td>
+                                <td style="padding: 12px 20px;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, @cBlue, @cPurple); display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 16px; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
+                                            @stat.TenIt.Substring(0, 1).ToUpper()
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 700; color: #1e293b; font-size: 14px;">@stat.TenIt</div>
+                                            <div style="font-size: 11px; color: #94a3b8;">ID: @stat.IdIt</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td style="padding: 12px 20px; text-align: center;">
+                                    <div style="background: linear-gradient(135deg, #f1f5f9, #e2e8f0); padding: 8px 16px; border-radius: 10px; display: inline-block;">
+                                        <div style="font-size: 20px; font-weight: 800; color: #1e293b;">@tongDon</div>
+                                        <div style="font-size: 10px; color: #64748b; font-weight: 600;">đơn</div>
+                                    </div>
+                                </td>
+                                <td style="padding: 12px 20px; text-align: center;">
+                                    <div style="font-weight: 700; color: @cGreen; font-size: 18px;">@stat.HoanTat</div>
+                                    <div style="font-size: 10px; color: #94a3b8; font-weight: 600;">@(tongDon > 0 ? Math.Round((double)stat.HoanTat * 100 / tongDon, 1) : 0)%</div>
+                                </td>
+                                <td style="padding: 12px 20px; text-align: center;">
+                                    <div style="font-weight: 700; color: @cPurple; font-size: 18px;">@stat.ChoDanhGia</div>
+                                    <div style="font-size: 10px; color: #94a3b8; font-weight: 600;">@(tongDon > 0 ? Math.Round((double)stat.ChoDanhGia * 100 / tongDon, 1) : 0)%</div>
+                                </td>
+                                <td style="padding: 12px 20px; text-align: center;">
+                                    <div style="font-weight: 700; color: @cBlue; font-size: 18px;">@stat.DangXuLy</div>
+                                    <div style="font-size: 10px; color: #94a3b8; font-weight: 600;">@(tongDon > 0 ? Math.Round((double)stat.DangXuLy * 100 / tongDon, 1) : 0)%</div>
+                                </td>
+                                <td style="padding: 12px 20px; text-align: center;">
+                                    <div style="font-weight: 700; color: @cOrange; font-size: 18px;">@stat.ChoDuyet</div>
+                                    <div style="font-size: 10px; color: #94a3b8; font-weight: 600;">@(tongDon > 0 ? Math.Round((double)stat.ChoDuyet * 100 / tongDon, 1) : 0)%</div>
+                                </td>
+                                <td style="padding: 12px 20px; text-align: center;">
+                                    <div style="font-weight: 700; color: @cRed; font-size: 18px;">@stat.DaHuy</div>
+                                    <div style="font-size: 10px; color: #94a3b8; font-weight: 600;">@(tongDon > 0 ? Math.Round((double)stat.DaHuy * 100 / tongDon, 1) : 0)%</div>
+                                </td>
+                                <td style="padding: 12px 20px;">
+                                    <div style="display: flex; gap: 2px; justify-content: center; height: 28px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                        @{
+                                            var bars = new[] {
+                                                                new { Count = stat.HoanTat, Color = cGreen, Label = "Hoàn tất" },
+                                                                new { Count = stat.ChoDanhGia, Color = cPurple, Label = "Chờ đánh giá" },
+                                                                new { Count = stat.DangXuLy, Color = cBlue, Label = "Đang xử lý" },
+                                                                new { Count = stat.ChoDuyet, Color = cOrange, Label = "Chờ duyệt" },
+                                                                new { Count = stat.DaHuy, Color = cRed, Label = "Đã hủy" }
+                                                                };
+                                        }
+                                        @foreach (var bar in bars)
+                                        {
+                                            int width = tongDon > 0 ? (int)((double)bar.Count * 100 / tongDon) : 0;
+                                            if (width > 0)
+                                            {
+                                                <div style="height: 100%; width: @(width)%; background: @bar.Color; min-width: 3px; position: relative; cursor: help;"
+                                                     title="@bar.Label: @bar.Count đơn (@(tongDon > 0 ? Math.Round((double)bar.Count * 100 / tongDon, 1) : 0)%)">
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" style="padding: 40px; text-align: center;">
+                                <div style="color: #94a3b8;">
+                                    <i class="fa fa-inbox" style="font-size: 48px; opacity: 0.3; margin-bottom: 15px; display: block;"></i>
+                                    <p style="font-style: italic; font-size: 14px; margin: 0;">Chưa có dữ liệu thống kê người hỗ trợ</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @* Table Section - 20 Đơn Mới Nhất *@
     <div style="background: white; border-radius: 15px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-        <div style="display: flex; justify-content: space-between; padding: 18px 20px; align-items: center; border-bottom: 1px solid #f1f5f9; background: #fff;">
-            <h3 style="margin: 0; font-size: 1rem; font-weight: 800; color: #1e293b;">20 ĐƠN MỚI NHẤT</h3>
-            <select id="filterDanhMuc" onchange="applyFilters()" style="padding: 8px 15px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px; outline: none; background: #f8fafc; cursor: pointer; font-weight: 600;">
+        <div style="display: flex; justify-content: space-between; padding: 18px 20px; align-items: center; border-bottom: 1px solid #f1f5f9;">
+            <h3 style="margin: 0; font-size: 1rem; font-weight: 800; color: #1e293b; display: flex; align-items: center;">
+                <i class="fa fa-list-alt" style="color: @cOrange; margin-right: 10px;"></i>
+                20 ĐƠN MỚI NHẤT
+            </h3>
+            <select id="filterDanhMuc" onchange="applyFilters()" style="padding: 8px 15px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px; outline: none; background: #f8fafc; font-weight: 600; cursor: pointer;">
                 <option value="all">Tất cả danh mục</option>
-                @if (ViewBag.DanhMucLabels != null)
+                @if (danhmucLabels != null)
                 {
-                    foreach (var cat in ViewBag.DanhMucLabels)
+                    foreach (var cat in danhmucLabels)
                     {
                         <option value="@cat">@cat</option>
                     }
@@ -129,87 +306,88 @@
             <table id="itMainTable" style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr style="background: #f8fafc;">
-                        <th style="padding: 15px 20px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Mã Đơn</th>
-                        <th style="padding: 15px 20px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Người Tạo</th>
-                        <th style="padding: 15px 20px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Loại Form</th>
-                        <th style="padding: 15px 20px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Danh Mục</th>
-                        <th style="padding: 15px 20px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Người Xử Lý</th>
-                        <th style="padding: 15px 20px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Trạng Thái</th>
-                        <th style="padding: 15px 20px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Xử Lý</th>
-                        @* Thêm tiêu đề cột Thao tác *@
-                        <th style="padding: 15px 20px; text-align: center; font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Thao tác</th>
+                        <th style="padding: 15px 20px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Mã Đơn</th>
+                        <th style="padding: 15px 20px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Người Tạo</th>
+                        <th style="padding: 15px 20px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Loại Form</th>
+                        <th style="padding: 15px 20px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Danh Mục</th>
+                        <th style="padding: 15px 20px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Người Xử Lý</th>
+                        <th style="padding: 15px 20px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Trạng Thái</th>
+                        <th style="padding: 15px 20px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Xử Lý Trong</th>
+                        <th style="padding: 15px 20px; text-align: center; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var item in Model.Take(20))
+                    @if (Model != null)
                     {
-                        bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]") || item.TrangThai == "TuChoi";
-                        bool isAdminSigned = item.IdAdmin != null && item.TenAdmin != null;
-                        bool isDuyetSigned = item.IdNguoiDuyet != null && item.TenNguoiDuyet != null;
-                        bool hasRated = item.DanhGia != null && item.DanhGia.Any();
-
-                        string statusText, badgeBg, badgeColor, statusClass;
-                        if (isCancelled) { statusText = "ĐÃ HỦY"; statusClass = "HUY"; badgeBg = "#fef2f2"; badgeColor = "#ef4444"; }
-                        else if (isAdminSigned && hasRated) { statusText = "HOÀN TẤT"; statusClass = "HOANTAT"; badgeBg = "#ecfdf5"; badgeColor = "#10b981"; }
-                        else if (isAdminSigned && !hasRated) { statusText = "CHỜ ĐÁNH GIÁ"; statusClass = "CHODANHGIA"; badgeBg = "#f5f3ff"; badgeColor = "#8b5cf6"; }
-                        else if (isDuyetSigned) { statusText = "ĐANG XỬ LÝ"; statusClass = "DANGXULY"; badgeBg = "#eff6ff"; badgeColor = "#3b82f6"; }
-                        else { statusText = "CHỜ DUYỆT"; statusClass = "CHO"; badgeBg = "#fffbeb"; badgeColor = "#f59e0b"; }
-
-                        string durationText = "---";
-                        if (item.TimeAdmin != null && item.TimeNguoiDuyet != null)
+                        foreach (var item in Model.Take(20))
                         {
-                            var duration = item.TimeAdmin.Value - item.TimeNguoiDuyet.Value;
-                            durationText = duration.TotalDays >= 1 ? $"{(int)duration.TotalDays}d {duration.Hours}h" :
-                            duration.TotalHours >= 1 ? $"{(int)duration.TotalHours}h {duration.Minutes}m" : $"{(int)duration.TotalMinutes}m";
+                            bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]") || item.TrangThai == "TuChoi";
+                            bool isAdminSigned = item.IdAdmin != null && item.TenAdmin != null;
+                            bool isDuyetSigned = item.IdNguoiDuyet != null && item.TenNguoiDuyet != null;
+                            bool hasRated = item.DanhGia != null && item.DanhGia.Any();
+
+                            string statusText, badgeBg, badgeColor, statusClass;
+                            if (isCancelled) { statusText = "ĐÃ HỦY"; statusClass = "HUY"; badgeBg = "#fef2f2"; badgeColor = "#ef4444"; }
+                            else if (isAdminSigned && hasRated) { statusText = "HOÀN TẤT"; statusClass = "HOANTAT"; badgeBg = "#ecfdf5"; badgeColor = "#10b981"; }
+                            else if (isAdminSigned && !hasRated) { statusText = "CHỜ ĐÁNH GIÁ"; statusClass = "CHODANHGIA"; badgeBg = "#f5f3ff"; badgeColor = "#8b5cf6"; }
+                            else if (isDuyetSigned) { statusText = "ĐANG XỬ LÝ"; statusClass = "DANGXULY"; badgeBg = "#eff6ff"; badgeColor = "#3b82f6"; }
+                            else { statusText = "CHỜ DUYỆT"; statusClass = "CHO"; badgeBg = "#fffbeb"; badgeColor = "#f59e0b"; }
+
+                            string durationText = "---";
+                            if (item.TimeAdmin != null && item.TimeNguoiDuyet != null)
+                            {
+                                var duration = item.TimeAdmin.Value - item.TimeNguoiDuyet.Value;
+                                durationText = duration.TotalDays >= 1 ? $"{(int)duration.TotalDays}d {duration.Hours}h" :
+                                duration.TotalHours >= 1 ? $"{(int)duration.TotalHours}h {duration.Minutes}m" : $"{(int)duration.TotalMinutes}m";
+                            }
+
+                            <tr class="it-row" data-status="@statusClass" data-danhmuc="@(item.Danhmuc ?? "---")" style="border-bottom: 1px solid #f1f5f9;">
+                                <td style="padding: 12px 20px; font-weight:700; color:#1e40af; font-size: 13px;">#@item.Id</td>
+                                <td style="padding: 12px 20px; font-size: 13px; color: #334155;">@item.TenNguoiTao</td>
+                                <td style="padding: 12px 20px;">
+                                    <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 12px; display: inline-block;">
+                                        @item.TenForm?.Replace("[ĐÃ HỦY]", "")
+                                    </span>
+                                </td>
+                                <td style="padding: 12px 20px; color:#64748b; font-size:12px;">@(item.Danhmuc ?? "---")</td>
+                                <td style="padding: 12px 20px;">
+                                    @{
+                                        var mainHandler = item.ItCtNguoiHoTros?.OrderByDescending(x => x.Stt).FirstOrDefault();
+                                    }
+                                    @if (mainHandler != null)
+                                    {
+                                        <div style="display: flex; align-items: center; gap: 6px;">
+                                            <span style="background: #dcfce7; color: #166534; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; border: 1px solid #bbf7d0; display: inline-flex; align-items: center;">
+                                                <i class="fa fa-user-check" style="margin-right:4px;"></i> @(mainHandler.IdItNguoiHoTroNavigation?.Ten ?? "N/A")
+                                            </span>
+                                            @if (item.ItCtNguoiHoTros.Count() > 1)
+                                            {
+                                                <small style="color: #94a3b8; font-weight: 600;">+@(item.ItCtNguoiHoTros.Count() - 1)</small>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span style="color: #94a3b8; font-size: 11px; font-style: italic;">Chưa chỉ định</span>
+                                    }
+                                </td>
+                                <td style="padding: 12px 20px;">
+                                    <span style="font-size: 10px; font-weight: 800; padding: 5px 12px; border-radius: 50px; background: @badgeBg; color: @badgeColor; display: inline-block;">
+                                        @statusText
+                                    </span>
+                                </td>
+                                <td style="padding: 12px 20px; font-size:12px; color: #64748b; font-weight: 500;">@durationText</td>
+                                <td style="padding: 12px 20px; text-align: center;">
+                                    <a href="/FormIT/ChiTiet/@item.Id"
+                                       style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: #f1f5f9; color: #475569; border-radius: 8px; text-decoration: none; transition: all 0.2s;"
+                                       onmouseover="this.style.background='@cBlue'; this.style.color='white';"
+                                       onmouseout="this.style.background='#f1f5f9'; this.style.color='#475569';"
+                                       title="Xem chi tiết">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
                         }
-
-                        <tr class="it-row" data-status="@statusClass" data-danhmuc="@(item.Danhmuc ?? "---")" style="border-bottom: 1px solid #f1f5f9;">
-                            <td style="padding: 12px 20px; font-weight:700; color:#1e40af; font-size: 13px;">#@item.Id</td>
-                            <td style="padding: 12px 20px; font-size: 13px; color: #334155;">@item.TenNguoiTao</td>
-                            <td style="padding: 12px 20px;">
-                                <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 12px; display: inline-block;">
-                                    @item.TenForm?.Replace("[ĐÃ HỦY]", "")
-                                </span>
-                            </td>
-                            <td style="padding: 12px 20px; color:#64748b; font-size:12px;">@(item.Danhmuc ?? "---")</td>
-                            <td style="padding: 12px 20px;">
-                                @{
-                                    var mainHandler = item.ItCtNguoiHoTros?.OrderByDescending(x => x.Stt).FirstOrDefault();
-                                }
-                                @if (mainHandler != null)
-                                {
-                                    <div style="display: flex; align-items: center; gap: 6px;">
-                                        <span style="background: #dcfce7; color: #166534; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; border: 1px solid #bbf7d0; display: inline-flex; align-items: center;">
-                                            <i class="fa fa-user-check" style="margin-right:4px;"></i> @(mainHandler.IdItNguoiHoTroNavigation?.Ten ?? "N/A")
-                                        </span>
-                                        @if (item.ItCtNguoiHoTros.Count() > 1)
-                                        {
-                                            <small style="color: #94a3b8; font-weight: 600;">+@(item.ItCtNguoiHoTros.Count() - 1)</small>
-                                        }
-                                    </div>
-                                }
-                                else
-                                {
-
-                                    <span style="color: #94a3b8; font-size: 11px; font-style: italic;">Chưa chỉ định</span>
-                                }
-                            </td>
-                            <td style="padding: 12px 20px;">
-                                <span style="font-size: 10px; font-weight: 800; padding: 5px 12px; border-radius: 50px; background: @badgeBg; color: @badgeColor; display: inline-block;">
-                                    @statusText
-                                </span>
-                            </td>
-                            <td style="padding: 12px 20px; font-size:12px; color: #64748b; font-weight: 500;">@durationText</td>
-                            @* Thêm ô dữ liệu nút Xem chi tiết *@
-                            <td style="padding: 12px 20px; text-align: center;">
-                                <a href="/FormIT/ChiTiet/@item.Id"
-                                   style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: #f1f5f9; color: #475569; border-radius: 8px; text-decoration: none; transition: all 0.2s;"
-                                   onmouseover="this.style.background='#e2e8f0'; this.style.color='#1e293b';"
-                                   onmouseout="this.style.background='#f1f5f9'; this.style.color='#475569';">
-                                    <i class="fa fa-eye" title="Xem chi tiết"></i>
-                                </a>
-                            </td>
-                        </tr>
                     }
                 </tbody>
             </table>
@@ -219,8 +397,8 @@
 
 @* Modal Zoom *@
 <div id="chartModal" onclick="closeZoom()" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(6px);">
-    <div class="modal-content" onclick="event.stopPropagation()" style="background: white; margin: 5vh auto; padding: 30px; border-radius: 20px; width: 85%; position: relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
-        <span onclick="closeZoom()" style="position: absolute; right: 25px; top: 15px; font-size: 35px; cursor: pointer; color: #94a3b8; font-weight: 300;">&times;</span>
+    <div class="modal-content" onclick="event.stopPropagation()" style="background: white; margin: 5vh auto; padding: 30px; border-radius: 20px; width: 85%; max-width: 1200px; position: relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);">
+        <span onclick="closeZoom()" style="position: absolute; right: 25px; top: 15px; font-size: 35px; cursor: pointer; color: #94a3b8; transition: color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</span>
         <h2 id="modalTitle" style="margin-top: 0; color: #1e293b; font-size: 1.4rem; font-weight: 800; text-align: center; margin-bottom: 25px;"></h2>
         <div style="height: 70vh; position: relative;"><canvas id="zoomedChart"></canvas></div>
     </div>
@@ -252,7 +430,12 @@
             maintainAspectRatio: false,
             responsive: true,
             plugins: {
-                datalabels: { anchor: 'end', align: 'top', color: '#475569', font: { weight: 'bold', family: 'Inter' } },
+                datalabels: {
+                    anchor: 'end',
+                    align: 'top',
+                    color: '#475569',
+                    font: { weight: 'bold', family: 'Inter', size: 11 }
+                },
                 legend: { display: false }
             },
             scales: {
@@ -261,34 +444,53 @@
             }
         };
 
+        // Config Chart 1
         chartConfigs['itTypeChart'] = {
             type: 'bar',
             data: {
-                labels: @Html.Raw(Json.Serialize(ViewBag.TypeLabels)),
-                datasets: [{ data: @Html.Raw(Json.Serialize(ViewBag.TypeCounts)), backgroundColor: '@cGreen', borderRadius: 8, barThickness: 25 }]
+                labels: @Html.Raw(Json.Serialize(typeLabels)),
+                datasets: [{
+                    label: 'Số lượng',
+                    data: @Html.Raw(Json.Serialize(typeCounts)),
+                    backgroundColor: '@cGreen',
+                    borderRadius: 8,
+                    barThickness: 'flex',
+                    maxBarThickness: 30
+                }]
             },
             options: commonOptions
         };
 
+        // Config Chart 2
         chartConfigs['itDanhMucChart'] = {
             type: 'bar',
             data: {
-                labels: @Html.Raw(Json.Serialize(ViewBag.DanhMucLabels)),
-                datasets: [{ data: @Html.Raw(Json.Serialize(ViewBag.DanhMucCounts)), backgroundColor: '@cPurple', borderRadius: 6, barThickness: 15 }]
+                labels: @Html.Raw(Json.Serialize(danhmucLabels)),
+                datasets: [{
+                    data: @Html.Raw(Json.Serialize(danhmucCounts)),
+                    backgroundColor: '@cPurple',
+                    borderRadius: 6,
+                    barThickness: 'flex',
+                    maxBarThickness: 20
+                }]
             },
             options: {
                 ...commonOptions,
                 indexAxis: 'y',
-                plugins: { ...commonOptions.plugins, datalabels: { ...commonOptions.plugins.datalabels, align: 'right' } }
+                plugins: {
+                    ...commonOptions.plugins,
+                    datalabels: { ...commonOptions.plugins.datalabels, align: 'right', anchor: 'end' }
+                }
             }
         };
 
+        // Config Chart 3
         chartConfigs['itStatusChart'] = {
             type: 'doughnut',
             data: {
-                labels: @Html.Raw(Json.Serialize(ViewBag.StatusLabels)),
+                labels: @Html.Raw(Json.Serialize(statusLabels)),
                 datasets: [{
-                    data: @Html.Raw(Json.Serialize(ViewBag.StatusCounts)),
+                    data: @Html.Raw(Json.Serialize(statusCounts)),
                     backgroundColor: ['@cGreen', '@cPurple', '@cBlue', '@cOrange', '@cRed'],
                     borderWidth: 4,
                     borderColor: '#ffffff'
@@ -298,18 +500,24 @@
                 ...commonOptions,
                 cutout: '70%',
                 plugins: {
-                    legend: { display: true, position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 12, weight: '700', family: 'Inter' } } },
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: { usePointStyle: true, padding: 20, font: { size: 11, weight: '700', family: 'Inter' } }
+                    },
                     datalabels: {
                         formatter: (val, ctx) => {
                             let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
                             return val > 0 ? (val * 100 / sum).toFixed(0) + "%" : null;
                         },
-                        color: '#fff', font: { weight: 'bold', size: 11 }
+                        color: '#fff',
+                        font: { weight: 'bold', size: 11 }
                     }
                 }
             }
         };
 
+        // Khởi tạo các chart ban đầu
         Object.keys(chartConfigs).forEach(id => {
             const canvas = document.getElementById(id);
             if(canvas) chartInstances[id] = new Chart(canvas, chartConfigs[id]);
@@ -319,18 +527,31 @@
     function zoomChart(id, title) {
         document.getElementById('modalTitle').innerText = title;
         document.getElementById('chartModal').style.display = "block";
+
         if (zoomedChartInstance) zoomedChartInstance.destroy();
 
-        const config = JSON.parse(JSON.stringify(chartConfigs[id]));
-        if(chartConfigs[id].options.plugins.datalabels.formatter) {
-            config.options.plugins.datalabels.formatter = chartConfigs[id].options.plugins.datalabels.formatter;
-        }
-        config.options.plugins.datalabels.font = { size: 16, weight: 'bold' };
+        const originalConfig = chartConfigs[id];
+        const zoomedConfig = {
+            type: originalConfig.type,
+            data: JSON.parse(JSON.stringify(originalConfig.data)),
+            options: { ...originalConfig.options }
+        };
 
-        zoomedChartInstance = new Chart(document.getElementById('zoomedChart'), config);
+        zoomedConfig.options.plugins = { ...zoomedConfig.options.plugins };
+        zoomedConfig.options.plugins.datalabels = {
+            ...zoomedConfig.options.plugins.datalabels,
+            font: { size: 16, weight: 'bold' }
+        };
+
+        const ctx = document.getElementById('zoomedChart').getContext('2d');
+        zoomedChartInstance = new Chart(ctx, zoomedConfig);
     }
 
     function closeZoom() {
         document.getElementById('chartModal').style.display = "none";
     }
+
+    document.onkeydown = function(evt) {
+        if (evt.key === "Escape") closeZoom();
+    };
 </script>
