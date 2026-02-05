@@ -23,10 +23,11 @@
 
 <div style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', sans-serif;">
 
-    <form id="itOrderForm" method="post" enctype="multipart/form-data" asp-action="TaoIT_Order" asp-controller="FormIT" asp-area="ITForm"
+    <form id="itOrderForm" method="post" enctype="multipart/form-data" asp-action="TaoIT_Order" asp-controller="FormIT" asp-area="ITform"
           style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(124, 45, 18, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
 
         @Html.AntiForgeryToken()
+        @Html.ValidationSummary(true, "", new { @class = "text-danger", style = "margin:10px 0;" })
 
         @* --- HEADER --- *@
         <div style="background: linear-gradient(135deg, @colorPrimary 0%, @colorDark 100%); padding: 45px 20px; color: #ffffff; text-align: center; position: relative;">

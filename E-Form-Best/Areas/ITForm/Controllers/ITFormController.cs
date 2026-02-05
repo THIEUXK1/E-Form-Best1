@@ -2059,6 +2059,40 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             ViewBag.SupportStats = supportStats;
 
+            // 8. THỐNG KÊ: THỜI GIAN HOÀN THÀNH TRUNG BÌNH THEO DANHMUC CHO MỖI NGƯỜI HỖ TRỢ
+            //    (sử dụng các form đã hoàn thành: TimeAdmin != null && TimeNguoiDuyet != null)
+            var avgByHandlerDanhMuc = withValidHandler
+                .Where(x => x.Form.TimeAdmin != null && x.Form.TimeNguoiDuyet != null)
+                .GroupBy(x => new
+                {
+                    IdIt = x.Handler.IdItNguoiHoTro.Value,
+                    TenIt = x.Handler.IdItNguoiHoTroNavigation?.Ten ?? "Không xác định",
+                    Danhmuc = string.IsNullOrWhiteSpace(x.Form.Danhmuc) ? "Không xác định" : x.Form.Danhmuc
+                })
+                .Select(g => new ItSupportCategoryAvgVM
+                {
+                    IdIt = g.Key.IdIt,
+                    TenIt = g.Key.TenIt,
+                    Danhmuc = g.Key.Danhmuc,
+                    AvgMinutes = g.Average(x => (x.Form.TimeAdmin.Value - x.Form.TimeNguoiDuyet.Value).TotalMinutes),
+                    Count = g.Count()
+                })
+                .ToList();
+
+            // format string for display
+            foreach (var item in avgByHandlerDanhMuc)
+            {
+                var ts = TimeSpan.FromMinutes(item.AvgMinutes);
+                if (ts.TotalDays >= 1)
+                    item.AvgTimeFormatted = $"{(int)ts.TotalDays}d {ts.Hours}h {ts.Minutes}m";
+                else if (ts.TotalHours >= 1)
+                    item.AvgTimeFormatted = $"{(int)ts.TotalHours}h {ts.Minutes}m";
+                else
+                    item.AvgTimeFormatted = $"{(int)ts.TotalMinutes}m";
+            }
+
+            ViewBag.AvgByHandlerDanhMuc = avgByHandlerDanhMuc;
+
             return View(allForms);
         }
 
@@ -2087,6 +2121,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // Tổng số đơn (tính tại runtime)
             public int Tong =>
                 HoanTat + ChoDanhGia + DangXuLy + ChoDuyet + DaHuy;
+        }
+
+        /* NEW VIEW MODEL: trung bình thời gian hoàn thành theo (Người hỗ trợ, Danh mục) */
+        public class ItSupportCategoryAvgVM
+        {
+            public int IdIt { get; set; }
+            public string TenIt { get; set; }
+            public string Danhmuc { get; set; }
+            public double AvgMinutes { get; set; }
+            public string AvgTimeFormatted { get; set; }
+            public int Count { get; set; }
         }
         #endregion
 
