@@ -1894,6 +1894,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             // 2. LẤY TOÀN BỘ FORM (kèm navigation cần thiết)
             var allForms = await _context.FormIts
+                .AsNoTracking()
                 .Include(f => f.DanhGia)
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
@@ -1992,8 +1993,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // 7. THỐNG KÊ THEO NGƯỜI HỖ TRỢ
             // - Mỗi đơn chỉ tính cho 1 người (stt cao nhất)
             // - Nếu không có tên (navigation) thì dùng "Không xác định"
-            var supportStats = allForms
-                // Chọn cặp {Form, Handler} lấy handler có STT cao nhất (nếu có)
+            var formWithMainHandler = allForms
                 .Select(f => new
                 {
                     Form = f,
@@ -2001,15 +2001,19 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                 .OrderByDescending(h => h.Stt)
                                 .FirstOrDefault()
                 })
-                // Lọc những form có handler gán (ít nhất 1)
+                .ToList();
+
+            // Lọc những dòng có handler và handler có Id
+            var withValidHandler = formWithMainHandler
                 .Where(x => x.Handler != null && x.Handler.IdItNguoiHoTro != null)
-                // Nhóm theo Id người hỗ trợ (và tên nếu có)
+                .ToList();
+
+            var supportStats = withValidHandler
                 .GroupBy(x => new
                 {
                     IdIt = x.Handler.IdItNguoiHoTro.Value,
                     Ten = x.Handler.IdItNguoiHoTroNavigation?.Ten ?? "Không xác định"
                 })
-                // Tạo ViewModel cho mỗi nhóm
                 .Select(g => new ItSupportStatisticVM
                 {
                     IdIt = g.Key.IdIt,
@@ -2040,11 +2044,20 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     DaHuy = g.Count(x => IsHuy(x.Form))
                 })
-                .OrderByDescending(x => x.Tong)
                 .ToList();
 
-            // Ensure not-null and consistent type for the view
-            ViewBag.SupportStats = supportStats ?? new List<ItSupportStatisticVM>();
+            // Nếu cần, đảm bảo Tong được tính đúng (VM có thuộc tính tính toán)
+            if (supportStats != null && supportStats.Any())
+            {
+                // Order by tổng giảm dần
+                supportStats = supportStats.OrderByDescending(s => s.Tong).ToList();
+            }
+            else
+            {
+                supportStats = new List<ItSupportStatisticVM>();
+            }
+
+            ViewBag.SupportStats = supportStats;
 
             return View(allForms);
         }
@@ -2071,7 +2084,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             public int ChoDuyet { get; set; }
             public int DaHuy { get; set; }
 
-            public int Tong => HoanTat + ChoDanhGia + DangXuLy + ChoDuyet + DaHuy;
+            // Tổng số đơn (tính tại runtime)
+            public int Tong =>
+                HoanTat + ChoDanhGia + DangXuLy + ChoDuyet + DaHuy;
         }
         #endregion
 
