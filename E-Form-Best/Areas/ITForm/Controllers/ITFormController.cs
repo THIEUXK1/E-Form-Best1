@@ -1887,103 +1887,192 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/BaoCaoThongKe")]
         public async Task<IActionResult> BaoCaoThongKe()
         {
-            // 1. Kiểm tra quyền truy cập (Giữ nguyên logic của bạn)
+            // 1. KIỂM TRA QUYỀN
             var userRole = User.FindFirst("UserRole")?.Value ?? "";
             if (userRole != "Admin" && userRole != "All" && userRole != "IT")
-            {
                 return Redirect("/");
-            }
 
-            // 2. Lấy toàn bộ dữ liệu (Sửa đổi để lấy Người xử lý chính dựa trên STT cao nhất)
+            // 2. LẤY TOÀN BỘ FORM (kèm navigation cần thiết)
             var allForms = await _context.FormIts
-                                         .Include(f => f.DanhGia)
-                                         .Include(f => f.ItCtNguoiHoTros)
-                                            .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
-                                         .OrderByDescending(f => f.TimeNguoiTao)
-                                         .ToListAsync();
+                .Include(f => f.DanhGia)
+                .Include(f => f.ItCtNguoiHoTros)
+                    .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
+                .OrderByDescending(f => f.TimeNguoiTao)
+                .ToListAsync();
 
-            // Gán người xử lý chính cho từng item (Dùng LINQ để tìm STT Max)
-            foreach (var item in allForms)
-            {
-                if (item.ItCtNguoiHoTros != null && item.ItCtNguoiHoTros.Any())
+            // 3. THỐNG KÊ THEO LOẠI FORM
+            var typeStats = allForms
+                .GroupBy(f => f.IdForm ?? "")
+                .Select(g => new
                 {
-                    // Lấy người hỗ trợ có Stt lớn nhất
-                    var mainHandler = item.ItCtNguoiHoTros
-                                          .OrderByDescending(x => x.Stt)
-                                          .FirstOrDefault();
+                    Label = GetShortNameIT(g.Key),
+                    Value = g.Count()
+                })
+                .ToList();
 
-                    // Bạn có thể lưu vào một thuộc tính NotMapped hoặc ViewBag nếu cần hiển thị riêng
-                    // Ở đây tôi giả định bạn sẽ hiển thị tên này ở cột "Người hỗ trợ" trên View
-                }
-            }
+            ViewBag.TypeLabels = typeStats.Select(x => x.Label).ToList();
+            ViewBag.TypeCounts = typeStats.Select(x => x.Value).ToList();
 
-            // 3. Thống kê theo loại đơn (IdForm) - Giữ nguyên logic của bạn
-            var stats = allForms.GroupBy(f => f.IdForm)
-                                 .Select(g => new
-                                 {
-                                     Name = GetShortNameIT(g.Key ?? ""),
-                                     Count = g.Count()
-                                 }).ToList();
+            // 4. THỐNG KÊ THEO DANH MỤC
+            var danhMucStats = allForms
+                .Where(f => !string.IsNullOrEmpty(f.Danhmuc))
+                .GroupBy(f => f.Danhmuc)
+                .Select(g => new
+                {
+                    Label = g.Key,
+                    Value = g.Count()
+                })
+                .ToList();
 
-            ViewBag.TypeLabels = stats.Select(s => s.Name).ToList();
-            ViewBag.TypeCounts = stats.Select(s => s.Count).ToList();
+            ViewBag.DanhMucLabels = danhMucStats.Select(x => x.Label).ToList();
+            ViewBag.DanhMucCounts = danhMucStats.Select(x => x.Value).ToList();
 
-            // 4. Thống kê theo Danh mục (Danhmuc) - Giữ nguyên logic của bạn
-            var danhMucStats = allForms.Where(f => !string.IsNullOrEmpty(f.Danhmuc))
-                                       .GroupBy(f => f.Danhmuc)
-                                       .Select(g => new
-                                       {
-                                           Label = g.Key,
-                                           Value = g.Count()
-                                       }).ToList();
+            // 5. THỐNG KÊ TRẠNG THÁI FORM
+            bool IsHuy(FormIt f) =>
+                (f.TenForm ?? "").Contains("[ĐÃ HỦY]") || f.TrangThai == "TuChoi";
 
-            ViewBag.DanhMucLabels = danhMucStats.Select(d => d.Label).ToList();
-            ViewBag.DanhMucCounts = danhMucStats.Select(d => d.Value).ToList();
+            int countHuy = allForms.Count(IsHuy);
 
-            // 5. Logic 4 trạng thái chi tiết (Giữ nguyên logic của bạn)
-            int countHuy = allForms.Count(f => (f.TenForm ?? "").Contains("[ĐÃ HỦY]") || f.TrangThai == "TuChoi");
+            int countHoanTat = allForms.Count(f =>
+                !IsHuy(f) &&
+                f.IdAdmin != null &&
+                f.TimeAdmin != null &&
+                f.DanhGia != null &&
+                f.DanhGia.Any()
+            );
 
-            int countDangXuLy = allForms.Count(f => !((f.TenForm ?? "").Contains("[ĐÃ HỦY]") || f.TrangThai == "TuChoi")
-                                                && f.IdNguoiDuyet != null && f.TenNguoiDuyet != null && f.TimeNguoiDuyet != null
-                                                && (f.IdAdmin == null || f.TenAdmin == null || f.TimeAdmin == null));
+            int countChoDanhGia = allForms.Count(f =>
+                !IsHuy(f) &&
+                f.IdAdmin != null &&
+                f.TimeAdmin != null &&
+                (f.DanhGia == null || !f.DanhGia.Any())
+            );
 
-            int countChoDanhGia = allForms.Count(f => !((f.TenForm ?? "").Contains("[ĐÃ HỦY]") || f.TrangThai == "TuChoi")
-                                                  && (f.IdAdmin != null && f.TenAdmin != null && f.TimeAdmin != null)
-                                                  && (f.DanhGia == null || !f.DanhGia.Any()));
+            int countDangXuLy = allForms.Count(f =>
+                !IsHuy(f) &&
+                f.IdNguoiDuyet != null &&
+                f.TimeNguoiDuyet != null &&
+                f.IdAdmin == null
+            );
 
-            int countHoanTat = allForms.Count(f => !((f.TenForm ?? "").Contains("[ĐÃ HỦY]") || f.TrangThai == "TuChoi")
-                                                && (f.IdAdmin != null && f.TenAdmin != null && f.TimeAdmin != null)
-                                                && (f.DanhGia != null && f.DanhGia.Any()));
+            int countChoDuyet = allForms.Count - countHuy - countHoanTat - countChoDanhGia - countDangXuLy;
 
-            int countChoDuyet = allForms.Count() - countHuy - countDangXuLy - countChoDanhGia - countHoanTat;
+            ViewBag.StatusLabels = new List<string>
+    {
+        "Hoàn tất", "Chờ đánh giá", "Đang xử lý", "Chờ duyệt", "Đã hủy"
+    };
 
-            ViewBag.StatusLabels = new List<string> { "Hoàn tất", "Chờ đánh giá", "Đang xử lý", "Chờ duyệt", "Đã hủy" };
-            ViewBag.StatusCounts = new List<int> { countHoanTat, countChoDanhGia, countDangXuLy, countChoDuyet, countHuy };
+            ViewBag.StatusCounts = new List<int>
+    {
+        countHoanTat,
+        countChoDanhGia,
+        countDangXuLy,
+        countChoDuyet,
+        countHuy
+    };
 
-            // 6. Tính thời gian xử lý trung bình (Giữ nguyên logic của bạn)
-            var completedForms = allForms.Where(f => f.TimeAdmin != null && f.TimeNguoiDuyet != null
-                                                  && !((f.TenForm ?? "").Contains("[ĐÃ HỦY]")))
-                                         .ToList();
+            // 6. THỜI GIAN XỬ LÝ TRUNG BÌNH
+            var completedForms = allForms
+                .Where(f => !IsHuy(f) && f.TimeAdmin != null && f.TimeNguoiDuyet != null)
+                .ToList();
 
             if (completedForms.Any())
             {
-                var totalMinutes = completedForms.Sum(f => (f.TimeAdmin.Value - f.TimeNguoiDuyet.Value).TotalMinutes);
-                var avgMinutes = totalMinutes / completedForms.Count();
-                TimeSpan t = TimeSpan.FromMinutes(avgMinutes);
-                ViewBag.AvgProcessingTime = string.Format("{0:D2}h {1:D2}m", (int)t.TotalHours, t.Minutes);
+                var avgMinutes = completedForms
+                    .Average(f => (f.TimeAdmin.Value - f.TimeNguoiDuyet.Value).TotalMinutes);
+
+                var t = TimeSpan.FromMinutes(avgMinutes);
+                ViewBag.AvgProcessingTime = $"{(int)t.TotalHours:D2}h {t.Minutes:D2}m";
             }
-            else { ViewBag.AvgProcessingTime = "0h 0m"; }
+            else
+            {
+                ViewBag.AvgProcessingTime = "0h 0m";
+            }
+
+            // 7. THỐNG KÊ THEO NGƯỜI HỖ TRỢ
+            // - Mỗi đơn chỉ tính cho 1 người (stt cao nhất)
+            // - Nếu không có tên (navigation) thì dùng "Không xác định"
+            var supportStats = allForms
+                // Chọn cặp {Form, Handler} lấy handler có STT cao nhất (nếu có)
+                .Select(f => new
+                {
+                    Form = f,
+                    Handler = f.ItCtNguoiHoTros?
+                                .OrderByDescending(h => h.Stt)
+                                .FirstOrDefault()
+                })
+                // Lọc những form có handler gán (ít nhất 1)
+                .Where(x => x.Handler != null && x.Handler.IdItNguoiHoTro != null)
+                // Nhóm theo Id người hỗ trợ (và tên nếu có)
+                .GroupBy(x => new
+                {
+                    IdIt = x.Handler.IdItNguoiHoTro.Value,
+                    Ten = x.Handler.IdItNguoiHoTroNavigation?.Ten ?? "Không xác định"
+                })
+                // Tạo ViewModel cho mỗi nhóm
+                .Select(g => new ItSupportStatisticVM
+                {
+                    IdIt = g.Key.IdIt,
+                    TenIt = g.Key.Ten,
+
+                    HoanTat = g.Count(x =>
+                        !IsHuy(x.Form) &&
+                        x.Form.IdAdmin != null &&
+                        x.Form.TimeAdmin != null &&
+                        x.Form.DanhGia != null &&
+                        x.Form.DanhGia.Any()),
+
+                    ChoDanhGia = g.Count(x =>
+                        !IsHuy(x.Form) &&
+                        x.Form.IdAdmin != null &&
+                        x.Form.TimeAdmin != null &&
+                        (x.Form.DanhGia == null || !x.Form.DanhGia.Any())),
+
+                    DangXuLy = g.Count(x =>
+                        !IsHuy(x.Form) &&
+                        x.Form.IdNguoiDuyet != null &&
+                        x.Form.TimeNguoiDuyet != null &&
+                        x.Form.IdAdmin == null),
+
+                    ChoDuyet = g.Count(x =>
+                        !IsHuy(x.Form) &&
+                        x.Form.IdNguoiDuyet == null),
+
+                    DaHuy = g.Count(x => IsHuy(x.Form))
+                })
+                .OrderByDescending(x => x.Tong)
+                .ToList();
+
+            // Ensure not-null and consistent type for the view
+            ViewBag.SupportStats = supportStats ?? new List<ItSupportStatisticVM>();
 
             return View(allForms);
         }
+
+        /* HÀM TIỆN ÍCH */
         private string GetShortNameIT(string id) => id switch
         {
             "IT_MAIL_1" => "Đăng ký Email",
-            "IT_ORDER_2" => "Sửa chữa/Yêu cầu",
+            "IT_ORDER_2" => "Sửa chữa / Yêu cầu",
             "IT_WIFI_3" => "Sử dụng Wifi",
             "IT_DTBAN_4" => "Điện thoại bàn",
             _ => "Khác"
         };
+
+        /* VIEW MODEL */
+        public class ItSupportStatisticVM
+        {
+            public int IdIt { get; set; }
+            public string TenIt { get; set; }
+
+            public int HoanTat { get; set; }
+            public int ChoDanhGia { get; set; }
+            public int DangXuLy { get; set; }
+            public int ChoDuyet { get; set; }
+            public int DaHuy { get; set; }
+
+            public int Tong => HoanTat + ChoDanhGia + DangXuLy + ChoDuyet + DaHuy;
+        }
         #endregion
 
         #region LỊCH SỬ VÀ THÔNG BÁO FORM IT
