@@ -566,20 +566,28 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     var uploadFile = Request.Form.Files["UploadFile"];
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
-                        string folderName = "FileIT";
-                        string wwwRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", folderName);
-                        if (!Directory.Exists(wwwRootPath)) Directory.CreateDirectory(wwwRootPath);
+                        // Đường dẫn network share mới của bạn
+                        string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
+
+                        // Kiểm tra và tạo thư mục nếu chưa tồn tại
+                        if (!Directory.Exists(networkPath))
+                        {
+                            Directory.CreateDirectory(networkPath);
+                        }
 
                         string extension = Path.GetExtension(uploadFile.FileName);
                         string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
                         string timeStamp = DateTime.Now.ToString("ddMMyy_HHmmss");
                         string fileName = $"DonMail_ID{form.Id}_{safeName}_{timeStamp}{extension}";
 
-                        string fullPath = Path.Combine(wwwRootPath, fileName);
+                        // Kết hợp đường dẫn mạng với tên file
+                        string fullPath = Path.Combine(networkPath, fileName);
+
                         using (var fileStream = new FileStream(fullPath, FileMode.Create))
                         {
                             await uploadFile.CopyToAsync(fileStream);
                         }
+
                         form.FileDinhKem = fileName;
                         _context.Entry(form).Property(x => x.FileDinhKem).IsModified = true;
                         await _context.SaveChangesAsync();
@@ -796,24 +804,39 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
-                        string folderName = "FileIT";
-                        string wwwRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", folderName);
-                        if (!Directory.Exists(wwwRootPath)) Directory.CreateDirectory(wwwRootPath);
+                        // Đường dẫn mạng bạn đã cung cấp
+                        string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
+
+                        // Kiểm tra và tạo thư mục nếu chưa tồn tại trên Server
+                        if (!Directory.Exists(networkPath))
+                        {
+                            Directory.CreateDirectory(networkPath);
+                        }
 
                         string extension = Path.GetExtension(uploadFile.FileName);
                         string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
                         string timeStamp = DateTime.Now.ToString("ddMMyy_HHmmss");
+
+                        // Giữ nguyên format tên file DonOrder_ID... của bạn
                         string fileName = $"DonOrder_ID{form.Id}_{safeName}_{timeStamp}{extension}";
 
-                        string fullPath = Path.Combine(wwwRootPath, fileName);
+                        // Kết hợp đường dẫn mạng với tên file mới
+                        string fullPath = Path.Combine(networkPath, fileName);
+
                         using (var fileStream = new FileStream(fullPath, FileMode.Create))
                         {
                             await uploadFile.CopyToAsync(fileStream);
                         }
 
+                        // Cập nhật Database và giữ nguyên logic IsModified để tối ưu hiệu năng
                         form.FileDinhKem = fileName;
                         _context.Entry(form).Property(x => x.FileDinhKem).IsModified = true;
+
+                        // Lưu log file
                         fileLog = $"Đính kèm tệp: {fileName}";
+
+                        // Lưu thay đổi vào Database (nếu đoạn này nằm trong context chung bạn có thể bỏ bớt await SaveChanges nếu đã có ở cuối hàm)
+                        await _context.SaveChangesAsync();
                     }
 
                     // --- 5. LƯU NGƯỜI HỖ TRỢ (Truy vấn ngược từ bảng Công Việc) ---
@@ -947,25 +970,39 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     // --- 3. XỬ LÝ FILE ĐÍNH KÈM (UploadFile) ---
                     var uploadFile = Request.Form.Files["UploadFile"];
                     string fileLog = "Không có tệp đính kèm";
+
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
-                        string folderName = "FileIT";
-                        string wwwRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", folderName);
-                        if (!Directory.Exists(wwwRootPath)) Directory.CreateDirectory(wwwRootPath);
+                        // Đường dẫn mạng (Network Share) thay vì dùng wwwroot
+                        string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
+
+                        // Kiểm tra và tạo thư mục nếu chưa tồn tại
+                        if (!Directory.Exists(networkPath))
+                        {
+                            Directory.CreateDirectory(networkPath);
+                        }
 
                         string extension = Path.GetExtension(uploadFile.FileName);
                         string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
                         string timeStamp = DateTime.Now.ToString("ddMMyy_HHmmss");
+
+                        // Giữ nguyên định dạng tên file DonWifi của bạn
                         string fileName = $"DonWifi_ID{form.Id}_{safeName}_{timeStamp}{extension}";
 
-                        string fullPath = Path.Combine(wwwRootPath, fileName);
+                        // Kết hợp đường dẫn mạng với tên file
+                        string fullPath = Path.Combine(networkPath, fileName);
+
                         using (var fileStream = new FileStream(fullPath, FileMode.Create))
                         {
                             await uploadFile.CopyToAsync(fileStream);
                         }
+
+                        // Cập nhật Database
                         form.FileDinhKem = fileName;
                         _context.Entry(form).Property(x => x.FileDinhKem).IsModified = true;
                         await _context.SaveChangesAsync();
+
+                        // Cập nhật log
                         fileLog = $"Đính kèm tệp: {fileName}";
                     }
 
@@ -1106,26 +1143,35 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     _context.FormIts.Add(form);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 2: XỬ LÝ FILE ĐÍNH KÈM (Giữ nguyên logic của bạn) ---
+                    // --- BƯỚC 2: XỬ LÝ FILE ĐÍNH KÈM (Đã chuyển sang File Server) ---
                     var uploadFile = Request.Form.Files["UploadFile"];
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
-                        string folderName = "FileIT";
-                        string wwwRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", folderName);
-                        if (!Directory.Exists(wwwRootPath)) Directory.CreateDirectory(wwwRootPath);
+                        // Đường dẫn lưu trữ trên Network Share
+                        string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
+
+                        // Kiểm tra và tạo thư mục nếu chưa tồn tại
+                        if (!Directory.Exists(networkPath))
+                        {
+                            Directory.CreateDirectory(networkPath);
+                        }
 
                         string extension = Path.GetExtension(uploadFile.FileName);
                         string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
                         string timeStamp = DateTime.Now.ToString("ddMMyy_HHmmss");
 
+                        // Giữ nguyên format tên file DonDTBan của bạn
                         string fileName = $"DonDTBan_ID{form.Id}_{safeName}_{timeStamp}{extension}";
-                        string fullPath = Path.Combine(wwwRootPath, fileName);
+
+                        // Kết hợp đường dẫn mạng với tên file
+                        string fullPath = Path.Combine(networkPath, fileName);
 
                         using (var fileStream = new FileStream(fullPath, FileMode.Create))
                         {
                             await uploadFile.CopyToAsync(fileStream);
                         }
 
+                        // Cập nhật thông tin vào Database
                         form.FileDinhKem = fileName;
                         _context.Entry(form).Property(x => x.FileDinhKem).IsModified = true;
                         await _context.SaveChangesAsync();
@@ -1245,6 +1291,36 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             ViewBag.CurrentUserId = userId; // 🔴 QUAN TRỌNG
 
             return View(don);
+        }
+
+        [HttpGet("/FormIT/DownloadFile/{fileName}")]
+        public async Task<IActionResult> DownloadFile(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) return NotFound();
+
+            // Đường dẫn mạng giống hệt bước Upload
+            string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
+            string fullPath = Path.Combine(networkPath, fileName);
+
+            // Kiểm tra file có tồn tại thực tế trên File Server không
+            if (!System.IO.File.Exists(fullPath))
+            {
+                return NotFound("Tệp tin không tồn tại trên hệ thống lưu trữ.");
+            }
+
+            // Đọc dữ liệu file
+            var memory = new MemoryStream();
+            using (var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
+            {
+                await stream.CopyToAsync(memory);
+            }
+            memory.Position = 0;
+
+            // Xác định định dạng file để trình duyệt mở/tải cho đúng
+            string contentType = "application/octet-stream"; // Mặc định là tải về
+
+            // Trả file về cho người dùng (người dùng sẽ thấy tên file gốc)
+            return File(memory, contentType, fileName);
         }
 
         [HttpPost("/FormIT/ThemNguoiHoTro")]
