@@ -1331,17 +1331,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             int userId = int.Parse(userIdStr);
 
             // --- BƯỚC 3: TRUY VẤN DỮ LIỆU ---
-            // Cần: using Microsoft.EntityFrameworkCore;
+            // Đã thêm Include DanhGia để phân biệt trạng thái Chờ đánh giá và Hoàn tất
             var danhSachDon = await _context.FormIts
                 .Where(f => f.IdNguoiTao == userId)
+                .Include(f => f.DanhGia)
                 .Include(f => f.ItMail1s)
-                // Lấy danh sách chi tiết người hỗ trợ và thông tin nhân viên từ bảng liên kết (Navigation)
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .OrderByDescending(f => f.Id)
                 .ToListAsync();
 
-            // Trả về View cùng danh sách đơn của chính người dùng đó
             return View(danhSachDon);
         }
 
@@ -1352,38 +1351,31 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/QuanLyXetDuyet")]
         public async Task<IActionResult> QuanLyXetDuyet()
         {
-            // --- 1. LẤY THÔNG TIN TỪ CLAIMS ---
+            // --- 1. LẤY THÔNG TIN TỪ CLAIMS (Giữ nguyên) ---
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return Redirect("/DonXetDuyet/DangNhap");
             int userId = int.Parse(userIdStr);
 
             var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
-                           ?? User.FindFirst("UserRole")?.Value ?? "";
+                            ?? User.FindFirst("UserRole")?.Value ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
 
-            // Bảo vệ: Nếu là Bảo vệ thì không có quyền vào trang xét duyệt
             if (userRole == "BaoVe") return Forbid();
 
-            // --- 2. TRUY VẤN DỮ LIỆU KÈM NGƯỜI HỖ TRỢ ---
+            // --- 2. TRUY VẤN DỮ LIỆU (Bổ sung Include DanhGia) ---
             IQueryable<FormIt> query = _context.FormIts
                 .Include(f => f.ItCtNguoiHoTros)
-                    .ThenInclude(ct => ct.IdItNguoiHoTroNavigation); // Lấy Navigation để có tên IT
+                    .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
+                .Include(f => f.DanhGia); // THÊM DÒNG NÀY ĐỂ KIỂM TRA ĐÁNH GIÁ
 
-            // --- 3. LOGIC PHÂN QUYỀN TRUY VẤN (Giữ nguyên của bạn) ---
-            if (userRole == "All")
-            {
-                // Xem toàn bộ đơn IT
-            }
+            // --- 3. LOGIC PHÂN QUYỀN (Giữ nguyên 100%) ---
+            if (userRole == "All") { /* Xem toàn bộ */ }
             else if (userRole == "Admin" || userRole == "QuanLy")
             {
                 if (!string.IsNullOrEmpty(phongBan))
-                {
                     query = query.Where(f => f.BoPhan != null && f.BoPhan.Trim().ToLower() == phongBan.ToLower());
-                }
                 else
-                {
                     query = query.Where(f => false);
-                }
             }
             else
             {
@@ -1527,27 +1519,24 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             int userId = int.Parse(userIdStr);
             var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
-                           ?? User.FindFirst("UserRole")?.Value ?? "";
+                            ?? User.FindFirst("UserRole")?.Value ?? "";
             var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
 
             // --- 2. KHỞI TẠO QUERY ---
-            // Giữ nguyên logic: Chỉ lấy những đơn đã có Người Duyệt (IdNguoiDuyet != null)
-            // Thêm Include để lấy đầy đủ thông tin danh sách người hỗ trợ và Navigation liên quan
+            // Loại bỏ điều kiện IdNguoiDuyet != null ở đây để lấy được cả đơn "Chờ QL Duyệt"
             IQueryable<FormIt> query = _context.FormIts
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
-                .Where(f => f.IdNguoiDuyet != null && f.TenNguoiDuyet != null);
+                .Include(f => f.DanhGia); // Include để kiểm tra trạng thái Hoàn tất
 
             // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU (Giữ nguyên tuyệt đối logic của bạn) ---
             if (userRole == "All" || userRole == "Admin")
             {
-                // Quyền Admin/All: Thấy đơn của phòng IT hoặc các đơn đã có Admin xử lý (hoàn tất)
                 string IT_Dept_Name = "Phòng thông tin 资讯科技部";
                 query = query.Where(f => f.BoPhan == IT_Dept_Name || f.IdAdmin != null);
             }
             else if (userRole == "QuanLy")
             {
-                // Quyền Quản Lý: Chỉ thấy đơn thuộc bộ phận mình quản lý
                 if (!string.IsNullOrEmpty(phongBanSession))
                 {
                     query = query.Where(f => f.BoPhan != null &&
@@ -1555,24 +1544,45 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
                 else
                 {
-                    // Nếu không có thông tin phòng ban trong Session/Cookie thì không trả về dữ liệu
                     query = query.Where(f => false);
                 }
             }
             else
             {
-                // Quyền Nhân Viên: Chỉ thấy đơn do chính mình tạo ra
                 query = query.Where(f => f.IdNguoiTao == userId);
             }
 
             // --- 4. THỰC THI TRUY VẤN ---
-            // Sắp xếp theo thời gian duyệt mới nhất lên đầu
             var danhSachDon = await query
                 .OrderByDescending(f => f.TimeNguoiDuyet)
-                .AsNoTracking() // Tăng hiệu năng cho tác vụ chỉ đọc
+                .AsNoTracking()
                 .ToListAsync();
 
-            // Trả về View kèm theo danh sách dữ liệu
+            // --- 5. GÁN TRẠNG THÁI DỰA TRÊN LOGIC YÊU CẦU ---
+            foreach (var item in danhSachDon)
+            {
+                if (item.TenForm != null && item.TenForm.Contains("[ĐÃ HỦY]"))
+                {
+                    item.TrangThai = "Đã hủy";
+                }
+                else if (item.IdNguoiDuyet == null)
+                {
+                    item.TrangThai = "Chờ QL Duyệt";
+                }
+                else if (item.IdAdmin == null)
+                {
+                    item.TrangThai = "IT Đang xử lý";
+                }
+                else if (item.DanhGia == null || !item.DanhGia.Any())
+                {
+                    item.TrangThai = "Chờ đánh giá";
+                }
+                else
+                {
+                    item.TrangThai = "Hoàn tất";
+                }
+            }
+
             return View(danhSachDon);
         }
         // Các hàm XacNhanHoanThanh và class Request giữ nguyên như bạn đã viết

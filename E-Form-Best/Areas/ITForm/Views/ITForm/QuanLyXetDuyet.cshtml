@@ -5,15 +5,27 @@
     ViewData["Title"] = "Quản Lý Xét Duyệt IT";
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 
-    // --- 1. LẤY THÔNG TIN TỪ COOKIE (CK) THAY CHO SESSION ---
+    // --- 1. LẤY THÔNG TIN TỪ COOKIE ---
     var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value
-                          ?? User.FindFirst("UserRole")?.Value ?? "";
+                        ?? User.FindFirst("UserRole")?.Value ?? "";
 
-    // --- 2. LOGIC THỐNG KÊ (GIỮ NGUYÊN KHÔNG BỎ BỚT) ---
+    // --- 2. LOGIC THỐNG KÊ (CẬP NHẬT ĐỦ 5 TRẠNG THÁI) ---
     var total = Model?.Count() ?? 0;
-    var choQuanLy = Model?.Count(x => x.IdNguoiDuyet == null && !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
-    var choITAdmin = Model?.Count(x => x.IdNguoiDuyet != null && x.IdAdmin == null && !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
+
+    // Đã hủy: Tên form chứa "[ĐÃ HỦY]"
     var daHuy = Model?.Count(x => (x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
+
+    // Chờ QL Duyệt: IdNguoiDuyet == null và không bị hủy
+    var choQuanLy = Model?.Count(x => x.IdNguoiDuyet == null && !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
+
+    // IT Đang xử lý: IdNguoiDuyet != null nhưng IdAdmin == null và không bị hủy
+    var choITAdmin = Model?.Count(x => x.IdNguoiDuyet != null && x.IdAdmin == null && !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
+
+    // Chờ đánh giá: IdAdmin != null nhưng chưa có bản ghi trong DanhGia (IdFormItNavigation.DanhGia)
+    var choDanhGia = Model?.Count(x => !(x.TenForm ?? "").Contains("[ĐÃ HỦY]") && x.IdAdmin != null && (x.DanhGia == null || !x.DanhGia.Any())) ?? 0;
+
+    // Hoàn tất: Đã có dữ liệu trong DanhGia
+    var hoanTat = Model?.Count(x => !(x.TenForm ?? "").Contains("[ĐÃ HỦY]") && x.DanhGia != null && x.DanhGia.Any()) ?? 0;
 }
 
 <div style="padding: 20px; background: #f1f5f9; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
@@ -40,24 +52,25 @@
         </div>
     </div>
 
-    @* --- STATS ROW (Giữ nguyên logic của bạn) --- *@
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px;">
+    @* --- STATS ROW (Cập nhật 5 thẻ thống kê) --- *@
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 25px;">
         @{
             var stats = new[] {
-                new { Label = "TỔNG YÊU CẦU", Value = total, Color = "#1e293b", Bg = "white", Filter = "" },
                 new { Label = "CHỜ QL DUYỆT", Value = choQuanLy, Color = "#b45309", Bg = "#fffbeb", Filter = "CHỜ QL" },
                 new { Label = "IT CẦN XỬ LÝ", Value = choITAdmin, Color = "#1e40af", Bg = "#eff6ff", Filter = "IT XỬ LÝ" },
+                new { Label = "CHỜ ĐÁNH GIÁ", Value = choDanhGia, Color = "#6366f1", Bg = "#f5f3ff", Filter = "CHỜ ĐG" },
+                new { Label = "HOÀN TẤT", Value = hoanTat, Color = "#10b981", Bg = "#ecfdf5", Filter = "HOÀN TẤT" },
                 new { Label = "ĐƠN ĐÃ HỦY", Value = daHuy, Color = "#b91c1c", Bg = "#fef2f2", Filter = "ĐÃ HỦY" }
                 };
         }
         @foreach (var s in stats)
         {
             <div onclick="filterByStatus('@s.Filter')"
-                 style="background: @s.Bg; padding: 18px 20px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.05);"
+                 style="background: @s.Bg; padding: 18px 15px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);"
                  onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='@s.Color';"
                  onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(0,0,0,0.03)';">
-                <span style="font-size: 12px; font-weight: 900; color: @s.Color; text-transform: uppercase;">@s.Label</span>
-                <span style="font-size: 28px; font-weight: 1000; color: @s.Color;">@s.Value</span>
+                <div style="font-size: 11px; font-weight: 900; color: @s.Color; text-transform: uppercase; margin-bottom: 5px;">@s.Label</div>
+                <div style="font-size: 26px; font-weight: 1000; color: @s.Color;">@s.Value</div>
             </div>
         }
     </div>
@@ -68,7 +81,7 @@
             <thead>
                 <tr style="background: #f8fafc; border-bottom: 3px solid #e2e8f0;">
                     <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Nhân viên yêu cầu</th>
-                    <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Danh mục</th> @* THÊM CỘT MỚI *@
+                    <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Danh mục</th>
                     <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Nội dung thiết bị</th>
                     <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Người Hỗ Trợ</th>
                     <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase; width: 140px;">Tiến trình</th>
@@ -81,20 +94,44 @@
                 {
                     foreach (var item in Model)
                     {
+                        // --- ĐỊNH NGHĨA BIẾN TRẠNG THÁI ---
                         bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]");
-                        bool isFinished = item.IdAdmin != null;
                         bool isApprovedByManager = item.IdNguoiDuyet != null;
+                        bool isFinishedByIT = item.IdAdmin != null;
+                        bool hasRating = item.DanhGia != null && item.DanhGia.Any();
 
-                        // --- LOGIC LẤY NGƯỜI HỖ TRỢ IT HIỆN TẠI ---
+                        // --- Cấu hình Progress Bar & Status Text ---
+                        string pWidth = "10%"; string pColor = "#94a3b8"; string pText = "Khởi tạo";
+                        string bg = "#f1f5f9"; string fg = "#475569"; string statusTag = "";
+
+                        if (isCancelled)
+                        {
+                            pWidth = "100%"; pColor = "#ef4444"; pText = "ĐÃ HỦY";
+                            bg = "#fee2e2"; fg = "#b91c1c"; statusTag = "ĐÃ HỦY";
+                        }
+                        else if (hasRating)
+                        {
+                            pWidth = "100%"; pColor = "#10b981"; pText = "HOÀN TẤT";
+                            bg = "#d1fae5"; fg = "#047857"; statusTag = "HOÀN TẤT";
+                        }
+                        else if (isFinishedByIT)
+                        {
+                            pWidth = "85%"; pColor = "#6366f1"; pText = "CHỜ ĐG";
+                            bg = "#f5f3ff"; fg = "#4f46e5"; statusTag = "CHỜ ĐG";
+                        }
+                        else if (isApprovedByManager)
+                        {
+                            pWidth = "60%"; pColor = "#1e40af"; pText = "IT XỬ LÝ";
+                            bg = "#dbeafe"; fg = "#1e40af"; statusTag = "IT XỬ LÝ";
+                        }
+                        else
+                        {
+                            pWidth = "30%"; pColor = "#f59e0b"; pText = "CHỜ QL";
+                            bg = "#fef3c7"; fg = "#b45309"; statusTag = "CHỜ QL";
+                        }
+
                         var supportLog = item.ItCtNguoiHoTros?.OrderByDescending(x => x.Stt).FirstOrDefault();
                         string supportName = supportLog?.IdItNguoiHoTroNavigation?.Ten ?? "Chưa gán IT";
-
-                        // --- Cấu hình Progress Bar ---
-                        string pWidth = "10%"; string pColor = "#94a3b8"; string pText = "Khởi tạo";
-                        if (isCancelled) { pWidth = "100%"; pColor = "#ef4444"; pText = "ĐÃ HỦY"; }
-                        else if (isFinished) { pWidth = "100%"; pColor = "#10b981"; pText = "XONG"; }
-                        else if (isApprovedByManager) { pWidth = "70%"; pColor = "#1e40af"; pText = "IT XỬ LÝ"; }
-                        else { pWidth = "35%"; pColor = "#f59e0b"; pText = "CHỜ QL"; }
 
                         <tr style="border-bottom: 1px solid #f1f5f9;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
                             <td style="padding: 15px 20px;">
@@ -104,7 +141,6 @@
                                 </div>
                             </td>
 
-                            @* --- CỘT DANH MỤC MỚI --- *@
                             <td style="padding: 15px 20px;">
                                 <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid #e2e8f0; display: inline-block;">
                                     <i class="fa fa-tag" style="margin-right: 4px; font-size: 10px;"></i>
@@ -119,7 +155,6 @@
                                 </div>
                             </td>
 
-                            @* --- CỘT NGƯỜI HỖ TRỢ IT --- *@
                             <td style="padding: 15px 20px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <div style="width: 28px; height: 28px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #1e40af;">
@@ -139,20 +174,15 @@
                             </td>
 
                             <td style="padding: 15px 20px; text-align: center;">
-                                @{
-                                    var (bg, fg, txt) = isCancelled ? ("#fee2e2", "#b91c1c", "ĐÃ HỦY") :
-                                    isFinished ? ("#d1fae5", "#047857", "XONG") :
-                                    isApprovedByManager ? ("#dbeafe", "#1e40af", "IT XỬ LÝ") : ("#fef3c7", "#b45309", "CHỜ QL");
-                                }
-                                <span style="background:@bg; color:@fg; padding:6px 12px; border-radius:8px; font-size:10px; font-weight:1000; border: 1.5px solid @fg; display: inline-block; min-width: 80px;">@txt</span>
+                                <span style="background:@bg; color:@fg; padding:6px 12px; border-radius:8px; font-size:10px; font-weight:1000; border: 1.5px solid @fg; display: inline-block; min-width: 80px;">@statusTag</span>
                             </td>
 
                             <td style="padding: 15px 20px; text-align: right;">
                                 <a href="/FormIT/ChiTiet/@item.Id"
                                    style="text-decoration: none; padding: 8px 16px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s;
-                                                  background: @(isFinished || isCancelled ? "#f1f5f9" : "#1e40af");
-                                                  color: @(isFinished || isCancelled ? "#64748b" : "#ffffff");">
-                                    @(isFinished || isCancelled ? "Xem lại" : "Xử lý")
+                                                  background: @(hasRating || isCancelled ? "#f1f5f9" : "#1e40af");
+                                                  color: @(hasRating || isCancelled ? "#64748b" : "#ffffff");">
+                                    @(hasRating || isCancelled ? "Xem lại" : "Xử lý")
                                 </a>
                             </td>
                         </tr>
@@ -172,7 +202,6 @@
 </div>
 
 <script>
-    // --- HÀM TÌM KIẾM NHANH (GIỮ NGUYÊN) ---
     function filterTable() {
         const input = document.getElementById("quickSearch");
         const filter = input.value.toUpperCase();
@@ -185,12 +214,10 @@
         }
     }
 
-    // --- HÀM LỌC THEO THẺ THỐNG KÊ (GIỮ NGUYÊN) ---
     function filterByStatus(s) {
         document.getElementById("quickSearch").value = s;
         filterTable();
 
-        // Hiệu ứng Flash khi lọc dữ liệu
         const table = document.getElementById("dataTable");
         table.style.opacity = "0.5";
         setTimeout(() => { table.style.opacity = "1"; }, 150);
