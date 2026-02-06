@@ -335,35 +335,34 @@
                                 notiBadge.style.display = 'none';
                             }
                         }
+                const html = listItems.map(item => {
+                    const isRead = readIdsFromCookie.includes(item.id.toString());
+                    const isError = item.tieuDe && (item.tieuDe.includes('Hủy') || item.tieuDe.includes('Từ chối'));
+                    if(!allFetchedIds.includes(item.id.toString())) allFetchedIds.push(item.id.toString());
 
-                        const html = listItems.map(item => {
-                            const isRead = readIdsFromCookie.includes(item.id.toString());
-                            const isError = item.tieuDe && (item.tieuDe.includes('Hủy') || item.tieuDe.includes('Từ chối'));
-                            if(!allFetchedIds.includes(item.id.toString())) allFetchedIds.push(item.id.toString());
-
-                            return `
-                            <a href="/FormIT/LichSuIT?idForm=${item.idFormIt}"
-                               onclick="markAsRead('${item.id}')"
-                               style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit; background: ${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.05)'};"
-                               onmouseover="this.style.background='#f1f5f9'"
-                               onmouseout="this.style.background='${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.05)'}'">
-                                <div style="width: 44px; height: 44px; border-radius: 12px; background: ${isError ? '#fff7ed' : '#eff6ff'}; color: ${isError ? '#ea580c' : '#3b82f6'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                    <i class="fa ${item.icon || 'fa-bell'}"></i>
-                                </div>
-                                <div style="flex:1; min-width: 0;">
-                                    <div style="font-size: 0.88rem; font-weight: ${isRead ? '600' : '800'}; color: #1e293b; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                        ${item.tieuDe}
-                                    </div>
-                                    <div style="font-size: 0.8rem; color: #64748b; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                                        ${item.mota || ''}
-                                    </div>
-                                    <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 6px;">
-                                        <i class="fa fa-clock-o"></i> ${item.time}
-                                    </div>
-                                </div>
-                                ${!isRead ? '<div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; align-self: center; flex-shrink: 0;"></div>' : ''}
-                            </a>`;
-                        }).join('');
+                    return `
+                    <a href="/FormIT/ChiTiet/${item.idFormIt}"
+                       onclick="markAsRead('${item.id}')"
+                       style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit; background: ${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.05)'};"
+                       onmouseover="this.style.background='#f1f5f9'"
+                       onmouseout="this.style.background='${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.05)'}'">
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: ${isError ? '#fff7ed' : '#eff6ff'}; color: ${isError ? '#ea580c' : '#3b82f6'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fa ${item.icon || 'fa-bell'}"></i>
+                        </div>
+                        <div style="flex:1; min-width: 0;">
+                            <div style="font-size: 0.88rem; font-weight: ${isRead ? '600' : '800'}; color: #1e293b; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                ${item.tieuDe}
+                            </div>
+                            <div style="font-size: 0.8rem; color: #64748b; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                ${item.mota || ''}
+                            </div>
+                            <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 6px;">
+                                <i class="fa fa-clock-o"></i> ${item.time}
+                            </div>
+                        </div>
+                        ${!isRead ? '<div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; align-self: center; flex-shrink: 0;"></div>' : ''}
+                    </a>`;
+                }).join('');
 
                         if (isOpen && notiList) {
                             if (isLoadMore) {
