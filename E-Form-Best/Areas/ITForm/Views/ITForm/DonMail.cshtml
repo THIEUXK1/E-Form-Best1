@@ -5,20 +5,17 @@
     ViewData["Title"] = "Đăng ký/Sửa đổi tài khoản Email";
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 
-    // Lấy thông tin từ hệ thống
     var tenNguoiNv = User.Identity.Name ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var emailHienTai = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
     var userRole = User.FindFirst("UserRole")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
-    // Định nghĩa tông màu Vàng (Amber Theme)
     string colorPrimary = "#f59e0b";
     string colorDark = "#78350f";
     string colorLight = "#fef3c7";
     string colorBorder = "#fbbf24";
 
-    // Styles cơ bản
     string inputBase = $"width: 100%; padding: 12px; border-radius: 12px; border: 1px solid {colorBorder}; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; color: {colorDark}; transition: all 0.3s;";
     string labelBase = $"font-weight: 800; color: {colorDark}; font-size: 11px; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.8px;";
     string boxDetail = $"background: #ffffff; padding: 25px; border-radius: 24px; border: 1px solid {colorLight}; margin-bottom: 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);";
@@ -50,12 +47,12 @@
 
 <div style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif;">
 
-    <form id="itMailForm" method="post" enctype="multipart/form-data" asp-action="DonMail" asp-controller="FormIT" asp-area="ITForm"
+    @* Use explicit action (absolute route) to match the controller route attribute [HttpPost("/FormIT/DonMail")] *@
+    <form id="itMailForm" action="/FormIT/DonMail" method="post" enctype="multipart/form-data"
           style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(120, 53, 15, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
 
         @Html.AntiForgeryToken()
 
-        @* --- HEADER --- *@
         <div style="background: linear-gradient(135deg, @colorPrimary 0%, #d97706 100%); padding: 45px 20px; color: #ffffff; text-align: center; position: relative;">
             <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">MAIL SERVICE V4.0</div>
             <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Phiếu yêu cầu cấp/đổi Mail</h2>
@@ -67,7 +64,6 @@
 
         <div style="padding: 40px;">
 
-            @* --- PHẦN 1: THÔNG TIN NHÂN VIÊN --- *@
             <div style="margin-bottom: 40px;">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);">1</span>
@@ -90,7 +86,6 @@
                 </div>
             </div>
 
-            @* --- PHẦN 2: CHI TIẾT YÊU CẦU --- *@
             <div style="@boxDetail">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
@@ -98,10 +93,10 @@
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                    @* These input names match properties of ItMail1 so model-binding will populate the [FromForm] ItMail1 itMail parameter *@
                     <div>
                         <label style="@labelBase">Email đề xuất <span style="color:red">*</span></label>
-                        <input type="text" name="Email" id="Email" placeholder="Ví dụ: hoa.nguyen" required
-                               class="input-hover" style="@inputBase">
+                        <input type="text" name="Email" id="Email" placeholder="Ví dụ: hoa.nguyen" required class="input-hover" style="@inputBase">
                     </div>
                     <div>
                         <label style="@labelBase">Vị trí (Chức vụ)</label>
@@ -139,8 +134,7 @@
 
                 <div style="margin-bottom: 25px;">
                     <label style="@labelBase">Mục đích sử dụng / Lý do</label>
-                    <textarea name="MucDich" placeholder="Vui lòng ghi rõ lý do (Ví dụ: Cấp mới cho nhân viên mới, Đổi tên do sai lệch...)"
-                              class="input-hover" style="@inputBase height: 100px; resize: none;"></textarea>
+                    <textarea name="MucDich" placeholder="Vui lòng ghi rõ lý do" class="input-hover" style="@inputBase height: 100px; resize: none;"></textarea>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
@@ -162,7 +156,6 @@
                 </div>
             </div>
 
-            @* --- PHẦN 3: CHỌN CÔNG VIỆC HỖ TRỢ --- *@
             <div style="@boxDetail">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">3</span>
@@ -199,7 +192,6 @@
                 </div>
             </div>
 
-            @* --- PHẦN 4: BẢN CAM KẾT --- *@
             <div style="margin-bottom: 30px; background: #fffdf5; border: 1px dashed @colorBorder; border-radius: 24px; padding: 25px;">
                 <h3 style="margin: 0 0 20px 0; color: @colorDark; font-size: 15px; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 1px;">
                     BẢN CAM KẾT SỬ DỤNG EMAIL
@@ -231,8 +223,8 @@
 </div>
 
 <script>
-    // Xử lý dán ảnh từ Clipboard
-    document.getElementById("paste_AnhMail").addEventListener('paste', function(e) {
+    // Paste image into hidden file input (name="Anh")
+    document.getElementById("paste_AnhMail").addEventListener('paste', function (e) {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         for (let i = 0; i < items.length; i++) {
             if (items[i].type.indexOf("image") !== -1) {
@@ -250,35 +242,30 @@
         }
     });
 
-    // Hàm Validate và Submit
     function xuLyLuuDonIT() {
         const email = document.getElementById("Email").value;
         const chk = document.getElementById('chkCamKet');
         const btn = document.getElementById("btnSubmit");
 
-        // Sửa lỗi: Lấy tất cả checkbox đã chọn có tên là SelectedCongViecIds
+        // Ensure checkboxes use the correct name SelectedCongViecIds
         const selectedCVs = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
 
-        // 1. Kiểm tra Email đề xuất
         if (!email.trim()) {
             alert("⚠️ Vui lòng nhập Email đề xuất!");
             document.getElementById("Email").focus();
             return;
         }
 
-        // 2. Kiểm tra chọn người hỗ trợ (Ít nhất 1 checkbox được chọn)
         if (selectedCVs.length === 0) {
             alert("⚠️ Vui lòng chọn ít nhất một nhân sự IT hỗ trợ!");
             return;
         }
 
-        // 3. Kiểm tra cam kết
         if (!chk.checked) {
             alert("⚠️ Bạn cần xác nhận vào ô cam kết trước khi gửi!");
             return;
         }
 
-        // 4. Xác nhận gửi
         if (confirm("Xác nhận gửi đơn đăng ký Mail này?")) {
             btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG XỬ LÝ...';
             btn.style.opacity = '0.6';
