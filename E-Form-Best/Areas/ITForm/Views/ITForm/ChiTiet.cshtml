@@ -35,10 +35,15 @@
     // --- XỬ LÝ FILE ĐÍNH KÈM ---
     string fileUrl = "";
     string fileName = "";
+
     if (!string.IsNullOrEmpty(Model.FileDinhKem))
     {
+        // Lấy tên file từ database (giữ nguyên logic của bạn)
         fileName = System.IO.Path.GetFileName(Model.FileDinhKem);
-        fileUrl = "/FileIT/" + fileName;
+
+        // Thay đổi đường dẫn: Thay vì trỏ vào folder tĩnh /FileIT/ (không truy cập được IP 10.0.60.30)
+        // Chúng ta trỏ về Action xử lý download đã viết ở bước trước
+        fileUrl = "/FormIT/DownloadFile/" + fileName;
     }
 
     // --- XỬ LÝ DỮ LIỆU CHI TIẾT THEO LOẠI ĐƠN ---
