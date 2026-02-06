@@ -499,7 +499,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 .ToList();
 
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            int? userId = !string.IsNullOrEmpty(userIdStr) ? int.Parse(userIdStr) : null;
+            int? userId = !string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out var tmpId) ? tmpId : null;
 
             string userName = User.Identity.Name ?? "";
             string phongBan = User.FindFirst("PhongBan")?.Value ?? "";
@@ -523,7 +523,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/FormIT/DonMail")]
-        public async Task<IActionResult> DonMail(FormIt form, [FromForm] ItMail1 itMail, int[] SelectedNguoiHoTroIds)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DonMail(FormIt form, [FromForm] ItMail1 itMail, int[] SelectedCongViecIds)
         {
             // Kiểm tra đăng nhập
             if (User == null || !User.Identity.IsAuthenticated)
@@ -592,37 +593,44 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         _context.ItMail1s.Add(itMail);
                         await _context.SaveChangesAsync();
                     }
+
                     // --- BƯỚC 4: LƯU NGƯỜI HỖ TRỢ ---
                     string danhSachTenHoTro = "Chưa chọn";
+                    List<int> selectedItNguoiHoTroIds = new List<int>();
 
-                    // PHẦN THÊM MỚI: Nếu là "Đăng kí mail", tự động tìm SelectedNguoiHoTroIds từ bảng CongViec
-                    if (form.Danhmuc == "Đăng kí mail")
+                    // Nếu client gửi các Id của CongViec (view dùng value="@cv.Id")
+                    if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
                     {
-                        var idsTuCongViec = await _context.CongViecs
-                            .Where(cv => cv.Ten == "Đăng kí mail" && cv.IdItNguoiHoTro != null)
-                            .Select(cv => cv.IdItNguoiHoTro.Value)
+                        selectedItNguoiHoTroIds = await _context.CongViecs
+                            .Where(cv => SelectedCongViecIds.Contains(cv.Id) && cv.IdItNguoiHoTro != null)
+                            .Select(cv => cv.IdItNguoiHoTro!.Value)
                             .Distinct()
-                            .ToArrayAsync();
-
-                        // Gán lại cho SelectedNguoiHoTroIds để các bước sau xử lý như bình thường
-                        if (idsTuCongViec.Any())
-                        {
-                            SelectedNguoiHoTroIds = idsTuCongViec;
-                        }
+                            .ToListAsync();
                     }
 
-                    // Giữ nguyên logic xử lý của bạn bên dưới
-                    if (SelectedNguoiHoTroIds != null && SelectedNguoiHoTroIds.Length > 0)
+                    // Nếu vẫn chưa có người hỗ trợ nhưng danh mục là "Đăng kí mail", lấy tất cả người hỗ trợ từ CongViec có tên "Đăng kí mail"
+                    if (!selectedItNguoiHoTroIds.Any() && form.Danhmuc == "Đăng kí mail")
+                    {
+                        selectedItNguoiHoTroIds = await _context.CongViecs
+                            .Where(cv => cv.Ten == "Đăng kí mail" && cv.IdItNguoiHoTro != null)
+                            .Select(cv => cv.IdItNguoiHoTro!.Value)
+                            .Distinct()
+                            .ToListAsync();
+                    }
+
+                    // Nếu vẫn rỗng, giữ nguyên logic (không lưu chi tiết hỗ trợ)
+                    if (selectedItNguoiHoTroIds.Any())
                     {
                         // Lấy danh sách tên để ghi vào lịch sử cho chi tiết
-                        var listHoTro = _context.ItNguoiHoTros
-                            .Where(x => SelectedNguoiHoTroIds.Contains(x.Id))
+                        var listHoTro = await _context.ItNguoiHoTros
+                            .Where(x => selectedItNguoiHoTroIds.Contains(x.Id))
                             .Select(x => x.Ten)
-                            .ToList();
+                            .ToListAsync();
+
                         danhSachTenHoTro = string.Join(", ", listHoTro);
 
                         int stt = 1;
-                        foreach (var idHoTro in SelectedNguoiHoTroIds)
+                        foreach (var idHoTro in selectedItNguoiHoTroIds)
                         {
                             var chiTietHoTro = new ItCtNguoiHoTro
                             {
@@ -661,15 +669,29 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    // Đảm bảo khi lỗi vẫn load lại được dữ liệu cho View
-                    ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros.Where(x => x.BoPhan == "IT").ToList();
+
+                    // Đảm bảo khi lỗi vẫn load lại được dữ liệu cho View (giữ cấu trúc giống GET)
+                    ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros
+                        .Include(x => x.CongViecs)
+                        .Where(x => x.BoPhan == "IT")
+                        .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
+                        {
+                            Id = x.Id,
+                            MaNv = x.MaNv,
+                            Ten = x.Ten,
+                            BoPhan = x.BoPhan,
+                            GhiChu = x.GhiChu,
+                            CongViecs = x.CongViecs.Where(cv => cv.Ten == "Đăng kí mail").ToList()
+                        })
+                        .Where(x => x.CongViecs.Any())
+                        .ToList();
+
                     ModelState.AddModelError("", "Lỗi trong quá trình lưu: " + ex.Message);
                     return View(form);
                 }
             }
         }
         #endregion
-
         #region IT Order - Sửa chữa/Yêu cầu thiết bị (Form IT) - CẬP NHẬT LỊCH SỬ & NGƯỜI HỖ TRỢ
 
         [HttpGet("/FormIT/TaoIT_Order")]
