@@ -11,9 +11,14 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         /* Tối ưu hóa thanh cuộn (Scrollbar) */
@@ -36,10 +41,20 @@
 
         body {
             font-family: 'Inter', sans-serif;
+            margin: 0;
+            background: #f4f7fa;
+            min-height: 100vh;
+            display: flex;
+            color: #1a202c;
+        }
+
+        /* Loại bỏ gạch chân mặc định của link trong Aside */
+        aside a {
+            text-decoration: none !important;
         }
     </style>
 </head>
-<body style="margin:0; background:#f4f7fa; min-height:100vh; display:flex; color: #1a202c;">
+<body>
 
     <aside style="
         width: 260px;
@@ -52,8 +67,9 @@
         position: sticky;
         top: 0;
         height: 100vh;
+        z-index: 1000;
     ">
-        <a href="/MenuA" style="text-decoration: none; color: inherit; display: block;">
+        <a href="/MenuA" style="color: inherit; display: block;">
             <div style="padding: 25px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); transition: background 0.3s;"
                  onmouseover="this.style.background='rgba(255,255,255,0.05)'"
                  onmouseout="this.style.background='transparent'">
@@ -68,7 +84,6 @@
                 align-items: center;
                 padding: 13px 25px;
                 color: rgba(255,255,255,0.8);
-                text-decoration: none;
                 transition: all 0.2s;
                 gap: 12px;
                 font-size: 14px;
@@ -85,7 +100,6 @@
                 align-items: center;
                 padding: 13px 25px;
                 color: rgba(255,255,255,0.8);
-                text-decoration: none;
                 transition: all 0.2s;
                 gap: 12px;
                 font-size: 14px;
@@ -102,7 +116,6 @@
                 align-items: center;
                 padding: 13px 25px;
                 color: rgba(255,255,255,0.8);
-                text-decoration: none;
                 transition: all 0.2s;
                 gap: 12px;
                 font-size: 14px;
@@ -116,7 +129,7 @@
         </nav>
 
         <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <a href="/Logout" style="color: #feb2b2; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 10px; padding: 10px 5px; border-radius: 5px; transition: background 0.2s;"
+            <a href="/Logout" style="color: #feb2b2; font-size: 14px; display: flex; align-items: center; gap: 10px; padding: 10px 5px; border-radius: 5px; transition: background 0.2s;"
                onmouseover="this.style.background='rgba(245, 101, 101, 0.1)'" onmouseout="this.style.background='transparent'">
                 <i class="fas fa-sign-out-alt"></i>
                 <strong>Đăng xuất</strong>
@@ -124,7 +137,7 @@
         </div>
     </aside>
 
-    <main style="flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto;">
+    <main style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
         <header style="background: white; padding: 15px 30px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; justify-content: flex-end; align-items: center;">
             <div style="font-size: 13px; color: #718096;">
                 Hệ thống quản lý E-Form <i class="fas fa-check-circle" style="color: #38a169; margin-left: 5px;"></i>
@@ -135,6 +148,11 @@
             @RenderBody()
         </div>
     </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

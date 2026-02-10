@@ -177,7 +177,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             if (!IsLoggedIn()) return Unauthorized();
 
             using var client = new HttpClient();
-            string url = "https://bptehr.bestpacific.com/ehr/open/rmt/getBpvn?ym=2025-05";
+            string url = "https://bptehr.bestpacific.com/ehr/open/rmt/getBpvn?ym=2026-01";
 
             try
             {
