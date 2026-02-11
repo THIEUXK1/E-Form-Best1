@@ -179,14 +179,17 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             string url = "";
             string companyName = "";
 
+            // Lấy định dạng yyyy-MM (Ví dụ: 2026-02)
+            string currentYM = DateTime.Now.ToString("yyyy-MM");
+
             if (type == "PFVN")
             {
-                url = "https://bptehr.bestpacific.com/ehr/open/rmt/getPfvn?ym=2026-02";
+                url = "https://bptehr.bestpacific.com/ehr/open/rmt/getPfvn?ym=" + currentYM;
                 companyName = "PFVN";
             }
             else
             {
-                url = "https://bptehr.bestpacific.com/ehr/open/rmt/getBpvn?ym=2026-01";
+                url = "https://bptehr.bestpacific.com/ehr/open/rmt/getBpvn?ym=" + currentYM;
                 companyName = "BPVN";
             }
 
