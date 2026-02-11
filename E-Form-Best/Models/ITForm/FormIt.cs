@@ -71,6 +71,10 @@ public partial class FormIt
     [StringLength(255)]
     public string? Danhmuc { get; set; }
 
+    [Column("ten_cong_ty")]
+    [StringLength(255)]
+    public string? TenCongTy { get; set; }
+
     [InverseProperty("IdFormItNavigation")]
     public virtual ICollection<DanhGium> DanhGia { get; set; } = new List<DanhGium>();
 
