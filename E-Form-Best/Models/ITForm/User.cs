@@ -56,6 +56,10 @@ public partial class User
     [Column("push_auth")]
     public string? PushAuth { get; set; }
 
+    [Column("ten_cong_ty")]
+    [StringLength(255)]
+    public string? TenCongTy { get; set; }
+
     [InverseProperty("IdNguoiDungNavigation")]
     public virtual ICollection<UserDevice> UserDevices { get; set; } = new List<UserDevice>();
 }

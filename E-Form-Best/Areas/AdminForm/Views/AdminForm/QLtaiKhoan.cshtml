@@ -91,9 +91,24 @@
                 <button onclick="searchFromHR()" class="btn-primary" style="padding: 12px 20px; border-radius: 10px;">TÌM</button>
             </div>
             <div id="searchResult" style="margin-bottom: 15px;"></div>
-            <button onclick="syncAll()" style="width: 100%; padding: 12px; border-radius: 10px; background: #667eea; color: white; border: none; font-weight: 700; cursor: pointer;">
-                🔄 ĐỒNG BỘ TOÀN BỘ NHÂN VIÊN MỚI
-            </button>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items:center;">
+                <div style="display:flex; gap:8px;">
+                    <button onclick="syncAll('BPVN')" style="padding: 12px; border-radius: 10px; background: #667eea; color: white; border: none; font-weight: 700; cursor: pointer;">
+                        🔄 ĐỒNG BỘ BPVN
+                    </button>
+                    <button onclick="syncAll('PFVN')" style="padding: 12px; border-radius: 10px; background: #ed64a6; color: white; border: none; font-weight: 700; cursor: pointer;">
+                        🔄 ĐỒNG BỘ PFVN
+                    </button>
+                </div>
+                <div style="text-align:right;">
+                    <label style="font-size:12px; color:#4a5568; margin-right:6px;">Chọn nguồn khi thêm:</label>
+                    <select id="hrCompany" class="input-custom" style="display:inline-block; width:auto; padding:6px 10px;">
+                        <option value="BPVN">Best Pacific (BPVN)</option>
+                        <option value="PFVN">Pacific Fabric (PFVN)</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
         <div class="admin-card">
@@ -188,6 +203,7 @@
                 <td style="padding: 15px;">
                     <div style="font-weight: 800; color: #2d3748;">#${user.idNguoiDung} - ${user.hoTen}</div>
                     <div style="font-size: 11px; color: #718096; background: #f7fafc; display: inline-block; padding: 2px 6px; border-radius: 4px; margin-top: 4px;">🏢 ${user.phongBan || 'N/A'}</div>
+                    <div style="font-size: 11px; color: #4a5568; display: inline-block; padding: 2px 6px; border-radius: 4px; margin-top: 4px; margin-left:6px; background:#fff7ed;">🏷️ ${user.tenCongTy || 'N/A'}</div>
                 </td>
                 <td style="padding: 15px;">
                     <div style="font-weight: 600; color: #718096; font-size: 12px; margin-bottom: 5px;">TK: <span style="color:#2b6cb0">${user.tk}</span></div>
@@ -362,10 +378,11 @@
     }
 
     function addUserHR(empNo) {
+        const type = document.getElementById('hrCompany')?.value || 'BPVN';
         fetch('/QLtaiKhoan/ThemNhanVien', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ empNo: empNo })
+            body: new URLSearchParams({ empNo: empNo, type: type })
         }).then(res => {
             if(res.ok) {
                 loadUserList();
@@ -375,16 +392,22 @@
             }
         });
     }
+    // Thay thế hàm syncAll cũ của bạn bằng hàm này
+    function syncAll(type) {
+        const config = {
+            'BPVN': { name: 'Best Pacific (BPVN)', color: '#667eea' },
+            'PFVN': { name: 'Pacific Fabric (PFVN)', color: '#ed64a6' }
+        };
 
-    function syncAll() {
         Swal.fire({
-            title: 'Đang đồng bộ...',
+            title: `Đang đồng bộ ${config[type].name}...`,
             text: 'Hệ thống đang kiểm tra danh sách nhân viên mới',
             allowOutsideClick: false,
             didOpen: () => { Swal.showLoading(); }
         });
 
-        fetch('/QLtaiKhoan/DongBoNhanVien', { method: 'POST' })
+        // Truyền type (BPVN hoặc PFVN) qua URL
+        fetch(`/QLtaiKhoan/DongBoNhanVien?type=${type}`, { method: 'POST' })
             .then(res => res.json())
             .then(data => {
                 loadUserList();
@@ -392,4 +415,5 @@
             })
             .catch(() => Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ HR', 'error'));
     }
+
 </script>

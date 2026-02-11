@@ -54,8 +54,6 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<LichSu> LichSus { get; set; }
 
-    public virtual DbSet<Mail> Mail { get; set; }
-
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UserDevice> UserDevices { get; set; }
@@ -211,11 +209,6 @@ public partial class ITFormContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__LichSu__3213E83F7913614E");
 
             entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.LichSus).HasConstraintName("FK_LichSu_FormIT");
-        });
-
-        modelBuilder.Entity<Mail>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__Mail__3214EC07D71FB1C5");
         });
 
         modelBuilder.Entity<User>(entity =>
