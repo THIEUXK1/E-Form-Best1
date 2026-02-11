@@ -172,30 +172,53 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
 
         // 4. Đồng bộ toàn bộ nhân viên từ HR API
         [HttpPost("/QLtaiKhoan/DongBoNhanVien")]
-        public async Task<IActionResult> DongBoNhanVien()
+        public async Task<IActionResult> DongBoNhanVien(string type)
         {
             if (!IsLoggedIn()) return Unauthorized();
 
-            using var client = new HttpClient();
-            string url = "https://bptehr.bestpacific.com/ehr/open/rmt/getBpvn?ym=2026-01";
+            string url = "";
+            string companyName = "";
 
+            if (type == "PFVN")
+            {
+                url = "https://bptehr.bestpacific.com/ehr/open/rmt/getPfvn?ym=2026-02";
+                companyName = "PFVN";
+            }
+            else
+            {
+                url = "https://bptehr.bestpacific.com/ehr/open/rmt/getBpvn?ym=2026-01";
+                companyName = "BPVN";
+            }
+
+            using var client = new HttpClient();
             try
             {
                 var response = await client.GetStringAsync(url);
-                var result = JsonSerializer.Deserialize<QLtaiKhoanResponse>(response, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+                var result = JsonSerializer.Deserialize<QLtaiKhoanResponse>(response, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                if (result == null || result.CODE != 0 || result.rows?.employees == null)
-                    return BadRequest(new { message = "API HR không trả về dữ liệu." });
+                if (result?.rows?.employees == null) return BadRequest(new { message = "Không có dữ liệu từ HR." });
 
-                var existingTks = _context.Users.Select(u => u.Tk).ToHashSet();
+                // Build a lookup of existing users by TK so we can both add new users and update existing ones
+                var usersByTk = _context.Users.ToDictionary(u => u.Tk, StringComparer.OrdinalIgnoreCase);
                 var newUsers = new List<User>();
+                var updatedCount = 0;
 
                 foreach (var emp in result.rows.employees)
                 {
-                    if (!existingTks.Contains(emp.EMPNO))
+                    if (string.IsNullOrEmpty(emp?.EMPNO)) continue;
+
+                    if (usersByTk.TryGetValue(emp.EMPNO, out var existingUser))
+                    {
+                        // Nếu user tồn tại nhưng chưa có TenCongTy thì cập nhật
+                        if (string.IsNullOrEmpty(existingUser.TenCongTy))
+                        {
+                            existingUser.TenCongTy = companyName;
+                            existingUser.PhongBan = existingUser.PhongBan ?? emp.DEPT_NAME;
+                            existingUser.NgayCapNhat = DateTime.Now;
+                            updatedCount++;
+                        }
+                    }
+                    else
                     {
                         newUsers.Add(new User
                         {
@@ -205,34 +228,38 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                             PhongBan = emp.DEPT_NAME,
                             VaiTro = "NhanVien",
                             TrangThai = "Đang làm",
+                            TenCongTy = companyName, // Gán theo loại đồng bộ
                             NgayTao = DateTime.Now
                         });
-                        existingTks.Add(emp.EMPNO);
                     }
                 }
 
-                if (newUsers.Any())
+                if (newUsers.Any() || updatedCount > 0)
                 {
-                    _context.Users.AddRange(newUsers);
+                    if (newUsers.Any()) _context.Users.AddRange(newUsers);
                     await _context.SaveChangesAsync();
-                    return Ok(new { message = $"Đã đồng bộ thành công {newUsers.Count} nhân viên mới." });
+
+                    var messages = new List<string>();
+                    if (newUsers.Any()) messages.Add($"Đã đồng bộ {newUsers.Count} nhân viên {companyName}");
+                    if (updatedCount > 0) messages.Add($"Cập nhật {updatedCount} tài khoản thiếu tên công ty");
+
+                    return Ok(new { message = string.Join("; ", messages) + "." });
                 }
-                return Ok(new { message = "Dữ liệu đã khớp với hệ thống HR, không có nhân viên mới." });
+
+                return Ok(new { message = $"Dữ liệu nhân viên {companyName} đã mới nhất." });
             }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = $"Lỗi: {ex.Message}" });
-            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
         }
 
         // 5. Thêm một nhân viên cụ thể từ HR
         [HttpPost("/QLtaiKhoan/ThemNhanVien")]
-        public async Task<IActionResult> ThemNhanVien(string empNo)
+        public async Task<IActionResult> ThemNhanVien(string empNo, string type = "BPVN")
         {
             if (!IsLoggedIn()) return Unauthorized();
 
             using var client = new HttpClient();
             string url = "https://bptehr.bestpacific.com/ehr/open/rmt/getBpvn?ym=2025-05";
+            var companyName = type == "PFVN" ? "PFVN" : "BPVN";
 
             try
             {
@@ -252,6 +279,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                     PhongBan = emp.DEPT_NAME,
                     VaiTro = "NhanVien",
                     TrangThai = emp.STATUS == 1 ? "Đang làm" : "Đã nghỉ",
+                    TenCongTy = companyName,
                     NgayTao = DateTime.Now
                 };
 
