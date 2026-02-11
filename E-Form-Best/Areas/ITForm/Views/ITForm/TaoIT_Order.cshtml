@@ -9,6 +9,8 @@
     var tenNguoiNv = User.Identity.Name ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    // Lấy thông tin công ty từ Model (đã gán trong Controller) hoặc Claim
+    var tenCongTy = Model.TenCongTy ?? User.FindFirst("TenCongTy")?.Value ?? "Chưa xác định";
 
     // Tông màu: Cam (Orange)
     string colorPrimary = "#ea580c";
@@ -24,14 +26,14 @@
 <div style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', sans-serif;">
 
     <form id="itOrderForm" method="post" enctype="multipart/form-data" asp-action="TaoIT_Order" asp-controller="FormIT" asp-area="ITform"
-          style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(124, 45, 18, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
+          style="max-width: 950px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(124, 45, 18, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
 
         @Html.AntiForgeryToken()
         @Html.ValidationSummary(true, "", new { @class = "text-danger", style = "margin:10px 0;" })
 
         @* --- HEADER --- *@
         <div style="background: linear-gradient(135deg, @colorPrimary 0%, @colorDark 100%); padding: 45px 20px; color: #ffffff; text-align: center; position: relative;">
-            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">TECH REPAIR V3.0</div>
+            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">TECH REPAIR V3.1</div>
             <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">Phiếu yêu cầu hỗ trợ kỹ thuật</h2>
             <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: rgba(255,255,255,0.2); border-radius: 50px; font-size: 13px; backdrop-filter: blur(4px);">
                 <span>🛠️ Tình trạng:</span>
@@ -41,30 +43,35 @@
 
         <div style="padding: 40px;">
 
-            @* --- PHẦN 1: THÔNG TIN NGƯỜI YÊU CẦU --- *@
+            @* --- PHẦN 1: THÔNG TIN HÀNH CHÍNH (Đã cập nhật 4 cột) --- *@
             <div style="margin-bottom: 40px;">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3);">1</span>
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin hành chính</h3>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
                     <div style="background: #fffaf5; padding: 15px; border-radius: 15px; border: 1px solid #ffedd5;">
                         <label style="@labelBase">Mã nhân viên</label>
-                        <div style="font-weight: 700; color: #9a3412; font-size: 15px;">@soNhanVien</div>
+                        <div style="font-weight: 700; color: #9a3412; font-size: 14px;">@soNhanVien</div>
                     </div>
                     <div style="background: #fffaf5; padding: 15px; border-radius: 15px; border: 1px solid #ffedd5;">
                         <label style="@labelBase">Họ và tên</label>
-                        <div style="font-weight: 700; color: #9a3412; font-size: 15px;">@tenNguoiNv</div>
+                        <div style="font-weight: 700; color: #9a3412; font-size: 14px;">@tenNguoiNv</div>
                     </div>
                     <div style="background: #fffaf5; padding: 15px; border-radius: 15px; border: 1px solid #ffedd5;">
                         <label style="@labelBase">Bộ phận</label>
-                        <div style="font-weight: 700; color: #9a3412; font-size: 15px;">@phongBan</div>
+                        <div style="font-weight: 700; color: #9a3412; font-size: 14px;">@phongBan</div>
+                    </div>
+                    @* CỘT MỚI: CÔNG TY *@
+                    <div style="background: #fffaf5; padding: 15px; border-radius: 15px; border: 1px solid #ffedd5;">
+                        <label style="@labelBase">Công ty</label>
+                        <div style="font-weight: 700; color: @colorPrimary; font-size: 14px;">@tenCongTy</div>
                     </div>
                 </div>
             </div>
 
-            @* --- PHẦN 2: CHỌN LOẠI CÔNG VIỆC CẦN HỖ TRỢ --- *@
+            @* --- PHẦN 2: CHỌN LOẠI CÔNG VIỆC --- *@
             <div style="@boxDetail">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
@@ -72,7 +79,6 @@
                 </div>
 
                 <label style="@labelBase">Vui lòng chọn vấn đề bạn đang gặp <span style="color:red">*</span></label>
-                @* Đã cập nhật ID và Name để khớp với Controller *@
                 <select name="selectedCongViecId" id="selectedCongViecId" required style="@inputBase cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237c2d12%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
                     <option value="">-- Click để chọn loại công việc --</option>
                     @if (ViewBag.CongViecList != null)
@@ -85,7 +91,7 @@
                 </select>
             </div>
 
-            @* --- PHẦN 3: CHI TIẾT HƯ HỎNG --- *@
+            @* --- PHẦN 3: CHI TIẾT LỖI --- *@
             <div style="@boxDetail">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">3</span>
@@ -130,17 +136,17 @@
 
                 <div style="max-height: 150px; overflow-y: auto; padding-right: 10px; margin-bottom: 20px; font-size: 13px; line-height: 1.6; color: @colorDark;">
                     <ol style="margin: 0; padding-left: 20px; display: grid; gap: 12px;">
-                        <li><strong>Sao lưu dữ liệu:</strong> Tôi đã tự sao lưu dữ liệu quan trọng.</li>
-                        <li><strong>Tính chính xác:</strong> Tôi chịu trách nhiệm về mô tả lỗi.</li>
-                        <li><strong>Phụ kiện:</strong> Bàn giao đầy đủ phụ kiện kèm theo.</li>
-                        <li><strong>Bảo quản:</strong> Cam kết bảo quản thiết bị mượn (nếu có).</li>
+                        <li><strong>Sao lưu dữ liệu:</strong> Tôi đã tự sao lưu dữ liệu quan trọng trước khi gửi máy.</li>
+                        <li><strong>Tính chính xác:</strong> Tôi chịu trách nhiệm về nội dung mô tả lỗi bên trên.</li>
+                        <li><strong>Phụ kiện:</strong> Đã bàn giao đầy đủ phụ kiện kèm theo (nếu có).</li>
+                        <li><strong>Bảo quản:</strong> Cam kết bảo quản tốt thiết bị được mượn tạm thời (nếu có).</li>
                     </ol>
                 </div>
 
                 <label style="cursor: pointer; display: flex; align-items: center; gap: 12px; background: #ffffff; padding: 18px; border-radius: 15px; border: 1px solid @colorBorder; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.3s;">
                     <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; cursor: pointer; accent-color: @colorPrimary;">
                     <span style="font-size: 14px; font-weight: 800; color: @colorDark;">
-                        Tôi xác nhận các thông tin trên và đồng ý quy trình của IT.
+                        Tôi xác nhận các thông tin trên và đồng ý quy trình hỗ trợ của IT.
                     </span>
                 </label>
             </div>
@@ -157,8 +163,8 @@
 </div>
 
 <script>
-    // Logic dán ảnh (Giữ nguyên)
-    document.getElementById("paste_area").addEventListener('paste', function (e) {
+    // Logic dán ảnh (Ctrl + V)
+    document.getElementById("paste_area").addEventListener('paste', function(e) {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         for (let i = 0; i < items.length; i++) {
             if (items[i].type.indexOf("image") !== -1) {
@@ -176,7 +182,6 @@
     });
 
     function xuLyLuu() {
-        // Cập nhật lấy ID từ dropdown Công việc mới
         const congViecId = document.getElementById("selectedCongViecId").value;
         const tieuDe = document.getElementById("TieuDe").value;
         const ghiChu = document.getElementById("GhiChu").value;
@@ -187,23 +192,20 @@
             alert("⚠️ Vui lòng chọn loại công việc cần hỗ trợ!");
             return;
         }
-
         if (!tieuDe.trim()) {
             alert("⚠️ Vui lòng nhập tiêu đề yêu cầu!");
             return;
         }
-
         if (!ghiChu.trim()) {
             alert("⚠️ Bạn chưa nhập nội dung mô tả chi tiết!");
             return;
         }
-
         if (!chk.checked) {
             alert("⚠️ Bạn chưa tích xác nhận cam kết!");
             return;
         }
 
-        if (confirm("Xác nhận gửi đơn yêu cầu hỗ trợ đến IT?")) {
+        if (confirm("Xác nhận gửi đơn yêu cầu hỗ trợ đến bộ phận IT?")) {
             btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG KHỞI TẠO...';
             btn.style.opacity = '0.7';
             btn.style.pointerEvents = 'none';

@@ -295,16 +295,22 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
 
         // 6. Cập nhật (Dùng cho nút Lưu trên bảng)
         [HttpPost("/QLtaiKhoan/CapNhatNguoiDung")]
-        public async Task<IActionResult> CapNhatNguoiDung(int IdNguoiDung, string MatKhau, string VaiTro, string SoDienThoai)
+        public async Task<IActionResult> CapNhatNguoiDung(User updatedData)
         {
             if (!IsLoggedIn()) return Unauthorized();
 
-            var user = await _context.Users.FindAsync(IdNguoiDung);
-            if (user == null) return NotFound("User không tồn tại");
+            var user = await _context.Users.FindAsync(updatedData.IdNguoiDung);
+            if (user == null) return NotFound("Người dùng không tồn tại");
 
-            user.MatKhau = MatKhau;
-            user.VaiTro = VaiTro;
-            user.SoDienThoai = SoDienThoai;
+            // Cập nhật tất cả các trường từ form
+            user.HoTen = updatedData.HoTen;
+            user.Tk = updatedData.Tk;
+            user.PhongBan = updatedData.PhongBan;
+            user.TenCongTy = updatedData.TenCongTy;
+            user.MatKhau = updatedData.MatKhau;
+            user.VaiTro = updatedData.VaiTro;
+            user.SoDienThoai = updatedData.SoDienThoai;
+            user.TrangThai = updatedData.TrangThai;
             user.NgayCapNhat = DateTime.Now;
 
             await _context.SaveChangesAsync();
