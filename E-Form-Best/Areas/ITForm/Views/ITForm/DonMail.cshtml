@@ -9,6 +9,8 @@
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var emailHienTai = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
     var userRole = User.FindFirst("UserRole")?.Value ?? "";
+    // MỚI: Lấy thông tin Tên Công Ty từ Claim
+    var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
     string colorPrimary = "#f59e0b";
@@ -47,9 +49,8 @@
 
 <div style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif;">
 
-    @* Use explicit action (absolute route) to match the controller route attribute [HttpPost("/FormIT/DonMail")] *@
     <form id="itMailForm" action="/FormIT/DonMail" method="post" enctype="multipart/form-data"
-          style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(120, 53, 15, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
+          style="max-width: 950px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(120, 53, 15, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
 
         @Html.AntiForgeryToken()
 
@@ -70,18 +71,24 @@
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin nhân viên</h3>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                @* Thay đổi grid thành 4 cột để thêm Công ty *@
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
                     <div style="background: #fffdf5; padding: 15px; border-radius: 15px; border: 1px solid #fef3c7;">
                         <label style="@labelBase">Họ tên</label>
-                        <div style="font-weight: 700; color: @colorDark; font-size: 15px;">@tenNguoiNv</div>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@tenNguoiNv</div>
                     </div>
                     <div style="background: #fffdf5; padding: 15px; border-radius: 15px; border: 1px solid #fef3c7;">
                         <label style="@labelBase">Bộ phận</label>
-                        <div style="font-weight: 700; color: @colorDark; font-size: 15px;">@phongBan</div>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@phongBan</div>
+                    </div>
+                    @* MỚI: Hiển thị Tên Công ty *@
+                    <div style="background: #fffdf5; padding: 15px; border-radius: 15px; border: 1px solid #fef3c7;">
+                        <label style="@labelBase">Công ty</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@tenCongTy</div>
                     </div>
                     <div style="background: #fffdf5; padding: 15px; border-radius: 15px; border: 1px solid #fef3c7;">
                         <label style="@labelBase">Email hiện tại</label>
-                        <div style="font-weight: 700; color: @colorDark; font-size: 15px;">@emailHienTai</div>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px; word-break: break-all;">@emailHienTai</div>
                     </div>
                 </div>
             </div>
@@ -93,7 +100,6 @@
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 15px; margin-bottom: 25px;">
-                    @* These input names match properties of ItMail1 so model-binding will populate the [FromForm] ItMail1 itMail parameter *@
                     <div>
                         <label style="@labelBase">Email đề xuất <span style="color:red">*</span></label>
                         <input type="text" name="Email" id="Email" placeholder="Ví dụ: hoa.nguyen" required class="input-hover" style="@inputBase">
@@ -224,7 +230,7 @@
 
 <script>
     // Paste image into hidden file input (name="Anh")
-    document.getElementById("paste_AnhMail").addEventListener('paste', function (e) {
+    document.getElementById("paste_AnhMail").addEventListener('paste', function(e) {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         for (let i = 0; i < items.length; i++) {
             if (items[i].type.indexOf("image") !== -1) {
@@ -247,7 +253,6 @@
         const chk = document.getElementById('chkCamKet');
         const btn = document.getElementById("btnSubmit");
 
-        // Ensure checkboxes use the correct name SelectedCongViecIds
         const selectedCVs = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
 
         if (!email.trim()) {

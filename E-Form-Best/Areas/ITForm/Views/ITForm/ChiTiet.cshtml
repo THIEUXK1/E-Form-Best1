@@ -1,4 +1,7 @@
 ﻿@model E_Form_Best.Models.ITForm.FormIt
+@using System
+@using System.Collections.Generic
+@using System.Linq
 @using System.Security.Claims
 
 @{
@@ -163,11 +166,18 @@
 
                     <!-- DANH MỤC (mới) -->
                     <div style="margin-bottom: 30px;">
-                        <div style="background: #ffffff; padding: 18px; border-radius: 14px; border: 1px solid #e6edf6; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display:flex; align-items:center; gap:12px;">
+                    <div style="background: #ffffff; padding: 18px; border-radius: 14px; border: 1px solid #e6edf6; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display:flex; align-items:center; gap:12px;">
                             <i class="fa fa-tags" style="color:#0369a1; font-size:18px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:#f0f9ff; border-radius:8px;"></i>
-                            <div>
+                            <div style="flex:1;">
                                 <small style="display:block; font-weight:800; color:#64748b; font-size:12px; text-transform:uppercase;">Danh mục</small>
                                 <div style="font-weight:700; color:#0f172a; font-size:15px;">@(string.IsNullOrEmpty(Model.Danhmuc) ? "---" : Model.Danhmuc)</div>
+
+                                @* Hiển thị Tên công ty nếu có *@
+                                @if (!string.IsNullOrEmpty(Model.TenCongTy))
+                                {
+                                    <small style="display:block; margin-top:8px; font-weight:800; color:#64748b; font-size:12px; text-transform:uppercase;">Tên công ty</small>
+                                    <div style="font-weight:700; color:#0f172a; font-size:14px;">@Model.TenCongTy</div>
+                                }
                             </div>
                         </div>
                     </div>
