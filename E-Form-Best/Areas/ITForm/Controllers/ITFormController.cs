@@ -467,7 +467,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
         #endregion
 
-        #region IT Order - Sửa chữa/Yêu cầu thiết bị (Form IT) - CẬP NHẬT LỊCH SỬ & NGƯỜI HỖ TRỢ
+        #region IT Order - Sửa chữa/Yêu cầu thiết bị (Form IT) - CẬP NHẬT CÔNG TY & LỊCH SỬ
 
         [HttpGet("/FormIT/TaoIT_Order")]
         public async Task<IActionResult> TaoIT_Order()
@@ -479,11 +479,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             int userId = int.Parse(userIdClaim);
             var userName = User.Identity.Name ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
-            var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
-                            ?? User.FindFirst("UserRole")?.Value ?? "";
+            var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role) ?? User.FindFirst("UserRole");
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
 
-            // CẬP NHẬT: Lấy danh sách công việc thay vì người hỗ trợ
+            // Lấy thông tin Công ty từ Claim
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+
             ViewBag.CongViecList = await _context.CongViecs
                                             .OrderBy(x => x.Ten)
                                             .ToListAsync();
@@ -492,8 +493,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 TenNguoiNv = userName,
                 BoPhan = phongBan,
-                ViTri = userRole,
+                ViTri = userRole?.Value ?? "",
                 SoNhanVien = userEmail,
+                TenCongTy = tenCongTy, // Gán thông tin công ty vào model
                 Ngay = DateOnly.FromDateTime(DateTime.Now),
                 IdNguoiTao = userId,
                 TenNguoiTao = userName,
@@ -515,15 +517,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             int userId = int.Parse(userIdClaim);
             var userName = User.Identity.Name ?? "";
-            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? ""; var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+            var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
             var viTri = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
                         ?? User.FindFirst("UserRole")?.Value ?? "";
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? ""; // Lấy lại claim công ty khi POST
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
-                    // --- 1. TRUY VẤN NGƯỜI HỖ TRỢ VÀ THÔNG TIN CÔNG VIỆC ---
+                    // --- 1. TRUY VẤN CÔNG VIỆC & NGƯỜI HỖ TRỢ ---
                     var congViec = await _context.CongViecs
                         .Include(c => c.IdItNguoiHoTroNavigation)
                         .FirstOrDefaultAsync(c => c.Id == selectedCongViecId);
@@ -537,56 +541,37 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.BoPhan = phongBan;
                     form.ViTri = viTri;
                     form.SoNhanVien = userEmail;
+                    form.TenCongTy = tenCongTy; // Lưu tên công ty vào database
                     form.TrangThai = "ChoDuyet";
                     form.IdForm = "IT_ORDER_2";
                     form.TenForm = "Yêu cầu sửa chữa/Hỗ trợ kỹ thuật";
 
-                    // GÁN TÊN LOẠI CÔNG VIỆC VÀO TRƯỜNG DANHMUC NHƯ BẠN MUỐN
-                    if (congViec != null)
-                    {
-                        form.Danhmuc = congViec.Ten;
-                    }
+                    if (congViec != null) form.Danhmuc = congViec.Ten;
 
                     _context.FormIts.Add(form);
-                    await _context.SaveChangesAsync(); // Lưu để lấy form.Id cho các bảng sau
+                    await _context.SaveChangesAsync();
 
                     // --- 3. XỬ LÝ CHI TIẾT LỖI (ItOrderIt2) ---
                     if (itOrder != null)
                     {
                         itOrder.IdFormIt = form.Id;
-                        // Nếu người dùng chọn công việc, ta có thể gán tên công việc vào trường Ten nếu nó đang trống
-                        if (string.IsNullOrEmpty(itOrder.Ten) && congViec != null)
-                        {
-                            itOrder.Ten = congViec.Ten;
-                        }
+                        if (string.IsNullOrEmpty(itOrder.Ten) && congViec != null) itOrder.Ten = congViec.Ten;
                         itOrder.Anh = await GetFileBytesAsync2("Anh");
-
                         _context.ItOrderIt2s.Add(itOrder);
                     }
 
-                    // --- 4. XỬ LÝ FILE ĐÍNH KÈM ---
+                    // --- 4. XỬ LÝ FILE ĐÍNH KÈM (Network Path) ---
                     var uploadFile = Request.Form.Files["UploadFile"];
                     string fileLog = "Không có tệp đính kèm";
 
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
-                        // Đường dẫn mạng bạn đã cung cấp
                         string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
-
-                        // Kiểm tra và tạo thư mục nếu chưa tồn tại trên Server
-                        if (!Directory.Exists(networkPath))
-                        {
-                            Directory.CreateDirectory(networkPath);
-                        }
+                        if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
 
                         string extension = Path.GetExtension(uploadFile.FileName);
                         string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
-                        string timeStamp = DateTime.Now.ToString("ddMMyy_HHmmss");
-
-                        // Giữ nguyên format tên file DonOrder_ID... của bạn
-                        string fileName = $"DonOrder_ID{form.Id}_{safeName}_{timeStamp}{extension}";
-
-                        // Kết hợp đường dẫn mạng với tên file mới
+                        string fileName = $"DonOrder_ID{form.Id}_{safeName}_{DateTime.Now:ddMMyy_HHmmss}{extension}";
                         string fullPath = Path.Combine(networkPath, fileName);
 
                         using (var fileStream = new FileStream(fullPath, FileMode.Create))
@@ -594,18 +579,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             await uploadFile.CopyToAsync(fileStream);
                         }
 
-                        // Cập nhật Database và giữ nguyên logic IsModified để tối ưu hiệu năng
                         form.FileDinhKem = fileName;
                         _context.Entry(form).Property(x => x.FileDinhKem).IsModified = true;
-
-                        // Lưu log file
                         fileLog = $"Đính kèm tệp: {fileName}";
-
-                        // Lưu thay đổi vào Database (nếu đoạn này nằm trong context chung bạn có thể bỏ bớt await SaveChanges nếu đã có ở cuối hàm)
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- 5. LƯU NGƯỜI HỖ TRỢ (Truy vấn ngược từ bảng Công Việc) ---
+                    // --- 5. LƯU NGƯỜI HỖ TRỢ ---
                     string supporterLog = "Chưa gán người hỗ trợ";
                     if (congViec != null && congViec.IdItNguoiHoTro.HasValue)
                     {
@@ -616,19 +596,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             Stt = 1
                         };
                         _context.ItCtNguoiHoTros.Add(ctNguoiHoTro);
-
-                        supporterLog = $"Đã tự động gán: {congViec.IdItNguoiHoTroNavigation?.Ten ?? "Nhân viên IT"} (Dựa trên loại công việc: {congViec.Ten})";
+                        supporterLog = $"Đã tự động gán: {congViec.IdItNguoiHoTroNavigation?.Ten ?? "Nhân viên IT"} (Loại CV: {congViec.Ten})";
                     }
 
-                    // --- 6. LƯU LỊCH SỬ CHI TIẾT ---
-                    string tenThietBi = itOrder != null && !string.IsNullOrEmpty(itOrder.Ten) ? $" | Loại CV: {itOrder.Ten}" : "";
-
+                    // --- 6. LƯU LỊCH SỬ ---
                     var lichSu = new LichSu
                     {
                         IdFormIt = form.Id,
                         TieuDe = "Khởi tạo yêu cầu",
-                        Mota = $"Người tạo: {userName} (ID: {userId}){tenThietBi}. " +
-                                $"Nội dung: Gửi yêu cầu hỗ trợ. {supporterLog}. {fileLog}.",
+                        Mota = $"[Cty: {tenCongTy}] Người tạo: {userName}. {supporterLog}. {fileLog}.",
                         Time = DateTime.Now
                     };
                     _context.LichSus.Add(lichSu);
@@ -642,9 +618,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    // Load lại danh sách công việc nếu lỗi để View không bị trống dropdown
                     ViewBag.CongViecList = await _context.CongViecs.OrderBy(x => x.Ten).ToListAsync();
-                    ModelState.AddModelError("", "Hệ thống gặp lỗi: " + ex.Message);
+                    ModelState.AddModelError("", "Lỗi: " + ex.Message);
                     return View(form);
                 }
             }
@@ -663,11 +638,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userName = User.Identity.Name ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
             var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
-                           ?? User.FindFirst("UserRole")?.Value ?? "";
+                            ?? User.FindFirst("UserRole")?.Value ?? "";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+
+            // --- LẤY THÊM THÔNG TIN TÊN CÔNG TY TỪ CLAIM ---
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+
             // --- CẬP NHẬT: LẤY DANH SÁCH CÔNG VIỆC THAY VÌ NGƯỜI HỖ TRỢ ---
             ViewBag.CongViecList = await _context.CongViecs
-                .Where(x => x.Ten.Contains("Đăng kí sử dụng wifi")) // Thêm điều kiện lọc theo tên
+                .Where(x => x.Ten.Contains("Đăng kí sử dụng wifi"))
                 .OrderBy(x => x.Ten)
                 .ToListAsync();
 
@@ -677,6 +656,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 BoPhan = phongBan,
                 ViTri = userRole,
                 SoNhanVien = userEmail,
+                TenCongTy = tenCongTy, // Gán thông ty vào model
                 Ngay = DateOnly.FromDateTime(DateTime.Now),
                 IdNguoiTao = userId,
                 TenNguoiTao = userName,
@@ -703,6 +683,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         ?? User.FindFirst("UserRole")?.Value ?? "";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
 
+            // --- LẤY TÊN CÔNG TY ĐỂ LƯU XUỐNG DB ---
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
@@ -721,13 +704,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.BoPhan = phongBan;
                     form.ViTri = viTri;
                     form.SoNhanVien = userEmail;
+                    form.TenCongTy = tenCongTy; // Lưu tên công ty vào database
                     form.TrangThai = "ChoDuyet";
                     form.IdForm = "IT_WIFI_3";
                     form.TenForm = "Đăng ký sử dụng Wifi";
 
                     if (congViec != null)
                     {
-                        form.Danhmuc = congViec.Ten; // Gán tên loại công việc vào danh mục
+                        form.Danhmuc = congViec.Ten;
                     }
 
                     _context.FormIts.Add(form);
@@ -739,10 +723,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
-                        // Đường dẫn mạng (Network Share) thay vì dùng wwwroot
                         string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
 
-                        // Kiểm tra và tạo thư mục nếu chưa tồn tại
                         if (!Directory.Exists(networkPath))
                         {
                             Directory.CreateDirectory(networkPath);
@@ -752,10 +734,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
                         string timeStamp = DateTime.Now.ToString("ddMMyy_HHmmss");
 
-                        // Giữ nguyên định dạng tên file DonWifi của bạn
                         string fileName = $"DonWifi_ID{form.Id}_{safeName}_{timeStamp}{extension}";
-
-                        // Kết hợp đường dẫn mạng với tên file
                         string fullPath = Path.Combine(networkPath, fileName);
 
                         using (var fileStream = new FileStream(fullPath, FileMode.Create))
@@ -763,12 +742,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             await uploadFile.CopyToAsync(fileStream);
                         }
 
-                        // Cập nhật Database
                         form.FileDinhKem = fileName;
                         _context.Entry(form).Property(x => x.FileDinhKem).IsModified = true;
                         await _context.SaveChangesAsync();
 
-                        // Cập nhật log
                         fileLog = $"Đính kèm tệp: {fileName}";
                     }
 
@@ -776,12 +753,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     if (itWifi != null)
                     {
                         itWifi.IdFormIt = form.Id;
-                        itWifi.Anh = await GetFileBytesAsync2("Anh"); // Ảnh MAC Address từ input "Anh"
+                        itWifi.Anh = await GetFileBytesAsync2("Anh");
                         _context.ItDangKiSuDungWifi3s.Add(itWifi);
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- 5. LƯU NGƯỜI HỖ TRỢ (Tự động gán từ Công Việc) ---
+                    // --- 5. LƯU NGƯỜI HỖ TRỢ ---
                     string supporterLog = "Chưa gán người hỗ trợ";
                     if (congViec != null && congViec.IdItNguoiHoTro.HasValue)
                     {
@@ -800,7 +777,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     {
                         IdFormIt = form.Id,
                         TieuDe = "Khởi tạo đơn Wifi",
-                        Mota = $"Người tạo: {userName} (ID: {userId}) | Thiết bị: {itWifi?.LoaiThietBi} | MAC: {itWifi?.MacTb}. " +
+                        Mota = $"Người tạo: {userName} (ID: {userId}) | Công ty: {tenCongTy} | Thiết bị: {itWifi?.LoaiThietBi} | MAC: {itWifi?.MacTb}. " +
                                 $"{supporterLog}. {fileLog}.",
                         Time = DateTime.Now
                     };
@@ -815,7 +792,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    // Load lại danh sách công việc để View không lỗi dropdown
                     ViewBag.CongViecList = await _context.CongViecs.OrderBy(x => x.Ten).ToListAsync();
                     ModelState.AddModelError("", "Lỗi hệ thống: " + ex.Message);
                     return View(form);
@@ -838,10 +814,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userName = User.Identity.Name ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
             var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
-                           ?? User.FindFirst("UserRole")?.Value ?? "";
+                            ?? User.FindFirst("UserRole")?.Value ?? "";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
 
-            // --- LẤY DANH SÁCH CÔNG VIỆC (Đổi từ chọn người hỗ trợ sang chọn công việc) ---
+            // --- THÊM: LẤY TÊN CÔNG TY ---
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+
+            // --- LẤY DANH SÁCH CÔNG VIỆC ---
             ViewBag.CongViecList = await _context.CongViecs
                 .Where(x => x.Ten.Contains("Đăng kí sử dụng điện thoại"))
                 .OrderBy(x => x.Ten)
@@ -854,6 +833,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 BoPhan = phongBan,
                 ViTri = userRole,
                 SoNhanVien = userEmail,
+                TenCongTy = tenCongTy, // Gán công ty vào model
                 Ngay = DateOnly.FromDateTime(DateTime.Now),
                 IdNguoiTao = userId,
                 TenNguoiTao = userName,
@@ -877,6 +857,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var viTri = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
                         ?? User.FindFirst("UserRole")?.Value ?? "";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
@@ -896,11 +877,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.BoPhan = phongBan;
                     form.ViTri = viTri;
                     form.SoNhanVien = userEmail;
+                    form.TenCongTy = tenCongTy; // Lưu tên công ty
                     form.TrangThai = "ChoDuyet";
                     form.IdForm = "IT_DT_BAN_4";
                     form.TenForm = "Đơn đăng ký sử dụng điện thoại bàn";
 
-                    // Gán tên công việc vào trường Danhmuc
                     if (congViec != null)
                     {
                         form.Danhmuc = congViec.Ten;
@@ -909,27 +890,18 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     _context.FormIts.Add(form);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 2: XỬ LÝ FILE ĐÍNH KÈM (Đã chuyển sang File Server) ---
+                    // --- BƯỚC 2: XỬ LÝ FILE ĐÍNH KÈM ---
                     var uploadFile = Request.Form.Files["UploadFile"];
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
-                        // Đường dẫn lưu trữ trên Network Share
                         string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
-
-                        // Kiểm tra và tạo thư mục nếu chưa tồn tại
-                        if (!Directory.Exists(networkPath))
-                        {
-                            Directory.CreateDirectory(networkPath);
-                        }
+                        if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
 
                         string extension = Path.GetExtension(uploadFile.FileName);
                         string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
                         string timeStamp = DateTime.Now.ToString("ddMMyy_HHmmss");
 
-                        // Giữ nguyên format tên file DonDTBan của bạn
                         string fileName = $"DonDTBan_ID{form.Id}_{safeName}_{timeStamp}{extension}";
-
-                        // Kết hợp đường dẫn mạng với tên file
                         string fullPath = Path.Combine(networkPath, fileName);
 
                         using (var fileStream = new FileStream(fullPath, FileMode.Create))
@@ -937,7 +909,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             await uploadFile.CopyToAsync(fileStream);
                         }
 
-                        // Cập nhật thông tin vào Database
                         form.FileDinhKem = fileName;
                         _context.Entry(form).Property(x => x.FileDinhKem).IsModified = true;
                         await _context.SaveChangesAsync();
@@ -948,12 +919,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     {
                         itDtBan.IdFormIt = form.Id;
                         itDtBan.Anh = await GetFileBytesAsync2("Anh");
-
                         _context.ItDangKiSuDungDtban4s.Add(itDtBan);
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 4: LƯU NGƯỜI HỖ TRỢ (Tự động lưu từ công việc đã chọn) ---
+                    // --- BƯỚC 4: LƯU NGƯỜI HỖ TRỢ ---
                     if (congViec != null && congViec.IdItNguoiHoTroNavigation != null)
                     {
                         var chiTietHoTro = new ItCtNguoiHoTro
@@ -971,10 +941,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     {
                         IdFormIt = form.Id,
                         TieuDe = "Khởi tạo đơn Điện thoại bàn",
-                        Mota = $"Người thao tác: {userName} ({userEmail}). " +
-                               $"Công việc: {form.Danhmuc}. " +
-                               $"Nội dung: {itDtBan?.ThongTin}. " +
-                               $"Trạng thái: Khởi tạo đơn (Chờ duyệt).",
+                        Mota = $"Người thao tác: {userName} | Công ty: {tenCongTy} | Công việc: {form.Danhmuc}. Nội dung: {itDtBan?.ThongTin}. Trạng thái: Chờ duyệt.",
                         Time = DateTime.Now
                     };
                     _context.LichSus.Add(lichSu);
@@ -987,10 +954,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    // Load lại danh sách công việc nếu lỗi
-                    ViewBag.CongViecList = await _context.CongViecs
-                        .Where(x => x.Ten.Contains("Đăng kí sử dụng điện thoại"))
-                        .ToListAsync();
+                    ViewBag.CongViecList = await _context.CongViecs.Where(x => x.Ten.Contains("Đăng kí sử dụng điện thoại")).ToListAsync();
                     ModelState.AddModelError("", "Lỗi hệ thống: " + ex.Message);
                     return View(form);
                 }
@@ -998,7 +962,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
-
         #region CHI TIẾT ĐƠN FORM IT (TẤT CẢ LOẠI ĐƠN)
         [HttpGet("/FormIT/ChiTiet/{id}")]
         public async Task<IActionResult> ChiTiet(int id)

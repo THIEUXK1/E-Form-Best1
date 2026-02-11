@@ -5,10 +5,11 @@
     ViewData["Title"] = "Đăng ký sử dụng Wifi - IT System";
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 
-    // --- THAY ĐỔI TỪ SESSION SANG COOKIE (CK) ---
     var tenNguoiNv = User.Identity.Name ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    // --- THÊM: LẤY TÊN CÔNG TY ---
+    var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
     // Tông màu: Xanh lá (Emerald) - An toàn & Hệ thống
@@ -33,7 +34,6 @@
         background: #f0fdf4 !important;
     }
 
-    /* Tối ưu cuộn cho bảng cam kết */
     .cam-ket-scroll::-webkit-scrollbar {
         width: 6px;
     }
@@ -70,21 +70,24 @@
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin chủ sở hữu</h3>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                @* Grid đã được sửa thành 4 cột để chứa thêm Công Ty *@
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
                     <div style="background: #f0fdf4; padding: 15px; border-radius: 15px; border: 1px solid #dcfce7;">
                         <label style="@labelBase">Mã nhân viên</label>
-                        <div style="font-weight: 700; color: #065f46; font-size: 15px;">@soNhanVien</div>
-                        <input type="hidden" name="MaNv" value="@soNhanVien" />
+                        <div style="font-weight: 700; color: #065f46; font-size: 14px;">@soNhanVien</div>
                     </div>
                     <div style="background: #f0fdf4; padding: 15px; border-radius: 15px; border: 1px solid #dcfce7;">
                         <label style="@labelBase">Họ tên</label>
-                        <div style="font-weight: 700; color: #065f46; font-size: 15px;">@tenNguoiNv</div>
-                        <input type="hidden" name="HoTen" value="@tenNguoiNv" />
+                        <div style="font-weight: 700; color: #065f46; font-size: 14px;">@tenNguoiNv</div>
                     </div>
                     <div style="background: #f0fdf4; padding: 15px; border-radius: 15px; border: 1px solid #dcfce7;">
                         <label style="@labelBase">Bộ phận</label>
-                        <div style="font-weight: 700; color: #065f46; font-size: 15px;">@phongBan</div>
-                        <input type="hidden" name="PhongBan" value="@phongBan" />
+                        <div style="font-weight: 700; color: #065f46; font-size: 14px;">@phongBan</div>
+                    </div>
+                    @* --- CẬP NHẬT: HIỂN THỊ TÊN CÔNG TY --- *@
+                    <div style="background: #ecfdf5; padding: 15px; border-radius: 15px; border: 1px solid @colorBorder;">
+                        <label style="@labelBase">Công ty</label>
+                        <div style="font-weight: 800; color: @colorPrimary; font-size: 14px;">@tenCongTy</div>
                     </div>
                 </div>
             </div>
@@ -196,8 +199,8 @@
 </div>
 
 <script>
-    // 1. Tự động định dạng MAC Address (00:00:00:00:00:00)
-    document.getElementById("MacTb").addEventListener('input', function (e) {
+    // 1. Tự động định dạng MAC Address
+    document.getElementById("MacTb").addEventListener('input', function(e) {
         let value = e.target.value.toUpperCase().replace(/[^0-9A-F]/g, '');
         let formatted = "";
         for (let i = 0; i < value.length && i < 12; i++) {
@@ -229,7 +232,7 @@
     function xuLyLuuWifi() {
         const loaiThietBi = document.getElementById("LoaiThietBi").value;
         const mac = document.getElementById("MacTb").value;
-        const congViec = document.getElementById("selectedCongViecId").value; // Đã sửa từ Selected thành selected
+        const congViec = document.getElementById("selectedCongViecId").value;
         const chk = document.getElementById("chkCamKet");
         const btn = document.getElementById("btnSubmit");
 
@@ -240,13 +243,13 @@
         }
 
         if (mac.length < 17) {
-            alert("⚠️ Địa chỉ MAC không hợp lệ (Phải đủ 12 ký tự hex)!");
+            alert("⚠️ Địa chỉ MAC không hợp lệ!");
             document.getElementById("MacTb").focus();
             return;
         }
 
         if (!congViec) {
-            alert("⚠️ Vui lòng chọn loại công việc cần thực hiện!");
+            alert("⚠️ Vui lòng chọn loại công việc!");
             return;
         }
 
@@ -256,7 +259,7 @@
         }
 
         if (confirm("Gửi yêu cầu truy cập Wifi cho thiết bị này?")) {
-            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG KHỞI TẠO...';
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG GỬI...';
             btn.style.opacity = '0.7';
             btn.style.pointerEvents = 'none';
             document.getElementById("itWifiForm").submit();
