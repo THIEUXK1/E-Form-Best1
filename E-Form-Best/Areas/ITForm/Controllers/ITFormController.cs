@@ -962,6 +962,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
+
         #region CHI TIẾT ĐƠN FORM IT (TẤT CẢ LOẠI ĐƠN)
         [HttpGet("/FormIT/ChiTiet/{id}")]
         public async Task<IActionResult> ChiTiet(int id)
@@ -1156,7 +1157,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/QuanLyXetDuyet")]
         public async Task<IActionResult> QuanLyXetDuyet()
         {
-            // --- 1. LẤY THÔNG TIN TỪ CLAIMS (Giữ nguyên) ---
+            // --- 1. LẤY THÔNG TIN TỪ CLAIMS (Giữ nguyên & Bổ sung TenCongTy) ---
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return Redirect("/DonXetDuyet/DangNhap");
             int userId = int.Parse(userIdStr);
@@ -1165,16 +1166,29 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             ?? User.FindFirst("UserRole")?.Value ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
 
+            // Lấy thông tin TenCongTy từ Claim
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+
             if (userRole == "BaoVe") return Forbid();
 
-            // --- 2. TRUY VẤN DỮ LIỆU (Bổ sung Include DanhGia) ---
+            // --- 2. TRUY VẤN DỮ LIỆU (Giữ nguyên toàn bộ Include) ---
             IQueryable<FormIt> query = _context.FormIts
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
-                .Include(f => f.DanhGia); // THÊM DÒNG NÀY ĐỂ KIỂM TRA ĐÁNH GIÁ
+                .Include(f => f.DanhGia); // Giữ nguyên để kiểm tra đánh giá
 
-            // --- 3. LOGIC PHÂN QUYỀN (Giữ nguyên 100%) ---
-            if (userRole == "All") { /* Xem toàn bộ */ }
+            // --- 3. LOGIC PHÂN QUYỀN (Kết hợp TenCongTy & Giữ nguyên logic cũ) ---
+
+            // Ưu tiên lọc theo TenCongTy trước để đảm bảo an toàn dữ liệu giữa các công ty
+            if (!string.IsNullOrEmpty(tenCongTy))
+            {
+                query = query.Where(f => f.TenCongTy == tenCongTy);
+            }
+
+            if (userRole == "All")
+            {
+                /* Xem toàn bộ trong phạm vi công ty đã lọc ở trên */
+            }
             else if (userRole == "Admin" || userRole == "QuanLy")
             {
                 if (!string.IsNullOrEmpty(phongBan))
@@ -1187,6 +1201,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 query = query.Where(f => f.IdNguoiTao == userId);
             }
 
+            // --- 4. THỰC THI TRUY VẤN ---
             var danhSachDon = await query
                 .OrderByDescending(f => f.Id)
                 .AsNoTracking()
