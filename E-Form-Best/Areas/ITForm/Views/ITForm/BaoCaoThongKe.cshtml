@@ -21,9 +21,6 @@
     IEnumerable<dynamic> avgByHandlerDanhMuc = avgByHandlerDanhMucObj as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
 
     var total = Model?.Count() ?? 0;
-    // Companies for per-company reporting
-    var companies = ViewBag.Companies as List<string> ?? new List<string> { "All" };
-    var companyReportsObj = ViewBag.CompanyReports ?? new Dictionary<string, object>();
 
     // Màu sắc chủ đạo
     string cGreen = "#10b981", cPurple = "#8b5cf6", cBlue = "#3b82f6", cOrange = "#f59e0b", cRed = "#ef4444", cGray = "#64748b";
@@ -109,17 +106,6 @@
         <button onclick="location.reload()" style="padding: 10px 22px; background: @cGreen; color: #fff; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2); transition: all 0.2s;">
             <i class="fa fa-sync-alt"></i> Làm mới
         </button>
-    </div>
-
-    <div style="margin-bottom:18px; display:flex; gap:12px; align-items:center;">
-        <label style="font-weight:700; color:#475569;">Chọn công ty:</label>
-        <select id="companySelect" onchange="onCompanyChange()" style="padding:8px 12px; border-radius:8px; border:1px solid #e2e8f0;">
-            @foreach(var c in companies)
-            {
-                <option value="@c">@c</option>
-            }
-        </select>
-        <small style="color:#64748b; margin-left:8px;">(All = tổng cả 2 công ty)</small>
     </div>
 
     @* Cards Statistics *@
@@ -614,9 +600,9 @@
         chartConfigs['itDanhMucChart'] = {
             type: 'bar',
             data: {
-                labels: initialReport.DanhMucLabels || [],
+                labels: @Html.Raw(Json.Serialize(danhmucLabels)),
                 datasets: [{
-                    data: initialReport.DanhMucCounts || [],
+                    data: @Html.Raw(Json.Serialize(danhmucCounts)),
                     backgroundColor: '@cPurple',
                     borderRadius: 6,
                     barThickness: 'flex',
@@ -636,9 +622,9 @@
         chartConfigs['itStatusChart'] = {
             type: 'doughnut',
             data: {
-                labels: initialReport.StatusLabels || [],
+                labels: @Html.Raw(Json.Serialize(statusLabels)),
                 datasets: [{
-                    data: initialReport.StatusCounts || [],
+                    data: @Html.Raw(Json.Serialize(statusCounts)),
                     backgroundColor: ['@cGreen', '@cPurple', '@cBlue', '@cOrange', '@cRed'],
                     borderWidth: 4,
                     borderColor: '#ffffff'
@@ -670,36 +656,6 @@
             if (canvas) chartInstances[id] = new Chart(canvas, chartConfigs[id]);
         });
     });
-
-    function onCompanyChange() {
-        const sel = document.getElementById('companySelect');
-        const name = sel.value;
-        const report = companyReports[name] || companyReports['All'];
-
-        // update type chart
-        const typeInst = chartInstances['itTypeChart'];
-        if (typeInst) {
-            typeInst.data.labels = report.TypeLabels || [];
-            typeInst.data.datasets[0].data = report.TypeCounts || [];
-            typeInst.update();
-        }
-
-        // update danh muc
-        const dmInst = chartInstances['itDanhMucChart'];
-        if (dmInst) {
-            dmInst.data.labels = report.DanhMucLabels || [];
-            dmInst.data.datasets[0].data = report.DanhMucCounts || [];
-            dmInst.update();
-        }
-
-        // update status
-        const stInst = chartInstances['itStatusChart'];
-        if (stInst) {
-            stInst.data.labels = report.StatusLabels || [];
-            stInst.data.datasets[0].data = report.StatusCounts || [];
-            stInst.update();
-        }
-    }
 
     function zoomChart(id, title) {
         document.getElementById('modalTitle').innerText = title;

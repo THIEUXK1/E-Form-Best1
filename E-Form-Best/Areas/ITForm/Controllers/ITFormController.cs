@@ -1825,63 +1825,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         countHuy
     };
 
-            // 6.1 THỐNG KÊ THEO CÔNG TY (mỗi công ty 1 báo cáo riêng và 1 báo cáo tổng)
-            var companies = allForms
-                .Select(f => string.IsNullOrWhiteSpace(f.TenCongTy) ? "Không xác định" : f.TenCongTy)
-                .Distinct()
-                .OrderBy(x => x)
-                .ToList();
-
-            // Build a dictionary of reports per company (key = company name)
-            var companyReports = new Dictionary<string, object>();
-
-            // Helper local func to build report object for a list of forms
-            object BuildReport(IEnumerable<FormIt> formsForCompany)
-            {
-                var list = formsForCompany.ToList();
-                var tStats = list
-                    .GroupBy(f => f.IdForm ?? "")
-                    .Select(g => new { Label = GetShortNameIT(g.Key), Value = g.Count() })
-                    .ToList();
-
-                var dStats = list
-                    .Where(f => !string.IsNullOrEmpty(f.Danhmuc))
-                    .GroupBy(f => f.Danhmuc)
-                    .Select(g => new { Label = g.Key, Value = g.Count() })
-                    .ToList();
-
-                bool IsHuyLocal(FormIt f) => (f.TenForm ?? "").Contains("[ĐÃ HỦY]") || f.TrangThai == "TuChoi";
-
-                int h = list.Count(IsHuyLocal);
-                int ht = list.Count(f => !IsHuyLocal(f) && f.IdAdmin != null && f.TimeAdmin != null && f.DanhGia != null && f.DanhGia.Any());
-                int chdg = list.Count(f => !IsHuyLocal(f) && f.IdAdmin != null && f.TimeAdmin != null && (f.DanhGia == null || !f.DanhGia.Any()));
-                int dxl = list.Count(f => !IsHuyLocal(f) && f.IdNguoiDuyet != null && f.TimeNguoiDuyet != null && f.IdAdmin == null);
-                int cd = list.Count - h - ht - chdg - dxl;
-
-                return new
-                {
-                    Total = list.Count,
-                    TypeLabels = tStats.Select(x => x.Label).ToList(),
-                    TypeCounts = tStats.Select(x => x.Value).ToList(),
-                    DanhMucLabels = dStats.Select(x => x.Label).ToList(),
-                    DanhMucCounts = dStats.Select(x => x.Value).ToList(),
-                    StatusLabels = new List<string> { "Hoàn tất", "Chờ đánh giá", "Đang xử lý", "Chờ duyệt", "Đã hủy" },
-                    StatusCounts = new List<int> { ht, chdg, dxl, cd, h }
-                };
-            }
-
-            // Overall (All companies)
-            companyReports["All"] = BuildReport(allForms);
-
-            foreach (var c in companies)
-            {
-                var forC = allForms.Where(f => (f.TenCongTy ?? "Không xác định") == c);
-                companyReports[c] = BuildReport(forC);
-            }
-
-            ViewBag.Companies = (new List<string> { "All" }).Concat(companies).ToList();
-            ViewBag.CompanyReports = companyReports; // will be serialized in view
-
             // 6. THỜI GIAN XỬ LÝ TRUNG BÌNH
             var completedForms = allForms
                 .Where(f => !IsHuy(f) && f.TimeAdmin != null && f.TimeNguoiDuyet != null)
