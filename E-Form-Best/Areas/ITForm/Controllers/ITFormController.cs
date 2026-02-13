@@ -2008,8 +2008,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .ThenInclude(f => f.DanhGia)
                 .AsQueryable();
 
-            // Logic phân quyền (Giữ nguyên hoàn toàn)
-            if (userRole != "Admin" && userRole != "All")
+            // Logic phân quyền: All xem tất cả, Admin xem đơn đã duyệt, còn lại xem đơn liên quan
+            if (userRole == "All")
+            {
+                // Không lọc thêm
+            }
+            else if (userRole == "Admin")
+            {
+                query = query.Where(l => l.IdFormItNavigation.IdNguoiDuyet != null);
+            }
+            else
             {
                 query = query.Where(l =>
                     l.IdFormItNavigation.IdNguoiTao == userId ||
@@ -2019,7 +2027,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 );
             }
 
-            // Không dùng AsNoTracking ở đây nếu bạn muốn cập nhật IsRead ngay trong action này (tùy chọn)
             var logs = await query.OrderByDescending(l => l.Time).ToListAsync();
             return View(logs);
         }
@@ -2040,8 +2047,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .AsQueryable();
 
-            // Logic phân quyền (Giữ nguyên hoàn toàn của bạn)
-            if (userRole != "Admin" && userRole != "All")
+            if (userRole == "All")
+            {
+                // Xem toàn bộ
+            }
+            else if (userRole == "Admin")
+            {
+                query = query.Where(l => l.IdFormItNavigation.IdNguoiDuyet != null);
+            }
+            else
             {
                 query = query.Where(l =>
                     l.IdFormItNavigation.IdNguoiTao == userId ||
@@ -2051,10 +2065,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 );
             }
 
-            // Tính tổng số chưa đọc (không bị ảnh hưởng bởi skip/take)
             var unreadCount = await query.CountAsync(l => l.IsRead != true);
 
-            // Lấy dữ liệu phân trang
             var logs = await query.OrderByDescending(l => l.Time)
                                   .Skip(skip)
                                   .Take(take)
@@ -2065,6 +2077,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                       l.Mota,
                                       Time = l.Time.HasValue ? l.Time.Value.ToString("dd/MM HH:mm") : "",
                                       IsRead = l.IsRead ?? false
+                                      // Đã loại bỏ dòng l.Icon gây lỗi ở đây
                                   })
                                   .AsNoTracking()
                                   .ToListAsync();
@@ -2072,7 +2085,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return Ok(new { dataList = logs, unreadCount });
         }
 
-        // ACTION MỚI: Đánh dấu một thông báo là đã đọc
         [HttpPost("/FormIT/MarkAsRead/{id}")]
         public async Task<IActionResult> MarkAsRead(int id)
         {
@@ -2087,7 +2099,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return Ok();
         }
 
-        // ACTION MỚI: Đánh dấu tất cả là đã đọc
         [HttpPost("/FormIT/MarkAllAsRead")]
         public async Task<IActionResult> MarkAllAsRead()
         {
@@ -2098,10 +2109,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userRole = User.FindFirst("UserRole")?.Value ?? "";
             var userMaNv = User.Identity.Name;
 
-            // Lấy tất cả thông báo chưa đọc dựa trên phân quyền
             var query = _context.LichSus.Where(l => l.IsRead != true);
 
-            if (userRole != "Admin" && userRole != "All")
+            if (userRole == "All")
+            {
+                // Không lọc
+            }
+            else if (userRole == "Admin")
+            {
+                query = query.Where(l => l.IdFormItNavigation.IdNguoiDuyet != null);
+            }
+            else
             {
                 query = query.Where(l =>
                     l.IdFormItNavigation.IdNguoiTao == userId ||
