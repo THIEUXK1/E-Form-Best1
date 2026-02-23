@@ -55,7 +55,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
 
             // 2. Kiểm tra tài khoản trong Database
+            // Cập nhật: Dùng Include để lấy danh sách tất cả bộ phận liên quan
             var user = _context.Users
+                .Include(u => u.UserBoPhans)
+                    .ThenInclude(ub => ub.IdBoPhanNavigation)
                 .FirstOrDefault(u => u.Tk == email && u.MatKhau == matKhau && u.TrangThai != "Khóa");
 
             if (user == null)
@@ -67,13 +70,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // 3. XỬ LÝ ĐỊNH DANH THIẾT BỊ (LAPTOP/PHONE)
             string userAgent = Request.Headers["User-Agent"].ToString();
 
-            // Tìm thiết bị dựa trên ID người dùng và mã nhận diện trình duyệt (userAgent)
             var device = _context.UserDevices
                 .FirstOrDefault(d => d.IdNguoiDung == user.IdNguoiDung && d.DeviceFingerprint == userAgent);
 
             if (device == null)
             {
-                // Nếu là thiết bị/trình duyệt mới, lưu vào bảng UserDevices
                 var newDevice = new UserDevice
                 {
                     IdNguoiDung = user.IdNguoiDung,
@@ -86,14 +87,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             else
             {
-                // Nếu thiết bị cũ quay lại, cập nhật thời gian truy cập mới nhất
                 device.LastLogin = DateTime.Now;
                 if (!string.IsNullOrEmpty(deviceName)) device.DeviceName = deviceName;
                 _context.UserDevices.Update(device);
             }
             await _context.SaveChangesAsync();
 
-            // 4. THIẾT LẬP COOKIE AUTHENTICATION (ĐĂNG NHẬP VĨNH VIỄN)
+            // 4. THIẾT LẬP COOKIE AUTHENTICATION
             var claims = new List<Claim>
     {
         new Claim(ClaimTypes.NameIdentifier, user.IdNguoiDung.ToString()),
@@ -101,27 +101,41 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         new Claim(ClaimTypes.Email, user.Tk ?? ""),
         new Claim("UserRole", user.VaiTro ?? ""),
         new Claim("PhongBan", user.PhongBan ?? ""),
-        // LƯU THÊM TÊN CÔNG TY VÀO CLAIM
         new Claim("TenCongTy", user.TenCongTy ?? "")
     };
+
+            // --- LẤY TẤT CẢ BỘ PHẬN (TEN_BO_PHAN & MO_TA) ---
+            if (user.UserBoPhans != null && user.UserBoPhans.Any())
+            {
+                // Lấy tất cả tên bộ phận, nối lại bằng dấu phẩy
+                var tatCaTenBoPhan = string.Join(", ", user.UserBoPhans
+                    .Where(ub => ub.IdBoPhanNavigation != null)
+                    .Select(ub => ub.IdBoPhanNavigation.TenBoPhan));
+
+                // Lấy tất cả mô tả, nối lại bằng dấu gạch đứng (vì mô tả thường dài)
+                var tatCaMoTa = string.Join(" | ", user.UserBoPhans
+                    .Where(ub => ub.IdBoPhanNavigation != null)
+                    .Select(ub => ub.IdBoPhanNavigation.MoTa));
+
+                claims.Add(new Claim("TenBoPhan", tatCaTenBoPhan));
+                claims.Add(new Claim("MoTaBoPhan", tatCaMoTa));
+            }
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
             var authProperties = new AuthenticationProperties
             {
-                // QUAN TRỌNG: Nếu tích 'Ghi nhớ', Cookie sẽ lưu trên ổ cứng (Persistent)
                 IsPersistent = rememberMe,
                 ExpiresUtc = rememberMe ? DateTimeOffset.UtcNow.AddDays(365) : null,
                 AllowRefresh = true
             };
 
-            // Đăng nhập hệ thống (Lưu Cookie)
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 new ClaimsPrincipal(claimsIdentity),
                 authProperties);
 
-            // 5. Lưu email vào Cookie thường để hiển thị lần sau (nếu cần)
+            // 5. Lưu email vào Cookie thường
             if (rememberMe)
             {
                 Response.Cookies.Append("RememberedEmail", email, new CookieOptions
@@ -137,12 +151,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             // 6. Chuyển hướng thành công
             return Redirect("/menuA");
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
-            // Xóa sạch Session (nếu có dùng các biến khác)
-            HttpContext.Session.Clear();
-
-            return Redirect("/DonXetDuyet/DangNhap");
         }
         [HttpGet("/DonXetDuyet/DangXuat")]
         public async Task<IActionResult> DangXuat()
@@ -1169,6 +1177,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // Lấy thông tin TenCongTy từ Claim
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
+            // Lấy danh sách TenBoPhan từ Claim (đã lưu ở bước đăng nhập)
+            var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
+            var listTenBoPhan = listTenBoPhanStr.Split(',')
+                                                .Select(s => s.Trim().ToLower())
+                                                .Where(s => !string.IsNullOrEmpty(s))
+                                                .ToList();
+
             if (userRole == "BaoVe") return Forbid();
 
             // --- 2. TRUY VẤN DỮ LIỆU (Giữ nguyên toàn bộ Include) ---
@@ -1191,13 +1206,25 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             else if (userRole == "Admin" || userRole == "QuanLy")
             {
-                if (!string.IsNullOrEmpty(phongBan))
+                // Ưu tiên 1: Check danh sách bộ phận trong Cookie trước
+                if (listTenBoPhan.Any())
+                {
+                    query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim().ToLower()));
+                }
+                // Ưu tiên 2: Nếu Cookie trống, check phongBan mặc định (logic cũ)
+                else if (!string.IsNullOrEmpty(phongBan))
+                {
                     query = query.Where(f => f.BoPhan != null && f.BoPhan.Trim().ToLower() == phongBan.ToLower());
+                }
+                // Nếu cả hai đều trống thì không trả về dữ liệu
                 else
+                {
                     query = query.Where(f => false);
+                }
             }
             else
             {
+                // Nhân viên thường chỉ xem đơn của mình
                 query = query.Where(f => f.IdNguoiTao == userId);
             }
 
@@ -1209,6 +1236,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             return View(danhSachDon);
         }
+
 
         [HttpPost("/FormIT/XuLyDon")]
         [ValidateAntiForgeryToken]
