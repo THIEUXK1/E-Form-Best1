@@ -8,20 +8,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        /* Tối ưu hóa thanh cuộn (Scrollbar) */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -48,89 +44,65 @@
             color: #1a202c;
         }
 
-        /* Loại bỏ gạch chân mặc định của link trong Aside */
         aside a {
             text-decoration: none !important;
         }
+
+        .nav-link-custom {
+            display: flex;
+            align-items: center;
+            padding: 13px 25px;
+            color: rgba(255,255,255,0.8);
+            transition: all 0.2s;
+            gap: 12px;
+            font-size: 14px;
+            border-left: 4px solid transparent;
+        }
+
+            .nav-link-custom:hover {
+                background: rgba(255,255,255,0.05);
+                color: white;
+            }
+
+            .nav-link-custom.active {
+                background: rgba(74, 144, 226, 0.15) !important;
+                border-left: 4px solid #4a90e2 !important;
+                color: #4a90e2 !important;
+                font-weight: 600;
+            }
     </style>
 </head>
 <body>
 
-    <aside style="
-        width: 260px;
-        background: #1a202c;
-        color: white;
-        display: flex;
-        flex-direction: column;
-        flex-shrink: 0;
-        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-        position: sticky;
-        top: 0;
-        height: 100vh;
-        z-index: 1000;
-    ">
+    <aside style="width: 260px; background: #1a202c; color: white; display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 2px 0 10px rgba(0,0,0,0.1); position: sticky; top: 0; height: 100vh; z-index: 1000;">
         <a href="/MenuA" style="color: inherit; display: block;">
-            <div style="padding: 25px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); transition: background 0.3s;"
-                 onmouseover="this.style.background='rgba(255,255,255,0.05)'"
-                 onmouseout="this.style.background='transparent'">
+            <div style="padding: 25px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
                 <h2 style="margin: 0; font-size: 20px; letter-spacing: 1px; font-weight: 800; color: #4a90e2;">BEST PACIFIC</h2>
                 <span style="font-size: 10px; opacity: 0.6;">ADMIN MANAGEMENT</span>
             </div>
         </a>
 
         <nav style="padding: 20px 0; flex-grow: 1;">
-            <a href="/QLtaiKhoan" style="
-                display: flex;
-                align-items: center;
-                padding: 13px 25px;
-                color: rgba(255,255,255,0.8);
-                transition: all 0.2s;
-                gap: 12px;
-                font-size: 14px;
-                background: @(Context.Request.Path.Value == "/QLtaiKhoan" ? "rgba(74, 144, 226, 0.15)" : "transparent");
-                border-left: 4px solid @(Context.Request.Path.Value == "/QLtaiKhoan" ? "#4a90e2" : "transparent");
-            " onmouseover="this.style.background='rgba(255,255,255,0.05)'"
-               onmouseout="if('@Context.Request.Path.Value' != '/QLtaiKhoan') this.style.background='transparent'">
+            <a href="/QLtaiKhoan" class="nav-link-custom @(Context.Request.Path.Value == "/QLtaiKhoan" ? "active" : "")">
                 <i class="fas fa-users-cog" style="width: 20px;"></i>
                 <span>Quản lý tài khoản</span>
             </a>
-
-            <a href="/QLtaiKhoan/NguoiHoTro" style="
-                display: flex;
-                align-items: center;
-                padding: 13px 25px;
-                color: rgba(255,255,255,0.8);
-                transition: all 0.2s;
-                gap: 12px;
-                font-size: 14px;
-                background: @(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTro" ? "rgba(74, 144, 226, 0.15)" : "transparent");
-                border-left: 4px solid @(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTro" ? "#4a90e2" : "transparent");
-            " onmouseover="this.style.background='rgba(255,255,255,0.05)'"
-               onmouseout="if('@Context.Request.Path.Value' != '/QLtaiKhoan/NguoiHoTro') this.style.background='transparent'">
+            <a href="/QLBoPhanAamin" class="nav-link-custom @(Context.Request.Path.Value == "/QLBoPhanAamin" ? "active" : "")">
+                <i class="fas fa-sitemap" style="width: 20px;"></i>
+                <span>Quản lý Bộ phận</span>
+            </a>
+            <a href="/QLtaiKhoan/NguoiHoTro" class="nav-link-custom @(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTro" ? "active" : "")">
                 <i class="fas fa-user-shield" style="width: 20px;"></i>
                 <span>Người hỗ trợ IT</span>
             </a>
-
-            <a href="/Dashboard" style="
-                display: flex;
-                align-items: center;
-                padding: 13px 25px;
-                color: rgba(255,255,255,0.8);
-                transition: all 0.2s;
-                gap: 12px;
-                font-size: 14px;
-                background: @(Context.Request.Path.Value == "/Dashboard" ? "rgba(74, 144, 226, 0.15)" : "transparent");
-                border-left: 4px solid @(Context.Request.Path.Value == "/Dashboard" ? "#4a90e2" : "transparent");
-            " onmouseover="this.style.background='rgba(255,255,255,0.05)'"
-               onmouseout="if('@Context.Request.Path.Value' != '/Dashboard') this.style.background='transparent'">
+            <a href="/Dashboard" class="nav-link-custom @(Context.Request.Path.Value == "/Dashboard" ? "active" : "")">
                 <i class="fas fa-chart-line" style="width: 20px;"></i>
                 <span>Bảng điều khiển</span>
             </a>
         </nav>
 
         <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <a href="/Logout" style="color: #feb2b2; font-size: 14px; display: flex; align-items: center; gap: 10px; padding: 10px 5px; border-radius: 5px; transition: background 0.2s;"
-               onmouseover="this.style.background='rgba(245, 101, 101, 0.1)'" onmouseout="this.style.background='transparent'">
+            <a href="/Logout" style="color: #feb2b2; font-size: 14px; display: flex; align-items: center; gap: 10px;">
                 <i class="fas fa-sign-out-alt"></i>
                 <strong>Đăng xuất</strong>
             </a>
@@ -138,9 +110,9 @@
     </aside>
 
     <main style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
-        <header style="background: white; padding: 15px 30px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; justify-content: flex-end; align-items: center;">
+        <header style="background: white; padding: 15px 30px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; justify-content: flex-end;">
             <div style="font-size: 13px; color: #718096;">
-                Hệ thống quản lý E-Form <i class="fas fa-check-circle" style="color: #38a169; margin-left: 5px;"></i>
+                Hệ thống quản lý E-Form <i class="fas fa-check-circle" style="color: #38a169;"></i>
             </div>
         </header>
 
@@ -150,9 +122,9 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

@@ -16,6 +16,8 @@ public partial class ITFormContext : DbContext
     {
     }
 
+    public virtual DbSet<BoPhan> BoPhans { get; set; }
+
     public virtual DbSet<CongViec> CongViecs { get; set; }
 
     public virtual DbSet<CtDangKySuDungXeCongTac3> CtDangKySuDungXeCongTac3s { get; set; }
@@ -56,6 +58,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    public virtual DbSet<UserBoPhan> UserBoPhans { get; set; }
+
     public virtual DbSet<UserDevice> UserDevices { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -64,6 +68,11 @@ public partial class ITFormContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<BoPhan>(entity =>
+        {
+            entity.HasKey(e => e.IdBoPhan).HasName("PK__BoPhan__E66DCED5E953B918");
+        });
+
         modelBuilder.Entity<CongViec>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__CongViec__3213E83F5D615D57");
@@ -217,6 +226,19 @@ public partial class ITFormContext : DbContext
 
             entity.Property(e => e.NgayCapNhat).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.NgayTao).HasDefaultValueSql("(sysutcdatetime())");
+        });
+
+        modelBuilder.Entity<UserBoPhan>(entity =>
+        {
+            entity.HasKey(e => new { e.IdNguoiDung, e.IdBoPhan }).HasName("PK__User_BoP__3BB07DF3A33D7C1A");
+
+            entity.HasOne(d => d.IdBoPhanNavigation).WithMany(p => p.UserBoPhans)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_BoPhan");
+
+            entity.HasOne(d => d.IdNguoiDungNavigation).WithMany(p => p.UserBoPhans)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_User");
         });
 
         modelBuilder.Entity<UserDevice>(entity =>
