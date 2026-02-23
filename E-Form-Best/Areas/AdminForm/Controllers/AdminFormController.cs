@@ -1,7 +1,6 @@
 ﻿using E_Form_Best.Context;
 using E_Form_Best.Models.ITForm;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -404,7 +403,8 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             // Select ra object mới để tránh lỗi vòng lặp JSON và lấy được tên người hỗ trợ
             var list = _context.CongViecs
                 .OrderByDescending(x => x.Id)
-                .Select(x => new {
+                .Select(x => new
+                {
                     x.Id,
                     x.Ten,
                     x.TrangThai,
@@ -461,6 +461,240 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { success = true, newStatus = cv.TrangThai });
         }
+        #endregion
+
+        #region QL Bộ Phận
+
+        [HttpGet("/QLBoPhanAamin")]
+        public IActionResult QLBoPhanAamin()
+        {
+            // Sắp xếp danh sách user theo tên để dễ tìm kiếm trên View
+            ViewBag.Users = _context.Users.OrderBy(u => u.HoTen).ToList();
+            return View();
+        }
+
+        [HttpGet("/QLBoPhanAamin/GetListBoPhan")]
+        public IActionResult GetListBoPhan()
+        {
+            var data = _context.BoPhans.OrderByDescending(x => x.IdBoPhan).ToList();
+            return Json(new { data = data });
+        }
+
+        [HttpPost("/QLBoPhanAamin/SaveBoPhan")]
+        public IActionResult SaveBoPhan(BoPhan model)
+        {
+            try
+            {
+                if (model.IdBoPhan == 0)
+                {
+                    model.NgayTao = DateTime.Now;
+                    _context.BoPhans.Add(model);
+                }
+                else
+                {
+                    var existing = _context.BoPhans.Find(model.IdBoPhan);
+                    if (existing != null)
+                    {
+                        existing.TenBoPhan = model.TenBoPhan;
+                        existing.MoTa = model.MoTa;
+                    }
+                }
+                _context.SaveChanges();
+                return Json(new { success = true, msg = "Thành công!" });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        [HttpPost("/QLBoPhanAamin/DeleteBoPhan")]
+        public IActionResult DeleteBoPhan(int id)
+        {
+            try
+            {
+                var item = _context.BoPhans.Find(id);
+                if (item != null)
+                {
+                    // Chặn xóa nếu bộ phận đang có nhân sự
+                    var hasUsers = _context.UserBoPhans.Any(x => x.IdBoPhan == id);
+                    if (hasUsers) return Json(new { success = false, msg = "Bộ phận này đang có nhân sự, không thể xóa!" });
+
+                    _context.BoPhans.Remove(item);
+                    _context.SaveChanges();
+                }
+                return Json(new { success = true, msg = "Đã xóa thành công!" });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        [HttpPost("/QLBoPhanAamin/DeleteSelected")]
+        public IActionResult DeleteSelected(List<int> ids)
+        {
+            try
+            {
+                if (ids == null || ids.Count == 0) return Json(new { success = false, msg = "Chưa chọn dòng nào!" });
+                var listToDelete = _context.BoPhans.Where(x => ids.Contains(x.IdBoPhan)).ToList();
+                int deletedCount = 0;
+                string errorMsg = "";
+                foreach (var item in listToDelete)
+                {
+                    if (!_context.UserBoPhans.Any(x => x.IdBoPhan == item.IdBoPhan))
+                    {
+                        _context.BoPhans.Remove(item);
+                        deletedCount++;
+                    }
+                    else { errorMsg += $"- {item.TenBoPhan} đang có nhân sự.\n"; }
+                }
+                _context.SaveChanges();
+                return Json(new { success = true, msg = $"Đã xóa {deletedCount} mục." + (string.IsNullOrEmpty(errorMsg) ? "" : "\nLỗi:\n" + errorMsg) });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        [HttpPost("/QLBoPhanAamin/SyncFromUser")]
+        public IActionResult SyncFromUser()
+        {
+            try
+            {
+                var listFromUser = _context.Users
+                    .Where(u => !string.IsNullOrEmpty(u.PhongBan) && !string.IsNullOrEmpty(u.TenCongTy))
+                    .Select(u => new { TenBP = u.PhongBan.Trim(), MoTaBP = u.TenCongTy.Trim() })
+                    .Distinct().ToList();
+
+                int count = 0;
+                foreach (var item in listFromUser)
+                {
+                    if (!_context.BoPhans.Any(x => x.TenBoPhan == item.TenBP))
+                    {
+                        _context.BoPhans.Add(new BoPhan { TenBoPhan = item.TenBP, MoTa = item.MoTaBP, NgayTao = DateTime.Now });
+                        count++;
+                    }
+                }
+                _context.SaveChanges();
+                return Json(new { success = true, msg = $"Đã đồng bộ {count} bộ phận mới!" });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        // --- CÁC ACTION QUẢN LÝ NHÂN SỰ ---
+
+        [HttpGet("/QLBoPhanAamin/GetUsersByBP")]
+        public IActionResult GetUsersByBP(int idBoPhan)
+        {
+            var data = (from ub in _context.UserBoPhans
+                        join u in _context.Users on ub.IdNguoiDung equals u.IdNguoiDung
+                        where ub.IdBoPhan == idBoPhan
+                        select new
+                        {
+                            u.IdNguoiDung,
+                            HoTen = u.HoTen,
+                            TaiKhoan = u.Tk,
+                            Loai = ub.Loai
+                        }).ToList();
+            return Json(new { data = data });
+        }
+
+        /// <summary>
+        /// Thêm User vào bộ phận. 
+        /// Đã sửa: Nếu tồn tại thì cập nhật 'Loai', tránh trả về lỗi để UI mượt mà.
+        /// </summary>
+        [HttpPost("/QLBoPhanAamin/AddUserToBP")]
+        public IActionResult AddUserToBP(int idUser, int idBP, string loai)
+        {
+            try
+            {
+                var existing = _context.UserBoPhans.FirstOrDefault(x => x.IdBoPhan == idBP && x.IdNguoiDung == idUser);
+
+                if (existing != null)
+                {
+                    existing.Loai = loai;
+                    existing.NgayChiDinh = DateTime.Now; // Cập nhật lại ngày gán mới nhất
+                }
+                else
+                {
+                    _context.UserBoPhans.Add(new UserBoPhan
+                    {
+                        IdBoPhan = idBP,
+                        IdNguoiDung = idUser,
+                        Loai = loai,
+                        NgayChiDinh = DateTime.Now
+                    });
+                }
+
+                _context.SaveChanges();
+                return Json(new { success = true, msg = "Đã cập nhật nhân sự vào bộ phận." });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        [HttpPost("/QLBoPhanAamin/RemoveUserFromBP")]
+        public IActionResult RemoveUserFromBP(int idUser, int idBP)
+        {
+            try
+            {
+                var item = _context.UserBoPhans.FirstOrDefault(x => x.IdBoPhan == idBP && x.IdNguoiDung == idUser);
+                if (item != null)
+                {
+                    _context.UserBoPhans.Remove(item);
+                    _context.SaveChanges();
+                }
+                return Json(new { success = true, msg = "Đã gỡ nhân sự khỏi bộ phận." });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        /// <summary>
+        /// Lấy danh sách ID các bộ phận mà User hiện tại đã thuộc về
+        /// </summary>
+        [HttpGet("/QLBoPhanAamin/GetUserCurrentBPs")]
+        public IActionResult GetUserCurrentBPs(int idUser)
+        {
+            try
+            {
+                var ids = _context.UserBoPhans
+                    .Where(x => x.IdNguoiDung == idUser)
+                    .Select(x => x.IdBoPhan)
+                    .ToList();
+                return Json(new { success = true, data = ids });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        /// <summary>
+        /// Gán hàng loạt (Giữ lại để hỗ trợ các chức năng xử lý theo mảng nếu cần)
+        /// </summary>
+        [HttpPost("/QLBoPhanAamin/AssignMultipleBP")]
+        public IActionResult AssignMultipleBP(int IdNguoiDung, List<int> IdsBoPhan, string Loai)
+        {
+            try
+            {
+                if (IdNguoiDung <= 0) return Json(new { success = false, msg = "Vui lòng chọn nhân viên!" });
+                if (IdsBoPhan == null || IdsBoPhan.Count == 0) return Json(new { success = false, msg = "Hãy chọn ít nhất một bộ phận!" });
+
+                int countAdded = 0;
+                foreach (var idBP in IdsBoPhan)
+                {
+                    var existing = _context.UserBoPhans.FirstOrDefault(x => x.IdNguoiDung == IdNguoiDung && x.IdBoPhan == idBP);
+                    if (existing == null)
+                    {
+                        _context.UserBoPhans.Add(new UserBoPhan
+                        {
+                            IdNguoiDung = IdNguoiDung,
+                            IdBoPhan = idBP,
+                            Loai = Loai,
+                            NgayChiDinh = DateTime.Now
+                        });
+                        countAdded++;
+                    }
+                    else
+                    {
+                        existing.Loai = Loai; // Đồng bộ lại loại nếu đã tồn tại
+                    }
+                }
+                _context.SaveChanges();
+                return Json(new { success = true, msg = $"Đã xử lý {IdsBoPhan.Count} bộ phận cho nhân viên!" });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
         #endregion  
     }
     }
