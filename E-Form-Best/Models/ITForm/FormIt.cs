@@ -75,6 +75,9 @@ public partial class FormIt
     [StringLength(255)]
     public string? TenCongTy { get; set; }
 
+    [InverseProperty("IdFormNavigation")]
+    public virtual ICollection<BinhLuanFormIt> BinhLuanFormIts { get; set; } = new List<BinhLuanFormIt>();
+
     [InverseProperty("IdFormItNavigation")]
     public virtual ICollection<DanhGium> DanhGia { get; set; } = new List<DanhGium>();
 
