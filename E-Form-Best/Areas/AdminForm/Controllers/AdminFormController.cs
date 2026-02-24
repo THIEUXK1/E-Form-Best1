@@ -1,6 +1,8 @@
 ﻿using E_Form_Best.Context;
 using E_Form_Best.Models.ITForm;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -695,6 +697,24 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
         }
 
-        #endregion  
+        #endregion
+
+        #region Thông Tin cá nhân (Dùng chung cho tất cả người dùng đã đăng nhập, không phân biệt vai trò)
+        [HttpGet("/ThongTinTaiKhoan")]
+        [Authorize]
+        public IActionResult ThongTinTaiKhoan()
+        {
+            // Lấy thông tin từ các Claim bạn đã thiết lập ở hàm Post DangNhap
+            ViewBag.HoTen = User.Identity?.Name;
+            ViewBag.Email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+            ViewBag.VaiTro = User.FindFirst("UserRole")?.Value;
+            ViewBag.PhongBan = User.FindFirst("PhongBan")?.Value;
+            ViewBag.TenCongTy = User.FindFirst("TenCongTy")?.Value;
+            ViewBag.TenBoPhan = User.FindFirst("TenBoPhan")?.Value ?? "Chưa xác định";
+            ViewBag.MoTaBoPhan = User.FindFirst("MoTaBoPhan")?.Value ?? "Không có mô tả";
+
+            return View();
+        }
+        #endregion
     }
-    }
+}
