@@ -1075,6 +1075,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .Include(f => f.LichSus)
                 .Include(f => f.DanhGia)
+                .Include(f => f.BinhLuanFormIts)  // ✅ THÊM INCLUDE BÌNH LUẬN
                 .FirstOrDefaultAsync(m => m.Id == id);
 
             if (don == null)
@@ -1218,6 +1219,273 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex)
             {
                 return Json(new { success = false, message = "Lỗi: " + ex.Message });
+            }
+        }
+
+        #endregion
+
+        #region BÌNH LUẬN ĐƠN IT
+
+        [HttpGet("/FormIT/LayBinhLuan/{idForm}")]
+        public async Task<IActionResult> LayBinhLuan(int idForm, int skip = 0, int take = 20)
+        {
+            try
+            {
+                var binhLuans = await _context.BinhLuanFormIts
+                    .Where(bl => bl.IdForm == idForm && bl.TrangThai == "Active")
+                    .OrderByDescending(bl => bl.ThoiGian)
+                    .Skip(skip)
+                    .Take(take)
+                    .Select(bl => new
+                    {
+                        id = bl.Id,
+                        noiDung = bl.NoiDung,
+                        tenNguoiBinhLuan = bl.TenNguoiBinhLuan,
+                        idNguoiBinhLuan = bl.IdNguoiBinhLuan,
+                        ma = bl.Ma,
+                        phongBan = bl.PhongBan,
+                        tenCongTy = bl.TenCongTy,
+                        thoiGian = bl.ThoiGian,
+                        fileDinhKem = bl.FileDinhKem,
+                        trangThai = bl.TrangThai
+                    })
+                    .ToListAsync();
+
+                // Đảo ngược để cái mới nhất ở dưới cùng
+                binhLuans.Reverse();
+
+                return Json(new { success = true, data = binhLuans });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("/FormIT/ThemBinhLuan")]
+        public async Task<IActionResult> ThemBinhLuan()
+        {
+            try
+            {
+                var idForm = int.Parse(Request.Form["idForm"]);
+                var noiDung = Request.Form["noiDung"].ToString();
+                var file = Request.Form.Files.GetFile("file");
+
+                // Lấy đầy đủ thông tin từ Claims
+                var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userName = User.Identity?.Name ?? "Unknown";
+                var userMa = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+                var userPhongBan = User.FindFirst("PhongBan")?.Value ?? "";
+                var userTenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+
+                if (string.IsNullOrEmpty(userIdStr))
+                    return Json(new { success = false, message = "Chưa đăng nhập" });
+
+                // Kiểm tra đơn có tồn tại không
+                var formIt = await _context.FormIts.FindAsync(idForm);
+                if (formIt == null)
+                    return Json(new { success = false, message = "Không tìm thấy đơn" });
+
+                string fileName = null;
+
+                // Xử lý file đính kèm
+                if (file != null && file.Length > 0)
+                {
+                    // Kiểm tra kích thước file (max 50MB)
+                    if (file.Length > 50 * 1024 * 1024)
+                        return Json(new { success = false, message = "File không được vượt quá 50MB" });
+
+                    string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonIT";
+
+                    try
+                    {
+                        if (!Directory.Exists(networkPath))
+                            Directory.CreateDirectory(networkPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        return Json(new { success = false, message = "Không thể truy cập thư mục lưu trữ: " + ex.Message });
+                    }
+
+                    // Tạo tên file unique
+                    string safeFileName = Path.GetFileName(file.FileName);
+                    fileName = $"{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString().Substring(0, 8)}_{safeFileName}";
+                    string fullPath = Path.Combine(networkPath, fileName);
+
+                    try
+                    {
+                        using (var stream = new FileStream(fullPath, FileMode.Create))
+                        {
+                            await file.CopyToAsync(stream);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        return Json(new { success = false, message = "Không thể lưu file: " + ex.Message });
+                    }
+                }
+
+                // Kiểm tra nội dung không được rỗng nếu không có file
+                if (string.IsNullOrWhiteSpace(noiDung) && file == null)
+                    return Json(new { success = false, message = "Vui lòng nhập nội dung hoặc đính kèm file" });
+
+                // Lưu bình luận
+                var binhLuan = new BinhLuanFormIt
+                {
+                    IdForm = idForm,
+                    NoiDung = noiDung?.Trim(),
+                    IdNguoiBinhLuan = userIdStr,
+                    TenNguoiBinhLuan = userName,
+                    Ma = userMa,
+                    PhongBan = userPhongBan,
+                    TenCongTy = userTenCongTy,
+                    ThoiGian = DateTime.Now,
+                    TrangThai = "Active",
+                    FileDinhKem = fileName
+                };
+
+                _context.BinhLuanFormIts.Add(binhLuan);
+                await _context.SaveChangesAsync();
+
+                // Tạo lịch sử
+                var lichSu = new LichSu
+                {
+                    IdFormIt = idForm,
+                    TieuDe = "BÌNH LUẬN MỚI",
+                    Mota = $"👤 {userName} ({userMa})\n" +
+                           $"🏢 {userPhongBan} - {userTenCongTy}\n" +
+                           $"💬 {(string.IsNullOrWhiteSpace(noiDung) ? "[File đính kèm]" : (noiDung.Length > 50 ? noiDung.Substring(0, 50) + "..." : noiDung))}\n" +
+                           $"{(fileName != null ? "📎 Có đính kèm file" : "")}",
+                    Time = DateTime.Now
+                };
+                _context.LichSus.Add(lichSu);
+                await _context.SaveChangesAsync();
+
+                return Json(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        id = binhLuan.Id,
+                        noiDung = binhLuan.NoiDung,
+                        tenNguoiBinhLuan = binhLuan.TenNguoiBinhLuan,
+                        idNguoiBinhLuan = binhLuan.IdNguoiBinhLuan,
+                        ma = binhLuan.Ma,
+                        phongBan = binhLuan.PhongBan,
+                        tenCongTy = binhLuan.TenCongTy,
+                        thoiGian = binhLuan.ThoiGian,
+                        fileDinhKem = binhLuan.FileDinhKem,
+                        trangThai = binhLuan.TrangThai
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+            }
+        }
+
+        [HttpPost("/FormIT/XoaBinhLuan")]
+        public async Task<IActionResult> XoaBinhLuan([FromBody] dynamic data)
+        {
+            try
+            {
+                int id = (int)data.id;
+                var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userRole = User.FindFirst("UserRole")?.Value ?? "";
+
+                var binhLuan = await _context.BinhLuanFormIts.FindAsync(id);
+                if (binhLuan == null)
+                    return Json(new { success = false, message = "Không tìm thấy bình luận" });
+
+                // Kiểm tra quyền xóa: chỉ người tạo hoặc Admin/All
+                if (binhLuan.IdNguoiBinhLuan != userIdStr && userRole != "Admin" && userRole != "All")
+                    return Json(new { success = false, message = "Bạn không có quyền xóa bình luận này" });
+
+                // Xóa file đính kèm nếu có
+                if (!string.IsNullOrEmpty(binhLuan.FileDinhKem))
+                {
+                    string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonIT";
+                    string fullPath = Path.Combine(networkPath, binhLuan.FileDinhKem);
+
+                    try
+                    {
+                        if (System.IO.File.Exists(fullPath))
+                            System.IO.File.Delete(fullPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log lỗi nhưng vẫn cho phép xóa bình luận
+                        Console.WriteLine($"Không thể xóa file: {ex.Message}");
+                    }
+                }
+
+                _context.BinhLuanFormIts.Remove(binhLuan);
+                await _context.SaveChangesAsync();
+
+                // Tạo lịch sử xóa
+                var lichSu = new LichSu
+                {
+                    IdFormIt = binhLuan.IdForm,
+                    TieuDe = "XÓA BÌNH LUẬN",
+                    Mota = $"{User.Identity.Name} đã xóa bình luận của {binhLuan.TenNguoiBinhLuan}",
+                    Time = DateTime.Now
+                };
+                _context.LichSus.Add(lichSu);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Đã xóa bình luận" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+            }
+        }
+
+        [HttpGet("/FormIT/DownloadBinhLuanFile/{fileName}")]
+        public async Task<IActionResult> DownloadBinhLuanFile(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName))
+                return NotFound();
+
+            string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonIT";
+            string fullPath = Path.Combine(networkPath, fileName);
+
+            if (!System.IO.File.Exists(fullPath))
+                return NotFound("File không tồn tại");
+
+            try
+            {
+                var memory = new MemoryStream();
+                using (var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
+                {
+                    await stream.CopyToAsync(memory);
+                }
+                memory.Position = 0;
+
+                // Xác định Content-Type
+                string ext = Path.GetExtension(fileName).ToLowerInvariant();
+                string contentType = ext switch
+                {
+                    ".jpg" or ".jpeg" => "image/jpeg",
+                    ".png" => "image/png",
+                    ".gif" => "image/gif",
+                    ".pdf" => "application/pdf",
+                    ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    ".txt" => "text/plain",
+                    ".zip" => "application/zip",
+                    _ => "application/octet-stream"
+                };
+
+                // Lấy tên file gốc (bỏ phần timestamp và GUID)
+                string originalFileName = string.Join("_", fileName.Split('_').Skip(2));
+
+                return File(memory, contentType, originalFileName);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Lỗi khi tải file: " + ex.Message);
             }
         }
 

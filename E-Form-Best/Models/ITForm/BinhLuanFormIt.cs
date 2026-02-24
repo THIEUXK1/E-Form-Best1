@@ -32,4 +32,17 @@ public partial class BinhLuanFormIt
     public string? TrangThai { get; set; }
 
     public string? FileDinhKem { get; set; }
+
+    [StringLength(255)]
+    public string? PhongBan { get; set; }
+
+    [StringLength(255)]
+    public string? TenCongTy { get; set; }
+
+    [StringLength(50)]
+    public string? Ma { get; set; }
+
+    [ForeignKey("IdForm")]
+    [InverseProperty("BinhLuanFormIts")]
+    public virtual FormIt? IdFormNavigation { get; set; }
 }

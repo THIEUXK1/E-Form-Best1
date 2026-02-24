@@ -47,13 +47,10 @@
 
     // =========================================================
     // --- XỬ LÝ DỮ LIỆU CHI TIẾT THEO LOẠI ĐƠN ---
-    // Ưu tiên DuongDanAnh (file server) → fallback byte[] Anh (DB cũ)
     // =========================================================
     if (Model.ItMail1s != null && Model.ItMail1s.Any())
     {
         var ct = Model.ItMail1s.First();
-
-        // 🔴 Ưu tiên file server, fallback DB cũ
         if (!string.IsNullOrEmpty(ct.DuonDanAnh))
             listImages.Add("/FormIT/DownloadFile/" + ct.DuonDanAnh);
         else if (ct.Anh != null && ct.Anh.Length > 0)
@@ -70,8 +67,6 @@
     else if (Model.ItOrderIt2s != null && Model.ItOrderIt2s.Any())
     {
         var ct = Model.ItOrderIt2s.First();
-
-        // 🔴 Ưu tiên file server, fallback DB cũ
         if (!string.IsNullOrEmpty(ct.DuongDanAnh))
             listImages.Add("/FormIT/DownloadFile/" + ct.DuongDanAnh);
         else if (ct.Anh != null && ct.Anh.Length > 0)
@@ -85,15 +80,10 @@
     else if (Model.ItDangKiSuDungWifi3s != null && Model.ItDangKiSuDungWifi3s.Any())
     {
         var ct = Model.ItDangKiSuDungWifi3s.First();
-
         if (!string.IsNullOrEmpty(ct.DuongDanAnh))
-        {
             listImages.Add("/FormIT/DownloadFile/" + ct.DuongDanAnh);
-        }
         else if (ct.Anh != null && ct.Anh.Length > 0)
-        {
             listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
-        }
 
         chiTietNoiDung += RenderInfoRow("🏷️", "Mã thiết bị", ct.MaThietBi, "#fffbeb", "#92400e");
         chiTietNoiDung += RenderInfoRow("📶", "Thiết bị", ct.LoaiThietBi, "#f0f9ff", "#0369a1");
@@ -101,17 +91,12 @@
         chiTietNoiDung += RenderInfoRow("⏱️", "Thời gian", ct.LoaiThoiGian, "#f0fdf4", "#166534");
         chiTietNoiDung += RenderInfoRow("📅", "Từ ngày", ct.ThoiGianBatDau?.ToString("dd/MM/yyyy HH:mm"), "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("📅", "Đến ngày", ct.ThoiGianKetThuc?.ToString("dd/MM/yyyy HH:mm"), "#f8fafc", "#0f172a");
-
         if (!string.IsNullOrEmpty(ct.LyDo))
-        {
             chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LyDo, "#fdf2f8", "#9d174d");
-        }
     }
     else if (Model.ItDangKiSuDungDtban4s != null && Model.ItDangKiSuDungDtban4s.Any())
     {
         var ct = Model.ItDangKiSuDungDtban4s.First();
-
-        // 🔴 Ưu tiên file server, fallback DB cũ
         if (!string.IsNullOrEmpty(ct.DuongDanAnh))
             listImages.Add("/FormIT/DownloadFile/" + ct.DuongDanAnh);
         else if (ct.Anh != null && ct.Anh.Length > 0)
@@ -145,7 +130,7 @@
 
     <div style="background: white; border-radius: 30px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #f1f5f9;">
 
-        <!-- ==================== HEADER ==================== -->
+        <!-- HEADER -->
         <div style="background: @headerGradient; padding: 50px 40px; color: white; position: relative;">
             <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
                 <div>
@@ -169,13 +154,12 @@
             </div>
         </div>
 
-        <!-- ==================== BODY ==================== -->
+        <!-- BODY -->
         <div style="padding: 40px;">
             <div style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 40px;">
 
-                <!-- ========== LEFT COLUMN ========== -->
+                <!-- LEFT COLUMN -->
                 <div>
-                    <!-- THÔNG TIN CHI TIẾT -->
                     <h3 style="margin: 0 0 25px 0; color: #1e293b; font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 12px;">
                         <span style="width: 6px; height: 28px; background: #1e40af; border-radius: 10px;"></span> THÔNG TIN CHI TIẾT
                     </h3>
@@ -194,7 +178,6 @@
                         </div>
                     </div>
 
-                    <!-- DANH MỤC -->
                     <div style="margin-bottom: 30px;">
                         <div style="background: #ffffff; padding: 18px; border-radius: 14px; border: 1px solid #e6edf6; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display:flex; align-items:center; gap:12px;">
                             <i class="fa fa-tags" style="color:#0369a1; font-size:18px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:#f0f9ff; border-radius:8px;"></i>
@@ -210,12 +193,10 @@
                         </div>
                     </div>
 
-                    <!-- CHI TIẾT NỘI DUNG -->
                     <div style="background: #f8fafc; padding: 30px; border-radius: 24px; margin-bottom: 40px; border: 1px solid #f1f5f9; line-height: 1.6; color: #334155; font-size: 16px;">
                         @Html.Raw(chiTietNoiDung)
                     </div>
 
-                    <!-- ĐỘI NGŨ IT HỖ TRỢ -->
                     <h3 style="margin-bottom: 20px; color: #ea580c; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
                         <i class="fa fa-tools"></i> ĐỘI NGŨ IT HỖ TRỢ
                     </h3>
@@ -242,7 +223,6 @@
                         }
                     </div>
 
-                    <!-- CHỈ ĐỊNH NGƯỜI HỖ TRỢ (CHỈ IT/ADMIN) -->
                     @if ((currentUserRole == "Admin" || currentUserRole == "All" || currentUserRole == "IT") && !isCancelled && !isFinished)
                     {
                         <div style="background: #fff7ed; border: 2px dashed #fb923c; padding: 25px; border-radius: 24px; margin-bottom: 45px;">
@@ -267,7 +247,6 @@
                         </div>
                     }
 
-                    <!-- NHẬT KÝ THAO TÁC -->
                     <h3 style="margin-bottom: 25px; color: #1e293b; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
                         <i class="fa fa-history"></i> NHẬT KÝ THAO TÁC
                     </h3>
@@ -296,9 +275,8 @@
                     </div>
                 </div>
 
-                <!-- ========== RIGHT COLUMN ========== -->
+                <!-- RIGHT COLUMN -->
                 <div>
-                    <!-- HÌNH ẢNH ĐÍNH KÈM -->
                     @if (listImages.Count > 0)
                     {
                         <h3 style="margin-bottom: 20px; color: #0f172a; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
@@ -312,7 +290,6 @@
                         }
                     }
 
-                    <!-- FILE ĐÍNH KÈM -->
                     @if (!string.IsNullOrEmpty(fileUrl))
                     {
                         <div style="background: #f0f9ff; border: 2px solid #bae6fd; padding: 22px; border-radius: 24px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 35px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
@@ -324,7 +301,6 @@
                         </div>
                     }
 
-                    <!-- TIẾN TRÌNH XỬ LÝ -->
                     <div style="background: #ffffff; padding: 30px; border-radius: 28px; border: 1px solid #e2e8f0; margin-bottom: 35px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);">
                         <h4 style="margin: 0 0 25px 0; font-size: 15px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;">
                             <i class="fa fa-tasks"></i> TIẾN TRÌNH XỬ LÝ
@@ -348,7 +324,6 @@
                         </div>
                     </div>
 
-                    <!-- NÚT THAO TÁC -->
                     @if (!isCancelled && !isFinished)
                     {
                         <div style="display: flex; flex-direction: column; gap: 15px;">
@@ -373,14 +348,11 @@
                         </div>
                     }
 
-                    <!-- ========== ĐÁNH GIÁ & HOÀN TÁC - CHỈ NGƯỜI TẠO ĐƠN ========== -->
                     @if (Model.TrangThai == "HoanTat" && ViewBag.CurrentUserId != null && (int)ViewBag.CurrentUserId == Model.IdNguoiTao)
                     {
                         @if (!daDanhGia)
                         {
-                            <!-- Chưa đánh giá: Hiển thị form đánh giá + nút hoàn tác -->
                             <div style="margin-top: 15px;">
-                                <!-- FORM ĐÁNH GIÁ -->
                                 <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 25px; border-radius: 20px; border: 2px solid #10b981; margin-bottom: 15px;">
                                     <h4 style="margin: 0 0 15px 0; color: #065f46; font-size: 16px; font-weight: 900; display: flex; align-items: center; gap: 8px;">
                                         <i class="fa fa-star"></i> BẠN CÓ HÀI LÒNG VỚI DỊCH VỤ?
@@ -401,7 +373,6 @@
                                     </button>
                                 </div>
 
-                                <!-- NÚT HOÀN TÁC -->
                                 <div style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); padding: 20px; border-radius: 20px; border: 2px solid #fb923c;">
                                     <button id="btnChuaHoanThanh" onclick="handleChuaHoanThanh()" style="width: 100%; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 15px; box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(245, 158, 11, 0.4)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(245, 158, 11, 0.3)'">
                                         <i class="fa fa-undo"></i> TÔI VẪN CHƯA HÀI LÒNG / CHƯA XONG
@@ -414,7 +385,6 @@
                         }
                         else
                         {
-                            <!-- Đã đánh giá: Hiển thị kết quả -->
                             var dg = Model.DanhGia.First();
                             string starDisplay = new string('⭐', dg.MucDo ?? 0);
                             <div style="margin-top: 15px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 30px; border-radius: 20px; border: 2px solid #22c55e; box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.2);">
@@ -442,19 +412,81 @@
                             </div>
                         }
                     }
+
+                    <!-- ========== BÌNH LUẬN (THÊM PHẦN NÀY) ========== -->
+                    <div style="margin-top: 30px; background: #ffffff; border-radius: 28px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);">
+                        <div style="background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); padding: 20px 25px; border-bottom: 2px solid #e2e8f0;">
+                            <h4 style="margin: 0; font-size: 16px; font-weight: 900; color: #1e293b; display: flex; align-items: center; gap: 10px;">
+                                <i class="fa fa-comments"></i>
+                                <span>BÌNH LUẬN</span>
+                                <span id="commentCount" style="background: #3b82f6; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;">0</span>
+                            </h4>
+                        </div>
+
+                        <div id="commentList" style="max-height: 450px; overflow-y: auto; padding: 20px; background: #f8fafc; scrollbar-width: thin;">
+                            <div style="text-align: center; color: #94a3b8; padding: 20px;">
+                                <i class="fa fa-spinner fa-spin" style="font-size: 24px;"></i>
+                                <p style="margin-top: 10px; font-size: 14px;">Đang tải bình luận...</p>
+                            </div>
+                        </div>
+
+                        <div style="padding: 20px; background: white; border-top: 2px solid #e2e8f0;">
+                            <form id="formBinhLuan" enctype="multipart/form-data" onsubmit="return guiBinhLuan(event);">
+                                <textarea id="txtBinhLuan"
+                                          name="noiDung"
+                                          placeholder="Nhập bình luận của bạn..."
+                                          style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; font-family: 'Segoe UI', sans-serif; box-sizing: border-box; margin-bottom: 12px;"
+                                          onfocus="this.style.borderColor='#3b82f6'"
+                                          onblur="this.style.borderColor='#e2e8f0'"></textarea>
+
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <label for="fileBinhLuan"
+                                           style="flex: 1; padding: 12px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; cursor: pointer; text-align: center; font-size: 14px; color: #64748b; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;"
+                                           onmouseover="this.style.borderColor='#3b82f6'; this.style.background='#eff6ff'"
+                                           onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'">
+                                        <i class="fa fa-paperclip"></i>
+                                        <span id="fileLabel">Đính kèm file (max 50MB)</span>
+                                        <input type="file" id="fileBinhLuan" name="file" style="display: none;" onchange="updateFileLabel(this)">
+                                    </label>
+
+                                    <button type="submit"
+                                            id="btnGuiBinhLuan"
+                                            style="padding: 12px 30px; background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3); transition: all 0.2s; white-space: nowrap;"
+                                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 15px -3px rgba(59, 130, 246, 0.4)'"
+                                            onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 6px -1px rgba(59, 130, 246, 0.3)'">
+                                        <i class="fa fa-paper-plane"></i> Gửi
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-                <!-- END RIGHT COLUMN -->
             </div>
         </div>
     </div>
 
-    <!-- IMAGE OVERLAY (ZOOM) -->
     <div id="imageOverlay" onclick="closeZoom()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.95); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(8px);">
         <img id="fullImage" src="" style="max-width:95%; max-height:95%; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.1);">
     </div>
 </div>
 
 <script>
+    // Basic page-scoped values (JSON-safe where needed)
+    const formId = @Model.Id;
+    const currentUserId = '@currentUserId';
+    const currentUserRole = @System.Text.Json.JsonSerializer.Serialize(currentUserRole);
+
+    // === small helpers ===
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
     // === API POST CHUNG ===
     async function apiPost(url, body, btnIds) {
         if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = true; });
@@ -481,7 +513,6 @@
         }
     }
 
-    // === DUYỆT / HỦY ĐƠN ===
     function handleAction(type) {
         let reason = null;
         if (type === 'Huy') {
@@ -489,18 +520,16 @@
             if (reason === null || reason.trim() === "") return;
         }
         if (confirm("Xác nhận thao tác?")) {
-            apiPost('/FormIT/XuLyDon', { id: @Model.Id, action: type, reason: reason }, ['btnDuyet', 'btnHuy']);
+            apiPost('/FormIT/XuLyDon', { id: formId, action: type, reason: reason }, ['btnDuyet', 'btnHuy']);
         }
     }
 
-    // === XÁC NHẬN HOÀN THÀNH (IT) ===
     function handleXacNhanHoanThanh() {
         if (confirm("Xác nhận đã hoàn thành công việc này?")) {
-            apiPost('/FormIT/XacNhanHoanThanh', { id: @Model.Id }, ['btnHoanThanh']);
+            apiPost('/FormIT/XacNhanHoanThanh', { id: formId }, ['btnHoanThanh']);
         }
     }
 
-    // === HOÀN TÁC (CHƯA XONG) ===
     function handleChuaHoanThanh() {
         let reason = prompt("Vui lòng nhập lý do bạn xác nhận đơn này chưa hoàn thành:");
         if (reason === null) return;
@@ -509,11 +538,10 @@
             return;
         }
         if (confirm("Hệ thống sẽ chuyển đơn về trạng thái IT tiếp nhận. Xác nhận?")) {
-            apiPost('/FormIT/XacNhanChuaHoanThanh', { id: @Model.Id, reason: reason }, ['btnChuaHoanThanh']);
+            apiPost('/FormIT/XacNhanChuaHoanThanh', { id: formId, reason: reason }, ['btnChuaHoanThanh']);
         }
     }
 
-    // === THAY ĐỔI NGƯỜI HỖ TRỢ ===
     function changeSupporter() {
         const maNv = document.getElementById('selectIT').value;
         if (!maNv) {
@@ -521,7 +549,7 @@
             return;
         }
         if (confirm("Bạn có chắc chắn muốn thay đổi người hỗ trợ cho đơn này?")) {
-            apiPost('/FormIT/ThemNguoiHoTro', { idFormIt: @Model.Id, maNv: maNv });
+            apiPost('/FormIT/ThemNguoiHoTro', { idFormIt: formId, maNv: maNv });
         }
     }
 
@@ -588,14 +616,13 @@
         const nhanXet = txtNhanXet ? txtNhanXet.value.trim() : '';
         if (confirm(`Xác nhận đánh giá ${soSaoChon} sao?\n\n⚠️ LƯU Ý: Sau khi đánh giá, bạn sẽ KHÔNG THỂ hoàn tác đơn này nữa!`)) {
             apiPost('/FormIT/DanhGiaDon', {
-                id: @Model.Id,
+                id: formId,
                 mucDo: soSaoChon,
                 nhanXet: nhanXet
             }, ['btnGuiDanhGia']);
         }
     }
 
-    // === ZOOM ẢNH ===
     function openZoom(src) {
         document.getElementById('fullImage').src = src;
         document.getElementById('imageOverlay').style.display = 'flex';
@@ -604,4 +631,282 @@
     function closeZoom() {
         document.getElementById('imageOverlay').style.display = 'none';
     }
+
+    // ========== BÌNH LUẬN ==========
+    let currentSkipComment = 0;
+    const takeComment = 20;
+    let hasMoreComments = true;
+    let isLoadingComments = false;
+    let totalComments = 0;
+
+    async function taiBinhLuan(isLoadMore = false) {
+        if (isLoadingComments) return;
+        isLoadingComments = true;
+
+        try {
+            const res = await fetch(`/FormIT/LayBinhLuan/${formId}?skip=${currentSkipComment}&take=${takeComment}`);
+            const data = await res.json();
+
+            if (data.success) {
+                const commentList = document.getElementById('commentList');
+
+                if (!isLoadMore) {
+                    commentList.innerHTML = '';
+                    currentSkipComment = 0;
+                    totalComments = 0;
+                    hasMoreComments = true;
+                }
+
+                if (!data.data || data.data.length === 0) {
+                    if (!isLoadMore) {
+                        commentList.innerHTML = `
+                            <div style="text-align: center; color: #94a3b8; padding: 40px;">
+                                <i class="fa fa-comment-o" style="font-size: 48px; opacity: 0.3; margin-bottom: 15px; display: block;"></i>
+                                <p style="font-style: italic; font-size: 14px; margin: 0;">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
+                            </div>
+                        `;
+                    }
+                    hasMoreComments = false;
+                } else {
+                    // comments come newest-first from server; we reverse so oldest at top, newest at bottom
+                    data.data.reverse();
+                    data.data.forEach(bl => {
+                        const commentHtml = renderComment(bl);
+                        if (isLoadMore) {
+                            commentList.insertAdjacentHTML('afterbegin', commentHtml);
+                        } else {
+                            commentList.insertAdjacentHTML('beforeend', commentHtml);
+                        }
+                        totalComments++;
+                    });
+
+                    currentSkipComment += data.data.length;
+                    if (data.data.length < takeComment) hasMoreComments = false;
+
+                    if (!isLoadMore) {
+                        setTimeout(() => {
+                            commentList.scrollTop = commentList.scrollHeight;
+                        }, 100);
+                    }
+                }
+
+                updateCommentCount();
+            } else {
+                console.error('Server returned success:false for LayBinhLuan', data);
+            }
+        } catch (err) {
+            console.error('Lỗi tải bình luận:', err);
+            document.getElementById('commentList').innerHTML = `
+                <div style="text-align: center; color: #ef4444; padding: 40px;">
+                    <i class="fa fa-exclamation-circle" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
+                    <p style="font-size: 14px; margin: 0;">Lỗi khi tải bình luận. Vui lòng thử lại sau.</p>
+                </div>
+            `;
+        } finally {
+            isLoadingComments = false;
+        }
+    }
+
+    function renderComment(bl) {
+        const blIdNguoi = bl.idNguoiBinhLuan ? String(bl.idNguoiBinhLuan) : '';
+        const isOwn = currentUserId && currentUserId === blIdNguoi;
+        const canDelete = isOwn || currentUserRole === 'Admin' || currentUserRole === 'All';
+
+        const time = new Date(bl.thoiGian);
+        const timeStr = time.toLocaleString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+
+        let fileHtml = '';
+        if (bl.fileDinhKem) {
+            const originalName = bl.fileDinhKem.split('_').slice(2).join('_');
+            const safeOriginal = escapeHtml(originalName);
+            fileHtml = `
+                <div style="margin-top: 10px; padding: 10px; background: #f1f5f9; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fa fa-paperclip" style="color: #64748b;"></i>
+                    <a href="/FormIT/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color: #3b82f6; text-decoration: none; font-weight: 600; font-size: 13px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${safeOriginal}">
+                        ${safeOriginal}
+                    </a>
+                </div>
+            `;
+        }
+
+        const name = escapeHtml(bl.tenNguoiBinhLuan || 'Unknown');
+        const ma = escapeHtml(bl.ma || '');
+        const phongBan = escapeHtml(bl.phongBan || '');
+        const tenCongTy = escapeHtml(bl.tenCongTy || '');
+        const noiDungSafe = escapeHtml(bl.noiDung || '');
+        const initial = name ? name.charAt(0).toUpperCase() : 'U';
+
+        const userInfo = `
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span style="font-weight: 800; color: #1e293b; font-size: 14px;">${name}</span>
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    ${ma ? `<span style="font-size: 11px; color: #64748b;"><i class="fa fa-user"></i> ${ma}</span>` : ''}
+                    ${phongBan ? `<span style="font-size: 11px; color: #64748b;">• ${phongBan}</span>` : ''}
+                    ${tenCongTy ? `<span style="font-size: 11px; color: #64748b;">• ${tenCongTy}</span>` : ''}
+                </div>
+            </div>
+        `;
+
+        return `
+            <div style="margin-bottom: 15px; display: flex; gap: 12px; ${isOwn ? 'flex-direction: row-reverse;' : ''}" data-comment-id="${bl.id}">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, ${isOwn ? '#3b82f6' : '#94a3b8'}, ${isOwn ? '#1e40af' : '#64748b'}); display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 16px; flex-shrink: 0;">
+                    ${initial}
+                </div>
+                <div style="flex: 1; ${isOwn ? 'text-align: right;' : ''}">
+                    <div style="display: inline-block; ${isOwn ? 'text-align: left;' : ''} max-width: 85%;">
+                        <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; ${isOwn ? 'justify-content: flex-end; flex-direction: row-reverse;' : ''}">
+                            ${userInfo}
+                            <div style="display: flex; align-items: center; gap: 6px; ${isOwn ? 'flex-direction: row-reverse;' : ''}">
+                                <span style="font-size: 11px; color: #94a3b8; white-space: nowrap;">${timeStr}</span>
+                                ${canDelete ? `<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" style="color: #ef4444; cursor: pointer; font-size: 12px;" title="Xóa"></i>` : ''}
+                            </div>
+                        </div>
+                        <div style="background: ${isOwn ? '#dbeafe' : 'white'}; padding: 12px 16px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                            ${noiDungSafe ? `<div style="color: #1e293b; font-size: 14px; line-height: 1.6; word-wrap: break-word; white-space: pre-wrap;">${noiDungSafe}</div>` : ''}
+                            ${fileHtml}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async function guiBinhLuan(e) {
+        e.preventDefault();
+
+        const noiDung = document.getElementById('txtBinhLuan').value.trim();
+        const fileInput = document.getElementById('fileBinhLuan');
+        const file = fileInput.files[0];
+
+        if (!noiDung && !file) {
+            alert('Vui lòng nhập nội dung hoặc đính kèm file!');
+            return false;
+        }
+
+        if (file && file.size > 50 * 1024 * 1024) {
+            alert('File không được vượt quá 50MB!');
+            return false;
+        }
+
+        const formData = new FormData();
+        formData.append('idForm', formId);
+        formData.append('noiDung', noiDung);
+        if (file) formData.append('file', file);
+
+        const btn = document.getElementById('btnGuiBinhLuan');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang gửi...';
+
+        try {
+            const res = await fetch('/FormIT/ThemBinhLuan', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                const commentList = document.getElementById('commentList');
+                if (commentList.innerHTML.includes('Chưa có bình luận')) {
+                    commentList.innerHTML = '';
+                }
+                // server returns the created comment in data.data
+                commentList.insertAdjacentHTML('beforeend', renderComment(data.data));
+
+                setTimeout(() => {
+                    commentList.scrollTop = commentList.scrollHeight;
+                }, 100);
+
+                document.getElementById('formBinhLuan').reset();
+                document.getElementById('fileLabel').textContent = 'Đính kèm file (max 50MB)';
+
+                totalComments++;
+                updateCommentCount();
+            } else {
+                alert(data.message || 'Lỗi khi gửi bình luận');
+            }
+        } catch (err) {
+            alert('Lỗi kết nối: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-paper-plane"></i> Gửi';
+        }
+
+        return false;
+    }
+
+    async function xoaBinhLuan(id) {
+        if (!confirm('Bạn có chắc muốn xóa bình luận này?')) return;
+
+        try {
+            const res = await fetch('/FormIT/XoaBinhLuan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                const commentElem = document.querySelector(`[data-comment-id="${id}"]`);
+                if (commentElem) commentElem.remove();
+
+                totalComments--;
+                updateCommentCount();
+
+                const commentList = document.getElementById('commentList');
+                if (commentList.children.length === 0) {
+                    commentList.innerHTML = `
+                        <div style="text-align: center; color: #94a3b8; padding: 40px;">
+                            <i class="fa fa-comment-o" style="font-size: 48px; opacity: 0.3; margin-bottom: 15px; display: block;"></i>
+                            <p style="font-style: italic; font-size: 14px; margin: 0;">Chưa có bình luận nào.</p>
+                        </div>
+                    `;
+                }
+            } else {
+                alert(data.message);
+            }
+        } catch (err) {
+            alert('Lỗi: ' + err.message);
+        }
+    }
+
+    function updateFileLabel(input) {
+        const label = document.getElementById('fileLabel');
+        if (input.files.length > 0) {
+            const file = input.files[0];
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            label.textContent = `${file.name} (${sizeMB}MB)`;
+        } else {
+            label.textContent = 'Đính kèm file (max 50MB)';
+        }
+    }
+
+    function updateCommentCount() {
+        const countElem = document.getElementById('commentCount');
+        if (countElem) {
+            countElem.textContent = totalComments;
+        }
+    }
+
+    const commentListElem = document.getElementById('commentList');
+    if (commentListElem) {
+        commentListElem.addEventListener('scroll', function() {
+            // load older comments when scrolled to top
+            if (this.scrollTop === 0 && hasMoreComments && !isLoadingComments) {
+                const scrollHeight = this.scrollHeight;
+                taiBinhLuan(true).then(() => {
+                    this.scrollTop = this.scrollHeight - scrollHeight;
+                });
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        taiBinhLuan(false);
+    });
 </script>
