@@ -1493,7 +1493,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 query = query.Where(f => f.TenCongTy == tenCongTy);
             }
 
-            if (userRole == "All" || userRole == "Admin")
+            if (userRole == "All" )
+            {
+       
+            }
+            else if( userRole == "Admin")
             {
                 // Giữ nguyên logic: Admin/All xem đơn của phòng IT hoặc đơn đã có IT tiếp nhận (IdAdmin != null)
                 query = query.Where(f =>  f.IdNguoiDuyet != null);
