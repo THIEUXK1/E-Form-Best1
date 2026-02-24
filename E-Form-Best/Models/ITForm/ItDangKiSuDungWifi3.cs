@@ -38,6 +38,8 @@ public partial class ItDangKiSuDungWifi3
 
     public byte[]? Anh { get; set; }
 
+    public string? DuongDanAnh { get; set; }
+
     [ForeignKey("IdFormIt")]
     [InverseProperty("ItDangKiSuDungWifi3s")]
     public virtual FormIt? IdFormItNavigation { get; set; }

@@ -38,6 +38,8 @@ public partial class ItMail1
 
     public byte[]? Anh { get; set; }
 
+    public string? DuonDanAnh { get; set; }
+
     [ForeignKey("IdFormIt")]
     [InverseProperty("ItMail1s")]
     public virtual FormIt? IdFormItNavigation { get; set; }

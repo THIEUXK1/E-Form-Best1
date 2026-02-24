@@ -22,6 +22,8 @@ public partial class ItOrderIt2
 
     public string? Ten { get; set; }
 
+    public string? DuongDanAnh { get; set; }
+
     [ForeignKey("IdFormIt")]
     [InverseProperty("ItOrderIt2s")]
     public virtual FormIt? IdFormItNavigation { get; set; }
