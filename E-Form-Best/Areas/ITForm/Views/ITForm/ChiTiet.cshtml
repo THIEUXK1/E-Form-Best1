@@ -41,19 +41,24 @@
 
     if (!string.IsNullOrEmpty(Model.FileDinhKem))
     {
-        // Lấy tên file từ database (giữ nguyên logic của bạn)
         fileName = System.IO.Path.GetFileName(Model.FileDinhKem);
-
-        // Thay đổi đường dẫn: Thay vì trỏ vào folder tĩnh /FileIT/ (không truy cập được IP 10.0.60.30)
-        // Chúng ta trỏ về Action xử lý download đã viết ở bước trước
         fileUrl = "/FormIT/DownloadFile/" + fileName;
     }
 
+    // =========================================================
     // --- XỬ LÝ DỮ LIỆU CHI TIẾT THEO LOẠI ĐƠN ---
+    // Ưu tiên DuongDanAnh (file server) → fallback byte[] Anh (DB cũ)
+    // =========================================================
     if (Model.ItMail1s != null && Model.ItMail1s.Any())
     {
         var ct = Model.ItMail1s.First();
-        if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+
+        // 🔴 Ưu tiên file server, fallback DB cũ
+        if (!string.IsNullOrEmpty(ct.DuonDanAnh))
+            listImages.Add("/FormIT/DownloadFile/" + ct.DuonDanAnh);
+        else if (ct.Anh != null && ct.Anh.Length > 0)
+            listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+
         chiTietNoiDung += RenderInfoRow("📧", "Địa chỉ Email", ct.Email, "#eef2ff", "#1e40af");
         chiTietNoiDung += RenderInfoRow("💼", "Vị trí/Chức vụ", ct.ViTri, "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("📞", "Số nội bộ", ct.SoNoiBo, "#f8fafc", "#0f172a");
@@ -65,10 +70,13 @@
     else if (Model.ItOrderIt2s != null && Model.ItOrderIt2s.Any())
     {
         var ct = Model.ItOrderIt2s.First();
-        if (ct.Anh != null && ct.Anh.Length > 0)
-        {
+
+        // 🔴 Ưu tiên file server, fallback DB cũ
+        if (!string.IsNullOrEmpty(ct.DuongDanAnh))
+            listImages.Add("/FormIT/DownloadFile/" + ct.DuongDanAnh);
+        else if (ct.Anh != null && ct.Anh.Length > 0)
             listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
-        }
+
         chiTietNoiDung += RenderInfoRow("🛠️", "Loại yêu cầu", "Sửa chữa / Cấp thiết bị", "#fef2f2", "#991b1b");
         chiTietNoiDung += RenderInfoRow("📦", "Tên thiết bị/Sự cố", ct.Ten, "#f0f9ff", "#075985");
         string moTa = !string.IsNullOrEmpty(ct.GhiChu) ? ct.GhiChu : "Không có mô tả chi tiết";
@@ -77,7 +85,13 @@
     else if (Model.ItDangKiSuDungWifi3s != null && Model.ItDangKiSuDungWifi3s.Any())
     {
         var ct = Model.ItDangKiSuDungWifi3s.First();
-        if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+
+        // 🔴 Ưu tiên file server, fallback DB cũ
+        if (!string.IsNullOrEmpty(ct.DuongDanAnh))
+            listImages.Add("/FormIT/DownloadFile/" + ct.DuongDanAnh);
+        else if (ct.Anh != null && ct.Anh.Length > 0)
+            listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+
         chiTietNoiDung += RenderInfoRow("📶", "Thiết bị", ct.LoaiThietBi, "#f0f9ff", "#0369a1");
         chiTietNoiDung += RenderInfoRow("🆔", "Địa chỉ MAC", ct.MacTb, "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("⏱️", "Thời gian", ct.LoaiThoiGian, "#f0fdf4", "#166534");
@@ -87,7 +101,13 @@
     else if (Model.ItDangKiSuDungDtban4s != null && Model.ItDangKiSuDungDtban4s.Any())
     {
         var ct = Model.ItDangKiSuDungDtban4s.First();
-        if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+
+        // 🔴 Ưu tiên file server, fallback DB cũ
+        if (!string.IsNullOrEmpty(ct.DuongDanAnh))
+            listImages.Add("/FormIT/DownloadFile/" + ct.DuongDanAnh);
+        else if (ct.Anh != null && ct.Anh.Length > 0)
+            listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+
         chiTietNoiDung += RenderInfoRow("☎️", "Loại đơn", "Đăng ký sử dụng điện thoại bàn", "#fff1f2", "#be123c");
         chiTietNoiDung += RenderInfoRow("ℹ️", "Thông tin", ct.ThongTin, "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("🎯", "Mục đích", ct.MucDich, "#f0fdf4", "#166534");
@@ -115,7 +135,8 @@
     </div>
 
     <div style="background: white; border-radius: 30px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #f1f5f9;">
-        <!-- HEADER -->
+
+        <!-- ==================== HEADER ==================== -->
         <div style="background: @headerGradient; padding: 50px 40px; color: white; position: relative;">
             <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
                 <div>
@@ -125,7 +146,6 @@
                         <span><i class="fa fa-calendar-alt"></i> @Model.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm")</span>
                         <span style="width: 4px; height: 4px; background: white; border-radius: 50%;"></span>
                         <span><i class="fa fa-user"></i> @Model.TenNguoiTao</span>
-                        @* Show Danh mục in header if present *@
                         @if (!string.IsNullOrEmpty(Model.Danhmuc))
                         {
                             <span style="width: 4px; height: 4px; background: white; border-radius: 50%;"></span>
@@ -140,10 +160,11 @@
             </div>
         </div>
 
-        <!-- BODY CONTENT -->
+        <!-- ==================== BODY ==================== -->
         <div style="padding: 40px;">
             <div style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 40px;">
-                <!-- LEFT COLUMN -->
+
+                <!-- ========== LEFT COLUMN ========== -->
                 <div>
                     <!-- THÔNG TIN CHI TIẾT -->
                     <h3 style="margin: 0 0 25px 0; color: #1e293b; font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 12px;">
@@ -164,15 +185,13 @@
                         </div>
                     </div>
 
-                    <!-- DANH MỤC (mới) -->
+                    <!-- DANH MỤC -->
                     <div style="margin-bottom: 30px;">
-                    <div style="background: #ffffff; padding: 18px; border-radius: 14px; border: 1px solid #e6edf6; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display:flex; align-items:center; gap:12px;">
+                        <div style="background: #ffffff; padding: 18px; border-radius: 14px; border: 1px solid #e6edf6; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display:flex; align-items:center; gap:12px;">
                             <i class="fa fa-tags" style="color:#0369a1; font-size:18px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:#f0f9ff; border-radius:8px;"></i>
                             <div style="flex:1;">
                                 <small style="display:block; font-weight:800; color:#64748b; font-size:12px; text-transform:uppercase;">Danh mục</small>
                                 <div style="font-weight:700; color:#0f172a; font-size:15px;">@(string.IsNullOrEmpty(Model.Danhmuc) ? "---" : Model.Danhmuc)</div>
-
-                                @* Hiển thị Tên công ty nếu có *@
                                 @if (!string.IsNullOrEmpty(Model.TenCongTy))
                                 {
                                     <small style="display:block; margin-top:8px; font-weight:800; color:#64748b; font-size:12px; text-transform:uppercase;">Tên công ty</small>
@@ -214,7 +233,7 @@
                         }
                     </div>
 
-                    <!-- CHỈ ĐỊNH NGƯỜI HỖ TRỢ (CHỈ IT) -->
+                    <!-- CHỈ ĐỊNH NGƯỜI HỖ TRỢ (CHỈ IT/ADMIN) -->
                     @if ((currentUserRole == "Admin" || currentUserRole == "All" || currentUserRole == "IT") && !isCancelled && !isFinished)
                     {
                         <div style="background: #fff7ed; border: 2px dashed #fb923c; padding: 25px; border-radius: 24px; margin-bottom: 45px;">
@@ -251,7 +270,7 @@
                                 {
                                     <div style="position: relative; margin-bottom: 30px;">
                                         <div style="position: absolute; left: -41px; top: 0; width: 20px; height: 20px; background: white; border: 4px solid #3b82f6; border-radius: 50%; z-index: 1;"></div>
-                                        <div style="display: flex; justify-content: space-between; background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9; transition: transform 0.2s ease;">
+                                        <div style="display: flex; justify-content: space-between; background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9;">
                                             <div style="flex: 1;">
                                                 <div style="font-weight: 800; color: #1e293b; font-size: 15px; margin-bottom: 4px;">@ls.TieuDe</div>
                                                 <div style="color: #64748b; font-size: 14px; line-height: 1.6; white-space: pre-line;">@ls.Mota</div>
@@ -268,7 +287,7 @@
                     </div>
                 </div>
 
-                <!-- RIGHT COLUMN -->
+                <!-- ========== RIGHT COLUMN ========== -->
                 <div>
                     <!-- HÌNH ẢNH ĐÍNH KÈM -->
                     @if (listImages.Count > 0)
@@ -345,12 +364,12 @@
                         </div>
                     }
 
-                    @* PHẦN ĐÁNH GIÁ & HOÀN TÁC - CHỈ NGƯỜI TẠO ĐƠN *@
+                    <!-- ========== ĐÁNH GIÁ & HOÀN TÁC - CHỈ NGƯỜI TẠO ĐƠN ========== -->
                     @if (Model.TrangThai == "HoanTat" && ViewBag.CurrentUserId != null && (int)ViewBag.CurrentUserId == Model.IdNguoiTao)
                     {
                         @if (!daDanhGia)
                         {
-                            @* Chưa đánh giá - Hiển thị form đánh giá và nút hoàn tác *@
+                            <!-- Chưa đánh giá: Hiển thị form đánh giá + nút hoàn tác -->
                             <div style="margin-top: 15px;">
                                 <!-- FORM ĐÁNH GIÁ -->
                                 <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 25px; border-radius: 20px; border: 2px solid #10b981; margin-bottom: 15px;">
@@ -386,7 +405,7 @@
                         }
                         else
                         {
-                            @* Đã đánh giá - Hiển thị kết quả *@
+                            <!-- Đã đánh giá: Hiển thị kết quả -->
                             var dg = Model.DanhGia.First();
                             string starDisplay = new string('⭐', dg.MucDo ?? 0);
                             <div style="margin-top: 15px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 30px; border-radius: 20px; border: 2px solid #22c55e; box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.2);">
@@ -402,9 +421,7 @@
                                     </p>
                                     <div style="font-size: 42px; margin: 20px 0; line-height: 1;">@starDisplay</div>
                                     <div style="background: white; padding: 20px; border-radius: 16px; margin-top: 20px; border: 2px solid #bbf7d0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                                        <strong style="color: #166534; display: block; margin-bottom: 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                            Đánh giá của bạn:
-                                        </strong>
+                                        <strong style="color: #166534; display: block; margin-bottom: 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Đánh giá của bạn:</strong>
                                         <span style="color: #15803d; font-size: 28px; font-weight: 900;">@dg.MucDo / 5 sao</span>
                                     </div>
                                     <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 15px; border-radius: 12px; margin-top: 20px; border: 2px solid #fbbf24;">
@@ -417,11 +434,12 @@
                         }
                     }
                 </div>
+                <!-- END RIGHT COLUMN -->
             </div>
         </div>
     </div>
 
-    <!-- IMAGE OVERLAY -->
+    <!-- IMAGE OVERLAY (ZOOM) -->
     <div id="imageOverlay" onclick="closeZoom()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.95); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(8px);">
         <img id="fullImage" src="" style="max-width:95%; max-height:95%; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.1);">
     </div>
@@ -430,7 +448,7 @@
 <script>
     // === API POST CHUNG ===
     async function apiPost(url, body, btnIds) {
-        if(btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if(b) b.disabled = true; });
+        if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = true; });
         try {
             const response = await fetch(url, {
                 method: 'POST',
@@ -446,15 +464,15 @@
                 location.reload();
             } else {
                 alert(data.message || "Thất bại");
-                if(btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if(b) b.disabled = false; });
+                if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; });
             }
         } catch (err) {
             alert("Lỗi kết nối máy chủ.");
-            if(btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if(b) b.disabled = false; });
+            if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; });
         }
     }
 
-    // === XỬ LÝ DUYỆT/HỦY ĐƠN ===
+    // === DUYỆT / HỦY ĐƠN ===
     function handleAction(type) {
         let reason = null;
         if (type === 'Huy') {
@@ -473,7 +491,7 @@
         }
     }
 
-    // === HOÀN TÁC ===
+    // === HOÀN TÁC (CHƯA XONG) ===
     function handleChuaHoanThanh() {
         let reason = prompt("Vui lòng nhập lý do bạn xác nhận đơn này chưa hoàn thành:");
         if (reason === null) return;
@@ -504,8 +522,6 @@
     function chonSao(sao) {
         soSaoChon = sao;
         capNhatGiaoDienSao();
-
-        // Enable nút gửi
         const btnGui = document.getElementById('btnGuiDanhGia');
         if (btnGui) {
             btnGui.disabled = false;
@@ -559,10 +575,8 @@
             alert("Vui lòng chọn số sao đánh giá!");
             return;
         }
-
         const txtNhanXet = document.getElementById('txtNhanXet');
         const nhanXet = txtNhanXet ? txtNhanXet.value.trim() : '';
-
         if (confirm(`Xác nhận đánh giá ${soSaoChon} sao?\n\n⚠️ LƯU Ý: Sau khi đánh giá, bạn sẽ KHÔNG THỂ hoàn tác đơn này nữa!`)) {
             apiPost('/FormIT/DanhGiaDon', {
                 id: @Model.Id,
