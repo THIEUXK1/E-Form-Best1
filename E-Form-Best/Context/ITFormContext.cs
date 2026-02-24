@@ -16,6 +16,8 @@ public partial class ITFormContext : DbContext
     {
     }
 
+    public virtual DbSet<BinhLuanFormIt> BinhLuanFormIts { get; set; }
+
     public virtual DbSet<BoPhan> BoPhans { get; set; }
 
     public virtual DbSet<CongViec> CongViecs { get; set; }
@@ -68,6 +70,11 @@ public partial class ITFormContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<BinhLuanFormIt>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__BinhLuan__3213E83F980A0B9F");
+        });
+
         modelBuilder.Entity<BoPhan>(entity =>
         {
             entity.HasKey(e => e.IdBoPhan).HasName("PK__BoPhan__E66DCED5E953B918");

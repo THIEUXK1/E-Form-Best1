@@ -1487,11 +1487,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU (Kết hợp TenCongTy & Logic bộ phận của bạn) ---
 
-            // Lọc theo công ty trước (nếu có)
-            if (!string.IsNullOrEmpty(tenCongTy))
-            {
-                query = query.Where(f => f.TenCongTy == tenCongTy);
-            }
+
 
             if (userRole == "All" )
             {
