@@ -8,7 +8,6 @@
     var tenNguoiNv = User.Identity.Name ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
-    // --- THÊM: LẤY TÊN CÔNG TY ---
     var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
@@ -70,7 +69,6 @@
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin chủ sở hữu</h3>
                 </div>
 
-                @* Grid đã được sửa thành 4 cột để chứa thêm Công Ty *@
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
                     <div style="background: #f0fdf4; padding: 15px; border-radius: 15px; border: 1px solid #dcfce7;">
                         <label style="@labelBase">Mã nhân viên</label>
@@ -84,7 +82,6 @@
                         <label style="@labelBase">Bộ phận</label>
                         <div style="font-weight: 700; color: #065f46; font-size: 14px;">@phongBan</div>
                     </div>
-                    @* --- CẬP NHẬT: HIỂN THỊ TÊN CÔNG TY --- *@
                     <div style="background: #ecfdf5; padding: 15px; border-radius: 15px; border: 1px solid @colorBorder;">
                         <label style="@labelBase">Công ty</label>
                         <div style="font-weight: 800; color: @colorPrimary; font-size: 14px;">@tenCongTy</div>
@@ -97,6 +94,14 @@
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông số thiết bị & Thời gian</h3>
+                </div>
+
+                @* CẬP NHẬT: Ô MÃ THIẾT BỊ ĐỂ TRỐNG VỚI PLACEHOLDER MỜ *@
+                <div style="margin-bottom: 25px;">
+                    <label style="@labelBase">Mã thiết bị <span style="color:red">*</span></label>
+                    <input type="text" name="MaThietBi" id="MaThietBi" required class="input-hover"
+                           placeholder="Định dạng: Bộ phận_Mã NV_Họ tên (Ví dụ: IT_12345_Nguyễn Văn A)"
+                           style="@inputBase">
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
@@ -230,11 +235,19 @@
 
     // 3. Xử lý lưu Form
     function xuLyLuuWifi() {
+        const maThietBi = document.getElementById("MaThietBi").value;
         const loaiThietBi = document.getElementById("LoaiThietBi").value;
         const mac = document.getElementById("MacTb").value;
         const congViec = document.getElementById("selectedCongViecId").value;
         const chk = document.getElementById("chkCamKet");
         const btn = document.getElementById("btnSubmit");
+
+        // Validate Mã thiết bị
+        if (!maThietBi.trim()) {
+            alert("⚠️ Vui lòng điền Mã thiết bị theo đúng định dạng hướng dẫn!");
+            document.getElementById("MaThietBi").focus();
+            return;
+        }
 
         if (!loaiThietBi.trim()) {
             alert("⚠️ Vui lòng nhập loại thiết bị!");

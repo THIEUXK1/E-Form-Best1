@@ -86,17 +86,26 @@
     {
         var ct = Model.ItDangKiSuDungWifi3s.First();
 
-        // 🔴 Ưu tiên file server, fallback DB cũ
         if (!string.IsNullOrEmpty(ct.DuongDanAnh))
+        {
             listImages.Add("/FormIT/DownloadFile/" + ct.DuongDanAnh);
+        }
         else if (ct.Anh != null && ct.Anh.Length > 0)
+        {
             listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+        }
 
+        chiTietNoiDung += RenderInfoRow("🏷️", "Mã thiết bị", ct.MaThietBi, "#fffbeb", "#92400e");
         chiTietNoiDung += RenderInfoRow("📶", "Thiết bị", ct.LoaiThietBi, "#f0f9ff", "#0369a1");
         chiTietNoiDung += RenderInfoRow("🆔", "Địa chỉ MAC", ct.MacTb, "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("⏱️", "Thời gian", ct.LoaiThoiGian, "#f0fdf4", "#166534");
         chiTietNoiDung += RenderInfoRow("📅", "Từ ngày", ct.ThoiGianBatDau?.ToString("dd/MM/yyyy HH:mm"), "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("📅", "Đến ngày", ct.ThoiGianKetThuc?.ToString("dd/MM/yyyy HH:mm"), "#f8fafc", "#0f172a");
+
+        if (!string.IsNullOrEmpty(ct.LyDo))
+        {
+            chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LyDo, "#fdf2f8", "#9d174d");
+        }
     }
     else if (Model.ItDangKiSuDungDtban4s != null && Model.ItDangKiSuDungDtban4s.Any())
     {
