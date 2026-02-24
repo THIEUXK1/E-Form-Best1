@@ -1471,25 +1471,44 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             ?? User.FindFirst("UserRole")?.Value ?? "";
             var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
 
+            // Lấy thêm TenCongTy và Danh sách bộ phận để đồng bộ logic phân quyền
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+            var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
+            var listTenBoPhan = listTenBoPhanStr.Split(',')
+                                                .Select(s => s.Trim().ToLower())
+                                                .Where(s => !string.IsNullOrEmpty(s))
+                                                .ToList();
+
             // --- 2. KHỞI TẠO QUERY ---
-            // Loại bỏ điều kiện IdNguoiDuyet != null ở đây để lấy được cả đơn "Chờ QL Duyệt"
             IQueryable<FormIt> query = _context.FormIts
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
-                .Include(f => f.DanhGia); // Include để kiểm tra trạng thái Hoàn tất
+                .Include(f => f.DanhGia);
 
-            // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU (Giữ nguyên tuyệt đối logic của bạn) ---
+            // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU (Kết hợp TenCongTy & Logic bộ phận của bạn) ---
+
+            // Lọc theo công ty trước (nếu có)
+            if (!string.IsNullOrEmpty(tenCongTy))
+            {
+                query = query.Where(f => f.TenCongTy == tenCongTy);
+            }
+
             if (userRole == "All" || userRole == "Admin")
             {
-                string IT_Dept_Name = "Phòng thông tin 资讯科技部";
-                query = query.Where(f => f.BoPhan == IT_Dept_Name || f.IdAdmin != null);
+                // Giữ nguyên logic: Admin/All xem đơn của phòng IT hoặc đơn đã có IT tiếp nhận (IdAdmin != null)
             }
             else if (userRole == "QuanLy")
             {
-                if (!string.IsNullOrEmpty(phongBanSession))
+                // Ưu tiên 1: Check danh sách nhiều bộ phận từ Claim
+                if (listTenBoPhan.Any())
+                {
+                    query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim().ToLower()));
+                }
+                // Ưu tiên 2: Check phongBan mặc định (logic cũ của bạn)
+                else if (!string.IsNullOrEmpty(phongBanSession))
                 {
                     query = query.Where(f => f.BoPhan != null &&
-                                            f.BoPhan.Trim().ToLower() == phongBanSession.ToLower());
+                                             f.BoPhan.Trim().ToLower() == phongBanSession.ToLower());
                 }
                 else
                 {
@@ -1498,12 +1517,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             else
             {
+                // Nhân viên thường xem đơn của mình
                 query = query.Where(f => f.IdNguoiTao == userId);
             }
 
             // --- 4. THỰC THI TRUY VẤN ---
             var danhSachDon = await query
-                .OrderByDescending(f => f.TimeNguoiDuyet)
+                .OrderByDescending(f => f.Id) // Sắp xếp theo ID mới nhất hoặc TimeNguoiDuyet tùy bạn
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -1534,97 +1554,91 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             return View(danhSachDon);
         }
-        // Các hàm XacNhanHoanThanh và class Request giữ nguyên như bạn đã viết
 
         // Nút bấm dành cho Đội IT - Xác nhận đã sửa xong/cấp xong thiết bị
         [HttpPost("/FormIT/XacNhanHoanThanh")]
-        [ValidateAntiForgeryToken] // Thêm bảo mật CSRF
-        public async Task<IActionResult> XacNhanHoanThanh([FromBody] ITApprovalRequest request)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> XacNhanHoanThanh([FromBody] ITCompleteRequest request)
         {
-            // 1. Kiểm tra đầu vào cơ bản
+            // 1. Kiểm tra đầu vào
             if (request == null || request.Id <= 0)
             {
                 return Json(new { success = false, message = "Dữ liệu yêu cầu không hợp lệ." });
             }
 
-            // 2. Lấy thông tin đầy đủ của người thao tác (IT Admin) từ Claims
-            var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
-                          ?? User.FindFirst("UserRole")?.Value ?? "";
+            // 2. Lấy thông tin người thao tác
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr))
+            {
+                return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn." });
+            }
+
+            var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                            ?? User.FindFirst("UserRole")?.Value ?? "";
             var userName = User.Identity.Name ?? "N/A";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "N/A";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "N/A";
 
-            // 3. Kiểm tra quyền hạn và phiên đăng nhập
-            if (string.IsNullOrEmpty(userIdStr))
-            {
-                return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." });
-            }
-
-            // Chỉ IT Admin hoặc Role "All" mới được chốt đơn
+            // 3. Kiểm tra quyền (Chỉ IT Admin hoặc Role "All")
             if (userRole != "Admin" && userRole != "All")
             {
                 return Json(new { success = false, message = "Chỉ bộ phận IT mới có quyền xác nhận hoàn thành đơn này." });
             }
 
-            // 4. Tìm đơn IT trong cơ sở dữ liệu
+            // 4. Tìm đơn IT
             var form = await _context.FormIts.FindAsync(request.Id);
             if (form == null)
             {
                 return Json(new { success = false, message = "Không tìm thấy đơn IT trong hệ thống." });
             }
 
-            // Kiểm tra nếu đơn đã hủy hoặc đã hoàn thành trước đó để tránh lặp thao tác
+            // Kiểm tra trạng thái đơn
             if (form.TrangThai == "HoanTat" || (form.TenForm != null && form.TenForm.Contains("[ĐÃ HỦY]")))
             {
-                return Json(new { success = false, message = "Đơn này đã được xử lý xong hoặc đã hủy, không thể thao tác lại." });
+                return Json(new { success = false, message = "Đơn này đã được xử lý xong hoặc đã hủy." });
             }
 
-            // 5. Bắt đầu Transaction để đảm bảo an toàn dữ liệu
+            // 5. Bắt đầu Transaction
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
                     DateTime now = DateTime.Now;
 
-                    // 6. Cập nhật thông tin IT xử lý vào bảng chính (FormIts)
+                    // 6. Cập nhật thông tin IT xử lý
                     form.IdAdmin = int.Parse(userIdStr);
                     form.TenAdmin = userName;
                     form.TimeAdmin = now;
-                    form.TrangThai = "HoanTat"; // Trạng thái cuối cùng của quy trình
+                    form.TrangThai = "HoanTat";
 
-                    // 7. Lưu Lịch sử thao tác (LichSu)
+                    // 7. Lưu Lịch sử thao tác
                     var lichSu = new LichSu
                     {
                         IdFormIt = form.Id,
                         TieuDe = "IT Xác nhận Hoàn tất",
                         Mota = $"Người thực hiện: {userName} ({userEmail}). " +
                                $"Bộ phận: {phongBan}. " +
-                               $"Quyền hạn: {userRole}. " +
                                $"Nội dung: Đã xử lý xong yêu cầu và đóng đơn.",
                         Time = now
                     };
 
                     _context.LichSus.Add(lichSu);
 
-                    // 8. Lưu các thay đổi vào DB
+                    // 8. Lưu DB
                     await _context.SaveChangesAsync();
-
-                    // Commit Transaction thành công
                     await transaction.CommitAsync();
 
                     return Json(new { success = true, message = "Xác nhận hoàn tất đơn IT thành công!" });
                 }
                 catch (Exception ex)
                 {
-                    // Rollback nếu có lỗi xảy ra
                     await transaction.RollbackAsync();
-
-                    // Bạn có thể log ex ở đây nếu cần (Serilog, NLog...)
-                    return Json(new { success = false, message = "Lỗi hệ thống khi lưu dữ liệu: " + ex.Message });
+                    return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
                 }
             }
         }
+
+        // --- CLASS REQUEST ---
         public class ITApprovalRequest
         {
             public int Id { get; set; }
@@ -1636,6 +1650,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             public int Id { get; set; }
         }
+
         #endregion
 
         #region Xác nhận chưa hoàn thành 

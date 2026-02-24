@@ -2,18 +2,19 @@
 @using System.Security.Claims
 
 @{
-    ViewData["Title"] = "Đơn IT Hoàn Tất";
+    ViewData["Title"] = "Kho Lưu Trữ Đơn IT";
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 
     var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value
                         ?? User.FindFirst("UserRole")?.Value ?? "";
 
-    // Thống kê dựa trên trường TrangThai đã xử lý ở Controller
+    // Thống kê dựa trên trường TrangThai đã được Controller gán giá trị tiếng Việt
     var total = Model?.Count() ?? 0;
     var completed = Model?.Count(x => x.TrangThai == "Hoàn tất") ?? 0;
     var processing = Model?.Count(x => x.TrangThai == "IT Đang xử lý") ?? 0;
     var cancelled = Model?.Count(x => x.TrangThai == "Đã hủy") ?? 0;
     var waitingRate = Model?.Count(x => x.TrangThai == "Chờ đánh giá") ?? 0;
+    var waitingManager = Model?.Count(x => x.TrangThai == "Chờ QL Duyệt") ?? 0;
 }
 
 <div style="background: #f1f5f9; min-height: 100vh; padding: 25px; font-family: 'Inter', sans-serif; color: #1e293b;">
@@ -43,11 +44,12 @@
             </div>
         </div>
 
-        @* --- THỐNG KÊ NHANH --- *@
-        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 30px;">
+        @* --- THỐNG KÊ NHANH (Cập nhật 6 ô thống kê để bao quát hết trạng thái) --- *@
+        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 30px;">
             @{
                 var stats = new[] {
                         new { Label = "TỔNG LƯU TRỮ", Value = total, Color = "#1e40af", Bg = "white", Filter = "" },
+                        new { Label = "CHỜ QL DUYỆT", Value = waitingManager, Color = "#f59e0b", Bg = "#fff7ed", Filter = "Chờ QL Duyệt" },
                         new { Label = "IT ĐANG XỬ LÝ", Value = processing, Color = "#2563eb", Bg = "#eff6ff", Filter = "IT Đang xử lý" },
                         new { Label = "CHỜ ĐÁNH GIÁ", Value = waitingRate, Color = "#7c3aed", Bg = "#f5f3ff", Filter = "Chờ đánh giá" },
                         new { Label = "ĐÃ HOÀN TẤT", Value = completed, Color = "#059669", Bg = "#f0fdf4", Filter = "Hoàn tất" },
@@ -57,11 +59,11 @@
             @foreach (var s in stats)
             {
                 <div onclick="filterByStatus('@s.Filter')"
-                     style="background: @s.Bg; padding: 20px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);"
+                     style="background: @s.Bg; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);"
                      onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 20px 25px -5px rgba(0,0,0,0.1)'"
                      onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                    <div style="font-size: 10px; font-weight: 900; color: @s.Color; letter-spacing: 1px; text-transform: uppercase; opacity: 0.8;">@s.Label</div>
-                    <div style="font-size: 32px; font-weight: 1000; color: @s.Color; margin-top: 8px;">@s.Value</div>
+                    <div style="font-size: 9px; font-weight: 900; color: @s.Color; letter-spacing: 1px; text-transform: uppercase; opacity: 0.8;">@s.Label</div>
+                    <div style="font-size: 28px; font-weight: 1000; color: @s.Color; margin-top: 8px;">@s.Value</div>
                 </div>
             }
         </div>
@@ -82,7 +84,6 @@
                 <tbody>
                     @foreach (var item in Model)
                     {
-                        // Logic hiển thị Progress Bar và Màu sắc dựa trên TrangThai từ Controller
                         string pWidth, pColor, stBg, stFg;
 
                         switch (item.TrangThai)
@@ -142,7 +143,8 @@
 
                             <td style="padding: 15px 20px;">
                                 <div style="font-weight: 800; color: #1e293b; font-size: 14px; margin-bottom: 8px;">
-                                    @item.TenForm?.Replace("[ĐÃ HỦY]", "").Trim()
+                                    @* Loại bỏ tag [ĐÃ HỦY] nếu có trong TenForm để hiển thị sạch sẽ *@
+                                    @(item.TenForm?.Replace("[ĐÃ HỦY]", "").Trim())
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 15px;">
                                     <div style="flex-grow: 1; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden; max-width: 150px;">
@@ -155,13 +157,14 @@
                             </td>
 
                             <td style="padding: 20px; text-align: center;">
-                                <span style="background: @stBg; color: @stFg; border: 1.5px solid @stFg; padding: 6px 14px; border-radius: 12px; font-size: 10px; font-weight: 1000; display: inline-block; min-width: 100px; text-transform: uppercase;">
+                                <span style="background: @stBg; color: @stFg; border: 1.5px solid @stFg; padding: 6px 14px; border-radius: 12px; font-size: 10px; font-weight: 1000; display: inline-block; min-width: 110px; text-transform: uppercase; text-align: center;">
                                     @item.TrangThai
                                 </span>
                             </td>
 
                             <td style="padding: 20px; text-align: center;">
                                 <a href="/FormIT/ChiTiet/@item.Id"
+                                   title="Xem chi tiết"
                                    style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; background: #f1f5f9; color: #1e40af; border-radius: 12px; text-decoration: none; font-size: 18px; transition: 0.3s;"
                                    onmouseover="this.style.background='#1e40af'; this.style.color='white'"
                                    onmouseout="this.style.background='#f1f5f9'; this.style.color='#1e40af'">
@@ -201,7 +204,7 @@
         const tr = document.querySelectorAll("#dataTable tbody tr");
 
         tr.forEach(row => {
-            // Kiểm tra toàn bộ text trong row bao gồm cả text trong span trạng thái
+            // Lọc trên toàn bộ nội dung text của dòng
             const text = row.innerText.toUpperCase();
             row.style.display = text.includes(filter) ? "" : "none";
         });
@@ -212,7 +215,7 @@
         input.value = status;
         filterTable();
 
-        // Hiệu ứng nháy nhẹ bảng khi lọc
+        // Hiệu ứng nháy bảng để người dùng nhận biết đã lọc
         const table = document.getElementById("dataTable");
         table.style.opacity = "0.4";
         setTimeout(() => {
