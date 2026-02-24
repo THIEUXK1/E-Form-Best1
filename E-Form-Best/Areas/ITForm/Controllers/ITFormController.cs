@@ -1074,7 +1074,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .Include(f => f.LichSus)
-                .Include(f => f.DanhGia) // 🔴 THÊM DÒNG NÀY
+                .Include(f => f.DanhGia)
                 .FirstOrDefaultAsync(m => m.Id == id);
 
             if (don == null)
@@ -1105,27 +1105,27 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                              .ToListAsync();
 
             ViewBag.UserPhongBan = userPhongBan;
-            ViewBag.CurrentUserId = userId; // 🔴 QUAN TRỌNG
+            ViewBag.CurrentUserId = userId;
 
             return View(don);
         }
 
+        // ============================================================
+        // ACTION DUY NHẤT XỬ LÝ CẢ FILE TẢI VỀ LẪN ẢNH HIỂN THỊ
+        // - Ảnh (jpg/png/gif/webp/bmp) → trả về inline để <img> hiển thị trực tiếp
+        // - File khác (pdf/xlsx/...) → force download về máy người dùng
+        // ============================================================
         [HttpGet("/FormIT/DownloadFile/{fileName}")]
         public async Task<IActionResult> DownloadFile(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return NotFound();
 
-            // Đường dẫn mạng giống hệt bước Upload
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
             string fullPath = Path.Combine(networkPath, fileName);
 
-            // Kiểm tra file có tồn tại thực tế trên File Server không
             if (!System.IO.File.Exists(fullPath))
-            {
                 return NotFound("Tệp tin không tồn tại trên hệ thống lưu trữ.");
-            }
 
-            // Đọc dữ liệu file
             var memory = new MemoryStream();
             using (var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
             {
@@ -1133,11 +1133,30 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             memory.Position = 0;
 
-            // Xác định định dạng file để trình duyệt mở/tải cho đúng
-            string contentType = "application/octet-stream"; // Mặc định là tải về
+            // Xác định Content-Type theo phần mở rộng của file
+            string ext = Path.GetExtension(fileName).ToLowerInvariant();
+            string contentType = ext switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                ".bmp" => "image/bmp",
+                ".pdf" => "application/pdf",
+                ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ".xls" => "application/vnd.ms-excel",
+                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ".doc" => "application/msword",
+                _ => "application/octet-stream"
+            };
 
-            // Trả file về cho người dùng (người dùng sẽ thấy tên file gốc)
-            return File(memory, contentType, fileName);
+            bool isImage = contentType.StartsWith("image/");
+
+            // Ảnh → trình duyệt tự hiển thị inline (dùng được trong thẻ <img src="...">)
+            // File → buộc trình duyệt tải về với tên file gốc
+            return isImage
+                ? File(memory, contentType)              // inline display
+                : File(memory, contentType, fileName);   // force download
         }
 
         [HttpPost("/FormIT/ThemNguoiHoTro")]
@@ -1145,7 +1164,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             try
             {
-                // Sử dụng GetProperty để đọc dữ liệu từ JsonElement, tránh lỗi RuntimeBinderException
                 int idForm = data.GetProperty("idFormIt").GetInt32();
                 string maNvMoi = data.GetProperty("maNv").GetString();
 
@@ -1175,7 +1193,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 int sttMoi = (hienTai?.Stt ?? 0) + 1;
 
-                // 4. Lưu thông tin mới (Giữ nguyên toàn bộ các phần hiện có)
+                // 4. Lưu thông tin người hỗ trợ mới
                 var ctMoi = new ItCtNguoiHoTro
                 {
                     IdFormIt = idForm,
@@ -1184,6 +1202,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 };
                 _context.ItCtNguoiHoTros.Add(ctMoi);
 
+                // 5. Ghi lịch sử thao tác
                 var lichSu = new LichSu
                 {
                     IdFormIt = idForm,
@@ -1196,7 +1215,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 await _context.SaveChangesAsync();
                 return Json(new { success = true, message = "Đã cập nhật người hỗ trợ mới!" });
             }
-            catch (Exception ex) { return Json(new { success = false, message = "Lỗi: " + ex.Message }); }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi: " + ex.Message });
+            }
         }
 
         #endregion
