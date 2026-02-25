@@ -2461,7 +2461,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             int userId = int.Parse(userIdStr);
             var userRole = User.FindFirst("UserRole")?.Value ?? "";
-            var userMaNv = User.Identity.Name;
+
+            // Đồng bộ cách lấy Email/MaNv giống như hàm GetNotifications
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
 
             var query = _context.LichSus
                 .Include(l => l.IdFormItNavigation)
@@ -2471,26 +2473,35 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .ThenInclude(f => f.DanhGia)
                 .AsQueryable();
 
-            // Logic phân quyền: All xem tất cả, Admin xem đơn đã duyệt, còn lại xem đơn liên quan
+            // Logic phân quyền lọc dữ liệu (Đã đồng bộ với hàm GetNotifications)
             if (userRole == "All")
             {
-                // Không lọc thêm
+                // Xem toàn bộ, không thêm điều kiện Where
             }
             else if (userRole == "Admin")
             {
-                query = query.Where(l => l.IdFormItNavigation.IdNguoiDuyet != null);
+                // Admin: Xem đơn đã duyệt VÀ phải nằm trong danh sách người hỗ trợ của đơn đó
+                query = query.Where(l =>
+                    l.IdFormItNavigation.IdNguoiDuyet != null &&
+                    l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userEmail)
+                );
             }
             else
             {
+                // User thường: Xem đơn do mình tạo, mình duyệt, mình làm admin hoặc mình là người hỗ trợ
                 query = query.Where(l =>
                     l.IdFormItNavigation.IdNguoiTao == userId ||
                     l.IdFormItNavigation.IdNguoiDuyet == userId ||
                     l.IdFormItNavigation.IdAdmin == userId ||
-                    l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userMaNv)
+                    l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userEmail)
                 );
             }
 
-            var logs = await query.OrderByDescending(l => l.Time).ToListAsync();
+            var logs = await query
+                .OrderByDescending(l => l.Time)
+                .AsNoTracking() // Thêm để tối ưu hiệu suất nếu chỉ để hiển thị
+                .ToListAsync();
+
             return View(logs);
         }
         [HttpGet("/FormIT/GetNotifications")]
