@@ -4,7 +4,7 @@
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 }
 
-@* Container chính với hiệu ứng nền và font chữ tối ưu *@
+@* Container chính *@
 <div style="background-color: #f1f5f9; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; min-height: 100vh; padding: 40px 20px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
     <div style="max-width: 1100px; margin: 0 auto;">
 
@@ -95,7 +95,7 @@
 
                             <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: @statusColor;"></div>
 
-                            @* Cột thời gian *@
+                            @* Cột thời gian log *@
                             <div style="min-width: 100px; text-align: center; border-right: 1px dashed @(isCanceled ? "#fecaca" : "#e2e8f0"); padding-right: 20px;">
                                 <div style="font-size: 20px; font-weight: 800; color: @(isCanceled ? "#991b1b" : "#1e293b"); letter-spacing: -0.5px;">@log.Time?.ToString("HH:mm")</div>
                                 <div style="font-size: 12px; font-weight: 700; color: @(isCanceled ? "#f87171" : "#94a3b8"); margin-top: 4px;">@log.Time?.ToString("dd/MM/yyyy")</div>
@@ -117,21 +117,9 @@
                                     <span style="color: @(isCanceled ? "#991b1b" : "#475569"); font-size: 14px; font-weight: 700; background: @(isCanceled ? "#fee2e2" : "#f8fafc"); padding: 3px 10px; border-radius: 8px; border: 1px solid @(isCanceled ? "#fecaca" : "#e2e8f0");">
                                         #@log.IdFormIt - @(f?.TenForm ?? "N/A")
                                     </span>
-
-                                    @if (!string.IsNullOrEmpty(f?.Danhmuc))
-                                    {
-                                        <span style="background: #f1f5f9; color: #475569; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; border: 1px solid #cbd5e1; display: flex; align-items: center; gap: 5px;">
-                                            <i class="fa fa-folder-open" style="color: #64748b;"></i>
-                                            @f.Danhmuc
-                                        </span>
-                                    }
                                 </div>
 
                                 <div style="color: @(isCanceled ? "#7f1d1d" : "#334155"); font-size: 15px; line-height: 1.5; font-weight: 500; margin-bottom: 12px;">
-                                    @if (isCanceled)
-                                    {
-                                        <i class="fa fa-exclamation-triangle" style="margin-right: 5px; color: #ef4444;"></i>
-                                    }
                                     @log.Mota
                                 </div>
 
@@ -149,30 +137,51 @@
                                 </div>
                             </div>
 
-                            @* --- PHẦN THÊM MỚI: Đánh giá sao và Thời gian xử lý bên phải --- *@
-                            @if (statusText == "Hoàn tất 100%" && f?.DanhGia != null && f.DanhGia.Any())
+                            @* --- PHẦN HIỂN THỊ THỜI GIAN XỬ LÝ (Bên phải) --- *@
+                            @if ((statusText == "Hoàn tất 100%" || statusText == "Chờ đánh giá") && f?.TimeNguoiDuyet != null && f?.TimeAdmin != null)
                             {
-                                var dg = f.DanhGia.First();
-                                string timeDiff = "";
-                                if (f.TimeNguoiDuyet != null && dg.TimeNguoiDanhGia != null)
+                                string timeProcessing = "";
+                                string timeTotal = "";
+
+                                // 1. Tính thời gian IT xử lý (Duyệt -> Xong)
+                                var spanProc = f.TimeAdmin.Value - f.TimeNguoiDuyet.Value;
+                                if (spanProc.TotalDays >= 1) timeProcessing = $"{(int)spanProc.TotalDays}n {spanProc.Hours}g";
+                                else if (spanProc.TotalHours >= 1) timeProcessing = $"{(int)spanProc.TotalHours}g {spanProc.Minutes}p";
+                                else timeProcessing = $"{(int)spanProc.TotalMinutes}p";
+
+                                // 2. Tính tổng thời gian (Chỉ khi đã hoàn tất 100%)
+                                var dg = f.DanhGia?.FirstOrDefault();
+                                if (statusText == "Hoàn tất 100%" && dg?.TimeNguoiDanhGia != null)
                                 {
-                                    var span = dg.TimeNguoiDanhGia.Value - f.TimeNguoiDuyet.Value;
-                                    if (span.TotalDays >= 1) timeDiff = $"{(int)span.TotalDays}n {span.Hours}g";
-                                    else if (span.TotalHours >= 1) timeDiff = $"{(int)span.TotalHours}g {span.Minutes}p";
-                                    else timeDiff = $"{(int)span.TotalMinutes}p";
+                                    var spanTotal = dg.TimeNguoiDanhGia.Value - f.TimeNguoiDuyet.Value;
+                                    if (spanTotal.TotalDays >= 1) timeTotal = $"{(int)spanTotal.TotalDays}n {spanTotal.Hours}g";
+                                    else if (spanTotal.TotalHours >= 1) timeTotal = $"{(int)spanTotal.TotalHours}g {spanTotal.Minutes}p";
+                                    else timeTotal = $"{(int)spanTotal.TotalMinutes}p";
                                 }
 
-                                <div style="min-width: 120px; text-align: right; border-left: 1px dashed #e2e8f0; padding-left: 15px; display: flex; flex-direction: column; justify-content: center; gap: 6px;">
-                                    <div style="color: #f59e0b; font-size: 13px; white-space: nowrap;">
-                                        @for (int i = 1; i <= 5; i++)
-                                        {
-                                            <i class="fa @(i <= (dg.MucDo ?? 0) ? "fa-star" : "fa-star-o")"></i>
-                                        }
-                                    </div>
-                                    @if (!string.IsNullOrEmpty(timeDiff))
+                                <div style="min-width: 150px; text-align: right; border-left: 1px dashed #e2e8f0; padding-left: 15px; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
+
+                                    @* Hiển thị Sao nếu có *@
+                                    @if (dg != null)
                                     {
-                                        <div style="font-size: 11px; color: #475569; font-weight: 700; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; display: inline-block; border: 1px solid #cbd5e1;">
-                                            <i class="fa fa-clock-o" style="color: #6366f1;"></i> @timeDiff
+                                        <div style="color: #f59e0b; font-size: 13px; white-space: nowrap; margin-bottom: 2px;">
+                                            @for (int i = 1; i <= 5; i++)
+                                            {
+                                                <i class="fa @(i <= (dg.MucDo ?? 0) ? "fa-star" : "fa-star-o")"></i>
+                                            }
+                                        </div>
+                                    }
+
+                                    @* TG Xử lý (Luôn hiện cho Chờ đánh giá & Hoàn tất) *@
+                                    <div title="Thời gian IT xử lý (Duyệt -> Xong)" style="font-size: 10px; color: #0369a1; font-weight: 700; background: #f0f9ff; padding: 2px 8px; border-radius: 6px; border: 1px solid #bae6fd; display: inline-block; white-space: nowrap;">
+                                        <i class="fa fa-wrench"></i> Xử lý: @timeProcessing
+                                    </div>
+
+                                    @* TG Tổng (Chỉ hiện khi đã Hoàn tất) *@
+                                    @if (!string.IsNullOrEmpty(timeTotal))
+                                    {
+                                        <div title="Tổng thời gian (Duyệt -> Đánh giá)" style="font-size: 10px; color: #15803d; font-weight: 700; background: #f0fdf4; padding: 2px 8px; border-radius: 6px; border: 1px solid #bbf7d0; display: inline-block; white-space: nowrap;">
+                                            <i class="fa fa-check-circle"></i> Tổng: @timeTotal
                                         </div>
                                     }
                                 </div>
@@ -250,25 +259,14 @@
     function combinedFilter() {
         const searchText = document.getElementById('logSearch').value.toLowerCase().trim();
         const items = document.getElementsByClassName("log-item");
-
         for (let i = 0; i < items.length; i++) {
             const itemStatus = items[i].getAttribute('data-status-text');
             const itemContent = items[i].innerText.toLowerCase();
-
             const matchStatus = (currentFilterStatus === 'all' || itemStatus === currentFilterStatus);
             const matchSearch = searchText === "" || itemContent.includes(searchText);
-
-            if (matchStatus && matchSearch) {
-                items[i].style.display = "";
-                items[i].style.opacity = "1";
-            } else {
-                items[i].style.display = "none";
-                items[i].style.opacity = "0";
-            }
+            items[i].style.display = (matchStatus && matchSearch) ? "" : "none";
         }
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        initHoverEffects();
-    });
+    document.addEventListener('DOMContentLoaded', initHoverEffects);
 </script>
