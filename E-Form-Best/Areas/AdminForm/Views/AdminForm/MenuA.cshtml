@@ -193,7 +193,7 @@
 </style>
 
 <script>
-    // --- LOGIC HƯỚNG DẪN SỬ DỤNG ---
+    // --- LOGIC HƯỚNG DẪN SỬ DỤNG (GIỮ NGUYÊN) ---
     function toggleGuideMenu(event) {
         event.stopPropagation();
         var menu = document.getElementById("guideMenu");
@@ -211,12 +211,10 @@
     // --- LOGIC PUSH NOTIFICATION ---
     const VAPID_PUBLIC_KEY = 'BBU3No0ICmOpVSDFTsL9DA1dKAnzOPO98d5jv6Jr8b7yFQ09xioX_uFeArfymbGkseS-Qv4MQkMqGekpl9tfNJk';
 
-    // Hàm cập nhật giao diện trạng thái
     function updatePushUI(status) {
         const badge = document.getElementById("pushStatusBadge");
         const dot = document.getElementById("statusDot");
         const text = document.getElementById("statusText");
-
         if (!badge || !dot || !text) return;
 
         if (status === 'granted') {
@@ -226,36 +224,17 @@
             dot.style.background = '#00d4ff';
             dot.style.boxShadow = '0 0 10px #00d4ff';
             text.innerText = 'Đã kích hoạt nhận thông báo';
-            badge.style.cursor = 'default';
         } else if (status === 'denied') {
             badge.style.background = 'rgba(255, 77, 77, 0.1)';
             badge.style.borderColor = 'rgba(255, 77, 77, 0.3)';
             badge.style.color = '#ff4d4d';
             dot.style.background = '#ff4d4d';
-            dot.style.boxShadow = 'none';
             text.innerText = 'Đã chặn thông báo (Mở lại trong cài đặt)';
-            badge.style.cursor = 'help';
         } else {
-            badge.style.background = 'rgba(255, 255, 255, 0.08)';
-            badge.style.color = '#fff';
-            dot.style.background = '#fff';
-            dot.style.boxShadow = '0 0 5px #fff';
-            text.innerText = 'Chưa đăng ký - Bấm để nhận thông báo';
-            badge.style.cursor = 'pointer';
+            text.innerText = 'Bấm vào trang để nhận thông báo';
         }
     }
 
-    // Hàm xử lý khi người dùng nhấn vào badge
-    async function handlePushClick() {
-        const status = Notification.permission;
-        if (status === 'default') {
-            await registerPush();
-        } else if (status === 'denied') {
-            alert("Bạn đã chặn quyền thông báo. Vui lòng nhấn vào icon ổ khóa trên thanh địa chỉ trình duyệt để 'Cho phép' (Allow) lại.");
-        }
-    }
-
-    // Hàm chuyển đổi VAPID key
     function urlBase64ToUint8Array(base64String) {
         const padding = '='.repeat((4 - base64String.length % 4) % 4);
         const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -265,63 +244,84 @@
         return outputArray;
     }
 
-    // Hàm đăng ký hoặc cập nhật Subscription gửi lên Server
-    async function syncSubscriptionWithServer() {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            console.warn("Trình duyệt không hỗ trợ Push Notification.");
-            return;
-        }
-
+    async function registerPush() {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
         try {
-            // Đảm bảo Service Worker đã được đăng ký
             const registration = await navigator.serviceWorker.register('/sw.js');
-
-            // Lấy subscription hiện tại
-            let subscription = await registration.pushManager.getSubscription();
-
-            // Nếu người dùng vừa đăng nhập (có TempData) và chưa có sub, thì yêu cầu đăng ký mới
-            @if (TempData["ShowPushPrompt"] != null)
-            {
-                    <text>
-                    if (!subscription && Notification.permission !== 'denied') {
-                        subscription = await registration.pushManager.subscribe({
-                            userVisibleOnly: true,
-                            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-                        });
-                    }
-                    </text>
-            }
-
-            // Nếu có subscription (đã đăng ký trước đó hoặc vừa đăng ký xong)
-            if (subscription) {
-                const subObj = JSON.parse(JSON.stringify(subscription));
-
-                // Gửi cập nhật liên tục lên Server để đảm bảo ID người dùng luôn khớp với Endpoint
-                await fetch('/PushNotification/UpdateSubscription', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        endpoint: subObj.endpoint,
-                        p256dh: subObj.keys.p256dh,
-                        auth: subObj.keys.auth
-                    }),
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                console.log("Push Subscription đã được đồng bộ với Server.");
-                updatePushUI('granted');
-            } else {
-                updatePushUI(Notification.permission);
-            }
-
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            });
+            await sendSubscriptionToServer(subscription);
         } catch (error) {
-            console.error("Lỗi đồng bộ Push:", error);
-            updatePushUI(Notification.permission);
+            console.error("Lỗi đăng ký Push:", error);
         }
     }
 
-    // Khởi tạo khi trang đã sẵn sàng
-    document.addEventListener('DOMContentLoaded', () => {
-        // Luôn chạy đồng bộ khi vào trang để đảm bảo server có Token mới nhất của User hiện tại
-        syncSubscriptionWithServer();
+    async function sendSubscriptionToServer(subscription) {
+        if (!subscription) return;
+        const subObj = JSON.parse(JSON.stringify(subscription));
+
+        // Lấy Antiforgery Token nếu có (thường nằm trong thẻ input ẩn của form)
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) {
+            headers['RequestVerificationToken'] = token; // Thêm token vào header
+        }
+
+        try {
+            const response = await fetch('/PushNotification/UpdateSubscription', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    endpoint: subObj.endpoint,
+                    p256dh: subObj.keys.p256dh,
+                    auth: subObj.keys.auth
+                }),
+                credentials: 'include'
+            });
+
+            if (response.status === 401) {
+                console.warn("Lỗi 401: Người dùng chưa đăng nhập hoặc Session hết hạn.");
+                // Bạn có thể chuyển hướng về trang Login ở đây nếu cần: window.location.href = '/Account/Login';
+                return;
+            }
+
+            if (response.ok) {
+                console.log("Đồng bộ thành công.");
+                updatePushUI('granted');
+            }
+        } catch (e) {
+            console.error("Lỗi kết nối Server:", e);
+        }
+    }
+
+    async function handlePushClick() {
+        const status = Notification.permission;
+        if (status === 'default') await registerPush();
+        else if (status === 'denied') alert("Vui lòng mở cài đặt trình duyệt để cho phép thông báo.");
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!('Notification' in window)) return;
+
+        if (Notification.permission === 'granted') {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            if (subscription) await sendSubscriptionToServer(subscription);
+            else await registerPush();
+        }
+        else if (Notification.permission === 'default') {
+            const autoRequest = async () => {
+                await registerPush();
+                document.removeEventListener('click', autoRequest);
+            };
+            document.addEventListener('click', autoRequest);
+        } else {
+            updatePushUI('denied');
+        }
     });
 </script>
+
+@Html.AntiForgeryToken()
