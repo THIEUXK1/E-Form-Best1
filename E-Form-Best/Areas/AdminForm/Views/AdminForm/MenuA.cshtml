@@ -244,14 +244,22 @@
         return outputArray;
     }
 
+    // SỬA ĐỔI CHÍNH Ở ĐÂY: Đợi Service Worker sẵn sàng
     async function registerPush() {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
         try {
-            const registration = await navigator.serviceWorker.register('/sw.js');
+            // 1. Đăng ký Service Worker
+            await navigator.serviceWorker.register('/sw.js');
+
+            // 2. Đợi cho đến khi Service Worker ở trạng thái Ready (Active)
+            const registration = await navigator.serviceWorker.ready;
+
+            // 3. Thực hiện subscribe
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
             });
+
             await sendSubscriptionToServer(subscription);
         } catch (error) {
             console.error("Lỗi đăng ký Push:", error);
@@ -261,18 +269,13 @@
     async function sendSubscriptionToServer(subscription) {
         if (!subscription) return;
         const subObj = JSON.parse(JSON.stringify(subscription));
-
-        // Lấy Antiforgery Token từ Form (nếu có)
         const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
         const headers = {
             'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest' // Giúp Server nhận biết đây là yêu cầu AJAX
+            'X-Requested-With': 'XMLHttpRequest'
         };
-
-        if (token) {
-            headers['RequestVerificationToken'] = token;
-        }
+        if (token) headers['RequestVerificationToken'] = token;
 
         try {
             const response = await fetch('/PushNotification/UpdateSubscription', {
@@ -283,17 +286,14 @@
                     p256dh: subObj.keys.p256dh,
                     auth: subObj.keys.auth
                 }),
-                credentials: 'include' // Gửi kèm Cookie xác thực
+                credentials: 'include'
             });
-
-            if (response.status === 401) {
-                console.error("Lỗi 401: Vui lòng kiểm tra lại quyền truy cập hoặc đăng nhập lại.");
-                return;
-            }
 
             if (response.ok) {
                 console.log("Đồng bộ Push thành công.");
                 updatePushUI('granted');
+            } else if (response.status === 401) {
+                console.error("Lỗi 401: Unauthorized - Kiểm tra login.");
             }
         } catch (e) {
             console.error("Lỗi kết nối:", e);
@@ -309,6 +309,7 @@
         if (!('Notification' in window)) return;
 
         if (Notification.permission === 'granted') {
+            // Đợi worker sẵn sàng trước khi lấy subscription hiện có
             const registration = await navigator.serviceWorker.ready;
             const subscription = await registration.pushManager.getSubscription();
             if (subscription) await sendSubscriptionToServer(subscription);
