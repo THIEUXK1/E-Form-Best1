@@ -47,7 +47,6 @@
                     string statusColor = "#f59e0b";
                     var f = log.IdFormItNavigation;
 
-                    // Logic xác định trạng thái đơn
                     bool isCanceled = f?.TrangThai == "DaHuy" || (f?.TenForm != null && f.TenForm.Contains("[ĐÃ HỦY]"));
 
                     if (isCanceled)
@@ -79,7 +78,6 @@
                         }
                     }
 
-                    // Xác định màu sắc theo hành động (Tiêu đề log)
                     string actionColor = "#6366f1";
                     if (log.TieuDe?.ToUpper().Contains("DUYỆT") == true) actionColor = "#10b981";
                     if (log.TieuDe?.ToUpper().Contains("HỦY") == true || log.TieuDe?.ToUpper().Contains("TỪ CHỐI") == true) actionColor = "#ef4444";
@@ -95,7 +93,6 @@
 
                         <div style="background: @(isCanceled ? "#fff5f5" : "white"); border-radius: 20px; padding: 20px; border: 1px solid @(isCanceled ? "#fecaca" : "#e2e8f0"); display: flex; align-items: center; gap: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.02); position: relative; overflow: hidden;">
 
-                            @* Thanh màu chỉ thị trạng thái bên trái *@
                             <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: @statusColor;"></div>
 
                             @* Cột thời gian *@
@@ -107,24 +104,20 @@
                             @* Nội dung chính *@
                             <div style="flex-grow: 1;">
                                 <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
-                                    @* Badge Hành động *@
                                     <span style="background: @(actionColor); color: white; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 4px @(actionColor)40;">
                                         @log.TieuDe
                                     </span>
 
-                                    @* Badge Trạng thái đơn *@
                                     <span class="status-badge" style="background: @(statusColor)15; color: @statusColor; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; border: 1px solid @(statusColor)30;">
                                         <i class="fa @(isCanceled ? "fa-ban" : (statusText == "Chờ đánh giá" ? "fa-star" : (statusText == "Chờ phê duyệt" ? "fa-clock-o" : (statusText == "Hoàn tất 100%" ? "fa-check-circle" : "fa-circle"))))"
                                            style="margin-right: 5px; vertical-align: middle;"></i>
                                         @statusText
                                     </span>
 
-                                    @* Mã đơn và Tên đơn *@
                                     <span style="color: @(isCanceled ? "#991b1b" : "#475569"); font-size: 14px; font-weight: 700; background: @(isCanceled ? "#fee2e2" : "#f8fafc"); padding: 3px 10px; border-radius: 8px; border: 1px solid @(isCanceled ? "#fecaca" : "#e2e8f0");">
                                         #@log.IdFormIt - @(f?.TenForm ?? "N/A")
                                     </span>
 
-                                    @* --- PHẦN THÊM MỚI: Badge Danh mục --- *@
                                     @if (!string.IsNullOrEmpty(f?.Danhmuc))
                                     {
                                         <span style="background: #f1f5f9; color: #475569; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; border: 1px solid #cbd5e1; display: flex; align-items: center; gap: 5px;">
@@ -134,7 +127,6 @@
                                     }
                                 </div>
 
-                                @* Mô tả chi tiết *@
                                 <div style="color: @(isCanceled ? "#7f1d1d" : "#334155"); font-size: 15px; line-height: 1.5; font-weight: 500; margin-bottom: 12px;">
                                     @if (isCanceled)
                                     {
@@ -143,7 +135,6 @@
                                     @log.Mota
                                 </div>
 
-                                @* Footer của item: Thông tin Admin/Kỹ thuật *@
                                 <div style="display: flex; gap: 15px; align-items: center; border-top: 1px solid @(isCanceled ? "#fecaca" : "#f1f5f9"); padding-top: 10px;">
                                     <div style="font-size: 12px; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 6px;">
                                         <img src="https://ui-avatars.com/api/?name=@(f?.TenAdmin ?? "A")&background=@(isCanceled ? "ef4444" : "6366f1")&color=fff" style="width: 20px; height: 20px; border-radius: 50%;" />
@@ -158,6 +149,35 @@
                                 </div>
                             </div>
 
+                            @* --- PHẦN THÊM MỚI: Đánh giá sao và Thời gian xử lý bên phải --- *@
+                            @if (statusText == "Hoàn tất 100%" && f?.DanhGia != null && f.DanhGia.Any())
+                            {
+                                var dg = f.DanhGia.First();
+                                string timeDiff = "";
+                                if (f.TimeNguoiDuyet != null && dg.TimeNguoiDanhGia != null)
+                                {
+                                    var span = dg.TimeNguoiDanhGia.Value - f.TimeNguoiDuyet.Value;
+                                    if (span.TotalDays >= 1) timeDiff = $"{(int)span.TotalDays}n {span.Hours}g";
+                                    else if (span.TotalHours >= 1) timeDiff = $"{(int)span.TotalHours}g {span.Minutes}p";
+                                    else timeDiff = $"{(int)span.TotalMinutes}p";
+                                }
+
+                                <div style="min-width: 120px; text-align: right; border-left: 1px dashed #e2e8f0; padding-left: 15px; display: flex; flex-direction: column; justify-content: center; gap: 6px;">
+                                    <div style="color: #f59e0b; font-size: 13px; white-space: nowrap;">
+                                        @for (int i = 1; i <= 5; i++)
+                                        {
+                                            <i class="fa @(i <= (dg.MucDo ?? 0) ? "fa-star" : "fa-star-o")"></i>
+                                        }
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(timeDiff))
+                                    {
+                                        <div style="font-size: 11px; color: #475569; font-weight: 700; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; display: inline-block; border: 1px solid #cbd5e1;">
+                                            <i class="fa fa-clock-o" style="color: #6366f1;"></i> @timeDiff
+                                        </div>
+                                    }
+                                </div>
+                            }
+
                             @* Icon mũi tên dẫn hướng *@
                             <div style="color: @(isCanceled ? "#f87171" : "#cbd5e1"); font-size: 20px; padding-left: 10px;">
                                 <i class="fa fa-angle-right"></i>
@@ -168,7 +188,6 @@
             }
             else
             {
-                @* Hiển thị khi không có dữ liệu *@
                 <div style="text-align: center; padding: 50px; background: white; border-radius: 20px; color: #94a3b8;">
                     <i class="fa fa-folder-open-o" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
                     <p style="font-weight: 600;">Không có nhật ký hoạt động nào để hiển thị.</p>
@@ -190,7 +209,6 @@
         transform: translateY(-2px);
     }
 
-    /* Hiệu ứng mượt cho các item log */
     .log-item {
         will-change: transform;
     }
@@ -199,7 +217,6 @@
 <script>
     let currentFilterStatus = 'all';
 
-    // Xử lý hiệu ứng Hover bằng JS
     function initHoverEffects() {
         document.querySelectorAll('.log-item').forEach(item => {
             const isCanceled = item.getAttribute('data-canceled') === 'true';
@@ -223,25 +240,19 @@
         });
     }
 
-    // Hàm lọc theo trạng thái (Tab)
     function filterByStatus(status, btn) {
         currentFilterStatus = status;
-
-        // Cập nhật giao diện nút
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-
         combinedFilter();
     }
 
-    // Hàm lọc kết hợp Search và Tab (Tối ưu hóa tìm kiếm)
     function combinedFilter() {
         const searchText = document.getElementById('logSearch').value.toLowerCase().trim();
         const items = document.getElementsByClassName("log-item");
 
         for (let i = 0; i < items.length; i++) {
             const itemStatus = items[i].getAttribute('data-status-text');
-            // itemContent bao gồm cả text của Badge Danh mục vừa thêm
             const itemContent = items[i].innerText.toLowerCase();
 
             const matchStatus = (currentFilterStatus === 'all' || itemStatus === currentFilterStatus);
@@ -257,8 +268,7 @@
         }
     }
 
-    // Khởi tạo các sự kiện sau khi trang load
     document.addEventListener('DOMContentLoaded', function() {
         initHoverEffects();
     });
-</script>  
+</script>
