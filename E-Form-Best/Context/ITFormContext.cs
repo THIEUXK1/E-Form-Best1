@@ -16,6 +16,8 @@ public partial class ITFormContext : DbContext
     {
     }
 
+    public virtual DbSet<BinhLuanFormHr> BinhLuanFormHrs { get; set; }
+
     public virtual DbSet<BinhLuanFormIt> BinhLuanFormIts { get; set; }
 
     public virtual DbSet<BoPhan> BoPhans { get; set; }
@@ -58,6 +60,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<LichSu> LichSus { get; set; }
 
+    public virtual DbSet<LichSuFormHr> LichSuFormHrs { get; set; }
+
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UserBoPhan> UserBoPhans { get; set; }
@@ -70,6 +74,11 @@ public partial class ITFormContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<BinhLuanFormHr>(entity =>
+        {
+            entity.Property(e => e.ThoiGian).HasDefaultValueSql("(getdate())");
+        });
+
         modelBuilder.Entity<BinhLuanFormIt>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__BinhLuan__3213E83F980A0B9F");
@@ -227,6 +236,12 @@ public partial class ITFormContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__LichSu__3213E83F7913614E");
 
             entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.LichSus).HasConstraintName("FK_LichSu_FormIT");
+        });
+
+        modelBuilder.Entity<LichSuFormHr>(entity =>
+        {
+            entity.Property(e => e.IsRead).HasDefaultValue(false);
+            entity.Property(e => e.Time).HasDefaultValueSql("(getdate())");
         });
 
         modelBuilder.Entity<User>(entity =>

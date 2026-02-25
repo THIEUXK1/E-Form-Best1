@@ -699,22 +699,104 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
 
         #endregion
 
-        #region Thông Tin cá nhân (Dùng chung cho tất cả người dùng đã đăng nhập, không phân biệt vai trò)
+        #region Thông Tin Cá Nhân & Ảnh Đại Diện
+
         [HttpGet("/ThongTinTaiKhoan")]
         [Authorize]
-        public IActionResult ThongTinTaiKhoan()
+        public async Task<IActionResult> ThongTinTaiKhoan()
         {
-            // Lấy thông tin từ các Claim bạn đã thiết lập ở hàm Post DangNhap
-            ViewBag.HoTen = User.Identity?.Name;
-            ViewBag.Email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-            ViewBag.VaiTro = User.FindFirst("UserRole")?.Value;
-            ViewBag.PhongBan = User.FindFirst("PhongBan")?.Value;
-            ViewBag.TenCongTy = User.FindFirst("TenCongTy")?.Value;
-            ViewBag.TenBoPhan = User.FindFirst("TenBoPhan")?.Value ?? "Chưa xác định";
-            ViewBag.MoTaBoPhan = User.FindFirst("MoTaBoPhan")?.Value ?? "Không có mô tả";
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return RedirectToAction("Login");
+
+            int userId = int.Parse(userIdClaim);
+            var user = _context.Users.FirstOrDefault(u => u.IdNguoiDung == userId);
+
+            // Truyền trực tiếp đường dẫn ảnh từ Database vào ViewBag để View hiển thị
+            ViewBag.AnhDaiDien = user?.AnhDaiDien;
 
             return View();
         }
-        #endregion
+
+        [HttpPost("/DonXetDuyet/CapNhatAnh")]
+        [Authorize]
+        public async Task<IActionResult> CapNhatAnh(IFormFile fileAnh)
+        {
+            if (fileAnh == null || fileAnh.Length == 0) return Json(new { success = false, message = "File không hợp lệ." });
+
+            try
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var user = await _context.Users.FindAsync(userId);
+
+                // 1. Xóa ảnh cũ nếu có (để dọn dẹp bộ nhớ File Server)
+                if (!string.IsNullOrEmpty(user.AnhDaiDien) && System.IO.File.Exists(user.AnhDaiDien))
+                {
+                    System.IO.File.Delete(user.AnhDaiDien);
+                }
+
+                // 2. Lưu ảnh mới vào File Server
+                string folderPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\User";
+                if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
+
+                string fileName = $"Avatar_{userId}_{DateTime.Now:yyyyMMddHHmmss}{Path.GetExtension(fileAnh.FileName)}";
+                string fullPath = Path.Combine(folderPath, fileName);
+
+                using (var stream = new FileStream(fullPath, FileMode.Create))
+                {
+                    await fileAnh.CopyToAsync(stream);
+                }
+
+                // 3. Lưu đường dẫn mới vào DB
+                user.AnhDaiDien = fullPath;
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("/DonXetDuyet/XoaAnhDaiDien")]
+        [Authorize]
+        public async Task<IActionResult> XoaAnhDaiDien()
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var user = await _context.Users.FindAsync(userId);
+
+                if (!string.IsNullOrEmpty(user.AnhDaiDien) && System.IO.File.Exists(user.AnhDaiDien))
+                {
+                    System.IO.File.Delete(user.AnhDaiDien); // Xóa file vật lý trong thư mục
+                }
+
+                user.AnhDaiDien = null; // Gán lại null trong DB
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("/DonXetDuyet/GetAvatar")]
+        [Authorize]
+        public IActionResult GetAvatar(string path)
+        {
+            if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path))
+            {
+                return NotFound();
+            }
+            var image = System.IO.File.OpenRead(path);
+            return File(image, "image/jpeg"); // Trả về FileStream cho thẻ <img>
+        }
+
+        #endregion  
     }
-}
+    }

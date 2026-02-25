@@ -103,7 +103,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         new Claim(ClaimTypes.Email, user.Tk ?? ""),
         new Claim("UserRole", user.VaiTro ?? ""),
         new Claim("PhongBan", user.PhongBan ?? ""),
-        new Claim("TenCongTy", user.TenCongTy ?? "")
+        new Claim("TenCongTy", user.TenCongTy ?? ""),
+        // --- LƯU ĐƯỜNG DẪN ẢNH ĐẠI DIỆN VÀO COOKIE ---
+        new Claim("AnhDaiDien", user.AnhDaiDien ?? "/images/default-avatar.png")
     };
 
             // --- LẤY TẤT CẢ BỘ PHẬN (TEN_BO_PHAN & MO_TA) ---
@@ -151,7 +153,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
 
             // 6. Chuyển hướng thành công
-            // Thêm flag TempData để thông báo cho Frontend cần kích hoạt xin quyền Push Notification
             TempData["ShowPushPrompt"] = true;
             return Redirect("/menuA");
         }
