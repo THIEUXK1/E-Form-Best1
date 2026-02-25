@@ -60,6 +60,9 @@ public partial class User
     [StringLength(255)]
     public string? TenCongTy { get; set; }
 
+    [Column("anh_dai_dien")]
+    public string? AnhDaiDien { get; set; }
+
     [InverseProperty("IdNguoiDungNavigation")]
     public virtual ICollection<UserBoPhan> UserBoPhans { get; set; } = new List<UserBoPhan>();
 
