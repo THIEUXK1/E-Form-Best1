@@ -1,24 +1,39 @@
 ﻿using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
+using WebPush;
+using E_Form_Best.Context; // Hãy đảm bảo namespace này đúng với file ITFormContext.cs của bạn
+using E_Form_Best.Areas.AdminForm.Controllers; // Để nhận diện PushNotificationService
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Thêm dịch vụ MVC (Controllers + Views)
+// --- 1. ĐĂNG KÝ DATABASE CONTEXT (SỬA LỖI BẠN ĐANG GẶP) ---
+builder.Services.AddDbContext<ITFormContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// --- 2. ĐĂNG KÝ CÁC DỊCH VỤ THÔNG BÁO ---
+// Đăng ký Service gửi Push để có thể gọi từ bất kỳ Controller nào
+builder.Services.AddScoped<PushNotificationService>();
+
+// Lấy cấu hình VAPID từ appsettings.json
+builder.Services.Configure<VapidDetails>(builder.Configuration.GetSection("VapidDetails"));
+
+// 3. Thêm dịch vụ MVC (Controllers + Views)
 builder.Services.AddControllersWithViews();
 
-// 2. CẤU HÌNH COOKIE AUTHENTICATION (QUAN TRỌNG ĐỂ SỬ DỤNG CK)
+// 4. CẤU HÌNH COOKIE AUTHENTICATION
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.Cookie.Name = "ITForm_Auth_Cookie";    // Tên file Cookie lưu trên Laptop
-        options.LoginPath = "/DonXetDuyet/DangNhap";    // Đường dẫn nếu chưa đăng nhập
+        options.Cookie.Name = "ITForm_Auth_Cookie";
+        options.LoginPath = "/DonXetDuyet/DangNhap";
         options.LogoutPath = "/DonXetDuyet/DangXuat";
-        options.ExpireTimeSpan = TimeSpan.FromDays(365); // Hạn dùng 1 năm cho đăng nhập vĩnh viễn
-        options.SlidingExpiration = true;               // Tự động gia hạn khi user còn dùng
+        options.ExpireTimeSpan = TimeSpan.FromDays(365);
+        options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
         options.Cookie.IsEssential = true;
     });
 
-// 3. Cấu hình Session (Giữ lại nếu bạn vẫn dùng cho các biến tạm khác)
+// 5. Cấu hình Session
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromHours(3);
@@ -36,16 +51,16 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseStaticFiles(); // Quan trọng: Để truy cập sw.js và icon thông báo
 app.UseRouting();
 
-// 4. THỨ TỰ MIDDLEWARE (RẤT QUAN TRỌNG)
-app.UseAuthentication(); // Bước 1: Xác thực xem bạn là ai (Phải đứng trước Authorization)
-app.UseAuthorization();  // Bước 2: Kiểm tra bạn có quyền vào trang đó không
-app.UseSession();        // Bước 3: Sử dụng Session
+// 6. THỨ TỰ MIDDLEWARE (QUYẾT ĐỊNH VIỆC ĐĂNG NHẬP CÓ CHẠY KHÔNG)
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseSession();
 
-// 5. CẤU HÌNH ROUTES
-// ƯU TIÊN 1: Map trực tiếp trang chủ vào Action [HttpGet("/MenuA")]
+// 7. CẤU HÌNH ROUTES
+// ƯU TIÊN 1: Map trực tiếp trang chủ vào trang MenuA
 app.MapGet("/", context => {
     context.Response.Redirect("/MenuA");
     return Task.CompletedTask;
@@ -62,7 +77,6 @@ app.MapControllerRoute(
     defaults: new { controller = "Home", action = "Index" }
 );
 
-// Route mặc định để hỗ trợ các Controller/Action khác
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
