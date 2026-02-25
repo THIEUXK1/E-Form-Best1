@@ -262,12 +262,16 @@
         if (!subscription) return;
         const subObj = JSON.parse(JSON.stringify(subscription));
 
-        // Lấy Antiforgery Token nếu có (thường nằm trong thẻ input ẩn của form)
+        // Lấy Antiforgery Token từ Form (nếu có)
         const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
-        const headers = { 'Content-Type': 'application/json' };
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest' // Giúp Server nhận biết đây là yêu cầu AJAX
+        };
+
         if (token) {
-            headers['RequestVerificationToken'] = token; // Thêm token vào header
+            headers['RequestVerificationToken'] = token;
         }
 
         try {
@@ -279,28 +283,26 @@
                     p256dh: subObj.keys.p256dh,
                     auth: subObj.keys.auth
                 }),
-                credentials: 'include'
+                credentials: 'include' // Gửi kèm Cookie xác thực
             });
 
             if (response.status === 401) {
-                console.warn("Lỗi 401: Người dùng chưa đăng nhập hoặc Session hết hạn.");
-                // Bạn có thể chuyển hướng về trang Login ở đây nếu cần: window.location.href = '/Account/Login';
+                console.error("Lỗi 401: Vui lòng kiểm tra lại quyền truy cập hoặc đăng nhập lại.");
                 return;
             }
 
             if (response.ok) {
-                console.log("Đồng bộ thành công.");
+                console.log("Đồng bộ Push thành công.");
                 updatePushUI('granted');
             }
         } catch (e) {
-            console.error("Lỗi kết nối Server:", e);
+            console.error("Lỗi kết nối:", e);
         }
     }
 
     async function handlePushClick() {
-        const status = Notification.permission;
-        if (status === 'default') await registerPush();
-        else if (status === 'denied') alert("Vui lòng mở cài đặt trình duyệt để cho phép thông báo.");
+        if (Notification.permission === 'default') await registerPush();
+        else if (Notification.permission === 'denied') alert("Vui lòng mở cài đặt trình duyệt để cho phép thông báo.");
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
