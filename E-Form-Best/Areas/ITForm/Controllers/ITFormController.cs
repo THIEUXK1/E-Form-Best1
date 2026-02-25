@@ -15,13 +15,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
     public class ITFormController : Controller
     {
         public ITFormContext _context;
-        private readonly PushNotificationService _pushService;
 
         // Sửa constructor để nhận DI từ hệ thống
-        public ITFormController(ITFormContext context, PushNotificationService pushService)
+        public ITFormController()
         {
-            _context = context;
-            _pushService = pushService;
+            _context = new ITFormContext();
         }
 
         #region logo
@@ -157,32 +155,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             TempData["ShowPushPrompt"] = true;
             return Redirect("/menuA");
         }
-        [HttpPost("/PushNotification/UpdateSubscription")]
-        public async Task<IActionResult> UpdateSubscription([FromBody] PushSubModel model)
-        {
-            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
-            int userId = int.Parse(userIdStr);
-            var user = await _context.Users.FindAsync(userId);
-
-            if (user != null)
-            {
-                user.PushEndpoint = model.Endpoint;
-                user.PushP256dh = model.P256dh;
-                user.PushAuth = model.Auth;
-                await _context.SaveChangesAsync();
-                return Ok();
-            }
-            return NotFound();
-        }
-
-        public class PushSubModel
-        {
-            public string Endpoint { get; set; }
-            public string P256dh { get; set; }
-            public string Auth { get; set; }
-        }
         [HttpGet("/DonXetDuyet/DangXuat")]
         public async Task<IActionResult> DangXuat()
         {
@@ -494,18 +467,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     await _context.SaveChangesAsync();
 
                     await transaction.CommitAsync();
-                    // --- 7. GỬI THÔNG BÁO ĐẨY (PUSH NOTIFICATION) ---
-                    // Đặt ngoài Transaction để nếu lỗi gửi Push cũng không làm Rollback dữ liệu chính
-                    try
-                    {
-                        // Hàm này sẽ tự động tìm Admin, Người duyệt, Người hỗ trợ để bắn tin
-                        await NotifyRelevantUsers(lichSu);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Chỉ ghi Log lỗi gửi Push, không báo lỗi lên màn hình để User không bị gián đoạn
-                        Console.WriteLine($"Lỗi gửi thông báo đẩy: {ex.Message}");
-                    }
+                   
                     TempData["Success"] = "Gửi đơn đăng ký Mail thành công!";
                     return Redirect("/FormIT/DonCho");
                 }
@@ -705,18 +667,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    // --- 7. GỬI THÔNG BÁO ĐẨY (PUSH NOTIFICATION) ---
-                    // Đặt ngoài Transaction để nếu lỗi gửi Push cũng không làm Rollback dữ liệu chính
-                    try
-                    {
-                        // Hàm này sẽ tự động tìm Admin, Người duyệt, Người hỗ trợ để bắn tin
-                        await NotifyRelevantUsers(lichSu);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Chỉ ghi Log lỗi gửi Push, không báo lỗi lên màn hình để User không bị gián đoạn
-                        Console.WriteLine($"Lỗi gửi thông báo đẩy: {ex.Message}");
-                    }
+                 
                     TempData["Success"] = "Gửi yêu cầu hỗ trợ IT thành công!";
                     return Redirect("/FormIT/DonCho");
                 }
@@ -902,18 +853,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
-                    // --- 7. GỬI THÔNG BÁO ĐẨY (PUSH NOTIFICATION) ---
-                    // Đặt ngoài Transaction để nếu lỗi gửi Push cũng không làm Rollback dữ liệu chính
-                    try
-                    {
-                        // Hàm này sẽ tự động tìm Admin, Người duyệt, Người hỗ trợ để bắn tin
-                        await NotifyRelevantUsers(lichSu);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Chỉ ghi Log lỗi gửi Push, không báo lỗi lên màn hình để User không bị gián đoạn
-                        Console.WriteLine($"Lỗi gửi thông báo đẩy: {ex.Message}");
-                    }
+                    
+               
                     TempData["Success"] = "Gửi yêu cầu đăng ký Wifi thành công!";
                     return Redirect("/FormIT/DonCho");
                 }
@@ -1101,18 +1042,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     await _context.SaveChangesAsync();
 
                     await transaction.CommitAsync();
-                    // --- 7. GỬI THÔNG BÁO ĐẨY (PUSH NOTIFICATION) ---
-                    // Đặt ngoài Transaction để nếu lỗi gửi Push cũng không làm Rollback dữ liệu chính
-                    try
-                    {
-                        // Hàm này sẽ tự động tìm Admin, Người duyệt, Người hỗ trợ để bắn tin
-                        await NotifyRelevantUsers(lichSu);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Chỉ ghi Log lỗi gửi Push, không báo lỗi lên màn hình để User không bị gián đoạn
-                        Console.WriteLine($"Lỗi gửi thông báo đẩy: {ex.Message}");
-                    }
+               
                     TempData["Success"] = "Gửi đơn đăng ký điện thoại bàn thành công!";
                     return Redirect("/FormIT/DonCho");
                 }
@@ -1292,18 +1222,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 _context.LichSus.Add(lichSu);
 
                 await _context.SaveChangesAsync();
-                // --- 7. GỬI THÔNG BÁO ĐẨY (PUSH NOTIFICATION) ---
-                // Đặt ngoài Transaction để nếu lỗi gửi Push cũng không làm Rollback dữ liệu chính
-                try
-                {
-                    // Hàm này sẽ tự động tìm Admin, Người duyệt, Người hỗ trợ để bắn tin
-                    await NotifyRelevantUsers(lichSu);
-                }
-                catch (Exception ex)
-                {
-                    // Chỉ ghi Log lỗi gửi Push, không báo lỗi lên màn hình để User không bị gián đoạn
-                    Console.WriteLine($"Lỗi gửi thông báo đẩy: {ex.Message}");
-                }
+                
                 return Json(new { success = true, message = "Đã cập nhật người hỗ trợ mới!" });
             }
             catch (Exception ex)
@@ -1449,18 +1368,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 };
                 _context.LichSus.Add(lichSu);
                 await _context.SaveChangesAsync();
-                // --- 7. GỬI THÔNG BÁO ĐẨY (PUSH NOTIFICATION) ---
-                // Đặt ngoài Transaction để nếu lỗi gửi Push cũng không làm Rollback dữ liệu chính
-                try
-                {
-                    // Hàm này sẽ tự động tìm Admin, Người duyệt, Người hỗ trợ để bắn tin
-                    await NotifyRelevantUsers(lichSu);
-                }
-                catch (Exception ex)
-                {
-                    // Chỉ ghi Log lỗi gửi Push, không báo lỗi lên màn hình để User không bị gián đoạn
-                    Console.WriteLine($"Lỗi gửi thông báo đẩy: {ex.Message}");
-                }
+                
                 return Json(new
                 {
                     success = true,
@@ -1852,18 +1760,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     // 7. Lưu thay đổi và kết thúc Transaction
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
-                    // --- 7. GỬI THÔNG BÁO ĐẨY (PUSH NOTIFICATION) ---
-                    // Đặt ngoài Transaction để nếu lỗi gửi Push cũng không làm Rollback dữ liệu chính
-                    try
-                    {
-                        // Hàm này sẽ tự động tìm Admin, Người duyệt, Người hỗ trợ để bắn tin
-                        await NotifyRelevantUsers(lichSu);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Chỉ ghi Log lỗi gửi Push, không báo lỗi lên màn hình để User không bị gián đoạn
-                        Console.WriteLine($"Lỗi gửi thông báo đẩy: {ex.Message}");
-                    }
+              
                     return Json(new { success = true, message = $"Đã {(request.Action == "Duyet" ? "phê duyệt" : "hủy")} đơn thành công." });
                 }
                 catch (Exception ex)
@@ -2048,18 +1945,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     // 8. Lưu DB
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
-                    // --- 7. GỬI THÔNG BÁO ĐẨY (PUSH NOTIFICATION) ---
-                    // Đặt ngoài Transaction để nếu lỗi gửi Push cũng không làm Rollback dữ liệu chính
-                    try
-                    {
-                        // Hàm này sẽ tự động tìm Admin, Người duyệt, Người hỗ trợ để bắn tin
-                        await NotifyRelevantUsers(lichSu);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Chỉ ghi Log lỗi gửi Push, không báo lỗi lên màn hình để User không bị gián đoạn
-                        Console.WriteLine($"Lỗi gửi thông báo đẩy: {ex.Message}");
-                    }
+                
                     return Json(new { success = true, message = "Xác nhận hoàn tất đơn IT thành công!" });
                 }
                 catch (Exception ex)
@@ -2175,18 +2061,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
-                    // --- 7. GỬI THÔNG BÁO ĐẨY (PUSH NOTIFICATION) ---
-                    // Đặt ngoài Transaction để nếu lỗi gửi Push cũng không làm Rollback dữ liệu chính
-                    try
-                    {
-                        // Hàm này sẽ tự động tìm Admin, Người duyệt, Người hỗ trợ để bắn tin
-                        await NotifyRelevantUsers(lichSu);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Chỉ ghi Log lỗi gửi Push, không báo lỗi lên màn hình để User không bị gián đoạn
-                        Console.WriteLine($"Lỗi gửi thông báo đẩy: {ex.Message}");
-                    }
+                    
                     return Json(new
                     {
                         success = true,
@@ -2300,18 +2175,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     // 11. Lưu thay đổi
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
-                    // --- 7. GỬI THÔNG BÁO ĐẨY (PUSH NOTIFICATION) ---
-                    // Đặt ngoài Transaction để nếu lỗi gửi Push cũng không làm Rollback dữ liệu chính
-                    try
-                    {
-                        // Hàm này sẽ tự động tìm Admin, Người duyệt, Người hỗ trợ để bắn tin
-                        await NotifyRelevantUsers(lichSu);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Chỉ ghi Log lỗi gửi Push, không báo lỗi lên màn hình để User không bị gián đoạn
-                        Console.WriteLine($"Lỗi gửi thông báo đẩy: {ex.Message}");
-                    }
+                    
+                
                     return Json(new
                     {
                         success = true,
@@ -2744,64 +2609,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             await _context.SaveChangesAsync();
             return Ok();
-        }
-        private async Task NotifyRelevantUsers(LichSu newLog)
-        {
-            // 1. Lấy thông tin đơn liên quan để biết ai có quyền nhận
-            var form = await _context.FormIts
-                .Include(f => f.ItCtNguoiHoTros)
-                    .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
-                .FirstOrDefaultAsync(f => f.Id == newLog.IdFormIt);
-
-            if (form == null) return;
-
-            // 2. Tìm tất cả User "có liên quan" theo logic của bạn
-            // Chúng ta lấy toàn bộ User có lưu PushEndpoint
-            var potentialUsers = await _context.Users
-                .Where(u => !string.IsNullOrEmpty(u.PushEndpoint))
-                .ToListAsync();
-
-            foreach (var user in potentialUsers)
-            {
-                bool shouldNotify = false;
-
-                // Logic phân quyền giống hệt hàm GetNotifications của bạn
-                if (user.VaiTro == "All")
-                {
-                    shouldNotify = true;
-                }
-                else if (user.VaiTro == "Admin")
-                {
-                    if (form.IdNguoiDuyet != null &&
-                        form.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == user.Tk))
-                    {
-                        shouldNotify = true;
-                    }
-                }
-                else // User thường
-                {
-                    if (form.IdNguoiTao == user.IdNguoiDung ||
-                        form.IdNguoiDuyet == user.IdNguoiDung ||
-                        form.IdAdmin == user.IdNguoiDung ||
-                        form.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == user.Tk))
-                    {
-                        shouldNotify = true;
-                    }
-                }
-
-                // 3. Nếu thỏa mãn điều kiện thì "bắn" Push
-                if (shouldNotify)
-                {
-                    await _pushService.SendNotification(
-                        user.PushEndpoint,
-                        user.PushP256dh,
-                        user.PushAuth,
-                        newLog.TieuDe ?? "Thông báo mới",
-                        newLog.Mota ?? "Có cập nhật mới trong đơn IT của bạn",
-                        $"/Logo?id={newLog.IdFormIt}" // Đường dẫn đến đơn hàng
-                    );
-                }
-            }
         }
         #endregion
     }
