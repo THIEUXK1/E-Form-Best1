@@ -12,9 +12,15 @@
     var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value
                           ?? User.FindFirst("UserRole")?.Value ?? "";
 
-    var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    int currentUserId = string.IsNullOrEmpty(userIdStr) ? 0 : int.Parse(userIdStr);
+    // Lấy giá trị từ Claim NameIdentifier (đã được lưu là user.IdNguoiDung.ToString())
+    var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
+    // Chuyển đổi sang int, nếu không có hoặc lỗi thì mặc định là 0
+    int currentUserId = 0;
+    if (!string.IsNullOrEmpty(userIdStr))
+    {
+        int.TryParse(userIdStr, out currentUserId);
+    }
     // --- LOGIC TRẠNG THÁI ---
     bool isCancelled = Model.TenForm != null && Model.TenForm.Contains("[ĐÃ HỦY]");
     bool isFinished = Model.IdAdmin != null || Model.TrangThai == "HoanTat";
@@ -536,19 +542,24 @@
 </div>
 
 <script>
-    // 1. Khai báo các biến cơ bản từ Model
+    // ==========================================
+    // 1. KHAI BÁO BIẾN CƠ BẢN & TRẠNG THÁI
+    // ==========================================
     const formId = @Model.Id;
     const currentUserId = '@currentUserId';
     const currentUserRole = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(currentUserRole));
 
-    // 2. Biến trạng thái cho Bình luận
+    // Biến trạng thái cho Bình luận
     let currentSkipComment = 0;
     const takeComment = 20;
     let hasMoreComments = true;
     let isLoadingComments = false;
     let totalComments = 0;
+    let soSaoChon = 0;
 
-    // === Helpers ===
+    // ==========================================
+    // 2. HELPERS & UTILITIES
+    // ==========================================
     function escapeHtml(str) {
         if (str === null || str === undefined) return '';
         return String(str)
@@ -559,35 +570,7 @@
             .replaceAll("'", '&#39;');
     }
 
-    // === CHỨC NĂNG PHÓNG TO 75% ===
-    function toggleZoom() {
-        const container = document.getElementById('commentContainer');
-        const overlay = document.getElementById('commentOverlay');
-        const icon = document.getElementById('zoomIcon');
-        const isFull = container.classList.contains('comment-zoom-active');
-
-        if (!isFull) {
-            container.classList.add('comment-zoom-active');
-            overlay.style.display = 'block';
-            icon.classList.replace('fa-expand', 'fa-compress');
-            document.body.style.overflow = 'hidden';
-        } else {
-            container.classList.remove('comment-zoom-active');
-            overlay.style.display = 'none';
-            icon.classList.replace('fa-compress', 'fa-expand');
-            document.body.style.overflow = 'auto';
-        }
-    }
-
-    // Đóng khi nhấn ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === "Escape") {
-            const container = document.getElementById('commentContainer');
-            if(container.classList.contains('comment-zoom-active')) toggleZoom();
-        }
-    });
-
-    // === Các API Post của đơn hàng (Giữ nguyên của bạn) ===
+    // === API Post chung (Dùng cho Duyệt, Hủy, Hoàn thành, Đánh giá) ===
     async function apiPost(url, body, btnIds) {
         if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = true; });
         try {
@@ -613,7 +596,78 @@
         }
     }
 
-    // ========== BÌNH LUẬN (LOGIC CHÍNH) ==========
+    // ==========================================
+    // 3. XỬ LÝ PHÓNG TO (ZOOM) & PHÍM TẮT
+    // ==========================================
+
+    // Zoom Bình luận
+    function toggleZoom() {
+        const container = document.getElementById('commentContainer');
+        const overlay = document.getElementById('commentOverlay');
+        const icon = document.getElementById('zoomIcon');
+        const isFull = container.classList.contains('comment-zoom-active');
+
+        if (!isFull) {
+            container.classList.add('comment-zoom-active');
+            overlay.style.display = 'block';
+            if(icon) icon.classList.replace('fa-expand', 'fa-compress');
+            document.body.style.overflow = 'hidden';
+        } else {
+            container.classList.remove('comment-zoom-active');
+            overlay.style.display = 'none';
+            if(icon) icon.classList.replace('fa-compress', 'fa-expand');
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    // Zoom Nhật ký
+    function toggleZoomHistory() {
+        const container = document.getElementById('historyContainer');
+        const overlay = document.getElementById('historyOverlay');
+        const icon = document.getElementById('historyZoomIcon');
+        const isFull = container.classList.contains('history-zoom-active');
+
+        if (!isFull) {
+            container.classList.add('history-zoom-active');
+            overlay.style.display = 'block';
+            if(icon) icon.classList.replace('fa-expand', 'fa-compress');
+            document.body.style.overflow = 'hidden';
+        } else {
+            container.classList.remove('history-zoom-active');
+            overlay.style.display = 'none';
+            if(icon) icon.classList.replace('fa-compress', 'fa-expand');
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    // Zoom Ảnh đính kèm
+    function openZoom(src) {
+        document.getElementById('fullImage').src = src;
+        document.getElementById('imageOverlay').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeZoom() {
+        document.getElementById('imageOverlay').style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    // Đóng tất cả khi nhấn ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === "Escape") {
+            const commentBox = document.getElementById('commentContainer');
+            const historyBox = document.getElementById('historyContainer');
+            const imageOverlay = document.getElementById('imageOverlay');
+
+            if(commentBox?.classList.contains('comment-zoom-active')) toggleZoom();
+            if(historyBox?.classList.contains('history-zoom-active')) toggleZoomHistory();
+            if(imageOverlay?.style.display === 'flex') closeZoom();
+        }
+    });
+
+    // ==========================================
+    // 4. LOGIC BÌNH LUẬN (LOAD, THÊM, XÓA)
+    // ==========================================
     async function taiBinhLuan(isLoadMore = false) {
         if (isLoadingComments) return;
         isLoadingComments = true;
@@ -641,6 +695,7 @@
                     const noMsg = document.getElementById('noCommentMsg');
                     if (noMsg) noMsg.remove();
 
+                    // Khi load more (cuộn lên), chèn vào đầu. Khi load mới, chèn vào cuối.
                     data.data.reverse().forEach(bl => {
                         const html = renderComment(bl);
                         if (isLoadMore) commentList.insertAdjacentHTML('afterbegin', html);
@@ -668,7 +723,7 @@
         const isOwn = currentUserId === String(bl.idNguoiBinhLuan);
         const commentTime = new Date(bl.thoiGian).getTime();
         const now = new Date().getTime();
-        const isExpired = (now - commentTime) > (2 * 60 * 60 * 1000);
+        const isExpired = (now - commentTime) > (2 * 60 * 60 * 1000); // 2 giờ
         const isAdmin = currentUserRole === 'Admin' || currentUserRole === 'All';
         const canDelete = (isOwn && !isExpired) || isAdmin;
         const timeStr = new Date(bl.thoiGian).toLocaleString('vi-VN');
@@ -709,10 +764,10 @@
     }
 
     async function guiBinhLuan(e) {
-        e.preventDefault();
+        if(e) e.preventDefault();
         const noiDung = document.getElementById('txtBinhLuan').value.trim();
         const fileInp = document.getElementById('fileBinhLuan');
-        if (!noiDung && !fileInp.files[0]) return alert('Vui lòng nhập nội dung!');
+        if (!noiDung && !fileInp.files[0]) return alert('Vui lòng nhập nội dung hoặc đính kèm file!');
 
         const formData = new FormData();
         formData.append('idForm', formId);
@@ -720,7 +775,7 @@
         if (fileInp.files[0]) formData.append('file', fileInp.files[0]);
 
         const btn = document.getElementById('btnGuiBinhLuan');
-        btn.disabled = true;
+        if(btn) btn.disabled = true;
 
         try {
             const res = await fetch('/FormIT/ThemBinhLuan', { method: 'POST', body: formData });
@@ -729,15 +784,17 @@
                 const list = document.getElementById('commentList');
                 const noMsg = document.getElementById('noCommentMsg');
                 if (noMsg) noMsg.remove();
+
                 list.insertAdjacentHTML('beforeend', renderComment(data.data));
                 list.scrollTop = list.scrollHeight;
+
                 document.getElementById('formBinhLuan').reset();
                 document.getElementById('fileLabel').textContent = 'Đính kèm file (max 50MB)';
                 totalComments++;
                 updateCommentCount();
             } else { alert(data.message || 'Lỗi gửi'); }
         } catch (err) { alert('Lỗi kết nối'); }
-        finally { btn.disabled = false; }
+        finally { if(btn) btn.disabled = false; }
     }
 
     async function xoaBinhLuan(id) {
@@ -759,7 +816,18 @@
 
     function updateFileLabel(input) {
         const label = document.getElementById('fileLabel');
-        label.textContent = input.files[0] ? `${input.files[0].name} (${(input.files[0].size/1048576).toFixed(2)}MB)` : 'Đính kèm file (max 50MB)';
+        if (input.files[0]) {
+            const sizeMB = (input.files[0].size / 1048576).toFixed(2);
+            if(sizeMB > 50) {
+                alert("File quá lớn (tối đa 50MB)");
+                input.value = "";
+                label.textContent = 'Đính kèm file (max 50MB)';
+                return;
+            }
+            label.textContent = `${input.files[0].name} (${sizeMB}MB)`;
+        } else {
+            label.textContent = 'Đính kèm file (max 50MB)';
+        }
     }
 
     function updateCommentCount() {
@@ -767,8 +835,96 @@
         if (el) el.textContent = totalComments;
     }
 
+    // ==========================================
+    // 5. XỬ LÝ NGHIỆP VỤ ĐƠN (DUYỆT, IT, ĐÁNH GIÁ)
+    // ==========================================
+    function handleAction(type) {
+        let reason = null;
+        if (type === 'Huy') {
+            reason = prompt("Lý do hủy:");
+            if (reason === null || reason.trim() === "") return;
+        }
+        if (confirm("Xác nhận thao tác?")) {
+            apiPost('/FormIT/XuLyDon', { id: formId, action: type, reason: reason }, ['btnDuyet', 'btnHuy']);
+        }
+    }
+
+    function handleXacNhanHoanThanh() {
+        if (confirm("Xác nhận đã hoàn thành công việc này?")) {
+            apiPost('/FormIT/XacNhanHoanThanh', { id: formId }, ['btnHoanThanh']);
+        }
+    }
+
+    function handleChuaHoanThanh() {
+        let reason = prompt("Vui lòng nhập lý do bạn xác nhận đơn này chưa hoàn thành:");
+        if (!reason || reason.trim() === "") return alert("Bạn phải nhập lý do!");
+        if (confirm("Hệ thống sẽ chuyển đơn về trạng thái IT tiếp nhận. Xác nhận?")) {
+            apiPost('/FormIT/XacNhanChuaHoanThanh', { id: formId, reason: reason }, ['btnChuaHoanThanh']);
+        }
+    }
+
+    function changeSupporter() {
+        const maNv = document.getElementById('selectIT')?.value;
+        if (!maNv) return alert("Vui lòng chọn một nhân viên IT!");
+        if (confirm("Xác nhận thay đổi người hỗ trợ?")) {
+            apiPost('/FormIT/ThemNguoiHoTro', { idFormIt: formId, maNv: maNv });
+        }
+    }
+
+    // Đánh giá sao
+    function chonSao(sao) {
+        soSaoChon = sao;
+        capNhatGiaoDienSao();
+        const btnGui = document.getElementById('btnGuiDanhGia');
+        if (btnGui) {
+            btnGui.disabled = false;
+            btnGui.style.opacity = '1';
+        }
+    }
+
+    function hoverSao(sao) {
+        for (let i = 1; i <= 5; i++) {
+            const star = document.getElementById('star' + i);
+            if (!star) continue;
+            star.style.transform = i <= sao ? 'scale(1.1)' : '';
+            star.style.color = i <= sao ? '#f59e0b' : '#9ca3af';
+            star.style.borderColor = i <= sao ? '#f59e0b' : '#d1d5db';
+        }
+    }
+
+    function resetHover() { capNhatGiaoDienSao(); }
+
+    function capNhatGiaoDienSao() {
+        for (let i = 1; i <= 5; i++) {
+            const star = document.getElementById('star' + i);
+            if (!star) continue;
+            star.style.background = i <= soSaoChon ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' : 'white';
+            star.style.color = i <= soSaoChon ? '#f59e0b' : '#9ca3af';
+            star.style.borderColor = i <= soSaoChon ? '#f59e0b' : '#d1d5db';
+            star.style.transform = i <= soSaoChon ? 'scale(1.05)' : '';
+        }
+    }
+
+    function handleDanhGia() {
+        if (soSaoChon === 0) return alert("Vui lòng chọn số sao!");
+        const nhanXet = document.getElementById('txtNhanXet')?.value.trim() || '';
+        if (confirm(`Xác nhận đánh giá ${soSaoChon} sao?\nLưu ý: Không thể hoàn tác sau khi đánh giá!`)) {
+            apiPost('/FormIT/DanhGiaDon', { id: formId, mucDo: soSaoChon, nhanXet: nhanXet }, ['btnGuiDanhGia']);
+        }
+    }
+
+    // ==========================================
+    // 6. KHỞI TẠO KHI TẢI TRANG
+    // ==========================================
     document.addEventListener('DOMContentLoaded', function() {
+        // Gán sự kiện submit cho form bình luận
+        const formBl = document.getElementById('formBinhLuan');
+        if(formBl) formBl.addEventListener('submit', guiBinhLuan);
+
+        // Tải bình luận lần đầu
         taiBinhLuan(false);
+
+        // Xử lý cuộn trang để tải thêm bình luận
         const listElem = document.getElementById('commentList');
         if (listElem) {
             listElem.onscroll = function() {
@@ -779,36 +935,6 @@
                     });
                 }
             };
-        }
-    });
-        function toggleZoomHistory() {
-        const container = document.getElementById('historyContainer');
-        const overlay = document.getElementById('historyOverlay');
-        const icon = document.getElementById('historyZoomIcon');
-        const isFull = container.classList.contains('history-zoom-active');
-
-        if (!isFull) {
-            // Mở phóng to
-            container.classList.add('history-zoom-active');
-            overlay.style.display = 'block';
-            icon.classList.replace('fa-expand', 'fa-compress');
-            document.body.style.overflow = 'hidden'; // Khóa cuộn trang chính
-        } else {
-            // Thu nhỏ lại
-            container.classList.remove('history-zoom-active');
-            overlay.style.display = 'none';
-            icon.classList.replace('fa-compress', 'fa-expand');
-            document.body.style.overflow = 'auto'; // Mở lại cuộn trang chính
-        }
-    }
-
-    // Hỗ trợ phím ESC để thoát chế độ phóng to nhật ký
-    document.addEventListener('keydown', function(e) {
-        if (e.key === "Escape") {
-            const container = document.getElementById('historyContainer');
-            if(container && container.classList.contains('history-zoom-active')) {
-                toggleZoomHistory();
-            }
         }
     });
 </script>
