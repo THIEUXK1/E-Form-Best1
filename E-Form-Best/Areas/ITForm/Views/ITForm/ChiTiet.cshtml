@@ -763,8 +763,12 @@
             </div>`;
     }
 
+    let isSubmitting = false; // Thêm biến cờ ở đầu hoặc trong block trạng thái
+
     async function guiBinhLuan(e) {
         if(e) e.preventDefault();
+        if (isSubmitting) return; // Nếu đang gửi thì thoát luôn
+
         const noiDung = document.getElementById('txtBinhLuan').value.trim();
         const fileInp = document.getElementById('fileBinhLuan');
         if (!noiDung && !fileInp.files[0]) return alert('Vui lòng nhập nội dung hoặc đính kèm file!');
@@ -775,6 +779,9 @@
         if (fileInp.files[0]) formData.append('file', fileInp.files[0]);
 
         const btn = document.getElementById('btnGuiBinhLuan');
+
+        // Bắt đầu quá trình gửi
+        isSubmitting = true;
         if(btn) btn.disabled = true;
 
         try {
@@ -792,9 +799,17 @@
                 document.getElementById('fileLabel').textContent = 'Đính kèm file (max 50MB)';
                 totalComments++;
                 updateCommentCount();
-            } else { alert(data.message || 'Lỗi gửi'); }
-        } catch (err) { alert('Lỗi kết nối'); }
-        finally { if(btn) btn.disabled = false; }
+            } else {
+                alert(data.message || 'Lỗi gửi');
+            }
+        } catch (err) {
+            alert('Lỗi kết nối');
+        }
+        finally {
+            // Kết thúc quá trình gửi
+            isSubmitting = false;
+            if(btn) btn.disabled = false;
+        }
     }
 
     async function xoaBinhLuan(id) {
