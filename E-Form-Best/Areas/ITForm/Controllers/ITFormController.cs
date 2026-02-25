@@ -2175,7 +2175,18 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
-
+                    // --- 7. GỬI THÔNG BÁO ĐẨY (PUSH NOTIFICATION) ---
+                    // Đặt ngoài Transaction để nếu lỗi gửi Push cũng không làm Rollback dữ liệu chính
+                    try
+                    {
+                        // Hàm này sẽ tự động tìm Admin, Người duyệt, Người hỗ trợ để bắn tin
+                        await NotifyRelevantUsers(lichSu);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Chỉ ghi Log lỗi gửi Push, không báo lỗi lên màn hình để User không bị gián đoạn
+                        Console.WriteLine($"Lỗi gửi thông báo đẩy: {ex.Message}");
+                    }
                     return Json(new
                     {
                         success = true,
