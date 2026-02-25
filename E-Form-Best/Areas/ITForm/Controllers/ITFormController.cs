@@ -2483,7 +2483,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var logs = await query.OrderByDescending(l => l.Time).ToListAsync();
             return View(logs);
         }
-
         [HttpGet("/FormIT/GetNotifications")]
         public async Task<IActionResult> GetNotifications(int skip = 0, int take = 20)
         {
@@ -2492,7 +2491,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             int userId = int.Parse(userIdStr);
             var userRole = User.FindFirst("UserRole")?.Value ?? "";
-            var userMaNv = User.Identity.Name;
+
+            // Lấy Email từ Claim để so khớp với MaNv trong bảng IT_NguoiHoTro
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
 
             var query = _context.LichSus
                 .Include(l => l.IdFormItNavigation)
@@ -2500,26 +2501,34 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .AsQueryable();
 
+            // Logic phân quyền lọc dữ liệu
             if (userRole == "All")
             {
-                // Xem toàn bộ
+                // Xem toàn bộ, không thêm điều kiện Where
             }
             else if (userRole == "Admin")
             {
-                query = query.Where(l => l.IdFormItNavigation.IdNguoiDuyet != null);
+                // Admin: Xem đơn đã duyệt VÀ phải nằm trong danh sách người hỗ trợ của đơn đó
+                query = query.Where(l =>
+                    l.IdFormItNavigation.IdNguoiDuyet != null &&
+                    l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userEmail)
+                );
             }
             else
             {
+                // User thường: Xem đơn do mình tạo, mình duyệt, mình làm admin hoặc mình là người hỗ trợ
                 query = query.Where(l =>
                     l.IdFormItNavigation.IdNguoiTao == userId ||
                     l.IdFormItNavigation.IdNguoiDuyet == userId ||
                     l.IdFormItNavigation.IdAdmin == userId ||
-                    l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userMaNv)
+                    l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userEmail)
                 );
             }
 
+            // Đếm số lượng thông báo chưa đọc dựa trên query đã phân quyền
             var unreadCount = await query.CountAsync(l => l.IsRead != true);
 
+            // Lấy danh sách logs và phân trang
             var logs = await query.OrderByDescending(l => l.Time)
                                   .Skip(skip)
                                   .Take(take)
@@ -2530,7 +2539,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                       l.Mota,
                                       Time = l.Time.HasValue ? l.Time.Value.ToString("dd/MM HH:mm") : "",
                                       IsRead = l.IsRead ?? false
-                                      // Đã loại bỏ dòng l.Icon gây lỗi ở đây
+                                      // Đã loại bỏ l.Icon theo yêu cầu cũ của bạn
                                   })
                                   .AsNoTracking()
                                   .ToListAsync();
