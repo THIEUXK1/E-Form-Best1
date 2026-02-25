@@ -10,12 +10,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ITFormContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// --- 2. ĐĂNG KÝ CÁC DỊCH VỤ THÔNG BÁO ---
-// Đăng ký Service gửi Push để có thể gọi từ bất kỳ Controller nào
-builder.Services.AddScoped<PushNotificationService>();
-
-// Lấy cấu hình VAPID từ appsettings.json
-builder.Services.Configure<VapidDetails>(builder.Configuration.GetSection("VapidDetails"));
 
 // 3. Thêm dịch vụ MVC (Controllers + Views)
 builder.Services.AddControllersWithViews();
