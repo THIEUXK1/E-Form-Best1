@@ -247,32 +247,70 @@
                         </div>
                     }
 
+                    <div id="historyOverlay" onclick="toggleZoomHistory()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; backdrop-filter: blur(3px);"></div>
+
                     <h3 style="margin-bottom: 25px; color: #1e293b; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
                         <i class="fa fa-history"></i> NHẬT KÝ THAO TÁC
                     </h3>
-                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 28px; padding: 35px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
-                        <div style="margin-left: 10px; border-left: 2px dashed #e2e8f0; padding-left: 30px;">
-                            @if (Model.LichSus != null && Model.LichSus.Any())
-                            {
-                                foreach (var ls in Model.LichSus.OrderByDescending(x => x.Time))
+
+                    <div id="historyContainer" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 28px; padding: 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 1; overflow: hidden;">
+
+                        <div style="padding: 15px 25px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: flex-end; background: #fafafa;">
+                            <button type="button" onclick="toggleZoomHistory()" id="btnZoomHistory" style="background: #ffffff; border: 1px solid #e2e8f0; width: 35px; height: 35px; border-radius: 10px; color: #64748b; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-expand" id="historyZoomIcon"></i>
+                            </button>
+                        </div>
+
+                        <div id="historyScrollList" style="max-height: 400px; overflow-y: auto; padding: 30px; scrollbar-width: thin; background: #ffffff;">
+                            <div style="margin-left: 10px; border-left: 2px dashed #e2e8f0; padding-left: 30px;">
+                                @if (Model.LichSus != null && Model.LichSus.Any())
                                 {
-                                    <div style="position: relative; margin-bottom: 30px;">
-                                        <div style="position: absolute; left: -41px; top: 0; width: 20px; height: 20px; background: white; border: 4px solid #3b82f6; border-radius: 50%; z-index: 1;"></div>
-                                        <div style="display: flex; justify-content: space-between; background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9;">
-                                            <div style="flex: 1;">
-                                                <div style="font-weight: 800; color: #1e293b; font-size: 15px; margin-bottom: 4px;">@ls.TieuDe</div>
-                                                <div style="color: #64748b; font-size: 14px; line-height: 1.6; white-space: pre-line;">@ls.Mota</div>
-                                            </div>
-                                            <div style="text-align: right; min-width: 100px; margin-left: 15px; flex-shrink: 0;">
-                                                <div style="font-weight: 800; color: #3b82f6; font-size: 14px;">@ls.Time?.ToString("HH:mm")</div>
-                                                <div style="color: #94a3b8; font-size: 12px; margin-top: 2px;">@ls.Time?.ToString("dd/MM/yyyy")</div>
+                                    foreach (var ls in Model.LichSus.OrderByDescending(x => x.Time))
+                                    {
+                                        <div style="position: relative; margin-bottom: 30px;">
+                                            <div style="position: absolute; left: -41px; top: 0; width: 20px; height: 20px; background: white; border: 4px solid #3b82f6; border-radius: 50%; z-index: 1;"></div>
+                                            <div style="display: flex; justify-content: space-between; background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9;">
+                                                <div style="flex: 1;">
+                                                    <div style="font-weight: 800; color: #1e293b; font-size: 15px; margin-bottom: 4px;">@ls.TieuDe</div>
+                                                    <div style="color: #64748b; font-size: 14px; line-height: 1.6; white-space: pre-line;">@ls.Mota</div>
+                                                </div>
+                                                <div style="text-align: right; min-width: 100px; margin-left: 15px; flex-shrink: 0;">
+                                                    <div style="font-weight: 800; color: #3b82f6; font-size: 14px;">@ls.Time?.ToString("HH:mm")</div>
+                                                    <div style="color: #94a3b8; font-size: 12px; margin-top: 2px;">@ls.Time?.ToString("dd/MM/yyyy")</div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    }
                                 }
-                            }
+                                else
+                                {
+                                    <div style="text-align: center; color: #94a3b8; padding: 20px;">Chưa có nhật ký thao tác.</div>
+                                }
+                            </div>
                         </div>
                     </div>
+
+                    <style>
+                        /* Trạng thái phóng to 75% cho Nhật ký */
+                        .history-zoom-active {
+                            position: fixed !important;
+                            top: 50% !important;
+                            left: 50% !important;
+                            transform: translate(-50%, -50%) !important;
+                            width: 75vw !important;
+                            height: 80vh !important;
+                            z-index: 9999 !important;
+                            margin: 0 !important;
+                            border-radius: 28px !important;
+                            display: flex !important;
+                            flex-direction: column !important;
+                        }
+
+                            .history-zoom-active #historyScrollList {
+                                max-height: none !important;
+                                flex: 1 !important; /* Chiếm toàn bộ không gian còn lại của Modal */
+                            }
+                    </style>
                 </div>
 
                 <!-- RIGHT COLUMN -->
@@ -413,18 +451,23 @@
                         }
                     }
 
-                    <!-- ========== BÌNH LUẬN (THÊM PHẦN NÀY) ========== -->
-                    <div style="margin-top: 30px; background: #ffffff; border-radius: 28px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);">
-                        <div style="background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); padding: 20px 25px; border-bottom: 2px solid #e2e8f0;">
+                    <div id="commentOverlay" onclick="toggleZoom()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; backdrop-filter: blur(3px);"></div>
+
+                    <div id="commentContainer" style="margin-top: 30px; background: #ffffff; border-radius: 28px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 1;">
+
+                        <div style="background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); padding: 20px 25px; border-bottom: 2px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
                             <h4 style="margin: 0; font-size: 16px; font-weight: 900; color: #1e293b; display: flex; align-items: center; gap: 10px;">
                                 <i class="fa fa-comments"></i>
                                 <span>BÌNH LUẬN</span>
                                 <span id="commentCount" style="background: #3b82f6; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;">0</span>
                             </h4>
+                            <button type="button" onclick="toggleZoom()" id="btnZoom" style="background: #f1f5f9; border: none; width: 35px; height: 35px; border-radius: 10px; color: #64748b; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-expand" id="zoomIcon"></i>
+                            </button>
                         </div>
 
-                        <div id="commentList" style="max-height: 450px; overflow-y: auto; padding: 20px; background: #f8fafc; scrollbar-width: thin;">
-                            <div style="text-align: center; color: #94a3b8; padding: 20px;">
+                        <div id="commentList" style="max-height: 500px; overflow-y: auto; padding: 20px; background: #f8fafc; scrollbar-width: thin; display: flex; flex-direction: column; gap: 15px;">
+                            <div id="loadingComments" style="text-align: center; color: #94a3b8; padding: 20px;">
                                 <i class="fa fa-spinner fa-spin" style="font-size: 24px;"></i>
                                 <p style="margin-top: 10px; font-size: 14px;">Đang tải bình luận...</p>
                             </div>
@@ -439,9 +482,9 @@
                                           onfocus="this.style.borderColor='#3b82f6'"
                                           onblur="this.style.borderColor='#e2e8f0'"></textarea>
 
-                                <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                                     <label for="fileBinhLuan"
-                                           style="flex: 1; padding: 12px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; cursor: pointer; text-align: center; font-size: 14px; color: #64748b; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;"
+                                           style="flex: 1; min-width: 200px; padding: 12px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; cursor: pointer; text-align: center; font-size: 14px; color: #64748b; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;"
                                            onmouseover="this.style.borderColor='#3b82f6'; this.style.background='#eff6ff'"
                                            onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'">
                                         <i class="fa fa-paperclip"></i>
@@ -452,14 +495,36 @@
                                     <button type="submit"
                                             id="btnGuiBinhLuan"
                                             style="padding: 12px 30px; background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3); transition: all 0.2s; white-space: nowrap;"
-                                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 15px -3px rgba(59, 130, 246, 0.4)'"
-                                            onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 6px -1px rgba(59, 130, 246, 0.3)'">
-                                        <i class="fa fa-paper-plane"></i> Gửi
+                                            onmouseover="this.style.transform='translateY(-2px)';"
+                                            onmouseout="this.style.transform='';">
+                                        <i class="fa fa-paper-plane"></i> Gửi bình luận
                                     </button>
                                 </div>
                             </form>
                         </div>
                     </div>
+
+                    <style>
+                        /* Trạng thái phóng to 75% */
+                        .comment-zoom-active {
+                            position: fixed !important;
+                            top: 50% !important;
+                            left: 50% !important;
+                            transform: translate(-50%, -50%) !important;
+                            width: 75vw !important; /* 75% chiều rộng màn hình */
+                            height: 85vh !important; /* 85% chiều cao màn hình để cân đối */
+                            z-index: 9999 !important;
+                            margin: 0 !important;
+                            border-radius: 20px !important;
+                            display: flex !important;
+                            flex-direction: column !important;
+                        }
+
+                            .comment-zoom-active #commentList {
+                                max-height: none !important; /* Bỏ giới hạn cũ */
+                                flex: 1 !important; /* Tự động giãn phần danh sách để chiếm chỗ trống */
+                            }
+                    </style>
                 </div>
             </div>
         </div>
@@ -471,12 +536,19 @@
 </div>
 
 <script>
-    // Basic page-scoped values (JSON-safe where needed)
+    // 1. Khai báo các biến cơ bản từ Model
     const formId = @Model.Id;
     const currentUserId = '@currentUserId';
-    const currentUserRole = @System.Text.Json.JsonSerializer.Serialize(currentUserRole);
+    const currentUserRole = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(currentUserRole));
 
-    // === small helpers ===
+    // 2. Biến trạng thái cho Bình luận
+    let currentSkipComment = 0;
+    const takeComment = 20;
+    let hasMoreComments = true;
+    let isLoadingComments = false;
+    let totalComments = 0;
+
+    // === Helpers ===
     function escapeHtml(str) {
         if (str === null || str === undefined) return '';
         return String(str)
@@ -487,7 +559,35 @@
             .replaceAll("'", '&#39;');
     }
 
-    // === API POST CHUNG ===
+    // === CHỨC NĂNG PHÓNG TO 75% ===
+    function toggleZoom() {
+        const container = document.getElementById('commentContainer');
+        const overlay = document.getElementById('commentOverlay');
+        const icon = document.getElementById('zoomIcon');
+        const isFull = container.classList.contains('comment-zoom-active');
+
+        if (!isFull) {
+            container.classList.add('comment-zoom-active');
+            overlay.style.display = 'block';
+            icon.classList.replace('fa-expand', 'fa-compress');
+            document.body.style.overflow = 'hidden';
+        } else {
+            container.classList.remove('comment-zoom-active');
+            overlay.style.display = 'none';
+            icon.classList.replace('fa-compress', 'fa-expand');
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    // Đóng khi nhấn ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === "Escape") {
+            const container = document.getElementById('commentContainer');
+            if(container.classList.contains('comment-zoom-active')) toggleZoom();
+        }
+    });
+
+    // === Các API Post của đơn hàng (Giữ nguyên của bạn) ===
     async function apiPost(url, body, btnIds) {
         if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = true; });
         try {
@@ -495,7 +595,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
                 },
                 body: JSON.stringify(body)
             });
@@ -513,132 +613,7 @@
         }
     }
 
-    function handleAction(type) {
-        let reason = null;
-        if (type === 'Huy') {
-            reason = prompt("Lý do hủy:");
-            if (reason === null || reason.trim() === "") return;
-        }
-        if (confirm("Xác nhận thao tác?")) {
-            apiPost('/FormIT/XuLyDon', { id: formId, action: type, reason: reason }, ['btnDuyet', 'btnHuy']);
-        }
-    }
-
-    function handleXacNhanHoanThanh() {
-        if (confirm("Xác nhận đã hoàn thành công việc này?")) {
-            apiPost('/FormIT/XacNhanHoanThanh', { id: formId }, ['btnHoanThanh']);
-        }
-    }
-
-    function handleChuaHoanThanh() {
-        let reason = prompt("Vui lòng nhập lý do bạn xác nhận đơn này chưa hoàn thành:");
-        if (reason === null) return;
-        if (reason.trim() === "") {
-            alert("Bạn phải nhập lý do!");
-            return;
-        }
-        if (confirm("Hệ thống sẽ chuyển đơn về trạng thái IT tiếp nhận. Xác nhận?")) {
-            apiPost('/FormIT/XacNhanChuaHoanThanh', { id: formId, reason: reason }, ['btnChuaHoanThanh']);
-        }
-    }
-
-    function changeSupporter() {
-        const maNv = document.getElementById('selectIT').value;
-        if (!maNv) {
-            alert("Vui lòng chọn một nhân viên IT!");
-            return;
-        }
-        if (confirm("Bạn có chắc chắn muốn thay đổi người hỗ trợ cho đơn này?")) {
-            apiPost('/FormIT/ThemNguoiHoTro', { idFormIt: formId, maNv: maNv });
-        }
-    }
-
-    // === ĐÁNH GIÁ SAO ===
-    let soSaoChon = 0;
-
-    function chonSao(sao) {
-        soSaoChon = sao;
-        capNhatGiaoDienSao();
-        const btnGui = document.getElementById('btnGuiDanhGia');
-        if (btnGui) {
-            btnGui.disabled = false;
-            btnGui.style.cursor = 'pointer';
-            btnGui.style.opacity = '1';
-        }
-    }
-
-    function hoverSao(sao) {
-        for (let i = 1; i <= 5; i++) {
-            const star = document.getElementById('star' + i);
-            if (!star) continue;
-            if (i <= sao) {
-                star.style.background = 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
-                star.style.borderColor = '#f59e0b';
-                star.style.color = '#f59e0b';
-                star.style.transform = 'scale(1.1)';
-            } else {
-                star.style.background = 'white';
-                star.style.borderColor = '#d1d5db';
-                star.style.color = '#9ca3af';
-                star.style.transform = '';
-            }
-        }
-    }
-
-    function resetHover() {
-        capNhatGiaoDienSao();
-    }
-
-    function capNhatGiaoDienSao() {
-        for (let i = 1; i <= 5; i++) {
-            const star = document.getElementById('star' + i);
-            if (!star) continue;
-            if (i <= soSaoChon) {
-                star.style.background = 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
-                star.style.borderColor = '#f59e0b';
-                star.style.color = '#f59e0b';
-                star.style.transform = 'scale(1.05)';
-            } else {
-                star.style.background = 'white';
-                star.style.borderColor = '#d1d5db';
-                star.style.color = '#9ca3af';
-                star.style.transform = '';
-            }
-        }
-    }
-
-    function handleDanhGia() {
-        if (soSaoChon === 0) {
-            alert("Vui lòng chọn số sao đánh giá!");
-            return;
-        }
-        const txtNhanXet = document.getElementById('txtNhanXet');
-        const nhanXet = txtNhanXet ? txtNhanXet.value.trim() : '';
-        if (confirm(`Xác nhận đánh giá ${soSaoChon} sao?\n\n⚠️ LƯU Ý: Sau khi đánh giá, bạn sẽ KHÔNG THỂ hoàn tác đơn này nữa!`)) {
-            apiPost('/FormIT/DanhGiaDon', {
-                id: formId,
-                mucDo: soSaoChon,
-                nhanXet: nhanXet
-            }, ['btnGuiDanhGia']);
-        }
-    }
-
-    function openZoom(src) {
-        document.getElementById('fullImage').src = src;
-        document.getElementById('imageOverlay').style.display = 'flex';
-    }
-
-    function closeZoom() {
-        document.getElementById('imageOverlay').style.display = 'none';
-    }
-
-    // ========== BÌNH LUẬN ==========
-    let currentSkipComment = 0;
-    const takeComment = 20;
-    let hasMoreComments = true;
-    let isLoadingComments = false;
-    let totalComments = 0;
-
+    // ========== BÌNH LUẬN (LOGIC CHÍNH) ==========
     async function taiBinhLuan(isLoadMore = false) {
         if (isLoadingComments) return;
         isLoadingComments = true;
@@ -649,34 +624,27 @@
 
             if (data.success) {
                 const commentList = document.getElementById('commentList');
+                if (!commentList) return;
 
                 if (!isLoadMore) {
                     commentList.innerHTML = '';
                     currentSkipComment = 0;
                     totalComments = 0;
-                    hasMoreComments = true;
                 }
 
                 if (!data.data || data.data.length === 0) {
                     if (!isLoadMore) {
-                        commentList.innerHTML = `
-                            <div style="text-align: center; color: #94a3b8; padding: 40px;">
-                                <i class="fa fa-comment-o" style="font-size: 48px; opacity: 0.3; margin-bottom: 15px; display: block;"></i>
-                                <p style="font-style: italic; font-size: 14px; margin: 0;">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
-                            </div>
-                        `;
+                        commentList.innerHTML = '<div id="noCommentMsg" style="text-align: center; color: #94a3b8; padding: 40px;"><p>Chưa có bình luận nào.</p></div>';
                     }
                     hasMoreComments = false;
                 } else {
-                    // comments come newest-first from server; we reverse so oldest at top, newest at bottom
-                    data.data.reverse();
-                    data.data.forEach(bl => {
-                        const commentHtml = renderComment(bl);
-                        if (isLoadMore) {
-                            commentList.insertAdjacentHTML('afterbegin', commentHtml);
-                        } else {
-                            commentList.insertAdjacentHTML('beforeend', commentHtml);
-                        }
+                    const noMsg = document.getElementById('noCommentMsg');
+                    if (noMsg) noMsg.remove();
+
+                    data.data.reverse().forEach(bl => {
+                        const html = renderComment(bl);
+                        if (isLoadMore) commentList.insertAdjacentHTML('afterbegin', html);
+                        else commentList.insertAdjacentHTML('beforeend', html);
                         totalComments++;
                     });
 
@@ -684,165 +652,96 @@
                     if (data.data.length < takeComment) hasMoreComments = false;
 
                     if (!isLoadMore) {
-                        setTimeout(() => {
-                            commentList.scrollTop = commentList.scrollHeight;
-                        }, 100);
+                        setTimeout(() => { commentList.scrollTop = commentList.scrollHeight; }, 100);
                     }
                 }
-
                 updateCommentCount();
-            } else {
-                console.error('Server returned success:false for LayBinhLuan', data);
             }
         } catch (err) {
             console.error('Lỗi tải bình luận:', err);
-            document.getElementById('commentList').innerHTML = `
-                <div style="text-align: center; color: #ef4444; padding: 40px;">
-                    <i class="fa fa-exclamation-circle" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
-                    <p style="font-size: 14px; margin: 0;">Lỗi khi tải bình luận. Vui lòng thử lại sau.</p>
-                </div>
-            `;
         } finally {
             isLoadingComments = false;
         }
     }
 
     function renderComment(bl) {
-        const blIdNguoi = bl.idNguoiBinhLuan ? String(bl.idNguoiBinhLuan) : '';
-        const isOwn = currentUserId && currentUserId === blIdNguoi;
-        const canDelete = isOwn || currentUserRole === 'Admin' || currentUserRole === 'All';
-
-        const time = new Date(bl.thoiGian);
-        const timeStr = time.toLocaleString('vi-VN', {
-            hour: '2-digit',
-            minute: '2-digit',
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
+        const isOwn = currentUserId === String(bl.idNguoiBinhLuan);
+        const commentTime = new Date(bl.thoiGian).getTime();
+        const now = new Date().getTime();
+        const isExpired = (now - commentTime) > (2 * 60 * 60 * 1000);
+        const isAdmin = currentUserRole === 'Admin' || currentUserRole === 'All';
+        const canDelete = (isOwn && !isExpired) || isAdmin;
+        const timeStr = new Date(bl.thoiGian).toLocaleString('vi-VN');
 
         let fileHtml = '';
         if (bl.fileDinhKem) {
             const originalName = bl.fileDinhKem.split('_').slice(2).join('_');
-            const safeOriginal = escapeHtml(originalName);
             fileHtml = `
                 <div style="margin-top: 10px; padding: 10px; background: #f1f5f9; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;">
-                    <i class="fa fa-paperclip" style="color: #64748b;"></i>
-                    <a href="/FormIT/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color: #3b82f6; text-decoration: none; font-weight: 600; font-size: 13px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${safeOriginal}">
-                        ${safeOriginal}
+                    <i class="fa fa-paperclip"></i>
+                    <a href="/FormIT/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color: #3b82f6; font-weight: 600; font-size: 13px; text-decoration: none;">
+                        ${escapeHtml(originalName)}
                     </a>
-                </div>
-            `;
+                </div>`;
         }
 
-        const name = escapeHtml(bl.tenNguoiBinhLuan || 'Unknown');
-        const ma = escapeHtml(bl.ma || '');
-        const phongBan = escapeHtml(bl.phongBan || '');
-        const tenCongTy = escapeHtml(bl.tenCongTy || '');
-        const noiDungSafe = escapeHtml(bl.noiDung || '');
-        const initial = name ? name.charAt(0).toUpperCase() : 'U';
-
-        const userInfo = `
-            <div style="display: flex; flex-direction: column; gap: 2px;">
-                <span style="font-weight: 800; color: #1e293b; font-size: 14px;">${name}</span>
-                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                    ${ma ? `<span style="font-size: 11px; color: #64748b;"><i class="fa fa-user"></i> ${ma}</span>` : ''}
-                    ${phongBan ? `<span style="font-size: 11px; color: #64748b;">• ${phongBan}</span>` : ''}
-                    ${tenCongTy ? `<span style="font-size: 11px; color: #64748b;">• ${tenCongTy}</span>` : ''}
-                </div>
-            </div>
-        `;
+        const initial = (bl.tenNguoiBinhLuan || 'U').charAt(0).toUpperCase();
 
         return `
-            <div style="margin-bottom: 15px; display: flex; gap: 12px; ${isOwn ? 'flex-direction: row-reverse;' : ''}" data-comment-id="${bl.id}">
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, ${isOwn ? '#3b82f6' : '#94a3b8'}, ${isOwn ? '#1e40af' : '#64748b'}); display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 16px; flex-shrink: 0;">
-                    ${initial}
-                </div>
+            <div style="margin-bottom: 20px; display: flex; gap: 12px; ${isOwn ? 'flex-direction: row-reverse;' : ''}" data-comment-id="${bl.id}">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: ${isOwn ? '#3b82f6' : '#64748b'}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${initial}</div>
                 <div style="flex: 1; ${isOwn ? 'text-align: right;' : ''}">
-                    <div style="display: inline-block; ${isOwn ? 'text-align: left;' : ''} max-width: 85%;">
-                        <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; ${isOwn ? 'justify-content: flex-end; flex-direction: row-reverse;' : ''}">
-                            ${userInfo}
-                            <div style="display: flex; align-items: center; gap: 6px; ${isOwn ? 'flex-direction: row-reverse;' : ''}">
-                                <span style="font-size: 11px; color: #94a3b8; white-space: nowrap;">${timeStr}</span>
-                                ${canDelete ? `<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" style="color: #ef4444; cursor: pointer; font-size: 12px;" title="Xóa"></i>` : ''}
+                    <div style="display: inline-block; text-align: left; max-width: 85%;">
+                        <div style="display: flex; flex-direction: column; margin-bottom: 4px; ${isOwn ? 'align-items: flex-end;' : 'align-items: flex-start;'}">
+                            <div style="display: flex; align-items: center; gap: 8px; ${isOwn ? 'flex-direction: row-reverse;' : ''}">
+                                <span style="font-weight: 700; font-size: 13px; color: #1e293b;">${escapeHtml(bl.tenNguoiBinhLuan)} (${escapeHtml(bl.ma)})</span>
+                                <span style="font-size: 11px; color: #94a3b8;">${timeStr}</span>
+                                ${canDelete ? `<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" title="Xóa" style="color: #ef4444; cursor: pointer; font-size: 11px; margin: 0 5px;"></i>` : ''}
                             </div>
                         </div>
-                        <div style="background: ${isOwn ? '#dbeafe' : 'white'}; padding: 12px 16px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                            ${noiDungSafe ? `<div style="color: #1e293b; font-size: 14px; line-height: 1.6; word-wrap: break-word; white-space: pre-wrap;">${noiDungSafe}</div>` : ''}
+                        <div style="background: ${isOwn ? '#eff6ff' : '#f8fafc'}; padding: 12px; border-radius: ${isOwn ? '16px 2px 16px 16px' : '2px 16px 16px 16px'}; border: 1px solid ${isOwn ? '#bfdbfe' : '#e2e8f0'}; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                            <div style="font-size: 14px; color: #334155; white-space: pre-wrap; word-break: break-word;">${escapeHtml(bl.noiDung)}</div>
                             ${fileHtml}
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
+            </div>`;
     }
 
     async function guiBinhLuan(e) {
         e.preventDefault();
-
         const noiDung = document.getElementById('txtBinhLuan').value.trim();
-        const fileInput = document.getElementById('fileBinhLuan');
-        const file = fileInput.files[0];
-
-        if (!noiDung && !file) {
-            alert('Vui lòng nhập nội dung hoặc đính kèm file!');
-            return false;
-        }
-
-        if (file && file.size > 50 * 1024 * 1024) {
-            alert('File không được vượt quá 50MB!');
-            return false;
-        }
+        const fileInp = document.getElementById('fileBinhLuan');
+        if (!noiDung && !fileInp.files[0]) return alert('Vui lòng nhập nội dung!');
 
         const formData = new FormData();
         formData.append('idForm', formId);
         formData.append('noiDung', noiDung);
-        if (file) formData.append('file', file);
+        if (fileInp.files[0]) formData.append('file', fileInp.files[0]);
 
         const btn = document.getElementById('btnGuiBinhLuan');
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang gửi...';
 
         try {
-            const res = await fetch('/FormIT/ThemBinhLuan', {
-                method: 'POST',
-                body: formData
-            });
+            const res = await fetch('/FormIT/ThemBinhLuan', { method: 'POST', body: formData });
             const data = await res.json();
-
             if (data.success) {
-                const commentList = document.getElementById('commentList');
-                if (commentList.innerHTML.includes('Chưa có bình luận')) {
-                    commentList.innerHTML = '';
-                }
-                // server returns the created comment in data.data
-                commentList.insertAdjacentHTML('beforeend', renderComment(data.data));
-
-                setTimeout(() => {
-                    commentList.scrollTop = commentList.scrollHeight;
-                }, 100);
-
+                const list = document.getElementById('commentList');
+                const noMsg = document.getElementById('noCommentMsg');
+                if (noMsg) noMsg.remove();
+                list.insertAdjacentHTML('beforeend', renderComment(data.data));
+                list.scrollTop = list.scrollHeight;
                 document.getElementById('formBinhLuan').reset();
                 document.getElementById('fileLabel').textContent = 'Đính kèm file (max 50MB)';
-
                 totalComments++;
                 updateCommentCount();
-            } else {
-                alert(data.message || 'Lỗi khi gửi bình luận');
-            }
-        } catch (err) {
-            alert('Lỗi kết nối: ' + err.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa fa-paper-plane"></i> Gửi';
-        }
-
-        return false;
+            } else { alert(data.message || 'Lỗi gửi'); }
+        } catch (err) { alert('Lỗi kết nối'); }
+        finally { btn.disabled = false; }
     }
 
     async function xoaBinhLuan(id) {
-        if (!confirm('Bạn có chắc muốn xóa bình luận này?')) return;
-
+        if (!confirm('Xóa bình luận này?')) return;
         try {
             const res = await fetch('/FormIT/XoaBinhLuan', {
                 method: 'POST',
@@ -850,63 +749,66 @@
                 body: JSON.stringify({ id: id })
             });
             const data = await res.json();
-
             if (data.success) {
-                const commentElem = document.querySelector(`[data-comment-id="${id}"]`);
-                if (commentElem) commentElem.remove();
-
+                document.querySelector(`[data-comment-id="${id}"]`)?.remove();
                 totalComments--;
                 updateCommentCount();
-
-                const commentList = document.getElementById('commentList');
-                if (commentList.children.length === 0) {
-                    commentList.innerHTML = `
-                        <div style="text-align: center; color: #94a3b8; padding: 40px;">
-                            <i class="fa fa-comment-o" style="font-size: 48px; opacity: 0.3; margin-bottom: 15px; display: block;"></i>
-                            <p style="font-style: italic; font-size: 14px; margin: 0;">Chưa có bình luận nào.</p>
-                        </div>
-                    `;
-                }
-            } else {
-                alert(data.message);
             }
-        } catch (err) {
-            alert('Lỗi: ' + err.message);
-        }
+        } catch (err) { alert('Lỗi xóa'); }
     }
 
     function updateFileLabel(input) {
         const label = document.getElementById('fileLabel');
-        if (input.files.length > 0) {
-            const file = input.files[0];
-            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            label.textContent = `${file.name} (${sizeMB}MB)`;
-        } else {
-            label.textContent = 'Đính kèm file (max 50MB)';
-        }
+        label.textContent = input.files[0] ? `${input.files[0].name} (${(input.files[0].size/1048576).toFixed(2)}MB)` : 'Đính kèm file (max 50MB)';
     }
 
     function updateCommentCount() {
-        const countElem = document.getElementById('commentCount');
-        if (countElem) {
-            countElem.textContent = totalComments;
-        }
-    }
-
-    const commentListElem = document.getElementById('commentList');
-    if (commentListElem) {
-        commentListElem.addEventListener('scroll', function() {
-            // load older comments when scrolled to top
-            if (this.scrollTop === 0 && hasMoreComments && !isLoadingComments) {
-                const scrollHeight = this.scrollHeight;
-                taiBinhLuan(true).then(() => {
-                    this.scrollTop = this.scrollHeight - scrollHeight;
-                });
-            }
-        });
+        const el = document.getElementById('commentCount');
+        if (el) el.textContent = totalComments;
     }
 
     document.addEventListener('DOMContentLoaded', function() {
         taiBinhLuan(false);
+        const listElem = document.getElementById('commentList');
+        if (listElem) {
+            listElem.onscroll = function() {
+                if (this.scrollTop === 0 && hasMoreComments && !isLoadingComments) {
+                    const oldHeight = this.scrollHeight;
+                    taiBinhLuan(true).then(() => {
+                        this.scrollTop = this.scrollHeight - oldHeight;
+                    });
+                }
+            };
+        }
+    });
+        function toggleZoomHistory() {
+        const container = document.getElementById('historyContainer');
+        const overlay = document.getElementById('historyOverlay');
+        const icon = document.getElementById('historyZoomIcon');
+        const isFull = container.classList.contains('history-zoom-active');
+
+        if (!isFull) {
+            // Mở phóng to
+            container.classList.add('history-zoom-active');
+            overlay.style.display = 'block';
+            icon.classList.replace('fa-expand', 'fa-compress');
+            document.body.style.overflow = 'hidden'; // Khóa cuộn trang chính
+        } else {
+            // Thu nhỏ lại
+            container.classList.remove('history-zoom-active');
+            overlay.style.display = 'none';
+            icon.classList.replace('fa-compress', 'fa-expand');
+            document.body.style.overflow = 'auto'; // Mở lại cuộn trang chính
+        }
+    }
+
+    // Hỗ trợ phím ESC để thoát chế độ phóng to nhật ký
+    document.addEventListener('keydown', function(e) {
+        if (e.key === "Escape") {
+            const container = document.getElementById('historyContainer');
+            if(container && container.classList.contains('history-zoom-active')) {
+                toggleZoomHistory();
+            }
+        }
     });
 </script>

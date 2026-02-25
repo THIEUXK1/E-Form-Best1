@@ -1233,7 +1233,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 var binhLuans = await _context.BinhLuanFormIts
                     .Where(bl => bl.IdForm == idForm && bl.TrangThai == "Active")
-                    .OrderByDescending(bl => bl.ThoiGian)
                     .Skip(skip)
                     .Take(take)
                     .Select(bl => new
@@ -1385,24 +1384,47 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
+        #region BÌNH LUẬN ĐƠN IT - XÓA BÌNH LUẬN (GIỚI HẠN 2 GIỜ)
+
         [HttpPost("/FormIT/XoaBinhLuan")]
-        public async Task<IActionResult> XoaBinhLuan([FromBody] dynamic data)
+        public async Task<IActionResult> XoaBinhLuan([FromBody] XoaBinhLuanRequest request)
         {
             try
             {
-                int id = (int)data.id;
-                var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userRole = User.FindFirst("UserRole")?.Value ?? "";
+                // 1. Kiểm tra đầu vào
+                if (request == null || request.id <= 0)
+                    return Json(new { success = false, message = "Dữ liệu không hợp lệ" });
 
-                var binhLuan = await _context.BinhLuanFormIts.FindAsync(id);
+                // 2. Tìm bình luận trong Database
+                var binhLuan = await _context.BinhLuanFormIts.FindAsync(request.id);
                 if (binhLuan == null)
                     return Json(new { success = false, message = "Không tìm thấy bình luận" });
 
-                // Kiểm tra quyền xóa: chỉ người tạo hoặc Admin/All
-                if (binhLuan.IdNguoiBinhLuan != userIdStr && userRole != "Admin" && userRole != "All")
-                    return Json(new { success = false, message = "Bạn không có quyền xóa bình luận này" });
+                // 3. Lấy thông tin người dùng hiện tại từ Claims
+                var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userName = User.Identity?.Name ?? "Unknown";
+                var userRole = User.FindFirst("UserRole")?.Value ?? "";
 
-                // Xóa file đính kèm nếu có
+                // 4. Kiểm tra thời gian (Sửa lỗi TimeSpan? an toàn)
+                // Dùng toán tử ?. để lấy TotalHours nếu kết quả phép trừ không null, ngược lại mặc định là 999 giờ (hết hạn)
+                double soGioDaTroiQua = (DateTime.Now - binhLuan.ThoiGian)?.TotalHours ?? 999;
+                bool hetHanXoa = soGioDaTroiQua > 2;
+
+                // 5. Kiểm tra quyền xóa
+                bool isOwner = binhLuan.IdNguoiBinhLuan == userIdStr;
+                bool isAdmin = userRole == "Admin" || userRole == "All";
+
+                // Logic: Admin/All luôn được xóa. Người dùng thường chỉ được xóa của mình và PHẢI trong vòng 2 giờ.
+                if (!isAdmin)
+                {
+                    if (!isOwner)
+                        return Json(new { success = false, message = "Bạn không có quyền xóa bình luận này" });
+
+                    if (hetHanXoa)
+                        return Json(new { success = false, message = "Đã quá 2 giờ, bạn không thể xóa bình luận này nữa." });
+                }
+
+                // 6. Xử lý xóa file đính kèm trên FileServer (nếu có)
                 if (!string.IsNullOrEmpty(binhLuan.FileDinhKem))
                 {
                     string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonIT";
@@ -1411,36 +1433,54 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     try
                     {
                         if (System.IO.File.Exists(fullPath))
+                        {
                             System.IO.File.Delete(fullPath);
+                        }
                     }
-                    catch (Exception ex)
+                    catch (Exception fileEx)
                     {
-                        // Log lỗi nhưng vẫn cho phép xóa bình luận
-                        Console.WriteLine($"Không thể xóa file: {ex.Message}");
+                        // Chỉ log lỗi file, vẫn tiếp tục để xóa bản ghi trong DB tránh tắc nghẽn
+                        Console.WriteLine($"Lỗi xóa file vật lý: {fileEx.Message}");
                     }
                 }
+
+                // 7. Xóa bản ghi trong Database
+                // SỬA LỖI: Chuyển int? sang int bằng cách dùng ?? 0 để tránh lỗi 'Cannot implicitly convert type'
+                int idFormTam = binhLuan.IdForm ?? 0;
+                string tenNguoiBiXoa = binhLuan.TenNguoiBinhLuan ?? "Người dùng";
 
                 _context.BinhLuanFormIts.Remove(binhLuan);
                 await _context.SaveChangesAsync();
 
-                // Tạo lịch sử xóa
-                var lichSu = new LichSu
+                // 8. Tạo lịch sử thao tác
+                if (idFormTam > 0)
                 {
-                    IdFormIt = binhLuan.IdForm,
-                    TieuDe = "XÓA BÌNH LUẬN",
-                    Mota = $"{User.Identity.Name} đã xóa bình luận của {binhLuan.TenNguoiBinhLuan}",
-                    Time = DateTime.Now
-                };
-                _context.LichSus.Add(lichSu);
-                await _context.SaveChangesAsync();
+                    var lichSu = new LichSu
+                    {
+                        IdFormIt = idFormTam,
+                        TieuDe = "XÓA BÌNH LUẬN",
+                        Mota = $"{userName} đã xóa bình luận của {tenNguoiBiXoa}",
+                        Time = DateTime.Now
+                    };
+                    _context.LichSus.Add(lichSu);
+                    await _context.SaveChangesAsync();
+                }
 
-                return Json(new { success = true, message = "Đã xóa bình luận" });
+                return Json(new { success = true, message = "Đã xóa bình luận thành công" });
             }
             catch (Exception ex)
             {
                 return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
             }
         }
+
+        // Request DTO (Đặt bên ngoài hoặc bên trong Controller tùy cấu trúc của bạn)
+        public class XoaBinhLuanRequest
+        {
+            public int id { get; set; }
+        }
+
+        #endregion
 
         [HttpGet("/FormIT/DownloadBinhLuanFile/{fileName}")]
         public async Task<IActionResult> DownloadBinhLuanFile(string fileName)
