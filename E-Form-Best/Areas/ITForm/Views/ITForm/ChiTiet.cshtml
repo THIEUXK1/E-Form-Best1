@@ -460,7 +460,6 @@
                     <div id="commentOverlay" onclick="toggleZoom()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; backdrop-filter: blur(3px);"></div>
 
                     <div id="commentContainer" style="margin-top: 30px; background: #ffffff; border-radius: 28px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 1;">
-
                         <div style="background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); padding: 20px 25px; border-bottom: 2px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
                             <h4 style="margin: 0; font-size: 16px; font-weight: 900; color: #1e293b; display: flex; align-items: center; gap: 10px;">
                                 <i class="fa fa-comments"></i>
@@ -480,10 +479,10 @@
                         </div>
 
                         <div style="padding: 20px; background: white; border-top: 2px solid #e2e8f0;">
-                            <form id="formBinhLuan" enctype="multipart/form-data" onsubmit="return guiBinhLuan(event);">
+                            <form id="formBinhLuan" enctype="multipart/form-data">
                                 <textarea id="txtBinhLuan"
                                           name="noiDung"
-                                          placeholder="Nhập bình luận của bạn..."
+                                          placeholder="Nhập bình luận... (Có thể dán ảnh/file bằng Ctrl+V)"
                                           style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; font-family: 'Segoe UI', sans-serif; box-sizing: border-box; margin-bottom: 12px;"
                                           onfocus="this.style.borderColor='#3b82f6'"
                                           onblur="this.style.borderColor='#e2e8f0'"></textarea>
@@ -511,14 +510,13 @@
                     </div>
 
                     <style>
-                        /* Trạng thái phóng to 75% */
                         .comment-zoom-active {
                             position: fixed !important;
                             top: 50% !important;
                             left: 50% !important;
                             transform: translate(-50%, -50%) !important;
-                            width: 75vw !important; /* 75% chiều rộng màn hình */
-                            height: 85vh !important; /* 85% chiều cao màn hình để cân đối */
+                            width: 75vw !important;
+                            height: 85vh !important;
                             z-index: 9999 !important;
                             margin: 0 !important;
                             border-radius: 20px !important;
@@ -527,8 +525,8 @@
                         }
 
                             .comment-zoom-active #commentList {
-                                max-height: none !important; /* Bỏ giới hạn cũ */
-                                flex: 1 !important; /* Tự động giãn phần danh sách để chiếm chỗ trống */
+                                max-height: none !important;
+                                flex: 1 !important;
                             }
                     </style>
                 </div>
@@ -556,6 +554,7 @@
     let isLoadingComments = false;
     let totalComments = 0;
     let soSaoChon = 0;
+    let isSubmitting = false; // Chống spam submit
 
     // ==========================================
     // 2. HELPERS & UTILITIES
@@ -599,8 +598,6 @@
     // ==========================================
     // 3. XỬ LÝ PHÓNG TO (ZOOM) & PHÍM TẮT
     // ==========================================
-
-    // Zoom Bình luận
     function toggleZoom() {
         const container = document.getElementById('commentContainer');
         const overlay = document.getElementById('commentOverlay');
@@ -620,7 +617,6 @@
         }
     }
 
-    // Zoom Nhật ký
     function toggleZoomHistory() {
         const container = document.getElementById('historyContainer');
         const overlay = document.getElementById('historyOverlay');
@@ -640,7 +636,6 @@
         }
     }
 
-    // Zoom Ảnh đính kèm
     function openZoom(src) {
         document.getElementById('fullImage').src = src;
         document.getElementById('imageOverlay').style.display = 'flex';
@@ -652,13 +647,11 @@
         document.body.style.overflow = 'auto';
     }
 
-    // Đóng tất cả khi nhấn ESC
     document.addEventListener('keydown', function(e) {
         if (e.key === "Escape") {
             const commentBox = document.getElementById('commentContainer');
             const historyBox = document.getElementById('historyContainer');
             const imageOverlay = document.getElementById('imageOverlay');
-
             if(commentBox?.classList.contains('comment-zoom-active')) toggleZoom();
             if(historyBox?.classList.contains('history-zoom-active')) toggleZoomHistory();
             if(imageOverlay?.style.display === 'flex') closeZoom();
@@ -666,7 +659,7 @@
     });
 
     // ==========================================
-    // 4. LOGIC BÌNH LUẬN (LOAD, THÊM, XÓA)
+    // 4. LOGIC BÌNH LUẬN (LOAD, THÊM, XÓA, PASTE)
     // ==========================================
     async function taiBinhLuan(isLoadMore = false) {
         if (isLoadingComments) return;
@@ -695,7 +688,7 @@
                     const noMsg = document.getElementById('noCommentMsg');
                     if (noMsg) noMsg.remove();
 
-                    // Khi load more (cuộn lên), chèn vào đầu. Khi load mới, chèn vào cuối.
+                    // Chèn bình luận
                     data.data.reverse().forEach(bl => {
                         const html = renderComment(bl);
                         if (isLoadMore) commentList.insertAdjacentHTML('afterbegin', html);
@@ -723,7 +716,7 @@
         const isOwn = currentUserId === String(bl.idNguoiBinhLuan);
         const commentTime = new Date(bl.thoiGian).getTime();
         const now = new Date().getTime();
-        const isExpired = (now - commentTime) > (2 * 60 * 60 * 1000); // 2 giờ
+        const isExpired = (now - commentTime) > (2 * 60 * 60 * 1000);
         const isAdmin = currentUserRole === 'Admin' || currentUserRole === 'All';
         const canDelete = (isOwn && !isExpired) || isAdmin;
         const timeStr = new Date(bl.thoiGian).toLocaleString('vi-VN');
@@ -763,11 +756,9 @@
             </div>`;
     }
 
-    let isSubmitting = false; // Thêm biến cờ ở đầu hoặc trong block trạng thái
-
     async function guiBinhLuan(e) {
         if(e) e.preventDefault();
-        if (isSubmitting) return; // Nếu đang gửi thì thoát luôn
+        if (isSubmitting) return;
 
         const noiDung = document.getElementById('txtBinhLuan').value.trim();
         const fileInp = document.getElementById('fileBinhLuan');
@@ -779,8 +770,6 @@
         if (fileInp.files[0]) formData.append('file', fileInp.files[0]);
 
         const btn = document.getElementById('btnGuiBinhLuan');
-
-        // Bắt đầu quá trình gửi
         isSubmitting = true;
         if(btn) btn.disabled = true;
 
@@ -804,9 +793,7 @@
             }
         } catch (err) {
             alert('Lỗi kết nối');
-        }
-        finally {
-            // Kết thúc quá trình gửi
+        } finally {
             isSubmitting = false;
             if(btn) btn.disabled = false;
         }
@@ -851,7 +838,7 @@
     }
 
     // ==========================================
-    // 5. XỬ LÝ NGHIỆP VỤ ĐƠN (DUYỆT, IT, ĐÁNH GIÁ)
+    // 5. XỬ LÝ NGHIỆP VỤ ĐƠN
     // ==========================================
     function handleAction(type) {
         let reason = null;
@@ -929,12 +916,32 @@
     }
 
     // ==========================================
-    // 6. KHỞI TẠO KHI TẢI TRANG
+    // 6. KHỞI TẠO & XỬ LÝ SỰ KIỆN NÂNG CAO
     // ==========================================
     document.addEventListener('DOMContentLoaded', function() {
-        // Gán sự kiện submit cho form bình luận
         const formBl = document.getElementById('formBinhLuan');
+        const txtBinhLuan = document.getElementById('txtBinhLuan');
+        const fileBinhLuan = document.getElementById('fileBinhLuan');
+
         if(formBl) formBl.addEventListener('submit', guiBinhLuan);
+
+        // --- HÀM THIẾU: XỬ LÝ DÁN ẢNH (PASTE) ---
+        if (txtBinhLuan) {
+            txtBinhLuan.addEventListener('paste', function (e) {
+                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].kind === 'file') {
+                        const blob = items[i].getAsFile();
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(blob);
+                        if (fileBinhLuan) {
+                            fileBinhLuan.files = dataTransfer.files;
+                            updateFileLabel(fileBinhLuan);
+                        }
+                    }
+                }
+            });
+        }
 
         // Tải bình luận lần đầu
         taiBinhLuan(false);
