@@ -2326,42 +2326,43 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 .ToList();
 
             var supportStats = withValidHandler
-                .GroupBy(x => new
-                {
-                    IdIt = x.Handler.IdItNguoiHoTro.Value,
-                    Ten = x.Handler.IdItNguoiHoTroNavigation?.Ten ?? "Không xác định"
-                })
-                .Select(g => new ItSupportStatisticVM
-                {
-                    IdIt = g.Key.IdIt,
-                    TenIt = g.Key.Ten,
+                 .GroupBy(x => new
+                 {
+                     IdIt = x.Handler.IdItNguoiHoTro.Value,
+                     Ten = x.Handler.IdItNguoiHoTroNavigation?.Ten ?? "Không xác định"
+                 })
+                 .Select(g => new ItSupportStatisticVM
+                 {
+                     IdIt = g.Key.IdIt,
+                     TenIt = g.Key.Ten,
 
-                    HoanTat = g.Count(x =>
-                        !IsHuy(x.Form) &&
-                        x.Form.IdAdmin != null &&
-                        x.Form.TimeAdmin != null &&
-                        x.Form.DanhGiaFormIts != null &&
-                        x.Form.DanhGiaFormIts.Any()),
+                     HoanTat = g.Count(x =>
+                         !IsHuy(x.Form) &&
+                         x.Form.IdAdmin != null &&
+                         x.Form.TimeAdmin != null &&
+                         x.Form.DanhGiaFormIts != null &&
+                         x.Form.DanhGiaFormIts.Any()),
 
-                    ChoDanhGiaFormIts = g.Count(x =>
-                        !IsHuy(x.Form) &&
-                        x.Form.IdAdmin != null &&
-                        x.Form.TimeAdmin != null &&
-                        (x.Form.DanhGiaFormIts == null || !x.Form.DanhGiaFormIts.Any())),
+                     // Gán vào tên thuộc tính mới
+                     ChoDanhGia = g.Count(x =>
+                         !IsHuy(x.Form) &&
+                         x.Form.IdAdmin != null &&
+                         x.Form.TimeAdmin != null &&
+                         (x.Form.DanhGiaFormIts == null || !x.Form.DanhGiaFormIts.Any())),
 
-                    DangXuLy = g.Count(x =>
-                        !IsHuy(x.Form) &&
-                        x.Form.IdNguoiDuyet != null &&
-                        x.Form.TimeNguoiDuyet != null &&
-                        x.Form.IdAdmin == null),
+                     DangXuLy = g.Count(x =>
+                         !IsHuy(x.Form) &&
+                         x.Form.IdNguoiDuyet != null &&
+                         x.Form.TimeNguoiDuyet != null &&
+                         x.Form.IdAdmin == null),
 
-                    ChoDuyet = g.Count(x =>
-                        !IsHuy(x.Form) &&
-                        x.Form.IdNguoiDuyet == null),
+                     ChoDuyet = g.Count(x =>
+                         !IsHuy(x.Form) &&
+                         x.Form.IdNguoiDuyet == null),
 
-                    DaHuy = g.Count(x => IsHuy(x.Form))
-                })
-                .ToList();
+                     DaHuy = g.Count(x => IsHuy(x.Form))
+                 })
+                 .ToList();
 
             // Nếu cần, đảm bảo Tong được tính đúng (VM có thuộc tính tính toán)
             if (supportStats != null && supportStats.Any())
@@ -2430,14 +2431,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             public string TenIt { get; set; }
 
             public int HoanTat { get; set; }
-            public int ChoDanhGiaFormIts { get; set; }
+
+            // Đã sửa tên từ ChoDanhGiaFormIts thành ChoDanhGia để khớp với View
+            public int ChoDanhGia { get; set; }
+
             public int DangXuLy { get; set; }
             public int ChoDuyet { get; set; }
             public int DaHuy { get; set; }
 
             // Tổng số đơn (tính tại runtime)
             public int Tong =>
-                HoanTat + ChoDanhGiaFormIts + DangXuLy + ChoDuyet + DaHuy;
+                HoanTat + ChoDanhGia + DangXuLy + ChoDuyet + DaHuy;
         }
 
         /* NEW VIEW MODEL: trung bình thời gian hoàn thành theo (Người hỗ trợ, Danh mục) */
