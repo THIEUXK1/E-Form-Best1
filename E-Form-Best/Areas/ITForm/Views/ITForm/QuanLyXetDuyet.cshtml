@@ -22,10 +22,10 @@
     var choITAdmin = Model?.Count(x => x.IdNguoiDuyet != null && x.IdAdmin == null && !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
 
     // Chờ đánh giá: IdAdmin != null nhưng chưa có bản ghi trong DanhGia (IdFormItNavigation.DanhGia)
-    var choDanhGia = Model?.Count(x => !(x.TenForm ?? "").Contains("[ĐÃ HỦY]") && x.IdAdmin != null && (x.DanhGia == null || !x.DanhGia.Any())) ?? 0;
+    var choDanhGia = Model?.Count(x => !(x.TenForm ?? "").Contains("[ĐÃ HỦY]") && x.IdAdmin != null && (x.DanhGiaFormIts == null || !x.DanhGiaFormIts.Any())) ?? 0;
 
     // Hoàn tất: Đã có dữ liệu trong DanhGia
-    var hoanTat = Model?.Count(x => !(x.TenForm ?? "").Contains("[ĐÃ HỦY]") && x.DanhGia != null && x.DanhGia.Any()) ?? 0;
+    var hoanTat = Model?.Count(x => !(x.TenForm ?? "").Contains("[ĐÃ HỦY]") && x.DanhGiaFormIts != null && x.DanhGiaFormIts.Any()) ?? 0;
 }
 
 <div style="padding: 20px; background: #f1f5f9; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
@@ -98,7 +98,7 @@
                         bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]");
                         bool isApprovedByManager = item.IdNguoiDuyet != null;
                         bool isFinishedByIT = item.IdAdmin != null;
-                        bool hasRating = item.DanhGia != null && item.DanhGia.Any();
+                        bool hasRating = item.DanhGiaFormIts != null && item.DanhGiaFormIts.Any();
 
                         // --- Cấu hình Progress Bar & Status Text ---
                         string pWidth = "10%"; string pColor = "#94a3b8"; string pText = "Khởi tạo";

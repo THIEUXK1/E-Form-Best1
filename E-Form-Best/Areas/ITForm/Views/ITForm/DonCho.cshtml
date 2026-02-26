@@ -16,8 +16,8 @@
     var itDangXuLy = activeList.Count(x => x.IdNguoiDuyet != null && x.IdAdmin == null);
 
     // Giả sử Model đã Include bảng DanhGia. Nếu chưa, bạn cần Include trong Controller.
-    var choDanhGia = activeList.Count(x => x.IdAdmin != null && (x.DanhGia == null || !x.DanhGia.Any()));
-    var hoanTat = activeList.Count(x => x.IdAdmin != null && x.DanhGia != null && x.DanhGia.Any());
+    var choDanhGia = activeList.Count(x => x.IdAdmin != null && (x.DanhGiaFormIts == null || !x.DanhGiaFormIts.Any()));
+    var hoanTat = activeList.Count(x => x.IdAdmin != null && x.DanhGiaFormIts != null && x.DanhGiaFormIts.Any());
 
     string statBox = "display: flex; flex-direction: column; padding: 12px 15px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);";
 }
@@ -105,7 +105,7 @@
                         bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]");
                         bool isManagerApproved = item.IdNguoiDuyet != null;
                         bool isITDone = item.IdAdmin != null;
-                        bool isRated = item.DanhGia != null && item.DanhGia.Any();
+                        bool isRated = item.DanhGiaFormIts != null && item.DanhGiaFormIts.Any();
 
                         string statusText, bgColor, fgColor, progressWidth, progressColor;
 

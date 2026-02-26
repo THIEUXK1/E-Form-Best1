@@ -164,7 +164,7 @@
                     <option value="">-- Click để chọn loại công việc --</option>
                     @if (ViewBag.CongViecList != null)
                     {
-                        foreach (var cv in (IEnumerable<E_Form_Best.Models.ITForm.CongViec>)ViewBag.CongViecList)
+                        foreach (var cv in (IEnumerable<E_Form_Best.Models.ITForm.CongViecIt>)ViewBag.CongViecList)
                         {
                             <option value="@cv.Id">@cv.Ten</option>
                         }

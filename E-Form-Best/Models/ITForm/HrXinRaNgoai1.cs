@@ -6,8 +6,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace E_Form_Best.Models.ITForm;
 
-[Table("CT_MangHangHoaRaCong_2")]
-public partial class CtMangHangHoaRaCong2
+[Table("HR_XinRaNgoai_1")]
+public partial class HrXinRaNgoai1
 {
     [Key]
     [Column("id")]
@@ -16,24 +16,27 @@ public partial class CtMangHangHoaRaCong2
     [Column("id_FormHR")]
     public int? IdFormHr { get; set; }
 
-    public byte[]? Anh { get; set; }
+    [StringLength(500)]
+    public string? LiDo { get; set; }
 
     [StringLength(255)]
-    public string? BaoVeTruc { get; set; }
+    public string? DiaDiem { get; set; }
 
     [Column(TypeName = "datetime")]
     public DateTime? ThoiGianRa { get; set; }
 
     [Column(TypeName = "datetime")]
-    public DateTime? ThoiGianVao { get; set; }
-
-    [Column(TypeName = "datetime")]
-    public DateTime? TimeDuTinh { get; set; }
+    public DateTime? ThoiGianVeDuTinh { get; set; }
 
     [StringLength(255)]
-    public string? MoTa { get; set; }
+    public string? BaoVeTruc { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? ThoiGianVao { get; set; }
+
+    public byte[]? Anh { get; set; }
 
     [ForeignKey("IdFormHr")]
-    [InverseProperty("CtMangHangHoaRaCong2s")]
+    [InverseProperty("HrXinRaNgoai1s")]
     public virtual FormHr? IdFormHrNavigation { get; set; }
 }

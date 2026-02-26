@@ -6,7 +6,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace E_Form_Best.Models.ITForm;
 
-public partial class DanhGium
+[Table("LichSuFormIT")]
+public partial class LichSuFormIt
 {
     [Key]
     [Column("id")]
@@ -15,17 +16,18 @@ public partial class DanhGium
     [Column("idFormIT")]
     public int? IdFormIt { get; set; }
 
-    public int? IdNguoiDanhGia { get; set; }
+    [StringLength(255)]
+    public string? TieuDe { get; set; }
 
-    [StringLength(100)]
-    public string? TenNguoiDanhGia { get; set; }
+    [Column("mota")]
+    public string? Mota { get; set; }
 
     [Column(TypeName = "datetime")]
-    public DateTime? TimeNguoiDanhGia { get; set; }
+    public DateTime? Time { get; set; }
 
-    public int? MucDo { get; set; }
+    public bool? IsRead { get; set; }
 
     [ForeignKey("IdFormIt")]
-    [InverseProperty("DanhGia")]
+    [InverseProperty("LichSuFormIts")]
     public virtual FormIt? IdFormItNavigation { get; set; }
 }

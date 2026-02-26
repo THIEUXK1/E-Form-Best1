@@ -36,7 +36,7 @@
     // --- 4. XỬ LÝ DỮ LIỆU ĐỦ 8 LOẠI FORM (KHÔNG BỎ BỚT) ---
     if (Model.IdForm == "CT_XinRaNgoai_1")
     {
-        var ct = Model.CtXinRaNgoai1s?.FirstOrDefault();
+        var ct = Model.HrXinRaNgoai1s?.FirstOrDefault();
         if (ct != null)
         {
             if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
@@ -49,7 +49,7 @@
     }
     else if (Model.IdForm == "CT_MangHangHoaRaCong_2")
     {
-        var ct = Model.CtMangHangHoaRaCong2s?.FirstOrDefault();
+        var ct = Model.HrMangHangHoaRaCong2s?.FirstOrDefault();
         if (ct != null)
         {
             if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
@@ -61,7 +61,7 @@
     }
     else if (Model.IdForm == "CT_DangKySuDungXeCongTac_3")
     {
-        var ct = Model.CtDangKySuDungXeCongTac3s?.FirstOrDefault();
+        var ct = Model.HrDangKySuDungXeCongTac3s?.FirstOrDefault();
         if (ct != null)
         {
             if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
@@ -72,7 +72,7 @@
     }
     else if (Model.IdForm == "CT_DangKySuDungXeDaily_4")
     {
-        var ct = Model.CtDangKySuDungXeDaily4s?.FirstOrDefault();
+        var ct = Model.HrDangKySuDungXeDaily4s?.FirstOrDefault();
         if (ct != null)
         {
             if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
@@ -84,7 +84,7 @@
     }
     else if (Model.IdForm == "CT_DonTiepKhac_5")
     {
-        var ct = Model.CtDonTiepKhac5s?.FirstOrDefault();
+        var ct = Model.HrDonTiepKhac5s?.FirstOrDefault();
         if (ct != null)
         {
             if (ct.AnhPhong != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.AnhPhong));
@@ -95,7 +95,7 @@
     }
     else if (Model.IdForm == "CT_NhaThauQuaCong_6")
     {
-        var ct = Model.CtNhaThauQuaCong6s?.FirstOrDefault();
+        var ct = Model.HrNhaThauQuaCong6s?.FirstOrDefault();
         if (ct != null)
         {
             if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
@@ -105,7 +105,7 @@
     }
     else if (Model.IdForm == "CT_HoTroTienDienThoai_7")
     {
-        var ct = Model.CtHoTroTienDienThoai7s?.FirstOrDefault();
+        var ct = Model.HrHoTroTienDienThoai7s?.FirstOrDefault();
         if (ct != null)
         {
             if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
@@ -114,7 +114,7 @@
     }
     else if (Model.IdForm == "CT_DoiCaLam_8")
     {
-        var ct = Model.CtDoiCaLam8s?.FirstOrDefault();
+        var ct = Model.HrDoiCaLam8s?.FirstOrDefault();
         if (ct != null)
         {
             if (ct.Anh != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
@@ -188,7 +188,7 @@
                         </div>
                         <div style="background: #f1f5f9; padding: 18px; border-radius: 15px;">
                             <small style="color: #64748b; font-weight: 900; text-transform: uppercase; font-size: 10px;">Phòng ban</small>
-                            <div style="font-weight: 800; color: #0f172a;">@Model.PhanBo</div>
+                            <div style="font-weight: 800; color: #0f172a;">@Model.BoPhan</div>
                         </div>
                     </div>
                     <div style="background: #ffffff; border: 2px solid #f1f5f9; padding: 25px; border-radius: 20px;">

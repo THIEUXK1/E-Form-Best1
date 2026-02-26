@@ -18,9 +18,6 @@ public partial class FormHr
 
     public DateOnly? Ngay { get; set; }
 
-    [StringLength(255)]
-    public string? PhanBo { get; set; }
-
     [StringLength(50)]
     public string? SoNhanVien { get; set; }
 
@@ -67,27 +64,46 @@ public partial class FormHr
 
     public string? FileDinhKem { get; set; }
 
-    [InverseProperty("IdFormHrNavigation")]
-    public virtual ICollection<CtDangKySuDungXeCongTac3> CtDangKySuDungXeCongTac3s { get; set; } = new List<CtDangKySuDungXeCongTac3>();
+    [StringLength(250)]
+    public string? BoPhan { get; set; }
+
+    [Column("danhmuc")]
+    [StringLength(250)]
+    public string? Danhmuc { get; set; }
+
+    [Column("ten_cong_ty")]
+    [StringLength(250)]
+    public string? TenCongTy { get; set; }
+
+    public bool? HienThiBaoVe { get; set; }
 
     [InverseProperty("IdFormHrNavigation")]
-    public virtual ICollection<CtDangKySuDungXeDaily4> CtDangKySuDungXeDaily4s { get; set; } = new List<CtDangKySuDungXeDaily4>();
+    public virtual ICollection<HrBaoVeXacNhan> HrBaoVeXacNhans { get; set; } = new List<HrBaoVeXacNhan>();
 
     [InverseProperty("IdFormHrNavigation")]
-    public virtual ICollection<CtDoiCaLam8> CtDoiCaLam8s { get; set; } = new List<CtDoiCaLam8>();
+    public virtual ICollection<HrCtNguoiHoTro> HrCtNguoiHoTros { get; set; } = new List<HrCtNguoiHoTro>();
 
     [InverseProperty("IdFormHrNavigation")]
-    public virtual ICollection<CtDonTiepKhac5> CtDonTiepKhac5s { get; set; } = new List<CtDonTiepKhac5>();
+    public virtual ICollection<HrDangKySuDungXeCongTac3> HrDangKySuDungXeCongTac3s { get; set; } = new List<HrDangKySuDungXeCongTac3>();
 
     [InverseProperty("IdFormHrNavigation")]
-    public virtual ICollection<CtHoTroTienDienThoai7> CtHoTroTienDienThoai7s { get; set; } = new List<CtHoTroTienDienThoai7>();
+    public virtual ICollection<HrDangKySuDungXeDaily4> HrDangKySuDungXeDaily4s { get; set; } = new List<HrDangKySuDungXeDaily4>();
 
     [InverseProperty("IdFormHrNavigation")]
-    public virtual ICollection<CtMangHangHoaRaCong2> CtMangHangHoaRaCong2s { get; set; } = new List<CtMangHangHoaRaCong2>();
+    public virtual ICollection<HrDoiCaLam8> HrDoiCaLam8s { get; set; } = new List<HrDoiCaLam8>();
 
     [InverseProperty("IdFormHrNavigation")]
-    public virtual ICollection<CtNhaThauQuaCong6> CtNhaThauQuaCong6s { get; set; } = new List<CtNhaThauQuaCong6>();
+    public virtual ICollection<HrDonTiepKhac5> HrDonTiepKhac5s { get; set; } = new List<HrDonTiepKhac5>();
 
     [InverseProperty("IdFormHrNavigation")]
-    public virtual ICollection<CtXinRaNgoai1> CtXinRaNgoai1s { get; set; } = new List<CtXinRaNgoai1>();
+    public virtual ICollection<HrHoTroTienDienThoai7> HrHoTroTienDienThoai7s { get; set; } = new List<HrHoTroTienDienThoai7>();
+
+    [InverseProperty("IdFormHrNavigation")]
+    public virtual ICollection<HrMangHangHoaRaCong2> HrMangHangHoaRaCong2s { get; set; } = new List<HrMangHangHoaRaCong2>();
+
+    [InverseProperty("IdFormHrNavigation")]
+    public virtual ICollection<HrNhaThauQuaCong6> HrNhaThauQuaCong6s { get; set; } = new List<HrNhaThauQuaCong6>();
+
+    [InverseProperty("IdFormHrNavigation")]
+    public virtual ICollection<HrXinRaNgoai1> HrXinRaNgoai1s { get; set; } = new List<HrXinRaNgoai1>();
 }
