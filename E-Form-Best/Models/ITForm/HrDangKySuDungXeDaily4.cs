@@ -6,8 +6,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace E_Form_Best.Models.ITForm;
 
-[Table("CT_DonTiepKhac_5")]
-public partial class CtDonTiepKhac5
+[Table("HR_DangKySuDungXeDaily_4")]
+public partial class HrDangKySuDungXeDaily4
 {
     [Key]
     [Column("id")]
@@ -16,11 +16,17 @@ public partial class CtDonTiepKhac5
     [Column("id_FormHR")]
     public int? IdFormHr { get; set; }
 
-    public byte[]? AnhPhong { get; set; }
+    public byte[]? Anh { get; set; }
 
-    public byte[]? AnhDatCom { get; set; }
+    [Column(TypeName = "datetime")]
+    public DateTime? TimeDuTinh { get; set; }
+
+    [StringLength(500)]
+    public string? DiemDon { get; set; }
+
+    public string? LiDo { get; set; }
 
     [ForeignKey("IdFormHr")]
-    [InverseProperty("CtDonTiepKhac5s")]
+    [InverseProperty("HrDangKySuDungXeDaily4s")]
     public virtual FormHr? IdFormHrNavigation { get; set; }
 }

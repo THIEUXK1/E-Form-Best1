@@ -447,7 +447,7 @@
                             bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]") || item.TrangThai == "TuChoi";
                             bool isAdminSigned = item.IdAdmin != null && item.TenAdmin != null;
                             bool isDuyetSigned = item.IdNguoiDuyet != null && item.TenNguoiDuyet != null;
-                            bool hasRated = item.DanhGia != null && item.DanhGia.Any();
+                            bool hasRated = item.DanhGiaFormIts != null && item.DanhGiaFormIts.Any();
 
                             string statusText, badgeBg, badgeColor, statusClass;
                             if (isCancelled) { statusText = "ĐÃ HỦY"; statusClass = "HUY"; badgeBg = "#fef2f2"; badgeColor = "#ef4444"; }

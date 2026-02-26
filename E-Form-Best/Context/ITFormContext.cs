@@ -22,29 +22,35 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<BoPhan> BoPhans { get; set; }
 
-    public virtual DbSet<CongViec> CongViecs { get; set; }
+    public virtual DbSet<CongViecIt> CongViecIts { get; set; }
 
-    public virtual DbSet<CtDangKySuDungXeCongTac3> CtDangKySuDungXeCongTac3s { get; set; }
-
-    public virtual DbSet<CtDangKySuDungXeDaily4> CtDangKySuDungXeDaily4s { get; set; }
-
-    public virtual DbSet<CtDoiCaLam8> CtDoiCaLam8s { get; set; }
-
-    public virtual DbSet<CtDonTiepKhac5> CtDonTiepKhac5s { get; set; }
-
-    public virtual DbSet<CtHoTroTienDienThoai7> CtHoTroTienDienThoai7s { get; set; }
-
-    public virtual DbSet<CtMangHangHoaRaCong2> CtMangHangHoaRaCong2s { get; set; }
-
-    public virtual DbSet<CtNhaThauQuaCong6> CtNhaThauQuaCong6s { get; set; }
-
-    public virtual DbSet<CtXinRaNgoai1> CtXinRaNgoai1s { get; set; }
-
-    public virtual DbSet<DanhGium> DanhGia { get; set; }
+    public virtual DbSet<DanhGiaFormIt> DanhGiaFormIts { get; set; }
 
     public virtual DbSet<FormHr> FormHrs { get; set; }
 
     public virtual DbSet<FormIt> FormIts { get; set; }
+
+    public virtual DbSet<HrBaoVeXacNhan> HrBaoVeXacNhans { get; set; }
+
+    public virtual DbSet<HrCtNguoiHoTro> HrCtNguoiHoTros { get; set; }
+
+    public virtual DbSet<HrDangKySuDungXeCongTac3> HrDangKySuDungXeCongTac3s { get; set; }
+
+    public virtual DbSet<HrDangKySuDungXeDaily4> HrDangKySuDungXeDaily4s { get; set; }
+
+    public virtual DbSet<HrDoiCaLam8> HrDoiCaLam8s { get; set; }
+
+    public virtual DbSet<HrDonTiepKhac5> HrDonTiepKhac5s { get; set; }
+
+    public virtual DbSet<HrHoTroTienDienThoai7> HrHoTroTienDienThoai7s { get; set; }
+
+    public virtual DbSet<HrMangHangHoaRaCong2> HrMangHangHoaRaCong2s { get; set; }
+
+    public virtual DbSet<HrNguoiHoTro> HrNguoiHoTros { get; set; }
+
+    public virtual DbSet<HrNhaThauQuaCong6> HrNhaThauQuaCong6s { get; set; }
+
+    public virtual DbSet<HrXinRaNgoai1> HrXinRaNgoai1s { get; set; }
 
     public virtual DbSet<ItCtNguoiHoTro> ItCtNguoiHoTros { get; set; }
 
@@ -58,9 +64,9 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<ItOrderIt2> ItOrderIt2s { get; set; }
 
-    public virtual DbSet<LichSu> LichSus { get; set; }
-
     public virtual DbSet<LichSuFormHr> LichSuFormHrs { get; set; }
+
+    public virtual DbSet<LichSuFormIt> LichSuFormIts { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
@@ -91,84 +97,18 @@ public partial class ITFormContext : DbContext
             entity.HasKey(e => e.IdBoPhan).HasName("PK__BoPhan__E66DCED5E953B918");
         });
 
-        modelBuilder.Entity<CongViec>(entity =>
+        modelBuilder.Entity<CongViecIt>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__CongViec__3213E83F5D615D57");
 
-            entity.HasOne(d => d.IdItNguoiHoTroNavigation).WithMany(p => p.CongViecs).HasConstraintName("FK_CongViec_NguoiHoTro");
+            entity.HasOne(d => d.IdItNguoiHoTroNavigation).WithMany(p => p.CongViecIts).HasConstraintName("FK_CongViec_NguoiHoTro");
         });
 
-        modelBuilder.Entity<CtDangKySuDungXeCongTac3>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__CT_DangK__3213E83F55A9ACA6");
-
-            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.CtDangKySuDungXeCongTac3s)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("FK_CT_DangKy_FormHR");
-        });
-
-        modelBuilder.Entity<CtDangKySuDungXeDaily4>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__CT_DangK__3213E83F3E15E888");
-
-            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.CtDangKySuDungXeDaily4s)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("FK_CT_Daily_FormHR");
-        });
-
-        modelBuilder.Entity<CtDoiCaLam8>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__CT_DoiCa__3213E83F1067B20A");
-
-            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.CtDoiCaLam8s)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("FK_CT_DoiCaLam_8_FormHR");
-        });
-
-        modelBuilder.Entity<CtDonTiepKhac5>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__CT_DonTi__3213E83FDE6F0C24");
-
-            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.CtDonTiepKhac5s)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("FK_CT_DonTiep_FormHR");
-        });
-
-        modelBuilder.Entity<CtHoTroTienDienThoai7>(entity =>
-        {
-            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.CtHoTroTienDienThoai7s)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("FK_CT_HoTroTienDienThoai_7_FormHR");
-        });
-
-        modelBuilder.Entity<CtMangHangHoaRaCong2>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__CT_MangH__3213E83F50B03DD7");
-
-            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.CtMangHangHoaRaCong2s).HasConstraintName("FK_CT_MangHangHoa_FormHR");
-        });
-
-        modelBuilder.Entity<CtNhaThauQuaCong6>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__CT_NhaTh__3213E83F93B09EB6");
-
-            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.CtNhaThauQuaCong6s)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("FK_CT_NhaThau_FormHR");
-        });
-
-        modelBuilder.Entity<CtXinRaNgoai1>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__CT_XinRa__3213E83F517B9771");
-
-            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.CtXinRaNgoai1s).HasConstraintName("FK_CT_XinRaNgoai_FormHR");
-        });
-
-        modelBuilder.Entity<DanhGium>(entity =>
+        modelBuilder.Entity<DanhGiaFormIt>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__DanhGia__3213E83F747EAFE3");
 
-            entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.DanhGia).HasConstraintName("FK_DanhGia_FormIT");
+            entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.DanhGiaFormIts).HasConstraintName("FK_DanhGia_FormIT");
         });
 
         modelBuilder.Entity<FormHr>(entity =>
@@ -179,6 +119,90 @@ public partial class ITFormContext : DbContext
         modelBuilder.Entity<FormIt>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__FormIT__3213E83F25A63261");
+        });
+
+        modelBuilder.Entity<HrBaoVeXacNhan>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__HR_CT_Ba__3213E83F2C627C82");
+
+            entity.Property(e => e.ThoiGianHeThong).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrBaoVeXacNhans).HasConstraintName("FK_BaoVeXacNhan_FormHR");
+        });
+
+        modelBuilder.Entity<HrCtNguoiHoTro>(entity =>
+        {
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrCtNguoiHoTros).HasConstraintName("FK_HR_CT_NguoiHoTro_FormHR");
+
+            entity.HasOne(d => d.IdHrNguoiHoTroNavigation).WithMany(p => p.HrCtNguoiHoTros).HasConstraintName("FK_HR_CT_NguoiHoTro_NguoiHoTro");
+        });
+
+        modelBuilder.Entity<HrDangKySuDungXeCongTac3>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__CT_DangK__3213E83F55A9ACA6");
+
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrDangKySuDungXeCongTac3s)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_CT_DangKy_FormHR");
+        });
+
+        modelBuilder.Entity<HrDangKySuDungXeDaily4>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__CT_DangK__3213E83F3E15E888");
+
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrDangKySuDungXeDaily4s)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_CT_Daily_FormHR");
+        });
+
+        modelBuilder.Entity<HrDoiCaLam8>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__CT_DoiCa__3213E83F1067B20A");
+
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrDoiCaLam8s)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_CT_DoiCaLam_8_FormHR");
+        });
+
+        modelBuilder.Entity<HrDonTiepKhac5>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__CT_DonTi__3213E83FDE6F0C24");
+
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrDonTiepKhac5s)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_CT_DonTiep_FormHR");
+        });
+
+        modelBuilder.Entity<HrHoTroTienDienThoai7>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK_CT_HoTroTienDienThoai_7");
+
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrHoTroTienDienThoai7s)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_CT_HoTroTienDienThoai_7_FormHR");
+        });
+
+        modelBuilder.Entity<HrMangHangHoaRaCong2>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__CT_MangH__3213E83F50B03DD7");
+
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrMangHangHoaRaCong2s).HasConstraintName("FK_CT_MangHangHoa_FormHR");
+        });
+
+        modelBuilder.Entity<HrNhaThauQuaCong6>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__CT_NhaTh__3213E83F93B09EB6");
+
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrNhaThauQuaCong6s)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_CT_NhaThau_FormHR");
+        });
+
+        modelBuilder.Entity<HrXinRaNgoai1>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__CT_XinRa__3213E83F517B9771");
+
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrXinRaNgoai1s).HasConstraintName("FK_CT_XinRaNgoai_FormHR");
         });
 
         modelBuilder.Entity<ItCtNguoiHoTro>(entity =>
@@ -231,17 +255,17 @@ public partial class ITFormContext : DbContext
                 .HasConstraintName("FK_ITOrder_FormIT");
         });
 
-        modelBuilder.Entity<LichSu>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__LichSu__3213E83F7913614E");
-
-            entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.LichSus).HasConstraintName("FK_LichSu_FormIT");
-        });
-
         modelBuilder.Entity<LichSuFormHr>(entity =>
         {
             entity.Property(e => e.IsRead).HasDefaultValue(false);
             entity.Property(e => e.Time).HasDefaultValueSql("(getdate())");
+        });
+
+        modelBuilder.Entity<LichSuFormIt>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__LichSu__3213E83F7913614E");
+
+            entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.LichSuFormIts).HasConstraintName("FK_LichSu_FormIT");
         });
 
         modelBuilder.Entity<User>(entity =>

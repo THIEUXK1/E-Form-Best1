@@ -25,7 +25,7 @@
     bool isCancelled = Model.TenForm != null && Model.TenForm.Contains("[ĐÃ HỦY]");
     bool isFinished = Model.IdAdmin != null || Model.TrangThai == "HoanTat";
     bool isApprovedByManager = Model.IdNguoiDuyet != null || Model.TrangThai == "DaDuyet";
-    bool daDanhGia = Model.DanhGia != null && Model.DanhGia.Any();
+    bool daDanhGia = Model.DanhGiaFormIts != null && Model.DanhGiaFormIts.Any();
 
     string statusColor = "#3b82f6";
     string statusText = "CHỜ QUẢN LÝ";
@@ -269,9 +269,9 @@
 
                         <div id="historyScrollList" style="max-height: 400px; overflow-y: auto; padding: 30px; scrollbar-width: thin; background: #ffffff;">
                             <div style="margin-left: 10px; border-left: 2px dashed #e2e8f0; padding-left: 30px;">
-                                @if (Model.LichSus != null && Model.LichSus.Any())
+                                @if (Model.LichSuFormIts != null && Model.LichSuFormIts.Any())
                                 {
-                                    foreach (var ls in Model.LichSus.OrderByDescending(x => x.Time))
+                                    foreach (var ls in Model.LichSuFormIts.OrderByDescending(x => x.Time))
                                     {
                                         <div style="position: relative; margin-bottom: 30px;">
                                             <div style="position: absolute; left: -41px; top: 0; width: 20px; height: 20px; background: white; border: 4px solid #3b82f6; border-radius: 50%; z-index: 1;"></div>
@@ -429,7 +429,7 @@
                         }
                         else
                         {
-                            var dg = Model.DanhGia.First();
+                            var dg = Model.DanhGiaFormIts.First();
                             string starDisplay = new string('⭐', dg.MucDo ?? 0);
                             <div style="margin-top: 15px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 30px; border-radius: 20px; border: 2px solid #22c55e; box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.2);">
                                 <div style="text-align: center;">

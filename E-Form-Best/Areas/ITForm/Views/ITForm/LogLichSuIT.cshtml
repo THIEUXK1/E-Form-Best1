@@ -1,4 +1,4 @@
-﻿@model IEnumerable<E_Form_Best.Models.ITForm.LichSu>
+﻿@model IEnumerable<E_Form_Best.Models.ITForm.LichSuFormIt>
 @{
     ViewData["Title"] = "Nhật ký hoạt động IT";
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
@@ -66,7 +66,7 @@
                             statusText = "Đang xử lý";
                             statusColor = "#3b82f6";
                         }
-                        else if (f.DanhGia == null || !f.DanhGia.Any())
+                        else if (f.DanhGiaFormIts == null || !f.DanhGiaFormIts.Any())
                         {
                             statusText = "Chờ đánh giá";
                             statusColor = "#db2777";
@@ -150,7 +150,7 @@
                                 else timeProcessing = $"{(int)spanProc.TotalMinutes}p";
 
                                 // 2. Tính tổng thời gian (Chỉ khi đã hoàn tất 100%)
-                                var dg = f.DanhGia?.FirstOrDefault();
+                                var dg = f.DanhGiaFormIts?.FirstOrDefault();
                                 if (statusText == "Hoàn tất 100%" && dg?.TimeNguoiDanhGia != null)
                                 {
                                     var spanTotal = dg.TimeNguoiDanhGia.Value - f.TimeNguoiDuyet.Value;

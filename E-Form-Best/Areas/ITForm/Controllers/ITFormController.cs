@@ -266,7 +266,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             // Lọc danh sách nhân viên IT và CHỈ lấy những công việc có tên "Đăng kí mail"
             ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros
-                .Include(x => x.CongViecs)
+                .Include(x => x.CongViecIts)
                 .Where(x => x.BoPhan == "IT")
                 .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
                 {
@@ -275,9 +275,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     Ten = x.Ten,
                     BoPhan = x.BoPhan,
                     GhiChu = x.GhiChu,
-                    CongViecs = x.CongViecs.Where(cv => cv.Ten == "Đăng kí mail").ToList()
+                    CongViecIts = x.CongViecIts.Where(cv => cv.Ten == "Đăng kí mail").ToList()
                 })
-                .Where(x => x.CongViecs.Any())
+                .Where(x => x.CongViecIts.Any())
                 .ToList();
 
             // Lấy thông tin User từ Claims
@@ -409,7 +409,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
                     {
-                        selectedItNguoiHoTroIds = await _context.CongViecs
+                        selectedItNguoiHoTroIds = await _context.CongViecIts
                             .Where(cv => SelectedCongViecIds.Contains(cv.Id) && cv.IdItNguoiHoTro != null)
                             .Select(cv => cv.IdItNguoiHoTro!.Value)
                             .Distinct()
@@ -418,7 +418,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     if (!selectedItNguoiHoTroIds.Any() && form.Danhmuc == "Đăng kí mail")
                     {
-                        selectedItNguoiHoTroIds = await _context.CongViecs
+                        selectedItNguoiHoTroIds = await _context.CongViecIts
                             .Where(cv => cv.Ten == "Đăng kí mail" && cv.IdItNguoiHoTro != null)
                             .Select(cv => cv.IdItNguoiHoTro!.Value)
                             .Distinct()
@@ -457,14 +457,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                          $"- File đính kèm: {(string.IsNullOrEmpty(form.FileDinhKem) ? "Không có" : form.FileDinhKem)}\n" +
                                          $"- Người hỗ trợ chỉ định: {danhSachTenHoTro}.";
 
-                    var lichSu = new LichSu
+                    var lichSu = new LichSuFormIt
                     {
                         IdFormIt = form.Id,
                         TieuDe = "Khởi tạo đơn",
                         Mota = moTaChiTiet,
                         Time = DateTime.Now
                     };
-                    _context.LichSus.Add(lichSu);
+                    _context.LichSuFormIts.Add(lichSu);
                     await _context.SaveChangesAsync();
 
                     await transaction.CommitAsync();
@@ -478,7 +478,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     // Load lại list hỗ trợ khi xảy ra lỗi để trả về View
                     ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros
-                        .Include(x => x.CongViecs)
+                        .Include(x => x.CongViecIts)
                         .Where(x => x.BoPhan == "IT")
                         .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
                         {
@@ -487,9 +487,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             Ten = x.Ten,
                             BoPhan = x.BoPhan,
                             GhiChu = x.GhiChu,
-                            CongViecs = x.CongViecs.Where(cv => cv.Ten == "Đăng kí mail").ToList()
+                            CongViecIts = x.CongViecIts.Where(cv => cv.Ten == "Đăng kí mail").ToList()
                         })
-                        .Where(x => x.CongViecs.Any())
+                        .Where(x => x.CongViecIts.Any())
                         .ToList();
 
                     ModelState.AddModelError("", "Lỗi trong quá trình lưu: " + ex.Message);
@@ -517,7 +517,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // Lấy thông tin Công ty từ Claim
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
-            ViewBag.CongViecList = await _context.CongViecs
+            ViewBag.CongViecList = await _context.CongViecIts
                                             .OrderBy(x => x.Ten)
                                             .ToListAsync();
 
@@ -560,7 +560,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 try
                 {
                     // --- 1. TRUY VẤN CÔNG VIỆC & NGƯỜI HỖ TRỢ ---
-                    var congViec = await _context.CongViecs
+                    var congViec = await _context.CongViecIts
                         .Include(c => c.IdItNguoiHoTroNavigation)
                         .FirstOrDefaultAsync(c => c.Id == selectedCongViecId);
 
@@ -656,14 +656,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     // --- 6. LƯU LỊCH SỬ ---
                     string anhLog = string.IsNullOrEmpty(itOrder?.DuongDanAnh) ? "Không có ảnh" : $"Ảnh: {itOrder.DuongDanAnh}";
-                    var lichSu = new LichSu
+                    var lichSu = new LichSuFormIt
                     {
                         IdFormIt = form.Id,
                         TieuDe = "Khởi tạo yêu cầu",
                         Mota = $"[Cty: {tenCongTy}] Người tạo: {userName}. {supporterLog}. {fileLog}. {anhLog}",
                         Time = DateTime.Now
                     };
-                    _context.LichSus.Add(lichSu);
+                    _context.LichSuFormIts.Add(lichSu);
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
@@ -675,7 +675,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    ViewBag.CongViecList = await _context.CongViecs.OrderBy(x => x.Ten).ToListAsync();
+                    ViewBag.CongViecList = await _context.CongViecIts.OrderBy(x => x.Ten).ToListAsync();
                     ModelState.AddModelError("", "Lỗi: " + ex.Message);
                     return View(form);
                 }
@@ -702,7 +702,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
             // --- CẬP NHẬT: LẤY DANH SÁCH CÔNG VIỆC THAY VÌ NGƯỜI HỖ TRỢ ---
-            ViewBag.CongViecList = await _context.CongViecs
+            ViewBag.CongViecList = await _context.CongViecIts
                 .Where(x => x.Ten.Contains("Đăng kí sử dụng wifi"))
                 .OrderBy(x => x.Ten)
                 .ToListAsync();
@@ -746,7 +746,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 try
                 {
                     // --- 1. TRUY VẤN NGƯỜI HỖ TRỢ VÀ THÔNG TIN CÔNG VIỆC ---
-                    var congViec = await _context.CongViecs
+                    var congViec = await _context.CongViecIts
                         .Include(c => c.IdItNguoiHoTroNavigation)
                         .FirstOrDefaultAsync(c => c.Id == selectedCongViecId);
 
@@ -842,7 +842,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     // --- 6. LƯU LỊCH SỬ CHI TIẾT ---
                     string anhLog = string.IsNullOrEmpty(itWifi?.DuongDanAnh) ? "Không có ảnh" : $"Ảnh: {itWifi.DuongDanAnh}";
-                    var lichSu = new LichSu
+                    var lichSu = new LichSuFormIt
                     {
                         IdFormIt = form.Id,
                         TieuDe = "Khởi tạo đơn Wifi",
@@ -850,7 +850,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                $"{supporterLog}. {fileLog}. {anhLog}",
                         Time = DateTime.Now
                     };
-                    _context.LichSus.Add(lichSu);
+                    _context.LichSuFormIts.Add(lichSu);
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
@@ -862,7 +862,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    ViewBag.CongViecList = await _context.CongViecs.OrderBy(x => x.Ten).ToListAsync();
+                    ViewBag.CongViecList = await _context.CongViecIts.OrderBy(x => x.Ten).ToListAsync();
                     ModelState.AddModelError("", "Lỗi hệ thống: " + ex.Message);
                     return View(form);
                 }
@@ -891,7 +891,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
             // --- LẤY DANH SÁCH CÔNG VIỆC ---
-            ViewBag.CongViecList = await _context.CongViecs
+            ViewBag.CongViecList = await _context.CongViecIts
                 .Where(x => x.Ten.Contains("Đăng kí sử dụng điện thoại"))
                 .OrderBy(x => x.Ten)
                 .ToListAsync();
@@ -934,7 +934,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 try
                 {
                     // --- TRUY VẤN THÔNG TIN CÔNG VIỆC VÀ NGƯỜI HỖ TRỢ LIÊN QUAN ---
-                    var congViec = await _context.CongViecs
+                    var congViec = await _context.CongViecIts
                         .Include(c => c.IdItNguoiHoTroNavigation)
                         .FirstOrDefaultAsync(c => c.Id == SelectedCongViecId);
 
@@ -1031,7 +1031,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     // --- BƯỚC 5: LƯU LỊCH SỬ ---
                     string anhLog = string.IsNullOrEmpty(itDtBan?.DuongDanAnh) ? "Không có ảnh" : $"Ảnh: {itDtBan.DuongDanAnh}";
-                    var lichSu = new LichSu
+                    var lichSu = new LichSuFormIt
                     {
                         IdFormIt = form.Id,
                         TieuDe = "Khởi tạo đơn Điện thoại bàn",
@@ -1039,7 +1039,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                $"Nội dung: {itDtBan?.ThongTin}. {supporterLog}. {fileLog}. {anhLog}",
                         Time = DateTime.Now
                     };
-                    _context.LichSus.Add(lichSu);
+                    _context.LichSuFormIts.Add(lichSu);
                     await _context.SaveChangesAsync();
 
                     await transaction.CommitAsync();
@@ -1050,7 +1050,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    ViewBag.CongViecList = await _context.CongViecs.Where(x => x.Ten.Contains("Đăng kí sử dụng điện thoại")).ToListAsync();
+                    ViewBag.CongViecList = await _context.CongViecIts.Where(x => x.Ten.Contains("Đăng kí sử dụng điện thoại")).ToListAsync();
                     ModelState.AddModelError("", "Lỗi hệ thống: " + ex.Message);
                     return View(form);
                 }
@@ -1082,8 +1082,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 .Include(f => f.ItDangKiSuDungDtban4s)
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
-                .Include(f => f.LichSus)
-                .Include(f => f.DanhGia)
+                .Include(f => f.LichSuFormIts)
+                .Include(f => f.DanhGiaFormIts)
                 .Include(f => f.BinhLuanFormIts)  // ✅ THÊM INCLUDE BÌNH LUẬN
                 .FirstOrDefaultAsync(m => m.Id == id);
 
@@ -1105,9 +1105,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             if (!isOwner && !isPrivilegedUser) return Forbid();
 
-            if (don.LichSus != null)
+            if (don.LichSuFormIts != null)
             {
-                don.LichSus = don.LichSus.OrderByDescending(x => x.Time).ToList();
+                don.LichSuFormIts = don.LichSuFormIts.OrderByDescending(x => x.Time).ToList();
             }
 
             ViewBag.ListNguoiHoTro = await _context.ItNguoiHoTros
@@ -1213,14 +1213,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 _context.ItCtNguoiHoTros.Add(ctMoi);
 
                 // 5. Ghi lịch sử thao tác
-                var lichSu = new LichSu
+                var lichSu = new LichSuFormIt
                 {
                     IdFormIt = idForm,
                     TieuDe = "CHỈ ĐỊNH NGƯỜI HỖ TRỢ MỚI",
                     Mota = $"Nhân viên {User.Identity.Name} đã thay đổi người hỗ trợ sang: {nvIt.Ten} ({nvIt.MaNv}).",
                     Time = DateTime.Now
                 };
-                _context.LichSus.Add(lichSu);
+                _context.LichSuFormIts.Add(lichSu);
 
                 await _context.SaveChangesAsync();
                 
@@ -1357,7 +1357,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 await _context.SaveChangesAsync();
 
                 // Tạo lịch sử
-                var lichSu = new LichSu
+                var lichSu = new LichSuFormIt
                 {
                     IdFormIt = idForm,
                     TieuDe = "BÌNH LUẬN MỚI",
@@ -1367,7 +1367,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                            $"{(fileName != null ? "📎 Có đính kèm file" : "")}",
                     Time = DateTime.Now
                 };
-                _context.LichSus.Add(lichSu);
+                _context.LichSuFormIts.Add(lichSu);
                 await _context.SaveChangesAsync();
                 
                 return Json(new
@@ -1465,14 +1465,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 // 8. Tạo lịch sử thao tác
                 if (idFormTam > 0)
                 {
-                    var lichSu = new LichSu
+                    var lichSu = new LichSuFormIt
                     {
                         IdFormIt = idFormTam,
                         TieuDe = "XÓA BÌNH LUẬN",
                         Mota = $"{userName} đã xóa bình luận của {tenNguoiBiXoa}",
                         Time = DateTime.Now
                     };
-                    _context.LichSus.Add(lichSu);
+                    _context.LichSuFormIts.Add(lichSu);
                     await _context.SaveChangesAsync();
                 }
 
@@ -1564,10 +1564,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             int userId = int.Parse(userIdStr);
 
             // --- BƯỚC 3: TRUY VẤN DỮ LIỆU ---
-            // Đã thêm Include DanhGia để phân biệt trạng thái Chờ đánh giá và Hoàn tất
+            // Đã thêm Include DanhGiaFormIts để phân biệt trạng thái Chờ đánh giá và Hoàn tất
             var danhSachDon = await _context.FormIts
                 .Where(f => f.IdNguoiTao == userId)
-                .Include(f => f.DanhGia)
+                .Include(f => f.DanhGiaFormIts)
                 .Include(f => f.ItMail1s)
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
@@ -1609,7 +1609,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             IQueryable<FormIt> query = _context.FormIts
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
-                .Include(f => f.DanhGia); // Giữ nguyên để kiểm tra đánh giá
+                .Include(f => f.DanhGiaFormIts); // Giữ nguyên để kiểm tra đánh giá
 
             // --- 3. LOGIC PHÂN QUYỀN (Kết hợp TenCongTy & Giữ nguyên logic cũ) ---
 
@@ -1748,7 +1748,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     }
 
                     // 6. Ghi nhật ký vào bảng LichSu
-                    var lichSu = new LichSu
+                    var lichSu = new LichSuFormIt
                     {
                         IdFormIt = form.Id,
                         TieuDe = tieuDeLichSu,
@@ -1756,7 +1756,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         Time = now
                     };
 
-                    _context.LichSus.Add(lichSu);
+                    _context.LichSuFormIts.Add(lichSu);
 
                     // 7. Lưu thay đổi và kết thúc Transaction
                     await _context.SaveChangesAsync();
@@ -1801,7 +1801,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             IQueryable<FormIt> query = _context.FormIts
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
-                .Include(f => f.DanhGia);
+                .Include(f => f.DanhGiaFormIts);
 
             // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU (Kết hợp TenCongTy & Logic bộ phận của bạn) ---
 
@@ -1861,7 +1861,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     item.TrangThai = "IT Đang xử lý";
                 }
-                else if (item.DanhGia == null || !item.DanhGia.Any())
+                else if (item.DanhGiaFormIts == null || !item.DanhGiaFormIts.Any())
                 {
                     item.TrangThai = "Chờ đánh giá";
                 }
@@ -1931,7 +1931,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.TrangThai = "HoanTat";
 
                     // 7. Lưu Lịch sử thao tác
-                    var lichSu = new LichSu
+                    var lichSu = new LichSuFormIt
                     {
                         IdFormIt = form.Id,
                         TieuDe = "IT Xác nhận Hoàn tất",
@@ -1941,7 +1941,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         Time = now
                     };
 
-                    _context.LichSus.Add(lichSu);
+                    _context.LichSuFormIts.Add(lichSu);
 
                     // 8. Lưu DB
                     await _context.SaveChangesAsync();
@@ -1993,9 +1993,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             int userId = int.Parse(userIdStr);
 
-            // 🔴 QUAN TRỌNG: Include DanhGia để kiểm tra
+            // 🔴 QUAN TRỌNG: Include DanhGiaFormIts để kiểm tra
             var form = await _context.FormIts
-                .Include(f => f.DanhGia)
+                .Include(f => f.DanhGiaFormIts)
                 .FirstOrDefaultAsync(x => x.Id == request.Id);
 
             if (form == null)
@@ -2016,7 +2016,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
 
             // 🔴 CHẶN NẾU ĐÃ ĐÁNH GIÁ
-            if (form.DanhGia != null && form.DanhGia.Any())
+            if (form.DanhGiaFormIts != null && form.DanhGiaFormIts.Any())
             {
                 return Json(new
                 {
@@ -2047,7 +2047,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.TrangThai = "DaDuyet";
 
                     // LƯU LỊCH SỬ CHI TIẾT
-                    var lichSu = new LichSu
+                    var lichSu = new LichSuFormIt
                     {
                         IdFormIt = form.Id,
                         TieuDe = "NGƯỜI TẠO XÁC NHẬN CHƯA HOÀN THÀNH",
@@ -2058,7 +2058,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         Time = now
                     };
 
-                    _context.LichSus.Add(lichSu);
+                    _context.LichSuFormIts.Add(lichSu);
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
@@ -2084,9 +2084,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #endregion
 
         #region Đánh giá đơn IT
-        [HttpPost("/FormIT/DanhGiaDon")]
+        [HttpPost("/FormIT/DanhGiaFormItsDon")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DanhGiaDon([FromBody] DanhGiaRequest request)
+        public async Task<IActionResult> DanhGiaFormItsDon([FromBody] DanhGiaFormItsRequest request)
         {
             // 1. Kiểm tra đầu vào
             if (request == null || request.Id <= 0 || request.MucDo < 1 || request.MucDo > 5)
@@ -2108,7 +2108,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             // 3. Tìm đơn
             var form = await _context.FormIts
-                .Include(f => f.DanhGia)
+                .Include(f => f.DanhGiaFormIts)
                 .FirstOrDefaultAsync(x => x.Id == request.Id);
 
             if (form == null)
@@ -2129,7 +2129,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
 
             // 6. KIỂM TRA ĐÃ ĐÁNH GIÁ CHƯA
-            if (form.DanhGia != null && form.DanhGia.Any())
+            if (form.DanhGiaFormIts != null && form.DanhGiaFormIts.Any())
             {
                 return Json(new { success = false, message = "Bạn đã đánh giá đơn này rồi!" });
             }
@@ -2148,20 +2148,20 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     DateTime now = DateTime.Now;
 
                     // 9. TẠO BẢN GHI ĐÁNH GIÁ
-                    var danhGia = new DanhGium
+                    var DanhGiaFormIts = new DanhGiaFormIt
                     {
                         IdFormIt = form.Id,
-                        IdNguoiDanhGia = userId,
+                        IdNguoiDanhGia= userId,
                         TenNguoiDanhGia = userName,
-                        TimeNguoiDanhGia = now,
+                        TimeNguoiDanhGia= now,
                         MucDo = request.MucDo
                     };
 
-                    _context.DanhGia.Add(danhGia);
+                    _context.DanhGiaFormIts.Add(DanhGiaFormIts);
 
                     // 10. LƯU LỊCH SỬ
                     string stars = new string('⭐', request.MucDo);
-                    var lichSu = new LichSu
+                    var lichSu = new LichSuFormIt
                     {
                         IdFormIt = form.Id,
                         TieuDe = "NGƯỜI TẠO ĐƠN ĐÁNH GIÁ",
@@ -2171,7 +2171,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         Time = now
                     };
 
-                    _context.LichSus.Add(lichSu);
+                    _context.LichSuFormIts.Add(lichSu);
 
                     // 11. Lưu thay đổi
                     await _context.SaveChangesAsync();
@@ -2192,7 +2192,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
-        public class DanhGiaRequest
+        public class DanhGiaFormItsRequest
         {
             public int Id { get; set; }
             public int MucDo { get; set; } // 1-5 sao
@@ -2212,7 +2212,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // 2. LẤY TOÀN BỘ FORM (kèm navigation cần thiết)
             var allForms = await _context.FormIts
                 .AsNoTracking()
-                .Include(f => f.DanhGia)
+                .Include(f => f.DanhGiaFormIts)
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .OrderByDescending(f => f.TimeNguoiTao)
@@ -2255,15 +2255,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 !IsHuy(f) &&
                 f.IdAdmin != null &&
                 f.TimeAdmin != null &&
-                f.DanhGia != null &&
-                f.DanhGia.Any()
+                f.DanhGiaFormIts != null &&
+                f.DanhGiaFormIts.Any()
             );
 
-            int countChoDanhGia = allForms.Count(f =>
+            int countChoDanhGiaFormIts = allForms.Count(f =>
                 !IsHuy(f) &&
                 f.IdAdmin != null &&
                 f.TimeAdmin != null &&
-                (f.DanhGia == null || !f.DanhGia.Any())
+                (f.DanhGiaFormIts == null || !f.DanhGiaFormIts.Any())
             );
 
             int countDangXuLy = allForms.Count(f =>
@@ -2273,7 +2273,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 f.IdAdmin == null
             );
 
-            int countChoDuyet = allForms.Count - countHuy - countHoanTat - countChoDanhGia - countDangXuLy;
+            int countChoDuyet = allForms.Count - countHuy - countHoanTat - countChoDanhGiaFormIts - countDangXuLy;
 
             ViewBag.StatusLabels = new List<string>
     {
@@ -2283,7 +2283,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             ViewBag.StatusCounts = new List<int>
     {
         countHoanTat,
-        countChoDanhGia,
+        countChoDanhGiaFormIts,
         countDangXuLy,
         countChoDuyet,
         countHuy
@@ -2340,14 +2340,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         !IsHuy(x.Form) &&
                         x.Form.IdAdmin != null &&
                         x.Form.TimeAdmin != null &&
-                        x.Form.DanhGia != null &&
-                        x.Form.DanhGia.Any()),
+                        x.Form.DanhGiaFormIts != null &&
+                        x.Form.DanhGiaFormIts.Any()),
 
-                    ChoDanhGia = g.Count(x =>
+                    ChoDanhGiaFormIts = g.Count(x =>
                         !IsHuy(x.Form) &&
                         x.Form.IdAdmin != null &&
                         x.Form.TimeAdmin != null &&
-                        (x.Form.DanhGia == null || !x.Form.DanhGia.Any())),
+                        (x.Form.DanhGiaFormIts == null || !x.Form.DanhGiaFormIts.Any())),
 
                     DangXuLy = g.Count(x =>
                         !IsHuy(x.Form) &&
@@ -2430,14 +2430,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             public string TenIt { get; set; }
 
             public int HoanTat { get; set; }
-            public int ChoDanhGia { get; set; }
+            public int ChoDanhGiaFormIts { get; set; }
             public int DangXuLy { get; set; }
             public int ChoDuyet { get; set; }
             public int DaHuy { get; set; }
 
             // Tổng số đơn (tính tại runtime)
             public int Tong =>
-                HoanTat + ChoDanhGia + DangXuLy + ChoDuyet + DaHuy;
+                HoanTat + ChoDanhGiaFormIts + DangXuLy + ChoDuyet + DaHuy;
         }
 
         /* NEW VIEW MODEL: trung bình thời gian hoàn thành theo (Người hỗ trợ, Danh mục) */
@@ -2466,12 +2466,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // Đồng bộ cách lấy Email/MaNv giống như hàm GetNotifications
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
 
-            var query = _context.LichSus
+            var query = _context.LichSuFormIts
                 .Include(l => l.IdFormItNavigation)
                     .ThenInclude(f => f.ItCtNguoiHoTros)
                         .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .Include(l => l.IdFormItNavigation)
-                    .ThenInclude(f => f.DanhGia)
+                    .ThenInclude(f => f.DanhGiaFormIts)
                 .AsQueryable();
 
             // Logic phân quyền lọc dữ liệu (Đã đồng bộ với hàm GetNotifications)
@@ -2517,7 +2517,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // Lấy Email từ Claim để so khớp với MaNv trong bảng IT_NguoiHoTro
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
 
-            var query = _context.LichSus
+            var query = _context.LichSuFormIts
                 .Include(l => l.IdFormItNavigation)
                     .ThenInclude(f => f.ItCtNguoiHoTros)
                         .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
@@ -2572,7 +2572,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpPost("/FormIT/MarkAsRead/{id}")]
         public async Task<IActionResult> MarkAsRead(int id)
         {
-            var log = await _context.LichSus.FindAsync(id);
+            var log = await _context.LichSuFormIts.FindAsync(id);
             if (log == null) return NotFound();
 
             if (log.IsRead != true)
@@ -2593,7 +2593,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userRole = User.FindFirst("UserRole")?.Value ?? "";
             var userMaNv = User.Identity.Name;
 
-            var query = _context.LichSus.Where(l => l.IsRead != true);
+            var query = _context.LichSuFormIts.Where(l => l.IsRead != true);
 
             if (userRole == "All")
             {

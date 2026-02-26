@@ -403,7 +403,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         {
             if (!IsLoggedIn()) return Unauthorized();
             // Select ra object mới để tránh lỗi vòng lặp JSON và lấy được tên người hỗ trợ
-            var list = _context.CongViecs
+            var list = _context.CongViecIts
                 .OrderByDescending(x => x.Id)
                 .Select(x => new
                 {
@@ -417,20 +417,20 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         }
 
         [HttpPost("/QLtaiKhoan/AddCongViec")]
-        public async Task<IActionResult> AddCongViec(CongViec model)
+        public async Task<IActionResult> AddCongViec(CongViecIt model)
         {
             if (!IsLoggedIn()) return Unauthorized();
             model.TrangThai = "Hiển thị"; // Mặc định là hiển thị như bạn yêu cầu
-            _context.CongViecs.Add(model);
+            _context.CongViecIts.Add(model);
             await _context.SaveChangesAsync();
             return Ok(model);
         }
 
         [HttpPost("/QLtaiKhoan/UpdateCongViec")]
-        public async Task<IActionResult> UpdateCongViec(CongViec model)
+        public async Task<IActionResult> UpdateCongViec(CongViecIt model)
         {
             if (!IsLoggedIn()) return Unauthorized();
-            var cv = await _context.CongViecs.FindAsync(model.Id);
+            var cv = await _context.CongViecIts.FindAsync(model.Id);
             if (cv == null) return NotFound();
             cv.Ten = model.Ten;
             cv.IdItNguoiHoTro = model.IdItNguoiHoTro;
@@ -444,9 +444,9 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         public async Task<IActionResult> DeleteCongViec(int id)
         {
             if (!IsLoggedIn()) return Unauthorized();
-            var cv = await _context.CongViecs.FindAsync(id);
+            var cv = await _context.CongViecIts.FindAsync(id);
             if (cv == null) return NotFound();
-            _context.CongViecs.Remove(cv);
+            _context.CongViecIts.Remove(cv);
             await _context.SaveChangesAsync();
             return Ok();
         }
@@ -454,7 +454,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         public async Task<IActionResult> UpdateStatusCV(int id)
         {
             if (!IsLoggedIn()) return Unauthorized();
-            var cv = await _context.CongViecs.FindAsync(id);
+            var cv = await _context.CongViecIts.FindAsync(id);
             if (cv == null) return NotFound();
 
             // Đổi trạng thái qua lại
