@@ -2,188 +2,195 @@
 @using System.Security.Claims
 
 @{
-    ViewData["Title"] = "Đăng ký Hỗ trợ tiền điện thoại";
+    ViewData["Title"] = "Đăng ký hỗ trợ tiền điện thoại";
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 
-    // --- CHUYỂN ĐỔI TỪ SESSION SANG COOKIE CLAIMS (CK) ---
+    // --- LẤY THÔNG TIN TỪ CLAIMS ---
     var tenNguoiNv = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
-    // Toolkit Style: Tông màu Blue (Xanh dương) chuyên nghiệp cho khối văn phòng/hỗ trợ
-    string primaryColor = "#2563eb"; // Blue 600
-    string darkColor = "#1e3a8a";
-    string lightBg = "#eff6ff";
-
-    string inputStyle = $"width: 100%; padding: 12px; border-radius: 12px; border: 1.5px solid #bfdbfe; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: {darkColor};";
-    string labelStyle = "font-weight: 800; color: #1e40af; font-size: 11px; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 1px;";
-    string boxStyle = $"background: #ffffff; padding: 30px; border-radius: 24px; border: 1px solid #dbeafe; margin-bottom: 25px; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.05);";
+    // Styles nội bộ dựa trên màu chủ đạo #3b82f6
+    string primaryColor = "#3b82f6";
+    string inputStyle = $"width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #bfdbfe; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: #1e3a8a;";
+    string labelStyle = "font-weight: 700; color: #1e40af; font-size: 11px; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px;";
+    string pasteZoneStyle = $"width: 100%; border: 2px dotted #93c5fd; height: 180px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #f0f7ff; color: #2563eb; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 600; transition: 0.3s; margin-top: 10px; position: relative; outline: none;";
 }
 
-<div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); padding: 50px 15px; min-height: 100vh; font-family: 'Inter', sans-serif;">
+<div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); padding: 40px 15px; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
 
-    <form id="dienThoaiForm" method="post" enctype="multipart/form-data" action="/FormHR/HoTroTienDienThoai"
-          style="max-width: 850px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(30, 58, 138, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
+    <form id="hrForm" method="post" enctype="multipart/form-data" action="/FormHR/HoTroTienDienThoai"
+          style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 30px; box-shadow: 0 20px 50px rgba(59, 130, 246, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
 
         @Html.AntiForgeryToken()
 
         @* --- HEADER --- *@
-        <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 45px 40px; color: #ffffff; text-align: center; position: relative;">
-            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">E-FORM BENEFITS</div>
-            <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px;">Đăng ký Hỗ trợ tiền điện thoại</h2>
-            <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 6px 18px; background: rgba(255,255,255,0.2); border-radius: 100px; font-size: 13px; backdrop-filter: blur(4px);">
-                <span>📅 Ngày yêu cầu:</span>
-                <span style="font-weight: 800;">@ngayHienThi</span>
+        <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 40px; color: #ffffff; text-align: center; position: relative;">
+            <div style="position: absolute; top: 15px; right: 25px; font-size: 11px; opacity: 0.9; font-weight: 500; letter-spacing: 1px;">E-FORM SYSTEM V3.0</div>
+            <h2 style="margin: 0; font-size: 24px; text-transform: uppercase; font-weight: 900; letter-spacing: 1.5px;">Đơn đăng ký hỗ trợ tiền điện thoại</h2>
+            <div style="margin-top: 12px; display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.2); border-radius: 50px; font-size: 13px;">
+                📅 Ngày lập đơn: <span style="font-weight: 700; color: #ffffff;">@ngayHienThi</span>
             </div>
         </div>
 
         <div style="padding: 40px;">
-
-            @* --- THÔNG TIN NHÂN VIÊN ĐĂNG KÝ (Lấy từ CK) --- *@
+            @* --- PHẦN 1: THÔNG TIN NHÂN SỰ --- *@
             <div style="margin-bottom: 35px;">
-                <h3 style="color: #1e40af; font-size: 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
-                    <i class="fa fa-user" style="font-size: 18px; color: #2563eb;"></i> Thông tin nhân viên
+                <h3 style="color: #1d4ed8; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: #3b82f6; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">1</span>
+                    Thông tin nhân sự
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-                    <div><label style="@labelStyle">Họ tên</label><input name="TenNguoiNv" value="@tenNguoiNv" readonly style="@inputStyle; background: #f8fafc;"></div>
-                    <div><label style="@labelStyle">Bộ phận</label><input name="PhanBo" value="@phongBan" readonly style="@inputStyle; background: #f8fafc;"></div>
-                    <div><label style="@labelStyle">Mã NV / Email</label><input value="@soNhanVien" readonly style="@inputStyle; background: #f8fafc;"></div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="@labelStyle">Họ tên nhân viên</label>
+                        <input name="TenNguoiNv" value="@tenNguoiNv" readonly style="@inputStyle; background: #f8fafc; border-color: #e2e8f0;">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Phòng ban</label>
+                        <input name="BoPhan" value="@phongBan" readonly style="@inputStyle; background: #f8fafc; border-color: #e2e8f0;">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Mã nhân viên</label>
+                        <input name="SoNhanVien" value="@soNhanVien" readonly style="@inputStyle; background: #f8fafc; border-color: #e2e8f0;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label style="@labelStyle">Đơn vị / Công ty</label>
+                        <input name="TenCongTy" value="@tenCongTy" readonly style="@inputStyle; background: #f8fafc; border-style: dashed;">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Danh mục hồ sơ</label>
+                        <input name="Danhmuc" value="ĐƠN HỖ TRỢ TIỀN ĐIỆN THOẠI" readonly style="@inputStyle; background: #f8fafc; border-style: dashed; color: #3b82f6;">
+                    </div>
                 </div>
             </div>
 
-            @* --- CHI TIẾT MINH CHỨNG --- *@
-            <div style="@boxStyle">
-                <h3 style="color: #1e40af; font-size: 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 25px; font-weight: 800; text-transform: uppercase;">
-                    <i class="fa fa-phone-square" style="font-size: 18px; color: #2563eb;"></i> Minh chứng thanh toán / Số thuê bao
+            @* --- PHẦN 2: CHI TIẾT HỖ TRỢ --- *@
+            <div style="background: #fcfdfe; padding: 25px; border-radius: 20px; border: 1px solid #dbeafe; margin-bottom: 30px;">
+                <h3 style="color: #1d4ed8; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: #2563eb; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">2</span>
+                    Nội dung đề nghị
                 </h3>
 
-                @* VÙNG DÁN ẢNH: HÓA ĐƠN HOẶC MÀN HÌNH TRA CỨU CƯỚC *@
-                <div style="margin-bottom: 25px;">
-                    <label style="@labelStyle">Ảnh minh chứng: Hóa đơn / Lịch sử cước (Ctrl+V)</label>
-                    <div id="paste_AnhDienThoai" tabindex="0" class="paste-zone"
-                         style="width: 100%; border: 2.5px dashed #2563eb; height: 220px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #eff6ff; color: #1e40af; cursor: pointer; transition: 0.3s; gap: 10px; outline: none;">
-                        <i class="fa fa-file-image-o" style="font-size: 35px;"></i>
-                        <span style="font-size: 11px; font-weight: 700; text-align:center; padding: 0 20px;">
-                            Click vào đây rồi nhấn Ctrl+V để dán ảnh hóa đơn hoặc ảnh chụp màn hình nạp thẻ/thanh toán
-                        </span>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label style="@labelStyle">Mức hỗ trợ đề xuất (VNĐ) <span style="color:#ef4444">*</span></label>
+                        <input type="number" name="MucHoTro" placeholder="Nhập số tiền..." required style="@inputStyle; border-color: #3b82f6;">
                     </div>
-                    @* Input này khớp với thuộc tính Anh trong Model *@
-                    <input type="file" id="Anh" name="Anh" hidden accept="image/*">
+                    <div>
+                        <label style="@labelStyle">Số điện thoại nhận hỗ trợ <span style="color:#ef4444">*</span></label>
+                        <input name="ThongTinNhanVien" placeholder="Nhập SĐT..." required style="@inputStyle; border-color: #3b82f6;">
+                    </div>
                 </div>
 
-                @* FILE ĐÍNH KÈM: PDF HOẶC EXCEL CHI TIẾT *@
-                <div>
-                    <label style="@labelStyle">Tài liệu đính kèm khác (nếu có)</label>
-                    <div style="background: #ffffff; border: 2px dashed #cbd5e1; border-radius: 18px; padding: 20px; display: flex; align-items: center; gap: 15px; transition: 0.3s;">
-                        <i class="fa fa-paperclip" style="font-size: 24px; color: #2563eb;"></i>
-                        <div style="flex: 1;">
-                            <input type="file" name="UploadFile" style="font-size: 13px; color: #475569; width: 100%;">
-                            <p style="margin: 5px 0 0 0; font-size: 10px; color: #94a3b8; font-weight: 600;">Hỗ trợ: .pdf, .xls, .xlsx, .jpg, .png</p>
+                <div style="margin-bottom: 20px;">
+                    <label style="@labelStyle">Lý do / Mục đích công việc <span style="color:#ef4444">*</span></label>
+                    <textarea name="MucDich" placeholder="Mô tả chi tiết mục đích sử dụng cho công việc..." required style="@inputStyle; height: 80px; resize: none; border-color: #3b82f6;"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label style="@labelStyle">Ảnh minh chứng (Paste ảnh Ctrl+V)</label>
+                        <div id="paste_Anh" class="paste-zone" style="@pasteZoneStyle" tabindex="0">
+                            Nhấp vào đây và nhấn Ctrl+V để dán ảnh
+                        </div>
+                        <input type="file" id="Anh" name="Anh" hidden accept="image/*">
+                    </div>
+
+                    <div>
+                        <label style="@labelStyle">File đính kèm (PDF/Excel)</label>
+                        <div style="margin-top:10px; background: #ffffff; padding: 15px; border-radius: 12px; border: 1px dashed #3b82f6; height: 180px; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box;">
+                            <input type="file" name="UploadFile" style="font-size: 13px; width: 100%;">
+                            <p style="font-size: 11px; color: #64748b; margin-top: 15px; line-height: 1.4;">Tải lên các tài liệu chứng minh định mức sử dụng (nếu có).</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            @* --- QUY ĐỊNH HỖ TRỢ --- *@
-            <div style="@boxStyle; border-color: #fde68a; background: #fffbeb; padding: 25px;">
-                <h3 style="color: #92400e; font-size: 13px; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-weight: 800; text-transform: uppercase;">
-                    <i class="fa fa-info-circle"></i> Quy định về Hỗ trợ cước phí
-                </h3>
-
-                <ul style="margin: 0 0 20px 20px; padding: 0; color: #92400e; font-size: 12px; line-height: 1.8; font-weight: 600; list-style-type: square;">
-                    <li>Mức hỗ trợ áp dụng theo định mức quy định cho từng vị trí/chức vụ đã ban hành.</li>
-                    <li>Ảnh minh chứng phải thể hiện rõ số điện thoại và số tiền đã thanh toán/nạp thẻ trong tháng.</li>
-                    <li>Thời hạn gửi đăng ký: Trước ngày 05 hàng tháng cho kỳ thanh toán tháng trước.</li>
-                </ul>
-
-                @* CHECKBOX CAM KẾT *@
-                <label style="display: flex; align-items: center; gap: 15px; cursor: pointer; padding: 15px; background: #ffffff; border-radius: 15px; border: 2px solid #fcd34d; transition: 0.3s;" id="labelCamKet">
-                    <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; cursor: pointer; accent-color: #2563eb;">
-                    <span style="font-size: 13px; color: #1e3a8a; font-weight: 800; line-height: 1.4;">
-                        Tôi xác nhận thông tin đăng ký và minh chứng đính kèm là chính xác và trung thực.
+            @* --- PHẦN 3: CAM KẾT --- *@
+            <div style="background: #f0f7ff; border: 1px solid #bfdbfe; border-radius: 20px; padding: 25px; margin-bottom: 30px;">
+                <label id="containerCamKet" style="cursor: pointer; display: flex; align-items: flex-start; gap: 12px; background: #ffffff; padding: 15px; border-radius: 12px; border: 2px solid #3b82f6; transition: 0.3s;">
+                    <input type="checkbox" id="chkCamKet" style="width: 20px; height: 20px; margin-top: 2px; accent-color: #3b82f6; cursor: pointer;">
+                    <span style="font-size: 13px; font-weight: 700; color: #1e40af; line-height: 1.5;">
+                        Tôi xin cam đoan các thông tin trên là chính xác và hoàn toàn chịu trách nhiệm về nội dung kê khai.
                     </span>
                 </label>
             </div>
 
             @* --- NÚT GỬI --- *@
             <div style="text-align: center;">
-                <button type="button" onclick="guiDonDienThoai()"
-                        style="width: 100%; padding: 20px; background: linear-gradient(to right, #2563eb, #1d4ed8); color: #fff; border: none; border-radius: 20px; font-weight: 900; font-size: 17px; cursor: pointer; transition: 0.3s; box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.4); text-transform: uppercase;">
-                    <i class="fa fa-paper-plane" style="margin-right: 10px;"></i> Gửi yêu cầu hỗ trợ
+                <button type="button" onclick="xuLyLuuDon()"
+                        style="width: 100%; padding: 18px; background: linear-gradient(to right, #3b82f6, #2563eb); color: #fff; border: none; border-radius: 15px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3); text-transform: uppercase; letter-spacing: 1px;">
+                    <i class="fa fa-paper-plane" style="margin-right: 10px;"></i> Gửi đơn xét duyệt
                 </button>
             </div>
-
         </div>
     </form>
 </div>
 
 <script>
-    // Hàm xử lý dán ảnh dùng chung
-    function setupPasteImage(zoneId, inputId) {
-        const zone = document.getElementById(zoneId);
-        const input = document.getElementById(inputId);
-
-        zone.addEventListener('paste', (e) => {
-            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-            for (let i = 0; i < items.length; i++) {
-                if (items[i].type.indexOf("image") !== -1) {
-                    const blob = items[i].getAsFile();
-                    const reader = new FileReader();
-                    reader.onload = function (event) {
-                        zone.innerHTML = `<img src="${event.target.result}" style="width:100%; height:100%; object-fit:contain; border-radius:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">`;
-                        zone.style.background = "#ffffff";
-                        zone.style.borderColor = "#2563eb";
-
-                        const dataTransfer = new DataTransfer();
-                        dataTransfer.items.add(blob);
-                        input.files = dataTransfer.files;
-                    };
-                    reader.readAsDataURL(blob);
-                }
+    // Logic Paste ảnh từ Clipboard
+    function handlePaste(e, inputId, zoneId) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        let blob = null;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                blob = items[i].getAsFile();
+                break;
             }
-        });
+        }
+        if (blob) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const zone = document.getElementById(zoneId);
+                zone.innerHTML = `<img src="${event.target.result}" style="width:100%; height:100%; object-fit:contain; border-radius:10px;">`;
+                zone.style.border = "2px solid #3b82f6";
+                zone.style.background = "#ffffff";
 
-        // Hiệu ứng focus để hỗ trợ paste
-        zone.addEventListener('focus', () => {
-            zone.style.borderColor = "#1e3a8a";
-            zone.style.background = "#eff6ff";
-        });
-        zone.addEventListener('blur', () => {
-            if (!input.files.length) {
-                zone.style.borderColor = "#2563eb";
-            }
-        });
-        // Click vào zone để focus
-        zone.addEventListener('click', () => zone.focus());
+                const fileInput = document.getElementById(inputId);
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(blob);
+                fileInput.files = dataTransfer.files;
+            };
+            reader.readAsDataURL(blob);
+        }
     }
 
-    // Khởi tạo vùng dán cho Điện thoại
-    setupPasteImage("paste_AnhDienThoai", "Anh");
+    const zoneEl = document.getElementById("paste_Anh");
+    if (zoneEl) {
+        zoneEl.addEventListener('paste', (e) => handlePaste(e, "Anh", "paste_Anh"));
+    }
 
-    function guiDonDienThoai() {
-        // 1. Kiểm tra dán ảnh
-        const anhInput = document.getElementById("Anh");
-        if (anhInput.files.length === 0) {
-            alert("⚠️ Vui lòng dán ảnh minh chứng (Hóa đơn hoặc ảnh chụp thanh toán) trước khi gửi.");
-            document.getElementById("paste_AnhDienThoai").focus();
+    // Kiểm tra dữ liệu trước khi gửi
+    function xuLyLuuDon() {
+        const mucHoTro = document.querySelector('input[name="MucHoTro"]').value;
+        const sdt = document.querySelector('input[name="ThongTinNhanVien"]').value.trim();
+        const mucDich = document.querySelector('textarea[name="MucDich"]').value.trim();
+        const chk = document.getElementById('chkCamKet');
+
+        if (!mucHoTro || mucHoTro <= 0) {
+            alert("⚠️ Vui lòng nhập mức hỗ trợ đề xuất!");
+            return;
+        }
+        if (sdt.length < 10) {
+            alert("⚠️ Số điện thoại không hợp lệ!");
+            return;
+        }
+        if (mucDich.length < 5) {
+            alert("⚠️ Vui lòng nhập mục đích sử dụng!");
+            return;
+        }
+        if (!chk.checked) {
+            alert("⚠️ Bạn chưa xác nhận cam kết!");
             return;
         }
 
-        // 2. Kiểm tra xác nhận cam kết
-        const chkCamKet = document.getElementById("chkCamKet");
-        const labelCamKet = document.getElementById("labelCamKet");
-        if (!chkCamKet.checked) {
-            alert("⚠️ Bạn phải tích chọn xác nhận tính trung thực của thông tin trước khi gửi đơn.");
-            labelCamKet.style.borderColor = "#dc2626"; // Đổi màu viền sang đỏ để báo lỗi
-            return;
-        } else {
-            labelCamKet.style.borderColor = "#fcd34d";
-        }
-
-        // 3. Xác nhận và submit
-        if (confirm("Xác nhận gửi yêu cầu hỗ trợ tiền điện thoại này?")) {
-            document.getElementById("dienThoaiForm").submit();
+        if (confirm("Xác nhận gửi đơn này?")) {
+            document.getElementById("hrForm").submit();
         }
     }
 </script>

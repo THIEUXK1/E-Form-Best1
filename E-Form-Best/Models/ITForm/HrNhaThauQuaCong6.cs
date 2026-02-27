@@ -18,6 +18,18 @@ public partial class HrNhaThauQuaCong6
 
     public byte[]? Anh { get; set; }
 
+    public string? DuongDanAnh { get; set; }
+
+    [StringLength(250)]
+    public string? TenNhaThau { get; set; }
+
+    public int? SoNguoi { get; set; }
+
+    [StringLength(100)]
+    public string? NguoiDangKy { get; set; }
+
+    public string? MucDichCongViec { get; set; }
+
     [ForeignKey("IdFormHr")]
     [InverseProperty("HrNhaThauQuaCong6s")]
     public virtual FormHr? IdFormHrNavigation { get; set; }

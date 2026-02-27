@@ -24,6 +24,8 @@ public partial class HrDangKySuDungXeCongTac3
     [StringLength(255)]
     public string? LiDo { get; set; }
 
+    public string? DuongDanAnh { get; set; }
+
     [ForeignKey("IdFormHr")]
     [InverseProperty("HrDangKySuDungXeCongTac3s")]
     public virtual FormHr? IdFormHrNavigation { get; set; }

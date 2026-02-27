@@ -56,7 +56,7 @@
             chiTietNoiDung += RenderInfoRow("📦", "Loại đơn", "Mang hàng hóa ra cổng", "#f0fdf4", "#166534");
             chiTietNoiDung += RenderInfoRow("📋", "Mô tả hàng hóa", ct.MoTa, "#f8fafc", "#0f172a");
             chiTietNoiDung += RenderInfoRow("📅", "Thời gian dự tính", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#f0fdf4", "#166534");
-            chiTietNoiDung += RenderSecurityBox(ct.BaoVeTruc, ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "hàng ra thực tế");
+            chiTietNoiDung += RenderSecurityBox(ct.TenCong, ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "hàng ra thực tế");
         }
     }
     else if (Model.IdForm == "CT_DangKySuDungXeCongTac_3")
@@ -87,9 +87,22 @@
         var ct = Model.HrDonTiepKhac5s?.FirstOrDefault();
         if (ct != null)
         {
-            if (ct.AnhPhong != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.AnhPhong));
-            if (ct.AnhDatCom != null) listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.AnhDatCom));
-            chiTietNoiDung += RenderInfoRow("🤝", "Loại dịch vụ", "Tiếp khách / Ngoại giao", "#fdf2f8", "#9d174d");
+            // 1. XỬ LÝ HIỂN THỊ ẢNH MINH CHỨNG
+            // Vì lưu đường dẫn vật lý, chúng ta trỏ src về một Action để đọc file
+            if (!string.IsNullOrEmpty(ct.DuongDanAnh))
+            {
+                // Truyền ID của bảng chi tiết để Action lấy đường dẫn file ra trả về Image
+                listImages.Add($"/FormHR/GetImageTiepKhac?id={ct.Id}");
+            }
+
+            // 2. RENDER THÔNG TIN CHI TIẾT
+            chiTietNoiDung += RenderInfoRow("🤝", "Loại đơn", "Đăng ký Tiếp khách", "#fdf2f8", "#9d174d");
+            chiTietNoiDung += RenderInfoRow("🏢", "Công ty khách", ct.TenCongTyKhach ?? "---", "#fff1f2", "#be123c");
+            chiTietNoiDung += RenderInfoRow("👥", "Số lượng khách", ct.SoLuongKhach?.ToString() + " người", "#fff1f2", "#be123c");
+            chiTietNoiDung += RenderInfoRow("📞", "Người đặt / Nội bộ", $"{ct.NguoiBook} - {ct.SoMayBan}", "#fff1f2", "#be123c");
+            chiTietNoiDung += RenderInfoRow("📝", "Yêu cầu chi tiết", ct.YeuCauTiepKhach ?? "---", "#f8fafc", "#475569");
+
+            // Hiển thị thêm ngày yêu cầu từ bảng chính
             chiTietNoiDung += RenderInfoRow("📅", "Ngày yêu cầu", Model.Ngay?.ToString("dd/MM/yyyy"), "#fff1f2", "#be123c");
         }
     }
