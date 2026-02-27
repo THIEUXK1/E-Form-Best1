@@ -73,7 +73,7 @@
                     <th style="padding: 15px;">Tài khoản & Bảo mật (Mã, Pass, SĐT)</th>
                     <th style="padding: 15px; width: 130px;">Vai trò</th>
                     <th style="padding: 15px; width: 130px;">Trạng thái</th>
-                    <th style="padding: 15px; text-align: center; width: 150px;">Thao tác</th>
+                    <th style="padding: 15px; text-align: center; width: 220px;">Thao tác</th>
                 </tr>
             </thead>
             <tbody id="userTableBody"></tbody>
@@ -82,6 +82,55 @@
     <div id="scrollStatus" style="text-align: center; padding: 20px; color: #718096; font-style: italic;"></div>
 </div>
 
+<div id="detailModal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter: blur(4px); overflow-y:auto;">
+    <div style="background:white; max-width:850px; margin:40px auto; border-radius:20px; padding:0; position:relative; box-shadow:0 25px 50px rgba(0,0,0,0.3); animation: slideDown 0.3s ease-out;">
+        <div style="padding: 20px 30px; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-radius: 20px 20px 0 0;">
+            <h2 id="detailTitle" style="margin:0; color:#1a202c; font-size: 1.5rem;">Chi tiết & Phân quyền</h2>
+            <button onclick="$('#detailModal').hide()" style="background:none; border:none; font-size:28px; cursor:pointer; color:#a0aec0;">&times;</button>
+        </div>
+
+        <div style="padding: 30px; display:grid; grid-template-columns: 1fr 1fr; gap:25px;">
+            <div style="background:#fff; padding:20px; border-radius:15px; border:1px solid #e2e8f0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+                <h4 style="margin-top:0; color:#2d3748; display:flex; align-items:center; gap:10px;">🔐 Quyền hệ thống</h4>
+                <div id="permissionsList" style="max-height:400px; overflow-y:auto; padding-right:10px;"></div>
+            </div>
+
+            <div style="background:#fff; padding:20px; border-radius:15px; border:1px solid #e2e8f0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+                <h4 style="margin-top:0; color:#2d3748; display:flex; align-items:center; gap:10px;">🏢 Bộ phận quản lý</h4>
+                <div id="departmentsList" style="max-height:400px; overflow-y:auto; padding-right:10px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @@keyframes slideDown {
+        from {
+            transform: translateY(-30px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .permission-item:hover {
+        background: #f7fafc;
+    }
+
+    #permissionsList::-webkit-scrollbar, #departmentsList::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    #permissionsList::-webkit-scrollbar-thumb, #departmentsList::-webkit-scrollbar-thumb {
+        background: #cbd5e0;
+        border-radius: 10px;
+    }
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
@@ -139,13 +188,13 @@
                         </div>
                     </td>
                     <td style="padding: 10px;">
-                          <select id="role-${user.idNguoiDung}" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; background:white;">
-        <option value="NhanVien" ${user.vaiTro === 'NhanVien' ? 'selected' : ''}>Nhân Viên</option>
-        <option value="QuanLy" ${user.vaiTro === 'QuanLy' ? 'selected' : ''}>Quản Lý</option>
-        <option value="Admin" ${user.vaiTro === 'Admin' ? 'selected' : ''}>Admin</option>
-        <option value="AdminHR" ${user.vaiTro === 'AdminHR' ? 'selected' : ''}>AdminHR</option>
-        <option value="BaoVe" ${user.vaiTro === 'BaoVe' ? 'selected' : ''}>Bảo Vệ</option>
-    </select>
+                         <select id="role-${user.idNguoiDung}" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; background:white;">
+                            <option value="NhanVien" ${user.vaiTro === 'NhanVien' ? 'selected' : ''}>Nhân Viên</option>
+                            <option value="QuanLy" ${user.vaiTro === 'QuanLy' ? 'selected' : ''}>Quản Lý</option>
+                            <option value="Admin" ${user.vaiTro === 'Admin' ? 'selected' : ''}>Admin</option>
+                            <option value="AdminHR" ${user.vaiTro === 'AdminHR' ? 'selected' : ''}>AdminHR</option>
+                            <option value="BaoVe" ${user.vaiTro === 'BaoVe' ? 'selected' : ''}>Bảo Vệ</option>
+                        </select>
                     </td>
                     <td style="padding: 10px;">
                         <select id="status-${user.idNguoiDung}" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; background:white;">
@@ -155,8 +204,9 @@
                     </td>
                     <td style="padding: 10px; text-align: center;">
                         <div style="display: flex; gap: 6px; justify-content: center;">
-                            <button onclick="updateUser(${user.idNguoiDung})" style="padding: 8px 15px; border-radius: 8px; background: #38a169; color: white; border: none; cursor: pointer; font-weight: bold;">LƯU</button>
-                            <button onclick="deleteUser(${user.idNguoiDung})" style="padding: 8px 15px; border-radius: 8px; background: #fff5f5; color: #e53e3e; border: 1px solid #feb2b2; cursor: pointer; font-weight: bold;">XÓA</button>
+                            <button onclick="viewDetail(${user.idNguoiDung})" style="padding: 8px 12px; border-radius: 8px; background: #4299e1; color: white; border: none; cursor: pointer; font-weight: bold; font-size:11px;">CHI TIẾT</button>
+                            <button onclick="updateUser(${user.idNguoiDung})" style="padding: 8px 12px; border-radius: 8px; background: #38a169; color: white; border: none; cursor: pointer; font-weight: bold; font-size:11px;">LƯU</button>
+                            <button onclick="deleteUser(${user.idNguoiDung})" style="padding: 8px 12px; border-radius: 8px; background: #fff5f5; color: #e53e3e; border: 1px solid #feb2b2; cursor: pointer; font-weight: bold; font-size:11px;">XÓA</button>
                         </div>
                     </td>
                 </tr>
@@ -165,7 +215,57 @@
         status.innerText = displayLimit < currentFilteredData.length ? `Hiển thị ${displayLimit}/${currentFilteredData.length}. Cuộn xuống...` : `Tổng: ${currentFilteredData.length}`;
     }
 
-    // --- Xử lý Logic ---
+    // --- Xử lý Phân quyền & Chi tiết ---
+
+    function viewDetail(userId) {
+        const user = allUsersData.find(u => u.idNguoiDung == userId);
+        $('#detailTitle').html(`👤 <span style="color:#2b6cb0">${user.hoTen}</span> <small style="font-size:12px; color:#718096">(${user.tk})</small>`);
+        $('#permissionsList, #departmentsList').html('<p style="text-align:center; padding:20px;">Đang tải...</p>');
+        $('#detailModal').show();
+
+        fetch(`/QLtaiKhoan/GetUserDetail?id=${userId}`)
+            .then(res => res.json())
+            .then(data => {
+                // Render Quyền
+                let qHtml = data.allQuyen.length ? data.allQuyen.map(q => `
+                    <div class="permission-item" style="padding:10px; border-bottom:1px solid #edf2f7; transition:0.2s;">
+                        <label style="display:flex; align-items:center; gap:12px; cursor:pointer; width:100%;">
+                            <input type="checkbox" style="width:18px; height:18px; accent-color:#4299e1;"
+                                   ${data.userQuyenIds.includes(q.idQuyen) ? 'checked' : ''}
+                                   onchange="togglePermission(${userId}, ${q.idQuyen}, this.checked)">
+                            <div>
+                                <div style="font-weight:600; color:#2d3748;">${q.tenQuyen}</div>
+                                <div style="font-size:11px; color:#718096;">${q.moTa || 'Không có mô tả'}</div>
+                            </div>
+                        </label>
+                    </div>
+                `).join('') : '<p>Chưa có dữ liệu quyền.</p>';
+                $('#permissionsList').html(qHtml);
+
+                // Render Bộ phận
+                let bHtml = data.allBoPhan.length ? data.allBoPhan.map(b => `
+                    <div class="permission-item" style="padding:10px; border-bottom:1px solid #edf2f7;">
+                        <label style="display:flex; align-items:center; gap:12px; cursor:pointer;">
+                            <input type="checkbox" style="width:18px; height:18px; accent-color:#38a169;"
+                                   ${data.userBoPhanIds.includes(b.idBoPhan) ? 'checked' : ''}
+                                   onchange="toggleDepartment(${userId}, ${b.idBoPhan}, this.checked)">
+                            <div style="font-weight:600; color:#2d3748;">${b.tenBoPhan}</div>
+                        </label>
+                    </div>
+                `).join('') : '<p>Chưa có dữ liệu bộ phận.</p>';
+                $('#departmentsList').html(bHtml);
+            });
+    }
+
+    function togglePermission(userId, quyenId, isChecked) {
+        $.post('/QLtaiKhoan/TogglePermission', { userId, quyenId, isChecked });
+    }
+
+    function toggleDepartment(userId, boPhanId, isChecked) {
+        $.post('/QLtaiKhoan/ToggleDepartment', { userId, boPhanId, isChecked });
+    }
+
+    // --- Các hàm Logic CRUD giữ nguyên của bạn ---
 
     window.onscroll = () => {
         if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100) {
