@@ -5,13 +5,14 @@
     ViewData["Title"] = "Đăng ký đơn xin ra ngoài";
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 
-    // --- CHUYỂN ĐỔI TỪ SESSION SANG COOKIE CLAIMS (CK) ---
+    // --- LẤY THÔNG TIN TỪ CLAIMS ---
     var tenNguoiNv = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
-    // Styles nội bộ với tông màu Đỏ
+    // Styles nội bộ
     string inputStyle = "width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #fca5a5; background: #fffcfc; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: #7f1d1d;";
     string labelStyle = "font-weight: 700; color: #7f1d1d; font-size: 11px; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px;";
     string pasteZoneStyle = "width: 100%; border: 2px dotted #fca5a5; height: 180px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #fff5f5; color: #b91c1c; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 600; transition: 0.3s; margin-top: 10px; position: relative; outline: none;";
@@ -19,13 +20,12 @@
 
 <div style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); padding: 40px 15px; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
 
-    @* Form chính thức *@
     <form id="hrForm" method="post" enctype="multipart/form-data" action="/FormHR/DonXinRaNgoai"
           style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 30px; box-shadow: 0 20px 50px rgba(185, 28, 28, 0.1); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
 
         @Html.AntiForgeryToken()
 
-        @* --- HEADER (Tông màu Đỏ) --- *@
+        @* --- HEADER --- *@
         <div style="background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); padding: 40px; color: #ffffff; text-align: center; position: relative;">
             <div style="position: absolute; top: 15px; right: 25px; font-size: 11px; opacity: 0.8; font-weight: 500; letter-spacing: 1px;">HỆ THỐNG E-FORM V3.0</div>
             <h2 style="margin: 0; font-size: 24px; text-transform: uppercase; font-weight: 900; letter-spacing: 1.5px;">Đăng ký đơn xin ra ngoài</h2>
@@ -35,16 +35,37 @@
         </div>
 
         <div style="padding: 40px;">
-            @* --- PHẦN 1: THÔNG TIN NHÂN SỰ (Lấy từ CK) --- *@
+            @* --- PHẦN 1: THÔNG TIN NHÂN SỰ --- *@
             <div style="margin-bottom: 35px;">
                 <h3 style="color: #991b1b; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
                     <span style="background: #dc2626; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">1</span>
                     Thông tin người đăng ký
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                    <div><label style="@labelStyle">Họ tên nhân viên</label><input name="TenNguoiNv" value="@tenNguoiNv" readonly style="@inputStyle; background: #fef2f2; border-color: #fee2e2;"></div>
-                    <div><label style="@labelStyle">Phòng ban</label><input name="PhanBo" value="@phongBan" readonly style="@inputStyle; background: #fef2f2; border-color: #fee2e2;"></div>
-                    <div><label style="@labelStyle">Mã nhân viên</label><input value="@soNhanVien" readonly style="@inputStyle; background: #fef2f2; border-color: #fee2e2;"></div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="@labelStyle">Họ tên nhân viên</label>
+                        <input name="TenNguoiNv" value="@tenNguoiNv" readonly style="@inputStyle; background: #fef2f2; border-color: #fee2e2;">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Phòng ban</label>
+                        <input name="BoPhan" value="@phongBan" readonly style="@inputStyle; background: #fef2f2; border-color: #fee2e2;">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Mã nhân viên</label>
+                        <input name="SoNhanVien" value="@soNhanVien" readonly style="@inputStyle; background: #fef2f2; border-color: #fee2e2;">
+                    </div>
+                </div>
+
+                @* Thêm Công ty và Danh mục *@
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label style="@labelStyle">Đơn vị / Công ty</label>
+                        <input name="TenCongTy" value="@tenCongTy" readonly style="@inputStyle; background: #fff1f1; border-style: dashed;">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Danh mục hồ sơ</label>
+                        <input name="Danhmuc" value="ĐƠN XIN RA NGOÀI" readonly style="@inputStyle; background: #fff1f1; border-style: dashed; color: #dc2626;">
+                    </div>
                 </div>
             </div>
 
@@ -101,15 +122,14 @@
                 </h3>
                 <ul style="margin: 0 0 20px 20px; padding: 0; color: #7f1d1d; font-size: 12px; line-height: 1.8; font-weight: 600; list-style-type: disc;">
                     <li>Nhân viên chỉ được ra ngoài sau khi đơn được cấp quản lý và phòng HR phê duyệt.</li>
-                    <li>Phải xuất trình đơn phê duyệt (hoặc mã QR) cho bộ phận an ninh tại cổng.</li>
-                    <li>Nghiêm cấm việc sử dụng lý do công việc để giải quyết việc cá nhân không trung thực.</li>
+                    <li>Phải xuất trình đơn phê duyệt cho bộ phận an ninh tại cổng.</li>
                     <li>Mọi sự chậm trễ so với thời gian dự kiến phải thông báo ngay cho quản lý trực tiếp.</li>
                 </ul>
 
                 <label id="containerCamKet" style="cursor: pointer; display: flex; align-items: flex-start; gap: 12px; background: #ffffff; padding: 15px; border-radius: 12px; border: 2px solid #fca5a5; transition: 0.3s;">
                     <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; margin-top: 2px; accent-color: #dc2626; cursor: pointer;">
                     <span style="font-size: 13px; font-weight: 800; color: #991b1b; line-height: 1.5;">
-                        Tôi cam kết nội dung khai báo là hoàn toàn đúng sự thật. Tôi sẽ tuân thủ đúng thời gian ra/vào và chịu trách nhiệm trước nội quy công ty nếu vi phạm.
+                        Tôi cam kết nội dung khai báo là hoàn toàn đúng sự thật.
                     </span>
                 </label>
             </div>
@@ -126,7 +146,6 @@
 </div>
 
 <script>
-    // 1. Tự động gán thời gian hiện tại và thời gian về dự kiến
     window.onload = function() {
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -137,7 +156,6 @@
         document.getElementById('inpThoiGianVe').value = returnTime.toISOString().slice(0, 16);
     };
 
-    // 2. Xử lý dán ảnh từ Clipboard
     function handlePaste(e, inputId, zoneId) {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         let blob = null;
@@ -166,38 +184,28 @@
     const zoneEl = document.getElementById("paste_AnhXinRaNgoai");
     if (zoneEl) {
         zoneEl.addEventListener('paste', (e) => handlePaste(e, "AnhXinRaNgoai", "paste_AnhXinRaNgoai"));
-        zoneEl.addEventListener('focus', () => { zoneEl.style.borderColor = "#dc2626"; zoneEl.style.boxShadow = "0 0 10px rgba(220,38,38,0.1)"; });
-        zoneEl.addEventListener('blur', () => { zoneEl.style.borderColor = "#fca5a5"; zoneEl.style.boxShadow = "none"; });
     }
 
-    // 3. Kiểm tra tính hợp lệ và Submit
     function xuLyLuuDon() {
         const liDo = document.querySelector('textarea[name="LiDo"]').value.trim();
         const tgRa = document.getElementById('inpThoiGianRa').value;
         const tgVe = document.getElementById('inpThoiGianVe').value;
         const chk = document.getElementById('chkCamKet');
-        const containerCamKet = document.getElementById('containerCamKet');
 
         if (liDo.length < 5) {
-            alert("⚠️ Vui lòng nhập lý do ra ngoài cụ thể (tối thiểu 5 ký tự)!");
+            alert("⚠️ Vui lòng nhập lý do ra ngoài cụ thể!");
             return;
         }
         if (!tgRa || !tgVe) {
-            alert("⚠️ Vui lòng chọn đầy đủ thời gian đi và về!");
-            return;
-        }
-        if (new Date(tgVe) <= new Date(tgRa)) {
-            alert("⚠️ Lỗi: Thời gian về phải sau thời gian ra!");
+            alert("⚠️ Vui lòng chọn thời gian!");
             return;
         }
         if (!chk.checked) {
-            alert("⚠️ Bạn chưa tích chọn cam kết tuân thủ quy định!");
-            containerCamKet.style.borderColor = "#dc2626";
-            containerCamKet.style.background = "#fff1f1";
+            alert("⚠️ Bạn chưa tích chọn cam kết!");
             return;
         }
 
-        if (confirm("Hệ thống sẽ gửi đơn xin ra ngoài đến cấp trên. Bạn xác nhận thông tin đã chính xác?")) {
+        if (confirm("Xác nhận gửi đơn?")) {
             document.getElementById("hrForm").submit();
         }
     }

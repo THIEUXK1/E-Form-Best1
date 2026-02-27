@@ -19,7 +19,7 @@ public partial class HrMangHangHoaRaCong2
     public byte[]? Anh { get; set; }
 
     [StringLength(255)]
-    public string? BaoVeTruc { get; set; }
+    public string? TenCong { get; set; }
 
     [Column(TypeName = "datetime")]
     public DateTime? ThoiGianRa { get; set; }
@@ -32,6 +32,8 @@ public partial class HrMangHangHoaRaCong2
 
     [StringLength(255)]
     public string? MoTa { get; set; }
+
+    public string? DuongDanAnh { get; set; }
 
     [ForeignKey("IdFormHr")]
     [InverseProperty("HrMangHangHoaRaCong2s")]

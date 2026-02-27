@@ -18,6 +18,18 @@ public partial class HrDoiCaLam8
 
     public byte[]? Anh { get; set; }
 
+    public string? DuongDanAnh { get; set; }
+
+    public DateOnly? NgayCanDoi { get; set; }
+
+    [StringLength(50)]
+    public string? CaGoc { get; set; }
+
+    [StringLength(50)]
+    public string? CaMuonDoi { get; set; }
+
+    public string? LyDoDoiCa { get; set; }
+
     [ForeignKey("IdFormHr")]
     [InverseProperty("HrDoiCaLam8s")]
     public virtual FormHr? IdFormHrNavigation { get; set; }

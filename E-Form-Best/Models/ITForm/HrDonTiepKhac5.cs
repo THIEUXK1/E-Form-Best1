@@ -16,9 +16,21 @@ public partial class HrDonTiepKhac5
     [Column("id_FormHR")]
     public int? IdFormHr { get; set; }
 
-    public byte[]? AnhPhong { get; set; }
+    public string? DuongDanAnh { get; set; }
 
-    public byte[]? AnhDatCom { get; set; }
+    [StringLength(255)]
+    public string? NguoiBook { get; set; }
+
+    [StringLength(50)]
+    [Unicode(false)]
+    public string? SoMayBan { get; set; }
+
+    [StringLength(255)]
+    public string? TenCongTyKhach { get; set; }
+
+    public int? SoLuongKhach { get; set; }
+
+    public string? YeuCauTiepKhach { get; set; }
 
     [ForeignKey("IdFormHr")]
     [InverseProperty("HrDonTiepKhac5s")]

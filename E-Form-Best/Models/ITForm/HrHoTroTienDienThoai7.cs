@@ -18,6 +18,16 @@ public partial class HrHoTroTienDienThoai7
 
     public byte[]? Anh { get; set; }
 
+    public string? DuongDanAnh { get; set; }
+
+    [StringLength(255)]
+    public string? ThongTinNhanVien { get; set; }
+
+    [Column(TypeName = "money")]
+    public decimal? MucHoTro { get; set; }
+
+    public string? MucDich { get; set; }
+
     [ForeignKey("IdFormHr")]
     [InverseProperty("HrHoTroTienDienThoai7s")]
     public virtual FormHr? IdFormHrNavigation { get; set; }
