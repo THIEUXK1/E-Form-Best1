@@ -57,10 +57,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return View();
             }
 
-            // 2. Kiểm tra tài khoản trong Database
+            // 2. Kiểm tra tài khoản trong Database (Đã thêm Include UserQuyens và IdQuyenNavigation)
             var user = _context.Users
                 .Include(u => u.UserBoPhans)
                     .ThenInclude(ub => ub.IdBoPhanNavigation)
+                .Include(u => u.UserQuyens) // <-- Thêm Include bảng trung gian
+                    .ThenInclude(uq => uq.IdQuyenNavigation) // <-- Thêm Include bảng Quyen
                 .FirstOrDefault(u => u.Tk == email && u.MatKhau == matKhau && u.TrangThai != "Khóa");
 
             if (user == null)
@@ -104,11 +106,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         new Claim("UserRole", user.VaiTro ?? ""),
         new Claim("PhongBan", user.PhongBan ?? ""),
         new Claim("TenCongTy", user.TenCongTy ?? ""),
-        // --- LƯU ĐƯỜNG DẪN ẢNH ĐẠI DIỆN VÀO COOKIE ---
         new Claim("AnhDaiDien", user.AnhDaiDien ?? "/images/default-avatar.png")
     };
 
-            // --- LẤY TẤT CẢ BỘ PHẬN (TEN_BO_PHAN & MO_TA) ---
+            // --- LẤY TẤT CẢ BỘ PHẬN (GIỮ NGUYÊN) ---
             if (user.UserBoPhans != null && user.UserBoPhans.Any())
             {
                 var tatCaTenBoPhan = string.Join(", ", user.UserBoPhans
@@ -121,6 +122,24 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 claims.Add(new Claim("TenBoPhan", tatCaTenBoPhan));
                 claims.Add(new Claim("MoTaBoPhan", tatCaMoTa));
+            }
+
+            // --- MỚI: LẤY TẤT CẢ QUYỀN (ROLES) VÀO COOKIE ---
+            if (user.UserQuyens != null && user.UserQuyens.Any())
+            {
+                // Lấy danh sách tên quyền
+                var dsQuyen = user.UserQuyens
+                    .Where(uq => uq.IdQuyenNavigation != null)
+                    .Select(uq => uq.IdQuyenNavigation.TenQuyen);
+
+                foreach (var tenQuyen in dsQuyen)
+                {
+                    if (!string.IsNullOrEmpty(tenQuyen))
+                    {
+                        // Thêm từng quyền vào danh sách ClaimTypes.Role để dùng được [Authorize(Roles = "...")]
+                        claims.Add(new Claim(ClaimTypes.Role, tenQuyen));
+                    }
+                }
             }
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -2628,4 +2647,4 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
         #endregion
     }
-    }
+   }
