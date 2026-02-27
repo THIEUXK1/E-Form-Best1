@@ -21,7 +21,6 @@ public partial class Quyen
     [StringLength(255)]
     public string? MoTa { get; set; }
 
-    [ForeignKey("IdQuyen")]
-    [InverseProperty("IdQuyens")]
-    public virtual ICollection<User> IdNguoiDungs { get; set; } = new List<User>();
+    [InverseProperty("IdQuyenNavigation")]
+    public virtual ICollection<UserQuyen> UserQuyens { get; set; } = new List<UserQuyen>();
 }

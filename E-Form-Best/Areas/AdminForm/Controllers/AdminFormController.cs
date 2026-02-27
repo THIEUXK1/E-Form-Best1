@@ -349,6 +349,90 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
 
         #endregion
 
+        #region QL Phân quyền & Bộ phận nhân viên
+
+        // 1. Lấy dữ liệu chi tiết quyền và bộ phận của 1 User (Dùng cho Modal Chi Tiết)
+        [HttpGet("/QLtaiKhoan/GetUserDetail")]
+        public IActionResult GetUserDetail(int id)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+
+            var allQuyen = _context.Quyens.ToList();
+            var userQuyenIds = _context.UserQuyens
+                .Where(uq => uq.IdNguoiDung == id)
+                .Select(uq => uq.IdQuyen)
+                .ToList();
+
+            var allBoPhan = _context.BoPhans.ToList();
+            var userBoPhanIds = _context.UserBoPhans
+                .Where(ub => ub.IdNguoiDung == id)
+                .Select(ub => ub.IdBoPhan)
+                .ToList();
+
+            return Json(new
+            {
+                allQuyen,
+                userQuyenIds,
+                allBoPhan,
+                userBoPhanIds
+            });
+        }
+
+        // 2. Xử lý tích/bỏ tích Quyền (Thêm/Xóa bảng User_Quyen)
+        [HttpPost("/QLtaiKhoan/TogglePermission")]
+        public async Task<IActionResult> TogglePermission(int userId, int quyenId, bool isChecked)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+
+            var existing = _context.UserQuyens
+                .FirstOrDefault(x => x.IdNguoiDung == userId && x.IdQuyen == quyenId);
+
+            if (isChecked && existing == null)
+            {
+                _context.UserQuyens.Add(new UserQuyen
+                {
+                    IdNguoiDung = userId,
+                    IdQuyen = quyenId
+                });
+            }
+            else if (!isChecked && existing != null)
+            {
+                _context.UserQuyens.Remove(existing);
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        // 3. Xử lý tích/bỏ tích Bộ Phận (Thêm/Xóa bảng User_BoPhan)
+        [HttpPost("/QLtaiKhoan/ToggleDepartment")]
+        public async Task<IActionResult> ToggleDepartment(int userId, int boPhanId, bool isChecked)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+
+            var existing = _context.UserBoPhans
+                .FirstOrDefault(x => x.IdNguoiDung == userId && x.IdBoPhan == boPhanId);
+
+            if (isChecked && existing == null)
+            {
+                _context.UserBoPhans.Add(new UserBoPhan
+                {
+                    IdNguoiDung = userId,
+                    IdBoPhan = boPhanId,
+                    NgayChiDinh = DateTime.Now
+                });
+            }
+            else if (!isChecked && existing != null)
+            {
+                _context.UserBoPhans.Remove(existing);
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        #endregion
+
         #region QL người Hỗ trợ
         [HttpGet("/QLtaiKhoan/NguoiHoTro")]
         public IActionResult NguoiHoTro()

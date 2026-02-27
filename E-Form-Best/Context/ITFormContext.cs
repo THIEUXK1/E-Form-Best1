@@ -78,6 +78,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<UserDevice> UserDevices { get; set; }
 
+    public virtual DbSet<UserQuyen> UserQuyens { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Data Source=10.0.60.33;Initial Catalog=ITForm;Persist Security Info=True;User ID=sa;Password=BestP@cific;Encrypt=True;Trust Server Certificate=True");
@@ -296,25 +298,6 @@ public partial class ITFormContext : DbContext
 
             entity.Property(e => e.NgayCapNhat).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.NgayTao).HasDefaultValueSql("(sysutcdatetime())");
-
-            entity.HasMany(d => d.IdQuyens).WithMany(p => p.IdNguoiDungs)
-                .UsingEntity<Dictionary<string, object>>(
-                    "UserQuyen",
-                    r => r.HasOne<Quyen>().WithMany()
-                        .HasForeignKey("IdQuyen")
-                        .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("FK_UserQuyen_Quyen_Current"),
-                    l => l.HasOne<User>().WithMany()
-                        .HasForeignKey("IdNguoiDung")
-                        .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("FK_UserQuyen_User_Current"),
-                    j =>
-                    {
-                        j.HasKey("IdNguoiDung", "IdQuyen").HasName("PK__User_Quy__9F3E6C2E8D999CB5");
-                        j.ToTable("User_Quyen");
-                        j.IndexerProperty<int>("IdNguoiDung").HasColumnName("id_nguoi_dung");
-                        j.IndexerProperty<int>("IdQuyen").HasColumnName("id_quyen");
-                    });
         });
 
         modelBuilder.Entity<UserBoPhan>(entity =>
@@ -338,6 +321,19 @@ public partial class ITFormContext : DbContext
             entity.Property(e => e.LastLogin).HasDefaultValueSql("(getdate())");
 
             entity.HasOne(d => d.IdNguoiDungNavigation).WithMany(p => p.UserDevices).HasConstraintName("FK_UserDevice_User");
+        });
+
+        modelBuilder.Entity<UserQuyen>(entity =>
+        {
+            entity.HasKey(e => new { e.IdNguoiDung, e.IdQuyen }).HasName("PK__User_Quy__9F3E6C2E8D999CB5");
+
+            entity.HasOne(d => d.IdNguoiDungNavigation).WithMany(p => p.UserQuyens)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_UserQuyen_User_Current");
+
+            entity.HasOne(d => d.IdQuyenNavigation).WithMany(p => p.UserQuyens)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_UserQuyen_Quyen_Current");
         });
 
         OnModelCreatingPartial(modelBuilder);
