@@ -40,6 +40,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<HrDoiCaLam8> HrDoiCaLam8s { get; set; }
 
+    public virtual DbSet<HrDonHoTroCongTac9> HrDonHoTroCongTac9s { get; set; }
+
     public virtual DbSet<HrDonTiepKhac5> HrDonTiepKhac5s { get; set; }
 
     public virtual DbSet<HrHoTroTienDienThoai7> HrHoTroTienDienThoai7s { get; set; }
@@ -67,6 +69,8 @@ public partial class ITFormContext : DbContext
     public virtual DbSet<LichSuFormHr> LichSuFormHrs { get; set; }
 
     public virtual DbSet<LichSuFormIt> LichSuFormIts { get; set; }
+
+    public virtual DbSet<Quyen> Quyens { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
@@ -162,6 +166,19 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrDoiCaLam8s)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_CT_DoiCaLam_8_FormHR");
+        });
+
+        modelBuilder.Entity<HrDonHoTroCongTac9>(entity =>
+        {
+            entity.Property(e => e.BookXeCtyDuaDon).HasDefaultValue(false);
+            entity.Property(e => e.DatBuaAn).HasDefaultValue(false);
+            entity.Property(e => e.DatChoO).HasDefaultValue(false);
+            entity.Property(e => e.DatVeMayBay).HasDefaultValue(false);
+            entity.Property(e => e.NgayTao).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrDonHoTroCongTac9s)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_DonHoTro_FormHR");
         });
 
         modelBuilder.Entity<HrDonTiepKhac5>(entity =>
@@ -268,12 +285,36 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.LichSuFormIts).HasConstraintName("FK_LichSu_FormIT");
         });
 
+        modelBuilder.Entity<Quyen>(entity =>
+        {
+            entity.HasKey(e => e.IdQuyen).HasName("PK__Quyen__AE8CD30F6693B373");
+        });
+
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.IdNguoiDung).HasName("PK__User__75D6A11EB2C54D7B");
 
             entity.Property(e => e.NgayCapNhat).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.NgayTao).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasMany(d => d.IdQuyens).WithMany(p => p.IdNguoiDungs)
+                .UsingEntity<Dictionary<string, object>>(
+                    "UserQuyen",
+                    r => r.HasOne<Quyen>().WithMany()
+                        .HasForeignKey("IdQuyen")
+                        .OnDelete(DeleteBehavior.ClientSetNull)
+                        .HasConstraintName("FK_UserQuyen_Quyen_Current"),
+                    l => l.HasOne<User>().WithMany()
+                        .HasForeignKey("IdNguoiDung")
+                        .OnDelete(DeleteBehavior.ClientSetNull)
+                        .HasConstraintName("FK_UserQuyen_User_Current"),
+                    j =>
+                    {
+                        j.HasKey("IdNguoiDung", "IdQuyen").HasName("PK__User_Quy__9F3E6C2E8D999CB5");
+                        j.ToTable("User_Quyen");
+                        j.IndexerProperty<int>("IdNguoiDung").HasColumnName("id_nguoi_dung");
+                        j.IndexerProperty<int>("IdQuyen").HasColumnName("id_quyen");
+                    });
         });
 
         modelBuilder.Entity<UserBoPhan>(entity =>

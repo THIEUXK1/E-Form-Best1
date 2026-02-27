@@ -1,0 +1,202 @@
+﻿@model E_Form_Best.Models.ITForm.FormHr
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Đơn hỗ trợ công tác";
+    Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
+
+    // --- LẤY THÔNG TIN TỪ CLAIMS ---
+    var tenNguoiNv = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+    var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+    var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
+
+    // Toolkit Style: Tông màu Purple #a855f7
+    string primaryColor = "#a855f7";
+    string darkPurple = "#581c87";
+    string lightPurple = "#faf5ff";
+
+    string inputStyle = $"width: 100%; padding: 12px; border-radius: 10px; border: 1.5px solid #e9d5ff; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: {darkPurple};";
+    string labelStyle = $"font-weight: 800; color: {darkPurple}; font-size: 11px; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px;";
+    string pasteZoneStyle = $"width: 100%; border: 2.5px dashed {primaryColor}; height: 180px; border-radius: 15px; display: flex; align-items: center; justify-content: center; background: {lightPurple}; color: {darkPurple}; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 600; transition: 0.3s; margin-top: 10px; position: relative; outline: none;";
+    string checkboxContainerStyle = "display: flex; align-items: center; gap: 10px; background: #ffffff; padding: 12px 15px; border-radius: 10px; border: 1px solid #e9d5ff; cursor: pointer; transition: 0.2s;";
+}
+
+<div style="background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); padding: 40px 15px; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
+
+    <form id="hrForm" method="post" enctype="multipart/form-data" action="/FormHR/DonHoTroCongTac"
+          style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 30px; box-shadow: 0 20px 50px rgba(88, 28, 135, 0.1); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
+
+        @Html.AntiForgeryToken()
+
+        @* --- HEADER --- *@
+        <div style="background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%); padding: 40px; color: #ffffff; text-align: center; position: relative;">
+            <div style="position: absolute; top: 15px; right: 25px; font-size: 11px; opacity: 0.9; font-weight: 700; letter-spacing: 1.5px;">E-FORM HR SERVICES</div>
+            <h2 style="margin: 0; font-size: 24px; text-transform: uppercase; font-weight: 900; letter-spacing: 1.5px;">Đơn đăng ký hỗ trợ công tác</h2>
+            <div style="margin-top: 12px; display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; background: rgba(255,255,255,0.2); border-radius: 50px; font-size: 13px; backdrop-filter: blur(4px);">
+                📅 Ngày lập đơn: <span style="font-weight: 800; color: #fff;">@ngayHienThi</span>
+            </div>
+        </div>
+
+        <div style="padding: 40px;">
+            @* --- PHẦN 1: THÔNG TIN NHÂN SỰ --- *@
+            <div style="margin-bottom: 35px;">
+                <h3 style="color: @darkPurple; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: @primaryColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">1</span>
+                    Thông tin người yêu cầu
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="@labelStyle">Họ tên nhân viên</label>
+                        <input name="TenNguoiNv" value="@tenNguoiNv" readonly style="@inputStyle; background: #fdfaff; border-color: #e9d5ff;">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Phòng ban</label>
+                        <input name="BoPhan" value="@phongBan" readonly style="@inputStyle; background: #fdfaff; border-color: #e9d5ff;">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Mã nhân viên</label>
+                        <input name="SoNhanVien" value="@soNhanVien" readonly style="@inputStyle; background: #fdfaff; border-color: #e9d5ff;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label style="@labelStyle">Đơn vị / Công ty</label>
+                        <input name="TenCongTy" value="@tenCongTy" readonly style="@inputStyle; background: #fdfaff; border-style: dashed;">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Danh mục hồ sơ</label>
+                        <input name="Danhmuc" value="ĐƠN HỖ TRỢ CÔNG TÁC" readonly style="@inputStyle; background: #fdfaff; border-style: dashed; color: @primaryColor;">
+                    </div>
+                </div>
+            </div>
+
+            @* --- PHẦN 2: CHI TIẾT HỖ TRỢ (HrDonHoTroCongTac9) --- *@
+            <div style="background: #fdfaff; padding: 25px; border-radius: 20px; border: 1.5px solid #e9d5ff; margin-bottom: 30px; box-shadow: inset 0 2px 4px rgba(168, 85, 247, 0.05);">
+                <h3 style="color: @darkPurple; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: @darkPurple; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">2</span>
+                    Nội dung yêu cầu hỗ trợ
+                </h3>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="@labelStyle">Tên khách hàng / Đối tác <span style="color:#dc2626">*</span></label>
+                    <input type="text" name="TenKhachHang" placeholder="Nhập tên khách hàng hoặc đoàn công tác..." required style="@inputStyle; border-color: @primaryColor;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                    <label style="@checkboxContainerStyle">
+                        <input type="checkbox" name="DatVeMayBay" value="true" style="width: 18px; height: 18px; accent-color: @primaryColor;">
+                        <span style="font-size: 13px; font-weight: 700; color: @darkPurple;">Đặt vé máy bay</span>
+                    </label>
+                    <label style="@checkboxContainerStyle">
+                        <input type="checkbox" name="DatChoO" value="true" style="width: 18px; height: 18px; accent-color: @primaryColor;">
+                        <span style="font-size: 13px; font-weight: 700; color: @darkPurple;">Đặt chỗ ở (Khách sạn)</span>
+                    </label>
+                    <label style="@checkboxContainerStyle">
+                        <input type="checkbox" name="BookXeCtyDuaDon" value="true" style="width: 18px; height: 18px; accent-color: @primaryColor;">
+                        <span style="font-size: 13px; font-weight: 700; color: @darkPurple;">Xe công ty đưa đón</span>
+                    </label>
+                    <label style="@checkboxContainerStyle">
+                        <input type="checkbox" name="DatBuaAn" value="true" style="width: 18px; height: 18px; accent-color: @primaryColor;">
+                        <span style="font-size: 13px; font-weight: 700; color: @darkPurple;">Đặt suất ăn / Bữa ăn</span>
+                    </label>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="@labelStyle">Nội dung yêu cầu chi tiết <span style="color:#dc2626">*</span></label>
+                    <textarea name="NoiDungYeuCauChiTiet" placeholder="Ví dụ: Thời gian bay, Loại phòng khách sạn, Số lượng người ăn..." required style="@inputStyle; height: 100px; resize: none; border-color: @primaryColor;"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label style="@labelStyle">Ảnh minh chứng (Lịch trình/CCCD khách - Ctrl+V)</label>
+                        <div id="paste_Anh" class="paste-zone" style="@pasteZoneStyle" tabindex="0">
+                            <div style="text-align: center;">
+                                <i class="fa fa-camera" style="font-size: 24px; margin-bottom: 8px;"></i><br>
+                                Dán ảnh liên quan tại đây
+                            </div>
+                        </div>
+                        <input type="file" id="Anh" name="Anh" hidden accept="image/*">
+                    </div>
+
+                    <div>
+                        <label style="@labelStyle">Văn bản / Kế hoạch đính kèm</label>
+                        <div style="margin-top:10px; background: #ffffff; padding: 15px; border-radius: 12px; border: 2px dashed #e9d5ff; height: 180px; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box;">
+                            <input type="file" name="UploadFile" style="font-size: 13px; width: 100%;">
+                            <p style="font-size: 11px; color: @darkPurple; margin-top: 15px; line-height: 1.4; opacity: 0.8;">Tải lên file PDF hoặc Excel kế hoạch công tác.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* --- PHẦN 3: CAM KẾT --- *@
+            <div style="background: @lightPurple; border: 1.5px solid @primaryColor; border-radius: 20px; padding: 25px; margin-bottom: 30px;">
+                <label id="containerCamKet" style="cursor: pointer; display: flex; align-items: flex-start; gap: 12px; background: #ffffff; padding: 15px; border-radius: 12px; border: 2px solid #e9d5ff; transition: 0.3s;">
+                    <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; margin-top: 2px; accent-color: @primaryColor; cursor: pointer;">
+                    <span style="font-size: 13px; font-weight: 800; color: @darkPurple; line-height: 1.5;">
+                        Tôi xác nhận các yêu cầu trên là cần thiết cho công việc và đã được quản lý bộ phận thông qua.
+                    </span>
+                </label>
+            </div>
+
+            @* --- NÚT GỬI --- *@
+            <div style="text-align: center;">
+                <button type="button" onclick="xuLyLuuDon()"
+                        style="width: 100%; padding: 20px; background: linear-gradient(to right, #a855f7, #7e22ce); color: #fff; border: none; border-radius: 15px; font-weight: 900; font-size: 18px; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 25px rgba(168, 85, 247, 0.3); text-transform: uppercase; letter-spacing: 1px;">
+                    <i class="fa fa-send" style="margin-right: 10px;"></i> Gửi yêu cầu hỗ trợ
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Logic Paste ảnh từ Clipboard
+    function handlePaste(e, inputId, zoneId) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        let blob = null;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                blob = items[i].getAsFile();
+                break;
+            }
+        }
+        if (blob) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const zone = document.getElementById(zoneId);
+                zone.innerHTML = `<img src="${event.target.result}" style="width:100%; height:100%; object-fit:contain; border-radius:10px;">`;
+                zone.style.border = "2px solid #a855f7";
+                zone.style.background = "#ffffff";
+
+                const fileInput = document.getElementById(inputId);
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(blob);
+                fileInput.files = dataTransfer.files;
+            };
+            reader.readAsDataURL(blob);
+        }
+    }
+
+    const zoneEl = document.getElementById("paste_Anh");
+    if (zoneEl) {
+        zoneEl.addEventListener('paste', (e) => handlePaste(e, "Anh", "paste_Anh"));
+    }
+
+    // Kiểm tra dữ liệu
+    function xuLyLuuDon() {
+        const tenKhach = document.querySelector('input[name="TenKhachHang"]').value.trim();
+        const noiDung = document.querySelector('textarea[name="NoiDungYeuCauChiTiet"]').value.trim();
+        const chk = document.getElementById('chkCamKet');
+
+        if (!tenKhach) { alert("⚠️ Vui lòng nhập tên khách hàng!"); return; }
+        if (noiDung.length < 5) { alert("⚠️ Vui lòng nhập nội dung hỗ trợ chi tiết!"); return; }
+        if (!chk.checked) { alert("⚠️ Bạn chưa tích chọn xác nhận cam kết!"); return; }
+
+        if (confirm("Xác nhận gửi yêu cầu hỗ trợ công tác?")) {
+            document.getElementById("hrForm").submit();
+        }
+    }
+</script>
