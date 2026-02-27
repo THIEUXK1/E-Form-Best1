@@ -19,7 +19,7 @@
         "DonTiepKhac",
         "NhaThauQuaCong",
         "HoTroTienDienThoai",
-        "DoiCaLam",
+        "DoiCaLam","DonHoTroCongTac"
     };
     bool isSubPageActive = subPages.Contains(currentAction);
 }
@@ -94,6 +94,10 @@
 
                         <a href="/FormHR/DoiCaLam" style="padding: 10px 15px; color: @(currentAction == "DoiCaLam" ? "#fff" : "rgba(255,255,255,0.7)"); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; transition: 0.3s; font-weight: @(currentAction == "DoiCaLam" ? "700" : "400");">
                             <i class="fa fa-calendar-check-o" style="margin-right:10px; font-size: 12px; color:#f59e0b;"></i> Đổi ca làm việc
+                        </a>
+
+                        <a href="/FormHR/DonHoTroCongTac" style="padding: 10px 15px; color: @(currentAction == "DonHoTroCongTac" ? "#fff" : "rgba(255,255,255,0.7)"); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; transition: 0.3s; font-weight: @(currentAction == "DonHoTroCongTac" ? "700" : "400");">
+                            <i class="fa fa-briefcase" style="margin-right:10px; font-size: 12px; color:#a855f7;"></i> Đơn hỗ trợ công tác
                         </a>
 
                     </div>

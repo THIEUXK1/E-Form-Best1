@@ -68,4 +68,8 @@ public partial class User
 
     [InverseProperty("IdNguoiDungNavigation")]
     public virtual ICollection<UserDevice> UserDevices { get; set; } = new List<UserDevice>();
+
+    [ForeignKey("IdNguoiDung")]
+    [InverseProperty("IdNguoiDungs")]
+    public virtual ICollection<Quyen> IdQuyens { get; set; } = new List<Quyen>();
 }

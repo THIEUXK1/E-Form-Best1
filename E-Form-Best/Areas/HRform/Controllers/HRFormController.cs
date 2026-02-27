@@ -238,7 +238,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
         #endregion
 
-        #region Đơn Mang Hàng Hóa Ra Cổng
+        #region Đơn Mang Hàng Hóa Ra Cổng (CT_MangHangHoaRaCong_2)
 
         [HttpGet("/FormHR/MangHangHoaRaCong")]
         public IActionResult MangHangHoaRaCong()
@@ -1358,6 +1358,140 @@ namespace E_Form_Best.Areas.HRform.Controllers
             }
         }
 
+        #endregion
+
+        #region Don Ho Tro Cong Tac (HrDonHoTroCongTac9)
+
+        [HttpGet("/FormHR/DonHoTroCongTac")]
+        public IActionResult DonHoTroCongTac()
+        {
+            if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
+
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString)) return Redirect("/DonXetDuyet/DangNhap");
+
+            int userId = int.Parse(userIdString);
+            var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+            var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+            var viTri = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+            var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+
+            var model = new FormHr
+            {
+                TenNguoiNv = userName,
+                BoPhan = phongBan,
+                ViTri = viTri,
+                SoNhanVien = soNhanVien,
+                TenCongTy = tenCongTy,
+                Danhmuc = "ĐƠN HỖ TRỢ CÔNG TÁC",
+                Ngay = DateOnly.FromDateTime(DateTime.Now),
+                IdNguoiTao = userId,
+                TenNguoiTao = userName,
+                TimeNguoiTao = DateTime.Now,
+                TrangThai = "ChoDuyet"
+            };
+
+            return View(model);
+        }
+
+        [HttpPost("/FormHR/DonHoTroCongTac")]
+        public async Task<IActionResult> DonHoTroCongTac(FormHr form, [FromForm] HrDonHoTroCongTac9 hoTro)
+        {
+            if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
+
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+            var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+
+            if (string.IsNullOrEmpty(userIdString)) return Redirect("/DonXetDuyet/DangNhap");
+            int userId = int.Parse(userIdString);
+
+            // Đường dẫn FileServer (Giữ nguyên cấu trúc của bạn)
+            string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonHR";
+
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    // 1. Lưu Bảng chính (FormHr)
+                    form.Ngay = DateOnly.FromDateTime(DateTime.Now);
+                    form.IdNguoiTao = userId;
+                    form.TenNguoiTao = userName;
+                    form.TimeNguoiTao = DateTime.Now;
+                    form.TrangThai = "ChoDuyet";
+                    form.IdForm = "CT_HoTroCongTac_9";
+                    form.TenForm = "Đơn hỗ trợ công tác";
+
+                    _context.FormHrs.Add(form);
+                    await _context.SaveChangesAsync();
+
+                    // 2. Xử lý File và Bảng chi tiết (HrDonHoTroCongTac9)
+                    if (hoTro != null)
+                    {
+                        hoTro.IdFormHr = form.Id;
+                        hoTro.MaNhanVien = soNhanVien;
+                        hoTro.NgayTao = DateTime.Now;
+
+                        if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
+                        string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
+                        string timeStamp = DateTime.Now.ToString("ddMMyy_HHmm");
+
+                        // File đính kèm chính (UploadFile)
+                        var uploadFile = Request.Form.Files["UploadFile"];
+                        if (uploadFile != null && uploadFile.Length > 0)
+                        {
+                            string ext = Path.GetExtension(uploadFile.FileName);
+                            string fileName = $"File_HTCT{form.Id}_{safeName}_{timeStamp}{ext}";
+                            using (var fs = new FileStream(Path.Combine(networkPath, fileName), FileMode.Create))
+                            {
+                                await uploadFile.CopyToAsync(fs);
+                            }
+                            form.FileDinhKem = fileName;
+                        }
+
+                        // Ảnh minh chứng (Anh) - Từ vùng Paste
+                        var anhFile = Request.Form.Files["Anh"];
+                        if (anhFile != null && anhFile.Length > 0)
+                        {
+                            string imgExt = Path.GetExtension(anhFile.FileName) ?? ".jpg";
+                            string imgName = $"Anh_HTCT{form.Id}_{safeName}_{timeStamp}{imgExt}";
+                            using (var fs = new FileStream(Path.Combine(networkPath, imgName), FileMode.Create))
+                            {
+                                await anhFile.CopyToAsync(fs);
+                            }
+                            hoTro.Anh = imgName;
+                            hoTro.DuongDanAnh = imgName;
+                        }
+
+                        _context.HrDonHoTroCongTac9s.Add(hoTro);
+                    }
+
+                    // 3. Lưu lịch sử
+                    var lichSu = new LichSuFormHr
+                    {
+                        IdFormHr = form.Id,
+                        TieuDe = "Khởi tạo đơn",
+                        Mota = $"Nhân viên {userName} đã gửi đơn hỗ trợ công tác.",
+                        Time = DateTime.Now,
+                        IsRead = false
+                    };
+                    _context.LichSuFormHrs.Add(lichSu);
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    TempData["Success"] = "Gửi yêu cầu hỗ trợ thành công!";
+                    return RedirectToAction("DonCho");
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    ModelState.AddModelError("", "Lỗi hệ thống: " + ex.Message);
+                    return View(form);
+                }
+            }
+        }
         #endregion
 
         #region CHI TIẾT ĐƠN FORM HR (TẤT CẢ 8 LOẠI ĐƠN)

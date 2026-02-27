@@ -93,6 +93,9 @@ public partial class FormHr
     public virtual ICollection<HrDoiCaLam8> HrDoiCaLam8s { get; set; } = new List<HrDoiCaLam8>();
 
     [InverseProperty("IdFormHrNavigation")]
+    public virtual ICollection<HrDonHoTroCongTac9> HrDonHoTroCongTac9s { get; set; } = new List<HrDonHoTroCongTac9>();
+
+    [InverseProperty("IdFormHrNavigation")]
     public virtual ICollection<HrDonTiepKhac5> HrDonTiepKhac5s { get; set; } = new List<HrDonTiepKhac5>();
 
     [InverseProperty("IdFormHrNavigation")]

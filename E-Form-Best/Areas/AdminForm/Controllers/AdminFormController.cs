@@ -699,6 +699,75 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
 
         #endregion
 
+        #region Ql Quyền Truy Cập
+
+        [HttpGet("/QLQuyenTruyCap")]
+        public IActionResult QLQuyenTruyCap()
+        {
+            // Lấy danh sách sắp xếp theo tên quyền
+            var model = _context.Quyens.OrderBy(q => q.TenQuyen).ToList();
+            return View(model);
+        }
+
+        // 1. Thêm mới quyền
+        [HttpPost("/QLQuyenTruyCap/Create")]
+        public IActionResult CreateQuyen(Quyen quyen)
+        {
+            if (ModelState.IsValid)
+            {
+                _context.Quyens.Add(quyen);
+                _context.SaveChanges();
+                return Json(new { success = true, message = "Thêm mới thành công!" });
+            }
+            return Json(new { success = false, message = "Dữ liệu không hợp lệ." });
+        }
+
+        // 2. Cập nhật quyền
+        [HttpPost("/QLQuyenTruyCap/Edit")]
+        public IActionResult EditQuyen(Quyen quyen)
+        {
+            var existing = _context.Quyens.Find(quyen.IdQuyen);
+            if (existing != null)
+            {
+                existing.TenQuyen = quyen.TenQuyen;
+                existing.MoTa = quyen.MoTa;
+
+                _context.Quyens.Update(existing);
+                _context.SaveChanges();
+                return Json(new { success = true, message = "Cập nhật thành công!" });
+            }
+            return Json(new { success = false, message = "Không tìm thấy dữ liệu." });
+        }
+
+        // 3. Xóa một hoặc nhiều quyền bằng danh sách ID
+        [HttpPost("/QLQuyenTruyCap/DeleteMultiple")]
+        public IActionResult DeleteMultiple([FromBody] List<int> ids)
+        {
+            if (ids == null || !ids.Any())
+            {
+                return Json(new { success = false, message = "Vui lòng chọn ít nhất một mục để xóa." });
+            }
+
+            try
+            {
+                var itemsToDelete = _context.Quyens.Where(q => ids.Contains(q.IdQuyen)).ToList();
+
+                // Kiểm tra xem quyền có đang được gán cho User nào không để tránh lỗi khóa ngoại
+                // (Tùy chọn: Bạn có thể xóa liên kết ở bảng trung gian trước nếu cần)
+
+                _context.Quyens.RemoveRange(itemsToDelete);
+                _context.SaveChanges();
+
+                return Json(new { success = true, message = $"Đã xóa thành công {itemsToDelete.Count} mục." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi khi xóa: " + ex.Message });
+            }
+        }
+
+        #endregion
+
         #region Thông Tin Cá Nhân & Ảnh Đại Diện
 
         [HttpGet("/ThongTinTaiKhoan")]
