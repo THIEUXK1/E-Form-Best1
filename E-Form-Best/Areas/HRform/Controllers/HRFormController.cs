@@ -157,11 +157,21 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     await _context.SaveChangesAsync();
 
                     // --- BƯỚC 2: LƯU LỊCH SỬ THAO TÁC (LichSuFormHr) ---
+                    // Gom chi tiết nội dung để đưa vào lịch sử
+                    string chiTietDon = "";
+                    if (xinRaNgoai != null)
+                    {
+                        chiTietDon = $"- Lý do: {xinRaNgoai.LiDo}\n" +
+                                     $"- Địa điểm: {xinRaNgoai.DiaDiem}\n" +
+                                     $"- Thời gian ra: {xinRaNgoai.ThoiGianRa?.ToString("dd/MM/yyyy HH:mm")}\n" +
+                                     $"- Dự kiến về: {xinRaNgoai.ThoiGianVeDuTinh?.ToString("dd/MM/yyyy HH:mm")}";
+                    }
+
                     var lichSu = new LichSuFormHr
                     {
                         IdFormHr = form.Id,
-                        TieuDe = "Khởi tạo đơn",
-                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn xin ra ngoài.",
+                        TieuDe = "Khởi tạo đơn xin ra ngoài",
+                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn.\n{chiTietDon}",
                         Time = DateTime.Now,
                         IsRead = false
                     };
@@ -328,11 +338,20 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     await _context.SaveChangesAsync();
 
                     // --- BƯỚC 2: LƯU LỊCH SỬ ---
+                    // Gom chi tiết nội dung hàng hóa để đưa vào lịch sử
+                    string chiTietDon = "";
+                    if (chiTiet != null)
+                    {
+                        chiTietDon = $"- Nội dung: {chiTiet.MoTa}\n" +
+                                     $"- Cổng ra: {chiTiet.TenCong}\n" +
+                                     $"- Thời gian dự tính: {chiTiet.TimeDuTinh?.ToString("dd/MM/yyyy HH:mm")}";
+                    }
+
                     var lichSu = new LichSuFormHr
                     {
                         IdFormHr = form.Id,
                         TieuDe = "Khởi tạo đơn mang hàng",
-                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn mang hàng hóa ra cổng.",
+                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn mang hàng hóa ra cổng.\n{chiTietDon}",
                         Time = DateTime.Now,
                         IsRead = false
                     };
@@ -479,15 +498,24 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.FormHrs.Add(form);
                     await _context.SaveChangesAsync();
 
-                    // 2. Lưu Lịch sử
-                    _context.LichSuFormHrs.Add(new LichSuFormHr
+                    // --- BƯỚC 2: LƯU LỊCH SỬ ---
+                    // Gom thông tin chi tiết xe công tác
+                    string chiTietXe = "";
+                    if (chiTiet != null)
+                    {
+                        chiTietXe = $"- Lý do sử dụng: {chiTiet.LiDo}\n" +
+                                     $"- Thời gian dự tính: {chiTiet.TimeDuTinh?.ToString("dd/MM/yyyy HH:mm")}";
+                    }
+
+                    var lichSu = new LichSuFormHr
                     {
                         IdFormHr = form.Id,
                         TieuDe = "Khởi tạo đơn xe công tác",
-                        Mota = $"Nhân viên {userName} đã tạo đơn đăng ký xe.",
+                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn đăng ký xe công tác.\n{chiTietXe}",
                         Time = DateTime.Now,
                         IsRead = false
-                    });
+                    };
+                    _context.LichSuFormHrs.Add(lichSu);
                     await _context.SaveChangesAsync();
 
                     // 3. Xử lý FileServer
@@ -619,11 +647,20 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     await _context.SaveChangesAsync();
 
                     // --- BƯỚC 2: LƯU LỊCH SỬ THAO TÁC ---
+                    // Gom chi tiết thông tin xe Daily để đưa vào lịch sử
+                    string chiTietXeDaily = "";
+                    if (chiTiet != null)
+                    {
+                        chiTietXeDaily = $"- Điểm đón: {chiTiet.DiemDon}\n" +
+                                         $"- Lý do: {chiTiet.LiDo}\n" +
+                                         $"- Thời gian dự tính: {chiTiet.TimeDuTinh?.ToString("dd/MM/yyyy HH:mm")}";
+                    }
+
                     var lichSu = new LichSuFormHr
                     {
                         IdFormHr = form.Id,
-                        TieuDe = "Khởi tạo đơn",
-                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn đăng ký xe Daily.",
+                        TieuDe = "Khởi tạo đơn xe Daily",
+                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn đăng ký xe Daily.\n{chiTietXeDaily}",
                         Time = DateTime.Now,
                         IsRead = false
                     };
@@ -782,11 +819,20 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     await _context.SaveChangesAsync();
 
                     // --- BƯỚC 2: LƯU LỊCH SỬ THAO TÁC (LichSuFormHr) ---
+                    // Gom chi tiết thông tin tiếp khách để đưa vào lịch sử
+                    string chiTietTiepKhach = "";
+                    if (chiTiet != null)
+                    {
+                        chiTietTiepKhach = $"- Khách từ: {chiTiet.TenCongTyKhach}\n" +
+                                            $"- Số lượng: {chiTiet.SoLuongKhach} người\n" +
+                                            $"- Yêu cầu: {chiTiet.YeuCauTiepKhach}";
+                    }
+
                     var lichSu = new LichSuFormHr
                     {
                         IdFormHr = form.Id,
-                        TieuDe = "Khởi tạo đơn",
-                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn tiếp khách.",
+                        TieuDe = "Khởi tạo đơn tiếp khách",
+                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn đăng ký tiếp khách.\n{chiTietTiepKhach}",
                         Time = DateTime.Now,
                         IsRead = false
                     };
@@ -990,11 +1036,21 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     await _context.SaveChangesAsync();
 
                     // --- BƯỚC 4: LƯU LỊCH SỬ THAO TÁC ---
+                    // Gom chi tiết thông tin nhà thầu để đưa vào lịch sử
+                    string chiTietNhaThau = "";
+                    if (chiTiet != null)
+                    {
+                        chiTietNhaThau = $"- Nhà thầu: {chiTiet.TenNhaThau}\n" +
+                                         $"- Số người: {chiTiet.SoNguoi}\n" +
+                                         $"- Người đăng ký: {chiTiet.NguoiDangKy}\n" +
+                                         $"- Mục đích: {chiTiet.MucDichCongViec}";
+                    }
+
                     var lichSu = new LichSuFormHr
                     {
                         IdFormHr = form.Id,
-                        TieuDe = "Khởi tạo đơn",
-                        Mota = $"Nhân viên {userName} đã tạo đơn đăng ký nhà thầu: {chiTiet.TenNhaThau} ({chiTiet.SoNguoi} người).",
+                        TieuDe = "Khởi tạo đơn nhà thầu",
+                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn đăng ký nhà thầu qua cổng.\n{chiTietNhaThau}",
                         Time = DateTime.Now,
                         IsRead = false
                     };
@@ -1277,11 +1333,20 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     await _context.SaveChangesAsync();
 
                     // --- BƯỚC 2: LƯU LỊCH SỬ THAO TÁC ---
+                    // Gom chi tiết thông tin đổi ca để đưa vào lịch sử
+                    string chiTietDoiCa = "";
+                    if (chiTiet != null)
+                    {
+                        chiTietDoiCa = $"- Ngày đổi: {chiTiet.NgayCanDoi?.ToString("dd/MM/yyyy")}\n" +
+                                       $"- Đổi từ {chiTiet.CaGoc} sang {chiTiet.CaMuonDoi}\n" +
+                                       $"- Lý do: {chiTiet.LyDoDoiCa}";
+                    }
+
                     var lichSu = new LichSuFormHr
                     {
                         IdFormHr = form.Id,
-                        TieuDe = "Khởi tạo đơn",
-                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn đổi ca làm việc.",
+                        TieuDe = "Khởi tạo đơn đổi ca",
+                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn đăng ký đổi ca làm việc.\n{chiTietDoiCa}",
                         Time = DateTime.Now,
                         IsRead = false
                     };
@@ -1467,12 +1532,27 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         _context.HrDonHoTroCongTac9s.Add(hoTro);
                     }
 
-                    // 3. Lưu lịch sử
+                    // --- BƯỚC 3: LƯU LỊCH SỬ THAO TÁC ---
+                    // Gom chi tiết các hạng mục hỗ trợ để đưa vào lịch sử
+                    string chiTietHoTro = "";
+                    if (hoTro != null)
+                    {
+                        var hangMuc = new List<string>();
+                        if (hoTro.DatVeMayBay == true) hangMuc.Add("Vé máy bay");
+                        if (hoTro.DatChoO == true) hangMuc.Add("Chỗ ở");
+                        if (hoTro.BookXeCtyDuaDon == true) hangMuc.Add("Xe đưa đón");
+                        if (hoTro.DatBuaAn == true) hangMuc.Add("Đặt bữa ăn");
+
+                        chiTietHoTro = $"- Khách hàng: {hoTro.TenKhachHang}\n" +
+                                       $"- Hạng mục yêu cầu: {(hangMuc.Count > 0 ? string.Join(", ", hangMuc) : "Không có")}\n" +
+                                       $"- Nội dung chi tiết: {hoTro.NoiDungYeuCauChiTiet}";
+                    }
+
                     var lichSu = new LichSuFormHr
                     {
                         IdFormHr = form.Id,
-                        TieuDe = "Khởi tạo đơn",
-                        Mota = $"Nhân viên {userName} đã gửi đơn hỗ trợ công tác.",
+                        TieuDe = "Khởi tạo đơn hỗ trợ công tác",
+                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã gửi đơn hỗ trợ công tác.\n{chiTietHoTro}",
                         Time = DateTime.Now,
                         IsRead = false
                     };

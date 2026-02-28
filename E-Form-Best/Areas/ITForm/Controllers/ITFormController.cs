@@ -1249,6 +1249,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
+
         #region BÌNH LUẬN ĐƠN IT
 
         [HttpGet("/FormIT/LayBinhLuan/{idForm}")]
@@ -1256,8 +1257,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             try
             {
+                // 1. Truy vấn lấy dữ liệu từ database
                 var binhLuans = await _context.BinhLuanFormIts
                     .Where(bl => bl.IdForm == idForm && bl.TrangThai == "Active")
+                    // Sắp xếp giảm dần để lấy những bản ghi MỚI NHẤT trước
+                    .OrderByDescending(bl => bl.ThoiGian)
                     .Skip(skip)
                     .Take(take)
                     .Select(bl => new
@@ -1275,10 +1279,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     })
                     .ToListAsync();
 
-                // Đảo ngược để cái mới nhất ở dưới cùng
-                binhLuans.Reverse();
+                // 2. Đảo ngược danh sách kết quả để cái mới nhất nằm ở cuối cùng của mảng trả về
+                // Sử dụng Enumerable.Reverse() hoặc sắp xếp lại theo ThoiGian tăng dần
+                var resultData = binhLuans.OrderBy(bl => bl.thoiGian).ToList();
 
-                return Json(new { success = true, data = binhLuans });
+                return Json(new { success = true, data = resultData });
             }
             catch (Exception ex)
             {
