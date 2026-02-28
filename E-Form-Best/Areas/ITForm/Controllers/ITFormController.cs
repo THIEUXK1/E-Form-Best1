@@ -2229,22 +2229,22 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         public async Task<IActionResult> BaoCaoThongKe()
         {
             // --- 1. KIỂM TRA QUYỀN TRUY CẬP ---
-            // Sử dụng hàm HasAccess đã viết ở trên để kiểm tra các Role có quyền xem báo cáo
-            if (!HasAccess("IT", "AdminIT"))
+            // Sử dụng hàm HasAccess để kiểm tra các Role có quyền xem báo cáo
+            if (!HasAccess("IT", "AdminIT", "All"))
             {
                 return Redirect("/");
             }
 
-            // Lấy thông tin công ty để lọc dữ liệu báo cáo
+            // Lấy thông tin công ty từ Claim (Vẫn giữ để có thông tin nếu cần, nhưng không dùng lọc query)
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
-            // --- 2. LẤY DỮ LIỆU GỐC (Lọc theo TenCongTy) ---
+            // --- 2. LẤY DỮ LIỆU GỐC (ĐÃ BỎ LỌC THEO CÔNG TY) ---
             var query = _context.FormIts
                 .AsNoTracking()
                 .Include(f => f.DanhGiaFormIts)
                 .Include(f => f.ItCtNguoiHoTros)
-                    .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
-                .Where(f => f.TenCongTy == tenCongTy); // Đảm bảo chỉ thống kê trong công ty hiện tại
+                    .ThenInclude(ct => ct.IdItNguoiHoTroNavigation);
+            // .Where(f => f.TenCongTy == tenCongTy); // Đã bỏ dòng này để xem tất cả
 
             var allForms = await query
                 .OrderByDescending(f => f.TimeNguoiTao)
@@ -2405,7 +2405,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
-
         #region LỊCH SỬ VÀ THÔNG BÁO FORM IT (Phân quyền mới & TenCongTy)
 
         [HttpGet("/FormIT/LichSuIT")]
