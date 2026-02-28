@@ -8,60 +8,92 @@
     ViewData["Title"] = "Chi tiết yêu cầu IT";
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 
+    // --- 1. THÔNG TIN NGƯỜI DÙNG HIỆN TẠI ---
     var currentUserName = User.Identity.Name ?? "";
-    var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value
+
+    // Lấy Role: Ưu tiên Claim Role chuẩn, sau đó đến UserRole tự định nghĩa
+    var currentUserRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
                           ?? User.FindFirst("UserRole")?.Value ?? "";
 
-    // Lấy giá trị từ Claim NameIdentifier (đã được lưu là user.IdNguoiDung.ToString())
+    // Lấy ID người dùng từ NameIdentifier
     var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-    // Chuyển đổi sang int, nếu không có hoặc lỗi thì mặc định là 0
     int currentUserId = 0;
     if (!string.IsNullOrEmpty(userIdStr))
     {
         int.TryParse(userIdStr, out currentUserId);
     }
-    // --- LOGIC TRẠNG THÁI ---
-    bool isCancelled = Model.TenForm != null && Model.TenForm.Contains("[ĐÃ HỦY]");
-    bool isFinished = Model.IdAdmin != null || Model.TrangThai == "HoanTat";
+
+    // --- 2. LOGIC TRẠNG THÁI ĐƠN ---
+    // Kiểm tra Hủy dựa trên tiêu đề hoặc thuộc tính TrangThai
+    bool isCancelled = (Model.TenForm != null && Model.TenForm.Contains("[ĐÃ HỦY]")) || Model.TrangThai == "Huy";
+
+    // Kiểm tra Hoàn tất: Có ID Admin xử lý hoặc status HoanTat
+    bool isFinished = Model.IdAdmin != null || Model.TrangThai == "HoanTat" || Model.TrangThai == "DaXuLy";
+
+    // Kiểm tra Quản lý duyệt
     bool isApprovedByManager = Model.IdNguoiDuyet != null || Model.TrangThai == "DaDuyet";
+
+    // Kiểm tra đã đánh giá chưa
     bool daDanhGia = Model.DanhGiaFormIts != null && Model.DanhGiaFormIts.Any();
 
-    string statusColor = "#3b82f6";
+    // Thiết lập màu sắc và text hiển thị trạng thái
+    string statusColor = "#3b82f6"; // Mặc định: Chờ Quản lý (Blue)
     string statusText = "CHỜ QUẢN LÝ";
 
-    if (isCancelled) { statusColor = "#dc2626"; statusText = "ĐÃ HỦY"; }
-    else if (isFinished) { statusColor = "#059669"; statusText = "ĐÃ XỬ LÝ (IT)"; }
-    else if (isApprovedByManager) { statusColor = "#d97706"; statusText = "CHỜ IT XỬ LÝ"; }
+    if (isCancelled)
+    {
+        statusColor = "#dc2626";
+        statusText = "ĐÃ HỦY";
+    }
+    else if (isFinished)
+    {
+        statusColor = "#059669";
+        statusText = "ĐÃ XỬ LÝ (IT)";
+    }
+    else if (isApprovedByManager)
+    {
+        statusColor = "#d97706";
+        statusText = "CHỜ IT XỬ LÝ";
+    }
 
+    // Gradient cho Header
     string headerGradient = "linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)";
     if (isCancelled) headerGradient = "linear-gradient(135deg, #991b1b 0%, #dc2626 100%)";
     if (isFinished) headerGradient = "linear-gradient(135deg, #065f46 0%, #059669 100%)";
 
+    // --- 3. XỬ LÝ FILE ĐÍNH KÈM & HÌNH ẢNH ---
     List<string> listImages = new List<string>();
     string chiTietNoiDung = "";
-
-    // --- XỬ LÝ FILE ĐÍNH KÈM ---
-    string fileUrl = "";
     string fileName = "";
+    string fileUrl = "";
 
     if (!string.IsNullOrEmpty(Model.FileDinhKem))
     {
         fileName = System.IO.Path.GetFileName(Model.FileDinhKem);
-        fileUrl = "/FormIT/DownloadFile/" + fileName;
+        fileUrl = "/FormIT/DownloadFile/" + Uri.EscapeDataString(fileName);
     }
 
-    // =========================================================
-    // --- XỬ LÝ DỮ LIỆU CHI TIẾT THEO LOẠI ĐƠN ---
-    // =========================================================
+    // --- 4. HÀM HELPER RENDER ROW (Giữ nguyên logic thẩm mỹ của bạn) ---
+    string RenderInfoRow(string icon, string label, string value, string bgColor, string textColor)
+    {
+        if (string.IsNullOrEmpty(value)) value = "N/A";
+        return $@"
+            <div style='margin-bottom:12px; display:flex; align-items:center; gap:12px; background:#fff; padding:14px; border-radius:16px; border:1.5px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <span style='background:{bgColor}; width:42px; height:42px; display:flex; align-items:center; justify-content:center; border-radius:12px; font-size:20px;'>{icon}</span>
+                <div style='display:flex; flex-direction:column;'>
+                    <strong style='color:{textColor}; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px;'>{label}</strong>
+                    <span style='font-size:15px; color:#1e293b; font-weight:700;'>{value}</span>
+                </div>
+            </div>";
+    }
+
+    // --- 5. PHÂN LOẠI DỮ LIỆU CHI TIẾT ---
+
+    // FORM 1: ĐĂNG KÝ EMAIL
     if (Model.ItMail1s != null && Model.ItMail1s.Any())
     {
         var ct = Model.ItMail1s.First();
-        if (!string.IsNullOrEmpty(ct.DuonDanAnh))
-            listImages.Add("/FormIT/DownloadFile/" + ct.DuonDanAnh);
-        else if (ct.Anh != null && ct.Anh.Length > 0)
-            listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
-
+        ProcessImage(ct.DuonDanAnh, ct.Anh);
         chiTietNoiDung += RenderInfoRow("📧", "Địa chỉ Email", ct.Email, "#eef2ff", "#1e40af");
         chiTietNoiDung += RenderInfoRow("💼", "Vị trí/Chức vụ", ct.ViTri, "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("📞", "Số nội bộ", ct.SoNoiBo, "#f8fafc", "#0f172a");
@@ -70,58 +102,44 @@
         chiTietNoiDung += RenderInfoRow("🌐", "Sử dụng Webmail", ct.SuDungWebMail, "#f5f3ff", "#5b21b6");
         chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDich, "#f1f5f9", "#334155");
     }
+    // FORM 2: SỬA CHỮA / CẤP THIẾT BỊ
     else if (Model.ItOrderIt2s != null && Model.ItOrderIt2s.Any())
     {
         var ct = Model.ItOrderIt2s.First();
-        if (!string.IsNullOrEmpty(ct.DuongDanAnh))
-            listImages.Add("/FormIT/DownloadFile/" + ct.DuongDanAnh);
-        else if (ct.Anh != null && ct.Anh.Length > 0)
-            listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
-
+        ProcessImage(ct.DuongDanAnh, ct.Anh);
         chiTietNoiDung += RenderInfoRow("🛠️", "Loại yêu cầu", "Sửa chữa / Cấp thiết bị", "#fef2f2", "#991b1b");
         chiTietNoiDung += RenderInfoRow("📦", "Tên thiết bị/Sự cố", ct.Ten, "#f0f9ff", "#075985");
-        string moTa = !string.IsNullOrEmpty(ct.GhiChu) ? ct.GhiChu : "Không có mô tả chi tiết";
-        chiTietNoiDung += RenderInfoRow("💬", "Mô tả lỗi/Yêu cầu", moTa, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("💬", "Mô tả lỗi/Yêu cầu", ct.GhiChu, "#f8fafc", "#0f172a");
     }
+    // FORM 3: ĐĂNG KÝ WIFI
     else if (Model.ItDangKiSuDungWifi3s != null && Model.ItDangKiSuDungWifi3s.Any())
     {
         var ct = Model.ItDangKiSuDungWifi3s.First();
-        if (!string.IsNullOrEmpty(ct.DuongDanAnh))
-            listImages.Add("/FormIT/DownloadFile/" + ct.DuongDanAnh);
-        else if (ct.Anh != null && ct.Anh.Length > 0)
-            listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
-
-        chiTietNoiDung += RenderInfoRow("🏷️", "Mã thiết bị", ct.MaThietBi, "#fffbeb", "#92400e");
+        ProcessImage(ct.DuongDanAnh, ct.Anh);
         chiTietNoiDung += RenderInfoRow("📶", "Thiết bị", ct.LoaiThietBi, "#f0f9ff", "#0369a1");
         chiTietNoiDung += RenderInfoRow("🆔", "Địa chỉ MAC", ct.MacTb, "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("⏱️", "Thời gian", ct.LoaiThoiGian, "#f0fdf4", "#166534");
         chiTietNoiDung += RenderInfoRow("📅", "Từ ngày", ct.ThoiGianBatDau?.ToString("dd/MM/yyyy HH:mm"), "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("📅", "Đến ngày", ct.ThoiGianKetThuc?.ToString("dd/MM/yyyy HH:mm"), "#f8fafc", "#0f172a");
-        if (!string.IsNullOrEmpty(ct.LyDo))
-            chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LyDo, "#fdf2f8", "#9d174d");
+        chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LyDo, "#fdf2f8", "#9d174d");
     }
+    // FORM 4: ĐIỆN THOẠI BÀN
     else if (Model.ItDangKiSuDungDtban4s != null && Model.ItDangKiSuDungDtban4s.Any())
     {
         var ct = Model.ItDangKiSuDungDtban4s.First();
-        if (!string.IsNullOrEmpty(ct.DuongDanAnh))
-            listImages.Add("/FormIT/DownloadFile/" + ct.DuongDanAnh);
-        else if (ct.Anh != null && ct.Anh.Length > 0)
-            listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
-
+        ProcessImage(ct.DuongDanAnh, ct.Anh);
         chiTietNoiDung += RenderInfoRow("☎️", "Loại đơn", "Đăng ký sử dụng điện thoại bàn", "#fff1f2", "#be123c");
         chiTietNoiDung += RenderInfoRow("ℹ️", "Thông tin", ct.ThongTin, "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("🎯", "Mục đích", ct.MucDich, "#f0fdf4", "#166534");
     }
 
-    string RenderInfoRow(string icon, string label, string value, string bgColor, string textColor)
+    // Hàm nội bộ để xử lý ảnh (tránh lặp code)
+    void ProcessImage(string path, byte[] rawData)
     {
-        return $@"<div style='margin-bottom:12px; display:flex; align-items:center; gap:12px; background:#fff; padding:12px; border-radius:12px; border:1.5px solid #e2e8f0; transition: all 0.2s;'>
-                    <span style='background:{bgColor}; padding:8px; border-radius:10px; min-width:40px; text-align:center; font-size:18px;'>{icon}</span>
-                    <div style='display:flex; flex-direction:column;'>
-                        <strong style='color:{textColor}; font-size:10px; font-weight:900; text-transform:uppercase;'>{label}</strong>
-                        <span style='font-size:15px; color:#0f172a; font-weight:700;'>{value}</span>
-                    </div>
-                  </div>";
+        if (!string.IsNullOrEmpty(path))
+            listImages.Add("/FormIT/DownloadFile/" + System.IO.Path.GetFileName(path));
+        else if (rawData != null && rawData.Length > 0)
+            listImages.Add("data:image/png;base64," + Convert.ToBase64String(rawData));
     }
 }
 
@@ -229,15 +247,23 @@
                         }
                     </div>
 
-                    @if ((currentUserRole == "Admin" || currentUserRole == "All" || currentUserRole == "IT") && !isCancelled && !isFinished)
+                    @* Sử dụng User.IsInRole để kiểm tra vì bạn đã lưu nhiều quyền vào ClaimTypes.Role.
+   Điều kiện: User có quyền All hoặc AdminIT mới được phép chỉ định người hỗ trợ.
+*@
+
+                    @if ((User.IsInRole("All") || User.IsInRole("AdminIT")) && !isCancelled && !isFinished)
                     {
-                        <div style="background: #fff7ed; border: 2px dashed #fb923c; padding: 25px; border-radius: 24px; margin-bottom: 45px;">
-                            <p style="margin:0 0 15px 0; font-size:13px; font-weight:800; color:#9a3412; display: flex; align-items: center; gap: 8px;">
-                                <i class="fa fa-user-edit"></i> CHỈ ĐỊNH / THAY ĐỔI NGƯỜI HỖ TRỢ:
+                        <div id="assignSection" style="background: #fff7ed; border: 2px dashed #fb923c; padding: 25px; border-radius: 24px; margin-bottom: 45px; box-shadow: 0 4px 6px -1px rgba(251, 146, 60, 0.1);">
+                            <p style="margin:0 0 15px 0; font-size:13px; font-weight:800; color:#9a3412; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                <i class="fa fa-user-edit" style="font-size: 16px;"></i> CHỈ ĐỊNH / THAY ĐỔI NGƯỜI HỖ TRỢ:
                             </p>
-                            <div style="display: flex; gap: 12px;">
-                                <select id="selectIT" style="flex: 1; padding: 14px; border-radius: 12px; border: 1px solid #fdba74; font-weight: 600; outline: none; background: white; font-size: 15px;">
-                                    <option value="">-- Chọn nhân viên IT --</option>
+
+                            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                <select id="selectIT"
+                                        style="flex: 1; min-width: 200px; padding: 14px; border-radius: 12px; border: 1.5px solid #fdba74; font-weight: 600; outline: none; background: white; font-size: 15px; color: #1e293b; transition: border-color 0.2s;"
+                                        onfocus="this.style.borderColor='#ea580c'"
+                                        onblur="this.style.borderColor='#fdba74'">
+                                    <option value="">-- Chọn nhân viên IT hỗ trợ --</option>
                                     @if (ViewBag.ListNguoiHoTro != null)
                                     {
                                         foreach (var it in (List<E_Form_Best.Models.ITForm.ItNguoiHoTro>)ViewBag.ListNguoiHoTro)
@@ -246,10 +272,20 @@
                                         }
                                     }
                                 </select>
-                                <button onclick="changeSupporter()" style="background: #ea580c; color: white; border: none; padding: 0 30px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: all 0.2s; font-size: 15px;" onmouseover="this.style.background='#c2410c'" onmouseout="this.style.background='#ea580c'">
-                                    XÁC NHẬN
+
+                                <button id="btnConfirmSupport"
+                                        onclick="changeSupporter()"
+                                        style="background: #ea580c; color: white; border: none; padding: 0 35px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: all 0.2s; font-size: 15px; display: flex; align-items: center; justify-content: center; min-height: 48px;"
+                                        onmouseover="this.style.background='#c2410c'; this.style.transform='translateY(-1px)'"
+                                        onmouseout="this.style.background='#ea580c'; this.style.transform='none'">
+                                    <span id="textBtn">XÁC NHẬN</span>
+                                    <i id="loadingIcon" class="fa fa-spinner fa-spin" style="display: none; margin-left: 8px;"></i>
                                 </button>
                             </div>
+
+                            <small style="color: #c2410c; display: block; margin-top: 10px; font-style: italic; font-weight: 500;">
+                                * Lưu ý: Chỉ tài khoản có quyền <b>AdminIT</b> hoặc <b>All</b> mới có thể thực hiện thao tác này.
+                            </small>
                         </div>
                     }
 
@@ -370,23 +406,49 @@
 
                     @if (!isCancelled && !isFinished)
                     {
-                        <div style="display: flex; flex-direction: column; gap: 15px;">
-                            @if (!isApprovedByManager && (currentUserRole == "QuanLy" || currentUserRole == "Admin" || currentUserRole == "All"))
+                        <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 25px;">
+
+                            @* NÚT DUYỆT ĐƠN: 
+           Dành cho Quản lý (QuanLyDuyetDonIT), Admin (AdminIT) hoặc quyền All 
+           Chỉ hiển thị khi đơn CHƯA được quản lý duyệt
+        *@
+                            @if (!isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminIT") || User.IsInRole("QuanLyDuyetDonIT")))
                             {
-                                <button id="btnDuyet" onclick="handleAction('Duyet')" style="background: #059669; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(5, 150, 105, 0.4)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(5, 150, 105, 0.3)'">
-                                    <i class="fa fa-check-circle"></i> DUYỆT ĐƠN (QUẢN LÝ)
+                                <button id="btnDuyet"
+                                        onclick="handleAction('Duyet')"
+                                        style="background: #059669; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;"
+                                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(5, 150, 105, 0.4)'"
+                                        onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(5, 150, 105, 0.3)'">
+                                    <i class="fa fa-check-circle" style="font-size: 20px;"></i> DUYỆT ĐƠN (QUẢN LÝ)
                                 </button>
                             }
-                            @if (isApprovedByManager && (currentUserRole == "Admin" || currentUserRole == "All" || currentUserRole == "IT"))
+
+                            @* NÚT XÁC NHẬN HOÀN TẤT: 
+           Dành cho kỹ thuật (AdminIT) hoặc quyền All 
+           Chỉ hiển thị SAU KHI quản lý đã duyệt đơn
+        *@
+                            @if (isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminIT")))
                             {
-                                <button id="btnHoanThanh" onclick="handleXacNhanHoanThanh()" style="background: #1e40af; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(30, 64, 175, 0.4)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(30, 64, 175, 0.3)'">
-                                    <i class="fa fa-star"></i> XÁC NHẬN HOÀN TẤT (IT)
+                                <button id="btnHoanThanh"
+                                        onclick="handleXacNhanHoanThanh()"
+                                        style="background: #1e40af; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.3); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;"
+                                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(30, 64, 175, 0.4)'"
+                                        onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(30, 64, 175, 0.3)'">
+                                    <i class="fa fa-star" style="font-size: 20px;"></i> XÁC NHẬN HOÀN TẤT (IT)
                                 </button>
                             }
-                            @if (currentUserRole == "QuanLy" || currentUserRole == "Admin" || currentUserRole == "All")
+
+                            @* NÚT HỦY ĐƠN: 
+           Hiển thị cho cả 3 loại quyền nếu đơn chưa kết thúc
+        *@
+                            @if (User.IsInRole("All") || User.IsInRole("AdminIT") || User.IsInRole("QuanLyDuyetDonIT"))
                             {
-                                <button id="btnHuy" onclick="handleAction('Huy')" style="background: white; color: #dc2626; border: 2px solid #dc2626; padding: 18px; border-radius: 18px; font-weight: 800; cursor: pointer; font-size: 15px; transition: all 0.2s;" onmouseover="this.style.background='#fef2f2'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='white'; this.style.transform=''">
-                                    <i class="fa fa-times-circle"></i> HỦY ĐƠN PHIẾU
+                                <button id="btnHuy"
+                                        onclick="handleAction('Huy')"
+                                        style="background: white; color: #dc2626; border: 2px solid #dc2626; padding: 18px; border-radius: 18px; font-weight: 800; cursor: pointer; font-size: 15px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;"
+                                        onmouseover="this.style.background='#fef2f2'; this.style.transform='translateY(-2px)'"
+                                        onmouseout="this.style.background='white'; this.style.transform=''">
+                                    <i class="fa fa-times-circle" style="font-size: 18px;"></i> HỦY ĐƠN PHIẾU
                                 </button>
                             }
                         </div>
@@ -456,6 +518,7 @@
                             </div>
                         }
                     }
+
 
                     <div id="commentOverlay" onclick="toggleZoom()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; backdrop-filter: blur(3px);"></div>
 
@@ -539,424 +602,389 @@
     </div>
 </div>
 
-<script>
-    // ==========================================
-    // 1. KHAI BÁO BIẾN CƠ BẢN & TRẠNG THÁI
-    // ==========================================
-    const formId = @Model.Id;
-    const currentUserId = '@currentUserId';
-    const currentUserRole = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(currentUserRole));
+<<script>
+     // ==========================================
+     // 1. KHAI BÁO BIẾN CƠ BẢN & TRẠNG THÁI
+     // ==========================================
+     const formId = @Model.Id;
+     const currentUserId = '@ViewBag.CurrentUserId';
 
-    // Biến trạng thái cho Bình luận
-    let currentSkipComment = 0;
-    const takeComment = 20;
-    let hasMoreComments = true;
-    let isLoadingComments = false;
-    let totalComments = 0;
-    let soSaoChon = 0;
-    let isSubmitting = false; // Chống spam submit
+     // --- MỚI: Lấy danh sách Roles dưới dạng mảng ---
+     const userRoles = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+         User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList()
+     ));
 
-    // ==========================================
-    // 2. HELPERS & UTILITIES
-    // ==========================================
-    function escapeHtml(str) {
-        if (str === null || str === undefined) return '';
-        return String(str)
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#39;');
-    }
+     // Biến trạng thái cho Bình luận
+     let currentSkipComment = 0;
+     const takeComment = 20;
+     let hasMoreComments = true;
+     let isLoadingComments = false;
+     let totalComments = 0;
+     let soSaoChon = 0;
+     let isSubmitting = false;
 
-    // === API Post chung (Dùng cho Duyệt, Hủy, Hoàn thành, Đánh giá) ===
-    async function apiPost(url, body, btnIds) {
-        if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = true; });
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
-                },
-                body: JSON.stringify(body)
-            });
-            const data = await response.json();
-            if (data.success) {
-                alert(data.message || "Thành công!");
-                location.reload();
-            } else {
-                alert(data.message || "Thất bại");
-                if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; });
-            }
-        } catch (err) {
-            alert("Lỗi kết nối máy chủ.");
-            if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; });
-        }
-    }
+     // Helper kiểm tra quyền nhanh trong JS
+     function hasRole(roleName) {
+         return userRoles.includes(roleName);
+     }
 
-    // ==========================================
-    // 3. XỬ LÝ PHÓNG TO (ZOOM) & PHÍM TẮT
-    // ==========================================
-    function toggleZoom() {
-        const container = document.getElementById('commentContainer');
-        const overlay = document.getElementById('commentOverlay');
-        const icon = document.getElementById('zoomIcon');
-        const isFull = container.classList.contains('comment-zoom-active');
+     // ==========================================
+     // 2. HELPERS & UTILITIES
+     // ==========================================
+     function escapeHtml(str) {
+         if (!str) return '';
+         return String(str)
+             .replace(/&/g, '&amp;')
+             .replace(/</g, '&lt;')
+             .replace(/>/g, '&gt;')
+             .replace(/"/g, '&quot;')
+             .replace(/'/g, '&#39;');
+     }
 
-        if (!isFull) {
-            container.classList.add('comment-zoom-active');
-            overlay.style.display = 'block';
-            if(icon) icon.classList.replace('fa-expand', 'fa-compress');
-            document.body.style.overflow = 'hidden';
-        } else {
-            container.classList.remove('comment-zoom-active');
-            overlay.style.display = 'none';
-            if(icon) icon.classList.replace('fa-compress', 'fa-expand');
-            document.body.style.overflow = 'auto';
-        }
-    }
+     async function apiPost(url, body, btnIds) {
+         if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = true; });
+         try {
+             const response = await fetch(url, {
+                 method: 'POST',
+                 headers: {
+                     'Content-Type': 'application/json',
+                     'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                 },
+                 body: JSON.stringify(body)
+             });
+             const data = await response.json();
+             if (data.success) {
+                 alert(data.message || "Thao tác thành công!");
+                 location.reload();
+             } else {
+                 alert(data.message || "Thao tác thất bại");
+                 if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; });
+             }
+         } catch (err) {
+             console.error(err);
+             alert("Lỗi kết nối máy chủ hoặc phiên làm việc đã hết hạn.");
+             if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; });
+         }
+     }
 
-    function toggleZoomHistory() {
-        const container = document.getElementById('historyContainer');
-        const overlay = document.getElementById('historyOverlay');
-        const icon = document.getElementById('historyZoomIcon');
-        const isFull = container.classList.contains('history-zoom-active');
+     // ==========================================
+     // 3. XỬ LÝ PHÓNG TO (ZOOM) & PHÍM TẮT
+     // ==========================================
+     function toggleZoom() {
+         const container = document.getElementById('commentContainer');
+         const overlay = document.getElementById('commentOverlay');
+         const icon = document.getElementById('zoomIcon');
+         if (!container) return;
+         const isFull = container.classList.toggle('comment-zoom-active');
+         if (overlay) overlay.style.display = isFull ? 'block' : 'none';
+         if (icon) {
+             if (isFull) icon.classList.replace('fa-expand', 'fa-compress');
+             else icon.classList.replace('fa-compress', 'fa-expand');
+         }
+         document.body.style.overflow = isFull ? 'hidden' : 'auto';
+     }
 
-        if (!isFull) {
-            container.classList.add('history-zoom-active');
-            overlay.style.display = 'block';
-            if(icon) icon.classList.replace('fa-expand', 'fa-compress');
-            document.body.style.overflow = 'hidden';
-        } else {
-            container.classList.remove('history-zoom-active');
-            overlay.style.display = 'none';
-            if(icon) icon.classList.replace('fa-compress', 'fa-expand');
-            document.body.style.overflow = 'auto';
-        }
-    }
+     function toggleZoomHistory() {
+         const container = document.getElementById('historyContainer');
+         const overlay = document.getElementById('historyOverlay');
+         const icon = document.getElementById('historyZoomIcon');
+         if (!container) return;
+         const isFull = container.classList.toggle('history-zoom-active');
+         if (overlay) overlay.style.display = isFull ? 'block' : 'none';
+         if (icon) {
+             if (isFull) icon.classList.replace('fa-expand', 'fa-compress');
+             else icon.classList.replace('fa-compress', 'fa-expand');
+         }
+         document.body.style.overflow = isFull ? 'hidden' : 'auto';
+     }
 
-    function openZoom(src) {
-        document.getElementById('fullImage').src = src;
-        document.getElementById('imageOverlay').style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-    }
+     function openZoom(src) {
+         const fullImg = document.getElementById('fullImage');
+         const overlay = document.getElementById('imageOverlay');
+         if (fullImg && overlay) {
+             fullImg.src = src;
+             overlay.style.display = 'flex';
+             document.body.style.overflow = 'hidden';
+         }
+     }
 
-    function closeZoom() {
-        document.getElementById('imageOverlay').style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
+     function closeZoom() {
+         const overlay = document.getElementById('imageOverlay');
+         if (overlay) {
+             overlay.style.display = 'none';
+             document.body.style.overflow = 'auto';
+         }
+     }
 
-    document.addEventListener('keydown', function(e) {
-        if (e.key === "Escape") {
-            const commentBox = document.getElementById('commentContainer');
-            const historyBox = document.getElementById('historyContainer');
-            const imageOverlay = document.getElementById('imageOverlay');
-            if(commentBox?.classList.contains('comment-zoom-active')) toggleZoom();
-            if(historyBox?.classList.contains('history-zoom-active')) toggleZoomHistory();
-            if(imageOverlay?.style.display === 'flex') closeZoom();
-        }
-    });
+     document.addEventListener('keydown', function(e) {
+         if (e.key === "Escape") {
+             if (document.getElementById('imageOverlay')?.style.display === 'flex') closeZoom();
+             else if (document.getElementById('commentContainer')?.classList.contains('comment-zoom-active')) toggleZoom();
+             else if (document.getElementById('historyContainer')?.classList.contains('history-zoom-active')) toggleZoomHistory();
+         }
+     });
 
-    // ==========================================
-    // 4. LOGIC BÌNH LUẬN (LOAD, THÊM, XÓA, PASTE)
-    // ==========================================
-    async function taiBinhLuan(isLoadMore = false) {
-        if (isLoadingComments) return;
-        isLoadingComments = true;
+     // ==========================================
+     // 4. LOGIC BÌNH LUẬN (LOAD, THÊM, XÓA, PASTE)
+     // ==========================================
+     async function taiBinhLuan(isLoadMore = false) {
+         if (isLoadingComments) return;
+         isLoadingComments = true;
+         try {
+             const res = await fetch(`/FormIT/LayBinhLuan/${formId}?skip=${currentSkipComment}&take=${takeComment}`);
+             const data = await res.json();
+             if (data.success) {
+                 const commentList = document.getElementById('commentList');
+                 if (!commentList) return;
+                 if (!isLoadMore) {
+                     commentList.innerHTML = '';
+                     currentSkipComment = 0;
+                     totalComments = 0;
+                 }
+                 if (!data.data || data.data.length === 0) {
+                     if (!isLoadMore) commentList.innerHTML = '<div id="noCommentMsg" style="text-align: center; color: #94a3b8; padding: 40px;"><p>Chưa có bình luận nào.</p></div>';
+                     hasMoreComments = false;
+                 } else {
+                     const noMsg = document.getElementById('noCommentMsg');
+                     if (noMsg) noMsg.remove();
+                     data.data.forEach(bl => {
+                         const temp = document.createElement('div');
+                         temp.innerHTML = renderComment(bl);
+                         if (isLoadMore) commentList.prepend(temp.firstElementChild);
+                         else commentList.appendChild(temp.firstElementChild);
+                         totalComments++;
+                     });
+                     currentSkipComment += data.data.length;
+                     if (data.data.length < takeComment) hasMoreComments = false;
+                     if (!isLoadMore) setTimeout(() => { commentList.scrollTop = commentList.scrollHeight; }, 100);
+                 }
+                 updateCommentCount();
+             }
+         } catch (err) { console.error('Lỗi tải bình luận:', err); } finally { isLoadingComments = false; }
+     }
 
-        try {
-            const res = await fetch(`/FormIT/LayBinhLuan/${formId}?skip=${currentSkipComment}&take=${takeComment}`);
-            const data = await res.json();
+     function renderComment(bl) {
+         const isOwn = currentUserId === String(bl.idNguoiBinhLuan);
+         const commentTime = new Date(bl.thoiGian).getTime();
+         const now = new Date().getTime();
+         const isExpired = (now - commentTime) > (2 * 60 * 60 * 1000);
 
-            if (data.success) {
-                const commentList = document.getElementById('commentList');
-                if (!commentList) return;
+         // CẬP NHẬT: Check quyền xóa dựa trên 3 Role mới
+         const isAdmin = hasRole('All') || hasRole('AdminIT');
+         const canDelete = (isOwn && !isExpired) || isAdmin;
 
-                if (!isLoadMore) {
-                    commentList.innerHTML = '';
-                    currentSkipComment = 0;
-                    totalComments = 0;
-                }
+         const timeStr = new Date(bl.thoiGian).toLocaleString('vi-VN');
+         let fileHtml = '';
+         if (bl.fileDinhKem) {
+             const parts = bl.fileDinhKem.split('_');
+             const originalName = parts.length > 2 ? parts.slice(2).join('_') : bl.fileDinhKem;
+             const ext = bl.fileDinhKem.split('.').pop().toLowerCase();
+             const isImg = ['jpg','jpeg','png','gif'].includes(ext);
+             if(isImg) {
+                 fileHtml = `<div style="margin-top:8px;"><img src="/FormIT/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" onclick="openZoom(this.src)" style="max-width:200px; border-radius:8px; cursor:zoom-in; border:1px solid #e2e8f0;"/></div>`;
+             } else {
+                 fileHtml = `<div style="margin-top: 10px; padding: 10px; background: #f1f5f9; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;"><i class="fa fa-paperclip"></i><a href="/FormIT/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color: #3b82f6; font-weight: 600; font-size: 13px; text-decoration: none;">${escapeHtml(originalName)}</a></div>`;
+             }
+         }
+         const initial = (bl.tenNguoiBinhLuan || 'U').charAt(0).toUpperCase();
+         return `<div class="comment-item" style="margin-bottom: 20px; display: flex; gap: 12px; ${isOwn ? 'flex-direction: row-reverse;' : ''}" data-comment-id="${bl.id}"><div style="width: 40px; height: 40px; border-radius: 50%; background: ${isOwn ? '#3b82f6' : '#64748b'}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${initial}</div><div style="flex: 1; ${isOwn ? 'text-align: right;' : ''}"><div style="display: inline-block; text-align: left; max-width: 85%;"><div style="display: flex; flex-direction: column; margin-bottom: 4px; ${isOwn ? 'align-items: flex-end;' : 'align-items: flex-start;'}"><div style="display: flex; align-items: center; gap: 8px; ${isOwn ? 'flex-direction: row-reverse;' : ''}"><span style="font-weight: 700; font-size: 13px; color: #1e293b;">${escapeHtml(bl.tenNguoiBinhLuan)} (${escapeHtml(bl.ma)})</span><span style="font-size: 11px; color: #94a3b8;">${timeStr}</span>${canDelete ? `<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" title="Xóa" style="color: #ef4444; cursor: pointer; font-size: 11px; margin: 0 5px;"></i>` : ''}</div></div><div style="background: ${isOwn ? '#eff6ff' : '#f8fafc'}; padding: 12px; border-radius: ${isOwn ? '16px 2px 16px 16px' : '2px 16px 16px 16px'}; border: 1px solid ${isOwn ? '#bfdbfe' : '#e2e8f0'}; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"><div style="font-size: 14px; color: #334155; white-space: pre-wrap; word-break: break-word;">${escapeHtml(bl.noiDung)}</div>${fileHtml}</div></div></div></div>`;
+     }
 
-                if (!data.data || data.data.length === 0) {
-                    if (!isLoadMore) {
-                        commentList.innerHTML = '<div id="noCommentMsg" style="text-align: center; color: #94a3b8; padding: 40px;"><p>Chưa có bình luận nào.</p></div>';
-                    }
-                    hasMoreComments = false;
-                } else {
-                    const noMsg = document.getElementById('noCommentMsg');
-                    if (noMsg) noMsg.remove();
+     async function guiBinhLuan(e) {
+         if(e) e.preventDefault();
+         if (isSubmitting) return;
+         const txtArea = document.getElementById('txtBinhLuan');
+         const noiDung = txtArea.value.trim();
+         const fileInp = document.getElementById('fileBinhLuan');
+         if (!noiDung && !fileInp.files[0]) return alert('Vui lòng nhập nội dung hoặc đính kèm file!');
+         const formData = new FormData();
+         formData.append('idForm', formId);
+         formData.append('noiDung', noiDung);
+         if (fileInp.files[0]) formData.append('file', fileInp.files[0]);
+         const btn = document.getElementById('btnGuiBinhLuan');
+         isSubmitting = true;
+         if(btn) { btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>'; }
+         try {
+             const res = await fetch('/FormIT/ThemBinhLuan', { method: 'POST', body: formData });
+             const data = await res.json();
+             if (data.success) {
+                 const list = document.getElementById('commentList');
+                 const noMsg = document.getElementById('noCommentMsg');
+                 if (noMsg) noMsg.remove();
+                 list.insertAdjacentHTML('beforeend', renderComment(data.data));
+                 list.scrollTop = list.scrollHeight;
+                 document.getElementById('formBinhLuan').reset();
+                 document.getElementById('fileLabel').textContent = 'Đính kèm file (max 50MB)';
+                 totalComments++;
+                 updateCommentCount();
+             } else { alert(data.message || 'Lỗi gửi bình luận'); }
+         } catch (err) { alert('Lỗi kết nối máy chủ khi gửi'); } finally { isSubmitting = false; if(btn) { btn.disabled = false; btn.innerHTML = 'GỬI'; } }
+     }
 
-                    // Chèn bình luận
-                    data.data.reverse().forEach(bl => {
-                        const html = renderComment(bl);
-                        if (isLoadMore) commentList.insertAdjacentHTML('afterbegin', html);
-                        else commentList.insertAdjacentHTML('beforeend', html);
-                        totalComments++;
-                    });
+     async function xoaBinhLuan(id) {
+         if (!confirm('Bạn có chắc chắn muốn xóa bình luận này?')) return;
+         try {
+             const res = await fetch('/FormIT/XoaBinhLuan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+             const data = await res.json();
+             if (data.success) {
+                 document.querySelector(`[data-comment-id="${id}"]`)?.remove();
+                 totalComments--;
+                 updateCommentCount();
+             } else { alert(data.message); }
+         } catch (err) { alert('Lỗi kết nối khi xóa'); }
+     }
 
-                    currentSkipComment += data.data.length;
-                    if (data.data.length < takeComment) hasMoreComments = false;
+     function updateFileLabel(input) {
+         const label = document.getElementById('fileLabel');
+         if (input.files[0]) {
+             const sizeMB = (input.files[0].size / 1048576).toFixed(2);
+             if(sizeMB > 50) { alert("File quá lớn (tối đa 50MB)"); input.value = ""; label.textContent = 'Đính kèm file (max 50MB)'; return; }
+             label.textContent = `${input.files[0].name} (${sizeMB}MB)`;
+         } else { label.textContent = 'Đính kèm file (max 50MB)'; }
+     }
 
-                    if (!isLoadMore) {
-                        setTimeout(() => { commentList.scrollTop = commentList.scrollHeight; }, 100);
-                    }
-                }
-                updateCommentCount();
-            }
-        } catch (err) {
-            console.error('Lỗi tải bình luận:', err);
-        } finally {
-            isLoadingComments = false;
-        }
-    }
+     function updateCommentCount() {
+         const el = document.getElementById('commentCount');
+         if (el) el.textContent = totalComments;
+     }
 
-    function renderComment(bl) {
-        const isOwn = currentUserId === String(bl.idNguoiBinhLuan);
-        const commentTime = new Date(bl.thoiGian).getTime();
-        const now = new Date().getTime();
-        const isExpired = (now - commentTime) > (2 * 60 * 60 * 1000);
-        const isAdmin = currentUserRole === 'Admin' || currentUserRole === 'All';
-        const canDelete = (isOwn && !isExpired) || isAdmin;
-        const timeStr = new Date(bl.thoiGian).toLocaleString('vi-VN');
+     // ==========================================
+     // 5. XỬ LÝ NGHIỆP VỤ ĐƠN
+     // ==========================================
+     function handleAction(type) {
+         let reason = null;
+         if (type === 'Huy') {
+             reason = prompt("Vui lòng nhập lý do hủy đơn:");
+             if (reason === null) return;
+             if (reason.trim() === "") return alert("Lý do hủy không được để trống!");
+         }
 
-        let fileHtml = '';
-        if (bl.fileDinhKem) {
-            const originalName = bl.fileDinhKem.split('_').slice(2).join('_');
-            fileHtml = `
-                <div style="margin-top: 10px; padding: 10px; background: #f1f5f9; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;">
-                    <i class="fa fa-paperclip"></i>
-                    <a href="/FormIT/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color: #3b82f6; font-weight: 600; font-size: 13px; text-decoration: none;">
-                        ${escapeHtml(originalName)}
-                    </a>
-                </div>`;
-        }
+         const actionName = type === 'Duyet' ? "DUYỆT" : "HỦY";
+         // CẬP NHẬT: Kiểm tra quyền thực hiện thao tác Duyệt/Hủy
+         if (!hasRole('All') && !hasRole('AdminIT') && !hasRole('QuanLyDuyetDonIT')) {
+             return alert("Bạn không có quyền thực hiện thao tác này!");
+         }
 
-        const initial = (bl.tenNguoiBinhLuan || 'U').charAt(0).toUpperCase();
+         if (confirm(`Xác nhận ${actionName} đơn phiếu này?`)) {
+             apiPost('/FormIT/XuLyDon', { id: formId, action: type, reason: reason }, ['btnDuyet', 'btnHuy']);
+         }
+     }
 
-        return `
-            <div style="margin-bottom: 20px; display: flex; gap: 12px; ${isOwn ? 'flex-direction: row-reverse;' : ''}" data-comment-id="${bl.id}">
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: ${isOwn ? '#3b82f6' : '#64748b'}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${initial}</div>
-                <div style="flex: 1; ${isOwn ? 'text-align: right;' : ''}">
-                    <div style="display: inline-block; text-align: left; max-width: 85%;">
-                        <div style="display: flex; flex-direction: column; margin-bottom: 4px; ${isOwn ? 'align-items: flex-end;' : 'align-items: flex-start;'}">
-                            <div style="display: flex; align-items: center; gap: 8px; ${isOwn ? 'flex-direction: row-reverse;' : ''}">
-                                <span style="font-weight: 700; font-size: 13px; color: #1e293b;">${escapeHtml(bl.tenNguoiBinhLuan)} (${escapeHtml(bl.ma)})</span>
-                                <span style="font-size: 11px; color: #94a3b8;">${timeStr}</span>
-                                ${canDelete ? `<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" title="Xóa" style="color: #ef4444; cursor: pointer; font-size: 11px; margin: 0 5px;"></i>` : ''}
-                            </div>
-                        </div>
-                        <div style="background: ${isOwn ? '#eff6ff' : '#f8fafc'}; padding: 12px; border-radius: ${isOwn ? '16px 2px 16px 16px' : '2px 16px 16px 16px'}; border: 1px solid ${isOwn ? '#bfdbfe' : '#e2e8f0'}; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                            <div style="font-size: 14px; color: #334155; white-space: pre-wrap; word-break: break-word;">${escapeHtml(bl.noiDung)}</div>
-                            ${fileHtml}
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-    }
+     function handleXacNhanHoanThanh() {
+         // CẬP NHẬT: Chỉ AdminIT hoặc All mới xác nhận hoàn tất được
+         if (!hasRole('All') && !hasRole('AdminIT')) return alert("Chỉ IT mới có quyền xác nhận hoàn tất!");
 
-    async function guiBinhLuan(e) {
-        if(e) e.preventDefault();
-        if (isSubmitting) return;
+         if (confirm("Xác nhận bạn đã hoàn tất xử lý yêu cầu này?")) {
+             apiPost('/FormIT/XacNhanHoanThanh', { id: formId }, ['btnHoanThanh']);
+         }
+     }
 
-        const noiDung = document.getElementById('txtBinhLuan').value.trim();
-        const fileInp = document.getElementById('fileBinhLuan');
-        if (!noiDung && !fileInp.files[0]) return alert('Vui lòng nhập nội dung hoặc đính kèm file!');
+     function handleChuaHoanThanh() {
+         let reason = prompt("Lý do xác nhận đơn chưa hoàn thành:");
+         if (!reason || reason.trim() === "") return alert("Bạn phải nhập lý do!");
+         if (confirm("Hệ thống sẽ chuyển lại đơn về IT xử lý. Tiếp tục?")) {
+             apiPost('/FormIT/XacNhanChuaHoanThanh', { id: formId, reason: reason }, ['btnChuaHoanThanh']);
+         }
+     }
 
-        const formData = new FormData();
-        formData.append('idForm', formId);
-        formData.append('noiDung', noiDung);
-        if (fileInp.files[0]) formData.append('file', fileInp.files[0]);
+     function changeSupporter() {
+         const select = document.getElementById('selectIT');
+         const maNv = select?.value;
+         const tenNv = select?.options[select.selectedIndex]?.text;
 
-        const btn = document.getElementById('btnGuiBinhLuan');
-        isSubmitting = true;
-        if(btn) btn.disabled = true;
+         if (!hasRole('All') && !hasRole('AdminIT')) return alert("Bạn không có quyền gán người hỗ trợ!");
+         if (!maNv) return alert("Vui lòng chọn nhân viên hỗ trợ!");
 
-        try {
-            const res = await fetch('/FormIT/ThemBinhLuan', { method: 'POST', body: formData });
-            const data = await res.json();
-            if (data.success) {
-                const list = document.getElementById('commentList');
-                const noMsg = document.getElementById('noCommentMsg');
-                if (noMsg) noMsg.remove();
+         if (confirm(`Xác nhận chỉ định [${tenNv}] hỗ trợ đơn này?`)) {
+             apiPost('/FormIT/ThemNguoiHoTro', { idFormIt: formId, maNv: maNv });
+         }
+     }
 
-                list.insertAdjacentHTML('beforeend', renderComment(data.data));
-                list.scrollTop = list.scrollHeight;
+     // --- LOGIC ĐÁNH GIÁ SAO ---
+     function chonSao(sao) {
+         soSaoChon = sao;
+         capNhatGiaoDienSao();
+         const btnGui = document.getElementById('btnGuiDanhGia');
+         if (btnGui) { btnGui.disabled = false; btnGui.style.opacity = '1'; }
+     }
 
-                document.getElementById('formBinhLuan').reset();
-                document.getElementById('fileLabel').textContent = 'Đính kèm file (max 50MB)';
-                totalComments++;
-                updateCommentCount();
-            } else {
-                alert(data.message || 'Lỗi gửi');
-            }
-        } catch (err) {
-            alert('Lỗi kết nối');
-        } finally {
-            isSubmitting = false;
-            if(btn) btn.disabled = false;
-        }
-    }
+     function hoverSao(sao) {
+         for (let i = 1; i <= 5; i++) {
+             const star = document.getElementById('star' + i);
+             if (!star) continue;
+             star.style.color = i <= sao ? '#f59e0b' : '#9ca3af';
+             star.style.transform = i <= sao ? 'scale(1.15)' : '';
+         }
+     }
 
-    async function xoaBinhLuan(id) {
-        if (!confirm('Xóa bình luận này?')) return;
-        try {
-            const res = await fetch('/FormIT/XoaBinhLuan', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id })
-            });
-            const data = await res.json();
-            if (data.success) {
-                document.querySelector(`[data-comment-id="${id}"]`)?.remove();
-                totalComments--;
-                updateCommentCount();
-            }
-        } catch (err) { alert('Lỗi xóa'); }
-    }
+     function resetHover() { capNhatGiaoDienSao(); }
 
-    function updateFileLabel(input) {
-        const label = document.getElementById('fileLabel');
-        if (input.files[0]) {
-            const sizeMB = (input.files[0].size / 1048576).toFixed(2);
-            if(sizeMB > 50) {
-                alert("File quá lớn (tối đa 50MB)");
-                input.value = "";
-                label.textContent = 'Đính kèm file (max 50MB)';
-                return;
-            }
-            label.textContent = `${input.files[0].name} (${sizeMB}MB)`;
-        } else {
-            label.textContent = 'Đính kèm file (max 50MB)';
-        }
-    }
+     function capNhatGiaoDienSao() {
+         for (let i = 1; i <= 5; i++) {
+             const star = document.getElementById('star' + i);
+             if (!star) continue;
+             star.style.background = i <= soSaoChon ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' : 'white';
+             star.style.color = i <= soSaoChon ? '#f59e0b' : '#9ca3af';
+             star.style.borderColor = i <= soSaoChon ? '#f59e0b' : '#d1d5db';
+             star.style.transform = i <= soSaoChon ? 'scale(1.05)' : 'scale(1)';
+         }
+     }
 
-    function updateCommentCount() {
-        const el = document.getElementById('commentCount');
-        if (el) el.textContent = totalComments;
-    }
+     function handleDanhGia() {
+         if (soSaoChon === 0) return alert("Vui lòng chọn mức độ hài lòng bằng số sao!");
 
-    // ==========================================
-    // 5. XỬ LÝ NGHIỆP VỤ ĐƠN
-    // ==========================================
-    function handleAction(type) {
-        let reason = null;
-        if (type === 'Huy') {
-            reason = prompt("Lý do hủy:");
-            if (reason === null || reason.trim() === "") return;
-        }
-        if (confirm("Xác nhận thao tác?")) {
-            apiPost('/FormIT/XuLyDon', { id: formId, action: type, reason: reason }, ['btnDuyet', 'btnHuy']);
-        }
-    }
+         const nhanXet = document.getElementById('txtNhanXet')?.value.trim() || '';
 
-    function handleXacNhanHoanThanh() {
-        if (confirm("Xác nhận đã hoàn thành công việc này?")) {
-            apiPost('/FormIT/XacNhanHoanThanh', { id: formId }, ['btnHoanThanh']);
-        }
-    }
+         if (confirm(`Xác nhận gửi đánh giá mức độ ${soSaoChon} sao?`)) {
+             // SỬA TẠI ĐÂY: Đổi 'DanhGiaDon' thành 'DanhGiaFormItsDon'
+             apiPost('/FormIT/DanhGiaFormItsDon', {
+                 id: formId,
+                 mucDo: soSaoChon,
+                 nhanXet: nhanXet
+             }, ['btnGuiDanhGia']);
+         }
+     }
 
-    function handleChuaHoanThanh() {
-        let reason = prompt("Vui lòng nhập lý do bạn xác nhận đơn này chưa hoàn thành:");
-        if (!reason || reason.trim() === "") return alert("Bạn phải nhập lý do!");
-        if (confirm("Hệ thống sẽ chuyển đơn về trạng thái IT tiếp nhận. Xác nhận?")) {
-            apiPost('/FormIT/XacNhanChuaHoanThanh', { id: formId, reason: reason }, ['btnChuaHoanThanh']);
-        }
-    }
+     // ==========================================
+     // 6. KHỞI TẠO & XỬ LÝ SỰ KIỆN NÂNG CAO
+     // ==========================================
+     document.addEventListener('DOMContentLoaded', function() {
+         const formBl = document.getElementById('formBinhLuan');
+         const txtBinhLuan = document.getElementById('txtBinhLuan');
+         const fileBinhLuan = document.getElementById('fileBinhLuan');
 
-    function changeSupporter() {
-        const maNv = document.getElementById('selectIT')?.value;
-        if (!maNv) return alert("Vui lòng chọn một nhân viên IT!");
-        if (confirm("Xác nhận thay đổi người hỗ trợ?")) {
-            apiPost('/FormIT/ThemNguoiHoTro', { idFormIt: formId, maNv: maNv });
-        }
-    }
+         if(formBl) formBl.addEventListener('submit', guiBinhLuan);
 
-    // Đánh giá sao
-    function chonSao(sao) {
-        soSaoChon = sao;
-        capNhatGiaoDienSao();
-        const btnGui = document.getElementById('btnGuiDanhGia');
-        if (btnGui) {
-            btnGui.disabled = false;
-            btnGui.style.opacity = '1';
-        }
-    }
+         if (txtBinhLuan) {
+             txtBinhLuan.addEventListener('paste', function (e) {
+                 const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                 for (let i = 0; i < items.length; i++) {
+                     if (items[i].kind === 'file' && items[i].type.startsWith('image/')) {
+                         const blob = items[i].getAsFile();
+                         const dataTransfer = new DataTransfer();
+                         dataTransfer.items.add(blob);
+                         if (fileBinhLuan) {
+                             fileBinhLuan.files = dataTransfer.files;
+                             updateFileLabel(fileBinhLuan);
+                             txtBinhLuan.placeholder = "Đã nhận ảnh từ clipboard, nhấn Gửi để tải lên...";
+                         }
+                     }
+                 }
+             });
+         }
 
-    function hoverSao(sao) {
-        for (let i = 1; i <= 5; i++) {
-            const star = document.getElementById('star' + i);
-            if (!star) continue;
-            star.style.transform = i <= sao ? 'scale(1.1)' : '';
-            star.style.color = i <= sao ? '#f59e0b' : '#9ca3af';
-            star.style.borderColor = i <= sao ? '#f59e0b' : '#d1d5db';
-        }
-    }
+         taiBinhLuan(false);
 
-    function resetHover() { capNhatGiaoDienSao(); }
-
-    function capNhatGiaoDienSao() {
-        for (let i = 1; i <= 5; i++) {
-            const star = document.getElementById('star' + i);
-            if (!star) continue;
-            star.style.background = i <= soSaoChon ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' : 'white';
-            star.style.color = i <= soSaoChon ? '#f59e0b' : '#9ca3af';
-            star.style.borderColor = i <= soSaoChon ? '#f59e0b' : '#d1d5db';
-            star.style.transform = i <= soSaoChon ? 'scale(1.05)' : '';
-        }
-    }
-
-    function handleDanhGia() {
-        if (soSaoChon === 0) return alert("Vui lòng chọn số sao!");
-        const nhanXet = document.getElementById('txtNhanXet')?.value.trim() || '';
-        if (confirm(`Xác nhận đánh giá ${soSaoChon} sao?\nLưu ý: Không thể hoàn tác sau khi đánh giá!`)) {
-            apiPost('/FormIT/DanhGiaDon', { id: formId, mucDo: soSaoChon, nhanXet: nhanXet }, ['btnGuiDanhGia']);
-        }
-    }
-
-    // ==========================================
-    // 6. KHỞI TẠO & XỬ LÝ SỰ KIỆN NÂNG CAO
-    // ==========================================
-    document.addEventListener('DOMContentLoaded', function() {
-        const formBl = document.getElementById('formBinhLuan');
-        const txtBinhLuan = document.getElementById('txtBinhLuan');
-        const fileBinhLuan = document.getElementById('fileBinhLuan');
-
-        if(formBl) formBl.addEventListener('submit', guiBinhLuan);
-
-        // --- HÀM THIẾU: XỬ LÝ DÁN ẢNH (PASTE) ---
-        if (txtBinhLuan) {
-            txtBinhLuan.addEventListener('paste', function (e) {
-                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-                for (let i = 0; i < items.length; i++) {
-                    if (items[i].kind === 'file') {
-                        const blob = items[i].getAsFile();
-                        const dataTransfer = new DataTransfer();
-                        dataTransfer.items.add(blob);
-                        if (fileBinhLuan) {
-                            fileBinhLuan.files = dataTransfer.files;
-                            updateFileLabel(fileBinhLuan);
-                        }
-                    }
-                }
-            });
-        }
-
-        // Tải bình luận lần đầu
-        taiBinhLuan(false);
-
-        // Xử lý cuộn trang để tải thêm bình luận
-        const listElem = document.getElementById('commentList');
-        if (listElem) {
-            listElem.onscroll = function() {
-                if (this.scrollTop === 0 && hasMoreComments && !isLoadingComments) {
-                    const oldHeight = this.scrollHeight;
-                    taiBinhLuan(true).then(() => {
-                        this.scrollTop = this.scrollHeight - oldHeight;
-                    });
-                }
-            };
-        }
-    });
+         const listElem = document.getElementById('commentList');
+         if (listElem) {
+             listElem.addEventListener('scroll', function() {
+                 if (this.scrollTop <= 5 && hasMoreComments && !isLoadingComments) {
+                     const oldHeight = this.scrollHeight;
+                     taiBinhLuan(true).then(() => {
+                         this.scrollTop = this.scrollHeight - oldHeight;
+                     });
+                 }
+             });
+         }
+     });
 </script>
