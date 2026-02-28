@@ -1103,18 +1103,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/ChiTiet/{id}")]
         public async Task<IActionResult> ChiTiet(int id)
         {
-            // 1. Kiểm tra đăng nhập
+            // 1. Kiểm tra đăng nhập (Bắt buộc phải đăng nhập để biết ai đang xem)
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return RedirectToAction("DangNhap", "DonXetDuyet");
 
             int userId = int.Parse(userIdStr);
 
-            // --- CẢI TIẾN: LẤY DANH SÁCH TẤT CẢ ROLES TỪ CLAIMS ---
+            // Lấy danh sách Roles để phục vụ việc hiển thị các nút chức năng trong View (nếu có)
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
 
-            var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
-
-            // 2. Lấy dữ liệu đơn
+            // 2. Lấy dữ liệu đơn (Giữ nguyên toàn bộ các Include hiện có)
             var don = await _context.FormIts
                 .Include(f => f.ItMail1s)
                 .Include(f => f.ItOrderIt2s)
@@ -1133,32 +1131,18 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return RedirectToAction("DonCho");
             }
 
-            // --- KIỂM TRA QUYỀN TRUY CẬP (LOGIC ĐÃ SỬA: KHÔNG PHÂN BIỆT CÔNG TY) ---
+            // --- LOGIC MỚI: AI CŨNG CÓ THỂ XEM ---
+            // Không thực hiện kiểm tra hasSpecialRole, isOwner hay isAssignedSupporter ở đây nữa.
+            // Chỉ cần đơn tồn tại là cho phép đi tiếp xuống phần hiển thị.
 
-            // A. Kiểm tra nếu user có bất kỳ quyền đặc biệt nào (AdminIT, All, QuanLyDuyetDonIT)
-            // ĐÃ LOẠI BỎ điều kiện: && don.TenCongTy == tenCongTy
-            bool hasSpecialRole = userRoles.Any(r => r == "All" || r == "AdminIT" || r == "QuanLyDuyetDonIT");
-
-            // B. Người hỗ trợ (IT) - Lấy mã NV từ Email claim
-            var currentMaNv = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-            bool isAssignedSupporter = don.ItCtNguoiHoTros.Any(x => x.IdItNguoiHoTroNavigation?.MaNv == currentMaNv);
-
-            // C. Chủ đơn
-            bool isOwner = don.IdNguoiTao == userId;
-
-            // TỔNG HỢP QUYỀN: Nếu không thỏa mãn bất kỳ điều kiện nào thì từ chối
-            if (!isOwner && !hasSpecialRole && !isAssignedSupporter)
-            {
-                return Forbid();
-            }
-
-            // 3. Xử lý dữ liệu hiển thị
+            // 3. Xử lý dữ liệu hiển thị (Giữ nguyên logic sắp xếp lịch sử)
             if (don.LichSuFormIts != null)
             {
                 don.LichSuFormIts = don.LichSuFormIts.OrderByDescending(x => x.Time).ToList();
             }
 
-            // Danh sách IT để chọn người hỗ trợ (Chỉ hiện nếu có quyền điều phối)
+            // Danh sách IT để chọn người hỗ trợ (Vẫn giữ phân quyền cho chức năng ĐIỀU PHỐI)
+            // Nghĩa là: Ai cũng xem được, nhưng chỉ Admin mới thấy danh sách để gán người hỗ trợ.
             if (userRoles.Any(r => r == "AdminIT" || r == "All"))
             {
                 ViewBag.ListNguoiHoTro = await _context.ItNguoiHoTros
@@ -1168,19 +1152,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
 
             ViewBag.CurrentUserId = userId;
-            // Truyền list roles xuống View để check @if (...) ở giao diện
             ViewBag.UserRoles = userRoles;
 
             return View(don);
         }
 
-        // --- ACTION DOWNLOAD / XEM FILE ---
+        // --- ACTION DOWNLOAD / XEM FILE (Giữ nguyên 100%) ---
         [HttpGet("/FormIT/DownloadFile/{fileName}")]
         public async Task<IActionResult> DownloadFile(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return NotFound();
 
-            // Đường dẫn Server lưu trữ
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
             string fullPath = Path.Combine(networkPath, fileName);
 
@@ -1211,19 +1193,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 : File(memory, contentType, fileName);
         }
 
-        // --- ACTION CHỈ ĐỊNH / THAY ĐỔI NGƯỜI HỖ TRỢ ---
+        // --- ACTION CHỈ ĐỊNH / THAY ĐỔI NGƯỜI HỖ TRỢ (Giữ nguyên logic nghiệp vụ) ---
         [HttpPost("/FormIT/ThemNguoiHoTro")]
         public async Task<IActionResult> ThemNguoiHoTro([FromBody] System.Text.Json.JsonElement data)
         {
-            // Kiểm tra quyền: Chỉ AdminIT hoặc All mới được đổi người hỗ trợ
-            // Giả sử HasAccess là một hàm helper bạn đã viết, hoặc bạn có thể check trực tiếp User.IsInRole
-            if (!User.IsInRole("AdminIT") && !User.IsInRole("All"))
+            // Lưu ý: Mặc dù ai cũng xem được, nhưng thao tác thay đổi người hỗ trợ vẫn nên giữ phân quyền
+            var roles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
+            if (!roles.Any(r => r == "AdminIT" || r == "All"))
             {
-                // Nếu bạn dùng hàm HasAccess của riêng bạn thì giữ nguyên: if (!HasAccess("AdminIT", "All"))
-                // Ở đây tôi viết logic dựa trên Claims để đồng bộ
-                var roles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
-                if (!roles.Any(r => r == "AdminIT" || r == "All"))
-                    return Json(new { success = false, message = "Bạn không có quyền thực hiện thao tác này!" });
+                return Json(new { success = false, message = "Bạn không có quyền thực hiện thao tác này!" });
             }
 
             try
@@ -1240,13 +1218,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .OrderByDescending(x => x.Stt)
                     .FirstOrDefaultAsync();
 
-                // Chặn nếu gán trùng người đang xử lý cuối cùng
                 if (hienTai != null && hienTai.IdItNguoiHoTroNavigation?.MaNv == maNvMoi)
                 {
                     return Json(new { success = false, message = $"Nhân viên {nvIt.Ten} đã được chỉ định trước đó!" });
                 }
 
-                // Lưu người hỗ trợ mới
                 var ctMoi = new ItCtNguoiHoTro
                 {
                     IdFormIt = idForm,
@@ -1255,7 +1231,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 };
                 _context.ItCtNguoiHoTros.Add(ctMoi);
 
-                // Ghi log lịch sử
                 _context.LichSuFormIts.Add(new LichSuFormIt
                 {
                     IdFormIt = idForm,
@@ -1274,7 +1249,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
-
         #region BÌNH LUẬN ĐƠN IT
 
         [HttpGet("/FormIT/LayBinhLuan/{idForm}")]
@@ -2405,6 +2379,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
+
         #region LỊCH SỬ VÀ THÔNG BÁO FORM IT (Phân quyền mới & TenCongTy)
 
         [HttpGet("/FormIT/LichSuIT")]
