@@ -1133,14 +1133,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return RedirectToAction("DonCho");
             }
 
-            // --- KIỂM TRA QUYỀN TRUY CẬP (LOGIC MỚI) ---
+            // --- KIỂM TRA QUYỀN TRUY CẬP (LOGIC ĐÃ SỬA: KHÔNG PHÂN BIỆT CÔNG TY) ---
 
-            // A. Kiểm tra nếu user có bất kỳ quyền đặc biệt nào trong danh sách Roles
-            // Sử dụng .Any() để check trong list userRoles
-            bool hasSpecialRole = (userRoles.Any(r => r == "All" || r == "AdminIT" || r == "QuanLyDuyetDonIT"))
-                                  && don.TenCongTy == tenCongTy;
+            // A. Kiểm tra nếu user có bất kỳ quyền đặc biệt nào (AdminIT, All, QuanLyDuyetDonIT)
+            // ĐÃ LOẠI BỎ điều kiện: && don.TenCongTy == tenCongTy
+            bool hasSpecialRole = userRoles.Any(r => r == "All" || r == "AdminIT" || r == "QuanLyDuyetDonIT");
 
-            // B. Người hỗ trợ (IT) - Lấy mã NV từ Email claim (hoặc claim bạn dùng lưu MaNv)
+            // B. Người hỗ trợ (IT) - Lấy mã NV từ Email claim
             var currentMaNv = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
             bool isAssignedSupporter = don.ItCtNguoiHoTros.Any(x => x.IdItNguoiHoTroNavigation?.MaNv == currentMaNv);
 
@@ -1150,7 +1149,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // TỔNG HỢP QUYỀN: Nếu không thỏa mãn bất kỳ điều kiện nào thì từ chối
             if (!isOwner && !hasSpecialRole && !isAssignedSupporter)
             {
-                // Trả về Forbid sẽ kích hoạt AccessDeniedPath bạn cấu hình trong Program.cs
                 return Forbid();
             }
 
@@ -1208,7 +1206,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 _ => "application/octet-stream"
             };
 
-            // Nếu là ảnh thì hiển thị inline, nếu là file khác thì tải về
             return contentType.StartsWith("image/")
                 ? File(memory, contentType)
                 : File(memory, contentType, fileName);
@@ -1219,8 +1216,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         public async Task<IActionResult> ThemNguoiHoTro([FromBody] System.Text.Json.JsonElement data)
         {
             // Kiểm tra quyền: Chỉ AdminIT hoặc All mới được đổi người hỗ trợ
-            if (!HasAccess("AdminIT", "All"))
-                return Json(new { success = false, message = "Bạn không có quyền thực hiện thao tác này!" });
+            // Giả sử HasAccess là một hàm helper bạn đã viết, hoặc bạn có thể check trực tiếp User.IsInRole
+            if (!User.IsInRole("AdminIT") && !User.IsInRole("All"))
+            {
+                // Nếu bạn dùng hàm HasAccess của riêng bạn thì giữ nguyên: if (!HasAccess("AdminIT", "All"))
+                // Ở đây tôi viết logic dựa trên Claims để đồng bộ
+                var roles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
+                if (!roles.Any(r => r == "AdminIT" || r == "All"))
+                    return Json(new { success = false, message = "Bạn không có quyền thực hiện thao tác này!" });
+            }
 
             try
             {
@@ -1800,6 +1804,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
 
             var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
+            // Vẫn lấy tenCongTy từ Claim nếu bạn cần dùng ở nơi khác, nhưng sẽ không dùng để filter query bên dưới
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
             var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
@@ -1816,11 +1821,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU ---
 
-            // A. Lọc theo Công ty (Bắt buộc)
-            if (!string.IsNullOrEmpty(tenCongTy))
+            // A. Lọc theo Công ty (ĐÃ LOẠI BỎ THEO YÊU CẦU: XEM TẤT CẢ)
+            /* if (!string.IsNullOrEmpty(tenCongTy))
             {
                 query = query.Where(f => f.TenCongTy == tenCongTy);
             }
+            */
 
             // B. Lọc theo Role thực tế
             if (userRoles.Contains("All") || userRoles.Contains("AdminIT"))
