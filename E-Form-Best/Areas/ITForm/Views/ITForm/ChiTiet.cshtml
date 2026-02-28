@@ -111,17 +111,25 @@
         chiTietNoiDung += RenderInfoRow("📦", "Tên thiết bị/Sự cố", ct.Ten, "#f0f9ff", "#075985");
         chiTietNoiDung += RenderInfoRow("💬", "Mô tả lỗi/Yêu cầu", ct.GhiChu, "#f8fafc", "#0f172a");
     }
-    // FORM 3: ĐĂNG KÝ WIFI
+    // FORM 3: ĐĂNG KÝ SỬ DỤNG WIFI
     else if (Model.ItDangKiSuDungWifi3s != null && Model.ItDangKiSuDungWifi3s.Any())
     {
-        var ct = Model.ItDangKiSuDungWifi3s.First();
-        ProcessImage(ct.DuongDanAnh, ct.Anh);
-        chiTietNoiDung += RenderInfoRow("📶", "Thiết bị", ct.LoaiThietBi, "#f0f9ff", "#0369a1");
-        chiTietNoiDung += RenderInfoRow("🆔", "Địa chỉ MAC", ct.MacTb, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("⏱️", "Thời gian", ct.LoaiThoiGian, "#f0fdf4", "#166534");
-        chiTietNoiDung += RenderInfoRow("📅", "Từ ngày", ct.ThoiGianBatDau?.ToString("dd/MM/yyyy HH:mm"), "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("📅", "Đến ngày", ct.ThoiGianKetThuc?.ToString("dd/MM/yyyy HH:mm"), "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LyDo, "#fdf2f8", "#9d174d");
+        foreach (var ct in Model.ItDangKiSuDungWifi3s)
+        {
+            ProcessImage(ct.DuongDanAnh, ct.Anh);
+            if (Model.ItDangKiSuDungWifi3s.Count() > 1)
+            {
+                chiTietNoiDung += "<hr style='border: 0.5px dashed #cbd5e1; margin: 10px 0;'>";
+            }
+
+            chiTietNoiDung += RenderInfoRow("📶", "Loại thiết bị", ct.LoaiThietBi, "#f0f9ff", "#0369a1");
+            chiTietNoiDung += RenderInfoRow("🆔", "Mã thiết bị", ct.MaThietBi, "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("🌐", "Địa chỉ MAC", ct.MacTb, "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("⏱️", "Loại thời gian", ct.LoaiThoiGian, "#f0fdf4", "#166534");
+            chiTietNoiDung += RenderInfoRow("📅", "Thời gian bắt đầu", ct.ThoiGianBatDau?.ToString("dd/MM/yyyy HH:mm"), "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("📅", "Thời gian kết thúc", ct.ThoiGianKetThuc?.ToString("dd/MM/yyyy HH:mm"), "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LyDo, "#fdf2f8", "#9d174d");
+        }
     }
     // FORM 4: ĐIỆN THOẠI BÀN
     else if (Model.ItDangKiSuDungDtban4s != null && Model.ItDangKiSuDungDtban4s.Any())
@@ -372,13 +380,7 @@
 
                     @if (!string.IsNullOrEmpty(fileUrl))
                     {
-                        <div style="background: #f0f9ff; border: 2px solid #bae6fd; padding: 22px; border-radius: 24px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 35px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-                            <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
-                                <i class="fa fa-file-download" style="font-size: 24px; color: #0369a1;"></i>
-                                <span style="font-size: 14px; font-weight: 800; color: #0369a1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@fileName</span>
-                            </div>
-                            <a href="@fileUrl" download style="background: #0369a1; color: white; padding: 12px 24px; border-radius: 14px; font-weight: 800; text-decoration: none; font-size: 13px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(3, 105, 161, 0.3);" onmouseover="this.style.background='#075985'" onmouseout="this.style.background='#0369a1'">TẢI VỀ</a>
-                        </div>
+                        <div style="background: #f0f9ff; border: 2px solid #bae6fd; padding: 16px 20px; border-radius: 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); max-width: 100%; box-sizing: border-box; gap: 12px; flex-wrap: wrap;"> <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;"> <i class="fa fa-file-pdf" style="font-size: 22px; color: #0369a1; flex-shrink: 0;"></i> <span style="font-size: 14px; font-weight: 800; color: #0369a1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">@fileName</span> </div> <div style="display: flex; gap: 8px; flex-shrink: 0;"> <a href="@fileUrl" target="_blank" style="background: white; color: #0369a1; border: 1.5px solid #0369a1; padding: 9px 18px; border-radius: 12px; font-weight: 800; text-decoration: none; font-size: 13px; text-align: center; transition: 0.2s;" onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background='white'">XEM</a> <a href="@fileUrl" download style="background: #0369a1; color: white; padding: 10px 22px; border-radius: 12px; font-weight: 800; text-decoration: none; font-size: 13px; text-align: center; box-shadow: 0 4px 10px rgba(3, 105, 161, 0.3);" onmouseover="this.style.background='#075985'" onmouseout="this.style.background='#0369a1'">TẢI VỀ</a> </div> </div>
                     }
 
                     <div style="background: #ffffff; padding: 30px; border-radius: 28px; border: 1px solid #e2e8f0; margin-bottom: 35px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);">
