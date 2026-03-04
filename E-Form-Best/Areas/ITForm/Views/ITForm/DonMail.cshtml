@@ -9,7 +9,6 @@
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var emailHienTai = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
     var userRole = User.FindFirst("UserRole")?.Value ?? "";
-    // MỚI: Lấy thông tin Tên Công Ty từ Claim
     var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
@@ -71,7 +70,6 @@
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin nhân viên</h3>
                 </div>
 
-                @* Thay đổi grid thành 4 cột để thêm Công ty *@
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
                     <div style="background: #fffdf5; padding: 15px; border-radius: 15px; border: 1px solid #fef3c7;">
                         <label style="@labelBase">Họ tên</label>
@@ -81,7 +79,6 @@
                         <label style="@labelBase">Bộ phận</label>
                         <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@phongBan</div>
                     </div>
-                    @* MỚI: Hiển thị Tên Công ty *@
                     <div style="background: #fffdf5; padding: 15px; border-radius: 15px; border: 1px solid #fef3c7;">
                         <label style="@labelBase">Công ty</label>
                         <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@tenCongTy</div>
@@ -99,7 +96,8 @@
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Cấu hình tài khoản</h3>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                @* Thay đổi grid-template-columns thành 4 cột để thêm Số điện thoại *@
+                <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 25px;">
                     <div>
                         <label style="@labelBase">Email đề xuất <span style="color:red">*</span></label>
                         <input type="text" name="Email" id="Email" placeholder="Ví dụ: hoa.nguyen" required class="input-hover" style="@inputBase">
@@ -111,6 +109,11 @@
                     <div>
                         <label style="@labelBase">Số nội bộ (Ext)</label>
                         <input type="text" name="SoNoiBo" placeholder="1234" class="input-hover" style="@inputBase">
+                    </div>
+                    @* MỚI: Thêm Số điện thoại *@
+                    <div>
+                        <label style="@labelBase">Số điện thoại</label>
+                        <input type="text" name="SoDienThoai" placeholder="09xx..." class="input-hover" style="@inputBase">
                     </div>
                 </div>
 
@@ -259,7 +262,6 @@
         const email = document.getElementById("Email").value;
         const chk = document.getElementById('chkCamKet');
         const btn = document.getElementById("btnSubmit");
-
         const selectedCVs = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
 
         if (!email.trim()) {
