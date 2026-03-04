@@ -93,14 +93,22 @@
     if (Model.ItMail1s != null && Model.ItMail1s.Any())
     {
         var ct = Model.ItMail1s.First();
+
+        // Xử lý ảnh minh họa nếu có
         ProcessImage(ct.DuonDanAnh, ct.Anh);
+
+        // Hiển thị các hàng thông tin chi tiết
         chiTietNoiDung += RenderInfoRow("📧", "Địa chỉ Email", ct.Email, "#eef2ff", "#1e40af");
         chiTietNoiDung += RenderInfoRow("💼", "Vị trí/Chức vụ", ct.ViTri, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("📞", "Số nội bộ", ct.SoNoiBo, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("📞", "Số nội bộ (Ext)", ct.SoNoiBo, "#f8fafc", "#0f172a");
+
+        // MỚI: Bổ sung hiển thị Số điện thoại
+        chiTietNoiDung += RenderInfoRow("📱", "Số điện thoại", ct.SoDienThoai, "#fffbeb", "#92400e");
+
         chiTietNoiDung += RenderInfoRow("🌍", "Gửi nhận ngoài", ct.GuiRaNgoai, "#fff7ed", "#c2410c");
-        chiTietNoiDung += RenderInfoRow("📱", "Dùng trên Mobile", ct.SuDungTrenDienThoai, "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("📲", "Dùng trên Mobile", ct.SuDungTrenDienThoai, "#f0fdf4", "#166534");
         chiTietNoiDung += RenderInfoRow("🌐", "Sử dụng Webmail", ct.SuDungWebMail, "#f5f3ff", "#5b21b6");
-        chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDich, "#f1f5f9", "#334155");
+        chiTietNoiDung += RenderInfoRow("📝", "Mục đích / Ghi chú", ct.MucDich, "#f1f5f9", "#334155");
     }
     // FORM 2: SỬA CHỮA / CẤP THIẾT BỊ
     else if (Model.ItOrderIt2s != null && Model.ItOrderIt2s.Any())

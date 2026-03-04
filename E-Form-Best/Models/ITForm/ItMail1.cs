@@ -40,6 +40,9 @@ public partial class ItMail1
 
     public string? DuonDanAnh { get; set; }
 
+    [StringLength(20)]
+    public string? SoDienThoai { get; set; }
+
     [ForeignKey("IdFormIt")]
     [InverseProperty("ItMail1s")]
     public virtual FormIt? IdFormItNavigation { get; set; }
