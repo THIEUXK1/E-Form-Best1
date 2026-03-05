@@ -14,12 +14,6 @@ public partial class ItDangKiTaiKhoanHeThong5
     public int Id { get; set; }
 
     [StringLength(255)]
-    public string? TenNguoiDangKi { get; set; }
-
-    [StringLength(50)]
-    public string? MaNguoiDangKi { get; set; }
-
-    [StringLength(255)]
     public string? DangKiChoAi { get; set; }
 
     [StringLength(255)]
