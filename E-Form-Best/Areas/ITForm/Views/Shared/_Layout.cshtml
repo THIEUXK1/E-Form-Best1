@@ -11,7 +11,7 @@
 
     bool isITSystem = currentController.Contains("IT") || currentController == "Mail" || currentController.Contains("Order");
 
-    string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan" };
+    string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong" };
     bool isITSubActive = itSubPages.Contains(currentAction);
 
     string primaryGradient = isITSystem ? "linear-gradient(180deg, #0f172a 0%, #1e40af 100%)" : "linear-gradient(180deg, #1a365d 0%, #2d3748 100%)";
