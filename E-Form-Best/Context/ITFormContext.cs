@@ -60,6 +60,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<ItDangKiSuDungWifi3> ItDangKiSuDungWifi3s { get; set; }
 
+    public virtual DbSet<ItDangKiTaiKhoanHeThong5> ItDangKiTaiKhoanHeThong5s { get; set; }
+
     public virtual DbSet<ItMail1> ItMail1s { get; set; }
 
     public virtual DbSet<ItNguoiHoTro> ItNguoiHoTros { get; set; }
@@ -249,6 +251,13 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.ItDangKiSuDungWifi3s)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_ITWifi_FormIT");
+        });
+
+        modelBuilder.Entity<ItDangKiTaiKhoanHeThong5>(entity =>
+        {
+            entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.ItDangKiTaiKhoanHeThong5s)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_IT_DangKiTaiKhoanHeThong_5_FormIT");
         });
 
         modelBuilder.Entity<ItMail1>(entity =>

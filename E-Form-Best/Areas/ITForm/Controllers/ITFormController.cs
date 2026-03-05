@@ -1098,6 +1098,190 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
+        #region Đơn Đăng ký Tài khoản Hệ thống (Form IT 5)
+
+        [HttpGet("/FormIT/DonTaiKhoanHeThong")]
+        public async Task<IActionResult> DonTaiKhoanHeThong()
+        {
+            // --- LẤY THÔNG TIN TỪ CLAIMS ---
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Redirect("/DonXetDuyet/DangNhap");
+
+            int userId = int.Parse(userIdClaim);
+            var userName = User.Identity.Name ?? "";
+            var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+            var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role) ?? User.FindFirst("UserRole");
+            var roleName = userRole?.Value ?? "";
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+
+            // --- LẤY DANH SÁCH CÔNG VIỆC LIÊN QUAN ĐẾN TÀI KHOẢN ---
+            ViewBag.CongViecList = await _context.CongViecIts
+                .Where(x => x.Ten.Contains("tài khoản") || x.Ten.Contains("Account"))
+                .OrderBy(x => x.Ten)
+                .ToListAsync();
+
+            // Khởi tạo Model bảng chính
+            var model = new FormIt
+            {
+                TenNguoiNv = userName,
+                BoPhan = phongBan,
+                ViTri = roleName,
+                SoNhanVien = userEmail,
+                TenCongTy = tenCongTy,
+                Ngay = DateOnly.FromDateTime(DateTime.Now),
+                IdNguoiTao = userId,
+                TenNguoiTao = userName,
+                TimeNguoiTao = DateTime.Now,
+                TrangThai = "ChoDuyet"
+            };
+
+            return View(model);
+        }
+
+        [HttpPost("/FormIT/DonTaiKhoanHeThong")]
+        public async Task<IActionResult> DonTaiKhoanHeThong(FormIt form, [FromForm] ItDangKiTaiKhoanHeThong5 itTaiKhoan, int SelectedCongViecId)
+        {
+            // --- LẤY THÔNG TIN TỪ CLAIMS ---
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Redirect("/DonXetDuyet/DangNhap");
+
+            int userId = int.Parse(userIdClaim);
+            var userName = User.Identity.Name ?? "";
+            var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+            var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role) ?? User.FindFirst("UserRole");
+            var roleName = userRole?.Value ?? "";
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    // --- TRUY VẤN CÔNG VIỆC VÀ NGƯỜI HỖ TRỢ ---
+                    var congViec = await _context.CongViecIts
+                        .Include(c => c.IdItNguoiHoTroNavigation)
+                        .FirstOrDefaultAsync(c => c.Id == SelectedCongViecId);
+
+                    // --- BƯỚC 1: LƯU BẢNG CHÍNH FormIt ---
+                    form.Ngay = DateOnly.FromDateTime(DateTime.Now);
+                    form.IdNguoiTao = userId;
+                    form.TenNguoiTao = userName;
+                    form.TimeNguoiTao = DateTime.Now;
+                    form.TenNguoiNv = userName;
+                    form.BoPhan = phongBan;
+                    form.ViTri = roleName;
+                    form.SoNhanVien = userEmail;
+                    form.TenCongTy = tenCongTy;
+                    form.TrangThai = "ChoDuyet";
+                    form.IdForm = "IT_TK_HT_5";
+                    form.TenForm = "Đơn đăng ký tài khoản hệ thống";
+
+                    if (congViec != null) form.Danhmuc = congViec.Ten;
+
+                    _context.FormIts.Add(form);
+                    await _context.SaveChangesAsync();
+
+                    // --- CẤU HÌNH ĐƯỜNG DẪN MẠNG ---
+                    string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
+                    if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
+
+                    string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
+                    string timeStamp = DateTime.Now.ToString("ddMMyy_HHmmss");
+
+                    // --- BƯỚC 2: XỬ LÝ FILE ĐÍNH KÈM (UploadFile) ---
+                    var uploadFile = Request.Form.Files["UploadFile"];
+                    string fileLog = "Không có tệp đính kèm";
+
+                    if (uploadFile != null && uploadFile.Length > 0)
+                    {
+                        string extension = Path.GetExtension(uploadFile.FileName);
+                        string fileName = $"DonTKHT_ID{form.Id}_{safeName}_{timeStamp}{extension}";
+                        string fullPath = Path.Combine(networkPath, fileName);
+
+                        using (var fileStream = new FileStream(fullPath, FileMode.Create))
+                        {
+                            await uploadFile.CopyToAsync(fileStream);
+                        }
+
+                        form.FileDinhKem = fileName;
+                        _context.Entry(form).Property(x => x.FileDinhKem).IsModified = true;
+                        fileLog = $"Đính kèm tệp: {fileName}";
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // --- BƯỚC 3: LƯU CHI TIẾT (ItDangKiTaiKhoanHeThong5) & XỬ LÝ ẢNH ---
+                    if (itTaiKhoan != null)
+                    {
+                        itTaiKhoan.IdFormIt = form.Id;
+
+                        var anhFile = Request.Form.Files["Anh"];
+                        if (anhFile != null && anhFile.Length > 0)
+                        {
+                            string imgExtension = Path.GetExtension(anhFile.FileName);
+                            if (string.IsNullOrEmpty(imgExtension)) imgExtension = ".jpg";
+
+                            string imgFileName = $"AnhTKHT_ID{form.Id}_{safeName}_{timeStamp}{imgExtension}";
+                            string imgFullPath = Path.Combine(networkPath, imgFileName);
+
+                            using (var imgStream = new FileStream(imgFullPath, FileMode.Create))
+                            {
+                                await anhFile.CopyToAsync(imgStream);
+                            }
+
+                            itTaiKhoan.DuongDanAnh = imgFileName;
+                            itTaiKhoan.Anh = null; // Đảm bảo không lưu byte[] vào DB nếu đã dùng file
+                        }
+
+                        _context.ItDangKiTaiKhoanHeThong5s.Add(itTaiKhoan);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // --- BƯỚC 4: LƯU NGƯỜI HỖ TRỢ ---
+                    string supporterLog = "Chưa gán người hỗ trợ";
+                    if (congViec != null && congViec.IdItNguoiHoTroNavigation != null)
+                    {
+                        var chiTietHoTro = new ItCtNguoiHoTro
+                        {
+                            IdFormIt = form.Id,
+                            IdItNguoiHoTro = congViec.IdItNguoiHoTroNavigation.Id,
+                            Stt = 1
+                        };
+                        _context.ItCtNguoiHoTros.Add(chiTietHoTro);
+                        supporterLog = $"Đã gán: {congViec.IdItNguoiHoTroNavigation.Ten}";
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // --- BƯỚC 5: LƯU LỊCH SỬ ---
+                    string anhLog = string.IsNullOrEmpty(itTaiKhoan?.DuongDanAnh) ? "Không có ảnh" : $"Ảnh: {itTaiKhoan.DuongDanAnh}";
+                    var lichSu = new LichSuFormIt
+                    {
+                        IdFormIt = form.Id,
+                        TieuDe = "Khởi tạo đơn Tài khoản Hệ thống",
+                        Mota = $"Người thao tác: {userName} | Hệ thống: {itTaiKhoan?.HeThongNao} | Loại đơn: {itTaiKhoan?.LoaiDon}. " +
+                               $"Cấp quyền giống: {itTaiKhoan?.CapQuyenGiongAi}. {supporterLog}. {fileLog}. {anhLog}",
+                        Time = DateTime.Now
+                    };
+                    _context.LichSuFormIts.Add(lichSu);
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
+
+                    TempData["Success"] = "Gửi đơn đăng ký tài khoản hệ thống thành công!";
+                    return Redirect("/FormIT/DonCho");
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    ViewBag.CongViecList = await _context.CongViecIts.Where(x => x.Ten.Contains("tài khoản")).ToListAsync();
+                    ModelState.AddModelError("", "Lỗi hệ thống: " + ex.Message);
+                    return View(form);
+                }
+            }
+        }
+
+        #endregion
+
         #region CHI TIẾT ĐƠN FORM IT (TẤT CẢ LOẠI ĐƠN)
 
         [HttpGet("/FormIT/ChiTiet/{id}")]
@@ -1118,6 +1302,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 .Include(f => f.ItOrderIt2s)
                 .Include(f => f.ItDangKiSuDungWifi3s)
                 .Include(f => f.ItDangKiSuDungDtban4s)
+                .Include(f => f.ItDangKiTaiKhoanHeThong5s)
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .Include(f => f.LichSuFormIts)
