@@ -94,6 +94,9 @@
         var ct = Model.ItMail1s.First();
         ProcessImage(ct.DuonDanAnh, ct.Anh);
 
+        // Thêm Người sử dụng lên đầu để thông tin rõ ràng nhất
+        chiTietNoiDung += RenderInfoRow("👤", "Người sử dụng", ct.NguoiSuDung, "#fff7ed", "#9a3412");
+
         chiTietNoiDung += RenderInfoRow("📧", "Địa chỉ Email", ct.Email, "#eef2ff", "#1e40af");
         chiTietNoiDung += RenderInfoRow("💼", "Vị trí/Chức vụ", ct.ViTri, "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("📞", "Số nội bộ (Ext)", ct.SoNoiBo, "#f8fafc", "#0f172a");

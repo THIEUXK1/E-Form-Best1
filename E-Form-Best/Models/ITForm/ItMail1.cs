@@ -43,6 +43,9 @@ public partial class ItMail1
     [StringLength(20)]
     public string? SoDienThoai { get; set; }
 
+    [StringLength(255)]
+    public string? NguoiSuDung { get; set; }
+
     [ForeignKey("IdFormIt")]
     [InverseProperty("ItMail1s")]
     public virtual FormIt? IdFormItNavigation { get; set; }
