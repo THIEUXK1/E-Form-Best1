@@ -64,15 +64,16 @@
 
         <div style="padding: 40px;">
 
+            @* BƯỚC 1: THÔNG TIN NHÂN VIÊN (Tự động) *@
             <div style="margin-bottom: 40px;">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);">1</span>
-                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin nhân viên</h3>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin nhân viên đơn vị</h3>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
                     <div style="background: #fffdf5; padding: 15px; border-radius: 15px; border: 1px solid #fef3c7;">
-                        <label style="@labelBase">Họ tên</label>
+                        <label style="@labelBase">Người làm đơn</label>
                         <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@tenNguoiNv</div>
                     </div>
                     <div style="background: #fffdf5; padding: 15px; border-radius: 15px; border: 1px solid #fef3c7;">
@@ -90,18 +91,27 @@
                 </div>
             </div>
 
+            @* BƯỚC 2: CẤU HÌNH TÀI KHOẢN *@
             <div style="@boxDetail">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
-                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Cấu hình tài khoản</h3>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Cấu hình tài khoản đăng ký</h3>
                 </div>
 
-                @* Thay đổi grid-template-columns thành 4 cột để thêm Số điện thoại *@
-                <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                @* Hàng 2.1: Người sử dụng và Email đề xuất *@
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <label style="@labelBase">Họ tên & Mã NV sử dụng <span style="color:red">*</span></label>
+                        <input type="text" name="NguoiSuDung" id="NguoiSuDung" placeholder="Ví dụ: Nguyễn Văn A - V12345" required class="input-hover" style="@inputBase">
+                    </div>
                     <div>
                         <label style="@labelBase">Email đề xuất <span style="color:red">*</span></label>
                         <input type="text" name="Email" id="Email" placeholder="Ví dụ: hoa.nguyen" required class="input-hover" style="@inputBase">
                     </div>
+                </div>
+
+                @* Hàng 2.2: Vị trí, Số nội bộ, Số điện thoại *@
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px;">
                     <div>
                         <label style="@labelBase">Vị trí (Chức vụ)</label>
                         <input type="text" name="ViTri" value="@userRole" placeholder="Staff/Leader..." class="input-hover" style="@inputBase">
@@ -110,13 +120,13 @@
                         <label style="@labelBase">Số nội bộ (Ext)</label>
                         <input type="text" name="SoNoiBo" placeholder="1234" class="input-hover" style="@inputBase">
                     </div>
-                    @* MỚI: Thêm Số điện thoại *@
                     <div>
                         <label style="@labelBase">Số điện thoại</label>
                         <input type="text" name="SoDienThoai" placeholder="09xx..." class="input-hover" style="@inputBase">
                     </div>
                 </div>
 
+                @* Hàng 2.3: Các tùy chọn hệ thống *@
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; padding: 20px; background: #fffbeb; border-radius: 18px; border: 1px solid #fde68a;">
                     <div>
                         <label style="@labelBase font-size: 10px;">Phạm vi gửi nhận</label>
@@ -144,13 +154,9 @@
                 <div style="margin-bottom: 25px;">
                     <label style="@labelBase">Mục đích sử dụng / Lý do</label>
                     <textarea name="MucDich"
-                              placeholder="Vui lòng ghi rõ:
-- Mục đích và ghi chú
-- Tên máy cần cài(Computer Name)
-- Nhóm mail cần add
-- Các yêu cầu thêm khác..."
+                              placeholder="Vui lòng ghi rõ:&#10;- Mục đích và ghi chú&#10;- Tên máy cần cài(Computer Name)&#10;- Nhóm mail cần add&#10;- Các yêu cầu thêm khác..."
                               class="input-hover"
-                              style="@inputBase height: 200px; resize: none;"></textarea>
+                              style="@inputBase height: 120px; resize: none;"></textarea>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
@@ -172,6 +178,7 @@
                 </div>
             </div>
 
+            @* BƯỚC 3: CHỌN NHÂN SỰ HỖ TRỢ *@
             <div style="@boxDetail">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">3</span>
@@ -187,7 +194,6 @@
                             {
                                 <label class="ho-tro-item" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; background: white; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                                     <input type="checkbox" name="SelectedCongViecIds" value="@cv.Id" style="width: 20px; height: 20px; accent-color: @colorPrimary;" />
-
                                     <div style="flex: 1;">
                                         <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@item.Ten</div>
                                         <div style="font-size: 12px; color: #64748b;">Mã NV: @item.MaNv</div>
@@ -208,6 +214,7 @@
                 </div>
             </div>
 
+            @* CAM KẾT & GỬI *@
             <div style="margin-bottom: 30px; background: #fffdf5; border: 1px dashed @colorBorder; border-radius: 24px; padding: 25px;">
                 <h3 style="margin: 0 0 20px 0; color: @colorDark; font-size: 15px; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 1px;">
                     BẢN CAM KẾT SỬ DỤNG EMAIL
@@ -239,7 +246,7 @@
 </div>
 
 <script>
-    // Paste image into hidden file input (name="Anh")
+    // Xử lý dán ảnh từ Clipboard
     document.getElementById("paste_AnhMail").addEventListener('paste', function(e) {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         for (let i = 0; i < items.length; i++) {
@@ -258,11 +265,20 @@
         }
     });
 
+    // Hàm xử lý gửi đơn
     function xuLyLuuDonIT() {
+        const nguoiDung = document.getElementById("NguoiSuDung").value;
         const email = document.getElementById("Email").value;
         const chk = document.getElementById('chkCamKet');
         const btn = document.getElementById("btnSubmit");
         const selectedCVs = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
+
+        // Validation
+        if (!nguoiDung.trim()) {
+            alert("⚠️ Vui lòng nhập Họ tên và Mã nhân viên người sử dụng!");
+            document.getElementById("NguoiSuDung").focus();
+            return;
+        }
 
         if (!email.trim()) {
             alert("⚠️ Vui lòng nhập Email đề xuất!");
@@ -280,6 +296,7 @@
             return;
         }
 
+        // Submit
         if (confirm("Xác nhận gửi đơn đăng ký Mail này?")) {
             btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG XỬ LÝ...';
             btn.style.opacity = '0.6';
