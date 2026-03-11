@@ -44,6 +44,23 @@
         background-color: #f8fafc;
         transform: translateY(-2px);
     }
+
+    .radio-group label {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 15px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        transition: 0.2s;
+        font-weight: 700;
+        color: @colorDark;
+    }
+
+    .radio-group input[type="radio"]:checked + span {
+        color: @colorPrimary;
+    }
 </style>
 
 <div style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif;">
@@ -96,6 +113,26 @@
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Cấu hình tài khoản đăng ký</h3>
+                </div>
+
+                @* Thêm: Lựa chọn Loại yêu cầu *@
+                <div style="margin-bottom: 25px; padding: 18px; background: #fffdf5; border: 1px solid @colorBorder; border-radius: 20px;">
+                    <label style="@labelBase">Loại yêu cầu <span style="color:red">*</span></label>
+                    <div class="radio-group" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <label>
+                            <input type="radio" name="LoaiYeuCau" value="Đăng ký mới" checked style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                            <span>Đăng ký mới</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="LoaiYeuCau" value="Thay đổi/Cấp lại" style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                            <span>Thay đổi/Cấp lại</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="LoaiYeuCau" value="Hủy Email" style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                            <span>Hủy Email</span>
+                        </label>
+                       
+                    </div>
                 </div>
 
                 @* Hàng 2.1: Người sử dụng và Email đề xuất *@
@@ -273,7 +310,15 @@
         const btn = document.getElementById("btnSubmit");
         const selectedCVs = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
 
+        // Kiểm tra loại yêu cầu
+        const loaiYeuCau = document.querySelector('input[name="LoaiYeuCau"]:checked');
+
         // Validation
+        if (!loaiYeuCau) {
+            alert("⚠️ Vui lòng chọn Loại yêu cầu!");
+            return;
+        }
+
         if (!nguoiDung.trim()) {
             alert("⚠️ Vui lòng nhập Họ tên và Mã nhân viên người sử dụng!");
             document.getElementById("NguoiSuDung").focus();
@@ -297,7 +342,7 @@
         }
 
         // Submit
-        if (confirm("Xác nhận gửi đơn đăng ký Mail này?")) {
+        if (confirm("Xác nhận gửi đơn " + loaiYeuCau.value + " này?")) {
             btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG XỬ LÝ...';
             btn.style.opacity = '0.6';
             btn.style.pointerEvents = 'none';
