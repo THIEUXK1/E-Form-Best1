@@ -88,22 +88,44 @@
     }
 
     // --- 5. PHÂN LOẠI DỮ LIỆU CHI TIẾT ---
-    // FORM 1: ĐĂNG KÝ EMAIL
+    // FORM 1: ĐĂNG KÝ/SỬA ĐỔI EMAIL
     if (Model.ItMail1s != null && Model.ItMail1s.Any())
     {
         var ct = Model.ItMail1s.First();
         ProcessImage(ct.DuonDanAnh, ct.Anh);
 
-        // Thêm Người sử dụng lên đầu để thông tin rõ ràng nhất
+        // 1. Loại yêu cầu - Hiển thị nổi bật nhất để phân biệt loại đơn
+        string loaiYeuCauColor = "#1e40af"; // Mặc định xanh dương
+        string loaiYeuCauBg = "#eef2ff";
+
+        if (ct.LoaiYeuCau == "Hủy Email")
+        {
+            loaiYeuCauColor = "#991b1b"; // Đỏ nếu là hủy
+            loaiYeuCauBg = "#fef2f2";
+        }
+        else if (ct.LoaiYeuCau == "Đăng ký mới")
+        {
+            loaiYeuCauColor = "#166534"; // Xanh lá nếu là mới
+            loaiYeuCauBg = "#f0fdf4";
+        }
+
+        chiTietNoiDung += RenderInfoRow("📌", "Loại yêu cầu", ct.LoaiYeuCau?.ToUpper(), loaiYeuCauBg, loaiYeuCauColor);
+
+        // 2. Thông tin người sử dụng
         chiTietNoiDung += RenderInfoRow("👤", "Người sử dụng", ct.NguoiSuDung, "#fff7ed", "#9a3412");
 
-        chiTietNoiDung += RenderInfoRow("📧", "Địa chỉ Email", ct.Email, "#eef2ff", "#1e40af");
+        // 3. Các thông tin kỹ thuật
+        chiTietNoiDung += RenderInfoRow("📧", "Địa chỉ Email", ct.Email, "#f0f9ff", "#075985");
         chiTietNoiDung += RenderInfoRow("💼", "Vị trí/Chức vụ", ct.ViTri, "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("📞", "Số nội bộ (Ext)", ct.SoNoiBo, "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("📱", "Số điện thoại", ct.SoDienThoai, "#fffbeb", "#92400e");
-        chiTietNoiDung += RenderInfoRow("🌍", "Gửi nhận ngoài", ct.GuiRaNgoai, "#fff7ed", "#c2410c");
-        chiTietNoiDung += RenderInfoRow("📲", "Dùng trên Mobile", ct.SuDungTrenDienThoai, "#f0fdf4", "#166534");
-        chiTietNoiDung += RenderInfoRow("🌐", "Sử dụng Webmail", ct.SuDungWebMail, "#f5f3ff", "#5b21b6");
+
+        // 4. Cấu hình hệ thống
+        chiTietNoiDung += RenderInfoRow("🌍", "Gửi nhận quốc tế", (ct.GuiRaNgoai == "Yes" ? "Có" : "Không"), "#fff7ed", "#c2410c");
+        chiTietNoiDung += RenderInfoRow("📲", "Dùng trên Mobile", (ct.SuDungTrenDienThoai == "Yes" ? "Có" : "Không"), "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("🌐", "Truy cập Webmail", (ct.SuDungWebMail == "Yes" ? "Cho phép" : "Khóa"), "#f5f3ff", "#5b21b6");
+
+        // 5. Mục đích và ghi chú
         chiTietNoiDung += RenderInfoRow("📝", "Mục đích / Ghi chú", ct.MucDich, "#f1f5f9", "#334155");
     }
     // FORM 2: SỬA CHỮA / CẤP THIẾT BỊ
