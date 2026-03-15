@@ -26,4 +26,8 @@ public partial class LichSuFormHr
     public DateTime? Time { get; set; }
 
     public bool? IsRead { get; set; }
+
+    [ForeignKey("IdFormHr")]
+    [InverseProperty("LichSuFormHrs")]
+    public virtual FormHr? IdFormHrNavigation { get; set; }
 }

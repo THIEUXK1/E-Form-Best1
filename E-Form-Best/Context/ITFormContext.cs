@@ -91,6 +91,8 @@ public partial class ITFormContext : DbContext
         modelBuilder.Entity<BinhLuanFormHr>(entity =>
         {
             entity.Property(e => e.ThoiGian).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.BinhLuanFormHrs).HasConstraintName("FK_BinhLuanFormHR_FormHR");
         });
 
         modelBuilder.Entity<BinhLuanFormIt>(entity =>
@@ -287,6 +289,8 @@ public partial class ITFormContext : DbContext
         {
             entity.Property(e => e.IsRead).HasDefaultValue(false);
             entity.Property(e => e.Time).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.LichSuFormHrs).HasConstraintName("FK_LichSuFormHR_FormHR");
         });
 
         modelBuilder.Entity<LichSuFormIt>(entity =>

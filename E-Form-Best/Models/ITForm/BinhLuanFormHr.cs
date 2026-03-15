@@ -39,4 +39,8 @@ public partial class BinhLuanFormHr
 
     [StringLength(50)]
     public string? Ma { get; set; }
+
+    [ForeignKey("IdFormHr")]
+    [InverseProperty("BinhLuanFormHrs")]
+    public virtual FormHr? IdFormHrNavigation { get; set; }
 }
