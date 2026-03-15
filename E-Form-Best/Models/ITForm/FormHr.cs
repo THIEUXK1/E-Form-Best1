@@ -78,6 +78,9 @@ public partial class FormHr
     public bool? HienThiBaoVe { get; set; }
 
     [InverseProperty("IdFormHrNavigation")]
+    public virtual ICollection<BinhLuanFormHr> BinhLuanFormHrs { get; set; } = new List<BinhLuanFormHr>();
+
+    [InverseProperty("IdFormHrNavigation")]
     public virtual ICollection<HrBaoVeXacNhan> HrBaoVeXacNhans { get; set; } = new List<HrBaoVeXacNhan>();
 
     [InverseProperty("IdFormHrNavigation")]
@@ -109,4 +112,7 @@ public partial class FormHr
 
     [InverseProperty("IdFormHrNavigation")]
     public virtual ICollection<HrXinRaNgoai1> HrXinRaNgoai1s { get; set; } = new List<HrXinRaNgoai1>();
+
+    [InverseProperty("IdFormHrNavigation")]
+    public virtual ICollection<LichSuFormHr> LichSuFormHrs { get; set; } = new List<LichSuFormHr>();
 }
