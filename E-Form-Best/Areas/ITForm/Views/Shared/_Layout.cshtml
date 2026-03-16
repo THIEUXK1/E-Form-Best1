@@ -11,7 +11,7 @@
 
     bool isITSystem = currentController.Contains("IT") || currentController == "Mail" || currentController.Contains("Order");
 
-    string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong" };
+    string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong","DonTaiKhoanMayTinh" };
     bool isITSubActive = itSubPages.Contains(currentAction);
 
     string primaryGradient = isITSystem ? "linear-gradient(180deg, #0f172a 0%, #1e40af 100%)" : "linear-gradient(180deg, #1a365d 0%, #2d3748 100%)";
@@ -62,24 +62,34 @@
                     <div id="mainSubmenu" style="display: @(isITSubActive ? "flex" : "none"); flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
                         @if (isITSystem)
                         {
+                            @* 1. Đăng ký Mail *@
                             <a href="/FormIT/DonMail" style="text-decoration:none; display:flex; align-items:center; font-size:0.88rem; padding:12px 18px; color: @(currentAction == "DonMail" ? "#fff" : "#cbd5e1"); background: @(currentAction == "DonMail" ? "rgba(255,255,255,0.1)" : "transparent"); border-radius:10px; font-weight: @(currentAction == "DonMail" ? "700" : "400"); transition: 0.2s;">
                                 <i class="fa fa-envelope-o" style="margin-right:12px; width:15px; color: #fbbf24;"></i> 1. Đăng ký Mail
                             </a>
 
+                            @* 2. Sửa chữa thiết bị *@
                             <a href="/FormIT/TaoIT_Order" style="text-decoration:none; display:flex; align-items:center; font-size:0.88rem; padding:12px 18px; color: @(currentAction == "TaoIT_Order" ? "#fff" : "#cbd5e1"); background: @(currentAction == "TaoIT_Order" ? "rgba(255,255,255,0.1)" : "transparent"); border-radius:10px; font-weight: @(currentAction == "TaoIT_Order" ? "700" : "400"); transition: 0.2s;">
                                 <i class="fa fa-wrench" style="margin-right:12px; width:15px; color: #ea580c;"></i> 2. Sửa chữa thiết bị
                             </a>
 
+                            @* 3. Đăng ký Wifi *@
                             <a href="/FormIT/TaoIT_Wifi" style="text-decoration:none; display:flex; align-items:center; font-size:0.88rem; padding:12px 18px; color: @(currentAction == "TaoIT_Wifi" ? "#fff" : "#cbd5e1"); background: @(currentAction == "TaoIT_Wifi" ? "rgba(255,255,255,0.1)" : "transparent"); border-radius:10px; font-weight: @(currentAction == "TaoIT_Wifi" ? "700" : "400"); transition: 0.2s;">
                                 <i class="fa fa-wifi" style="margin-right:12px; width:15px; color: #059669;"></i> 3. Đăng ký Wifi
                             </a>
 
+                            @* 4. Đăng ký Điện thoại bàn *@
                             <a href="/FormIT/DonDienThoaiBan" style="text-decoration:none; display:flex; align-items:center; font-size:0.88rem; padding:12px 18px; color: @(currentAction == "DonDienThoaiBan" ? "#fff" : "#cbd5e1"); background: @(currentAction == "DonDienThoaiBan" ? "rgba(255,255,255,0.1)" : "transparent"); border-radius:10px; font-weight: @(currentAction == "DonDienThoaiBan" ? "700" : "400"); transition: 0.2s;">
                                 <i class="fa fa-phone" style="margin-right:12px; width:15px; color: #4f46e5;"></i> 4. Đăng ký ĐT bàn
                             </a>
 
+                            @* 5. Đăng ký Tài khoản hệ thống *@
                             <a href="/FormIT/DonTaiKhoanHeThong" style="text-decoration:none; display:flex; align-items:center; font-size:0.88rem; padding:12px 18px; color: @(currentAction == "DonTaiKhoanHeThong" ? "#fff" : "#cbd5e1"); background: @(currentAction == "DonTaiKhoanHeThong" ? "rgba(255,255,255,0.1)" : "transparent"); border-radius:10px; font-weight: @(currentAction == "DonTaiKhoanHeThong" ? "700" : "400"); transition: 0.2s;">
                                 <i class="fa fa-user-circle-o" style="margin-right:12px; width:15px; color: #db2777;"></i> 5. Đăng ký TK Hệ thống
+                            </a>
+
+                            @* 6. Đăng ký Tài khoản Máy tính / Ổ chung (MỤC MỚI) *@
+                            <a href="/FormIT/DonTaiKhoanMayTinh" style="text-decoration:none; display:flex; align-items:center; font-size:0.88rem; padding:12px 18px; color: @(currentAction == "DonTaiKhoanMayTinh" ? "#fff" : "#cbd5e1"); background: @(currentAction == "DonTaiKhoanMayTinh" ? "rgba(255,255,255,0.1)" : "transparent"); border-radius:10px; font-weight: @(currentAction == "DonTaiKhoanMayTinh" ? "700" : "400"); transition: 0.2s;">
+                                <i class="fa fa-desktop" style="margin-right:12px; width:15px; color: #06b6d4;"></i> 6. Đăng ký TK Máy tính
                             </a>
                         }
                     </div>
