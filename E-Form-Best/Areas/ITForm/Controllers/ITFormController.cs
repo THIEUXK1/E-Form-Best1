@@ -292,7 +292,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
         #endregion
 
-        #region Don Mail  1(Form IT)
+        #region Don Mail  1Form IT 1)
 
         [HttpGet("/FormIT/DonMail")]
         public IActionResult DonMail()
@@ -377,7 +377,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.SoNhanVien = userEmail;
                     form.TenCongTy = tenCongTy;
                     form.TrangThai = "ChoDuyet";
-                    form.IdForm = "IT_MAIL_1";
+                    form.IdForm = "IT_Mail_1";
                     form.TenForm = "Đơn đăng ký/sửa đổi Mail";
                     form.Danhmuc = "Đăng kí mail";
 
@@ -535,7 +535,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
         #endregion
 
-        #region IT Order - Sửa chữa/Yêu cầu thiết bị (Form IT) - CẬP NHẬT CÔNG TY & LỊCH SỬ
+        #region IT Order - Sửa chữa/Yêu cầu thiết bị (Form IT 2) - CẬP NHẬT CÔNG TY & LỊCH SỬ
 
         [HttpGet("/FormIT/TaoIT_Order")]
         public async Task<IActionResult> TaoIT_Order()
@@ -569,7 +569,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 TenNguoiTao = userName,
                 TimeNguoiTao = DateTime.Now,
                 TrangThai = "ChoDuyet",
-                IdForm = "IT_ORDER_2",
+                IdForm = "IT_OrderIT_2",
                 TenForm = "Yêu cầu sửa chữa/Hỗ trợ kỹ thuật"
             };
 
@@ -719,7 +719,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
         #endregion
 
-        #region IT Wifi - Đăng ký sử dụng Wifi (Form IT)
+        #region IT Wifi - Đăng ký sử dụng Wifi (Form IT 3)
 
         [HttpGet("/FormIT/TaoIT_Wifi")]
         public async Task<IActionResult> TaoIT_Wifi()
@@ -797,7 +797,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.SoNhanVien = userEmail;
                     form.TenCongTy = tenCongTy;
                     form.TrangThai = "ChoDuyet";
-                    form.IdForm = "IT_WIFI_3";
+                    form.IdForm = "IT_DangKiSuDungWifi_3";
                     form.TenForm = "Đăng ký sử dụng Wifi";
 
                     if (congViec != null) form.Danhmuc = congViec.Ten;
@@ -985,7 +985,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.SoNhanVien = userEmail;
                     form.TenCongTy = tenCongTy;
                     form.TrangThai = "ChoDuyet";
-                    form.IdForm = "IT_DT_BAN_4";
+                    form.IdForm = "IT_DangKiSuDungDTBan_4";
                     form.TenForm = "Đơn đăng ký sử dụng điện thoại bàn";
 
                     if (congViec != null) form.Danhmuc = congViec.Ten;
@@ -1171,7 +1171,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.SoNhanVien = userEmail;
                     form.TenCongTy = tenCongTy;
                     form.TrangThai = "ChoDuyet";
-                    form.IdForm = "IT_TK_HT_5";
+                    form.IdForm = "IT_DangKiTaiKhoanHeThong_5";
                     form.TenForm = "Đơn đăng ký tài khoản hệ thống";
 
                     if (congViec != null) form.Danhmuc = congViec.Ten;
@@ -1363,7 +1363,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.SoNhanVien = userEmail;
                     form.TenCongTy = tenCongTy;
                     form.TrangThai = "ChoDuyet";
-                    form.IdForm = "IT_ACCOUNT_6"; // Định danh form mới
+                    form.IdForm = "IT_DangkiTaiKhoanMayTinh_6"; // Định danh form mới
                     form.TenForm = "Đăng ký Tài khoản Máy tính / Ổ chung";
                     form.Danhmuc = "Đăng kí tài khoản máy tính";
 
@@ -1519,14 +1519,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/ChiTiet/{id}")]
         public async Task<IActionResult> ChiTiet(int id)
         {
-            // 1. Kiểm tra đăng nhập (Bắt buộc phải đăng nhập để biết ai đang xem)
+            // 1. Kiểm tra đăng nhập
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return RedirectToAction("DangNhap", "DonXetDuyet");
 
             int userId = int.Parse(userIdStr);
 
-            // Lấy danh sách Roles để phục vụ việc hiển thị các nút chức năng trong View (nếu có)
-            var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
+            // Lấy Email và Công ty từ Claims (giống logic đồng bộ bên HR)
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
             // 2. Lấy dữ liệu đơn (Giữ nguyên toàn bộ các Include hiện có)
             var don = await _context.FormIts
@@ -1546,22 +1547,60 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (don == null)
             {
                 TempData["Error"] = "⚠️ Không tìm thấy đơn yêu cầu IT!";
-                return RedirectToAction("DonCho");
+                return RedirectToAction("LichSuIT"); // Hoặc trang danh sách tương ứng
             }
 
-            // --- LOGIC MỚI: AI CŨNG CÓ THỂ XEM ---
-            // Không thực hiện kiểm tra hasSpecialRole, isOwner hay isAssignedSupporter ở đây nữa.
-            // Chỉ cần đơn tồn tại là cho phép đi tiếp xuống phần hiển thị.
+            // 3. KIỂM TRA QUYỀN XEM (Đồng bộ logic phân quyền)
 
-            // 3. Xử lý dữ liệu hiển thị (Giữ nguyên logic sắp xếp lịch sử)
+            // Kiểm tra cùng công ty (trừ quyền All)
+            if (don.TenCongTy?.Trim() != tenCongTy && !User.IsInRole("All"))
+            {
+                return Forbid();
+            }
+
+            bool hasAccess = false;
+
+            if (User.IsInRole("All"))
+            {
+                hasAccess = true;
+            }
+            else if (User.IsInRole("AdminIT"))
+            {
+                // AdminIT xem được nếu đơn đã duyệt VÀ (là Admin xử lý hoặc có tên trong danh sách hỗ trợ)
+                bool isSupporter = don.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation?.MaNv == userEmail);
+                if (don.IdNguoiDuyet != null && (don.IdAdmin == userId || isSupporter))
+                {
+                    hasAccess = true;
+                }
+            }
+            else if (User.IsInRole("QuanLyDuyetDonIT"))
+            {
+                // Quản lý xem được đơn mình tạo hoặc mình duyệt
+                if (don.IdNguoiTao == userId || don.IdNguoiDuyet == userId)
+                {
+                    hasAccess = true;
+                }
+            }
+            else
+            {
+                // User thường xem được đơn mình tạo hoặc mình là người hỗ trợ
+                bool isSupporter = don.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation?.MaNv == userEmail);
+                if (don.IdNguoiTao == userId || isSupporter)
+                {
+                    hasAccess = true;
+                }
+            }
+
+            if (!hasAccess) return Forbid();
+
+            // 4. Xử lý dữ liệu hiển thị
             if (don.LichSuFormIts != null)
             {
                 don.LichSuFormIts = don.LichSuFormIts.OrderByDescending(x => x.Time).ToList();
             }
 
-            // Danh sách IT để chọn người hỗ trợ (Vẫn giữ phân quyền cho chức năng ĐIỀU PHỐI)
-            // Nghĩa là: Ai cũng xem được, nhưng chỉ Admin mới thấy danh sách để gán người hỗ trợ.
-            if (userRoles.Any(r => r == "AdminIT" || r == "All"))
+            // Gán danh sách hỗ trợ cho Admin để thực hiện điều phối
+            if (User.IsInRole("AdminIT") || User.IsInRole("All"))
             {
                 ViewBag.ListNguoiHoTro = await _context.ItNguoiHoTros
                     .Where(x => x.BoPhan == "IT")
@@ -1570,11 +1609,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
 
             ViewBag.CurrentUserId = userId;
-            ViewBag.UserRoles = userRoles;
+            ViewBag.UserEmail = userEmail;
 
             return View(don);
         }
-
         // --- ACTION DOWNLOAD / XEM FILE (Giữ nguyên 100%) ---
         [HttpGet("/FormIT/DownloadFile/{fileName}")]
         public async Task<IActionResult> DownloadFile(string fileName)
@@ -2921,57 +2959,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return Ok(new { dataList = logs, unreadCount });
         }
 
-        [HttpPost("/FormIT/MarkAsRead/{id}")]
-        public async Task<IActionResult> MarkAsRead(int id)
-        {
-            var log = await _context.LichSuFormIts.FindAsync(id);
-            if (log == null) return NotFound();
-
-            if (log.IsRead != true)
-            {
-                log.IsRead = true;
-                await _context.SaveChangesAsync();
-            }
-            return Ok();
-        }
-
-        [HttpPost("/FormIT/MarkAllAsRead")]
-        public async Task<IActionResult> MarkAllAsRead()
-        {
-            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
-
-            int userId = int.Parse(userIdStr);
-            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
-            var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
-
-            // Lấy query dựa trên quyền để mark all chính xác những gì user thấy
-            var query = _context.LichSuFormIts
-                .Where(l => l.IsRead != true && l.IdFormItNavigation.TenCongTy == tenCongTy);
-
-            if (User.IsInRole("All")) { /* Không lọc thêm */ }
-            else if (User.IsInRole("AdminIT"))
-            {
-                query = query.Where(l => l.IdFormItNavigation.IdAdmin == userId ||
-                                         l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userEmail));
-            }
-            else
-            {
-                query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.IdNguoiDuyet == userId);
-            }
-
-            var unreadLogs = await query.ToListAsync();
-            if (unreadLogs.Any())
-            {
-                foreach (var log in unreadLogs)
-                {
-                    log.IsRead = true;
-                }
-                await _context.SaveChangesAsync();
-            }
-
-            return Ok();
-        }
 
         #endregion 
     }
