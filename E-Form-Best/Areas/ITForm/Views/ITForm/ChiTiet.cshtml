@@ -180,6 +180,34 @@
         chiTietNoiDung += RenderInfoRow("📄", "Mô tả chi tiết", ct.MoTaChiTiet, "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("🎯", "Mục đích", ct.MucDich, "#fff1f2", "#be123c");
     }
+    // FORM 6: ĐĂNG KÝ TÀI KHOẢN MÁY TÍNH / Ổ CHUNG (MỚI)
+    else if (Model.ItDangkiTaiKhoanMayTinh6s != null && Model.ItDangkiTaiKhoanMayTinh6s.Any())
+    {
+        var ct = Model.ItDangkiTaiKhoanMayTinh6s.First();
+    
+        // Xử lý hiển thị ảnh (nếu có)
+        ProcessImage(ct.DuongDanAnh, null);
+
+        // Hiển thị thông tin loại yêu cầu nổi bật
+        chiTietNoiDung += RenderInfoRow("🛠️", "Loại yêu cầu", ct.Loai, "#ecfeff", "#0891b2");
+    
+        // Thông tin người sử dụng và liên hệ
+        chiTietNoiDung += RenderInfoRow("👤", "Người sử dụng", ct.HoTenVaMaNhanVienNguoiSuDung, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("💼", "Chức vụ", ct.ChucVu, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("📞", "SĐT / Nội bộ", $"{ct.SoDienThoai} (Ext: {ct.SoNoiBo})", "#f8fafc", "#0f172a");
+
+        // Thông tin kỹ thuật
+        chiTietNoiDung += RenderInfoRow("💻", "Tên máy tính", ct.TenMayCanCai, "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("📂", "Quyền ổ chung", ct.TenOchungCanAddQuyen, "#fff7ed", "#9a3412");
+
+        // Mục đích và ghi chú
+        chiTietNoiDung += RenderInfoRow("🎯", "Mục đích", ct.MucDich, "#fff1f2", "#be123c");
+    
+        if (!string.IsNullOrEmpty(ct.GhiChu))
+        {
+            chiTietNoiDung += RenderInfoRow("📝", "Ghi chú thêm", ct.GhiChu, "#f8fafc", "#475569");
+        }
+    }
 
     // Hàm nội bộ để xử lý ảnh (tránh lặp code)
     void ProcessImage(string path, byte[] rawData)
