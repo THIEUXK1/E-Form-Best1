@@ -1485,7 +1485,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     form.TenNguoiTao = userName;
                     form.TimeNguoiTao = DateTime.Now;
                     form.TrangThai = "ChoDuyet";
-                    form.IdForm = "HR_HoTroCongTac_9";
+                    form.IdForm = "HR_DonHoTroCongTac_9";
                     form.TenForm = "Đơn hỗ trợ công tác";
 
                     _context.FormHrs.Add(form);
