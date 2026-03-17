@@ -91,129 +91,120 @@
     }
 
     // --- 5. PHÂN LOẠI DỮ LIỆU CHI TIẾT (9 LOẠI ĐƠN) ---
-    if (Model.IdForm == "CT_XinRaNgoai_1")
-    {
-        var ct = Model.HrXinRaNgoai1s?.FirstOrDefault();
-        if (ct != null)
-        {
-            ProcessImage(ct.DuongDanAnh, ct.Anh);
-            chiTietNoiDung += RenderInfoRow("📍", "Địa điểm", ct.DiaDiem, "#eff6ff", "#1e40af");
-            chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#eff6ff", "#1e40af");
-            chiTietNoiDung += RenderInfoRow("🕒", "Giờ ra", ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy") ?? "---", "#fef2f2", "#991b1b");
-            chiTietNoiDung += RenderInfoRow("🔄", "Dự kiến về", ct.ThoiGianVeDuTinh?.ToString("HH:mm dd/MM/yyyy") ?? "---", "#ecfdf5", "#065f46");
-            chiTietNoiDung += RenderSecurityBox(ct.BaoVeTruc, ct.ThoiGianVao?.ToString("HH:mm dd/MM/yyyy"), "vào lại thực tế");
-        }
-    }
-    else if (Model.IdForm == "CT_MangHangHoaRaCong_2")
-    {
-        var ct = Model.HrMangHangHoaRaCong2s?.FirstOrDefault();
-        if (ct != null)
-        {
-            ProcessImage(ct.DuongDanAnh, ct.Anh);
-            chiTietNoiDung += RenderInfoRow("📦", "Loại đơn", "Mang hàng hóa ra cổng", "#f0fdf4", "#166534");
-            chiTietNoiDung += RenderInfoRow("📋", "Mô tả", ct.MoTa, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("📅", "Thời gian dự tính", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#f0fdf4", "#166534");
-            chiTietNoiDung += RenderSecurityBox(ct.TenCong, ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "hàng ra thực tế");
-        }
-    }
-    else if (Model.IdForm == "CT_DangKySuDungXeCongTac_3")
-    {
-        var ct = Model.HrDangKySuDungXeCongTac3s?.FirstOrDefault();
-        if (ct != null)
-        {
-            ProcessImage(ct.DuongDanAnh, ct.Anh);
-            chiTietNoiDung += RenderInfoRow("🚗", "Dịch vụ", "Đăng ký xe công tác", "#eef2ff", "#1e40af");
-            chiTietNoiDung += RenderInfoRow("📅", "Thời gian", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#eff6ff", "#1e40af");
-            chiTietNoiDung += RenderInfoRow("💬", "Mục đích", ct.LiDo, "#f8fafc", "#0f172a");
-        }
-    }
-    else if (Model.IdForm == "CT_DangKySuDungXeDaily_4")
-    {
-        var ct = Model.HrDangKySuDungXeDaily4s?.FirstOrDefault();
-        if (ct != null)
-        {
-            ProcessImage(ct.DuongDanAnh, ct.Anh);
-            chiTietNoiDung += RenderInfoRow("🚌", "Dịch vụ", "Đăng ký xe Daily", "#fff7ed", "#9a3412");
-            chiTietNoiDung += RenderInfoRow("🕒", "Thời gian", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy") ?? "---", "#fff7ed", "#9a3412");
-            chiTietNoiDung += RenderInfoRow("📍", "Điểm đón", ct.DiemDon, "#f0f9ff", "#0369a1");
-            chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#f8fafc", "#0f172a");
-        }
-    }
-    else if (Model.IdForm == "CT_DonTiepKhac_5")
-    {
-        var ct = Model.HrDonTiepKhac5s?.FirstOrDefault();
-        if (ct != null)
-        {
-            if (!string.IsNullOrEmpty(ct.DuongDanAnh))
-                listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
 
-            chiTietNoiDung += RenderInfoRow("🤝", "Loại đơn", "Đăng ký Tiếp khách", "#fdf2f8", "#9d174d");
-            chiTietNoiDung += RenderInfoRow("🏢", "Công ty khách", ct.TenCongTyKhach ?? "---", "#fff1f2", "#be123c");
-            chiTietNoiDung += RenderInfoRow("👥", "Số lượng", ct.SoLuongKhach?.ToString() + " người", "#fff1f2", "#be123c");
-            chiTietNoiDung += RenderInfoRow("📞", "Người đặt", $"{ct.NguoiBook} - {ct.SoMayBan}", "#fff1f2", "#be123c");
-            chiTietNoiDung += RenderInfoRow("📝", "Yêu cầu", ct.YeuCauTiepKhach ?? "---", "#f8fafc", "#475569");
-            chiTietNoiDung += RenderInfoRow("📅", "Ngày yêu cầu", Model.Ngay?.ToString("dd/MM/yyyy"), "#fff1f2", "#be123c");
-        }
-    }
-    else if (Model.IdForm == "CT_NhaThauQuaCong_6")
+    // 1. Đơn xin ra ngoài
+    if (Model.HrXinRaNgoai1s != null && Model.HrXinRaNgoai1s.Any())
     {
-        var ct = Model.HrNhaThauQuaCong6s?.FirstOrDefault();
-        if (ct != null)
-        {
-            ProcessImage(ct.DuongDanAnh, ct.Anh);
-            chiTietNoiDung += RenderInfoRow("🏗️", "Loại đơn", "Nhà thầu qua cổng", "#f1f5f9", "#334155");
-            chiTietNoiDung += RenderInfoRow("🏢", "Tên nhà thầu", ct.TenNhaThau, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("👥", "Số người", ct.SoNguoi?.ToString() + " người", "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("👤", "Người đăng ký", ct.NguoiDangKy, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDichCongViec, "#f8fafc", "#0f172a");
-        }
+        var ct = Model.HrXinRaNgoai1s.First();
+        ProcessImage(ct.DuongDanAnh, ct.Anh);
+        chiTietNoiDung += RenderInfoRow("📍", "Địa điểm", ct.DiaDiem, "#eff6ff", "#1e40af");
+        chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#eff6ff", "#1e40af");
+        chiTietNoiDung += RenderInfoRow("🕒", "Giờ ra", ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy") ?? "---", "#fef2f2", "#991b1b");
+        chiTietNoiDung += RenderInfoRow("🔄", "Dự kiến về", ct.ThoiGianVeDuTinh?.ToString("HH:mm dd/MM/yyyy") ?? "---", "#ecfdf5", "#065f46");
+        chiTietNoiDung += RenderSecurityBox(ct.BaoVeTruc, ct.ThoiGianVao?.ToString("HH:mm dd/MM/yyyy"), "vào lại thực tế");
     }
-    else if (Model.IdForm == "CT_HoTroTienDienThoai_7")
-    {
-        var ct = Model.HrHoTroTienDienThoai7s?.FirstOrDefault();
-        if (ct != null)
-        {
-            ProcessImage(ct.DuongDanAnh, ct.Anh);
-            chiTietNoiDung += RenderInfoRow("📱", "Dịch vụ", "Hỗ trợ tiền điện thoại", "#f0fdf4", "#166534");
-            chiTietNoiDung += RenderInfoRow("👤", "Thông tin NV", ct.ThongTinNhanVien, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("💰", "Mức hỗ trợ", ct.MucHoTro?.ToString("N0") + " VNĐ", "#fff7ed", "#9a3412");
-            chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDich, "#f8fafc", "#0f172a");
-        }
-    }
-    else if (Model.IdForm == "CT_DoiCaLam_8")
-    {
-        var ct = Model.HrDoiCaLam8s?.FirstOrDefault();
-        if (ct != null)
-        {
-            ProcessImage(ct.DuongDanAnh, ct.Anh);
-            chiTietNoiDung += RenderInfoRow("⏰", "Loại đơn", "Đổi ca làm việc", "#fff7ed", "#c2410c");
-            chiTietNoiDung += RenderInfoRow("📅", "Ngày cần đổi", ct.NgayCanDoi?.ToString("dd/MM/yyyy"), "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("🔄", "Ca gốc", ct.CaGoc, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("➡️", "Ca muốn đổi", ct.CaMuonDoi, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LyDoDoiCa, "#f8fafc", "#0f172a");
-        }
-    }
-    else if (Model.IdForm == "CT_DonHoTroCongTac_9")
-    {
-        var ct = Model.HrDonHoTroCongTac9s?.FirstOrDefault();
-        if (ct != null)
-        {
-            if (!string.IsNullOrEmpty(ct.DuongDanAnh))
-                listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
 
-            chiTietNoiDung += RenderInfoRow("✈️", "Loại đơn", "Hỗ trợ công tác", "#eef2ff", "#1e40af");
-            chiTietNoiDung += RenderInfoRow("👤", "Mã NV", ct.MaNhanVien, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("🏢", "Tên khách hàng", ct.TenKhachHang, "#f8fafc", "#0f172a");
-            
-            string dichVu = "";
-            if (ct.DatVeMayBay == true) dichVu += "✈️ Đặt vé máy bay ";
-            if (ct.DatChoO == true) dichVu += "🏨 Đặt chỗ ở ";
-            if (ct.BookXeCtyDuaDon == true) dichVu += "🚗 Book xe đưa đón ";
-            if (ct.DatBuaAn == true) dichVu += "🍽️ Đặt bữa ăn ";
-            
-            chiTietNoiDung += RenderInfoRow("📋", "Dịch vụ", dichVu, "#fff7ed", "#9a3412");
-            chiTietNoiDung += RenderInfoRow("📝", "Nội dung", ct.NoiDungYeuCauChiTiet, "#f8fafc", "#0f172a");
-        }
+    // 2. Mang hàng hóa ra cổng
+    if (Model.HrMangHangHoaRaCong2s != null && Model.HrMangHangHoaRaCong2s.Any())
+    {
+        var ct = Model.HrMangHangHoaRaCong2s.First();
+        ProcessImage(ct.DuongDanAnh, ct.Anh);
+        chiTietNoiDung += RenderInfoRow("📦", "Loại đơn", "Mang hàng hóa ra cổng", "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("📋", "Mô tả", ct.MoTa, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("📅", "Thời gian dự tính", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderSecurityBox(ct.TenCong, ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "hàng ra thực tế");
+    }
+
+    // 3. Đăng ký xe công tác
+    if (Model.HrDangKySuDungXeCongTac3s != null && Model.HrDangKySuDungXeCongTac3s.Any())
+    {
+        var ct = Model.HrDangKySuDungXeCongTac3s.First();
+        ProcessImage(ct.DuongDanAnh, ct.Anh);
+        chiTietNoiDung += RenderInfoRow("🚗", "Dịch vụ", "Đăng ký xe công tác", "#eef2ff", "#1e40af");
+        chiTietNoiDung += RenderInfoRow("📅", "Thời gian", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#eff6ff", "#1e40af");
+        chiTietNoiDung += RenderInfoRow("💬", "Mục đích", ct.LiDo, "#f8fafc", "#0f172a");
+    }
+
+    // 4. Đăng ký xe Daily
+    if (Model.HrDangKySuDungXeDaily4s != null && Model.HrDangKySuDungXeDaily4s.Any())
+    {
+        var ct = Model.HrDangKySuDungXeDaily4s.First();
+        ProcessImage(ct.DuongDanAnh, ct.Anh);
+        chiTietNoiDung += RenderInfoRow("🚌", "Dịch vụ", "Đăng ký xe Daily", "#fff7ed", "#9a3412");
+        chiTietNoiDung += RenderInfoRow("🕒", "Thời gian", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy") ?? "---", "#fff7ed", "#9a3412");
+        chiTietNoiDung += RenderInfoRow("📍", "Điểm đón", ct.DiemDon, "#f0f9ff", "#0369a1");
+        chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#f8fafc", "#0f172a");
+    }
+
+    // 5. Đăng ký tiếp khách
+    if (Model.HrDonTiepKhac5s != null && Model.HrDonTiepKhac5s.Any())
+    {
+        var ct = Model.HrDonTiepKhac5s.First();
+        if (!string.IsNullOrEmpty(ct.DuongDanAnh))
+            listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
+
+        chiTietNoiDung += RenderInfoRow("🤝", "Loại đơn", "Đăng ký Tiếp khách", "#fdf2f8", "#9d174d");
+        chiTietNoiDung += RenderInfoRow("🏢", "Công ty khách", ct.TenCongTyKhach ?? "---", "#fff1f2", "#be123c");
+        chiTietNoiDung += RenderInfoRow("👥", "Số lượng", ct.SoLuongKhach?.ToString() + " người", "#fff1f2", "#be123c");
+        chiTietNoiDung += RenderInfoRow("📞", "Người đặt", $"{ct.NguoiBook} - {ct.SoMayBan}", "#fff1f2", "#be123c");
+        chiTietNoiDung += RenderInfoRow("📝", "Yêu cầu", ct.YeuCauTiepKhach ?? "---", "#f8fafc", "#475569");
+        chiTietNoiDung += RenderInfoRow("📅", "Ngày yêu cầu", Model.Ngay?.ToString("dd/MM/yyyy"), "#fff1f2", "#be123c");
+    }
+
+    // 6. Nhà thầu qua cổng
+    if (Model.HrNhaThauQuaCong6s != null && Model.HrNhaThauQuaCong6s.Any())
+    {
+        var ct = Model.HrNhaThauQuaCong6s.First();
+        ProcessImage(ct.DuongDanAnh, ct.Anh);
+        chiTietNoiDung += RenderInfoRow("🏗️", "Loại đơn", "Nhà thầu qua cổng", "#f1f5f9", "#334155");
+        chiTietNoiDung += RenderInfoRow("🏢", "Tên nhà thầu", ct.TenNhaThau, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("👥", "Số người", ct.SoNguoi?.ToString() + " người", "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("👤", "Người đăng ký", ct.NguoiDangKy, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDichCongViec, "#f8fafc", "#0f172a");
+    }
+
+    // 7. Hỗ trợ tiền điện thoại
+    if (Model.HrHoTroTienDienThoai7s != null && Model.HrHoTroTienDienThoai7s.Any())
+    {
+        var ct = Model.HrHoTroTienDienThoai7s.First();
+        ProcessImage(ct.DuongDanAnh, ct.Anh);
+        chiTietNoiDung += RenderInfoRow("📱", "Dịch vụ", "Hỗ trợ tiền điện thoại", "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("👤", "Thông tin NV", ct.ThongTinNhanVien, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("💰", "Mức hỗ trợ", ct.MucHoTro?.ToString("N0") + " VNĐ", "#fff7ed", "#9a3412");
+        chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDich, "#f8fafc", "#0f172a");
+    }
+
+    // 8. Đổi ca làm việc
+    if (Model.HrDoiCaLam8s != null && Model.HrDoiCaLam8s.Any())
+    {
+        var ct = Model.HrDoiCaLam8s.First();
+        ProcessImage(ct.DuongDanAnh, ct.Anh);
+        chiTietNoiDung += RenderInfoRow("⏰", "Loại đơn", "Đổi ca làm việc", "#fff7ed", "#c2410c");
+        chiTietNoiDung += RenderInfoRow("📅", "Ngày cần đổi", ct.NgayCanDoi?.ToString("dd/MM/yyyy"), "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🔄", "Ca gốc", ct.CaGoc, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("➡️", "Ca muốn đổi", ct.CaMuonDoi, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LyDoDoiCa, "#f8fafc", "#0f172a");
+    }
+
+    // 9. Hỗ trợ công tác
+    if (Model.HrDonHoTroCongTac9s != null && Model.HrDonHoTroCongTac9s.Any())
+    {
+        var ct = Model.HrDonHoTroCongTac9s.First();
+        if (!string.IsNullOrEmpty(ct.DuongDanAnh))
+            listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
+
+        chiTietNoiDung += RenderInfoRow("✈️", "Loại đơn", "Hỗ trợ công tác", "#eef2ff", "#1e40af");
+        chiTietNoiDung += RenderInfoRow("👤", "Mã NV", ct.MaNhanVien, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🏢", "Tên khách hàng", ct.TenKhachHang, "#f8fafc", "#0f172a");
+        
+        string dichVu = "";
+        if (ct.DatVeMayBay == true) dichVu += "✈️ Đặt vé máy bay ";
+        if (ct.DatChoO == true) dichVu += "🏨 Đặt chỗ ở ";
+        if (ct.BookXeCtyDuaDon == true) dichVu += "🚗 Book xe đưa đón ";
+        if (ct.DatBuaAn == true) dichVu += "🍽️ Đặt bữa ăn ";
+        
+        chiTietNoiDung += RenderInfoRow("📋", "Dịch vụ", dichVu, "#fff7ed", "#9a3412");
+        chiTietNoiDung += RenderInfoRow("📝", "Nội dung", ct.NoiDungYeuCauChiTiet, "#f8fafc", "#0f172a");
     }
 
     void ProcessImage(string path, byte[] rawData)
