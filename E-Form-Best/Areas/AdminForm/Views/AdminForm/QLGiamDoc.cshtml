@@ -1,0 +1,421 @@
+﻿@{
+    ViewData["Title"] = "Quản lý Giám đốc & Quy trình E-Form";
+    Layout = "~/Areas/AdminForm/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    /* Bo góc và đổ bóng cho Card */
+    .card { border: none; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); border-radius: 0.75rem; }
+    
+    /* Tinh chỉnh Tab */
+    .nav-tabs-custom { border-bottom: 2px solid #edf2f7; gap: 20px; }
+    .nav-tabs-custom .nav-link { border: none; color: #718096; font-weight: 500; padding: 10px 5px; position: relative; }
+    .nav-tabs-custom .nav-link.active { color: #4a90e2; background: none; }
+    .nav-tabs-custom .nav-link.active::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px; background: #4a90e2; }
+    
+    /* Badge trạng thái */
+    .badge-status { font-size: 11px; padding: 5px 10px; border-radius: 20px; }
+
+    /* QUAN TRỌNG: Chống vỡ form cho Table */
+    .table { table-layout: fixed; width: 100% !important; } /* Cố định layout bảng */
+    .table td, .table th { 
+        white-space: normal !important; /* Cho phép xuống dòng */
+        word-wrap: break-word; /* Ngắt từ dài */
+        vertical-align: middle;
+        overflow-wrap: break-word;
+    }
+    
+    /* Cấu hình chiều rộng mặc định cho các cột thao tác */
+    .col-action { width: 120px; text-align: center; }
+    .col-id { width: 80px; }
+</style>
+
+<div class="container-fluid">
+    <ul class="nav nav-tabs nav-tabs-custom mb-4" id="myTab" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="loaidon-tab" data-bs-toggle="tab" data-bs-target="#loaidon" type="button">
+                <i class="fas fa-file-alt me-2"></i>Danh mục Loại Đơn
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="nguoixacnhan-tab" data-bs-toggle="tab" data-bs-target="#nguoixacnhan" type="button">
+                <i class="fas fa-users me-2"></i>Danh mục Người Xác Nhận
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade show active" id="loaidon" role="tabpanel">
+            <div class="row g-3">
+                <div class="col-xl-5 col-lg-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                            <h6 class="mb-0 fw-bold">Danh sách Loại Đơn</h6>
+                            <button class="btn btn-primary btn-sm" onclick="showModalLoaiDon()">
+                                <i class="fas fa-plus me-1"></i> Thêm mới
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <table id="tableLoaiDon" class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 30%">Mã</th>
+                                        <th style="width: 45%">Tên loại đơn</th>
+                                        <th class="col-action">Thao tác</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-7 col-lg-6">
+                    <div id="areaCauHinh" class="card shadow-sm d-none">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                            <h6 class="mb-0 fw-bold text-primary">Quy trình: <span id="txtTenLoaiDonSelected" class="text-dark"></span></h6>
+                            <button class="btn btn-success btn-sm" onclick="showModalCauHinh()">
+                                <i class="fas fa-user-plus me-1"></i> Thêm bước
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <table id="tableCauHinh" class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 70px">Cấp</th>
+                                        <th style="width: 40%">Người duyệt</th>
+                                        <th>Ghi chú</th>
+                                        <th style="width: 60px" class="text-center">Xóa</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="emptyCauHinh" class="text-center py-5 text-muted card h-100 border-dashed">
+                        <div class="my-auto">
+                            <i class="fas fa-project-diagram fa-3x mb-3 opacity-25"></i>
+                            <p>Chọn một Loại đơn bên trái để cấu hình bước duyệt</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="nguoixacnhan" role="tabpanel">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                    <h6 class="mb-0 fw-bold">Danh mục nhân sự xác nhận</h6>
+                    <button class="btn btn-primary btn-sm" onclick="showModalNguoiXacNhan()">
+                        <i class="fas fa-plus me-1"></i> Thêm nhân sự
+                    </button>
+                </div>
+                <div class="card-body overflow-auto">
+                    <table id="tableNguoiXacNhan" class="table table-hover w-100">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 100px">Mã NV</th>
+                                <th style="width: 150px">Họ tên</th>
+                                <th>Bộ phận</th>
+                                <th>Chức vụ</th>
+                                <th style="width: 100px">Trạng thái</th>
+                                <th class="col-action">Thao tác</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalLoaiDon" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formLoaiDon">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Thông tin Loại Đơn</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="IdloaiDon" id="IdloaiDon" value="0">
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Mã loại đơn</label>
+                        <input type="text" class="form-control" name="MaLoaiDon" placeholder="VD: NGHI_PHEP" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Tên loại đơn</label>
+                        <input type="text" class="form-control" name="TenLoaiDon" placeholder="VD: Đơn xin nghỉ phép" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Mô tả</label>
+                        <textarea class="form-control" name="MoTa" rows="2"></textarea>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="TrangThai" checked id="statusLD">
+                        <label class="form-check-label" for="statusLD">Đang hoạt động</label>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary px-4">Lưu lại</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalNguoiXacNhan" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formNguoiXacNhan">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Thông tin Người Xác Nhận</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="IdnguoiXacNhan" id="IdnguoiXacNhan" value="0">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-medium">Mã nhân viên</label>
+                            <input type="text" class="form-control" name="MaNv" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-medium">Họ tên</label>
+                            <input type="text" class="form-control" name="HoTen" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Email</label>
+                        <input type="email" class="form-control" name="Email">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-medium">Phòng ban</label>
+                            <input type="text" class="form-control" name="PhongBan">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-medium">Chức vụ</label>
+                            <input type="text" class="form-control" name="ChucVu">
+                        </div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="TrangThai" checked id="statusNXN">
+                        <label class="form-check-label" for="statusNXN">Đang hoạt động</label>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary px-4">Lưu lại</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalCauHinh" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content border-top border-success border-4">
+            <form id="formCauHinh">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-success">Thêm bước duyệt</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Người xác nhận</label>
+                        <select class="form-select select2-modal" name="IdnguoiXacNhan" required>
+                            </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Cấp độ (1=Đầu tiên, 2, 3...)</label>
+                        <input type="number" class="form-control" name="CapDoXacNhan" min="1" value="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Ghi chú (Bộ phận duyệt)</label>
+                        <input type="text" class="form-control" name="GhiChu" placeholder="VD: BP. Nhân sự duyệt">
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="submit" class="btn btn-success w-100 py-2 fw-bold">XÁC NHẬN GẮN BƯỚC DUYỆT</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let tableLD, tableNXN, tableCH;
+        let selectedIdLoaiDon = 0;
+
+        $(document).ready(function () {
+            initTables();
+            loadNguoiXacNhanDropdown();
+
+            // Submit Loai Don
+            $('#formLoaiDon').submit(function (e) {
+                e.preventDefault();
+                let data = getFormData($(this));
+                data.TrangThai = $('#statusLD').is(':checked');
+                $.post('/QLGiamDoc/SaveLoaiDon', data, function () {
+                    Swal.fire('Thành công', 'Dữ liệu loại đơn đã được lưu', 'success');
+                    $('#modalLoaiDon').modal('hide');
+                    tableLD.ajax.reload();
+                });
+            });
+
+            // Submit Nguoi Nac Nhan
+            $('#formNguoiXacNhan').submit(function (e) {
+                e.preventDefault();
+                let data = getFormData($(this));
+                data.TrangThai = $('#statusNXN').is(':checked');
+                $.post('/QLGiamDoc/SaveNguoiXacNhan', data, function () {
+                    Swal.fire('Thành công', 'Dữ liệu nhân sự đã cập nhật', 'success');
+                    $('#modalNguoiXacNhan').modal('hide');
+                    tableNXN.ajax.reload();
+                    loadNguoiXacNhanDropdown();
+                });
+            });
+
+            // Submit Cau Hinh
+            $('#formCauHinh').submit(function (e) {
+                e.preventDefault();
+                let data = getFormData($(this));
+                data.IdloaiDon = selectedIdLoaiDon;
+                $.post('/QLGiamDoc/SaveCauHinh', data, function () {
+                    $('#modalCauHinh').modal('hide');
+                    loadCauHinh(selectedIdLoaiDon);
+                });
+            });
+        });
+
+        function initTables() {
+            tableLD = $('#tableLoaiDon').DataTable({
+                ajax: { url: '/QLGiamDoc/GetAllLoaiDon', dataSrc: '' },
+                columns: [
+                    { data: 'maLoaiDon', className: 'fw-bold text-primary' },
+                    { data: 'tenLoaiDon' },
+                    {
+                        data: 'idloaiDon',
+                        className: 'text-center',
+                        render: function (data, type, row) {
+                            return `<div class="btn-group">
+                                <button class="btn btn-sm btn-outline-info" onclick="viewCauHinh(${data}, '${row.tenLoaiDon}')" title="Cấu hình"><i class="fas fa-cog"></i></button>
+                                <button class="btn btn-sm btn-outline-warning" onclick="editLoaiDon(${JSON.stringify(row).replace(/"/g, '&quot;')})" title="Sửa"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteLoaiDon(${data})" title="Xóa"><i class="fas fa-trash"></i></button>
+                            </div>`;
+                        }
+                    }
+                ],
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/vi.json' }
+            });
+
+            tableNXN = $('#tableNguoiXacNhan').DataTable({
+                ajax: { url: '/QLGiamDoc/GetAllNguoiXacNhan', dataSrc: '' },
+                columns: [
+                    { data: 'maNv' },
+                    { data: 'hoTen', className: 'fw-bold' },
+                    { data: 'phongBan' },
+                    { data: 'chucVu' },
+                    { 
+                        data: 'trangThai',
+                        render: (st) => st ? '<span class="badge bg-success badge-status">Hiện</span>' : '<span class="badge bg-secondary badge-status">Ẩn</span>'
+                    },
+                    {
+                        data: 'idnguoiXacNhan',
+                        className: 'text-center',
+                        render: function (data, type, row) {
+                            return `<div class="btn-group">
+                                <button class="btn btn-sm btn-light border" onclick="editNguoiXacNhan(${JSON.stringify(row).replace(/"/g, '&quot;')})"><i class="fas fa-edit text-warning"></i></button>
+                                <button class="btn btn-sm btn-light border" onclick="deleteNguoiXacNhan(${data})"><i class="fas fa-trash text-danger"></i></button>
+                            </div>`;
+                        }
+                    }
+                ],
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/vi.json' }
+            });
+        }
+
+        function viewCauHinh(id, ten) {
+            selectedIdLoaiDon = id;
+            $('#txtTenLoaiDonSelected').text(ten);
+            $('#areaCauHinh').removeClass('d-none');
+            $('#emptyCauHinh').addClass('d-none');
+            loadCauHinh(id);
+        }
+
+        function loadCauHinh(id) {
+            if (tableCH) tableCH.destroy();
+            tableCH = $('#tableCauHinh').DataTable({
+                ajax: { url: '/QLGiamDoc/GetCauHinhByLoaiDon?idLoaiDon=' + id, dataSrc: '' },
+                paging: false, info: false, searching: false,
+                columns: [
+                    { data: 'capDoXacNhan', className: 'text-center fw-bold' },
+                    { data: 'tenNguoiXacNhan', className: 'text-success fw-medium' },
+                    { data: 'ghiChu' },
+                    {
+                        data: 'idrel',
+                        className: 'text-center',
+                        render: (data) => `<i class="fas fa-times-circle text-danger cursor-pointer" onclick="deleteCauHinh(${data})"></i>`
+                    }
+                ],
+                language: { emptyTable: "Chưa có quy trình duyệt cho loại đơn này" }
+            });
+        }
+
+        function showModalLoaiDon() { $('#formLoaiDon')[0].reset(); $('#IdloaiDon').val(0); $('#modalLoaiDon').modal('show'); }
+        function showModalNguoiXacNhan() { $('#formNguoiXacNhan')[0].reset(); $('#IdnguoiXacNhan').val(0); $('#modalNguoiXacNhan').modal('show'); }
+        function showModalCauHinh() { $('#modalCauHinh').modal('show'); }
+
+        function editLoaiDon(row) {
+            $('#IdloaiDon').val(row.idloaiDon);
+            $('input[name="MaLoaiDon"]').val(row.maLoaiDon);
+            $('input[name="TenLoaiDon"]').val(row.tenLoaiDon);
+            $('textarea[name="MoTa"]').val(row.moTa);
+            $('#statusLD').prop('checked', row.trangThai);
+            $('#modalLoaiDon').modal('show');
+        }
+
+        function editNguoiXacNhan(row) {
+            $('#IdnguoiXacNhan').val(row.idnguoiXacNhan);
+            $('input[name="MaNv"]').val(row.maNv);
+            $('input[name="HoTen"]').val(row.hoTen);
+            $('input[name="Email"]').val(row.email);
+            $('input[name="PhongBan"]').val(row.phongBan);
+            $('input[name="ChucVu"]').val(row.chucVu);
+            $('#statusNXN').prop('checked', row.trangThai);
+            $('#modalNguoiXacNhan').modal('show');
+        }
+
+        function deleteLoaiDon(id) {
+            Swal.fire({ title: 'Xác nhận xóa?', icon: 'warning', showCancelButton: true }).then(r => {
+                if(r.isConfirmed) $.post('/QLGiamDoc/DeleteLoaiDon', { id: id }, () => tableLD.ajax.reload()).fail(e => Swal.fire('Lỗi', e.responseText, 'error'));
+            });
+        }
+
+        function deleteNguoiXacNhan(id) {
+            Swal.fire({ title: 'Xác nhận xóa?', icon: 'warning', showCancelButton: true }).then(r => {
+                if(r.isConfirmed) $.post('/QLGiamDoc/DeleteNguoiXacNhan', { id: id }, () => tableNXN.ajax.reload()).fail(e => Swal.fire('Lỗi', e.responseText, 'error'));
+            });
+        }
+
+        function deleteCauHinh(id) {
+            $.post('/QLGiamDoc/DeleteCauHinh', { idRel: id }, () => loadCauHinh(selectedIdLoaiDon));
+        }
+
+        function loadNguoiXacNhanDropdown() {
+            $.get('/QLGiamDoc/GetAllNguoiXacNhan', function (res) {
+                let html = '<option value="">-- Chọn nhân sự --</option>';
+                res.forEach(item => {
+                    html += `<option value="${item.idnguoiXacNhan}">${item.hoTen} (${item.maNv})</option>`;
+                });
+                $('select[name="IdnguoiXacNhan"]').html(html);
+            });
+        }
+
+        function getFormData($form) {
+            let unindexed_array = $form.serializeArray();
+            let indexed_array = {};
+            $.map(unindexed_array, function (n, i) { indexed_array[n['name']] = n['value']; });
+            return indexed_array;
+        }
+    </script>
+}

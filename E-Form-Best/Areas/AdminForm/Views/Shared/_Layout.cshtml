@@ -18,22 +18,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e0;
-            border-radius: 10px;
-        }
-
-            ::-webkit-scrollbar-thumb:hover {
-                background: #a0aec0;
-            }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
 
         body {
             font-family: 'Inter', sans-serif;
@@ -44,32 +32,42 @@
             color: #1a202c;
         }
 
-        aside a {
-            text-decoration: none !important;
-        }
+        aside a { text-decoration: none !important; }
 
         .nav-link-custom {
             display: flex;
             align-items: center;
             padding: 13px 25px;
-            color: rgba(255,255,255,0.8);
+            color: rgba(255,255,255,0.7);
             transition: all 0.2s;
             gap: 12px;
             font-size: 14px;
             border-left: 4px solid transparent;
         }
 
-            .nav-link-custom:hover {
-                background: rgba(255,255,255,0.05);
-                color: white;
-            }
+        .nav-link-custom:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
 
-            .nav-link-custom.active {
-                background: rgba(74, 144, 226, 0.15) !important;
-                border-left: 4px solid #4a90e2 !important;
-                color: #4a90e2 !important;
-                font-weight: 600;
-            }
+        .nav-link-custom.active {
+            background: rgba(74, 144, 226, 0.15) !important;
+            border-left: 4px solid #4a90e2 !important;
+            color: #4a90e2 !important;
+            font-weight: 600;
+        }
+
+        .nav-section-title {
+            padding: 20px 25px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        main { flex-grow: 1; display: flex; flex-direction: column; min-width: 0; }
+        header { background: white; padding: 15px 30px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 999; }
     </style>
 </head>
 <body>
@@ -82,7 +80,8 @@
             </div>
         </a>
 
-        <nav style="padding: 20px 0; flex-grow: 1;">
+        <nav style="padding: 10px 0; flex-grow: 1; overflow-y: auto;">
+            <div class="nav-section-title">Hệ thống</div>
             <a href="/QLtaiKhoan" class="nav-link-custom @(Context.Request.Path.Value == "/QLtaiKhoan" ? "active" : "")">
                 <i class="fas fa-users-cog" style="width: 20px;"></i>
                 <span>Quản lý tài khoản</span>
@@ -97,22 +96,38 @@
                 <i class="fas fa-sitemap" style="width: 20px;"></i>
                 <span>Quản lý Bộ phận</span>
             </a>
+
+            <div class="nav-section-title">Cấu hình Quy trình</div>
+            <a href="/QLtaiKhoan/QLGiamDoc" class="nav-link-custom @(Context.Request.Path.Value == "/QLtaiKhoan/QLGiamDoc" ? "active" : "")">
+                <i class="fas fa-user-tie" style="width: 20px; color: #f6ad55;"></i>
+                <span>Quản lý Giám đốc</span>
+            </a>
+
+            <div class="nav-section-title">Hỗ trợ E-Form</div>
             <a href="/QLtaiKhoan/NguoiHoTro" class="nav-link-custom @(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTro" ? "active" : "")">
                 <i class="fas fa-user-shield" style="width: 20px;"></i>
                 <span>Người hỗ trợ IT</span>
             </a>
+
+            <a href="/QLtaiKhoan/NguoiHoTroHR" class="nav-link-custom @(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTroHR" ? "active" : "")">
+                <i class="fas fa-user-tie" style="width: 20px;"></i>
+                <span>Người hỗ trợ HR</span>
+            </a>
         </nav>
 
         <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <a href="/Logout" style="color: #feb2b2; font-size: 14px; display: flex; align-items: center; gap: 10px;">
+            <a href="/Logout" style="color: #feb2b2; font-size: 14px; display: flex; align-items: center; gap: 10px; transition: opacity 0.2s; text-decoration: none;">
                 <i class="fas fa-sign-out-alt"></i>
                 <strong>Đăng xuất</strong>
             </a>
         </div>
     </aside>
 
-    <main style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
-        <header style="background: white; padding: 15px 30px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; justify-content: flex-end;">
+    <main>
+        <header>
+            <div style="font-weight: 500; color: #4a5568;">
+                <i class="fas fa-chevron-right me-2" style="font-size: 12px; color: #cbd5e0;"></i> @ViewData["Title"]
+            </div>
             <div style="font-size: 13px; color: #718096;">
                 Hệ thống quản lý E-Form <i class="fas fa-check-circle" style="color: #38a169;"></i>
             </div>

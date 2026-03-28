@@ -108,6 +108,9 @@ public partial class FormHr
     public virtual ICollection<HrMangHangHoaRaCong2> HrMangHangHoaRaCong2s { get; set; } = new List<HrMangHangHoaRaCong2>();
 
     [InverseProperty("IdFormHrNavigation")]
+    public virtual ICollection<HrNguoiXacNhan> HrNguoiXacNhans { get; set; } = new List<HrNguoiXacNhan>();
+
+    [InverseProperty("IdFormHrNavigation")]
     public virtual ICollection<HrNhaThauQuaCong6> HrNhaThauQuaCong6s { get; set; } = new List<HrNhaThauQuaCong6>();
 
     [InverseProperty("IdFormHrNavigation")]
