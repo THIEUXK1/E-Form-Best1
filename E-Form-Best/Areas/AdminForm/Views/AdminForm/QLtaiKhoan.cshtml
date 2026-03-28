@@ -105,29 +105,12 @@
 
 <style>
     @@keyframes slideDown {
-        from {
-            transform: translateY(-30px);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
+        from { transform: translateY(-30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
     }
-
-    .permission-item:hover {
-        background: #f7fafc;
-    }
-
-    #permissionsList::-webkit-scrollbar, #departmentsList::-webkit-scrollbar {
-        width: 5px;
-    }
-
-    #permissionsList::-webkit-scrollbar-thumb, #departmentsList::-webkit-scrollbar-thumb {
-        background: #cbd5e0;
-        border-radius: 10px;
-    }
+    .permission-item:hover { background: #f7fafc; }
+    #permissionsList::-webkit-scrollbar, #departmentsList::-webkit-scrollbar { width: 5px; }
+    #permissionsList::-webkit-scrollbar-thumb, #departmentsList::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
 </style>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -144,7 +127,6 @@
     function loadUserList() {
         const tbody = document.getElementById('userTableBody');
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:50px;">⏳ Đang tải dữ liệu...</td></tr>';
-
         fetch('/QLtaiKhoan/GetAllUsers')
             .then(res => res.json())
             .then(data => {
@@ -166,58 +148,54 @@
         }
 
         tbody.innerHTML = dataToDisplay.map(user => `
-                <tr id="row-${user.idNguoiDung}" style="border-bottom: 1px solid #edf2f7;">
-                    <td style="padding: 10px;">
-                        <input type="text" id="name-${user.idNguoiDung}" value="${user.hoTen || ''}" style="width: 95%; padding: 6px; border: 1px solid #e2e8f0; border-radius: 4px; font-weight: bold; margin-bottom: 5px;" placeholder="Họ tên"/>
-                        <div style="display: flex; gap: 5px;">
-                            <input type="text" id="dept-${user.idNguoiDung}" value="${user.phongBan || ''}" style="width: 50%; padding: 4px; border: 1px solid #e2e8f0; font-size: 11px;" placeholder="Phòng ban"/>
-                            <input type="text" id="comp-${user.idNguoiDung}" value="${user.tenCongTy || ''}" style="width: 45%; padding: 4px; border: 1px solid #e2e8f0; font-size: 11px;" placeholder="Công ty"/>
+            <tr id="row-${user.idNguoiDung}" style="border-bottom: 1px solid #edf2f7;">
+                <td style="padding: 10px;">
+                    <input type="text" id="name-${user.idNguoiDung}" value="${user.hoTen || ''}" style="width: 95%; padding: 6px; border: 1px solid #e2e8f0; border-radius: 4px; font-weight: bold; margin-bottom: 5px;" placeholder="Họ tên"/>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="dept-${user.idNguoiDung}" value="${user.phongBan || ''}" style="width: 50%; padding: 4px; border: 1px solid #e2e8f0; font-size: 11px;" placeholder="Phòng ban"/>
+                        <input type="text" id="comp-${user.idNguoiDung}" value="${user.tenCongTy || ''}" style="width: 45%; padding: 4px; border: 1px solid #e2e8f0; font-size: 11px;" placeholder="Công ty"/>
+                    </div>
+                </td>
+                <td style="padding: 10px;">
+                    <div style="margin-bottom: 5px; display:flex; align-items:center; gap:5px;">
+                        <span style="font-size:11px; color:#718096; width:40px;">Mã:</span>
+                        <input type="text" id="tk-${user.idNguoiDung}" value="${user.tk || ''}" style="flex:1; padding: 6px; border: 1px solid #e2e8f0; border-radius: 4px; color:#2b6cb0; font-weight:bold;"/>
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        <div style="position: relative; width: 50%;">
+                            <input type="password" id="pass-${user.idNguoiDung}" value="${user.matKhau || ''}" style="width: 100%; padding: 6px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 12px;"/>
+                            <button onclick="togglePass(${user.idNguoiDung})" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background:none; border:none; cursor:pointer;">👁️</button>
                         </div>
-                    </td>
-                    <td style="padding: 10px;">
-                        <div style="margin-bottom: 5px; display:flex; align-items:center; gap:5px;">
-                            <span style="font-size:11px; color:#718096; width:40px;">Mã:</span>
-                            <input type="text" id="tk-${user.idNguoiDung}" value="${user.tk || ''}" style="flex:1; padding: 6px; border: 1px solid #e2e8f0; border-radius: 4px; color:#2b6cb0; font-weight:bold;"/>
-                        </div>
-                        <div style="display: flex; gap: 5px;">
-                            <div style="position: relative; width: 50%;">
-                                <input type="password" id="pass-${user.idNguoiDung}" value="${user.matKhau || ''}" style="width: 100%; padding: 6px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 12px;"/>
-                                <button onclick="togglePass(${user.idNguoiDung})" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background:none; border:none; cursor:pointer;">👁️</button>
-                            </div>
-                            <input type="text" id="phone-${user.idNguoiDung}" value="${user.soDienThoai || ''}" style="width: 50%; padding: 6px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 12px;" placeholder="SĐT"/>
-                        </div>
-                    </td>
-                    <td style="padding: 10px;">
-                         <select id="role-${user.idNguoiDung}" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; background:white;">
-                            <option value="NhanVien" ${user.vaiTro === 'NhanVien' ? 'selected' : ''}>Nhân Viên</option>
-                            <option value="QuanLy" ${user.vaiTro === 'QuanLy' ? 'selected' : ''}>Quản Lý</option>
-                            <option value="Admin" ${user.vaiTro === 'Admin' ? 'selected' : ''}>Admin</option>
-                            <option value="AdminHR" ${user.vaiTro === 'AdminHR' ? 'selected' : ''}>AdminHR</option>
-                            <option value="BaoVe" ${user.vaiTro === 'BaoVe' ? 'selected' : ''}>Bảo Vệ</option>
-                                                        <option value="All" ${user.vaiTro === 'All' ? 'selected' : ''}>All</option>
-
-                        </select>
-                    </td>
-                    <td style="padding: 10px;">
-                        <select id="status-${user.idNguoiDung}" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; background:white;">
-                            <option value="Đang làm" ${user.trangThai === 'Đang làm' ? 'selected' : ''}>Đang làm</option>
-                            <option value="Đã nghỉ" ${user.trangThai === 'Đã nghỉ' ? 'selected' : ''}>Đã nghỉ</option>
-                        </select>
-                    </td>
-                    <td style="padding: 10px; text-align: center;">
-                        <div style="display: flex; gap: 6px; justify-content: center;">
-                            <button onclick="viewDetail(${user.idNguoiDung})" style="padding: 8px 12px; border-radius: 8px; background: #4299e1; color: white; border: none; cursor: pointer; font-weight: bold; font-size:11px;">CHI TIẾT</button>
-                            <button onclick="updateUser(${user.idNguoiDung})" style="padding: 8px 12px; border-radius: 8px; background: #38a169; color: white; border: none; cursor: pointer; font-weight: bold; font-size:11px;">LƯU</button>
-                            <button onclick="deleteUser(${user.idNguoiDung})" style="padding: 8px 12px; border-radius: 8px; background: #fff5f5; color: #e53e3e; border: 1px solid #feb2b2; cursor: pointer; font-weight: bold; font-size:11px;">XÓA</button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
-
+                        <input type="text" id="phone-${user.idNguoiDung}" value="${user.soDienThoai || ''}" style="width: 50%; padding: 6px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 12px;" placeholder="SĐT"/>
+                    </div>
+                </td>
+                <td style="padding: 10px;">
+                     <select id="role-${user.idNguoiDung}" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; background:white;">
+                        <option value="NhanVien" ${user.vaiTro === 'NhanVien' ? 'selected' : ''}>Nhân Viên</option>
+                        <option value="QuanLy" ${user.vaiTro === 'QuanLy' ? 'selected' : ''}>Quản Lý</option>
+                        <option value="Admin" ${user.vaiTro === 'Admin' ? 'selected' : ''}>Admin</option>
+                        <option value="AdminHR" ${user.vaiTro === 'AdminHR' ? 'selected' : ''}>AdminHR</option>
+                        <option value="BaoVe" ${user.vaiTro === 'BaoVe' ? 'selected' : ''}>Bảo Vệ</option>
+                        <option value="All" ${user.vaiTro === 'All' ? 'selected' : ''}>All</option>
+                    </select>
+                </td>
+                <td style="padding: 10px;">
+                    <select id="status-${user.idNguoiDung}" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; background:white;">
+                        <option value="Đang làm" ${user.trangThai === 'Đang làm' ? 'selected' : ''}>Đang làm</option>
+                        <option value="Đã nghỉ" ${user.trangThai === 'Đã nghỉ' ? 'selected' : ''}>Đã nghỉ</option>
+                    </select>
+                </td>
+                <td style="padding: 10px; text-align: center;">
+                    <div style="display: flex; gap: 6px; justify-content: center;">
+                        <button onclick="viewDetail(${user.idNguoiDung})" style="padding: 8px 12px; border-radius: 8px; background: #4299e1; color: white; border: none; cursor: pointer; font-weight: bold; font-size:11px;">CHI TIẾT</button>
+                        <button onclick="updateUser(${user.idNguoiDung})" style="padding: 8px 12px; border-radius: 8px; background: #38a169; color: white; border: none; cursor: pointer; font-weight: bold; font-size:11px;">LƯU</button>
+                        <button onclick="deleteUser(${user.idNguoiDung})" style="padding: 8px 12px; border-radius: 8px; background: #fff5f5; color: #e53e3e; border: 1px solid #feb2b2; cursor: pointer; font-weight: bold; font-size:11px;">XÓA</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
         status.innerText = displayLimit < currentFilteredData.length ? `Hiển thị ${displayLimit}/${currentFilteredData.length}. Cuộn xuống...` : `Tổng: ${currentFilteredData.length}`;
     }
-
-    // --- Xử lý Phân quyền & Chi tiết ---
 
     function viewDetail(userId) {
         const user = allUsersData.find(u => u.idNguoiDung == userId);
@@ -228,7 +206,7 @@
         fetch(`/QLtaiKhoan/GetUserDetail?id=${userId}`)
             .then(res => res.json())
             .then(data => {
-                // Render Quyền
+                // Render Quyền (Cập nhật giao diện mượt hơn)
                 let qHtml = data.allQuyen.length ? data.allQuyen.map(q => `
                     <div class="permission-item" style="padding:10px; border-bottom:1px solid #edf2f7; transition:0.2s;">
                         <label style="display:flex; align-items:center; gap:12px; cursor:pointer; width:100%;">
@@ -241,20 +219,23 @@
                             </div>
                         </label>
                     </div>
-                `).join('') : '<p>Chưa có dữ liệu quyền.</p>';
+                `).join('') : '<p style="text-align:center; padding:20px; color:#a0aec0;">Chưa có dữ liệu quyền.</p>';
                 $('#permissionsList').html(qHtml);
 
-                // Render Bộ phận
+                // Render Bộ phận (Đã thêm phần Mô tả)
                 let bHtml = data.allBoPhan.length ? data.allBoPhan.map(b => `
-                    <div class="permission-item" style="padding:10px; border-bottom:1px solid #edf2f7;">
-                        <label style="display:flex; align-items:center; gap:12px; cursor:pointer;">
+                    <div class="permission-item" style="padding:10px; border-bottom:1px solid #edf2f7; transition:0.2s;">
+                        <label style="display:flex; align-items:center; gap:12px; cursor:pointer; width:100%;">
                             <input type="checkbox" style="width:18px; height:18px; accent-color:#38a169;"
                                    ${data.userBoPhanIds.includes(b.idBoPhan) ? 'checked' : ''}
                                    onchange="toggleDepartment(${userId}, ${b.idBoPhan}, this.checked)">
-                            <div style="font-weight:600; color:#2d3748;">${b.tenBoPhan}</div>
+                            <div>
+                                <div style="font-weight:600; color:#2d3748;">${b.tenBoPhan}</div>
+                                <div style="font-size:11px; color:#718096;">${b.moTa || 'Không có mô tả bộ phận'}</div>
+                            </div>
                         </label>
                     </div>
-                `).join('') : '<p>Chưa có dữ liệu bộ phận.</p>';
+                `).join('') : '<p style="text-align:center; padding:20px; color:#a0aec0;">Chưa có dữ liệu bộ phận.</p>';
                 $('#departmentsList').html(bHtml);
             });
     }
@@ -266,8 +247,6 @@
     function toggleDepartment(userId, boPhanId, isChecked) {
         $.post('/QLtaiKhoan/ToggleDepartment', { userId, boPhanId, isChecked });
     }
-
-    // --- Các hàm Logic CRUD giữ nguyên của bạn ---
 
     window.onscroll = () => {
         if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100) {
@@ -282,7 +261,6 @@
         const s = document.getElementById('filterSearch').value.toLowerCase();
         const pb = document.getElementById('filterPhongBan').value;
         const vt = document.getElementById('filterVaiTro').value;
-
         currentFilteredData = allUsersData.filter(u =>
             ((u.hoTen || '').toLowerCase().includes(s) || (u.tk || '').toLowerCase().includes(s)) &&
             (pb === "" || u.phongBan === pb) &&
@@ -313,7 +291,6 @@
             VaiTro: document.getElementById(`role-${id}`).value,
             TrangThai: document.getElementById(`status-${id}`).value
         };
-
         fetch('/QLtaiKhoan/CapNhatNguoiDung', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -322,14 +299,8 @@
             if (res.ok) {
                 const u = allUsersData.find(x => x.idNguoiDung == id);
                 if (u) Object.assign(u, {
-                    hoTen: data.HoTen,
-                    tk: data.Tk,
-                    phongBan: data.PhongBan,
-                    tenCongTy: data.TenCongTy,
-                    matKhau: data.MatKhau,
-                    soDienThoai: data.SoDienThoai,
-                    vaiTro: data.VaiTro,
-                    trangThai: data.TrangThai
+                    hoTen: data.HoTen, tk: data.Tk, phongBan: data.PhongBan, tenCongTy: data.TenCongTy,
+                    matKhau: data.MatKhau, soDienThoai: data.SoDienThoai, vaiTro: data.VaiTro, trangThai: data.TrangThai
                 });
                 Swal.fire({ icon: 'success', title: 'Đã lưu thay đổi', timer: 1000, showConfirmButton: false });
             }
@@ -369,10 +340,10 @@
         fetch('/QLtaiKhoan/GetNhanVien?empNo=' + empNo).then(res => res.json()).then(emp => {
             if (!emp || !emp.USER_NAME) return div.innerHTML = '<span style="color:#e53e3e">❌ Không thấy!</span>';
             div.innerHTML = `
-                    <div style="padding:15px; background:#f0fff4; border:1px solid #c6f6d5; border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
-                        <div><b>${emp.USER_NAME}</b> (${emp.EMPNO})<br/><small>${emp.DEPT_NAME}</small></div>
-                        <button onclick="addUserHR('${emp.EMPNO}')" style="background:#48bb78; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">+ THÊM</button>
-                    </div>`;
+                <div style="padding:15px; background:#f0fff4; border:1px solid #c6f6d5; border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
+                    <div><b>${emp.USER_NAME}</b> (${emp.EMPNO})<br/><small>${emp.DEPT_NAME}</small></div>
+                    <button onclick="addUserHR('${emp.EMPNO}')" style="background:#48bb78; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">+ THÊM</button>
+                </div>`;
         });
     }
 

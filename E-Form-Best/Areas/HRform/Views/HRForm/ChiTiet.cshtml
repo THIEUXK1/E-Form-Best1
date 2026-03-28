@@ -8,205 +8,59 @@
     ViewData["Title"] = "Chi tiết đơn đăng ký HR";
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 
-    // --- 1. THÔNG TIN NGƯỜI DÙNG HIỆN TẠI ---
+    // ── 1. THÔNG TIN USER ──
     var currentUserName = User.Identity.Name ?? "";
-    
-    // Lấy Role: Ưu tiên Claim Role chuẩn, sau đó đến UserRole tự định nghĩa
-    var currentUserRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+    var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value
                           ?? User.FindFirst("UserRole")?.Value ?? "";
-
-    // Lấy ID người dùng từ NameIdentifier
-    var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     int currentUserId = 0;
-    if (!string.IsNullOrEmpty(userIdStr))
-    {
-        int.TryParse(userIdStr, out currentUserId);
-    }
+    if (!string.IsNullOrEmpty(userIdStr)) int.TryParse(userIdStr, out currentUserId);
 
-    // --- 2. LOGIC TRẠNG THÁI ĐƠN ---
+    var userEmailView = ViewBag.UserEmail as string ?? "";
+
+    // ── 2. TRẠNG THÁI ĐƠN ──
     bool isCancelled = (Model.TenForm != null && Model.TenForm.Contains("[ĐÃ HỦY]")) || Model.TrangThai == "Huy";
     bool isFinished = Model.IdAdmin != null || Model.TrangThai == "HoanTat" || Model.TrangThai == "DaXuLy";
     bool isApprovedByManager = Model.IdNguoiDuyet != null || Model.TrangThai == "DaDuyet";
 
-    // Thiết lập màu sắc và text hiển thị trạng thái
-    string statusColor = "#3b82f6";
-    string statusText = "CHỜ QUẢN LÝ";
+    string statusColor = "#3b82f6"; string statusText = "CHỜ QUẢN LÝ";
+    if (isCancelled) { statusColor = "#dc2626"; statusText = "ĐÃ HỦY"; }
+    else if (isFinished) { statusColor = "#059669"; statusText = "ĐÃ XỬ LÝ (HR)"; }
+    else if (isApprovedByManager) { statusColor = "#d97706"; statusText = "CHỜ HR XỬ LÝ"; }
 
-    if (isCancelled)
-    {
-        statusColor = "#dc2626";
-        statusText = "ĐÃ HỦY";
-    }
-    else if (isFinished)
-    {
-        statusColor = "#059669";
-        statusText = "ĐÃ XỬ LÝ (HR)";
-    }
-    else if (isApprovedByManager)
-    {
-        statusColor = "#d97706";
-        statusText = "CHỜ HR XỬ LÝ";
-    }
+    string headerGradient = "linear-gradient(135deg,#1e40af 0%,#3b82f6 100%)";
+    if (isCancelled) headerGradient = "linear-gradient(135deg,#991b1b 0%,#dc2626 100%)";
+    if (isFinished) headerGradient = "linear-gradient(135deg,#065f46 0%,#059669 100%)";
 
-    // Gradient cho Header
-    string headerGradient = "linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)";
-    if (isCancelled) headerGradient = "linear-gradient(135deg, #991b1b 0%, #dc2626 100%)";
-    if (isFinished) headerGradient = "linear-gradient(135deg, #065f46 0%, #059669 100%)";
-
-    // --- 3. XỬ LÝ FILE ĐÍNH KÈM & HÌNH ẢNH ---
+    // ── 3. FILE & ẢNH ──
     List<string> listImages = new List<string>();
-    string chiTietNoiDung = "";
-    string fileName = "";
-    string fileUrl = "";
-
+    string chiTietNoiDung = "", fileName = "", fileUrl = "";
     if (!string.IsNullOrEmpty(Model.FileDinhKem))
     {
         fileName = System.IO.Path.GetFileName(Model.FileDinhKem);
         fileUrl = "/FormHR/DownloadFile/" + Uri.EscapeDataString(fileName);
     }
 
-    // --- 4. HÀM HELPER RENDER ROW ---
+    // ── 4. HELPERS ──
     string RenderInfoRow(string icon, string label, string value, string bgColor, string textColor)
     {
         if (string.IsNullOrEmpty(value)) value = "---";
-        return $@"
-            <div style='margin-bottom:12px; display:flex; align-items:center; gap:12px; background:#fff; padding:14px; border-radius:16px; border:1.5px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
-                <span style='background:{bgColor}; width:42px; height:42px; display:flex; align-items:center; justify-content:center; border-radius:12px; font-size:20px;'>{icon}</span>
-                <div style='display:flex; flex-direction:column;'>
-                    <strong style='color:{textColor}; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px;'>{label}</strong>
-                    <span style='font-size:15px; color:#1e293b; font-weight:700;'>{value}</span>
-                </div>
-            </div>";
+        return $@"<div style='margin-bottom:12px;display:flex;align-items:center;gap:12px;background:#fff;padding:14px;border-radius:16px;border:1.5px solid #e2e8f0;box-shadow:0 2px 4px rgba(0,0,0,0.02);'>
+            <span style='background:{bgColor};width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:12px;font-size:20px;'>{icon}</span>
+            <div style='display:flex;flex-direction:column;'>
+                <strong style='color:{textColor};font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;'>{label}</strong>
+                <span style='font-size:15px;color:#1e293b;font-weight:700;'>{value}</span>
+            </div></div>";
     }
-
     string RenderSecurityBox(string bvTen, string tgThucTe, string note)
     {
-        string ten = string.IsNullOrEmpty(bvTen) ? "<span style='color:#94a3b8;'>Chưa xác nhận</span>" : $"<span style='color:#0f172a; font-weight:900;'>{bvTen}</span>";
-        string tg = string.IsNullOrEmpty(tgThucTe) ? "<span style='color:#94a3b8; font-style:italic;'>Chưa ghi nhận</span>" : $"<span style='color:#059669; font-weight:900;'>{tgThucTe}</span>";
-        return $@"<div style='margin-top:20px; padding:20px; background:#f8fafc; border-radius:20px; border:2.5px dashed #94a3b8;'>
-                    <h4 style='margin:0 0 15px 0; font-size:13px; color:#1e293b; font-weight:1000; text-transform:uppercase;'>🛡️ Xác nhận bảo vệ</h4>
-                    <div style='font-size:14px; margin-bottom:5px;'><strong>Trực ban:</strong> {ten}</div>
-                    <div style='font-size:14px;'><strong>Xác nhận {note}:</strong> {tg}</div>
-                  </div>";
+        string ten = string.IsNullOrEmpty(bvTen) ? "<span style='color:#94a3b8;'>Chưa xác nhận</span>" : $"<span style='color:#0f172a;font-weight:900;'>{bvTen}</span>";
+        string tg = string.IsNullOrEmpty(tgThucTe) ? "<span style='color:#94a3b8;font-style:italic;'>Chưa ghi nhận</span>" : $"<span style='color:#059669;font-weight:900;'>{tgThucTe}</span>";
+        return $@"<div style='margin-top:20px;padding:20px;background:#f8fafc;border-radius:20px;border:2.5px dashed #94a3b8;'>
+            <h4 style='margin:0 0 15px 0;font-size:13px;color:#1e293b;font-weight:900;text-transform:uppercase;'>🛡️ Xác nhận bảo vệ</h4>
+            <div style='font-size:14px;margin-bottom:5px;'><strong>Trực ban:</strong> {ten}</div>
+            <div style='font-size:14px;'><strong>Xác nhận {note}:</strong> {tg}</div></div>";
     }
-
-    // --- 5. PHÂN LOẠI DỮ LIỆU CHI TIẾT (9 LOẠI ĐƠN) ---
-
-    // 1. Đơn xin ra ngoài
-    if (Model.HrXinRaNgoai1s != null && Model.HrXinRaNgoai1s.Any())
-    {
-        var ct = Model.HrXinRaNgoai1s.First();
-        ProcessImage(ct.DuongDanAnh, ct.Anh);
-        chiTietNoiDung += RenderInfoRow("📍", "Địa điểm", ct.DiaDiem, "#eff6ff", "#1e40af");
-        chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#eff6ff", "#1e40af");
-        chiTietNoiDung += RenderInfoRow("🕒", "Giờ ra", ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy") ?? "---", "#fef2f2", "#991b1b");
-        chiTietNoiDung += RenderInfoRow("🔄", "Dự kiến về", ct.ThoiGianVeDuTinh?.ToString("HH:mm dd/MM/yyyy") ?? "---", "#ecfdf5", "#065f46");
-        chiTietNoiDung += RenderSecurityBox(ct.BaoVeTruc, ct.ThoiGianVao?.ToString("HH:mm dd/MM/yyyy"), "vào lại thực tế");
-    }
-
-    // 2. Mang hàng hóa ra cổng
-    if (Model.HrMangHangHoaRaCong2s != null && Model.HrMangHangHoaRaCong2s.Any())
-    {
-        var ct = Model.HrMangHangHoaRaCong2s.First();
-        ProcessImage(ct.DuongDanAnh, ct.Anh);
-        chiTietNoiDung += RenderInfoRow("📦", "Loại đơn", "Mang hàng hóa ra cổng", "#f0fdf4", "#166534");
-        chiTietNoiDung += RenderInfoRow("📋", "Mô tả", ct.MoTa, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("📅", "Thời gian dự tính", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#f0fdf4", "#166534");
-        chiTietNoiDung += RenderSecurityBox(ct.TenCong, ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "hàng ra thực tế");
-    }
-
-    // 3. Đăng ký xe công tác
-    if (Model.HrDangKySuDungXeCongTac3s != null && Model.HrDangKySuDungXeCongTac3s.Any())
-    {
-        var ct = Model.HrDangKySuDungXeCongTac3s.First();
-        ProcessImage(ct.DuongDanAnh, ct.Anh);
-        chiTietNoiDung += RenderInfoRow("🚗", "Dịch vụ", "Đăng ký xe công tác", "#eef2ff", "#1e40af");
-        chiTietNoiDung += RenderInfoRow("📅", "Thời gian", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#eff6ff", "#1e40af");
-        chiTietNoiDung += RenderInfoRow("💬", "Mục đích", ct.LiDo, "#f8fafc", "#0f172a");
-    }
-
-    // 4. Đăng ký xe Daily
-    if (Model.HrDangKySuDungXeDaily4s != null && Model.HrDangKySuDungXeDaily4s.Any())
-    {
-        var ct = Model.HrDangKySuDungXeDaily4s.First();
-        ProcessImage(ct.DuongDanAnh, ct.Anh);
-        chiTietNoiDung += RenderInfoRow("🚌", "Dịch vụ", "Đăng ký xe Daily", "#fff7ed", "#9a3412");
-        chiTietNoiDung += RenderInfoRow("🕒", "Thời gian", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy") ?? "---", "#fff7ed", "#9a3412");
-        chiTietNoiDung += RenderInfoRow("📍", "Điểm đón", ct.DiemDon, "#f0f9ff", "#0369a1");
-        chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#f8fafc", "#0f172a");
-    }
-
-    // 5. Đăng ký tiếp khách
-    if (Model.HrDonTiepKhac5s != null && Model.HrDonTiepKhac5s.Any())
-    {
-        var ct = Model.HrDonTiepKhac5s.First();
-        if (!string.IsNullOrEmpty(ct.DuongDanAnh))
-            listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
-
-        chiTietNoiDung += RenderInfoRow("🤝", "Loại đơn", "Đăng ký Tiếp khách", "#fdf2f8", "#9d174d");
-        chiTietNoiDung += RenderInfoRow("🏢", "Công ty khách", ct.TenCongTyKhach ?? "---", "#fff1f2", "#be123c");
-        chiTietNoiDung += RenderInfoRow("👥", "Số lượng", ct.SoLuongKhach?.ToString() + " người", "#fff1f2", "#be123c");
-        chiTietNoiDung += RenderInfoRow("📞", "Người đặt", $"{ct.NguoiBook} - {ct.SoMayBan}", "#fff1f2", "#be123c");
-        chiTietNoiDung += RenderInfoRow("📝", "Yêu cầu", ct.YeuCauTiepKhach ?? "---", "#f8fafc", "#475569");
-        chiTietNoiDung += RenderInfoRow("📅", "Ngày yêu cầu", Model.Ngay?.ToString("dd/MM/yyyy"), "#fff1f2", "#be123c");
-    }
-
-    // 6. Nhà thầu qua cổng
-    if (Model.HrNhaThauQuaCong6s != null && Model.HrNhaThauQuaCong6s.Any())
-    {
-        var ct = Model.HrNhaThauQuaCong6s.First();
-        ProcessImage(ct.DuongDanAnh, ct.Anh);
-        chiTietNoiDung += RenderInfoRow("🏗️", "Loại đơn", "Nhà thầu qua cổng", "#f1f5f9", "#334155");
-        chiTietNoiDung += RenderInfoRow("🏢", "Tên nhà thầu", ct.TenNhaThau, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("👥", "Số người", ct.SoNguoi?.ToString() + " người", "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("👤", "Người đăng ký", ct.NguoiDangKy, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDichCongViec, "#f8fafc", "#0f172a");
-    }
-
-    // 7. Hỗ trợ tiền điện thoại
-    if (Model.HrHoTroTienDienThoai7s != null && Model.HrHoTroTienDienThoai7s.Any())
-    {
-        var ct = Model.HrHoTroTienDienThoai7s.First();
-        ProcessImage(ct.DuongDanAnh, ct.Anh);
-        chiTietNoiDung += RenderInfoRow("📱", "Dịch vụ", "Hỗ trợ tiền điện thoại", "#f0fdf4", "#166534");
-        chiTietNoiDung += RenderInfoRow("👤", "Thông tin NV", ct.ThongTinNhanVien, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("💰", "Mức hỗ trợ", ct.MucHoTro?.ToString("N0") + " VNĐ", "#fff7ed", "#9a3412");
-        chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDich, "#f8fafc", "#0f172a");
-    }
-
-    // 8. Đổi ca làm việc
-    if (Model.HrDoiCaLam8s != null && Model.HrDoiCaLam8s.Any())
-    {
-        var ct = Model.HrDoiCaLam8s.First();
-        ProcessImage(ct.DuongDanAnh, ct.Anh);
-        chiTietNoiDung += RenderInfoRow("⏰", "Loại đơn", "Đổi ca làm việc", "#fff7ed", "#c2410c");
-        chiTietNoiDung += RenderInfoRow("📅", "Ngày cần đổi", ct.NgayCanDoi?.ToString("dd/MM/yyyy"), "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("🔄", "Ca gốc", ct.CaGoc, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("➡️", "Ca muốn đổi", ct.CaMuonDoi, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LyDoDoiCa, "#f8fafc", "#0f172a");
-    }
-
-    // 9. Hỗ trợ công tác
-    if (Model.HrDonHoTroCongTac9s != null && Model.HrDonHoTroCongTac9s.Any())
-    {
-        var ct = Model.HrDonHoTroCongTac9s.First();
-        if (!string.IsNullOrEmpty(ct.DuongDanAnh))
-            listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
-
-        chiTietNoiDung += RenderInfoRow("✈️", "Loại đơn", "Hỗ trợ công tác", "#eef2ff", "#1e40af");
-        chiTietNoiDung += RenderInfoRow("👤", "Mã NV", ct.MaNhanVien, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("🏢", "Tên khách hàng", ct.TenKhachHang, "#f8fafc", "#0f172a");
-        
-        string dichVu = "";
-        if (ct.DatVeMayBay == true) dichVu += "✈️ Đặt vé máy bay ";
-        if (ct.DatChoO == true) dichVu += "🏨 Đặt chỗ ở ";
-        if (ct.BookXeCtyDuaDon == true) dichVu += "🚗 Book xe đưa đón ";
-        if (ct.DatBuaAn == true) dichVu += "🍽️ Đặt bữa ăn ";
-        
-        chiTietNoiDung += RenderInfoRow("📋", "Dịch vụ", dichVu, "#fff7ed", "#9a3412");
-        chiTietNoiDung += RenderInfoRow("📝", "Nội dung", ct.NoiDungYeuCauChiTiet, "#f8fafc", "#0f172a");
-    }
-
     void ProcessImage(string path, byte[] rawData)
     {
         if (!string.IsNullOrEmpty(path))
@@ -214,86 +68,182 @@
         else if (rawData != null && rawData.Length > 0)
             listImages.Add("data:image/png;base64," + Convert.ToBase64String(rawData));
     }
+
+    // ── 5. NỘI DUNG 9 LOẠI ĐƠN ──
+    if (Model.HrXinRaNgoai1s?.Any() == true)
+    {
+        var ct = Model.HrXinRaNgoai1s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
+        chiTietNoiDung += RenderInfoRow("📍", "Địa điểm", ct.DiaDiem, "#eff6ff", "#1e40af");
+        chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#eff6ff", "#1e40af");
+        chiTietNoiDung += RenderInfoRow("🕒", "Giờ ra", ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "#fef2f2", "#991b1b");
+        chiTietNoiDung += RenderInfoRow("🔄", "Dự kiến về", ct.ThoiGianVeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#ecfdf5", "#065f46");
+        chiTietNoiDung += RenderSecurityBox(ct.BaoVeTruc, ct.ThoiGianVao?.ToString("HH:mm dd/MM/yyyy"), "vào lại thực tế");
+    }
+    if (Model.HrMangHangHoaRaCong2s?.Any() == true)
+    {
+        var ct = Model.HrMangHangHoaRaCong2s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
+        chiTietNoiDung += RenderInfoRow("📦", "Loại đơn", "Mang hàng hóa ra cổng", "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("📋", "Mô tả", ct.MoTa, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("📅", "Thời gian dự tính", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderSecurityBox(ct.TenCong, ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "hàng ra thực tế");
+    }
+    if (Model.HrDangKySuDungXeCongTac3s?.Any() == true)
+    {
+        var ct = Model.HrDangKySuDungXeCongTac3s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
+        chiTietNoiDung += RenderInfoRow("🚗", "Dịch vụ", "Đăng ký xe công tác", "#eef2ff", "#1e40af");
+        chiTietNoiDung += RenderInfoRow("📅", "Thời gian", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#eff6ff", "#1e40af");
+        chiTietNoiDung += RenderInfoRow("💬", "Mục đích", ct.LiDo, "#f8fafc", "#0f172a");
+    }
+    if (Model.HrDangKySuDungXeDaily4s?.Any() == true)
+    {
+        var ct = Model.HrDangKySuDungXeDaily4s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
+        chiTietNoiDung += RenderInfoRow("🚌", "Dịch vụ", "Đăng ký xe Daily", "#fff7ed", "#9a3412");
+        chiTietNoiDung += RenderInfoRow("🕒", "Thời gian", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#fff7ed", "#9a3412");
+        chiTietNoiDung += RenderInfoRow("📍", "Điểm đón", ct.DiemDon, "#f0f9ff", "#0369a1");
+        chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#f8fafc", "#0f172a");
+    }
+    if (Model.HrDonTiepKhac5s?.Any() == true)
+    {
+        var ct = Model.HrDonTiepKhac5s.First();
+        if (!string.IsNullOrEmpty(ct.DuongDanAnh)) listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
+        chiTietNoiDung += RenderInfoRow("🤝", "Loại đơn", "Đăng ký Tiếp khách", "#fdf2f8", "#9d174d");
+        chiTietNoiDung += RenderInfoRow("🏢", "Công ty khách", ct.TenCongTyKhach, "#fff1f2", "#be123c");
+        chiTietNoiDung += RenderInfoRow("👥", "Số lượng", ct.SoLuongKhach?.ToString() + " người", "#fff1f2", "#be123c");
+        chiTietNoiDung += RenderInfoRow("📞", "Người đặt", $"{ct.NguoiBook} - {ct.SoMayBan}", "#fff1f2", "#be123c");
+        chiTietNoiDung += RenderInfoRow("📝", "Yêu cầu", ct.YeuCauTiepKhach, "#f8fafc", "#475569");
+        chiTietNoiDung += RenderInfoRow("📅", "Ngày yêu cầu", Model.Ngay?.ToString("dd/MM/yyyy"), "#fff1f2", "#be123c");
+    }
+    if (Model.HrNhaThauQuaCong6s?.Any() == true)
+    {
+        var ct = Model.HrNhaThauQuaCong6s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
+        chiTietNoiDung += RenderInfoRow("🏗️", "Loại đơn", "Nhà thầu qua cổng", "#f1f5f9", "#334155");
+        chiTietNoiDung += RenderInfoRow("🏢", "Tên nhà thầu", ct.TenNhaThau, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("👥", "Số người", ct.SoNguoi?.ToString() + " người", "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("👤", "Người đăng ký", ct.NguoiDangKy, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDichCongViec, "#f8fafc", "#0f172a");
+    }
+    if (Model.HrHoTroTienDienThoai7s?.Any() == true)
+    {
+        var ct = Model.HrHoTroTienDienThoai7s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
+        chiTietNoiDung += RenderInfoRow("📱", "Dịch vụ", "Hỗ trợ tiền điện thoại", "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("👤", "Thông tin NV", ct.ThongTinNhanVien, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("💰", "Mức hỗ trợ", ct.MucHoTro?.ToString("N0") + " VNĐ", "#fff7ed", "#9a3412");
+        chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDich, "#f8fafc", "#0f172a");
+    }
+    if (Model.HrDoiCaLam8s?.Any() == true)
+    {
+        var ct = Model.HrDoiCaLam8s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
+        chiTietNoiDung += RenderInfoRow("⏰", "Loại đơn", "Đổi ca làm việc", "#fff7ed", "#c2410c");
+        chiTietNoiDung += RenderInfoRow("📅", "Ngày cần đổi", ct.NgayCanDoi?.ToString("dd/MM/yyyy"), "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🔄", "Ca gốc", ct.CaGoc, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("➡️", "Ca muốn đổi", ct.CaMuonDoi, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LyDoDoiCa, "#f8fafc", "#0f172a");
+    }
+    if (Model.HrDonHoTroCongTac9s?.Any() == true)
+    {
+        var ct = Model.HrDonHoTroCongTac9s.First();
+        if (!string.IsNullOrEmpty(ct.DuongDanAnh)) listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
+        chiTietNoiDung += RenderInfoRow("✈️", "Loại đơn", "Hỗ trợ công tác", "#eef2ff", "#1e40af");
+        chiTietNoiDung += RenderInfoRow("👤", "Mã NV", ct.MaNhanVien, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🏢", "Tên khách hàng", ct.TenKhachHang, "#f8fafc", "#0f172a");
+        string dichVu = "";
+        if (ct.DatVeMayBay == true) dichVu += "✈️ Đặt vé máy bay ";
+        if (ct.DatChoO == true) dichVu += "🏨 Đặt chỗ ở ";
+        if (ct.BookXeCtyDuaDon == true) dichVu += "🚗 Book xe đưa đón ";
+        if (ct.DatBuaAn == true) dichVu += "🍽️ Đặt bữa ăn ";
+        chiTietNoiDung += RenderInfoRow("📋", "Dịch vụ", dichVu, "#fff7ed", "#9a3412");
+        chiTietNoiDung += RenderInfoRow("📝", "Nội dung", ct.NoiDungYeuCauChiTiet, "#f8fafc", "#0f172a");
+    }
+
+    // ── 6. DỮ LIỆU XÁC NHẬN GIÁM ĐỐC ──
+    var danhSachXacNhan = ViewBag.DanhSachXacNhan as List<E_Form_Best.Models.ITForm.HrNguoiXacNhan>
+                          ?? new List<E_Form_Best.Models.ITForm.HrNguoiXacNhan>();
+    var myXacNhan = danhSachXacNhan
+        .FirstOrDefault(x => x.IdnguoiXacNhanNavigation?.MaNv == userEmailView
+                           && x.TrangThaiXacNhan == 0);
+    int soNguoiDaDuyet = danhSachXacNhan.Count(x => x.TrangThaiXacNhan == 1);
 }
 
 @Html.AntiForgeryToken()
 
-<div style="max-width: 1200px; margin: 0 auto; padding: 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc;">
-    <div style="margin-bottom: 25px;">
-        <a href="/FormHR/DonCho" style="display: inline-flex; align-items: center; gap: 10px; padding: 12px 24px; background: #ffffff; color: #1e40af; text-decoration: none; border-radius: 12px; font-weight: 800; border: 2px solid #e2e8f0; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 15px -3px rgba(0,0,0,0.15)';" onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.1)';">
+<div style="max-width:1200px;margin:0 auto;padding:25px;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#f8fafc;">
+    <div style="margin-bottom:25px;">
+        <a href="/FormHR/DonCho" style="display:inline-flex;align-items:center;gap:10px;padding:12px 24px;background:#fff;color:#1e40af;text-decoration:none;border-radius:12px;font-weight:800;border:2px solid #e2e8f0;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
             <i class="fa fa-arrow-left"></i> DANH SÁCH PHIẾU
         </a>
     </div>
 
-    <div style="background: white; border-radius: 30px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #f1f5f9;">
+    <div style="background:white;border-radius:30px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.1);overflow:hidden;border:1px solid #f1f5f9;">
 
         <!-- HEADER -->
-        <div style="background: @headerGradient; padding: 50px 40px; color: white; position: relative;">
-            <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
+        <div style="background:@headerGradient;padding:50px 40px;color:white;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;">
                 <div>
-                    <span style="background: rgba(255,255,255,0.25); padding: 8px 20px; border-radius: 50px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; backdrop-filter: blur(4px);">Mã số: #@Model.Id</span>
-                    <h1 style="margin: 20px 0 10px 0; font-size: 36px; font-weight: 900; letter-spacing: -0.025em; line-height: 1.2;">@Model.TenForm</h1>
-                    <div style="display: flex; align-items: center; gap: 15px; opacity: 0.95; font-weight: 500; font-size: 15px; flex-wrap:wrap;">
+                    <span style="background:rgba(255,255,255,0.25);padding:8px 20px;border-radius:50px;font-size:13px;font-weight:800;text-transform:uppercase;">Mã số: #@Model.Id</span>
+                    <h1 style="margin:20px 0 10px 0;font-size:32px;font-weight:900;line-height:1.2;">@Model.TenForm</h1>
+                    <div style="display:flex;align-items:center;gap:15px;opacity:0.95;font-size:14px;flex-wrap:wrap;">
                         <span><i class="fa fa-calendar-alt"></i> @Model.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm")</span>
-                        <span style="width: 4px; height: 4px; background: white; border-radius: 50%;"></span>
+                        <span style="width:4px;height:4px;background:white;border-radius:50%;"></span>
                         <span><i class="fa fa-user"></i> @Model.TenNguoiTao</span>
                     </div>
                 </div>
-                <div style="background: white; padding: 20px 35px; border-radius: 24px; text-align: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
-                    <div style="font-size: 12px; font-weight: 900; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px;">Trạng thái</div>
-                    <div style="font-size: 22px; font-weight: 900; color: @statusColor">@statusText</div>
+                <div style="background:white;padding:20px 35px;border-radius:24px;text-align:center;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);">
+                    <div style="font-size:11px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:5px;letter-spacing:1px;">Trạng thái</div>
+                    <div style="font-size:20px;font-weight:900;color:@statusColor">@statusText</div>
                 </div>
             </div>
         </div>
 
         <!-- BODY -->
-        <div style="padding: 40px;">
-            <div style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 40px;">
+        <div style="padding:40px;">
+            <div style="display:grid;grid-template-columns:1.8fr 1.2fr;gap:40px;">
 
-                <!-- LEFT COLUMN -->
+                <!-- ═══════════════ LEFT COLUMN ═══════════════ -->
                 <div>
-                    <h3 style="margin: 0 0 25px 0; color: #1e293b; font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 12px;">
-                        <span style="width: 6px; height: 28px; background: #1e40af; border-radius: 10px;"></span> THÔNG TIN CHI TIẾT
+                    <h3 style="margin:0 0 25px 0;color:#1e293b;font-size:22px;font-weight:800;display:flex;align-items:center;gap:12px;">
+                        <span style="width:6px;height:28px;background:#1e40af;border-radius:10px;"></span> THÔNG TIN CHI TIẾT
                     </h3>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
-                        <div style="background: #ffffff; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px;">Mã nhân viên</small>
-                            <div style="font-weight: 700; color: #1e293b; font-size: 16px;">@Model.SoNhanVien</div>
+
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:15px;">
+                        <div style="background:#fff;padding:22px;border-radius:20px;border:1px solid #e2e8f0;">
+                            <small style="color:#64748b;font-weight:800;text-transform:uppercase;font-size:11px;display:block;margin-bottom:8px;">Mã nhân viên</small>
+                            <div style="font-weight:700;color:#1e293b;font-size:16px;">@Model.SoNhanVien</div>
                         </div>
-                        <div style="background: #ffffff; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px;">Bộ phận</small>
-                            <div style="font-weight: 700; color: #1e40af; font-size: 16px;">@Model.BoPhan</div>
+                        <div style="background:#fff;padding:22px;border-radius:20px;border:1px solid #e2e8f0;">
+                            <small style="color:#64748b;font-weight:800;text-transform:uppercase;font-size:11px;display:block;margin-bottom:8px;">Bộ phận</small>
+                            <div style="font-weight:700;color:#1e40af;font-size:16px;">@Model.BoPhan</div>
                         </div>
-                        <div style="background: #ffffff; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px;">Họ tên</small>
-                            <div style="font-weight: 700; color: #1e40af; font-size: 16px;">@Model.TenNguoiNv</div>
+                        <div style="background:#fff;padding:22px;border-radius:20px;border:1px solid #e2e8f0;">
+                            <small style="color:#64748b;font-weight:800;text-transform:uppercase;font-size:11px;display:block;margin-bottom:8px;">Họ tên</small>
+                            <div style="font-weight:700;color:#1e40af;font-size:16px;">@Model.TenNguoiNv</div>
                         </div>
                     </div>
 
-                    <div style="background: #f8fafc; padding: 30px; border-radius: 24px; margin-bottom: 40px; border: 1px solid #f1f5f9; line-height: 1.6; color: #334155; font-size: 16px;">
+                    <div style="background:#f8fafc;padding:30px;border-radius:24px;margin-bottom:40px;border:1px solid #f1f5f9;">
                         @Html.Raw(chiTietNoiDung)
                     </div>
 
-                    <h3 style="margin-bottom: 20px; color: #ea580c; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+                    <!-- ĐỘI NGŨ HR -->
+                    <h3 style="margin-bottom:20px;color:#ea580c;font-size:20px;font-weight:800;display:flex;align-items:center;gap:10px;">
                         <i class="fa fa-tools"></i> ĐỘI NGŨ HR HỖ TRỢ
                     </h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; margin-bottom: 35px;">
-                        @if (Model.HrCtNguoiHoTros != null && Model.HrCtNguoiHoTros.Any())
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;margin-bottom:35px;">
+                        @if (Model.HrCtNguoiHoTros?.Any() == true)
                         {
                             var currentSupport = Model.HrCtNguoiHoTros.OrderByDescending(x => x.Stt).First();
                             foreach (var hoTro in Model.HrCtNguoiHoTros.OrderBy(x => x.Stt))
                             {
-                                <div style="background: white; border: 2px solid #fed7aa; padding: 20px; border-radius: 22px; display: flex; align-items: center; gap: 15px; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-                                    <div style="background: #ffedd5; color: #9a3412; width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px;">
+                                <div style="background:white;border:2px solid #fed7aa;padding:20px;border-radius:22px;display:flex;align-items:center;gap:15px;position:relative;">
+                                    <div style="background:#ffedd5;color:#9a3412;width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;">
                                         @(hoTro.IdHrNguoiHoTroNavigation?.Ten?.Substring(0, 1).ToUpper() ?? "HR")
                                     </div>
                                     <div>
-                                        <div style="font-weight: 800; color: #9a3412; font-size: 16px;">@hoTro.IdHrNguoiHoTroNavigation?.Ten</div>
-                                        <div style="font-size: 13px; color: #c2410c; margin-top: 2px;">@hoTro.IdHrNguoiHoTroNavigation?.MaNv</div>
+                                        <div style="font-weight:800;color:#9a3412;font-size:16px;">@hoTro.IdHrNguoiHoTroNavigation?.Ten</div>
+                                        <div style="font-size:13px;color:#c2410c;margin-top:2px;">@hoTro.IdHrNguoiHoTroNavigation?.MaNv</div>
                                     </div>
                                     @if (hoTro.Id == currentSupport.Id)
                                     {
-                                        <span style="position:absolute; top:-12px; right:15px; background:#ea580c; color:white; font-size:10px; padding:4px 12px; border-radius:12px; font-weight:800; box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.3);">HIỆN TẠI</span>
+                                        <span style="position:absolute;top:-12px;right:15px;background:#ea580c;color:white;font-size:10px;padding:4px 12px;border-radius:12px;font-weight:800;">HIỆN TẠI</span>
                                     }
                                 </div>
                             }
@@ -302,12 +252,12 @@
 
                     @if ((User.IsInRole("All") || User.IsInRole("AdminHR")) && !isCancelled && !isFinished)
                     {
-                        <div style="background: #fff7ed; border: 2px dashed #fb923c; padding: 25px; border-radius: 24px; margin-bottom: 45px;">
-                            <p style="margin:0 0 15px 0; font-size:13px; font-weight:800; color:#9a3412; display: flex; align-items: center; gap: 8px;">
+                        <div style="background:#fff7ed;border:2px dashed #fb923c;padding:25px;border-radius:24px;margin-bottom:45px;">
+                            <p style="margin:0 0 15px 0;font-size:13px;font-weight:800;color:#9a3412;">
                                 <i class="fa fa-user-edit"></i> CHỈ ĐỊNH / THAY ĐỔI NGƯỜI HỖ TRỢ:
                             </p>
-                            <div style="display: flex; gap: 12px;">
-                                <select id="selectHR" style="flex: 1; padding: 14px; border-radius: 12px; border: 1px solid #fdba74; font-weight: 600; outline: none; background: white; font-size: 15px;">
+                            <div style="display:flex;gap:12px;">
+                                <select id="selectHR" style="flex:1;padding:14px;border-radius:12px;border:1px solid #fdba74;font-weight:600;background:white;font-size:15px;">
                                     <option value="">-- Chọn nhân viên HR --</option>
                                     @if (ViewBag.ListNguoiHoTro != null)
                                     {
@@ -317,32 +267,31 @@
                                         }
                                     }
                                 </select>
-                                <button onclick="changeSupporter()" style="background: #ea580c; color: white; border: none; padding: 0 30px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: all 0.2s; font-size: 15px;" onmouseover="this.style.background='#c2410c'" onmouseout="this.style.background='#ea580c'">
-                                    XÁC NHẬN
-                                </button>
+                                <button onclick="changeSupporter()" style="background:#ea580c;color:white;border:none;padding:0 30px;border-radius:12px;font-weight:800;cursor:pointer;font-size:15px;">XÁC NHẬN</button>
                             </div>
                         </div>
                     }
 
-                    <h3 style="margin-bottom: 25px; color: #1e293b; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+                    <!-- NHẬT KÝ -->
+                    <h3 style="margin-bottom:25px;color:#1e293b;font-size:20px;font-weight:800;display:flex;align-items:center;gap:10px;">
                         <i class="fa fa-history"></i> NHẬT KÝ THAO TÁC
                     </h3>
-                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 28px; padding: 35px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
-                        <div style="margin-left: 10px; border-left: 2px dashed #e2e8f0; padding-left: 30px;">
-                            @if (Model.LichSuFormHrs != null && Model.LichSuFormHrs.Any())
+                    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:28px;padding:35px;">
+                        <div style="margin-left:10px;border-left:2px dashed #e2e8f0;padding-left:30px;">
+                            @if (Model.LichSuFormHrs?.Any() == true)
                             {
                                 foreach (var ls in Model.LichSuFormHrs.OrderByDescending(x => x.Time))
                                 {
-                                    <div style="position: relative; margin-bottom: 30px;">
-                                        <div style="position: absolute; left: -41px; top: 0; width: 20px; height: 20px; background: white; border: 4px solid #3b82f6; border-radius: 50%; z-index: 1;"></div>
-                                        <div style="display: flex; justify-content: space-between; background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9;">
-                                            <div style="flex: 1;">
-                                                <div style="font-weight: 800; color: #1e293b; font-size: 15px; margin-bottom: 4px;">@ls.TieuDe</div>
-                                                <div style="color: #64748b; font-size: 14px; line-height: 1.6; white-space: pre-line;">@ls.Mota</div>
+                                    <div style="position:relative;margin-bottom:30px;">
+                                        <div style="position:absolute;left:-41px;top:0;width:20px;height:20px;background:white;border:4px solid #3b82f6;border-radius:50%;z-index:1;"></div>
+                                        <div style="display:flex;justify-content:space-between;background:#f8fafc;padding:20px;border-radius:20px;border:1px solid #f1f5f9;">
+                                            <div style="flex:1;">
+                                                <div style="font-weight:800;color:#1e293b;font-size:15px;margin-bottom:4px;">@ls.TieuDe</div>
+                                                <div style="color:#64748b;font-size:14px;line-height:1.6;white-space:pre-line;">@ls.Mota</div>
                                             </div>
-                                            <div style="text-align: right; min-width: 100px; margin-left: 15px; flex-shrink: 0;">
-                                                <div style="font-weight: 800; color: #3b82f6; font-size: 14px;">@ls.Time?.ToString("HH:mm")</div>
-                                                <div style="color: #94a3b8; font-size: 12px; margin-top: 2px;">@ls.Time?.ToString("dd/MM/yyyy")</div>
+                                            <div style="text-align:right;min-width:100px;margin-left:15px;flex-shrink:0;">
+                                                <div style="font-weight:800;color:#3b82f6;font-size:14px;">@ls.Time?.ToString("HH:mm")</div>
+                                                <div style="color:#94a3b8;font-size:12px;margin-top:2px;">@ls.Time?.ToString("dd/MM/yyyy")</div>
                                             </div>
                                         </div>
                                     </div>
@@ -352,508 +301,564 @@
                     </div>
                 </div>
 
-                <!-- RIGHT COLUMN -->
+                <!-- ═══════════════ RIGHT COLUMN ═══════════════ -->
                 <div>
-                    @if (listImages.Count > 0)
+                    <!-- ẢNH ĐÍNH KÈM -->
+                    @if (listImages.Any())
                     {
-                        <h3 style="margin-bottom: 20px; color: #0f172a; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                        <h3 style="margin-bottom:20px;color:#0f172a;font-size:18px;font-weight:800;display:flex;align-items:center;gap:8px;">
                             <i class="fa fa-image"></i> HÌNH ẢNH ĐÍNH KÈM
                         </h3>
                         foreach (var img in listImages)
                         {
-                            <div style="border: 2px solid #f1f5f9; border-radius: 24px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: #f8fafc; transition: all 0.3s ease;">
-                                <img src="@img" style="width: 100%; cursor: zoom-in; display: block; object-fit: cover; max-height: 300px;" onclick="openZoom(this.src)" />
+                            <div style="border:2px solid #f1f5f9;border-radius:24px;overflow:hidden;margin-bottom:20px;">
+                                <img src="@img" style="width:100%;cursor:zoom-in;display:block;object-fit:cover;max-height:300px;" onclick="openZoom(this.src)" />
                             </div>
                         }
                     }
 
+                    <!-- FILE TẢI VỀ -->
                     @if (!string.IsNullOrEmpty(fileUrl))
                     {
-                        <div style="background: #f0f9ff; border: 2px solid #bae6fd; padding: 22px; border-radius: 24px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 35px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-                            <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
-                                <i class="fa fa-file-download" style="font-size: 24px; color: #0369a1;"></i>
-                                <span style="font-size: 14px; font-weight: 800; color: #0369a1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@fileName</span>
+                        <div style="background:#f0f9ff;border:2px solid #bae6fd;padding:22px;border-radius:24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:25px;">
+                            <div style="display:flex;align-items:center;gap:12px;overflow:hidden;">
+                                <i class="fa fa-file-download" style="font-size:24px;color:#0369a1;"></i>
+                                <span style="font-size:14px;font-weight:800;color:#0369a1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@fileName</span>
                             </div>
-                            <a href="@fileUrl" download style="background: #0369a1; color: white; padding: 12px 24px; border-radius: 14px; font-weight: 800; text-decoration: none; font-size: 13px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(3, 105, 161, 0.3);" onmouseover="this.style.background='#075985'" onmouseout="this.style.background='#0369a1'">TẢI VỀ</a>
+                            <a href="@fileUrl" download style="background:#0369a1;color:white;padding:12px 24px;border-radius:14px;font-weight:800;text-decoration:none;font-size:13px;flex-shrink:0;">TẢI VỀ</a>
                         </div>
                     }
 
-                    <div style="background: #ffffff; padding: 30px; border-radius: 28px; border: 1px solid #e2e8f0; margin-bottom: 35px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);">
-                        <h4 style="margin: 0 0 25px 0; font-size: 15px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;">
+                    <!-- TIẾN TRÌNH XỬ LÝ -->
+                    <div style="background:#fff;padding:30px;border-radius:28px;border:1px solid #e2e8f0;margin-bottom:25px;">
+                        <h4 style="margin:0 0 25px 0;font-size:15px;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:8px;">
                             <i class="fa fa-tasks"></i> TIẾN TRÌNH XỬ LÝ
                         </h4>
-                        <div style="position: relative; padding-left: 30px; border-left: 2px solid #f1f5f9;">
-                            <div style="margin-bottom: 25px; position: relative;">
-                                <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: #059669; border: 3px solid white; box-shadow: 0 0 0 2px #059669;"></div>
-                                <div style="font-weight: 800; font-size: 15px; color: #1e293b;">Người tạo: @Model.TenNguoiTao</div>
-                                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@Model.TimeNguoiTao?.ToString("HH:mm dd/MM/yyyy")</div>
+                        <div style="position:relative;padding-left:30px;border-left:2px solid #f1f5f9;">
+                            <div style="margin-bottom:25px;position:relative;">
+                                <div style="position:absolute;left:-37px;top:0;width:14px;height:14px;border-radius:50%;background:#059669;border:3px solid white;box-shadow:0 0 0 2px #059669;"></div>
+                                <div style="font-weight:800;font-size:15px;color:#1e293b;">Người tạo: @Model.TenNguoiTao</div>
+                                <div style="font-size:13px;color:#64748b;margin-top:4px;">@Model.TimeNguoiTao?.ToString("HH:mm dd/MM/yyyy")</div>
                             </div>
-                            <div style="margin-bottom: 25px; position: relative;">
-                                <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: @(isApprovedByManager ? "#d97706" : "#cbd5e1"); border: 3px solid white; box-shadow: 0 0 0 2px @(isApprovedByManager ? "#d97706" : "#cbd5e1");"></div>
-                                <div style="font-weight: 800; font-size: 15px; color: #1e293b;">Quản lý: @(Model.TenNguoiDuyet ?? "---")</div>
-                                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@(Model.TimeNguoiDuyet?.ToString("HH:mm dd/MM/yyyy") ?? "Đang chờ duyệt...")</div>
+                            <div style="margin-bottom:25px;position:relative;">
+                                <div style="position:absolute;left:-37px;top:0;width:14px;height:14px;border-radius:50%;background:@(isApprovedByManager ? "#d97706" : "#cbd5e1");border:3px solid white;box-shadow:0 0 0 2px @(isApprovedByManager ? "#d97706" : "#cbd5e1");"></div>
+                                <div style="font-weight:800;font-size:15px;color:#1e293b;">Quản lý: @(Model.TenNguoiDuyet ?? "---")</div>
+                                <div style="font-size:13px;color:#64748b;margin-top:4px;">@(Model.TimeNguoiDuyet?.ToString("HH:mm dd/MM/yyyy") ?? "Đang chờ duyệt...")</div>
                             </div>
-                            <div style="position: relative;">
-                                <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: @(isFinished ? "#1e40af" : "#cbd5e1"); border: 3px solid white; box-shadow: 0 0 0 2px @(isFinished ? "#1e40af" : "#cbd5e1");"></div>
-                                <div style="font-weight: 800; font-size: 15px; color: #1e293b;">HR Xử lý: @(Model.TenAdmin ?? "---")</div>
-                                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@(Model.TimeAdmin?.ToString("HH:mm dd/MM/yyyy") ?? "Đang xử lý...")</div>
+                            <div style="position:relative;">
+                                <div style="position:absolute;left:-37px;top:0;width:14px;height:14px;border-radius:50%;background:@(isFinished ? "#1e40af" : "#cbd5e1");border:3px solid white;box-shadow:0 0 0 2px @(isFinished ? "#1e40af" : "#cbd5e1");"></div>
+                                <div style="font-weight:800;font-size:15px;color:#1e293b;">HR Xử lý: @(Model.TenAdmin ?? "---")</div>
+                                <div style="font-size:13px;color:#64748b;margin-top:4px;">@(Model.TimeAdmin?.ToString("HH:mm dd/MM/yyyy") ?? "Đang xử lý...")</div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- ══════════════════════════════════════════
+                         BLOCK XÁC NHẬN GIÁM ĐỐC
+                    ══════════════════════════════════════════ -->
+                    @if (danhSachXacNhan.Any())
+                    {
+                        <div style="background:#fff;border-radius:28px;border:1px solid #e9d5ff;overflow:hidden;margin-bottom:25px;box-shadow:0 10px 15px -3px rgba(124,58,237,0.06);">
+
+                            <!-- Header block -->
+                            <div style="background:linear-gradient(135deg,#faf5ff,#f3e8ff);padding:18px 25px;border-bottom:2px solid #e9d5ff;">
+                                <h4 style="margin:0;font-size:15px;font-weight:900;color:#6b21a8;display:flex;align-items:center;gap:10px;">
+                                    <i class="fa fa-user-tie"></i>
+                                    <span>XÁC NHẬN GIÁM ĐỐC</span>
+                                    <span style="background:#7c3aed;color:white;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:800;">
+                                        @soNguoiDaDuyet / @danhSachXacNhan.Count đã duyệt
+                                    </span>
+                                </h4>
+                            </div>
+
+                            <!-- Danh sách từng GĐ -->
+                            <div style="padding:20px;display:flex;flex-direction:column;gap:12px;">
+                                @foreach (var xn in danhSachXacNhan)
+                                {
+                                    var nguoi = xn.IdnguoiXacNhanNavigation;
+                                    int tt = xn.TrangThaiXacNhan ?? 0;
+
+                                    string cardBg, cardBorder, badgeBg, badgeText, badgeIcon;
+                                    switch (tt)
+                                    {
+                                        case 1:
+                                            cardBg = "#f0fdf4"; cardBorder = "#bbf7d0";
+                                            badgeBg = "#059669"; badgeText = "ĐÃ DUYỆT"; badgeIcon = "fa-check-circle";
+                                            break;
+                                        case 2:
+                                            cardBg = "#fff1f2"; cardBorder = "#fecaca";
+                                            badgeBg = "#dc2626"; badgeText = "TỪ CHỐI"; badgeIcon = "fa-times-circle";
+                                            break;
+                                        default:
+                                            cardBg = "#faf5ff"; cardBorder = "#e9d5ff";
+                                            badgeBg = "#7c3aed"; badgeText = "CHỜ DUYỆT"; badgeIcon = "fa-clock-o";
+                                            break;
+                                    }
+
+                                    <div id="xnCard-@xn.Id"
+                                         style="background:@cardBg;border:2px solid @cardBorder;border-radius:18px;padding:16px 18px;position:relative;transition:all 0.3s;">
+
+                                        <!-- Badge trạng thái -->
+                                        <span id="xnBadge-@xn.Id"
+                                              style="position:absolute;top:-11px;right:14px;background:@badgeBg;color:white;
+                                            font-size:10px;font-weight:800;padding:3px 12px;border-radius:12px;
+                                            box-shadow:0 2px 6px rgba(0,0,0,0.15);">
+                                            <i class="fa @badgeIcon"></i> @badgeText
+                                        </span>
+
+                                        <div style="display:flex;align-items:center;gap:14px;">
+                                            <!-- Avatar -->
+                                            <div style="width:46px;height:46px;border-radius:14px;flex-shrink:0;
+                                                background:linear-gradient(135deg,#7c3aed,#a855f7);
+                                                display:flex;align-items:center;justify-content:center;
+                                                color:white;font-weight:900;font-size:20px;">
+                                                @(nguoi?.HoTen?.Substring(0, 1).ToUpper() ?? "?")
+                                            </div>
+                                            <!-- Thông tin -->
+                                            <div style="flex:1;min-width:0;">
+                                                <div style="font-weight:800;color:#1e293b;font-size:15px;
+                                                    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                                    @nguoi?.HoTen
+                                                </div>
+                                                <div style="font-size:12px;color:#7c3aed;margin-top:2px;font-weight:600;">
+                                                    @nguoi?.ChucVu
+                                                    @if (!string.IsNullOrEmpty(nguoi?.PhongBan))
+                                                    {
+                                                        <span style="color:#94a3b8;"> · @nguoi.PhongBan</span>
+                                                    }
+                                                </div>
+                                                <!-- Thời gian duyệt -->
+                                                <div id="xnTime-@xn.Id">
+                                                    @if (xn.ThoiGianXacNhan.HasValue)
+                                                    {
+                                                        <div style="font-size:11px;color:#94a3b8;margin-top:3px;">
+                                                            <i class="fa fa-clock-o"></i>
+                                                            @xn.ThoiGianXacNhan.Value.ToString("HH:mm dd/MM/yyyy")
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <!-- Ghi chú -->
+                                                @if (!string.IsNullOrEmpty(xn.GhiChu))
+                                                {
+                                                    <div id="xnGhiChu-@xn.Id"
+                                                         style="margin-top:6px;padding:5px 10px;background:rgba(255,255,255,0.7);
+                                                        border-radius:8px;font-size:11px;color:#475569;
+                                                        border-left:3px solid @badgeBg;font-style:italic;">
+                                                        <i class="fa fa-comment"></i> @xn.GhiChu
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div id="xnGhiChu-@xn.Id"></div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- NÚT DUYỆT: chỉ hiện nếu user là GĐ của đơn này và chưa xác nhận -->
+                            @if (myXacNhan != null && !isCancelled)
+                            {
+                                <div style="padding:0 20px 20px 20px;">
+                                    <div style="background:#faf5ff;border:2px dashed #c4b5fd;border-radius:18px;padding:20px;">
+                                        <p style="margin:0 0 12px 0;font-size:13px;font-weight:800;color:#6b21a8;display:flex;align-items:center;gap:8px;">
+                                            <i class="fa fa-pen"></i> HÀNH ĐỘNG CỦA BẠN:
+                                        </p>
+                                        <textarea id="txtGhiChuXacNhan"
+                                                  placeholder="Ghi chú (tùy chọn)..."
+                                                  style="width:100%;padding:10px 12px;border:1.5px solid #ddd6fe;border-radius:10px;
+                                        font-size:13px;resize:vertical;min-height:60px;outline:none;
+                                        font-family:'Segoe UI',sans-serif;box-sizing:border-box;margin-bottom:12px;transition:border 0.2s;"
+                                                  onfocus="this.style.borderColor='#7c3aed'"
+                                                  onblur="this.style.borderColor='#ddd6fe'"></textarea>
+                                        <div style="display:flex;gap:10px;">
+                                            <button id="btnXnDuyet"
+                                                    onclick="giamDocXacNhan(@myXacNhan.Id, 'Approve')"
+                                                    style="flex:1;padding:13px;background:#059669;color:white;border:none;
+                                                border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;
+                                                box-shadow:0 4px 10px rgba(5,150,105,0.3);transition:all 0.2s;"
+                                                    onmouseover="this.style.transform='translateY(-2px)'"
+                                                    onmouseout="this.style.transform=''">
+                                                <i class="fa fa-check"></i> DUYỆT
+                                            </button>
+                                            <button id="btnXnTuChoi"
+                                                    onclick="giamDocXacNhan(@myXacNhan.Id, 'Reject')"
+                                                    style="flex:1;padding:13px;background:white;color:#dc2626;
+                                                border:2px solid #dc2626;border-radius:12px;font-weight:800;
+                                                cursor:pointer;font-size:14px;transition:all 0.2s;"
+                                                    onmouseover="this.style.background='#fef2f2';this.style.transform='translateY(-2px)'"
+                                                    onmouseout="this.style.background='white';this.style.transform=''">
+                                                <i class="fa fa-times"></i> TỪ CHỐI
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    <!-- ══ KẾT THÚC BLOCK GIÁM ĐỐC ══ -->
+                    <!-- NÚT HÀNH ĐỘNG ĐƠN -->
                     @if (!isCancelled && !isFinished)
                     {
-                        <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div style="display:flex;flex-direction:column;gap:15px;margin-bottom:25px;">
                             @if (!isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminHR") || User.IsInRole("QuanLyDuyetDonHR")))
                             {
-                                <button id="btnDuyet" onclick="handleAction('Duyet')" style="background: #059669; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(5, 150, 105, 0.4)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(5, 150, 105, 0.3)'">
+                                <button id="btnDuyet" onclick="handleAction('Duyet')"
+                                        style="background:#059669;color:white;border:none;padding:20px;border-radius:18px;
+                                    font-weight:900;cursor:pointer;font-size:16px;
+                                    box-shadow:0 10px 15px -3px rgba(5,150,105,0.3);transition:all 0.2s;"
+                                        onmouseover="this.style.transform='translateY(-2px)'"
+                                        onmouseout="this.style.transform=''">
                                     <i class="fa fa-check-circle"></i> DUYỆT ĐƠN (QUẢN LÝ)
                                 </button>
                             }
                             @if (isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminHR")))
                             {
-                                <button id="btnHoanThanh" onclick="handleXacNhanHoanThanh()" style="background: #1e40af; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(30, 64, 175, 0.4)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(30, 64, 175, 0.3)'">
+                                <button id="btnHoanThanh" onclick="handleXacNhanHoanThanh()"
+                                        style="background:#1e40af;color:white;border:none;padding:20px;border-radius:18px;
+                                    font-weight:900;cursor:pointer;font-size:16px;
+                                    box-shadow:0 10px 15px -3px rgba(30,64,175,0.3);transition:all 0.2s;"
+                                        onmouseover="this.style.transform='translateY(-2px)'"
+                                        onmouseout="this.style.transform=''">
                                     <i class="fa fa-star"></i> XÁC NHẬN HOÀN TẤT (HR)
                                 </button>
                             }
                             @if (User.IsInRole("All") || User.IsInRole("AdminHR") || User.IsInRole("QuanLyDuyetDonHR"))
                             {
-                                <button id="btnHuy" onclick="handleAction('Huy')" style="background: white; color: #dc2626; border: 2px solid #dc2626; padding: 18px; border-radius: 18px; font-weight: 800; cursor: pointer; font-size: 15px; transition: all 0.2s;" onmouseover="this.style.background='#fef2f2'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='white'; this.style.transform=''">
+                                <button id="btnHuy" onclick="handleAction('Huy')"
+                                        style="background:white;color:#dc2626;border:2px solid #dc2626;padding:18px;
+                                    border-radius:18px;font-weight:800;cursor:pointer;font-size:15px;transition:all 0.2s;"
+                                        onmouseover="this.style.background='#fef2f2';this.style.transform='translateY(-2px)'"
+                                        onmouseout="this.style.background='white';this.style.transform=''">
                                     <i class="fa fa-times-circle"></i> HỦY ĐƠN PHIẾU
                                 </button>
                             }
                         </div>
                     }
 
-                    <!-- ========== BÌNH LUẬN ========== -->
-                    <div style="margin-top: 30px; background: #ffffff; border-radius: 28px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);">
-                        <div style="background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); padding: 20px 25px; border-bottom: 2px solid #e2e8f0;">
-                            <h4 style="margin: 0; font-size: 16px; font-weight: 900; color: #1e293b; display: flex; align-items: center; gap: 10px;">
+                    <!-- BÌNH LUẬN -->
+                    <div style="background:#fff;border-radius:28px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 10px 15px -3px rgba(0,0,0,0.04);">
+                        <div style="background:linear-gradient(135deg,#f8fafc,#fff);padding:20px 25px;border-bottom:2px solid #e2e8f0;">
+                            <h4 style="margin:0;font-size:16px;font-weight:900;color:#1e293b;display:flex;align-items:center;gap:10px;">
                                 <i class="fa fa-comments"></i>
                                 <span>BÌNH LUẬN</span>
-                                <span id="commentCount" style="background: #3b82f6; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;">0</span>
+                                <span id="commentCount" style="background:#3b82f6;color:white;padding:2px 10px;border-radius:12px;font-size:12px;">0</span>
                             </h4>
                         </div>
-
-                        <div id="commentList" style="max-height: 450px; overflow-y: auto; padding: 20px; background: #f8fafc; scrollbar-width: thin;">
-                            <div style="text-align: center; color: #94a3b8; padding: 20px;">
-                                <i class="fa fa-spinner fa-spin" style="font-size: 24px;"></i>
-                                <p style="margin-top: 10px; font-size: 14px;">Đang tải bình luận...</p>
+                        <div id="commentList" style="max-height:450px;overflow-y:auto;padding:20px;background:#f8fafc;scrollbar-width:thin;">
+                            <div style="text-align:center;color:#94a3b8;padding:20px;">
+                                <i class="fa fa-spinner fa-spin" style="font-size:24px;"></i>
+                                <p style="margin-top:10px;font-size:14px;">Đang tải bình luận...</p>
                             </div>
                         </div>
-
-                        <div style="padding: 20px; background: white; border-top: 2px solid #e2e8f0;">
+                        <div style="padding:20px;background:white;border-top:2px solid #e2e8f0;">
                             <form id="formBinhLuan" enctype="multipart/form-data">
-                                <textarea id="txtBinhLuan" name="noiDung" placeholder="Nhập bình luận của bạn..." style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; font-family: 'Segoe UI', sans-serif; box-sizing: border-box; margin-bottom: 12px;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
-                                
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <label for="fileBinhLuan" style="flex: 1; padding: 12px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; cursor: pointer; text-align: center; font-size: 14px; color: #64748b; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;" onmouseover="this.style.borderColor='#3b82f6'; this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'">
+                                <textarea id="txtBinhLuan" name="noiDung" placeholder="Nhập bình luận..."
+                                          style="width:100%;padding:12px;border:2px solid #e2e8f0;border-radius:12px;
+                                font-size:14px;resize:vertical;min-height:80px;outline:none;
+                                font-family:'Segoe UI',sans-serif;box-sizing:border-box;margin-bottom:12px;"
+                                          onfocus="this.style.borderColor='#3b82f6'"
+                                          onblur="this.style.borderColor='#e2e8f0'"></textarea>
+                                <div style="display:flex;align-items:center;gap:12px;">
+                                    <label for="fileBinhLuan"
+                                           style="flex:1;padding:12px;background:#f8fafc;border:2px dashed #cbd5e1;border-radius:12px;
+                                        cursor:pointer;text-align:center;font-size:14px;color:#64748b;font-weight:600;
+                                        display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;"
+                                           onmouseover="this.style.borderColor='#3b82f6';this.style.background='#eff6ff'"
+                                           onmouseout="this.style.borderColor='#cbd5e1';this.style.background='#f8fafc'">
                                         <i class="fa fa-paperclip"></i>
                                         <span id="fileLabel">Đính kèm file (max 50MB)</span>
-                                        <input type="file" id="fileBinhLuan" name="file" style="display: none;" onchange="updateFileLabel(this)">
+                                        <input type="file" id="fileBinhLuan" name="file" style="display:none;" onchange="updateFileLabel(this)">
                                     </label>
-                                    
-                                    <button type="submit" id="btnGuiBinhLuan" style="padding: 12px 30px; background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3); transition: all 0.2s; white-space: nowrap;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 15px -3px rgba(59, 130, 246, 0.4)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 6px -1px rgba(59, 130, 246, 0.3)'">
+                                    <button type="submit" id="btnGuiBinhLuan"
+                                            style="padding:12px 30px;background:linear-gradient(135deg,#3b82f6,#1e40af);color:white;
+                                        border:none;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;white-space:nowrap;"
+                                            onmouseover="this.style.transform='translateY(-2px)'"
+                                            onmouseout="this.style.transform=''">
                                         <i class="fa fa-paper-plane"></i> Gửi
                                     </button>
                                 </div>
                             </form>
                         </div>
                     </div>
-                </div>
+
+                </div><!-- end right column -->
             </div>
         </div>
     </div>
 
-    <div id="imageOverlay" onclick="closeZoom()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.95); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(8px);">
-        <img id="fullImage" src="" style="max-width:95%; max-height:95%; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.1);">
+    <!-- ZOOM OVERLAY -->
+    <div id="imageOverlay" onclick="closeZoom()"
+         style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+        background:rgba(15,23,42,0.95);z-index:9999;justify-content:center;
+        align-items:center;backdrop-filter:blur(8px);">
+        <img id="fullImage" src="" style="max-width:95%;max-height:95%;border-radius:16px;">
     </div>
 </div>
 
 <script>
-    // ==========================================
-    // 1. KHAI BÁO BIẾN CƠ BẢN & TRẠNG THÁI
-    // ==========================================
-    const formId = @Model.Id;
+    const formId       = @Model.Id;
     const currentUserId = '@currentUserId';
-
-    // --- LẤY DANH SÁCH ROLES DƯA VÀO BÊN IT ---
-    const userRoles = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList()
+    const userRoles    = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()
         ));
+    const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
-    // Biến trạng thái cho Bình luận
-    let currentSkipComment = 0;
-    const takeComment = 20;
-    let hasMoreComments = true;
-    let isLoadingComments = false;
-    let totalComments = 0;
-    let isSubmitting = false;
+    function hasRole(r) { return userRoles.includes(r); }
 
-    // Helper kiểm tra quyền nhanh trong JS
-    function hasRole(roleName) {
-        return userRoles.includes(roleName);
-    }
-
-    // ==========================================
-    // 2. HELPERS & UTILITIES
-    // ==========================================
     function escapeHtml(str) {
         if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                          .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
 
     async function apiPost(url, body, btnIds) {
-        if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = true; });
+        if (btnIds) btnIds.forEach(id => { const b=document.getElementById(id); if(b) b.disabled=true; });
         try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
-                },
+            const res  = await fetch(url, {
+                method:'POST',
+                headers:{'Content-Type':'application/json','RequestVerificationToken': TOKEN},
                 body: JSON.stringify(body)
             });
-            const data = await response.json();
-            if (data.success) {
-                alert(data.message || "Thành công!");
-                location.reload();
-            } else {
-                alert(data.message || "Thất bại");
-                if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; });
+            const data = await res.json();
+            if (data.success) { alert(data.message||'Thành công!'); location.reload(); }
+            else {
+                alert(data.message||'Thất bại');
+                if (btnIds) btnIds.forEach(id=>{ const b=document.getElementById(id); if(b) b.disabled=false; });
             }
-        } catch (err) {
-            alert("Lỗi kết nối máy chủ.");
-            if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; });
+        } catch(err) {
+            alert('Lỗi kết nối máy chủ.');
+            if (btnIds) btnIds.forEach(id=>{ const b=document.getElementById(id); if(b) b.disabled=false; });
         }
     }
 
-    // ==========================================
-    // 3. XỬ LÝ PHÓNG TO (ZOOM)
-    // ==========================================
-    function openZoom(src) {
-        document.getElementById('fullImage').src = src;
-        document.getElementById('imageOverlay').style.display = 'flex';
-    }
+    // ── ZOOM ──
+    function openZoom(src) { document.getElementById('fullImage').src=src; document.getElementById('imageOverlay').style.display='flex'; }
+    function closeZoom()   { document.getElementById('imageOverlay').style.display='none'; }
 
-    function closeZoom() {
-        document.getElementById('imageOverlay').style.display = 'none';
-    }
+    // ══════════════════════════════════════════
+    // XÁC NHẬN GIÁM ĐỐC (KHÔNG RELOAD — CẬP NHẬT DOM LUÔN)
+    // ══════════════════════════════════════════
+    async function giamDocXacNhan(idXacNhan, action) {
+        const ghiChu   = document.getElementById('txtGhiChuXacNhan')?.value?.trim() ?? '';
+        const label    = action === 'Approve' ? 'DUYỆT' : 'TỪ CHỐI';
 
-    // ==========================================
-    // 4. LOGIC BÌNH LUẬN (LOAD, THÊM, XÓA)
-    // ==========================================
-    async function taiBinhLuan(isLoadMore = false) {
-        if (isLoadingComments) return;
-        isLoadingComments = true;
+        if (!confirm(`Xác nhận ${label} đơn này?`)) return;
+
+        const btnD = document.getElementById('btnXnDuyet');
+        const btnR = document.getElementById('btnXnTuChoi');
+        if (btnD) btnD.disabled = true;
+        if (btnR) btnR.disabled = true;
 
         try {
-            const res = await fetch(`/FormHR/LayBinhLuan/${formId}?skip=${currentSkipComment}&take=${takeComment}`);
+            const res  = await fetch('/FormHR/GiamDocPheDuyet', {
+                method: 'POST',
+                headers: { 'Content-Type':'application/json', 'RequestVerificationToken': TOKEN },
+                body: JSON.stringify({
+                    idForm:         formId,
+                    idNguoiXacNhan: idXacNhan,
+                    loaiHanhDong:   action,
+                    lyDo:           ghiChu
+                })
+            });
             const data = await res.json();
 
             if (data.success) {
-                const commentList = document.getElementById('commentList');
-                
-                if (!isLoadMore) {
-                    commentList.innerHTML = '';
-                    currentSkipComment = 0;
-                    totalComments = 0;
+                // Cập nhật card UI không cần reload
+                const isApprove  = data.trangThai === 1;
+                const cardEl     = document.getElementById(`xnCard-${idXacNhan}`);
+                const badgeEl    = document.getElementById(`xnBadge-${idXacNhan}`);
+                const timeEl     = document.getElementById(`xnTime-${idXacNhan}`);
+                const ghiChuEl   = document.getElementById(`xnGhiChu-${idXacNhan}`);
+
+                if (cardEl) {
+                    cardEl.style.background   = isApprove ? '#f0fdf4' : '#fff1f2';
+                    cardEl.style.borderColor  = isApprove ? '#bbf7d0' : '#fecaca';
+                }
+                if (badgeEl) {
+                    badgeEl.style.background = isApprove ? '#059669' : '#dc2626';
+                    badgeEl.innerHTML        = isApprove
+                        ? '<i class="fa fa-check-circle"></i> ĐÃ DUYỆT'
+                        : '<i class="fa fa-times-circle"></i> TỪ CHỐI';
+                }
+                if (timeEl && data.thoiGian) {
+                    timeEl.innerHTML = `<div style="font-size:11px;color:#94a3b8;margin-top:3px;">
+                        <i class="fa fa-clock-o"></i> ${data.thoiGian}</div>`;
+                }
+                if (ghiChuEl && ghiChu) {
+                    const borderColor = isApprove ? '#059669' : '#dc2626';
+                    ghiChuEl.style.cssText = `margin-top:6px;padding:5px 10px;background:rgba(255,255,255,0.7);
+                        border-radius:8px;font-size:11px;color:#475569;border-left:3px solid ${borderColor};font-style:italic;`;
+                    ghiChuEl.innerHTML = `<i class="fa fa-comment"></i> ${escapeHtml(ghiChu)}`;
                 }
 
-                if (data.data.length === 0) {
-                    if (!isLoadMore) {
-                        commentList.innerHTML = `
-                            <div style="text-align: center; color: #94a3b8; padding: 40px;">
-                                <i class="fa fa-comment-o" style="font-size: 48px; opacity: 0.3; margin-bottom: 15px; display: block;"></i>
-                                <p style="font-style: italic; font-size: 14px; margin: 0;">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
-                            </div>
-                        `;
-                    }
-                    hasMoreComments = false;
-                } else {
-                    data.data.forEach(bl => {
-                        const commentHtml = renderComment(bl);
-                        if (isLoadMore) {
-                            commentList.insertAdjacentHTML('afterbegin', commentHtml);
-                        } else {
-                            commentList.insertAdjacentHTML('beforeend', commentHtml);
-                        }
-                        totalComments++;
-                    });
+                // Ẩn khung nút bấm sau khi đã xác nhận
+                const actionBox = document.getElementById('btnXnDuyet')?.closest('div[style*="dashed"]');
+                if (actionBox) actionBox.parentElement.style.display = 'none';
 
-                    currentSkipComment += data.data.length;
-                    if (data.data.length < takeComment) hasMoreComments = false;
+                // Cập nhật badge đếm (x/total đã duyệt)
+                const allBadges = document.querySelectorAll('[id^="xnBadge-"]');
+                const total     = allBadges.length;
+                const approved  = Array.from(allBadges).filter(b => b.innerHTML.includes('ĐÃ DUYỆT')).length;
+                const headerBadge = document.querySelector('.xn-header-count');
+                if (headerBadge) headerBadge.textContent = `${approved} / ${total} đã duyệt`;
 
-                    if (!isLoadMore) {
-                        setTimeout(() => {
-                            commentList.scrollTop = commentList.scrollHeight;
-                        }, 100);
-                    }
-                }
-
-                updateCommentCount();
+                alert(data.message);
+            } else {
+                alert(data.message || 'Thất bại');
+                if (btnD) btnD.disabled = false;
+                if (btnR) btnR.disabled = false;
             }
-        } catch (err) {
-            console.error('Lỗi tải bình luận:', err);
-            document.getElementById('commentList').innerHTML = `
-                <div style="text-align: center; color: #ef4444; padding: 40px;">
-                    <i class="fa fa-exclamation-circle" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
-                    <p style="font-size: 14px; margin: 0;">Lỗi khi tải bình luận. Vui lòng thử lại sau.</p>
-                </div>
-            `;
-        } finally {
-            isLoadingComments = false;
+        } catch(err) {
+            alert('Lỗi kết nối: ' + err.message);
+            if (btnD) btnD.disabled = false;
+            if (btnR) btnR.disabled = false;
         }
     }
 
-    function renderComment(bl) {
-        const isOwn = currentUserId === String(bl.idNguoiBinhLuan);
-        const isAdmin = hasRole('All') || hasRole('AdminHR');
-        const canDelete = isOwn || isAdmin;
-        
-        const time = new Date(bl.thoiGian);
-        const timeStr = time.toLocaleString('vi-VN', {
-            hour: '2-digit',
-            minute: '2-digit',
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-
-        let fileHtml = '';
-        if (bl.fileDinhKem) {
-            const originalName = bl.fileDinhKem.split('_').slice(2).join('_');
-            fileHtml = `
-                <div style="margin-top: 10px; padding: 10px; background: #f1f5f9; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;">
-                    <i class="fa fa-paperclip" style="color: #64748b;"></i>
-                    <a href="/FormHR/DownloadBinhLuanFile/${bl.fileDinhKem}" download style="color: #3b82f6; text-decoration: none; font-weight: 600; font-size: 13px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(originalName)}">
-                        ${escapeHtml(originalName)}
-                    </a>
-                </div>
-            `;
+    // ── NGHIỆP VỤ ĐƠN ──
+    function handleAction(type) {
+        let reason = null;
+        if (type === 'Huy') {
+            reason = prompt('Vui lòng nhập lý do hủy đơn:');
+            if (reason === null || reason.trim() === '') return;
         }
+        if (!hasRole('All') && !hasRole('AdminHR') && !hasRole('QuanLyDuyetDonHR'))
+            return alert('Bạn không có quyền thực hiện thao tác này!');
+        if (confirm('Xác nhận thao tác?'))
+            apiPost('/FormHR/XuLyDon', { id: formId, action: type, reason }, ['btnDuyet','btnHuy']);
+    }
+    function handleXacNhanHoanThanh() {
+        if (!hasRole('All') && !hasRole('AdminHR')) return alert('Chỉ HR Admin mới có quyền xác nhận hoàn tất!');
+        if (confirm('Xác nhận đã hoàn thành?'))
+            apiPost('/FormHR/XacNhanHoanThanh', { id: formId }, ['btnHoanThanh']);
+    }
+    function changeSupporter() {
+        const maNv = document.getElementById('selectHR').value;
+        if (!maNv) return alert('Vui lòng chọn một nhân viên HR!');
+        if (!hasRole('All') && !hasRole('AdminHR')) return alert('Bạn không có quyền gán người hỗ trợ!');
+        if (confirm('Xác nhận thay đổi người hỗ trợ?'))
+            apiPost('/FormHR/ThemNguoiHoTro', { idFormHr: formId, maNv });
+    }
 
-        const userInfo = `
-            <div style="display: flex; flex-direction: column; gap: 2px;">
-                <span style="font-weight: 800; color: #1e293b; font-size: 14px;">${escapeHtml(bl.tenNguoiBinhLuan || 'Unknown')}</span>
-                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                    ${bl.ma ? `<span style="font-size: 11px; color: #64748b;"><i class="fa fa-user"></i> ${escapeHtml(bl.ma)}</span>` : ''}
-                    ${bl.phongBan ? `<span style="font-size: 11px; color: #64748b;">• ${escapeHtml(bl.phongBan)}</span>` : ''}
-                    ${bl.tenCongTy ? `<span style="font-size: 11px; color: #64748b;">• ${escapeHtml(bl.tenCongTy)}</span>` : ''}
-                </div>
-            </div>
-        `;
+    // ── BÌNH LUẬN ──
+    let currentSkipComment=0, hasMoreComments=true, isLoadingComments=false, totalComments=0, isSubmitting=false;
+    const takeComment=20;
 
-        return `
-            <div style="margin-bottom: 15px; display: flex; gap: 12px; ${isOwn ? 'flex-direction: row-reverse;' : ''}" data-comment-id="${bl.id}">
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, ${isOwn ? '#3b82f6' : '#94a3b8'}, ${isOwn ? '#1e40af' : '#64748b'}); display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 16px; flex-shrink: 0;">
-                    ${(bl.tenNguoiBinhLuan || 'U').substring(0, 1).toUpperCase()}
-                </div>
-                <div style="flex: 1; ${isOwn ? 'text-align: right;' : ''}">
-                    <div style="display: inline-block; ${isOwn ? 'text-align: left;' : ''} max-width: 85%;">
-                        <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; ${isOwn ? 'justify-content: flex-end; flex-direction: row-reverse;' : ''}">
-                            ${userInfo}
-                            <div style="display: flex; align-items: center; gap: 6px; ${isOwn ? 'flex-direction: row-reverse;' : ''}">
-                                <span style="font-size: 11px; color: #94a3b8; white-space: nowrap;">${timeStr}</span>
-                                ${canDelete ? `<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" style="color: #ef4444; cursor: pointer; font-size: 12px;" title="Xóa"></i>` : ''}
-                            </div>
-                        </div>
-                        <div style="background: ${isOwn ? '#dbeafe' : 'white'}; padding: 12px 16px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                            ${bl.noiDung ? `<div style="color: #1e293b; font-size: 14px; line-height: 1.6; word-wrap: break-word; white-space: pre-wrap;">${escapeHtml(bl.noiDung)}</div>` : ''}
-                            ${fileHtml}
+    async function taiBinhLuan(isLoadMore=false) {
+        if (isLoadingComments) return;
+        isLoadingComments = true;
+        try {
+            const res  = await fetch(`/FormHR/LayBinhLuan/${formId}?skip=${currentSkipComment}&take=${takeComment}`);
+            const data = await res.json();
+            if (data.success) {
+                const list = document.getElementById('commentList');
+                if (!isLoadMore) { list.innerHTML=''; currentSkipComment=0; totalComments=0; }
+                if (!data.data.length) {
+                    if (!isLoadMore) list.innerHTML=`<div style="text-align:center;color:#94a3b8;padding:40px;">
+                        <i class="fa fa-comment-o" style="font-size:48px;opacity:0.3;display:block;margin-bottom:15px;"></i>
+                        <p style="font-style:italic;font-size:14px;margin:0;">Chưa có bình luận nào.</p></div>`;
+                    hasMoreComments=false;
+                } else {
+                    data.data.forEach(bl => {
+                        list.insertAdjacentHTML(isLoadMore?'afterbegin':'beforeend', renderComment(bl));
+                        totalComments++;
+                    });
+                    currentSkipComment += data.data.length;
+                    if (data.data.length < takeComment) hasMoreComments=false;
+                    if (!isLoadMore) setTimeout(()=>{ list.scrollTop=list.scrollHeight; },100);
+                }
+                updateCommentCount();
+            }
+        } catch(err) {
+            document.getElementById('commentList').innerHTML=`<div style="text-align:center;color:#ef4444;padding:40px;">Lỗi tải bình luận.</div>`;
+        } finally { isLoadingComments=false; }
+    }
+
+    function renderComment(bl) {
+        const isOwn   = currentUserId === String(bl.idNguoiBinhLuan);
+        const canDel  = isOwn || hasRole('All') || hasRole('AdminHR');
+        const time    = new Date(bl.thoiGian).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});
+        let fileHtml  = '';
+        if (bl.fileDinhKem) {
+            const name = bl.fileDinhKem.split('_').slice(2).join('_');
+            fileHtml = `<div style="margin-top:10px;padding:10px;background:#f1f5f9;border-radius:8px;display:inline-flex;align-items:center;gap:8px;">
+                <i class="fa fa-paperclip" style="color:#64748b;"></i>
+                <a href="/FormHR/DownloadBinhLuanFile/${bl.fileDinhKem}" download style="color:#3b82f6;text-decoration:none;font-weight:600;font-size:13px;">${escapeHtml(name)}</a></div>`;
+        }
+        return `<div style="margin-bottom:15px;display:flex;gap:12px;${isOwn?'flex-direction:row-reverse;':''}" data-comment-id="${bl.id}">
+            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,${isOwn?'#3b82f6':'#94a3b8'},${isOwn?'#1e40af':'#64748b'});display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0;">
+                ${(bl.tenNguoiBinhLuan||'U').substring(0,1).toUpperCase()}</div>
+            <div style="flex:1;${isOwn?'text-align:right;':''}">
+                <div style="display:inline-block;max-width:85%;">
+                    <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;${isOwn?'justify-content:flex-end;flex-direction:row-reverse;':''}">
+                        <div><span style="font-weight:800;color:#1e293b;font-size:14px;">${escapeHtml(bl.tenNguoiBinhLuan||'Unknown')}</span></div>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="font-size:11px;color:#94a3b8;">${time}</span>
+                            ${canDel?`<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" style="color:#ef4444;cursor:pointer;font-size:12px;"></i>`:''}
                         </div>
                     </div>
+                    <div style="background:${isOwn?'#dbeafe':'white'};padding:12px 16px;border-radius:16px;border:1px solid #e2e8f0;">
+                        ${bl.noiDung?`<div style="color:#1e293b;font-size:14px;line-height:1.6;word-wrap:break-word;white-space:pre-wrap;">${escapeHtml(bl.noiDung)}</div>`:''}
+                        ${fileHtml}
+                    </div>
                 </div>
-            </div>
-        `;
+            </div></div>`;
     }
 
     async function guiBinhLuan(e) {
         e.preventDefault();
         if (isSubmitting) return;
-        
         const noiDung = document.getElementById('txtBinhLuan').value.trim();
-        const fileInput = document.getElementById('fileBinhLuan');
-        const file = fileInput.files[0];
-
-        if (!noiDung && !file) {
-            alert('Vui lòng nhập nội dung hoặc đính kèm file!');
-            return false;
-        }
-
-        if (file && file.size > 50 * 1024 * 1024) {
-            alert('File không được vượt quá 50MB!');
-            return false;
-        }
-
-        const formData = new FormData();
-        formData.append('idForm', formId);
-        formData.append('noiDung', noiDung);
-        if (file) formData.append('file', file);
-
+        const file    = document.getElementById('fileBinhLuan').files[0];
+        if (!noiDung && !file) return alert('Vui lòng nhập nội dung hoặc đính kèm file!');
+        if (file && file.size > 50*1024*1024) return alert('File không được vượt quá 50MB!');
+        const fd = new FormData();
+        fd.append('idForm', formId); fd.append('noiDung', noiDung);
+        if (file) fd.append('file', file);
         const btn = document.getElementById('btnGuiBinhLuan');
-        isSubmitting = true;
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang gửi...';
-
+        isSubmitting=true; btn.disabled=true; btn.innerHTML='<i class="fa fa-spinner fa-spin"></i> Đang gửi...';
         try {
-            const res = await fetch('/FormHR/ThemBinhLuan', {
-                method: 'POST',
-                body: formData
-            });
+            const res  = await fetch('/FormHR/ThemBinhLuan',{method:'POST',body:fd});
             const data = await res.json();
-
             if (data.success) {
-                const commentList = document.getElementById('commentList');
-                if (commentList.innerHTML.includes('Chưa có bình luận')) {
-                    commentList.innerHTML = '';
-                }
-                commentList.insertAdjacentHTML('beforeend', renderComment(data.data));
-                
-                setTimeout(() => {
-                    commentList.scrollTop = commentList.scrollHeight;
-                }, 100);
-
+                const list = document.getElementById('commentList');
+                if (list.innerHTML.includes('Chưa có')) list.innerHTML='';
+                list.insertAdjacentHTML('beforeend', renderComment(data.data));
+                setTimeout(()=>{ list.scrollTop=list.scrollHeight; },100);
                 document.getElementById('formBinhLuan').reset();
-                document.getElementById('fileLabel').textContent = 'Đính kèm file (max 50MB)';
-                
-                totalComments++;
-                updateCommentCount();
-            } else {
-                alert(data.message || 'Lỗi khi gửi bình luận');
-            }
-        } catch (err) {
-            alert('Lỗi kết nối: ' + err.message);
-        } finally {
-            isSubmitting = false;
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa fa-paper-plane"></i> Gửi';
-        }
-
-        return false;
+                document.getElementById('fileLabel').textContent='Đính kèm file (max 50MB)';
+                totalComments++; updateCommentCount();
+            } else alert(data.message||'Lỗi');
+        } catch(err) { alert('Lỗi: '+err.message); }
+        finally { isSubmitting=false; btn.disabled=false; btn.innerHTML='<i class="fa fa-paper-plane"></i> Gửi'; }
     }
 
     async function xoaBinhLuan(id) {
-        if (!confirm('Bạn có chắc muốn xóa bình luận này?')) return;
-
-        try {
-            const res = await fetch('/FormHR/XoaBinhLuan', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id })
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                const commentElem = document.querySelector(`[data-comment-id="${id}"]`);
-                if (commentElem) commentElem.remove();
-
-                totalComments--;
-                updateCommentCount();
-
-                const commentList = document.getElementById('commentList');
-                if (commentList.children.length === 0) {
-                    commentList.innerHTML = `
-                        <div style="text-align: center; color: #94a3b8; padding: 40px;">
-                            <i class="fa fa-comment-o" style="font-size: 48px; opacity: 0.3; margin-bottom: 15px; display: block;"></i>
-                            <p style="font-style: italic; font-size: 14px; margin: 0;">Chưa có bình luận nào.</p>
-                        </div>
-                    `;
-                }
-            } else {
-                alert(data.message);
-            }
-        } catch (err) {
-            alert('Lỗi: ' + err.message);
-        }
+        if (!confirm('Xóa bình luận này?')) return;
+        const res  = await fetch('/FormHR/XoaBinhLuan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+        const data = await res.json();
+        if (data.success) {
+            document.querySelector(`[data-comment-id="${id}"]`)?.remove();
+            totalComments--; updateCommentCount();
+            if (!document.getElementById('commentList').children.length)
+                document.getElementById('commentList').innerHTML=`<div style="text-align:center;color:#94a3b8;padding:40px;">Chưa có bình luận nào.</div>`;
+        } else alert(data.message);
     }
 
     function updateFileLabel(input) {
-        const label = document.getElementById('fileLabel');
-        if (input.files.length > 0) {
-            const file = input.files[0];
-            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            label.textContent = `${file.name} (${sizeMB}MB)`;
-        } else {
-            label.textContent = 'Đính kèm file (max 50MB)';
-        }
+        const f=input.files[0];
+        document.getElementById('fileLabel').textContent = f ? `${f.name} (${(f.size/1024/1024).toFixed(2)}MB)` : 'Đính kèm file (max 50MB)';
     }
+    function updateCommentCount() { const e=document.getElementById('commentCount'); if(e) e.textContent=totalComments; }
 
-    function updateCommentCount() {
-        const countElem = document.getElementById('commentCount');
-        if (countElem) {
-            countElem.textContent = totalComments;
+    document.getElementById('commentList')?.addEventListener('scroll', function() {
+        if (this.scrollTop===0 && hasMoreComments && !isLoadingComments) {
+            const h=this.scrollHeight;
+            taiBinhLuan(true).then(()=>{ this.scrollTop=this.scrollHeight-h; });
         }
-    }
-
-    // ==========================================
-    // 5. XỬ LÝ NGHIỆP VỤ ĐƠN
-    // ==========================================
-    function handleAction(type) {
-        let reason = null;
-        if (type === 'Huy') {
-            reason = prompt("Vui lòng nhập lý do hủy đơn:");
-            if (reason === null || reason.trim() === "") return;
-        }
-
-        if (!hasRole('All') && !hasRole('AdminHR') && !hasRole('QuanLyDuyetDonHR')) {
-            return alert("Bạn không có quyền thực hiện thao tác này!");
-        }
-
-        if (confirm("Xác nhận thao tác?")) {
-            apiPost('/FormHR/XuLyDon', { id: formId, action: type, reason: reason }, ['btnDuyet', 'btnHuy']);
-        }
-    }
-
-    function handleXacNhanHoanThanh() {
-        if (!hasRole('All') && !hasRole('AdminHR')) {
-            return alert("Chỉ HR Admin mới có quyền xác nhận hoàn tất!");
-        }
-
-        if (confirm("Xác nhận đã hoàn thành công việc này?")) {
-            apiPost('/FormHR/XacNhanHoanThanh', { id: formId }, ['btnHoanThanh']);
-        }
-    }
-
-    function changeSupporter() {
-        const maNv = document.getElementById('selectHR').value;
-        if (!maNv) {
-            alert("Vui lòng chọn một nhân viên HR!");
-            return;
-        }
-
-        if (!hasRole('All') && !hasRole('AdminHR')) {
-            return alert("Bạn không có quyền gán người hỗ trợ!");
-        }
-
-        if (confirm("Bạn có chắc chắn muốn thay đổi người hỗ trợ cho đơn này?")) {
-            apiPost('/FormHR/ThemNguoiHoTro', { idFormHr: formId, maNv: maNv });
-        }
-    }
-
-    // ==========================================
-    // 6. KHỞI TẠO & XỬ LÝ SỰ KIỆN
-    // ==========================================
-    const commentListElem = document.getElementById('commentList');
-    if (commentListElem) {
-        commentListElem.addEventListener('scroll', function() {
-            if (this.scrollTop === 0 && hasMoreComments && !isLoadingComments) {
-                const scrollHeight = this.scrollHeight;
-                taiBinhLuan(true).then(() => {
-                    this.scrollTop = this.scrollHeight - scrollHeight;
-                });
-            }
-        });
-    }
-
-    document.getElementById('formBinhLuan')?.addEventListener('submit', guiBinhLuan);
-
-    document.addEventListener('DOMContentLoaded', function() {
-        taiBinhLuan(false);
     });
+    document.getElementById('formBinhLuan')?.addEventListener('submit', guiBinhLuan);
+    document.addEventListener('DOMContentLoaded', ()=>taiBinhLuan(false));
 </script>

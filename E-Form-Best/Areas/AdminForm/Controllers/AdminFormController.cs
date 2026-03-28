@@ -2,6 +2,7 @@
 using E_Form_Best.Models.ITForm;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -358,12 +359,21 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             if (!IsLoggedIn()) return Unauthorized();
 
             var allQuyen = _context.Quyens.ToList();
+
+            // Đảm bảo lấy trường MoTa từ bảng BoPhan
+            var allBoPhan = _context.BoPhans
+                .Select(b => new {
+                    b.IdBoPhan,
+                    b.TenBoPhan,
+                    b.MoTa // Trường bạn vừa yêu cầu hiển thị
+                })
+                .ToList();
+
             var userQuyenIds = _context.UserQuyens
                 .Where(uq => uq.IdNguoiDung == id)
                 .Select(uq => uq.IdQuyen)
                 .ToList();
 
-            var allBoPhan = _context.BoPhans.ToList();
             var userBoPhanIds = _context.UserBoPhans
                 .Where(ub => ub.IdNguoiDung == id)
                 .Select(ub => ub.IdBoPhan)
@@ -372,8 +382,8 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             return Json(new
             {
                 allQuyen,
-                userQuyenIds,
                 allBoPhan,
+                userQuyenIds,
                 userBoPhanIds
             });
         }
@@ -433,7 +443,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
 
         #endregion
 
-        #region QL người Hỗ trợ
+        #region QL người Hỗ trợ IT
         [HttpGet("/QLtaiKhoan/NguoiHoTro")]
         public IActionResult NguoiHoTro()
         {
@@ -479,6 +489,224 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             await _context.SaveChangesAsync();
             return Ok();
         }
+        #endregion
+
+        #region QL người Hỗ trợ HR
+        [HttpGet("/QLtaiKhoan/NguoiHoTroHR")]
+        public IActionResult NguoiHoTroHR()
+        {
+            if (!IsLoggedIn()) return Redirect("/QL");
+            return View();
+        }
+
+        [HttpGet("/QLtaiKhoan/GetAllNguoiHoTroHR")]
+        public IActionResult GetAllNguoiHoTroHR()
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            return Json(_context.HrNguoiHoTros.OrderByDescending(x => x.Id).ToList());
+        }
+
+        [HttpPost("/QLtaiKhoan/AddNguoiHoTroHR")]
+        public async Task<IActionResult> AddNguoiHoTroHR(HrNguoiHoTro model)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            if (string.IsNullOrEmpty(model.MaNv)) return BadRequest("Vui lòng nhập Mã nhân viên");
+
+            _context.HrNguoiHoTros.Add(model);
+            await _context.SaveChangesAsync();
+            return Ok(model);
+        }
+
+        [HttpPost("/QLtaiKhoan/UpdateNguoiHoTroHR")]
+        public async Task<IActionResult> UpdateNguoiHoTroHR(HrNguoiHoTro model)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+
+            var nht = await _context.HrNguoiHoTros.FindAsync(model.Id);
+            if (nht == null) return NotFound();
+
+            nht.MaNv = model.MaNv;
+            nht.Ten = model.Ten;
+            nht.BoPhan = model.BoPhan;
+            nht.GhiChu = model.GhiChu;
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpPost("/QLtaiKhoan/DeleteNguoiHoTroHR")]
+        public async Task<IActionResult> DeleteNguoiHoTroHR(int id)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+
+            var nht = await _context.HrNguoiHoTros.FindAsync(id);
+            if (nht == null) return NotFound();
+
+            _context.HrNguoiHoTros.Remove(nht);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+        #endregion
+
+        #region Quản lý Giám đốc - Loại Đơn & Người Xác Nhận
+
+        [HttpGet("/QLtaiKhoan/QLGiamDoc")]
+        public IActionResult QLGiamDoc()
+        {
+            if (!IsLoggedIn()) return Redirect("/QL");
+            return View();
+        }
+
+        // --- QUẢN LÝ LOẠI ĐƠN ---
+
+        [HttpGet("/QLGiamDoc/GetAllLoaiDon")]
+        public IActionResult GetAllLoaiDon()
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            return Json(_context.DmLoaiDons.OrderByDescending(x => x.IdloaiDon).ToList());
+        }
+
+        [HttpPost("/QLGiamDoc/SaveLoaiDon")]
+        public async Task<IActionResult> SaveLoaiDon(DmLoaiDon model)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            if (string.IsNullOrEmpty(model.MaLoaiDon)) return BadRequest("Vui lòng nhập Mã loại đơn");
+
+            if (model.IdloaiDon == 0)
+            {
+                model.NgayTao = DateTime.Now;
+                _context.DmLoaiDons.Add(model);
+            }
+            else
+            {
+                var exist = await _context.DmLoaiDons.FindAsync(model.IdloaiDon);
+                if (exist == null) return NotFound();
+                exist.MaLoaiDon = model.MaLoaiDon;
+                exist.TenLoaiDon = model.TenLoaiDon;
+                exist.MoTa = model.MoTa;
+                exist.TrangThai = model.TrangThai;
+            }
+            await _context.SaveChangesAsync();
+            return Ok(model);
+        }
+
+        [HttpPost("/QLGiamDoc/DeleteLoaiDon")]
+        public async Task<IActionResult> DeleteLoaiDon(int id)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            var item = await _context.DmLoaiDons.FindAsync(id);
+            if (item == null) return NotFound();
+
+            if (_context.DmNguoiXacNhanLoaiDons.Any(x => x.IdloaiDon == id))
+                return BadRequest("Loại đơn này đang có người xác nhận, không thể xóa.");
+
+            _context.DmLoaiDons.Remove(item);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        // --- QUẢN LÝ DANH MỤC NGƯỜI XÁC NHẬN ---
+
+        [HttpGet("/QLGiamDoc/GetAllNguoiXacNhan")]
+        public IActionResult GetAllNguoiXacNhan()
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            return Json(_context.DmNguoiXacNhans.OrderByDescending(x => x.IdnguoiXacNhan).ToList());
+        }
+
+        [HttpPost("/QLGiamDoc/SaveNguoiXacNhan")]
+        public async Task<IActionResult> SaveNguoiXacNhan(DmNguoiXacNhan model)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            if (string.IsNullOrEmpty(model.MaNv)) return BadRequest("Vui lòng nhập Mã nhân viên");
+
+            if (model.IdnguoiXacNhan == 0)
+            {
+                _context.DmNguoiXacNhans.Add(model);
+            }
+            else
+            {
+                var exist = await _context.DmNguoiXacNhans.FindAsync(model.IdnguoiXacNhan);
+                if (exist == null) return NotFound();
+                exist.MaNv = model.MaNv;
+                exist.HoTen = model.HoTen;
+                exist.Email = model.Email;
+                exist.PhongBan = model.PhongBan;
+                exist.ChucVu = model.ChucVu;
+                exist.TrangThai = model.TrangThai;
+            }
+            await _context.SaveChangesAsync();
+            return Ok(model);
+        }
+
+        [HttpPost("/QLGiamDoc/DeleteNguoiXacNhan")]
+        public async Task<IActionResult> DeleteNguoiXacNhan(int id)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            var item = await _context.DmNguoiXacNhans.FindAsync(id);
+            if (item == null) return NotFound();
+
+            if (_context.DmNguoiXacNhanLoaiDons.Any(x => x.IdnguoiXacNhan == id))
+                return BadRequest("Người này đang tham gia quy trình xác nhận, không thể xóa.");
+
+            _context.DmNguoiXacNhans.Remove(item);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        // --- QUẢN LÝ LIÊN KẾT (BƯỚC DUYỆT) ---
+
+        [HttpGet("/QLGiamDoc/GetCauHinhByLoaiDon")]
+        public IActionResult GetCauHinhByLoaiDon(int idLoaiDon)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            var list = _context.DmNguoiXacNhanLoaiDons
+                .Where(x => x.IdloaiDon == idLoaiDon)
+                .Include(x => x.IdnguoiXacNhanNavigation)
+                .OrderBy(x => x.CapDoXacNhan)
+                .Select(x => new {
+                    x.Idrel,
+                    x.IdloaiDon,
+                    x.IdnguoiXacNhan,
+                    x.CapDoXacNhan,
+                    x.GhiChu,
+                    TenNguoiXacNhan = x.IdnguoiXacNhanNavigation.HoTen
+                })
+                .ToList();
+            return Json(list);
+        }
+
+        [HttpPost("/QLGiamDoc/SaveCauHinh")]
+        public async Task<IActionResult> SaveCauHinh(DmNguoiXacNhanLoaiDon model)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            if (model.Idrel == 0)
+            {
+                _context.DmNguoiXacNhanLoaiDons.Add(model);
+            }
+            else
+            {
+                var exist = await _context.DmNguoiXacNhanLoaiDons.FindAsync(model.Idrel);
+                if (exist == null) return NotFound();
+                exist.IdnguoiXacNhan = model.IdnguoiXacNhan;
+                exist.CapDoXacNhan = model.CapDoXacNhan;
+                exist.GhiChu = model.GhiChu;
+            }
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpPost("/QLGiamDoc/DeleteCauHinh")]
+        public async Task<IActionResult> DeleteCauHinh(int idRel)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            var item = await _context.DmNguoiXacNhanLoaiDons.FindAsync(idRel);
+            if (item == null) return NotFound();
+            _context.DmNguoiXacNhanLoaiDons.Remove(item);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
         #endregion
 
         #region QL Công Việc
