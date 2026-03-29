@@ -28,6 +28,12 @@ public partial class HrNguoiXacNhan
 
     public string? GhiChu { get; set; }
 
+    [StringLength(50)]
+    public string? MaNguoiXacNhan { get; set; }
+
+    [StringLength(255)]
+    public string? TenNguoiXacNhan { get; set; }
+
     [ForeignKey("IdFormHr")]
     [InverseProperty("HrNguoiXacNhans")]
     public virtual FormHr IdFormHrNavigation { get; set; } = null!;

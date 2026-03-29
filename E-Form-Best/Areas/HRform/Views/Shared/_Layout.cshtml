@@ -129,7 +129,7 @@
                         <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> Nhật ký hệ thống
                     </a>
                 }
- @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonHR") || User.IsInRole("AdminHR") || User.IsInRole("All")))
+ @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonHR") || User.IsInRole("All")))
                 {
                     <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
                     <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Phê duyệt</div>
@@ -169,15 +169,47 @@
 
 }
 
-                @if (User.Identity.IsAuthenticated && (currentUserRole == "BaoVe" || currentUserRole == "Admin" || currentUserRole == "All"))
-                {
-                    <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-                    <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">An ninh & Cổng</div>
+              @* --- PHẦN KIỂM SOÁT BẢO VỆ (TỰ ĐỘNG) --- *@
+@if (User.Identity.IsAuthenticated)
+{
+    // Tự động lấy Role và Action ngay tại chỗ để không phụ thuộc biến bên ngoài
+    var userClaims = User.Claims.Select(c => c.Value.ToUpper()).ToList();
+    var currentUrl = ViewContext.HttpContext.Request.Path.ToString().ToUpper();
+    
+    // Kiểm tra nếu User có một trong các quyền bảo vệ hoặc quản trị
+@if (User.Identity.IsAuthenticated && (User.IsInRole("GiamDocHR") || User.IsInRole("All")|| User.IsInRole("BaoVeHR")))    {
+        <div style="height:1px; background:linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.12), rgba(255,255,255,0)); margin:20px 10px;"></div>
+        
+        <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.8px; margin: 0 0 12px 15px; font-weight: 800;">
+            AN NINH & CỔNG
+        </div>
 
-                    <a href="/FormHR/DanhSachBaoVe" style="display: flex; align-items: center; padding: 14px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; margin-bottom: 4px; transition: 0.3s; background: @(currentAction == "DanhSachBaoVe" ? "rgba(255,255,255,0.25)" : "transparent");">
-                        <i class="fa fa-shield" style="margin-right:12px; width:20px; color:#63b3ed;"></i> Kiểm soát ra vào
-                    </a>
-                }
+        <a href="/FormHR/BaoVePheDuyet" 
+           class="nav-link-item"
+           style="display: flex; align-items: center; padding: 12px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; margin: 0 8px 5px 8px; transition: all 0.3s ease; 
+                  background: @(currentUrl.Contains("DANHSACHBAOVE") ? "rgba(99, 179, 237, 0.15)" : "transparent");
+                  border: 1px solid @(currentUrl.Contains("DANHSACHBAOVE") ? "rgba(99, 179, 237, 0.3)" : "transparent");">
+            
+            <span style="position: relative; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: rgba(99, 179, 237, 0.1); border-radius: 8px; margin-right: 12px;">
+                <i class="fa fa-shield" style="color:#63b3ed; font-size: 1.1rem;"></i>
+            </span>
+            
+            <span style="flex-grow: 1; font-size: 0.9rem;">Kiểm soát ra vào</span>
+
+            @if (currentUrl.Contains("DANHSACHBAOVE"))
+            {
+                <div style="width: 6px; height: 6px; background: #63b3ed; border-radius: 50%; box-shadow: 0 0 8px #63b3ed;"></div>
+            }
+        </a>
+    }
+}
+
+<style>
+    .nav-link-item:hover {
+        background: rgba(255, 255, 255, 0.08) !important;
+        transform: translateX(4px);
+    }
+</style>
             </nav>
 
             <div style="margin-top:25px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 20px; position:relative; border: 1px solid rgba(255,255,255,0.05);">

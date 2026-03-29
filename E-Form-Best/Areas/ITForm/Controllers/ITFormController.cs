@@ -1559,40 +1559,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Forbid();
             }
 
-            bool hasAccess = false;
-
-            if (User.IsInRole("All"))
-            {
-                hasAccess = true;
-            }
-            else if (User.IsInRole("AdminIT"))
-            {
-                // AdminIT xem được nếu đơn đã duyệt VÀ (là Admin xử lý hoặc có tên trong danh sách hỗ trợ)
-                bool isSupporter = don.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation?.MaNv == userEmail);
-                if (don.IdNguoiDuyet != null && (don.IdAdmin == userId || isSupporter))
-                {
-                    hasAccess = true;
-                }
-            }
-            else if (User.IsInRole("QuanLyDuyetDonIT"))
-            {
-                // Quản lý xem được đơn mình tạo hoặc mình duyệt
-                if (don.IdNguoiTao == userId || don.IdNguoiDuyet == userId)
-                {
-                    hasAccess = true;
-                }
-            }
-            else
-            {
-                // User thường xem được đơn mình tạo hoặc mình là người hỗ trợ
-                bool isSupporter = don.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation?.MaNv == userEmail);
-                if (don.IdNguoiTao == userId || isSupporter)
-                {
-                    hasAccess = true;
-                }
-            }
-
-            if (!hasAccess) return Forbid();
 
             // 4. Xử lý dữ liệu hiển thị
             if (don.LichSuFormIts != null)

@@ -16,6 +16,8 @@ public partial class ITFormContext : DbContext
     {
     }
 
+    public virtual DbSet<BaoVeHr> BaoVeHrs { get; set; }
+
     public virtual DbSet<BinhLuanFormHr> BinhLuanFormHrs { get; set; }
 
     public virtual DbSet<BinhLuanFormIt> BinhLuanFormIts { get; set; }
@@ -100,6 +102,16 @@ public partial class ITFormContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<BaoVeHr>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__BaoVeHr__3213E83FC2ADD887");
+
+            entity.Property(e => e.TimeBaoVe).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.TrangThai).HasDefaultValue(0);
+
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.BaoVeHrs).HasConstraintName("FK_BaoVeHr_FormHR");
+        });
+
         modelBuilder.Entity<BinhLuanFormHr>(entity =>
         {
             entity.Property(e => e.ThoiGian).HasDefaultValueSql("(getdate())");

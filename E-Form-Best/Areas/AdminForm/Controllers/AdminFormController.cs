@@ -709,6 +709,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
 
         #endregion
 
+
         #region QL Công Việc
         [HttpGet("/QLtaiKhoan/GetAllCongViec")]
         public IActionResult GetAllCongViec()

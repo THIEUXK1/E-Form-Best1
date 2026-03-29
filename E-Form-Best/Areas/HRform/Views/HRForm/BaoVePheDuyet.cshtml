@@ -1,0 +1,258 @@
+﻿@model IEnumerable<E_Form_Best.Models.ITForm.FormHr>
+@{
+    ViewData["Title"] = "Kiểm Soát Cổng Bảo Vệ";
+    Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
+
+    // Thống kê nhanh từ Model dựa trên bảng BaoVeHrs
+    var total = Model?.Count() ?? 0;
+    // Đếm số đơn đã hoàn tất (TrangThai == 1 trong bảng BaoVeHr)
+    var completed = Model?.Count(x => x.BaoVeHrs != null && x.BaoVeHrs.Any(b => b.TrangThai == 1)) ?? 0;
+    var pending = total - completed;
+}
+
+<style>
+    /* Hiệu ứng dòng dữ liệu */
+    .security-row {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .row-pending {
+        background-color: #fffbeb !important; /* Vàng cảnh báo nhẹ */
+        border-left: 5px solid #f59e0b !important;
+    }
+
+    .row-completed {
+        background-color: #ffffff;
+        border-left: 5px solid #10b981 !important;
+    }
+
+    .security-row:hover {
+        background-color: #f8fafc !important;
+        transform: scale(1.001);
+    }
+
+    /* Badge trạng thái */
+    .status-pill {
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1.5px solid;
+        text-transform: uppercase;
+    }
+
+    /* Nút thao tác */
+    .btn-action-go {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #1e293b;
+        color: white;
+        transition: 0.3s;
+        text-decoration: none;
+    }
+
+        .btn-action-go:hover {
+            background: #334155;
+            color: #63b3ed;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+    /* Thanh tìm kiếm */
+    .search-container input:focus {
+        border-color: #1e293b !important;
+        box-shadow: 0 0 0 4px rgba(30, 41, 59, 0.1) !important;
+    }
+</style>
+
+<div style="background: #f1f5f9; min-height: 100vh; padding: 25px; font-family: 'Inter', system-ui, -apple-system, sans-serif;">
+    <div style="max-width: 1600px; margin: 0 auto;">
+
+        @* --- TOP BAR: TIÊU ĐỀ & TÌM KIẾM --- *@
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 20px;">
+            <div>
+                <h2 style="margin: 0; font-size: 24px; font-weight: 1000; color: #0f172a; display: flex; align-items: center; gap: 15px;">
+                    <span style="background: #0f172a; color: white; width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+                        <i class="fa fa-shield"></i>
+                    </span>
+                    CỔNG AN NINH - KIỂM SOÁT
+                </h2>
+                <div style="margin-top: 8px; color: #64748b; font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 12px; margin-left: 2px;">
+                    <span><i class="fa fa-calendar-check-o"></i> Ngày trực: @DateTime.Now.ToString("dd/MM/yyyy")</span>
+                    <span style="width: 4px; height: 4px; background: #cbd5e1; border-radius: 50%;"></span>
+                    <span style="color: #1e40af;"><i class="fa fa-refresh"></i> Tự động cập nhật: 3 phút/lần</span>
+                </div>
+            </div>
+
+            <div class="search-container" style="position: relative;">
+                <i class="fa fa-search" style="position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
+                <input type="text" id="securitySearch" onkeyup="filterSecurityTable()" placeholder="Tìm tên NV, Mã số, ID đơn hoặc Nội dung..."
+                       style="padding: 15px 20px 15px 52px; border-radius: 16px; border: 2px solid #e2e8f0; width: 450px; font-size: 15px; font-weight: 600; outline: none; transition: 0.3s; background: white;">
+            </div>
+        </div>
+
+        @* --- STATS CARDS --- *@
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+            <div style="background: white; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 20px;">
+                <div style="background: #f8fafc; color: #475569; width: 55px; height: 55px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                    <i class="fa fa-list-alt"></i>
+                </div>
+                <div>
+                    <div style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Tổng đơn tiếp nhận</div>
+                    <div style="font-size: 28px; font-weight: 1000; color: #0f172a;">@total</div>
+                </div>
+            </div>
+
+            <div style="background: #fffbeb; padding: 22px; border-radius: 20px; border: 1px solid #fde68a; display: flex; align-items: center; gap: 20px;">
+                <div style="background: #fef3c7; color: #d97706; width: 55px; height: 55px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                    <i class="fa fa-hourglass-half"></i>
+                </div>
+                <div>
+                    <div style="font-size: 11px; font-weight: 800; color: #b45309; text-transform: uppercase; letter-spacing: 0.5px;">Đang chờ xử lý</div>
+                    <div style="font-size: 28px; font-weight: 1000; color: #d97706;">@pending</div>
+                </div>
+            </div>
+
+            <div style="background: #ecfdf5; padding: 22px; border-radius: 20px; border: 1px solid #bbf7d0; display: flex; align-items: center; gap: 20px;">
+                <div style="background: #d1fae5; color: #059669; width: 55px; height: 55px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                    <i class="fa fa-check-circle"></i>
+                </div>
+                <div>
+                    <div style="font-size: 11px; font-weight: 800; color: #065f46; text-transform: uppercase; letter-spacing: 0.5px;">Đã hoàn tất</div>
+                    <div style="font-size: 28px; font-weight: 1000; color: #10b981;">@completed</div>
+                </div>
+            </div>
+        </div>
+
+        @* --- DATA TABLE --- *@
+        <div style="background: white; border-radius: 24px; border: 1px solid #e2e8f0; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); overflow: hidden;">
+            <div style="overflow-x: auto;">
+                <table id="securityTable" style="width: 100%; border-collapse: collapse; min-width: 1000px;">
+                    <thead>
+                        <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                            <th style="padding: 20px 25px; text-align: left; font-size: 12px; font-weight: 800; color: #64748b; text-transform: uppercase;">Nhân viên / Đối tượng</th>
+                            <th style="padding: 20px 25px; text-align: left; font-size: 12px; font-weight: 800; color: #64748b; text-transform: uppercase;">Chi tiết nội dung đơn</th>
+                            <th style="padding: 20px 25px; text-align: left; font-size: 12px; font-weight: 800; color: #64748b; text-transform: uppercase;">Lịch sử cổng</th>
+                            <th style="padding: 20px 25px; text-align: center; font-size: 12px; font-weight: 800; color: #64748b; text-transform: uppercase;">Trạng thái</th>
+                            <th style="padding: 20px 25px; width: 100px; text-align: center;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            @foreach (var item in Model)
+                            {
+                                // Lấy bản ghi bảo vệ đầu tiên (vì điều kiện hiển thị là BaoVeHrs không null)
+                                var bv = item.BaoVeHrs?.FirstOrDefault();
+                                bool isDone = bv?.TrangThai == 1;
+                                string rowClass = isDone ? "row-completed" : "row-pending";
+                                string statusText = isDone ? "ĐÃ THÔNG QUA" : "ĐANG CHỜ";
+                                string statusColor = isDone ? "#10b981" : "#f59e0b";
+
+                                <tr class="security-row @rowClass">
+                                    <td style="padding: 18px 25px;">
+                                        <div style="font-weight: 800; color: #0f172a; font-size: 15px;">@item.TenNguoiNv</div>
+                                        <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-top: 4px;">
+                                            <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #475569;">MS: @item.SoNhanVien</span>
+                                            <span style="margin: 0 5px; opacity: 0.5;">|</span>
+                                            @item.BoPhan
+                                        </div>
+                                    </td>
+                                    <td style="padding: 18px 25px;">
+                                        <div style="font-weight: 700; color: #1e293b; font-size: 14px;">
+                                            <i class="fa fa-file-text-o" style="margin-right: 6px; color: #94a3b8;"></i>@item.TenForm?.Replace("[ĐÃ HỦY]", "")
+                                        </div>
+                                        <div style="font-size: 11px; color: #94a3b8; font-weight: 700; margin-top: 5px;">
+                                            Mã đơn: <span style="color: #64748b;">#@item.Id</span>
+                                        </div>
+                                    </td>
+                                    <td style="padding: 18px 25px;">
+                                        @if (isDone && bv != null)
+                                        {
+                                            <div style="font-weight: 800; color: #1e293b; font-size: 13px;">
+                                                <i class="fa fa-clock-o" style="color: #10b981;"></i> @bv.TimeBaoVe?.ToString("HH:mm")
+                                                <span style="font-weight: 500; color: #94a3b8; font-size: 11px; margin-left: 5px;">@bv.TimeBaoVe?.ToString("dd/MM")</span>
+                                            </div>
+                                            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Xác nhận bởi: @(bv.TenBaoVe ?? "N/A")</div>
+                                        }
+                                        else
+                                        {
+                                            <span style="font-size: 12px; color: #cbd5e1; font-style: italic; font-weight: 600;">Đang đợi kiểm tra...</span>
+                                        }
+                                    </td>
+                                    <td style="padding: 18px 25px; text-align: center;">
+                                        <span class="status-pill" style="border-color: @statusColor; color: @statusColor; background: white;">
+                                            <i class="fa @(isDone ? "fa-check-circle" : "fa-circle-o-notch fa-spin")"></i> @statusText
+                                        </span>
+                                    </td>
+                                    <td style="padding: 18px 25px; text-align: center;">
+                                        <div style="display: flex; justify-content: center;">
+                                            <a href="/FormHR/ChiTiet/@item.Id" class="btn-action-go" title="Xử lý / Xem chi tiết">
+                                                <i class="fa @(isDone ? "fa-eye" : "fa-chevron-right")"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model == null || !Model.Any())
+            {
+                <div style="padding: 100px 20px; text-align: center; background: white;">
+                    <div style="width: 80px; height: 80px; background: #f8fafc; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                        <i class="fa fa-inbox" style="font-size: 35px; color: #cbd5e1;"></i>
+                    </div>
+                    <div style="font-size: 18px; font-weight: 800; color: #475569;">Hệ thống trống</div>
+                    <p style="font-size: 14px; color: #94a3b8; font-weight: 600; margin-top: 8px;">Hiện tại chưa có đơn phê duyệt nào cần xử lý tại cổng.</p>
+                </div>
+            }
+        </div>
+
+        @* --- FOOTER --- *@
+        <div style="margin-top: 25px; display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
+            <div style="color: #94a3b8; font-size: 12px; font-weight: 700; letter-spacing: 1px;">
+                GATE CONTROL SYSTEM v3.2
+            </div>
+            <div style="color: #94a3b8; font-size: 12px; font-weight: 700;">
+                <i class="fa fa-circle" style="color: #10b981; font-size: 8px; margin-right: 5px;"></i> Server Online
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Hàm tìm kiếm đa năng (Tên, MSNV, ID, Bộ phận)
+    function filterSecurityTable() {
+        const input = document.getElementById("securitySearch");
+        const filter = input.value.toUpperCase();
+        const trs = document.querySelectorAll("#securityTable tbody tr");
+
+        trs.forEach(tr => {
+            const text = tr.innerText.toUpperCase();
+            tr.style.display = text.includes(filter) ? "" : "none";
+        });
+    }
+
+    // Tự động làm mới dữ liệu mỗi 3 phút
+    let refreshTimer = setTimeout(function() {
+        location.reload();
+    }, 180000);
+
+    // Tạm dừng refresh nếu đang gõ tìm kiếm
+    document.getElementById("securitySearch").addEventListener("input", function() {
+        clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(function() {
+            location.reload();
+        }, 300000);
+    });
+</script>
