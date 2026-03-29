@@ -2834,6 +2834,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         /// Giám đốc hoặc Admin phê duyệt/từ chối đơn HR
         /// </summary>
         [HttpPost("/FormHR/GiamDocPheDuyet")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> GiamDocPheDuyet([FromBody] System.Text.Json.JsonElement data)
         {
             using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -2841,16 +2842,22 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 try
                 {
                     // 1. Lấy dữ liệu từ Request
-                    int idForm = data.GetProperty("idForm").GetInt32();
-                    int idNguoiXacNhan = data.GetProperty("idNguoiXacNhan").GetInt32();
-                    var loaiHanhDong = data.GetProperty("loaiHanhDong").GetString() ?? "";
+                    if (!data.TryGetProperty("idForm", out var idFormProp) || !data.TryGetProperty("idNguoiXacNhan", out var idXnProp))
+                    {
+                        return Json(new { success = false, message = "Dữ liệu yêu cầu không đầy đủ." });
+                    }
+
+                    int idForm = idFormProp.GetInt32();
+                    int idNguoiXacNhan = idXnProp.GetInt32();
+                    var loaiHanhDong = data.TryGetProperty("loaiHanhDong", out var lh) ? lh.GetString() ?? "" : "";
                     var lyDo = data.TryGetProperty("lyDo", out var p) ? (p.GetString() ?? "") : "";
 
-                    // 2. Lấy thông tin người thao tác từ Claims
+                    // 2. Lấy thông tin người thao tác từ Claims (Đầy đủ thông tin để ghi lịch sử)
                     var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
                     var userName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "N/A";
+                    var phongBan = User.FindFirst("PhongBan")?.Value ?? "N/A";
 
-                    // Lấy danh sách quyền để kiểm tra
+                    // Lấy danh sách quyền để kiểm tra bảo mật
                     var roles = User.FindAll(System.Security.Claims.ClaimTypes.Role)
                                     .Select(r => r.Value.Trim().ToUpper())
                                     .ToList();
@@ -2860,48 +2867,49 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     // 3. Tìm bản ghi người xác nhận và đơn HR liên quan
                     var xn = await _context.HrNguoiXacNhans
                         .Include(x => x.IdnguoiXacNhanNavigation)
-                        .Include(x => x.IdFormHrNavigation) // Load đơn HR để ghi lịch sử
+                        .Include(x => x.IdFormHrNavigation)
                         .FirstOrDefaultAsync(x => x.Id == idNguoiXacNhan && x.IdFormHr == idForm);
 
                     if (xn == null)
-                        return Json(new { success = false, message = "Không tìm thấy bản ghi xác nhận." });
+                        return Json(new { success = false, message = "Không tìm thấy bản ghi xác nhận trong hệ thống." });
 
-                    // 4. Kiểm tra quyền thực hiện (1 trong 3: ALL, GIAMDOCHR, hoặc đúng Email người được gán)
-                    bool canAct = roles.Contains("ALL") || roles.Contains("GIAMDOCHR")
+                    // 4. Kiểm tra quyền thực hiện (ALL, ADMIN, GIAMDOCHR hoặc đúng Email người được phân công)
+                    bool canAct = roles.Contains("ALL") || roles.Contains("ADMIN") || roles.Contains("GIAMDOCHR")
                                   || string.Equals(userEmail, xn.MaNguoiXacNhan ?? "", StringComparison.OrdinalIgnoreCase)
                                   || string.Equals(userEmail, xn.IdnguoiXacNhanNavigation?.MaNv ?? "", StringComparison.OrdinalIgnoreCase);
 
                     if (!canAct)
-                        return Json(new { success = false, message = "Bạn không có quyền thực hiện thao tác này." });
+                        return Json(new { success = false, message = "Bạn không có quyền thực hiện phê duyệt cho mục này." });
 
-                    // 5. Kiểm tra nếu đã duyệt rồi
+                    // 5. Kiểm tra nếu trạng thái đã được xử lý trước đó
                     if (xn.TrangThaiXacNhan != null && xn.TrangThaiXacNhan != 0)
-                        return Json(new { success = false, message = "Mục này đã được xác nhận hoặc từ chối trước đó." });
+                        return Json(new { success = false, message = "Mục này đã được xử lý trước đó (đã duyệt hoặc từ chối)." });
 
                     // 6. Cập nhật trạng thái xác nhận
                     int newTrangThai = loaiHanhDong.Equals("Approve", StringComparison.OrdinalIgnoreCase) ? 1 : 2;
                     string hanhDongStr = (newTrangThai == 1) ? "Phê duyệt" : "Từ chối";
-
                     DateTime now = DateTime.Now;
+
                     xn.TrangThaiXacNhan = newTrangThai;
                     xn.ThoiGianXacNhan = now;
                     xn.GhiChu = string.IsNullOrWhiteSpace(lyDo) ? null : lyDo;
 
                     _context.HrNguoiXacNhans.Update(xn);
 
-                    // 7. GHI LỊCH SỬ THAO TÁC (LichSuFormHr)
+                    // 7. GHI LỊCH SỬ THAO TÁC (Cấu trúc chi tiết đồng bộ hệ thống)
                     var lichSu = new LichSuFormHr
                     {
                         IdFormHr = idForm,
-                        TieuDe = $"Cấp cao {hanhDongStr}",
-                        Mota = $"Người thực hiện: {userName} ({userEmail}). " +
-                               $"Kết quả: {hanhDongStr}. " +
-                               $"Nội dung ghi chú: {(string.IsNullOrWhiteSpace(lyDo) ? "Không có" : lyDo)}",
+                        TieuDe = $"CẤP CAO {hanhDongStr.ToUpper()}",
+                        Mota = $"Nhân sự thực hiện: {userName} ({userEmail}). " +
+                               $"Bộ phận: {phongBan}. " +
+                               $"Nội dung: Đã {hanhDongStr.ToLower()} yêu cầu xác nhận cấp cao. " +
+                               $"Ghi chú: {(string.IsNullOrWhiteSpace(lyDo) ? "Không có" : lyDo)}",
                         Time = now
                     };
                     _context.LichSuFormHrs.Add(lichSu);
 
-                    // 8. Lưu thay đổi và Commit Transaction
+                    // 8. Lưu thay đổi và Hoàn tất Transaction
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
@@ -2916,7 +2924,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+                    return Json(new { success = false, message = "Lỗi hệ thống khi phê duyệt: " + ex.Message });
                 }
             }
         }
@@ -2951,21 +2959,26 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 if (daCoRoi)
                     return Json(new { success = false, message = "Phiếu này đã được đẩy sang Bảo Vệ rồi!" });
 
+                var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+                var userName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "N/A";
+                var phongBan = User.FindFirst("PhongBan")?.Value ?? "N/A";
+
                 var record = new BaoVeHr
                 {
                     IdFormHr = dto.IdFormHr,
                     TrangThai = 0   // 0 = chờ xử lý, 1 = hoàn thành
-                                    // GhiChu, IdBaoVe, TenBaoVe, TimeBaoVe — để null, BaoVe tự điền sau
                 };
 
                 _context.BaoVeHrs.Add(record);
 
-                // Ghi nhật ký
+                // Ghi nhật ký (Theo cấu trúc chi tiết)
                 _context.LichSuFormHrs.Add(new LichSuFormHr
                 {
                     IdFormHr = dto.IdFormHr,
                     TieuDe = "ĐẨY SANG BẢO VỆ",
-                    Mota = $"{User.Identity?.Name} đã chuyển phiếu sang đội Bảo Vệ xử lý.",
+                    Mota = $"Nhân sự thực hiện: {userName} ({userEmail}). " +
+                           $"Bộ phận: {phongBan}. " +
+                           $"Nội dung: Đã chuyển phiếu sang đội Bảo Vệ xử lý.",
                     Time = DateTime.Now
                 });
 
@@ -2993,20 +3006,23 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     return Json(new { success = false, message = "Không tìm thấy bản ghi Bảo Vệ!" });
 
                 var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
-                var userNv = await _context.HrNguoiHoTros.FirstOrDefaultAsync(x => x.MaNv == userEmail);
+                var userName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "N/A";
+                var phongBan = User.FindFirst("PhongBan")?.Value ?? "N/A";
 
                 record.GhiChu = dto.GhiChu;
                 record.IdBaoVe = userEmail;
-                record.TenBaoVe = User.Identity?.Name ?? userEmail;
+                record.TenBaoVe = userName;
                 record.TimeBaoVe = DateTime.Now;
                 record.TrangThai = 1;   // Hoàn thành
 
-                // Ghi nhật ký
+                // Ghi nhật ký (Theo cấu trúc chi tiết)
                 _context.LichSuFormHrs.Add(new LichSuFormHr
                 {
                     IdFormHr = record.IdFormHr,
                     TieuDe = "BẢO VỆ XÁC NHẬN HOÀN TẤT",
-                    Mota = $"Bảo Vệ [{User.Identity?.Name}] đã xác nhận hoàn tất.\nGhi chú: {dto.GhiChu}",
+                    Mota = $"Nhân sự thực hiện: {userName} ({userEmail}). " +
+                           $"Bộ phận: {phongBan}. " +
+                           $"Nội dung: Bảo Vệ đã xác nhận hoàn tất. Ghi chú: {dto.GhiChu}",
                     Time = DateTime.Now
                 });
 
@@ -3027,7 +3043,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
 
         #endregion
-
         #region QUY TRÌNH KIỂM SOÁT CỔNG BẢO VỆ
 
         /// <summary>
@@ -3075,6 +3090,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
 
         #endregion
+
         #region BÁO CÁO THỐNG KÊ FORM HR (Dành cho Admin/All)
 
         /// <summary>
@@ -3159,6 +3175,8 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 .Include(l => l.IdFormHrNavigation)
                     .ThenInclude(f => f.HrCtNguoiHoTros)
                         .ThenInclude(ct => ct.IdHrNguoiHoTroNavigation)
+                        .Include(l => l.IdFormHrNavigation)
+                    .ThenInclude(f => f.BaoVeHrs)
                 .AsQueryable();
 
             // --- LOGIC PHÂN QUYỀN ---
@@ -3172,6 +3190,14 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 query = query.Where(l =>
                     l.IdFormHrNavigation.HrNguoiXacNhans.Any() &&
                     l.IdFormHrNavigation.IdNguoiDuyet != null
+                );
+            }
+            else if (userRoles.Contains("BAOVEHR"))
+            {
+                // [GIAMDOCHR]: XEM XUYÊN CÔNG TY + ĐIỀU KIỆN RÀNG BUỘC
+                query = query.Where(l =>
+                    l.IdFormHrNavigation.BaoVeHrs.Any() &&
+                    l.IdFormHrNavigation.IdAdmin != null
                 );
             }
             else
@@ -3224,9 +3250,14 @@ namespace E_Form_Best.Areas.HRform.Controllers
                                 .ToList();
 
             var query = _context.LichSuFormHrs
-                .Include(l => l.IdFormHrNavigation)
-                    .ThenInclude(f => f.HrNguoiXacNhans)
-                .AsQueryable();
+               .Include(l => l.IdFormHrNavigation)
+                   .ThenInclude(f => f.HrNguoiXacNhans)
+               .Include(l => l.IdFormHrNavigation)
+                   .ThenInclude(f => f.HrCtNguoiHoTros)
+                       .ThenInclude(ct => ct.IdHrNguoiHoTroNavigation)
+                       .Include(l => l.IdFormHrNavigation)
+                   .ThenInclude(f => f.BaoVeHrs)
+               .AsQueryable();
 
             // --- ĐỒNG BỘ LOGIC VỚI LOGLICSU ---
             if (userRoles.Contains("ALL"))
@@ -3239,6 +3270,14 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 query = query.Where(l =>
                     l.IdFormHrNavigation.HrNguoiXacNhans.Any() &&
                     l.IdFormHrNavigation.IdNguoiDuyet != null
+                );
+            }
+            else if (userRoles.Contains("BAOVEHR"))
+            {
+                // [GIAMDOCHR]: XEM XUYÊN CÔNG TY + ĐIỀU KIỆN RÀNG BUỘC
+                query = query.Where(l =>
+                    l.IdFormHrNavigation.BaoVeHrs.Any() &&
+                    l.IdFormHrNavigation.IdAdmin != null
                 );
             }
             else
