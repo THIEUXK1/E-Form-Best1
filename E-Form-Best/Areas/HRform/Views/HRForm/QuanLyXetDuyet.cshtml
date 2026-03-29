@@ -16,6 +16,20 @@
     var hoanTat = Model?.Count(x => x.IdAdmin != null && !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
 }
 
+<style>
+    .sub-badge {
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        border: 1px solid;
+        margin-top: 2px;
+    }
+</style>
+
 <div style="padding: 20px; background: #f1f5f9; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
 
     @* --- TOP BAR --- *@
@@ -40,7 +54,7 @@
         </div>
     </div>
 
-    @* --- STATS ROW (5 CỘT NHƯ IT) --- *@
+    @* --- STATS ROW --- *@
     <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 25px;">
         @{
             var stats = new[] {
@@ -84,7 +98,6 @@
                         bool isApprovedByManager = item.IdNguoiDuyet != null;
                         bool isFinished = item.IdAdmin != null;
 
-                        // Cấu hình Progress Bar như bên IT
                         string pWidth = "10%"; string pColor = "#94a3b8"; string pText = "Khởi tạo";
                         string bg = "#f1f5f9"; string fg = "#475569"; string statusTag = "MỚI TẠO";
 
@@ -117,8 +130,44 @@
 
                             <td style="padding: 15px 20px;">
                                 <div style="font-weight: 800; color: #1e293b; font-size: 14px;">@item.TenForm?.Replace("[ĐÃ HỦY]", "")</div>
-                                <div style="font-size: 11px; color: #64748b; font-weight: 700;">
-                                    ID: #@item.Id • <i class="fa fa-clock-o"></i> @item.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm")
+                                <div style="font-size: 11px; color: #64748b; font-weight: 700; display: flex; gap: 5px; flex-wrap: wrap; align-items: center;">
+                                    <span>ID: #@item.Id • <i class="fa fa-clock-o"></i> @item.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm")</span>
+
+                                    @* --- LOGIC XỬ LÝ NHIỀU NGƯỜI XÁC NHẬN --- *@
+                                    @if (item.HrNguoiXacNhans != null && item.HrNguoiXacNhans.Any())
+                                    {
+                                        var listXN = item.HrNguoiXacNhans.ToList();
+                                        int countAll = listXN.Count;
+                                        int countDone = listXN.Count(x => x.TrangThaiXacNhan == 1);
+                                        
+                                        string xnText = "CHỜ XN"; string xnColor = "#f59e0b"; string xnIcon = "fa-hourglass-half";
+
+                                        if (listXN.Any(x => x.TrangThaiXacNhan == 2))
+                                        {
+                                            xnText = "TỪ CHỐI XN"; xnColor = "#ef4444"; xnIcon = "fa-times-circle";
+                                        }
+                                        else if (listXN.All(x => x.TrangThaiXacNhan == 1))
+                                        {
+                                            xnText = "ĐÃ XÁC NHẬN"; xnColor = "#10b981"; xnIcon = "fa-check-double";
+                                        }
+
+                                        <span class="sub-badge" style="color: @xnColor; border-color: @xnColor; background: @(xnColor)10;">
+                                            <i class="fa @xnIcon"></i> @xnText (@countDone/@countAll)
+                                        </span>
+                                    }
+
+                                    @* --- HIỂN THỊ TÌNH TRẠNG BẢO VỆ --- *@
+                                    @if (item.BaoVeHrs != null && item.BaoVeHrs.Any())
+                                    {
+                                        var bv = item.BaoVeHrs.FirstOrDefault();
+                                        if (bv != null)
+                                        {
+                                            string bvText = bv.TrangThai == 1 ? "BV ĐÃ DUYỆT" : "BV CHỜ";
+                                            <span class="sub-badge" style="color: #64748b; border-color: #cbd5e1; background: #f8fafc;">
+                                                <i class="fa fa-shield"></i> @bvText
+                                            </span>
+                                        }
+                                    }
                                 </div>
                             </td>
 

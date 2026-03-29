@@ -28,12 +28,6 @@ public partial class HrXinRaNgoai1
     [Column(TypeName = "datetime")]
     public DateTime? ThoiGianVeDuTinh { get; set; }
 
-    [StringLength(255)]
-    public string? BaoVeTruc { get; set; }
-
-    [Column(TypeName = "datetime")]
-    public DateTime? ThoiGianVao { get; set; }
-
     public byte[]? Anh { get; set; }
 
     public string? DuongDanAnh { get; set; }

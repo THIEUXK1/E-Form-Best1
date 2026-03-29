@@ -5,15 +5,12 @@
     ViewData["Title"] = "Đăng ký hỗ trợ tiền điện thoại";
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 
-    // --- LẤY THÔNG TIN TỪ CLAIMS ---
     var tenNguoiNv = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
     var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
-    // Styles nội bộ dựa trên màu chủ đạo #3b82f6
-    string primaryColor = "#3b82f6";
     string inputStyle = $"width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #bfdbfe; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: #1e3a8a;";
     string labelStyle = "font-weight: 700; color: #1e40af; font-size: 11px; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px;";
     string pasteZoneStyle = $"width: 100%; border: 2px dotted #93c5fd; height: 180px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #f0f7ff; color: #2563eb; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 600; transition: 0.3s; margin-top: 10px; position: relative; outline: none;";
@@ -76,14 +73,18 @@
                     Nội dung đề nghị
                 </h3>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label style="@labelStyle">Số điện thoại nhận hỗ trợ <span style="color:#ef4444">*</span></label>
+                        <input name="SoDienThoai" placeholder="09xxx..." required style="@inputStyle; border-color: #3b82f6;">
+                    </div>
                     <div>
                         <label style="@labelStyle">Mức hỗ trợ đề xuất (VNĐ) <span style="color:#ef4444">*</span></label>
                         <input type="number" name="MucHoTro" placeholder="Nhập số tiền..." required style="@inputStyle; border-color: #3b82f6;">
                     </div>
                     <div>
-                        <label style="@labelStyle">Số điện thoại nhận hỗ trợ <span style="color:#ef4444">*</span></label>
-                        <input name="ThongTinNhanVien" placeholder="Nhập SĐT..." required style="@inputStyle; border-color: #3b82f6;">
+                        <label style="@labelStyle">Thông tin bổ sung (Nhà mạng...)</label>
+                        <input name="ThongTinNhanVien" placeholder="Viettel, Mobi..." style="@inputStyle; border-color: #3b82f6;">
                     </div>
                 </div>
 
@@ -167,17 +168,17 @@
 
     // Kiểm tra dữ liệu trước khi gửi
     function xuLyLuuDon() {
+        const sdt = document.querySelector('input[name="SoDienThoai"]').value.trim();
         const mucHoTro = document.querySelector('input[name="MucHoTro"]').value;
-        const sdt = document.querySelector('input[name="ThongTinNhanVien"]').value.trim();
         const mucDich = document.querySelector('textarea[name="MucDich"]').value.trim();
         const chk = document.getElementById('chkCamKet');
 
-        if (!mucHoTro || mucHoTro <= 0) {
-            alert("⚠️ Vui lòng nhập mức hỗ trợ đề xuất!");
+        if (sdt.length < 10) {
+            alert("⚠️ Vui lòng nhập số điện thoại hợp lệ!");
             return;
         }
-        if (sdt.length < 10) {
-            alert("⚠️ Số điện thoại không hợp lệ!");
+        if (!mucHoTro || mucHoTro <= 0) {
+            alert("⚠️ Vui lòng nhập mức hỗ trợ đề xuất!");
             return;
         }
         if (mucDich.length < 5) {

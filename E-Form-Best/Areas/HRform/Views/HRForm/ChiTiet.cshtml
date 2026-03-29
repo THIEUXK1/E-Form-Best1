@@ -15,7 +15,6 @@
     var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     int currentUserId = 0;
     if (!string.IsNullOrEmpty(userIdStr)) int.TryParse(userIdStr, out currentUserId);
-
     var userEmailView = ViewBag.UserEmail as string ?? "";
 
     // ── 2. TRẠNG THÁI ĐƠN ──
@@ -77,7 +76,6 @@
         chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#eff6ff", "#1e40af");
         chiTietNoiDung += RenderInfoRow("🕒", "Giờ ra", ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "#fef2f2", "#991b1b");
         chiTietNoiDung += RenderInfoRow("🔄", "Dự kiến về", ct.ThoiGianVeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#ecfdf5", "#065f46");
-        chiTietNoiDung += RenderSecurityBox(ct.BaoVeTruc, ct.ThoiGianVao?.ToString("HH:mm dd/MM/yyyy"), "vào lại thực tế");
     }
     if (Model.HrMangHangHoaRaCong2s?.Any() == true)
     {
@@ -126,8 +124,9 @@
     {
         var ct = Model.HrHoTroTienDienThoai7s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
         chiTietNoiDung += RenderInfoRow("📱", "Dịch vụ", "Hỗ trợ tiền điện thoại", "#f0fdf4", "#166534");
-        chiTietNoiDung += RenderInfoRow("👤", "Thông tin NV", ct.ThongTinNhanVien, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("💰", "Mức hỗ trợ", ct.MucHoTro?.ToString("N0") + " VNĐ", "#fff7ed", "#9a3412");
+        chiTietNoiDung += RenderInfoRow("📞", "Số điện thoại", ct.SoDienThoai ?? "Chưa cập nhật", "#eff6ff", "#1e40af");
+        chiTietNoiDung += RenderInfoRow("💰", "Mức hỗ trợ", (ct.MucHoTro.HasValue ? ct.MucHoTro.Value.ToString("N0") : "0") + " VNĐ", "#fff7ed", "#9a3412");
+        chiTietNoiDung += RenderInfoRow("👤", "Thông tin thêm", ct.ThongTinNhanVien ?? "N/A", "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDich, "#f8fafc", "#0f172a");
     }
     if (Model.HrDoiCaLam8s?.Any() == true)
@@ -159,9 +158,19 @@
     var danhSachXacNhan = ViewBag.DanhSachXacNhan as List<E_Form_Best.Models.ITForm.HrNguoiXacNhan>
                           ?? new List<E_Form_Best.Models.ITForm.HrNguoiXacNhan>();
     var myXacNhan = danhSachXacNhan
-        .FirstOrDefault(x => x.IdnguoiXacNhanNavigation?.MaNv == userEmailView
-                           && x.TrangThaiXacNhan == 0);
+        .FirstOrDefault(x =>
+            (string.Equals(x.MaNguoiXacNhan ?? "", userEmailView, StringComparison.OrdinalIgnoreCase)
+             || string.Equals(x.IdnguoiXacNhanNavigation?.MaNv ?? "", userEmailView, StringComparison.OrdinalIgnoreCase))
+            && (x.TrangThaiXacNhan ?? 0) == 0);
     int soNguoiDaDuyet = danhSachXacNhan.Count(x => x.TrangThaiXacNhan == 1);
+
+    // ── 7. BẢO VỆ ──
+    var baoVeRecord = ViewBag.BaoVeRecord as E_Form_Best.Models.ITForm.BaoVeHr;
+    bool daBaoVe = baoVeRecord != null;
+    bool baoVeHoanTat = baoVeRecord?.TrangThai == 1;
+    bool canBaoVeAction = User.IsInRole("All") || User.IsInRole("BaoVeHR");
+    bool canDayBaoVe = User.IsInRole("All") || User.IsInRole("AdminHR")
+                          || User.IsInRole("BaoVeHR") || User.IsInRole("QuanLyDuyetDonHR");
 }
 
 @Html.AntiForgeryToken()
@@ -203,7 +212,6 @@
                     <h3 style="margin:0 0 25px 0;color:#1e293b;font-size:22px;font-weight:800;display:flex;align-items:center;gap:12px;">
                         <span style="width:6px;height:28px;background:#1e40af;border-radius:10px;"></span> THÔNG TIN CHI TIẾT
                     </h3>
-
                     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:15px;">
                         <div style="background:#fff;padding:22px;border-radius:20px;border:1px solid #e2e8f0;">
                             <small style="color:#64748b;font-weight:800;text-transform:uppercase;font-size:11px;display:block;margin-bottom:8px;">Mã nhân viên</small>
@@ -218,7 +226,6 @@
                             <div style="font-weight:700;color:#1e40af;font-size:16px;">@Model.TenNguoiNv</div>
                         </div>
                     </div>
-
                     <div style="background:#f8fafc;padding:30px;border-radius:24px;margin-bottom:40px;border:1px solid #f1f5f9;">
                         @Html.Raw(chiTietNoiDung)
                     </div>
@@ -353,14 +360,10 @@
                         </div>
                     </div>
 
-                    <!-- ══════════════════════════════════════════
-                         BLOCK XÁC NHẬN GIÁM ĐỐC
-                    ══════════════════════════════════════════ -->
+                    <!-- BLOCK XÁC NHẬN GIÁM ĐỐC -->
                     @if (danhSachXacNhan.Any())
                     {
                         <div style="background:#fff;border-radius:28px;border:1px solid #e9d5ff;overflow:hidden;margin-bottom:25px;box-shadow:0 10px 15px -3px rgba(124,58,237,0.06);">
-
-                            <!-- Header block -->
                             <div style="background:linear-gradient(135deg,#faf5ff,#f3e8ff);padding:18px 25px;border-bottom:2px solid #e9d5ff;">
                                 <h4 style="margin:0;font-size:15px;font-weight:900;color:#6b21a8;display:flex;align-items:center;gap:10px;">
                                     <i class="fa fa-user-tie"></i>
@@ -370,56 +373,28 @@
                                     </span>
                                 </h4>
                             </div>
-
-                            <!-- Danh sách từng GĐ -->
                             <div style="padding:20px;display:flex;flex-direction:column;gap:12px;">
                                 @foreach (var xn in danhSachXacNhan)
                                 {
                                     var nguoi = xn.IdnguoiXacNhanNavigation;
                                     int tt = xn.TrangThaiXacNhan ?? 0;
-
                                     string cardBg, cardBorder, badgeBg, badgeText, badgeIcon;
                                     switch (tt)
                                     {
-                                        case 1:
-                                            cardBg = "#f0fdf4"; cardBorder = "#bbf7d0";
-                                            badgeBg = "#059669"; badgeText = "ĐÃ DUYỆT"; badgeIcon = "fa-check-circle";
-                                            break;
-                                        case 2:
-                                            cardBg = "#fff1f2"; cardBorder = "#fecaca";
-                                            badgeBg = "#dc2626"; badgeText = "TỪ CHỐI"; badgeIcon = "fa-times-circle";
-                                            break;
-                                        default:
-                                            cardBg = "#faf5ff"; cardBorder = "#e9d5ff";
-                                            badgeBg = "#7c3aed"; badgeText = "CHỜ DUYỆT"; badgeIcon = "fa-clock-o";
-                                            break;
+                                        case 1: cardBg = "#f0fdf4"; cardBorder = "#bbf7d0"; badgeBg = "#059669"; badgeText = "ĐÃ DUYỆT"; badgeIcon = "fa-check-circle"; break;
+                                        case 2: cardBg = "#fff1f2"; cardBorder = "#fecaca"; badgeBg = "#dc2626"; badgeText = "TỪ CHỐI"; badgeIcon = "fa-times-circle"; break;
+                                        default: cardBg = "#faf5ff"; cardBorder = "#e9d5ff"; badgeBg = "#7c3aed"; badgeText = "CHỜ DUYỆT"; badgeIcon = "fa-clock-o"; break;
                                     }
-
-                                    <div id="xnCard-@xn.Id"
-                                         style="background:@cardBg;border:2px solid @cardBorder;border-radius:18px;padding:16px 18px;position:relative;transition:all 0.3s;">
-
-                                        <!-- Badge trạng thái -->
-                                        <span id="xnBadge-@xn.Id"
-                                              style="position:absolute;top:-11px;right:14px;background:@badgeBg;color:white;
-                                            font-size:10px;font-weight:800;padding:3px 12px;border-radius:12px;
-                                            box-shadow:0 2px 6px rgba(0,0,0,0.15);">
+                                    <div id="xnCard-@xn.Id" style="background:@cardBg;border:2px solid @cardBorder;border-radius:18px;padding:16px 18px;position:relative;transition:all 0.3s;">
+                                        <span id="xnBadge-@xn.Id" style="position:absolute;top:-11px;right:14px;background:@badgeBg;color:white;font-size:10px;font-weight:800;padding:3px 12px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,0.15);">
                                             <i class="fa @badgeIcon"></i> @badgeText
                                         </span>
-
                                         <div style="display:flex;align-items:center;gap:14px;">
-                                            <!-- Avatar -->
-                                            <div style="width:46px;height:46px;border-radius:14px;flex-shrink:0;
-                                                background:linear-gradient(135deg,#7c3aed,#a855f7);
-                                                display:flex;align-items:center;justify-content:center;
-                                                color:white;font-weight:900;font-size:20px;">
+                                            <div style="width:46px;height:46px;border-radius:14px;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#a855f7);display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:20px;">
                                                 @(nguoi?.HoTen?.Substring(0, 1).ToUpper() ?? "?")
                                             </div>
-                                            <!-- Thông tin -->
                                             <div style="flex:1;min-width:0;">
-                                                <div style="font-weight:800;color:#1e293b;font-size:15px;
-                                                    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                                                    @nguoi?.HoTen
-                                                </div>
+                                                <div style="font-weight:800;color:#1e293b;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@nguoi?.HoTen</div>
                                                 <div style="font-size:12px;color:#7c3aed;margin-top:2px;font-weight:600;">
                                                     @nguoi?.ChucVu
                                                     @if (!string.IsNullOrEmpty(nguoi?.PhongBan))
@@ -427,28 +402,21 @@
                                                         <span style="color:#94a3b8;"> · @nguoi.PhongBan</span>
                                                     }
                                                 </div>
-                                                <!-- Thời gian duyệt -->
                                                 <div id="xnTime-@xn.Id">
                                                     @if (xn.ThoiGianXacNhan.HasValue)
                                                     {
-                                                        <div style="font-size:11px;color:#94a3b8;margin-top:3px;">
-                                                            <i class="fa fa-clock-o"></i>
-                                                            @xn.ThoiGianXacNhan.Value.ToString("HH:mm dd/MM/yyyy")
-                                                        </div>
+                                                        <div style="font-size:11px;color:#94a3b8;margin-top:3px;"><i class="fa fa-clock-o"></i> @xn.ThoiGianXacNhan.Value.ToString("HH:mm dd/MM/yyyy")</div>
                                                     }
                                                 </div>
-                                                <!-- Ghi chú -->
                                                 @if (!string.IsNullOrEmpty(xn.GhiChu))
                                                 {
-                                                    <div id="xnGhiChu-@xn.Id"
-                                                         style="margin-top:6px;padding:5px 10px;background:rgba(255,255,255,0.7);
-                                                        border-radius:8px;font-size:11px;color:#475569;
-                                                        border-left:3px solid @badgeBg;font-style:italic;">
+                                                    <div id="xnGhiChu-@xn.Id" style="margin-top:6px;padding:5px 10px;background:rgba(255,255,255,0.7);border-radius:8px;font-size:11px;color:#475569;border-left:3px solid @badgeBg;font-style:italic;">
                                                         <i class="fa fa-comment"></i> @xn.GhiChu
                                                     </div>
                                                 }
                                                 else
                                                 {
+
                                                     <div id="xnGhiChu-@xn.Id"></div>
                                                 }
                                             </div>
@@ -456,8 +424,6 @@
                                     </div>
                                 }
                             </div>
-
-                            <!-- NÚT DUYỆT: chỉ hiện nếu user là GĐ của đơn này và chưa xác nhận -->
                             @if (myXacNhan != null && !isCancelled)
                             {
                                 <div style="padding:0 20px 20px 20px;">
@@ -465,30 +431,18 @@
                                         <p style="margin:0 0 12px 0;font-size:13px;font-weight:800;color:#6b21a8;display:flex;align-items:center;gap:8px;">
                                             <i class="fa fa-pen"></i> HÀNH ĐỘNG CỦA BẠN:
                                         </p>
-                                        <textarea id="txtGhiChuXacNhan"
-                                                  placeholder="Ghi chú (tùy chọn)..."
-                                                  style="width:100%;padding:10px 12px;border:1.5px solid #ddd6fe;border-radius:10px;
-                                        font-size:13px;resize:vertical;min-height:60px;outline:none;
-                                        font-family:'Segoe UI',sans-serif;box-sizing:border-box;margin-bottom:12px;transition:border 0.2s;"
-                                                  onfocus="this.style.borderColor='#7c3aed'"
-                                                  onblur="this.style.borderColor='#ddd6fe'"></textarea>
+                                        <textarea id="txtGhiChuXacNhan" placeholder="Ghi chú (tùy chọn)..."
+                                                  style="width:100%;padding:10px 12px;border:1.5px solid #ddd6fe;border-radius:10px;font-size:13px;resize:vertical;min-height:60px;outline:none;font-family:'Segoe UI',sans-serif;box-sizing:border-box;margin-bottom:12px;transition:border 0.2s;"
+                                                  onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#ddd6fe'"></textarea>
                                         <div style="display:flex;gap:10px;">
-                                            <button id="btnXnDuyet"
-                                                    onclick="giamDocXacNhan(@myXacNhan.Id, 'Approve')"
-                                                    style="flex:1;padding:13px;background:#059669;color:white;border:none;
-                                                border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;
-                                                box-shadow:0 4px 10px rgba(5,150,105,0.3);transition:all 0.2s;"
-                                                    onmouseover="this.style.transform='translateY(-2px)'"
-                                                    onmouseout="this.style.transform=''">
+                                            <button id="btnXnDuyet" onclick="giamDocXacNhan(@myXacNhan.Id, 'Approve')"
+                                                    style="flex:1;padding:13px;background:#059669;color:white;border:none;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;box-shadow:0 4px 10px rgba(5,150,105,0.3);transition:all 0.2s;"
+                                                    onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
                                                 <i class="fa fa-check"></i> DUYỆT
                                             </button>
-                                            <button id="btnXnTuChoi"
-                                                    onclick="giamDocXacNhan(@myXacNhan.Id, 'Reject')"
-                                                    style="flex:1;padding:13px;background:white;color:#dc2626;
-                                                border:2px solid #dc2626;border-radius:12px;font-weight:800;
-                                                cursor:pointer;font-size:14px;transition:all 0.2s;"
-                                                    onmouseover="this.style.background='#fef2f2';this.style.transform='translateY(-2px)'"
-                                                    onmouseout="this.style.background='white';this.style.transform=''">
+                                            <button id="btnXnTuChoi" onclick="giamDocXacNhan(@myXacNhan.Id, 'Reject')"
+                                                    style="flex:1;padding:13px;background:white;color:#dc2626;border:2px solid #dc2626;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;transition:all 0.2s;"
+                                                    onmouseover="this.style.background='#fef2f2';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='white';this.style.transform=''">
                                                 <i class="fa fa-times"></i> TỪ CHỐI
                                             </button>
                                         </div>
@@ -497,7 +451,7 @@
                             }
                         </div>
                     }
-                    <!-- ══ KẾT THÚC BLOCK GIÁM ĐỐC ══ -->
+
                     <!-- NÚT HÀNH ĐỘNG ĐƠN -->
                     @if (!isCancelled && !isFinished)
                     {
@@ -505,32 +459,24 @@
                             @if (!isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminHR") || User.IsInRole("QuanLyDuyetDonHR")))
                             {
                                 <button id="btnDuyet" onclick="handleAction('Duyet')"
-                                        style="background:#059669;color:white;border:none;padding:20px;border-radius:18px;
-                                    font-weight:900;cursor:pointer;font-size:16px;
-                                    box-shadow:0 10px 15px -3px rgba(5,150,105,0.3);transition:all 0.2s;"
-                                        onmouseover="this.style.transform='translateY(-2px)'"
-                                        onmouseout="this.style.transform=''">
+                                        style="background:#059669;color:white;border:none;padding:20px;border-radius:18px;font-weight:900;cursor:pointer;font-size:16px;box-shadow:0 10px 15px -3px rgba(5,150,105,0.3);transition:all 0.2s;"
+                                        onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
                                     <i class="fa fa-check-circle"></i> DUYỆT ĐƠN (QUẢN LÝ)
                                 </button>
                             }
                             @if (isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminHR")))
                             {
                                 <button id="btnHoanThanh" onclick="handleXacNhanHoanThanh()"
-                                        style="background:#1e40af;color:white;border:none;padding:20px;border-radius:18px;
-                                    font-weight:900;cursor:pointer;font-size:16px;
-                                    box-shadow:0 10px 15px -3px rgba(30,64,175,0.3);transition:all 0.2s;"
-                                        onmouseover="this.style.transform='translateY(-2px)'"
-                                        onmouseout="this.style.transform=''">
+                                        style="background:#1e40af;color:white;border:none;padding:20px;border-radius:18px;font-weight:900;cursor:pointer;font-size:16px;box-shadow:0 10px 15px -3px rgba(30,64,175,0.3);transition:all 0.2s;"
+                                        onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
                                     <i class="fa fa-star"></i> XÁC NHẬN HOÀN TẤT (HR)
                                 </button>
                             }
                             @if (User.IsInRole("All") || User.IsInRole("AdminHR") || User.IsInRole("QuanLyDuyetDonHR"))
                             {
                                 <button id="btnHuy" onclick="handleAction('Huy')"
-                                        style="background:white;color:#dc2626;border:2px solid #dc2626;padding:18px;
-                                    border-radius:18px;font-weight:800;cursor:pointer;font-size:15px;transition:all 0.2s;"
-                                        onmouseover="this.style.background='#fef2f2';this.style.transform='translateY(-2px)'"
-                                        onmouseout="this.style.background='white';this.style.transform=''">
+                                        style="background:white;color:#dc2626;border:2px solid #dc2626;padding:18px;border-radius:18px;font-weight:800;cursor:pointer;font-size:15px;transition:all 0.2s;"
+                                        onmouseover="this.style.background='#fef2f2';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='white';this.style.transform=''">
                                     <i class="fa fa-times-circle"></i> HỦY ĐƠN PHIẾU
                                 </button>
                             }
@@ -538,7 +484,7 @@
                     }
 
                     <!-- BÌNH LUẬN -->
-                    <div style="background:#fff;border-radius:28px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 10px 15px -3px rgba(0,0,0,0.04);">
+                    <div style="background:#fff;border-radius:28px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 10px 15px -3px rgba(0,0,0,0.04);margin-bottom:25px;">
                         <div style="background:linear-gradient(135deg,#f8fafc,#fff);padding:20px 25px;border-bottom:2px solid #e2e8f0;">
                             <h4 style="margin:0;font-size:16px;font-weight:900;color:#1e293b;display:flex;align-items:center;gap:10px;">
                                 <i class="fa fa-comments"></i>
@@ -555,33 +501,122 @@
                         <div style="padding:20px;background:white;border-top:2px solid #e2e8f0;">
                             <form id="formBinhLuan" enctype="multipart/form-data">
                                 <textarea id="txtBinhLuan" name="noiDung" placeholder="Nhập bình luận..."
-                                          style="width:100%;padding:12px;border:2px solid #e2e8f0;border-radius:12px;
-                                font-size:14px;resize:vertical;min-height:80px;outline:none;
-                                font-family:'Segoe UI',sans-serif;box-sizing:border-box;margin-bottom:12px;"
-                                          onfocus="this.style.borderColor='#3b82f6'"
-                                          onblur="this.style.borderColor='#e2e8f0'"></textarea>
+                                          style="width:100%;padding:12px;border:2px solid #e2e8f0;border-radius:12px;font-size:14px;resize:vertical;min-height:80px;outline:none;font-family:'Segoe UI',sans-serif;box-sizing:border-box;margin-bottom:12px;"
+                                          onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
                                 <div style="display:flex;align-items:center;gap:12px;">
                                     <label for="fileBinhLuan"
-                                           style="flex:1;padding:12px;background:#f8fafc;border:2px dashed #cbd5e1;border-radius:12px;
-                                        cursor:pointer;text-align:center;font-size:14px;color:#64748b;font-weight:600;
-                                        display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;"
-                                           onmouseover="this.style.borderColor='#3b82f6';this.style.background='#eff6ff'"
-                                           onmouseout="this.style.borderColor='#cbd5e1';this.style.background='#f8fafc'">
+                                           style="flex:1;padding:12px;background:#f8fafc;border:2px dashed #cbd5e1;border-radius:12px;cursor:pointer;text-align:center;font-size:14px;color:#64748b;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;"
+                                           onmouseover="this.style.borderColor='#3b82f6';this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#cbd5e1';this.style.background='#f8fafc'">
                                         <i class="fa fa-paperclip"></i>
                                         <span id="fileLabel">Đính kèm file (max 50MB)</span>
                                         <input type="file" id="fileBinhLuan" name="file" style="display:none;" onchange="updateFileLabel(this)">
                                     </label>
                                     <button type="submit" id="btnGuiBinhLuan"
-                                            style="padding:12px 30px;background:linear-gradient(135deg,#3b82f6,#1e40af);color:white;
-                                        border:none;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;white-space:nowrap;"
-                                            onmouseover="this.style.transform='translateY(-2px)'"
-                                            onmouseout="this.style.transform=''">
+                                            style="padding:12px 30px;background:linear-gradient(135deg,#3b82f6,#1e40af);color:white;border:none;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;white-space:nowrap;"
+                                            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
                                         <i class="fa fa-paper-plane"></i> Gửi
                                     </button>
                                 </div>
                             </form>
                         </div>
                     </div>
+
+                    <!-- ══════════════════════════════════════════
+                         BLOCK BẢO VỆ
+                    ══════════════════════════════════════════ -->
+                    @if (User.IsInRole("All") || User.IsInRole("AdminHR") || User.IsInRole("BaoVeHR"))
+                    {
+                        <div style="background:#fff;border-radius:28px;border:1px solid #d1d5db;overflow:hidden;box-shadow:0 10px 15px -3px rgba(0,0,0,0.06);">
+
+                            <!-- Header -->
+                            <div style="background:linear-gradient(135deg,#1c1917 0%,#44403c 100%);padding:18px 25px;display:flex;align-items:center;justify-content:space-between;">
+                                <h4 style="margin:0;font-size:15px;font-weight:900;color:white;display:flex;align-items:center;gap:10px;">
+                                    <i class="fa fa-shield"></i> BẢO VỆ
+                                </h4>
+                                @if (daBaoVe)
+                                {
+                                    <span style="background:@(baoVeHoanTat ? "#059669" : "#d97706");color:white;padding:3px 12px;border-radius:12px;font-size:11px;font-weight:800;">
+                                        <i class="fa fa-@(baoVeHoanTat ? "check-circle" : "clock-o")"></i>
+                                        @(baoVeHoanTat ? "HOÀN TẤT" : "ĐANG XỬ LÝ")
+                                    </span>
+                                }
+                            </div>
+
+                            <div style="padding:22px;">
+                                @if (!daBaoVe)
+                                {
+                                    <!-- Chưa đẩy: hiện nút đẩy -->
+                                    <p style="margin:0 0 14px 0;font-size:13px;color:#78716c;line-height:1.6;">
+                                        Gửi phiếu này đến đội <strong>Bảo Vệ</strong> để xử lý. Bảo Vệ sẽ bổ sung thông tin sau.
+                                    </p>
+                                    <button id="btnDayBaoVe" onclick="dayDenBaoVe()"
+                                            style="width:100%;padding:16px;background:linear-gradient(135deg,#292524,#57534e);color:white;border:none;border-radius:14px;font-weight:900;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 12px rgba(0,0,0,0.18);transition:all 0.2s;"
+                                            onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 10px 20px rgba(0,0,0,0.25)'"
+                                            onmouseout="this.style.transform='';this.style.boxShadow='0 6px 12px rgba(0,0,0,0.18)'">
+                                        <i class="fa fa-shield"></i> ĐẨY SANG BẢO VỆ
+                                    </button>
+                                }
+                                else if (baoVeHoanTat)
+                                {
+                                    <!-- Đã hoàn tất: hiện thông tin -->
+                                    <div style="background:#f0fdf4;border:2px solid #bbf7d0;border-radius:16px;padding:18px;">
+                                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                                            <div style="width:42px;height:42px;background:#059669;border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;font-size:20px;flex-shrink:0;">
+                                                <i class="fa fa-check"></i>
+                                            </div>
+                                            <div>
+                                                <div style="font-weight:900;color:#065f46;font-size:15px;">Bảo Vệ đã xác nhận hoàn tất</div>
+                                                <div style="font-size:12px;color:#059669;margin-top:2px;">
+                                                    <i class="fa fa-user"></i> @baoVeRecord!.TenBaoVe
+                                                    &nbsp;·&nbsp;
+                                                    <i class="fa fa-clock-o"></i> @baoVeRecord.TimeBaoVe?.ToString("HH:mm dd/MM/yyyy")
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(baoVeRecord!.GhiChu))
+                                        {
+                                            <div style="background:white;border-left:4px solid #059669;padding:10px 14px;border-radius:8px;font-size:13px;color:#374151;font-style:italic;">
+                                                <i class="fa fa-comment" style="color:#059669;"></i> @baoVeRecord.GhiChu
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <!-- Đã đẩy, chờ BaoVe xác nhận -->
+                                    <div style="background:#fff7ed;border:2px solid #fed7aa;border-radius:16px;padding:18px;margin-bottom:16px;">
+                                        <div style="display:flex;align-items:center;gap:10px;">
+                                            <i class="fa fa-clock-o" style="color:#d97706;font-size:22px;"></i>
+                                            <div>
+                                                <div style="font-weight:800;color:#92400e;font-size:14px;">Đang chờ Bảo Vệ xử lý</div>
+                                                <div style="font-size:12px;color:#b45309;margin-top:2px;">Phiếu đã được gửi đến đội Bảo Vệ</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Form xác nhận: chỉ BaoVeHR hoặc All mới thấy -->
+                                    @if (canBaoVeAction)
+                                    {
+                                        <div style="background:#f8fafc;border:2px dashed #94a3b8;border-radius:16px;padding:18px;">
+                                            <p style="margin:0 0 12px 0;font-size:13px;font-weight:800;color:#334155;display:flex;align-items:center;gap:8px;">
+                                                <i class="fa fa-shield"></i> XÁC NHẬN HOÀN TẤT (BẢO VỆ):
+                                            </p>
+                                            <textarea id="txtGhiChuBaoVe"
+                                                      placeholder="Nhập ghi chú xác nhận (tùy chọn)..."
+                                                      style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:13px;resize:vertical;min-height:70px;outline:none;font-family:'Segoe UI',sans-serif;box-sizing:border-box;margin-bottom:12px;transition:border 0.2s;"
+                                                      onfocus="this.style.borderColor='#475569'" onblur="this.style.borderColor='#cbd5e1'"></textarea>
+                                            <button id="btnBaoVeXacNhan" onclick="baoVeXacNhan(@baoVeRecord!.Id)"
+                                                    style="width:100%;padding:14px;background:linear-gradient(135deg,#1c1917,#44403c);color:white;border:none;border-radius:12px;font-weight:900;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 10px rgba(0,0,0,0.2);transition:all 0.2s;"
+                                                    onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+                                                <i class="fa fa-check-circle"></i> XÁC NHẬN HOÀN TẤT
+                                            </button>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    }
+                    <!-- ══ KẾT THÚC BLOCK BẢO VỆ ══ -->
 
                 </div><!-- end right column -->
             </div>
@@ -590,23 +625,19 @@
 
     <!-- ZOOM OVERLAY -->
     <div id="imageOverlay" onclick="closeZoom()"
-         style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
-        background:rgba(15,23,42,0.95);z-index:9999;justify-content:center;
-        align-items:center;backdrop-filter:blur(8px);">
+         style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(8px);">
         <img id="fullImage" src="" style="max-width:95%;max-height:95%;border-radius:16px;">
     </div>
 </div>
 
 <script>
-    const formId       = @Model.Id;
+    const formId        = @Model.Id;
     const currentUserId = '@currentUserId';
-    const userRoles    = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()
-        ));
+    const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                                                            User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
     const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
     function hasRole(r) { return userRoles.includes(r); }
-
     function escapeHtml(str) {
         if (!str) return '';
         return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -616,11 +647,7 @@
     async function apiPost(url, body, btnIds) {
         if (btnIds) btnIds.forEach(id => { const b=document.getElementById(id); if(b) b.disabled=true; });
         try {
-            const res  = await fetch(url, {
-                method:'POST',
-                headers:{'Content-Type':'application/json','RequestVerificationToken': TOKEN},
-                body: JSON.stringify(body)
-            });
+            const res  = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json','RequestVerificationToken':TOKEN}, body:JSON.stringify(body) });
             const data = await res.json();
             if (data.success) { alert(data.message||'Thành công!'); location.reload(); }
             else {
@@ -637,84 +664,37 @@
     function openZoom(src) { document.getElementById('fullImage').src=src; document.getElementById('imageOverlay').style.display='flex'; }
     function closeZoom()   { document.getElementById('imageOverlay').style.display='none'; }
 
-    // ══════════════════════════════════════════
-    // XÁC NHẬN GIÁM ĐỐC (KHÔNG RELOAD — CẬP NHẬT DOM LUÔN)
-    // ══════════════════════════════════════════
+    // ── GIÁM ĐỐC XÁC NHẬN ──
     async function giamDocXacNhan(idXacNhan, action) {
-        const ghiChu   = document.getElementById('txtGhiChuXacNhan')?.value?.trim() ?? '';
-        const label    = action === 'Approve' ? 'DUYỆT' : 'TỪ CHỐI';
-
+        const ghiChu = document.getElementById('txtGhiChuXacNhan')?.value?.trim() ?? '';
+        const label  = action === 'Approve' ? 'DUYỆT' : 'TỪ CHỐI';
         if (!confirm(`Xác nhận ${label} đơn này?`)) return;
-
         const btnD = document.getElementById('btnXnDuyet');
         const btnR = document.getElementById('btnXnTuChoi');
         if (btnD) btnD.disabled = true;
         if (btnR) btnR.disabled = true;
-
         try {
-            const res  = await fetch('/FormHR/GiamDocPheDuyet', {
-                method: 'POST',
-                headers: { 'Content-Type':'application/json', 'RequestVerificationToken': TOKEN },
-                body: JSON.stringify({
-                    idForm:         formId,
-                    idNguoiXacNhan: idXacNhan,
-                    loaiHanhDong:   action,
-                    lyDo:           ghiChu
-                })
-            });
+            const res  = await fetch('/FormHR/GiamDocPheDuyet', { method:'POST', headers:{'Content-Type':'application/json','RequestVerificationToken':TOKEN}, body:JSON.stringify({ idForm:formId, idNguoiXacNhan:idXacNhan, loaiHanhDong:action, lyDo:ghiChu }) });
             const data = await res.json();
-
             if (data.success) {
-                // Cập nhật card UI không cần reload
-                const isApprove  = data.trangThai === 1;
-                const cardEl     = document.getElementById(`xnCard-${idXacNhan}`);
-                const badgeEl    = document.getElementById(`xnBadge-${idXacNhan}`);
-                const timeEl     = document.getElementById(`xnTime-${idXacNhan}`);
-                const ghiChuEl   = document.getElementById(`xnGhiChu-${idXacNhan}`);
-
-                if (cardEl) {
-                    cardEl.style.background   = isApprove ? '#f0fdf4' : '#fff1f2';
-                    cardEl.style.borderColor  = isApprove ? '#bbf7d0' : '#fecaca';
-                }
-                if (badgeEl) {
-                    badgeEl.style.background = isApprove ? '#059669' : '#dc2626';
-                    badgeEl.innerHTML        = isApprove
-                        ? '<i class="fa fa-check-circle"></i> ĐÃ DUYỆT'
-                        : '<i class="fa fa-times-circle"></i> TỪ CHỐI';
-                }
-                if (timeEl && data.thoiGian) {
-                    timeEl.innerHTML = `<div style="font-size:11px;color:#94a3b8;margin-top:3px;">
-                        <i class="fa fa-clock-o"></i> ${data.thoiGian}</div>`;
-                }
-                if (ghiChuEl && ghiChu) {
-                    const borderColor = isApprove ? '#059669' : '#dc2626';
-                    ghiChuEl.style.cssText = `margin-top:6px;padding:5px 10px;background:rgba(255,255,255,0.7);
-                        border-radius:8px;font-size:11px;color:#475569;border-left:3px solid ${borderColor};font-style:italic;`;
-                    ghiChuEl.innerHTML = `<i class="fa fa-comment"></i> ${escapeHtml(ghiChu)}`;
-                }
-
-                // Ẩn khung nút bấm sau khi đã xác nhận
+                const isApprove = data.trangThai === 1;
+                const cardEl    = document.getElementById(`xnCard-${idXacNhan}`);
+                const badgeEl   = document.getElementById(`xnBadge-${idXacNhan}`);
+                const timeEl    = document.getElementById(`xnTime-${idXacNhan}`);
+                const ghiChuEl  = document.getElementById(`xnGhiChu-${idXacNhan}`);
+                if (cardEl)  { cardEl.style.background = isApprove?'#f0fdf4':'#fff1f2'; cardEl.style.borderColor = isApprove?'#bbf7d0':'#fecaca'; }
+                if (badgeEl) { badgeEl.style.background = isApprove?'#059669':'#dc2626'; badgeEl.innerHTML = isApprove?'<i class="fa fa-check-circle"></i> ĐÃ DUYỆT':'<i class="fa fa-times-circle"></i> TỪ CHỐI'; }
+                if (timeEl && data.thoiGian) timeEl.innerHTML = `<div style="font-size:11px;color:#94a3b8;margin-top:3px;"><i class="fa fa-clock-o"></i> ${data.thoiGian}</div>`;
+                if (ghiChuEl && ghiChu) { const bc=isApprove?'#059669':'#dc2626'; ghiChuEl.style.cssText=`margin-top:6px;padding:5px 10px;background:rgba(255,255,255,0.7);border-radius:8px;font-size:11px;color:#475569;border-left:3px solid ${bc};font-style:italic;`; ghiChuEl.innerHTML=`<i class="fa fa-comment"></i> ${escapeHtml(ghiChu)}`; }
                 const actionBox = document.getElementById('btnXnDuyet')?.closest('div[style*="dashed"]');
-                if (actionBox) actionBox.parentElement.style.display = 'none';
-
-                // Cập nhật badge đếm (x/total đã duyệt)
-                const allBadges = document.querySelectorAll('[id^="xnBadge-"]');
-                const total     = allBadges.length;
-                const approved  = Array.from(allBadges).filter(b => b.innerHTML.includes('ĐÃ DUYỆT')).length;
-                const headerBadge = document.querySelector('.xn-header-count');
-                if (headerBadge) headerBadge.textContent = `${approved} / ${total} đã duyệt`;
-
+                if (actionBox) actionBox.parentElement.style.display='none';
                 alert(data.message);
             } else {
-                alert(data.message || 'Thất bại');
-                if (btnD) btnD.disabled = false;
-                if (btnR) btnR.disabled = false;
+                alert(data.message||'Thất bại');
+                if (btnD) btnD.disabled=false;
+                if (btnR) btnR.disabled=false;
             }
-        } catch(err) {
-            alert('Lỗi kết nối: ' + err.message);
-            if (btnD) btnD.disabled = false;
-            if (btnR) btnR.disabled = false;
-        }
+        } catch(err) { alert('Lỗi kết nối: '+err.message); if(btnD) btnD.disabled=false; if(btnR) btnR.disabled=false; }
     }
 
     // ── NGHIỆP VỤ ĐƠN ──
@@ -727,19 +707,50 @@
         if (!hasRole('All') && !hasRole('AdminHR') && !hasRole('QuanLyDuyetDonHR'))
             return alert('Bạn không có quyền thực hiện thao tác này!');
         if (confirm('Xác nhận thao tác?'))
-            apiPost('/FormHR/XuLyDon', { id: formId, action: type, reason }, ['btnDuyet','btnHuy']);
+            apiPost('/FormHR/XuLyDon', { id:formId, action:type, reason }, ['btnDuyet','btnHuy']);
     }
     function handleXacNhanHoanThanh() {
         if (!hasRole('All') && !hasRole('AdminHR')) return alert('Chỉ HR Admin mới có quyền xác nhận hoàn tất!');
         if (confirm('Xác nhận đã hoàn thành?'))
-            apiPost('/FormHR/XacNhanHoanThanh', { id: formId }, ['btnHoanThanh']);
+            apiPost('/FormHR/XacNhanHoanThanh', { id:formId }, ['btnHoanThanh']);
     }
     function changeSupporter() {
         const maNv = document.getElementById('selectHR').value;
         if (!maNv) return alert('Vui lòng chọn một nhân viên HR!');
         if (!hasRole('All') && !hasRole('AdminHR')) return alert('Bạn không có quyền gán người hỗ trợ!');
         if (confirm('Xác nhận thay đổi người hỗ trợ?'))
-            apiPost('/FormHR/ThemNguoiHoTro', { idFormHr: formId, maNv });
+            apiPost('/FormHR/ThemNguoiHoTro', { idFormHr:formId, maNv });
+    }
+
+    // ── ĐẨY SANG BẢO VỆ ──
+    async function dayDenBaoVe() {
+        if (!hasRole('All') && !hasRole('AdminHR') && !hasRole('BaoVeHR') && !hasRole('QuanLyDuyetDonHR'))
+            return alert('Bạn không có quyền thực hiện thao tác này!');
+        if (!confirm('Xác nhận đẩy phiếu này sang Bảo Vệ?')) return;
+        const btn = document.getElementById('btnDayBaoVe');
+        if (btn) { btn.disabled=true; btn.innerHTML='<i class="fa fa-spinner fa-spin"></i> Đang gửi...'; }
+        try {
+            const res  = await fetch('/FormHR/DayDenBaoVe', { method:'POST', headers:{'Content-Type':'application/json','RequestVerificationToken':TOKEN}, body:JSON.stringify({ idFormHr:formId }) });
+            const data = await res.json();
+            if (data.success) { alert(data.message||'Đã gửi sang Bảo Vệ thành công!'); location.reload(); }
+            else { alert(data.message||'Thất bại!'); if(btn) { btn.disabled=false; btn.innerHTML='<i class="fa fa-shield"></i> ĐẨY SANG BẢO VỆ'; } }
+        } catch(err) { alert('Lỗi kết nối: '+err.message); if(btn) { btn.disabled=false; btn.innerHTML='<i class="fa fa-shield"></i> ĐẨY SANG BẢO VỆ'; } }
+    }
+
+    // ── BẢO VỆ XÁC NHẬN HOÀN TẤT ──
+    async function baoVeXacNhan(idBaoVe) {
+        if (!hasRole('All') && !hasRole('BaoVeHR'))
+            return alert('Bạn không có quyền xác nhận!');
+        const ghiChu = document.getElementById('txtGhiChuBaoVe')?.value?.trim() ?? '';
+        if (!confirm('Xác nhận hoàn tất xử lý Bảo Vệ?')) return;
+        const btn = document.getElementById('btnBaoVeXacNhan');
+        if (btn) { btn.disabled=true; btn.innerHTML='<i class="fa fa-spinner fa-spin"></i> Đang xử lý...'; }
+        try {
+            const res  = await fetch('/FormHR/BaoVeXacNhan', { method:'POST', headers:{'Content-Type':'application/json','RequestVerificationToken':TOKEN}, body:JSON.stringify({ idBaoVe, ghiChu }) });
+            const data = await res.json();
+            if (data.success) { alert(data.message||'Xác nhận hoàn tất thành công!'); location.reload(); }
+            else { alert(data.message||'Thất bại!'); if(btn) { btn.disabled=false; btn.innerHTML='<i class="fa fa-check-circle"></i> XÁC NHẬN HOÀN TẤT'; } }
+        } catch(err) { alert('Lỗi kết nối: '+err.message); if(btn) { btn.disabled=false; btn.innerHTML='<i class="fa fa-check-circle"></i> XÁC NHẬN HOÀN TẤT'; } }
     }
 
     // ── BÌNH LUẬN ──
@@ -748,7 +759,7 @@
 
     async function taiBinhLuan(isLoadMore=false) {
         if (isLoadingComments) return;
-        isLoadingComments = true;
+        isLoadingComments=true;
         try {
             const res  = await fetch(`/FormHR/LayBinhLuan/${formId}?skip=${currentSkipComment}&take=${takeComment}`);
             const data = await res.json();
@@ -756,15 +767,10 @@
                 const list = document.getElementById('commentList');
                 if (!isLoadMore) { list.innerHTML=''; currentSkipComment=0; totalComments=0; }
                 if (!data.data.length) {
-                    if (!isLoadMore) list.innerHTML=`<div style="text-align:center;color:#94a3b8;padding:40px;">
-                        <i class="fa fa-comment-o" style="font-size:48px;opacity:0.3;display:block;margin-bottom:15px;"></i>
-                        <p style="font-style:italic;font-size:14px;margin:0;">Chưa có bình luận nào.</p></div>`;
+                    if (!isLoadMore) list.innerHTML=`<div style="text-align:center;color:#94a3b8;padding:40px;"><i class="fa fa-comment-o" style="font-size:48px;opacity:0.3;display:block;margin-bottom:15px;"></i><p style="font-style:italic;font-size:14px;margin:0;">Chưa có bình luận nào.</p></div>`;
                     hasMoreComments=false;
                 } else {
-                    data.data.forEach(bl => {
-                        list.insertAdjacentHTML(isLoadMore?'afterbegin':'beforeend', renderComment(bl));
-                        totalComments++;
-                    });
+                    data.data.forEach(bl => { list.insertAdjacentHTML(isLoadMore?'afterbegin':'beforeend', renderComment(bl)); totalComments++; });
                     currentSkipComment += data.data.length;
                     if (data.data.length < takeComment) hasMoreComments=false;
                     if (!isLoadMore) setTimeout(()=>{ list.scrollTop=list.scrollHeight; },100);
@@ -777,27 +783,21 @@
     }
 
     function renderComment(bl) {
-        const isOwn   = currentUserId === String(bl.idNguoiBinhLuan);
-        const canDel  = isOwn || hasRole('All') || hasRole('AdminHR');
-        const time    = new Date(bl.thoiGian).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});
-        let fileHtml  = '';
+        const isOwn  = currentUserId === String(bl.idNguoiBinhLuan);
+        const canDel = isOwn || hasRole('All') || hasRole('AdminHR');
+        const time   = new Date(bl.thoiGian).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});
+        let fileHtml = '';
         if (bl.fileDinhKem) {
             const name = bl.fileDinhKem.split('_').slice(2).join('_');
-            fileHtml = `<div style="margin-top:10px;padding:10px;background:#f1f5f9;border-radius:8px;display:inline-flex;align-items:center;gap:8px;">
-                <i class="fa fa-paperclip" style="color:#64748b;"></i>
-                <a href="/FormHR/DownloadBinhLuanFile/${bl.fileDinhKem}" download style="color:#3b82f6;text-decoration:none;font-weight:600;font-size:13px;">${escapeHtml(name)}</a></div>`;
+            fileHtml = `<div style="margin-top:10px;padding:10px;background:#f1f5f9;border-radius:8px;display:inline-flex;align-items:center;gap:8px;"><i class="fa fa-paperclip" style="color:#64748b;"></i><a href="/FormHR/DownloadBinhLuanFile/${bl.fileDinhKem}" download style="color:#3b82f6;text-decoration:none;font-weight:600;font-size:13px;">${escapeHtml(name)}</a></div>`;
         }
         return `<div style="margin-bottom:15px;display:flex;gap:12px;${isOwn?'flex-direction:row-reverse;':''}" data-comment-id="${bl.id}">
-            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,${isOwn?'#3b82f6':'#94a3b8'},${isOwn?'#1e40af':'#64748b'});display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0;">
-                ${(bl.tenNguoiBinhLuan||'U').substring(0,1).toUpperCase()}</div>
+            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,${isOwn?'#3b82f6':'#94a3b8'},${isOwn?'#1e40af':'#64748b'});display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0;">${(bl.tenNguoiBinhLuan||'U').substring(0,1).toUpperCase()}</div>
             <div style="flex:1;${isOwn?'text-align:right;':''}">
                 <div style="display:inline-block;max-width:85%;">
                     <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;${isOwn?'justify-content:flex-end;flex-direction:row-reverse;':''}">
                         <div><span style="font-weight:800;color:#1e293b;font-size:14px;">${escapeHtml(bl.tenNguoiBinhLuan||'Unknown')}</span></div>
-                        <div style="display:flex;align-items:center;gap:6px;">
-                            <span style="font-size:11px;color:#94a3b8;">${time}</span>
-                            ${canDel?`<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" style="color:#ef4444;cursor:pointer;font-size:12px;"></i>`:''}
-                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;"><span style="font-size:11px;color:#94a3b8;">${time}</span>${canDel?`<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" style="color:#ef4444;cursor:pointer;font-size:12px;"></i>`:''}</div>
                     </div>
                     <div style="background:${isOwn?'#dbeafe':'white'};padding:12px 16px;border-radius:16px;border:1px solid #e2e8f0;">
                         ${bl.noiDung?`<div style="color:#1e293b;font-size:14px;line-height:1.6;word-wrap:break-word;white-space:pre-wrap;">${escapeHtml(bl.noiDung)}</div>`:''}
