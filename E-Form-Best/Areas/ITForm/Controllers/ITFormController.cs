@@ -60,7 +60,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .ThenInclude(ub => ub.IdBoPhanNavigation)
                 .Include(u => u.UserQuyens) // <-- Thêm Include bảng trung gian
                     .ThenInclude(uq => uq.IdQuyenNavigation) // <-- Thêm Include bảng Quyen
-                .FirstOrDefault(u => u.Tk == email && u.MatKhau == matKhau && u.TrangThai != "Khóa");
+                .FirstOrDefault(u => u.Tk == email && u.MatKhau == matKhau && u.TrangThai != "Đã nghỉ");
 
             if (user == null)
             {
