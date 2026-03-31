@@ -1553,8 +1553,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             // 3. KIỂM TRA QUYỀN XEM (Đồng bộ logic phân quyền)
 
-            // Kiểm tra cùng công ty (trừ quyền All)
-            if (don.TenCongTy?.Trim() != tenCongTy && !User.IsInRole("All"))
+            // Kiểm tra cùng công ty (trừ quyền All và AdminIT)
+            if (don.TenCongTy?.Trim() != tenCongTy && !User.IsInRole("All") && !User.IsInRole("AdminIT"))
             {
                 return Forbid();
             }
