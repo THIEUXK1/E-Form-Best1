@@ -2625,188 +2625,75 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
-        #region BÁO CÁO THỐNG KÊ FORM IT (AdminIT, All, IT)
 
+        #region BÁO CÁO THỐNG KÊ FORM IT
+
+        // 1. Action này chỉ trả về giao diện (View)
         [HttpGet("/FormIT/BaoCaoThongKe")]
-        public async Task<IActionResult> BaoCaoThongKe()
+        public IActionResult BaoCaoThongKe()
         {
-            // --- 1. KIỂM TRA QUYỀN TRUY CẬP ---
-            // Sử dụng hàm HasAccess để kiểm tra các Role có quyền xem báo cáo
-            if (!HasAccess("IT", "AdminIT", "All"))
-            {
-                return Redirect("/");
-            }
+            return View();
+        }
 
-            // Lấy thông tin công ty từ Claim (Vẫn giữ để có thông tin nếu cần, nhưng không dùng lọc query)
-            var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
-
-            // --- 2. LẤY DỮ LIỆU GỐC (ĐÃ BỎ LỌC THEO CÔNG TY) ---
-            var query = _context.FormIts
+        [HttpGet("/FormIT/GetDataThongKe")]
+        public async Task<IActionResult> GetDataThongKe()
+        {
+            var data = await _context.FormIts
                 .AsNoTracking()
-                .Include(f => f.DanhGiaFormIts)
-                .Include(f => f.ItCtNguoiHoTros)
-                    .ThenInclude(ct => ct.IdItNguoiHoTroNavigation);
-            // .Where(f => f.TenCongTy == tenCongTy); // Đã bỏ dòng này để xem tất cả
-
-            var allForms = await query
-                .OrderByDescending(f => f.TimeNguoiTao)
+                .Select(x => new {
+                    x.Id,
+                    x.IdForm,   // Mã Form (IT-01, IT-02...)
+                    x.Danhmuc,  // Danh mục (Phần mềm, Phần cứng...)
+                    x.BoPhan,
+                    x.IdNguoiDuyet,
+                    x.IdAdmin,
+                    x.TenForm,
+                    IsRated = x.DanhGiaFormIts.Any()
+                })
                 .ToListAsync();
 
-            // Hàm Local Helper kiểm tra trạng thái hủy
-            bool IsHuy(FormIt f) => (f.TenForm ?? "").Contains("[ĐÃ HỦY]") || f.TrangThai == "DaHuy" || f.TrangThai == "TuChoi";
-
-            // --- 3. THỐNG KÊ THEO LOẠI FORM (BIỂU ĐỒ TRÒN) ---
-            var typeStats = allForms
-                .GroupBy(f => f.IdForm ?? "")
-                .Select(g => new
-                {
-                    Label = GetShortNameIT(g.Key),
-                    Value = g.Count()
-                })
-                .ToList();
-
-            ViewBag.TypeLabels = typeStats.Select(x => x.Label).ToList();
-            ViewBag.TypeCounts = typeStats.Select(x => x.Value).ToList();
-
-            // --- 4. THỐNG KÊ THEO DANH MỤC ---
-            var danhMucStats = allForms
-                .Where(f => !string.IsNullOrEmpty(f.Danhmuc))
-                .GroupBy(f => f.Danhmuc)
-                .Select(g => new
-                {
-                    Label = g.Key,
-                    Value = g.Count()
-                })
-                .ToList();
-
-            ViewBag.DanhMucLabels = danhMucStats.Select(x => x.Label).ToList();
-            ViewBag.DanhMucCounts = danhMucStats.Select(x => x.Value).ToList();
-
-            // --- 5. THỐNG KÊ TRẠNG THÁI (STATUS DASHBOARD) ---
-            int countHuy = allForms.Count(IsHuy);
-
-            int countHoanTat = allForms.Count(f =>
-                !IsHuy(f) && f.TrangThai == "HoanTat" && f.DanhGiaFormIts != null && f.DanhGiaFormIts.Any());
-
-            int countChoDanhGia = allForms.Count(f =>
-                !IsHuy(f) && f.TrangThai == "HoanTat" && (f.DanhGiaFormIts == null || !f.DanhGiaFormIts.Any()));
-
-            int countDangXuLy = allForms.Count(f =>
-                !IsHuy(f) && f.IdNguoiDuyet != null && f.IdAdmin == null && f.TrangThai != "HoanTat");
-
-            int countChoDuyet = allForms.Count(f =>
-                !IsHuy(f) && f.IdNguoiDuyet == null);
-
-            ViewBag.StatusLabels = new List<string> { "Hoàn tất", "Chờ đánh giá", "Đang xử lý", "Chờ duyệt", "Đã hủy" };
-            ViewBag.StatusCounts = new List<int> { countHoanTat, countChoDanhGia, countDangXuLy, countChoDuyet, countHuy };
-
-            // --- 6. THỜI GIAN XỬ LÝ TRUNG BÌNH (KPI) ---
-            var completedForms = allForms
-                .Where(f => !IsHuy(f) && f.TimeAdmin != null && f.TimeNguoiDuyet != null)
-                .ToList();
-
-            if (completedForms.Any())
-            {
-                var avgMinutes = completedForms.Average(f => (f.TimeAdmin.Value - f.TimeNguoiDuyet.Value).TotalMinutes);
-                var t = TimeSpan.FromMinutes(avgMinutes);
-                ViewBag.AvgProcessingTime = $"{(int)t.TotalHours:D2}h {t.Minutes:D2}m";
-            }
-            else
-            {
-                ViewBag.AvgProcessingTime = "0h 0m";
-            }
-
-            // --- 7. THỐNG KÊ THEO NGƯỜI HỖ TRỢ (TABLE) ---
-            var supportStats = allForms
-                .SelectMany(f => f.ItCtNguoiHoTros ?? new List<ItCtNguoiHoTro>())
-                .Where(h => h.IdItNguoiHoTro != null)
-                .GroupBy(h => new
-                {
-                    Id = h.IdItNguoiHoTro.Value,
-                    Ten = h.IdItNguoiHoTroNavigation?.Ten ?? "Không xác định"
-                })
-                .Select(g => new ItSupportStatisticVM
-                {
-                    IdIt = g.Key.Id,
-                    TenIt = g.Key.Ten,
-                    HoanTat = allForms.Count(f => f.ItCtNguoiHoTros.Any(h => h.IdItNguoiHoTro == g.Key.Id) && f.TrangThai == "HoanTat" && f.DanhGiaFormIts.Any()),
-                    ChoDanhGia = allForms.Count(f => f.ItCtNguoiHoTros.Any(h => h.IdItNguoiHoTro == g.Key.Id) && f.TrangThai == "HoanTat" && !f.DanhGiaFormIts.Any()),
-                    DangXuLy = allForms.Count(f => f.ItCtNguoiHoTros.Any(h => h.IdItNguoiHoTro == g.Key.Id) && f.IdNguoiDuyet != null && f.IdAdmin == null),
-                    ChoDuyet = allForms.Count(f => f.ItCtNguoiHoTros.Any(h => h.IdItNguoiHoTro == g.Key.Id) && f.IdNguoiDuyet == null),
-                    DaHuy = allForms.Count(f => f.ItCtNguoiHoTros.Any(h => h.IdItNguoiHoTro == g.Key.Id) && IsHuy(f))
-                })
-                .OrderByDescending(s => s.Tong)
-                .ToList();
-
-            ViewBag.SupportStats = supportStats;
-
-            // --- 8. TRUNG BÌNH THEO DANH MỤC CHO MỖI NGƯỜI (DETAILS) ---
-            var avgByHandlerDanhMuc = allForms
-                .Where(f => f.TimeAdmin != null && f.TimeNguoiDuyet != null)
-                .SelectMany(f => f.ItCtNguoiHoTros.Select(h => new { Form = f, Handler = h }))
-                .Where(x => x.Handler.IdItNguoiHoTro != null)
-                .GroupBy(x => new
-                {
-                    IdIt = x.Handler.IdItNguoiHoTro.Value,
-                    TenIt = x.Handler.IdItNguoiHoTroNavigation?.Ten ?? "N/A",
-                    Danhmuc = string.IsNullOrWhiteSpace(x.Form.Danhmuc) ? "Khác" : x.Form.Danhmuc
-                })
-                .Select(g => new ItSupportCategoryAvgVM
-                {
-                    IdIt = g.Key.IdIt,
-                    TenIt = g.Key.TenIt,
-                    Danhmuc = g.Key.Danhmuc,
-                    AvgMinutes = g.Average(x => (x.Form.TimeAdmin.Value - x.Form.TimeNguoiDuyet.Value).TotalMinutes),
-                    Count = g.Count()
-                })
-                .ToList();
-
-            foreach (var item in avgByHandlerDanhMuc)
-            {
-                var ts = TimeSpan.FromMinutes(item.AvgMinutes);
-                item.AvgTimeFormatted = ts.TotalDays >= 1 ? $"{(int)ts.TotalDays}d {ts.Hours}h {ts.Minutes}m" :
-                                       ts.TotalHours >= 1 ? $"{(int)ts.TotalHours}h {ts.Minutes}m" : $"{(int)ts.TotalMinutes}m";
-            }
-
-            ViewBag.AvgByHandlerDanhMuc = avgByHandlerDanhMuc;
-
-            return View(allForms);
+            return Json(data);
         }
-
-        /* HÀM TIỆN ÍCH */
-        private string GetShortNameIT(string id) => id switch
+        [HttpGet("/FormIT/GetDataNguoiHoTro")]
+        public async Task<IActionResult> GetDataNguoiHoTro()
         {
-            "IT_MAIL_1" => "Đăng ký Email",
-            "IT_ORDER_2" => "Sửa chữa / Yêu cầu",
-            "IT_WIFI_3" => "Sử dụng Wifi",
-            "IT_DTBAN_4" => "Điện thoại bàn",
-            _ => "Khác"
-        };
+            var allDetails = await _context.ItCtNguoiHoTros
+                .AsNoTracking()
+                .Include(x => x.IdItNguoiHoTroNavigation)
+                .Include(x => x.IdFormItNavigation)
+                    .ThenInclude(f => f.DanhGiaFormIts)
+                .ToListAsync();
 
-        /* VIEW MODEL */
-        public class ItSupportStatisticVM
-        {
-            public int IdIt { get; set; }
-            public string TenIt { get; set; }
-            public int HoanTat { get; set; }
-            public int ChoDanhGia { get; set; }
-            public int DangXuLy { get; set; }
-            public int ChoDuyet { get; set; }
-            public int DaHuy { get; set; }
-            public int Tong => HoanTat + ChoDanhGia + DangXuLy + ChoDuyet + DaHuy;
+            // Nhóm theo đơn và chỉ lấy người có Stt cao nhất
+            var filteredData = allDetails
+                .GroupBy(x => x.IdFormIt)
+                .Select(group => {
+                    var topSupport = group.OrderByDescending(x => x.Stt).FirstOrDefault();
+                    var form = topSupport.IdFormItNavigation;
+
+                    double? minutes = null;
+                    if (form.TimeAdmin.HasValue && form.TimeNguoiDuyet.HasValue)
+                    {
+                        minutes = (form.TimeAdmin.Value - form.TimeNguoiDuyet.Value).TotalMinutes;
+                    }
+
+                    return new
+                    {
+                        TenNguoiHoTro = topSupport.IdItNguoiHoTroNavigation?.Ten ?? "Chưa xác định",
+                        DanhMuc = form.Danhmuc ?? "N/A",
+                        TrangThai = (form.TenForm ?? "").Contains("[ĐÃ HỦY]") ? "HỦY" :
+                                    (form.IdAdmin != null && form.DanhGiaFormIts.Any()) ? "HOÀN TẤT" :
+                                    (form.IdAdmin != null) ? "ĐÁNH GIÁ" :
+                                    (form.IdNguoiDuyet != null) ? "ĐANG XỬ LÝ" : "CHỜ QL",
+                        PhutXuLy = minutes
+                    };
+                })
+                .ToList();
+
+            return Json(filteredData);
         }
-
-        public class ItSupportCategoryAvgVM
-        {
-            public int IdIt { get; set; }
-            public string TenIt { get; set; }
-            public string Danhmuc { get; set; }
-            public double AvgMinutes { get; set; }
-            public string AvgTimeFormatted { get; set; }
-            public int Count { get; set; }
-        }
-
         #endregion
+
 
         #region LỊCH SỬ VÀ THÔNG BÁO FORM IT (Phân quyền mới & TenCongTy)
 
