@@ -1,0 +1,186 @@
+﻿@{
+    ViewData["Title"] = "Quản lý Phòng Họp HR";
+    Layout = "~/Areas/AdminForm/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary bg-gradient text-white py-3">
+            <h5 class="mb-0"><i class="fas fa-door-open me-2"></i>QUẢN LÝ DANH MỤC PHÒNG HỌP HR</h5>
+        </div>
+        <div class="card-body">
+            <form id="formPhongHop" class="row g-3 mb-4 p-4 border rounded shadow-sm bg-light">
+                <input type="hidden" id="Id" name="Id" value="0" />
+                
+                <div class="col-md-5">
+                    <label class="form-label fw-bold text-secondary">Tên phòng họp</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-building text-primary"></i></span>
+                        <input type="text" id="TenPhongHop" name="TenPhongHop" class="form-control" placeholder="Ví dụ: Phòng họp 1..." required>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-secondary">Ghi chú</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-info-circle text-info"></i></span>
+                        <input type="text" id="GhiChu" name="GhiChu" class="form-control" placeholder="Thông tin thêm về phòng...">
+                    </div>
+                </div>
+                
+                <div class="col-md-3 d-flex align-items-end gap-2">
+                    <button type="button" onclick="Save()" class="btn btn-success px-4 flex-grow-1">
+                        <i class="fas fa-save me-1"></i> Lưu lại
+                    </button>
+                    <button type="button" onclick="ResetForm()" class="btn btn-outline-secondary px-3">
+                        <i class="fas fa-redo-alt"></i>
+                    </button>
+                </div>
+            </form>
+
+            <hr class="my-4 text-muted">
+
+            <div class="table-responsive">
+                <table id="tableData" class="table table-hover align-middle w-100 border">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" width="60px">STT</th>
+                            <th>Tên phòng họp</th>
+                            <th>Ghi chú</th>
+                            <th class="text-center" width="150px">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        $(document).ready(function () {
+        LoadTable();
+        });
+
+        function LoadTable() {
+        $('#tableData').DataTable({
+        "ajax": {
+        "url": "/QLPhongHopHR/GetData",
+        "type": "GET",
+        "dataSrc": "data"
+        },
+        "columns": [
+        {
+        "data": null,
+        "className": "text-center",
+        "render": function (data, type, row, meta) {
+        return meta.row + 1;
+        }
+        },
+        {
+        "data": "tenPhongHop",
+        "render": function(data) {
+        return `<span class="fw-bold text-dark">${data}</span>`;
+        }
+        },
+        { "data": "ghiChu" },
+        {
+        "data": "id",
+        "render": function (data, type, row) {
+        return `
+        <div class="text-center">
+        <button class="btn btn-sm btn-outline-primary me-1" onclick='Edit(${JSON.stringify(row)})' title="Sửa">
+        <i class="fas fa-edit"></i> Sửa
+        </button>
+        <button class="btn btn-sm btn-outline-danger" onclick="Delete(${data})" title="Xóa">
+        <i class="fas fa-trash"></i> Xóa
+        </button>
+        </div>
+        `;
+        }
+        }
+        ],
+        "language": {
+        "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Vietnamese.json"
+        },
+        "pageLength": 10,
+        "responsive": true,
+        "destroy": true,
+        "drawCallback": function() {
+        $('.dataTables_paginate > .pagination').addClass('pagination-sm');
+        }
+        });
+        }
+
+        function Save() {
+        const tenPhong = $('#TenPhongHop').val().trim();
+        if (tenPhong === "") {
+        Swal.fire('Thông báo', 'Vui lòng nhập tên phòng họp!', 'warning');
+        return;
+        }
+
+        const data = $('#formPhongHop').serialize();
+        $.post('/QLPhongHopHR/Save', data, function (res) {
+        if (res.success) {
+        Swal.fire({
+        icon: 'success',
+        title: 'Thành công',
+        text: res.message || 'Dữ liệu đã được cập nhật',
+        timer: 1500,
+        showConfirmButton: false
+        });
+        ResetForm();
+        LoadTable();
+        } else {
+        Swal.fire('Lỗi', res.message || 'Không thể lưu dữ liệu!', 'error');
+        }
+        });
+        }
+
+        function Edit(row) {
+        $('#Id').val(row.id);
+        $('#TenPhongHop').val(row.tenPhongHop);
+        $('#GhiChu').val(row.ghiChu);
+            
+        // Hiệu ứng cuộn mượt và highlight form
+        $('html, body').animate({ scrollTop: 0 }, 'fast');
+        $('#formPhongHop').addClass('border-primary').css('transition', '0.5s');
+        setTimeout(() => {
+        $('#formPhongHop').removeClass('border-primary');
+        }, 1000);
+        }
+
+        function Delete(id) {
+        Swal.fire({
+        title: 'Xác nhận xóa?',
+        text: "Bạn sẽ không thể khôi phục lại dữ liệu này!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Đồng ý xóa',
+        cancelButtonText: 'Hủy'
+        }).then((result) => {
+        if (result.isConfirmed) {
+        $.post('/QLPhongHopHR/Delete', { id: id }, function (res) {
+        if (res.success) {
+        Swal.fire('Đã xóa!', 'Bản ghi đã được loại bỏ.', 'success');
+        LoadTable();
+        } else {
+        Swal.fire('Lỗi', 'Không thể xóa bản ghi này!', 'error');
+        }
+        });
+        }
+        });
+        }
+
+        function ResetForm() {
+        $('#Id').val(0);
+        $('#formPhongHop')[0].reset();
+        $('#formPhongHop').removeClass('border-primary');
+        }
+    </script>
+}

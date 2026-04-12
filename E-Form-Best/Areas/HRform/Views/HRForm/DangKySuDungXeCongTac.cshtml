@@ -12,7 +12,7 @@
     var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
-    // Toolkit Style màu Xanh Dương chủ đạo theo yêu cầu (#3182ce)
+    // Toolkit Style màu Xanh Dương
     string primaryBlue = "#3182ce";
     string darkBlue = "#2c5282";
     string lightBlueBg = "#ebf8ff";
@@ -77,24 +77,47 @@
             <div style="background: #f7fafc; padding: 25px; border-radius: 20px; border: 1px solid #bee3f8; margin-bottom: 30px;">
                 <h3 style="color: @darkBlue; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
                     <span style="background: @darkBlue; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">2</span>
-                    Nội dung và Lịch trình
+                    Nội dung và Lịch trình chi tiết
                 </h3>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label style="@labelStyle">Số điện thoại liên hệ <span style="color:#e53e3e">*</span></label>
+                        <input type="text" name="chiTiet.SoDienThoai" placeholder="Nhập số điện thoại..." required style="@inputStyle; border: 1px solid @primaryBlue;">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Số lượng người đi <span style="color:#e53e3e">*</span></label>
+                        <input type="number" name="chiTiet.SoLuong" value="1" min="1" required style="@inputStyle; border: 1px solid @primaryBlue;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label style="@labelStyle">🕒 Thời gian đi dự tính <span style="color:#e53e3e">*</span></label>
+                        <input type="datetime-local" id="inpTimeDuTinh" name="chiTiet.TimeDuTinh" required style="@inputStyle; border: 1px solid @primaryBlue;">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">🕒 Thời gian về dự tính (Không bắt buộc)</label>
+                        @* Đã bỏ thuộc tính required *@
+                        <input type="datetime-local" id="inpThoiGianVe" name="chiTiet.ThoiGianVe" style="@inputStyle;">
+                    </div>
+                </div>
 
                 <div style="margin-bottom: 20px;">
                     <label style="@labelStyle">Mục đích sử dụng xe / Lộ trình <span style="color:#e53e3e">*</span></label>
-                    <textarea name="chiTiet.LiDo" placeholder="Vui lòng nhập lý do sử dụng xe chi tiết..." required style="@inputStyle; height: 80px; resize: none; border: 1px solid @primaryBlue;"></textarea>
+                    <textarea name="chiTiet.LiDo" placeholder="Vui lòng nhập lý do sử dụng xe và các điểm dừng chi tiết..." required style="@inputStyle; height: 70px; resize: none; border: 1px solid @primaryBlue;"></textarea>
                 </div>
 
-                <div style="margin-bottom: 25px;">
-                    <label style="@labelStyle">🕒 Thời gian dự tính sử dụng <span style="color:#e53e3e">*</span></label>
-                    <input type="datetime-local" id="inpTimeDuTinh" name="chiTiet.TimeDuTinh" required style="@inputStyle; border: 1px solid @primaryBlue; max-width: 300px;">
+                <div style="margin-bottom: 20px;">
+                    <label style="@labelStyle">Ghi chú (Nếu có)</label>
+                    <input type="text" name="chiTiet.GhiChu" placeholder="Ghi chú thêm cho tài xế hoặc bộ phận quản lý..." style="@inputStyle;">
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div>
-                        <label style="@labelStyle">Ảnh minh chứng (Click & Ctrl+V)</label>
+                        <label style="@labelStyle">Ảnh minh chứng (Click & Ctrl+V) <span style="color:#e53e3e">*</span></label>
                         <div id="paste_AnhXe" class="paste-zone" style="@pasteZoneStyle" tabindex="0">
-                            Nhấp vào đây và nhấn Ctrl+V để dán ảnh
+                            Nhấp vào đây và nhấn Ctrl+V để dán ảnh (Bắt buộc)
                         </div>
                         <input type="file" id="AnhXe" name="AnhXe" hidden accept="image/*">
                     </div>
@@ -103,7 +126,7 @@
                         <label style="@labelStyle">Tài liệu đính kèm (PDF/Scan)</label>
                         <div style="margin-top:10px; background: #ffffff; padding: 15px; border-radius: 12px; border: 1px dashed #bee3f8; height: 180px; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box;">
                             <input type="file" name="UploadFile" style="font-size: 13px; width: 100%;">
-                            <p style="font-size: 11px; color: @darkBlue; margin-top: 15px; line-height: 1.4; opacity: 0.7;">Tải lên kế hoạch công tác đã phê duyệt (nếu có).</p>
+                            <p style="font-size: 11px; color: @darkBlue; margin-top: 15px; line-height: 1.4; opacity: 0.7;">Tải lên kế hoạch công tác đã phê duyệt hoặc thư mời.</p>
                         </div>
                     </div>
                 </div>
@@ -140,11 +163,17 @@
 </div>
 
 <script>
-    // 1. Tự động thiết lập thời gian hiện tại
+    // 1. Tự động thiết lập thời gian mặc định
     window.onload = function() {
         const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById('inpTimeDuTinh').value = now.toISOString().slice(0, 16);
+        const offset = now.getTimezoneOffset() * 60000;
+        
+        // Thời gian đi: Hiện tại
+        const timeDi = new Date(now - offset).toISOString().slice(0, 16);
+        document.getElementById('inpTimeDuTinh').value = timeDi;
+
+        // THAY ĐỔI: Không tự điền Thời gian về, để trống mặc định
+        document.getElementById('inpThoiGianVe').value = "";
     };
 
     // 2. Xử lý dán ảnh (Ctrl+V)
@@ -172,22 +201,44 @@
         zone.addEventListener('click', () => zone.focus());
     }
 
-    // 3. Xử lý gửi đơn
+    // 3. Xử lý gửi đơn và Kiểm tra ràng buộc
     function xuLyLuuDon() {
+        const sdt = document.querySelector('input[name="chiTiet.SoDienThoai"]').value.trim();
+        const soLuong = document.querySelector('input[name="chiTiet.SoLuong"]').value;
         const liDo = document.querySelector('textarea[name="chiTiet.LiDo"]').value.trim();
-        const timeValue = document.getElementById('inpTimeDuTinh').value;
+        const timeDi = document.getElementById('inpTimeDuTinh').value;
+        const timeVe = document.getElementById('inpThoiGianVe').value;
+        const fileAnh = document.getElementById('AnhXe').files;
         const chk = document.getElementById('chkCamKet');
+
+        // Kiểm tra các trường cơ bản
+        if (!sdt) { alert("⚠️ Vui lòng nhập số điện thoại liên hệ!"); return; }
+        if (!soLuong || soLuong < 1) { alert("⚠️ Vui lòng nhập số lượng người đi hợp lệ!"); return; }
+        if (!timeDi) { alert("⚠️ Vui lòng chọn thời gian đi!"); return; }
+        
+        // THAY ĐỔI: Chỉ kiểm tra logic thời gian NẾU người dùng có nhập thời gian về
+        if (timeVe && timeDi) {
+            if (new Date(timeVe) <= new Date(timeDi)) {
+                alert("⚠️ Thời gian về dự tính phải sau thời gian đi!");
+                return;
+            }
+        }
 
         if (liDo.length < 5) {
             alert("⚠️ Vui lòng mô tả chi tiết lộ trình và mục đích!");
             return;
         }
-        if (!timeValue) {
-            alert("⚠️ Vui lòng chọn thời gian dự tính!");
+
+        // KIỂM TRA BẮT BUỘC CÓ ẢNH MINH CHỨNG
+        if (fileAnh.length === 0) {
+            alert("⚠️ BẮT BUỘC: Bạn phải dán (Ctrl+V) hoặc chọn Ảnh minh chứng!");
+            zone.focus();
+            zone.style.borderColor = "#e53e3e";
             return;
         }
+
         if (!chk.checked) {
-            alert("⚠️ Bạn chưa xác nhận cam kết!");
+            alert("⚠️ Bạn chưa xác nhận cam kết tuân thủ quy định!");
             return;
         }
 

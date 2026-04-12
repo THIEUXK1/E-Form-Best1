@@ -87,10 +87,36 @@
     }
     if (Model.HrDangKySuDungXeCongTac3s?.Any() == true)
     {
-        var ct = Model.HrDangKySuDungXeCongTac3s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
+        var ct = Model.HrDangKySuDungXeCongTac3s.First();
+    
+        // 1. Xử lý ảnh minh chứng
+        // Hàm này sẽ tự xử lý nếu ct.Anh hoặc ct.DuongDanAnh bị null (thường hiển thị ảnh mặc định hoặc khung trống)
+        ProcessImage(ct.DuongDanAnh, ct.Anh);
+
+        // 2. Tiêu đề loại dịch vụ
         chiTietNoiDung += RenderInfoRow("🚗", "Dịch vụ", "Đăng ký xe công tác", "#eef2ff", "#1e40af");
-        chiTietNoiDung += RenderInfoRow("📅", "Thời gian", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#eff6ff", "#1e40af");
-        chiTietNoiDung += RenderInfoRow("💬", "Mục đích", ct.LiDo, "#f8fafc", "#0f172a");
+
+        // 3. Thông tin liên hệ
+        chiTietNoiDung += RenderInfoRow("📞", "Số điện thoại", !string.IsNullOrEmpty(ct.SoDienThoai) ? ct.SoDienThoai : "Chưa cung cấp", "#f0fdf4", "#166534");
+
+        // 4. Số lượng nhân sự
+        chiTietNoiDung += RenderInfoRow("👥", "Số lượng người", ct.SoLuong.HasValue ? $"{ct.SoLuong} người" : "Chưa xác định", "#f0fdf4", "#166534");
+
+        // 5. Lịch trình chi tiết (Thời gian đi và về)
+        // Luôn hiển thị dòng thời gian, nếu null sẽ báo "Chưa cập nhật"
+        string thoiGianDi = ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa xác định";
+        string thoiGianVe = ct.ThoiGianVe?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa xác định";
+        string chuoiThoiGian = $"{thoiGianDi} ➜ {thoiGianVe}";
+
+        chiTietNoiDung += RenderInfoRow("📅", "Thời gian (Đi - Về)", chuoiThoiGian, "#eff6ff", "#1e40af");
+
+        // 6. Mục đích và lộ trình di chuyển
+        chiTietNoiDung += RenderInfoRow("📍", "Mục đích / Lộ trình", !string.IsNullOrEmpty(ct.LiDo) ? ct.LiDo : "Trống", "#f8fafc", "#0f172a");
+
+        // 7. Ghi chú bổ sung
+        // Đã loại bỏ lệnh IF để luôn hiển thị dòng này kể cả khi không có ghi chú
+        string ghiChuHienThi = !string.IsNullOrEmpty(ct.GhiChu) ? ct.GhiChu : "Không có ghi chú";
+        chiTietNoiDung += RenderInfoRow("📝", "Ghi chú", ghiChuHienThi, "#fff7ed", "#9a3412");
     }
     if (Model.HrDangKySuDungXeDaily4s?.Any() == true)
     {

@@ -709,7 +709,6 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
 
         #endregion
 
-
         #region QL Công Việc
         [HttpGet("/QLtaiKhoan/GetAllCongViec")]
         public IActionResult GetAllCongViec()
@@ -1179,6 +1178,54 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             return File(image, "image/jpeg"); // Trả về FileStream cho thẻ <img>
         }
 
-        #endregion  
+        #endregion
+
+        #region QL Phòng họp HR
+
+        [HttpGet("/QLPhongHopHR")]
+        public IActionResult QLPhongHopHR()
+        {
+            return View();
+        }
+
+        // Địa chỉ lấy danh sách: /QLPhongHopHR/GetData
+        [HttpGet("/QLPhongHopHR/GetData")]
+        public JsonResult GetPhongHopData()
+        {
+            var data = _context.PhongHopHrs.ToList();
+            return Json(new { data = data });
+        }
+
+        // Địa chỉ lưu/cập nhật: /QLPhongHopHR/Save
+        [HttpPost("/QLPhongHopHR/Save")]
+        public IActionResult SavePhongHop(PhongHopHr model)
+        {
+            if (model.Id == 0)
+            {
+                _context.PhongHopHrs.Add(model);
+            }
+            else
+            {
+                _context.Update(model);
+            }
+            _context.SaveChanges();
+            return Json(new { success = true });
+        }
+
+        // Địa chỉ xóa: /QLPhongHopHR/Delete
+        [HttpPost("/QLPhongHopHR/Delete")]
+        public IActionResult DeletePhongHop(int id)
+        {
+            var item = _context.PhongHopHrs.Find(id);
+            if (item != null)
+            {
+                _context.PhongHopHrs.Remove(item);
+                _context.SaveChanges();
+            }
+            return Json(new { success = true });
+        }
+
+        #endregion
     }
-    }
+
+}
