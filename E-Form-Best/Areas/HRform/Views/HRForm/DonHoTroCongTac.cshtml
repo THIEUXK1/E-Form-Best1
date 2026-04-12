@@ -80,9 +80,19 @@
                     Nội dung yêu cầu hỗ trợ
                 </h3>
 
-                <div style="margin-bottom: 20px;">
-                    <label style="@labelStyle">Tên khách hàng / Đối tác <span style="color:#dc2626">*</span></label>
-                    <input type="text" name="TenKhachHang" placeholder="Nhập tên khách hàng hoặc đoàn công tác..." required style="@inputStyle; border-color: @primaryColor;">
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label style="@labelStyle">Giới tính <span style="color:#dc2626">*</span></label>
+                        <select name="GioiTinh" required style="@inputStyle; border-color: @primaryColor; cursor: pointer;">
+                            <option value="">Chọn</option>
+                            <option value="Nam">Nam</option>
+                            <option value="Nữ">Nữ</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Tên khách hàng / Đối tác <span style="color:#dc2626">*</span></label>
+                        <input type="text" name="TenKhachHang" placeholder="Nhập tên khách hàng hoặc đoàn công tác..." required style="@inputStyle; border-color: @primaryColor;">
+                    </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
@@ -98,10 +108,16 @@
                         <input type="checkbox" name="BookXeCtyDuaDon" value="true" style="width: 18px; height: 18px; accent-color: @primaryColor;">
                         <span style="font-size: 13px; font-weight: 700; color: @darkPurple;">Xe công ty đưa đón</span>
                     </label>
-                    <label style="@checkboxContainerStyle">
-                        <input type="checkbox" name="DatBuaAn" value="true" style="width: 18px; height: 18px; accent-color: @primaryColor;">
-                        <span style="font-size: 13px; font-weight: 700; color: @darkPurple;">Đặt suất ăn / Bữa ăn</span>
-                    </label>
+                    
+                    @* CHỌN LOẠI CƠM *@
+                    <div style="display: flex; align-items: center; gap: 10px; background: #ffffff; padding: 5px 15px; border-radius: 10px; border: 1px solid #e9d5ff;">
+                        <span style="font-size: 11px; font-weight: 800; color: @darkPurple; text-transform: uppercase; white-space: nowrap;">Suất ăn:</span>
+                        <select name="LoaiCom" style="border: none; background: none; font-size: 13px; font-weight: 700; color: @primaryColor; outline: none; width: 100%; cursor: pointer;">
+                            <option value="">Không đặt</option>
+                            <option value="VietNam">Cơm Việt Nam</option>
+                            <option value="TrungQuoc">Cơm Trung Quốc</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div style="margin-bottom: 20px;">
@@ -187,10 +203,12 @@
 
     // Kiểm tra dữ liệu
     function xuLyLuuDon() {
+        const gioiTinh = document.querySelector('select[name="GioiTinh"]').value;
         const tenKhach = document.querySelector('input[name="TenKhachHang"]').value.trim();
         const noiDung = document.querySelector('textarea[name="NoiDungYeuCauChiTiet"]').value.trim();
         const chk = document.getElementById('chkCamKet');
 
+        if (!gioiTinh) { alert("⚠️ Vui lòng chọn giới tính!"); return; }
         if (!tenKhach) { alert("⚠️ Vui lòng nhập tên khách hàng!"); return; }
         if (noiDung.length < 5) { alert("⚠️ Vui lòng nhập nội dung hỗ trợ chi tiết!"); return; }
         if (!chk.checked) { alert("⚠️ Bạn chưa tích chọn xác nhận cam kết!"); return; }

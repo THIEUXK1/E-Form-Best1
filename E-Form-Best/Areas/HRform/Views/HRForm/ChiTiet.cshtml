@@ -167,17 +167,47 @@
     if (Model.HrDonHoTroCongTac9s?.Any() == true)
     {
         var ct = Model.HrDonHoTroCongTac9s.First();
-        if (!string.IsNullOrEmpty(ct.DuongDanAnh)) listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
-        chiTietNoiDung += RenderInfoRow("✈️", "Loại đơn", "Hỗ trợ công tác", "#eef2ff", "#1e40af");
-        chiTietNoiDung += RenderInfoRow("👤", "Mã NV", ct.MaNhanVien, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("🏢", "Tên khách hàng", ct.TenKhachHang, "#f8fafc", "#0f172a");
-        string dichVu = "";
-        if (ct.DatVeMayBay == true) dichVu += "✈️ Đặt vé máy bay ";
-        if (ct.DatChoO == true) dichVu += "🏨 Đặt chỗ ở ";
-        if (ct.BookXeCtyDuaDon == true) dichVu += "🚗 Book xe đưa đón ";
-        if (ct.DatBuaAn == true) dichVu += "🍽️ Đặt bữa ăn ";
-        chiTietNoiDung += RenderInfoRow("📋", "Dịch vụ", dichVu, "#fff7ed", "#9a3412");
-        chiTietNoiDung += RenderInfoRow("📝", "Nội dung", ct.NoiDungYeuCauChiTiet, "#f8fafc", "#0f172a");
+    
+        // 1. Xử lý ảnh minh chứng
+        if (!string.IsNullOrEmpty(ct.DuongDanAnh))
+        {
+            listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
+        }
+
+        // 2. Render thông tin chung
+        chiTietNoiDung += RenderInfoRow("📋", "Loại đơn", "Hỗ trợ công tác", "#eef2ff", "#1e40af");
+        chiTietNoiDung += RenderInfoRow("🆔", "Mã nhân viên", ct.MaNhanVien, "#f8fafc", "#0f172a");
+    
+        // 3. Hiển thị Giới tính & Tên khách hàng (Sử dụng icon theo giới tính)
+        string genderIcon = ct.GioiTinh == "Nữ" ? "👩‍💼" : "👨‍💼";
+        chiTietNoiDung += RenderInfoRow(genderIcon, "Khách hàng", $"[{ct.GioiTinh}] {ct.TenKhachHang}", "#f0fdf4", "#166534");
+
+        // 4. Tổng hợp các dịch vụ đã chọn
+        List<string> selectedServices = new List<string>();
+        if (ct.DatVeMayBay == true) selectedServices.Add("✈️ Vé máy bay");
+        if (ct.DatChoO == true) selectedServices.Add("🏨 Chỗ ở");
+        if (ct.BookXeCtyDuaDon == true) selectedServices.Add("🚗 Xe đưa đón");
+    
+        // Xử lý hiển thị loại bữa ăn đặc thù
+        if (ct.DatBuaAn == true)
+        {
+            string loaiCom = "Suất ăn";
+            if (ct.NoiDungYeuCauChiTiet != null)
+            {
+                if (ct.NoiDungYeuCauChiTiet.Contains("VietNam")) loaiCom = "🍽️ Cơm Việt Nam";
+                else if (ct.NoiDungYeuCauChiTiet.Contains("TrungQuoc")) loaiCom = "🍽️ Cơm Trung Quốc";
+                else loaiCom = "🍽️ Đặt bữa ăn";
+            }
+            selectedServices.Add(loaiCom);
+        }
+
+        string dichVuHienThi = selectedServices.Count > 0 ? string.Join(" | ", selectedServices) : "Không có yêu cầu đặc biệt";
+        chiTietNoiDung += RenderInfoRow("🛠️", "Dịch vụ yêu cầu", dichVuHienThi, "#fff7ed", "#9a3412");
+
+        // 5. Nội dung chi tiết
+        // (Lưu ý: Nếu bạn có lưu tag [Loại cơm] vào nội dung thì có thể dùng Replace để hiển thị sạch hơn nếu muốn)
+        string cleanContent = ct.NoiDungYeuCauChiTiet ?? "";
+        chiTietNoiDung += RenderInfoRow("📝", "Nội dung chi tiết", cleanContent, "#f8fafc", "#0f172a");
     }
 
     // ── 6. DỮ LIỆU XÁC NHẬN GIÁM ĐỐC ──
