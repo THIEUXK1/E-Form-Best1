@@ -86,6 +86,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<LichSuFormIt> LichSuFormIts { get; set; }
 
+    public virtual DbSet<PhongHopHr> PhongHopHrs { get; set; }
+
     public virtual DbSet<Quyen> Quyens { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
@@ -374,6 +376,11 @@ public partial class ITFormContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__LichSu__3213E83F7913614E");
 
             entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.LichSuFormIts).HasConstraintName("FK_LichSu_FormIT");
+        });
+
+        modelBuilder.Entity<PhongHopHr>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__PhongHop__3213E83F30E5D681");
         });
 
         modelBuilder.Entity<Quyen>(entity =>

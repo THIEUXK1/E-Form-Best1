@@ -39,6 +39,9 @@ public partial class HrDonHoTroCongTac9
     [Column(TypeName = "datetime")]
     public DateTime? NgayTao { get; set; }
 
+    [StringLength(10)]
+    public string? GioiTinh { get; set; }
+
     [ForeignKey("IdFormHr")]
     [InverseProperty("HrDonHoTroCongTac9s")]
     public virtual FormHr? IdFormHrNavigation { get; set; }

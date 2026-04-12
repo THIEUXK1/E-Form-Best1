@@ -1522,7 +1522,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             // 1. Kiểm tra đăng nhập
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdStr)) return RedirectToAction("DangNhap", "DonXetDuyet");
+            if (string.IsNullOrEmpty(userIdStr))
+            {
+                // Sử dụng Redirect để quay về chính xác đường dẫn bạn mong muốn
+                return Redirect("/DonXetDuyet/DangNhap");
+            }
 
             int userId = int.Parse(userIdStr);
 
@@ -2023,7 +2027,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #endregion
 
         #region XỬ LÝ ĐƠN IT (Duyệt / Hủy / Hoàn tất) - PHÂN QUYỀN MỚI 2026
-
         [HttpGet("/FormIT/QuanLyXetDuyet")]
         public async Task<IActionResult> QuanLyXetDuyet()
         {
@@ -2032,20 +2035,19 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (string.IsNullOrEmpty(userIdStr)) return Redirect("/DonXetDuyet/DangNhap");
             int userId = int.Parse(userIdStr);
 
-            // Lấy tất cả các Roles từ Claims (vì một User có thể có nhiều quyền)
+            // Lấy tất cả các Roles từ Claims
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
 
             var phongBan = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
-            // Lấy danh sách bộ phận được quản lý (nếu có)
             var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
             var listTenBoPhan = listTenBoPhanStr.Split(',')
                                                 .Select(s => s.Trim().ToLower())
                                                 .Where(s => !string.IsNullOrEmpty(s))
                                                 .ToList();
 
-            // Chặn Bảo vệ (nếu có quyền này)
+            // Chặn Bảo vệ
             if (userRoles.Contains("BaoVe")) return Forbid();
 
             // --- 2. TRUY VẤN DỮ LIỆU ---
@@ -2054,10 +2056,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .Include(f => f.DanhGiaFormIts);
 
-            // --- 3. LOGIC PHÂN QUYỀN THEO HỆ THỐNG MỚI (3 LOẠI QUYỀN CHÍNH) ---
+            // --- 3. LOGIC PHÂN QUYỀN THEO HỆ THỐNG MỚI ---
 
-            // A. Lọc theo Công ty (Bắt buộc)
-            if (!string.IsNullOrEmpty(tenCongTy))
+            // A. Lọc theo Công ty (Bỏ qua nếu là Admin "All")
+            // Chỉ lọc theo công ty nếu KHÔNG PHẢI là quyền "All"
+            if (!userRoles.Contains("All") && !string.IsNullOrEmpty(tenCongTy))
             {
                 query = query.Where(f => f.TenCongTy == tenCongTy);
             }
@@ -2065,7 +2068,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // B. Lọc theo Role thực tế trong Cookie
             if (userRoles.Contains("All"))
             {
-                // QUYỀN CAO NHẤT: Xem toàn bộ đơn trong công ty
+                // QUYỀN CAO NHẤT: Xem toàn bộ đơn (Đã bỏ qua lọc công ty ở bước A)
             }
             else if (userRoles.Contains("QuanLyDuyetDonIT"))
             {
