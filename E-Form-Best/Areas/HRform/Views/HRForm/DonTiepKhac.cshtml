@@ -6,19 +6,18 @@
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 
     // --- MÀU CHỦ ĐẠO MỚI (HỒNG) ---
-    string primaryColor = "#f472b6"; // Hồng cánh sen
-    string secondaryColor = "#be185d"; // Hồng đậm (Darker)
-    string lightBg = "#fdf2f8"; // Hồng rất nhạt
-    string softBorder = "#f9a8d4"; // Hồng nhạt cho border
+    string primaryColor = "#f472b6";
+    string secondaryColor = "#be185d";
+    string lightBg = "#fdf2f8";
+    string softBorder = "#f9a8d4";
 
     // --- LẤY THÔNG TIN TỪ CLAIMS ---
     var tenNguoiNv = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
-    var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
-    // Styles nội bộ đã chuyển sang tông Hồng
+    // Styles
     string inputStyle = $"width: 100%; padding: 12px; border-radius: 10px; border: 1px solid {softBorder}; background: #fffdfd; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: {secondaryColor};";
     string labelStyle = $"font-weight: 700; color: {secondaryColor}; font-size: 11px; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px;";
     string pasteZoneStyle = $"width: 100%; border: 2px dotted {softBorder}; height: 180px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: {lightBg}; color: {primaryColor}; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 600; transition: 0.3s; margin-top: 10px; position: relative; outline: none;";
@@ -27,11 +26,15 @@
 <div style="background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%); padding: 40px 15px; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
 
     <form id="hrForm" method="post" enctype="multipart/form-data" action="/FormHR/DonTiepKhac"
-          style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 30px; box-shadow: 0 20px 50px rgba(244, 114, 182, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
+          style="max-width: 950px; margin: 0 auto; background: #ffffff; border-radius: 30px; box-shadow: 0 20px 50px rgba(244, 114, 182, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
 
         @Html.AntiForgeryToken()
+        
+        @* Input ẩn mặc định *@
+        <input type="hidden" name="chiTiet.TrangThaiPhong" value="off" />
+        <input type="hidden" name="chiTiet.NhuCauPhongHop" id="NhuCauPhongHopHidden" />
 
-        @* --- HEADER (MÀU HỒNG) --- *@
+        @* --- HEADER --- *@
         <div style="background: linear-gradient(135deg, @primaryColor 0%, @secondaryColor 100%); padding: 40px; color: #ffffff; text-align: center; position: relative;">
             <div style="position: absolute; top: 15px; right: 25px; font-size: 11px; opacity: 0.9; font-weight: 500; letter-spacing: 1px;">HỆ THỐNG E-FORM V3.0</div>
             <h2 style="margin: 0; font-size: 24px; text-transform: uppercase; font-weight: 900; letter-spacing: 1.5px;">Đơn đăng ký tiếp khách</h2>
@@ -47,7 +50,7 @@
                     <span style="background: @primaryColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">1</span>
                     Thông tin người đăng ký
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
                     <div>
                         <label style="@labelStyle">Họ tên nhân viên</label>
                         <input name="TenNguoiNv" value="@tenNguoiNv" readonly style="@inputStyle; background: #fdf2f8;">
@@ -61,21 +64,10 @@
                         <input name="SoNhanVien" value="@soNhanVien" readonly style="@inputStyle; background: #fdf2f8;">
                     </div>
                 </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div>
-                        <label style="@labelStyle">Đơn vị / Công ty</label>
-                        <input name="TenCongTy" value="@tenCongTy" readonly style="@inputStyle; background: #fdf2f8; border-style: dashed;">
-                    </div>
-                    <div>
-                        <label style="@labelStyle">Danh mục hồ sơ</label>
-                        <input name="Danhmuc" value="ĐƠN TIẾP KHÁCH" readonly style="@inputStyle; background: #fdf2f8; border-style: dashed; color: @primaryColor;">
-                    </div>
-                </div>
             </div>
 
-            @* --- PHẦN 2: CHI TIẾT TIẾP KHÁCH --- *@
-            <div style="background: #fffcfd; padding: 25px; border-radius: 20px; border: 1px solid @softBorder; margin-bottom: 30px; box-shadow: inset 0 2px 4px rgba(244, 114, 182, 0.02);">
+            @* --- PHẦN 2: THÔNG TIN TIẾP KHÁCH & ĐỐI TÁC --- *@
+            <div style="background: #fffcfd; padding: 25px; border-radius: 20px; border: 1px solid @softBorder; margin-bottom: 30px;">
                 <h3 style="color: @secondaryColor; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
                     <span style="background: @secondaryColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">2</span>
                     Nội dung tiếp khách
@@ -83,19 +75,19 @@
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div>
-                        <label style="@labelStyle">Người đặt (Book)</label>
-                        <input name="chiTiet.NguoiBook" placeholder="Tên người đặt phòng/tiệc..." required style="@inputStyle">
+                        <label style="@labelStyle">Người đặt (Book) <span style="color:red">*</span></label>
+                        <input name="chiTiet.NguoiBook" placeholder="Nhập tên người đặt..." required style="@inputStyle">
                     </div>
                     <div>
                         <label style="@labelStyle">Số máy bàn</label>
-                        <input name="chiTiet.SoMayBan" placeholder="Ext..." style="@inputStyle">
+                        <input name="chiTiet.SoMayBan" placeholder="Số nội bộ (nếu có)..." style="@inputStyle">
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div>
-                        <label style="@labelStyle">Tên công ty khách <span style="color:@primaryColor">*</span></label>
-                        <input name="chiTiet.TenCongTyKhach" placeholder="Nhập tên đơn vị đối tác..." required style="@inputStyle; border: 1px solid @primaryColor;">
+                        <label style="@labelStyle">Tên công ty khách <span style="color:red">*</span></label>
+                        <input name="chiTiet.TenCongTyKhach" placeholder="Nhập đầy đủ tên công ty đối tác..." required style="@inputStyle; border-left: 4px solid @primaryColor;">
                     </div>
                     <div>
                         <label style="@labelStyle">Số lượng khách</label>
@@ -103,45 +95,148 @@
                     </div>
                 </div>
 
-                <div style="margin-bottom: 20px;">
-                    <label style="@labelStyle">Yêu cầu cụ thể</label>
-                    <textarea name="chiTiet.YeuCauTiepKhach" placeholder="Vui lòng nhập chi tiết các yêu cầu tiếp khách..." style="@inputStyle; height: 80px; resize: none;"></textarea>
+                <div style="margin-bottom: 15px;">
+                    <label style="@labelStyle">Yêu cầu tiếp khách (Lý do cụ thể)</label>
+                    <textarea name="chiTiet.YeuCauTiepKhach" placeholder="Vui lòng nhập chi tiết các yêu cầu tiếp khách..." style="@inputStyle; height: 60px; resize: none;"></textarea>
+                </div>
+            </div>
+
+            @* --- PHẦN 3: ĐĂNG KÝ PHÒNG HỌP (Đầy đủ trường) --- *@
+            <div style="background: #fffcfd; padding: 25px; border-radius: 20px; border: 1px solid @softBorder; margin-bottom: 30px;">
+                <h3 style="color: @secondaryColor; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: @secondaryColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">3</span>
+                    Dịch vụ phòng họp
+                </h3>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="@labelStyle">Chọn phòng họp</label>
+                        <select name="chiTiet.TenPhongHop" style="@inputStyle">
+                            <option value="">-- Không sử dụng phòng --</option>
+                            @if (ViewBag.DanhSachPhongHop != null)
+                            {
+                                foreach (var item in (List<E_Form_Best.Models.ITForm.PhongHopHr>)ViewBag.DanhSachPhongHop)
+                                {
+                                    <option value="@item.TenPhongHop">@item.TenPhongHop</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Nhu cầu tiện ích</label>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; background: white; padding: 10px; border-radius: 10px; border: 1px solid @softBorder;">
+                            @{
+                                var listNC = new[] { "Nước uống", "Bánh kẹo", "Trà/Cafe", "Máy chiếu", "Thăm xưởng", "Khác" };
+                                foreach (var nc in listNC)
+                                {
+                                    <label style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: @secondaryColor; cursor: pointer;">
+                                        <input type="checkbox" class="nhu-cau-checkbox" value="@nc" style="accent-color: @primaryColor;"> @nc
+                                    </label>
+                                }
+                            }
+                        </div>
+                    </div>
                 </div>
 
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="@labelStyle">Thời gian bắt đầu</label>
+                        <input type="datetime-local" name="chiTiet.ThoiGianBatDau" style="@inputStyle">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Thời gian kết thúc</label>
+                        <input type="datetime-local" name="chiTiet.ThoiGianKetThuc" style="@inputStyle">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 5px;">
+                    <label style="@labelStyle">Ghi chú phòng họp</label>
+                    <input name="chiTiet.GhiChuPhongHop" placeholder="Lưu ý thêm về sắp xếp phòng họp..." style="@inputStyle">
+                </div>
+            </div>
+
+            @* --- PHẦN 4: ĐĂNG KÝ SUẤT ĂN (Đầy đủ trường) --- *@
+            <div style="background: #fffcfd; padding: 25px; border-radius: 20px; border: 1px solid @softBorder; margin-bottom: 30px;">
+                <h3 style="color: @secondaryColor; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: @secondaryColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">4</span>
+                    Đăng ký suất ăn
+                </h3>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="@labelStyle">Phân loại suất ăn</label>
+                        <select name="chiTiet.LoaiSuatAn" style="@inputStyle">
+                            <option value="">-- Không đăng ký ăn --</option>
+                            <option value="A">Loại A: Có TGĐ tham gia</option>
+                            <option value="B">Loại B: Khách VIP</option>
+                            <option value="C">Loại C: Cơm suất thường</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Tổng số lượng suất ăn</label>
+                        <input type="number" name="chiTiet.SoLuongSuat" min="0" value="0" style="@inputStyle">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="@labelStyle">Suất ăn chay?</label>
+                        <select name="chiTiet.AnChay" style="@inputStyle">
+                            <option value="Không">Không</option>
+                            <option value="Có">Có</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Số lượng suất chay</label>
+                        <input type="number" name="chiTiet.SoLuongSuatAnChay" min="0" value="0" style="@inputStyle">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 5px;">
+                    <label style="@labelStyle">Ghi chú suất ăn</label>
+                    <input name="chiTiet.GhiChuSuatAn" placeholder="Dị ứng, giờ dùng bữa, địa điểm ăn..." style="@inputStyle">
+                </div>
+            </div>
+
+            @* --- PHẦN 5: MINH CHỨNG & FILE --- *@
+            <div style="background: #fffcfd; padding: 25px; border-radius: 20px; border: 1px solid @softBorder; margin-bottom: 30px;">
+                <h3 style="color: @secondaryColor; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: @secondaryColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">5</span>
+                    Tài liệu đính kèm
+                </h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div>
-                        <label style="@labelStyle">Ảnh minh chứng (Click & Ctrl+V)</label>
+                        <label style="@labelStyle">Ảnh minh chứng (Ctrl+V)</label>
                         <div id="paste_AnhMinhChung" class="paste-zone" style="@pasteZoneStyle" tabindex="0">
-                            Nhấp vào đây và nhấn Ctrl+V để dán ảnh
+                            Nhấn Ctrl+V để dán ảnh
                         </div>
                         <input type="file" id="AnhMinhChung" name="AnhMinhChung" hidden accept="image/*">
                     </div>
-
                     <div>
-                        <label style="@labelStyle">Tài liệu đính kèm (PDF/Scan)</label>
-                        <div style="margin-top:10px; background: #ffffff; padding: 15px; border-radius: 12px; border: 1px dashed @softBorder; height: 180px; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box;">
-                            <input type="file" name="UploadFile" style="font-size: 13px; width: 100%;">
-                            <p style="font-size: 11px; color: @secondaryColor; margin-top: 15px; line-height: 1.4; opacity: 0.8;">Đính kèm kế hoạch hoặc danh sách khách mời.</p>
+                        <label style="@labelStyle">File đính kèm (PDF/Excel)</label>
+                        <div style="margin-top:10px; background: #ffffff; padding: 15px; border-radius: 12px; border: 1px dashed @softBorder; height: 180px; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; text-align: center;">
+                            <input type="file" name="UploadFile" style="font-size: 13px; margin: 0 auto;">
+                            <p style="font-size: 11px; color: @secondaryColor; margin-top: 15px; opacity: 0.8;">Hỗ trợ: .pdf, .docx, .xlsx, .jpg</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            @* --- PHẦN 3: CAM KẾT --- *@
+            @* --- CAM KẾT --- *@
             <div style="background: @lightBg; border: 1.5px solid @primaryColor; border-radius: 20px; padding: 25px; margin-bottom: 30px;">
-                <label id="containerCamKet" style="cursor: pointer; display: flex; align-items: flex-start; gap: 12px; background: #ffffff; padding: 15px; border-radius: 12px; border: 2px solid @softBorder; transition: 0.3s;">
-                    <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; margin-top: 2px; accent-color: @primaryColor; cursor: pointer;">
+                <label id="containerCamKet" style="cursor: pointer; display: flex; align-items: flex-start; gap: 12px; background: #ffffff; padding: 15px; border-radius: 12px; border: 2px solid @softBorder;">
+                    <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; accent-color: @primaryColor; cursor: pointer;">
                     <span style="font-size: 13px; font-weight: 800; color: @secondaryColor; line-height: 1.5;">
                         Tôi cam kết các thông tin trên là đúng sự thật và tuân thủ quy định tiếp khách của công ty.
                     </span>
                 </label>
             </div>
 
-            @* --- NÚT GỬI (MÀU HỒNG) --- *@
+            @* --- NÚT GỬI --- *@
             <div style="text-align: center;">
                 <button type="button" onclick="xuLyLuuDon()"
-                        style="width: 100%; padding: 20px; background: linear-gradient(to right, @primaryColor, @secondaryColor); color: #fff; border: none; border-radius: 15px; font-weight: 900; font-size: 18px; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 25px rgba(244, 114, 182, 0.4); text-transform: uppercase; letter-spacing: 1px;">
-                    <i class="fa fa-paper-plane" style="margin-right: 10px;"></i> Xác nhận đăng ký tiếp khách
+                        style="width: 100%; padding: 20px; background: linear-gradient(to right, @primaryColor, @secondaryColor); color: #fff; border: none; border-radius: 15px; font-weight: 900; font-size: 18px; cursor: pointer; box-shadow: 0 10px 25px rgba(244, 114, 182, 0.4); text-transform: uppercase;">
+                    <i class="fa fa-paper-plane" style="margin-right: 10px;"></i> Xác nhận gửi đơn
                 </button>
             </div>
         </div>
@@ -149,6 +244,7 @@
 </div>
 
 <script>
+    // Xử lý dán ảnh minh chứng
     function handlePaste(e, inputId, zoneId) {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         let blob = null;
@@ -179,10 +275,21 @@
         zoneEl.addEventListener('paste', (e) => handlePaste(e, "AnhMinhChung", "paste_AnhMinhChung"));
     }
 
+    // Xử lý Submit đơn
     function xuLyLuuDon() {
+        const nguoiBook = document.querySelector('input[name="chiTiet.NguoiBook"]').value.trim();
         const ctyKhach = document.querySelector('input[name="chiTiet.TenCongTyKhach"]').value.trim();
         const chk = document.getElementById('chkCamKet');
 
+        // Thu thập Nhu cầu phòng họp (Gộp checkbox thành chuỗi)
+        const selectedNhuCau = [];
+        document.querySelectorAll('.nhu-cau-checkbox:checked').forEach(item => {
+            selectedNhuCau.push(item.value);
+        });
+        document.getElementById('NhuCauPhongHopHidden').value = selectedNhuCau.join(', ');
+
+        // Validation
+        if (nguoiBook === "") { alert("⚠️ Vui lòng nhập tên người đặt!"); return; }
         if (ctyKhach === "") { alert("⚠️ Vui lòng nhập tên công ty khách!"); return; }
         if (!chk.checked) { alert("⚠️ Bạn chưa tích chọn cam kết!"); return; }
 
