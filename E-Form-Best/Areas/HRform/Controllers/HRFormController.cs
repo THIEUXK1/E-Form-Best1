@@ -864,31 +864,26 @@ namespace E_Form_Best.Areas.HRform.Controllers
             // 1. Kiểm tra đăng nhập
             if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
 
-            // 2. Lấy thông tin từ Claims
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdString)) return Redirect("/DonXetDuyet/DangNhap");
 
-            int userId = int.Parse(userIdString);
-            var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
-            var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
-            var viTri = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
-            var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
-            var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+            // 2. Lấy danh sách phòng họp để hiển thị dropdown ở View (Sử dụng cho trường TenPhongHop)
+            ViewBag.DanhSachPhongHop = _context.PhongHopHrs.AsNoTracking().ToList();
 
-            // 3. Khởi tạo Model hiển thị lên View
+            // 3. Khởi tạo Model chính hiển thị lên View
             var model = new FormHr
             {
                 IdForm = "HR_DonTiepKhac_5",
                 TenForm = "Đơn đăng ký tiếp khách",
                 Danhmuc = "ĐƠN TIẾP KHÁCH",
-                TenCongTy = tenCongTy,
-                TenNguoiNv = userName,
-                BoPhan = phongBan,
-                ViTri = viTri,
-                SoNhanVien = soNhanVien,
+                TenCongTy = User.FindFirst("TenCongTy")?.Value ?? "",
+                TenNguoiNv = User.FindFirst(ClaimTypes.Name)?.Value ?? "",
+                BoPhan = User.FindFirst("PhongBan")?.Value ?? "",
+                ViTri = User.FindFirst(ClaimTypes.Role)?.Value ?? "",
+                SoNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "",
                 Ngay = DateOnly.FromDateTime(DateTime.Now),
-                IdNguoiTao = userId,
-                TenNguoiTao = userName,
+                IdNguoiTao = int.Parse(userIdString),
+                TenNguoiTao = User.FindFirst(ClaimTypes.Name)?.Value ?? "",
                 TimeNguoiTao = DateTime.Now,
                 TrangThai = "ChoDuyet"
             };
@@ -899,7 +894,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         [HttpPost("/FormHR/DonTiepKhac")]
         public async Task<IActionResult> DonTiepKhac(FormHr form, [FromForm] HrDonTiepKhac5 chiTiet)
         {
-            // 1. Kiểm tra đăng nhập
+            // 1. Kiểm tra đăng nhập lại khi Post
             if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
 
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -912,7 +907,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             if (string.IsNullOrEmpty(userIdString)) return Redirect("/DonXetDuyet/DangNhap");
             int userId = int.Parse(userIdString);
 
-            // Đường dẫn Fileserver mạng
+            // Đường dẫn Fileserver
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonHR";
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -931,13 +926,13 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     form.TenCongTy = tenCongTy;
                     form.Danhmuc = "ĐƠN TIẾP KHÁCH";
                     form.TrangThai = "ChoDuyet";
-                    form.IdForm = "HR_DonTiepKhac_5"; // Mã định danh để check cấu hình duyệt
+                    form.IdForm = "HR_DonTiepKhac_5";
                     form.TenForm = "Đơn đăng ký tiếp khách";
 
                     _context.FormHrs.Add(form);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 2: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN TỪ DANH MỤC ---
+                    // --- BƯỚC 2: TỰ ĐỘNG THÊM DANH SÁCH NGƯỜI XÁC NHẬN ---
                     var loaiDon = await _context.DmLoaiDons
                         .FirstOrDefaultAsync(x => x.MaLoaiDon == form.IdForm && x.TrangThai == true);
 
@@ -946,97 +941,89 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         var listCauHinh = await _context.DmNguoiXacNhanLoaiDons
                             .Include(x => x.IdnguoiXacNhanNavigation)
                             .Where(x => x.IdloaiDon == loaiDon.IdloaiDon)
+                            .OrderBy(x => x.CapDoXacNhan)
                             .ToListAsync();
 
                         foreach (var item in listCauHinh)
                         {
-                            var hrXacNhan = new HrNguoiXacNhan
+                            _context.HrNguoiXacNhans.Add(new HrNguoiXacNhan
                             {
                                 IdFormHr = form.Id,
                                 IdnguoiXacNhan = item.IdnguoiXacNhan,
-                                ThuTuXacNhan = item.CapDoXacNhan, // Cùng cấp độ thì thứ tự bằng nhau
+                                ThuTuXacNhan = item.CapDoXacNhan,
                                 MaNguoiXacNhan = item.IdnguoiXacNhanNavigation?.MaNv,
                                 TenNguoiXacNhan = item.IdnguoiXacNhanNavigation?.HoTen,
-                                TrangThaiXacNhan = 0, // Mặc định: Chờ duyệt
-                                ThoiGianXacNhan = null,
-                                GhiChu = null
-                            };
-                            _context.HrNguoiXacNhans.Add(hrXacNhan);
+                                TrangThaiXacNhan = 0, // Chờ duyệt
+                                ThoiGianXacNhan = null
+                            });
                         }
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 3: LƯU LỊCH SỬ THAO TÁC (LichSuFormHr) ---
-                    string chiTietTiepKhach = "";
-                    if (chiTiet != null)
-                    {
-                        chiTietTiepKhach = $"- Khách từ: {chiTiet.TenCongTyKhach}\n" +
-                                            $"- Số lượng: {chiTiet.SoLuongKhach} người\n" +
-                                            $"- Yêu cầu: {chiTiet.YeuCauTiepKhach}";
-                    }
-
-                    var lichSu = new LichSuFormHr
-                    {
-                        IdFormHr = form.Id,
-                        TieuDe = "Khởi tạo đơn tiếp khách",
-                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn đăng ký tiếp khách.\n{chiTietTiepKhach}",
-                        Time = DateTime.Now,
-                        IsRead = false
-                    };
-                    _context.LichSuFormHrs.Add(lichSu);
-                    await _context.SaveChangesAsync();
-
-                    // Tạo thư mục nếu chưa có
-                    if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
-
-                    string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
-                    string timeStamp = DateTime.Now.ToString("ddMMyy_HHmm");
-
-                    // --- BƯỚC 4: XỬ LÝ FILE ĐÍNH KÈM (UploadFile) ---
-                    var uploadFile = Request.Form.Files["UploadFile"];
-                    if (uploadFile != null && uploadFile.Length > 0)
-                    {
-                        string extension = Path.GetExtension(uploadFile.FileName);
-                        string fileName = $"File_TK_{form.Id}_User{userId}_{safeName}_{timeStamp}{extension}";
-                        string fullPath = Path.Combine(networkPath, fileName);
-
-                        using (var fileStream = new FileStream(fullPath, FileMode.Create))
-                        {
-                            await uploadFile.CopyToAsync(fileStream);
-                        }
-                        form.FileDinhKem = fileName;
-                    }
-
-                    // --- BƯỚC 5: XỬ LÝ CHI TIẾT (HrDonTiepKhac5) & ẢNH MINH CHỨNG ---
+                    // --- BƯỚC 3: XỬ LÝ CHI TIẾT ĐƠN (HrDonTiepKhac5) ---
                     if (chiTiet != null)
                     {
                         chiTiet.IdFormHr = form.Id;
+                        chiTiet.TrangThaiPhong = "off"; // Luôn mặc định là off theo yêu cầu
+                        chiTiet.NgayYeuCau = DateTime.Now;
 
-                        // Xử lý Ảnh Minh Chứng (Paste/Upload)
+                        // Các trường khác (TenPhongHop, NhuCauPhongHop, ThoiGianBatDau, ThoiGianKetThuc, 
+                        // GhiChuPhongHop, LoaiSuatAn, SoLuongSuat, AnChay, SoLuongSuatAnChay, GhiChuSuatAn)
+                        // Đã được tự động gán từ Form nhờ [FromForm]
+
+                        // Xử lý File trên Server
+                        if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
+                        string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
+                        string timeStamp = DateTime.Now.ToString("ddMMyy_HHmm");
+
+                        // 3.1 Lưu File tài liệu đính kèm (nếu có)
+                        var uploadFile = Request.Form.Files["UploadFile"];
+                        if (uploadFile != null && uploadFile.Length > 0)
+                        {
+                            string fileName = $"File_TK_{form.Id}_{safeName}_{timeStamp}{Path.GetExtension(uploadFile.FileName)}";
+                            string fullPath = Path.Combine(networkPath, fileName);
+                            using (var stream = new FileStream(fullPath, FileMode.Create))
+                            {
+                                await uploadFile.CopyToAsync(stream);
+                            }
+                            form.FileDinhKem = fileName;
+                        }
+
+                        // 3.2 Lưu Ảnh minh chứng (nếu có)
                         var anhFile = Request.Form.Files["AnhMinhChung"];
                         if (anhFile != null && anhFile.Length > 0)
                         {
-                            string imgExt = Path.GetExtension(anhFile.FileName);
-                            if (string.IsNullOrEmpty(imgExt)) imgExt = ".jpg";
-
-                            string imgName = $"Anh_TK_{form.Id}_User{userId}_{safeName}_{timeStamp}{imgExt}";
+                            string imgName = $"Anh_TK_{form.Id}_{safeName}_{timeStamp}{Path.GetExtension(anhFile.FileName)}";
                             string imgPath = Path.Combine(networkPath, imgName);
-
-                            using (var fileStream = new FileStream(imgPath, FileMode.Create))
+                            using (var stream = new FileStream(imgPath, FileMode.Create))
                             {
-                                await anhFile.CopyToAsync(fileStream);
+                                await anhFile.CopyToAsync(stream);
                             }
                             chiTiet.DuongDanAnh = imgName;
                         }
 
                         _context.HrDonTiepKhac5s.Add(chiTiet);
-                        await _context.SaveChangesAsync();
                     }
 
-                    // Cập nhật lại trạng thái FormHr nếu có thay đổi (FileDinhKem)
-                    _context.Entry(form).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-                    await _context.SaveChangesAsync();
+                    // --- BƯỚC 4: LƯU LỊCH SỬ THAO TÁC ---
+                    string moTaLichSu = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn tiếp khách.\n" +
+                                        $"- Đối tác: {chiTiet?.TenCongTyKhach}\n" +
+                                        $"- Phòng: {chiTiet?.TenPhongHop ?? "Không đăng ký"}\n" +
+                                        $"- Suất ăn: {chiTiet?.LoaiSuatAn ?? "Không đăng ký"}";
 
+                    _context.LichSuFormHrs.Add(new LichSuFormHr
+                    {
+                        IdFormHr = form.Id,
+                        TieuDe = "Khởi tạo đơn đăng ký tiếp khách",
+                        Mota = moTaLichSu,
+                        Time = DateTime.Now,
+                        IsRead = false
+                    });
+
+                    // Cập nhật lại FormHr lần cuối (để lưu tên file đính kèm)
+                    _context.Entry(form).State = EntityState.Modified;
+
+                    await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
                     TempData["Success"] = "Gửi đơn đăng ký tiếp khách thành công!";
@@ -1045,7 +1032,11 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    ModelState.AddModelError("", "Lỗi hệ thống: " + ex.Message);
+                    // Ghi log lỗi nếu cần và trả về View cùng thông báo lỗi
+                    ModelState.AddModelError("", "Có lỗi xảy ra: " + ex.Message);
+
+                    // Nạp lại danh sách phòng họp để View không bị lỗi
+                    ViewBag.DanhSachPhongHop = _context.PhongHopHrs.AsNoTracking().ToList();
                     return View(form);
                 }
             }
@@ -2642,65 +2633,120 @@ namespace E_Form_Best.Areas.HRform.Controllers
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "N/A";
 
-            // 3. Tìm đơn HR và Include thông tin hỗ trợ để kiểm tra quyền chính xác
+            // 3. Tìm đơn HR và Include thông tin cần thiết
             var form = await _context.FormHrs
                 .Include(f => f.HrCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdHrNguoiHoTroNavigation)
+                .Include(f => f.HrDonTiepKhac5s) // Load chi tiết tiếp khách
                 .FirstOrDefaultAsync(f => f.Id == request.Id);
 
             if (form == null)
                 return Json(new { success = false, message = "Không tìm thấy đơn HR." });
 
-            // 4. Kiểm tra bảo mật: Phải cùng công ty mới được thao tác (Trừ quyền All)
+            // --- BIẾN TẠM ĐỂ XỬ LÝ CHI TIẾT ĐƠN TIẾP KHÁCH ---
+            HrDonTiepKhac5 chiTietTiepKhac = null;
+
+            // 4. Logic kiểm tra trùng lịch (Riêng cho đơn Tiếp Khách)
+            if (form.IdForm == "HR_DonTiepKhac_5")
+            {
+                chiTietTiepKhac = form.HrDonTiepKhac5s.FirstOrDefault();
+                if (chiTietTiepKhac != null &&
+                    chiTietTiepKhac.ThoiGianBatDau.HasValue &&
+                    chiTietTiepKhac.ThoiGianKetThuc.HasValue &&
+                    !string.IsNullOrEmpty(chiTietTiepKhac.TenPhongHop))
+                {
+                    // Lấy danh sách các đơn đang ở trạng thái "on" của cùng phòng đó
+                    var danhSachDangOn = await _context.HrDonTiepKhac5s
+                        .Where(x => x.Id != chiTietTiepKhac.Id
+                                    && x.TenPhongHop == chiTietTiepKhac.TenPhongHop
+                                    && x.TrangThaiPhong == "on")
+                        .ToListAsync();
+
+                    bool biTrungTren5Phut = false;
+
+                    foreach (var item in danhSachDangOn)
+                    {
+                        // Công thức tính khoảng giao nhau: Min(End) - Max(Start)
+                        var startMax = chiTietTiepKhac.ThoiGianBatDau > item.ThoiGianBatDau ? chiTietTiepKhac.ThoiGianBatDau.Value : item.ThoiGianBatDau.Value;
+                        var endMin = chiTietTiepKhac.ThoiGianKetThuc < item.ThoiGianKetThuc ? chiTietTiepKhac.ThoiGianKetThuc.Value : item.ThoiGianKetThuc.Value;
+
+                        if (startMax < endMin)
+                        {
+                            double overlapMinutes = (endMin - startMax).TotalMinutes;
+                            if (overlapMinutes > 5) // Chỉ chặn nếu trùng quá 5 phút
+                            {
+                                biTrungTren5Phut = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (biTrungTren5Phut)
+                    {
+                        return Json(new { success = false, message = $"Phòng [{chiTietTiepKhac.TenPhongHop}] đã có lịch 'on' trùng quá 5 phút. Vui lòng kiểm tra lại!" });
+                    }
+
+                    // Nếu đạt điều kiện, chuẩn bị đổi trạng thái sang "on"
+                    chiTietTiepKhac.TrangThaiPhong = "on";
+                }
+            }
+
+            // 5. Kiểm tra bảo mật (Cùng công ty hoặc quyền All)
             if (form.TenCongTy?.Trim() != tenCongTy && !User.IsInRole("All"))
             {
                 return Json(new { success = false, message = "Bạn không có quyền thao tác trên đơn của công ty khác." });
             }
 
-            // 5. Kiểm tra quyền thực hiện: AdminHR, Role "All" hoặc là Người hỗ trợ được gán trực tiếp
+            // 6. Kiểm tra quyền thực hiện
             bool isAdmin = User.IsInRole("All") || User.IsInRole("AdminHR") || User.IsInRole("ADMIN");
             bool isSupporter = form.HrCtNguoiHoTros.Any(ct => ct.IdHrNguoiHoTroNavigation?.MaNv == userEmail);
 
             if (!isAdmin && !isSupporter)
             {
-                return Json(new { success = false, message = "Chỉ nhân sự được gán hỗ trợ hoặc Admin mới có thể hoàn tất đơn này." });
+                return Json(new { success = false, message = "Chỉ nhân sự hỗ trợ hoặc Admin mới có thể hoàn tất đơn này." });
             }
 
-            // 6. Kiểm tra trạng thái đơn (Tránh hoàn tất đơn đã hủy hoặc đã xong)
+            // 7. Kiểm tra trạng thái đơn
             bool isCancelled = (form.TenForm != null && form.TenForm.Contains("[ĐÃ HỦY]"));
             if (form.TrangThai == "HoanTat" || isCancelled)
             {
-                return Json(new { success = false, message = "Đơn này đã ở trạng thái hoàn tất hoặc đã bị hủy." });
+                return Json(new { success = false, message = "Đơn đã hoàn tất hoặc đã bị hủy trước đó." });
             }
 
-            // 7. Bắt đầu Transaction để đảm bảo tính toàn vẹn dữ liệu
+            // 8. Thực hiện cập nhật dữ liệu
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
                     DateTime now = DateTime.Now;
 
-                    // 8. Cập nhật thông tin HR xử lý
+                    // Cập nhật thông tin Form chính
                     form.IdAdmin = userId;
                     form.TenAdmin = userName;
                     form.TimeAdmin = now;
                     form.TrangThai = "HoanTat";
 
-                    // 9. Lưu Lịch sử thao tác (LichSuFormHr)
+                    // Cập nhật chi tiết phòng họp (nếu là đơn tiếp khách)
+                    if (chiTietTiepKhac != null)
+                    {
+                        _context.HrDonTiepKhac5s.Update(chiTietTiepKhac);
+                    }
+
+                    // Lưu lịch sử thao tác
                     var lichSu = new LichSuFormHr
                     {
                         IdFormHr = form.Id,
                         TieuDe = "HR Xác nhận Hoàn tất",
                         Mota = $"Nhân sự thực hiện: {userName} ({userEmail}). " +
                                $"Bộ phận: {phongBan}. " +
-                               $"Nội dung: Đã xử lý hoàn tất các thủ tục/yêu cầu.",
+                               $"Nội dung: Đã xử lý hoàn tất. " +
+                               (chiTietTiepKhac != null ? $"Trạng thái phòng: {chiTietTiepKhac.TrangThaiPhong}" : ""),
                         Time = now
                     };
 
                     _context.LichSuFormHrs.Add(lichSu);
                     _context.FormHrs.Update(form);
 
-                    // 10. Lưu DB
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
