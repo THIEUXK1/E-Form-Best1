@@ -98,7 +98,6 @@
                     </div>
                     <div>
                         <label style="@labelStyle">🕒 Thời gian về dự tính (Không bắt buộc)</label>
-                        @* Đã bỏ thuộc tính required *@
                         <input type="datetime-local" id="inpThoiGianVe" name="chiTiet.ThoiGianVe" style="@inputStyle;">
                     </div>
                 </div>
@@ -115,9 +114,9 @@
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div>
-                        <label style="@labelStyle">Ảnh minh chứng (Click & Ctrl+V) <span style="color:#e53e3e">*</span></label>
+                        <label style="@labelStyle">Ảnh minh chứng (Click & Ctrl+V)</label>
                         <div id="paste_AnhXe" class="paste-zone" style="@pasteZoneStyle" tabindex="0">
-                            Nhấp vào đây và nhấn Ctrl+V để dán ảnh (Bắt buộc)
+                            Nhấp vào đây và nhấn Ctrl+V để dán ảnh
                         </div>
                         <input type="file" id="AnhXe" name="AnhXe" hidden accept="image/*">
                     </div>
@@ -172,7 +171,7 @@
         const timeDi = new Date(now - offset).toISOString().slice(0, 16);
         document.getElementById('inpTimeDuTinh').value = timeDi;
 
-        // THAY ĐỔI: Không tự điền Thời gian về, để trống mặc định
+        // Mặc định trống cho thời gian về
         document.getElementById('inpThoiGianVe').value = "";
     };
 
@@ -208,7 +207,6 @@
         const liDo = document.querySelector('textarea[name="chiTiet.LiDo"]').value.trim();
         const timeDi = document.getElementById('inpTimeDuTinh').value;
         const timeVe = document.getElementById('inpThoiGianVe').value;
-        const fileAnh = document.getElementById('AnhXe').files;
         const chk = document.getElementById('chkCamKet');
 
         // Kiểm tra các trường cơ bản
@@ -216,7 +214,7 @@
         if (!soLuong || soLuong < 1) { alert("⚠️ Vui lòng nhập số lượng người đi hợp lệ!"); return; }
         if (!timeDi) { alert("⚠️ Vui lòng chọn thời gian đi!"); return; }
         
-        // THAY ĐỔI: Chỉ kiểm tra logic thời gian NẾU người dùng có nhập thời gian về
+        // Kiểm tra logic thời gian nếu có nhập ngày về
         if (timeVe && timeDi) {
             if (new Date(timeVe) <= new Date(timeDi)) {
                 alert("⚠️ Thời gian về dự tính phải sau thời gian đi!");
@@ -229,13 +227,7 @@
             return;
         }
 
-        // KIỂM TRA BẮT BUỘC CÓ ẢNH MINH CHỨNG
-        if (fileAnh.length === 0) {
-            alert("⚠️ BẮT BUỘC: Bạn phải dán (Ctrl+V) hoặc chọn Ảnh minh chứng!");
-            zone.focus();
-            zone.style.borderColor = "#e53e3e";
-            return;
-        }
+        // Đã bỏ kiểm tra bắt buộc file ảnh minh chứng tại đây
 
         if (!chk.checked) {
             alert("⚠️ Bạn chưa xác nhận cam kết tuân thủ quy định!");
