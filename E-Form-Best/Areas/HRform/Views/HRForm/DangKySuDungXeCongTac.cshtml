@@ -131,7 +131,44 @@
                 </div>
             </div>
 
-            @* --- PHẦN 3: QUY ĐỊNH --- *@
+            @* --- PHẦN 3: CHỌN LOẠI YÊU CẦU HỖ TRỢ (MỚI) --- *@
+            <div style="background: #ffffff; padding: 25px; border-radius: 20px; border: 1px solid #bee3f8; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(49, 130, 206, 0.05);">
+                <h3 style="color: @darkBlue; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: @primaryBlue; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">3</span>
+                    Chọn loại yêu cầu hỗ trợ (Nhân sự điều xe)
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px;">
+                    @if (ViewBag.ListNguoiHoTro != null)
+                    {
+                        foreach (var item in (List<E_Form_Best.Models.ITForm.HrNguoiHoTro>)ViewBag.ListNguoiHoTro)
+                        {
+                            foreach (var cv in item.CongViecHrs)
+                            {
+                                <label style="display: flex; align-items: center; gap: 12px; padding: 15px; border: 1px solid #ebf8ff; border-radius: 12px; cursor: pointer; transition: 0.2s; background: #f7fafc;"
+                                       onmouseover="this.style.borderColor='@primaryBlue'; this.style.background='#ebf8ff'; this.style.transform='translateY(-2px)';"
+                                       onmouseout="this.style.borderColor='#ebf8ff'; this.style.background='#f7fafc'; this.style.transform='translateY(0)';"
+                                       title="Phụ trách bởi: @item.Ten">
+
+                                    <input type="checkbox" name="SelectedCongViecIds" value="@cv.Id" style="width: 20px; height: 20px; accent-color: @primaryBlue;">
+
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 700; color: @darkBlue; font-size: 14px;">
+                                            🚗 @cv.Ten
+                                        </div>
+                                        <div style="font-size: 11px; color: @darkBlue; opacity: 0.7;">Tiếp nhận: @item.Ten</div>
+                                    </div>
+                                </label>
+                            }
+                        }
+                    }
+                    else
+                    {
+                        <p style="font-size: 12px; color: @darkBlue; font-style: italic; grid-column: 1/-1;">Đang tải danh sách hỗ trợ...</p>
+                    }
+                </div>
+            </div>
+
+            @* --- PHẦN 4: QUY ĐỊNH --- *@
             <div style="background: #ebf8ff; border: 1.5px solid @primaryBlue; border-radius: 20px; padding: 25px; margin-bottom: 30px;">
                 <h3 style="color: @darkBlue; font-size: 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-weight: 800; text-transform: uppercase;">
                     <i class="fa fa-info-circle"></i> Quy định sử dụng xe
@@ -208,6 +245,7 @@
         const timeDi = document.getElementById('inpTimeDuTinh').value;
         const timeVe = document.getElementById('inpThoiGianVe').value;
         const chk = document.getElementById('chkCamKet');
+        const selectedHoTro = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
 
         // Kiểm tra các trường cơ bản
         if (!sdt) { alert("⚠️ Vui lòng nhập số điện thoại liên hệ!"); return; }
@@ -227,7 +265,10 @@
             return;
         }
 
-        // Đã bỏ kiểm tra bắt buộc file ảnh minh chứng tại đây
+        if (selectedHoTro.length === 0) {
+            alert("⚠️ Vui lòng chọn nhân sự hỗ trợ tiếp nhận đơn!");
+            return;
+        }
 
         if (!chk.checked) {
             alert("⚠️ Bạn chưa xác nhận cam kết tuân thủ quy định!");

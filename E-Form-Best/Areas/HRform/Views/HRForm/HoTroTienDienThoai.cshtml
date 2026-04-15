@@ -5,15 +5,17 @@
     ViewData["Title"] = "Đăng ký hỗ trợ tiền điện thoại";
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 
+    // --- LẤY THÔNG TIN TỪ CLAIMS ---
     var tenNguoiNv = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
     var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
-    string inputStyle = $"width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #bfdbfe; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: #1e3a8a;";
+    // Styles nội bộ (Đồng nhất tone Xanh Dương Chuyên nghiệp)
+    string inputStyle = "width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #bfdbfe; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: #1e3a8a;";
     string labelStyle = "font-weight: 700; color: #1e40af; font-size: 11px; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px;";
-    string pasteZoneStyle = $"width: 100%; border: 2px dotted #93c5fd; height: 180px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #f0f7ff; color: #2563eb; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 600; transition: 0.3s; margin-top: 10px; position: relative; outline: none;";
+    string pasteZoneStyle = "width: 100%; border: 2px dotted #93c5fd; height: 180px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #f0f7ff; color: #2563eb; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 600; transition: 0.3s; margin-top: 10px; position: relative; outline: none;";
 }
 
 <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); padding: 40px 15px; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
@@ -26,7 +28,7 @@
         @* --- HEADER --- *@
         <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 40px; color: #ffffff; text-align: center; position: relative;">
             <div style="position: absolute; top: 15px; right: 25px; font-size: 11px; opacity: 0.9; font-weight: 500; letter-spacing: 1px;">E-FORM SYSTEM V3.0</div>
-            <h2 style="margin: 0; font-size: 24px; text-transform: uppercase; font-weight: 900; letter-spacing: 1.5px;">Đơn đăng ký hỗ trợ tiền điện thoại</h2>
+            <h2 style="margin: 0; font-size: 24px; text-transform: uppercase; font-weight: 900; letter-spacing: 1.5px;">Đăng ký hỗ trợ tiền điện thoại</h2>
             <div style="margin-top: 12px; display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.2); border-radius: 50px; font-size: 13px;">
                 📅 Ngày lập đơn: <span style="font-weight: 700; color: #ffffff;">@ngayHienThi</span>
             </div>
@@ -108,12 +110,51 @@
                 </div>
             </div>
 
-            @* --- PHẦN 3: CAM KẾT --- *@
+            @* --- PHẦN 3: CHỌN NHÂN SỰ TIẾP NHẬN --- *@
+            <div style="background: #ffffff; padding: 25px; border-radius: 20px; border: 1px solid #dbeafe; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.05);">
+                <h3 style="color: #1d4ed8; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: #3b82f6; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">3</span>
+                    Chọn nhân sự hỗ trợ tiếp nhận
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+                    @if (ViewBag.ListNguoiHoTro != null)
+                    {
+                        foreach (var item in (List<E_Form_Best.Models.ITForm.HrNguoiHoTro>)ViewBag.ListNguoiHoTro)
+                        {
+                            foreach (var cv in item.CongViecHrs)
+                            {
+                                <label style="display: flex; align-items: center; gap: 12px; padding: 15px; border: 1px solid #dbeafe; border-radius: 12px; cursor: pointer; transition: 0.2s; background: #fcfdfe;"
+                                       onmouseover="this.style.borderColor='#3b82f6'; this.style.background='#eff6ff'; this.style.transform='translateY(-2px)';"
+                                       onmouseout="this.style.borderColor='#dbeafe'; this.style.background='#fcfdfe'; this.style.transform='translateY(0)';"
+                                       title="Phụ trách bởi: @item.Ten">
+                                    
+                                    <input type="checkbox" name="SelectedCongViecIds" value="@cv.Id" style="width: 20px; height: 20px; accent-color: #2563eb;">
+                                    
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 700; color: #1e40af; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                                            <span style="font-size: 16px;">📱</span> @cv.Ten
+                                        </div>
+                                        <div style="font-size: 11px; color: #1e3a8a; opacity: 0.7; margin-top: 2px;">
+                                            Người tiếp nhận: @item.Ten
+                                        </div>
+                                    </div>
+                                </label>
+                            }
+                        }
+                    }
+                    else
+                    {
+                        <p style="font-size: 12px; color: #1d4ed8; font-style: italic; grid-column: 1/-1;">Đang tải danh sách nhân sự hỗ trợ...</p>
+                    }
+                </div>
+            </div>
+
+            @* --- PHẦN 4: CAM KẾT --- *@
             <div style="background: #f0f7ff; border: 1px solid #bfdbfe; border-radius: 20px; padding: 25px; margin-bottom: 30px;">
                 <label id="containerCamKet" style="cursor: pointer; display: flex; align-items: flex-start; gap: 12px; background: #ffffff; padding: 15px; border-radius: 12px; border: 2px solid #3b82f6; transition: 0.3s;">
                     <input type="checkbox" id="chkCamKet" style="width: 20px; height: 20px; margin-top: 2px; accent-color: #3b82f6; cursor: pointer;">
                     <span style="font-size: 13px; font-weight: 700; color: #1e40af; line-height: 1.5;">
-                        Tôi xin cam đoan các thông tin trên là chính xác và hoàn toàn chịu trách nhiệm về nội dung kê khai.
+                        Tôi xin cam đoan các thông tin trên là chính xác, sử dụng đúng mục đích công việc và hoàn toàn chịu trách nhiệm về nội dung kê khai.
                     </span>
                 </label>
             </div>
@@ -160,6 +201,7 @@
     const zoneEl = document.getElementById("paste_Anh");
     if (zoneEl) {
         zoneEl.addEventListener('paste', (e) => handlePaste(e, "Anh", "paste_Anh"));
+        zoneEl.onclick = () => zoneEl.focus();
     }
 
     // Kiểm tra dữ liệu trước khi gửi
@@ -167,18 +209,23 @@
         const sdt = document.querySelector('input[name="SoDienThoai"]').value.trim();
         const mucHoTro = document.querySelector('input[name="MucHoTro"]').value;
         const mucDich = document.querySelector('textarea[name="MucDich"]').value.trim();
+        const selectedHoTro = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
         const chk = document.getElementById('chkCamKet');
 
         if (sdt.length < 10) {
-            alert("⚠️ Vui lòng nhập số điện thoại hợp lệ!");
+            alert("⚠️ Vui lòng nhập số điện thoại nhận hỗ trợ hợp lệ!");
             return;
         }
         if (!mucHoTro || mucHoTro <= 0) {
             alert("⚠️ Vui lòng nhập mức hỗ trợ đề xuất!");
             return;
         }
-        if (mucDich.length < 5) {
-            alert("⚠️ Vui lòng nhập mục đích sử dụng!");
+        if (mucDich.length < 10) {
+            alert("⚠️ Vui lòng mô tả mục đích sử dụng chi tiết hơn (tối thiểu 10 ký tự)!");
+            return;
+        }
+        if (selectedHoTro.length === 0) {
+            alert("⚠️ Vui lòng chọn ít nhất một nhân sự tiếp nhận hỗ trợ!");
             return;
         }
         if (!chk.checked) {
@@ -186,7 +233,7 @@
             return;
         }
 
-        if (confirm("Xác nhận gửi đơn này?")) {
+        if (confirm("Xác nhận gửi đơn hỗ trợ tiền điện thoại này?")) {
             document.getElementById("hrForm").submit();
         }
     }

@@ -65,19 +65,16 @@
 
                 <div style="margin-bottom: 20px;">
                     <label style="@labelStyle">Mô tả hàng hóa (Số lượng, chủng loại...) <span style="color:#e53e3e">*</span></label>
-                    @* Đã sửa: name="chiTiet.MoTa" *@
                     <textarea name="chiTiet.MoTa" placeholder="Ví dụ: 05 kiện hàng nguyên seal, 01 bộ dụng cụ sửa chữa..." required style="@inputStyle; height: 80px; resize: none; border: 1px solid @primaryColor;"></textarea>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
                     <div>
                         <label style="@labelStyle">🕒 Thời gian mang ra dự kiến</label>
-                        @* Đã sửa: name="chiTiet.TimeDuTinh" *@
                         <input type="datetime-local" id="inpTimeDuTinh" name="chiTiet.TimeDuTinh" required style="@inputStyle; border: 1px solid @primaryColor;">
                     </div>
                     <div>
                         <label style="@labelStyle">🛡️ Tên Cổng ra</label>
-                        @* Đã sửa: name="chiTiet.TenCong" *@
                         <input name="chiTiet.TenCong" placeholder="Ví dụ: Cổng 1, Cổng chính..." style="@inputStyle">
                     </div>
                 </div>
@@ -88,7 +85,6 @@
                         <div id="paste_AnhHangHoa" class="paste-zone" style="@pasteZoneStyle" tabindex="0">
                             Nhấp vào đây và nhấn Ctrl+V để dán ảnh
                         </div>
-                        @* Input này giữ nguyên name="AnhHangHoa" vì Controller lấy qua Request.Form.Files["AnhHangHoa"] *@
                         <input type="file" id="AnhHangHoa" name="AnhHangHoa" hidden accept="image/*">
                     </div>
 
@@ -102,7 +98,48 @@
                 </div>
             </div>
 
-            @* --- PHẦN 3: CAM KẾT --- *@
+            @* --- PHẦN 3: CHỌN LOẠI YÊU CẦU HỖ TRỢ (ĐÃ ĐỔI TÊN) --- *@
+            <div style="background: #ffffff; padding: 25px; border-radius: 20px; border: 1px solid @borderGreen; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(72, 187, 120, 0.05);">
+                <h3 style="color: @darkGreen; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: @primaryColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">3</span>
+                    Chọn loại yêu cầu hỗ trợ
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px;">
+                    @if (ViewBag.ListNguoiHoTro != null)
+                    {
+                        foreach (var item in (List<E_Form_Best.Models.ITForm.HrNguoiHoTro>)ViewBag.ListNguoiHoTro)
+                        {
+                            foreach (var cv in item.CongViecHrs)
+                            {
+                                <label style="display: flex; align-items: center; gap: 12px; padding: 15px; border: 1px solid @borderGreen; border-radius: 12px; cursor: pointer; transition: 0.2s; background: #fffcfc;"
+                                       onmouseover="this.style.borderColor='@primaryColor'; this.style.background='@lightGreen'; this.style.transform='translateY(-2px)';"
+                                       onmouseout="this.style.borderColor='@borderGreen'; this.style.background='#fffcfc'; this.style.transform='translateY(0)';"
+                                       title="Phụ trách bởi: @item.Ten">
+                                    
+                                    <input type="checkbox" name="SelectedCongViecIds" value="@cv.Id" style="width: 20px; height: 20px; accent-color: @primaryColor;">
+                                    
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 700; color: @darkGreen; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                                            <span style="font-size: 16px;">📦</span> @cv.Ten
+                                        </div>
+                                        <div style="font-size: 11px; color: #718096; margin-top: 2px; padding-left: 24px;">
+                                            Tiếp nhận: @item.Ten
+                                        </div>
+                                    </div>
+                                </label>
+                            }
+                        }
+                    }
+                    else
+                    {
+                        <div style="grid-column: 1/-1; text-align: center; padding: 20px; border: 1px dashed #ccc; border-radius: 10px;">
+                            <p style="font-size: 13px; color: #718096; font-style: italic; margin: 0;">Hiện chưa có loại hỗ trợ nào khả dụng cho mục này.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* --- PHẦN 4: CAM KẾT --- *@
             <div style="background: #f0fff4; border: 1.5px solid @primaryColor; border-radius: 20px; padding: 25px; margin-bottom: 30px;">
                 <label id="containerCamKet" style="cursor: pointer; display: flex; align-items: flex-start; gap: 12px; background: #ffffff; padding: 15px; border-radius: 12px; border: 2px solid @borderGreen; transition: 0.3s;">
                     <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; margin-top: 2px; accent-color: @primaryColor; cursor: pointer;">
@@ -162,10 +199,10 @@
     }
 
     function xuLyLuuDon() {
-        // Cập nhật selector để lấy đúng name mới
         const moTa = document.querySelector('textarea[name="chiTiet.MoTa"]').value.trim();
         const chk = document.getElementById('chkCamKet');
         const timeDuTinh = document.getElementById('inpTimeDuTinh').value;
+        const selectedHoTro = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
 
         if (moTa.length < 5) {
             alert("⚠️ Vui lòng nhập mô tả hàng hóa chi tiết!");
@@ -173,6 +210,10 @@
         }
         if (!timeDuTinh) {
             alert("⚠️ Vui lòng chọn thời gian dự tính!");
+            return;
+        }
+        if (selectedHoTro.length === 0) {
+            alert("⚠️ Vui lòng chọn ít nhất một loại yêu cầu hỗ trợ!");
             return;
         }
         if (!chk.checked) {
