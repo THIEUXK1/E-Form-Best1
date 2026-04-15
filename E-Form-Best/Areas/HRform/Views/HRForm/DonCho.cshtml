@@ -36,7 +36,6 @@
         min-width: 80px;
     }
 
-    /* Badge nhỏ cho các trạng thái phụ */
     .sub-status-badge {
         font-size: 9px;
         padding: 2px 6px;
@@ -96,7 +95,8 @@
                 <tr>
                     <th style="padding: 15px; text-align: left; color: #64748b; font-weight: 800; width: 80px;">ID</th>
                     <th style="padding: 15px; text-align: left; color: #64748b; font-weight: 800;">NỘI DUNG YÊU CẦU</th>
-                    <th style="padding: 15px; text-align: left; color: #64748b; font-weight: 800; width: 180px;">THỜI GIAN ĐĂNG KÝ</th>
+                    <th style="padding: 15px; text-align: left; color: #64748b; font-weight: 800; width: 160px;">NGƯỜI HỖ TRỢ</th>
+                    <th style="padding: 15px; text-align: left; color: #64748b; font-weight: 800; width: 160px;">THỜI GIAN</th>
                     <th style="padding: 15px; text-align: center; color: #64748b; font-weight: 800; width: 150px;">TRẠNG THÁI</th>
                     <th style="padding: 15px; text-align: center; width: 60px;"></th>
                 </tr>
@@ -133,6 +133,10 @@
                             progressWidth = "33%"; progressColor = "#f59e0b";
                         }
 
+                        // Lấy người hỗ trợ HR
+                        var lastSupportHr = item.HrCtNguoiHoTros?.OrderByDescending(x => x.Stt).FirstOrDefault();
+                        string supportName = lastSupportHr?.IdHrNguoiHoTroNavigation?.Ten ?? "Chờ phân công";
+
                         <tr style="border-bottom: 1px solid #f1f5f9;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
                             <td style="padding: 15px; font-weight: 700; color: #2563eb;">#@item.Id</td>
                             <td style="padding: 15px;">
@@ -140,7 +144,6 @@
                                 <div style="font-size: 11px; color: #64748b; margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                                     <span><i class="fa fa-tag"></i> @(item.Danhmuc ?? "Biểu mẫu HR")</span>
 
-                                    @* --- LOGIC XỬ LÝ NHIỀU NGƯỜI XÁC NHẬN --- *@
                                     @if (item.HrNguoiXacNhans != null && item.HrNguoiXacNhans.Any())
                                     {
                                         var listXN = item.HrNguoiXacNhans.ToList();
@@ -163,7 +166,6 @@
                                         </span>
                                     }
 
-                                    @* --- HIỂN THỊ TÌNH TRẠNG BẢO VỆ --- *@
                                     @if (item.BaoVeHrs != null && item.BaoVeHrs.Any())
                                     {
                                         var bv = item.BaoVeHrs.FirstOrDefault();
@@ -178,11 +180,19 @@
                                 </div>
                             </td>
                             <td style="padding: 15px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="width: 24px; height: 24px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #475569;">
+                                        @(supportName.Length > 0 ? supportName[0].ToString().ToUpper() : "?")
+                                    </div>
+                                    <span style="font-weight: 600; color: #334155;">@supportName</span>
+                                </div>
+                            </td>
+                            <td style="padding: 15px;">
                                 <div style="font-weight: 600; font-size: 12px; color: #334155;">
-                                    <i class="fa fa-calendar-check-o"></i> @(item.Ngay?.ToDateTime(TimeOnly.MinValue).ToString("dd/MM/yyyy") ?? "--")
+                                    <i class="fa fa-calendar"></i> @(item.Ngay?.ToDateTime(TimeOnly.MinValue).ToString("dd/MM/yyyy") ?? "--")
                                 </div>
                                 <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
-                                    <i class="fa fa-clock-o"></i> Gửi lúc: @item.TimeNguoiTao?.ToString("HH:mm")
+                                    <i class="fa fa-clock-o"></i> @item.TimeNguoiTao?.ToString("HH:mm")
                                 </div>
                             </td>
                             <td style="padding: 15px; text-align: center;">
@@ -204,7 +214,7 @@
                 else
                 {
                     <tr>
-                        <td colspan="5" style="padding: 50px; text-align: center; color: #94a3b8;">
+                        <td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;">
                             <i class="fa fa-folder-open-o" style="font-size: 40px; display: block; margin-bottom: 10px; opacity: 0.5;"></i>
                             Bạn chưa có yêu cầu nào trong lịch sử.
                         </td>
@@ -222,7 +232,6 @@
         var tr = document.querySelectorAll("#myTable tbody tr");
         
         tr.forEach(row => {
-            // Chỉ lọc nếu dòng đó không phải dòng "Trống"
             if (row.cells.length > 1) {
                 var text = row.innerText.toUpperCase();
                 row.style.display = text.includes(filter) ? "" : "none";
@@ -234,7 +243,6 @@
         document.getElementById("myInput").value = s;
         filterTable();
         
-        // Hiệu ứng nhấp nháy nhẹ để người dùng biết bảng đã lọc
         var table = document.getElementById("myTable");
         table.style.opacity = "0.6";
         setTimeout(() => { table.style.opacity = "1"; }, 150);
