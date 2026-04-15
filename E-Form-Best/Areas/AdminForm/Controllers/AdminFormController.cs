@@ -491,13 +491,17 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         }
         #endregion
 
-        #region QL người Hỗ trợ HR
+        #region QUẢN LÝ NGƯỜI HỖ TRỢ VÀ CÔNG VIỆC HR
+
+        // GET: /QLtaiKhoan/NguoiHoTroHR
         [HttpGet("/QLtaiKhoan/NguoiHoTroHR")]
         public IActionResult NguoiHoTroHR()
         {
             if (!IsLoggedIn()) return Redirect("/QL");
             return View();
         }
+
+        // --- PHẦN: NGƯỜI HỖ TRỢ HR (HrNguoiHoTro) ---
 
         [HttpGet("/QLtaiKhoan/GetAllNguoiHoTroHR")]
         public IActionResult GetAllNguoiHoTroHR()
@@ -546,8 +550,84 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             await _context.SaveChangesAsync();
             return Ok();
         }
-        #endregion
 
+        // --- PHẦN: CÔNG VIỆC HR (CongViecHr) ---
+
+        [HttpGet("/QLtaiKhoan/GetAllCongViecHR")]
+        public IActionResult GetAllCongViecHR()
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+
+            var data = _context.CongViecHrs
+                .OrderByDescending(x => x.Id)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.Ten,
+                    x.TrangThai,
+                    x.IdHrNguoiHoTro,
+                    // Lấy tên người hỗ trợ từ navigation property hoặc join
+                    TenNguoiHoTroHR = x.IdHrNguoiHoTroNavigation != null ? x.IdHrNguoiHoTroNavigation.Ten : "Chưa phân công"
+                }).ToList();
+
+            return Json(data);
+        }
+
+        [HttpPost("/QLtaiKhoan/AddCongViecHR")]
+        public async Task<IActionResult> AddCongViecHR(CongViecHr model)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            if (string.IsNullOrEmpty(model.Ten)) return BadRequest("Vui lòng nhập tên công việc");
+
+            model.TrangThai = "Hiển thị";
+            _context.CongViecHrs.Add(model);
+            await _context.SaveChangesAsync();
+            return Ok(model);
+        }
+
+        [HttpPost("/QLtaiKhoan/UpdateCongViecHR")]
+        public async Task<IActionResult> UpdateCongViecHR(CongViecHr model)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+
+            var cv = await _context.CongViecHrs.FindAsync(model.Id);
+            if (cv == null) return NotFound();
+
+            cv.Ten = model.Ten;
+            cv.IdHrNguoiHoTro = model.IdHrNguoiHoTro;
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpPost("/QLtaiKhoan/UpdateStatusCVHR")]
+        public async Task<IActionResult> UpdateStatusCVHR(int id)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+
+            var cv = await _context.CongViecHrs.FindAsync(id);
+            if (cv == null) return Json(new { success = false });
+
+            cv.TrangThai = (cv.TrangThai == "Hiển thị") ? "Ẩn" : "Hiển thị";
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true });
+        }
+
+        [HttpPost("/QLtaiKhoan/DeleteCongViecHR")]
+        public async Task<IActionResult> DeleteCongViecHR(int id)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+
+            var cv = await _context.CongViecHrs.FindAsync(id);
+            if (cv == null) return NotFound();
+
+            _context.CongViecHrs.Remove(cv);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        #endregion
         #region Quản lý Giám đốc - Loại Đơn & Người Xác Nhận
 
         [HttpGet("/QLtaiKhoan/QLGiamDoc")]
