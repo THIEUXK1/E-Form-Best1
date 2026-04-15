@@ -5,10 +5,11 @@
     ViewData["Title"] = "Kho Lưu Trữ Đơn IT";
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 
+    // Lấy Role để hiển thị tag thông tin người dùng
     var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value
-                        ?? User.FindFirst("UserRole")?.Value ?? "";
+                        ?? User.FindFirst("UserRole")?.Value ?? "User";
 
-    // Thống kê dựa trên trường TrangThai đã được Controller gán giá trị tiếng Việt
+    // Thống kê dựa trên trường TrangThai đã được Controller gán logic tiếng Việt
     var total = Model?.Count() ?? 0;
     var completed = Model?.Count(x => x.TrangThai == "Hoàn tất") ?? 0;
     var processing = Model?.Count(x => x.TrangThai == "IT Đang xử lý") ?? 0;
@@ -44,17 +45,17 @@
             </div>
         </div>
 
-        @* --- THỐNG KÊ NHANH (Cập nhật 6 ô thống kê để bao quát hết trạng thái) --- *@
+        @* --- THỐNG KÊ NHANH (6 ô trạng thái) --- *@
         <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 30px;">
             @{
                 var stats = new[] {
-                        new { Label = "TỔNG LƯU TRỮ", Value = total, Color = "#1e40af", Bg = "white", Filter = "" },
-                        new { Label = "CHỜ QL DUYỆT", Value = waitingManager, Color = "#f59e0b", Bg = "#fff7ed", Filter = "Chờ QL Duyệt" },
-                        new { Label = "IT ĐANG XỬ LÝ", Value = processing, Color = "#2563eb", Bg = "#eff6ff", Filter = "IT Đang xử lý" },
-                        new { Label = "CHỜ ĐÁNH GIÁ", Value = waitingRate, Color = "#7c3aed", Bg = "#f5f3ff", Filter = "Chờ đánh giá" },
-                        new { Label = "ĐÃ HOÀN TẤT", Value = completed, Color = "#059669", Bg = "#f0fdf4", Filter = "Hoàn tất" },
-                        new { Label = "ĐƠN ĐÃ HỦY", Value = cancelled, Color = "#dc2626", Bg = "#fef2f2", Filter = "Đã hủy" }
-                        };
+                    new { Label = "TỔNG LƯU TRỮ", Value = total, Color = "#1e40af", Bg = "white", Filter = "" },
+                    new { Label = "CHỜ QL DUYỆT", Value = waitingManager, Color = "#f59e0b", Bg = "#fff7ed", Filter = "Chờ QL Duyệt" },
+                    new { Label = "IT ĐANG XỬ LÝ", Value = processing, Color = "#2563eb", Bg = "#eff6ff", Filter = "IT Đang xử lý" },
+                    new { Label = "CHỜ ĐÁNH GIÁ", Value = waitingRate, Color = "#7c3aed", Bg = "#f5f3ff", Filter = "Chờ đánh giá" },
+                    new { Label = "ĐÃ HOÀN TẤT", Value = completed, Color = "#059669", Bg = "#f0fdf4", Filter = "Hoàn tất" },
+                    new { Label = "ĐƠN ĐÃ HỦY", Value = cancelled, Color = "#dc2626", Bg = "#fef2f2", Filter = "Đã hủy" }
+                };
             }
             @foreach (var s in stats)
             {
@@ -74,7 +75,7 @@
                 <thead>
                     <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
                         <th style="padding: 20px; text-align: left; font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase; width: 20%;">Nhân viên yêu cầu</th>
-                        <th style="padding: 20px; text-align: left; font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase; width: 15%;">Người hỗ trợ</th>
+                        <th style="padding: 20px; text-align: left; font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase; width: 18%;">Người hỗ trợ</th>
                         <th style="padding: 20px; text-align: left; font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase; width: 12%;">Danh mục</th>
                         <th style="padding: 20px; text-align: left; font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase;">Dịch vụ & Tiến độ</th>
                         <th style="padding: 20px; text-align: center; font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase; width: 15%;">Trạng thái</th>
@@ -86,6 +87,7 @@
                     {
                         string pWidth, pColor, stBg, stFg;
 
+                        // Logic màu sắc và thanh tiến độ dựa trên TrangThai đã gán ở Controller
                         switch (item.TrangThai)
                         {
                             case "Đã hủy":
@@ -109,6 +111,7 @@
                         }
 
                         <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                            @* 1. Thông tin người tạo *@
                             <td style="padding: 20px;">
                                 <div style="font-weight: 900; color: #0f172a; font-size: 15px;">@item.TenNguoiNv</div>
                                 <div style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 700;">
@@ -116,6 +119,7 @@
                                 </div>
                             </td>
 
+                            @* 2. Danh sách IT hỗ trợ (Eager Loading từ ItCtNguoiHoTros) *@
                             <td style="padding: 20px;">
                                 @if (item.ItCtNguoiHoTros != null && item.ItCtNguoiHoTros.Any())
                                 {
@@ -130,20 +134,21 @@
                                 }
                                 else
                                 {
-                                    <span style="color: #cbd5e1; font-size: 12px; font-style: italic;">Chưa có IT</span>
+                                    <span style="color: #cbd5e1; font-size: 12px; font-style: italic;">Chưa có IT tiếp nhận</span>
                                 }
                             </td>
 
+                            @* 3. Danh mục *@
                             <td style="padding: 15px 20px;">
                                 <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid #e2e8f0;">
                                     <i class="fa fa-tag" style="margin-right: 4px;"></i>
-                                    @(string.IsNullOrEmpty(item.Danhmuc) ? "Phổ thông" : item.Danhmuc)
+                                    @(string.IsNullOrEmpty(item.Danhmuc) ? "Yêu cầu IT" : item.Danhmuc)
                                 </span>
                             </td>
 
+                            @* 4. Tên đơn & Thanh tiến độ *@
                             <td style="padding: 15px 20px;">
                                 <div style="font-weight: 800; color: #1e293b; font-size: 14px; margin-bottom: 8px;">
-                                    @* Loại bỏ tag [ĐÃ HỦY] nếu có trong TenForm để hiển thị sạch sẽ *@
                                     @(item.TenForm?.Replace("[ĐÃ HỦY]", "").Trim())
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 15px;">
@@ -156,18 +161,20 @@
                                 </div>
                             </td>
 
+                            @* 5. Trạng thái *@
                             <td style="padding: 20px; text-align: center;">
-                                <span style="background: @stBg; color: @stFg; border: 1.5px solid @stFg; padding: 6px 14px; border-radius: 12px; font-size: 10px; font-weight: 1000; display: inline-block; min-width: 110px; text-transform: uppercase; text-align: center;">
+                                <span style="background: @stBg; color: @stFg; border: 1.5px solid @stFg; padding: 6px 14px; border-radius: 12px; font-size: 10px; font-weight: 1000; display: inline-block; min-width: 115px; text-transform: uppercase; text-align: center;">
                                     @item.TrangThai
                                 </span>
                             </td>
 
+                            @* 6. Nút xem *@
                             <td style="padding: 20px; text-align: center;">
                                 <a href="/FormIT/ChiTiet/@item.Id"
-                                   title="Xem chi tiết"
-                                   style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; background: #f1f5f9; color: #1e40af; border-radius: 12px; text-decoration: none; font-size: 18px; transition: 0.3s;"
-                                   onmouseover="this.style.background='#1e40af'; this.style.color='white'"
-                                   onmouseout="this.style.background='#f1f5f9'; this.style.color='#1e40af'">
+                                       title="Xem chi tiết đơn"
+                                       style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; background: #f1f5f9; color: #1e40af; border-radius: 12px; text-decoration: none; font-size: 18px; transition: 0.3s;"
+                                       onmouseover="this.style.background='#1e40af'; this.style.color='white'"
+                                       onmouseout="this.style.background='#f1f5f9'; this.style.color='#1e40af'">
                                     <i class="fa fa-eye"></i>
                                 </a>
                             </td>
@@ -176,46 +183,49 @@
                 </tbody>
             </table>
 
+            @* Hiển thị khi không có dữ liệu *@
             @if (!Model.Any())
             {
                 <div style="padding: 80px 20px; text-align: center; color: #94a3b8;">
                     <i class="fa fa-folder-open-o" style="font-size: 54px; margin-bottom: 20px; display: block; opacity: 0.5;"></i>
                     <div style="font-weight: 700; font-size: 16px;">Không tìm thấy đơn nào</div>
-                    <div style="font-size: 13px; margin-top: 5px;">Dữ liệu kho hiện đang trống hoặc không khớp bộ lọc</div>
+                    <div style="font-size: 13px; margin-top: 5px;">Dữ liệu kho hiện đang trống hoặc không khớp từ khóa tìm kiếm</div>
                 </div>
             }
         </div>
 
+        @* --- FOOTER --- *@
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 25px 10px;">
             <div style="color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">
                 IT Support System v3.0
             </div>
             <div style="color: #64748b; font-size: 12px; font-weight: 700;">
-                Tổng số bản ghi: <span style="color: #1e40af;">@total</span>
+                Tổng cộng: <span style="color: #1e40af;">@total</span> bản ghi
             </div>
         </div>
     </div>
 </div>
 
 <script>
+    // Hàm tìm kiếm nhanh trên bảng
     function filterTable() {
         const input = document.getElementById("searchInput");
         const filter = input.value.toUpperCase();
         const tr = document.querySelectorAll("#dataTable tbody tr");
 
         tr.forEach(row => {
-            // Lọc trên toàn bộ nội dung text của dòng
             const text = row.innerText.toUpperCase();
             row.style.display = text.includes(filter) ? "" : "none";
         });
     }
 
+    // Hàm lọc theo nút thống kê
     function filterByStatus(status) {
         const input = document.getElementById("searchInput");
         input.value = status;
         filterTable();
 
-        // Hiệu ứng nháy bảng để người dùng nhận biết đã lọc
+        // Hiệu ứng phản hồi nhẹ khi nhấn nút lọc
         const table = document.getElementById("dataTable");
         table.style.opacity = "0.4";
         setTimeout(() => {

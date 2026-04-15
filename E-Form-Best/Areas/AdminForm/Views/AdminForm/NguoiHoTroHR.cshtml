@@ -77,7 +77,7 @@
         const btnStyleSua = "color: #3182ce; background: #ebf8ff; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: 600; margin-right: 5px;";
         const btnStyleXoa = "color: #e53e3e; background: #fff5f5; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: 600;";
 
-        // --- NGƯỜI HỖ TRỢ HR ---
+        // --- PHẦN 1: XỬ LÝ NHÂN VIÊN HR ---
         function loadNHT_HR() {
             $.get('/QLtaiKhoan/GetAllNguoiHoTroHR', function (data) {
                 let html = data.map(i => `
@@ -102,10 +102,10 @@
             let id = $('#txtIdHR').val();
             let data = {
                 Id: id,
-                MaNv: $('#txtMaNvHR').val(),
-                Ten: $('#txtTenHR').val(),
-                BoPhan: $('#txtBoPhanHR').val(),
-                GhiChu: $('#txtGhiChuHR').val()
+                MaNv: $('#txtMaNvHR').val().trim(),
+                Ten: $('#txtTenHR').val().trim(),
+                BoPhan: $('#txtBoPhanHR').val().trim(),
+                GhiChu: $('#txtGhiChuHR').val().trim()
             };
 
             if (!data.MaNv || !data.Ten) {
@@ -114,7 +114,7 @@
             }
 
             $.post(id == "0" ? '/QLtaiKhoan/AddNguoiHoTroHR' : '/QLtaiKhoan/UpdateNguoiHoTroHR', data, function () {
-                Swal.fire("Thành công", "Đã lưu thông tin nhân viên HR", "success");
+                Swal.fire("Thành công", "Đã cập nhật danh sách nhân viên", "success");
                 resetNHT_HR();
                 loadNHT_HR();
             });
@@ -141,23 +141,22 @@
         function deleteNHT_HR(id) {
             Swal.fire({
                 title: 'Xác nhận xóa?',
-                text: "Bạn không thể hoàn tác thao tác này!",
+                text: "Xóa nhân viên sẽ ảnh hưởng đến các công việc đang phụ trách!",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Đồng ý xóa'
+                confirmButtonText: 'Đồng ý'
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.post('/QLtaiKhoan/DeleteNguoiHoTroHR?id=' + id, function () {
                         loadNHT_HR();
-                        Swal.fire('Đã xóa!', 'Nhân viên đã được loại bỏ.', 'success');
+                        Swal.fire('Đã xóa!', '', 'success');
                     });
                 }
             });
         }
 
-        // --- CÔNG VIỆC HR ---
+        // --- PHẦN 2: XỬ LÝ CÔNG VIỆC HR ---
         function loadCV_HR() {
             $.get('/QLtaiKhoan/GetAllCongViecHR', function (data) {
                 let html = data.map(i => {
@@ -185,18 +184,14 @@
             });
         }
 
-        function toggleStatusHR(id) {
-            $.post('/QLtaiKhoan/UpdateStatusCVHR?id=' + id, function (res) {
-                if (res.success) loadCV_HR();
-            });
-        }
-
         function saveCV_HR() {
             let id = $('#txtCvIdHR').val();
+            let selectedHrId = $('#ddlNguoiHoTroHR').val();
+            
             let data = {
                 Id: id,
-                Ten: $('#txtCvTenHR').val(),
-                IdHrNguoiHoTro: $('#ddlNguoiHoTroHR').val()
+                Ten: $('#txtCvTenHR').val().trim(),
+                IdHrNguoiHoTro: selectedHrId === "" ? null : selectedHrId
             };
 
             if (!data.Ten) {
@@ -205,8 +200,11 @@
             }
 
             $.post(id == "0" ? '/QLtaiKhoan/AddCongViecHR' : '/QLtaiKhoan/UpdateCongViecHR', data, function () {
+                Swal.fire("Thành công", "Đã lưu công việc", "success");
                 resetCV_HR();
                 loadCV_HR();
+            }).fail(function() {
+                Swal.fire("Lỗi", "Không thể lưu công việc. Vui lòng kiểm tra lại.", "error");
             });
         }
 
@@ -214,21 +212,35 @@
             $('#txtCvIdHR').val(i.id);
             $('#txtCvTenHR').val(i.ten);
             $('#ddlNguoiHoTroHR').val(i.idHrNguoiHoTro || "");
-            $('#btnSaveCV_HR').text("Cập Nhật Công Việc HR").css("background", "linear-gradient(135deg, #ecc94b 0%, #d69e2e 100%)");
+            $('#btnSaveCV_HR').text("Cập Nhật Công Việc").css("background", "linear-gradient(135deg, #ecc94b 0%, #d69e2e 100%)");
         }
 
         function resetCV_HR() {
             $('#txtCvIdHR').val("0");
             $('#txtCvTenHR').val("");
+            $('#ddlNguoiHoTroHR').val("");
             $('#btnSaveCV_HR').text("+ THÊM CÔNG VIỆC HR").css("background", "linear-gradient(135deg, #059669 0%, #047857 100%)");
         }
 
+        function toggleStatusHR(id) {
+            $.post('/QLtaiKhoan/UpdateStatusCVHR?id=' + id, function (res) {
+                if (res.success) loadCV_HR();
+            });
+        }
+
         function deleteCV_HR(id) {
-            if (confirm("Xóa công việc này?")) {
-                $.post('/QLtaiKhoan/DeleteCongViecHR?id=' + id, function () {
-                    loadCV_HR();
-                });
-            }
+            Swal.fire({
+                title: 'Xóa công việc?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Đồng ý'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('/QLtaiKhoan/DeleteCongViecHR?id=' + id, function () {
+                        loadCV_HR();
+                    });
+                }
+            });
         }
     </script>
 }
