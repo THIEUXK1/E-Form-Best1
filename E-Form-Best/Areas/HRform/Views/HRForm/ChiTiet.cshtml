@@ -88,35 +88,15 @@
     if (Model.HrDangKySuDungXeCongTac3s?.Any() == true)
     {
         var ct = Model.HrDangKySuDungXeCongTac3s.First();
-    
-        // 1. Xử lý ảnh minh chứng
-        // Hàm này sẽ tự xử lý nếu ct.Anh hoặc ct.DuongDanAnh bị null (thường hiển thị ảnh mặc định hoặc khung trống)
         ProcessImage(ct.DuongDanAnh, ct.Anh);
-
-        // 2. Tiêu đề loại dịch vụ
         chiTietNoiDung += RenderInfoRow("🚗", "Dịch vụ", "Đăng ký xe công tác", "#eef2ff", "#1e40af");
-
-        // 3. Thông tin liên hệ
         chiTietNoiDung += RenderInfoRow("📞", "Số điện thoại", !string.IsNullOrEmpty(ct.SoDienThoai) ? ct.SoDienThoai : "Chưa cung cấp", "#f0fdf4", "#166534");
-
-        // 4. Số lượng nhân sự
         chiTietNoiDung += RenderInfoRow("👥", "Số lượng người", ct.SoLuong.HasValue ? $"{ct.SoLuong} người" : "Chưa xác định", "#f0fdf4", "#166534");
-
-        // 5. Lịch trình chi tiết (Thời gian đi và về)
-        // Luôn hiển thị dòng thời gian, nếu null sẽ báo "Chưa cập nhật"
         string thoiGianDi = ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa xác định";
         string thoiGianVe = ct.ThoiGianVe?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa xác định";
-        string chuoiThoiGian = $"{thoiGianDi} ➜ {thoiGianVe}";
-
-        chiTietNoiDung += RenderInfoRow("📅", "Thời gian (Đi - Về)", chuoiThoiGian, "#eff6ff", "#1e40af");
-
-        // 6. Mục đích và lộ trình di chuyển
+        chiTietNoiDung += RenderInfoRow("📅", "Thời gian (Đi - Về)", $"{thoiGianDi} ➜ {thoiGianVe}", "#eff6ff", "#1e40af");
         chiTietNoiDung += RenderInfoRow("📍", "Mục đích / Lộ trình", !string.IsNullOrEmpty(ct.LiDo) ? ct.LiDo : "Trống", "#f8fafc", "#0f172a");
-
-        // 7. Ghi chú bổ sung
-        // Đã loại bỏ lệnh IF để luôn hiển thị dòng này kể cả khi không có ghi chú
-        string ghiChuHienThi = !string.IsNullOrEmpty(ct.GhiChu) ? ct.GhiChu : "Không có ghi chú";
-        chiTietNoiDung += RenderInfoRow("📝", "Ghi chú", ghiChuHienThi, "#fff7ed", "#9a3412");
+        chiTietNoiDung += RenderInfoRow("📝", "Ghi chú", !string.IsNullOrEmpty(ct.GhiChu) ? ct.GhiChu : "Không có ghi chú", "#fff7ed", "#9a3412");
     }
     if (Model.HrDangKySuDungXeDaily4s?.Any() == true)
     {
@@ -129,34 +109,21 @@
     if (Model.HrDonTiepKhac5s?.Any() == true)
     {
         var ct = Model.HrDonTiepKhac5s.First();
-
-        // 1. Xử lý ảnh minh chứng
         if (!string.IsNullOrEmpty(ct.DuongDanAnh))
-        {
             listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
-        }
-
-        // 2. Nội dung tiếp khách
         chiTietNoiDung += RenderInfoRow("🤝", "Loại đơn", "Đăng ký Tiếp khách", "#fdf2f8", "#9d174d");
         chiTietNoiDung += RenderInfoRow("🏢", "Công ty khách", ct.TenCongTyKhach ?? "...", "#fff1f2", "#be123c");
         chiTietNoiDung += RenderInfoRow("👥", "Số lượng khách", (ct.SoLuongKhach?.ToString() ?? "0") + " người", "#fff1f2", "#be123c");
         chiTietNoiDung += RenderInfoRow("📞", "Người đặt", $"{(ct.NguoiBook ?? "...")} - Ext: {(ct.SoMayBan ?? "...")}", "#fff1f2", "#be123c");
         chiTietNoiDung += RenderInfoRow("📝", "Yêu cầu", ct.YeuCauTiepKhach ?? "Không có", "#f8fafc", "#475569");
         chiTietNoiDung += RenderInfoRow("📅", "Ngày yêu cầu", Model.Ngay?.ToString("dd/MM/yyyy") ?? "...", "#fff1f2", "#be123c");
-
-        // 3. Thông tin Phòng họp
-        chiTietNoiDung += "<div style='margin-top:10px; border-top:1px dashed #f9a8d4; padding-top:10px;'></div>";
+        chiTietNoiDung += "<div style='margin-top:10px;border-top:1px dashed #f9a8d4;padding-top:10px;'></div>";
         chiTietNoiDung += RenderInfoRow("🏫", "Phòng họp", ct.TenPhongHop ?? "Không đăng ký", "#f0f9ff", "#0369a1");
         chiTietNoiDung += RenderInfoRow("⚙️", "Tiện ích", ct.NhuCauPhongHop ?? "Không có", "#f0f9ff", "#0369a1");
-    
-        string batDau = ct.ThoiGianBatDau?.ToString("HH:mm dd/MM/yyyy") ?? "...";
-        string ketThuc = ct.ThoiGianKetThuc?.ToString("HH:mm dd/MM/yyyy") ?? "...";
-        chiTietNoiDung += RenderInfoRow("⏰", "Bắt đầu", batDau, "#f0f9ff", "#0369a1");
-        chiTietNoiDung += RenderInfoRow("⌛", "Kết thúc", ketThuc, "#f0f9ff", "#0369a1");
+        chiTietNoiDung += RenderInfoRow("⏰", "Bắt đầu", ct.ThoiGianBatDau?.ToString("HH:mm dd/MM/yyyy") ?? "...", "#f0f9ff", "#0369a1");
+        chiTietNoiDung += RenderInfoRow("⌛", "Kết thúc", ct.ThoiGianKetThuc?.ToString("HH:mm dd/MM/yyyy") ?? "...", "#f0f9ff", "#0369a1");
         chiTietNoiDung += RenderInfoRow("💬", "Ghi chú phòng", ct.GhiChuPhongHop ?? "Không có", "#f0f9ff", "#0369a1");
-
-        // 4. Thông tin Suất ăn
-        chiTietNoiDung += "<div style='margin-top:10px; border-top:1px dashed #f9a8d4; padding-top:10px;'></div>";
+        chiTietNoiDung += "<div style='margin-top:10px;border-top:1px dashed #f9a8d4;padding-top:10px;'></div>";
         chiTietNoiDung += RenderInfoRow("🍱", "Loại suất ăn", string.IsNullOrEmpty(ct.LoaiSuatAn) ? "Không đăng ký" : "Loại " + ct.LoaiSuatAn, "#f0fdf4", "#15803d");
         chiTietNoiDung += RenderInfoRow("🔢", "Tổng số suất", (ct.SoLuongSuat?.ToString() ?? "0") + " suất", "#f0fdf4", "#15803d");
         chiTietNoiDung += RenderInfoRow("🌿", "Ăn chay", ct.AnChay ?? "Không", "#f0fdf4", "#15803d");
@@ -175,19 +142,10 @@
     if (Model.HrHoTroTienDienThoai7s?.Any() == true)
     {
         var ct = Model.HrHoTroTienDienThoai7s.First();
-    
-        // Xử lý hình ảnh đính kèm
         ProcessImage(ct.DuongDanAnh, ct.Anh);
-
-        // Render thông tin chi tiết đơn
         chiTietNoiDung += RenderInfoRow("📱", "Dịch vụ", "Hỗ trợ tiền điện thoại", "#f0fdf4", "#166534");
-    
         chiTietNoiDung += RenderInfoRow("📞", "Số điện thoại", ct.SoDienThoai ?? "Chưa cập nhật", "#eff6ff", "#1e40af");
-    
         chiTietNoiDung += RenderInfoRow("💰", "Mức hỗ trợ", (ct.MucHoTro.HasValue ? ct.MucHoTro.Value.ToString("N0") : "0") + " VNĐ", "#fff7ed", "#9a3412");
-    
-        // Phần "Thông tin thêm" đã được loại bỏ theo yêu cầu để khớp với form nhập liệu
-    
         chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDich ?? "Chưa có nội dung", "#f8fafc", "#0f172a");
     }
     if (Model.HrDoiCaLam8s?.Any() == true)
@@ -202,47 +160,30 @@
     if (Model.HrDonHoTroCongTac9s?.Any() == true)
     {
         var ct = Model.HrDonHoTroCongTac9s.First();
-    
-        // 1. Xử lý ảnh minh chứng
         if (!string.IsNullOrEmpty(ct.DuongDanAnh))
-        {
             listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
-        }
-
-        // 2. Render thông tin chung
         chiTietNoiDung += RenderInfoRow("📋", "Loại đơn", "Hỗ trợ công tác", "#eef2ff", "#1e40af");
         chiTietNoiDung += RenderInfoRow("🆔", "Mã nhân viên", ct.MaNhanVien, "#f8fafc", "#0f172a");
-    
-        // 3. Hiển thị Giới tính & Tên khách hàng (Sử dụng icon theo giới tính)
         string genderIcon = ct.GioiTinh == "Nữ" ? "👩‍💼" : "👨‍💼";
         chiTietNoiDung += RenderInfoRow(genderIcon, "Khách hàng", $"[{ct.GioiTinh}] {ct.TenKhachHang}", "#f0fdf4", "#166534");
-
-        // 4. Tổng hợp các dịch vụ đã chọn
         List<string> selectedServices = new List<string>();
         if (ct.DatVeMayBay == true) selectedServices.Add("✈️ Vé máy bay");
         if (ct.DatChoO == true) selectedServices.Add("🏨 Chỗ ở");
         if (ct.BookXeCtyDuaDon == true) selectedServices.Add("🚗 Xe đưa đón");
-    
-        // Xử lý hiển thị loại bữa ăn đặc thù
         if (ct.DatBuaAn == true)
         {
-            string loaiCom = "Suất ăn";
+            string loaiCom = "🍽️ Đặt bữa ăn";
             if (ct.NoiDungYeuCauChiTiet != null)
             {
                 if (ct.NoiDungYeuCauChiTiet.Contains("VietNam")) loaiCom = "🍽️ Cơm Việt Nam";
                 else if (ct.NoiDungYeuCauChiTiet.Contains("TrungQuoc")) loaiCom = "🍽️ Cơm Trung Quốc";
-                else loaiCom = "🍽️ Đặt bữa ăn";
             }
             selectedServices.Add(loaiCom);
         }
-
-        string dichVuHienThi = selectedServices.Count > 0 ? string.Join(" | ", selectedServices) : "Không có yêu cầu đặc biệt";
-        chiTietNoiDung += RenderInfoRow("🛠️", "Dịch vụ yêu cầu", dichVuHienThi, "#fff7ed", "#9a3412");
-
-        // 5. Nội dung chi tiết
-        // (Lưu ý: Nếu bạn có lưu tag [Loại cơm] vào nội dung thì có thể dùng Replace để hiển thị sạch hơn nếu muốn)
-        string cleanContent = ct.NoiDungYeuCauChiTiet ?? "";
-        chiTietNoiDung += RenderInfoRow("📝", "Nội dung chi tiết", cleanContent, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🛠️", "Dịch vụ yêu cầu",
+            selectedServices.Count > 0 ? string.Join(" | ", selectedServices) : "Không có yêu cầu đặc biệt",
+            "#fff7ed", "#9a3412");
+        chiTietNoiDung += RenderInfoRow("📝", "Nội dung chi tiết", ct.NoiDungYeuCauChiTiet ?? "", "#f8fafc", "#0f172a");
     }
 
     // ── 6. DỮ LIỆU XÁC NHẬN GIÁM ĐỐC ──
@@ -261,7 +202,7 @@
     bool baoVeHoanTat = baoVeRecord?.TrangThai == 1;
     bool canBaoVeAction = User.IsInRole("All") || User.IsInRole("BaoVeHR");
     bool canDayBaoVe = User.IsInRole("All") || User.IsInRole("AdminHR")
-                          || User.IsInRole("BaoVeHR") || User.IsInRole("QuanLyDuyetDonHR");
+                           || User.IsInRole("BaoVeHR") || User.IsInRole("QuanLyDuyetDonHR");
 }
 
 @Html.AntiForgeryToken()
@@ -348,15 +289,19 @@
                         }
                     </div>
 
+                    @* ✅ SỬA: Chỉ All và AdminHR mới thấy block chỉ định người hỗ trợ *@
                     @if ((User.IsInRole("All") || User.IsInRole("AdminHR")) && !isCancelled && !isFinished)
                     {
                         <div style="background:#fff7ed;border:2px dashed #fb923c;padding:25px;border-radius:24px;margin-bottom:45px;">
-                            <p style="margin:0 0 15px 0;font-size:13px;font-weight:800;color:#9a3412;">
-                                <i class="fa fa-user-edit"></i> CHỈ ĐỊNH / THAY ĐỔI NGƯỜI HỖ TRỢ:
+                            <p style="margin:0 0 15px 0;font-size:13px;font-weight:800;color:#9a3412;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:0.5px;">
+                                <i class="fa fa-user-edit" style="font-size:16px;"></i> CHỈ ĐỊNH / THAY ĐỔI NGƯỜI HỖ TRỢ:
                             </p>
-                            <div style="display:flex;gap:12px;">
-                                <select id="selectHR" style="flex:1;padding:14px;border-radius:12px;border:1px solid #fdba74;font-weight:600;background:white;font-size:15px;">
-                                    <option value="">-- Chọn nhân viên HR --</option>
+                            <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                                <select id="selectHR"
+                                        style="flex:1;min-width:200px;padding:14px;border-radius:12px;border:1.5px solid #fdba74;font-weight:600;outline:none;background:white;font-size:15px;color:#1e293b;transition:border-color 0.2s;"
+                                        onfocus="this.style.borderColor='#ea580c'"
+                                        onblur="this.style.borderColor='#fdba74'">
+                                    <option value="">-- Chọn nhân viên HR hỗ trợ --</option>
                                     @if (ViewBag.ListNguoiHoTro != null)
                                     {
                                         foreach (var hr in (List<E_Form_Best.Models.ITForm.HrNguoiHoTro>)ViewBag.ListNguoiHoTro)
@@ -365,8 +310,16 @@
                                         }
                                     }
                                 </select>
-                                <button onclick="changeSupporter()" style="background:#ea580c;color:white;border:none;padding:0 30px;border-radius:12px;font-weight:800;cursor:pointer;font-size:15px;">XÁC NHẬN</button>
+                                <button onclick="changeSupporter()"
+                                        style="background:#ea580c;color:white;border:none;padding:0 35px;border-radius:12px;font-weight:800;cursor:pointer;font-size:15px;min-height:48px;transition:all 0.2s;"
+                                        onmouseover="this.style.background='#c2410c';this.style.transform='translateY(-1px)'"
+                                        onmouseout="this.style.background='#ea580c';this.style.transform='none'">
+                                    XÁC NHẬN
+                                </button>
                             </div>
+                            <small style="color:#c2410c;display:block;margin-top:10px;font-style:italic;font-weight:500;">
+                                * Lưu ý: Chỉ tài khoản có quyền <b>AdminHR</b> hoặc <b>All</b> mới có thể thực hiện thao tác này.
+                            </small>
                         </div>
                     }
 
@@ -394,6 +347,10 @@
                                         </div>
                                     </div>
                                 }
+                            }
+                            else
+                            {
+                                <div style="text-align:center;color:#94a3b8;padding:20px;">Chưa có nhật ký thao tác.</div>
                             }
                         </div>
                     </div>
@@ -507,7 +464,6 @@
                                                 }
                                                 else
                                                 {
-
                                                     <div id="xnGhiChu-@xn.Id"></div>
                                                 }
                                             </div>
@@ -612,14 +568,10 @@
                         </div>
                     </div>
 
-                    <!-- ══════════════════════════════════════════
-                         BLOCK BẢO VỆ
-                    ══════════════════════════════════════════ -->
+                    <!-- BLOCK BẢO VỆ -->
                     @if (User.IsInRole("All") || User.IsInRole("AdminHR") || User.IsInRole("BaoVeHR"))
                     {
                         <div style="background:#fff;border-radius:28px;border:1px solid #d1d5db;overflow:hidden;box-shadow:0 10px 15px -3px rgba(0,0,0,0.06);">
-
-                            <!-- Header -->
                             <div style="background:linear-gradient(135deg,#1c1917 0%,#44403c 100%);padding:18px 25px;display:flex;align-items:center;justify-content:space-between;">
                                 <h4 style="margin:0;font-size:15px;font-weight:900;color:white;display:flex;align-items:center;gap:10px;">
                                     <i class="fa fa-shield"></i> BẢO VỆ
@@ -632,11 +584,9 @@
                                     </span>
                                 }
                             </div>
-
                             <div style="padding:22px;">
                                 @if (!daBaoVe)
                                 {
-                                    <!-- Chưa đẩy: hiện nút đẩy -->
                                     <p style="margin:0 0 14px 0;font-size:13px;color:#78716c;line-height:1.6;">
                                         Gửi phiếu này đến đội <strong>Bảo Vệ</strong> để xử lý. Bảo Vệ sẽ bổ sung thông tin sau.
                                     </p>
@@ -649,7 +599,6 @@
                                 }
                                 else if (baoVeHoanTat)
                                 {
-                                    <!-- Đã hoàn tất: hiện thông tin -->
                                     <div style="background:#f0fdf4;border:2px solid #bbf7d0;border-radius:16px;padding:18px;">
                                         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
                                             <div style="width:42px;height:42px;background:#059669;border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;font-size:20px;flex-shrink:0;">
@@ -674,7 +623,6 @@
                                 }
                                 else
                                 {
-                                    <!-- Đã đẩy, chờ BaoVe xác nhận -->
                                     <div style="background:#fff7ed;border:2px solid #fed7aa;border-radius:16px;padding:18px;margin-bottom:16px;">
                                         <div style="display:flex;align-items:center;gap:10px;">
                                             <i class="fa fa-clock-o" style="color:#d97706;font-size:22px;"></i>
@@ -684,16 +632,13 @@
                                             </div>
                                         </div>
                                     </div>
-
-                                    <!-- Form xác nhận: chỉ BaoVeHR hoặc All mới thấy -->
                                     @if (canBaoVeAction)
                                     {
                                         <div style="background:#f8fafc;border:2px dashed #94a3b8;border-radius:16px;padding:18px;">
                                             <p style="margin:0 0 12px 0;font-size:13px;font-weight:800;color:#334155;display:flex;align-items:center;gap:8px;">
                                                 <i class="fa fa-shield"></i> XÁC NHẬN HOÀN TẤT (BẢO VỆ):
                                             </p>
-                                            <textarea id="txtGhiChuBaoVe"
-                                                      placeholder="Nhập ghi chú xác nhận (tùy chọn)..."
+                                            <textarea id="txtGhiChuBaoVe" placeholder="Nhập ghi chú xác nhận (tùy chọn)..."
                                                       style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:13px;resize:vertical;min-height:70px;outline:none;font-family:'Segoe UI',sans-serif;box-sizing:border-box;margin-bottom:12px;transition:border 0.2s;"
                                                       onfocus="this.style.borderColor='#475569'" onblur="this.style.borderColor='#cbd5e1'"></textarea>
                                             <button id="btnBaoVeXacNhan" onclick="baoVeXacNhan(@baoVeRecord!.Id)"
@@ -707,8 +652,6 @@
                             </div>
                         </div>
                     }
-                    <!-- ══ KẾT THÚC BLOCK BẢO VỆ ══ -->
-
                 </div><!-- end right column -->
             </div>
         </div>
@@ -752,8 +695,9 @@
     }
 
     // ── ZOOM ──
-    function openZoom(src) { document.getElementById('fullImage').src=src; document.getElementById('imageOverlay').style.display='flex'; }
-    function closeZoom()   { document.getElementById('imageOverlay').style.display='none'; }
+    function openZoom(src) { document.getElementById('fullImage').src=src; document.getElementById('imageOverlay').style.display='flex'; document.body.style.overflow='hidden'; }
+    function closeZoom()   { document.getElementById('imageOverlay').style.display='none'; document.body.style.overflow='auto'; }
+    document.addEventListener('keydown', e => { if (e.key==='Escape') closeZoom(); });
 
     // ── GIÁM ĐỐC XÁC NHẬN ──
     async function giamDocXacNhan(idXacNhan, action) {
@@ -769,13 +713,13 @@
             const data = await res.json();
             if (data.success) {
                 const isApprove = data.trangThai === 1;
-                const cardEl    = document.getElementById(`xnCard-${idXacNhan}`);
-                const badgeEl   = document.getElementById(`xnBadge-${idXacNhan}`);
-                const timeEl    = document.getElementById(`xnTime-${idXacNhan}`);
-                const ghiChuEl  = document.getElementById(`xnGhiChu-${idXacNhan}`);
-                if (cardEl)  { cardEl.style.background = isApprove?'#f0fdf4':'#fff1f2'; cardEl.style.borderColor = isApprove?'#bbf7d0':'#fecaca'; }
-                if (badgeEl) { badgeEl.style.background = isApprove?'#059669':'#dc2626'; badgeEl.innerHTML = isApprove?'<i class="fa fa-check-circle"></i> ĐÃ DUYỆT':'<i class="fa fa-times-circle"></i> TỪ CHỐI'; }
-                if (timeEl && data.thoiGian) timeEl.innerHTML = `<div style="font-size:11px;color:#94a3b8;margin-top:3px;"><i class="fa fa-clock-o"></i> ${data.thoiGian}</div>`;
+                const cardEl   = document.getElementById(`xnCard-${idXacNhan}`);
+                const badgeEl  = document.getElementById(`xnBadge-${idXacNhan}`);
+                const timeEl   = document.getElementById(`xnTime-${idXacNhan}`);
+                const ghiChuEl = document.getElementById(`xnGhiChu-${idXacNhan}`);
+                if (cardEl)  { cardEl.style.background=isApprove?'#f0fdf4':'#fff1f2'; cardEl.style.borderColor=isApprove?'#bbf7d0':'#fecaca'; }
+                if (badgeEl) { badgeEl.style.background=isApprove?'#059669':'#dc2626'; badgeEl.innerHTML=isApprove?'<i class="fa fa-check-circle"></i> ĐÃ DUYỆT':'<i class="fa fa-times-circle"></i> TỪ CHỐI'; }
+                if (timeEl && data.thoiGian) timeEl.innerHTML=`<div style="font-size:11px;color:#94a3b8;margin-top:3px;"><i class="fa fa-clock-o"></i> ${data.thoiGian}</div>`;
                 if (ghiChuEl && ghiChu) { const bc=isApprove?'#059669':'#dc2626'; ghiChuEl.style.cssText=`margin-top:6px;padding:5px 10px;background:rgba(255,255,255,0.7);border-radius:8px;font-size:11px;color:#475569;border-left:3px solid ${bc};font-style:italic;`; ghiChuEl.innerHTML=`<i class="fa fa-comment"></i> ${escapeHtml(ghiChu)}`; }
                 const actionBox = document.getElementById('btnXnDuyet')?.closest('div[style*="dashed"]');
                 if (actionBox) actionBox.parentElement.style.display='none';
@@ -800,16 +744,22 @@
         if (confirm('Xác nhận thao tác?'))
             apiPost('/FormHR/XuLyDon', { id:formId, action:type, reason }, ['btnDuyet','btnHuy']);
     }
+
     function handleXacNhanHoanThanh() {
         if (!hasRole('All') && !hasRole('AdminHR')) return alert('Chỉ HR Admin mới có quyền xác nhận hoàn tất!');
         if (confirm('Xác nhận đã hoàn thành?'))
             apiPost('/FormHR/XacNhanHoanThanh', { id:formId }, ['btnHoanThanh']);
     }
+
+    // ✅ SỬA: changeSupporter — chỉ All và AdminHR
     function changeSupporter() {
-        const maNv = document.getElementById('selectHR').value;
+        const select = document.getElementById('selectHR');
+        const maNv   = select?.value;
+        const tenNv  = select?.options[select.selectedIndex]?.text;
         if (!maNv) return alert('Vui lòng chọn một nhân viên HR!');
-        if (!hasRole('All') && !hasRole('AdminHR')) return alert('Bạn không có quyền gán người hỗ trợ!');
-        if (confirm('Xác nhận thay đổi người hỗ trợ?'))
+        if (!hasRole('All') && !hasRole('AdminHR'))
+            return alert('Bạn không có quyền gán người hỗ trợ!');
+        if (confirm(`Xác nhận chỉ định [${tenNv}] hỗ trợ đơn này?`))
             apiPost('/FormHR/ThemNguoiHoTro', { idFormHr:formId, maNv });
     }
 
@@ -846,11 +796,11 @@
 
     // ── BÌNH LUẬN ──
     let currentSkipComment=0, hasMoreComments=true, isLoadingComments=false, totalComments=0, isSubmitting=false;
-    const takeComment=20;
+    const takeComment = 20;
 
     async function taiBinhLuan(isLoadMore=false) {
         if (isLoadingComments) return;
-        isLoadingComments=true;
+        isLoadingComments = true;
         try {
             const res  = await fetch(`/FormHR/LayBinhLuan/${formId}?skip=${currentSkipComment}&take=${takeComment}`);
             const data = await res.json();
@@ -859,18 +809,18 @@
                 if (!isLoadMore) { list.innerHTML=''; currentSkipComment=0; totalComments=0; }
                 if (!data.data.length) {
                     if (!isLoadMore) list.innerHTML=`<div style="text-align:center;color:#94a3b8;padding:40px;"><i class="fa fa-comment-o" style="font-size:48px;opacity:0.3;display:block;margin-bottom:15px;"></i><p style="font-style:italic;font-size:14px;margin:0;">Chưa có bình luận nào.</p></div>`;
-                    hasMoreComments=false;
+                    hasMoreComments = false;
                 } else {
                     data.data.forEach(bl => { list.insertAdjacentHTML(isLoadMore?'afterbegin':'beforeend', renderComment(bl)); totalComments++; });
                     currentSkipComment += data.data.length;
-                    if (data.data.length < takeComment) hasMoreComments=false;
-                    if (!isLoadMore) setTimeout(()=>{ list.scrollTop=list.scrollHeight; },100);
+                    if (data.data.length < takeComment) hasMoreComments = false;
+                    if (!isLoadMore) setTimeout(()=>{ list.scrollTop=list.scrollHeight; }, 100);
                 }
                 updateCommentCount();
             }
         } catch(err) {
             document.getElementById('commentList').innerHTML=`<div style="text-align:center;color:#ef4444;padding:40px;">Lỗi tải bình luận.</div>`;
-        } finally { isLoadingComments=false; }
+        } finally { isLoadingComments = false; }
     }
 
     function renderComment(bl) {
@@ -880,15 +830,23 @@
         let fileHtml = '';
         if (bl.fileDinhKem) {
             const name = bl.fileDinhKem.split('_').slice(2).join('_');
-            fileHtml = `<div style="margin-top:10px;padding:10px;background:#f1f5f9;border-radius:8px;display:inline-flex;align-items:center;gap:8px;"><i class="fa fa-paperclip" style="color:#64748b;"></i><a href="/FormHR/DownloadBinhLuanFile/${bl.fileDinhKem}" download style="color:#3b82f6;text-decoration:none;font-weight:600;font-size:13px;">${escapeHtml(name)}</a></div>`;
+            const ext  = bl.fileDinhKem.split('.').pop().toLowerCase();
+            const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext);
+            fileHtml = isImg
+                ? `<div style="margin-top:8px;"><img src="/FormHR/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" onclick="openZoom(this.src)" style="max-width:200px;border-radius:8px;cursor:zoom-in;border:1px solid #e2e8f0;"/></div>`
+                : `<div style="margin-top:10px;padding:10px;background:#f1f5f9;border-radius:8px;display:inline-flex;align-items:center;gap:8px;"><i class="fa fa-paperclip" style="color:#64748b;"></i><a href="/FormHR/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color:#3b82f6;text-decoration:none;font-weight:600;font-size:13px;">${escapeHtml(name)}</a></div>`;
         }
+        const initial = (bl.tenNguoiBinhLuan || 'U').substring(0,1).toUpperCase();
         return `<div style="margin-bottom:15px;display:flex;gap:12px;${isOwn?'flex-direction:row-reverse;':''}" data-comment-id="${bl.id}">
-            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,${isOwn?'#3b82f6':'#94a3b8'},${isOwn?'#1e40af':'#64748b'});display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0;">${(bl.tenNguoiBinhLuan||'U').substring(0,1).toUpperCase()}</div>
+            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,${isOwn?'#3b82f6':'#94a3b8'},${isOwn?'#1e40af':'#64748b'});display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0;">${initial}</div>
             <div style="flex:1;${isOwn?'text-align:right;':''}">
                 <div style="display:inline-block;max-width:85%;">
                     <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;${isOwn?'justify-content:flex-end;flex-direction:row-reverse;':''}">
-                        <div><span style="font-weight:800;color:#1e293b;font-size:14px;">${escapeHtml(bl.tenNguoiBinhLuan||'Unknown')}</span></div>
-                        <div style="display:flex;align-items:center;gap:6px;"><span style="font-size:11px;color:#94a3b8;">${time}</span>${canDel?`<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" style="color:#ef4444;cursor:pointer;font-size:12px;"></i>`:''}</div>
+                        <span style="font-weight:800;color:#1e293b;font-size:14px;">${escapeHtml(bl.tenNguoiBinhLuan||'Unknown')}</span>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="font-size:11px;color:#94a3b8;">${time}</span>
+                            ${canDel?`<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" style="color:#ef4444;cursor:pointer;font-size:12px;" title="Xóa"></i>`:''}
+                        </div>
                     </div>
                     <div style="background:${isOwn?'#dbeafe':'white'};padding:12px 16px;border-radius:16px;border:1px solid #e2e8f0;">
                         ${bl.noiDung?`<div style="color:#1e293b;font-size:14px;line-height:1.6;word-wrap:break-word;white-space:pre-wrap;">${escapeHtml(bl.noiDung)}</div>`:''}
@@ -939,14 +897,14 @@
     }
 
     function updateFileLabel(input) {
-        const f=input.files[0];
+        const f = input.files[0];
         document.getElementById('fileLabel').textContent = f ? `${f.name} (${(f.size/1024/1024).toFixed(2)}MB)` : 'Đính kèm file (max 50MB)';
     }
     function updateCommentCount() { const e=document.getElementById('commentCount'); if(e) e.textContent=totalComments; }
 
     document.getElementById('commentList')?.addEventListener('scroll', function() {
         if (this.scrollTop===0 && hasMoreComments && !isLoadingComments) {
-            const h=this.scrollHeight;
+            const h = this.scrollHeight;
             taiBinhLuan(true).then(()=>{ this.scrollTop=this.scrollHeight-h; });
         }
     });
