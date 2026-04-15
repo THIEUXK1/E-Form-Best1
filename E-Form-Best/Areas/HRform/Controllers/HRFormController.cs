@@ -82,10 +82,10 @@ namespace E_Form_Best.Areas.HRform.Controllers
         [HttpGet("/FormHR/DonXinRaNgoai")]
         public IActionResult DonXinRaNgoai()
         {
-            // 1. Kiểm tra đăng nhập qua Cookie (User.Identity)
+            // 1. Kiểm tra đăng nhập
             if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
 
-            // 2. Lấy thông tin từ Claims (CK)
+            // 2. Lấy thông tin từ Claims
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdString)) return Redirect("/DonXetDuyet/DangNhap");
 
@@ -96,6 +96,14 @@ namespace E_Form_Best.Areas.HRform.Controllers
             var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
+            // --- MỚI: Lấy danh sách nhân sự hỗ trợ hiển thị ra View ---
+
+            ViewBag.ListNguoiHoTro = _context.HrNguoiHoTros
+    // 1. Chỉ Include những công việc thỏa mãn điều kiện tên
+    .Include(x => x.CongViecHrs.Where(cv => cv.Ten == "Đăng ký đơn xin ra ngoài"))
+    // 2. Chỉ lấy những người có ít nhất 1 công việc thỏa mãn (để tránh lấy người không có việc này)
+    .Where(x => x.CongViecHrs.Any(cv => cv.Ten == "Đăng ký đơn xin ra ngoài"))
+    .ToList();
             // 3. Khởi tạo Model hiển thị lên View
             var model = new FormHr
             {
@@ -116,7 +124,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
 
         [HttpPost("/FormHR/DonXinRaNgoai")]
-        public async Task<IActionResult> DonXinRaNgoai(FormHr form, [FromForm] HrXinRaNgoai1 xinRaNgoai)
+        public async Task<IActionResult> DonXinRaNgoai(FormHr form, [FromForm] HrXinRaNgoai1 xinRaNgoai, int[] SelectedCongViecIds)
         {
             // 1. Kiểm tra đăng nhập
             if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
@@ -156,14 +164,32 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.FormHrs.Add(form);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 2: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN ---
-                    // Tìm loại đơn tương ứng với IdForm đã gán bên trên
+                    // --- BƯỚC 2: LƯU NHÂN SỰ HỖ TRỢ ĐÃ CHỌN (MỚI) ---
+                    if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
+                    {
+                        foreach (var cvId in SelectedCongViecIds)
+                        {
+                            var congViec = await _context.CongViecHrs.FindAsync(cvId);
+                            if (congViec != null)
+                            {
+                                var ctHoTro = new HrCtNguoiHoTro
+                                {
+                                    IdFormHr = form.Id,
+                                    IdHrNguoiHoTro = congViec.IdHrNguoiHoTro,
+                                    Stt = 1 // Gán giá trị mặc định là 1 tại đây
+                                };
+                                _context.HrCtNguoiHoTros.Add(ctHoTro);
+                            }
+                        }
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // --- BƯỚC 3: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN ---
                     var loaiDon = await _context.DmLoaiDons
                         .FirstOrDefaultAsync(x => x.MaLoaiDon == form.IdForm && x.TrangThai == true);
 
                     if (loaiDon != null)
                     {
-                        // Lấy danh sách cấu hình người xác nhận cho loại đơn này
                         var listCauHinhXacNhan = await _context.DmNguoiXacNhanLoaiDons
                             .Include(x => x.IdnguoiXacNhanNavigation)
                             .Where(x => x.IdloaiDon == loaiDon.IdloaiDon)
@@ -175,19 +201,18 @@ namespace E_Form_Best.Areas.HRform.Controllers
                             {
                                 IdFormHr = form.Id,
                                 IdnguoiXacNhan = item.IdnguoiXacNhan,
-                                ThuTuXacNhan = item.CapDoXacNhan, // Cùng CapDoXacNhan thì ThuTuXacNhan bằng nhau
+                                ThuTuXacNhan = item.CapDoXacNhan,
                                 MaNguoiXacNhan = item.IdnguoiXacNhanNavigation?.MaNv,
                                 TenNguoiXacNhan = item.IdnguoiXacNhanNavigation?.HoTen,
-                                TrangThaiXacNhan = 0, // Mặc định chờ duyệt
-                                ThoiGianXacNhan = null,
-                                GhiChu = null
+                                TrangThaiXacNhan = 0,
+                                ThoiGianXacNhan = null
                             };
                             _context.HrNguoiXacNhans.Add(hrXacNhan);
                         }
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 3: LƯU LỊCH SỬ THAO TÁC (LichSuFormHr) ---
+                    // --- BƯỚC 4: LƯU LỊCH SỬ THAO TÁC ---
                     string chiTietDon = "";
                     if (xinRaNgoai != null)
                     {
@@ -208,7 +233,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.LichSuFormHrs.Add(lichSu);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 4: XỬ LÝ FILE/ẢNH TRÊN FILESERVER ---
+                    // --- BƯỚC 5: XỬ LÝ FILE/ẢNH TRÊN FILESERVER ---
                     if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
 
                     string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
@@ -250,12 +275,12 @@ namespace E_Form_Best.Areas.HRform.Controllers
                             xinRaNgoai.DuongDanAnh = imgName;
                         }
 
-                        xinRaNgoai.Anh = null; // Triệt để không lưu byte[] vào DB
+                        xinRaNgoai.Anh = null; // Không lưu byte[]
                         _context.HrXinRaNgoai1s.Add(xinRaNgoai);
                         await _context.SaveChangesAsync();
                     }
 
-                    // Cập nhật lại FormHr nếu có FileDinhKem từ bước xử lý file
+                    // Cập nhật lại FormHr để lưu FileDinhKem
                     _context.Entry(form).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                     await _context.SaveChangesAsync();
 
@@ -291,6 +316,12 @@ namespace E_Form_Best.Areas.HRform.Controllers
             var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
+            // --- MỚI: Lấy danh sách nhân sự hỗ trợ Đăng ký mang hàng hóa ra cổng ---
+            ViewBag.ListNguoiHoTro = _context.HrNguoiHoTros
+                .Include(x => x.CongViecHrs.Where(cv => cv.Ten == "Đăng ký mang hàng hóa ra cổng"))
+                .Where(x => x.CongViecHrs.Any(cv => cv.Ten == "Đăng ký mang hàng hóa ra cổng"))
+                .ToList();
+
             var model = new FormHr
             {
                 TenNguoiNv = userName,
@@ -310,11 +341,11 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
 
         [HttpPost("/FormHR/MangHangHoaRaCong")]
-        public async Task<IActionResult> MangHangHoaRaCong(FormHr form, [FromForm] HrMangHangHoaRaCong2 chiTiet)
+        public async Task<IActionResult> MangHangHoaRaCong(FormHr form, [FromForm] HrMangHangHoaRaCong2 chiTiet, int[] SelectedCongViecIds)
         {
             if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
 
-            // --- GIA CỐ: Nếu Binder bị lỗi và trả về null, tự bốc dữ liệu từ Form ---
+            // --- GIA CỐ: Nếu Binder bị lỗi và trả về null ---
             if (chiTiet == null || (string.IsNullOrEmpty(chiTiet.MoTa) && Request.Form.ContainsKey("chiTiet.MoTa")))
             {
                 chiTiet = new HrMangHangHoaRaCong2
@@ -357,13 +388,33 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     form.TenCongTy = tenCongTy;
                     form.Danhmuc = "ĐƠN MANG HÀNG HÓA RA CỔNG";
                     form.TrangThai = "ChoDuyet";
-                    form.IdForm = "HR_MangHangHoaRaCong_2"; // Mã loại đơn để check danh mục
+                    form.IdForm = "HR_MangHangHoaRaCong_2";
                     form.TenForm = "Đơn mang hàng hóa ra cổng";
 
                     _context.FormHrs.Add(form);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 2: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN ---
+                    // --- BƯỚC 2: LƯU NHÂN SỰ HỖ TRỢ ĐÃ CHỌN (MỚI) ---
+                    if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
+                    {
+                        foreach (var cvId in SelectedCongViecIds)
+                        {
+                            var congViec = await _context.CongViecHrs.FindAsync(cvId);
+                            if (congViec != null)
+                            {
+                                var ctHoTro = new HrCtNguoiHoTro
+                                {
+                                    IdFormHr = form.Id,
+                                    IdHrNguoiHoTro = congViec.IdHrNguoiHoTro,
+                                    Stt = 1
+                                };
+                                _context.HrCtNguoiHoTros.Add(ctHoTro);
+                            }
+                        }
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // --- BƯỚC 3: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN ---
                     var loaiDon = await _context.DmLoaiDons
                         .FirstOrDefaultAsync(x => x.MaLoaiDon == form.IdForm && x.TrangThai == true);
 
@@ -380,19 +431,18 @@ namespace E_Form_Best.Areas.HRform.Controllers
                             {
                                 IdFormHr = form.Id,
                                 IdnguoiXacNhan = item.IdnguoiXacNhan,
-                                ThuTuXacNhan = item.CapDoXacNhan, // Cùng cấp độ thì thứ tự bằng nhau
+                                ThuTuXacNhan = item.CapDoXacNhan,
                                 MaNguoiXacNhan = item.IdnguoiXacNhanNavigation?.MaNv,
                                 TenNguoiXacNhan = item.IdnguoiXacNhanNavigation?.HoTen,
                                 TrangThaiXacNhan = 0,
-                                ThoiGianXacNhan = null,
-                                GhiChu = null
+                                ThoiGianXacNhan = null
                             };
                             _context.HrNguoiXacNhans.Add(hrXacNhan);
                         }
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 3: LƯU LỊCH SỬ ---
+                    // --- BƯỚC 4: LƯU LỊCH SỬ ---
                     string chiTietDon = "";
                     if (chiTiet != null)
                     {
@@ -412,12 +462,11 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.LichSuFormHrs.Add(lichSu);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 4: XỬ LÝ FILE TRÊN FILESERVER ---
+                    // --- BƯỚC 5: XỬ LÝ FILE TRÊN FILESERVER ---
                     if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
                     string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
                     string timeStamp = DateTime.Now.ToString("ddMMyy_HHmm");
 
-                    // A. File tài liệu đính kèm (UploadFile)
                     var uploadFile = Request.Form.Files["UploadFile"];
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
@@ -430,7 +479,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         form.FileDinhKem = fileName;
                     }
 
-                    // B. Xử lý Chi tiết hàng hóa và Ảnh hàng hóa
                     if (chiTiet != null)
                     {
                         chiTiet.IdFormHr = form.Id;
@@ -446,12 +494,11 @@ namespace E_Form_Best.Areas.HRform.Controllers
                             chiTiet.DuongDanAnh = imgName;
                         }
 
-                        chiTiet.Anh = null; // Triệt để không lưu byte[]
+                        chiTiet.Anh = null;
                         _context.HrMangHangHoaRaCong2s.Add(chiTiet);
                         await _context.SaveChangesAsync();
                     }
 
-                    // Cập nhật lại FormHr nếu có FileDinhKem
                     _context.Entry(form).State = EntityState.Modified;
                     await _context.SaveChangesAsync();
 
@@ -488,6 +535,12 @@ namespace E_Form_Best.Areas.HRform.Controllers
             var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
+            // --- MỚI: Lấy danh sách nhân sự hỗ trợ hiển thị ra View ---
+            ViewBag.ListNguoiHoTro = _context.HrNguoiHoTros
+                .Include(x => x.CongViecHrs.Where(cv => cv.Ten == "Đăng ký sử dụng xe công tác"))
+                .Where(x => x.CongViecHrs.Any(cv => cv.Ten == "Đăng ký sử dụng xe công tác"))
+                .ToList();
+
             var model = new FormHr
             {
                 TenNguoiNv = userName,
@@ -507,11 +560,11 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
 
         [HttpPost("/FormHR/DangKySuDungXeCongTac")]
-        public async Task<IActionResult> DangKySuDungXeCongTac(FormHr form, [FromForm] HrDangKySuDungXeCongTac3 chiTiet)
+        public async Task<IActionResult> DangKySuDungXeCongTac(FormHr form, [FromForm] HrDangKySuDungXeCongTac3 chiTiet, int[] SelectedCongViecIds)
         {
             if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
 
-            // Gia cố Binding nếu chiTiet bị null (đề phòng lỗi truyền từ View)
+            // Gia cố Binding nếu chiTiet bị null
             if (chiTiet == null || (string.IsNullOrEmpty(chiTiet.LiDo) && Request.Form.ContainsKey("chiTiet.LiDo")))
             {
                 chiTiet = new HrDangKySuDungXeCongTac3
@@ -549,14 +602,34 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     form.SoNhanVien = soNhanVien;
                     form.TenCongTy = tenCongTy;
                     form.TrangThai = "ChoDuyet";
-                    form.IdForm = "HR_DangKySuDungXeCongTac_3"; // Mã định danh loại đơn
+                    form.IdForm = "HR_DangKySuDungXeCongTac_3";
                     form.TenForm = "Đơn đăng ký sử dụng xe công tác";
                     form.Danhmuc = "ĐƠN ĐĂNG KÝ SỬ DỤNG XE CÔNG TÁC";
 
                     _context.FormHrs.Add(form);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 2: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN TỪ DANH MỤC ---
+                    // --- BƯỚC 2: LƯU NHÂN SỰ HỖ TRỢ ĐÃ CHỌN (MỚI) ---
+                    if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
+                    {
+                        foreach (var cvId in SelectedCongViecIds)
+                        {
+                            var congViec = await _context.CongViecHrs.FindAsync(cvId);
+                            if (congViec != null)
+                            {
+                                var ctHoTro = new HrCtNguoiHoTro
+                                {
+                                    IdFormHr = form.Id,
+                                    IdHrNguoiHoTro = congViec.IdHrNguoiHoTro,
+                                    Stt = 1
+                                };
+                                _context.HrCtNguoiHoTros.Add(ctHoTro);
+                            }
+                        }
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // --- BƯỚC 3: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN TỪ DANH MỤC ---
                     var loaiDon = await _context.DmLoaiDons
                         .FirstOrDefaultAsync(x => x.MaLoaiDon == form.IdForm && x.TrangThai == true);
 
@@ -573,7 +646,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                             {
                                 IdFormHr = form.Id,
                                 IdnguoiXacNhan = item.IdnguoiXacNhan,
-                                ThuTuXacNhan = item.CapDoXacNhan, // Cùng cấp độ thì thứ tự bằng nhau
+                                ThuTuXacNhan = item.CapDoXacNhan,
                                 MaNguoiXacNhan = item.IdnguoiXacNhanNavigation?.MaNv,
                                 TenNguoiXacNhan = item.IdnguoiXacNhanNavigation?.HoTen,
                                 TrangThaiXacNhan = 0,
@@ -585,7 +658,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 3: LƯU LỊCH SỬ THAO TÁC ---
+                    // --- BƯỚC 4: LƯU LỊCH SỬ THAO TÁC ---
                     string chiTietXe = "";
                     if (chiTiet != null)
                     {
@@ -604,12 +677,11 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.LichSuFormHrs.Add(lichSu);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 4: XỬ LÝ FILE TRÊN FILESERVER ---
+                    // --- BƯỚC 5: XỬ LÝ FILE TRÊN FILESERVER ---
                     if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
                     string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
                     string timeStamp = DateTime.Now.ToString("ddMMyy_HHmm");
 
-                    // A. File đính kèm tài liệu chung (UploadFile)
                     var uploadFile = Request.Form.Files["UploadFile"];
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
@@ -622,7 +694,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         form.FileDinhKem = fName;
                     }
 
-                    // B. Xử lý Chi tiết đơn & Ảnh đính kèm (AnhXe)
                     if (chiTiet != null)
                     {
                         chiTiet.IdFormHr = form.Id;
@@ -638,12 +709,11 @@ namespace E_Form_Best.Areas.HRform.Controllers
                             chiTiet.DuongDanAnh = imgName;
                         }
 
-                        chiTiet.Anh = null; // Triệt để không lưu byte[] vào DB
+                        chiTiet.Anh = null;
                         _context.HrDangKySuDungXeCongTac3s.Add(chiTiet);
                         await _context.SaveChangesAsync();
                     }
 
-                    // Cập nhật lại FormHr nếu có đường dẫn FileDinhKem
                     _context.Entry(form).State = EntityState.Modified;
                     await _context.SaveChangesAsync();
 
@@ -682,6 +752,14 @@ namespace E_Form_Best.Areas.HRform.Controllers
             var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
+            // --- MỚI: Lấy danh sách nhân sự hỗ trợ hiển thị ra View ---
+            ViewBag.ListNguoiHoTro = _context.HrNguoiHoTros
+                // 1. Chỉ Include những công việc thỏa mãn điều kiện tên
+                .Include(x => x.CongViecHrs.Where(cv => cv.Ten == "Đăng ký sử dụng xe Daily"))
+                // 2. Chỉ lấy những người có ít nhất 1 công việc thỏa mãn
+                .Where(x => x.CongViecHrs.Any(cv => cv.Ten == "Đăng ký sử dụng xe Daily"))
+                .ToList();
+
             // 3. Khởi tạo model
             var model = new FormHr
             {
@@ -702,7 +780,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
 
         [HttpPost("/FormHR/DangKySuDungXeDaily")]
-        public async Task<IActionResult> DangKySuDungXeDaily(FormHr form, [FromForm] HrDangKySuDungXeDaily4 chiTiet)
+        public async Task<IActionResult> DangKySuDungXeDaily(FormHr form, [FromForm] HrDangKySuDungXeDaily4 chiTiet, int[] SelectedCongViecIds)
         {
             if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
 
@@ -741,7 +819,27 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.FormHrs.Add(form);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 2: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN TỪ DANH MỤC ---
+                    // --- BƯỚC 2: LƯU NHÂN SỰ HỖ TRỢ ĐÃ CHỌN (MỚI) ---
+                    if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
+                    {
+                        foreach (var cvId in SelectedCongViecIds)
+                        {
+                            var congViec = await _context.CongViecHrs.FindAsync(cvId);
+                            if (congViec != null)
+                            {
+                                var ctHoTro = new HrCtNguoiHoTro
+                                {
+                                    IdFormHr = form.Id,
+                                    IdHrNguoiHoTro = congViec.IdHrNguoiHoTro,
+                                    Stt = 1
+                                };
+                                _context.HrCtNguoiHoTros.Add(ctHoTro);
+                            }
+                        }
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // --- BƯỚC 3: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN TỪ DANH MỤC ---
                     var loaiDon = await _context.DmLoaiDons
                         .FirstOrDefaultAsync(x => x.MaLoaiDon == form.IdForm && x.TrangThai == true);
 
@@ -758,7 +856,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                             {
                                 IdFormHr = form.Id,
                                 IdnguoiXacNhan = item.IdnguoiXacNhan,
-                                ThuTuXacNhan = item.CapDoXacNhan, // Cùng cấp độ thì thứ tự bằng nhau
+                                ThuTuXacNhan = item.CapDoXacNhan,
                                 MaNguoiXacNhan = item.IdnguoiXacNhanNavigation?.MaNv,
                                 TenNguoiXacNhan = item.IdnguoiXacNhanNavigation?.HoTen,
                                 TrangThaiXacNhan = 0,
@@ -770,7 +868,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 3: LƯU LỊCH SỬ THAO TÁC ---
+                    // --- BƯỚC 4: LƯU LỊCH SỬ THAO TÁC ---
                     string chiTietXeDaily = "";
                     if (chiTiet != null)
                     {
@@ -790,7 +888,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.LichSuFormHrs.Add(lichSu);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 4: XỬ LÝ FILE/ẢNH TRÊN FILESERVER ---
+                    // --- BƯỚC 5: XỬ LÝ FILE/ẢNH TRÊN FILESERVER ---
                     if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
 
                     string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
@@ -832,7 +930,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                             chiTiet.DuongDanAnh = imgName;
                         }
 
-                        chiTiet.Anh = null; // Triệt để không lưu byte[] vào DB
+                        chiTiet.Anh = null;
                         _context.HrDangKySuDungXeDaily4s.Add(chiTiet);
                         await _context.SaveChangesAsync();
                     }
@@ -867,8 +965,14 @@ namespace E_Form_Best.Areas.HRform.Controllers
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdString)) return Redirect("/DonXetDuyet/DangNhap");
 
-            // 2. Lấy danh sách phòng họp để hiển thị dropdown ở View (Sử dụng cho trường TenPhongHop)
+            // 2. Lấy danh sách phòng họp để hiển thị dropdown ở View
             ViewBag.DanhSachPhongHop = _context.PhongHopHrs.AsNoTracking().ToList();
+
+            // --- MỚI: Lấy danh sách nhân sự hỗ trợ hiển thị ra View ---
+            ViewBag.ListNguoiHoTro = _context.HrNguoiHoTros
+                .Include(x => x.CongViecHrs.Where(cv => cv.Ten == "Đăng ký tiếp khách"))
+                .Where(x => x.CongViecHrs.Any(cv => cv.Ten == "Đăng ký tiếp khách"))
+                .ToList();
 
             // 3. Khởi tạo Model chính hiển thị lên View
             var model = new FormHr
@@ -892,7 +996,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
 
         [HttpPost("/FormHR/DonTiepKhac")]
-        public async Task<IActionResult> DonTiepKhac(FormHr form, [FromForm] HrDonTiepKhac5 chiTiet)
+        public async Task<IActionResult> DonTiepKhac(FormHr form, [FromForm] HrDonTiepKhac5 chiTiet, int[] SelectedCongViecIds)
         {
             // 1. Kiểm tra đăng nhập lại khi Post
             if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
@@ -932,7 +1036,27 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.FormHrs.Add(form);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 2: TỰ ĐỘNG THÊM DANH SÁCH NGƯỜI XÁC NHẬN ---
+                    // --- BƯỚC 2: LƯU NHÂN SỰ HỖ TRỢ ĐÃ CHỌN (MỚI) ---
+                    if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
+                    {
+                        foreach (var cvId in SelectedCongViecIds)
+                        {
+                            var congViec = await _context.CongViecHrs.FindAsync(cvId);
+                            if (congViec != null)
+                            {
+                                var ctHoTro = new HrCtNguoiHoTro
+                                {
+                                    IdFormHr = form.Id,
+                                    IdHrNguoiHoTro = congViec.IdHrNguoiHoTro,
+                                    Stt = 1
+                                };
+                                _context.HrCtNguoiHoTros.Add(ctHoTro);
+                            }
+                        }
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // --- BƯỚC 3: TỰ ĐỘNG THÊM DANH SÁCH NGƯỜI XÁC NHẬN ---
                     var loaiDon = await _context.DmLoaiDons
                         .FirstOrDefaultAsync(x => x.MaLoaiDon == form.IdForm && x.TrangThai == true);
 
@@ -953,30 +1077,25 @@ namespace E_Form_Best.Areas.HRform.Controllers
                                 ThuTuXacNhan = item.CapDoXacNhan,
                                 MaNguoiXacNhan = item.IdnguoiXacNhanNavigation?.MaNv,
                                 TenNguoiXacNhan = item.IdnguoiXacNhanNavigation?.HoTen,
-                                TrangThaiXacNhan = 0, // Chờ duyệt
+                                TrangThaiXacNhan = 0,
                                 ThoiGianXacNhan = null
                             });
                         }
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 3: XỬ LÝ CHI TIẾT ĐƠN (HrDonTiepKhac5) ---
+                    // --- BƯỚC 4: XỬ LÝ CHI TIẾT ĐƠN (HrDonTiepKhac5) ---
                     if (chiTiet != null)
                     {
                         chiTiet.IdFormHr = form.Id;
-                        chiTiet.TrangThaiPhong = "off"; // Luôn mặc định là off theo yêu cầu
+                        chiTiet.TrangThaiPhong = "off";
                         chiTiet.NgayYeuCau = DateTime.Now;
 
-                        // Các trường khác (TenPhongHop, NhuCauPhongHop, ThoiGianBatDau, ThoiGianKetThuc, 
-                        // GhiChuPhongHop, LoaiSuatAn, SoLuongSuat, AnChay, SoLuongSuatAnChay, GhiChuSuatAn)
-                        // Đã được tự động gán từ Form nhờ [FromForm]
-
-                        // Xử lý File trên Server
                         if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
                         string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
                         string timeStamp = DateTime.Now.ToString("ddMMyy_HHmm");
 
-                        // 3.1 Lưu File tài liệu đính kèm (nếu có)
+                        // 4.1 Lưu File tài liệu đính kèm
                         var uploadFile = Request.Form.Files["UploadFile"];
                         if (uploadFile != null && uploadFile.Length > 0)
                         {
@@ -989,7 +1108,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                             form.FileDinhKem = fileName;
                         }
 
-                        // 3.2 Lưu Ảnh minh chứng (nếu có)
+                        // 4.2 Lưu Ảnh minh chứng
                         var anhFile = Request.Form.Files["AnhMinhChung"];
                         if (anhFile != null && anhFile.Length > 0)
                         {
@@ -1005,7 +1124,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         _context.HrDonTiepKhac5s.Add(chiTiet);
                     }
 
-                    // --- BƯỚC 4: LƯU LỊCH SỬ THAO TÁC ---
+                    // --- BƯỚC 5: LƯU LỊCH SỬ THAO TÁC ---
                     string moTaLichSu = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn tiếp khách.\n" +
                                         $"- Đối tác: {chiTiet?.TenCongTyKhach}\n" +
                                         $"- Phòng: {chiTiet?.TenPhongHop ?? "Không đăng ký"}\n" +
@@ -1020,7 +1139,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         IsRead = false
                     });
 
-                    // Cập nhật lại FormHr lần cuối (để lưu tên file đính kèm)
                     _context.Entry(form).State = EntityState.Modified;
 
                     await _context.SaveChangesAsync();
@@ -1032,11 +1150,12 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    // Ghi log lỗi nếu cần và trả về View cùng thông báo lỗi
                     ModelState.AddModelError("", "Có lỗi xảy ra: " + ex.Message);
-
-                    // Nạp lại danh sách phòng họp để View không bị lỗi
                     ViewBag.DanhSachPhongHop = _context.PhongHopHrs.AsNoTracking().ToList();
+                    ViewBag.ListNguoiHoTro = _context.HrNguoiHoTros
+                        .Include(x => x.CongViecHrs.Where(cv => cv.Ten == "Đăng ký tiếp khách"))
+                        .Where(x => x.CongViecHrs.Any(cv => cv.Ten == "Đăng ký tiếp khách"))
+                        .ToList();
                     return View(form);
                 }
             }
@@ -1065,6 +1184,12 @@ namespace E_Form_Best.Areas.HRform.Controllers
             var soNhanVien = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
+            // --- MỚI: Lấy danh sách nhân sự hỗ trợ hiển thị ra View ---
+            ViewBag.ListNguoiHoTro = _context.HrNguoiHoTros
+                .Include(x => x.CongViecHrs.Where(cv => cv.Ten == "Đăng ký Nhà thầu qua cổng"))
+                .Where(x => x.CongViecHrs.Any(cv => cv.Ten == "Đăng ký Nhà thầu qua cổng"))
+                .ToList();
+
             // 3. Khởi tạo model đồng bộ dữ liệu
             var model = new FormHr
             {
@@ -1087,7 +1212,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         /// Xử lý gửi đơn nhà thầu
         /// </summary>
         [HttpPost("/FormHR/NhaThauQuaCong")]
-        public async Task<IActionResult> NhaThauQuaCong(FormHr form, HrNhaThauQuaCong6 chiTiet)
+        public async Task<IActionResult> NhaThauQuaCong(FormHr form, HrNhaThauQuaCong6 chiTiet, int[] SelectedCongViecIds)
         {
             // 1. Kiểm tra xác thực
             if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
@@ -1127,7 +1252,27 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.FormHrs.Add(form);
                     await _context.SaveChangesAsync(); // Lưu để lấy form.Id
 
-                    // --- BƯỚC 2: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN TỪ DANH MỤC ---
+                    // --- BƯỚC 2: LƯU NHÂN SỰ HỖ TRỢ ĐÃ CHỌN ---
+                    if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
+                    {
+                        foreach (var cvId in SelectedCongViecIds)
+                        {
+                            var congViec = await _context.CongViecHrs.FindAsync(cvId);
+                            if (congViec != null)
+                            {
+                                var ctHoTro = new HrCtNguoiHoTro
+                                {
+                                    IdFormHr = form.Id,
+                                    IdHrNguoiHoTro = congViec.IdHrNguoiHoTro,
+                                    Stt = 1
+                                };
+                                _context.HrCtNguoiHoTros.Add(ctHoTro);
+                            }
+                        }
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // --- BƯỚC 3: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN TỪ DANH MỤC ---
                     var loaiDon = await _context.DmLoaiDons
                         .FirstOrDefaultAsync(x => x.MaLoaiDon == form.IdForm && x.TrangThai == true);
 
@@ -1144,10 +1289,10 @@ namespace E_Form_Best.Areas.HRform.Controllers
                             {
                                 IdFormHr = form.Id,
                                 IdnguoiXacNhan = item.IdnguoiXacNhan,
-                                ThuTuXacNhan = item.CapDoXacNhan, // Cùng cấp độ thì thứ tự bằng nhau
+                                ThuTuXacNhan = item.CapDoXacNhan,
                                 MaNguoiXacNhan = item.IdnguoiXacNhanNavigation?.MaNv,
                                 TenNguoiXacNhan = item.IdnguoiXacNhanNavigation?.HoTen,
-                                TrangThaiXacNhan = 0, // Mặc định: Chờ duyệt
+                                TrangThaiXacNhan = 0,
                                 ThoiGianXacNhan = null,
                                 GhiChu = null
                             };
@@ -1156,7 +1301,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 3: XỬ LÝ FILE ĐÍNH KÈM & ẢNH TRÊN FILESERVER ---
+                    // --- BƯỚC 4: XỬ LÝ FILE ĐÍNH KÈM & ẢNH TRÊN FILESERVER ---
                     if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
 
                     string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
@@ -1194,17 +1339,17 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         chiTiet.DuongDanAnh = imgName;
                     }
 
-                    // --- BƯỚC 4: LƯU CHI TIẾT NHÀ THẦU ---
+                    // --- BƯỚC 5: LƯU CHI TIẾT NHÀ THẦU ---
                     if (chiTiet != null)
                     {
                         chiTiet.IdFormHr = form.Id;
-                        chiTiet.Anh = null; // Triệt để không lưu byte[] vào DB
+                        chiTiet.Anh = null;
 
                         _context.HrNhaThauQuaCong6s.Add(chiTiet);
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 5: LƯU LỊCH SỬ THAO TÁC (LichSuFormHr) ---
+                    // --- BƯỚC 6: LƯU LỊCH SỬ THAO TÁC (LichSuFormHr) ---
                     string chiTietNhaThau = "";
                     if (chiTiet != null)
                     {
@@ -1225,7 +1370,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.LichSuFormHrs.Add(lichSu);
                     await _context.SaveChangesAsync();
 
-                    // Cập nhật lại FormHr để lưu FileDinhKem từ Bước 3
+                    // Cập nhật lại FormHr để lưu FileDinhKem
                     _context.Entry(form).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                     await _context.SaveChangesAsync();
 
@@ -1266,7 +1411,13 @@ namespace E_Form_Best.Areas.HRform.Controllers
             var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
-            // 3. Khởi tạo model với đầy đủ thông tin từ CK (Giữ nguyên các thuộc tính bạn đã dùng)
+            // --- MỚI: Lấy danh sách nhân sự hỗ trợ hiển thị ra View ---
+            ViewBag.ListNguoiHoTro = _context.HrNguoiHoTros
+                .Include(x => x.CongViecHrs.Where(cv => cv.Ten == "Đăng ký hỗ trợ tiền điện thoại"))
+                .Where(x => x.CongViecHrs.Any(cv => cv.Ten == "Đăng ký hỗ trợ tiền điện thoại"))
+                .ToList();
+
+            // 3. Khởi tạo model với đầy đủ thông tin từ CK
             var model = new FormHr
             {
                 TenNguoiNv = userName,
@@ -1288,7 +1439,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         /// Xử lý gửi đơn hỗ trợ tiền điện thoại sử dụng Cookie Authentication
         /// </summary>
         [HttpPost("/FormHR/HoTroTienDienThoai")]
-        public async Task<IActionResult> HoTroTienDienThoai(FormHr form, [FromForm] HrHoTroTienDienThoai7 chiTiet)
+        public async Task<IActionResult> HoTroTienDienThoai(FormHr form, [FromForm] HrHoTroTienDienThoai7 chiTiet, int[] SelectedCongViecIds)
         {
             // 1. Kiểm tra xác thực
             if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
@@ -1322,13 +1473,33 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     form.TenCongTy = tenCongTy;
                     form.Danhmuc = "ĐƠN HỖ TRỢ TIỀN ĐIỆN THOẠI";
                     form.TrangThai = "ChoDuyet";
-                    form.IdForm = "HR_HoTroTienDienThoai_7"; // Mã định danh loại đơn
+                    form.IdForm = "HR_HoTroTienDienThoai_7";
                     form.TenForm = "Đơn đăng ký hỗ trợ tiền điện thoại";
 
                     _context.FormHrs.Add(form);
-                    await _context.SaveChangesAsync(); // Lưu để lấy form.Id
+                    await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 2: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN TỪ DANH MỤC ---
+                    // --- BƯỚC 2: LƯU NHÂN SỰ HỖ TRỢ ĐÃ CHỌN (MỚI) ---
+                    if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
+                    {
+                        foreach (var cvId in SelectedCongViecIds)
+                        {
+                            var congViec = await _context.CongViecHrs.FindAsync(cvId);
+                            if (congViec != null)
+                            {
+                                var ctHoTro = new HrCtNguoiHoTro
+                                {
+                                    IdFormHr = form.Id,
+                                    IdHrNguoiHoTro = congViec.IdHrNguoiHoTro,
+                                    Stt = 1
+                                };
+                                _context.HrCtNguoiHoTros.Add(ctHoTro);
+                            }
+                        }
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // --- BƯỚC 3: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN TỪ DANH MỤC ---
                     var loaiDon = await _context.DmLoaiDons
                         .FirstOrDefaultAsync(x => x.MaLoaiDon == form.IdForm && x.TrangThai == true);
 
@@ -1348,7 +1519,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                                 ThuTuXacNhan = item.CapDoXacNhan,
                                 MaNguoiXacNhan = item.IdnguoiXacNhanNavigation?.MaNv,
                                 TenNguoiXacNhan = item.IdnguoiXacNhanNavigation?.HoTen,
-                                TrangThaiXacNhan = 0, // Chờ duyệt
+                                TrangThaiXacNhan = 0,
                                 ThoiGianXacNhan = null,
                                 GhiChu = null
                             };
@@ -1357,13 +1528,12 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 3: XỬ LÝ FILE/ẢNH TRÊN FILESERVER ---
+                    // --- BƯỚC 4: XỬ LÝ FILE/ẢNH TRÊN FILESERVER ---
                     if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
 
                     string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
                     string timeStamp = DateTime.Now.ToString("ddMMyy_HHmm");
 
-                    // A. Xử lý File đính kèm tài liệu (UploadFile)
                     var uploadFile = Request.Form.Files["UploadFile"];
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
@@ -1378,12 +1548,10 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         form.FileDinhKem = fileName;
                     }
 
-                    // B. Xử lý Chi tiết đơn (Khớp với Model của bạn)
                     if (chiTiet != null)
                     {
                         chiTiet.IdFormHr = form.Id;
 
-                        // Xử lý Ảnh minh chứng (Anh)
                         var anhFile = Request.Form.Files["Anh"];
                         if (anhFile != null && anhFile.Length > 0)
                         {
@@ -1400,12 +1568,12 @@ namespace E_Form_Best.Areas.HRform.Controllers
                             chiTiet.DuongDanAnh = imgName;
                         }
 
-                        chiTiet.Anh = null; // Triệt để không lưu dữ liệu nhị phân byte[] vào Database
+                        chiTiet.Anh = null;
                         _context.HrHoTroTienDienThoai7s.Add(chiTiet);
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 4: LƯU LỊCH SỬ THAO TÁC (LichSuFormHr) ---
+                    // --- BƯỚC 5: LƯU LỊCH SỬ THAO TÁC (LichSuFormHr) ---
                     string moTaLichSu = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn hỗ trợ tiền điện thoại.";
                     if (chiTiet != null)
                     {
@@ -1423,7 +1591,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.LichSuFormHrs.Add(lichSu);
                     await _context.SaveChangesAsync();
 
-                    // Cập nhật lại FormHr để lưu FileDinhKem
                     _context.Entry(form).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                     await _context.SaveChangesAsync();
 
@@ -1465,6 +1632,14 @@ namespace E_Form_Best.Areas.HRform.Controllers
             var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
+            // --- MỚI: Lấy danh sách nhân sự hỗ trợ hiển thị ra View ---
+            ViewBag.ListNguoiHoTro = _context.HrNguoiHoTros
+                // 1. Chỉ Include những công việc thỏa mãn điều kiện tên
+                .Include(x => x.CongViecHrs.Where(cv => cv.Ten == "Đăng ký đổi ca làm việc"))
+                // 2. Chỉ lấy những người có ít nhất 1 công việc thỏa mãn
+                .Where(x => x.CongViecHrs.Any(cv => cv.Ten == "Đăng ký đổi ca làm việc"))
+                .ToList();
+
             // 3. Khởi tạo Model hiển thị lên View
             var model = new FormHr
             {
@@ -1488,7 +1663,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         /// Xử lý gửi đơn đổi ca làm việc, lưu file lên Fileserver và ghi lịch sử
         /// </summary>
         [HttpPost("/FormHR/DoiCaLam")]
-        public async Task<IActionResult> DoiCaLam(FormHr form, [FromForm] HrDoiCaLam8 chiTiet)
+        public async Task<IActionResult> DoiCaLam(FormHr form, [FromForm] HrDoiCaLam8 chiTiet, int[] SelectedCongViecIds)
         {
             // 1. Kiểm tra xác thực
             if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
@@ -1528,7 +1703,27 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.FormHrs.Add(form);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 2: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN TỪ DANH MỤC ---
+                    // --- BƯỚC 2: LƯU NHÂN SỰ HỖ TRỢ ĐÃ CHỌN (MỚI) ---
+                    if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
+                    {
+                        foreach (var cvId in SelectedCongViecIds)
+                        {
+                            var congViec = await _context.CongViecHrs.FindAsync(cvId);
+                            if (congViec != null)
+                            {
+                                var ctHoTro = new HrCtNguoiHoTro
+                                {
+                                    IdFormHr = form.Id,
+                                    IdHrNguoiHoTro = congViec.IdHrNguoiHoTro,
+                                    Stt = 1
+                                };
+                                _context.HrCtNguoiHoTros.Add(ctHoTro);
+                            }
+                        }
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // --- BƯỚC 3: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN TỪ DANH MỤC ---
                     var loaiDon = await _context.DmLoaiDons
                         .FirstOrDefaultAsync(x => x.MaLoaiDon == form.IdForm && x.TrangThai == true);
 
@@ -1557,7 +1752,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 3: LƯU LỊCH SỬ THAO TÁC ---
+                    // --- BƯỚC 4: LƯU LỊCH SỬ THAO TÁC ---
                     string chiTietDoiCa = "";
                     if (chiTiet != null)
                     {
@@ -1577,7 +1772,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.LichSuFormHrs.Add(lichSu);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 4: XỬ LÝ FILE/ẢNH TRÊN FILESERVER ---
+                    // --- BƯỚC 5: XỬ LÝ FILE/ẢNH TRÊN FILESERVER ---
                     if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
 
                     string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
@@ -1624,7 +1819,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    // Cập nhật lại FormHr để lưu tên FileDinhKem từ Bước 4
+                    // Cập nhật lại FormHr để lưu tên FileDinhKem
                     _context.Entry(form).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                     await _context.SaveChangesAsync();
 
@@ -1661,6 +1856,12 @@ namespace E_Form_Best.Areas.HRform.Controllers
             var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
+            // --- MỚI: Lấy danh sách nhân sự hỗ trợ hiển thị ra View ---
+            ViewBag.ListNguoiHoTro = _context.HrNguoiHoTros
+                .Include(x => x.CongViecHrs.Where(cv => cv.Ten == "Đăng ký hỗ trợ công tác"))
+                .Where(x => x.CongViecHrs.Any(cv => cv.Ten == "Đăng ký hỗ trợ công tác"))
+                .ToList();
+
             var model = new FormHr
             {
                 TenNguoiNv = userName,
@@ -1680,7 +1881,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
 
         [HttpPost("/FormHR/DonHoTroCongTac")]
-        public async Task<IActionResult> DonHoTroCongTac(FormHr form, [FromForm] HrDonHoTroCongTac9 hoTro)
+        public async Task<IActionResult> DonHoTroCongTac(FormHr form, [FromForm] HrDonHoTroCongTac9 hoTro, int[] SelectedCongViecIds)
         {
             // 1. Kiểm tra xác thực
             if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
@@ -1695,7 +1896,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             if (string.IsNullOrEmpty(userIdString)) return Redirect("/DonXetDuyet/DangNhap");
             int userId = int.Parse(userIdString);
 
-            // Đường dẫn FileServer (Giữ nguyên cấu trúc của bạn)
+            // Đường dẫn FileServer
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonHR";
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -1713,14 +1914,34 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     form.SoNhanVien = soNhanVien;
                     form.TenCongTy = tenCongTy;
                     form.TrangThai = "ChoDuyet";
-                    form.IdForm = "HR_DonHoTroCongTac_9"; // Mã định danh loại đơn
+                    form.IdForm = "HR_DonHoTroCongTac_9";
                     form.TenForm = "Đơn hỗ trợ công tác";
                     form.Danhmuc = "ĐƠN HỖ TRỢ CÔNG TÁC";
 
                     _context.FormHrs.Add(form);
-                    await _context.SaveChangesAsync(); // Lưu để lấy form.Id
+                    await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 2: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN TỪ DANH MỤC ---
+                    // --- BƯỚC 2: LƯU NHÂN SỰ HỖ TRỢ ĐÃ CHỌN (MỚI) ---
+                    if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
+                    {
+                        foreach (var cvId in SelectedCongViecIds)
+                        {
+                            var congViec = await _context.CongViecHrs.FindAsync(cvId);
+                            if (congViec != null)
+                            {
+                                var ctHoTro = new HrCtNguoiHoTro
+                                {
+                                    IdFormHr = form.Id,
+                                    IdHrNguoiHoTro = congViec.IdHrNguoiHoTro,
+                                    Stt = 1
+                                };
+                                _context.HrCtNguoiHoTros.Add(ctHoTro);
+                            }
+                        }
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // --- BƯỚC 3: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN TỪ DANH MỤC ---
                     var loaiDon = await _context.DmLoaiDons
                         .FirstOrDefaultAsync(x => x.MaLoaiDon == form.IdForm && x.TrangThai == true);
 
@@ -1737,19 +1958,18 @@ namespace E_Form_Best.Areas.HRform.Controllers
                             {
                                 IdFormHr = form.Id,
                                 IdnguoiXacNhan = item.IdnguoiXacNhan,
-                                ThuTuXacNhan = item.CapDoXacNhan, // Cấp độ duyệt
+                                ThuTuXacNhan = item.CapDoXacNhan,
                                 MaNguoiXacNhan = item.IdnguoiXacNhanNavigation?.MaNv,
                                 TenNguoiXacNhan = item.IdnguoiXacNhanNavigation?.HoTen,
-                                TrangThaiXacNhan = 0, // Mặc định: Chờ duyệt
-                                ThoiGianXacNhan = null,
-                                GhiChu = null
+                                TrangThaiXacNhan = 0,
+                                ThoiGianXacNhan = null
                             };
                             _context.HrNguoiXacNhans.Add(hrXacNhan);
                         }
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 3: XỬ LÝ FILE VÀ BẢNG CHI TIẾT (HrDonHoTroCongTac9) ---
+                    // --- BƯỚC 4: XỬ LÝ FILE VÀ BẢNG CHI TIẾT (HrDonHoTroCongTac9) ---
                     if (hoTro != null)
                     {
                         hoTro.IdFormHr = form.Id;
@@ -1774,7 +1994,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                             form.FileDinhKem = fileName;
                         }
 
-                        // B. Ảnh minh chứng (Anh) - Xử lý dán/tải lên
+                        // B. Ảnh minh chứng (Anh)
                         var anhFile = Request.Form.Files["Anh"];
                         if (anhFile != null && anhFile.Length > 0)
                         {
@@ -1785,16 +2005,15 @@ namespace E_Form_Best.Areas.HRform.Controllers
                             {
                                 await anhFile.CopyToAsync(fs);
                             }
-                            // Lưu tên file vào DB, không lưu dữ liệu nhị phân để nhẹ database
                             hoTro.DuongDanAnh = imgName;
                         }
 
-                        hoTro.Anh = null; // Triệt để không lưu byte[] vào DB
+                        hoTro.Anh = null;
                         _context.HrDonHoTroCongTac9s.Add(hoTro);
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 4: LƯU LỊCH SỬ THAO TÁC (LichSuFormHr) ---
+                    // --- BƯỚC 5: LƯU LỊCH SỬ THAO TÁC (LichSuFormHr) ---
                     string chiTietHoTro = "";
                     if (hoTro != null)
                     {
@@ -1820,7 +2039,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.LichSuFormHrs.Add(lichSu);
                     await _context.SaveChangesAsync();
 
-                    // Cập nhật lại FormHr để lưu FileDinhKem từ Bước 3
                     _context.Entry(form).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                     await _context.SaveChangesAsync();
 
@@ -2647,15 +2865,27 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 return Json(new { success = false, message = "Bạn không có quyền phê duyệt đơn này." });
             }
 
-            // 3. Tìm đơn HR và Include thông tin cần thiết
+            // 3. Tìm đơn HR và Include thông tin cần thiết (Thêm Include HrNguoiXacNhans)
             var form = await _context.FormHrs
                 .Include(f => f.HrCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdHrNguoiHoTroNavigation)
-                .Include(f => f.HrDonTiepKhac5s) // Load chi tiết tiếp khách
+                .Include(f => f.HrDonTiepKhac5s)
+                .Include(f => f.HrNguoiXacNhans) // Quan trọng: Load danh sách người xác nhận
                 .FirstOrDefaultAsync(f => f.Id == request.Id);
 
             if (form == null)
                 return Json(new { success = false, message = "Không tìm thấy đơn HR." });
+
+            // --- KIỂM TRA TRẠNG THÁI XÁC NHẬN CỦA CÁC CẤP ---
+            // Nếu có người xác nhận mà trạng thái khác 1 thì không cho hoàn tất
+            if (form.HrNguoiXacNhans.Any(x => x.TrangThaiXacNhan != 1))
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Đơn này chưa được tất cả các cấp xác nhận (Trạng thái xác nhận phải là 1). Không thể hoàn tất!"
+                });
+            }
 
             // --- BIẾN TẠM ĐỂ XỬ LÝ CHI TIẾT ĐƠN TIẾP KHÁCH ---
             HrDonTiepKhac5 chiTietTiepKhac = null;
@@ -2669,7 +2899,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     chiTietTiepKhac.ThoiGianKetThuc.HasValue &&
                     !string.IsNullOrEmpty(chiTietTiepKhac.TenPhongHop))
                 {
-                    // Lấy danh sách các đơn đang ở trạng thái "on" của cùng phòng đó
                     var danhSachDangOn = await _context.HrDonTiepKhac5s
                         .Where(x => x.Id != chiTietTiepKhac.Id
                                     && x.TenPhongHop == chiTietTiepKhac.TenPhongHop
@@ -2680,14 +2909,13 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
                     foreach (var item in danhSachDangOn)
                     {
-                        // Công thức tính khoảng giao nhau: Min(End) - Max(Start)
                         var startMax = chiTietTiepKhac.ThoiGianBatDau > item.ThoiGianBatDau ? chiTietTiepKhac.ThoiGianBatDau.Value : item.ThoiGianBatDau.Value;
                         var endMin = chiTietTiepKhac.ThoiGianKetThuc < item.ThoiGianKetThuc ? chiTietTiepKhac.ThoiGianKetThuc.Value : item.ThoiGianKetThuc.Value;
 
                         if (startMax < endMin)
                         {
                             double overlapMinutes = (endMin - startMax).TotalMinutes;
-                            if (overlapMinutes > 5) // Chỉ chặn nếu trùng quá 5 phút
+                            if (overlapMinutes > 5)
                             {
                                 biTrungTren5Phut = true;
                                 break;
@@ -2700,7 +2928,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         return Json(new { success = false, message = $"Phòng [{chiTietTiepKhac.TenPhongHop}] đã có lịch 'on' trùng quá 5 phút. Vui lòng kiểm tra lại!" });
                     }
 
-                    // Nếu đạt điều kiện, chuẩn bị đổi trạng thái sang "on"
                     chiTietTiepKhac.TrangThaiPhong = "on";
                 }
             }
@@ -2734,19 +2961,16 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 {
                     DateTime now = DateTime.Now;
 
-                    // Cập nhật thông tin Form chính
                     form.IdAdmin = userId;
                     form.TenAdmin = userName;
                     form.TimeAdmin = now;
                     form.TrangThai = "HoanTat";
 
-                    // Cập nhật chi tiết phòng họp (nếu là đơn tiếp khách)
                     if (chiTietTiepKhac != null)
                     {
                         _context.HrDonTiepKhac5s.Update(chiTietTiepKhac);
                     }
 
-                    // Lưu lịch sử thao tác
                     var lichSu = new LichSuFormHr
                     {
                         IdFormHr = form.Id,

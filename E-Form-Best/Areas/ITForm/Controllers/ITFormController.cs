@@ -2628,7 +2628,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
-
         #region BÁO CÁO THỐNG KÊ FORM IT
 
         // 1. Action này chỉ trả về giao diện (View)
@@ -2696,7 +2695,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return Json(filteredData);
         }
         #endregion
-
 
         #region LỊCH SỬ VÀ THÔNG BÁO FORM IT (Phân quyền mới & TenCongTy)
 

@@ -12,7 +12,7 @@
     var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
-    // Toolkit Style: Tông màu Amber #f59e0b
+    // Toolkit Style: Tông màu Amber (Vàng Cam)
     string primaryColor = "#f59e0b";
     string darkAmber = "#92400e";
     string lightAmber = "#fffbeb";
@@ -22,21 +22,57 @@
     string pasteZoneStyle = $"width: 100%; border: 2.5px dashed {primaryColor}; height: 180px; border-radius: 15px; display: flex; align-items: center; justify-content: center; background: {lightAmber}; color: {darkAmber}; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 600; transition: 0.3s; margin-top: 10px; position: relative; outline: none;";
 }
 
+<style>
+    /* CSS Lớp phủ bảo trì */
+    .maintenance-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 30px;
+    }
+
+    .maintenance-content {
+        background: white;
+        padding: 40px;
+        border-radius: 25px;
+        box-shadow: 0 15px 35px rgba(146, 64, 14, 0.2);
+        border: 3px solid @primaryColor;
+        text-align: center;
+        max-width: 80%;
+    }
+</style>
+
 <div style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); padding: 40px 15px; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
 
     <form id="hrForm" method="post" enctype="multipart/form-data" action="/FormHR/DoiCaLam"
           style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 30px; box-shadow: 0 20px 50px rgba(146, 64, 14, 0.1); overflow: hidden; border: 1px solid rgba(255,255,255,0.8); position: relative;">
 
-        @* --- LỚP PHỦ BẢO TRÌ --- *@
-        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(3px); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: 30px;">
-            <div style="background: white; padding: 30px 50px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 2px solid @primaryColor;">
-                <i class="fa fa-tools" style="font-size: 50px; color: @primaryColor; margin-bottom: 20px;"></i>
-                <h2 style="color: @darkAmber; margin: 0; font-weight: 900; text-transform: uppercase;">Hệ thống đang bảo trì</h2>
-                <p style="color: #666; font-weight: 600; margin-top: 10px;">Chức năng "Đăng ký Đổi ca" tạm thời ngưng tiếp nhận đơn.<br>Vui lòng quay lại sau.</p>
+        @Html.AntiForgeryToken()
+
+        @* --- LỚP PHỦ THÔNG BÁO BẢO TRÌ --- *@
+        <div class="maintenance-overlay">
+            <div class="maintenance-content">
+                <div style="font-size: 60px; margin-bottom: 20px;">🚧</div>
+                <h2 style="color: @darkAmber; margin: 0; font-size: 26px; font-weight: 900; text-transform: uppercase;">Thông báo bảo trì</h2>
+                <div style="width: 50px; height: 4px; background: @primaryColor; margin: 15px auto;"></div>
+                <p style="color: @darkAmber; font-size: 16px; font-weight: 600; line-height: 1.6;">
+                    Hệ thống Đăng ký Đổi ca đang được bảo trì định kỳ.<br />
+                    Vui lòng quay lại sau ít phút hoặc liên hệ Nhân sự.
+                </p>
+                <button type="button" onclick="window.history.back()"
+                        style="margin-top: 25px; padding: 12px 30px; background: @darkAmber; color: #fff; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.3s;">
+                    QUAY LẠI
+                </button>
             </div>
         </div>
-
-        @Html.AntiForgeryToken()
 
         @* --- HEADER --- *@
         <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 40px; color: #ffffff; text-align: center; position: relative;">
@@ -81,7 +117,7 @@
                 </div>
             </div>
 
-            @* --- PHẦN 2: CHI TIẾT ĐỔI CA (HrDoiCaLam8) --- *@
+            @* --- PHẦN 2: CHI TIẾT ĐỔI CA --- *@
             <div style="background: #fffdf7; padding: 25px; border-radius: 20px; border: 1.5px solid #fde68a; margin-bottom: 30px; box-shadow: inset 0 2px 4px rgba(245, 158, 11, 0.05);">
                 <h3 style="color: @darkAmber; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
                     <span style="background: @darkAmber; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">2</span>
@@ -130,12 +166,51 @@
                 </div>
             </div>
 
-            @* --- PHẦN 3: CAM KẾT --- *@
+            @* --- PHẦN 3: CHỌN LOẠI YÊU CẦU HỖ TRỢ --- *@
+            <div style="background: #ffffff; padding: 25px; border-radius: 20px; border: 1.5px solid #fde68a; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.05);">
+                <h3 style="color: @darkAmber; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: @primaryColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">3</span>
+                    Chọn loại yêu cầu hỗ trợ
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px;">
+                    @if (ViewBag.ListNguoiHoTro != null)
+                    {
+                        foreach (var item in (List<E_Form_Best.Models.ITForm.HrNguoiHoTro>)ViewBag.ListNguoiHoTro)
+                        {
+                            foreach (var cv in item.CongViecHrs)
+                            {
+                                <label style="display: flex; align-items: center; gap: 12px; padding: 15px; border: 1px solid #fef3c7; border-radius: 12px; cursor: pointer; transition: 0.2s; background: #fffdf7;"
+                                       onmouseover="this.style.borderColor='@primaryColor'; this.style.background='#fffbeb'; this.style.transform='translateY(-2px)';"
+                                       onmouseout="this.style.borderColor='#fef3c7'; this.style.background='#fffdf7'; this.style.transform='translateY(0)';"
+                                       title="Phụ trách bởi: @item.Ten">
+
+                                    <input type="checkbox" name="SelectedCongViecIds" value="@cv.Id" style="width: 20px; height: 20px; accent-color: @primaryColor;">
+
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 700; color: @darkAmber; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                                            <span style="font-size: 16px;">🔄</span> @cv.Ten
+                                        </div>
+                                        <div style="font-size: 11px; color: @darkAmber; opacity: 0.7; margin-top: 2px;">
+                                            Tiếp nhận: @item.Ten
+                                        </div>
+                                    </div>
+                                </label>
+                            }
+                        }
+                    }
+                    else
+                    {
+                        <p style="font-size: 12px; color: @darkAmber; font-style: italic; grid-column: 1/-1;">Đang tải danh sách hỗ trợ...</p>
+                    }
+                </div>
+            </div>
+
+            @* --- PHẦN 4: CAM KẾT --- *@
             <div style="background: @lightAmber; border: 1.5px solid @primaryColor; border-radius: 20px; padding: 25px; margin-bottom: 30px;">
                 <label id="containerCamKet" style="cursor: pointer; display: flex; align-items: flex-start; gap: 12px; background: #ffffff; padding: 15px; border-radius: 12px; border: 2px solid #fde68a; transition: 0.3s;">
                     <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; margin-top: 2px; accent-color: @primaryColor; cursor: pointer;">
                     <span style="font-size: 13px; font-weight: 800; color: @darkAmber; line-height: 1.5;">
-                        Tôi xác nhận việc đổi ca này đã được sự thống nhất của các bên và cam kết đi làm đúng giờ.
+                        Tôi xác nhận việc đổi ca này đã được sự thống nhất của các bên và cam kết đi làm đúng giờ giấc theo ca đã đăng ký.
                     </span>
                 </label>
             </div>
@@ -154,7 +229,6 @@
 <script>
     // Logic Paste ảnh từ Clipboard
     function handlePaste(e, inputId, zoneId) {
-        // Hàm này sẽ không chạy vì bị lớp phủ chặn tương tác
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         let blob = null;
         for (let i = 0; i < items.length; i++) {
@@ -168,7 +242,7 @@
             reader.onload = function (event) {
                 const zone = document.getElementById(zoneId);
                 zone.innerHTML = `<img src="${event.target.result}" style="width:100%; height:100%; object-fit:contain; border-radius:10px;">`;
-                zone.style.border = "2px solid #f59e0b";
+                zone.style.border = "2px solid @primaryColor";
                 zone.style.background = "#ffffff";
 
                 const fileInput = document.getElementById(inputId);
@@ -183,12 +257,41 @@
     const zoneEl = document.getElementById("paste_Anh");
     if (zoneEl) {
         zoneEl.addEventListener('paste', (e) => handlePaste(e, "Anh", "paste_Anh"));
+        zoneEl.onclick = () => zoneEl.focus();
     }
 
-    // Kiểm tra dữ liệu
+    // Kiểm tra dữ liệu và Gửi đơn
     function xuLyLuuDon() {
-        // Thêm alert chặn nếu ai đó cố tình gọi hàm qua console
-        alert("Hệ thống đang bảo trì, vui lòng không thực hiện thao tác này!");
-        return false;
+        const ngayDoi = document.querySelector('input[name="NgayCanDoi"]').value;
+        const caGoc = document.querySelector('input[name="CaGoc"]').value.trim();
+        const caMoi = document.querySelector('input[name="CaMuonDoi"]').value.trim();
+        const lyDo = document.querySelector('textarea[name="LyDoDoiCa"]').value.trim();
+        const chk = document.getElementById('chkCamKet');
+        const selectedHoTro = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
+
+        if (!ngayDoi) {
+            alert("⚠️ Vui lòng chọn ngày cần đổi ca!");
+            return;
+        }
+        if (!caGoc || !caMoi) {
+            alert("⚠️ Vui lòng nhập thông tin ca làm việc!");
+            return;
+        }
+        if (lyDo.length < 5) {
+            alert("⚠️ Vui lòng nhập lý do đổi ca cụ thể!");
+            return;
+        }
+        if (selectedHoTro.length === 0) {
+            alert("⚠️ Vui lòng chọn ít nhất một loại yêu cầu hỗ trợ!");
+            return;
+        }
+        if (!chk.checked) {
+            alert("⚠️ Bạn chưa tích chọn cam kết!");
+            return;
+        }
+
+        if (confirm("Xác nhận gửi đơn đăng ký đổi ca làm việc?")) {
+            document.getElementById("hrForm").submit();
+        }
     }
 </script>
