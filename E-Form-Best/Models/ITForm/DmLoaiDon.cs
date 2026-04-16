@@ -28,5 +28,8 @@ public partial class DmLoaiDon
     public bool? TrangThai { get; set; }
 
     [InverseProperty("IdloaiDonNavigation")]
+    public virtual ICollection<DmNguoiDuyetLoaiDonBoPhan> DmNguoiDuyetLoaiDonBoPhans { get; set; } = new List<DmNguoiDuyetLoaiDonBoPhan>();
+
+    [InverseProperty("IdloaiDonNavigation")]
     public virtual ICollection<DmNguoiXacNhanLoaiDon> DmNguoiXacNhanLoaiDons { get; set; } = new List<DmNguoiXacNhanLoaiDon>();
 }

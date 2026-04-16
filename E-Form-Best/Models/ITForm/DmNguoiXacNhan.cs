@@ -33,6 +33,9 @@ public partial class DmNguoiXacNhan
     public bool? TrangThai { get; set; }
 
     [InverseProperty("IdnguoiXacNhanNavigation")]
+    public virtual ICollection<DmNguoiDuyetLoaiDonBoPhan> DmNguoiDuyetLoaiDonBoPhans { get; set; } = new List<DmNguoiDuyetLoaiDonBoPhan>();
+
+    [InverseProperty("IdnguoiXacNhanNavigation")]
     public virtual ICollection<DmNguoiXacNhanLoaiDon> DmNguoiXacNhanLoaiDons { get; set; } = new List<DmNguoiXacNhanLoaiDon>();
 
     [InverseProperty("IdnguoiXacNhanNavigation")]

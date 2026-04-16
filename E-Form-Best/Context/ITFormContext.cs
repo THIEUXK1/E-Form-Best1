@@ -30,7 +30,13 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<DanhGiaFormIt> DanhGiaFormIts { get; set; }
 
+    public virtual DbSet<DmBoPhan> DmBoPhans { get; set; }
+
+    public virtual DbSet<DmCongTy> DmCongTies { get; set; }
+
     public virtual DbSet<DmLoaiDon> DmLoaiDons { get; set; }
+
+    public virtual DbSet<DmNguoiDuyetLoaiDonBoPhan> DmNguoiDuyetLoaiDonBoPhans { get; set; }
 
     public virtual DbSet<DmNguoiXacNhan> DmNguoiXacNhans { get; set; }
 
@@ -63,6 +69,8 @@ public partial class ITFormContext : DbContext
     public virtual DbSet<HrNguoiXacNhan> HrNguoiXacNhans { get; set; }
 
     public virtual DbSet<HrNhaThauQuaCong6> HrNhaThauQuaCong6s { get; set; }
+
+    public virtual DbSet<HrQuanLyDuyetB2> HrQuanLyDuyetB2s { get; set; }
 
     public virtual DbSet<HrXinRaNgoai1> HrXinRaNgoai1s { get; set; }
 
@@ -152,12 +160,44 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.DanhGiaFormIts).HasConstraintName("FK_DanhGia_FormIT");
         });
 
+        modelBuilder.Entity<DmBoPhan>(entity =>
+        {
+            entity.HasKey(e => e.IdboPhan).HasName("PK__DM_BoPha__0E503FF59DA33DC2");
+
+            entity.Property(e => e.NgayTao).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.TrangThai).HasDefaultValue(true);
+        });
+
+        modelBuilder.Entity<DmCongTy>(entity =>
+        {
+            entity.HasKey(e => e.IdcongTy).HasName("PK__DM_CongT__3E616C9013DB38FC");
+
+            entity.Property(e => e.NgayTao).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.TrangThai).HasDefaultValue(true);
+        });
+
         modelBuilder.Entity<DmLoaiDon>(entity =>
         {
             entity.HasKey(e => e.IdloaiDon).HasName("PK__DM_LoaiD__712924D0B1F6E7F1");
 
             entity.Property(e => e.NgayTao).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.TrangThai).HasDefaultValue(true);
+        });
+
+        modelBuilder.Entity<DmNguoiDuyetLoaiDonBoPhan>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__DM_Nguoi__3214EC27AFBA2FD0");
+
+            entity.Property(e => e.NgayTao).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.TrangThai).HasDefaultValue(true);
+
+            entity.HasOne(d => d.IdboPhanNavigation).WithMany(p => p.DmNguoiDuyetLoaiDonBoPhans).HasConstraintName("FK_NguoiDuyet_BoPhan");
+
+            entity.HasOne(d => d.IdcongTyNavigation).WithMany(p => p.DmNguoiDuyetLoaiDonBoPhans).HasConstraintName("FK_NguoiDuyet_CongTy");
+
+            entity.HasOne(d => d.IdloaiDonNavigation).WithMany(p => p.DmNguoiDuyetLoaiDonBoPhans).HasConstraintName("FK_NguoiDuyet_LoaiDon");
+
+            entity.HasOne(d => d.IdnguoiXacNhanNavigation).WithMany(p => p.DmNguoiDuyetLoaiDonBoPhans).HasConstraintName("FK_NguoiDuyet_NguoiXacNhan");
         });
 
         modelBuilder.Entity<DmNguoiXacNhan>(entity =>
@@ -292,6 +332,11 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrNhaThauQuaCong6s)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_CT_NhaThau_FormHR");
+        });
+
+        modelBuilder.Entity<HrQuanLyDuyetB2>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__HR_QuanL__3213E83FD6554556");
         });
 
         modelBuilder.Entity<HrXinRaNgoai1>(entity =>

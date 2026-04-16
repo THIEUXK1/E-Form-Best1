@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@ViewData["Title"] - Hệ thống quản trị</title>
+    <title>@ViewData["Title"] - Hệ thống quản trị Best Pacific</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -68,6 +68,14 @@
 
         main { flex-grow: 1; display: flex; flex-direction: column; min-width: 0; }
         header { background: white; padding: 15px 30px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 999; }
+        
+        /* Select2 Custom Style để khớp với Inter font */
+        .select2-container--default .select2-selection--single {
+            height: 38px;
+            border: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -102,6 +110,11 @@
                 <i class="fas fa-user-tie" style="width: 20px; color: #f6ad55;"></i>
                 <span>Quản lý Giám đốc</span>
             </a>
+            
+            <a href="/HR_QuanLyDuyetB2" class="nav-link-custom @(Context.Request.Path.Value == "/HR_QuanLyDuyetB2" ? "active" : "")">
+                <i class="fas fa-project-diagram" style="width: 20px; color: #63b3ed;"></i>
+                <span>Quản lý Duyệt Bước 2</span>
+            </a>
 
             <div class="nav-section-title">Hỗ trợ E-Form</div>
             <a href="/QLtaiKhoan/NguoiHoTro" class="nav-link-custom @(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTro" ? "active" : "")">
@@ -113,10 +126,11 @@
                 <i class="fas fa-user-tie" style="width: 20px;"></i>
                 <span>Người hỗ trợ HR</span>
             </a>
+
             <a href="/QLPhongHopHR" class="nav-link-custom @(Context.Request.Path.Value == "/QLPhongHopHR" ? "active" : "")">
-    <i class="fas fa-door-open" style="width: 20px; color: #4fd1c5;"></i>
-    <span>Quản lý Phòng họp HR</span>
-</a>
+                <i class="fas fa-door-open" style="width: 20px; color: #4fd1c5;"></i>
+                <span>Quản lý Phòng họp HR</span>
+            </a>
         </nav>
 
         <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
