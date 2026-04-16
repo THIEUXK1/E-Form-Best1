@@ -1,0 +1,569 @@
+﻿@{
+    ViewData["Title"] = "Quản lý Quy trình duyệt Bước 2";
+    Layout = "~/Areas/AdminForm/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .nav-tabs .nav-link { color: #495057; font-weight: 500; }
+    .nav-tabs .nav-link.active { color: #0d6efd; border-bottom: 3px solid #0d6efd; }
+    .table thead th { vertical-align: middle; text-align: center; background-color: #f8f9fa; }
+    .select2-container { z-index: 1060 !important; }
+    .badge { font-weight: 500; padding: 0.5em 0.8em; }
+    .tab-content { border: 1px solid #dee2e6; border-top: none; }
+</style>
+
+<div class="container-fluid mt-3">
+    <ul class="nav nav-tabs" id="hrManageTab" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="quytrinh-tab" data-bs-toggle="tab" data-bs-target="#tab-quytrinh" type="button" role="tab">
+                <i class="fa fa-project-diagram me-1"></i> Quy trình duyệt (Chính)
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="congty-tab" data-bs-toggle="tab" data-bs-target="#tab-congty" type="button" role="tab">
+                <i class="fa fa-building me-1"></i> Công ty
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="bophan-tab" data-bs-toggle="tab" data-bs-target="#tab-bophan" type="button" role="tab">
+                <i class="fa fa-sitemap me-1"></i> Bộ phận
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="loaidon-tab" data-bs-toggle="tab" data-bs-target="#tab-loaidon" type="button" role="tab">
+                <i class="fa fa-file-alt me-1"></i> Loại đơn
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content p-3 bg-white shadow-sm" id="hrManageTabContent">
+        
+        <div class="tab-pane fade show active" id="tab-quytrinh" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 text-primary fw-bold">Cấu hình luồng duyệt Bước 2</h5>
+                <div>
+                    <button class="btn btn-outline-warning btn-sm me-2" onclick="syncBoPhan()">
+                        <i class="fa fa-sync me-1"></i> Đồng bộ Bộ phận
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
+                        <i class="fa fa-plus me-1"></i> Thêm cấu hình
+                    </button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table id="tableMain" class="table table-bordered table-hover w-100">
+                    <thead>
+                        <tr>
+                            <th>Công ty</th>
+                            <th>Loại đơn</th>
+                            <th>Bộ phận áp dụng</th>
+                            <th>Thứ tự (STT)</th>
+                            <th>Người duyệt (B2)</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-congty" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 text-success fw-bold">Danh sách Công ty</h5>
+                <button class="btn btn-success btn-sm" onclick="openModalCongTy()">
+                    <i class="fa fa-plus me-1"></i> Thêm Công ty
+                </button>
+            </div>
+            <table id="tableCongTy" class="table table-bordered table-hover w-100">
+                <thead>
+                    <tr>
+                        <th style="width: 50px">ID</th>
+                        <th>Tên Công ty</th>
+                        <th>Ghi chú</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <div class="tab-pane fade" id="tab-bophan" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 text-info fw-bold">Danh mục Bộ phận (Dữ liệu hệ thống)</h5>
+            </div>
+            <table id="tableBoPhan" class="table table-bordered table-hover w-100">
+                <thead>
+                    <tr>
+                        <th style="width: 50px">ID Gốc</th>
+                        <th>Tên Bộ phận</th>
+                        <th>Ghi chú</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <div class="tab-pane fade" id="tab-loaidon" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 text-secondary fw-bold">Danh mục Loại đơn</h5>
+                <button class="btn btn-secondary btn-sm" onclick="openModalLoaiDon()">
+                    <i class="fa fa-plus me-1"></i> Thêm Loại đơn
+                </button>
+            </div>
+            <table id="tableLoaiDon" class="table table-bordered table-hover w-100">
+                <thead>
+                    <tr>
+                        <th>Mã đơn</th>
+                        <th>Tên Loại đơn</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalAction" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalLabel">Thông tin cấu hình</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formAction">
+                <div class="modal-body">
+                    <input type="hidden" id="Id" value="0" />
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Công ty</label>
+                            <select class="form-select select2-modal" id="IdcongTy" required></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Loại đơn</label>
+                            <select class="form-select select2-modal" id="IdloaiDon" required></select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Bộ phận</label>
+                            <select class="form-select select2-modal" id="IdboPhan">
+                                <option value="">-- Áp dụng cho tất cả bộ phận --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Người duyệt Bước 2</label>
+                            <select class="form-select select2-modal" id="IdnguoiXacNhan" required>
+                                <option value="">-- Chọn nhân viên --</option>
+                                @if (ViewBag.NguoiXacNhan != null)
+                                {
+                                    foreach (var item in ViewBag.NguoiXacNhan)
+                                    {
+                                        <option value="@item.IdnguoiXacNhan">@item.MaNv - @item.HoTen</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Thứ tự duyệt (STT)</label>
+                            <input type="number" class="form-control" id="Stt" min="1" value="1" required />
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Ghi chú</label>
+                            <input type="text" class="form-control" id="GhiChu" />
+                        </div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="TrangThai" checked>
+                        <label class="form-check-label" for="TrangThai">Kích hoạt cấu hình</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu thông tin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalCongTy" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalLabelCT">Thông tin Công ty</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCongTy">
+                <div class="modal-body">
+                    <input type="hidden" id="IdcongTy_Modal" value="0" />
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tên Công ty</label>
+                        <input type="text" class="form-control" id="TenCongTy" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ghi chú</label>
+                        <input type="text" class="form-control" id="GhiChuCT" />
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="TrangThaiCT" checked>
+                        <label class="form-check-label" for="TrangThaiCT">Đang hoạt động</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-success">Lưu dữ liệu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalLoaiDon" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title" id="modalLabelLD">Thông tin Loại đơn</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formLoaiDon">
+                <div class="modal-body">
+                    <input type="hidden" id="IdloaiDon_LD" value="0" />
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mã loại đơn (DXN, DXR...)</label>
+                        <input type="text" class="form-control" id="MaLoaiDon" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tên loại đơn</label>
+                        <input type="text" class="form-control" id="TenLoaiDon" required />
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="TrangThaiLD" checked>
+                        <label class="form-check-label" for="TrangThaiLD">Hoạt động</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-dark">Lưu dữ liệu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let tableMain, tableCT, tableBP, tableLD;
+
+        $(document).ready(function () {
+            // Select2 initialization
+            $('.select2-modal').select2({
+                dropdownParent: $('.modal:visible').length ? $('.modal:visible') : null,
+                width: '100%'
+            });
+
+            // Fix Select2 inside Modals
+            $('#modalAction').on('shown.bs.modal', function () {
+                $(this).find('.select2-modal').select2({
+                    dropdownParent: $('#modalAction'),
+                    width: '100%'
+                });
+            });
+
+            initTables();
+            loadAllSelects();
+
+            // Submit Events
+            $('#formAction').on('submit', function (e) { e.preventDefault(); saveData(); });
+            $('#formCongTy').on('submit', function (e) { e.preventDefault(); saveCongTy(); });
+            $('#formLoaiDon').on('submit', function (e) { e.preventDefault(); saveLoaiDon(); });
+        });
+
+        function initTables() {
+            const commonConfig = {
+                processing: true,
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/vi.json'
+                }
+            };
+
+            // 1. Main Process Table
+            tableMain = $('#tableMain').DataTable({
+                ...commonConfig,
+                ajax: '/HR_QuanLyDuyetB2/GetData',
+                order: [[0, 'asc'], [1, 'asc'], [3, 'asc']],
+                columns: [
+                    { data: 'tenCongTy' },
+                    { data: 'tenLoaiDon' },
+                    { 
+                        data: 'tenBoPhan',
+                        render: d => d || '<i class="text-muted">Tất cả bộ phận</i>'
+                    },
+                    { data: 'stt', className: 'text-center fw-bold' },
+                    { data: 'hoTenNguoiDuyet' },
+                    {
+                        data: 'trangThai',
+                        className: 'text-center',
+                        render: d => d ? '<span class="badge bg-success">Đang dùng</span>' : '<span class="badge bg-danger">Tạm ngưng</span>'
+                    },
+                    {
+                        data: 'id',
+                        className: 'text-center',
+                        render: (data, type, row) => `
+                            <button class="btn btn-sm btn-info text-white" onclick='editItem(${JSON.stringify(row)})'><i class="fa fa-edit"></i></button>
+                            <button class="btn btn-sm btn-danger" onclick='deleteItem(${data})'><i class="fa fa-trash"></i></button>`
+                    }
+                ]
+            });
+
+            // 2. Company Table
+            tableCT = $('#tableCongTy').DataTable({
+                ...commonConfig,
+                ajax: '/HR_QuanLyDuyetB2/GetCongTy',
+                columns: [
+                    { data: 'idcongTy', className: 'text-center' },
+                    { data: 'tenCongTy', className: 'fw-bold text-primary' },
+                    { data: 'ghiChu' },
+                    {
+                        data: 'trangThai',
+                        className: 'text-center',
+                        render: d => d ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Locked</span>'
+                    },
+                    {
+                        data: 'idcongTy',
+                        className: 'text-center',
+                        render: (data, type, row) => `<button class="btn btn-sm btn-outline-success" onclick='editCT(${JSON.stringify(row)})'><i class="fa fa-edit"></i></button>`
+                    }
+                ]
+            });
+
+            // 3. Department Table
+            tableBP = $('#tableBoPhan').DataTable({
+                ...commonConfig,
+                ajax: '/HR_QuanLyDuyetB2/GetBoPhan',
+                columns: [
+                    { data: 'idboPhan', className: 'text-center' },
+                    { data: 'tenBoPhan', className: 'fw-bold' },
+                    { data: 'ghiChu' },
+                    {
+                        data: 'trangThai',
+                        className: 'text-center',
+                        render: d => d ? '<span class="badge bg-info">Active</span>' : '<span class="badge bg-danger">Locked</span>'
+                    }
+                ]
+            });
+
+            // 4. Form Type Table
+            tableLD = $('#tableLoaiDon').DataTable({
+                ...commonConfig,
+                ajax: '/HR_QuanLyDuyetB2/GetLoaiDon',
+                columns: [
+                    { data: 'maLoaiDon', className: 'fw-bold text-dark' },
+                    { data: 'tenLoaiDon' },
+                    {
+                        data: 'trangThai',
+                        className: 'text-center',
+                        render: d => d ? '<span class="badge bg-success">Hoạt động</span>' : '<span class="badge bg-danger">Khóa</span>'
+                    },
+                    {
+                        data: 'idloaiDon',
+                        className: 'text-center',
+                        render: (data, type, row) => `<button class="btn btn-sm btn-outline-secondary" onclick='editLD(${JSON.stringify(row)})'><i class="fa fa-edit"></i></button>`
+                    }
+                ]
+            });
+        }
+
+        function loadAllSelects() {
+            // Load Company Select
+            fetch('/HR_QuanLyDuyetB2/GetCongTy').then(r => r.json()).then(res => {
+                let html = res.data.filter(x => x.trangThai).map(c => `<option value="${c.idcongTy}">${c.tenCongTy}</option>`).join('');
+                $('#IdcongTy').html(html);
+            });
+            // Load Form Type Select
+            fetch('/HR_QuanLyDuyetB2/GetLoaiDon').then(r => r.json()).then(res => {
+                let html = '<option value="">-- Chọn loại đơn --</option>' + res.data.filter(x => x.trangThai).map(l => `<option value="${l.idloaiDon}">${l.tenLoaiDon}</option>`).join('');
+                $('#IdloaiDon').html(html);
+            });
+            // Load Department Select
+            fetch('/HR_QuanLyDuyetB2/GetBoPhan').then(r => r.json()).then(res => {
+                let html = '<option value="">-- Áp dụng cho tất cả bộ phận --</option>' + res.data.filter(x => x.trangThai).map(b => `<option value="${b.idboPhan}">${b.tenBoPhan}</option>`).join('');
+                $('#IdboPhan').html(html);
+            });
+        }
+
+        // --- MAIN PROCESS HANDLERS ---
+        function openCreateModal() {
+            $('#formAction')[0].reset();
+            $('#Id').val(0);
+            $('#IdcongTy, #IdloaiDon, #IdboPhan, #IdnguoiXacNhan').val(null).trigger('change');
+            $('#modalLabel').text('Thêm cấu hình duyệt Bước 2');
+            $('#modalAction').modal('show');
+        }
+
+        function editItem(row) {
+            $('#Id').val(row.id);
+            $('#IdloaiDon').val(row.idloaiDon).trigger('change');
+            $('#IdcongTy').val(row.idcongTy).trigger('change');
+            $('#IdboPhan').val(row.idboPhan || "").trigger('change');
+            $('#Stt').val(row.stt);
+            $('#IdnguoiXacNhan').val(row.idnguoiXacNhan).trigger('change');
+            $('#GhiChu').val(row.ghiChu);
+            $('#TrangThai').prop('checked', row.trangThai);
+            $('#modalLabel').text('Chỉnh sửa cấu hình duyệt');
+            $('#modalAction').modal('show');
+        }
+
+        function saveData() {
+            const model = {
+                Id: parseInt($('#Id').val()),
+                IdloaiDon: parseInt($('#IdloaiDon').val()),
+                IdcongTy: parseInt($('#IdcongTy').val()),
+                IdboPhan: $('#IdboPhan').val() ? parseInt($('#IdboPhan').val()) : null,
+                Stt: parseInt($('#Stt').val()),
+                IdnguoiXacNhan: parseInt($('#IdnguoiXacNhan').val()),
+                GhiChu: $('#GhiChu').val(),
+                TrangThai: $('#TrangThai').is(':checked')
+            };
+
+            fetch('/HR_QuanLyDuyetB2/Save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(model)
+            }).then(r => r.json()).then(res => {
+                if (res.success) {
+                    $('#modalAction').modal('hide');
+                    tableMain.ajax.reload();
+                    Swal.fire('Thành công', 'Dữ liệu đã được lưu.', 'success');
+                } else {
+                    Swal.fire('Lỗi', res.message, 'error');
+                }
+            });
+        }
+
+        function deleteItem(id) {
+            Swal.fire({
+                title: 'Xác nhận xóa?',
+                text: "Bạn không thể hoàn tác thao tác này!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/HR_QuanLyDuyetB2/Delete/${id}`, { method: 'POST' })
+                    .then(r => r.json()).then(res => {
+                        if (res.success) {
+                            tableMain.ajax.reload();
+                            Swal.fire('Đã xóa', '', 'success');
+                        }
+                    });
+                }
+            });
+        }
+
+        // --- COMPANY HANDLERS ---
+        function openModalCongTy() {
+            $('#formCongTy')[0].reset();
+            $('#IdcongTy_Modal').val(0);
+            $('#modalLabelCT').text('Thêm Công ty');
+            $('#modalCongTy').modal('show');
+        }
+
+        function editCT(row) {
+            $('#IdcongTy_Modal').val(row.idcongTy);
+            $('#TenCongTy').val(row.tenCongTy);
+            $('#GhiChuCT').val(row.ghiChu);
+            $('#TrangThaiCT').prop('checked', row.trangThai);
+            $('#modalLabelCT').text('Cập nhật Công ty');
+            $('#modalCongTy').modal('show');
+        }
+
+        function saveCongTy() {
+            const data = {
+                IdcongTy: parseInt($('#IdcongTy_Modal').val()),
+                TenCongTy: $('#TenCongTy').val(),
+                GhiChu: $('#GhiChuCT').val(),
+                TrangThai: $('#TrangThaiCT').is(':checked')
+            };
+            fetch('/HR_QuanLyDuyetB2/SaveCongTy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(r => r.json()).then(res => {
+                if (res.success) {
+                    $('#modalCongTy').modal('hide');
+                    tableCT.ajax.reload();
+                    loadAllSelects();
+                    Swal.fire('Thành công', '', 'success');
+                }
+            });
+        }
+
+        // --- FORM TYPE HANDLERS ---
+        function openModalLoaiDon() {
+            $('#formLoaiDon')[0].reset();
+            $('#IdloaiDon_LD').val(0);
+            $('#modalLabelLD').text('Thêm Loại đơn');
+            $('#modalLoaiDon').modal('show');
+        }
+
+        function editLD(row) {
+            $('#IdloaiDon_LD').val(row.idloaiDon);
+            $('#MaLoaiDon').val(row.maLoaiDon);
+            $('#TenLoaiDon').val(row.tenLoaiDon);
+            $('#TrangThaiLD').prop('checked', row.trangThai);
+            $('#modalLabelLD').text('Cập nhật Loại đơn');
+            $('#modalLoaiDon').modal('show');
+        }
+
+        function saveLoaiDon() {
+            const data = {
+                IdloaiDon: parseInt($('#IdloaiDon_LD').val()),
+                MaLoaiDon: $('#MaLoaiDon').val(),
+                TenLoaiDon: $('#TenLoaiDon').val(),
+                TrangThai: $('#TrangThaiLD').is(':checked')
+            };
+            fetch('/HR_QuanLyDuyetB2/SaveLoaiDon', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(r => r.json()).then(res => {
+                if (res.success) {
+                    $('#modalLoaiDon').modal('hide');
+                    tableLD.ajax.reload();
+                    loadAllSelects();
+                    Swal.fire('Thành công', '', 'success');
+                }
+            });
+        }
+
+        // --- SYNC DEPARTMENT ---
+        function syncBoPhan() {
+            Swal.fire({
+                title: 'Đang đồng bộ...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            fetch('/HR_QuanLyDuyetB2/SyncBoPhan', { method: 'POST' })
+            .then(r => r.json()).then(res => {
+                Swal.close();
+                if(res.success){
+                    Swal.fire('Thành công', res.message, 'success').then(() => {
+                        tableBP.ajax.reload();
+                        loadAllSelects();
+                    });
+                } else {
+                    Swal.fire('Lỗi', res.message, 'error');
+                }
+            }).catch(() => {
+                Swal.close();
+                Swal.fire('Lỗi kết nối', '', 'error');
+            });
+        }
+    </script>
+}

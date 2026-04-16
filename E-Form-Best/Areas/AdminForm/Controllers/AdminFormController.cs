@@ -628,6 +628,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         }
 
         #endregion
+
         #region Quản lý Giám đốc - Loại Đơn & Người Xác Nhận
 
         [HttpGet("/QLtaiKhoan/QLGiamDoc")]
@@ -1306,6 +1307,217 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         }
 
         #endregion
+
+        #region QUẢN LÝ QUY TRÌNH DUYỆT BƯỚC 2 - FULL CRUD
+
+        [HttpGet("/HR_QuanLyDuyetB2")]
+        public async Task<IActionResult> HR_QuanLyDuyetB2()
+        {
+            if (!IsLoggedIn()) return RedirectToAction("Login", "Account");
+
+            // Load dữ liệu cho các Dropdownlist trong View
+            ViewBag.BoPhan = await _context.DmBoPhans.Where(x => x.TrangThai == true).OrderBy(x => x.TenBoPhan).ToListAsync();
+            ViewBag.LoaiDon = await _context.DmLoaiDons.Where(x => x.TrangThai == true).OrderBy(x => x.TenLoaiDon).ToListAsync();
+            ViewBag.CongTy = await _context.DmCongTies.Where(x => x.TrangThai == true).OrderBy(x => x.TenCongTy).ToListAsync();
+            ViewBag.NguoiXacNhan = await _context.DmNguoiXacNhans.Where(x => x.TrangThai == true).OrderBy(x => x.HoTen).ToListAsync();
+
+            return View();
+        }
+
+        // ==========================================
+        // 1. QUẢN LÝ CHÍNH (DM_NguoiDuyet_LoaiDon_BoPhan)
+        // ==========================================
+
+        [HttpGet("/HR_QuanLyDuyetB2/GetData")]
+        public async Task<IActionResult> HR_GetData()
+        {
+            var data = await _context.DmNguoiDuyetLoaiDonBoPhans
+                .AsNoTracking()
+                .Include(x => x.IdcongTyNavigation)
+                .Include(x => x.IdboPhanNavigation)
+                .Include(x => x.IdloaiDonNavigation)
+                .Include(x => x.IdnguoiXacNhanNavigation)
+                .Select(x => new {
+                    x.Id,
+                    x.Stt,
+                    x.IdloaiDon,
+                    x.IdboPhan,
+                    x.IdcongTy,
+                    x.IdnguoiXacNhan,
+                    TenLoaiDon = x.IdloaiDonNavigation.TenLoaiDon ?? "---",
+                    TenCongTy = x.IdcongTyNavigation.TenCongTy ?? "---",
+                    TenBoPhan = x.IdboPhanNavigation.TenBoPhan ?? "Tất cả",
+                    HoTenNguoiDuyet = x.IdnguoiXacNhanNavigation.HoTen ?? "Chưa xác định",
+                    x.GhiChu,
+                    x.TrangThai
+                })
+                .OrderBy(x => x.TenCongTy)
+                .ThenBy(x => x.TenLoaiDon)
+                .ThenBy(x => x.Stt)
+                .ToListAsync();
+
+            return Json(new { data = data });
+        }
+
+        [HttpPost("/HR_QuanLyDuyetB2/Save")]
+        public async Task<IActionResult> HR_Save([FromBody] DmNguoiDuyetLoaiDonBoPhan model)
+        {
+            try
+            {
+                if (model.Id == 0)
+                {
+                    model.NgayTao = DateTime.Now;
+                    _context.DmNguoiDuyetLoaiDonBoPhans.Add(model);
+                }
+                else
+                {
+                    var upd = await _context.DmNguoiDuyetLoaiDonBoPhans.FindAsync(model.Id);
+                    if (upd == null) return Json(new { success = false, message = "Không tìm thấy dữ liệu!" });
+
+                    upd.Stt = model.Stt;
+                    upd.IdloaiDon = model.IdloaiDon;
+                    upd.IdboPhan = model.IdboPhan;
+                    upd.IdcongTy = model.IdcongTy;
+                    upd.IdnguoiXacNhan = model.IdnguoiXacNhan;
+                    upd.GhiChu = model.GhiChu;
+                    upd.TrangThai = model.TrangThai;
+                }
+                await _context.SaveChangesAsync();
+                return Json(new { success = true });
+            }
+            catch (Exception ex) { return Json(new { success = false, message = "Lỗi: " + ex.Message }); }
+        }
+
+        [HttpPost("/HR_QuanLyDuyetB2/Delete/{id}")]
+        public async Task<IActionResult> HR_Delete(int id)
+        {
+            try
+            {
+                var item = await _context.DmNguoiDuyetLoaiDonBoPhans.FindAsync(id);
+                if (item == null) return Json(new { success = false, message = "Không tìm thấy dữ liệu!" });
+                _context.DmNguoiDuyetLoaiDonBoPhans.Remove(item);
+                await _context.SaveChangesAsync();
+                return Json(new { success = true });
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        // ==========================================
+        // 2. QUẢN LÝ CÔNG TY
+        // ==========================================
+
+        [HttpGet("/HR_QuanLyDuyetB2/GetCongTy")]
+        public async Task<IActionResult> HR_GetCongTy()
+        {
+            var data = await _context.DmCongTies.AsNoTracking().OrderBy(x => x.TenCongTy).ToListAsync();
+            return Json(new { data = data });
+        }
+
+        [HttpPost("/HR_QuanLyDuyetB2/SaveCongTy")]
+        public async Task<IActionResult> HR_SaveCongTy([FromBody] DmCongTy model)
+        {
+            try
+            {
+                if (model.IdcongTy == 0)
+                {
+                    model.NgayTao = DateTime.Now;
+                    _context.DmCongTies.Add(model);
+                }
+                else
+                {
+                    var upd = await _context.DmCongTies.FindAsync(model.IdcongTy);
+                    if (upd == null) return Json(new { success = false, message = "Không thấy công ty!" });
+                    upd.TenCongTy = model.TenCongTy;
+                    upd.GhiChu = model.GhiChu;
+                    upd.TrangThai = model.TrangThai;
+                }
+                await _context.SaveChangesAsync();
+                return Json(new { success = true });
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        // ==========================================
+        // 3. QUẢN LÝ LOẠI ĐƠN
+        // ==========================================
+
+        [HttpGet("/HR_QuanLyDuyetB2/GetLoaiDon")]
+        public async Task<IActionResult> HR_GetLoaiDon()
+        {
+            var data = await _context.DmLoaiDons.AsNoTracking().OrderBy(x => x.TenLoaiDon).ToListAsync();
+            return Json(new { data = data });
+        }
+
+        [HttpPost("/HR_QuanLyDuyetB2/SaveLoaiDon")]
+        public async Task<IActionResult> HR_SaveLoaiDon([FromBody] DmLoaiDon model)
+        {
+            try
+            {
+                if (model.IdloaiDon == 0)
+                {
+                    model.NgayTao = DateTime.Now;
+                    _context.DmLoaiDons.Add(model);
+                }
+                else
+                {
+                    var exist = await _context.DmLoaiDons.FindAsync(model.IdloaiDon);
+                    if (exist == null) return Json(new { success = false, message = "Không thấy loại đơn!" });
+                    exist.MaLoaiDon = model.MaLoaiDon;
+                    exist.TenLoaiDon = model.TenLoaiDon;
+                    exist.MoTa = model.MoTa;
+                    exist.TrangThai = model.TrangThai;
+                }
+                await _context.SaveChangesAsync();
+                return Json(new { success = true });
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        // ==========================================
+        // 4. BỘ PHẬN & ĐỒNG BỘ (Sync)
+        // ==========================================
+
+        [HttpPost("/HR_QuanLyDuyetB2/SyncBoPhan")]
+        public async Task<IActionResult> HR_SyncBoPhan()
+        {
+            try
+            {
+                var nguon = await _context.BoPhans.AsNoTracking().ToListAsync();
+                var dich = await _context.DmBoPhans.ToListAsync();
+                int added = 0, updated = 0;
+
+                foreach (var b in nguon)
+                {
+                    var tonTai = dich.FirstOrDefault(x => x.IdboPhan == b.IdBoPhan);
+                    if (tonTai == null)
+                    {
+                        _context.DmBoPhans.Add(new DmBoPhan
+                        {
+                            IdboPhan = b.IdBoPhan,
+                            TenBoPhan = b.TenBoPhan,
+                            GhiChu = b.MoTa,
+                            NgayTao = DateTime.Now,
+                            TrangThai = true
+                        });
+                        added++;
+                    }
+                    else
+                    {
+                        if (tonTai.TenBoPhan != b.TenBoPhan || tonTai.GhiChu != b.MoTa)
+                        {
+                            tonTai.TenBoPhan = b.TenBoPhan;
+                            tonTai.GhiChu = b.MoTa;
+                            updated++;
+                        }
+                    }
+                }
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = $"Thành công: Thêm {added}, Cập nhật {updated}" });
+            }
+            catch (Exception ex) { return Json(new { success = false, message = "Lỗi đồng bộ: " + ex.Message }); }
+        }
+
+        #endregion   
     }
 
-}
+    }
