@@ -49,6 +49,7 @@
         .user-dropdown-item:hover { background-color: #f8fafc !important; }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+        .nav-link-item:hover { background: rgba(255, 255, 255, 0.08) !important; transform: translateX(4px); }
     </style>
 </head>
 
@@ -68,19 +69,19 @@
                 </div>
             </a>
 
-            <nav style="flex:1; overflow-y:auto; padding-right:5px; display:flex; flex-direction:column; gap:6px;">
+            @* Thêm ID main-sidebar-nav để bắt vị trí cuộn *@
+            <nav id="main-sidebar-nav" style="flex:1; overflow-y:auto; padding-right:5px; display:flex; flex-direction:column; gap:6px;">
 
                 <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 700;">Cá nhân & Đăng ký</div>
 
-                
-                    <div id="btnRegistrationMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-radius: 12px; color: #fff; font-weight: 600; margin-bottom: 4px; transition: 0.3s; background: @(isSubPageActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
+                    <div id="btnRegistrationMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-radius: 12px; color: #fff; font-weight: 600; margin-bottom: 4px; transition: 0.3s;">
                         <span style="display:flex; align-items:center;">
                             <i class="fa fa-pencil-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i> Đăng ký mẫu đơn
                         </span>
-                        <i class="fa fa-angle-down" id="regArrow" style="transition: 0.3s; transform: @(isSubPageActive ? "rotate(180deg)" : "rotate(0deg)");"></i>
+                        <i class="fa fa-angle-down" id="regArrow" style="transition: 0.3s;"></i>
                     </div>
 
-                    <div id="registrationSubmenu" style="display: @(isSubPageActive ? "flex" : "none"); flex-direction: column; padding-left: 15px; background: rgba(0, 0, 0, 0.15); border-radius: 12px; margin-bottom: 10px; padding-top: 5px; padding-bottom: 5px;">
+                    <div id="registrationSubmenu" style="display: none; flex-direction: column; padding-left: 15px; background: rgba(0, 0, 0, 0.15); border-radius: 12px; margin-bottom: 10px; padding-top: 5px; padding-bottom: 5px;">
 
                         <a href="/FormHR/DonXinRaNgoai" style="padding: 10px 15px; color: @(currentAction == "DonXinRaNgoai" ? "#fff" : "rgba(255,255,255,0.7)"); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; transition: 0.3s; font-weight: @(currentAction == "DonXinRaNgoai" ? "700" : "400");">
                             <i class="fa fa-external-link" style="margin-right:10px; font-size: 12px; color: #ff4d4d;"></i> Đơn xin ra ngoài
@@ -140,7 +141,6 @@
 
 @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonHR_B2") || User.IsInRole("All")))
 {
-    @* Nếu đã hiển thị tiêu đề "Phê duyệt" ở trên rồi thì có thể cân nhắc ẩn bớt đường kẻ nếu 2 mục nằm gần nhau *@
     @if (!(User.IsInRole("QuanLyDuyetDonHR")))
     {
         <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
@@ -151,7 +151,7 @@
         <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#63b3ed;"></i> Quản lý xét duyệt B2
     </a>
 }
-@* --- PHẦN PHÊ DUYỆT CẤP CAO (Dành cho GiamDocHR và All) --- *@
+
 @if (User.Identity.IsAuthenticated && (User.IsInRole("GiamDocHR") || User.IsInRole("All")))
 {
     <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
@@ -161,10 +161,8 @@
        style="text-decoration:none; display:flex; align-items:center; padding: 14px 18px; border-radius: 14px; color:#fff; font-weight: 600; transition:0.3s; background: @(currentAction == "PheDuyetCapCao" ? "rgba(255,255,255,0.2)" : "transparent"); margin-bottom: 4px;">
         <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#fbbf24;"></i> Phê duyệt cấp cao
     </a>
-
 }
 
-              @* --- PHẦN QUẢN TRỊ HR (Dành cho AdminHR và All) --- *@
 @if (User.Identity.IsAuthenticated && (User.IsInRole("AdminHR") || User.IsInRole("All") ))
 {
     <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
@@ -181,24 +179,19 @@
     </a>
 }
 
-
-
-              @* --- PHẦN KIỂM SOÁT BẢO VỆ (TỰ ĐỘNG) --- *@
 @if (User.Identity.IsAuthenticated)
 {
-    // Tự động lấy Role và Action ngay tại chỗ để không phụ thuộc biến bên ngoài
-    var userClaims = User.Claims.Select(c => c.Value.ToUpper()).ToList();
     var currentUrl = ViewContext.HttpContext.Request.Path.ToString().ToUpper();
     
-    // Kiểm tra nếu User có một trong các quyền bảo vệ hoặc quản trị
-@if (User.Identity.IsAuthenticated && (
-    User.IsInRole("GiamDocHR") || 
-    User.IsInRole("All") || 
-    User.IsInRole("BaoVeHR") || 
-    User.IsInRole("AdminHR") || 
-    User.IsInRole("QuanLyDuyetDonHR_B2")
-))
-{        <div style="height:1px; background:linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.12), rgba(255,255,255,0)); margin:20px 10px;"></div>
+    @if (User.Identity.IsAuthenticated && (
+        User.IsInRole("GiamDocHR") || 
+        User.IsInRole("All") || 
+        User.IsInRole("BaoVeHR") || 
+        User.IsInRole("AdminHR") || 
+        User.IsInRole("QuanLyDuyetDonHR_B2")
+    ))
+    {
+        <div style="height:1px; background:linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.12), rgba(255,255,255,0)); margin:20px 10px;"></div>
         
         <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.8px; margin: 0 0 12px 15px; font-weight: 800;">
             AN NINH & CỔNG
@@ -223,13 +216,6 @@
         </a>
     }
 }
-
-<style>
-    .nav-link-item:hover {
-        background: rgba(255, 255, 255, 0.08) !important;
-        transform: translateX(4px);
-    }
-</style>
             </nav>
 
             <div style="margin-top:25px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 20px; position:relative; border: 1px solid rgba(255,255,255,0.05);">
@@ -309,30 +295,60 @@
 
             <script>
                 // ==========================================
-                // 1. Quản lý Sidebar & User Dropdown
+                // 1. Quản lý Sidebar & Vị trí cuộn
                 // ==========================================
                 const regBtn = document.getElementById('btnRegistrationMenu');
                 const regSub = document.getElementById('registrationSubmenu');
                 const regArrow = document.getElementById('regArrow');
+                const sidebarNav = document.getElementById('main-sidebar-nav'); // Element nav
+
+                // Hàm thực hiện mở UI
+                function expandRegMenu() {
+                    regSub.style.display = 'flex';
+                    regArrow.style.transform = 'rotate(180deg)';
+                    regBtn.style.background = 'rgba(255, 255, 255, 0.15)';
+                }
 
                 if (regBtn) {
                     regBtn.addEventListener('click', (e) => {
                         const isHidden = regSub.style.display === 'none' || regSub.style.display === '';
-                        regSub.style.display = isHidden ? 'flex' : 'none';
-                        regArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
-                        regBtn.style.background = isHidden ? 'rgba(255, 255, 255, 0.15)' : 'transparent';
+                        if (isHidden) {
+                            expandRegMenu();
+                            localStorage.setItem('regMenuState', 'open');
+                        } else {
+                            regSub.style.display = 'none';
+                            regArrow.style.transform = 'rotate(0deg)';
+                            regBtn.style.background = 'transparent';
+                            localStorage.setItem('regMenuState', 'closed');
+                        }
                     });
                 }
 
-                window.addEventListener('DOMContentLoaded', (event) => {
-                    const isSubActive = @isSubPageActive.ToString().ToLower();
-                    if (isSubActive && regSub) {
-                        regSub.style.display = 'flex';
-                        regArrow.style.transform = 'rotate(180deg)';
-                        regBtn.style.background = 'rgba(255, 255, 255, 0.15)';
+                // Trước khi chuyển trang: Lưu vị trí thanh cuộn
+                window.addEventListener('beforeunload', () => {
+                    if (sidebarNav) {
+                        sessionStorage.setItem('sidebarScrollPos', sidebarNav.scrollTop);
                     }
                 });
 
+                window.addEventListener('DOMContentLoaded', (event) => {
+                    // Khôi phục trạng thái mở của menu
+                    const isSubActiveServer = @isSubPageActive.ToString().ToLower();
+                    const savedMenuState = localStorage.getItem('regMenuState');
+                    if (isSubActiveServer || savedMenuState === 'open') {
+                        expandRegMenu();
+                    }
+
+                    // Khôi phục vị trí thanh cuộn
+                    const savedScrollPos = sessionStorage.getItem('sidebarScrollPos');
+                    if (sidebarNav && savedScrollPos) {
+                        sidebarNav.scrollTop = parseInt(savedScrollPos);
+                    }
+                });
+
+                // ==========================================
+                // 2. Quản lý User Dropdown
+                // ==========================================
                 const userBtn = document.getElementById('userMenuButton');
                 const userDrop = document.getElementById('userDropdown');
                 const userArrow = document.getElementById('arrowIcon');
@@ -347,7 +363,7 @@
                 }
 
                 // ==========================================
-                // 2. Quản lý Thông báo HR (Âm thanh & Cookie)
+                // 3. Quản lý Thông báo HR (Âm thanh & Cookie)
                 // ==========================================
                 const notiSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
                 notiSound.volume = 0.6;
@@ -377,7 +393,7 @@
                 }
 
                 // ==========================================
-                // 3. Logic Thông báo & Hiệu ứng
+                // 4. Logic Thông báo & Hiệu ứng
                 // ==========================================
                 let lastTopId = localStorage.getItem('lastNotifiedIdHR') || null;
                 let currentSkip = 0;
@@ -475,21 +491,21 @@
                                style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit; background: ${isRead ? '#ffffff' : 'rgba(52, 211, 153, 0.05)'};"
                                onmouseover="this.style.background='#f1f5f9'"
                                onmouseout="this.style.background='${isRead ? '#ffffff' : 'rgba(52, 211, 153, 0.05)'}'">
-                                <div style="width: 44px; height: 44px; border-radius: 12px; background: ${isError ? '#fff7ed' : '#d1fae5'}; color: ${isError ? '#ea580c' : '#059669'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                    <i class="fa ${item.icon || 'fa-bell'}"></i>
-                                </div>
-                                <div style="flex:1; min-width: 0;">
-                                    <div style="font-size: 0.88rem; font-weight: ${isRead ? '600' : '800'}; color: #1e293b; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                        ${item.tieuDe}
-                                    </div>
-                                    <div style="font-size: 0.8rem; color: #64748b; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                                        ${item.mota || ''}
-                                    </div>
-                                    <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 6px;">
-                                        <i class="fa fa-clock-o"></i> ${item.time}
-                                    </div>
-                                </div>
-                                ${!isRead ? '<div style="width: 8px; height: 8px; background: #34d399; border-radius: 50%; align-self: center; flex-shrink: 0;"></div>' : ''}
+                                 <div style="width: 44px; height: 44px; border-radius: 12px; background: ${isError ? '#fff7ed' : '#d1fae5'}; color: ${isError ? '#ea580c' : '#059669'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                     <i class="fa ${item.icon || 'fa-bell'}"></i>
+                                 </div>
+                                 <div style="flex:1; min-width: 0;">
+                                     <div style="font-size: 0.88rem; font-weight: ${isRead ? '600' : '800'}; color: #1e293b; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                         ${item.tieuDe}
+                                     </div>
+                                     <div style="font-size: 0.8rem; color: #64748b; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                         ${item.mota || ''}
+                                     </div>
+                                     <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 6px;">
+                                         <i class="fa fa-clock-o"></i> ${item.time}
+                                     </div>
+                                 </div>
+                                 ${!isRead ? '<div style="width: 8px; height: 8px; background: #34d399; border-radius: 50%; align-self: center; flex-shrink: 0;"></div>' : ''}
                             </a>`;
                         }).join('');
 
