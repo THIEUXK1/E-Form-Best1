@@ -163,16 +163,24 @@
     </a>
 }
 
-@if (User.Identity.IsAuthenticated && (User.IsInRole("AdminHR") || User.IsInRole("All") ))
+@if (User.Identity.IsAuthenticated && (User.IsInRole("AdminHR") || User.IsInRole("All")))
 {
     <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
     <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị HR</div>
 
+    @* 1. Mục Lưu trữ đơn (Hoàn tất) *@
     <a href="/FormHR/HoanTatDon" 
        style="text-decoration:none; display:flex; align-items:center; padding: 14px 18px; border-radius: 14px; color:#fff; font-weight: 600; transition:0.3s; background: @(currentAction == "HoanTatDon" ? "rgba(255,255,255,0.2)" : "transparent"); margin-bottom: 4px;">
         <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> Lưu trữ đơn
     </a>
 
+    @* 2. MỤC MỚI: Kho đơn tổng hợp (Nằm ở giữa) *@
+    <a href="/FormHR/XuatBaoCao" 
+       style="text-decoration:none; display:flex; align-items:center; padding: 14px 18px; border-radius: 14px; color:#fff; font-weight: 600; transition:0.3s; background: @(currentAction == "XuatBaoCao" ? "rgba(255,255,255,0.2)" : "transparent"); margin-bottom: 4px;">
+        <i class="fa fa-database" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> Kho đơn tổng hợp
+    </a>
+
+    @* 3. Mục Thống kê báo cáo *@
     <a href="/FormHR/BaoCaoThongKe" 
        style="text-decoration:none; display:flex; align-items:center; padding: 14px 18px; border-radius: 14px; color:#fff; font-weight: 600; transition:0.3s; background: @(currentAction == "BaoCaoThongKe" ? "rgba(255,255,255,0.2)" : "transparent");">
         <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> Thống kê báo cáo
