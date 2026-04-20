@@ -2829,6 +2829,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             IQueryable<FormHr> query = _context.FormHrs
                 .Include(f => f.HrNguoiXacNhans)
                     .ThenInclude(xn => xn.IdnguoiXacNhanNavigation)
+                .Include(f => f.HrQuanLyDuyetB2s) // BỔ SUNG ĐỂ KIỂM TRA TRẠNG THÁI B2
                 .Include(f => f.BaoVeHrs)
                 .Include(f => f.HrCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdHrNguoiHoTroNavigation);
@@ -2847,7 +2848,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
                 if (User.IsInRole("QuanLyDuyetDonHR"))
                 {
-                    // Lọc theo bộ phận và đồng thời phải cùng công ty (Đã lọc công ty ở phía trên)
                     if (listTenBoPhan.Any())
                     {
                         query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim().ToLower()));
@@ -3010,62 +3010,37 @@ namespace E_Form_Best.Areas.HRform.Controllers
                                                 .ToList();
 
             // --- 2. TRUY VẤN DỮ LIỆU ---
-            // Khởi tạo query từ bảng FormHr
             IQueryable<FormHr> query = _context.FormHrs
+                .Include(f => f.HrNguoiXacNhans)
+                    .ThenInclude(xn => xn.IdnguoiXacNhanNavigation)
+                .Include(f => f.HrQuanLyDuyetB2s)
                 .Include(f => f.BaoVeHrs)
                 .Include(f => f.HrCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdHrNguoiHoTroNavigation);
 
-            // --- 3. LỌC ĐIỀU KIỆN KHÔNG NULL THEO BẢNG MỚI (HrQuanLyDuyetB2) ---
+            // --- 3. LỌC ĐIỀU KIỆN ĐẶC THÙ B2 ---
+            // Đơn phải được Quản lý trực tiếp duyệt trước (IdNguoiDuyet != null)
+            query = query.Where(f => f.IdNguoiDuyet != null);
 
-            // ĐIỀU KIỆN 1: Thông tin người duyệt trên FormHr không được null
-            query = query.Where(f => f.IdNguoiDuyet != null
-                                  && f.TenNguoiDuyet != null
-                                  && f.TimeNguoiDuyet != null);
+            // Chỉ lấy những đơn có yêu cầu xác nhận từ bảng B2
+            query = query.Where(f => f.HrQuanLyDuyetB2s.Any(b2 => b2.IdnguoiXacNhan != null));
 
-            // ĐIỀU KIỆN 2: Phải tồn tại bản ghi tương ứng trong bảng HrQuanLyDuyetB2 và IDNguoiXacNhan không null
-            // Chúng ta sử dụng bảng HrQuanLyDuyetB2 để lọc
-            query = query.Where(f => _context.HrQuanLyDuyetB2s
-                                             .Any(b2 => b2.IdFormHr == f.Id && b2.IdnguoiXacNhan != null));
-
-            // --- 4. LOGIC PHÂN QUYỀN ---
-            if (User.IsInRole("All"))
-            {
-                // Nhìn thấy hết toàn hệ thống
-            }
+            // --- 4. LOGIC PHÂN QUYỀN THEO ROLE ---
+            if (User.IsInRole("All")) { }
             else
             {
-                if (!string.IsNullOrEmpty(tenCongTy))
-                {
-                    query = query.Where(f => f.TenCongTy == tenCongTy);
-                }
+                if (!string.IsNullOrEmpty(tenCongTy)) query = query.Where(f => f.TenCongTy == tenCongTy);
 
                 if (User.IsInRole("QuanLyDuyetDonHR_B2"))
                 {
-                    if (listTenBoPhan.Any())
-                    {
-                        query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim().ToLower()));
-                    }
-                    else if (!string.IsNullOrEmpty(phongBan))
-                    {
-                        query = query.Where(f => f.BoPhan != null && f.BoPhan.Trim().ToLower() == phongBan.ToLower());
-                    }
-                    else
-                    {
-                        query = query.Where(f => f.IdNguoiTao == userId);
-                    }
+                    if (listTenBoPhan.Any()) query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim().ToLower()));
+                    else if (!string.IsNullOrEmpty(phongBan)) query = query.Where(f => f.BoPhan != null && f.BoPhan.Trim().ToLower() == phongBan.ToLower());
+                    else query = query.Where(f => f.IdNguoiTao == userId);
                 }
-                else
-                {
-                    query = query.Where(f => f.IdNguoiTao == userId);
-                }
+                else query = query.Where(f => f.IdNguoiTao == userId);
             }
 
-            var danhSachDon = await query
-                .OrderByDescending(f => f.Id)
-                .AsNoTracking()
-                .ToListAsync();
-
+            var danhSachDon = await query.OrderByDescending(f => f.Id).AsNoTracking().ToListAsync();
             return View(danhSachDon);
         }
         #region DUYỆT BƯỚC 2 (HR_QuanLyDuyetB2) - SO SÁNH QUA MÃ NHÂN VIÊN
@@ -3216,6 +3191,209 @@ namespace E_Form_Best.Areas.HRform.Controllers
         #endregion
         #endregion
 
+        #region PHÊ DUYỆT CẤP CAO (GIÁM ĐỐC)
+
+        /// <summary>
+        /// GET: /FormHR/PheDuyetCapCao
+        /// </summary>
+        /// <summary>
+        /// GET: /FormHR/PheDuyetCapCao
+        /// Trang dành cho Ban Giám Đốc hoặc Quản trị cấp cao phê duyệt các loại đơn đặc thù
+        /// </summary>
+        [HttpGet("/FormHR/PheDuyetCapCao")]
+        public async Task<IActionResult> PheDuyetCapCao()
+        {
+            // 1. Kiểm tra xác thực qua Cookie Authentication
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                return Redirect("/DonXetDuyet/DangNhap");
+            }
+
+            if (!User.IsInRole("All") && !User.IsInRole("GiamDocHR"))
+            {
+                return Content("Tài khoản của bạn không có quyền truy cập trang phê duyệt cấp cao.");
+            }
+
+            // 4. Lấy thông tin định danh
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                            ?? User.FindFirst("Email")?.Value ?? "";
+
+            if (string.IsNullOrEmpty(userEmail))
+            {
+                return Content("Không xác định được thông tin định danh (Email) người duyệt.");
+            }
+
+            // 5. Lấy danh sách Mã Loại Đơn mà User này được phép xác nhận
+            var dsMaLoaiDon = await _context.DmNguoiXacNhanLoaiDons
+                .Where(rel => rel.IdnguoiXacNhanNavigation.MaNv == userEmail)
+                .Select(rel => rel.IdloaiDonNavigation.MaLoaiDon)
+                .Distinct()
+                .ToListAsync();
+
+            // 6. Khởi tạo Query và nạp dữ liệu liên quan
+            IQueryable<FormHr> query = _context.FormHrs
+                .Include(f => f.HrNguoiXacNhans)
+                    .ThenInclude(x => x.IdnguoiXacNhanNavigation)
+                .Include(f => f.HrQuanLyDuyetB2s) // Load thông tin quản lý duyệt bước 2
+                .Include(f => f.BaoVeHrs);
+
+            // 7. PHÂN QUYỀN LỌC DỮ LIỆU
+            // Điều kiện chung: 
+            // - IdNguoiDuyet != null
+            // - Tất cả các bước duyệt quản lý (B2) phải có TrangThaiXacNhan != 0
+            // - Có bản ghi trong HrNguoiXacNhans
+            query = query.Where(f => f.IdNguoiDuyet != null &&
+                                     f.HrNguoiXacNhans.Any() &&
+                                     f.HrQuanLyDuyetB2s.All(q => q.TrangThaiXacNhan != 0));
+
+            if (User.IsInRole("All"))
+            {
+                // Admin xem toàn bộ đơn thỏa mãn điều kiện duyệt sơ bộ
+            }
+            else
+            {
+                // Nhóm Giám đốc: Chỉ xem những loại đơn mình được phân quyền
+                query = query.Where(f => dsMaLoaiDon.Contains(f.IdForm));
+            }
+
+            // 8. Thực thi truy vấn và sắp xếp
+            try
+            {
+                var danhSachDon = await query
+                    .OrderByDescending(f => f.Id)
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                ViewBag.UserEmail = userEmail;
+                return View(danhSachDon);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Lỗi truy vấn dữ liệu phê duyệt cấp cao: " + ex.Message;
+                return View(new List<FormHr>());
+            }
+        }
+        /// <summary>
+        /// POST: /FormHR/GiamDocPheDuyet
+        /// Giám đốc hoặc Admin phê duyệt/từ chối đơn HR
+        [HttpPost("/FormHR/GiamDocPheDuyet")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> GiamDocPheDuyet([FromBody] System.Text.Json.JsonElement data)
+        {
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    // 1. Lấy dữ liệu từ Request
+                    if (!data.TryGetProperty("idForm", out var idFormProp) || !data.TryGetProperty("idNguoiXacNhan", out var idXnProp))
+                    {
+                        return Json(new { success = false, message = "⚠️ Dữ liệu yêu cầu không đầy đủ." });
+                    }
+
+                    int idForm = idFormProp.GetInt32();
+                    int idNguoiXacNhan = idXnProp.GetInt32();
+                    var loaiHanhDong = data.TryGetProperty("loaiHanhDong", out var lh) ? lh.GetString() ?? "" : "";
+                    var lyDo = data.TryGetProperty("lyDo", out var p) ? (p.GetString() ?? "") : "";
+
+                    // 2. Lấy thông tin người thao tác từ Claims
+                    var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value?.Trim() ?? "";
+                    var userName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "N/A";
+                    var phongBan = User.FindFirst("PhongBan")?.Value ?? "N/A";
+
+                    if (string.IsNullOrEmpty(userEmail))
+                        return Json(new { success = false, message = "⚠️ Phiên đăng nhập hết hạn!" });
+
+                    var roles = User.FindAll(System.Security.Claims.ClaimTypes.Role)
+                                    .Select(r => r.Value.Trim().ToUpper())
+                                    .ToList();
+                    var userRoleCustom = User.FindFirst("UserRole")?.Value?.Trim().ToUpper();
+                    if (!string.IsNullOrEmpty(userRoleCustom) && !roles.Contains(userRoleCustom)) roles.Add(userRoleCustom);
+
+                    // 3. Tìm bản ghi người xác nhận và đơn HR liên quan
+                    var xn = await _context.HrNguoiXacNhans
+                        .Include(x => x.IdnguoiXacNhanNavigation)
+                        .Include(x => x.IdFormHrNavigation)
+                        .FirstOrDefaultAsync(x => x.Id == idNguoiXacNhan && x.IdFormHr == idForm);
+
+                    if (xn == null)
+                        return Json(new { success = false, message = "⚠️ Không tìm thấy bản ghi xác nhận trong hệ thống." });
+
+                    var don = xn.IdFormHrNavigation;
+                    if (don == null)
+                        return Json(new { success = false, message = "⚠️ Không tìm thấy thông tin đơn gốc." });
+
+                    // 4. Kiểm tra quyền thực hiện
+                    var assignedMa = (xn.MaNguoiXacNhan ?? "").Trim();
+                    bool isAssignee = !string.IsNullOrEmpty(assignedMa) && string.Equals(userEmail, assignedMa, StringComparison.OrdinalIgnoreCase);
+
+                    bool canAct = roles.Contains("ALL") || roles.Contains("ADMIN") || roles.Contains("GIAMDOCHR")
+                                  || isAssignee
+                                  || string.Equals(userEmail, xn.IdnguoiXacNhanNavigation?.MaNv ?? "", StringComparison.OrdinalIgnoreCase);
+
+                    if (!canAct)
+                        return Json(new { success = false, message = $"🚫 Bạn không có quyền phê duyệt mục này. (Người được gán: {xn.TenNguoiXacNhan ?? "N/A"})" });
+
+                    // 5. Kiểm tra nếu trạng thái đã được xử lý trước đó
+                    if (xn.TrangThaiXacNhan != null && xn.TrangThaiXacNhan != 0)
+                        return Json(new { success = false, message = "⚠️ Mục này đã được xử lý trước đó." });
+
+                    // 6. Cập nhật trạng thái xác nhận
+                    int newTrangThai = loaiHanhDong.Equals("Approve", StringComparison.OrdinalIgnoreCase) ? 1 : 2;
+                    string hanhDongStr = (newTrangThai == 1) ? "Phê duyệt" : "Từ chối";
+                    DateTime now = DateTime.Now;
+
+                    xn.TrangThaiXacNhan = newTrangThai;
+                    xn.ThoiGianXacNhan = now;
+                    xn.GhiChu = string.IsNullOrWhiteSpace(lyDo) ? null : lyDo.Trim();
+
+                    _context.HrNguoiXacNhans.Update(xn);
+
+                    // 7. Xử lý logic hủy đơn nếu Giám đốc từ chối
+                    if (newTrangThai == 2)
+                    {
+                        don.TrangThai = "Huy";
+                        if (don.TenForm != null && !don.TenForm.Contains("[ĐÃ HỦY]"))
+                        {
+                            don.TenForm += " [ĐÃ HỦY]";
+                        }
+                        _context.FormHrs.Update(don);
+                    }
+
+                    // 8. GHI LỊCH SỬ THAO TÁC
+                    var lichSu = new LichSuFormHr
+                    {
+                        IdFormHr = idForm,
+                        TieuDe = $"CẤP CAO {hanhDongStr.ToUpper()}",
+                        Mota = $"Nhân sự thực hiện: {userName} ({userEmail}). " +
+                               $"Bộ phận: {phongBan}. " +
+                               $"Nội dung: Đã {hanhDongStr.ToLower()} yêu cầu xác nhận cấp cao. " +
+                               $"Ghi chú: {(string.IsNullOrWhiteSpace(lyDo) ? "Không có" : lyDo)}",
+                        Time = now,
+                        IsRead = false
+                    };
+                    _context.LichSuFormHrs.Add(lichSu);
+
+                    // 9. Lưu thay đổi và Hoàn tất Transaction
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return Json(new
+                    {
+                        success = true,
+                        message = $"✅ Đã {hanhDongStr.ToLower()} thành công",
+                        trangThai = newTrangThai,
+                        thoiGian = now.ToString("HH:mm dd/MM/yyyy")
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return Json(new { success = false, message = "❌ Lỗi hệ thống: " + ex.Message });
+                }
+            }
+        }
+        #endregion
+
         #region QUẢN LÝ PHÊ DUYỆT HR (Admin, All, Quản lý)
 
         [HttpGet("/FormHR/HoanTatDon")]
@@ -3231,6 +3409,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             int userId = int.Parse(userIdStr);
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
             var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
             var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
             var listTenBoPhan = listTenBoPhanStr.Split(',')
@@ -3240,45 +3419,53 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
             // --- 2. KHỞI TẠO QUERY ---
             IQueryable<FormHr> query = _context.FormHrs
+                .Include(f => f.HrNguoiXacNhans)
+                    .ThenInclude(xn => xn.IdnguoiXacNhanNavigation)
+                .Include(f => f.HrQuanLyDuyetB2s)
                 .Include(f => f.BaoVeHrs)
                 .Include(f => f.HrCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdHrNguoiHoTroNavigation);
 
-            // --- 3. LOGIC LỌC TỔNG HỢP (CẬP NHẬT) ---
-            // Điều kiện hiển thị:
-            // TRƯỜNG HỢP 1: Nếu đơn CÓ trong bảng B2 -> CHỈ hiển thị nếu KHÔNG CÓ bất kỳ dòng nào có TrangThaiXacNhan == 0
-            //               (Tức là tất cả đã xác nhận hoặc ít nhất là không bị treo ở trạng thái 0)
-            // TRƯỜNG HỢP 2: Nếu đơn KHÔNG có trong bảng B2 -> Chỉ cần IdNguoiDuyet, TenNguoiDuyet, TimeNguoiDuyet không null
+            // --- 3. LOGIC LỌC TỔNG HỢP (CẬP NHẬT THEO YÊU CẦU) ---
+            // 1. Quản lý trực tiếp phải ký duyệt trước (Id, Tên, Thời gian duyệt khác null)
+            // 2. Nếu có trong bảng B2 -> Không được có dòng nào đang ở trạng thái Chờ (TrangThaiXacNhan == 0)
+            query = query.Where(f => f.IdNguoiDuyet != null && f.TenNguoiDuyet != null && f.TimeNguoiDuyet != null);
 
             query = query.Where(f =>
-                _context.HrQuanLyDuyetB2s.Any(b2 => b2.IdFormHr == f.Id)
-                    ? !_context.HrQuanLyDuyetB2s.Any(b2 => b2.IdFormHr == f.Id && b2.TrangThaiXacNhan == 0)
-                    : (f.IdNguoiDuyet != null && f.TenNguoiDuyet != null && f.TimeNguoiDuyet != null)
+                !_context.HrQuanLyDuyetB2s.Any(b2 => b2.IdFormHr == f.Id && b2.TrangThaiXacNhan == 0)
             );
 
             // --- 4. PHÂN QUYỀN THEO ROLE ---
             if (userRoles.Contains("All") || userRoles.Contains("AdminHR"))
             {
-                query = query.Where(f => f.IdNguoiDuyet != null);
+                // Nhìn thấy toàn bộ đơn đã qua bước duyệt đầu
             }
-            else if (userRoles.Contains("QuanLyDuyetDonHR"))
+            else
             {
-                if (listTenBoPhan.Any())
+                if (!string.IsNullOrEmpty(tenCongTy))
                 {
-                    query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim().ToLower()));
+                    query = query.Where(f => f.TenCongTy == tenCongTy);
                 }
-                else if (!string.IsNullOrEmpty(phongBanSession))
+
+                if (userRoles.Contains("QuanLyDuyetDonHR"))
                 {
-                    query = query.Where(f => f.BoPhan != null && f.BoPhan.Trim().ToLower() == phongBanSession.ToLower());
+                    if (listTenBoPhan.Any())
+                    {
+                        query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim().ToLower()));
+                    }
+                    else if (!string.IsNullOrEmpty(phongBanSession))
+                    {
+                        query = query.Where(f => f.BoPhan != null && f.BoPhan.Trim().ToLower() == phongBanSession.ToLower());
+                    }
+                    else
+                    {
+                        query = query.Where(f => f.IdNguoiTao == userId);
+                    }
                 }
                 else
                 {
                     query = query.Where(f => f.IdNguoiTao == userId);
                 }
-            }
-            else
-            {
-                query = query.Where(f => f.IdNguoiTao == userId);
             }
 
             // --- 5. THỰC THI VÀ GÁN TRẠNG THÁI ---
@@ -3289,6 +3476,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     .AsNoTracking()
                     .ToListAsync();
 
+                // Gán nhãn để đồng bộ với View
                 foreach (var item in danhSachDon)
                 {
                     if (item.TenForm != null && item.TenForm.Contains("[ĐÃ HỦY]"))
@@ -3599,52 +3787,29 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
         #endregion
 
-        #region BÁO CÁO THỐNG KÊ FORM HR (Dành cho Admin/All)
+        #region BÁO CÁO THỐNG KÊ FORM HR (Đồng bộ 7 trạng thái)
 
-        /// <summary>
-        /// Giao diện chính của trang Thống kê báo cáo HR
-        /// </summary>
         [HttpGet("/FormHR/BaoCaoThongKe")]
         public async Task<IActionResult> BaoCaoThongKe()
         {
-            // 1. Kiểm tra xác thực và quyền hạn
             if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
-
             bool isAuthorized = User.IsInRole("AdminHR") || User.IsInRole("All");
             if (!isAuthorized) return Redirect("/");
 
-            // 2. Lấy dữ liệu thô để hiển thị bảng (nếu view dùng Model trực tiếp)
-            // Chỉ lấy các cột cần thiết để tối ưu bộ nhớ
             var allForms = await _context.FormHrs
                 .AsNoTracking()
                 .OrderByDescending(x => x.TimeNguoiTao)
                 .ToListAsync();
 
-            // 3. Chuẩn bị dữ liệu nhanh cho biểu đồ tĩnh (nếu cần dùng ViewBag)
-            var stats = allForms
-                .Where(f => !string.IsNullOrEmpty(f.IdForm))
-                .GroupBy(f => f.IdForm)
-                .Select(g => new
-                {
-                    Name = GetShortName(g.Key),
-                    Count = g.Count()
-                })
-                .OrderByDescending(x => x.Count)
-                .ToList();
-
-            ViewBag.TypeLabels = stats.Select(s => s.Name).ToList();
-            ViewBag.TypeCounts = stats.Select(s => s.Count).ToList();
-
             return View(allForms);
         }
 
-        /// <summary>
-        /// API: Lấy dữ liệu tổng hợp phục vụ biểu đồ động và các con số Dashboard
-        /// </summary>
         [HttpGet("/FormHR/GetDataThongKe")]
         public async Task<IActionResult> GetDataThongKe()
         {
-            var data = await _context.FormHrs
+            var dataRaw = await _context.FormHrs
+                .Include(f => f.HrQuanLyDuyetB2s)
+                .Include(f => f.HrNguoiXacNhans)
                 .AsNoTracking()
                 .Select(x => new
                 {
@@ -3655,69 +3820,75 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     x.IdNguoiDuyet,
                     x.IdAdmin,
                     x.TenForm,
-                    x.TenNguoiNv,
                     x.Danhmuc,
-                    // Logic trạng thái đồng bộ
-                    TrangThaiDon = (x.TenForm ?? "").Contains("[ĐÃ HỦY]") ? "HỦY" :
-                                   (x.IdAdmin != null) ? "HOÀN TẤT" :
-                                   (x.IdNguoiDuyet != null) ? "ĐANG XỬ LÝ" : "CHỜ QL"
+                    // Lấy danh sách trạng thái để tính toán logic tại API
+                    B2States = x.HrQuanLyDuyetB2s.Select(b => b.TrangThaiXacNhan),
+                    GDStates = x.HrNguoiXacNhans.Select(g => g.TrangThaiXacNhan)
                 })
                 .ToListAsync();
 
-            return Json(data);
+            var processedData = dataRaw.Select(x => new
+            {
+                x.Id,
+                x.TenLoaiDon,
+                x.BoPhan,
+                x.Danhmuc,
+                TrangThaiDon = CalculateStatus(x.TenForm, x.IdNguoiDuyet, x.IdAdmin, x.B2States, x.GDStates)
+            });
+
+            return Json(processedData);
         }
 
-        /// <summary>
-        /// API: Thống kê hiệu suất xử lý của từng nhân sự HR phụ trách
-        /// </summary>
         [HttpGet("/FormHR/GetDataNguoiHoTro")]
         public async Task<IActionResult> GetDataNguoiHoTro()
         {
-            // Lấy chi tiết người hỗ trợ, kết nối với bảng người dùng HR và bảng Form chính
             var allDetails = await _context.HrCtNguoiHoTros
                 .AsNoTracking()
                 .Include(x => x.IdHrNguoiHoTroNavigation)
                 .Include(x => x.IdFormHrNavigation)
+                    .ThenInclude(f => f.HrQuanLyDuyetB2s)
+                .Include(x => x.IdFormHrNavigation)
+                    .ThenInclude(f => f.HrNguoiXacNhans)
                 .ToListAsync();
 
             var filteredData = allDetails
                 .GroupBy(x => x.IdFormHr)
                 .Select(group =>
                 {
-                    // Lấy bước xử lý cuối cùng (Người hỗ trợ có Stt lớn nhất)
                     var topSupport = group.OrderByDescending(x => x.Stt).FirstOrDefault();
+                    if (topSupport?.IdFormHrNavigation == null) return null;
 
-                    if (topSupport == null || topSupport.IdFormHrNavigation == null) return null;
-
-                    var form = topSupport.IdFormHrNavigation;
-
-                    // Tính toán thời gian xử lý (từ lúc Quản lý duyệt đến lúc HR Admin hoàn tất)
-                    double? minutes = null;
-                    if (form.TimeAdmin.HasValue && form.TimeNguoiDuyet.HasValue)
-                    {
-                        minutes = (form.TimeAdmin.Value - form.TimeNguoiDuyet.Value).TotalMinutes;
-                    }
+                    var f = topSupport.IdFormHrNavigation;
+                    double? minutes = (f.TimeAdmin.HasValue && f.TimeNguoiDuyet.HasValue)
+                                      ? (f.TimeAdmin.Value - f.TimeNguoiDuyet.Value).TotalMinutes : null;
 
                     return new
                     {
                         TenNguoiHoTro = topSupport.IdHrNguoiHoTroNavigation?.Ten ?? "Chưa xác định",
-                        DanhMuc = form.Danhmuc ?? "N/A",
-                        LoaiDon = GetShortName(form.IdForm),
-                        TrangThai = (form.TenForm ?? "").Contains("[ĐÃ HỦY]") ? "HỦY" :
-                                    (form.IdAdmin != null) ? "HOÀN TẤT" :
-                                    (form.IdNguoiDuyet != null) ? "ĐANG XỬ LÝ" : "CHỜ QL",
+                        DanhMuc = f.Danhmuc ?? "N/A",
+                        TrangThai = CalculateStatus(f.TenForm, f.IdNguoiDuyet, f.IdAdmin,
+                                    f.HrQuanLyDuyetB2s.Select(b => b.TrangThaiXacNhan),
+                                    f.HrNguoiXacNhans.Select(g => g.TrangThaiXacNhan)),
                         PhutXuLy = minutes
                     };
                 })
-                .Where(x => x != null) // Loại bỏ các bản ghi lỗi dữ liệu
+                .Where(x => x != null)
                 .ToList();
 
             return Json(filteredData);
         }
 
-        /// <summary>
-        /// Hàm Helper: Map mã ID Form sang tên hiển thị ngắn gọn trên biểu đồ
-        /// </summary>
+        // Hàm Helper tính toán trạng thái đồng bộ
+        private static string CalculateStatus(string? tenForm, int? idQL, int? idAdmin, IEnumerable<int?> b2, IEnumerable<int?> gd)
+        {
+            if ((tenForm ?? "").Contains("[ĐÃ HỦY]") || b2.Any(v => v == 2) || gd.Any(v => v == 2)) return "ĐÃ HỦY";
+            if (idAdmin != null) return "HOÀN TẤT";
+            if (idQL == null) return "CHỜ QL";
+            if (b2.Any() && !b2.All(v => v == 1)) return "BP XÁC NHẬN";
+            if (gd.Any() && !gd.All(v => v == 1)) return "GIÁM ĐỐC";
+            return "CHỜ ADMIN";
+        }
+
         private static string GetShortName(string? id) => id switch
         {
             "HR_XinRaNgoai_1" => "Ra ngoài",
@@ -3894,209 +4065,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
         #endregion
 
-        #endregion
-
-        #region PHÊ DUYỆT CẤP CAO (GIÁM ĐỐC)
-
-        /// <summary>
-        /// GET: /FormHR/PheDuyetCapCao
-        /// </summary>
-        /// <summary>
-        /// GET: /FormHR/PheDuyetCapCao
-        /// Trang dành cho Ban Giám Đốc hoặc Quản trị cấp cao phê duyệt các loại đơn đặc thù
-        /// </summary>
-        [HttpGet("/FormHR/PheDuyetCapCao")]
-        public async Task<IActionResult> PheDuyetCapCao()
-        {
-            // 1. Kiểm tra xác thực qua Cookie Authentication
-            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
-            {
-                return Redirect("/DonXetDuyet/DangNhap");
-            }
-
-            if (!User.IsInRole("All") && !User.IsInRole("GiamDocHR"))
-            {
-                return Content("Tài khoản của bạn không có quyền truy cập trang phê duyệt cấp cao.");
-            }
-
-            // 4. Lấy thông tin định danh (Dùng Email hoặc MaNV làm định danh người duyệt)
-            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
-                            ?? User.FindFirst("Email")?.Value ?? "";
-
-            if (string.IsNullOrEmpty(userEmail))
-            {
-                return Content("Không xác định được thông tin định danh (Email) người duyệt.");
-            }
-
-            // 5. Lấy danh sách Mã Loại Đơn mà User này được phép xác nhận (Phân quyền theo bảng cấu hình)
-            var dsMaLoaiDon = await _context.DmNguoiXacNhanLoaiDons
-                .Where(rel => rel.IdnguoiXacNhanNavigation.MaNv == userEmail)
-                .Select(rel => rel.IdloaiDonNavigation.MaLoaiDon)
-                .Distinct()
-                .ToListAsync();
-
-            // 6. Khởi tạo Query và nạp dữ liệu liên quan (Eager Loading)
-            IQueryable<FormHr> query = _context.FormHrs
-                .Include(f => f.HrNguoiXacNhans) // Quan trọng: Hiển thị tiến độ xác nhận của hội đồng
-                    .ThenInclude(x => x.IdnguoiXacNhanNavigation)
-                .Include(f => f.BaoVeHrs);      // Quan trọng: Hiển thị trạng thái bảo vệ (nếu đơn ra cổng)
-
-            // 7. PHÂN QUYỀN LỌC DỮ LIỆU
-            if (User.IsInRole("All"))
-            {
-                // Nhóm Quản trị (ALL/ADMIN): Xem tất cả các đơn đã được Quản lý bộ phận duyệt sơ bộ
-                // (Không lọc theo loại đơn, xem được toàn bộ hệ thống)
-                query = query.Where(f => f.IdNguoiDuyet != null);
-            }
-            else
-            {
-                // Nhóm Giám đốc: Chỉ xem những loại đơn mình được phân quyền xác nhận
-                // Và đơn đó phải được Quản lý trực tiếp của nhân viên duyệt trước (IdNguoiDuyet != null)
-                query = query.Where(f => dsMaLoaiDon.Contains(f.IdForm) && f.IdNguoiDuyet != null);
-            }
-
-            // Chỉ lấy những đơn có thiết lập quy trình xác nhận (định tuyến)
-            query = query.Where(f => f.HrNguoiXacNhans != null && f.HrNguoiXacNhans.Any());
-
-            // 8. Thực thi truy vấn và sắp xếp
-            try
-            {
-                var danhSachDon = await query
-                    .OrderByDescending(f => f.Id) // Đơn mới nhất lên đầu
-                    .AsNoTracking()               // Tối ưu hiệu năng đọc dữ liệu
-                    .ToListAsync();
-
-                // Gửi thông tin bổ trợ ra View để xử lý logic ẩn/hiện nút bấm
-                ViewBag.UserEmail = userEmail;
-
-                return View(danhSachDon);
-            }
-            catch (Exception ex)
-            {
-                // Ghi log lỗi nếu cần thiết
-                TempData["Error"] = "Lỗi truy vấn dữ liệu phê duyệt cấp cao: " + ex.Message;
-                return View(new List<FormHr>());
-            }
-        }
-        /// <summary>
-        /// POST: /FormHR/GiamDocPheDuyet
-        /// Giám đốc hoặc Admin phê duyệt/từ chối đơn HR
-        [HttpPost("/FormHR/GiamDocPheDuyet")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> GiamDocPheDuyet([FromBody] System.Text.Json.JsonElement data)
-        {
-            using (var transaction = await _context.Database.BeginTransactionAsync())
-            {
-                try
-                {
-                    // 1. Lấy dữ liệu từ Request
-                    if (!data.TryGetProperty("idForm", out var idFormProp) || !data.TryGetProperty("idNguoiXacNhan", out var idXnProp))
-                    {
-                        return Json(new { success = false, message = "⚠️ Dữ liệu yêu cầu không đầy đủ." });
-                    }
-
-                    int idForm = idFormProp.GetInt32();
-                    int idNguoiXacNhan = idXnProp.GetInt32();
-                    var loaiHanhDong = data.TryGetProperty("loaiHanhDong", out var lh) ? lh.GetString() ?? "" : "";
-                    var lyDo = data.TryGetProperty("lyDo", out var p) ? (p.GetString() ?? "") : "";
-
-                    // 2. Lấy thông tin người thao tác từ Claims
-                    var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value?.Trim() ?? "";
-                    var userName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "N/A";
-                    var phongBan = User.FindFirst("PhongBan")?.Value ?? "N/A";
-
-                    if (string.IsNullOrEmpty(userEmail))
-                        return Json(new { success = false, message = "⚠️ Phiên đăng nhập hết hạn!" });
-
-                    var roles = User.FindAll(System.Security.Claims.ClaimTypes.Role)
-                                    .Select(r => r.Value.Trim().ToUpper())
-                                    .ToList();
-                    var userRoleCustom = User.FindFirst("UserRole")?.Value?.Trim().ToUpper();
-                    if (!string.IsNullOrEmpty(userRoleCustom) && !roles.Contains(userRoleCustom)) roles.Add(userRoleCustom);
-
-                    // 3. Tìm bản ghi người xác nhận và đơn HR liên quan
-                    var xn = await _context.HrNguoiXacNhans
-                        .Include(x => x.IdnguoiXacNhanNavigation)
-                        .Include(x => x.IdFormHrNavigation)
-                        .FirstOrDefaultAsync(x => x.Id == idNguoiXacNhan && x.IdFormHr == idForm);
-
-                    if (xn == null)
-                        return Json(new { success = false, message = "⚠️ Không tìm thấy bản ghi xác nhận trong hệ thống." });
-
-                    var don = xn.IdFormHrNavigation;
-                    if (don == null)
-                        return Json(new { success = false, message = "⚠️ Không tìm thấy thông tin đơn gốc." });
-
-                    // 4. Kiểm tra quyền thực hiện
-                    var assignedMa = (xn.MaNguoiXacNhan ?? "").Trim();
-                    bool isAssignee = !string.IsNullOrEmpty(assignedMa) && string.Equals(userEmail, assignedMa, StringComparison.OrdinalIgnoreCase);
-
-                    bool canAct = roles.Contains("ALL") || roles.Contains("ADMIN") || roles.Contains("GIAMDOCHR")
-                                  || isAssignee
-                                  || string.Equals(userEmail, xn.IdnguoiXacNhanNavigation?.MaNv ?? "", StringComparison.OrdinalIgnoreCase);
-
-                    if (!canAct)
-                        return Json(new { success = false, message = $"🚫 Bạn không có quyền phê duyệt mục này. (Người được gán: {xn.TenNguoiXacNhan ?? "N/A"})" });
-
-                    // 5. Kiểm tra nếu trạng thái đã được xử lý trước đó
-                    if (xn.TrangThaiXacNhan != null && xn.TrangThaiXacNhan != 0)
-                        return Json(new { success = false, message = "⚠️ Mục này đã được xử lý trước đó." });
-
-                    // 6. Cập nhật trạng thái xác nhận
-                    int newTrangThai = loaiHanhDong.Equals("Approve", StringComparison.OrdinalIgnoreCase) ? 1 : 2;
-                    string hanhDongStr = (newTrangThai == 1) ? "Phê duyệt" : "Từ chối";
-                    DateTime now = DateTime.Now;
-
-                    xn.TrangThaiXacNhan = newTrangThai;
-                    xn.ThoiGianXacNhan = now;
-                    xn.GhiChu = string.IsNullOrWhiteSpace(lyDo) ? null : lyDo.Trim();
-
-                    _context.HrNguoiXacNhans.Update(xn);
-
-                    // 7. Xử lý logic hủy đơn nếu Giám đốc từ chối
-                    if (newTrangThai == 2)
-                    {
-                        don.TrangThai = "Huy";
-                        if (don.TenForm != null && !don.TenForm.Contains("[ĐÃ HỦY]"))
-                        {
-                            don.TenForm += " [ĐÃ HỦY]";
-                        }
-                        _context.FormHrs.Update(don);
-                    }
-
-                    // 8. GHI LỊCH SỬ THAO TÁC
-                    var lichSu = new LichSuFormHr
-                    {
-                        IdFormHr = idForm,
-                        TieuDe = $"CẤP CAO {hanhDongStr.ToUpper()}",
-                        Mota = $"Nhân sự thực hiện: {userName} ({userEmail}). " +
-                               $"Bộ phận: {phongBan}. " +
-                               $"Nội dung: Đã {hanhDongStr.ToLower()} yêu cầu xác nhận cấp cao. " +
-                               $"Ghi chú: {(string.IsNullOrWhiteSpace(lyDo) ? "Không có" : lyDo)}",
-                        Time = now,
-                        IsRead = false
-                    };
-                    _context.LichSuFormHrs.Add(lichSu);
-
-                    // 9. Lưu thay đổi và Hoàn tất Transaction
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    return Json(new
-                    {
-                        success = true,
-                        message = $"✅ Đã {hanhDongStr.ToLower()} thành công",
-                        trangThai = newTrangThai,
-                        thoiGian = now.ToString("HH:mm dd/MM/yyyy")
-                    });
-                }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync();
-                    return Json(new { success = false, message = "❌ Lỗi hệ thống: " + ex.Message });
-                }
-            }
-        }
         #endregion
 
         #region LỊCH SỬ VÀ THÔNG BÁO FORM HR (PHÂN TÁCH ALL & GIAMDOCHR)
