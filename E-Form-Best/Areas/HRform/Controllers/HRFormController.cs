@@ -4199,10 +4199,10 @@ namespace E_Form_Best.Areas.HRform.Controllers
             if (string.IsNullOrEmpty(userIdStr)) return RedirectToAction("DangNhap", "DonXetDuyet");
 
             int userId = int.Parse(userIdStr);
-            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+            var userEmail = (User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "").Trim().ToLower();
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
-            // 2. Khởi tạo Query cơ bản
+            // 2. Khởi tạo Query cơ bản (Bổ sung Include B2)
             var query = _context.LichSuFormHrs
                 .Include(l => l.IdFormHrNavigation)
                     .ThenInclude(f => f.HrNguoiXacNhans)
@@ -4210,17 +4210,18 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     .ThenInclude(f => f.HrCtNguoiHoTros)
                         .ThenInclude(ct => ct.IdHrNguoiHoTroNavigation)
                 .Include(l => l.IdFormHrNavigation)
+                    .ThenInclude(f => f.HrQuanLyDuyetB2s) // QUAN TRỌNG: Include để lọc B2
+                .Include(l => l.IdFormHrNavigation)
                     .ThenInclude(f => f.BaoVeHrs)
                 .AsQueryable();
 
-            // 3. Logic phân quyền (Sử dụng User.IsInRole)
+            // 3. Logic phân quyền (Giữ nguyên các Role cũ và bổ sung điều kiện B2)
             if (User.IsInRole("All"))
             {
-                // [All]: Xem tất cả lịch sử (không lọc công ty)
+                // [All]: Xem tất cả
             }
             else if (User.IsInRole("GiamDocHR"))
             {
-                // [GiamDocHR]: Xem xuyên công ty nhưng có ràng buộc xác nhận/duyệt
                 query = query.Where(l =>
                     l.IdFormHrNavigation.HrNguoiXacNhans.Any() &&
                     l.IdFormHrNavigation.IdNguoiDuyet != null
@@ -4228,7 +4229,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
             }
             else if (User.IsInRole("BaoVeHR"))
             {
-                // [BaoVeHR]: Xem xuyên công ty những đơn có Bảo vệ tham gia
                 query = query.Where(l =>
                     l.IdFormHrNavigation.BaoVeHrs.Any() &&
                     l.IdFormHrNavigation.IdAdmin != null
@@ -4236,7 +4236,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             }
             else
             {
-                // [Các quyền còn lại]: Lọc theo công ty
+                // Lọc theo công ty cho các quyền còn lại
                 if (!string.IsNullOrEmpty(tenCongTy))
                 {
                     query = query.Where(l => l.IdFormHrNavigation.TenCongTy == tenCongTy);
@@ -4254,15 +4254,21 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 {
                     query = query.Where(l =>
                         l.IdFormHrNavigation.IdNguoiTao == userId ||
-                        l.IdFormHrNavigation.IdNguoiDuyet == userId
+                        l.IdFormHrNavigation.IdNguoiDuyet == userId ||
+                        // Bổ sung: Người duyệt B2 cũng được xem khi Quản lý đã duyệt
+                        (l.IdFormHrNavigation.IdNguoiDuyet != null &&
+                         l.IdFormHrNavigation.HrQuanLyDuyetB2s.Any(b2 => b2.IdnguoiXacNhan == userId || (b2.MaNguoiXacNhan != null && b2.MaNguoiXacNhan.ToLower() == userEmail)))
                     );
                 }
                 else
                 {
-                    // User thường
+                    // User thường + Người hỗ trợ + Người duyệt B2
                     query = query.Where(l =>
                         l.IdFormHrNavigation.IdNguoiTao == userId ||
-                        l.IdFormHrNavigation.HrCtNguoiHoTros.Any(ct => ct.IdHrNguoiHoTroNavigation.MaNv == userEmail)
+                        l.IdFormHrNavigation.HrCtNguoiHoTros.Any(ct => ct.IdHrNguoiHoTroNavigation.MaNv == userEmail) ||
+                        // Bổ sung: Logic cho B2 ở tầng User thường
+                        (l.IdFormHrNavigation.IdNguoiDuyet != null &&
+                         l.IdFormHrNavigation.HrQuanLyDuyetB2s.Any(b2 => b2.IdnguoiXacNhan == userId || (b2.MaNguoiXacNhan != null && b2.MaNguoiXacNhan.ToLower() == userEmail)))
                     );
                 }
             }
@@ -4270,7 +4276,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
             var logs = await query.OrderByDescending(l => l.Time).AsNoTracking().ToListAsync();
             return View(logs);
         }
-
         [HttpGet("/FormHR/GetNotificationsHR")]
         public async Task<IActionResult> GetNotificationsHR(int skip = 0, int take = 20)
         {
@@ -4278,7 +4283,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
             int userId = int.Parse(userIdStr);
-            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+            var userEmail = (User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "").Trim().ToLower();
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
             var query = _context.LichSuFormHrs
@@ -4288,10 +4293,12 @@ namespace E_Form_Best.Areas.HRform.Controllers
                    .ThenInclude(f => f.HrCtNguoiHoTros)
                        .ThenInclude(ct => ct.IdHrNguoiHoTroNavigation)
                .Include(l => l.IdFormHrNavigation)
+                   .ThenInclude(f => f.HrQuanLyDuyetB2s) // Include B2
+               .Include(l => l.IdFormHrNavigation)
                    .ThenInclude(f => f.BaoVeHrs)
                .AsQueryable();
 
-            // --- ĐỒNG BỘ LOGIC VỚI LOGLICSU ---
+            // --- ĐỒNG BỘ LOGIC VỚI LOGLICSU (Bổ sung phần B2) ---
             if (User.IsInRole("All")) { }
             else if (User.IsInRole("GiamDocHR"))
             {
@@ -4324,13 +4331,22 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 }
                 else if (User.IsInRole("QuanLyDuyetDonHR"))
                 {
-                    query = query.Where(l => l.IdFormHrNavigation.IdNguoiTao == userId || l.IdFormHrNavigation.IdNguoiDuyet == userId);
+                    query = query.Where(l =>
+                        l.IdFormHrNavigation.IdNguoiTao == userId ||
+                        l.IdFormHrNavigation.IdNguoiDuyet == userId ||
+                        // Bổ sung cho người duyệt B2
+                        (l.IdFormHrNavigation.IdNguoiDuyet != null &&
+                         l.IdFormHrNavigation.HrQuanLyDuyetB2s.Any(b2 => b2.IdnguoiXacNhan == userId || (b2.MaNguoiXacNhan != null && b2.MaNguoiXacNhan.ToLower() == userEmail)))
+                    );
                 }
                 else
                 {
                     query = query.Where(l =>
                         l.IdFormHrNavigation.IdNguoiTao == userId ||
-                        l.IdFormHrNavigation.HrCtNguoiHoTros.Any(ct => ct.IdHrNguoiHoTroNavigation.MaNv == userEmail)
+                        l.IdFormHrNavigation.HrCtNguoiHoTros.Any(ct => ct.IdHrNguoiHoTroNavigation.MaNv == userEmail) ||
+                        // Bổ sung cho người duyệt B2
+                        (l.IdFormHrNavigation.IdNguoiDuyet != null &&
+                         l.IdFormHrNavigation.HrQuanLyDuyetB2s.Any(b2 => b2.IdnguoiXacNhan == userId || (b2.MaNguoiXacNhan != null && b2.MaNguoiXacNhan.ToLower() == userEmail)))
                     );
                 }
             }
