@@ -72,8 +72,7 @@
 
                 <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 700;">Cá nhân & Đăng ký</div>
 
-                @if (User.Identity.IsAuthenticated && (currentUserRole == "NhanVien" || currentUserRole == "QuanLy" || currentUserRole == "QuanLyDuyetDonHR" || currentUserRole == "AdminHR" || currentUserRole == "Admin" || currentUserRole == "All"))
-                {
+                
                     <div id="btnRegistrationMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-radius: 12px; color: #fff; font-weight: 600; margin-bottom: 4px; transition: 0.3s; background: @(isSubPageActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
                         <span style="display:flex; align-items:center;">
                             <i class="fa fa-pencil-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i> Đăng ký mẫu đơn
@@ -128,16 +127,30 @@
                     <a href="/FormHR/LichSuHR" style="display: flex; align-items: center; padding: 14px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; transition: 0.3s; background: @(currentAction == "LichSuHR" ? "rgba(255,255,255,0.2)" : "transparent"); margin-bottom: 2px;">
                         <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> Nhật ký hệ thống
                     </a>
-                }
- @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonHR") || User.IsInRole("All")))
-                {
-                    <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-                    <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Phê duyệt</div>
+                
+@if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonHR") || User.IsInRole("All")))
+{
+    <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
+    <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Phê duyệt</div>
 
-                    <a href="/FormHR/QuanLyXetDuyet" style="display: flex; align-items: center; padding: 14px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; transition: 0.3s; background: @(currentAction == "QuanLyXetDuyet" ? "rgba(255,255,255,0.2)" : "transparent");">
-                        <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> Quản lý xét duyệt
-                    </a>
-                }
+    <a href="/FormHR/QuanLyXetDuyet" style="display: flex; align-items: center; padding: 14px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; transition: 0.3s; background: @(currentAction == "QuanLyXetDuyet" ? "rgba(255,255,255,0.2)" : "transparent");">
+        <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> Quản lý xét duyệt
+    </a>
+}
+
+@if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonHR_B2") || User.IsInRole("All")))
+{
+    @* Nếu đã hiển thị tiêu đề "Phê duyệt" ở trên rồi thì có thể cân nhắc ẩn bớt đường kẻ nếu 2 mục nằm gần nhau *@
+    @if (!(User.IsInRole("QuanLyDuyetDonHR")))
+    {
+        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
+        <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Phê duyệt B2</div>
+    }
+
+    <a href="/FormHR/QuanLyXetDuyetB2" style="display: flex; align-items: center; padding: 14px 18px; border-radius: 12px; color: #fff; text-decoration: none; font-weight: 600; transition: 0.3s; background: @(currentAction == "QuanLyXetDuyetB2" ? "rgba(255,255,255,0.2)" : "transparent");">
+        <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#63b3ed;"></i> Quản lý xét duyệt B2
+    </a>
+}
 
               @* --- PHẦN QUẢN TRỊ HR (Dành cho AdminHR và All) --- *@
 @if (User.Identity.IsAuthenticated && (User.IsInRole("AdminHR") || User.IsInRole("All") ))
@@ -177,8 +190,14 @@
     var currentUrl = ViewContext.HttpContext.Request.Path.ToString().ToUpper();
     
     // Kiểm tra nếu User có một trong các quyền bảo vệ hoặc quản trị
-@if (User.Identity.IsAuthenticated && (User.IsInRole("GiamDocHR") || User.IsInRole("All")|| User.IsInRole("BaoVeHR")))    {
-        <div style="height:1px; background:linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.12), rgba(255,255,255,0)); margin:20px 10px;"></div>
+@if (User.Identity.IsAuthenticated && (
+    User.IsInRole("GiamDocHR") || 
+    User.IsInRole("All") || 
+    User.IsInRole("BaoVeHR") || 
+    User.IsInRole("AdminHR") || 
+    User.IsInRole("QuanLyDuyetDonHR_B2")
+))
+{        <div style="height:1px; background:linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.12), rgba(255,255,255,0)); margin:20px 10px;"></div>
         
         <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.8px; margin: 0 0 12px 15px; font-weight: 800;">
             AN NINH & CỔNG

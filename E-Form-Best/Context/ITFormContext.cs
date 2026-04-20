@@ -337,6 +337,8 @@ public partial class ITFormContext : DbContext
         modelBuilder.Entity<HrQuanLyDuyetB2>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__HR_QuanL__3213E83FD6554556");
+
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrQuanLyDuyetB2s).HasConstraintName("FK_HR_QuanLyDuyetB2_FormHR");
         });
 
         modelBuilder.Entity<HrXinRaNgoai1>(entity =>

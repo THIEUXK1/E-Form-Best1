@@ -104,7 +104,7 @@
                         <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> Nhật ký hệ thống
                     </a>
 
-                    @if (currentUserRole == "QuanLy" || currentUserRole == "Admin" || currentUserRole == "All")
+                    @if (User.IsInRole("QuanLyDuyetDonIT") || User.IsInRole("All"))
                     {
                         <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
                         <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Phê duyệt</div>
@@ -114,7 +114,7 @@
                         </a>
                     }
 
-                    @if (isITSystem && (currentUserRole == "Admin" || currentUserRole == "All") && phongBan.Contains("Phòng thông tin"))
+                    @if (User.IsInRole("AdminIT") || User.IsInRole("All"))
                     {
                         <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
                         <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị IT</div>

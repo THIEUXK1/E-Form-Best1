@@ -11,6 +11,8 @@
 
     var daHuy = Model?.Count(x => (x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
     var choQLDuyet = activeList.Count(x => x.IdNguoiDuyet == null);
+    
+    // Đang xử lý bao gồm các bước trung gian (B2, GĐ, Admin)
     var dangXuLy = activeList.Count(x => x.IdNguoiDuyet != null && x.IdAdmin == null);
     var hoanTat = activeList.Count(x => x.IdAdmin != null);
 
@@ -33,7 +35,7 @@
         text-transform: uppercase;
         white-space: nowrap;
         display: inline-block;
-        min-width: 80px;
+        min-width: 90px;
     }
 
     .sub-status-badge {
@@ -74,8 +76,8 @@
             <span style="font-size: 11px; color: #b45309; font-weight: 800;">CHỜ QL DUYỆT</span>
             <span style="font-size: 20px; font-weight: 900; color: #d97706;">@choQLDuyet</span>
         </div>
-        <div onclick="filterByStatus('ADMIN')" class="stat-card" style="@statBox border-left: 5px solid #2563eb;">
-            <span style="font-size: 11px; color: #1e40af; font-weight: 800;">CHỜ ADMIN</span>
+        <div onclick="filterByStatus('XỬ LÝ')" class="stat-card" style="@statBox border-left: 5px solid #2563eb;">
+            <span style="font-size: 11px; color: #1e40af; font-weight: 800;">ĐANG XỬ LÝ</span>
             <span style="font-size: 20px; font-weight: 900; color: #2563eb;">@dangXuLy</span>
         </div>
         <div onclick="filterByStatus('XONG')" class="stat-card" style="@statBox border-left: 5px solid #10b981;">
@@ -83,7 +85,7 @@
             <span style="font-size: 20px; font-weight: 900; color: #059669;">@hoanTat</span>
         </div>
         <div onclick="filterByStatus('HỦY')" class="stat-card" style="@statBox border-left: 5px solid #ef4444;">
-            <span style="font-size: 11px; color: #991b1b; font-weight: 800;">ĐÃ HỦY</span>
+            <span style="font-size: 11px; color: #991b1b; font-weight: 800;">ĐÃ HỦY/TỪ CHỐI</span>
             <span style="font-size: 20px; font-weight: 900; color: #dc2626;">@daHuy</span>
         </div>
     </div>
@@ -97,7 +99,7 @@
                     <th style="padding: 15px; text-align: left; color: #64748b; font-weight: 800;">NỘI DUNG YÊU CẦU</th>
                     <th style="padding: 15px; text-align: left; color: #64748b; font-weight: 800; width: 160px;">NGƯỜI HỖ TRỢ</th>
                     <th style="padding: 15px; text-align: left; color: #64748b; font-weight: 800; width: 160px;">THỜI GIAN</th>
-                    <th style="padding: 15px; text-align: center; color: #64748b; font-weight: 800; width: 150px;">TRẠNG THÁI</th>
+                    <th style="padding: 15px; text-align: center; color: #64748b; font-weight: 800; width: 160px;">TRẠNG THÁI</th>
                     <th style="padding: 15px; text-align: center; width: 60px;"></th>
                 </tr>
             </thead>
@@ -106,15 +108,27 @@
                 {
                     foreach (var item in Model)
                     {
+                        // 1. Logic kiểm tra các bước
                         bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]");
                         bool isFinished = item.IdAdmin != null;
                         bool isManagerApproved = item.IdNguoiDuyet != null;
 
+                        // Kiểm tra bảng B2 (Bộ phận xác nhận)
+                        bool hasB2 = item.HrQuanLyDuyetB2s != null && item.HrQuanLyDuyetB2s.Any();
+                        bool isB2Approved = hasB2 && item.HrQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
+                        bool isB2Rejected = hasB2 && item.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 2);
+
+                        // Kiểm tra bảng NguoiXacNhan (Giám đốc duyệt)
+                        bool hasGD = item.HrNguoiXacNhans != null && item.HrNguoiXacNhans.Any();
+                        bool isGDApproved = hasGD && item.HrNguoiXacNhans.All(x => x.TrangThaiXacNhan == 1);
+                        bool isGDRejected = hasGD && item.HrNguoiXacNhans.Any(x => x.TrangThaiXacNhan == 2);
+
                         string statusText, bgColor, fgColor, progressWidth, progressColor;
 
-                        if (isCancelled)
+                        // 2. Phân loại trạng thái hiển thị
+                        if (isCancelled || isB2Rejected || isGDRejected)
                         {
-                            statusText = "HỦY BỎ"; bgColor = "#fef2f2"; fgColor = "#b91c1c";
+                            statusText = "HỦY/TỪ CHỐI"; bgColor = "#fef2f2"; fgColor = "#b91c1c";
                             progressWidth = "100%"; progressColor = "#ef4444";
                         }
                         else if (isFinished)
@@ -122,18 +136,27 @@
                             statusText = "XONG"; bgColor = "#ecfdf5"; fgColor = "#047857";
                             progressWidth = "100%"; progressColor = "#10b981";
                         }
-                        else if (isManagerApproved)
+                        else if (!isManagerApproved)
                         {
-                            statusText = "ADMIN"; bgColor = "#eff6ff"; fgColor = "#1e40af";
-                            progressWidth = "66%"; progressColor = "#2563eb";
+                            statusText = "QUẢN LÝ"; bgColor = "#fffbeb"; fgColor = "#b45309";
+                            progressWidth = "20%"; progressColor = "#f59e0b";
+                        }
+                        else if (hasB2 && !isB2Approved)
+                        {
+                            statusText = "BP XÁC NHẬN"; bgColor = "#f0f9ff"; fgColor = "#0369a1";
+                            progressWidth = "40%"; progressColor = "#0ea5e9";
+                        }
+                        else if (hasGD && !isGDApproved)
+                        {
+                            statusText = "GIÁM ĐỐC"; bgColor = "#fdf4ff"; fgColor = "#86198f";
+                            progressWidth = "60%"; progressColor = "#d946ef";
                         }
                         else
                         {
-                            statusText = "QUẢN LÝ"; bgColor = "#fffbeb"; fgColor = "#b45309";
-                            progressWidth = "33%"; progressColor = "#f59e0b";
+                            statusText = "ADMIN"; bgColor = "#eff6ff"; fgColor = "#1e40af";
+                            progressWidth = "85%"; progressColor = "#2563eb";
                         }
 
-                        // Lấy người hỗ trợ HR
                         var lastSupportHr = item.HrCtNguoiHoTros?.OrderByDescending(x => x.Stt).FirstOrDefault();
                         string supportName = lastSupportHr?.IdHrNguoiHoTroNavigation?.Ten ?? "Chờ phân công";
 
@@ -144,25 +167,23 @@
                                 <div style="font-size: 11px; color: #64748b; margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                                     <span><i class="fa fa-tag"></i> @(item.Danhmuc ?? "Biểu mẫu HR")</span>
 
-                                    @if (item.HrNguoiXacNhans != null && item.HrNguoiXacNhans.Any())
+                                    @* Chi tiết BP Xác nhận B2 *@
+                                    @if (hasB2)
                                     {
-                                        var listXN = item.HrNguoiXacNhans.ToList();
-                                        int countAll = listXN.Count;
-                                        int countDone = listXN.Count(x => x.TrangThaiXacNhan == 1);
-                                        
-                                        string xnText = "CHỜ XN"; string xnColor = "#f59e0b"; string xnIcon = "fa-hourglass-half";
+                                        int b2Done = item.HrQuanLyDuyetB2s.Count(x => x.TrangThaiXacNhan == 1);
+                                        int b2Total = item.HrQuanLyDuyetB2s.Count();
+                                        <span class="sub-status-badge" style="background: #f0f9ff; color: #0369a1; border-color: #bae6fd;">
+                                            <i class="fa fa-users"></i> BP.XN (@b2Done/@b2Total)
+                                        </span>
+                                    }
 
-                                        if (listXN.Any(x => x.TrangThaiXacNhan == 2))
-                                        {
-                                            xnText = "TỪ CHỐI XN"; xnColor = "#ef4444"; xnIcon = "fa-times-circle";
-                                        }
-                                        else if (listXN.All(x => x.TrangThaiXacNhan == 1))
-                                        {
-                                            xnText = "ĐÃ XÁC NHẬN"; xnColor = "#10b981"; xnIcon = "fa-check-double";
-                                        }
-
-                                        <span class="sub-status-badge" style="background: @(xnColor)15; color: @xnColor; border-color: @xnColor;">
-                                            <i class="fa @xnIcon"></i> @xnText (@countDone/@countAll)
+                                    @* Chi tiết Giám đốc xác nhận *@
+                                    @if (hasGD)
+                                    {
+                                        int gdDone = item.HrNguoiXacNhans.Count(x => x.TrangThaiXacNhan == 1);
+                                        int gdTotal = item.HrNguoiXacNhans.Count();
+                                        <span class="sub-status-badge" style="background: #fdf4ff; color: #86198f; border-color: #f5d0fe;">
+                                            <i class="fa fa-briefcase"></i> GĐ (@gdDone/@gdTotal)
                                         </span>
                                     }
 
@@ -199,7 +220,7 @@
                                 <span class="status-badge" style="background: @bgColor; color: @fgColor; border-color: @fgColor;">
                                     @statusText
                                 </span>
-                                <div style="width: 80px; height: 5px; background: #e2e8f0; border-radius: 10px; margin: 8px auto 0; overflow: hidden; border: 1px solid #f1f5f9;">
+                                <div style="width: 100px; height: 5px; background: #e2e8f0; border-radius: 10px; margin: 8px auto 0; overflow: hidden; border: 1px solid #f1f5f9;">
                                     <div style="width: @progressWidth; height: 100%; background: @progressColor; transition: 0.5s ease;"></div>
                                 </div>
                             </td>
