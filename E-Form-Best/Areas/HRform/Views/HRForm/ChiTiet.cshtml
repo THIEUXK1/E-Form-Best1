@@ -196,7 +196,16 @@
             && (x.TrangThaiXacNhan ?? 0) == 0);
     int soNguoiDaDuyet = danhSachXacNhan.Count(x => x.TrangThaiXacNhan == 1);
 
-    // ── 7. BẢO VỆ ──
+    // ── 7. DỮ LIỆU BƯỚC 2 (HrQuanLyDuyetB2) ──
+    var danhSachB2 = ViewBag.DanhSachB2 as List<E_Form_Best.Models.ITForm.HrQuanLyDuyetB2>
+                    ?? (Model.HrQuanLyDuyetB2s?.OrderBy(x => x.ThuTuXacNhan).ToList() ?? new List<E_Form_Best.Models.ITForm.HrQuanLyDuyetB2>());
+    var myB2Pending = danhSachB2.FirstOrDefault(x =>
+        (string.Equals(x.MaNguoiXacNhan ?? "", userEmailView, StringComparison.OrdinalIgnoreCase)
+         || x.IdnguoiXacNhan == currentUserId)
+        && (x.TrangThaiXacNhan ?? 0) == 0);
+    int soNguoiB2DaDuyet = danhSachB2.Count(x => x.TrangThaiXacNhan == 1);
+
+    // ── 8. BẢO VỆ ──
     var baoVeRecord = ViewBag.BaoVeRecord as E_Form_Best.Models.ITForm.BaoVeHr;
     bool daBaoVe = baoVeRecord != null;
     bool baoVeHoanTat = baoVeRecord?.TrangThai == 1;
@@ -289,7 +298,7 @@
                         }
                     </div>
 
-                    @* ✅ SỬA: Chỉ All và AdminHR mới thấy block chỉ định người hỗ trợ *@
+                    @* Chỉ All và AdminHR mới thấy block chỉ định người hỗ trợ *@
                     @if ((User.IsInRole("All") || User.IsInRole("AdminHR")) && !isCancelled && !isFinished)
                     {
                         <div style="background:#fff7ed;border:2px dashed #fb923c;padding:25px;border-radius:24px;margin-bottom:45px;">
@@ -407,6 +416,54 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- BƯỚC 2 — DANH SÁCH DUYỆT -->
+                    @if (danhSachB2.Any())
+                    {
+                        <div style="background:#fff;border-radius:28px;border:1px solid #e9d5ff;overflow:hidden;margin-bottom:25px;box-shadow:0 8px 12px rgba(124,58,237,0.04);">
+                            <div style="background:linear-gradient(135deg,#faf5ff,#f3e8ff);padding:14px 18px;border-bottom:2px solid #e9d5ff;">
+                                <h4 style="margin:0;font-size:15px;font-weight:900;color:#6b21a8;display:flex;align-items:center;gap:10px;">
+                                    <i class="fa fa-users"></i> BƯỚC 2 — DANH SÁCH DUYỆT
+                                    <span style="margin-left:auto;background:#7c3aed;color:white;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:800;">
+                                        @soNguoiB2DaDuyet / @danhSachB2.Count đã duyệt
+                                    </span>
+                                </h4>
+                            </div>
+                            <div style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;">
+                                @foreach (var b2 in danhSachB2)
+                                {
+                                    int tt = b2.TrangThaiXacNhan ?? 0;
+                                    string statusTextB2 = tt == 1 ? "ĐÃ DUYỆT" : tt == 2 ? "TỪ CHỐI" : "CHỜ DUYỆT";
+                                    string statusColorB2 = tt == 1 ? "#059669" : tt == 2 ? "#dc2626" : "#7c3aed";
+                                    <div data-b2-id="@b2.Id" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:12px;border:1px solid #f1ecff;background:#fff;">
+                                        <div>
+                                            <div style="font-weight:800;color:#1f2937;">@b2.TenNguoiXacNhan</div>
+                                            <div style="font-size:12px;color:#6b7280;margin-top:4px;">Thứ tự: @b2.ThuTuXacNhan &nbsp;·&nbsp; @b2.MaNguoiXacNhan</div>
+                                            @if (b2.ThoiGianXacNhan.HasValue)
+                                            {
+                                                <div style="font-size:12px;color:#94a3b8;margin-top:6px;">@b2.ThoiGianXacNhan.Value.ToString("HH:mm dd/MM/yyyy")</div>
+                                            }
+                                            @if (!string.IsNullOrEmpty(b2.GhiChu))
+                                            {
+                                                <div style="margin-top:6px;font-size:13px;color:#374151;"><i class="fa fa-comment"></i> @b2.GhiChu</div>
+                                            }
+                                        </div>
+                                        <div style="text-align:right;min-width:160px;">
+                                            <div style="display:inline-block;background:@statusColorB2;color:white;padding:6px 10px;border-radius:10px;font-weight:800;font-size:12px;">@statusTextB2</div>
+                                            @if ((string.Equals(b2.MaNguoiXacNhan ?? "", userEmailView, StringComparison.OrdinalIgnoreCase) || b2.IdnguoiXacNhan == currentUserId)
+                                                  && (b2.TrangThaiXacNhan ?? 0) == 0 && !isCancelled && !isFinished)
+                                            {
+                                                <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end;">
+                                                    <button onclick="duyetB2(@b2.Id, 'Approve')" style="background:#059669;color:white;border:none;padding:8px 12px;border-radius:8px;font-weight:800;">Duyệt</button>
+                                                    <button onclick="duyetB2(@b2.Id, 'Reject')" style="background:white;color:#dc2626;border:2px solid #dc2626;padding:8px 12px;border-radius:8px;font-weight:800;">Từ chối</button>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
 
                     <!-- BLOCK XÁC NHẬN GIÁM ĐỐC -->
                     @if (danhSachXacNhan.Any())
@@ -668,7 +725,7 @@
     const formId        = @Model.Id;
     const currentUserId = '@currentUserId';
     const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                            User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
+                                                                                                                                                                                                                                                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
     const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
     function hasRole(r) { return userRoles.includes(r); }
@@ -698,6 +755,29 @@
     function openZoom(src) { document.getElementById('fullImage').src=src; document.getElementById('imageOverlay').style.display='flex'; document.body.style.overflow='hidden'; }
     function closeZoom()   { document.getElementById('imageOverlay').style.display='none'; document.body.style.overflow='auto'; }
     document.addEventListener('keydown', e => { if (e.key==='Escape') closeZoom(); });
+
+    // ── DUYỆT BƯỚC 2 (B2) ──
+    async function duyetB2(idRecord, action) {
+        const ghiChu = prompt('Ghi chú (tùy chọn):', '') || '';
+        if (!confirm('Xác nhận ' + (action === 'Approve' ? 'duyệt' : 'từ chối') + ' bước này?')) return;
+        try {
+            const res = await fetch('/FormHR/DuyetB2', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': TOKEN },
+                // include idB2 so server verifies assigned record
+                body: JSON.stringify({ idB2: idRecord, idForm: formId, loaiHanhDong: action, ghiChu })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message || 'Thành công');
+                location.reload();
+            } else {
+                alert(data.message || 'Thất bại');
+            }
+        } catch (err) {
+            alert('Lỗi kết nối: ' + err.message);
+        }
+    }
 
     // ── GIÁM ĐỐC XÁC NHẬN ──
     async function giamDocXacNhan(idXacNhan, action) {
@@ -751,7 +831,7 @@
             apiPost('/FormHR/XacNhanHoanThanh', { id:formId }, ['btnHoanThanh']);
     }
 
-    // ✅ SỬA: changeSupporter — chỉ All và AdminHR
+    // change supporter
     function changeSupporter() {
         const select = document.getElementById('selectHR');
         const maNv   = select?.value;
@@ -763,7 +843,7 @@
             apiPost('/FormHR/ThemNguoiHoTro', { idFormHr:formId, maNv });
     }
 
-    // ── ĐẨY SANG BẢO VỆ ──
+    // ĐẨY SANG BẢO VỆ
     async function dayDenBaoVe() {
         if (!hasRole('All') && !hasRole('AdminHR') && !hasRole('BaoVeHR') && !hasRole('QuanLyDuyetDonHR'))
             return alert('Bạn không có quyền thực hiện thao tác này!');
@@ -778,7 +858,7 @@
         } catch(err) { alert('Lỗi kết nối: '+err.message); if(btn) { btn.disabled=false; btn.innerHTML='<i class="fa fa-shield"></i> ĐẨY SANG BẢO VỆ'; } }
     }
 
-    // ── BẢO VỆ XÁC NHẬN HOÀN TẤT ──
+    // BẢO VỆ XÁC NHẬN HOÀN TẤT
     async function baoVeXacNhan(idBaoVe) {
         if (!hasRole('All') && !hasRole('BaoVeHR'))
             return alert('Bạn không có quyền xác nhận!');
@@ -794,7 +874,7 @@
         } catch(err) { alert('Lỗi kết nối: '+err.message); if(btn) { btn.disabled=false; btn.innerHTML='<i class="fa fa-check-circle"></i> XÁC NHẬN HOÀN TẤT'; } }
     }
 
-    // ── BÌNH LUẬN ──
+    // BÌNH LUẬN (giữ nguyên)
     let currentSkipComment=0, hasMoreComments=true, isLoadingComments=false, totalComments=0, isSubmitting=false;
     const takeComment = 20;
 

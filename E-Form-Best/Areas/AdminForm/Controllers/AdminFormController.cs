@@ -1316,10 +1316,10 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             if (!IsLoggedIn()) return RedirectToAction("Login", "Account");
 
             // Load dữ liệu cho các Dropdownlist trong View
-            ViewBag.BoPhan = await _context.DmBoPhans.Where(x => x.TrangThai == true).OrderBy(x => x.TenBoPhan).ToListAsync();
-            ViewBag.LoaiDon = await _context.DmLoaiDons.Where(x => x.TrangThai == true).OrderBy(x => x.TenLoaiDon).ToListAsync();
-            ViewBag.CongTy = await _context.DmCongTies.Where(x => x.TrangThai == true).OrderBy(x => x.TenCongTy).ToListAsync();
-            ViewBag.NguoiXacNhan = await _context.DmNguoiXacNhans.Where(x => x.TrangThai == true).OrderBy(x => x.HoTen).ToListAsync();
+            ViewBag.BoPhan = await _context.DmBoPhans.AsNoTracking().Where(x => x.TrangThai == true).OrderBy(x => x.TenBoPhan).ToListAsync();
+            ViewBag.LoaiDon = await _context.DmLoaiDons.AsNoTracking().Where(x => x.TrangThai == true).OrderBy(x => x.TenLoaiDon).ToListAsync();
+            ViewBag.CongTy = await _context.DmCongTies.AsNoTracking().Where(x => x.TrangThai == true).OrderBy(x => x.TenCongTy).ToListAsync();
+            ViewBag.NguoiXacNhan = await _context.DmNguoiXacNhans.AsNoTracking().Where(x => x.TrangThai == true).OrderBy(x => x.HoTen).ToListAsync();
 
             return View();
         }
@@ -1333,10 +1333,6 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         {
             var data = await _context.DmNguoiDuyetLoaiDonBoPhans
                 .AsNoTracking()
-                .Include(x => x.IdcongTyNavigation)
-                .Include(x => x.IdboPhanNavigation)
-                .Include(x => x.IdloaiDonNavigation)
-                .Include(x => x.IdnguoiXacNhanNavigation)
                 .Select(x => new {
                     x.Id,
                     x.Stt,
@@ -1364,15 +1360,28 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         {
             try
             {
+                // 1. Kiểm tra trùng lặp (Logic Business)
+                var isDuplicate = await _context.DmNguoiDuyetLoaiDonBoPhans
+                    .AnyAsync(x => x.Id != model.Id &&
+                                   x.IdcongTy == model.IdcongTy &&
+                                   x.IdloaiDon == model.IdloaiDon &&
+                                   x.IdboPhan == model.IdboPhan &&
+                                   x.Stt == model.Stt);
+
+                if (isDuplicate)
+                    return Json(new { success = false, message = "Cấu hình này đã tồn tại (Trùng Công ty, Loại đơn, Bộ phận và STT)!" });
+
                 if (model.Id == 0)
                 {
+                    // Thêm mới
                     model.NgayTao = DateTime.Now;
                     _context.DmNguoiDuyetLoaiDonBoPhans.Add(model);
                 }
                 else
                 {
+                    // Cập nhật
                     var upd = await _context.DmNguoiDuyetLoaiDonBoPhans.FindAsync(model.Id);
-                    if (upd == null) return Json(new { success = false, message = "Không tìm thấy dữ liệu!" });
+                    if (upd == null) return Json(new { success = false, message = "Không tìm thấy dữ liệu để cập nhật!" });
 
                     upd.Stt = model.Stt;
                     upd.IdloaiDon = model.IdloaiDon;
@@ -1382,10 +1391,14 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                     upd.GhiChu = model.GhiChu;
                     upd.TrangThai = model.TrangThai;
                 }
+
                 await _context.SaveChangesAsync();
-                return Json(new { success = true });
+                return Json(new { success = true, message = "Lưu dữ liệu thành công!" });
             }
-            catch (Exception ex) { return Json(new { success = false, message = "Lỗi: " + ex.Message }); }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.InnerException?.Message ?? ex.Message });
+            }
         }
 
         [HttpPost("/HR_QuanLyDuyetB2/Delete/{id}")]
@@ -1395,11 +1408,12 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             {
                 var item = await _context.DmNguoiDuyetLoaiDonBoPhans.FindAsync(id);
                 if (item == null) return Json(new { success = false, message = "Không tìm thấy dữ liệu!" });
+
                 _context.DmNguoiDuyetLoaiDonBoPhans.Remove(item);
                 await _context.SaveChangesAsync();
-                return Json(new { success = true });
+                return Json(new { success = true, message = "Xóa thành công!" });
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "Không thể xóa: " + ex.Message }); }
         }
 
         // ==========================================
@@ -1426,7 +1440,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                 else
                 {
                     var upd = await _context.DmCongTies.FindAsync(model.IdcongTy);
-                    if (upd == null) return Json(new { success = false, message = "Không thấy công ty!" });
+                    if (upd == null) return Json(new { success = false, message = "Không tìm thấy công ty!" });
                     upd.TenCongTy = model.TenCongTy;
                     upd.GhiChu = model.GhiChu;
                     upd.TrangThai = model.TrangThai;
@@ -1461,7 +1475,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                 else
                 {
                     var exist = await _context.DmLoaiDons.FindAsync(model.IdloaiDon);
-                    if (exist == null) return Json(new { success = false, message = "Không thấy loại đơn!" });
+                    if (exist == null) return Json(new { success = false, message = "Không tìm thấy loại đơn!" });
                     exist.MaLoaiDon = model.MaLoaiDon;
                     exist.TenLoaiDon = model.TenLoaiDon;
                     exist.MoTa = model.MoTa;
@@ -1477,6 +1491,13 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         // 4. BỘ PHẬN & ĐỒNG BỘ (Sync)
         // ==========================================
 
+        [HttpGet("/HR_QuanLyDuyetB2/GetBoPhan")]
+        public async Task<IActionResult> HR_GetBoPhan()
+        {
+            var data = await _context.DmBoPhans.AsNoTracking().OrderBy(x => x.TenBoPhan).ToListAsync();
+            return Json(new { data = data });
+        }
+
         [HttpPost("/HR_QuanLyDuyetB2/SyncBoPhan")]
         public async Task<IActionResult> HR_SyncBoPhan()
         {
@@ -1484,6 +1505,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             {
                 var nguon = await _context.BoPhans.AsNoTracking().ToListAsync();
                 var dich = await _context.DmBoPhans.ToListAsync();
+
                 int added = 0, updated = 0;
 
                 foreach (var b in nguon)
@@ -1493,7 +1515,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                     {
                         _context.DmBoPhans.Add(new DmBoPhan
                         {
-                            IdboPhan = b.IdBoPhan,
+                            IdboPhan = b.IdBoPhan, // Gán ID từ nguồn nếu DB đích không tự tăng Identity
                             TenBoPhan = b.TenBoPhan,
                             GhiChu = b.MoTa,
                             NgayTao = DateTime.Now,
@@ -1511,13 +1533,17 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                         }
                     }
                 }
+
                 await _context.SaveChangesAsync();
-                return Json(new { success = true, message = $"Thành công: Thêm {added}, Cập nhật {updated}" });
+                return Json(new { success = true, message = $"Đồng bộ thành công! Thêm mới: {added}, Cập nhật: {updated}" });
             }
-            catch (Exception ex) { return Json(new { success = false, message = "Lỗi đồng bộ: " + ex.Message }); }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi đồng bộ: " + ex.Message });
+            }
         }
 
-        #endregion   
+        #endregion
     }
 
     }
