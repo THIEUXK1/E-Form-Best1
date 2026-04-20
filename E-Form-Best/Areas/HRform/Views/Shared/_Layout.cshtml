@@ -151,6 +151,18 @@
         <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#63b3ed;"></i> Quản lý xét duyệt B2
     </a>
 }
+@* --- PHẦN PHÊ DUYỆT CẤP CAO (Dành cho GiamDocHR và All) --- *@
+@if (User.Identity.IsAuthenticated && (User.IsInRole("GiamDocHR") || User.IsInRole("All")))
+{
+    <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
+    <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Ban Điều Hành / GĐ HR</div>
+
+    <a href="/FormHR/PheDuyetCapCao" 
+       style="text-decoration:none; display:flex; align-items:center; padding: 14px 18px; border-radius: 14px; color:#fff; font-weight: 600; transition:0.3s; background: @(currentAction == "PheDuyetCapCao" ? "rgba(255,255,255,0.2)" : "transparent"); margin-bottom: 4px;">
+        <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#fbbf24;"></i> Phê duyệt cấp cao
+    </a>
+
+}
 
               @* --- PHẦN QUẢN TRỊ HR (Dành cho AdminHR và All) --- *@
 @if (User.Identity.IsAuthenticated && (User.IsInRole("AdminHR") || User.IsInRole("All") ))
@@ -169,18 +181,7 @@
     </a>
 }
 
-@* --- PHẦN PHÊ DUYỆT CẤP CAO (Dành cho GiamDocHR và All) --- *@
-@if (User.Identity.IsAuthenticated && (User.IsInRole("GiamDocHR") || User.IsInRole("All")))
-{
-    <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-    <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Ban Điều Hành / GĐ HR</div>
 
-    <a href="/FormHR/PheDuyetCapCao" 
-       style="text-decoration:none; display:flex; align-items:center; padding: 14px 18px; border-radius: 14px; color:#fff; font-weight: 600; transition:0.3s; background: @(currentAction == "PheDuyetCapCao" ? "rgba(255,255,255,0.2)" : "transparent"); margin-bottom: 4px;">
-        <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#fbbf24;"></i> Phê duyệt cấp cao
-    </a>
-
-}
 
               @* --- PHẦN KIỂM SOÁT BẢO VỆ (TỰ ĐỘNG) --- *@
 @if (User.Identity.IsAuthenticated)

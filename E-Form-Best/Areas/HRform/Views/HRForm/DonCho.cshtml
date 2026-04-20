@@ -10,13 +10,30 @@
     var activeList = Model?.Where(x => !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")).ToList() ?? new List<E_Form_Best.Models.ITForm.FormHr>();
 
     var daHuy = Model?.Count(x => (x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
+    
+    // 1. Chờ Quản lý trực tiếp duyệt
     var choQLDuyet = activeList.Count(x => x.IdNguoiDuyet == null);
     
-    // Đang xử lý bao gồm các bước trung gian (B2, GĐ, Admin)
-    var dangXuLy = activeList.Count(x => x.IdNguoiDuyet != null && x.IdAdmin == null);
+    // 2. Chờ Bộ phận xác nhận (B2)
+    var choBPXacNhan = activeList.Count(x => x.IdNguoiDuyet != null &&
+                                             x.HrQuanLyDuyetB2s != null && x.HrQuanLyDuyetB2s.Any() &&
+                                             !x.HrQuanLyDuyetB2s.All(s => s.TrangThaiXacNhan == 1));
+
+    // 3. Chờ Giám đốc xác nhận
+    var choGiamDoc = activeList.Count(x => x.IdNguoiDuyet != null &&
+                                           (x.HrQuanLyDuyetB2s == null || x.HrQuanLyDuyetB2s.All(s => s.TrangThaiXacNhan == 1)) &&
+                                           x.HrNguoiXacNhans != null && x.HrNguoiXacNhans.Any() &&
+                                           !x.HrNguoiXacNhans.All(s => s.TrangThaiXacNhan == 1));
+
+    // 4. Đang xử lý tại Admin (Các bước duyệt nội bộ đã xong)
+    var choAdmin = activeList.Count(x => x.IdNguoiDuyet != null &&
+                                         (x.HrQuanLyDuyetB2s == null || x.HrQuanLyDuyetB2s.All(s => s.TrangThaiXacNhan == 1)) &&
+                                         (x.HrNguoiXacNhans == null || x.HrNguoiXacNhans.All(s => s.TrangThaiXacNhan == 1)) &&
+                                         x.IdAdmin == null);
+
     var hoanTat = activeList.Count(x => x.IdAdmin != null);
 
-    string statBox = "display: flex; flex-direction: column; padding: 12px 15px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);";
+    string statBox = "display: flex; flex-direction: column; padding: 12px 10px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); text-align: center;";
 }
 
 <style>
@@ -66,26 +83,34 @@
         </div>
     </div>
 
-    @* --- THỐNG KÊ --- *@
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 25px;">
+    @* --- THỐNG KÊ (Đã cập nhật các nút lọc) --- *@
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 25px;">
         <div onclick="filterByStatus('')" class="stat-card" style="@statBox border-left: 5px solid #64748b;">
-            <span style="font-size: 11px; color: #64748b; font-weight: 800;">TỔNG ĐƠN</span>
+            <span style="font-size: 10px; color: #64748b; font-weight: 800;">TỔNG ĐƠN</span>
             <span style="font-size: 20px; font-weight: 900;">@total</span>
         </div>
         <div onclick="filterByStatus('QUẢN LÝ')" class="stat-card" style="@statBox border-left: 5px solid #f59e0b;">
-            <span style="font-size: 11px; color: #b45309; font-weight: 800;">CHỜ QL DUYỆT</span>
+            <span style="font-size: 10px; color: #b45309; font-weight: 800;">CHỜ QL DUYỆT</span>
             <span style="font-size: 20px; font-weight: 900; color: #d97706;">@choQLDuyet</span>
         </div>
-        <div onclick="filterByStatus('XỬ LÝ')" class="stat-card" style="@statBox border-left: 5px solid #2563eb;">
-            <span style="font-size: 11px; color: #1e40af; font-weight: 800;">ĐANG XỬ LÝ</span>
-            <span style="font-size: 20px; font-weight: 900; color: #2563eb;">@dangXuLy</span>
+        <div onclick="filterByStatus('BP XÁC NHẬN')" class="stat-card" style="@statBox border-left: 5px solid #0ea5e9;">
+            <span style="font-size: 10px; color: #0369a1; font-weight: 800;">BP XÁC NHẬN</span>
+            <span style="font-size: 20px; font-weight: 900; color: #0ea5e9;">@choBPXacNhan</span>
+        </div>
+        <div onclick="filterByStatus('GIÁM ĐỐC')" class="stat-card" style="@statBox border-left: 5px solid #d946ef;">
+            <span style="font-size: 10px; color: #86198f; font-weight: 800;">GIÁM ĐỐC</span>
+            <span style="font-size: 20px; font-weight: 900; color: #d946ef;">@choGiamDoc</span>
+        </div>
+        <div onclick="filterByStatus('ADMIN')" class="stat-card" style="@statBox border-left: 5px solid #2563eb;">
+            <span style="font-size: 10px; color: #1e40af; font-weight: 800;">CHỜ ADMIN</span>
+            <span style="font-size: 20px; font-weight: 900; color: #2563eb;">@choAdmin</span>
         </div>
         <div onclick="filterByStatus('XONG')" class="stat-card" style="@statBox border-left: 5px solid #10b981;">
-            <span style="font-size: 11px; color: #065f46; font-weight: 800;">HOÀN TẤT</span>
+            <span style="font-size: 10px; color: #065f46; font-weight: 800;">HOÀN TẤT</span>
             <span style="font-size: 20px; font-weight: 900; color: #059669;">@hoanTat</span>
         </div>
         <div onclick="filterByStatus('HỦY')" class="stat-card" style="@statBox border-left: 5px solid #ef4444;">
-            <span style="font-size: 11px; color: #991b1b; font-weight: 800;">ĐÃ HỦY/TỪ CHỐI</span>
+            <span style="font-size: 10px; color: #991b1b; font-weight: 800;">HỦY/TỪ CHỐI</span>
             <span style="font-size: 20px; font-weight: 900; color: #dc2626;">@daHuy</span>
         </div>
     </div>
@@ -113,12 +138,10 @@
                         bool isFinished = item.IdAdmin != null;
                         bool isManagerApproved = item.IdNguoiDuyet != null;
 
-                        // Kiểm tra bảng B2 (Bộ phận xác nhận)
                         bool hasB2 = item.HrQuanLyDuyetB2s != null && item.HrQuanLyDuyetB2s.Any();
                         bool isB2Approved = hasB2 && item.HrQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
                         bool isB2Rejected = hasB2 && item.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 2);
 
-                        // Kiểm tra bảng NguoiXacNhan (Giám đốc duyệt)
                         bool hasGD = item.HrNguoiXacNhans != null && item.HrNguoiXacNhans.Any();
                         bool isGDApproved = hasGD && item.HrNguoiXacNhans.All(x => x.TrangThaiXacNhan == 1);
                         bool isGDRejected = hasGD && item.HrNguoiXacNhans.Any(x => x.TrangThaiXacNhan == 2);
@@ -167,36 +190,26 @@
                                 <div style="font-size: 11px; color: #64748b; margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                                     <span><i class="fa fa-tag"></i> @(item.Danhmuc ?? "Biểu mẫu HR")</span>
 
-                                    @* Chi tiết BP Xác nhận B2 *@
                                     @if (hasB2)
                                     {
-                                        int b2Done = item.HrQuanLyDuyetB2s.Count(x => x.TrangThaiXacNhan == 1);
-                                        int b2Total = item.HrQuanLyDuyetB2s.Count();
                                         <span class="sub-status-badge" style="background: #f0f9ff; color: #0369a1; border-color: #bae6fd;">
-                                            <i class="fa fa-users"></i> BP.XN (@b2Done/@b2Total)
+                                            <i class="fa fa-users"></i> BP.XN (@item.HrQuanLyDuyetB2s.Count(x => x.TrangThaiXacNhan == 1)/@item.HrQuanLyDuyetB2s.Count())
                                         </span>
                                     }
 
-                                    @* Chi tiết Giám đốc xác nhận *@
                                     @if (hasGD)
                                     {
-                                        int gdDone = item.HrNguoiXacNhans.Count(x => x.TrangThaiXacNhan == 1);
-                                        int gdTotal = item.HrNguoiXacNhans.Count();
                                         <span class="sub-status-badge" style="background: #fdf4ff; color: #86198f; border-color: #f5d0fe;">
-                                            <i class="fa fa-briefcase"></i> GĐ (@gdDone/@gdTotal)
+                                            <i class="fa fa-briefcase"></i> GĐ (@item.HrNguoiXacNhans.Count(x => x.TrangThaiXacNhan == 1)/@item.HrNguoiXacNhans.Count())
                                         </span>
                                     }
 
                                     @if (item.BaoVeHrs != null && item.BaoVeHrs.Any())
                                     {
                                         var bv = item.BaoVeHrs.FirstOrDefault();
-                                        if (bv != null)
-                                        {
-                                            string bvText = bv.TrangThai == 1 ? "BV ĐÃ DUYỆT" : "BV CHỜ";
-                                            <span class="sub-status-badge" style="background: #f8fafc; color: #64748b; border-color: #e2e8f0;">
-                                                <i class="fa fa-shield"></i> @bvText
-                                            </span>
-                                        }
+                                        <span class="sub-status-badge" style="background: #f8fafc; color: #64748b; border-color: #e2e8f0;">
+                                            <i class="fa fa-shield"></i> @(bv?.TrangThai == 1 ? "BV XONG" : "BV CHỜ")
+                                        </span>
                                     }
                                 </div>
                             </td>
