@@ -1259,6 +1259,50 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             return File(image, "image/jpeg"); // Trả về FileStream cho thẻ <img>
         }
 
+        // --- PHẦN BỔ SUNG: XỬ LÝ ĐỔI MẬT KHẨU ---
+        [HttpPost("/DonXetDuyet/DoiMatKhau")]
+        [Authorize]
+        public async Task<IActionResult> DoiMatKhau(string oldPassword, string newPassword, string confirmPassword)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim))
+                    return Json(new { success = false, message = "Phiên làm việc hết hạn." });
+
+                int userId = int.Parse(userIdClaim);
+                var user = await _context.Users.FindAsync(userId);
+
+                if (user == null)
+                    return Json(new { success = false, message = "Người dùng không tồn tại." });
+
+                // 1. Kiểm tra mật khẩu cũ (Lưu ý: Nếu bạn có Hash mật khẩu thì cần dùng hàm Verify tại đây)
+                if (user.MatKhau != oldPassword)
+                {
+                    return Json(new { success = false, message = "Mật khẩu hiện tại không đúng." });
+                }
+
+                // 2. Kiểm tra khớp mật khẩu mới
+                if (newPassword != confirmPassword)
+                {
+                    return Json(new { success = false, message = "Mật khẩu xác nhận không khớp." });
+                }
+
+                // 3. Cập nhật
+                user.MatKhau = newPassword;
+                user.NgayCapNhat = DateTime.Now;
+
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Đổi mật khẩu thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi: " + ex.Message });
+            }
+        }
+
         #endregion
 
         #region QL Phòng họp HR

@@ -24,39 +24,39 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        @@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+            @@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
 
-        body {
-            font-family: 'Inter', sans-serif;
-        }
+            body {
+                font-family: 'Inter', sans-serif;
+            }
 
-        input:focus {
-            border-color: #6366f1 !important;
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
-        }
+            input:focus {
+                border-color: #6366f1 !important;
+                box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
+            }
 
-        .modal-backdrop-custom {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(4px);
-            align-items: center;
-            justify-content: center;
-        }
+            .modal-backdrop-custom {
+                display: none;
+                position: fixed;
+                z-index: 1000;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(15, 23, 42, 0.6);
+                backdrop-filter: blur(4px);
+                align-items: center;
+                justify-content: center;
+            }
 
-        /* Hiệu ứng Hover Avatar */
-        .avatar-wrapper:hover .avatar-overlay {
-            opacity: 1 !important;
-        }
+            /* Hiệu ứng Hover Avatar */
+            .avatar-wrapper:hover .avatar-overlay {
+                opacity: 1 !important;
+            }
 
-        .avatar-overlay {
-            transition: all 0.3s ease;
-        }
+            .avatar-overlay {
+                transition: all 0.3s ease;
+            }
     </style>
 </head>
 <body style="background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
@@ -192,73 +192,90 @@
     </div>
 
     <script>
-        // Xử lý Upload Ảnh
-        async function uploadAvatar(input) {
-            if (input.files && input.files[0]) {
-                const formData = new FormData();
-                formData.append('fileAnh', input.files[0]);
+            // Xử lý Upload Ảnh
+            async function uploadAvatar(input) {
+                if (input.files && input.files[0]) {
+                    const formData = new FormData();
+                    formData.append('fileAnh', input.files[0]);
+
+                    try {
+                        const response = await fetch('/DonXetDuyet/CapNhatAnh', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            alert("Cập nhật ảnh thành công!");
+                            location.reload(); // Reload để cập nhật ảnh mới nhất
+                        } else {
+                            alert(result.message);
+                        }
+                    } catch (err) {
+                        alert("Lỗi kết nối server!");
+                    }
+                }
+            }
+
+            // Xử lý Xóa Ảnh (Về mặc định)
+            async function deleteAvatar() {
+                if (confirm("Bạn có muốn xóa ảnh đại diện này và quay về ảnh mặc định không? (File cũ trên Server cũng sẽ bị xóa)")) {
+                    try {
+                        const response = await fetch('/DonXetDuyet/XoaAnhDaiDien', {
+                            method: 'POST'
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            alert("Đã xóa ảnh!");
+                            location.reload();
+                        } else {
+                            alert(result.message);
+                        }
+                    } catch (err) {
+                        alert("Lỗi server!");
+                    }
+                }
+            }
+
+            // Logic Modal & Đổi mật khẩu
+            function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
+            function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; document.getElementById('changePasswordForm').reset(); }
+
+            document.getElementById('changePasswordForm').onsubmit = async function(e) {
+                e.preventDefault();
+                const newPass = document.getElementById('newPassword').value;
+                const confirmPass = document.getElementById('confirmPassword').value;
+            
+                if (newPass !== confirmPass) {
+                    alert("Mật khẩu xác nhận không khớp!");
+                    return;
+                }
+
+                const btn = document.getElementById('btnUpdatePass');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
                 try {
-                    const response = await fetch('/DonXetDuyet/CapNhatAnh', {
+                    const formData = new FormData(this);
+                    // Gửi request đến Route đã định nghĩa trong Controller
+                    const response = await fetch('/DonXetDuyet/DoiMatKhau', {
                         method: 'POST',
                         body: formData
                     });
+                
                     const result = await response.json();
                     if (result.success) {
-                        alert("Cập nhật ảnh thành công!");
-                        location.reload(); // Reload để cập nhật ảnh mới nhất
+                        alert(result.message || "Đổi mật khẩu thành công!");
+                        closePasswordModal();
                     } else {
                         alert(result.message);
                     }
                 } catch (err) {
-                    alert("Lỗi kết nối server!");
+                    alert("Lỗi kết nối!");
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Cập nhật';
                 }
-            }
-        }
-
-        // Xử lý Xóa Ảnh (Về mặc định)
-        async function deleteAvatar() {
-            if (confirm("Bạn có muốn xóa ảnh đại diện này và quay về ảnh mặc định không? (File cũ trên Server cũng sẽ bị xóa)")) {
-                try {
-                    const response = await fetch('/DonXetDuyet/XoaAnhDaiDien', {
-                        method: 'POST'
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        alert("Đã xóa ảnh!");
-                        location.reload();
-                    } else {
-                        alert(result.message);
-                    }
-                } catch (err) {
-                    alert("Lỗi server!");
-                }
-            }
-        }
-
-        // Logic Modal & Đổi mật khẩu (giữ nguyên các phần cũ của bạn)
-        function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
-        function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; document.getElementById('changePasswordForm').reset(); }
-
-        document.getElementById('changePasswordForm').onsubmit = async function(e) {
-            e.preventDefault();
-            const newPass = document.getElementById('newPassword').value;
-            const confirmPass = document.getElementById('confirmPassword').value;
-            if (newPass !== confirmPass) { alert("Mật khẩu xác nhận không khớp!"); return; }
-
-            const btn = document.getElementById('btnUpdatePass');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-            try {
-                const formData = new FormData(this);
-                const response = await fetch('/DonXetDuyet/DoiMatKhau', { method: 'POST', body: formData });
-                const result = await response.json();
-                if (result.success) { alert("Thành công!"); closePasswordModal(); }
-                else alert(result.message);
-            } catch (err) { alert("Lỗi kết nối!"); }
-            finally { btn.disabled = false; btn.innerHTML = 'Cập nhật'; }
-        };
+            };
     </script>
 </body>
 </html>
