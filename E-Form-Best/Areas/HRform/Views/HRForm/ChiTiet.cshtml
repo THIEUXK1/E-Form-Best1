@@ -211,7 +211,7 @@
     bool baoVeHoanTat = baoVeRecord?.TrangThai == 1;
     bool canBaoVeAction = User.IsInRole("All") || User.IsInRole("BaoVeHR");
     bool canDayBaoVe = User.IsInRole("All") || User.IsInRole("AdminHR")
-                           || User.IsInRole("BaoVeHR") || User.IsInRole("QuanLyDuyetDonHR");
+                            || User.IsInRole("BaoVeHR") || User.IsInRole("QuanLyDuyetDonHR");
 }
 
 @Html.AntiForgeryToken()
@@ -225,7 +225,6 @@
 
     <div style="background:white;border-radius:30px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.1);overflow:hidden;border:1px solid #f1f5f9;">
 
-        <!-- HEADER -->
         <div style="background:@headerGradient;padding:50px 40px;color:white;">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;">
                 <div>
@@ -236,7 +235,24 @@
                         <span style="width:4px;height:4px;background:white;border-radius:50%;"></span>
                         <span><i class="fa fa-user"></i> @Model.TenNguoiTao</span>
                     </div>
+
+                    @* --- KIỂM TRA QUYỀN TRƯỚC KHI HIỂN THỊ CỤM NÚT XUẤT FILE --- *@
+                    @if (User.IsInRole("All") || User.IsInRole("AdminHR"))
+                    {
+                        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                            <a href="/FormHR/ExportExcel/@Model.Id" class="btn-export" style="background: rgba(255,255,255,0.2); color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; border: 1px solid rgba(255,255,255,0.4); transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                                <i class="fa fa-file-excel"></i> Xuất Excel
+                            </a>
+                            <a href="/FormHR/ExportWord/@Model.Id" class="btn-export" style="background: rgba(255,255,255,0.2); color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; border: 1px solid rgba(255,255,255,0.4); transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                                <i class="fa fa-file-word"></i> Xuất Word
+                            </a>
+                            <a href="/FormHR/ExportPDF/@Model.Id" target="_blank" class="btn-export" style="background: rgba(255,255,255,0.2); color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; border: 1px solid rgba(255,255,255,0.4); transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                                <i class="fa fa-file-pdf"></i> Xuất PDF
+                            </a>
+                        </div>
+                    }
                 </div>
+        
                 <div style="background:white;padding:20px 35px;border-radius:24px;text-align:center;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);">
                     <div style="font-size:11px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:5px;letter-spacing:1px;">Trạng thái</div>
                     <div style="font-size:20px;font-weight:900;color:@statusColor">@statusText</div>
@@ -244,11 +260,9 @@
             </div>
         </div>
 
-        <!-- BODY -->
         <div style="padding:40px;">
             <div style="display:grid;grid-template-columns:1.8fr 1.2fr;gap:40px;">
 
-                <!-- ═══════════════ LEFT COLUMN ═══════════════ -->
                 <div>
                     <h3 style="margin:0 0 25px 0;color:#1e293b;font-size:22px;font-weight:800;display:flex;align-items:center;gap:12px;">
                         <span style="width:6px;height:28px;background:#1e40af;border-radius:10px;"></span> THÔNG TIN CHI TIẾT
@@ -271,7 +285,6 @@
                         @Html.Raw(chiTietNoiDung)
                     </div>
 
-                    <!-- ĐỘI NGŨ HR -->
                     <h3 style="margin-bottom:20px;color:#ea580c;font-size:20px;font-weight:800;display:flex;align-items:center;gap:10px;">
                         <i class="fa fa-tools"></i> ĐỘI NGŨ HR HỖ TRỢ
                     </h3>
@@ -332,7 +345,6 @@
                         </div>
                     }
 
-                    <!-- NHẬT KÝ -->
                     <h3 style="margin-bottom:25px;color:#1e293b;font-size:20px;font-weight:800;display:flex;align-items:center;gap:10px;">
                         <i class="fa fa-history"></i> NHẬT KÝ THAO TÁC
                     </h3>
@@ -365,9 +377,7 @@
                     </div>
                 </div>
 
-                <!-- ═══════════════ RIGHT COLUMN ═══════════════ -->
                 <div>
-                    <!-- ẢNH ĐÍNH KÈM -->
                     @if (listImages.Any())
                     {
                         <h3 style="margin-bottom:20px;color:#0f172a;font-size:18px;font-weight:800;display:flex;align-items:center;gap:8px;">
@@ -381,7 +391,6 @@
                         }
                     }
 
-                    <!-- FILE TẢI VỀ -->
                     @if (!string.IsNullOrEmpty(fileUrl))
                     {
                         <div style="background:#f0f9ff;border:2px solid #bae6fd;padding:22px;border-radius:24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:25px;">
@@ -393,7 +402,6 @@
                         </div>
                     }
 
-                    <!-- TIẾN TRÌNH XỬ LÝ -->
                     <div style="background:#fff;padding:30px;border-radius:28px;border:1px solid #e2e8f0;margin-bottom:25px;">
                         <h4 style="margin:0 0 25px 0;font-size:15px;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:8px;">
                             <i class="fa fa-tasks"></i> TIẾN TRÌNH XỬ LÝ
@@ -417,7 +425,6 @@
                         </div>
                     </div>
 
-                    <!-- BƯỚC 2 — DANH SÁCH DUYỆT -->
                     @if (danhSachB2.Any())
                     {
                         <div style="background:#fff;border-radius:28px;border:1px solid #e9d5ff;overflow:hidden;margin-bottom:25px;box-shadow:0 8px 12px rgba(124,58,237,0.04);">
@@ -465,7 +472,6 @@
                         </div>
                     }
 
-                    <!-- BLOCK XÁC NHẬN GIÁM ĐỐC -->
                     @if (danhSachXacNhan.Any())
                     {
                         <div style="background:#fff;border-radius:28px;border:1px solid #e9d5ff;overflow:hidden;margin-bottom:25px;box-shadow:0 10px 15px -3px rgba(124,58,237,0.06);">
@@ -556,7 +562,6 @@
                         </div>
                     }
 
-                    <!-- NÚT HÀNH ĐỘNG ĐƠN -->
                     @if (!isCancelled && !isFinished)
                     {
                         <div style="display:flex;flex-direction:column;gap:15px;margin-bottom:25px;">
@@ -587,7 +592,6 @@
                         </div>
                     }
 
-                    <!-- BÌNH LUẬN -->
                     <div style="background:#fff;border-radius:28px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 10px 15px -3px rgba(0,0,0,0.04);margin-bottom:25px;">
                         <div style="background:linear-gradient(135deg,#f8fafc,#fff);padding:20px 25px;border-bottom:2px solid #e2e8f0;">
                             <h4 style="margin:0;font-size:16px;font-weight:900;color:#1e293b;display:flex;align-items:center;gap:10px;">
@@ -625,7 +629,6 @@
                         </div>
                     </div>
 
-                    <!-- BLOCK BẢO VỆ -->
                     @if (User.IsInRole("All") || User.IsInRole("AdminHR") || User.IsInRole("BaoVeHR"))
                     {
                         <div style="background:#fff;border-radius:28px;border:1px solid #d1d5db;overflow:hidden;box-shadow:0 10px 15px -3px rgba(0,0,0,0.06);">
@@ -709,12 +712,11 @@
                             </div>
                         </div>
                     }
-                </div><!-- end right column -->
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- ZOOM OVERLAY -->
     <div id="imageOverlay" onclick="closeZoom()"
          style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(8px);">
         <img id="fullImage" src="" style="max-width:95%;max-height:95%;border-radius:16px;">
@@ -725,7 +727,7 @@
     const formId        = @Model.Id;
     const currentUserId = '@currentUserId';
     const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                                                                                                                                                                                                                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
+                                                                                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
     const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
     function hasRole(r) { return userRoles.includes(r); }
