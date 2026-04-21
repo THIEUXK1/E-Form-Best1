@@ -13,7 +13,7 @@
 
     // Lấy Role: Ưu tiên Claim Role chuẩn, sau đó đến UserRole tự định nghĩa
     var currentUserRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
-                          ?? User.FindFirst("UserRole")?.Value ?? "";
+                        ?? User.FindFirst("UserRole")?.Value ?? "";
 
     // Lấy ID người dùng từ NameIdentifier
     var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -222,839 +222,828 @@
 @Html.AntiForgeryToken()
 
 <div style="max-width: 1200px; margin: 0 auto; padding: 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc;">
-    <div style="margin-bottom: 25px;">
+    
+    <div style="margin-bottom: 25px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
         <a href="/FormIT/DonCho" style="display: inline-flex; align-items: center; gap: 10px; padding: 12px 24px; background: #ffffff; color: #1e40af; text-decoration: none; border-radius: 12px; font-weight: 800; border: 2px solid #e2e8f0; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 15px -3px rgba(0,0,0,0.15)';" onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.1)';">
             <i class="fa fa-arrow-left"></i> DANH SÁCH PHIẾU
         </a>
-    </div>
 
-    <div style="background: white; border-radius: 30px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #f1f5f9;">
+        @* --- CẬP NHẬT: Nút Export có điều kiện --- *@
+        @if (Model.IdAdmin != null && (User.IsInRole("All") || User.IsInRole("AdminIT")))
+        {
+            <div style="flex: 1;"></div> <a href="/FormIT/ExportExcel/@Model.Id" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: #059669; color: white; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 14px; transition: all 0.2s;" onmouseover="this.style.background='#047857'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#059669'; this.style.transform=''">
+            <i class="fa fa-file-excel"></i> XUẤT EXCEL
+        </a>
 
-        <!-- HEADER -->
-        <div style="background: @headerGradient; padding: 50px 40px; color: white; position: relative;">
-            <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
-                <div>
-                    <span style="background: rgba(255,255,255,0.25); padding: 8px 20px; border-radius: 50px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; backdrop-filter: blur(4px);">Mã số: #@Model.Id</span>
-                    <h1 style="margin: 20px 0 10px 0; font-size: 36px; font-weight: 900; letter-spacing: -0.025em; line-height: 1.2;">@Model.TenForm</h1>
-                    <div style="display: flex; align-items: center; gap: 15px; opacity: 0.95; font-weight: 500; font-size: 15px; flex-wrap:wrap;">
-                        <span><i class="fa fa-calendar-alt"></i> @Model.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm")</span>
+        <a href="/FormIT/ExportWord/@Model.Id" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: #1e40af; color: white; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 14px; transition: all 0.2s;" onmouseover="this.style.background='#1e3a8a'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#1e40af'; this.style.transform=''">
+            <i class="fa fa-file-word"></i> XUẤT WORD
+        </a>
+
+        <a href="/FormIT/ExportPDF/@Model.Id" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: #dc2626; color: white; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 14px; transition: all 0.2s;" onmouseover="this.style.background='#b91c1c'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#dc2626'; this.style.transform=''">
+            <i class="fa fa-file-pdf"></i> IN PHIẾU (PDF)
+        </a>
+    }
+</div>
+
+<div style="background: white; border-radius: 30px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #f1f5f9;">
+
+    <div style="background: @headerGradient; padding: 50px 40px; color: white; position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
+            <div>
+                <span style="background: rgba(255,255,255,0.25); padding: 8px 20px; border-radius: 50px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; backdrop-filter: blur(4px);">Mã số: #@Model.Id</span>
+                <h1 style="margin: 20px 0 10px 0; font-size: 36px; font-weight: 900; letter-spacing: -0.025em; line-height: 1.2;">@Model.TenForm</h1>
+                <div style="display: flex; align-items: center; gap: 15px; opacity: 0.95; font-weight: 500; font-size: 15px; flex-wrap:wrap;">
+                    <span><i class="fa fa-calendar-alt"></i> @Model.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm")</span>
+                    <span style="width: 4px; height: 4px; background: white; border-radius: 50%;"></span>
+                    <span><i class="fa fa-user"></i> @Model.TenNguoiTao</span>
+                    @if (!string.IsNullOrEmpty(Model.Danhmuc))
+                    {
                         <span style="width: 4px; height: 4px; background: white; border-radius: 50%;"></span>
-                        <span><i class="fa fa-user"></i> @Model.TenNguoiTao</span>
-                        @if (!string.IsNullOrEmpty(Model.Danhmuc))
-                        {
-                            <span style="width: 4px; height: 4px; background: white; border-radius: 50%;"></span>
-                            <span style="background: rgba(255,255,255,0.15); padding:6px 12px; border-radius:12px; font-weight:800; font-size:13px;"><i class="fa fa-tags"></i> @Model.Danhmuc</span>
-                        }
-                    </div>
-                </div>
-                <div style="background: white; padding: 20px 35px; border-radius: 24px; text-align: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
-                    <div style="font-size: 12px; font-weight: 900; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px;">Trạng thái</div>
-                    <div style="font-size: 22px; font-weight: 900; color: @statusColor">@statusText</div>
+                        <span style="background: rgba(255,255,255,0.15); padding:6px 12px; border-radius:12px; font-weight:800; font-size:13px;"><i class="fa fa-tags"></i> @Model.Danhmuc</span>
+                    }
                 </div>
             </div>
+            <div style="background: white; padding: 20px 35px; border-radius: 24px; text-align: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+                <div style="font-size: 12px; font-weight: 900; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px;">Trạng thái</div>
+                <div style="font-size: 22px; font-weight: 900; color: @statusColor">@statusText</div>
+            </div>
         </div>
+    </div>
 
-        <!-- BODY -->
-        <div style="padding: 40px;">
-            <div style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 40px;">
+    <div style="padding: 40px;">
+        <div style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 40px;">
 
-                <!-- LEFT COLUMN -->
-                <div>
-                    <h3 style="margin: 0 0 25px 0; color: #1e293b; font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 12px;">
-                        <span style="width: 6px; height: 28px; background: #1e40af; border-radius: 10px;"></span> THÔNG TIN CHI TIẾT
-                    </h3>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
-                        <div style="background: #ffffff; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px;">Mã nhân viên</small>
-                            <div style="font-weight: 700; color: #1e293b; font-size: 16px;">@Model.SoNhanVien</div>
-                        </div>
-                        <div style="background: #ffffff; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px;">Bộ phận</small>
-                            <div style="font-weight: 700; color: #1e40af; font-size: 16px;">@Model.BoPhan</div>
-                        </div>
-                        <div style="background: #ffffff; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px;">Họ tên</small>
-                            <div style="font-weight: 700; color: #1e40af; font-size: 16px;">@Model.TenNguoiNv</div>
+            <div>
+                <h3 style="margin: 0 0 25px 0; color: #1e293b; font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 12px;">
+                    <span style="width: 6px; height: 28px; background: #1e40af; border-radius: 10px;"></span> THÔNG TIN CHI TIẾT
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                    <div style="background: #ffffff; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px;">Mã nhân viên</small>
+                        <div style="font-weight: 700; color: #1e293b; font-size: 16px;">@Model.SoNhanVien</div>
+                    </div>
+                    <div style="background: #ffffff; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px;">Bộ phận</small>
+                        <div style="font-weight: 700; color: #1e40af; font-size: 16px;">@Model.BoPhan</div>
+                    </div>
+                    <div style="background: #ffffff; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px;">Họ tên</small>
+                        <div style="font-weight: 700; color: #1e40af; font-size: 16px;">@Model.TenNguoiNv</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                    <div style="background: #ffffff; padding: 18px; border-radius: 14px; border: 1px solid #e6edf6; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display:flex; align-items:center; gap:12px;">
+                        <i class="fa fa-tags" style="color:#0369a1; font-size:18px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:#f0f9ff; border-radius:8px;"></i>
+                        <div style="flex:1;">
+                            <small style="display:block; font-weight:800; color:#64748b; font-size:12px; text-transform:uppercase;">Danh mục</small>
+                            <div style="font-weight:700; color:#0f172a; font-size:15px;">@(string.IsNullOrEmpty(Model.Danhmuc) ? "---" : Model.Danhmuc)</div>
+                            @if (!string.IsNullOrEmpty(Model.TenCongTy))
+                            {
+                                <small style="display:block; margin-top:8px; font-weight:800; color:#64748b; font-size:12px; text-transform:uppercase;">Tên công ty</small>
+                                <div style="font-weight:700; color:#0f172a; font-size:14px;">@Model.TenCongTy</div>
+                            }
                         </div>
                     </div>
+                </div>
 
-                    <div style="margin-bottom: 30px;">
-                        <div style="background: #ffffff; padding: 18px; border-radius: 14px; border: 1px solid #e6edf6; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display:flex; align-items:center; gap:12px;">
-                            <i class="fa fa-tags" style="color:#0369a1; font-size:18px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:#f0f9ff; border-radius:8px;"></i>
-                            <div style="flex:1;">
-                                <small style="display:block; font-weight:800; color:#64748b; font-size:12px; text-transform:uppercase;">Danh mục</small>
-                                <div style="font-weight:700; color:#0f172a; font-size:15px;">@(string.IsNullOrEmpty(Model.Danhmuc) ? "---" : Model.Danhmuc)</div>
-                                @if (!string.IsNullOrEmpty(Model.TenCongTy))
+                <div style="background: #f8fafc; padding: 30px; border-radius: 24px; margin-bottom: 40px; border: 1px solid #f1f5f9; line-height: 1.6; color: #334155; font-size: 16px;">
+                    @Html.Raw(chiTietNoiDung)
+                </div>
+
+                <h3 style="margin-bottom: 20px; color: #ea580c; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa fa-tools"></i> ĐỘI NGŨ IT HỖ TRỢ
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; margin-bottom: 35px;">
+                    @if (Model.ItCtNguoiHoTros != null && Model.ItCtNguoiHoTros.Any())
+                    {
+                        var currentSupport = Model.ItCtNguoiHoTros.OrderByDescending(x => x.Stt).First();
+                        foreach (var hoTro in Model.ItCtNguoiHoTros.OrderBy(x => x.Stt))
+                        {
+                            <div style="background: white; border: 2px solid #fed7aa; padding: 20px; border-radius: 22px; display: flex; align-items: center; gap: 15px; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                                <div style="background: #ffedd5; color: #9a3412; width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px;">
+                                    @(hoTro.IdItNguoiHoTroNavigation?.Ten?.Substring(0, 1).ToUpper() ?? "IT")
+                                </div>
+                                <div>
+                                    <div style="font-weight: 800; color: #9a3412; font-size: 16px;">@hoTro.IdItNguoiHoTroNavigation?.Ten</div>
+                                    <div style="font-size: 13px; color: #c2410c; margin-top: 2px;">@hoTro.IdItNguoiHoTroNavigation?.MaNv</div>
+                                </div>
+                                @if (hoTro.Id == currentSupport.Id)
                                 {
-                                    <small style="display:block; margin-top:8px; font-weight:800; color:#64748b; font-size:12px; text-transform:uppercase;">Tên công ty</small>
-                                    <div style="font-weight:700; color:#0f172a; font-size:14px;">@Model.TenCongTy</div>
+                                    <span style="position:absolute; top:-12px; right:15px; background:#ea580c; color:white; font-size:10px; padding:4px 12px; border-radius:12px; font-weight:800; box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.3);">HIỆN TẠI</span>
                                 }
                             </div>
-                        </div>
-                    </div>
-
-                    <div style="background: #f8fafc; padding: 30px; border-radius: 24px; margin-bottom: 40px; border: 1px solid #f1f5f9; line-height: 1.6; color: #334155; font-size: 16px;">
-                        @Html.Raw(chiTietNoiDung)
-                    </div>
-
-                    <h3 style="margin-bottom: 20px; color: #ea580c; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
-                        <i class="fa fa-tools"></i> ĐỘI NGŨ IT HỖ TRỢ
-                    </h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; margin-bottom: 35px;">
-                        @if (Model.ItCtNguoiHoTros != null && Model.ItCtNguoiHoTros.Any())
-                        {
-                            var currentSupport = Model.ItCtNguoiHoTros.OrderByDescending(x => x.Stt).First();
-                            foreach (var hoTro in Model.ItCtNguoiHoTros.OrderBy(x => x.Stt))
-                            {
-                                <div style="background: white; border: 2px solid #fed7aa; padding: 20px; border-radius: 22px; display: flex; align-items: center; gap: 15px; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-                                    <div style="background: #ffedd5; color: #9a3412; width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px;">
-                                        @(hoTro.IdItNguoiHoTroNavigation?.Ten?.Substring(0, 1).ToUpper() ?? "IT")
-                                    </div>
-                                    <div>
-                                        <div style="font-weight: 800; color: #9a3412; font-size: 16px;">@hoTro.IdItNguoiHoTroNavigation?.Ten</div>
-                                        <div style="font-size: 13px; color: #c2410c; margin-top: 2px;">@hoTro.IdItNguoiHoTroNavigation?.MaNv</div>
-                                    </div>
-                                    @if (hoTro.Id == currentSupport.Id)
-                                    {
-                                        <span style="position:absolute; top:-12px; right:15px; background:#ea580c; color:white; font-size:10px; padding:4px 12px; border-radius:12px; font-weight:800; box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.3);">HIỆN TẠI</span>
-                                    }
-                                </div>
-                            }
                         }
-                    </div>
-
-                    @* Sử dụng User.IsInRole để kiểm tra vì bạn đã lưu nhiều quyền vào ClaimTypes.Role.
-   Điều kiện: User có quyền All hoặc AdminIT mới được phép chỉ định người hỗ trợ.
-*@
-
-                    @if ((User.IsInRole("All") || User.IsInRole("AdminIT")) && !isCancelled && !isFinished)
-                    {
-                        <div id="assignSection" style="background: #fff7ed; border: 2px dashed #fb923c; padding: 25px; border-radius: 24px; margin-bottom: 45px; box-shadow: 0 4px 6px -1px rgba(251, 146, 60, 0.1);">
-                            <p style="margin:0 0 15px 0; font-size:13px; font-weight:800; color:#9a3412; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                <i class="fa fa-user-edit" style="font-size: 16px;"></i> CHỈ ĐỊNH / THAY ĐỔI NGƯỜI HỖ TRỢ:
-                            </p>
-
-                            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                                <select id="selectIT"
-                                        style="flex: 1; min-width: 200px; padding: 14px; border-radius: 12px; border: 1.5px solid #fdba74; font-weight: 600; outline: none; background: white; font-size: 15px; color: #1e293b; transition: border-color 0.2s;"
-                                        onfocus="this.style.borderColor='#ea580c'"
-                                        onblur="this.style.borderColor='#fdba74'">
-                                    <option value="">-- Chọn nhân viên IT hỗ trợ --</option>
-                                    @if (ViewBag.ListNguoiHoTro != null)
-                                    {
-                                        foreach (var it in (List<E_Form_Best.Models.ITForm.ItNguoiHoTro>)ViewBag.ListNguoiHoTro)
-                                        {
-                                            <option value="@it.MaNv">@it.Ten (@it.MaNv)</option>
-                                        }
-                                    }
-                                </select>
-
-                                <button id="btnConfirmSupport"
-                                        onclick="changeSupporter()"
-                                        style="background: #ea580c; color: white; border: none; padding: 0 35px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: all 0.2s; font-size: 15px; display: flex; align-items: center; justify-content: center; min-height: 48px;"
-                                        onmouseover="this.style.background='#c2410c'; this.style.transform='translateY(-1px)'"
-                                        onmouseout="this.style.background='#ea580c'; this.style.transform='none'">
-                                    <span id="textBtn">XÁC NHẬN</span>
-                                    <i id="loadingIcon" class="fa fa-spinner fa-spin" style="display: none; margin-left: 8px;"></i>
-                                </button>
-                            </div>
-
-                            <small style="color: #c2410c; display: block; margin-top: 10px; font-style: italic; font-weight: 500;">
-                                * Lưu ý: Chỉ tài khoản có quyền <b>AdminIT</b> hoặc <b>All</b> mới có thể thực hiện thao tác này.
-                            </small>
-                        </div>
                     }
+                </div>
 
-                    <div id="historyOverlay" onclick="toggleZoomHistory()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; backdrop-filter: blur(3px);"></div>
+                @if ((User.IsInRole("All") || User.IsInRole("AdminIT")) && !isCancelled && !isFinished)
+                {
+                    <div id="assignSection" style="background: #fff7ed; border: 2px dashed #fb923c; padding: 25px; border-radius: 24px; margin-bottom: 45px; box-shadow: 0 4px 6px -1px rgba(251, 146, 60, 0.1);">
+                        <p style="margin:0 0 15px 0; font-size:13px; font-weight:800; color:#9a3412; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            <i class="fa fa-user-edit" style="font-size: 16px;"></i> CHỈ ĐỊNH / THAY ĐỔI NGƯỜI HỖ TRỢ:
+                        </p>
 
-                    <h3 style="margin-bottom: 25px; color: #1e293b; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
-                        <i class="fa fa-history"></i> NHẬT KÝ THAO TÁC
-                    </h3>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <select id="selectIT"
+                                    style="flex: 1; min-width: 200px; padding: 14px; border-radius: 12px; border: 1.5px solid #fdba74; font-weight: 600; outline: none; background: white; font-size: 15px; color: #1e293b; transition: border-color 0.2s;"
+                                    onfocus="this.style.borderColor='#ea580c'"
+                                    onblur="this.style.borderColor='#fdba74'">
+                                <option value="">-- Chọn nhân viên IT hỗ trợ --</option>
+                                @if (ViewBag.ListNguoiHoTro != null)
+                                {
+                                    foreach (var it in (List<E_Form_Best.Models.ITForm.ItNguoiHoTro>)ViewBag.ListNguoiHoTro)
+                                    {
+                                        <option value="@it.MaNv">@it.Ten (@it.MaNv)</option>
+                                    }
+                                }
+                            </select>
 
-                    <div id="historyContainer" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 28px; padding: 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 1; overflow: hidden;">
-
-                        <div style="padding: 15px 25px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: flex-end; background: #fafafa;">
-                            <button type="button" onclick="toggleZoomHistory()" id="btnZoomHistory" style="background: #ffffff; border: 1px solid #e2e8f0; width: 35px; height: 35px; border-radius: 10px; color: #64748b; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;">
-                                <i class="fa fa-expand" id="historyZoomIcon"></i>
+                            <button id="btnConfirmSupport"
+                                    onclick="changeSupporter()"
+                                    style="background: #ea580c; color: white; border: none; padding: 0 35px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: all 0.2s; font-size: 15px; display: flex; align-items: center; justify-content: center; min-height: 48px;"
+                                    onmouseover="this.style.background='#c2410c'; this.style.transform='translateY(-1px)'"
+                                    onmouseout="this.style.background='#ea580c'; this.style.transform='none'">
+                                <span id="textBtn">XÁC NHẬN</span>
+                                <i id="loadingIcon" class="fa fa-spinner fa-spin" style="display: none; margin-left: 8px;"></i>
                             </button>
                         </div>
 
-                        <div id="historyScrollList" style="max-height: 400px; overflow-y: auto; padding: 30px; scrollbar-width: thin; background: #ffffff;">
-                            <div style="margin-left: 10px; border-left: 2px dashed #e2e8f0; padding-left: 30px;">
-                                @if (Model.LichSuFormIts != null && Model.LichSuFormIts.Any())
+                        <small style="color: #c2410c; display: block; margin-top: 10px; font-style: italic; font-weight: 500;">
+                            * Lưu ý: Chỉ tài khoản có quyền <b>AdminIT</b> hoặc <b>All</b> mới có thể thực hiện thao tác này.
+                        </small>
+                    </div>
+                }
+
+                <div id="historyOverlay" onclick="toggleZoomHistory()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; backdrop-filter: blur(3px);"></div>
+
+                <h3 style="margin-bottom: 25px; color: #1e293b; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa fa-history"></i> NHẬT KÝ THAO TÁC
+                </h3>
+
+                <div id="historyContainer" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 28px; padding: 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 1; overflow: hidden;">
+
+                    <div style="padding: 15px 25px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: flex-end; background: #fafafa;">
+                        <button type="button" onclick="toggleZoomHistory()" id="btnZoomHistory" style="background: #ffffff; border: 1px solid #e2e8f0; width: 35px; height: 35px; border-radius: 10px; color: #64748b; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;">
+                            <i class="fa fa-expand" id="historyZoomIcon"></i>
+                        </button>
+                    </div>
+
+                    <div id="historyScrollList" style="max-height: 400px; overflow-y: auto; padding: 30px; scrollbar-width: thin; background: #ffffff;">
+                        <div style="margin-left: 10px; border-left: 2px dashed #e2e8f0; padding-left: 30px;">
+                            @if (Model.LichSuFormIts != null && Model.LichSuFormIts.Any())
+                            {
+                                foreach (var ls in Model.LichSuFormIts.OrderByDescending(x => x.Time))
                                 {
-                                    foreach (var ls in Model.LichSuFormIts.OrderByDescending(x => x.Time))
-                                    {
-                                        <div style="position: relative; margin-bottom: 30px;">
-                                            <div style="position: absolute; left: -41px; top: 0; width: 20px; height: 20px; background: white; border: 4px solid #3b82f6; border-radius: 50%; z-index: 1;"></div>
-                                            <div style="display: flex; justify-content: space-between; background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9;">
-                                                <div style="flex: 1;">
-                                                    <div style="font-weight: 800; color: #1e293b; font-size: 15px; margin-bottom: 4px;">@ls.TieuDe</div>
-                                                    <div style="color: #64748b; font-size: 14px; line-height: 1.6; white-space: pre-line;">@ls.Mota</div>
-                                                </div>
-                                                <div style="text-align: right; min-width: 100px; margin-left: 15px; flex-shrink: 0;">
-                                                    <div style="font-weight: 800; color: #3b82f6; font-size: 14px;">@ls.Time?.ToString("HH:mm")</div>
-                                                    <div style="color: #94a3b8; font-size: 12px; margin-top: 2px;">@ls.Time?.ToString("dd/MM/yyyy")</div>
-                                                </div>
+                                    <div style="position: relative; margin-bottom: 30px;">
+                                        <div style="position: absolute; left: -41px; top: 0; width: 20px; height: 20px; background: white; border: 4px solid #3b82f6; border-radius: 50%; z-index: 1;"></div>
+                                        <div style="display: flex; justify-content: space-between; background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9;">
+                                            <div style="flex: 1;">
+                                                <div style="font-weight: 800; color: #1e293b; font-size: 15px; margin-bottom: 4px;">@ls.TieuDe</div>
+                                                <div style="color: #64748b; font-size: 14px; line-height: 1.6; white-space: pre-line;">@ls.Mota</div>
+                                            </div>
+                                            <div style="text-align: right; min-width: 100px; margin-left: 15px; flex-shrink: 0;">
+                                                <div style="font-weight: 800; color: #3b82f6; font-size: 14px;">@ls.Time?.ToString("HH:mm")</div>
+                                                <div style="color: #94a3b8; font-size: 12px; margin-top: 2px;">@ls.Time?.ToString("dd/MM/yyyy")</div>
                                             </div>
                                         </div>
-                                    }
+                                    </div>
                                 }
-                                else
-                                {
-                                    <div style="text-align: center; color: #94a3b8; padding: 20px;">Chưa có nhật ký thao tác.</div>
-                                }
-                            </div>
+                            }
+                            else
+                            {
+                                <div style="text-align: center; color: #94a3b8; padding: 20px;">Chưa có nhật ký thao tác.</div>
+                            }
                         </div>
                     </div>
-
-                    <style>
-                        /* Trạng thái phóng to 75% cho Nhật ký */
-                        .history-zoom-active {
-                            position: fixed !important;
-                            top: 50% !important;
-                            left: 50% !important;
-                            transform: translate(-50%, -50%) !important;
-                            width: 75vw !important;
-                            height: 80vh !important;
-                            z-index: 9999 !important;
-                            margin: 0 !important;
-                            border-radius: 28px !important;
-                            display: flex !important;
-                            flex-direction: column !important;
-                        }
-
-                            .history-zoom-active #historyScrollList {
-                                max-height: none !important;
-                                flex: 1 !important; /* Chiếm toàn bộ không gian còn lại của Modal */
-                            }
-                    </style>
                 </div>
 
-                <!-- RIGHT COLUMN -->
-                <div>
-                    @if (listImages.Count > 0)
-                    {
-                        <h3 style="margin-bottom: 20px; color: #0f172a; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                            <i class="fa fa-image"></i> HÌNH ẢNH ĐÍNH KÈM
-                        </h3>
-                        foreach (var img in listImages)
-                        {
-                            <div style="border: 2px solid #f1f5f9; border-radius: 24px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: #f8fafc; transition: all 0.3s ease;">
-                                <img src="@img" style="width: 100%; cursor: zoom-in; display: block; object-fit: cover; max-height: 300px;" onclick="openZoom(this.src)" />
-                            </div>
-                        }
-                    }
+                <style>
+                                        .history-zoom-active {
+                                            position: fixed !important;
+                                            top: 50% !important;
+                                            left: 50% !important;
+                                            transform: translate(-50%, -50%) !important;
+                                            width: 75vw !important;
+                                            height: 80vh !important;
+                                            z-index: 9999 !important;
+                                            margin: 0 !important;
+                                            border-radius: 28px !important;
+                                            display: flex !important;
+                                            flex-direction: column !important;
+                                        }
 
-                    @if (!string.IsNullOrEmpty(fileUrl))
-                    {
-                        <div style="background: #f0f9ff; border: 2px solid #bae6fd; padding: 16px 20px; border-radius: 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); max-width: 100%; box-sizing: border-box; gap: 12px; flex-wrap: wrap;"> <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;"> <i class="fa fa-file-pdf" style="font-size: 22px; color: #0369a1; flex-shrink: 0;"></i> <span style="font-size: 14px; font-weight: 800; color: #0369a1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">@fileName</span> </div> <div style="display: flex; gap: 8px; flex-shrink: 0;"> <a href="@fileUrl" target="_blank" style="background: white; color: #0369a1; border: 1.5px solid #0369a1; padding: 9px 18px; border-radius: 12px; font-weight: 800; text-decoration: none; font-size: 13px; text-align: center; transition: 0.2s;" onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background='white'">XEM</a> <a href="@fileUrl" download style="background: #0369a1; color: white; padding: 10px 22px; border-radius: 12px; font-weight: 800; text-decoration: none; font-size: 13px; text-align: center; box-shadow: 0 4px 10px rgba(3, 105, 161, 0.3);" onmouseover="this.style.background='#075985'" onmouseout="this.style.background='#0369a1'">TẢI VỀ</a> </div> </div>
-                    }
+                                            .history-zoom-active #historyScrollList {
+                                                max-height: none !important;
+                                                flex: 1 !important;
+                                            }
+                </style>
+            </div>
 
-                    <div style="background: #ffffff; padding: 30px; border-radius: 28px; border: 1px solid #e2e8f0; margin-bottom: 35px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);">
-                        <h4 style="margin: 0 0 25px 0; font-size: 15px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fa fa-tasks"></i> TIẾN TRÌNH XỬ LÝ
-                        </h4>
-                        <div style="position: relative; padding-left: 30px; border-left: 2px solid #f1f5f9;">
-                            <div style="margin-bottom: 25px; position: relative;">
-                                <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: #059669; border: 3px solid white; box-shadow: 0 0 0 2px #059669;"></div>
-                                <div style="font-weight: 800; font-size: 15px; color: #1e293b;">Người tạo: @Model.TenNguoiTao</div>
-                                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@Model.TimeNguoiTao?.ToString("HH:mm dd/MM/yyyy")</div>
-                            </div>
-                            <div style="margin-bottom: 25px; position: relative;">
-                                <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: @(isApprovedByManager ? "#d97706" : "#cbd5e1"); border: 3px solid white; box-shadow: 0 0 0 2px @(isApprovedByManager ? "#d97706" : "#cbd5e1");"></div>
-                                <div style="font-weight: 800; font-size: 15px; color: #1e293b;">Quản lý: @(Model.TenNguoiDuyet ?? "---")</div>
-                                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@(Model.TimeNguoiDuyet?.ToString("HH:mm dd/MM/yyyy") ?? "Đang chờ duyệt...")</div>
-                            </div>
-                            <div style="position: relative;">
-                                <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: @(isFinished ? "#1e40af" : "#cbd5e1"); border: 3px solid white; box-shadow: 0 0 0 2px @(isFinished ? "#1e40af" : "#cbd5e1");"></div>
-                                <div style="font-weight: 800; font-size: 15px; color: #1e293b;">IT Xử lý: @(Model.TenAdmin ?? "---")</div>
-                                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@(Model.TimeAdmin?.ToString("HH:mm dd/MM/yyyy") ?? "Đang xử lý...")</div>
-                            </div>
+            <div>
+                @if (listImages.Count > 0)
+                {
+                    <h3 style="margin-bottom: 20px; color: #0f172a; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa fa-image"></i> HÌNH ẢNH ĐÍNH KÈM
+                    </h3>
+                    foreach (var img in listImages)
+                    {
+                        <div style="border: 2px solid #f1f5f9; border-radius: 24px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: #f8fafc; transition: all 0.3s ease;">
+                            <img src="@img" style="width: 100%; cursor: zoom-in; display: block; object-fit: cover; max-height: 300px;" onclick="openZoom(this.src)" />
+                        </div>
+                    }
+                }
+
+                @if (!string.IsNullOrEmpty(fileUrl))
+                {
+                    <div style="background: #f0f9ff; border: 2px solid #bae6fd; padding: 16px 20px; border-radius: 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); max-width: 100%; box-sizing: border-box; gap: 12px; flex-wrap: wrap;"> <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;"> <i class="fa fa-file-pdf" style="font-size: 22px; color: #0369a1; flex-shrink: 0;"></i> <span style="font-size: 14px; font-weight: 800; color: #0369a1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">@fileName</span> </div> <div style="display: flex; gap: 8px; flex-shrink: 0;"> <a href="@fileUrl" target="_blank" style="background: white; color: #0369a1; border: 1.5px solid #0369a1; padding: 9px 18px; border-radius: 12px; font-weight: 800; text-decoration: none; font-size: 13px; text-align: center; transition: 0.2s;" onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background='white'">XEM</a> <a href="@fileUrl" download style="background: #0369a1; color: white; padding: 10px 22px; border-radius: 12px; font-weight: 800; text-decoration: none; font-size: 13px; text-align: center; box-shadow: 0 4px 10px rgba(3, 105, 161, 0.3);" onmouseover="this.style.background='#075985'" onmouseout="this.style.background='#0369a1'">TẢI VỀ</a> </div> </div>
+                }
+
+                <div style="background: #ffffff; padding: 30px; border-radius: 28px; border: 1px solid #e2e8f0; margin-bottom: 35px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);">
+                    <h4 style="margin: 0 0 25px 0; font-size: 15px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa fa-tasks"></i> TIẾN TRÌNH XỬ LÝ
+                    </h4>
+                    <div style="position: relative; padding-left: 30px; border-left: 2px solid #f1f5f9;">
+                        <div style="margin-bottom: 25px; position: relative;">
+                            <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: #059669; border: 3px solid white; box-shadow: 0 0 0 2px #059669;"></div>
+                            <div style="font-weight: 800; font-size: 15px; color: #1e293b;">Người tạo: @Model.TenNguoiTao</div>
+                            <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@Model.TimeNguoiTao?.ToString("HH:mm dd/MM/yyyy")</div>
+                        </div>
+                        <div style="margin-bottom: 25px; position: relative;">
+                            <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: @(isApprovedByManager ? "#d97706" : "#cbd5e1"); border: 3px solid white; box-shadow: 0 0 0 2px @(isApprovedByManager ? "#d97706" : "#cbd5e1");"></div>
+                            <div style="font-weight: 800; font-size: 15px; color: #1e293b;">Quản lý: @(Model.TenNguoiDuyet ?? "---")</div>
+                            <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@(Model.TimeNguoiDuyet?.ToString("HH:mm dd/MM/yyyy") ?? "Đang chờ duyệt...")</div>
+                        </div>
+                        <div style="position: relative;">
+                            <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: @(isFinished ? "#1e40af" : "#cbd5e1"); border: 3px solid white; box-shadow: 0 0 0 2px @(isFinished ? "#1e40af" : "#cbd5e1");"></div>
+                            <div style="font-weight: 800; font-size: 15px; color: #1e293b;">IT Xử lý: @(Model.TenAdmin ?? "---")</div>
+                            <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@(Model.TimeAdmin?.ToString("HH:mm dd/MM/yyyy") ?? "Đang xử lý...")</div>
                         </div>
                     </div>
+                </div>
 
-                    @if (!isCancelled && !isFinished)
-                    {
-                        <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 25px;">
-
-                            @* NÚT DUYỆT ĐƠN: 
-           Dành cho Quản lý (QuanLyDuyetDonIT), Admin (AdminIT) hoặc quyền All 
-           Chỉ hiển thị khi đơn CHƯA được quản lý duyệt
-        *@
-                            @if (!isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminIT") || User.IsInRole("QuanLyDuyetDonIT")))
-                            {
-                                <button id="btnDuyet"
-                                        onclick="handleAction('Duyet')"
-                                        style="background: #059669; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;"
-                                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(5, 150, 105, 0.4)'"
-                                        onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(5, 150, 105, 0.3)'">
-                                    <i class="fa fa-check-circle" style="font-size: 20px;"></i> DUYỆT ĐƠN (QUẢN LÝ)
-                                </button>
-                            }
-
-                            @* NÚT XÁC NHẬN HOÀN TẤT: 
-           Dành cho kỹ thuật (AdminIT) hoặc quyền All 
-           Chỉ hiển thị SAU KHI quản lý đã duyệt đơn
-        *@
-                            @if (isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminIT")))
-                            {
-                                <button id="btnHoanThanh"
-                                        onclick="handleXacNhanHoanThanh()"
-                                        style="background: #1e40af; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.3); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;"
-                                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(30, 64, 175, 0.4)'"
-                                        onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(30, 64, 175, 0.3)'">
-                                    <i class="fa fa-star" style="font-size: 20px;"></i> XÁC NHẬN HOÀN TẤT (IT)
-                                </button>
-                            }
-
-                            @* NÚT HỦY ĐƠN: 
-           Hiển thị cho cả 3 loại quyền nếu đơn chưa kết thúc
-        *@
-                            @if (User.IsInRole("All") || User.IsInRole("AdminIT") || User.IsInRole("QuanLyDuyetDonIT"))
-                            {
-                                <button id="btnHuy"
-                                        onclick="handleAction('Huy')"
-                                        style="background: white; color: #dc2626; border: 2px solid #dc2626; padding: 18px; border-radius: 18px; font-weight: 800; cursor: pointer; font-size: 15px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;"
-                                        onmouseover="this.style.background='#fef2f2'; this.style.transform='translateY(-2px)'"
-                                        onmouseout="this.style.background='white'; this.style.transform=''">
-                                    <i class="fa fa-times-circle" style="font-size: 18px;"></i> HỦY ĐƠN PHIẾU
-                                </button>
-                            }
-                        </div>
-                    }
-
-                    @if (Model.TrangThai == "HoanTat" && ViewBag.CurrentUserId != null && (int)ViewBag.CurrentUserId == Model.IdNguoiTao)
-                    {
-                        @if (!daDanhGia)
+                @if (!isCancelled && !isFinished)
+                {
+                    <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 25px;">
+                        @if (!isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminIT") || User.IsInRole("QuanLyDuyetDonIT")))
                         {
-                            <div style="margin-top: 15px;">
-                                <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 25px; border-radius: 20px; border: 2px solid #10b981; margin-bottom: 15px;">
-                                    <h4 style="margin: 0 0 15px 0; color: #065f46; font-size: 16px; font-weight: 900; display: flex; align-items: center; gap: 8px;">
-                                        <i class="fa fa-star"></i> BẠN CÓ HÀI LÒNG VỚI DỊCH VỤ?
-                                    </h4>
-                                    <p style="color: #047857; font-size: 14px; margin-bottom: 15px; line-height: 1.5;">
-                                        Vui lòng đánh giá mức độ hài lòng của bạn (1-5 sao):
-                                    </p>
-                                    <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;">
-                                        <button onclick="chonSao(1)" id="star1" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(1)" onmouseout="resetHover()">★</button>
-                                        <button onclick="chonSao(2)" id="star2" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(2)" onmouseout="resetHover()">★</button>
-                                        <button onclick="chonSao(3)" id="star3" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(3)" onmouseout="resetHover()">★</button>
-                                        <button onclick="chonSao(4)" id="star4" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(4)" onmouseout="resetHover()">★</button>
-                                        <button onclick="chonSao(5)" id="star5" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(5)" onmouseout="resetHover()">★</button>
-                                    </div>
-                                    <textarea id="txtNhanXet" placeholder="Nhận xét của bạn (tùy chọn)..." style="width: 100%; padding: 12px; border: 2px solid #d1fae5; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; font-family: 'Segoe UI', sans-serif; box-sizing: border-box;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#d1fae5'"></textarea>
-                                    <button id="btnGuiDanhGia" onclick="handleDanhGia()" disabled style="width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 900; cursor: not-allowed; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); transition: all 0.2s; margin-top: 12px; opacity: 0.5;">
-                                        <i class="fa fa-paper-plane"></i> GỬI ĐÁNH GIÁ
-                                    </button>
-                                </div>
-
-                                <div style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); padding: 20px; border-radius: 20px; border: 2px solid #fb923c;">
-                                    <button id="btnChuaHoanThanh" onclick="handleChuaHoanThanh()" style="width: 100%; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 15px; box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(245, 158, 11, 0.4)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(245, 158, 11, 0.3)'">
-                                        <i class="fa fa-undo"></i> TÔI VẪN CHƯA HÀI LÒNG / CHƯA XONG
-                                    </button>
-                                    <p style="color: #92400e; font-size: 13px; font-style: italic; margin: 12px 0 0 0; text-align: center; line-height: 1.5;">
-                                        <i class="fa fa-info-circle"></i> Nếu IT xác nhận hoàn tất nhưng thực tế chưa xong, bạn có thể bấm nút này.
-                                    </p>
-                                </div>
-                            </div>
-                        }
-                        else
-                        {
-                            var dg = Model.DanhGiaFormIts.First();
-                            string starDisplay = new string('⭐', dg.MucDo ?? 0);
-                            <div style="margin-top: 15px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 30px; border-radius: 20px; border: 2px solid #22c55e; box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.2);">
-                                <div style="text-align: center;">
-                                    <div style="background: white; width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.3);">
-                                        <i class="fa fa-check-circle" style="font-size: 48px; color: #16a34a;"></i>
-                                    </div>
-                                    <h4 style="margin: 0 0 10px 0; color: #166534; font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">
-                                        ĐƠN ĐÃ HOÀN THÀNH 100%
-                                    </h4>
-                                    <p style="color: #15803d; font-size: 14px; margin-bottom: 20px;">
-                                        Bạn đã đánh giá đơn này vào lúc @dg.TimeNguoiDanhGia?.ToString("HH:mm dd/MM/yyyy")
-                                    </p>
-                                    <div style="font-size: 42px; margin: 20px 0; line-height: 1;">@starDisplay</div>
-                                    <div style="background: white; padding: 20px; border-radius: 16px; margin-top: 20px; border: 2px solid #bbf7d0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                                        <strong style="color: #166534; display: block; margin-bottom: 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Đánh giá của bạn:</strong>
-                                        <span style="color: #15803d; font-size: 28px; font-weight: 900;">@dg.MucDo / 5 sao</span>
-                                    </div>
-                                    <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 15px; border-radius: 12px; margin-top: 20px; border: 2px solid #fbbf24;">
-                                        <p style="color: #92400e; font-size: 13px; font-style: italic; margin: 0; line-height: 1.5; font-weight: 600;">
-                                            <i class="fa fa-lock"></i> Đơn đã được khóa cứng. Bạn không thể hoàn tác sau khi đã đánh giá.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    }
-
-
-                    <div id="commentOverlay" onclick="toggleZoom()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; backdrop-filter: blur(3px);"></div>
-
-                    <div id="commentContainer" style="margin-top: 30px; background: #ffffff; border-radius: 28px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 1;">
-                        <div style="background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); padding: 20px 25px; border-bottom: 2px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-                            <h4 style="margin: 0; font-size: 16px; font-weight: 900; color: #1e293b; display: flex; align-items: center; gap: 10px;">
-                                <i class="fa fa-comments"></i>
-                                <span>BÌNH LUẬN</span>
-                                <span id="commentCount" style="background: #3b82f6; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;">0</span>
-                            </h4>
-                            <button type="button" onclick="toggleZoom()" id="btnZoom" style="background: #f1f5f9; border: none; width: 35px; height: 35px; border-radius: 10px; color: #64748b; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;">
-                                <i class="fa fa-expand" id="zoomIcon"></i>
+                            <button id="btnDuyet"
+                                    onclick="handleAction('Duyet')"
+                                    style="background: #059669; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;"
+                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(5, 150, 105, 0.4)'"
+                                    onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(5, 150, 105, 0.3)'">
+                                <i class="fa fa-check-circle" style="font-size: 20px;"></i> DUYỆT ĐƠN (QUẢN LÝ)
                             </button>
-                        </div>
+                        }
 
-                        <div id="commentList" style="max-height: 500px; overflow-y: auto; padding: 20px; background: #f8fafc; scrollbar-width: thin; display: flex; flex-direction: column; gap: 15px;">
-                            <div id="loadingComments" style="text-align: center; color: #94a3b8; padding: 20px;">
-                                <i class="fa fa-spinner fa-spin" style="font-size: 24px;"></i>
-                                <p style="margin-top: 10px; font-size: 14px;">Đang tải bình luận...</p>
+                        @if (isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminIT")))
+                        {
+                            <button id="btnHoanThanh"
+                                    onclick="handleXacNhanHoanThanh()"
+                                    style="background: #1e40af; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.3); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;"
+                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(30, 64, 175, 0.4)'"
+                                    onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(30, 64, 175, 0.3)'">
+                                <i class="fa fa-star" style="font-size: 20px;"></i> XÁC NHẬN HOÀN TẤT (IT)
+                            </button>
+                        }
+
+                        @if (User.IsInRole("All") || User.IsInRole("AdminIT") || User.IsInRole("QuanLyDuyetDonIT"))
+                        {
+                            <button id="btnHuy"
+                                    onclick="handleAction('Huy')"
+                                    style="background: white; color: #dc2626; border: 2px solid #dc2626; padding: 18px; border-radius: 18px; font-weight: 800; cursor: pointer; font-size: 15px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;"
+                                    onmouseover="this.style.background='#fef2f2'; this.style.transform='translateY(-2px)'"
+                                    onmouseout="this.style.background='white'; this.style.transform=''">
+                                <i class="fa fa-times-circle" style="font-size: 18px;"></i> HỦY ĐƠN PHIẾU
+                            </button>
+                        }
+                    </div>
+                }
+
+                @if (Model.TrangThai == "HoanTat" && ViewBag.CurrentUserId != null && (int)ViewBag.CurrentUserId == Model.IdNguoiTao)
+                {
+                    @if (!daDanhGia)
+                    {
+                        <div style="margin-top: 15px;">
+                            <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 25px; border-radius: 20px; border: 2px solid #10b981; margin-bottom: 15px;">
+                                <h4 style="margin: 0 0 15px 0; color: #065f46; font-size: 16px; font-weight: 900; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa fa-star"></i> BẠN CÓ HÀI LÒNG VỚI DỊCH VỤ?
+                                </h4>
+                                <p style="color: #047857; font-size: 14px; margin-bottom: 15px; line-height: 1.5;">
+                                    Vui lòng đánh giá mức độ hài lòng của bạn (1-5 sao):
+                                </p>
+                                <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;">
+                                    <button onclick="chonSao(1)" id="star1" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(1)" onmouseout="resetHover()">★</button>
+                                    <button onclick="chonSao(2)" id="star2" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(2)" onmouseout="resetHover()">★</button>
+                                    <button onclick="chonSao(3)" id="star3" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(3)" onmouseout="resetHover()">★</button>
+                                    <button onclick="chonSao(4)" id="star4" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(4)" onmouseout="resetHover()">★</button>
+                                    <button onclick="chonSao(5)" id="star5" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(5)" onmouseout="resetHover()">★</button>
+                                </div>
+                                <textarea id="txtNhanXet" placeholder="Nhận xét của bạn (tùy chọn)..." style="width: 100%; padding: 12px; border: 2px solid #d1fae5; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; font-family: 'Segoe UI', sans-serif; box-sizing: border-box;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#d1fae5'"></textarea>
+                                <button id="btnGuiDanhGia" onclick="handleDanhGia()" disabled style="width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 900; cursor: not-allowed; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); transition: all 0.2s; margin-top: 12px; opacity: 0.5;">
+                                    <i class="fa fa-paper-plane"></i> GỬI ĐÁNH GIÁ
+                                </button>
+                            </div>
+
+                            <div style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); padding: 20px; border-radius: 20px; border: 2px solid #fb923c;">
+                                <button id="btnChuaHoanThanh" onclick="handleChuaHoanThanh()" style="width: 100%; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 15px; box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -5px rgba(245, 158, 11, 0.4)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(245, 158, 11, 0.3)'">
+                                    <i class="fa fa-undo"></i> TÔI VẪN CHƯA HÀI LÒNG / CHƯA XONG
+                                </button>
+                                <p style="color: #92400e; font-size: 13px; font-style: italic; margin: 12px 0 0 0; text-align: center; line-height: 1.5;">
+                                    <i class="fa fa-info-circle"></i> Nếu IT xác nhận hoàn tất nhưng thực tế chưa xong, bạn có thể bấm nút này.
+                                </p>
                             </div>
                         </div>
-
-                        <div style="padding: 20px; background: white; border-top: 2px solid #e2e8f0;">
-                            <form id="formBinhLuan" enctype="multipart/form-data">
-                                <textarea id="txtBinhLuan"
-                                          name="noiDung"
-                                          placeholder="Nhập bình luận... (Có thể dán ảnh/file bằng Ctrl+V)"
-                                          style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; font-family: 'Segoe UI', sans-serif; box-sizing: border-box; margin-bottom: 12px;"
-                                          onfocus="this.style.borderColor='#3b82f6'"
-                                          onblur="this.style.borderColor='#e2e8f0'"></textarea>
-
-                                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                                    <label for="fileBinhLuan"
-                                           style="flex: 1; min-width: 200px; padding: 12px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; cursor: pointer; text-align: center; font-size: 14px; color: #64748b; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;"
-                                           onmouseover="this.style.borderColor='#3b82f6'; this.style.background='#eff6ff'"
-                                           onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'">
-                                        <i class="fa fa-paperclip"></i>
-                                        <span id="fileLabel">Đính kèm file (max 50MB)</span>
-                                        <input type="file" id="fileBinhLuan" name="file" style="display: none;" onchange="updateFileLabel(this)">
-                                    </label>
-
-                                    <button type="submit"
-                                            id="btnGuiBinhLuan"
-                                            style="padding: 12px 30px; background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3); transition: all 0.2s; white-space: nowrap;"
-                                            onmouseover="this.style.transform='translateY(-2px)';"
-                                            onmouseout="this.style.transform='';">
-                                        <i class="fa fa-paper-plane"></i> Gửi bình luận
-                                    </button>
+                    }
+                    else
+                    {
+                        var dg = Model.DanhGiaFormIts.First();
+                        string starDisplay = new string('⭐', dg.MucDo ?? 0);
+                        <div style="margin-top: 15px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 30px; border-radius: 20px; border: 2px solid #22c55e; box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.2);">
+                            <div style="text-align: center;">
+                                <div style="background: white; width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.3);">
+                                    <i class="fa fa-check-circle" style="font-size: 48px; color: #16a34a;"></i>
                                 </div>
-                            </form>
+                                <h4 style="margin: 0 0 10px 0; color: #166534; font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">
+                                    ĐƠN ĐÃ HOÀN THÀNH 100%
+                                </h4>
+                                <p style="color: #15803d; font-size: 14px; margin-bottom: 20px;">
+                                    Bạn đã đánh giá đơn này vào lúc @dg.TimeNguoiDanhGia?.ToString("HH:mm dd/MM/yyyy")
+                                </p>
+                                <div style="font-size: 42px; margin: 20px 0; line-height: 1;">@starDisplay</div>
+                                <div style="background: white; padding: 20px; border-radius: 16px; margin-top: 20px; border: 2px solid #bbf7d0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                                    <strong style="color: #166534; display: block; margin-bottom: 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Đánh giá của bạn:</strong>
+                                    <span style="color: #15803d; font-size: 28px; font-weight: 900;">@dg.MucDo / 5 sao</span>
+                                </div>
+                                <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 15px; border-radius: 12px; margin-top: 20px; border: 2px solid #fbbf24;">
+                                    <p style="color: #92400e; font-size: 13px; font-style: italic; margin: 0; line-height: 1.5; font-weight: 600;">
+                                        <i class="fa fa-lock"></i> Đơn đã được khóa cứng. Bạn không thể hoàn tác sau khi đã đánh giá.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+
+                <div id="commentOverlay" onclick="toggleZoom()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; backdrop-filter: blur(3px);"></div>
+
+                <div id="commentContainer" style="margin-top: 30px; background: #ffffff; border-radius: 28px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 1;">
+                    <div style="background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); padding: 20px 25px; border-bottom: 2px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="margin: 0; font-size: 16px; font-weight: 900; color: #1e293b; display: flex; align-items: center; gap: 10px;">
+                            <i class="fa fa-comments"></i>
+                            <span>BÌNH LUẬN</span>
+                            <span id="commentCount" style="background: #3b82f6; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;">0</span>
+                        </h4>
+                        <button type="button" onclick="toggleZoom()" id="btnZoom" style="background: #f1f5f9; border: none; width: 35px; height: 35px; border-radius: 10px; color: #64748b; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;">
+                            <i class="fa fa-expand" id="zoomIcon"></i>
+                        </button>
+                    </div>
+
+                    <div id="commentList" style="max-height: 500px; overflow-y: auto; padding: 20px; background: #f8fafc; scrollbar-width: thin; display: flex; flex-direction: column; gap: 15px;">
+                        <div id="loadingComments" style="text-align: center; color: #94a3b8; padding: 20px;">
+                            <i class="fa fa-spinner fa-spin" style="font-size: 24px;"></i>
+                            <p style="margin-top: 10px; font-size: 14px;">Đang tải bình luận...</p>
                         </div>
                     </div>
 
-                    <style>
-                        .comment-zoom-active {
-                            position: fixed !important;
-                            top: 50% !important;
-                            left: 50% !important;
-                            transform: translate(-50%, -50%) !important;
-                            width: 75vw !important;
-                            height: 85vh !important;
-                            z-index: 9999 !important;
-                            margin: 0 !important;
-                            border-radius: 20px !important;
-                            display: flex !important;
-                            flex-direction: column !important;
-                        }
+                    <div style="padding: 20px; background: white; border-top: 2px solid #e2e8f0;">
+                        <form id="formBinhLuan" enctype="multipart/form-data">
+                            <textarea id="txtBinhLuan"
+                                      name="noiDung"
+                                      placeholder="Nhập bình luận... (Có thể dán ảnh/file bằng Ctrl+V)"
+                                      style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; font-family: 'Segoe UI', sans-serif; box-sizing: border-box; margin-bottom: 12px;"
+                                      onfocus="this.style.borderColor='#3b82f6'"
+                                      onblur="this.style.borderColor='#e2e8f0'"></textarea>
 
-                            .comment-zoom-active #commentList {
-                                max-height: none !important;
-                                flex: 1 !important;
-                            }
-                    </style>
+                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                <label for="fileBinhLuan"
+                                       style="flex: 1; min-width: 200px; padding: 12px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; cursor: pointer; text-align: center; font-size: 14px; color: #64748b; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;"
+                                       onmouseover="this.style.borderColor='#3b82f6'; this.style.background='#eff6ff'"
+                                       onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'">
+                                    <i class="fa fa-paperclip"></i>
+                                    <span id="fileLabel">Đính kèm file (max 50MB)</span>
+                                    <input type="file" id="fileBinhLuan" name="file" style="display: none;" onchange="updateFileLabel(this)">
+                                </label>
+
+                                <button type="submit"
+                                        id="btnGuiBinhLuan"
+                                        style="padding: 12px 30px; background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3); transition: all 0.2s; white-space: nowrap;"
+                                        onmouseover="this.style.transform='translateY(-2px)';"
+                                        onmouseout="this.style.transform='';">
+                                    <i class="fa fa-paper-plane"></i> Gửi bình luận
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
+
+                <style>
+                                        .comment-zoom-active {
+                                            position: fixed !important;
+                                            top: 50% !important;
+                                            left: 50% !important;
+                                            transform: translate(-50%, -50%) !important;
+                                            width: 75vw !important;
+                                            height: 85vh !important;
+                                            z-index: 9999 !important;
+                                            margin: 0 !important;
+                                            border-radius: 20px !important;
+                                            display: flex !important;
+                                            flex-direction: column !important;
+                                        }
+
+                                            .comment-zoom-active #commentList {
+                                                max-height: none !important;
+                                                flex: 1 !important;
+                                            }
+                </style>
             </div>
         </div>
-    </div>
-
-    <div id="imageOverlay" onclick="closeZoom()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.95); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(8px);">
-        <img id="fullImage" src="" style="max-width:95%; max-height:95%; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.1);">
     </div>
 </div>
 
-<<script>
-     // ==========================================
-     // 1. KHAI BÁO BIẾN CƠ BẢN & TRẠNG THÁI
-     // ==========================================
-     const formId = @Model.Id;
-     const currentUserId = '@ViewBag.CurrentUserId';
+<div id="imageOverlay" onclick="closeZoom()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.95); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(8px);">
+    <img id="fullImage" src="" style="max-width:95%; max-height:95%; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.1);">
+</div>
+</div>
 
-     // --- MỚI: Lấy danh sách Roles dưới dạng mảng ---
-     const userRoles = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-         User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList()
-     ));
+<script>
+    // ==========================================
+    // 1. KHAI BÁO BIẾN CƠ BẢN & TRẠNG THÁI
+    // ==========================================
+    const formId = @Model.Id;
+    const currentUserId = '@ViewBag.CurrentUserId';
 
-     // Biến trạng thái cho Bình luận
-     let currentSkipComment = 0;
-     const takeComment = 20;
-     let hasMoreComments = true;
-     let isLoadingComments = false;
-     let totalComments = 0;
-     let soSaoChon = 0;
-     let isSubmitting = false;
+    // --- MỚI: Lấy danh sách Roles dưới dạng mảng ---
+    const userRoles = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList()
+        ));
 
-     // Helper kiểm tra quyền nhanh trong JS
-     function hasRole(roleName) {
-         return userRoles.includes(roleName);
-     }
+    // Biến trạng thái cho Bình luận
+    let currentSkipComment = 0;
+    const takeComment = 20;
+    let hasMoreComments = true;
+    let isLoadingComments = false;
+    let totalComments = 0;
+    let soSaoChon = 0;
+    let isSubmitting = false;
 
-     // ==========================================
-     // 2. HELPERS & UTILITIES
-     // ==========================================
-     function escapeHtml(str) {
-         if (!str) return '';
-         return String(str)
-             .replace(/&/g, '&amp;')
-             .replace(/</g, '&lt;')
-             .replace(/>/g, '&gt;')
-             .replace(/"/g, '&quot;')
-             .replace(/'/g, '&#39;');
-     }
+    // Helper kiểm tra quyền nhanh trong JS
+    function hasRole(roleName) {
+        return userRoles.includes(roleName);
+    }
 
-     async function apiPost(url, body, btnIds) {
-         if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = true; });
-         try {
-             const response = await fetch(url, {
-                 method: 'POST',
-                 headers: {
-                     'Content-Type': 'application/json',
-                     'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
-                 },
-                 body: JSON.stringify(body)
-             });
-             const data = await response.json();
-             if (data.success) {
-                 alert(data.message || "Thao tác thành công!");
-                 location.reload();
-             } else {
-                 alert(data.message || "Thao tác thất bại");
-                 if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; });
-             }
-         } catch (err) {
-             console.error(err);
-             alert("Lỗi kết nối máy chủ hoặc phiên làm việc đã hết hạn.");
-             if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; });
-         }
-     }
+    // ==========================================
+    // 2. HELPERS & UTILITIES
+    // ==========================================
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
 
-     // ==========================================
-     // 3. XỬ LÝ PHÓNG TO (ZOOM) & PHÍM TẮT
-     // ==========================================
-     function toggleZoom() {
-         const container = document.getElementById('commentContainer');
-         const overlay = document.getElementById('commentOverlay');
-         const icon = document.getElementById('zoomIcon');
-         if (!container) return;
-         const isFull = container.classList.toggle('comment-zoom-active');
-         if (overlay) overlay.style.display = isFull ? 'block' : 'none';
-         if (icon) {
-             if (isFull) icon.classList.replace('fa-expand', 'fa-compress');
-             else icon.classList.replace('fa-compress', 'fa-expand');
-         }
-         document.body.style.overflow = isFull ? 'hidden' : 'auto';
-     }
+    async function apiPost(url, body, btnIds) {
+        if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = true; });
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                },
+                body: JSON.stringify(body)
+            });
+            const data = await response.json();
+            if (data.success) {
+                alert(data.message || "Thao tác thành công!");
+                location.reload();
+            } else {
+                alert(data.message || "Thao tác thất bại");
+                if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; });
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Lỗi kết nối máy chủ hoặc phiên làm việc đã hết hạn.");
+            if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; });
+        }
+    }
 
-     function toggleZoomHistory() {
-         const container = document.getElementById('historyContainer');
-         const overlay = document.getElementById('historyOverlay');
-         const icon = document.getElementById('historyZoomIcon');
-         if (!container) return;
-         const isFull = container.classList.toggle('history-zoom-active');
-         if (overlay) overlay.style.display = isFull ? 'block' : 'none';
-         if (icon) {
-             if (isFull) icon.classList.replace('fa-expand', 'fa-compress');
-             else icon.classList.replace('fa-compress', 'fa-expand');
-         }
-         document.body.style.overflow = isFull ? 'hidden' : 'auto';
-     }
+    // ==========================================
+    // 3. XỬ LÝ PHÓNG TO (ZOOM) & PHÍM TẮT
+    // ==========================================
+    function toggleZoom() {
+        const container = document.getElementById('commentContainer');
+        const overlay = document.getElementById('commentOverlay');
+        const icon = document.getElementById('zoomIcon');
+        if (!container) return;
+        const isFull = container.classList.toggle('comment-zoom-active');
+        if (overlay) overlay.style.display = isFull ? 'block' : 'none';
+        if (icon) {
+            if (isFull) icon.classList.replace('fa-expand', 'fa-compress');
+            else icon.classList.replace('fa-compress', 'fa-expand');
+        }
+        document.body.style.overflow = isFull ? 'hidden' : 'auto';
+    }
 
-     function openZoom(src) {
-         const fullImg = document.getElementById('fullImage');
-         const overlay = document.getElementById('imageOverlay');
-         if (fullImg && overlay) {
-             fullImg.src = src;
-             overlay.style.display = 'flex';
-             document.body.style.overflow = 'hidden';
-         }
-     }
+    function toggleZoomHistory() {
+        const container = document.getElementById('historyContainer');
+        const overlay = document.getElementById('historyOverlay');
+        const icon = document.getElementById('historyZoomIcon');
+        if (!container) return;
+        const isFull = container.classList.toggle('history-zoom-active');
+        if (overlay) overlay.style.display = isFull ? 'block' : 'none';
+        if (icon) {
+            if (isFull) icon.classList.replace('fa-expand', 'fa-compress');
+            else icon.classList.replace('fa-compress', 'fa-expand');
+        }
+        document.body.style.overflow = isFull ? 'hidden' : 'auto';
+    }
 
-     function closeZoom() {
-         const overlay = document.getElementById('imageOverlay');
-         if (overlay) {
-             overlay.style.display = 'none';
-             document.body.style.overflow = 'auto';
-         }
-     }
+    function openZoom(src) {
+        const fullImg = document.getElementById('fullImage');
+        const overlay = document.getElementById('imageOverlay');
+        if (fullImg && overlay) {
+            fullImg.src = src;
+            overlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+    }
 
-     document.addEventListener('keydown', function(e) {
-         if (e.key === "Escape") {
-             if (document.getElementById('imageOverlay')?.style.display === 'flex') closeZoom();
-             else if (document.getElementById('commentContainer')?.classList.contains('comment-zoom-active')) toggleZoom();
-             else if (document.getElementById('historyContainer')?.classList.contains('history-zoom-active')) toggleZoomHistory();
-         }
-     });
+    function closeZoom() {
+        const overlay = document.getElementById('imageOverlay');
+        if (overlay) {
+            overlay.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    }
 
-     // ==========================================
-     // 4. LOGIC BÌNH LUẬN (LOAD, THÊM, XÓA, PASTE)
-     // ==========================================
-     async function taiBinhLuan(isLoadMore = false) {
-         if (isLoadingComments) return;
-         isLoadingComments = true;
-         try {
-             const res = await fetch(`/FormIT/LayBinhLuan/${formId}?skip=${currentSkipComment}&take=${takeComment}`);
-             const data = await res.json();
-             if (data.success) {
-                 const commentList = document.getElementById('commentList');
-                 if (!commentList) return;
-                 if (!isLoadMore) {
-                     commentList.innerHTML = '';
-                     currentSkipComment = 0;
-                     totalComments = 0;
-                 }
-                 if (!data.data || data.data.length === 0) {
-                     if (!isLoadMore) commentList.innerHTML = '<div id="noCommentMsg" style="text-align: center; color: #94a3b8; padding: 40px;"><p>Chưa có bình luận nào.</p></div>';
-                     hasMoreComments = false;
-                 } else {
-                     const noMsg = document.getElementById('noCommentMsg');
-                     if (noMsg) noMsg.remove();
-                     data.data.forEach(bl => {
-                         const temp = document.createElement('div');
-                         temp.innerHTML = renderComment(bl);
-                         if (isLoadMore) commentList.prepend(temp.firstElementChild);
-                         else commentList.appendChild(temp.firstElementChild);
-                         totalComments++;
-                     });
-                     currentSkipComment += data.data.length;
-                     if (data.data.length < takeComment) hasMoreComments = false;
-                     if (!isLoadMore) setTimeout(() => { commentList.scrollTop = commentList.scrollHeight; }, 100);
-                 }
-                 updateCommentCount();
-             }
-         } catch (err) { console.error('Lỗi tải bình luận:', err); } finally { isLoadingComments = false; }
-     }
+    document.addEventListener('keydown', function(e) {
+        if (e.key === "Escape") {
+            if (document.getElementById('imageOverlay')?.style.display === 'flex') closeZoom();
+            else if (document.getElementById('commentContainer')?.classList.contains('comment-zoom-active')) toggleZoom();
+            else if (document.getElementById('historyContainer')?.classList.contains('history-zoom-active')) toggleZoomHistory();
+        }
+    });
 
-     function renderComment(bl) {
-         const isOwn = currentUserId === String(bl.idNguoiBinhLuan);
-         const commentTime = new Date(bl.thoiGian).getTime();
-         const now = new Date().getTime();
-         const isExpired = (now - commentTime) > (2 * 60 * 60 * 1000);
+    // ==========================================
+    // 4. LOGIC BÌNH LUẬN (LOAD, THÊM, XÓA, PASTE)
+    // ==========================================
+    async function taiBinhLuan(isLoadMore = false) {
+        if (isLoadingComments) return;
+        isLoadingComments = true;
+        try {
+            const res = await fetch(`/FormIT/LayBinhLuan/${formId}?skip=${currentSkipComment}&take=${takeComment}`);
+            const data = await res.json();
+            if (data.success) {
+                const commentList = document.getElementById('commentList');
+                if (!commentList) return;
+                if (!isLoadMore) {
+                    commentList.innerHTML = '';
+                    currentSkipComment = 0;
+                    totalComments = 0;
+                }
+                if (!data.data || data.data.length === 0) {
+                    if (!isLoadMore) commentList.innerHTML = '<div id="noCommentMsg" style="text-align: center; color: #94a3b8; padding: 40px;"><p>Chưa có bình luận nào.</p></div>';
+                    hasMoreComments = false;
+                } else {
+                    const noMsg = document.getElementById('noCommentMsg');
+                    if (noMsg) noMsg.remove();
+                    data.data.forEach(bl => {
+                        const temp = document.createElement('div');
+                        temp.innerHTML = renderComment(bl);
+                        if (isLoadMore) commentList.prepend(temp.firstElementChild);
+                        else commentList.appendChild(temp.firstElementChild);
+                        totalComments++;
+                    });
+                    currentSkipComment += data.data.length;
+                    if (data.data.length < takeComment) hasMoreComments = false;
+                    if (!isLoadMore) setTimeout(() => { commentList.scrollTop = commentList.scrollHeight; }, 100);
+                }
+                updateCommentCount();
+            }
+        } catch (err) { console.error('Lỗi tải bình luận:', err); } finally { isLoadingComments = false; }
+    }
 
-         // CẬP NHẬT: Check quyền xóa dựa trên 3 Role mới
-         const isAdmin = hasRole('All') || hasRole('AdminIT');
-         const canDelete = (isOwn && !isExpired) || isAdmin;
+    function renderComment(bl) {
+        const isOwn = currentUserId === String(bl.idNguoiBinhLuan);
+        const commentTime = new Date(bl.thoiGian).getTime();
+        const now = new Date().getTime();
+        const isExpired = (now - commentTime) > (2 * 60 * 60 * 1000);
 
-         const timeStr = new Date(bl.thoiGian).toLocaleString('vi-VN');
-         let fileHtml = '';
-         if (bl.fileDinhKem) {
-             const parts = bl.fileDinhKem.split('_');
-             const originalName = parts.length > 2 ? parts.slice(2).join('_') : bl.fileDinhKem;
-             const ext = bl.fileDinhKem.split('.').pop().toLowerCase();
-             const isImg = ['jpg','jpeg','png','gif'].includes(ext);
-             if(isImg) {
-                 fileHtml = `<div style="margin-top:8px;"><img src="/FormIT/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" onclick="openZoom(this.src)" style="max-width:200px; border-radius:8px; cursor:zoom-in; border:1px solid #e2e8f0;"/></div>`;
-             } else {
-                 fileHtml = `<div style="margin-top: 10px; padding: 10px; background: #f1f5f9; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;"><i class="fa fa-paperclip"></i><a href="/FormIT/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color: #3b82f6; font-weight: 600; font-size: 13px; text-decoration: none;">${escapeHtml(originalName)}</a></div>`;
-             }
-         }
-         const initial = (bl.tenNguoiBinhLuan || 'U').charAt(0).toUpperCase();
-         return `<div class="comment-item" style="margin-bottom: 20px; display: flex; gap: 12px; ${isOwn ? 'flex-direction: row-reverse;' : ''}" data-comment-id="${bl.id}"><div style="width: 40px; height: 40px; border-radius: 50%; background: ${isOwn ? '#3b82f6' : '#64748b'}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${initial}</div><div style="flex: 1; ${isOwn ? 'text-align: right;' : ''}"><div style="display: inline-block; text-align: left; max-width: 85%;"><div style="display: flex; flex-direction: column; margin-bottom: 4px; ${isOwn ? 'align-items: flex-end;' : 'align-items: flex-start;'}"><div style="display: flex; align-items: center; gap: 8px; ${isOwn ? 'flex-direction: row-reverse;' : ''}"><span style="font-weight: 700; font-size: 13px; color: #1e293b;">${escapeHtml(bl.tenNguoiBinhLuan)} (${escapeHtml(bl.ma)})</span><span style="font-size: 11px; color: #94a3b8;">${timeStr}</span>${canDelete ? `<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" title="Xóa" style="color: #ef4444; cursor: pointer; font-size: 11px; margin: 0 5px;"></i>` : ''}</div></div><div style="background: ${isOwn ? '#eff6ff' : '#f8fafc'}; padding: 12px; border-radius: ${isOwn ? '16px 2px 16px 16px' : '2px 16px 16px 16px'}; border: 1px solid ${isOwn ? '#bfdbfe' : '#e2e8f0'}; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"><div style="font-size: 14px; color: #334155; white-space: pre-wrap; word-break: break-word;">${escapeHtml(bl.noiDung)}</div>${fileHtml}</div></div></div></div>`;
-     }
+        const isAdmin = hasRole('All') || hasRole('AdminIT');
+        const canDelete = (isOwn && !isExpired) || isAdmin;
 
-     async function guiBinhLuan(e) {
-         if(e) e.preventDefault();
-         if (isSubmitting) return;
-         const txtArea = document.getElementById('txtBinhLuan');
-         const noiDung = txtArea.value.trim();
-         const fileInp = document.getElementById('fileBinhLuan');
-         if (!noiDung && !fileInp.files[0]) return alert('Vui lòng nhập nội dung hoặc đính kèm file!');
-         const formData = new FormData();
-         formData.append('idForm', formId);
-         formData.append('noiDung', noiDung);
-         if (fileInp.files[0]) formData.append('file', fileInp.files[0]);
-         const btn = document.getElementById('btnGuiBinhLuan');
-         isSubmitting = true;
-         if(btn) { btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>'; }
-         try {
-             const res = await fetch('/FormIT/ThemBinhLuan', { method: 'POST', body: formData });
-             const data = await res.json();
-             if (data.success) {
-                 const list = document.getElementById('commentList');
-                 const noMsg = document.getElementById('noCommentMsg');
-                 if (noMsg) noMsg.remove();
-                 list.insertAdjacentHTML('beforeend', renderComment(data.data));
-                 list.scrollTop = list.scrollHeight;
-                 document.getElementById('formBinhLuan').reset();
-                 document.getElementById('fileLabel').textContent = 'Đính kèm file (max 50MB)';
-                 totalComments++;
-                 updateCommentCount();
-             } else { alert(data.message || 'Lỗi gửi bình luận'); }
-         } catch (err) { alert('Lỗi kết nối máy chủ khi gửi'); } finally { isSubmitting = false; if(btn) { btn.disabled = false; btn.innerHTML = 'GỬI'; } }
-     }
+        const timeStr = new Date(bl.thoiGian).toLocaleString('vi-VN');
+        let fileHtml = '';
+        if (bl.fileDinhKem) {
+            const parts = bl.fileDinhKem.split('_');
+            const originalName = parts.length > 2 ? parts.slice(2).join('_') : bl.fileDinhKem;
+            const ext = bl.fileDinhKem.split('.').pop().toLowerCase();
+            const isImg = ['jpg','jpeg','png','gif'].includes(ext);
+            if(isImg) {
+                fileHtml = `<div style="margin-top:8px;"><img src="/FormIT/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" onclick="openZoom(this.src)" style="max-width:200px; border-radius:8px; cursor:zoom-in; border:1px solid #e2e8f0;"/></div>`;
+            } else {
+                fileHtml = `<div style="margin-top: 10px; padding: 10px; background: #f1f5f9; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;"><i class="fa fa-paperclip"></i><a href="/FormIT/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color: #3b82f6; font-weight: 600; font-size: 13px; text-decoration: none;">${escapeHtml(originalName)}</a></div>`;
+            }
+        }
+        const initial = (bl.tenNguoiBinhLuan || 'U').charAt(0).toUpperCase();
+        return `<div class="comment-item" style="margin-bottom: 20px; display: flex; gap: 12px; ${isOwn ? 'flex-direction: row-reverse;' : ''}" data-comment-id="${bl.id}"><div style="width: 40px; height: 40px; border-radius: 50%; background: ${isOwn ? '#3b82f6' : '#64748b'}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${initial}</div><div style="flex: 1; ${isOwn ? 'text-align: right;' : ''}"><div style="display: inline-block; text-align: left; max-width: 85%;"><div style="display: flex; flex-direction: column; margin-bottom: 4px; ${isOwn ? 'align-items: flex-end;' : 'align-items: flex-start;'}"><div style="display: flex; align-items: center; gap: 8px; ${isOwn ? 'flex-direction: row-reverse;' : ''}"><span style="font-weight: 700; font-size: 13px; color: #1e293b;">${escapeHtml(bl.tenNguoiBinhLuan)} (${escapeHtml(bl.ma)})</span><span style="font-size: 11px; color: #94a3b8;">${timeStr}</span>${canDelete ? `<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" title="Xóa" style="color: #ef4444; cursor: pointer; font-size: 11px; margin: 0 5px;"></i>` : ''}</div></div><div style="background: ${isOwn ? '#eff6ff' : '#f8fafc'}; padding: 12px; border-radius: ${isOwn ? '16px 2px 16px 16px' : '2px 16px 16px 16px'}; border: 1px solid ${isOwn ? '#bfdbfe' : '#e2e8f0'}; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"><div style="font-size: 14px; color: #334155; white-space: pre-wrap; word-break: break-word;">${escapeHtml(bl.noiDung)}</div>${fileHtml}</div></div></div></div>`;
+    }
 
-     async function xoaBinhLuan(id) {
-         if (!confirm('Bạn có chắc chắn muốn xóa bình luận này?')) return;
-         try {
-             const res = await fetch('/FormIT/XoaBinhLuan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
-             const data = await res.json();
-             if (data.success) {
-                 document.querySelector(`[data-comment-id="${id}"]`)?.remove();
-                 totalComments--;
-                 updateCommentCount();
-             } else { alert(data.message); }
-         } catch (err) { alert('Lỗi kết nối khi xóa'); }
-     }
+    async function guiBinhLuan(e) {
+        if(e) e.preventDefault();
+        if (isSubmitting) return;
+        const txtArea = document.getElementById('txtBinhLuan');
+        const noiDung = txtArea.value.trim();
+        const fileInp = document.getElementById('fileBinhLuan');
+        if (!noiDung && !fileInp.files[0]) return alert('Vui lòng nhập nội dung hoặc đính kèm file!');
+        const formData = new FormData();
+        formData.append('idForm', formId);
+        formData.append('noiDung', noiDung);
+        if (fileInp.files[0]) formData.append('file', fileInp.files[0]);
+        const btn = document.getElementById('btnGuiBinhLuan');
+        isSubmitting = true;
+        if(btn) { btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>'; }
+        try {
+            const res = await fetch('/FormIT/ThemBinhLuan', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.success) {
+                const list = document.getElementById('commentList');
+                const noMsg = document.getElementById('noCommentMsg');
+                if (noMsg) noMsg.remove();
+                list.insertAdjacentHTML('beforeend', renderComment(data.data));
+                list.scrollTop = list.scrollHeight;
+                document.getElementById('formBinhLuan').reset();
+                document.getElementById('fileLabel').textContent = 'Đính kèm file (max 50MB)';
+                totalComments++;
+                updateCommentCount();
+            } else { alert(data.message || 'Lỗi gửi bình luận'); }
+        } catch (err) { alert('Lỗi kết nối máy chủ khi gửi'); } finally { isSubmitting = false; if(btn) { btn.disabled = false; btn.innerHTML = 'GỬI'; } }
+    }
 
-     function updateFileLabel(input) {
-         const label = document.getElementById('fileLabel');
-         if (input.files[0]) {
-             const sizeMB = (input.files[0].size / 1048576).toFixed(2);
-             if(sizeMB > 50) { alert("File quá lớn (tối đa 50MB)"); input.value = ""; label.textContent = 'Đính kèm file (max 50MB)'; return; }
-             label.textContent = `${input.files[0].name} (${sizeMB}MB)`;
-         } else { label.textContent = 'Đính kèm file (max 50MB)'; }
-     }
+    async function xoaBinhLuan(id) {
+        if (!confirm('Bạn có chắc chắn muốn xóa bình luận này?')) return;
+        try {
+            const res = await fetch('/FormIT/XoaBinhLuan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+            const data = await res.json();
+            if (data.success) {
+                document.querySelector(`[data-comment-id="${id}"]`)?.remove();
+                totalComments--;
+                updateCommentCount();
+            } else { alert(data.message); }
+        } catch (err) { alert('Lỗi kết nối khi xóa'); }
+    }
 
-     function updateCommentCount() {
-         const el = document.getElementById('commentCount');
-         if (el) el.textContent = totalComments;
-     }
+    function updateFileLabel(input) {
+        const label = document.getElementById('fileLabel');
+        if (input.files[0]) {
+            const sizeMB = (input.files[0].size / 1048576).toFixed(2);
+            if(sizeMB > 50) { alert("File quá lớn (tối đa 50MB)"); input.value = ""; label.textContent = 'Đính kèm file (max 50MB)'; return; }
+            label.textContent = `${input.files[0].name} (${sizeMB}MB)`;
+        } else { label.textContent = 'Đính kèm file (max 50MB)'; }
+    }
 
-     // ==========================================
-     // 5. XỬ LÝ NGHIỆP VỤ ĐƠN
-     // ==========================================
-     function handleAction(type) {
-         let reason = null;
-         if (type === 'Huy') {
-             reason = prompt("Vui lòng nhập lý do hủy đơn:");
-             if (reason === null) return;
-             if (reason.trim() === "") return alert("Lý do hủy không được để trống!");
-         }
+    function updateCommentCount() {
+        const el = document.getElementById('commentCount');
+        if (el) el.textContent = totalComments;
+    }
 
-         const actionName = type === 'Duyet' ? "DUYỆT" : "HỦY";
-         // CẬP NHẬT: Kiểm tra quyền thực hiện thao tác Duyệt/Hủy
-         if (!hasRole('All') && !hasRole('AdminIT') && !hasRole('QuanLyDuyetDonIT')) {
-             return alert("Bạn không có quyền thực hiện thao tác này!");
-         }
+    // ==========================================
+    // 5. XỬ LÝ NGHIỆP VỤ ĐƠN
+    // ==========================================
+    function handleAction(type) {
+        let reason = null;
+        if (type === 'Huy') {
+            reason = prompt("Vui lòng nhập lý do hủy đơn:");
+            if (reason === null) return;
+            if (reason.trim() === "") return alert("Lý do hủy không được để trống!");
+        }
 
-         if (confirm(`Xác nhận ${actionName} đơn phiếu này?`)) {
-             apiPost('/FormIT/XuLyDon', { id: formId, action: type, reason: reason }, ['btnDuyet', 'btnHuy']);
-         }
-     }
+        const actionName = type === 'Duyet' ? "DUYỆT" : "HỦY";
+        if (!hasRole('All') && !hasRole('AdminIT') && !hasRole('QuanLyDuyetDonIT')) {
+            return alert("Bạn không có quyền thực hiện thao tác này!");
+        }
 
-     function handleXacNhanHoanThanh() {
-         // CẬP NHẬT: Chỉ AdminIT hoặc All mới xác nhận hoàn tất được
-         if (!hasRole('All') && !hasRole('AdminIT')) return alert("Chỉ IT mới có quyền xác nhận hoàn tất!");
+        if (confirm(`Xác nhận ${actionName} đơn phiếu này?`)) {
+            apiPost('/FormIT/XuLyDon', { id: formId, action: type, reason: reason }, ['btnDuyet', 'btnHuy']);
+        }
+    }
 
-         if (confirm("Xác nhận bạn đã hoàn tất xử lý yêu cầu này?")) {
-             apiPost('/FormIT/XacNhanHoanThanh', { id: formId }, ['btnHoanThanh']);
-         }
-     }
+    function handleXacNhanHoanThanh() {
+        if (!hasRole('All') && !hasRole('AdminIT')) return alert("Chỉ IT mới có quyền xác nhận hoàn tất!");
 
-     function handleChuaHoanThanh() {
-         let reason = prompt("Lý do xác nhận đơn chưa hoàn thành:");
-         if (!reason || reason.trim() === "") return alert("Bạn phải nhập lý do!");
-         if (confirm("Hệ thống sẽ chuyển lại đơn về IT xử lý. Tiếp tục?")) {
-             apiPost('/FormIT/XacNhanChuaHoanThanh', { id: formId, reason: reason }, ['btnChuaHoanThanh']);
-         }
-     }
+        if (confirm("Xác nhận bạn đã hoàn tất xử lý yêu cầu này?")) {
+            apiPost('/FormIT/XacNhanHoanThanh', { id: formId }, ['btnHoanThanh']);
+        }
+    }
 
-     function changeSupporter() {
-         const select = document.getElementById('selectIT');
-         const maNv = select?.value;
-         const tenNv = select?.options[select.selectedIndex]?.text;
+    function handleChuaHoanThanh() {
+        let reason = prompt("Lý do xác nhận đơn chưa hoàn thành:");
+        if (!reason || reason.trim() === "") return alert("Bạn phải nhập lý do!");
+        if (confirm("Hệ thống sẽ chuyển lại đơn về IT xử lý. Tiếp tục?")) {
+            apiPost('/FormIT/XacNhanChuaHoanThanh', { id: formId, reason: reason }, ['btnChuaHoanThanh']);
+        }
+    }
 
-         if (!hasRole('All') && !hasRole('AdminIT')) return alert("Bạn không có quyền gán người hỗ trợ!");
-         if (!maNv) return alert("Vui lòng chọn nhân viên hỗ trợ!");
+    function changeSupporter() {
+        const select = document.getElementById('selectIT');
+        const maNv = select?.value;
+        const tenNv = select?.options[select.selectedIndex]?.text;
 
-         if (confirm(`Xác nhận chỉ định [${tenNv}] hỗ trợ đơn này?`)) {
-             apiPost('/FormIT/ThemNguoiHoTro', { idFormIt: formId, maNv: maNv });
-         }
-     }
+        if (!hasRole('All') && !hasRole('AdminIT')) return alert("Bạn không có quyền gán người hỗ trợ!");
+        if (!maNv) return alert("Vui lòng chọn nhân viên hỗ trợ!");
 
-     // --- LOGIC ĐÁNH GIÁ SAO ---
-     function chonSao(sao) {
-         soSaoChon = sao;
-         capNhatGiaoDienSao();
-         const btnGui = document.getElementById('btnGuiDanhGia');
-         if (btnGui) { btnGui.disabled = false; btnGui.style.opacity = '1'; }
-     }
+        if (confirm(`Xác nhận chỉ định [${tenNv}] hỗ trợ đơn này?`)) {
+            apiPost('/FormIT/ThemNguoiHoTro', { idFormIt: formId, maNv: maNv });
+        }
+    }
 
-     function hoverSao(sao) {
-         for (let i = 1; i <= 5; i++) {
-             const star = document.getElementById('star' + i);
-             if (!star) continue;
-             star.style.color = i <= sao ? '#f59e0b' : '#9ca3af';
-             star.style.transform = i <= sao ? 'scale(1.15)' : '';
-         }
-     }
+    // --- LOGIC ĐÁNH GIÁ SAO ---
+    function chonSao(sao) {
+        soSaoChon = sao;
+        capNhatGiaoDienSao();
+        const btnGui = document.getElementById('btnGuiDanhGia');
+        if (btnGui) { btnGui.disabled = false; btnGui.style.opacity = '1'; }
+    }
 
-     function resetHover() { capNhatGiaoDienSao(); }
+    function hoverSao(sao) {
+        for (let i = 1; i <= 5; i++) {
+            const star = document.getElementById('star' + i);
+            if (!star) continue;
+            star.style.color = i <= sao ? '#f59e0b' : '#9ca3af';
+            star.style.transform = i <= sao ? 'scale(1.15)' : '';
+        }
+    }
 
-     function capNhatGiaoDienSao() {
-         for (let i = 1; i <= 5; i++) {
-             const star = document.getElementById('star' + i);
-             if (!star) continue;
-             star.style.background = i <= soSaoChon ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' : 'white';
-             star.style.color = i <= soSaoChon ? '#f59e0b' : '#9ca3af';
-             star.style.borderColor = i <= soSaoChon ? '#f59e0b' : '#d1d5db';
-             star.style.transform = i <= soSaoChon ? 'scale(1.05)' : 'scale(1)';
-         }
-     }
+    function resetHover() { capNhatGiaoDienSao(); }
 
-     function handleDanhGia() {
-         if (soSaoChon === 0) return alert("Vui lòng chọn mức độ hài lòng bằng số sao!");
+    function capNhatGiaoDienSao() {
+        for (let i = 1; i <= 5; i++) {
+            const star = document.getElementById('star' + i);
+            if (!star) continue;
+            star.style.background = i <= soSaoChon ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' : 'white';
+            star.style.color = i <= soSaoChon ? '#f59e0b' : '#9ca3af';
+            star.style.borderColor = i <= soSaoChon ? '#f59e0b' : '#d1d5db';
+            star.style.transform = i <= soSaoChon ? 'scale(1.05)' : 'scale(1)';
+        }
+    }
 
-         const nhanXet = document.getElementById('txtNhanXet')?.value.trim() || '';
+    function handleDanhGia() {
+        if (soSaoChon === 0) return alert("Vui lòng chọn mức độ hài lòng bằng số sao!");
+        const nhanXet = document.getElementById('txtNhanXet')?.value.trim() || '';
+        if (confirm(`Xác nhận gửi đánh giá mức độ ${soSaoChon} sao?`)) {
+            apiPost('/FormIT/DanhGiaFormItsDon', {
+                id: formId,
+                mucDo: soSaoChon,
+                nhanXet: nhanXet
+            }, ['btnGuiDanhGia']);
+        }
+    }
 
-         if (confirm(`Xác nhận gửi đánh giá mức độ ${soSaoChon} sao?`)) {
-             // SỬA TẠI ĐÂY: Đổi 'DanhGiaDon' thành 'DanhGiaFormItsDon'
-             apiPost('/FormIT/DanhGiaFormItsDon', {
-                 id: formId,
-                 mucDo: soSaoChon,
-                 nhanXet: nhanXet
-             }, ['btnGuiDanhGia']);
-         }
-     }
+    // ==========================================
+    // 6. KHỞI TẠO & XỬ LÝ SỰ KIỆN NÂNG CAO
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', function() {
+        const formBl = document.getElementById('formBinhLuan');
+        const txtBinhLuan = document.getElementById('txtBinhLuan');
+        const fileBinhLuan = document.getElementById('fileBinhLuan');
 
-     // ==========================================
-     // 6. KHỞI TẠO & XỬ LÝ SỰ KIỆN NÂNG CAO
-     // ==========================================
-     document.addEventListener('DOMContentLoaded', function() {
-         const formBl = document.getElementById('formBinhLuan');
-         const txtBinhLuan = document.getElementById('txtBinhLuan');
-         const fileBinhLuan = document.getElementById('fileBinhLuan');
+        if(formBl) formBl.addEventListener('submit', guiBinhLuan);
 
-         if(formBl) formBl.addEventListener('submit', guiBinhLuan);
+        if (txtBinhLuan) {
+            txtBinhLuan.addEventListener('paste', function (e) {
+                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].kind === 'file' && items[i].type.startsWith('image/')) {
+                        const blob = items[i].getAsFile();
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(blob);
+                        if (fileBinhLuan) {
+                            fileBinhLuan.files = dataTransfer.files;
+                            updateFileLabel(fileBinhLuan);
+                            txtBinhLuan.placeholder = "Đã nhận ảnh từ clipboard, nhấn Gửi để tải lên...";
+                        }
+                    }
+                }
+            });
+        }
 
-         if (txtBinhLuan) {
-             txtBinhLuan.addEventListener('paste', function (e) {
-                 const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-                 for (let i = 0; i < items.length; i++) {
-                     if (items[i].kind === 'file' && items[i].type.startsWith('image/')) {
-                         const blob = items[i].getAsFile();
-                         const dataTransfer = new DataTransfer();
-                         dataTransfer.items.add(blob);
-                         if (fileBinhLuan) {
-                             fileBinhLuan.files = dataTransfer.files;
-                             updateFileLabel(fileBinhLuan);
-                             txtBinhLuan.placeholder = "Đã nhận ảnh từ clipboard, nhấn Gửi để tải lên...";
-                         }
-                     }
-                 }
-             });
-         }
+        taiBinhLuan(false);
 
-         taiBinhLuan(false);
-
-         const listElem = document.getElementById('commentList');
-         if (listElem) {
-             listElem.addEventListener('scroll', function() {
-                 if (this.scrollTop <= 5 && hasMoreComments && !isLoadingComments) {
-                     const oldHeight = this.scrollHeight;
-                     taiBinhLuan(true).then(() => {
-                         this.scrollTop = this.scrollHeight - oldHeight;
-                     });
-                 }
-             });
-         }
-     });
+        const listElem = document.getElementById('commentList');
+        if (listElem) {
+            listElem.addEventListener('scroll', function() {
+                if (this.scrollTop <= 5 && hasMoreComments && !isLoadingComments) {
+                    const oldHeight = this.scrollHeight;
+                    taiBinhLuan(true).then(() => {
+                        this.scrollTop = this.scrollHeight - oldHeight;
+                    });
+                }
+            });
+        }
+    });
 </script>
