@@ -4032,20 +4032,26 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 return Json(new { success = false, message = "Bạn không có quyền phê duyệt đơn này." });
             }
 
-            // 3. Tìm đơn HR và Include thông tin cần thiết (Thêm Include HrNguoiXacNhans)
+            // 3. Tìm đơn HR và Include thông tin cần thiết
             var form = await _context.FormHrs
                 .Include(f => f.HrCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdHrNguoiHoTroNavigation)
                 .Include(f => f.HrDonTiepKhac5s)
-                .Include(f => f.HrNguoiXacNhans) // Quan trọng: Load danh sách người xác nhận
+                .Include(f => f.HrNguoiXacNhans)      // Load danh sách người xác nhận (loại 1)
+                .Include(f => f.HrQuanLyDuyetB2s)    // Load danh sách quản lý duyệt (loại 2)
                 .FirstOrDefaultAsync(f => f.Id == request.Id);
 
             if (form == null)
                 return Json(new { success = false, message = "Không tìm thấy đơn HR." });
 
             // --- KIỂM TRA TRẠNG THÁI XÁC NHẬN CỦA CÁC CẤP ---
-            // Nếu có người xác nhận mà trạng thái khác 1 thì không cho hoàn tất
-            if (form.HrNguoiXacNhans.Any(x => x.TrangThaiXacNhan != 1))
+            // Kiểm tra trong bảng HrNguoiXacNhans
+            bool chuaXacNhanNguoi = form.HrNguoiXacNhans != null && form.HrNguoiXacNhans.Any(x => x.TrangThaiXacNhan != 1);
+
+            // Kiểm tra trong bảng HrQuanLyDuyetB2s
+            bool chuaXacNhanQuanLy = form.HrQuanLyDuyetB2s != null && form.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan != 1);
+
+            if (chuaXacNhanNguoi || chuaXacNhanQuanLy)
             {
                 return Json(new
                 {
