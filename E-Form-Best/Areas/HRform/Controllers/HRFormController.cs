@@ -4836,5 +4836,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
             return Ok(new { dataList = logs, unreadCount });
         }
 
-        #endregion    }
+        #endregion
+    }
     }
