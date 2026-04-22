@@ -4197,10 +4197,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
         #endregion
 
         #region QUẢN TRỊ & XUẤT BÁO CÁO HR (CHỈ ĐƠN ĐÃ HOÀN TẤT - FULL 9 LOẠI)
-
-        /// <summary>
-        /// Trang hiển thị danh sách đơn TỔNG HỢP ĐÃ HOÀN TẤT cho Admin/Quản lý
-        /// </summary>
         [HttpGet("/FormHR/XuatBaoCao")]
         public async Task<IActionResult> XuatBaoCao()
         {
@@ -4214,53 +4210,48 @@ namespace E_Form_Best.Areas.HRform.Controllers
             int userId = int.Parse(userIdStr);
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
-            var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
 
-            var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
-            var listTenBoPhan = listTenBoPhanStr.Split(',')
-                                                .Select(s => s.Trim().ToLower())
-                                                .Where(s => !string.IsNullOrEmpty(s))
-                                                .ToList();
-
-            // --- 2. KHỞI TẠO QUERY (INCLUDE ĐẦY ĐỦ CÁC BẢNG LIÊN QUAN) ---
+            // --- 2. KHỞI TẠO QUERY ---
             IQueryable<FormHr> query = _context.FormHrs
                 .Include(f => f.HrNguoiXacNhans)
                 .Include(f => f.HrQuanLyDuyetB2s)
                 .Include(f => f.BaoVeHrs)
-                .Include(f => f.HrCtNguoiHoTros)
-                    .ThenInclude(ct => ct.IdHrNguoiHoTroNavigation);
+                .Include(f => f.HrCtNguoiHoTros);
 
-            // --- ĐIỀU KIỆN QUAN TRỌNG: CHỈ LẤY ĐƠN ĐÃ HOÀN TẤT (IDADMIN KHÔNG NULL) ---
-            query = query.Where(f => f.IdAdmin != null && f.TimeAdmin != null);
+            // --- 3. ĐIỀU KIỆN HIỂN THỊ: CHỈ LẤY ĐƠN ĐÃ ĐƯỢC ADMIN XỬ LÝ XONG ---
+            query = query.Where(f => f.IdAdmin != null && f.TenAdmin != null && f.TimeAdmin != null);
 
-            // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU ---
-            if (userRoles.Contains("All")) { /* Nhìn thấy toàn hệ thống */ }
+            // --- 4. PHÂN QUYỀN LỌC DỮ LIỆU ---
+            if (userRoles.Contains("All"))
+            {
+                /* Quyền All nhìn thấy toàn bộ đơn đã hoàn tất trong hệ thống */
+            }
             else
             {
-                if (!string.IsNullOrEmpty(tenCongTy)) query = query.Where(f => f.TenCongTy == tenCongTy);
+                // Lọc theo công ty cho các quyền còn lại
+                if (!string.IsNullOrEmpty(tenCongTy))
+                    query = query.Where(f => f.TenCongTy == tenCongTy);
 
-                if (userRoles.Contains("AdminHR") || userRoles.Contains("QuanLyDuyetDonHR"))
+                if (userRoles.Contains("AdminHR"))
                 {
-                    if (listTenBoPhan.Any())
-                        query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim().ToLower()));
-                    else if (!string.IsNullOrEmpty(phongBanSession))
-                        query = query.Where(f => f.BoPhan != null && f.BoPhan.Trim().ToLower() == phongBanSession.ToLower());
-                    else
-                        query = query.Where(f => f.IdNguoiTao == userId);
+                    // Nếu là AdminHR: Nhìn thấy toàn bộ đơn hoàn tất của công ty mình (Không lọc theo bộ phận)
                 }
-                else query = query.Where(f => f.IdNguoiTao == userId);
+                else
+                {
+                    // User thường: Chỉ thấy đơn mình tạo
+                    query = query.Where(f => f.IdNguoiTao == userId);
+                }
             }
 
-            // --- 4. THỰC THI TRUY VẤN ---
+            // --- 5. THỰC THI TRUY VẤN ---
             try
             {
                 var danhSachDon = await query.OrderByDescending(f => f.TimeAdmin).AsNoTracking().ToListAsync();
 
                 foreach (var item in danhSachDon)
                 {
-                    item.TrangThai = CalculateStatus(item.TenForm, item.IdNguoiDuyet, item.IdAdmin,
-                                                    item.HrQuanLyDuyetB2s.Select(x => x.TrangThaiXacNhan),
-                                                    item.HrNguoiXacNhans.Select(x => x.TrangThaiXacNhan));
+                    // Gán trạng thái cố định là Hoàn tất cho danh sách báo cáo
+                    item.TrangThai = "Hoàn tất";
                 }
 
                 return View(danhSachDon);
@@ -4279,15 +4270,15 @@ namespace E_Form_Best.Areas.HRform.Controllers
         public async Task<IActionResult> ExportExcelHR(DateTime? tuNgay, DateTime? denNgay, string loaiDon)
         {
             // --- 1. LẤY THÔNG TIN CLAIMS ---
-            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("UserId")?.Value;
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                            ?? User.FindFirst("UserId")?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
+            int userId = int.Parse(userIdStr);
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
-            var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
-            var listTenBoPhan = (User.FindFirst("TenBoPhan")?.Value ?? "").Split(',').Select(s => s.Trim().ToLower()).Where(s => !string.IsNullOrEmpty(s)).ToList();
 
-            // --- 2. TRUY VẤN DỮ LIỆU & INCLUDE 9 LOẠI CHI TIẾT ---
+            // --- 2. TRUY VẤN DỮ LIỆU & INCLUDE ĐẦY ĐỦ CHI TIẾT ---
             IQueryable<FormHr> query = _context.FormHrs
                 .Include(f => f.HrNguoiXacNhans).Include(f => f.HrQuanLyDuyetB2s)
                 .Include(f => f.HrCtNguoiHoTros).ThenInclude(ct => ct.IdHrNguoiHoTroNavigation)
@@ -4297,41 +4288,54 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 .Include(f => f.HrHoTroTienDienThoai7s).Include(f => f.HrDoiCaLam8s)
                 .Include(f => f.HrDonHoTroCongTac9s);
 
-            // --- ĐIỀU KIỆN QUAN TRỌNG: CHỈ XUẤT ĐƠN ĐÃ HOÀN TẤT ---
-            query = query.Where(f => f.IdAdmin != null && f.TimeAdmin != null);
+            // --- 3. ĐIỀU KIỆN HIỂN THỊ: CHỈ XUẤT ĐƠN ĐÃ ĐƯỢC ADMIN HOÀN TẤT ---
+            // Khớp với yêu cầu: IdAdmin, TenAdmin, TimeAdmin đều phải khác null
+            query = query.Where(f => f.IdAdmin != null && f.TenAdmin != null && f.TimeAdmin != null);
 
-            // --- 3. BỘ LỌC NGÀY HOÀN TẤT & LOẠI ĐƠN ---
+            // --- 4. BỘ LỌC NGÀY HOÀN TẤT & LOẠI ĐƠN ---
             if (tuNgay.HasValue) query = query.Where(f => f.TimeAdmin >= tuNgay.Value);
             if (denNgay.HasValue) query = query.Where(f => f.TimeAdmin <= denNgay.Value.AddDays(1).AddSeconds(-1));
             if (!string.IsNullOrEmpty(loaiDon)) query = query.Where(f => f.IdForm == loaiDon);
 
-            // Phân quyền (Đồng bộ với XuatBaoCao)
-            if (!userRoles.Contains("All"))
+            // --- 5. PHÂN QUYỀN LỌC DỮ LIỆU (Đồng bộ tối giản với XuatBaoCao) ---
+            if (userRoles.Contains("All"))
             {
-                if (!string.IsNullOrEmpty(tenCongTy)) query = query.Where(f => f.TenCongTy == tenCongTy);
-                if (userRoles.Contains("AdminHR") || userRoles.Contains("QuanLyDuyetDonHR"))
+                /* Admin hệ thống xuất toàn bộ */
+            }
+            else
+            {
+                // Lọc theo công ty cho các quyền còn lại
+                if (!string.IsNullOrEmpty(tenCongTy))
+                    query = query.Where(f => f.TenCongTy == tenCongTy);
+
+                if (userRoles.Contains("AdminHR"))
                 {
-                    if (listTenBoPhan.Any()) query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim().ToLower()));
-                    else if (!string.IsNullOrEmpty(phongBanSession)) query = query.Where(f => f.BoPhan != null && f.BoPhan.Trim().ToLower() == phongBanSession.ToLower());
+                    // Nếu là AdminHR: Xuất toàn bộ đơn hoàn tất của công ty mình (Không lọc bộ phận)
                 }
-                else query = query.Where(f => f.IdNguoiTao == int.Parse(userIdStr));
+                else
+                {
+                    // User thường: Chỉ xuất đơn mình tạo
+                    query = query.Where(f => f.IdNguoiTao == userId);
+                }
             }
 
             var data = await query.OrderByDescending(f => f.TimeAdmin).AsNoTracking().ToListAsync();
 
-            // --- 4. TẠO EXCEL ---
+            // --- 6. TẠO FILE EXCEL ---
             using (var workbook = new XLWorkbook())
             {
                 var worksheet = workbook.Worksheets.Add("BaoCao_HoanTat_HR");
                 string[] headers = { "STT", "ID", "Loại Đơn", "Mã NV", "Họ Tên", "Bộ Phận", "Ngày Hoàn Tất", "Người Duyệt HR", "Người Hỗ Trợ", "CHI TIẾT NỘI DUNG" };
 
+                // Định dạng Header
                 for (int i = 0; i < headers.Length; i++)
                 {
                     var cell = worksheet.Cell(1, i + 1);
                     cell.Value = headers[i];
                     cell.Style.Font.Bold = true;
-                    cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#1e40af");
+                    cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#1e40af"); // Màu xanh đậm
                     cell.Style.Font.FontColor = XLColor.White;
+                    cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                 }
 
                 int currentRow = 2;
@@ -4349,20 +4353,24 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     var support = item.HrCtNguoiHoTros.OrderByDescending(s => s.Stt).FirstOrDefault();
                     worksheet.Cell(currentRow, 9).Value = support?.IdHrNguoiHoTroNavigation?.Ten ?? "";
 
+                    // Nội dung chi tiết đơn (Gộp từ 9 bảng chi tiết)
                     worksheet.Cell(currentRow, 10).Value = GetChiTietDon(item);
                     worksheet.Cell(currentRow, 10).Style.Alignment.WrapText = true;
+
                     currentRow++;
                 }
 
+                // Tinh chỉnh giao diện bảng Excel
                 worksheet.Columns().AdjustToContents();
-                worksheet.Column(10).Width = 75;
+                worksheet.Column(10).Width = 80; // Độ rộng cho cột chi tiết nội dung
                 worksheet.RangeUsed().Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
                 worksheet.RangeUsed().Style.Border.InsideBorder = XLBorderStyleValues.Thin;
 
                 using (var stream = new MemoryStream())
                 {
                     workbook.SaveAs(stream);
-                    return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"BaoCao_HoanTat_HR_{DateTime.Now:yyyyMMdd}.xlsx");
+                    string fileName = $"BaoCao_HR_HoanTat_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+                    return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
                 }
             }
         }
@@ -4714,13 +4722,13 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
             // Đánh dấu các quyền của User
             bool isAll = User.IsInRole("All");
-            bool isAdminHR = User.IsInRole("AdminHR"); // Quyền Nhân sự hỗ trợ
+            bool isAdminHR = User.IsInRole("AdminHR");
             bool isGiamDocHR = User.IsInRole("GiamDocHR");
             bool isBaoVeHR = User.IsInRole("BaoVeHR");
             bool isQuanLyB2 = User.IsInRole("QuanLyDuyetDonHR_B2");
             bool isQuanLyDuyet = User.IsInRole("QuanLyDuyetDonHR");
 
-            // 2. Khởi tạo Query cơ bản và nạp các bảng liên quan
+            // 2. Khởi tạo Query cơ bản
             var query = _context.LichSuFormHrs
                 .Include(l => l.IdFormHrNavigation)
                     .ThenInclude(f => f.HrNguoiXacNhans)
@@ -4733,28 +4741,30 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     .ThenInclude(f => f.BaoVeHrs)
                 .AsQueryable();
 
-            // 3. Logic lọc độc lập (OR): Cộng dồn điều kiện để không bỏ sót đơn
+            // 3. Logic lọc độc lập (OR): Cộng dồn các quyền
             query = query.Where(l =>
-                // 1. Quyền tối cao: Xem toàn bộ
+                // 1. QUYỀN ALL: Thấy toàn bộ hệ thống
                 isAll ||
 
-                // 2. CHÍNH CHỦ (Người tạo): Thấy đơn của chính mình từ đầu đến cuối
+                // 2. CHÍNH CHỦ (Người tạo): Thấy đơn của mình từ đầu đến cuối
                 l.IdFormHrNavigation.IdNguoiTao == userId ||
 
-                // 3. NGƯỜI HỖ TRỢ (AdminHR + Được gắn đích danh): 
-                // Phải vừa có Role AdminHR vừa có tên trong danh sách hỗ trợ của đơn đó
-                (isAdminHR && l.IdFormHrNavigation.HrCtNguoiHoTros.Any(ct =>
+                // 3. NGƯỜI HỖ TRỢ (AdminHR): 
+                // Thỏa mãn: Có Role AdminHR + Được gắn vào đơn + Quản lý cấp 1 đã duyệt
+                (isAdminHR &&
+                 l.IdFormHrNavigation.IdNguoiDuyet != null &&
+                 l.IdFormHrNavigation.HrCtNguoiHoTros.Any(ct =>
                     ct.IdHrNguoiHoTroNavigation != null &&
                     ct.IdHrNguoiHoTroNavigation.MaNv.ToLower() == userEmail)) ||
 
-                // 4. Các quyền xác nhận cấp cao (Chỉ thấy khi đơn đã qua bước duyệt 1)
+                // 4. Các quyền xác nhận khác (Cũng cần qua bước duyệt 1)
                 (l.IdFormHrNavigation.IdNguoiDuyet != null && (
                     (isGiamDocHR && l.IdFormHrNavigation.HrNguoiXacNhans.Any(xn => xn.IdnguoiXacNhan == userId || (xn.MaNguoiXacNhan != null && xn.MaNguoiXacNhan.ToLower() == userEmail))) ||
                     (isQuanLyB2 && l.IdFormHrNavigation.HrQuanLyDuyetB2s.Any(b2 => b2.IdnguoiXacNhan == userId || (b2.MaNguoiXacNhan != null && b2.MaNguoiXacNhan.ToLower() == userEmail))) ||
                     (isBaoVeHR && l.IdFormHrNavigation.BaoVeHrs.Any())
                 )) ||
 
-                // 5. QUẢN LÝ DUYỆT (Cấp 1): Thấy đơn mình là người duyệt trực tiếp
+                // 5. QUẢN LÝ DUYỆT (Cấp 1): Thấy đơn mình là người duyệt
                 (isQuanLyDuyet && l.IdFormHrNavigation.IdNguoiDuyet == userId)
             );
 
@@ -4771,7 +4781,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
             int userId = int.Parse(userIdStr);
             var userEmail = (User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "").Trim().ToLower();
 
-            // Đánh dấu đầy đủ các quyền để đồng bộ logic
             bool isAll = User.IsInRole("All");
             bool isAdminHR = User.IsInRole("AdminHR");
             bool isGiamDocHR = User.IsInRole("GiamDocHR");
@@ -4785,12 +4794,14 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         .ThenInclude(ct => ct.IdHrNguoiHoTroNavigation)
                .AsQueryable();
 
-            // --- ĐỒNG BỘ LOGIC THÔNG BÁO (OR) ---
+            // --- ĐỒNG BỘ LOGIC THÔNG BÁO ---
             query = query.Where(l =>
                 isAll ||
                 l.IdFormHrNavigation.IdNguoiTao == userId ||
-                // Áp dụng điều kiện khóa kép cho AdminHR tại đây
-                (isAdminHR && l.IdFormHrNavigation.HrCtNguoiHoTros.Any(ct =>
+                // Người hỗ trợ: Phải có Role + Được gắn + QL đã duyệt
+                (isAdminHR &&
+                 l.IdFormHrNavigation.IdNguoiDuyet != null &&
+                 l.IdFormHrNavigation.HrCtNguoiHoTros.Any(ct =>
                     ct.IdHrNguoiHoTroNavigation != null &&
                     ct.IdHrNguoiHoTroNavigation.MaNv.ToLower() == userEmail)) ||
                 (l.IdFormHrNavigation.IdNguoiDuyet != null && (
