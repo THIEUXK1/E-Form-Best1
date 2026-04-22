@@ -4735,32 +4735,32 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
             // 3. Logic lọc độc lập: Cộng dồn tất cả các quyền (Dùng OR)
             query = query.Where(l =>
-                // Quyền ALL: Thấy tất cả
+                // 1. Quyền ALL: Thấy tất cả
                 isAll ||
 
-                // Quyền Giám đốc: Thấy đơn có xác nhận cấp 2 và đã duyệt cấp 1
-                (isGiamDocHR && l.IdFormHrNavigation.HrNguoiXacNhans.Any() && l.IdFormHrNavigation.IdNguoiDuyet != null) ||
+                // 2. CHÍNH CHỦ (Người tạo): Thấy từ đầu đến cuối cho đơn của mình
+                l.IdFormHrNavigation.IdNguoiTao == userId ||
 
-                // Quyền Bảo vệ: Thấy đơn có thông tin bảo vệ và đã được Admin xác nhận
+                // 3. Các nhóm quyền chuyên biệt khác
+                (isGiamDocHR && l.IdFormHrNavigation.HrNguoiXacNhans.Any() && l.IdFormHrNavigation.IdNguoiDuyet != null) ||
                 (isBaoVeHR && l.IdFormHrNavigation.BaoVeHrs.Any() && l.IdFormHrNavigation.IdAdmin != null) ||
 
-                // Nhóm quyền đi kèm điều kiện Công ty
+                // 4. Nhóm quyền đi kèm điều kiện Công ty (Dành cho Admin/Quản lý/Hỗ trợ)
                 (
                     (string.IsNullOrEmpty(tenCongTy) || l.IdFormHrNavigation.TenCongTy == tenCongTy) &&
                     (
-                        // Là AdminHR: Thấy đơn mình xử lý hoặc hỗ trợ
+                        // AdminHR: Thấy đơn mình xử lý hoặc đơn mình được phân công hỗ trợ
                         (isAdminHR && l.IdFormHrNavigation.IdNguoiDuyet != null && (l.IdFormHrNavigation.IdAdmin == userId || l.IdFormHrNavigation.HrCtNguoiHoTros.Any(ct => ct.IdHrNguoiHoTroNavigation.MaNv.ToLower() == userEmail))) ||
 
-                        // Là Quản lý B2: Thấy toàn bộ đơn khi mình có tên trong danh sách B2 (Điều kiện bạn vừa yêu cầu)
+                        // Quản lý B2: Thấy toàn bộ đơn khi mình có tên trong danh sách B2
                         (isQuanLyB2 && l.IdFormHrNavigation.IdNguoiDuyet != null && l.IdFormHrNavigation.HrQuanLyDuyetB2s.Any(b2 => b2.IdnguoiXacNhan == userId || (b2.MaNguoiXacNhan != null && b2.MaNguoiXacNhan.ToLower() == userEmail))) ||
 
-                        // Là Quản lý duyệt: Thấy đơn mình tạo hoặc mình duyệt cấp 1
-                        (isQuanLyDuyet && (l.IdFormHrNavigation.IdNguoiTao == userId || l.IdFormHrNavigation.IdNguoiDuyet == userId)) ||
+                        // Quản lý duyệt: Thấy đơn mình duyệt cấp 1
+                        (isQuanLyDuyet && l.IdFormHrNavigation.IdNguoiDuyet == userId) ||
 
-                        // Quyền của User thường/Người liên quan: Thấy đơn mình tạo, mình hỗ trợ hoặc mình là người xác nhận cấp 2
-                        (l.IdFormHrNavigation.IdNguoiTao == userId ||
-                         l.IdFormHrNavigation.HrCtNguoiHoTros.Any(ct => ct.IdHrNguoiHoTroNavigation.MaNv.ToLower() == userEmail) ||
-                         (l.IdFormHrNavigation.IdNguoiDuyet != null && l.IdFormHrNavigation.HrNguoiXacNhans.Any(xn => xn.IdnguoiXacNhan == userId || (xn.MaNguoiXacNhan != null && xn.MaNguoiXacNhan.ToLower() == userEmail))))
+                        // Người liên quan khác: Nhân sự hỗ trợ hoặc Người xác nhận cấp 2 (Giám đốc bộ phận)
+                        l.IdFormHrNavigation.HrCtNguoiHoTros.Any(ct => ct.IdHrNguoiHoTroNavigation.MaNv.ToLower() == userEmail) ||
+                        (l.IdFormHrNavigation.IdNguoiDuyet != null && l.IdFormHrNavigation.HrNguoiXacNhans.Any(xn => xn.IdnguoiXacNhan == userId || (xn.MaNguoiXacNhan != null && xn.MaNguoiXacNhan.ToLower() == userEmail)))
                     )
                 )
             );
@@ -4799,9 +4799,10 @@ namespace E_Form_Best.Areas.HRform.Controllers
                    .ThenInclude(f => f.BaoVeHrs)
                .AsQueryable();
 
-            // --- ĐỒNG BỘ LOGIC LỌC ĐỘC LẬP (OR) ---
+            // --- ĐỒNG BỘ LOGIC LỌC ĐỘC LẬP (Đảm bảo người tạo luôn nhận được thông báo) ---
             query = query.Where(l =>
                 isAll ||
+                l.IdFormHrNavigation.IdNguoiTao == userId || // CHÍNH CHỦ: Nhận thông báo từ đầu đến cuối
                 (isGiamDocHR && l.IdFormHrNavigation.HrNguoiXacNhans.Any() && l.IdFormHrNavigation.IdNguoiDuyet != null) ||
                 (isBaoVeHR && l.IdFormHrNavigation.BaoVeHrs.Any() && l.IdFormHrNavigation.IdAdmin != null) ||
                 (
@@ -4809,10 +4810,9 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     (
                         (isAdminHR && l.IdFormHrNavigation.IdNguoiDuyet != null && (l.IdFormHrNavigation.IdAdmin == userId || l.IdFormHrNavigation.HrCtNguoiHoTros.Any(ct => ct.IdHrNguoiHoTroNavigation.MaNv.ToLower() == userEmail))) ||
                         (isQuanLyB2 && l.IdFormHrNavigation.IdNguoiDuyet != null && l.IdFormHrNavigation.HrQuanLyDuyetB2s.Any(b2 => b2.IdnguoiXacNhan == userId || (b2.MaNguoiXacNhan != null && b2.MaNguoiXacNhan.ToLower() == userEmail))) ||
-                        (isQuanLyDuyet && (l.IdFormHrNavigation.IdNguoiTao == userId || l.IdFormHrNavigation.IdNguoiDuyet == userId)) ||
-                        (l.IdFormHrNavigation.IdNguoiTao == userId ||
-                         l.IdFormHrNavigation.HrCtNguoiHoTros.Any(ct => ct.IdHrNguoiHoTroNavigation.MaNv.ToLower() == userEmail) ||
-                         (l.IdFormHrNavigation.IdNguoiDuyet != null && l.IdFormHrNavigation.HrNguoiXacNhans.Any(xn => xn.IdnguoiXacNhan == userId || (xn.MaNguoiXacNhan != null && xn.MaNguoiXacNhan.ToLower() == userEmail))))
+                        (isQuanLyDuyet && l.IdFormHrNavigation.IdNguoiDuyet == userId) ||
+                        l.IdFormHrNavigation.HrCtNguoiHoTros.Any(ct => ct.IdHrNguoiHoTroNavigation.MaNv.ToLower() == userEmail) ||
+                        (l.IdFormHrNavigation.IdNguoiDuyet != null && l.IdFormHrNavigation.HrNguoiXacNhans.Any(xn => xn.IdnguoiXacNhan == userId || (xn.MaNguoiXacNhan != null && xn.MaNguoiXacNhan.ToLower() == userEmail)))
                     )
                 )
             );
@@ -4836,6 +4836,5 @@ namespace E_Form_Best.Areas.HRform.Controllers
             return Ok(new { dataList = logs, unreadCount });
         }
 
-        #endregion
+        #endregion    }
     }
-}
