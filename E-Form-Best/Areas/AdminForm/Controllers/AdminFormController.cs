@@ -1384,6 +1384,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                     x.IdboPhan,
                     x.IdcongTy,
                     x.IdnguoiXacNhan,
+                    x.Loai, // <--- Đã thêm trường Loai
                     TenLoaiDon = x.IdloaiDonNavigation.TenLoaiDon ?? "---",
                     TenCongTy = x.IdcongTyNavigation.TenCongTy ?? "---",
                     TenBoPhan = x.IdboPhanNavigation.TenBoPhan ?? "Tất cả",
@@ -1410,10 +1411,11 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                                    x.IdcongTy == model.IdcongTy &&
                                    x.IdloaiDon == model.IdloaiDon &&
                                    x.IdboPhan == model.IdboPhan &&
-                                   x.Stt == model.Stt);
+                                   x.Stt == model.Stt &&
+                                   x.IdnguoiXacNhan == model.IdnguoiXacNhan); // Check thêm ID người xác nhận để tránh 1 người gán 2 lần vào 1 bước
 
                 if (isDuplicate)
-                    return Json(new { success = false, message = "Cấu hình này đã tồn tại (Trùng Công ty, Loại đơn, Bộ phận và STT)!" });
+                    return Json(new { success = false, message = "Nhân viên này đã được cấu hình trong bước duyệt này!" });
 
                 if (model.Id == 0)
                 {
@@ -1432,6 +1434,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                     upd.IdboPhan = model.IdboPhan;
                     upd.IdcongTy = model.IdcongTy;
                     upd.IdnguoiXacNhan = model.IdnguoiXacNhan;
+                    upd.Loai = model.Loai; // <--- Cập nhật trường Loai (ALL/ANY)
                     upd.GhiChu = model.GhiChu;
                     upd.TrangThai = model.TrangThai;
                 }
@@ -1559,7 +1562,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                     {
                         _context.DmBoPhans.Add(new DmBoPhan
                         {
-                            IdboPhan = b.IdBoPhan, // Gán ID từ nguồn nếu DB đích không tự tăng Identity
+                            IdboPhan = b.IdBoPhan,
                             TenBoPhan = b.TenBoPhan,
                             GhiChu = b.MoTa,
                             NgayTao = DateTime.Now,

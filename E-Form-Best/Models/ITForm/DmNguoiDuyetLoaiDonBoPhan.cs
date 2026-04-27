@@ -35,6 +35,9 @@ public partial class DmNguoiDuyetLoaiDonBoPhan
 
     public bool? TrangThai { get; set; }
 
+    [StringLength(255)]
+    public string? Loai { get; set; }
+
     [ForeignKey("IdboPhan")]
     [InverseProperty("DmNguoiDuyetLoaiDonBoPhans")]
     public virtual DmBoPhan? IdboPhanNavigation { get; set; }

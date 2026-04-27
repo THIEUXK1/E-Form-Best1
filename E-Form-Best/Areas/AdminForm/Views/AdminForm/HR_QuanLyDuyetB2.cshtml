@@ -3,9 +3,8 @@
     Layout = "~/Areas/AdminForm/Views/Shared/_Layout.cshtml";
 }
 
-@* CSS tối ưu hóa giao diện *@
+@* CSS tối ưu hóa giao diện - GIỮ NGUYÊN *@
 <style>
-    /* Tabs styling */
     .nav-tabs { border-bottom: 2px solid #ebeef2; }
     .nav-tabs .nav-link { 
         color: #6c757d; 
@@ -21,7 +20,6 @@
         background: none; 
     }
 
-    /* Table & Card styling */
     .tab-content { 
         border: 1px solid #ebeef2; 
         border-top: none; 
@@ -40,13 +38,11 @@
     }
     .card-header-flex { display: flex; justify-content: space-between; align-items: center; }
 
-    /* Select2 & Badges custom */
     .select2-container { z-index: 1061 !important; }
     .badge { font-weight: 500; padding: 0.5em 0.8em; border-radius: 6px; }
     .select2-result-bp__title { font-weight: 600; color: #2d3436; }
     .select2-result-bp__note { font-size: 0.8rem; color: #95a5a6; font-style: italic; }
     
-    /* Animation cho modal */
     .modal.fade .modal-dialog { transform: translate(0, -20px); transition: transform 0.3s ease-out; }
     .modal.show .modal-dialog { transform: translate(0, 0); }
 </style>
@@ -100,6 +96,7 @@
                             <th>Loại đơn</th>
                             <th>Bộ phận áp dụng</th>
                             <th>Thứ tự</th>
+                            <th>Hình thức duyệt</th> @* Cột mới *@
                             <th>Người duyệt (B2)</th>
                             <th>Trạng thái</th>
                             <th>Thao tác</th>
@@ -109,7 +106,7 @@
             </div>
         </div>
 
-        @* TAB 2: CÔNG TY *@
+        @* TAB 2: CÔNG TY - GIỮ NGUYÊN *@
         <div class="tab-pane fade" id="tab-congty" role="tabpanel">
             <div class="card-header-flex mb-4">
                 <h5 class="mb-0 text-success fw-bold"><i class="fa fa-list me-2"></i>Danh sách Công ty</h5>
@@ -130,7 +127,7 @@
             </table>
         </div>
 
-        @* TAB 3: BỘ PHẬN *@
+        @* TAB 3: BỘ PHẬN - GIỮ NGUYÊN *@
         <div class="tab-pane fade" id="tab-bophan" role="tabpanel">
             <div class="card-header-flex mb-4">
                 <h5 class="mb-0 text-info fw-bold"><i class="fa fa-database me-2"></i>Danh mục Bộ phận (Dữ liệu gốc)</h5>
@@ -147,7 +144,7 @@
             </table>
         </div>
 
-        @* TAB 4: LOẠI ĐƠN *@
+        @* TAB 4: LOẠI ĐƠN - GIỮ NGUYÊN *@
         <div class="tab-pane fade" id="tab-loaidon" role="tabpanel">
             <div class="card-header-flex mb-4">
                 <h5 class="mb-0 text-dark fw-bold"><i class="fa fa-folder-open me-2"></i>Danh mục Loại đơn</h5>
@@ -171,7 +168,7 @@
 
 @* --- MODALS SECTION --- *@
 
-@* MODAL CẤU HÌNH QUY TRÌNH *@
+@* MODAL CẤU HÌNH QUY TRÌNH - CẬP NHẬT TRƯỜNG LOẠI *@
 <div class="modal fade" id="modalAction" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content border-0 shadow-lg">
@@ -207,11 +204,18 @@
                                 }
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary small">Hình thức xác nhận <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Loai" required>
+                                <option value="ALL">Tất cả phải xác nhận (AND)</option>
+                                <option value="ANY">Chỉ cần 1 người duyệt (OR)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
                             <label class="form-label fw-bold text-secondary small">Thứ tự duyệt (STT)</label>
                             <input type="number" class="form-control" id="Stt" min="1" value="1" required />
                         </div>
-                        <div class="col-md-8">
+                        <div class="col-md-12">
                             <label class="form-label fw-bold text-secondary small">Ghi chú cấu hình</label>
                             <input type="text" class="form-control" id="GhiChu" placeholder="Ví dụ: Duyệt thay trưởng phòng..." />
                         </div>
@@ -234,7 +238,7 @@
     </div>
 </div>
 
-@* MODAL CÔNG TY *@
+@* MODAL CÔNG TY & LOẠI ĐƠN - GIỮ NGUYÊN *@
 <div class="modal fade" id="modalCongTy" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content border-0 shadow">
@@ -266,7 +270,6 @@
     </div>
 </div>
 
-@* MODAL LOẠI ĐƠN *@
 <div class="modal fade" id="modalLoaiDon" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content border-0 shadow">
@@ -306,7 +309,6 @@
             initTables();
             loadAllSelects();
 
-            // Khởi tạo Select2 cho các modal khi chúng hiển thị
             $('.modal').on('shown.bs.modal', function () {
                 $(this).find('.select2-modal').select2({
                     dropdownParent: $(this),
@@ -322,13 +324,11 @@
                 });
             });
 
-            // Gán sự kiện submit form
             $('#formAction').on('submit', function (e) { e.preventDefault(); saveData(); });
             $('#formCongTy').on('submit', function (e) { e.preventDefault(); saveCongTy(); });
             $('#formLoaiDon').on('submit', function (e) { e.preventDefault(); saveLoaiDon(); });
         });
 
-        // Format hiển thị cho Select2 Bộ phận
         function formatBoPhan(state) {
             if (!state.id) return state.text;
             let note = $(state.element).data('note');
@@ -339,7 +339,6 @@
                     </div>`;
         }
 
-        // Khởi tạo các bảng DataTables
         function initTables() {
             const commonConfig = {
                 processing: true,
@@ -358,6 +357,13 @@
                         render: d => d === "Tất cả" ? `<span class="text-muted"><i>${d}</i></span>` : `<b class="text-dark">${d}</b>`
                     },
                     { data: 'stt', className: 'text-center fw-bold text-primary' },
+                    { 
+                        data: 'loai',
+                        className: 'text-center',
+                        render: d => d === "ANY" 
+                            ? '<span class="badge bg-info"><i class="fa fa-check me-1"></i>Chỉ cần 1 người</span>' 
+                            : '<span class="badge bg-secondary"><i class="fa fa-users me-1"></i>Tất cả xác nhận</span>'
+                    },
                     { data: 'hoTenNguoiDuyet' },
                     {
                         data: 'trangThai',
@@ -431,7 +437,6 @@
             });
         }
 
-        // Tải toàn bộ dữ liệu vào các Select2
         function loadAllSelects() {
             Promise.all([
                 fetch('/HR_QuanLyDuyetB2/GetCongTy').then(r => r.json()),
@@ -450,10 +455,10 @@
             });
         }
 
-        // --- CÁC HÀM XỬ LÝ QUY TRÌNH CHÍNH ---
         function openCreateModal() {
             $('#formAction')[0].reset();
             $('#Id').val(0);
+            $('#Loai').val("ALL");
             $('#IdcongTy, #IdloaiDon, #IdboPhan, #IdnguoiXacNhan').val(null).trigger('change');
             $('#modalLabel').text('Thêm cấu hình duyệt Bước 2');
             $('#modalAction').modal('show');
@@ -466,6 +471,7 @@
             $('#IdboPhan').val(row.idboPhan || "").trigger('change');
             $('#Stt').val(row.stt);
             $('#IdnguoiXacNhan').val(row.idnguoiXacNhan).trigger('change');
+            $('#Loai').val(row.loai || "ALL");
             $('#GhiChu').val(row.ghiChu);
             $('#TrangThai').prop('checked', row.trangThai);
             $('#modalLabel').text('Chỉnh sửa cấu hình duyệt');
@@ -480,6 +486,7 @@
                 IdboPhan: $('#IdboPhan').val() ? parseInt($('#IdboPhan').val()) : null,
                 Stt: parseInt($('#Stt').val()),
                 IdnguoiXacNhan: parseInt($('#IdnguoiXacNhan').val()),
+                Loai: $('#Loai').val(),
                 GhiChu: $('#GhiChu').val(),
                 TrangThai: $('#TrangThai').is(':checked')
             };
@@ -501,12 +508,11 @@
                     Swal.fire({
                         icon: 'success',
                         title: 'Đã lưu cấu hình',
-                        text: 'Dữ liệu đã được lưu thành công. Bạn có thể nhập tiếp bản ghi mới.',
+                        text: 'Dữ liệu đã được lưu thành công.',
                         timer: 2000,
                         showConfirmButton: false
                     });
                     
-                    // Reset Id về 0 để nhập tiếp (giữ nguyên các lựa chọn khác để tăng tốc độ nhập)
                     $('#Id').val(0);
                     $('#GhiChu').val('');
                 } else {
@@ -540,7 +546,6 @@
             });
         }
 
-        // --- CÁC HÀM XỬ LÝ CÔNG TY & LOẠI ĐƠN ---
         function openModalCongTy() {
             $('#formCongTy')[0].reset();
             $('#IdcongTy_Modal').val(0);
