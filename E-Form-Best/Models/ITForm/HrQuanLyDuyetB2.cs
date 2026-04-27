@@ -34,6 +34,9 @@ public partial class HrQuanLyDuyetB2
     [StringLength(255)]
     public string? TenNguoiXacNhan { get; set; }
 
+    [StringLength(255)]
+    public string? Loai { get; set; }
+
     [ForeignKey("IdFormHr")]
     [InverseProperty("HrQuanLyDuyetB2s")]
     public virtual FormHr? IdFormHrNavigation { get; set; }
