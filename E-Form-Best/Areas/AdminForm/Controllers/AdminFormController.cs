@@ -1591,6 +1591,54 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         }
 
         #endregion
+
+        #region Quản lý Lịch sử truy cập
+
+        [HttpGet("/QLTruyCap")]
+        public IActionResult QLTruyCap()
+        {
+            // Trả về View để hiển thị danh sách lịch sử
+            return View();
+        }
+
+        [HttpGet("/QLTruyCap/GetLichSuData")]
+        public JsonResult GetLichSuData()
+        {
+            // Lấy danh sách lịch sử, kèm theo thông tin User để hiển thị tên
+            var data = _context.LichSuTruyCaps
+                .Include(l => l.IdNguoiDungNavigation)
+                .Select(l => new
+                {
+                    l.IdLichSu,
+                    TenNguoiDung = l.IdNguoiDungNavigation != null ? l.IdNguoiDungNavigation.HoTen : "N/A",
+                    l.ThoiGianDangNhap,
+                    l.ThoiGianDangXuat,
+                    l.TenMayTinh,
+                    l.DiaChiIp,
+                    l.TrinhDuyet,
+                    l.TrangThai
+                })
+                .OrderByDescending(l => l.ThoiGianDangNhap) // Hiện mới nhất lên đầu
+                .ToList();
+
+            return Json(new { data = data });
+        }
+
+        // (Tùy chọn) Thêm chức năng xóa lịch sử cũ nếu cần
+        [HttpPost("/QLTruyCap/DeleteLog")]
+        public IActionResult DeleteLog(int id)
+        {
+            var log = _context.LichSuTruyCaps.Find(id);
+            if (log != null)
+            {
+                _context.LichSuTruyCaps.Remove(log);
+                _context.SaveChanges();
+                return Json(new { success = true });
+            }
+            return Json(new { success = false, message = "Không tìm thấy dữ liệu." });
+        }
+
+        #endregion
     }
 
-    }
+}

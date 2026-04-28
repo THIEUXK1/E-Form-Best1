@@ -94,6 +94,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<LichSuFormIt> LichSuFormIts { get; set; }
 
+    public virtual DbSet<LichSuTruyCap> LichSuTruyCaps { get; set; }
+
     public virtual DbSet<PhongHopHr> PhongHopHrs { get; set; }
 
     public virtual DbSet<Quyen> Quyens { get; set; }
@@ -423,6 +425,17 @@ public partial class ITFormContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__LichSu__3213E83F7913614E");
 
             entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.LichSuFormIts).HasConstraintName("FK_LichSu_FormIT");
+        });
+
+        modelBuilder.Entity<LichSuTruyCap>(entity =>
+        {
+            entity.HasKey(e => e.IdLichSu).HasName("PK__LichSuTr__016DB95DC467B7FB");
+
+            entity.Property(e => e.ThoiGianDangNhap).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.IdNguoiDungNavigation).WithMany(p => p.LichSuTruyCaps)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_LichSu_User");
         });
 
         modelBuilder.Entity<PhongHopHr>(entity =>

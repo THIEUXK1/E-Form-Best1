@@ -54,12 +54,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return View();
             }
 
-            // 2. Kiểm tra tài khoản trong Database (Đã thêm Include UserQuyens và IdQuyenNavigation)
+            // 2. Kiểm tra tài khoản trong Database
             var user = _context.Users
                 .Include(u => u.UserBoPhans)
                     .ThenInclude(ub => ub.IdBoPhanNavigation)
-                .Include(u => u.UserQuyens) // <-- Thêm Include bảng trung gian
-                    .ThenInclude(uq => uq.IdQuyenNavigation) // <-- Thêm Include bảng Quyen
+                .Include(u => u.UserQuyens)
+                    .ThenInclude(uq => uq.IdQuyenNavigation)
                 .FirstOrDefault(u => u.Tk == email && u.MatKhau == matKhau && u.TrangThai != "Đã nghỉ");
 
             if (user == null)
@@ -68,8 +68,40 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return View();
             }
 
-            // 3. XỬ LÝ ĐỊNH DANH THIẾT BỊ (LAPTOP/PHONE)
+            // 3. XỬ LÝ ĐỊNH DANH THIẾT BỊ (LAPTOP/PHONE) VÀ TÊN MÁY TÍNH
             string userAgent = Request.Headers["User-Agent"].ToString();
+            var remoteIpAddress = HttpContext.Connection.RemoteIpAddress;
+            string ipAddress = remoteIpAddress?.ToString();
+
+            // --- MỚI: LẤY TÊN MÁY TÍNH TỪ ĐỊA CHỈ IP (Cho mạng nội bộ Intranet) ---
+            string resolvedComputerName = deviceName; // Ưu tiên tên từ client gửi lên (nếu có)
+
+            // Nếu client không gửi lên tên máy, tiến hành phân giải từ IP
+            if (string.IsNullOrEmpty(resolvedComputerName) || resolvedComputerName == "Thiết bị không xác định")
+            {
+                try
+                {
+                    if (remoteIpAddress != null)
+                    {
+                        // Lấy HostName (Tên máy tính) trong mạng LAN dựa vào IP
+                        var hostEntry = System.Net.Dns.GetHostEntry(remoteIpAddress);
+                        resolvedComputerName = hostEntry.HostName;
+
+                        // Thông thường HostName có thể kèm theo domain (ví dụ: DESKTOP-123.bestpacific.local)
+                        // Nếu bạn chỉ muốn lấy phần tên máy tính đầu tiên, có thể cắt chuỗi:
+                        if (resolvedComputerName.Contains("."))
+                        {
+                            resolvedComputerName = resolvedComputerName.Split('.')[0];
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // Không phân giải được (do ngoại mạng hoặc DNS không hỗ trợ), dùng tên mặc định
+                    resolvedComputerName = "Không thể xác định tên máy";
+                }
+            }
+            // ----------------------------------------------------------------------
 
             var device = _context.UserDevices
                 .FirstOrDefault(d => d.IdNguoiDung == user.IdNguoiDung && d.DeviceFingerprint == userAgent);
@@ -80,7 +112,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     IdNguoiDung = user.IdNguoiDung,
                     DeviceFingerprint = userAgent,
-                    DeviceName = deviceName ?? "Thiết bị không xác định",
+                    DeviceName = resolvedComputerName, // Sử dụng tên máy tính vừa lấy được
                     LastLogin = DateTime.Now,
                     IsTrusted = true
                 };
@@ -89,24 +121,36 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             else
             {
                 device.LastLogin = DateTime.Now;
-                if (!string.IsNullOrEmpty(deviceName)) device.DeviceName = deviceName;
+                device.DeviceName = resolvedComputerName; // Cập nhật lại tên máy tính mới nhất
                 _context.UserDevices.Update(device);
             }
+
+            // --- MỚI: LƯU LỊCH SỬ ĐĂNG NHẬP ---
+            var lichSu = new LichSuTruyCap
+            {
+                IdNguoiDung = user.IdNguoiDung,
+                ThoiGianDangNhap = DateTime.Now,
+                TenMayTinh = resolvedComputerName, // Sử dụng tên máy tính vừa lấy được
+                DiaChiIp = ipAddress,
+                TrinhDuyet = userAgent,
+                TrangThai = "Đang hoạt động"
+            };
+            _context.LichSuTruyCaps.Add(lichSu);
+
             await _context.SaveChangesAsync();
 
             // 4. THIẾT LẬP COOKIE AUTHENTICATION
             var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, user.IdNguoiDung.ToString()),
-        new Claim(ClaimTypes.Name, user.HoTen ?? ""),
-        new Claim(ClaimTypes.Email, user.Tk ?? ""),
-        new Claim("UserRole", user.VaiTro ?? ""),
-        new Claim("PhongBan", user.PhongBan ?? ""),
-        new Claim("TenCongTy", user.TenCongTy ?? ""),
-        new Claim("AnhDaiDien", user.AnhDaiDien ?? "/images/default-avatar.png")
-    };
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.IdNguoiDung.ToString()),
+                new Claim(ClaimTypes.Name, user.HoTen ?? ""),
+                new Claim(ClaimTypes.Email, user.Tk ?? ""),
+                new Claim("UserRole", user.VaiTro ?? ""),
+                new Claim("PhongBan", user.PhongBan ?? ""),
+                new Claim("TenCongTy", user.TenCongTy ?? ""),
+                new Claim("AnhDaiDien", user.AnhDaiDien ?? "/images/default-avatar.png")
+            };
 
-            // --- LẤY TẤT CẢ BỘ PHẬN (GIỮ NGUYÊN) ---
             if (user.UserBoPhans != null && user.UserBoPhans.Any())
             {
                 var tatCaTenBoPhan = string.Join(", ", user.UserBoPhans
@@ -121,10 +165,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 claims.Add(new Claim("MoTaBoPhan", tatCaMoTa));
             }
 
-            // --- MỚI: LẤY TẤT CẢ QUYỀN (ROLES) VÀO COOKIE ---
             if (user.UserQuyens != null && user.UserQuyens.Any())
             {
-                // Lấy danh sách tên quyền
                 var dsQuyen = user.UserQuyens
                     .Where(uq => uq.IdQuyenNavigation != null)
                     .Select(uq => uq.IdQuyenNavigation.TenQuyen);
@@ -133,7 +175,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     if (!string.IsNullOrEmpty(tenQuyen))
                     {
-                        // Thêm từng quyền vào danh sách ClaimTypes.Role để dùng được [Authorize(Roles = "...")]
                         claims.Add(new Claim(ClaimTypes.Role, tenQuyen));
                     }
                 }
@@ -176,13 +217,32 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/DonXetDuyet/DangXuat")]
         public async Task<IActionResult> DangXuat()
         {
-            // 1. Đăng xuất khỏi hệ thống Authentication (Xóa Cookie định danh .AspNetCore.Cookies)
+            // --- MỚI: CẬP NHẬT LỊCH SỬ ĐĂNG XUẤT ---
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out int userId))
+            {
+                // Tìm bản ghi đăng nhập gần nhất của user này mà chưa có thời gian đăng xuất
+                var lastSession = await _context.LichSuTruyCaps
+                    .Where(ls => ls.IdNguoiDung == userId && ls.ThoiGianDangXuat == null)
+                    .OrderByDescending(ls => ls.ThoiGianDangNhap)
+                    .FirstOrDefaultAsync();
+
+                if (lastSession != null)
+                {
+                    lastSession.ThoiGianDangXuat = DateTime.Now;
+                    lastSession.TrangThai = "Đã đăng xuất";
+                    _context.LichSuTruyCaps.Update(lastSession);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            // 1. Đăng xuất khỏi hệ thống Authentication
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-            // 2. Xóa sạch Session (nếu bạn có lưu các biến tạm khác)
+            // 2. Xóa sạch Session
             HttpContext.Session.Clear();
 
-            // 3. Tùy chọn: Bạn có thể thêm TempData để thông báo ở trang đăng nhập
+            // 3. Thông báo
             TempData["Success"] = "Bạn đã đăng xuất thành công.";
 
             // 4. Chuyển hướng về trang đăng nhập
@@ -190,6 +250,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
+
 
         #region PHÂN QUYỀN TRUY CẬP (Custom Access Control)
 
