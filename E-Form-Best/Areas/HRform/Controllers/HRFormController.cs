@@ -4848,5 +4848,192 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
 
         #endregion
+
+        #region QUẢN LÝ PHÒNG HỌP (HR & Quản lý)
+
+        // =================================================================================
+        // 1. PHẦN XỬ LÝ LỊCH ĐẶT PHÒNG (Dữ liệu giao dịch từ đơn HrDonTiepKhac5)
+        // =================================================================================
+
+        /// <summary>
+        /// Giao diện chính: Tab 1 (Lịch sử/Trạng thái đặt) & Tab 2 (Danh mục gốc)
+        /// </summary>
+        [HttpGet("/FormHR/QuanLyPhongHop")]
+        public async Task<IActionResult> QuanLyPhongHop()
+        {
+            // 1. Kiểm tra đăng nhập
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Redirect("/DonXetDuyet/DangNhap");
+
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+            bool isAll = User.IsInRole("All") || User.IsInRole("AdminHR");
+
+            // --- Lấy danh mục phòng gốc (Master Data) gửi qua ViewBag cho Tab 2 ---
+            ViewBag.DanhMucPhong = await _context.PhongHopHrs.AsNoTracking().ToListAsync();
+
+            // --- Lấy danh sách các đơn đã đăng ký phòng (Transaction Data) cho Tab 1 ---
+            IQueryable<HrDonTiepKhac5> query = _context.HrDonTiepKhac5s
+                .Include(x => x.IdFormHrNavigation)
+                .Where(x => !string.IsNullOrEmpty(x.TenPhongHop));
+
+            // Phân quyền: Admin xem tất cả, User thường/BP xem theo công ty
+            if (!isAll && !string.IsNullOrEmpty(tenCongTy))
+            {
+                query = query.Where(x => x.IdFormHrNavigation.TenCongTy == tenCongTy);
+            }
+
+            var lichDatPhong = await query.OrderByDescending(x => x.Id).ToListAsync();
+            return View(lichDatPhong);
+        }
+
+        /// <summary>
+        /// Cập nhật trạng thái sử dụng phòng (Dùng AJAX - Toggle ON/OFF)
+        /// </summary>
+        [HttpPost("/FormHR/UpdateTrangThaiPhong")]
+        [ValidateAntiForgeryToken] // Chống tấn công giả mạo đơn hàng
+        public async Task<IActionResult> UpdateTrangThaiPhong(int id, string status)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Json(new { success = false, message = "Hết phiên đăng nhập" });
+
+            var chiTiet = await _context.HrDonTiepKhac5s.Include(x => x.IdFormHrNavigation).FirstOrDefaultAsync(x => x.Id == id);
+            if (chiTiet == null) return Json(new { success = false, message = "Không tìm thấy dữ liệu đơn." });
+
+            bool isAdmin = User.IsInRole("All") || User.IsInRole("AdminHR");
+            bool isOwner = chiTiet.IdFormHrNavigation?.IdNguoiTao.ToString() == userIdStr;
+
+            if (!isAdmin && !isOwner)
+                return Json(new { success = false, message = "Bạn không có quyền thao tác trên đơn này." });
+
+            try
+            {
+                if (status == "on")
+                {
+                    // Kiểm tra xem phòng này có đang bị đơn khác chiếm dụng 'on' không
+                    var trungLich = await _context.HrDonTiepKhac5s
+                        .AnyAsync(x => x.Id != id
+                                    && x.TenPhongHop == chiTiet.TenPhongHop
+                                    && x.TrangThaiPhong == "on"
+                                    && x.ThoiGianBatDau < chiTiet.ThoiGianKetThuc
+                                    && x.ThoiGianKetThuc > chiTiet.ThoiGianBatDau);
+
+                    if (trungLich) return Json(new { success = false, message = "Phòng hiện đang có lịch 'ON' khác trùng thời gian." });
+                }
+
+                chiTiet.TrangThaiPhong = status;
+
+                // Lưu vết lịch sử
+                _context.LichSuFormHrs.Add(new LichSuFormHr
+                {
+                    IdFormHr = chiTiet.IdFormHr ?? 0,
+                    TieuDe = "Cập nhật trạng thái phòng",
+                    Mota = $"Thao tác: {status.ToUpper()}. Người thực hiện: {User.FindFirst(ClaimTypes.Name)?.Value}.",
+                    Time = DateTime.Now
+                });
+
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = "Cập nhật thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi: " + ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// API kiểm tra nhanh phòng trống khi người dùng đang làm đơn
+        /// </summary>
+        [HttpGet("/FormHR/CheckPhongTrong")]
+        public async Task<IActionResult> CheckPhongTrong(string tenPhong, DateTime batDau, DateTime ketThuc)
+        {
+            var lichTrung = await _context.HrDonTiepKhac5s
+                .Where(x => x.TenPhongHop == tenPhong && x.TrangThaiPhong == "on")
+                .Where(x => (batDau < x.ThoiGianKetThuc && ketThuc > x.ThoiGianBatDau))
+                .Select(x => new { x.ThoiGianBatDau, x.ThoiGianKetThuc, x.NguoiBook })
+                .ToListAsync();
+
+            if (lichTrung.Any())
+                return Json(new { trong = false, message = "Phòng đã bận.", data = lichTrung });
+
+            return Json(new { trong = true });
+        }
+
+        // =================================================================================
+        // 2. PHẦN QUẢN LÝ DANH MỤC PHÒNG HỌP (Master Data - Bảng PhongHopHR)
+        // =================================================================================
+
+        /// <summary>
+        /// Thêm mới hoặc Cập nhật danh mục phòng họp
+        /// </summary>
+        [HttpPost("/FormHR/LuuPhongHop")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> LuuPhongHop(PhongHopHr model)
+        {
+            if (!User.IsInRole("AdminHR") && !User.IsInRole("All")) return Forbid();
+
+            try
+            {
+                if (model.Id == 0)
+                {
+                    // THÊM MỚI
+                    _context.PhongHopHrs.Add(model);
+                    TempData["Success"] = "Đã thêm phòng họp mới vào danh sách.";
+                }
+                else
+                {
+                    // SỬA: Tìm đối tác cũ để cập nhật (Tránh lỗi tạo mới khi sửa)
+                    var existing = await _context.PhongHopHrs.FindAsync(model.Id);
+                    if (existing == null)
+                    {
+                        TempData["Error"] = "Không tìm thấy phòng họp để cập nhật.";
+                        return RedirectToAction("QuanLyPhongHop");
+                    }
+
+                    existing.TenPhongHop = model.TenPhongHop;
+                    existing.GhiChu = model.GhiChu;
+
+                    _context.PhongHopHrs.Update(existing);
+                    TempData["Success"] = "Đã cập nhật thông tin phòng họp.";
+                }
+
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Lỗi hệ thống: " + ex.Message;
+            }
+
+            return RedirectToAction("QuanLyPhongHop");
+        }
+
+        /// <summary>
+        /// Xóa phòng họp (Dùng AJAX)
+        /// </summary>
+        [HttpPost("/FormHR/XoaPhongHop")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> XoaPhongHop(int id)
+        {
+            if (!User.IsInRole("AdminHR") && !User.IsInRole("All"))
+                return Json(new { success = false, message = "Bạn không có quyền xóa dữ liệu này." });
+
+            try
+            {
+                var phong = await _context.PhongHopHrs.FindAsync(id);
+                if (phong == null)
+                    return Json(new { success = false, message = "Dữ liệu không tồn tại hoặc đã bị xóa trước đó." });
+
+                _context.PhongHopHrs.Remove(phong);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Đã xóa phòng họp khỏi danh mục." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Không thể xóa: " + ex.Message });
+            }
+        }
+
+        #endregion
+
     }
-    }
+}
