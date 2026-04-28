@@ -114,6 +114,12 @@
         font-size: 15px;
     }
 
+    .text-account {
+        color: #0369a1; /* Màu xanh nước biển đậm cho tài khoản */
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
     /* Phân trang DataTables */
     .dataTables_wrapper .dataTables_paginate .paginate_button.current {
         background: #1a202c !important;
@@ -142,7 +148,9 @@
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Người dùng</th>
+                        <th>Họ Tên</th>
+                        <th>Tài Khoản</th>
+                        <th>Phòng Ban</th>
                         <th>Thời gian vào</th>
                         <th>Thời gian ra</th>
                         <th>Thiết bị</th>
@@ -181,6 +189,18 @@
                                         <div class="bg-primary rounded-circle me-2" style="width:8px; height:8px;"></div>
                                         <span class="text-user-name">${data}</span>
                                     </div>`;
+                        }
+                    },
+                    {
+                        "data": "tk",
+                        "render": function(data) {
+                            return `<span class="text-account"><i class="fas fa-user-circle me-1"></i>${data || "---"}</span>`;
+                        }
+                    },
+                    {
+                        "data": "phongBan",
+                        "render": function(data) {
+                            return `<span class="badge bg-light text-dark border border-secondary">${data || "---"}</span>`;
                         }
                     },
                     {

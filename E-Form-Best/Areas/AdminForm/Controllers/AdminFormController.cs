@@ -1604,13 +1604,15 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         [HttpGet("/QLTruyCap/GetLichSuData")]
         public JsonResult GetLichSuData()
         {
-            // Lấy danh sách lịch sử, kèm theo thông tin User để hiển thị tên
+            // Lấy danh sách lịch sử, kèm theo thông tin User để hiển thị tên, tài khoản và phòng ban
             var data = _context.LichSuTruyCaps
                 .Include(l => l.IdNguoiDungNavigation)
                 .Select(l => new
                 {
                     l.IdLichSu,
                     TenNguoiDung = l.IdNguoiDungNavigation != null ? l.IdNguoiDungNavigation.HoTen : "N/A",
+                    Tk = l.IdNguoiDungNavigation != null ? l.IdNguoiDungNavigation.Tk : "---",
+                    PhongBan = l.IdNguoiDungNavigation != null ? l.IdNguoiDungNavigation.PhongBan : "---",
                     l.ThoiGianDangNhap,
                     l.ThoiGianDangXuat,
                     l.TenMayTinh,
@@ -1638,7 +1640,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             return Json(new { success = false, message = "Không tìm thấy dữ liệu." });
         }
 
-        #endregion
+        #endregion   
     }
 
-}
+    }
