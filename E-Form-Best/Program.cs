@@ -1,15 +1,18 @@
 ﻿using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using WebPush;
-using E_Form_Best.Context; // Hãy đảm bảo namespace này đúng với file ITFormContext.cs của bạn
-using E_Form_Best.Areas.AdminForm.Controllers; // Để nhận diện PushNotificationService
+using E_Form_Best.Context; // Đảm bảo namespace này đúng
+using E_Form_Best.Areas.AdminForm.Controllers; // Nhận diện PushNotificationService
+using E_Form_Best.Areas.ITForm.Services; // Thêm namespace của Worker mới
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. ĐĂNG KÝ DATABASE CONTEXT (SỬA LỖI BẠN ĐANG GẶP) ---
+// --- 1. ĐĂNG KÝ DATABASE CONTEXT ---
 builder.Services.AddDbContext<ITFormContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// --- 2. ĐĂNG KÝ BACKGROUND SERVICE (CHẠY NGẦM LÚC 12H ĐÊM) ---
+builder.Services.AddHostedService<AutoRatingWorker>();
 
 // 3. Thêm dịch vụ MVC (Controllers + Views)
 builder.Services.AddControllersWithViews();
@@ -46,9 +49,10 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles(); // Quan trọng: Để truy cập sw.js và icon thông báo
+
 app.UseRouting();
 
-// 6. THỨ TỰ MIDDLEWARE (QUYẾT ĐỊNH VIỆC ĐĂNG NHẬP CÓ CHẠY KHÔNG)
+// 6. THỨ TỰ MIDDLEWARE
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
