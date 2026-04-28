@@ -38,6 +38,31 @@
         text-transform: uppercase;
         white-space: nowrap;
     }
+
+    /* Style bổ sung cho các nút phân trang */
+    .page-btn {
+        padding: 6px 14px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background: white;
+        color: #475569;
+        font-weight: 700;
+        font-size: 12px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+        .page-btn.active {
+            background: #0284c7;
+            color: white;
+            border-color: #0284c7;
+            box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.2);
+        }
+
+        .page-btn:hover:not(.active) {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
 </style>
 
 <div style="max-width: 1400px; margin: 20px auto; padding: 0 15px; font-family: 'Inter', sans-serif;">
@@ -47,7 +72,20 @@
         <h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #0c4a6e;">
             <i class="fa fa-history" style="color: #0284c7;"></i> LỊCH SỬ YÊU CẦU
         </h2>
-        <div style="display: flex; gap: 10px;">
+        <div style="display: flex; gap: 10px; align-items: center;">
+            
+            @* --- CHỌN SỐ LƯỢNG HIỂN THỊ --- *@
+            <div style="display: flex; align-items: center; gap: 8px; background: white; padding: 8px 12px; border-radius: 10px; border: 1px solid #cbd5e1;">
+                <span style="font-size: 11px; font-weight: 800; color: #64748b;">HIỂN THỊ:</span>
+                <select id="pageSizeSelect" onchange="changePageSize()"
+                        style="border: none; outline: none; font-weight: 700; color: #0284c7; cursor: pointer; font-size: 13px; background: transparent;">
+                    <option value="10">10</option>
+                    <option value="30" selected>30</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+
             <input type="text" id="myInput" onkeyup="filterTable()" placeholder="Tìm kiếm..."
                    style="padding: 10px 15px; border-radius: 10px; border: 1px solid #cbd5e1; width: 250px; outline: none;">
             <a href="/FormIT/DonMail" style="padding: 10px 20px; background: #0284c7; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 13px;">
@@ -172,20 +210,116 @@
             </tbody>
         </table>
     </div>
+
+    @* --- PHÂN TRANG & FOOTER --- *@
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 5px;">
+        <div id="paginationButtons" style="display: flex; gap: 6px;">
+            @* JS sinh nút phân trang tại đây *@
+        </div>
+        <div style="text-align: right;">
+            <div style="color: #64748b; font-size: 12px; font-weight: 700;">
+                Trang <span id="currentPageNum" style="color: #0284c7;">1</span>
+            </div>
+            <div style="color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px;">
+                Tổng hiển thị: <span id="totalVisibleCount">@total</span> đơn
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
+    let currentPage = 1;
+    let rowsPerPage = 30; // Mặc định hiển thị 30 dòng/trang
+
+    function changePageSize() {
+        const select = document.getElementById("pageSizeSelect");
+        rowsPerPage = parseInt(select.value);
+        currentPage = 1; // Chọn số lượng mới thì quay về trang 1
+        filterTable();
+    }
+
     function filterTable() {
-        var input = document.getElementById("myInput");
-        var filter = input.value.toUpperCase();
-        var tr = document.querySelectorAll("#myTable tbody tr");
+        const input = document.getElementById("myInput");
+        const filter = input.value.toUpperCase();
+        const tr = document.querySelectorAll("#myTable tbody tr");
+        
+        let visibleRows = [];
+
+        // Lọc dữ liệu theo input search
         tr.forEach(row => {
-            row.style.display = row.innerText.toUpperCase().includes(filter) ? "" : "none";
+            const text = row.innerText.toUpperCase();
+            if (text.includes(filter)) {
+                visibleRows.push(row);
+                row.style.display = ""; // Hiện tạm thời để tính toán
+            } else {
+                row.style.display = "none";
+            }
         });
+
+        // Áp dụng logic phân trang trên tập dữ liệu đã lọc
+        updatePagination(visibleRows);
+        
+        // Cập nhật text thống kê phía dưới
+        document.getElementById("totalVisibleCount").innerText = visibleRows.length;
+        document.getElementById("currentPageNum").innerText = currentPage;
+    }
+
+    function updatePagination(visibleRows) {
+        const totalRows = visibleRows.length;
+        const totalPages = Math.ceil(totalRows / rowsPerPage);
+        const paginationContainer = document.getElementById("paginationButtons");
+        
+        const startIdx = (currentPage - 1) * rowsPerPage;
+        const endIdx = startIdx + rowsPerPage;
+
+        // Ẩn/hiện các dòng chỉ thuộc về trang hiện tại
+        visibleRows.forEach((row, index) => {
+            row.style.display = (index >= startIdx && index < endIdx) ? "" : "none";
+        });
+
+        // Xóa các nút cũ và tạo nút mới
+        paginationContainer.innerHTML = "";
+        
+        if (totalPages > 1) {
+            for (let i = 1; i <= totalPages; i++) {
+                // Hiển thị nút "..." nếu có quá nhiều trang (tối ưu UI)
+                if (totalPages > 6 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
+                    if (i == 3 || i == totalPages - 2) {
+                        const dot = document.createElement("span");
+                        dot.innerText = "...";
+                        dot.style.padding = "6px";
+                        paginationContainer.appendChild(dot);
+                    }
+                    continue;
+                }
+
+                const btn = document.createElement("button");
+                btn.innerText = i;
+                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                btn.onclick = () => {
+                    currentPage = i;
+                    updatePagination(visibleRows);
+                    document.getElementById("currentPageNum").innerText = i;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+                paginationContainer.appendChild(btn);
+            }
+        }
     }
 
     function filterByStatus(s) {
         document.getElementById("myInput").value = s;
+        currentPage = 1; // Click vào trạng thái thì quay về trang 1
         filterTable();
+
+        // Thêm hiệu ứng nháy nhẹ cho bảng để người dùng thấy dữ liệu đang thay đổi
+        const table = document.getElementById("myTable");
+        table.style.opacity = "0.5";
+        setTimeout(() => { table.style.opacity = "1"; }, 150);
     }
+
+    // Chạy mặc định lần đầu khi load trang
+    document.addEventListener("DOMContentLoaded", () => {
+        filterTable();
+    });
 </script>
