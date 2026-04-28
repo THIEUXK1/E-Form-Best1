@@ -64,6 +64,9 @@ public partial class User
     public string? AnhDaiDien { get; set; }
 
     [InverseProperty("IdNguoiDungNavigation")]
+    public virtual ICollection<LichSuTruyCap> LichSuTruyCaps { get; set; } = new List<LichSuTruyCap>();
+
+    [InverseProperty("IdNguoiDungNavigation")]
     public virtual ICollection<UserBoPhan> UserBoPhans { get; set; } = new List<UserBoPhan>();
 
     [InverseProperty("IdNguoiDungNavigation")]
