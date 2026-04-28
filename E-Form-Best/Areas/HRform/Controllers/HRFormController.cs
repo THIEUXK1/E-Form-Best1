@@ -3248,7 +3248,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
         #region ĐƠN CHỜ XÉT DUYỆT (Dành cho nhân viên xem danh sách đơn đã tạo)
 
-        // GET: /FormHR/DonCho
         [HttpGet("/FormHR/DonCho")]
         public async Task<IActionResult> DonCho()
         {
@@ -3299,10 +3298,9 @@ namespace E_Form_Best.Areas.HRform.Controllers
             {
                 // Ghi log lỗi nếu cần thiết
                 TempData["Error"] = "Có lỗi xảy ra khi tải danh sách đơn: " + ex.Message;
-                return View(new List<FormHr>());
+                return View(new List<E_Form_Best.Models.ITForm.FormHr>());
             }
         }
-
         #endregion
 
         #region XỬ LÝ ĐƠN HR (Duyệt / Hủy / Hoàn tất) - PHÂN QUYỀN MỚI 2026
@@ -3325,7 +3323,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                                                 .ToList();
 
             // --- 2. TRUY VẤN DỮ LIỆU ---
-            IQueryable<FormHr> query = _context.FormHrs
+            IQueryable<E_Form_Best.Models.ITForm.FormHr> query = _context.FormHrs
                 .Include(f => f.HrNguoiXacNhans)
                     .ThenInclude(xn => xn.IdnguoiXacNhanNavigation)
                 .Include(f => f.HrQuanLyDuyetB2s) // BỔ SUNG ĐỂ KIỂM TRA TRẠNG THÁI B2
@@ -3508,7 +3506,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             bool isQuanLyB2 = User.IsInRole("QuanLyDuyetDonHR_B2");
 
             // --- 2. TRUY VẤN DỮ LIỆU ---
-            IQueryable<FormHr> query = _context.FormHrs
+            IQueryable<E_Form_Best.Models.ITForm.FormHr> query = _context.FormHrs
                 .Include(f => f.HrNguoiXacNhans)
                     .ThenInclude(xn => xn.IdnguoiXacNhanNavigation)
                 .Include(f => f.HrQuanLyDuyetB2s)
@@ -3545,6 +3543,8 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
             return View(danhSachDon);
         }
+
+
         #region DUYỆT BƯỚC 2 (HR_QuanLyDuyetB2) - SO SÁNH QUA MÃ NHÂN VIÊN
 
         public class DuyetB2Request
@@ -3730,7 +3730,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             }
 
             // 4. Khởi tạo Query và nạp dữ liệu liên quan
-            IQueryable<FormHr> query = _context.FormHrs
+            IQueryable<E_Form_Best.Models.ITForm.FormHr> query = _context.FormHrs
                 .Include(f => f.HrNguoiXacNhans)
                     .ThenInclude(x => x.IdnguoiXacNhanNavigation)
                 .Include(f => f.HrQuanLyDuyetB2s)
@@ -3738,11 +3738,16 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
             // 5. ĐIỀU KIỆN LỌC CHUNG
             // - Đã được Quản lý trực tiếp ký duyệt (IdNguoiDuyet != null)
-            // - Đã qua bước duyệt B2 (Tất cả B2 đã xử lý xong, TrangThaiXacNhan != 0)
+            // - Đã qua bước duyệt B2 (Áp dụng logic cấu hình duyệt AND / OR)
             query = query.Where(f => f.IdNguoiDuyet != null &&
-                                     f.HrQuanLyDuyetB2s.All(q => q.TrangThaiXacNhan != 0));
+                (
+                    !f.HrQuanLyDuyetB2s.Any() || // Trường hợp đơn không cấu hình duyệt B2 thì cho qua
+                    (f.HrQuanLyDuyetB2s.Any(b2 => b2.Loai == "OR" || b2.Loai == "ANY") && f.HrQuanLyDuyetB2s.Any(q => q.TrangThaiXacNhan == 1)) || // Hình thức OR: Có ít nhất 1 người duyệt
+                    (!f.HrQuanLyDuyetB2s.Any(b2 => b2.Loai == "OR" || b2.Loai == "ANY") && f.HrQuanLyDuyetB2s.All(q => q.TrangThaiXacNhan != 0)) // Hình thức AND: Tất cả đã xử lý xong
+                )
+            );
 
-            // 6. PHÂN QUYỀN HIỂN THỊ (Logic tương tương B2)
+            // 6. PHÂN QUYỀN HIỂN THỊ (Logic tương đương B2)
             query = query.Where(f =>
                 // Quyền All: Xem toàn bộ đơn đã qua bước duyệt trung gian
                 isAll ||
@@ -3767,7 +3772,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             catch (Exception ex)
             {
                 TempData["Error"] = "Lỗi truy vấn dữ liệu phê duyệt cấp cao: " + ex.Message;
-                return View(new List<FormHr>());
+                return View(new List<E_Form_Best.Models.ITForm.FormHr>());
             }
         }
         /// <summary>
@@ -3923,7 +3928,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             bool isGiamDocHR = userRoles.Contains("GiamDocHR");
 
             // --- 2. KHỞI TẠO QUERY ---
-            IQueryable<FormHr> query = _context.FormHrs
+            IQueryable<E_Form_Best.Models.ITForm.FormHr> query = _context.FormHrs
                 .Include(f => f.HrNguoiXacNhans)
                     .ThenInclude(xn => xn.IdnguoiXacNhanNavigation)
                 .Include(f => f.HrQuanLyDuyetB2s)
@@ -3976,7 +3981,23 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     bool isFinished = item.IdAdmin != null || item.TrangThai == "HoanTat";
 
                     bool hasB2 = item.HrQuanLyDuyetB2s != null && item.HrQuanLyDuyetB2s.Any();
-                    bool isB2Approved = hasB2 && item.HrQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
+
+                    // --- ÁP DỤNG LOGIC AND/OR B2 ---
+                    string b2Type = hasB2 ? (item.HrQuanLyDuyetB2s.FirstOrDefault()?.Loai?.ToUpper() ?? "AND") : "AND";
+                    bool isB2Approved = false;
+
+                    if (hasB2)
+                    {
+                        if (b2Type == "OR" || b2Type == "ANY")
+                        {
+                            isB2Approved = item.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 1);
+                        }
+                        else
+                        {
+                            isB2Approved = item.HrQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
+                        }
+                    }
+
                     bool isB2Rejected = hasB2 && item.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 2);
 
                     bool hasGD = item.HrNguoiXacNhans != null && item.HrNguoiXacNhans.Any();
@@ -4010,7 +4031,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             catch (Exception ex)
             {
                 TempData["Error"] = "Lỗi hệ thống: " + ex.Message;
-                return View(new List<FormHr>());
+                return View(new List<E_Form_Best.Models.ITForm.FormHr>());
             }
         }
         /// <summary>

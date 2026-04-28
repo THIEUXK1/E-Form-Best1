@@ -1,5 +1,6 @@
 ﻿@model IEnumerable<E_Form_Best.Models.ITForm.FormHr>
 @using System.Security.Claims
+@using System.Linq
 
 @{
     ViewData["Title"] = "Quản Lý Xét Duyệt HR";
@@ -7,6 +8,19 @@
 
     // --- 1. LẤY THÔNG TIN ROLE ---
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("UserRole")?.Value ?? "Guest";
+
+    // --- HELPER FUNCTIONS ĐỂ XỬ LÝ LOGIC AND/OR CỦA BƯỚC 2 ---
+    Func<E_Form_Best.Models.ITForm.FormHr, bool> checkB2Approved = (form) => {
+        if (form.HrQuanLyDuyetB2s == null || !form.HrQuanLyDuyetB2s.Any()) return true;
+        string type = form.HrQuanLyDuyetB2s.FirstOrDefault()?.Loai?.ToUpper() ?? "AND";
+        if (type == "OR" || type == "ANY") return form.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 1);
+        return form.HrQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
+    };
+
+    Func<E_Form_Best.Models.ITForm.FormHr, bool> checkB2Rejected = (form) => {
+        if (form.HrQuanLyDuyetB2s == null || !form.HrQuanLyDuyetB2s.Any()) return false;
+        return form.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 2);
+    };
 
     // --- 2. LOGIC THỐNG KÊ CHI TIẾT (Đồng bộ với logic bảng) ---
     var total = Model?.Count() ?? 0;
@@ -19,15 +33,15 @@
     
     var choBPXacNhan = activeList.Count(x => x.IdNguoiDuyet != null && 
                                              x.HrQuanLyDuyetB2s != null && x.HrQuanLyDuyetB2s.Any() && 
-                                             !x.HrQuanLyDuyetB2s.All(s => s.TrangThaiXacNhan == 1));
+                                             !checkB2Approved(x));
 
     var choGiamDoc = activeList.Count(x => x.IdNguoiDuyet != null && 
-                                           (x.HrQuanLyDuyetB2s == null || x.HrQuanLyDuyetB2s.All(s => s.TrangThaiXacNhan == 1)) &&
+                                           (x.HrQuanLyDuyetB2s == null || checkB2Approved(x)) &&
                                            x.HrNguoiXacNhans != null && x.HrNguoiXacNhans.Any() &&
                                            !x.HrNguoiXacNhans.All(s => s.TrangThaiXacNhan == 1));
 
     var choAdmin = activeList.Count(x => x.IdNguoiDuyet != null && 
-                                         (x.HrQuanLyDuyetB2s == null || x.HrQuanLyDuyetB2s.All(s => s.TrangThaiXacNhan == 1)) &&
+                                         (x.HrQuanLyDuyetB2s == null || checkB2Approved(x)) &&
                                          (x.HrNguoiXacNhans == null || x.HrNguoiXacNhans.All(s => s.TrangThaiXacNhan == 1)) &&
                                          x.IdAdmin == null);
 
@@ -113,8 +127,8 @@
                         bool isManagerApproved = item.IdNguoiDuyet != null;
 
                         bool hasB2 = item.HrQuanLyDuyetB2s != null && item.HrQuanLyDuyetB2s.Any();
-                        bool isB2Approved = hasB2 && item.HrQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
-                        bool isB2Rejected = hasB2 && item.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 2);
+                        bool isB2Approved = hasB2 && checkB2Approved(item);
+                        bool isB2Rejected = hasB2 && checkB2Rejected(item);
 
                         bool hasGD = item.HrNguoiXacNhans != null && item.HrNguoiXacNhans.Any();
                         bool isGDApproved = hasGD && item.HrNguoiXacNhans.All(x => x.TrangThaiXacNhan == 1);

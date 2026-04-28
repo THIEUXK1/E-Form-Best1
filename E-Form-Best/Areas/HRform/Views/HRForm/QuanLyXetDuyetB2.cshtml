@@ -1,5 +1,6 @@
 ﻿@model IEnumerable<E_Form_Best.Models.ITForm.FormHr>
 @using System.Security.Claims
+@using System.Linq
 
 @{
     ViewData["Title"] = "Quản Lý Xét Duyệt HR - B2";
@@ -8,23 +9,37 @@
     // --- 1. LẤY THÔNG TIN ROLE ---
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("UserRole")?.Value ?? "Guest";
 
+    // --- HELPER FUNCTIONS ĐỂ XỬ LÝ LOGIC AND/OR CỦA BƯỚC 2 ---
+    Func<E_Form_Best.Models.ITForm.FormHr, bool> checkB2Approved = (form) => {
+        if (form.HrQuanLyDuyetB2s == null || !form.HrQuanLyDuyetB2s.Any()) return true;
+        string type = form.HrQuanLyDuyetB2s.FirstOrDefault()?.Loai?.ToUpper() ?? "AND";
+        if (type == "OR" || type == "ANY") return form.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 1);
+        return form.HrQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
+    };
+
+    Func<E_Form_Best.Models.ITForm.FormHr, bool> checkB2Rejected = (form) => {
+        if (form.HrQuanLyDuyetB2s == null || !form.HrQuanLyDuyetB2s.Any()) return false;
+        return form.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 2);
+    };
+
     // --- 2. LOGIC THỐNG KÊ CHI TIẾT ---
     var total = Model?.Count() ?? 0;
     var activeList = Model?.Where(x => !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")).ToList() ?? new List<E_Form_Best.Models.ITForm.FormHr>();
 
     var daHuy = Model?.Count(x => (x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
     
+    // Nếu B2 chưa duyệt xong (AND/OR) và cũng chưa có ai từ chối
     var choBPXacNhan = activeList.Count(x => x.HrQuanLyDuyetB2s != null && 
                                              x.HrQuanLyDuyetB2s.Any() && 
-                                             !x.HrQuanLyDuyetB2s.All(s => s.TrangThaiXacNhan != 0));
+                                             !checkB2Approved(x) && !checkB2Rejected(x));
 
     var choGiamDoc = activeList.Count(x => x.HrQuanLyDuyetB2s != null && 
-                                           x.HrQuanLyDuyetB2s.All(s => s.TrangThaiXacNhan != 0) &&
+                                           checkB2Approved(x) &&
                                            x.HrNguoiXacNhans != null && x.HrNguoiXacNhans.Any() &&
                                            !x.HrNguoiXacNhans.All(s => s.TrangThaiXacNhan == 1));
 
     var choAdmin = activeList.Count(x => x.HrQuanLyDuyetB2s != null && 
-                                         x.HrQuanLyDuyetB2s.All(s => s.TrangThaiXacNhan != 0) &&
+                                         checkB2Approved(x) &&
                                          (x.HrNguoiXacNhans == null || x.HrNguoiXacNhans.All(s => s.TrangThaiXacNhan == 1)) &&
                                          x.IdAdmin == null);
 
@@ -113,10 +128,11 @@
 
                         var b2List = item.HrQuanLyDuyetB2s ?? new List<E_Form_Best.Models.ITForm.HrQuanLyDuyetB2>();
                         bool hasB2 = b2List.Any();
-                        // Logic theo yêu cầu của bạn: Nếu có bất kỳ bản ghi nào TrangThaiXacNhan == 0 thì là "Xử lý"
-                        bool isB2Processing = hasB2 && b2List.Any(x => x.TrangThaiXacNhan == 0);
-                        bool isB2Approved = hasB2 && b2List.All(x => x.TrangThaiXacNhan != 0 && x.TrangThaiXacNhan == 1);
-                        bool isB2Rejected = hasB2 && b2List.Any(x => x.TrangThaiXacNhan == 2);
+
+                        // Áp dụng logic Helper cho B2
+                        bool isB2Approved = hasB2 && checkB2Approved(item);
+                        bool isB2Rejected = hasB2 && checkB2Rejected(item);
+                        bool isB2Processing = hasB2 && !isB2Approved && !isB2Rejected;
 
                         var gdList = item.HrNguoiXacNhans ?? new List<E_Form_Best.Models.ITForm.HrNguoiXacNhan>();
                         bool hasGD = gdList.Any();

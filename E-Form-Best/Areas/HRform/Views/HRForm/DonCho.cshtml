@@ -1,9 +1,25 @@
 ﻿@model IEnumerable<E_Form_Best.Models.ITForm.FormHr>
 @using System.Security.Claims
+@using System.Linq
 
 @{
     ViewData["Title"] = "Lịch sử yêu cầu HR";
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
+
+    // --- HÀM HELPER ĐỂ CHECK LOGIC B2 (AND/OR) ---
+    Func<E_Form_Best.Models.ITForm.FormHr, bool> checkB2Approved = (form) =>
+    {
+        if (form.HrQuanLyDuyetB2s == null || !form.HrQuanLyDuyetB2s.Any()) return true; // Cứ coi như xong nếu ko có B2
+        string type = form.HrQuanLyDuyetB2s.FirstOrDefault()?.Loai?.ToUpper() ?? "AND";
+        if (type == "OR" || type == "ANY") return form.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 1);
+        return form.HrQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
+    };
+
+    Func<E_Form_Best.Models.ITForm.FormHr, bool> checkB2Rejected = (form) =>
+    {
+        if (form.HrQuanLyDuyetB2s == null || !form.HrQuanLyDuyetB2s.Any()) return false;
+        return form.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 2);
+    };
 
     // --- LOGIC THỐNG KÊ CHI TIẾT ---
     var total = Model?.Count() ?? 0;
@@ -14,20 +30,20 @@
     // 1. Chờ Quản lý trực tiếp duyệt
     var choQLDuyet = activeList.Count(x => x.IdNguoiDuyet == null);
     
-    // 2. Chờ Bộ phận xác nhận (B2)
+    // 2. Chờ Bộ phận xác nhận (B2) - Áp dụng checkB2Approved
     var choBPXacNhan = activeList.Count(x => x.IdNguoiDuyet != null &&
                                              x.HrQuanLyDuyetB2s != null && x.HrQuanLyDuyetB2s.Any() &&
-                                             !x.HrQuanLyDuyetB2s.All(s => s.TrangThaiXacNhan == 1));
+                                             !checkB2Approved(x));
 
-    // 3. Chờ Giám đốc xác nhận
+    // 3. Chờ Giám đốc xác nhận - Áp dụng checkB2Approved
     var choGiamDoc = activeList.Count(x => x.IdNguoiDuyet != null &&
-                                           (x.HrQuanLyDuyetB2s == null || x.HrQuanLyDuyetB2s.All(s => s.TrangThaiXacNhan == 1)) &&
+                                           (x.HrQuanLyDuyetB2s == null || checkB2Approved(x)) &&
                                            x.HrNguoiXacNhans != null && x.HrNguoiXacNhans.Any() &&
                                            !x.HrNguoiXacNhans.All(s => s.TrangThaiXacNhan == 1));
 
     // 4. Đang xử lý tại Admin (Các bước duyệt nội bộ đã xong)
     var choAdmin = activeList.Count(x => x.IdNguoiDuyet != null &&
-                                         (x.HrQuanLyDuyetB2s == null || x.HrQuanLyDuyetB2s.All(s => s.TrangThaiXacNhan == 1)) &&
+                                         (x.HrQuanLyDuyetB2s == null || checkB2Approved(x)) &&
                                          (x.HrNguoiXacNhans == null || x.HrNguoiXacNhans.All(s => s.TrangThaiXacNhan == 1)) &&
                                          x.IdAdmin == null);
 
@@ -133,14 +149,14 @@
                 {
                     foreach (var item in Model)
                     {
-                        // 1. Logic kiểm tra các bước
+                        // 1. Logic kiểm tra các bước (Đã áp dụng AND/OR cho B2)
                         bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]");
                         bool isFinished = item.IdAdmin != null;
                         bool isManagerApproved = item.IdNguoiDuyet != null;
 
                         bool hasB2 = item.HrQuanLyDuyetB2s != null && item.HrQuanLyDuyetB2s.Any();
-                        bool isB2Approved = hasB2 && item.HrQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
-                        bool isB2Rejected = hasB2 && item.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 2);
+                        bool isB2Approved = hasB2 && checkB2Approved(item);
+                        bool isB2Rejected = hasB2 && checkB2Rejected(item);
 
                         bool hasGD = item.HrNguoiXacNhans != null && item.HrNguoiXacNhans.Any();
                         bool isGDApproved = hasGD && item.HrNguoiXacNhans.All(x => x.TrangThaiXacNhan == 1);
