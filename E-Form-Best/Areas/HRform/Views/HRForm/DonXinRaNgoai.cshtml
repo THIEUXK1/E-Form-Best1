@@ -240,6 +240,15 @@
             alert("⚠️ Vui lòng chọn thời gian!");
             return;
         }
+        
+        // KIỂM TRA THỜI GIAN VỀ PHẢI SAU THỜI GIAN RA
+        const dateRa = new Date(tgRa);
+        const dateVe = new Date(tgVe);
+        if (dateVe <= dateRa) {
+            alert("⚠️ Thời gian về dự kiến phải sau thời gian ra ngoài!");
+            return;
+        }
+
         if (selectedHoTro.length === 0) {
             alert("⚠️ Vui lòng chọn ít nhất một loại yêu cầu hỗ trợ!");
             return;

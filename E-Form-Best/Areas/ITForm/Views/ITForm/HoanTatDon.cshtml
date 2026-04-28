@@ -36,7 +36,19 @@
                 </div>
             </div>
 
-            <div style="display: flex; gap: 15px;">
+            <div style="display: flex; gap: 15px; align-items: center;">
+                @* --- CHỌN SỐ DÒNG HIỂN THỊ --- *@
+                <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 10px 15px; border-radius: 15px; border: 2px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                    <span style="font-size: 11px; font-weight: 900; color: #64748b; text-transform: uppercase;">Hiển thị:</span>
+                    <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 1000; color: #1e40af; cursor: pointer; background: transparent; font-size: 14px;">
+                        <option value="10">10</option>
+                        <option value="30" selected>30</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+
+                @* --- TÌM KIẾM --- *@
                 <div style="position: relative;">
                     <i class="fa fa-search" style="position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: #64748b; font-weight: 900;"></i>
                     <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Tìm tên, mã đơn, trạng thái..."
@@ -87,7 +99,7 @@
                     {
                         string pWidth, pColor, stBg, stFg;
 
-                        // Logic màu sắc và thanh tiến độ dựa trên TrangThai đã gán ở Controller
+                        // Logic màu sắc và thanh tiến độ
                         switch (item.TrangThai)
                         {
                             case "Đã hủy":
@@ -119,7 +131,7 @@
                                 </div>
                             </td>
 
-                            @* 2. Danh sách IT hỗ trợ (Eager Loading từ ItCtNguoiHoTros) *@
+                            @* 2. Danh sách IT hỗ trợ *@
                             <td style="padding: 20px;">
                                 @if (item.ItCtNguoiHoTros != null && item.ItCtNguoiHoTros.Any())
                                 {
@@ -194,38 +206,154 @@
             }
         </div>
 
-        @* --- FOOTER --- *@
+        @* --- PHÂN TRANG VÀ FOOTER --- *@
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 25px 10px;">
-            <div style="color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">
-                IT Support System v3.0
+            <div id="paginationButtons" style="display: flex; gap: 8px;">
+                @* Nút phân trang sẽ được JS tạo tự động *@
             </div>
-            <div style="color: #64748b; font-size: 12px; font-weight: 700;">
-                Tổng cộng: <span style="color: #1e40af;">@total</span> bản ghi
+            <div style="text-align: right;">
+                <div style="color: #64748b; font-size: 12px; font-weight: 700;">
+                    Hiển thị trang <span id="currentPageNum" style="color: #1e40af;">1</span>
+                </div>
+                <div style="color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-top: 5px;">
+                    Tổng cộng: <span id="totalVisibleCount">@total</span> bản ghi
+                </div>
+                <div style="color: #94a3b8; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px; opacity: 0.6;">
+                    IT Support System v3.0
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    .page-btn {
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+        .page-btn.active {
+            background: #1e40af;
+            color: white;
+            border-color: #1e40af;
+            box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
+        }
+
+        .page-btn:hover:not(.active) {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+</style>
+
 <script>
-    // Hàm tìm kiếm nhanh trên bảng
+    let currentPage = 1;
+    let rowsPerPage = 30; // Mặc định hiển thị 30 dòng
+
+    // Hàm thay đổi số lượng hiển thị
+    function changePageSize() {
+        const select = document.getElementById("pageSizeSelect");
+        rowsPerPage = parseInt(select.value);
+        currentPage = 1; // Quay lại trang đầu
+        filterTable();
+    }
+
+    // Hàm tìm kiếm và lọc dữ liệu
     function filterTable() {
         const input = document.getElementById("searchInput");
         const filter = input.value.toUpperCase();
         const tr = document.querySelectorAll("#dataTable tbody tr");
+        
+        // --- GHI NHỚ LỌC VÀO SESSION STORAGE ---
+        sessionStorage.setItem("savedKhoLuuTruFilter", input.value);
+        
+        let visibleRows = [];
 
+        // Bước 1: Lọc dữ liệu dựa trên search input
         tr.forEach(row => {
+            // Lấy text content của row (không bao gồm HTML tags để tìm kiếm chính xác)
             const text = row.innerText.toUpperCase();
-            row.style.display = text.includes(filter) ? "" : "none";
+            if (text.includes(filter)) {
+                visibleRows.push(row);
+                // Tạm thời hiển thị để updatePagination xử lý tiếp
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
         });
+
+        // Bước 2: Cập nhật phân trang
+        updatePagination(visibleRows);
+        
+        // Cập nhật thống kê số lượng bản ghi hiển thị
+        document.getElementById("totalVisibleCount").innerText = visibleRows.length;
+        document.getElementById("currentPageNum").innerText = currentPage;
     }
 
-    // Hàm lọc theo nút thống kê
+    // Hàm xử lý logic phân trang
+    function updatePagination(visibleRows) {
+        const totalRows = visibleRows.length;
+        const totalPages = Math.ceil(totalRows / rowsPerPage);
+        const paginationContainer = document.getElementById("paginationButtons");
+        
+        // Tính toán vị trí bắt đầu và kết thúc của dòng trên trang hiện tại
+        const startIdx = (currentPage - 1) * rowsPerPage;
+        const endIdx = startIdx + rowsPerPage;
+
+        // Ẩn các dòng không thuộc trang hiện tại
+        visibleRows.forEach((row, index) => {
+            if (index >= startIdx && index < endIdx) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+
+        // Xóa các nút cũ và tạo nút mới
+        paginationContainer.innerHTML = "";
+        
+        if (totalPages > 1) {
+            for (let i = 1; i <= totalPages; i++) {
+                // Logic rút gọn nút phân trang nếu quá nhiều trang
+                if (totalPages > 8 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
+                    if (i == 3 || i == totalPages - 2) {
+                        const dot = document.createElement("span");
+                        dot.innerText = "...";
+                        dot.style.padding = "8px";
+                        paginationContainer.appendChild(dot);
+                    }
+                    continue;
+                }
+
+                const btn = document.createElement("button");
+                btn.innerText = i;
+                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                btn.onclick = () => {
+                    currentPage = i;
+                    // Không gọi filterTable() để tránh reset filter, chỉ update hiển thị
+                    updatePagination(visibleRows);
+                    document.getElementById("currentPageNum").innerText = i;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+                paginationContainer.appendChild(btn);
+            }
+        }
+    }
+
+    // Hàm lọc theo nút thống kê nhanh
     function filterByStatus(status) {
         const input = document.getElementById("searchInput");
         input.value = status;
+        currentPage = 1; // Reset về trang 1 khi lọc mới
         filterTable();
 
-        // Hiệu ứng phản hồi nhẹ khi nhấn nút lọc
+        // Hiệu ứng phản hồi nhẹ
         const table = document.getElementById("dataTable");
         table.style.opacity = "0.4";
         setTimeout(() => {
@@ -233,4 +361,13 @@
             table.style.opacity = "1";
         }, 100);
     }
+
+    // --- LẤY LẠI GIÁ TRỊ LỌC TỪ SESSION STORAGE KHI LOAD TRANG ---
+    document.addEventListener("DOMContentLoaded", () => {
+        const savedFilter = sessionStorage.getItem("savedKhoLuuTruFilter");
+        if (savedFilter !== null) {
+            document.getElementById("searchInput").value = savedFilter;
+        }
+        filterTable();
+    });
 </script>

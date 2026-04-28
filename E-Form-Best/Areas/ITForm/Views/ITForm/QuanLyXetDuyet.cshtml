@@ -9,22 +9,12 @@
     var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value
                         ?? User.FindFirst("UserRole")?.Value ?? "";
 
-    // --- 2. LOGIC THỐNG KÊ (CẬP NHẬT ĐỦ 5 TRẠNG THÁI) ---
+    // --- 2. LOGIC THỐNG KÊ ---
     var total = Model?.Count() ?? 0;
-
-    // Đã hủy: Tên form chứa "[ĐÃ HỦY]"
     var daHuy = Model?.Count(x => (x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
-
-    // Chờ QL Duyệt: IdNguoiDuyet == null và không bị hủy
     var choQuanLy = Model?.Count(x => x.IdNguoiDuyet == null && !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
-
-    // IT Đang xử lý: IdNguoiDuyet != null nhưng IdAdmin == null và không bị hủy
     var choITAdmin = Model?.Count(x => x.IdNguoiDuyet != null && x.IdAdmin == null && !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
-
-    // Chờ đánh giá: IdAdmin != null nhưng chưa có bản ghi trong DanhGia (IdFormItNavigation.DanhGia)
     var choDanhGia = Model?.Count(x => !(x.TenForm ?? "").Contains("[ĐÃ HỦY]") && x.IdAdmin != null && (x.DanhGiaFormIts == null || !x.DanhGiaFormIts.Any())) ?? 0;
-
-    // Hoàn tất: Đã có dữ liệu trong DanhGia
     var hoanTat = Model?.Count(x => !(x.TenForm ?? "").Contains("[ĐÃ HỦY]") && x.DanhGiaFormIts != null && x.DanhGiaFormIts.Any()) ?? 0;
 }
 
@@ -40,6 +30,18 @@
         </h2>
 
         <div style="display: flex; gap: 10px; align-items: center;">
+            @* --- CHỌN SỐ LƯỢNG HIỂN THỊ --- *@
+            <div style="display: flex; align-items: center; gap: 8px; background: white; padding: 8px 12px; border-radius: 12px; border: 2px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <span style="font-size: 11px; font-weight: 900; color: #64748b;">HIỂN THỊ:</span>
+                <select id="pageSizeSelect" onchange="changePageSize()"
+                        style="border: none; outline: none; font-weight: 900; color: #1e40af; cursor: pointer; font-size: 13px; background: transparent;">
+                    <option value="10">10</option>
+                    <option value="30" selected>30</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+
             <div style="position: relative;">
                 <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px; font-weight: 900;"></i>
                 <input type="text" id="quickSearch" onkeyup="filterTable()" placeholder="Tìm tên, bộ phận, mã đơn..."
@@ -52,7 +54,7 @@
         </div>
     </div>
 
-    @* --- STATS ROW (Cập nhật 5 thẻ thống kê) --- *@
+    @* --- STATS ROW --- *@
     <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 25px;">
         @{
             var stats = new[] {
@@ -61,7 +63,7 @@
                 new { Label = "CHỜ ĐÁNH GIÁ", Value = choDanhGia, Color = "#6366f1", Bg = "#f5f3ff", Filter = "CHỜ ĐG" },
                 new { Label = "HOÀN TẤT", Value = hoanTat, Color = "#10b981", Bg = "#ecfdf5", Filter = "HOÀN TẤT" },
                 new { Label = "ĐƠN ĐÃ HỦY", Value = daHuy, Color = "#b91c1c", Bg = "#fef2f2", Filter = "ĐÃ HỦY" }
-                };
+            };
         }
         @foreach (var s in stats)
         {
@@ -94,13 +96,11 @@
                 {
                     foreach (var item in Model)
                     {
-                        // --- ĐỊNH NGHĨA BIẾN TRẠNG THÁI ---
                         bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]");
                         bool isApprovedByManager = item.IdNguoiDuyet != null;
                         bool isFinishedByIT = item.IdAdmin != null;
                         bool hasRating = item.DanhGiaFormIts != null && item.DanhGiaFormIts.Any();
 
-                        // --- Cấu hình Progress Bar & Status Text ---
                         string pWidth = "10%"; string pColor = "#94a3b8"; string pText = "Khởi tạo";
                         string bg = "#f1f5f9"; string fg = "#475569"; string statusTag = "";
 
@@ -140,21 +140,18 @@
                                     @item.BoPhan • <span style="color: #1e40af;">MS: @item.SoNhanVien</span>
                                 </div>
                             </td>
-
                             <td style="padding: 15px 20px;">
                                 <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid #e2e8f0; display: inline-block;">
                                     <i class="fa fa-tag" style="margin-right: 4px; font-size: 10px;"></i>
                                     @(string.IsNullOrEmpty(item.Danhmuc) ? "Phổ thông" : item.Danhmuc)
                                 </span>
                             </td>
-
                             <td style="padding: 15px 20px;">
                                 <div style="font-weight: 800; color: #1e293b; font-size: 14px;">@item.TenForm?.Replace("[ĐÃ HỦY]", "")</div>
                                 <div style="font-size: 11px; color: #64748b; font-weight: 700;">
                                     ID: #@item.Id • @item.TimeNguoiTao?.ToString("dd/MM/yyyy")
                                 </div>
                             </td>
-
                             <td style="padding: 15px 20px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <div style="width: 28px; height: 28px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #1e40af;">
@@ -163,7 +160,6 @@
                                     <div style="font-weight: 700; color: #334155; font-size: 13px;">@supportName</div>
                                 </div>
                             </td>
-
                             <td style="padding: 15px 20px;">
                                 <div style="font-size: 9px; font-weight: 1000; color: @pColor; margin-bottom: 4px; display: flex; justify-content: space-between;">
                                     <span>@pText</span> <span>@pWidth</span>
@@ -172,16 +168,14 @@
                                     <div style="width: @pWidth; height: 100%; background: @pColor; border-radius: 10px;"></div>
                                 </div>
                             </td>
-
                             <td style="padding: 15px 20px; text-align: center;">
                                 <span style="background:@bg; color:@fg; padding:6px 12px; border-radius:8px; font-size:10px; font-weight:1000; border: 1.5px solid @fg; display: inline-block; min-width: 80px;">@statusTag</span>
                             </td>
-
                             <td style="padding: 15px 20px; text-align: right;">
                                 <a href="/FormIT/ChiTiet/@item.Id"
-                                   style="text-decoration: none; padding: 8px 16px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s;
-                                                  background: @(hasRating || isCancelled ? "#f1f5f9" : "#1e40af");
-                                                  color: @(hasRating || isCancelled ? "#64748b" : "#ffffff");">
+                                       style="text-decoration: none; padding: 8px 16px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s;
+                                    background: @(hasRating || isCancelled ? "#f1f5f9" : "#1e40af");
+                                    color: @(hasRating || isCancelled ? "#64748b" : "#ffffff");">
                                     @(hasRating || isCancelled ? "Xem lại" : "Xử lý")
                                 </a>
                             </td>
@@ -190,6 +184,21 @@
                 }
             </tbody>
         </table>
+    </div>
+
+    @* --- PHÂN TRANG & FOOTER --- *@
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 25px 5px;">
+        <div id="paginationButtons" style="display: flex; gap: 6px;">
+            @* JS sinh nút *@
+        </div>
+        <div style="text-align: right;">
+            <div style="color: #64748b; font-size: 12px; font-weight: 700;">
+                Trang <span id="currentPageNum" style="color: #1e40af;">1</span>
+            </div>
+            <div style="color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px;">
+                Tổng hiển thị: <span id="totalVisibleCount">@total</span> yêu cầu
+            </div>
+        </div>
     </div>
 
     @if (Model == null || !Model.Any())
@@ -201,25 +210,122 @@
     }
 </div>
 
+<style>
+    .page-btn {
+        padding: 7px 14px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background: white;
+        color: #475569;
+        font-weight: 800;
+        font-size: 12px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+        .page-btn.active {
+            background: #1e40af;
+            color: white;
+            border-color: #1e40af;
+            box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
+        }
+
+        .page-btn:hover:not(.active) {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+</style>
+
 <script>
+    let currentPage = 1;
+    let rowsPerPage = 30;
+
+    function changePageSize() {
+        const select = document.getElementById("pageSizeSelect");
+        rowsPerPage = parseInt(select.value);
+        currentPage = 1;
+        filterTable();
+    }
+
     function filterTable() {
         const input = document.getElementById("quickSearch");
         const filter = input.value.toUpperCase();
         const table = document.getElementById("dataTable");
-        const tr = table.getElementsByTagName("tr");
+        const tr = table.querySelector("tbody").getElementsByTagName("tr");
+        
+        let visibleRows = [];
 
-        for (let i = 1; i < tr.length; i++) {
+        // Lọc theo từ khóa
+        for (let i = 0; i < tr.length; i++) {
             let rowText = tr[i].innerText.toUpperCase();
-            tr[i].style.display = rowText.includes(filter) ? "" : "none";
+            if (rowText.includes(filter)) {
+                visibleRows.push(tr[i]);
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }
+
+        // Cập nhật phân trang trên tập đã lọc
+        updatePagination(visibleRows);
+        document.getElementById("totalVisibleCount").innerText = visibleRows.length;
+        document.getElementById("currentPageNum").innerText = currentPage;
+    }
+
+    function updatePagination(visibleRows) {
+        const totalRows = visibleRows.length;
+        const totalPages = Math.ceil(totalRows / rowsPerPage);
+        const paginationContainer = document.getElementById("paginationButtons");
+        
+        const startIdx = (currentPage - 1) * rowsPerPage;
+        const endIdx = startIdx + rowsPerPage;
+
+        // Chỉ hiển thị các dòng thuộc trang hiện tại
+        visibleRows.forEach((row, index) => {
+            row.style.display = (index >= startIdx && index < endIdx) ? "" : "none";
+        });
+
+        // Vẽ nút phân trang
+        paginationContainer.innerHTML = "";
+        if (totalPages > 1) {
+            for (let i = 1; i <= totalPages; i++) {
+                // Logic rút gọn nút nếu quá nhiều trang
+                if (totalPages > 6 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
+                    if (i == 3 || i == totalPages - 2) {
+                        const dot = document.createElement("span");
+                        dot.innerText = "...";
+                        dot.style.padding = "5px";
+                        paginationContainer.appendChild(dot);
+                    }
+                    continue;
+                }
+
+                const btn = document.createElement("button");
+                btn.innerText = i;
+                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                btn.onclick = () => {
+                    currentPage = i;
+                    updatePagination(visibleRows);
+                    document.getElementById("currentPageNum").innerText = i;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+                paginationContainer.appendChild(btn);
+            }
         }
     }
 
     function filterByStatus(s) {
         document.getElementById("quickSearch").value = s;
+        currentPage = 1;
         filterTable();
 
         const table = document.getElementById("dataTable");
         table.style.opacity = "0.5";
         setTimeout(() => { table.style.opacity = "1"; }, 150);
     }
+
+    // Khởi tạo khi load trang
+    document.addEventListener("DOMContentLoaded", () => {
+        filterTable();
+    });
 </script>
