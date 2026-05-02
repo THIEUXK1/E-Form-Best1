@@ -1,51 +1,10 @@
-﻿@model IEnumerable<E_Form_Best.Models.ITForm.FormHr>
-@using System.Security.Claims
-@using System.Linq
-
+﻿@using System.Security.Claims
 @{
     ViewData["Title"] = "Quản Lý Xét Duyệt HR";
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 
-    // --- 1. LẤY THÔNG TIN ROLE ---
+    // Vẫn lấy Role từ Claim để JS và HTML Header xài
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("UserRole")?.Value ?? "Guest";
-
-    // --- HELPER FUNCTIONS ĐỂ XỬ LÝ LOGIC AND/OR CỦA BƯỚC 2 ---
-    Func<E_Form_Best.Models.ITForm.FormHr, bool> checkB2Approved = (form) => {
-        if (form.HrQuanLyDuyetB2s == null || !form.HrQuanLyDuyetB2s.Any()) return true;
-        string type = form.HrQuanLyDuyetB2s.FirstOrDefault()?.Loai?.ToUpper() ?? "AND";
-        if (type == "OR" || type == "ANY") return form.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 1);
-        return form.HrQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
-    };
-
-    Func<E_Form_Best.Models.ITForm.FormHr, bool> checkB2Rejected = (form) => {
-        if (form.HrQuanLyDuyetB2s == null || !form.HrQuanLyDuyetB2s.Any()) return false;
-        return form.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 2);
-    };
-
-    // --- 2. LOGIC THỐNG KÊ CHI TIẾT (Đồng bộ với logic bảng) ---
-    var total = Model?.Count() ?? 0;
-    var activeList = Model?.Where(x => !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")).ToList() ?? new List<E_Form_Best.Models.ITForm.FormHr>();
-
-    var daHuy = Model?.Count(x => (x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
-    
-    // Đếm theo từng bước tiến trình
-    var choQuanLy = activeList.Count(x => x.IdNguoiDuyet == null);
-    
-    var choBPXacNhan = activeList.Count(x => x.IdNguoiDuyet != null && 
-                                             x.HrQuanLyDuyetB2s != null && x.HrQuanLyDuyetB2s.Any() && 
-                                             !checkB2Approved(x));
-
-    var choGiamDoc = activeList.Count(x => x.IdNguoiDuyet != null && 
-                                           (x.HrQuanLyDuyetB2s == null || checkB2Approved(x)) &&
-                                           x.HrNguoiXacNhans != null && x.HrNguoiXacNhans.Any() &&
-                                           !x.HrNguoiXacNhans.All(s => s.TrangThaiXacNhan == 1));
-
-    var choAdmin = activeList.Count(x => x.IdNguoiDuyet != null && 
-                                         (x.HrQuanLyDuyetB2s == null || checkB2Approved(x)) &&
-                                         (x.HrNguoiXacNhans == null || x.HrNguoiXacNhans.All(s => s.TrangThaiXacNhan == 1)) &&
-                                         x.IdAdmin == null);
-
-    var hoanTat = activeList.Count(x => x.IdAdmin != null);
 }
 
 <style>
@@ -58,6 +17,29 @@
         display: flex; align-items: center; justify-content: center; color: #1e40af; border: 1px solid #dbeafe;
     }
     .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important; }
+
+    /* CSS cho Nút Phân trang */
+    .page-btn {
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    .page-btn.active {
+        background: #1e40af;
+        color: white;
+        border-color: #1e40af;
+        box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
+    }
+    .page-btn:hover:not(.active) {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
 </style>
 
 <div style="padding: 20px; background: #f1f5f9; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
@@ -71,37 +53,57 @@
             XÉT DUYỆT NHÂN SỰ
         </h2>
 
-        <div style="display: flex; gap: 10px; align-items: center;">
+        <div style="display: flex; gap: 15px; align-items: center;">
+            @* Khung chọn số lượng hiển thị *@
+            <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 8px 15px; border-radius: 12px; border: 2px solid #cbd5e1;">
+                <span style="font-size: 12px; font-weight: 700; color: #64748b;">Hiển thị:</span>
+                <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: #1e40af; cursor: pointer; background: transparent; font-size: 14px;">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+
             <div style="position: relative;">
                 <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px; font-weight: 900;"></i>
-                <input type="text" id="quickSearch" onkeyup="filterTable()" placeholder="Tìm tên, bộ phận, mã đơn..."
+                <input type="text" id="quickSearch" onkeyup="handleFilterAndPaginate()" placeholder="Tìm tên, bộ phận, mã đơn..."
                        style="padding: 10px 12px 10px 38px; border-radius: 12px; border: 2px solid #cbd5e1; font-size: 14px; width: 280px; outline: none; font-weight: 700;">
             </div>
             <div style="font-size: 11px; background: #1e40af; padding: 8px 15px; border-radius: 8px; font-weight: 900; color: #ffffff; text-transform: uppercase;">@userRole</div>
         </div>
     </div>
 
-    @* --- STATS ROW --- *@
+    @* --- STATS ROW (Cập nhật động bằng JS) --- *@
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 25px;">
-        @{
-            var stats = new[] {
-                new { Label = "TỔNG ĐƠN", Value = total, Color = "#1e293b", Bg = "white", Filter = "" },
-                new { Label = "CHỜ QL DUYỆT", Value = choQuanLy, Color = "#b45309", Bg = "#fffbeb", Filter = "CHỜ QL" },
-                new { Label = "BP XÁC NHẬN", Value = choBPXacNhan, Color = "#0369a1", Bg = "#e0f2fe", Filter = "BP XÁC NHẬN" },
-                new { Label = "GIÁM ĐỐC", Value = choGiamDoc, Color = "#86198f", Bg = "#fdf4ff", Filter = "GIÁM ĐỐC" },
-                new { Label = "CHỜ ADMIN", Value = choAdmin, Color = "#1e40af", Bg = "#eff6ff", Filter = "ADMIN" },
-                new { Label = "HOÀN TẤT", Value = hoanTat, Color = "#10b981", Bg = "#ecfdf5", Filter = "HOÀN TẤT" },
-                new { Label = "ĐÃ HỦY", Value = daHuy, Color = "#b91c1c", Bg = "#fef2f2", Filter = "ĐÃ HỦY" }
-            };
-        }
-        @foreach (var s in stats)
-        {
-            <div onclick="filterByStatus('@s.Filter')" class="stat-card"
-                 style="background: @s.Bg; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                <div style="font-size: 10px; font-weight: 900; color: @s.Color; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">@s.Label</div>
-                <div style="font-size: 22px; font-weight: 1000; color: @s.Color;">@s.Value</div>
-            </div>
-        }
+        <div onclick="filterByStatus('')" class="stat-card" style="background: white; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #1e293b; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">TỔNG ĐƠN</div>
+            <div id="stat-total" style="font-size: 22px; font-weight: 1000; color: #1e293b;">0</div>
+        </div>
+        <div onclick="filterByStatus('CHỜ QL')" class="stat-card" style="background: #fffbeb; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #b45309; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">CHỜ QL DUYỆT</div>
+            <div id="stat-ql" style="font-size: 22px; font-weight: 1000; color: #b45309;">0</div>
+        </div>
+        <div onclick="filterByStatus('BP XÁC NHẬN')" class="stat-card" style="background: #e0f2fe; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #0369a1; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">BP XÁC NHẬN</div>
+            <div id="stat-b2" style="font-size: 22px; font-weight: 1000; color: #0369a1;">0</div>
+        </div>
+        <div onclick="filterByStatus('GIÁM ĐỐC')" class="stat-card" style="background: #fdf4ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #86198f; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">GIÁM ĐỐC</div>
+            <div id="stat-gd" style="font-size: 22px; font-weight: 1000; color: #86198f;">0</div>
+        </div>
+        <div onclick="filterByStatus('ADMIN')" class="stat-card" style="background: #eff6ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #1e40af; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">CHỜ ADMIN</div>
+            <div id="stat-admin" style="font-size: 22px; font-weight: 1000; color: #1e40af;">0</div>
+        </div>
+        <div onclick="filterByStatus('HOÀN TẤT')" class="stat-card" style="background: #ecfdf5; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #10b981; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">HOÀN TẤT</div>
+            <div id="stat-xong" style="font-size: 22px; font-weight: 1000; color: #10b981;">0</div>
+        </div>
+        <div onclick="filterByStatus('ĐÃ HỦY')" class="stat-card" style="background: #fef2f2; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #b91c1c; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">ĐÃ HỦY</div>
+            <div id="stat-huy" style="font-size: 22px; font-weight: 1000; color: #b91c1c;">0</div>
+        </div>
     </div>
 
     @* --- TABLE AREA --- *@
@@ -117,123 +119,197 @@
                     <th style="padding: 18px 20px; text-align: right;"></th>
                 </tr>
             </thead>
-            <tbody>
-                @if (Model != null)
-                {
-                    foreach (var item in Model)
-                    {
-                        bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]");
-                        bool isFinished = item.IdAdmin != null;
-                        bool isManagerApproved = item.IdNguoiDuyet != null;
-
-                        bool hasB2 = item.HrQuanLyDuyetB2s != null && item.HrQuanLyDuyetB2s.Any();
-                        bool isB2Approved = hasB2 && checkB2Approved(item);
-                        bool isB2Rejected = hasB2 && checkB2Rejected(item);
-
-                        bool hasGD = item.HrNguoiXacNhans != null && item.HrNguoiXacNhans.Any();
-                        bool isGDApproved = hasGD && item.HrNguoiXacNhans.All(x => x.TrangThaiXacNhan == 1);
-                        bool isGDRejected = hasGD && item.HrNguoiXacNhans.Any(x => x.TrangThaiXacNhan == 2);
-
-                        string pWidth, pColor, pText, bg, fg, statusTag;
-
-                        if (isCancelled || isB2Rejected || isGDRejected)
-                        {
-                            pWidth = "100%"; pColor = "#ef4444"; pText = "ĐÃ HỦY/TỪ CHỐI"; bg = "#fee2e2"; fg = "#b91c1c"; statusTag = "ĐÃ HỦY";
-                        }
-                        else if (isFinished)
-                        {
-                            pWidth = "100%"; pColor = "#10b981"; pText = "HOÀN TẤT"; bg = "#d1fae5"; fg = "#047857"; statusTag = "HOÀN TẤT";
-                        }
-                        else if (!isManagerApproved)
-                        {
-                            pWidth = "20%"; pColor = "#f59e0b"; pText = "CHỜ QL DUYỆT"; bg = "#fef3c7"; fg = "#b45309"; statusTag = "CHỜ QL";
-                        }
-                        else if (hasB2 && !isB2Approved)
-                        {
-                            pWidth = "40%"; pColor = "#0ea5e9"; pText = "BP XÁC NHẬN"; bg = "#e0f2fe"; fg = "#0369a1"; statusTag = "BP XÁC NHẬN";
-                        }
-                        else if (hasGD && !isGDApproved)
-                        {
-                            pWidth = "65%"; pColor = "#d946ef"; pText = "GIÁM ĐỐC"; bg = "#fdf4ff"; fg = "#86198f"; statusTag = "GIÁM ĐỐC";
-                        }
-                        else
-                        {
-                            pWidth = "85%"; pColor = "#2563eb"; pText = "CHỜ ADMIN"; bg = "#dbeafe"; fg = "#1e40af"; statusTag = "ADMIN";
-                        }
-
-                        var supportLog = item.HrCtNguoiHoTros?.OrderByDescending(x => x.Stt).FirstOrDefault();
-                        string supportName = supportLog?.IdHrNguoiHoTroNavigation?.Ten ?? "Chưa chỉ định";
-
-                        <tr style="border-bottom: 1px solid #f1f5f9;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                            <td style="padding: 15px 20px;">
-                                <div style="font-weight: 1000; color: #0f172a; font-size: 14px;">@item.TenNguoiNv</div>
-                                <div style="font-size: 11px; color: #64748b; font-weight: 800;">@item.BoPhan • <span style="color: #1e40af;">MS: @item.SoNhanVien</span></div>
-                            </td>
-                            <td style="padding: 15px 20px;">
-                                <div style="font-weight: 800; color: #1e293b; font-size: 14px;">@item.TenForm?.Replace("[ĐÃ HỦY]", "")</div>
-                                <div style="font-size: 11px; color: #64748b; font-weight: 700; display: flex; gap: 5px; flex-wrap: wrap; align-items: center;">
-                                    <span>ID: #@item.Id • <i class="fa fa-clock-o"></i> @item.TimeNguoiTao?.ToString("dd/MM/yyyy")</span>
-                                    @if (hasB2) {
-                                        <span class="sub-badge" style="color: #0369a1; border-color: #bae6fd; background: #f0f9ff;"><i class="fa fa-users"></i> BP.XN (@item.HrQuanLyDuyetB2s.Count(x => x.TrangThaiXacNhan == 1)/@item.HrQuanLyDuyetB2s.Count())</span>
-                                    }
-                                    @if (hasGD) {
-                                        <span class="sub-badge" style="color: #86198f; border-color: #f5d0fe; background: #fdf4ff;"><i class="fa fa-briefcase"></i> GĐ (@item.HrNguoiXacNhans.Count(x => x.TrangThaiXacNhan == 1)/@item.HrNguoiXacNhans.Count())</span>
-                                    }
-                                </div>
-                            </td>
-                            <td style="padding: 15px 20px;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <div class="support-avatar"><i class="fa fa-user-circle-o" style="font-size: 14px;"></i></div>
-                                    <div style="font-weight: 700; color: #334155; font-size: 13px;">@supportName</div>
-                                </div>
-                            </td>
-                            <td style="padding: 15px 20px;">
-                                <div style="font-size: 9px; font-weight: 1000; color: @pColor; margin-bottom: 4px; display: flex; justify-content: space-between;">
-                                    <span>@pText</span> <span>@pWidth</span>
-                                </div>
-                                <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden;">
-                                    <div style="width: @pWidth; height: 100%; background: @pColor; border-radius: 10px; transition: 0.5s ease;"></div>
-                                </div>
-                            </td>
-                            <td style="padding: 15px 20px; text-align: center;">
-                                <span style="background:@bg; color:@fg; padding:6px 12px; border-radius:8px; font-size:10px; font-weight:1000; border: 1.5px solid @fg; display: inline-block; min-width: 85px;">@statusTag</span>
-                            </td>
-                            <td style="padding: 15px 20px; text-align: right;">
-                                <a href="/FormHR/ChiTiet/@item.Id"
-                                   style="text-decoration: none; padding: 8px 16px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s;
-                                   background: @(item.IdNguoiDuyet != null ? "#f1f5f9" : "#1e40af");
-                                   color: @(item.IdNguoiDuyet != null ? "#64748b" : "#ffffff");">
-                                    @(item.IdNguoiDuyet == null ? "Xử lý" : "Xem lại")
-                                </a>
-                            </td>
-                        </tr>
-                    }
-                }
+            <tbody id="tableBody">
+                <tr>
+                    <td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;">
+                        <i class="fa fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 15px;"></i>
+                        <p style="font-weight: 600;">Đang tải danh sách xét duyệt...</p>
+                    </td>
+                </tr>
             </tbody>
         </table>
+    </div>
+
+    @* --- PHẦN PHÂN TRANG --- *@
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 5px;">
+        <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+        <div style="text-align: right;">
+            <div style="color: #64748b; font-size: 13px; font-weight: 700;">
+                Trang <span id="currentPageNum" style="color: #1e40af;">1</span> / <span id="totalPagesNum">1</span>
+            </div>
+            <div style="color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px;">
+                Tổng cộng: <span id="totalVisibleCount">0</span> bản ghi
+            </div>
+        </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        function filterTable() {
-            const input = document.getElementById("quickSearch");
-            const filter = input.value.toUpperCase();
-            const table = document.getElementById("dataTable");
-            const tr = table.getElementsByTagName("tr");
+        let masterData = [];     
+        let filteredData = [];   
+        let currentPage = 1;
+        let rowsPerPage = 20;
 
-            for (let i = 1; i < tr.length; i++) {
-                let rowText = tr[i].innerText.toUpperCase();
-                tr[i].style.display = rowText.includes(filter) ? "" : "none";
+        document.addEventListener("DOMContentLoaded", async () => {
+            try {
+                const response = await fetch('/FormHR/GetQuanLyXetDuyetData');
+                masterData = await response.json();
+                
+                updateStatistics(masterData);
+                handleFilterAndPaginate();
+            } catch (error) {
+                document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: red;">Lỗi tải dữ liệu.</td></tr>`;
             }
+        });
+
+        // Cập nhật thẻ thống kê
+        function updateStatistics(data) {
+            document.getElementById("stat-total").innerText = data.length;
+            document.getElementById("stat-ql").innerText = data.filter(x => x.statusTag === "CHỜ QL").length;
+            document.getElementById("stat-b2").innerText = data.filter(x => x.statusTag === "BP XÁC NHẬN").length;
+            document.getElementById("stat-gd").innerText = data.filter(x => x.statusTag === "GIÁM ĐỐC").length;
+            document.getElementById("stat-admin").innerText = data.filter(x => x.statusTag === "ADMIN").length;
+            document.getElementById("stat-xong").innerText = data.filter(x => x.statusTag === "HOÀN TẤT").length;
+            document.getElementById("stat-huy").innerText = data.filter(x => x.statusTag === "ĐÃ HỦY").length;
+        }
+
+        function changePageSize() {
+            rowsPerPage = parseInt(document.getElementById("pageSizeSelect").value);
+            currentPage = 1;
+            handleFilterAndPaginate();
         }
 
         function filterByStatus(s) {
             document.getElementById("quickSearch").value = s;
-            filterTable();
-            const table = document.getElementById("dataTable");
+            currentPage = 1;
+            handleFilterAndPaginate();
+            
+            let table = document.getElementById("dataTable");
             table.style.opacity = "0.5";
             setTimeout(() => { table.style.opacity = "1"; }, 150);
+        }
+
+        // Lọc Search và Phân trang chung
+        function handleFilterAndPaginate() {
+            const searchText = document.getElementById("quickSearch").value.toUpperCase().trim();
+
+            filteredData = masterData.filter(item => {
+                const rowString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.tenForm} ${item.id} ${item.supportName} ${item.statusTag}`.toUpperCase();
+                return searchText === "" || rowString.includes(searchText);
+            });
+
+            const totalItems = filteredData.length;
+            const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            document.getElementById("totalVisibleCount").innerText = totalItems;
+            document.getElementById("currentPageNum").innerText = currentPage;
+            document.getElementById("totalPagesNum").innerText = totalPages;
+
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = startIndex + rowsPerPage;
+            const pageData = filteredData.slice(startIndex, endIndex);
+
+            renderTable(pageData);
+            renderPaginationButtons(totalPages);
+        }
+
+        // Vẽ Data
+        function renderTable(pageData) {
+            const tbody = document.getElementById("tableBody");
+            tbody.innerHTML = "";
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;"><i class="fa fa-folder-open-o" style="font-size: 40px; display: block; margin-bottom: 10px; opacity: 0.5;"></i>Không tìm thấy dữ liệu.</td></tr>`;
+                return;
+            }
+
+            let html = "";
+            pageData.forEach(item => {
+                let badgesHtml = `<span>ID: #${item.id} • <i class="fa fa-clock-o"></i> ${item.timeNguoiTao}</span>`;
+                if (item.hasB2) {
+                    badgesHtml += `<span class="sub-badge" style="color: #0369a1; border-color: #bae6fd; background: #f0f9ff; margin-left: 5px;"><i class="fa fa-users"></i> BP.XN (${item.b2ApprovedCount}/${item.b2TotalCount})</span>`;
+                }
+                if (item.hasGD) {
+                    badgesHtml += `<span class="sub-badge" style="color: #86198f; border-color: #f5d0fe; background: #fdf4ff; margin-left: 5px;"><i class="fa fa-briefcase"></i> GĐ (${item.gdApprovedCount}/${item.gdTotalCount})</span>`;
+                }
+
+                let btnText = item.idNguoiDuyet == null ? "Xử lý" : "Xem lại";
+                let btnBg = item.idNguoiDuyet != null ? "#f1f5f9" : "#1e40af";
+                let btnColor = item.idNguoiDuyet != null ? "#64748b" : "#ffffff";
+
+                html += `
+                    <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                        <td style="padding: 15px 20px;">
+                            <div style="font-weight: 1000; color: #0f172a; font-size: 14px;">${item.tenNguoiNv}</div>
+                            <div style="font-size: 11px; color: #64748b; font-weight: 800;">${item.boPhan} • <span style="color: #1e40af;">MS: ${item.soNhanVien}</span></div>
+                        </td>
+                        <td style="padding: 15px 20px;">
+                            <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${item.tenForm}</div>
+                            <div style="font-size: 11px; color: #64748b; font-weight: 700; display: flex; flex-wrap: wrap; align-items: center; margin-top: 4px;">
+                                ${badgesHtml}
+                            </div>
+                        </td>
+                        <td style="padding: 15px 20px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div class="support-avatar"><i class="fa fa-user-circle-o" style="font-size: 14px;"></i></div>
+                                <div style="font-weight: 700; color: #334155; font-size: 13px;">${item.supportName}</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 20px;">
+                            <div style="font-size: 9px; font-weight: 1000; color: ${item.pColor}; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                                <span>${item.pText}</span> <span>${item.pWidth}</span>
+                            </div>
+                            <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden;">
+                                <div style="width: ${item.pWidth}; height: 100%; background: ${item.pColor}; border-radius: 10px; transition: 0.5s ease;"></div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 20px; text-align: center;">
+                            <span style="background:${item.bg}; color:${item.fg}; padding:6px 12px; border-radius:8px; font-size:10px; font-weight:1000; border: 1.5px solid ${item.fg}; display: inline-block; min-width: 85px;">${item.statusTag}</span>
+                        </td>
+                        <td style="padding: 15px 20px; text-align: right;">
+                            <a href="/FormHR/ChiTiet/${item.id}"
+                               style="text-decoration: none; padding: 8px 16px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s; background: ${btnBg}; color: ${btnColor};"
+                               onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                                ${btnText}
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // Vẽ Phân Trang
+        function renderPaginationButtons(totalPages) {
+            const container = document.getElementById("paginationButtons");
+            container.innerHTML = "";
+            if (totalPages <= 1) return;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (totalPages > 7 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
+                    if (i === 3 || i === totalPages - 2) {
+                        const dot = document.createElement("span");
+                        dot.innerText = "...";
+                        dot.style.padding = "8px";
+                        dot.style.color = "#64748b";
+                        dot.style.fontWeight = "700";
+                        container.appendChild(dot);
+                    }
+                    continue;
+                }
+
+                const btn = document.createElement("button");
+                btn.innerText = i;
+                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                btn.onclick = () => {
+                    currentPage = i;
+                    handleFilterAndPaginate();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+                container.appendChild(btn);
+            }
         }
     </script>
 }

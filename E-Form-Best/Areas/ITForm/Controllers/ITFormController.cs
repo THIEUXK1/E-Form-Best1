@@ -2367,49 +2367,69 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #region ĐƠN CHỜ XÉT DUYỆT (cho nhân viên tạo form)
 
-        // GET: /FormIT/DonCho
+        // 1. Chỉ trả về View giao diện
         [HttpGet("/FormIT/DonCho")]
-        public async Task<IActionResult> DonCho()
+        public IActionResult DonCho()
         {
-            // --- BƯỚC 1: KIỂM TRA ĐĂNG NHẬP QUA COOKIE (CK) ---
             if (User == null || !User.Identity.IsAuthenticated)
             {
                 return Redirect("/DonXetDuyet/DangNhap");
             }
+            return View();
+        }
 
-            // --- BƯỚC 2: LẤY USERID TỪ CLAIMS ---
+        // 2. API để JavaScript gọi lấy dữ liệu
+        [HttpGet("/FormIT/GetDonChoData")]
+        public async Task<IActionResult> GetDonChoData()
+        {
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-            if (string.IsNullOrEmpty(userIdStr))
-            {
-                return Redirect("/DonXetDuyet/DangNhap");
-            }
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
             int userId = int.Parse(userIdStr);
 
-            // --- BƯỚC 3: TRUY VẤN DỮ LIỆU ---
-            // Đã thêm Include DanhGiaFormIts để phân biệt trạng thái Chờ đánh giá và Hoàn tất
             var danhSachDon = await _context.FormIts
                 .Where(f => f.IdNguoiTao == userId)
                 .Include(f => f.DanhGiaFormIts)
-                .Include(f => f.ItMail1s)
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .OrderByDescending(f => f.Id)
+                .Select(item => new {
+                    Id = item.Id,
+                    TenForm = item.TenForm ?? "",
+                    Danhmuc = item.Danhmuc ?? "N/A",
+                    Ngay = item.Ngay.HasValue ? item.Ngay.Value.ToString("dd/MM/yyyy") : "",
+                    IdNguoiDuyet = item.IdNguoiDuyet,
+                    IdAdmin = item.IdAdmin,
+                    // Trả về thẳng cờ boolean cho JS dễ xử lý
+                    DaDanhGia = item.DanhGiaFormIts != null && item.DanhGiaFormIts.Any(),
+                    TenNguoiHoTro = item.ItCtNguoiHoTros.OrderByDescending(x => x.Stt).FirstOrDefault().IdItNguoiHoTroNavigation.Ten ?? "Chưa có"
+                })
                 .ToListAsync();
 
-            return View(danhSachDon);
+            return Json(danhSachDon);
         }
 
         #endregion
 
         #region XỬ LÝ ĐƠN IT (Duyệt / Hủy / Hoàn tất) - PHÂN QUYỀN MỚI 2026
+
+        // 1. HÀM TRẢ VỀ VIEW (Giao diện trống để JS tự load data)
         [HttpGet("/FormIT/QuanLyXetDuyet")]
-        public async Task<IActionResult> QuanLyXetDuyet()
+        public IActionResult QuanLyXetDuyet()
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Redirect("/DonXetDuyet/DangNhap");
+
+            return View();
+        }
+
+        // 2. HÀM API TRẢ VỀ DỮ LIỆU JSON CHO JAVASCRIPT
+        [HttpGet("/FormIT/GetQuanLyXetDuyetData")]
+        public async Task<IActionResult> GetQuanLyXetDuyetData()
         {
             // --- 1. LẤY THÔNG TIN TỪ CLAIMS ---
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdStr)) return Redirect("/DonXetDuyet/DangNhap");
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized(); // Dùng Unauthorized cho API
             int userId = int.Parse(userIdStr);
 
             // Lấy tất cả các Roles từ Claims
@@ -2471,12 +2491,26 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             var danhSachDon = await query
                 .OrderByDescending(f => f.Id)
+                .Select(item => new {
+                    Id = item.Id,
+                    TenNguoiNv = item.TenNguoiNv ?? "",
+                    SoNhanVien = item.SoNhanVien ?? "",
+                    BoPhan = item.BoPhan ?? "",
+                    Danhmuc = string.IsNullOrEmpty(item.Danhmuc) ? "Phổ thông" : item.Danhmuc,
+                    TenForm = item.TenForm ?? "",
+                    TimeNguoiTao = item.TimeNguoiTao.HasValue ? item.TimeNguoiTao.Value.ToString("dd/MM/yyyy") : "",
+                    IdNguoiDuyet = item.IdNguoiDuyet,
+                    IdAdmin = item.IdAdmin,
+                    DaDanhGia = item.DanhGiaFormIts != null && item.DanhGiaFormIts.Any(),
+                    TenNguoiHoTro = item.ItCtNguoiHoTros.OrderByDescending(x => x.Stt).FirstOrDefault().IdItNguoiHoTroNavigation.Ten ?? "Chưa gán IT"
+                })
                 .AsNoTracking()
                 .ToListAsync();
 
-            return View(danhSachDon);
+            return Json(danhSachDon);
         }
 
+        // 3. HÀM XỬ LÝ POST (Giữ nguyên 100% của bạn)
         [HttpPost("/FormIT/XuLyDon")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> XuLyDon([FromBody] ITApprovalRequest request)
@@ -2572,21 +2606,28 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #region QUẢN LÝ XÉT DUYỆT IT (Admin IT, All, IT, Quản lý bộ phận) - PHÂN QUYỀN 2026
 
+        // 1. CHỈ TRẢ VỀ VIEW (Giao diện)
         [HttpGet("/FormIT/HoanTatDon")]
-        public async Task<IActionResult> HoanTatDon()
+        public IActionResult HoanTatDon()
         {
-            // --- 1. LẤY THÔNG TIN TỪ CLAIMS ---
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr))
                 return Redirect("/DonXetDuyet/DangNhap");
 
+            return View();
+        }
+
+        // 2. API TRẢ VỀ DỮ LIỆU JSON CHO JAVASCRIPT
+        [HttpGet("/FormIT/GetHoanTatDonData")]
+        public async Task<IActionResult> GetHoanTatDonData()
+        {
+            // --- 1. LẤY THÔNG TIN TỪ CLAIMS ---
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+
             int userId = int.Parse(userIdStr);
-
-            // Lấy danh sách Roles thực tế từ Cookie
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
-
             var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
-            // Vẫn lấy tenCongTy từ Claim nếu bạn cần dùng ở nơi khác, nhưng sẽ không dùng để filter query bên dưới
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
             var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
@@ -2638,41 +2679,29 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 query = query.Where(f => f.IdNguoiTao == userId);
             }
 
-            // --- 4. THỰC THI TRUY VẤN ---
+            // --- 4. THỰC THI TRUY VẤN VÀ CHUYỂN SANG JSON ---
             var danhSachDon = await query
                 .OrderByDescending(f => f.Id)
+                .Select(item => new {
+                    Id = item.Id,
+                    TenNguoiNv = item.TenNguoiNv ?? "",
+                    SoNhanVien = item.SoNhanVien ?? "",
+                    BoPhan = item.BoPhan ?? "",
+                    Danhmuc = string.IsNullOrEmpty(item.Danhmuc) ? "Yêu cầu IT" : item.Danhmuc,
+                    TenForm = item.TenForm ?? "",
+                    TimeNguoiTao = item.TimeNguoiTao.HasValue ? item.TimeNguoiTao.Value.ToString("dd/MM/yyyy") : "",
+                    IdNguoiDuyet = item.IdNguoiDuyet,
+                    IdAdmin = item.IdAdmin,
+                    DaDanhGia = item.DanhGiaFormIts != null && item.DanhGiaFormIts.Any(),
+                    NguoiHoTros = item.ItCtNguoiHoTros.Select(ct => ct.IdItNguoiHoTroNavigation.Ten ?? "N/A").ToList()
+                })
                 .AsNoTracking()
                 .ToListAsync();
 
-            // --- 5. GÁN TRẠNG THÁI HIỂN THỊ (Logic View) ---
-            foreach (var item in danhSachDon)
-            {
-                if (item.TenForm != null && item.TenForm.Contains("[ĐÃ HỦY]"))
-                {
-                    item.TrangThai = "Đã hủy";
-                }
-                else if (item.IdNguoiDuyet == null)
-                {
-                    item.TrangThai = "Chờ QL Duyệt";
-                }
-                else if (item.IdAdmin == null)
-                {
-                    item.TrangThai = "IT Đang xử lý";
-                }
-                else if (item.DanhGiaFormIts == null || !item.DanhGiaFormIts.Any())
-                {
-                    item.TrangThai = "Chờ đánh giá";
-                }
-                else
-                {
-                    item.TrangThai = "Hoàn tất";
-                }
-            }
-
-            return View(danhSachDon);
+            return Json(danhSachDon);
         }
 
-        // Nút bấm dành cho Đội IT - Xác nhận đã sửa xong/cấp xong thiết bị
+        // Nút bấm dành cho Đội IT - Xác nhận đã sửa xong/cấp xong thiết bị (GIỮ NGUYÊN 100%)
         [HttpPost("/FormIT/XacNhanHoanThanh")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> XacNhanHoanThanh([FromBody] ITCompleteRequest request)
@@ -3075,18 +3104,26 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #region LỊCH SỬ VÀ THÔNG BÁO FORM IT (Phân quyền mới & TenCongTy)
 
+        // 1. TRẢ VỀ VIEW RỖNG (Để JS tự Render)
         [HttpGet("/FormIT/LichSuIT")]
-        public async Task<IActionResult> LogLichSuIT()
+        public IActionResult LogLichSuIT()
         {
-            // 1. Lấy thông tin User từ Claims
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return RedirectToAction("DangNhap", "DonXetDuyet");
+            return View();
+        }
+
+        // 2. API TRẢ VỀ JSON CHO JAVASCRIPT (100% JS)
+        [HttpGet("/FormIT/GetLichSuITData")]
+        public async Task<IActionResult> GetLichSuITData()
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
             int userId = int.Parse(userIdStr);
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
-            // 2. Khởi tạo Query cơ bản (Luôn lọc theo công ty trước để bảo mật dữ liệu)
             var query = _context.LichSuFormIts
                 .Include(l => l.IdFormItNavigation)
                     .ThenInclude(f => f.ItCtNguoiHoTros)
@@ -3096,14 +3133,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 .Where(l => l.IdFormItNavigation.TenCongTy == tenCongTy)
                 .AsQueryable();
 
-            // 3. Logic phân quyền lọc dữ liệu theo 3 loại quyền mới
-            if (User.IsInRole("All"))
-            {
-                // Quyền All: Xem toàn bộ lịch sử của công ty đó
-            }
+            if (User.IsInRole("All")) { /* Xem toàn bộ */ }
             else if (User.IsInRole("AdminIT"))
             {
-                // AdminIT: Xem các đơn đã được duyệt VÀ liên quan đến bộ phận IT (Admin xử lý hoặc người hỗ trợ)
                 query = query.Where(l =>
                     l.IdFormItNavigation.IdNguoiDuyet != null &&
                     (l.IdFormItNavigation.IdAdmin == userId ||
@@ -3112,29 +3144,84 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             else if (User.IsInRole("QuanLyDuyetDonIT"))
             {
-                // QuanLyDuyetDonIT: Xem các đơn mình đã duyệt hoặc đơn mình tạo
-                query = query.Where(l =>
-                    l.IdFormItNavigation.IdNguoiTao == userId ||
-                    l.IdFormItNavigation.IdNguoiDuyet == userId
-                );
+                query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.IdNguoiDuyet == userId);
             }
             else
             {
-                // User thường: Chỉ xem đơn mình tạo hoặc mình có tham gia hỗ trợ (nếu có)
-                query = query.Where(l =>
-                    l.IdFormItNavigation.IdNguoiTao == userId ||
-                    l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userEmail)
-                );
+                query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userEmail));
             }
 
-            var logs = await query
-                .OrderByDescending(l => l.Time)
-                .AsNoTracking()
-                .ToListAsync();
+            var logs = await query.OrderByDescending(l => l.Time).AsNoTracking().ToListAsync();
 
-            return View(logs);
+            // Xử lý logic Server-side để trả JSON sạch cho JS
+            var result = logs.Select(log =>
+            {
+                string statusText = "Chờ duyệt";
+                string statusColor = "#f59e0b";
+                var f = log.IdFormItNavigation;
+                bool isCanceled = f?.TrangThai == "DaHuy" || (f?.TenForm != null && f.TenForm.Contains("[ĐÃ HỦY]"));
+
+                if (isCanceled) { statusText = "Đã hủy đơn"; statusColor = "#ef4444"; }
+                else if (f != null)
+                {
+                    if (f.TimeNguoiDuyet == null) { statusText = "Chờ phê duyệt"; statusColor = "#f97316"; }
+                    else if (f.TimeAdmin == null) { statusText = "Đang xử lý"; statusColor = "#3b82f6"; }
+                    else if (f.DanhGiaFormIts == null || !f.DanhGiaFormIts.Any()) { statusText = "Chờ đánh giá"; statusColor = "#db2777"; }
+                    else { statusText = "Hoàn tất 100%"; statusColor = "#10b981"; }
+                }
+
+                string actionColor = "#6366f1";
+                if (log.TieuDe?.ToUpper().Contains("DUYỆT") == true) actionColor = "#10b981";
+                if (log.TieuDe?.ToUpper().Contains("HỦY") == true || log.TieuDe?.ToUpper().Contains("TỪ CHỐI") == true) actionColor = "#ef4444";
+                if (log.TieuDe?.ToUpper().Contains("HỖ TRỢ") == true) actionColor = "#f59e0b";
+
+                var currentSupporter = f?.ItCtNguoiHoTros?.OrderByDescending(x => x.Stt).FirstOrDefault()?.IdItNguoiHoTroNavigation;
+
+                string timeProcessing = "";
+                string timeTotal = "";
+                var dg = f?.DanhGiaFormIts?.FirstOrDefault();
+
+                if ((statusText == "Hoàn tất 100%" || statusText == "Chờ đánh giá") && f?.TimeNguoiDuyet != null && f?.TimeAdmin != null)
+                {
+                    var spanProc = f.TimeAdmin.Value - f.TimeNguoiDuyet.Value;
+                    if (spanProc.TotalDays >= 1) timeProcessing = $"{(int)spanProc.TotalDays}n {spanProc.Hours}g";
+                    else if (spanProc.TotalHours >= 1) timeProcessing = $"{(int)spanProc.TotalHours}g {spanProc.Minutes}p";
+                    else timeProcessing = $"{(int)spanProc.TotalMinutes}p";
+
+                    if (statusText == "Hoàn tất 100%" && dg?.TimeNguoiDanhGia != null)
+                    {
+                        var spanTotal = dg.TimeNguoiDanhGia.Value - f.TimeNguoiDuyet.Value;
+                        if (spanTotal.TotalDays >= 1) timeTotal = $"{(int)spanTotal.TotalDays}n {spanTotal.Hours}g";
+                        else if (spanTotal.TotalHours >= 1) timeTotal = $"{(int)spanTotal.TotalHours}g {spanTotal.Minutes}p";
+                        else timeTotal = $"{(int)spanTotal.TotalMinutes}p";
+                    }
+                }
+
+                return new
+                {
+                    IdFormIt = log.IdFormIt,
+                    TimeHHmm = log.Time?.ToString("HH:mm") ?? "",
+                    TimeDDMM = log.Time?.ToString("dd/MM/yyyy") ?? "",
+                    TieuDe = log.TieuDe ?? "",
+                    Mota = log.Mota ?? "",
+                    IsCanceled = isCanceled,
+                    StatusText = statusText,
+                    StatusColor = statusColor,
+                    ActionColor = actionColor,
+                    TenForm = f?.TenForm ?? "N/A",
+                    TenAdmin = f?.TenAdmin ?? "Chưa tiếp nhận",
+                    KyThuatTen = currentSupporter?.Ten ?? "",
+                    TimeProcessing = timeProcessing,
+                    TimeTotal = timeTotal,
+                    HasDanhGia = dg != null,
+                    DanhGiaMucDo = dg?.MucDo ?? 0
+                };
+            });
+
+            return Json(result);
         }
 
+        // HÀM GET NOTIFICATIONS GIỮ NGUYÊN 100% NHƯ CỦA BẠN
         [HttpGet("/FormIT/GetNotifications")]
         public async Task<IActionResult> GetNotifications(int skip = 0, int take = 20)
         {
@@ -3152,7 +3239,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 .Where(l => l.IdFormItNavigation.TenCongTy == tenCongTy)
                 .AsQueryable();
 
-            // Logic lọc thông báo (Đồng bộ hoàn toàn với hàm LichSuIT)
             if (User.IsInRole("All")) { /* Xem hết */ }
             else if (User.IsInRole("AdminIT"))
             {
@@ -3191,7 +3277,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return Ok(new { dataList = logs, unreadCount });
         }
 
-
-        #endregion 
+        #endregion
     }
-}
+    }

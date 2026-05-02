@@ -1,53 +1,6 @@
-﻿@model IEnumerable<E_Form_Best.Models.ITForm.FormHr>
-@using System.Security.Claims
-@using System.Linq
-
-@{
+﻿@{
     ViewData["Title"] = "Lịch sử yêu cầu HR";
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
-
-    // --- HÀM HELPER ĐỂ CHECK LOGIC B2 (AND/OR) ---
-    Func<E_Form_Best.Models.ITForm.FormHr, bool> checkB2Approved = (form) =>
-    {
-        if (form.HrQuanLyDuyetB2s == null || !form.HrQuanLyDuyetB2s.Any()) return true; // Cứ coi như xong nếu ko có B2
-        string type = form.HrQuanLyDuyetB2s.FirstOrDefault()?.Loai?.ToUpper() ?? "AND";
-        if (type == "OR" || type == "ANY") return form.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 1);
-        return form.HrQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
-    };
-
-    Func<E_Form_Best.Models.ITForm.FormHr, bool> checkB2Rejected = (form) =>
-    {
-        if (form.HrQuanLyDuyetB2s == null || !form.HrQuanLyDuyetB2s.Any()) return false;
-        return form.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 2);
-    };
-
-    // --- LOGIC THỐNG KÊ CHI TIẾT ---
-    var total = Model?.Count() ?? 0;
-    var activeList = Model?.Where(x => !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")).ToList() ?? new List<E_Form_Best.Models.ITForm.FormHr>();
-
-    var daHuy = Model?.Count(x => (x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
-    
-    // 1. Chờ Quản lý trực tiếp duyệt
-    var choQLDuyet = activeList.Count(x => x.IdNguoiDuyet == null);
-    
-    // 2. Chờ Bộ phận xác nhận (B2) - Áp dụng checkB2Approved
-    var choBPXacNhan = activeList.Count(x => x.IdNguoiDuyet != null &&
-                                             x.HrQuanLyDuyetB2s != null && x.HrQuanLyDuyetB2s.Any() &&
-                                             !checkB2Approved(x));
-
-    // 3. Chờ Giám đốc xác nhận - Áp dụng checkB2Approved
-    var choGiamDoc = activeList.Count(x => x.IdNguoiDuyet != null &&
-                                           (x.HrQuanLyDuyetB2s == null || checkB2Approved(x)) &&
-                                           x.HrNguoiXacNhans != null && x.HrNguoiXacNhans.Any() &&
-                                           !x.HrNguoiXacNhans.All(s => s.TrangThaiXacNhan == 1));
-
-    // 4. Đang xử lý tại Admin (Các bước duyệt nội bộ đã xong)
-    var choAdmin = activeList.Count(x => x.IdNguoiDuyet != null &&
-                                         (x.HrQuanLyDuyetB2s == null || checkB2Approved(x)) &&
-                                         (x.HrNguoiXacNhans == null || x.HrNguoiXacNhans.All(s => s.TrangThaiXacNhan == 1)) &&
-                                         x.IdAdmin == null);
-
-    var hoanTat = activeList.Count(x => x.IdAdmin != null);
 
     string statBox = "display: flex; flex-direction: column; padding: 12px 10px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); text-align: center;";
 }
@@ -81,6 +34,31 @@
         gap: 4px;
         border: 1px solid;
     }
+
+    /* Phân trang CSS */
+    .page-btn {
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+        .page-btn.active {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+
+        .page-btn:hover:not(.active) {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
 </style>
 
 <div style="max-width: 1400px; margin: 20px auto; padding: 0 15px; font-family: 'Inter', sans-serif;">
@@ -90,44 +68,59 @@
         <h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #0f172a;">
             <i class="fa fa-history" style="color: #2563eb;"></i> LỊCH SỬ YÊU CẦU HR
         </h2>
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="myInput" onkeyup="filterTable()" placeholder="Tìm kiếm nội dung, mã đơn..."
-                   style="padding: 10px 15px; border-radius: 10px; border: 1px solid #cbd5e1; width: 250px; outline: none; font-weight: 600;">
-            <a href="/FormHR/DangKy" style="padding: 10px 20px; background: #1e293b; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 13px; transition: 0.2s;" onmouseover="this.style.background='#000'">
+        <div style="display: flex; gap: 15px; align-items: center;">
+            @* Khối chọn dòng hiển thị mới *@
+            <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 8px 15px; border-radius: 10px; border: 1px solid #cbd5e1;">
+                <span style="font-size: 12px; font-weight: 700; color: #64748b;">Hiển thị:</span>
+                <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: #2563eb; cursor: pointer; background: transparent; font-size: 14px;">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+
+            <div style="position: relative;">
+                <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b;"></i>
+                <input type="text" id="myInput" onkeyup="handleFilterAndPaginate()" placeholder="Tìm kiếm nội dung, mã đơn..."
+                       style="padding: 10px 15px 10px 35px; border-radius: 10px; border: 1px solid #cbd5e1; width: 250px; outline: none; font-weight: 600;">
+            </div>
+            
+            <a href="/FormHR/DangKy" style="padding: 10px 20px; background: #1e293b; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 13px; transition: 0.2s;" onmouseover="this.style.background='#000'" onmouseout="this.style.background='#1e293b'">
                 <i class="fa fa-plus"></i> TẠO ĐƠN MỚI
             </a>
         </div>
     </div>
 
-    @* --- THỐNG KÊ (Đã cập nhật các nút lọc) --- *@
+    @* --- THỐNG KÊ --- *@
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 25px;">
         <div onclick="filterByStatus('')" class="stat-card" style="@statBox border-left: 5px solid #64748b;">
             <span style="font-size: 10px; color: #64748b; font-weight: 800;">TỔNG ĐƠN</span>
-            <span style="font-size: 20px; font-weight: 900;">@total</span>
+            <span id="stat-total" style="font-size: 20px; font-weight: 900;">0</span>
         </div>
         <div onclick="filterByStatus('QUẢN LÝ')" class="stat-card" style="@statBox border-left: 5px solid #f59e0b;">
             <span style="font-size: 10px; color: #b45309; font-weight: 800;">CHỜ QL DUYỆT</span>
-            <span style="font-size: 20px; font-weight: 900; color: #d97706;">@choQLDuyet</span>
+            <span id="stat-ql" style="font-size: 20px; font-weight: 900; color: #d97706;">0</span>
         </div>
         <div onclick="filterByStatus('BP XÁC NHẬN')" class="stat-card" style="@statBox border-left: 5px solid #0ea5e9;">
             <span style="font-size: 10px; color: #0369a1; font-weight: 800;">BP XÁC NHẬN</span>
-            <span style="font-size: 20px; font-weight: 900; color: #0ea5e9;">@choBPXacNhan</span>
+            <span id="stat-b2" style="font-size: 20px; font-weight: 900; color: #0ea5e9;">0</span>
         </div>
         <div onclick="filterByStatus('GIÁM ĐỐC')" class="stat-card" style="@statBox border-left: 5px solid #d946ef;">
             <span style="font-size: 10px; color: #86198f; font-weight: 800;">GIÁM ĐỐC</span>
-            <span style="font-size: 20px; font-weight: 900; color: #d946ef;">@choGiamDoc</span>
+            <span id="stat-gd" style="font-size: 20px; font-weight: 900; color: #d946ef;">0</span>
         </div>
         <div onclick="filterByStatus('ADMIN')" class="stat-card" style="@statBox border-left: 5px solid #2563eb;">
             <span style="font-size: 10px; color: #1e40af; font-weight: 800;">CHỜ ADMIN</span>
-            <span style="font-size: 20px; font-weight: 900; color: #2563eb;">@choAdmin</span>
+            <span id="stat-admin" style="font-size: 20px; font-weight: 900; color: #2563eb;">0</span>
         </div>
         <div onclick="filterByStatus('XONG')" class="stat-card" style="@statBox border-left: 5px solid #10b981;">
             <span style="font-size: 10px; color: #065f46; font-weight: 800;">HOÀN TẤT</span>
-            <span style="font-size: 20px; font-weight: 900; color: #059669;">@hoanTat</span>
+            <span id="stat-xong" style="font-size: 20px; font-weight: 900; color: #059669;">0</span>
         </div>
-        <div onclick="filterByStatus('HỦY')" class="stat-card" style="@statBox border-left: 5px solid #ef4444;">
+        <div onclick="filterByStatus('HỦY/TỪ CHỐI')" class="stat-card" style="@statBox border-left: 5px solid #ef4444;">
             <span style="font-size: 10px; color: #991b1b; font-weight: 800;">HỦY/TỪ CHỐI</span>
-            <span style="font-size: 20px; font-weight: 900; color: #dc2626;">@daHuy</span>
+            <span id="stat-huy" style="font-size: 20px; font-weight: 900; color: #dc2626;">0</span>
         </div>
     </div>
 
@@ -144,157 +137,221 @@
                     <th style="padding: 15px; text-align: center; width: 60px;"></th>
                 </tr>
             </thead>
-            <tbody>
-                @if (Model != null && Model.Any())
-                {
-                    foreach (var item in Model)
-                    {
-                        // 1. Logic kiểm tra các bước (Đã áp dụng AND/OR cho B2)
-                        bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]");
-                        bool isFinished = item.IdAdmin != null;
-                        bool isManagerApproved = item.IdNguoiDuyet != null;
-
-                        bool hasB2 = item.HrQuanLyDuyetB2s != null && item.HrQuanLyDuyetB2s.Any();
-                        bool isB2Approved = hasB2 && checkB2Approved(item);
-                        bool isB2Rejected = hasB2 && checkB2Rejected(item);
-
-                        bool hasGD = item.HrNguoiXacNhans != null && item.HrNguoiXacNhans.Any();
-                        bool isGDApproved = hasGD && item.HrNguoiXacNhans.All(x => x.TrangThaiXacNhan == 1);
-                        bool isGDRejected = hasGD && item.HrNguoiXacNhans.Any(x => x.TrangThaiXacNhan == 2);
-
-                        string statusText, bgColor, fgColor, progressWidth, progressColor;
-
-                        // 2. Phân loại trạng thái hiển thị
-                        if (isCancelled || isB2Rejected || isGDRejected)
-                        {
-                            statusText = "HỦY/TỪ CHỐI"; bgColor = "#fef2f2"; fgColor = "#b91c1c";
-                            progressWidth = "100%"; progressColor = "#ef4444";
-                        }
-                        else if (isFinished)
-                        {
-                            statusText = "XONG"; bgColor = "#ecfdf5"; fgColor = "#047857";
-                            progressWidth = "100%"; progressColor = "#10b981";
-                        }
-                        else if (!isManagerApproved)
-                        {
-                            statusText = "QUẢN LÝ"; bgColor = "#fffbeb"; fgColor = "#b45309";
-                            progressWidth = "20%"; progressColor = "#f59e0b";
-                        }
-                        else if (hasB2 && !isB2Approved)
-                        {
-                            statusText = "BP XÁC NHẬN"; bgColor = "#f0f9ff"; fgColor = "#0369a1";
-                            progressWidth = "40%"; progressColor = "#0ea5e9";
-                        }
-                        else if (hasGD && !isGDApproved)
-                        {
-                            statusText = "GIÁM ĐỐC"; bgColor = "#fdf4ff"; fgColor = "#86198f";
-                            progressWidth = "60%"; progressColor = "#d946ef";
-                        }
-                        else
-                        {
-                            statusText = "ADMIN"; bgColor = "#eff6ff"; fgColor = "#1e40af";
-                            progressWidth = "85%"; progressColor = "#2563eb";
-                        }
-
-                        var lastSupportHr = item.HrCtNguoiHoTros?.OrderByDescending(x => x.Stt).FirstOrDefault();
-                        string supportName = lastSupportHr?.IdHrNguoiHoTroNavigation?.Ten ?? "Chờ phân công";
-
-                        <tr style="border-bottom: 1px solid #f1f5f9;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
-                            <td style="padding: 15px; font-weight: 700; color: #2563eb;">#@item.Id</td>
-                            <td style="padding: 15px;">
-                                <div style="font-weight: 800; color: #1e293b; font-size: 14px;">@item.TenForm?.Replace("[ĐÃ HỦY]", "")</div>
-                                <div style="font-size: 11px; color: #64748b; margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                                    <span><i class="fa fa-tag"></i> @(item.Danhmuc ?? "Biểu mẫu HR")</span>
-
-                                    @if (hasB2)
-                                    {
-                                        <span class="sub-status-badge" style="background: #f0f9ff; color: #0369a1; border-color: #bae6fd;">
-                                            <i class="fa fa-users"></i> BP.XN (@item.HrQuanLyDuyetB2s.Count(x => x.TrangThaiXacNhan == 1)/@item.HrQuanLyDuyetB2s.Count())
-                                        </span>
-                                    }
-
-                                    @if (hasGD)
-                                    {
-                                        <span class="sub-status-badge" style="background: #fdf4ff; color: #86198f; border-color: #f5d0fe;">
-                                            <i class="fa fa-briefcase"></i> GĐ (@item.HrNguoiXacNhans.Count(x => x.TrangThaiXacNhan == 1)/@item.HrNguoiXacNhans.Count())
-                                        </span>
-                                    }
-
-                                    @if (item.BaoVeHrs != null && item.BaoVeHrs.Any())
-                                    {
-                                        var bv = item.BaoVeHrs.FirstOrDefault();
-                                        <span class="sub-status-badge" style="background: #f8fafc; color: #64748b; border-color: #e2e8f0;">
-                                            <i class="fa fa-shield"></i> @(bv?.TrangThai == 1 ? "BV XONG" : "BV CHỜ")
-                                        </span>
-                                    }
-                                </div>
-                            </td>
-                            <td style="padding: 15px;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <div style="width: 24px; height: 24px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #475569;">
-                                        @(supportName.Length > 0 ? supportName[0].ToString().ToUpper() : "?")
-                                    </div>
-                                    <span style="font-weight: 600; color: #334155;">@supportName</span>
-                                </div>
-                            </td>
-                            <td style="padding: 15px;">
-                                <div style="font-weight: 600; font-size: 12px; color: #334155;">
-                                    <i class="fa fa-calendar"></i> @(item.Ngay?.ToDateTime(TimeOnly.MinValue).ToString("dd/MM/yyyy") ?? "--")
-                                </div>
-                                <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
-                                    <i class="fa fa-clock-o"></i> @item.TimeNguoiTao?.ToString("HH:mm")
-                                </div>
-                            </td>
-                            <td style="padding: 15px; text-align: center;">
-                                <span class="status-badge" style="background: @bgColor; color: @fgColor; border-color: @fgColor;">
-                                    @statusText
-                                </span>
-                                <div style="width: 100px; height: 5px; background: #e2e8f0; border-radius: 10px; margin: 8px auto 0; overflow: hidden; border: 1px solid #f1f5f9;">
-                                    <div style="width: @progressWidth; height: 100%; background: @progressColor; transition: 0.5s ease;"></div>
-                                </div>
-                            </td>
-                            <td style="padding: 15px; text-align: center;">
-                                <a href="/FormHR/ChiTiet/@item.Id" title="Xem chi tiết đơn" style="color: #94a3b8; font-size: 18px; transition: 0.2s;" onmouseover="this.style.color='#2563eb'">
-                                    <i class="fa fa-arrow-circle-right"></i>
-                                </a>
-                            </td>
-                        </tr>
-                    }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;">
-                            <i class="fa fa-folder-open-o" style="font-size: 40px; display: block; margin-bottom: 10px; opacity: 0.5;"></i>
-                            Bạn chưa có yêu cầu nào trong lịch sử.
-                        </td>
-                    </tr>
-                }
+            <tbody id="tableBody">
+                <tr>
+                    <td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;">
+                        <i class="fa fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 15px;"></i>
+                        <p style="font-weight: 600;">Đang tải dữ liệu lịch sử...</p>
+                    </td>
+                </tr>
             </tbody>
         </table>
+    </div>
+
+    @* --- PHẦN PHÂN TRANG --- *@
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 25px 0; margin-top: 10px;">
+        <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+        <div style="text-align: right;">
+            <div style="color: #64748b; font-size: 13px; font-weight: 700;">
+                Trang <span id="currentPageNum" style="color: #2563eb;">1</span> / <span id="totalPagesNum">1</span>
+            </div>
+            <div style="color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px;">
+                Đang hiển thị <span id="totalVisibleCount">0</span> bản ghi
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    function filterTable() {
-        var input = document.getElementById("myInput");
-        var filter = input.value.toUpperCase();
-        var tr = document.querySelectorAll("#myTable tbody tr");
-        
-        tr.forEach(row => {
-            if (row.cells.length > 1) {
-                var text = row.innerText.toUpperCase();
-                row.style.display = text.includes(filter) ? "" : "none";
-            }
-        });
+    let masterData = [];     // Toàn bộ Data
+    let filteredData = [];   // Data sau khi search
+    let currentPage = 1;
+    let rowsPerPage = 20;
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        try {
+            const response = await fetch('/FormHR/GetDonChoData');
+            masterData = await response.json();
+            
+            // Cập nhật thẻ thống kê
+            updateStatistics(masterData);
+            
+            handleFilterAndPaginate();
+        } catch (error) {
+            document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: red;">Lỗi tải dữ liệu. Vui lòng thử lại.</td></tr>`;
+        }
+    });
+
+    // Cập nhật con số trên Stat Cards
+    function updateStatistics(data) {
+        document.getElementById("stat-total").innerText = data.length;
+        document.getElementById("stat-ql").innerText = data.filter(x => x.statusText === "QUẢN LÝ").length;
+        document.getElementById("stat-b2").innerText = data.filter(x => x.statusText === "BP XÁC NHẬN").length;
+        document.getElementById("stat-gd").innerText = data.filter(x => x.statusText === "GIÁM ĐỐC").length;
+        document.getElementById("stat-admin").innerText = data.filter(x => x.statusText === "ADMIN").length;
+        document.getElementById("stat-xong").innerText = data.filter(x => x.statusText === "XONG").length;
+        document.getElementById("stat-huy").innerText = data.filter(x => x.statusText === "HỦY/TỪ CHỐI").length;
     }
 
+    // Đổi số dòng
+    function changePageSize() {
+        rowsPerPage = parseInt(document.getElementById("pageSizeSelect").value);
+        currentPage = 1;
+        handleFilterAndPaginate();
+    }
+
+    // Click vào Stat Card để lọc
     function filterByStatus(s) {
         document.getElementById("myInput").value = s;
-        filterTable();
+        currentPage = 1;
+        handleFilterAndPaginate();
         
-        var table = document.getElementById("myTable");
+        // Hiệu ứng nháy mờ bảng
+        let table = document.getElementById("myTable");
         table.style.opacity = "0.6";
         setTimeout(() => { table.style.opacity = "1"; }, 150);
+    }
+
+    // Lọc Search và Phân trang chung
+    function handleFilterAndPaginate() {
+        const searchText = document.getElementById("myInput").value.toUpperCase().trim();
+
+        // 1. Lọc data
+        filteredData = masterData.filter(item => {
+            const rowString = `${item.id} ${item.tenForm} ${item.danhmuc} ${item.statusText} ${item.supportName}`.toUpperCase();
+            return searchText === "" || rowString.includes(searchText);
+        });
+
+        // 2. Tính số trang
+        const totalItems = filteredData.length;
+        const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        document.getElementById("totalVisibleCount").innerText = totalItems;
+        document.getElementById("currentPageNum").innerText = currentPage;
+        document.getElementById("totalPagesNum").innerText = totalPages;
+
+        // 3. Cắt data trang hiện tại và Render
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const pageData = filteredData.slice(startIndex, endIndex);
+
+        renderTable(pageData);
+        renderPaginationButtons(totalPages);
+    }
+
+    // Render HTML Bảng
+    function renderTable(pageData) {
+        const tbody = document.getElementById("tableBody");
+        tbody.innerHTML = "";
+
+        if (pageData.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;">
+                        <i class="fa fa-folder-open-o" style="font-size: 40px; display: block; margin-bottom: 10px; opacity: 0.5;"></i>
+                        Không tìm thấy yêu cầu nào phù hợp.
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        let html = "";
+        pageData.forEach(item => {
+            // Render Badges (B2, GĐ, BV)
+            let badgesHtml = `<span><i class="fa fa-tag"></i> ${item.danhmuc}</span>`;
+            if (item.hasB2) {
+                badgesHtml += `<span class="sub-status-badge" style="background: #f0f9ff; color: #0369a1; border-color: #bae6fd; margin-left: 8px;">
+                                <i class="fa fa-users"></i> BP.XN (${item.b2ApprovedCount}/${item.b2TotalCount})
+                               </span>`;
+            }
+            if (item.hasGD) {
+                badgesHtml += `<span class="sub-status-badge" style="background: #fdf4ff; color: #86198f; border-color: #f5d0fe; margin-left: 8px;">
+                                <i class="fa fa-briefcase"></i> GĐ (${item.gdApprovedCount}/${item.gdTotalCount})
+                               </span>`;
+            }
+            if (item.hasBV) {
+                badgesHtml += `<span class="sub-status-badge" style="background: #f8fafc; color: #64748b; border-color: #e2e8f0; margin-left: 8px;">
+                                <i class="fa fa-shield"></i> ${item.bvStatusText}
+                               </span>`;
+            }
+
+            // Chữ cái đầu Avatar Support
+            let avatarChar = item.supportName.length > 0 && item.supportName !== "Chờ phân công" ? item.supportName.charAt(0).toUpperCase() : "?";
+
+            html += `
+                <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
+                    <td style="padding: 15px; font-weight: 700; color: #2563eb;">#${item.id}</td>
+                    <td style="padding: 15px;">
+                        <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${item.tenForm}</div>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center;">
+                            ${badgesHtml}
+                        </div>
+                    </td>
+                    <td style="padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 24px; height: 24px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #475569;">
+                                ${avatarChar}
+                            </div>
+                            <span style="font-weight: 600; color: #334155;">${item.supportName}</span>
+                        </div>
+                    </td>
+                    <td style="padding: 15px;">
+                        <div style="font-weight: 600; font-size: 12px; color: #334155;">
+                            <i class="fa fa-calendar"></i> ${item.ngay}
+                        </div>
+                        <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
+                            <i class="fa fa-clock-o"></i> ${item.timeNguoiTao}
+                        </div>
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        <span class="status-badge" style="background: ${item.bgColor}; color: ${item.fgColor}; border-color: ${item.fgColor};">
+                            ${item.statusText}
+                        </span>
+                        <div style="width: 100px; height: 5px; background: #e2e8f0; border-radius: 10px; margin: 8px auto 0; overflow: hidden; border: 1px solid #f1f5f9;">
+                            <div style="width: ${item.progressWidth}; height: 100%; background: ${item.progressColor}; transition: 0.5s ease;"></div>
+                        </div>
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        <a href="/FormHR/ChiTiet/${item.id}" title="Xem chi tiết đơn" style="color: #94a3b8; font-size: 18px; transition: 0.2s;" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#94a3b8'">
+                            <i class="fa fa-arrow-circle-right"></i>
+                        </a>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+    }
+
+    // Render Nút Phân Trang
+    function renderPaginationButtons(totalPages) {
+        const container = document.getElementById("paginationButtons");
+        container.innerHTML = "";
+
+        if (totalPages <= 1) return;
+
+        for (let i = 1; i <= totalPages; i++) {
+            if (totalPages > 7 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
+                if (i === 3 || i === totalPages - 2) {
+                    const dot = document.createElement("span");
+                    dot.innerText = "...";
+                    dot.style.padding = "8px";
+                    dot.style.color = "#64748b";
+                    dot.style.fontWeight = "700";
+                    container.appendChild(dot);
+                }
+                continue;
+            }
+
+            const btn = document.createElement("button");
+            btn.innerText = i;
+            btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+            btn.onclick = () => {
+                currentPage = i;
+                handleFilterAndPaginate();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+            container.appendChild(btn);
+        }
     }
 </script>
