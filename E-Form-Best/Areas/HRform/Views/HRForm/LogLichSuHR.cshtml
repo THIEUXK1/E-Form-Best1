@@ -1,5 +1,4 @@
-﻿@model IEnumerable<E_Form_Best.Models.ITForm.LichSuFormHr>
-@{
+﻿@{
     ViewData["Title"] = "Nhật ký hoạt động HR";
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 }
@@ -9,7 +8,7 @@
     <div style="max-width: 1100px; margin: 0 auto;">
 
         @* --- HEADER SECTION --- *@
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; flex-wrap: wrap; gap: 20px;">
             <div>
                 <h1 style="margin: 0; color: #0f172a; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 15px;">
                     <span style="background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); color: white; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 12px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">
@@ -20,16 +19,28 @@
                 <p style="margin: 8px 0 0 60px; color: #64748b; font-size: 15px; font-weight: 500;">Theo dõi chi tiết quy trình xác nhận đa cấp và xử lý đơn</p>
             </div>
 
-            <div style="position: relative;">
-                <i class="fa fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #6366f1; z-index: 10;"></i>
-                <input type="text" id="logSearch" onkeyup="combinedFilter()" placeholder="Tìm tên đơn, mã đơn, nội dung..."
-                       style="padding: 14px 20px 14px 45px; border-radius: 14px; border: 2px solid white; width: 350px; outline: none; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-size: 14px; font-weight: 600; color: #1e293b;">
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 12px 15px; border-radius: 14px; border: 2px solid white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                    <span style="font-size: 13px; font-weight: 700; color: #64748b;">Hiển thị:</span>
+                    <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: #1e293b; cursor: pointer; background: transparent; font-size: 14px;">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                
+                <div style="position: relative;">
+                    <i class="fa fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #6366f1; z-index: 10;"></i>
+                    <input type="text" id="logSearch" onkeyup="handleFilterAndPaginate()" placeholder="Tìm tên đơn, mã đơn, nội dung..."
+                           style="padding: 14px 20px 14px 45px; border-radius: 14px; border: 2px solid white; width: 350px; outline: none; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-size: 14px; font-weight: 600; color: #1e293b;">
+                </div>
             </div>
         </div>
 
-        @* --- FILTER TABS (Cập nhật khớp với các cấp duyệt) --- *@
+        @* --- FILTER TABS --- *@
         <div style="display: flex; gap: 8px; margin-bottom: 25px; flex-wrap: wrap;">
-            <button onclick="filterByStatus('all', this)" class="filter-btn active">Tất cả</button>
+            <button onclick="filterByStatus('ALL', this)" class="filter-btn active">Tất cả</button>
             <button onclick="filterByStatus('CHỜ QL', this)" class="filter-btn" style="color: #b45309;">Chờ QL</button>
             <button onclick="filterByStatus('BP XÁC NHẬN', this)" class="filter-btn" style="color: #0369a1;">BP Xác nhận</button>
             <button onclick="filterByStatus('GIÁM ĐỐC', this)" class="filter-btn" style="color: #86198f;">Giám đốc/Cấp 2</button>
@@ -40,204 +51,211 @@
 
         @* --- LOG CONTAINER --- *@
         <div id="logContainer" style="display: flex; flex-direction: column; gap: 16px;">
-            @if (Model != null && Model.Any())
-            {
-                foreach (var log in Model.OrderByDescending(x => x.Time))
-                {
-                    var f = log.IdFormHrNavigation;
-                    if (f == null) continue;
+            <div style="text-align: center; padding: 60px; background: white; border-radius: 24px; color: #94a3b8; border: 2px dashed #e2e8f0;">
+                <i class="fa fa-spinner fa-spin" style="font-size: 50px; margin-bottom: 15px; display: block;"></i>
+                <p style="font-weight: 700; font-size: 16px;">Đang tải nhật ký hệ thống...</p>
+            </div>
+        </div>
 
-                    // --- LOGIC TRẠNG THÁI (Đồng bộ với QuanLyXetDuyet) ---
-                    bool isCancelled = (f.TenForm ?? "").Contains("[ĐÃ HỦY]") || f.TrangThai == "DaHuy";
-                    bool isFinished = f.IdAdmin != null || f.TrangThai == "HoanTat";
-                    bool isManagerApproved = f.IdNguoiDuyet != null;
+        @* --- PHẦN PHÂN TRANG --- *@
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 15px;">
+            <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+            <div style="text-align: right;">
+                <div style="color: #64748b; font-size: 13px; font-weight: 700;">
+                    Trang <span id="currentPageNum" style="color: #4338ca;">1</span> / <span id="totalPagesNum">1</span>
+                </div>
+                <div style="color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px;">
+                    Tổng cộng: <span id="totalVisibleCount">0</span> bản ghi
+                </div>
+            </div>
+        </div>
 
-                    bool hasB2 = f.HrQuanLyDuyetB2s != null && f.HrQuanLyDuyetB2s.Any();
-                    bool isB2Approved = hasB2 && f.HrQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
-                    bool isB2Rejected = hasB2 && f.HrQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 2);
+    </div>
+</div>
 
-                    bool hasGD = f.HrNguoiXacNhans != null && f.HrNguoiXacNhans.Any();
-                    bool isGDApproved = hasGD && f.HrNguoiXacNhans.All(x => x.TrangThaiXacNhan == 1);
-                    bool isGDRejected = hasGD && f.HrNguoiXacNhans.Any(x => x.TrangThaiXacNhan == 2);
+<style>
+    /* Style UI phân trang */
+    .page-btn { padding: 8px 16px; border-radius: 10px; border: 1px solid #e2e8f0; background: white; color: #64748b; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.3s; }
+    .page-btn.active { background: #4338ca; color: white; border-color: #4338ca; box-shadow: 0 4px 6px -1px rgba(67, 56, 202, 0.2); }
+    .page-btn:hover:not(.active) { background: #f8fafc; border-color: #cbd5e1; }
 
-                    string statusText, statusColor;
+    /* CSS Gốc của bạn */
+    .filter-btn {
+        padding: 10px 18px; border-radius: 12px; border: none; background: white; color: #64748b; font-weight: 800;
+        font-size: 12px; text-transform: uppercase; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    .filter-btn.active { background: #4338ca !important; color: white !important; box-shadow: 0 8px 15px -3px rgba(67, 56, 202, 0.3) !important; transform: translateY(-2px); }
+    .filter-btn:hover:not(.active) { background: #f8fafc; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.08); }
 
-                    if (isCancelled || isB2Rejected || isGDRejected)
-                    {
-                        statusText = "ĐÃ HỦY"; statusColor = "#ef4444";
-                    }
-                    else if (isFinished)
-                    {
-                        statusText = "HOÀN TẤT"; statusColor = "#10b981";
-                    }
-                    else if (!isManagerApproved)
-                    {
-                        statusText = "CHỜ QL"; statusColor = "#f59e0b";
-                    }
-                    else if (hasB2 && !isB2Approved)
-                    {
-                        statusText = "BP XÁC NHẬN"; statusColor = "#0ea5e9";
-                    }
-                    else if (hasGD && !isGDApproved)
-                    {
-                        statusText = "GIÁM ĐỐC"; statusColor = "#d946ef";
-                    }
-                    else
-                    {
-                        statusText = "CHỜ ADMIN"; statusColor = "#2563eb";
-                    }
+    .log-item:hover { transform: translateX(8px); }
+    .log-item:hover > div { border-color: #cbd5e1 !important; box-shadow: 0 10px 20px -5px rgba(0,0,0,0.1) !important; background-color: #fcfdfe !important; }
+</style>
 
-                    // Màu sắc cho tiêu đề hành động của Log
-                    string actionColor = "#6366f1"; // Mặc định Indigo
-                    string actionTitle = log.TieuDe?.ToUpper() ?? "HÀNH ĐỘNG";
-                    if (actionTitle.Contains("DUYỆT") || actionTitle.Contains("XÁC NHẬN")) actionColor = "#10b981";
-                    if (actionTitle.Contains("HỦY") || actionTitle.Contains("TỪ CHỐI")) actionColor = "#ef4444";
-                    if (actionTitle.Contains("HOÀN TẤT")) actionColor = "#1e40af";
+@section Scripts {
+    <script>
+        let masterData = [];     
+        let filteredData = [];   
+        let currentPage = 1;
+        let rowsPerPage = 20;
+        let currentFilterStatus = 'ALL';
 
-                    <a href="/FormHR/ChiTiet/@log.IdFormHr" class="log-item"
-                           data-status-text="@statusText"
-                           data-canceled="@((isCancelled || isB2Rejected || isGDRejected).ToString().ToLower())"
-                           data-status-color="@statusColor"
-                           style="text-decoration: none; display: block; border-radius: 20px; transition: all 0.3s ease;">
+        document.addEventListener("DOMContentLoaded", async () => {
+            try {
+                const response = await fetch('/FormHR/GetLichSuData');
+                masterData = await response.json();
+                handleFilterAndPaginate();
+            } catch (error) {
+                document.getElementById('logContainer').innerHTML = `<div style="text-align: center; padding: 60px; background: white; border-radius: 24px; color: #ef4444; border: 2px dashed #fca5a5;"><i class="fa fa-exclamation-triangle" style="font-size: 50px; margin-bottom: 15px; display: block;"></i><p style="font-weight: 700; font-size: 16px;">Lỗi tải dữ liệu. Vui lòng F5 trang.</p></div>`;
+            }
+        });
 
+        function filterByStatus(status, btn) {
+            currentFilterStatus = status;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentPage = 1;
+            handleFilterAndPaginate();
+        }
+
+        function changePageSize() {
+            rowsPerPage = parseInt(document.getElementById("pageSizeSelect").value);
+            currentPage = 1;
+            handleFilterAndPaginate();
+        }
+
+        function handleFilterAndPaginate() {
+            const searchText = document.getElementById("logSearch").value.toUpperCase().trim();
+
+            filteredData = masterData.filter(item => {
+                const matchStatus = (currentFilterStatus === 'ALL' || item.statusText === currentFilterStatus);
+                const rowString = `${item.tieuDe} ${item.mota} ${item.tenForm} ${item.idFormHr}`.toUpperCase();
+                const matchSearch = searchText === "" || rowString.includes(searchText);
+
+                return matchStatus && matchSearch;
+            });
+
+            const totalItems = filteredData.length;
+            const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            document.getElementById("totalVisibleCount").innerText = totalItems;
+            document.getElementById("currentPageNum").innerText = currentPage;
+            document.getElementById("totalPagesNum").innerText = totalPages;
+
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = startIndex + rowsPerPage;
+            const pageData = filteredData.slice(startIndex, endIndex);
+
+            renderLogs(pageData);
+            renderPaginationButtons(totalPages);
+        }
+
+        function renderLogs(pageData) {
+            const container = document.getElementById("logContainer");
+            container.innerHTML = "";
+
+            if (pageData.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 60px; background: white; border-radius: 24px; color: #94a3b8; border: 2px dashed #e2e8f0;">
+                        <i class="fa fa-folder-open-o" style="font-size: 50px; margin-bottom: 15px; display: block;"></i>
+                        <p style="font-weight: 700; font-size: 16px;">Không tìm thấy dữ liệu nhật ký phù hợp.</p>
+                    </div>`;
+                return;
+            }
+
+            let html = "";
+            pageData.forEach(item => {
+                let supHtml = "";
+                if (item.nguoiHoTro) {
+                    supHtml = `
+                        <div style="font-size: 12px; color: #059669; background: #f0fdf4; padding: 3px 10px; border-radius: 8px; font-weight: 700;">
+                            <i class="fa fa-user-circle"></i> Hỗ trợ: ${item.nguoiHoTro}
+                        </div>`;
+                }
+
+                let avatarChar = item.tenAdmin ? item.tenAdmin.charAt(0) : "A";
+
+                html += `
+                    <a href="/FormHR/ChiTiet/${item.idFormHr}" class="log-item" style="text-decoration: none; display: block; border-radius: 20px; transition: all 0.3s ease;">
                         <div style="background: white; border-radius: 20px; padding: 20px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); position: relative; overflow: hidden;">
                             
-                            @* Thanh màu trạng thái bên trái *@
-                            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: @statusColor;"></div>
+                            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: ${item.statusColor};"></div>
 
-                            @* Cột thời gian *@
                             <div style="min-width: 100px; text-align: center; border-right: 1px dashed #e2e8f0; padding-right: 20px;">
-                                <div style="font-size: 20px; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">@log.Time?.ToString("HH:mm")</div>
-                                <div style="font-size: 12px; font-weight: 700; color: #94a3b8; margin-top: 4px;">@log.Time?.ToString("dd/MM/yyyy")</div>
+                                <div style="font-size: 20px; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">${item.timeHHmm}</div>
+                                <div style="font-size: 12px; font-weight: 700; color: #94a3b8; margin-top: 4px;">${item.timeDate}</div>
                             </div>
 
-                            @* Nội dung chính *@
                             <div style="flex-grow: 1;">
                                 <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
-                                    <span style="background: @actionColor; color: white; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase;">
-                                        @log.TieuDe
+                                    <span style="background: ${item.actionColor}; color: white; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase;">
+                                        ${item.tieuDe}
                                     </span>
 
-                                    <span style="background: @(statusColor)15; color: @statusColor; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; border: 1px solid @(statusColor)30;">
+                                    <span style="background: ${item.statusColor}15; color: ${item.statusColor}; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; border: 1px solid ${item.statusColor}30;">
                                         <i class="fa fa-circle" style="font-size: 8px; margin-right: 5px; vertical-align: middle;"></i>
-                                        @statusText
+                                        ${item.statusText}
                                     </span>
 
                                     <span style="color: #475569; font-size: 13px; font-weight: 700; background: #f8fafc; padding: 3px 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                                        ID: #@log.IdFormHr - @(f.TenForm?.Replace("[ĐÃ HỦY]", ""))
+                                        ID: #${item.idFormHr} - ${item.tenForm}
                                     </span>
                                 </div>
 
                                 <div style="color: #334155; font-size: 15px; line-height: 1.5; font-weight: 500; margin-bottom: 12px;">
-                                    @log.Mota
+                                    ${item.mota}
                                 </div>
 
                                 <div style="display: flex; gap: 15px; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 10px;">
                                     <div style="font-size: 12px; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                                        <img src="https://ui-avatars.com/api/?name=@(f.TenAdmin ?? "A")&background=6366f1&color=fff" style="width: 20px; height: 20px; border-radius: 50%;" />
-                                        Nhân sự: <span style="color: #1e293b;">@(f.TenAdmin ?? "Đang xử lý")</span>
+                                        <img src="https://ui-avatars.com/api/?name=${avatarChar}&background=6366f1&color=fff" style="width: 20px; height: 20px; border-radius: 50%;" />
+                                        Nhân sự: <span style="color: #1e293b;">${item.tenAdmin}</span>
                                     </div>
-                                    
-                                    @if (f.HrCtNguoiHoTros?.Any() == true)
-                                    {
-                                        var sup = f.HrCtNguoiHoTros.OrderByDescending(x => x.Stt).FirstOrDefault()?.IdHrNguoiHoTroNavigation;
-                                        if (sup != null)
-                                        {
-                                            <div style="font-size: 12px; color: #059669; background: #f0fdf4; padding: 3px 10px; border-radius: 8px; font-weight: 700;">
-                                                <i class="fa fa-user-circle"></i> Hỗ trợ: @sup.Ten
-                                            </div>
-                                        }
-                                    }
+                                    ${supHtml}
                                 </div>
                             </div>
 
-                            @* Icon mũi tên *@
                             <div style="color: #cbd5e1; font-size: 20px;">
                                 <i class="fa fa-angle-right"></i>
                             </div>
                         </div>
                     </a>
+                `;
+            });
+            container.innerHTML = html;
+            
+            // Effect mượt
+            container.style.opacity = "0.4";
+            setTimeout(() => { container.style.opacity = "1"; }, 150);
+        }
+
+        function renderPaginationButtons(totalPages) {
+            const container = document.getElementById("paginationButtons");
+            container.innerHTML = "";
+            if (totalPages <= 1) return;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (totalPages > 7 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
+                    if (i === 3 || i === totalPages - 2) {
+                        const dot = document.createElement("span");
+                        dot.innerText = "...";
+                        dot.style.padding = "8px"; dot.style.color = "#64748b"; dot.style.fontWeight = "700";
+                        container.appendChild(dot);
+                    }
+                    continue;
                 }
-            }
-            else
-            {
-                <div style="text-align: center; padding: 60px; background: white; border-radius: 24px; color: #94a3b8; border: 2px dashed #e2e8f0;">
-                    <i class="fa fa-folder-open-o" style="font-size: 50px; margin-bottom: 15px; display: block;"></i>
-                    <p style="font-weight: 700; font-size: 16px;">Chưa có dữ liệu nhật ký cho các đơn này.</p>
-                </div>
-            }
-        </div>
-    </div>
-</div>
 
-<style>
-    .filter-btn {
-        padding: 10px 18px;
-        border-radius: 12px;
-        border: none;
-        background: white;
-        color: #64748b;
-        font-weight: 800;
-        font-size: 12px;
-        text-transform: uppercase;
-        cursor: pointer;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-    }
-
-        .filter-btn.active {
-            background: #4338ca !important;
-            color: white !important;
-            box-shadow: 0 8px 15px -3px rgba(67, 56, 202, 0.3) !important;
-            transform: translateY(-2px);
-        }
-
-        .filter-btn:hover:not(.active) {
-            background: #f8fafc;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.08);
-        }
-
-    .log-item:hover {
-        transform: translateX(8px);
-    }
-
-        .log-item:hover > div {
-            border-color: #cbd5e1 !important;
-            box-shadow: 0 10px 20px -5px rgba(0,0,0,0.1) !important;
-            background-color: #fcfdfe !important;
-        }
-</style>
-
-<script>
-    let currentFilterStatus = 'all';
-
-    function filterByStatus(status, btn) {
-        currentFilterStatus = status;
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        combinedFilter();
-    }
-
-    function combinedFilter() {
-        const searchText = document.getElementById('logSearch').value.toLowerCase().trim();
-        const items = document.getElementsByClassName("log-item");
-        
-        for (let i = 0; i < items.length; i++) {
-            const itemStatus = items[i].getAttribute('data-status-text');
-            const itemContent = items[i].innerText.toLowerCase();
-            
-            const matchStatus = (currentFilterStatus === 'all' || itemStatus === currentFilterStatus);
-            const matchSearch = searchText === "" || itemContent.includes(searchText);
-            
-            if (matchStatus && matchSearch) {
-                items[i].style.display = "";
-                // Hi ứng mượt mà
-                items[i].style.opacity = "0";
-                setTimeout(() => { items[i].style.opacity = "1"; }, 50);
-            } else {
-                items[i].style.display = "none";
+                const btn = document.createElement("button");
+                btn.innerText = i;
+                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                btn.onclick = () => {
+                    currentPage = i;
+                    handleFilterAndPaginate();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+                container.appendChild(btn);
             }
         }
-    }
-</script>
+    </script>
+}

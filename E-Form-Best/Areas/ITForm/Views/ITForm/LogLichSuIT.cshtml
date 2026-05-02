@@ -1,5 +1,4 @@
-﻿@model IEnumerable<E_Form_Best.Models.ITForm.LichSuFormIt>
-@{
+﻿@{
     ViewData["Title"] = "Nhật ký hoạt động IT";
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 }
@@ -20,10 +19,24 @@
                 <p style="margin: 8px 0 0 60px; color: #64748b; font-size: 15px; font-weight: 500;">Quản lý luồng xử lý và vết hoạt động thời gian thực</p>
             </div>
 
-            <div style="position: relative;">
-                <i class="fa fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #6366f1; z-index: 10;"></i>
-                <input type="text" id="logSearch" onkeyup="combinedFilter()" placeholder="Tìm tên đơn, mã đơn, nội dung, danh mục..."
-                       style="padding: 14px 20px 14px 45px; border-radius: 14px; border: 2px solid white; width: 350px; outline: none; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-size: 14px; font-weight: 600; color: #1e293b;">
+            <div style="display: flex; gap: 15px; align-items: center;">
+                @* --- CHỌN SỐ DÒNG HIỂN THỊ --- *@
+                <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 10px 15px; border-radius: 14px; border: 2px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                    <span style="font-size: 12px; font-weight: 700; color: #64748b;">Hiển thị:</span>
+                    <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: #6366f1; cursor: pointer; background: transparent; font-size: 14px;">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+
+                @* --- TÌM KIẾM --- *@
+                <div style="position: relative;">
+                    <i class="fa fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #6366f1; z-index: 10;"></i>
+                    <input type="text" id="logSearch" onkeyup="handleFilterAndPaginate()" placeholder="Tìm tên đơn, mã đơn, nội dung..."
+                           style="padding: 14px 20px 14px 45px; border-radius: 14px; border: 2px solid white; width: 350px; outline: none; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-size: 14px; font-weight: 600; color: #1e293b;">
+                </div>
             </div>
         </div>
 
@@ -39,170 +52,25 @@
 
         @* --- LOG CONTAINER --- *@
         <div id="logContainer" style="display: flex; flex-direction: column; gap: 16px;">
-            @if (Model != null && Model.Any())
-            {
-                foreach (var log in Model.OrderByDescending(x => x.Time))
-                {
-                    string statusText = "Chờ duyệt";
-                    string statusColor = "#f59e0b";
-                    var f = log.IdFormItNavigation;
-
-                    bool isCanceled = f?.TrangThai == "DaHuy" || (f?.TenForm != null && f.TenForm.Contains("[ĐÃ HỦY]"));
-
-                    if (isCanceled)
-                    {
-                        statusText = "Đã hủy đơn";
-                        statusColor = "#ef4444";
-                    }
-                    else if (f != null)
-                    {
-                        if (f.TimeNguoiDuyet == null)
-                        {
-                            statusText = "Chờ phê duyệt";
-                            statusColor = "#f97316";
-                        }
-                        else if (f.TimeAdmin == null)
-                        {
-                            statusText = "Đang xử lý";
-                            statusColor = "#3b82f6";
-                        }
-                        else if (f.DanhGiaFormIts == null || !f.DanhGiaFormIts.Any())
-                        {
-                            statusText = "Chờ đánh giá";
-                            statusColor = "#db2777";
-                        }
-                        else
-                        {
-                            statusText = "Hoàn tất 100%";
-                            statusColor = "#10b981";
-                        }
-                    }
-
-                    string actionColor = "#6366f1";
-                    if (log.TieuDe?.ToUpper().Contains("DUYỆT") == true) actionColor = "#10b981";
-                    if (log.TieuDe?.ToUpper().Contains("HỦY") == true || log.TieuDe?.ToUpper().Contains("TỪ CHỐI") == true) actionColor = "#ef4444";
-                    if (log.TieuDe?.ToUpper().Contains("HỖ TRỢ") == true) actionColor = "#f59e0b";
-
-                    var currentSupporter = f?.ItCtNguoiHoTros?.OrderByDescending(x => x.Stt).FirstOrDefault()?.IdItNguoiHoTroNavigation;
-
-                    <a href="/FormIT/ChiTiet/@log.IdFormIt" class="log-item"
-                       data-status-text="@statusText"
-                       data-canceled="@isCanceled.ToString().ToLower()"
-                       data-status-color="@statusColor"
-                       style="text-decoration: none; display: block; border-radius: 20px; transition: all 0.3s ease; transform-origin: left;">
-
-                        <div style="background: @(isCanceled ? "#fff5f5" : "white"); border-radius: 20px; padding: 20px; border: 1px solid @(isCanceled ? "#fecaca" : "#e2e8f0"); display: flex; align-items: center; gap: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.02); position: relative; overflow: hidden;">
-
-                            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: @statusColor;"></div>
-
-                            @* Cột thời gian log *@
-                            <div style="min-width: 100px; text-align: center; border-right: 1px dashed @(isCanceled ? "#fecaca" : "#e2e8f0"); padding-right: 20px;">
-                                <div style="font-size: 20px; font-weight: 800; color: @(isCanceled ? "#991b1b" : "#1e293b"); letter-spacing: -0.5px;">@log.Time?.ToString("HH:mm")</div>
-                                <div style="font-size: 12px; font-weight: 700; color: @(isCanceled ? "#f87171" : "#94a3b8"); margin-top: 4px;">@log.Time?.ToString("dd/MM/yyyy")</div>
-                            </div>
-
-                            @* Nội dung chính *@
-                            <div style="flex-grow: 1;">
-                                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
-                                    <span style="background: @(actionColor); color: white; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 4px @(actionColor)40;">
-                                        @log.TieuDe
-                                    </span>
-
-                                    <span class="status-badge" style="background: @(statusColor)15; color: @statusColor; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; border: 1px solid @(statusColor)30;">
-                                        <i class="fa @(isCanceled ? "fa-ban" : (statusText == "Chờ đánh giá" ? "fa-star" : (statusText == "Chờ phê duyệt" ? "fa-clock-o" : (statusText == "Hoàn tất 100%" ? "fa-check-circle" : "fa-circle"))))"
-                                           style="margin-right: 5px; vertical-align: middle;"></i>
-                                        @statusText
-                                    </span>
-
-                                    <span style="color: @(isCanceled ? "#991b1b" : "#475569"); font-size: 14px; font-weight: 700; background: @(isCanceled ? "#fee2e2" : "#f8fafc"); padding: 3px 10px; border-radius: 8px; border: 1px solid @(isCanceled ? "#fecaca" : "#e2e8f0");">
-                                        #@log.IdFormIt - @(f?.TenForm ?? "N/A")
-                                    </span>
-                                </div>
-
-                                <div style="color: @(isCanceled ? "#7f1d1d" : "#334155"); font-size: 15px; line-height: 1.5; font-weight: 500; margin-bottom: 12px;">
-                                    @log.Mota
-                                </div>
-
-                                <div style="display: flex; gap: 15px; align-items: center; border-top: 1px solid @(isCanceled ? "#fecaca" : "#f1f5f9"); padding-top: 10px;">
-                                    <div style="font-size: 12px; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                                        <img src="https://ui-avatars.com/api/?name=@(f?.TenAdmin ?? "A")&background=@(isCanceled ? "ef4444" : "6366f1")&color=fff" style="width: 20px; height: 20px; border-radius: 50%;" />
-                                        Admin: <span style="color: #1e293b;">@(f?.TenAdmin ?? "Chưa tiếp nhận")</span>
-                                    </div>
-                                    @if (currentSupporter != null)
-                                    {
-                                        <div style="font-size: 12px; color: #059669; background: #f0fdf4; padding: 4px 12px; border-radius: 10px; border: 1px solid #dcfce7; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                                            <i class="fa fa-wrench"></i> Kỹ thuật: @currentSupporter.Ten
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-
-                            @* --- PHẦN HIỂN THỊ THỜI GIAN XỬ LÝ (Bên phải) --- *@
-                            @if ((statusText == "Hoàn tất 100%" || statusText == "Chờ đánh giá") && f?.TimeNguoiDuyet != null && f?.TimeAdmin != null)
-                            {
-                                string timeProcessing = "";
-                                string timeTotal = "";
-
-                                // 1. Tính thời gian IT xử lý (Duyệt -> Xong)
-                                var spanProc = f.TimeAdmin.Value - f.TimeNguoiDuyet.Value;
-                                if (spanProc.TotalDays >= 1) timeProcessing = $"{(int)spanProc.TotalDays}n {spanProc.Hours}g";
-                                else if (spanProc.TotalHours >= 1) timeProcessing = $"{(int)spanProc.TotalHours}g {spanProc.Minutes}p";
-                                else timeProcessing = $"{(int)spanProc.TotalMinutes}p";
-
-                                // 2. Tính tổng thời gian (Chỉ khi đã hoàn tất 100%)
-                                var dg = f.DanhGiaFormIts?.FirstOrDefault();
-                                if (statusText == "Hoàn tất 100%" && dg?.TimeNguoiDanhGia != null)
-                                {
-                                    var spanTotal = dg.TimeNguoiDanhGia.Value - f.TimeNguoiDuyet.Value;
-                                    if (spanTotal.TotalDays >= 1) timeTotal = $"{(int)spanTotal.TotalDays}n {spanTotal.Hours}g";
-                                    else if (spanTotal.TotalHours >= 1) timeTotal = $"{(int)spanTotal.TotalHours}g {spanTotal.Minutes}p";
-                                    else timeTotal = $"{(int)spanTotal.TotalMinutes}p";
-                                }
-
-                                <div style="min-width: 150px; text-align: right; border-left: 1px dashed #e2e8f0; padding-left: 15px; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
-
-                                    @* Hiển thị Sao nếu có *@
-                                    @if (dg != null)
-                                    {
-                                        <div style="color: #f59e0b; font-size: 13px; white-space: nowrap; margin-bottom: 2px;">
-                                            @for (int i = 1; i <= 5; i++)
-                                            {
-                                                <i class="fa @(i <= (dg.MucDo ?? 0) ? "fa-star" : "fa-star-o")"></i>
-                                            }
-                                        </div>
-                                    }
-
-                                    @* TG Xử lý (Luôn hiện cho Chờ đánh giá & Hoàn tất) *@
-                                    <div title="Thời gian IT xử lý (Duyệt -> Xong)" style="font-size: 10px; color: #0369a1; font-weight: 700; background: #f0f9ff; padding: 2px 8px; border-radius: 6px; border: 1px solid #bae6fd; display: inline-block; white-space: nowrap;">
-                                        <i class="fa fa-wrench"></i> Xử lý: @timeProcessing
-                                    </div>
-
-                                    @* TG Tổng (Chỉ hiện khi đã Hoàn tất) *@
-                                    @if (!string.IsNullOrEmpty(timeTotal))
-                                    {
-                                        <div title="Tổng thời gian (Duyệt -> Đánh giá)" style="font-size: 10px; color: #15803d; font-weight: 700; background: #f0fdf4; padding: 2px 8px; border-radius: 6px; border: 1px solid #bbf7d0; display: inline-block; white-space: nowrap;">
-                                            <i class="fa fa-check-circle"></i> Tổng: @timeTotal
-                                        </div>
-                                    }
-                                </div>
-                            }
-
-                            @* Icon mũi tên dẫn hướng *@
-                            <div style="color: @(isCanceled ? "#f87171" : "#cbd5e1"); font-size: 20px; padding-left: 10px;">
-                                <i class="fa fa-angle-right"></i>
-                            </div>
-                        </div>
-                    </a>
-                }
-            }
-            else
-            {
-                <div style="text-align: center; padding: 50px; background: white; border-radius: 20px; color: #94a3b8;">
-                    <i class="fa fa-folder-open-o" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
-                    <p style="font-weight: 600;">Không có nhật ký hoạt động nào để hiển thị.</p>
-                </div>
-            }
+            <div style="text-align: center; padding: 50px; color: #64748b;">
+                <i class="fa fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 15px;"></i>
+                <p style="font-weight: 600;">Đang tải dữ liệu...</p>
+            </div>
         </div>
+
+        @* --- PHẦN PHÂN TRANG --- *@
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 25px 0; border-top: 2px solid #e2e8f0; margin-top: 20px;">
+            <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+            <div style="text-align: right;">
+                <div style="color: #64748b; font-size: 13px; font-weight: 700;">
+                    Trang <span id="currentPageNum" style="color: #6366f1;">1</span> / <span id="totalPagesNum">1</span>
+                </div>
+                <div style="color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px;">
+                    Tổng cộng: <span id="totalVisibleCount">0</span> bản ghi
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -221,11 +89,239 @@
     .log-item {
         will-change: transform;
     }
+
+    .page-btn {
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+        .page-btn.active {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);
+        }
+
+        .page-btn:hover:not(.active) {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
 </style>
 
 <script>
+    let masterLogs = [];      // Chứa toàn bộ Data từ API
+    let filteredLogs = [];    // Chứa Data sau khi Lọc (Search + Tab)
     let currentFilterStatus = 'all';
+    let currentPage = 1;
+    let rowsPerPage = 20;
 
+    // 1. Tải Dữ liệu từ API khi mở trang
+    document.addEventListener("DOMContentLoaded", async () => {
+        try {
+            const response = await fetch('/FormIT/GetLichSuITData');
+            masterLogs = await response.json();
+            handleFilterAndPaginate(); // Lọc và vẽ giao diện
+        } catch (error) {
+            document.getElementById('logContainer').innerHTML = `<div style="text-align:center; padding:50px; color:red;">Lỗi tải dữ liệu. Vui lòng F5 lại trang.</div>`;
+        }
+    });
+
+    // 2. Chuyển đổi Số dòng hiển thị
+    function changePageSize() {
+        rowsPerPage = parseInt(document.getElementById("pageSizeSelect").value);
+        currentPage = 1;
+        handleFilterAndPaginate();
+    }
+
+    // 3. Chuyển đổi Tab trạng thái
+    function filterByStatus(status, btn) {
+        currentFilterStatus = status;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentPage = 1;
+        handleFilterAndPaginate();
+    }
+
+    // 4. Hàm xử lý LỌC DỮ LIỆU và TÍNH PHÂN TRANG (Master)
+    function handleFilterAndPaginate() {
+        const searchText = document.getElementById('logSearch').value.toLowerCase().trim();
+
+        // Lọc Data
+        filteredLogs = masterLogs.filter(log => {
+            const matchStatus = (currentFilterStatus === 'all' || log.statusText === currentFilterStatus);
+            const contentString = `${log.tieuDe} ${log.mota} ${log.tenForm} ${log.idFormIt} ${log.kyThuatTen} ${log.tenAdmin} ${log.statusText}`.toLowerCase();
+            const matchSearch = searchText === "" || contentString.includes(searchText);
+            
+            return matchStatus && matchSearch;
+        });
+
+        // Tính phân trang
+        const totalItems = filteredLogs.length;
+        const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        document.getElementById("totalVisibleCount").innerText = totalItems;
+        document.getElementById("currentPageNum").innerText = currentPage;
+        document.getElementById("totalPagesNum").innerText = totalPages;
+
+        // Cắt data của trang hiện tại để Render
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const pageData = filteredLogs.slice(startIndex, endIndex);
+
+        renderLogs(pageData);
+        renderPaginationButtons(totalPages);
+    }
+
+    // 5. Render Data ra HTML y hệt Razor
+    function renderLogs(pageData) {
+        const container = document.getElementById('logContainer');
+        container.innerHTML = "";
+
+        if (pageData.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 50px; background: white; border-radius: 20px; color: #94a3b8;">
+                    <i class="fa fa-folder-open-o" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
+                    <p style="font-weight: 600;">Không có nhật ký hoạt động nào để hiển thị.</p>
+                </div>`;
+            return;
+        }
+
+        let htmlString = "";
+
+        pageData.forEach(log => {
+            let iconClass = log.isCanceled ? "fa-ban" :
+                            log.statusText === "Chờ đánh giá" ? "fa-star" :
+                            log.statusText === "Chờ phê duyệt" ? "fa-clock-o" :
+                            log.statusText === "Hoàn tất 100%" ? "fa-check-circle" : "fa-circle";
+
+            // Block thời gian + đánh giá
+            let timeBlock = "";
+            if ((log.statusText === "Hoàn tất 100%" || log.statusText === "Chờ đánh giá") && log.timeProcessing) {
+                let stars = "";
+                if (log.hasDanhGia) {
+                    stars += `<div style="color: #f59e0b; font-size: 13px; white-space: nowrap; margin-bottom: 2px;">`;
+                    for (let i = 1; i <= 5; i++) {
+                        stars += `<i class="fa ${i <= log.danhGiaMucDo ? "fa-star" : "fa-star-o"}"></i>`;
+                    }
+                    stars += `</div>`;
+                }
+
+                let timeTotal = log.timeTotal ? `
+                    <div title="Tổng thời gian (Duyệt -> Đánh giá)" style="font-size: 10px; color: #15803d; font-weight: 700; background: #f0fdf4; padding: 2px 8px; border-radius: 6px; border: 1px solid #bbf7d0; display: inline-block; white-space: nowrap;">
+                        <i class="fa fa-check-circle"></i> Tổng: ${log.timeTotal}
+                    </div>` : "";
+
+                timeBlock = `
+                    <div style="min-width: 150px; text-align: right; border-left: 1px dashed #e2e8f0; padding-left: 15px; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
+                        ${stars}
+                        <div title="Thời gian IT xử lý (Duyệt -> Xong)" style="font-size: 10px; color: #0369a1; font-weight: 700; background: #f0f9ff; padding: 2px 8px; border-radius: 6px; border: 1px solid #bae6fd; display: inline-block; white-space: nowrap;">
+                            <i class="fa fa-wrench"></i> Xử lý: ${log.timeProcessing}
+                        </div>
+                        ${timeTotal}
+                    </div>`;
+            }
+
+            let ktBlock = log.kyThuatTen ? `
+                <div style="font-size: 12px; color: #059669; background: #f0fdf4; padding: 4px 12px; border-radius: 10px; border: 1px solid #dcfce7; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa fa-wrench"></i> Kỹ thuật: ${log.kyThuatTen}
+                </div>` : "";
+
+            htmlString += `
+                <a href="/FormIT/ChiTiet/${log.idFormIt}" class="log-item"
+                   data-canceled="${log.isCanceled}" data-status-color="${log.statusColor}"
+                   style="text-decoration: none; display: block; border-radius: 20px; transition: all 0.3s ease; transform-origin: left;">
+
+                    <div style="background: ${log.isCanceled ? "#fff5f5" : "white"}; border-radius: 20px; padding: 20px; border: 1px solid ${log.isCanceled ? "#fecaca" : "#e2e8f0"}; display: flex; align-items: center; gap: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.02); position: relative; overflow: hidden;">
+                        
+                        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: ${log.statusColor};"></div>
+
+                        <div style="min-width: 100px; text-align: center; border-right: 1px dashed ${log.isCanceled ? "#fecaca" : "#e2e8f0"}; padding-right: 20px;">
+                            <div style="font-size: 20px; font-weight: 800; color: ${log.isCanceled ? "#991b1b" : "#1e293b"}; letter-spacing: -0.5px;">${log.timeHHmm}</div>
+                            <div style="font-size: 12px; font-weight: 700; color: ${log.isCanceled ? "#f87171" : "#94a3b8"}; margin-top: 4px;">${log.timeDDMM}</div>
+                        </div>
+
+                        <div style="flex-grow: 1;">
+                            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                                <span style="background: ${log.actionColor}; color: white; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 4px ${log.actionColor}40;">
+                                    ${log.tieuDe}
+                                </span>
+
+                                <span class="status-badge" style="background: ${log.statusColor}15; color: ${log.statusColor}; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; border: 1px solid ${log.statusColor}30;">
+                                    <i class="fa ${iconClass}" style="margin-right: 5px; vertical-align: middle;"></i> ${log.statusText}
+                                </span>
+
+                                <span style="color: ${log.isCanceled ? "#991b1b" : "#475569"}; font-size: 14px; font-weight: 700; background: ${log.isCanceled ? "#fee2e2" : "#f8fafc"}; padding: 3px 10px; border-radius: 8px; border: 1px solid ${log.isCanceled ? "#fecaca" : "#e2e8f0"};">
+                                    #${log.idFormIt} - ${log.tenForm}
+                                </span>
+                            </div>
+
+                            <div style="color: ${log.isCanceled ? "#7f1d1d" : "#334155"}; font-size: 15px; line-height: 1.5; font-weight: 500; margin-bottom: 12px;">
+                                ${log.mota}
+                            </div>
+
+                            <div style="display: flex; gap: 15px; align-items: center; border-top: 1px solid ${log.isCanceled ? "#fecaca" : "#f1f5f9"}; padding-top: 10px;">
+                                <div style="font-size: 12px; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                    <img src="https://ui-avatars.com/api/?name=${log.tenAdmin.charAt(0)}&background=${log.isCanceled ? "ef4444" : "6366f1"}&color=fff" style="width: 20px; height: 20px; border-radius: 50%;" />
+                                    Admin: <span style="color: #1e293b;">${log.tenAdmin}</span>
+                                </div>
+                                ${ktBlock}
+                            </div>
+                        </div>
+
+                        ${timeBlock}
+
+                        <div style="color: ${log.isCanceled ? "#f87171" : "#cbd5e1"}; font-size: 20px; padding-left: 10px;">
+                            <i class="fa fa-angle-right"></i>
+                        </div>
+                    </div>
+                </a>`;
+        });
+
+        container.innerHTML = htmlString;
+        initHoverEffects(); // Khởi tạo lại hiệu ứng Hover
+    }
+
+    // 6. Vẽ các nút Phân trang
+    function renderPaginationButtons(totalPages) {
+        const container = document.getElementById("paginationButtons");
+        container.innerHTML = "";
+
+        if (totalPages <= 1) return;
+
+        for (let i = 1; i <= totalPages; i++) {
+            if (totalPages > 7 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
+                if (i === 3 || i === totalPages - 2) {
+                    const dot = document.createElement("span");
+                    dot.innerText = "...";
+                    dot.style.padding = "8px";
+                    dot.style.color = "#64748b";
+                    dot.style.fontWeight = "700";
+                    container.appendChild(dot);
+                }
+                continue;
+            }
+
+            const btn = document.createElement("button");
+            btn.innerText = i;
+            btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+            btn.onclick = () => {
+                currentPage = i;
+                handleFilterAndPaginate();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+            container.appendChild(btn);
+        }
+    }
+
+    // 7. Hàm xử lý CSS Hover linh hoạt của bạn
     function initHoverEffects() {
         document.querySelectorAll('.log-item').forEach(item => {
             const isCanceled = item.getAttribute('data-canceled') === 'true';
@@ -248,25 +344,4 @@
             });
         });
     }
-
-    function filterByStatus(status, btn) {
-        currentFilterStatus = status;
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        combinedFilter();
-    }
-
-    function combinedFilter() {
-        const searchText = document.getElementById('logSearch').value.toLowerCase().trim();
-        const items = document.getElementsByClassName("log-item");
-        for (let i = 0; i < items.length; i++) {
-            const itemStatus = items[i].getAttribute('data-status-text');
-            const itemContent = items[i].innerText.toLowerCase();
-            const matchStatus = (currentFilterStatus === 'all' || itemStatus === currentFilterStatus);
-            const matchSearch = searchText === "" || itemContent.includes(searchText);
-            items[i].style.display = (matchStatus && matchSearch) ? "" : "none";
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', initHoverEffects);
 </script>

@@ -1,21 +1,12 @@
-﻿@model IEnumerable<E_Form_Best.Models.ITForm.FormIt>
-@using System.Security.Claims
+﻿@using System.Security.Claims
 
 @{
     ViewData["Title"] = "Quản Lý Xét Duyệt IT";
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 
-    // --- 1. LẤY THÔNG TIN TỪ COOKIE ---
+    // --- 1. LẤY THÔNG TIN TỪ COOKIE ĐỂ HIỂN THỊ TRÊN HEADER ---
     var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value
                         ?? User.FindFirst("UserRole")?.Value ?? "";
-
-    // --- 2. LOGIC THỐNG KÊ ---
-    var total = Model?.Count() ?? 0;
-    var daHuy = Model?.Count(x => (x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
-    var choQuanLy = Model?.Count(x => x.IdNguoiDuyet == null && !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
-    var choITAdmin = Model?.Count(x => x.IdNguoiDuyet != null && x.IdAdmin == null && !(x.TenForm ?? "").Contains("[ĐÃ HỦY]")) ?? 0;
-    var choDanhGia = Model?.Count(x => !(x.TenForm ?? "").Contains("[ĐÃ HỦY]") && x.IdAdmin != null && (x.DanhGiaFormIts == null || !x.DanhGiaFormIts.Any())) ?? 0;
-    var hoanTat = Model?.Count(x => !(x.TenForm ?? "").Contains("[ĐÃ HỦY]") && x.DanhGiaFormIts != null && x.DanhGiaFormIts.Any()) ?? 0;
 }
 
 <div style="padding: 20px; background: #f1f5f9; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
@@ -44,7 +35,7 @@
 
             <div style="position: relative;">
                 <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px; font-weight: 900;"></i>
-                <input type="text" id="quickSearch" onkeyup="filterTable()" placeholder="Tìm tên, bộ phận, mã đơn..."
+                <input type="text" id="quickSearch" onkeyup="handleSearch()" placeholder="Tìm tên, bộ phận, mã đơn..."
                        style="padding: 10px 12px 10px 38px; border-radius: 12px; border: 2px solid #cbd5e1; font-size: 14px; width: 280px; outline: none; font-weight: 700;">
             </div>
 
@@ -54,27 +45,28 @@
         </div>
     </div>
 
-    @* --- STATS ROW --- *@
+    @* --- STATS ROW (Dùng JS để đổ số liệu) --- *@
     <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 25px;">
-        @{
-            var stats = new[] {
-                new { Label = "CHỜ QL DUYỆT", Value = choQuanLy, Color = "#b45309", Bg = "#fffbeb", Filter = "CHỜ QL" },
-                new { Label = "IT CẦN XỬ LÝ", Value = choITAdmin, Color = "#1e40af", Bg = "#eff6ff", Filter = "IT XỬ LÝ" },
-                new { Label = "CHỜ ĐÁNH GIÁ", Value = choDanhGia, Color = "#6366f1", Bg = "#f5f3ff", Filter = "CHỜ ĐG" },
-                new { Label = "HOÀN TẤT", Value = hoanTat, Color = "#10b981", Bg = "#ecfdf5", Filter = "HOÀN TẤT" },
-                new { Label = "ĐƠN ĐÃ HỦY", Value = daHuy, Color = "#b91c1c", Bg = "#fef2f2", Filter = "ĐÃ HỦY" }
-            };
-        }
-        @foreach (var s in stats)
-        {
-            <div onclick="filterByStatus('@s.Filter')"
-                 style="background: @s.Bg; padding: 18px 15px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);"
-                 onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='@s.Color';"
-                 onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(0,0,0,0.03)';">
-                <div style="font-size: 11px; font-weight: 900; color: @s.Color; text-transform: uppercase; margin-bottom: 5px;">@s.Label</div>
-                <div style="font-size: 26px; font-weight: 1000; color: @s.Color;">@s.Value</div>
-            </div>
-        }
+        <div onclick="filterByStatus('CHỜ QL')" style="background: #fffbeb; padding: 18px 15px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#b45309';" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(0,0,0,0.03)';">
+            <div style="font-size: 11px; font-weight: 900; color: #b45309; text-transform: uppercase; margin-bottom: 5px;">CHỜ QL DUYỆT</div>
+            <div id="stat-cho-ql" style="font-size: 26px; font-weight: 1000; color: #b45309;">0</div>
+        </div>
+        <div onclick="filterByStatus('IT XỬ LÝ')" style="background: #eff6ff; padding: 18px 15px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#1e40af';" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(0,0,0,0.03)';">
+            <div style="font-size: 11px; font-weight: 900; color: #1e40af; text-transform: uppercase; margin-bottom: 5px;">IT CẦN XỬ LÝ</div>
+            <div id="stat-it-xu-ly" style="font-size: 26px; font-weight: 1000; color: #1e40af;">0</div>
+        </div>
+        <div onclick="filterByStatus('CHỜ ĐG')" style="background: #f5f3ff; padding: 18px 15px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#6366f1';" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(0,0,0,0.03)';">
+            <div style="font-size: 11px; font-weight: 900; color: #6366f1; text-transform: uppercase; margin-bottom: 5px;">CHỜ ĐÁNH GIÁ</div>
+            <div id="stat-cho-dg" style="font-size: 26px; font-weight: 1000; color: #6366f1;">0</div>
+        </div>
+        <div onclick="filterByStatus('HOÀN TẤT')" style="background: #ecfdf5; padding: 18px 15px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#10b981';" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(0,0,0,0.03)';">
+            <div style="font-size: 11px; font-weight: 900; color: #10b981; text-transform: uppercase; margin-bottom: 5px;">HOÀN TẤT</div>
+            <div id="stat-hoan-tat" style="font-size: 26px; font-weight: 1000; color: #10b981;">0</div>
+        </div>
+        <div onclick="filterByStatus('ĐÃ HỦY')" style="background: #fef2f2; padding: 18px 15px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#b91c1c';" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(0,0,0,0.03)';">
+            <div style="font-size: 11px; font-weight: 900; color: #b91c1c; text-transform: uppercase; margin-bottom: 5px;">ĐƠN ĐÃ HỦY</div>
+            <div id="stat-huy" style="font-size: 26px; font-weight: 1000; color: #b91c1c;">0</div>
+        </div>
     </div>
 
     @* --- TABLE AREA --- *@
@@ -91,123 +83,29 @@
                     <th style="padding: 18px 20px; text-align: right;"></th>
                 </tr>
             </thead>
-            <tbody>
-                @if (Model != null)
-                {
-                    foreach (var item in Model)
-                    {
-                        bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]");
-                        bool isApprovedByManager = item.IdNguoiDuyet != null;
-                        bool isFinishedByIT = item.IdAdmin != null;
-                        bool hasRating = item.DanhGiaFormIts != null && item.DanhGiaFormIts.Any();
-
-                        string pWidth = "10%"; string pColor = "#94a3b8"; string pText = "Khởi tạo";
-                        string bg = "#f1f5f9"; string fg = "#475569"; string statusTag = "";
-
-                        if (isCancelled)
-                        {
-                            pWidth = "100%"; pColor = "#ef4444"; pText = "ĐÃ HỦY";
-                            bg = "#fee2e2"; fg = "#b91c1c"; statusTag = "ĐÃ HỦY";
-                        }
-                        else if (hasRating)
-                        {
-                            pWidth = "100%"; pColor = "#10b981"; pText = "HOÀN TẤT";
-                            bg = "#d1fae5"; fg = "#047857"; statusTag = "HOÀN TẤT";
-                        }
-                        else if (isFinishedByIT)
-                        {
-                            pWidth = "85%"; pColor = "#6366f1"; pText = "CHỜ ĐG";
-                            bg = "#f5f3ff"; fg = "#4f46e5"; statusTag = "CHỜ ĐG";
-                        }
-                        else if (isApprovedByManager)
-                        {
-                            pWidth = "60%"; pColor = "#1e40af"; pText = "IT XỬ LÝ";
-                            bg = "#dbeafe"; fg = "#1e40af"; statusTag = "IT XỬ LÝ";
-                        }
-                        else
-                        {
-                            pWidth = "30%"; pColor = "#f59e0b"; pText = "CHỜ QL";
-                            bg = "#fef3c7"; fg = "#b45309"; statusTag = "CHỜ QL";
-                        }
-
-                        var supportLog = item.ItCtNguoiHoTros?.OrderByDescending(x => x.Stt).FirstOrDefault();
-                        string supportName = supportLog?.IdItNguoiHoTroNavigation?.Ten ?? "Chưa gán IT";
-
-                        <tr style="border-bottom: 1px solid #f1f5f9;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                            <td style="padding: 15px 20px;">
-                                <div style="font-weight: 1000; color: #0f172a; font-size: 14px;">@item.TenNguoiNv</div>
-                                <div style="font-size: 11px; color: #64748b; font-weight: 800;">
-                                    @item.BoPhan • <span style="color: #1e40af;">MS: @item.SoNhanVien</span>
-                                </div>
-                            </td>
-                            <td style="padding: 15px 20px;">
-                                <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid #e2e8f0; display: inline-block;">
-                                    <i class="fa fa-tag" style="margin-right: 4px; font-size: 10px;"></i>
-                                    @(string.IsNullOrEmpty(item.Danhmuc) ? "Phổ thông" : item.Danhmuc)
-                                </span>
-                            </td>
-                            <td style="padding: 15px 20px;">
-                                <div style="font-weight: 800; color: #1e293b; font-size: 14px;">@item.TenForm?.Replace("[ĐÃ HỦY]", "")</div>
-                                <div style="font-size: 11px; color: #64748b; font-weight: 700;">
-                                    ID: #@item.Id • @item.TimeNguoiTao?.ToString("dd/MM/yyyy")
-                                </div>
-                            </td>
-                            <td style="padding: 15px 20px;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <div style="width: 28px; height: 28px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #1e40af;">
-                                        <i class="fa fa-user-gear" style="font-size: 12px;"></i>
-                                    </div>
-                                    <div style="font-weight: 700; color: #334155; font-size: 13px;">@supportName</div>
-                                </div>
-                            </td>
-                            <td style="padding: 15px 20px;">
-                                <div style="font-size: 9px; font-weight: 1000; color: @pColor; margin-bottom: 4px; display: flex; justify-content: space-between;">
-                                    <span>@pText</span> <span>@pWidth</span>
-                                </div>
-                                <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden;">
-                                    <div style="width: @pWidth; height: 100%; background: @pColor; border-radius: 10px;"></div>
-                                </div>
-                            </td>
-                            <td style="padding: 15px 20px; text-align: center;">
-                                <span style="background:@bg; color:@fg; padding:6px 12px; border-radius:8px; font-size:10px; font-weight:1000; border: 1.5px solid @fg; display: inline-block; min-width: 80px;">@statusTag</span>
-                            </td>
-                            <td style="padding: 15px 20px; text-align: right;">
-                                <a href="/FormIT/ChiTiet/@item.Id"
-                                       style="text-decoration: none; padding: 8px 16px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s;
-                                    background: @(hasRating || isCancelled ? "#f1f5f9" : "#1e40af");
-                                    color: @(hasRating || isCancelled ? "#64748b" : "#ffffff");">
-                                    @(hasRating || isCancelled ? "Xem lại" : "Xử lý")
-                                </a>
-                            </td>
-                        </tr>
-                    }
-                }
+            <tbody id="tableBody">
+                <tr><td colspan="7" id="loadingRow" style="text-align: center; padding: 40px; color: #64748b; font-weight: 600;"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>
             </tbody>
         </table>
+        
+        <div id="emptyState" style="display: none; text-align: center; padding: 50px; color: #94a3b8;">
+            <i class="fa fa-inbox" style="font-size: 48px; margin-bottom: 10px; opacity: 0.3;"></i>
+            <p style="font-weight: 700;">Hiện không có yêu cầu nào cần xử lý</p>
+        </div>
     </div>
 
     @* --- PHÂN TRANG & FOOTER --- *@
     <div style="display: flex; justify-content: space-between; align-items: center; padding: 25px 5px;">
-        <div id="paginationButtons" style="display: flex; gap: 6px;">
-            @* JS sinh nút *@
-        </div>
+        <div id="paginationButtons" style="display: flex; gap: 6px;"></div>
         <div style="text-align: right;">
             <div style="color: #64748b; font-size: 12px; font-weight: 700;">
                 Trang <span id="currentPageNum" style="color: #1e40af;">1</span>
             </div>
             <div style="color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px;">
-                Tổng hiển thị: <span id="totalVisibleCount">@total</span> yêu cầu
+                Tổng hiển thị: <span id="totalVisibleCount">0</span> yêu cầu
             </div>
         </div>
     </div>
-
-    @if (Model == null || !Model.Any())
-    {
-        <div style="text-align: center; padding: 50px; color: #94a3b8;">
-            <i class="fa fa-inbox" style="font-size: 48px; margin-bottom: 10px; opacity: 0.3;"></i>
-            <p style="font-weight: 700;">Hiện không có yêu cầu nào cần xử lý</p>
-        </div>
-    }
 </div>
 
 <style>
@@ -237,59 +135,214 @@
 </style>
 
 <script>
+    let masterData = [];
+    let filteredData = [];
     let currentPage = 1;
     let rowsPerPage = 30;
+    
+    // Nạp dữ liệu khi tải trang
+    document.addEventListener("DOMContentLoaded", () => {
+        loadDataFromAPI();
+    });
+
+    // Hàm Fetch API
+    async function loadDataFromAPI() {
+        try {
+            const response = await fetch('/FormIT/GetQuanLyXetDuyetData');
+            if (!response.ok) throw new Error("Lỗi mạng khi gọi API");
+            
+            masterData = await response.json();
+            filteredData = masterData;
+            
+            calculateStats(masterData);
+            renderTable();
+        } catch (error) {
+            console.error("Lỗi:", error);
+            document.getElementById('tableBody').innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px; color: red; font-weight:bold;">Lỗi tải dữ liệu. Vui lòng tải lại trang.</td></tr>';
+        }
+    }
+
+    // Logic thống kê chuyển từ C# sang JS
+    function calculateStats(data) {
+        let daHuy = 0, choQuanLy = 0, choITAdmin = 0, choDanhGia = 0, hoanTat = 0;
+
+        data.forEach(item => {
+            let isCancelled = (item.tenForm || "").includes("[ĐÃ HỦY]");
+            
+            if (isCancelled) {
+                daHuy++;
+            } else {
+                if (item.idNguoiDuyet == null) {
+                    choQuanLy++;
+                } else if (item.idNguoiDuyet != null && item.idAdmin == null) {
+                    choITAdmin++;
+                } else if (item.idAdmin != null && !item.daDanhGia) {
+                    choDanhGia++;
+                } else if (item.idAdmin != null && item.daDanhGia) {
+                    hoanTat++;
+                }
+            }
+        });
+
+        document.getElementById("stat-cho-ql").innerText = choQuanLy;
+        document.getElementById("stat-it-xu-ly").innerText = choITAdmin;
+        document.getElementById("stat-cho-dg").innerText = choDanhGia;
+        document.getElementById("stat-hoan-tat").innerText = hoanTat;
+        document.getElementById("stat-huy").innerText = daHuy;
+    }
 
     function changePageSize() {
         const select = document.getElementById("pageSizeSelect");
         rowsPerPage = parseInt(select.value);
         currentPage = 1;
-        filterTable();
+        renderTable();
     }
 
-    function filterTable() {
-        const input = document.getElementById("quickSearch");
-        const filter = input.value.toUpperCase();
-        const table = document.getElementById("dataTable");
-        const tr = table.querySelector("tbody").getElementsByTagName("tr");
+    // Logic tìm kiếm
+    function handleSearch() {
+        const keyword = document.getElementById("quickSearch").value.toUpperCase();
         
-        let visibleRows = [];
+        filteredData = masterData.filter(item => {
+            const rawStatus = determineStatus(item).statusTag.toUpperCase();
+            const textToSearch = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.danhmuc} ${item.tenForm} ${item.id} ${item.tenNguoiHoTro} ${rawStatus}`.toUpperCase();
+            return textToSearch.includes(keyword);
+        });
 
-        // Lọc theo từ khóa
-        for (let i = 0; i < tr.length; i++) {
-            let rowText = tr[i].innerText.toUpperCase();
-            if (rowText.includes(filter)) {
-                visibleRows.push(tr[i]);
-                tr[i].style.display = "";
-            } else {
-                tr[i].style.display = "none";
-            }
+        currentPage = 1;
+        renderTable();
+    }
+
+    function filterByStatus(s) {
+        document.getElementById("quickSearch").value = s;
+        handleSearch();
+    }
+
+    // Xác định trạng thái của từng đơn
+    function determineStatus(item) {
+        let isCancelled = (item.tenForm || "").includes("[ĐÃ HỦY]");
+        let isApprovedByManager = item.idNguoiDuyet != null;
+        let isFinishedByIT = item.idAdmin != null;
+        let hasRating = item.daDanhGia;
+
+        let res = { pWidth: "10%", pColor: "#94a3b8", pText: "Khởi tạo", bg: "#f1f5f9", fg: "#475569", statusTag: "KHỞI TẠO" };
+
+        if (isCancelled) {
+            res.pWidth = "100%"; res.pColor = "#ef4444"; res.pText = "ĐÃ HỦY";
+            res.bg = "#fee2e2"; res.fg = "#b91c1c"; res.statusTag = "ĐÃ HỦY";
+        }
+        else if (hasRating) {
+            res.pWidth = "100%"; res.pColor = "#10b981"; res.pText = "HOÀN TẤT";
+            res.bg = "#d1fae5"; res.fg = "#047857"; res.statusTag = "HOÀN TẤT";
+        }
+        else if (isFinishedByIT) {
+            res.pWidth = "85%"; res.pColor = "#6366f1"; res.pText = "CHỜ ĐG";
+            res.bg = "#f5f3ff"; res.fg = "#4f46e5"; res.statusTag = "CHỜ ĐG";
+        }
+        else if (isApprovedByManager) {
+            res.pWidth = "60%"; res.pColor = "#1e40af"; res.pText = "IT XỬ LÝ";
+            res.bg = "#dbeafe"; res.fg = "#1e40af"; res.statusTag = "IT XỬ LÝ";
+        }
+        else {
+            res.pWidth = "30%"; res.pColor = "#f59e0b"; res.pText = "CHỜ QL";
+            res.bg = "#fef3c7"; res.fg = "#b45309"; res.statusTag = "CHỜ QL";
+        }
+        return res;
+    }
+
+    // Render HTML cho bảng bằng JS
+    function renderTable() {
+        const tbody = document.getElementById("tableBody");
+        const emptyState = document.getElementById("emptyState");
+        tbody.innerHTML = "";
+        
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const pageData = filteredData.slice(startIndex, endIndex);
+
+        if(pageData.length === 0) {
+            emptyState.style.display = "block";
+            document.getElementById("dataTable").style.display = "none";
+        } else {
+            emptyState.style.display = "none";
+            document.getElementById("dataTable").style.display = "table";
+
+            pageData.forEach(item => {
+                const s = determineStatus(item);
+                let cleanTenForm = (item.tenForm || "").replace("[ĐÃ HỦY]", "");
+                
+                // Logic đổi màu nút
+                let buttonStyle = s.statusTag === "HOÀN TẤT" || s.statusTag === "ĐÃ HỦY"
+                    ? "background: #f1f5f9; color: #64748b;"
+                    : "background: #1e40af; color: #ffffff;";
+                let buttonText = s.statusTag === "HOÀN TẤT" || s.statusTag === "ĐÃ HỦY" ? "Xem lại" : "Xử lý";
+
+                const tr = document.createElement("tr");
+                tr.style.borderBottom = "1px solid #f1f5f9";
+                tr.onmouseover = () => tr.style.background = '#f8fafc';
+                tr.onmouseout = () => tr.style.background = 'transparent';
+
+                // Tái tạo lại chính xác HTML/CSS của từng dòng
+                tr.innerHTML = `
+                    <td style="padding: 15px 20px;">
+                        <div style="font-weight: 1000; color: #0f172a; font-size: 14px;">${item.tenNguoiNv}</div>
+                        <div style="font-size: 11px; color: #64748b; font-weight: 800;">
+                            ${item.boPhan} • <span style="color: #1e40af;">MS: ${item.soNhanVien}</span>
+                        </div>
+                    </td>
+                    <td style="padding: 15px 20px;">
+                        <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid #e2e8f0; display: inline-block;">
+                            <i class="fa fa-tag" style="margin-right: 4px; font-size: 10px;"></i> ${item.danhmuc}
+                        </span>
+                    </td>
+                    <td style="padding: 15px 20px;">
+                        <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${cleanTenForm}</div>
+                        <div style="font-size: 11px; color: #64748b; font-weight: 700;">
+                            ID: #${item.id} • ${item.timeNguoiTao}
+                        </div>
+                    </td>
+                    <td style="padding: 15px 20px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 28px; height: 28px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #1e40af;">
+                                <i class="fa fa-user-gear" style="font-size: 12px;"></i>
+                            </div>
+                            <div style="font-weight: 700; color: #334155; font-size: 13px;">${item.tenNguoiHoTro}</div>
+                        </div>
+                    </td>
+                    <td style="padding: 15px 20px;">
+                        <div style="font-size: 9px; font-weight: 1000; color: ${s.pColor}; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                            <span>${s.pText}</span> <span>${s.pWidth}</span>
+                        </div>
+                        <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden;">
+                            <div style="width: ${s.pWidth}; height: 100%; background: ${s.pColor}; border-radius: 10px;"></div>
+                        </div>
+                    </td>
+                    <td style="padding: 15px 20px; text-align: center;">
+                        <span style="background:${s.bg}; color:${s.fg}; padding:6px 12px; border-radius:8px; font-size:10px; font-weight:1000; border: 1.5px solid ${s.fg}; display: inline-block; min-width: 80px;">${s.statusTag}</span>
+                    </td>
+                    <td style="padding: 15px 20px; text-align: right;">
+                        <a href="/FormIT/ChiTiet/${item.id}"
+                           style="text-decoration: none; padding: 8px 16px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s; ${buttonStyle}">
+                            ${buttonText}
+                        </a>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
 
-        // Cập nhật phân trang trên tập đã lọc
-        updatePagination(visibleRows);
-        document.getElementById("totalVisibleCount").innerText = visibleRows.length;
+        renderPagination(filteredData.length);
+        document.getElementById("totalVisibleCount").innerText = filteredData.length;
         document.getElementById("currentPageNum").innerText = currentPage;
     }
 
-    function updatePagination(visibleRows) {
-        const totalRows = visibleRows.length;
+    // Logic tạo nút phân trang
+    function renderPagination(totalRows) {
         const totalPages = Math.ceil(totalRows / rowsPerPage);
         const paginationContainer = document.getElementById("paginationButtons");
-        
-        const startIdx = (currentPage - 1) * rowsPerPage;
-        const endIdx = startIdx + rowsPerPage;
-
-        // Chỉ hiển thị các dòng thuộc trang hiện tại
-        visibleRows.forEach((row, index) => {
-            row.style.display = (index >= startIdx && index < endIdx) ? "" : "none";
-        });
-
-        // Vẽ nút phân trang
         paginationContainer.innerHTML = "";
+        
         if (totalPages > 1) {
             for (let i = 1; i <= totalPages; i++) {
-                // Logic rút gọn nút nếu quá nhiều trang
                 if (totalPages > 6 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
                     if (i == 3 || i == totalPages - 2) {
                         const dot = document.createElement("span");
@@ -305,27 +358,11 @@
                 btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
                 btn.onclick = () => {
                     currentPage = i;
-                    updatePagination(visibleRows);
-                    document.getElementById("currentPageNum").innerText = i;
+                    renderTable();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 };
                 paginationContainer.appendChild(btn);
             }
         }
     }
-
-    function filterByStatus(s) {
-        document.getElementById("quickSearch").value = s;
-        currentPage = 1;
-        filterTable();
-
-        const table = document.getElementById("dataTable");
-        table.style.opacity = "0.5";
-        setTimeout(() => { table.style.opacity = "1"; }, 150);
-    }
-
-    // Khởi tạo khi load trang
-    document.addEventListener("DOMContentLoaded", () => {
-        filterTable();
-    });
 </script>
