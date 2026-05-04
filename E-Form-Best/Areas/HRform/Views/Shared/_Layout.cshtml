@@ -1,5 +1,6 @@
 ﻿@using Microsoft.AspNetCore.Http
 @using System.Security.Claims
+@using Microsoft.AspNetCore.Localization
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
@@ -11,6 +12,10 @@
     var currentUserName = User.Identity.IsAuthenticated ? User.Identity.Name : "Khách";
     var currentUserRole = User.FindFirst("UserRole")?.Value ?? (User.FindFirst(ClaimTypes.Role)?.Value ?? "Guest");
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+
+    // Lấy thông tin ngôn ngữ hiện tại từ Cookie hệ thống
+    var requestCulture = Context.Features.Get<IRequestCultureFeature>();
+    var cultureCode = requestCulture?.RequestCulture.Culture.Name ?? "vi-VN";
 
     // Danh sách các Action thuộc menu Đăng ký
     string[] subPages = {
@@ -25,7 +30,7 @@
 }
 
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="@cultureCode">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -33,10 +38,15 @@
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👥</text></svg>">
 
+    <!-- Core Libraries -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    
+    <!-- Added Libraries: Select2 & NProgress -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.css" rel="stylesheet" />
 
     <style>
         body {
@@ -127,7 +137,7 @@
         header {
             padding: 15px 40px;
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
             align-items: center;
             background: rgba(248, 250, 252, 0.85);
             backdrop-filter: blur(12px);
@@ -141,6 +151,64 @@
         
         #notiList::-webkit-scrollbar { width: 4px; }
         #notiList::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+
+        /* Language Switcher Styles */
+        .lang-btn {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            padding: 8px 15px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #1e293b;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .lang-btn:hover { background: #f1f5f9; transform: translateY(-1px); }
+        
+        #langDropdown {
+            display: none;
+            position: absolute;
+            top: 55px;
+            left: 0;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+            border: 1px solid #e2e8f0;
+            min-width: 180px;
+            overflow: hidden;
+            z-index: 1001;
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @@keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .lang-item {
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #334155;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 600;
+            transition: 0.2s;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .lang-item:last-child { border-bottom: none; }
+        .lang-item:hover { background: #eff6ff; color: #2563eb; }
+        .lang-item.active { color: #2563eb; background: #f0f9ff; }
+        .lang-item i { font-size: 0.8rem; }
+
+        /* NProgress customization */
+        #nprogress .bar { background: #2563eb !important; height: 3px !important; }
     </style>
 </head>
 
@@ -155,112 +223,112 @@
                 </div>
                 <div style="display:flex; flex-direction:column;">
                     <span style="font-size:1.2rem; font-weight:800; letter-spacing:1px; color:#fff; line-height:1;">E-FORM</span>
-                    <span style="font-size:0.65rem; color:rgba(255,255,255,0.5); text-transform:uppercase; margin-top:4px; font-weight:700;">Digital Portal</span>
+                    <span class="lang-text" data-key="digital_portal" style="font-size:0.65rem; color:rgba(255,255,255,0.5); text-transform:uppercase; margin-top:4px; font-weight:700;">Digital Portal</span>
                 </div>
             </a>
 
             <nav id="main-sidebar-nav" style="flex:1; overflow-y:auto; padding-right:5px; display:flex; flex-direction:column; gap:2px;">
 
-                <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 800;">Cá nhân & Đăng ký</div>
+                <div class="lang-text" data-key="personal_reg" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 800;">Cá nhân & Đăng ký</div>
 
                 <div id="btnRegistrationMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-radius: 12px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isSubPageActive ? "rgba(255,255,255,0.1)" : "transparent")">
                     <span style="display:flex; align-items:center;">
-                        <i class="fa fa-pencil-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i> Đăng ký mẫu đơn
+                        <i class="fa fa-pencil-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i> <span class="lang-text" data-key="reg_form">Đăng ký mẫu đơn</span>
                     </span>
                     <i class="fa fa-angle-down" id="regArrow" style="transition: 0.3s; transform: @(isSubPageActive ? "rotate(180deg)" : "rotate(0deg)")"></i>
                 </div>
 
                 <div id="registrationSubmenu" style="display: @(isSubPageActive ? "flex" : "none"); flex-direction: column; background: rgba(0, 0, 0, 0.1); border-radius: 12px; margin: 5px 0 10px 0; padding: 5px 0;">
                     <a href="/FormHR/DonXinRaNgoai" class="@(currentAction == "DonXinRaNgoai" ? "active" : "")">
-                        <i class="fa fa-external-link" style="position:absolute; left:20px; color: #ff4d4d;"></i> Đơn xin ra ngoài
+                        <i class="fa fa-external-link" style="position:absolute; left:20px; color: #ff4d4d;"></i> <span class="lang-text" data-key="out_form">Đơn xin ra ngoài</span>
                     </a>
                     <a href="/FormHR/MangHangHoaRaCong" class="@(currentAction == "MangHangHoaRaCong" ? "active" : "")">
-                        <i class="fa fa-archive" style="position:absolute; left:20px; color:#48bb78;"></i> Mang hàng hóa ra cổng
+                        <i class="fa fa-archive" style="position:absolute; left:20px; color:#48bb78;"></i> <span class="lang-text" data-key="goods_form">Mang hàng hóa ra cổng</span>
                     </a>
                     <a href="/FormHR/DangKySuDungXeCongTac" class="@(currentAction == "DangKySuDungXeCongTac" ? "active" : "")">
-                        <i class="fa fa-car" style="position:absolute; left:20px; color:#3182ce;"></i> Đăng ký xe công tác
+                        <i class="fa fa-car" style="position:absolute; left:20px; color:#3182ce;"></i> <span class="lang-text" data-key="car_biz">Đăng ký xe công tác</span>
                     </a>
                     <a href="/FormHR/DangKySuDungXeDaily" class="@(currentAction == "DangKySuDungXeDaily" ? "active" : "")">
-                        <i class="fa fa-bus" style="position:absolute; left:20px; color:#ed8936;"></i> Đăng ký xe Daily
+                        <i class="fa fa-bus" style="position:absolute; left:20px; color:#ed8936;"></i> <span class="lang-text" data-key="car_daily">Đăng ký xe Daily</span>
                     </a>
                     <a href="/FormHR/DonTiepKhac" class="@(currentAction == "DonTiepKhac" ? "active" : "")">
-                        <i class="fa fa-handshake-o" style="position:absolute; left:20px; color:#f472b6;"></i> Đơn tiếp khách / Khác
+                        <i class="fa fa-handshake-o" style="position:absolute; left:20px; color:#f472b6;"></i> <span class="lang-text" data-key="guest_form">Đơn tiếp khách / Khác</span>
                     </a>
                     <a href="/FormHR/NhaThauQuaCong" class="@(currentAction == "NhaThauQuaCong" ? "active" : "")">
-                        <i class="fa fa-id-badge" style="position:absolute; left:20px; color:#2dd4bf;"></i> Nhà thầu qua cổng
+                        <i class="fa fa-id-badge" style="position:absolute; left:20px; color:#2dd4bf;"></i> <span class="lang-text" data-key="contractor_form">Nhà thầu qua cổng</span>
                     </a>
                     <a href="/FormHR/HoTroTienDienThoai" class="@(currentAction == "HoTroTienDienThoai" ? "active" : "")">
-                        <i class="fa fa-phone" style="position:absolute; left:20px; color:#3b82f6;"></i> Hỗ trợ tiền điện thoại
+                        <i class="fa fa-phone" style="position:absolute; left:20px; color:#3b82f6;"></i> <span class="lang-text" data-key="phone_form">Hỗ trợ tiền điện thoại</span>
                     </a>
                     <a href="/FormHR/DoiCaLam" class="@(currentAction == "DoiCaLam" ? "active" : "")">
-                        <i class="fa fa-calendar-check-o" style="position:absolute; left:20px; color:#f59e0b;"></i> Đổi ca làm việc
+                        <i class="fa fa-calendar-check-o" style="position:absolute; left:20px; color:#f59e0b;"></i> <span class="lang-text" data-key="shift_form">Đổi ca làm việc</span>
                     </a>
                     <a href="/FormHR/DonHoTroCongTac" class="@(currentAction == "DonHoTroCongTac" ? "active" : "")">
-                        <i class="fa fa-briefcase" style="position:absolute; left:20px; color:#a855f7;"></i> Đơn hỗ trợ công tác
+                        <i class="fa fa-briefcase" style="position:absolute; left:20px; color:#a855f7;"></i> <span class="lang-text" data-key="biz_support">Đơn hỗ trợ công tác</span>
                     </a>
                 </div>
 
                 <a href="/FormHR/DonCho" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
-                    <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> Đơn của tôi
+                    <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text" data-key="my_forms">Đơn của tôi</span>
                 </a>
 
                 <a href="/FormHR/LichSuHR" class="nav-link-item @(currentAction == "LichSuHR" ? "active" : "")">
-                    <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> Nhật ký hệ thống
+                    <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text" data-key="sys_logs">Nhật ký hệ thống</span>
                 </a>
 
                 @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonHR") || User.IsInRole("All")))
                 {
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
-                    <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Phê duyệt</div>
+                    <div class="lang-text" data-key="approval_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Phê duyệt</div>
 
                     <a href="/FormHR/QuanLyXetDuyet" class="nav-link-item @(currentAction == "QuanLyXetDuyet" ? "active" : "")">
-                        <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> Quản lý xét duyệt
+                        <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> <span class="lang-text" data-key="manage_appr">Quản lý xét duyệt</span>
                     </a>
                 }
 
                 @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonHR_B2") || User.IsInRole("All")))
                 {
                     <a href="/FormHR/QuanLyXetDuyetB2" class="nav-link-item @(currentAction == "QuanLyXetDuyetB2" ? "active" : "")">
-                        <i class="fa fa-users" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#63b3ed;"></i> Quản lý xét duyệt B2
+                        <i class="fa fa-users" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#63b3ed;"></i> <span class="lang-text" data-key="manage_appr_b2">Quản lý xét duyệt B2</span>
                     </a>
                 }
 
                 @if (User.Identity.IsAuthenticated && (User.IsInRole("GiamDocHR") || User.IsInRole("All")))
                 {
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
-                    <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Ban Điều Hành</div>
+                    <div class="lang-text" data-key="bod_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Ban Điều Hành</div>
 
                     <a href="/FormHR/PheDuyetCapCao" class="nav-link-item @(currentAction == "PheDuyetCapCao" ? "active" : "")">
-                        <i class="fa fa-diamond" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#fbbf24;"></i> Phê duyệt cấp cao
+                        <i class="fa fa-diamond" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#fbbf24;"></i> <span class="lang-text" data-key="high_appr">Phê duyệt cấp cao</span>
                     </a>
                 }
 
                 @if (User.Identity.IsAuthenticated && (User.IsInRole("AdminHR") || User.IsInRole("All")))
                 {
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
-                    <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Quản trị HR</div>
+                    <div class="lang-text" data-key="admin_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Quản trị HR</div>
 
                     <a href="/FormHR/QuanLyPhongHop" class="nav-link-item @(currentAction == "QuanLyPhongHop" ? "active" : "")">
-                        <i class="fa fa-calendar-check-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f59e0b;"></i> Quản lý phòng họp
+                        <i class="fa fa-calendar-check-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f59e0b;"></i> <span class="lang-text" data-key="meeting_room">Quản lý phòng họp</span>
                     </a>
                     <a href="/FormHR/HoanTatDon" class="nav-link-item @(currentAction == "HoanTatDon" ? "active" : "")">
-                        <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> Lưu trữ đơn
+                        <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text" data-key="archive_form">Lưu trữ đơn</span>
                     </a>
                     <a href="/FormHR/XuatBaoCao" class="nav-link-item @(currentAction == "XuatBaoCao" ? "active" : "")">
-                        <i class="fa fa-database" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> Kho đơn tổng hợp
+                        <i class="fa fa-database" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text" data-key="all_forms">Kho đơn tổng hợp</span>
                     </a>
                     <a href="/FormHR/BaoCaoThongKe" class="nav-link-item @(currentAction == "BaoCaoThongKe" ? "active" : "")">
-                        <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> Thống kê báo cáo
+                        <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> <span class="lang-text" data-key="statistics">Thống kê báo cáo</span>
                     </a>
                 }
 
                 @if (User.Identity.IsAuthenticated && (User.IsInRole("GiamDocHR") || User.IsInRole("All") || User.IsInRole("BaoVeHR") || User.IsInRole("AdminHR") || User.IsInRole("QuanLyDuyetDonHR_B2")))
                 {
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:20px 10px;"></div>
-                    <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.8px; margin: 0 0 12px 15px; font-weight: 800;">AN NINH & CỔNG</div>
+                    <div class="lang-text" data-key="security_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.8px; margin: 0 0 12px 15px; font-weight: 800;">AN NINH & CỔNG</div>
 
                     <a href="/FormHR/BaoVePheDuyet" class="nav-link-item @(currentAction.Contains("BaoVe") ? "active" : "")">
-                        <i class="fa fa-shield" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#63b3ed;"></i> Kiểm soát ra vào
+                        <i class="fa fa-shield" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#63b3ed;"></i> <span class="lang-text" data-key="entry_control">Kiểm soát ra vào</span>
                     </a>
                 }
             </nav>
@@ -281,10 +349,10 @@
 
                     <div id="userDropdown" style="position:absolute; bottom:85px; left:0; right:0; background:#fff; border-radius:16px; box-shadow:0 -10px 25px rgba(0,0,0,0.2); display:none; flex-direction:column; overflow:hidden; border: 1px solid #e2e8f0; z-index: 1001;">
                         <a href="/ThongTinTaiKhoan" target="_blank" class="user-dropdown-item" style="padding:12px 20px; color:#334155; text-decoration:none; font-size:0.9rem; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; font-weight: 600;">
-                            <i class="fa fa-user-circle-o" style="margin-right:12px; color:#64748b;"></i> Hồ sơ cá nhân
+                            <i class="fa fa-user-circle-o" style="margin-right:12px; color:#64748b;"></i> <span class="lang-text" data-key="profile">Hồ sơ cá nhân</span>
                         </a>
                         <a href="/DonXetDuyet/DangXuat" class="user-dropdown-item" style="padding:12px 20px; color:#ef4444; text-decoration:none; font-size:0.9rem; font-weight:700; display:flex; align-items:center;">
-                            <i class="fa fa-sign-out" style="margin-right:12px;"></i> Đăng xuất
+                            <i class="fa fa-sign-out" style="margin-right:12px;"></i> <span class="lang-text" data-key="logout">Đăng xuất</span>
                         </a>
                     </div>
                 }
@@ -295,8 +363,8 @@
                             <i class="fa fa-sign-in" style="color: #fff;"></i>
                         </div>
                         <div style="flex:1;">
-                            <div style="font-weight:700; font-size:0.9rem; color: #fff;">Đăng nhập</div>
-                            <div style="font-size:0.7rem; color:rgba(255,255,255,0.4);">Truy cập hệ thống</div>
+                            <div class="lang-text" data-key="login" style="font-weight:700; font-size:0.9rem; color: #fff;">Đăng nhập</div>
+                            <div class="lang-text" data-key="access_sys" style="font-size:0.7rem; color:rgba(255,255,255,0.4);">Truy cập hệ thống</div>
                         </div>
                     </a>
                 }
@@ -305,11 +373,32 @@
 
         <main>
             <header>
+                <!-- Language Switcher (Left Side) -->
+                <div style="position: relative;">
+                    <button id="btnLanguage" class="lang-btn">
+                        <i class="fa fa-globe" style="color: #2563eb;"></i>
+                        <span id="currentLangText">Tiếng Việt</span>
+                        <i class="fa fa-angle-down" style="font-size: 0.8rem; color: #94a3b8;"></i>
+                    </button>
+                    <div id="langDropdown">
+                        <a href="javascript:void(0)" onclick="handleLangChange('vi-VN', 'Tiếng Việt')" class="lang-item" id="lang-vi-VN">
+                            <span>Tiếng Việt</span> <i class="fa fa-check"></i>
+                        </a>
+                        <a href="javascript:void(0)" onclick="handleLangChange('en-US', 'English')" class="lang-item" id="lang-en-US">
+                            <span>English</span> <i class="fa fa-check" style="display:none;"></i>
+                        </a>
+                        <a href="javascript:void(0)" onclick="handleLangChange('zh-CN', '中文')" class="lang-item" id="lang-zh-CN">
+                            <span>中文</span> <i class="fa fa-check" style="display:none;"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Notifications (Right Side) -->
                 <div style="position: relative; display: flex; align-items: center; gap: 15px;">
                     <div id="latestNotiTag" style="display: none; position: absolute; right: 65px; white-space: nowrap; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 12px 20px; border-radius: 14px; font-size: 0.85rem; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 1001; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.1);">
                         <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981;"></div>
                         <div style="display: flex; flex-direction: column; line-height: 1.3;">
-                            <span style="font-size: 0.65rem; text-transform: uppercase; font-weight: 800; color: #94a3b8;">Thông báo mới</span>
+                            <span class="lang-text" data-key="new_noti" style="font-size: 0.65rem; text-transform: uppercase; font-weight: 800; color: #94a3b8;">Thông báo mới</span>
                             <span id="latestNotiText" style="font-weight: 600;">Bạn có tin nhắn mới!</span>
                         </div>
                         <i class="fa fa-times" onclick="this.parentElement.style.display='none'" style="cursor: pointer; margin-left: 10px; color: #64748b;"></i>
@@ -322,13 +411,13 @@
 
                     <div id="notificationDropdown" style="display: none; flex-direction: column; width: 380px; position: absolute; right: 0; top: 55px; background: white; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); overflow: hidden; z-index: 1000; border: 1px solid #e2e8f0;">
                         <div style="padding: 18px 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: 800; color: #1e293b; font-size: 1.1rem;">Thông báo</span>
-                            <button onclick="markAllAsRead(event)" style="background: #eff6ff; border: none; color: #2563eb; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 14px; border-radius: 8px;">Đọc tất cả</button>
+                            <span class="lang-text" data-key="notifications" style="font-weight: 800; color: #1e293b; font-size: 1.1rem;">Thông báo</span>
+                            <button class="lang-text" data-key="read_all" onclick="markAllAsRead(event)" style="background: #eff6ff; border: none; color: #2563eb; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 14px; border-radius: 8px;">Đọc tất cả</button>
                         </div>
                         <div id="notiList" style="max-height: 480px; overflow-y: auto;">
-                            </div>
+                        </div>
                         <div style="padding: 15px; text-align: center; background: #f8fafc; border-top: 1px solid #f1f5f9;">
-                            <a href="/FormHR/LichSuHR" style="text-decoration: none; color: #64748b; font-size: 0.8rem; font-weight: 600;">Xem nhật ký hệ thống</a>
+                            <a class="lang-text" data-key="view_logs" href="/FormHR/LichSuHR" style="text-decoration: none; color: #64748b; font-size: 0.8rem; font-weight: 600;">Xem nhật ký hệ thống</a>
                         </div>
                     </div>
                 </div>
@@ -352,13 +441,106 @@
         </div>
     }
 
+    <!-- External Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Added Scripts: Select2, NProgress, Moment.js -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
 
     <script>
+        // Start NProgress on page load
+        NProgress.start();
+        window.onload = function() { NProgress.done(); };
+
         // ==========================================
-        // 1. Quản lý Sidebar Dropdown
+        // 0. HỆ THỐNG ĐA NGÔN NGỮ (CLIENT-SIDE DICTIONARY)
+        // ==========================================
+        const translations = {
+            'vi-VN': {
+                'digital_portal': 'Digital Portal', 'personal_reg': 'Cá nhân & Đăng ký', 'reg_form': 'Đăng ký mẫu đơn', 'out_form': 'Đơn xin ra ngoài',
+                'goods_form': 'Mang hàng hóa ra cổng', 'car_biz': 'Đăng ký xe công tác', 'car_daily': 'Đăng ký xe Daily',
+                'guest_form': 'Đơn tiếp khách / Khác', 'contractor_form': 'Nhà thầu qua cổng', 'phone_form': 'Hỗ trợ tiền điện thoại',
+                'shift_form': 'Đổi ca làm việc', 'biz_support': 'Đơn hỗ trợ công tác', 'my_forms': 'Đơn của tôi',
+                'sys_logs': 'Nhật ký hệ thống', 'approval_sec': 'Phê duyệt', 'manage_appr': 'Quản lý xét duyệt',
+                'manage_appr_b2': 'Quản lý xét duyệt B2', 'bod_sec': 'Ban Điều Hành', 'high_appr': 'Phê duyệt cấp cao',
+                'admin_sec': 'Quản trị HR', 'meeting_room': 'Quản lý phòng họp', 'archive_form': 'Lưu trữ đơn',
+                'all_forms': 'Kho đơn tổng hợp', 'statistics': 'Thống kê báo cáo', 'security_sec': 'AN NINH & CỔNG',
+                'entry_control': 'Kiểm soát ra vào', 'profile': 'Hồ sơ cá nhân', 'logout': 'Đăng xuất',
+                'login': 'Đăng nhập', 'access_sys': 'Truy cập hệ thống', 'notifications': 'Thông báo',
+                'read_all': 'Đọc tất cả', 'view_logs': 'Xem nhật ký hệ thống', 'new_noti': 'Thông báo mới'
+            },
+            'en-US': {
+                'digital_portal': 'Digital Portal', 'personal_reg': 'Personal & Registration', 'reg_form': 'Form Registration', 'out_form': 'Gate Pass (Personal)',
+                'goods_form': 'Goods Removal Form', 'car_biz': 'Business Car Reg', 'car_daily': 'Daily Bus Reg',
+                'guest_form': 'Guest / Other Form', 'contractor_form': 'Contractor Access', 'phone_form': 'Phone Allowance',
+                'shift_form': 'Shift Change Form', 'biz_support': 'Business Trip Support', 'my_forms': 'My Requests',
+                'sys_logs': 'System Logs', 'approval_sec': 'Approval', 'manage_appr': 'Approval Management',
+                'manage_appr_b2': 'B2 Approval Management', 'bod_sec': 'Management Board', 'high_appr': 'High-Level Approval',
+                'admin_sec': 'HR Admin', 'meeting_room': 'Meeting Room', 'archive_form': 'Form Archive',
+                'all_forms': 'Master Data', 'statistics': 'Reports & Stats', 'security_sec': 'SECURITY & GATE',
+                'entry_control': 'Entry Control', 'profile': 'User Profile', 'logout': 'Logout',
+                'login': 'Login', 'access_sys': 'System Access', 'notifications': 'Notifications',
+                'read_all': 'Mark all as read', 'view_logs': 'View system logs', 'new_noti': 'New Notification'
+            },
+            'zh-CN': {
+                'digital_portal': '数字化门户', 'personal_reg': '个人与注册', 'reg_form': '表单注册', 'out_form': '出门证 (个人)',
+                'goods_form': '货物出门证', 'car_biz': '公务车登记', 'car_daily': '日常班车登记',
+                'guest_form': '接待/其他申请', 'contractor_form': '承包商准入', 'phone_form': '话费补贴',
+                'shift_form': '换班申请', 'biz_support': '出差支援申请', 'my_forms': '我的单据',
+                'sys_logs': '系统日志', 'approval_sec': '审批管理', 'manage_appr': '审核管理',
+                'manage_appr_b2': 'B2审核管理', 'bod_sec': '执行委员会', 'high_appr': '高级审批',
+                'admin_sec': 'HR 管理', 'meeting_room': '会议室管理', 'archive_form': '表单归档',
+                'all_forms': '综合单据库', 'statistics': '统计报表', 'security_sec': '安保与大门',
+                'entry_control': '出入控制', 'profile': '个人资料', 'logout': '退出登录',
+                'login': '登录', 'access_sys': '访问系统', 'notifications': '通知',
+                'read_all': '全部已读', 'view_logs': '查看系统日志', 'new_noti': '新通知'
+            }
+        };
+
+        const btnLang = document.getElementById('btnLanguage');
+        const langDrop = document.getElementById('langDropdown');
+        const currentLangText = document.getElementById('currentLangText');
+
+        // Toggle dropdown ngôn ngữ
+        if (btnLang) {
+            btnLang.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = langDrop.style.display === 'none' || langDrop.style.display === '';
+                langDrop.style.display = isHidden ? 'block' : 'none';
+            });
+        }
+
+        // Xử lý đổi ngôn ngữ
+        function handleLangChange(code, label) {
+            const cookieValue = `c=${code}|uic=${code}`;
+            const date = new Date();
+            date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
+            document.cookie = `.AspNetCore.Culture=${encodeURIComponent(cookieValue)}; expires=${date.toUTCString()}; path=/`;
+            localStorage.setItem('preferred_lang_hr', code);
+            window.location.reload();
+        }
+
+        function applyTranslations() {
+            const lang = localStorage.getItem('preferred_lang_hr') || '@cultureCode';
+            document.querySelectorAll('.lang-text').forEach(el => {
+                const key = el.getAttribute('data-key');
+                if (translations[lang] && translations[lang][key]) {
+                    el.innerText = translations[lang][key];
+                }
+            });
+            const labels = { 'vi-VN': 'Tiếng Việt', 'en-US': 'English', 'zh-CN': '中文' };
+            if(currentLangText) currentLangText.innerText = labels[lang] || 'Tiếng Việt';
+            document.querySelectorAll('.lang-item i').forEach(i => i.style.display = 'none');
+            const activeCheck = document.querySelector(`#lang-${lang} i`);
+            if(activeCheck) activeCheck.style.display = 'inline-block';
+        }
+
+        // ==========================================
+        // 1. Quản lý Sidebar Dropdown State
         // ==========================================
         const regBtn = document.getElementById('btnRegistrationMenu');
         const regSub = document.getElementById('registrationSubmenu');
@@ -383,18 +565,17 @@
         }
 
         // ==========================================
-        // 2. Persistent Scroll & State
+        // 2. Restore State & Init Libraries
         // ==========================================
-        window.addEventListener('beforeunload', () => {
-            if (sidebarNav) sessionStorage.setItem('sidebarScrollPos', sidebarNav.scrollTop);
-        });
-
         document.addEventListener('DOMContentLoaded', () => {
-            // Restore scroll
+            applyTranslations();
+            
+            // Khởi tạo Select2 cho tất cả dropdown có class .select2
+            $('.select2').select2({ width: '100%' });
+
             const savedScrollPos = sessionStorage.getItem('sidebarScrollPos');
             if (sidebarNav && savedScrollPos) sidebarNav.scrollTop = parseInt(savedScrollPos);
 
-            // Restore menu state (if not forced by server)
             const savedMenuState = localStorage.getItem('regMenuState');
             if (savedMenuState === 'open' && regSub) {
                 regSub.style.display = 'flex';
@@ -403,8 +584,12 @@
             }
         });
 
+        window.addEventListener('beforeunload', () => {
+            if (sidebarNav) sessionStorage.setItem('sidebarScrollPos', sidebarNav.scrollTop);
+        });
+
         // ==========================================
-        // 3. User Dropdown
+        // 3. Dropdowns (User, Notification)
         // ==========================================
         const userBtn = document.getElementById('userMenuButton');
         const userDrop = document.getElementById('userDropdown');
@@ -419,8 +604,26 @@
             });
         }
 
+        const bell = document.getElementById('notiBell');
+        const dropNotiMenu = document.getElementById('notificationDropdown');
+        if (bell) {
+            bell.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = dropNotiMenu.style.display === 'none';
+                dropNotiMenu.style.display = isHidden ? 'flex' : 'none';
+                if (isHidden) loadNotifications(true);
+            });
+        }
+
+        document.addEventListener('click', () => {
+            if (langDrop) langDrop.style.display = 'none';
+            if (dropNotiMenu) dropNotiMenu.style.display = 'none';
+            if (userDrop) userDrop.style.display = 'none';
+            if (userArrow) userArrow.style.transform = 'rotate(0deg)';
+        });
+
         // ==========================================
-        // 4. Hệ thống Thông báo (Notification)
+        // 4. Notification Logic
         // ==========================================
         const notiSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         notiSound.volume = 0.5;
@@ -451,18 +654,18 @@
                     badge.style.display = unreadCount > 0 ? 'flex' : 'none';
                 }
 
-                if (isOpen) {
-                    renderNotiList(listItems, readIdsFromCookie);
-                }
+                if (isOpen) renderNotiList(listItems, readIdsFromCookie);
             } catch (err) { console.log("Noti fetch error"); }
         }
 
         function renderNotiList(items, readIds) {
             const notiList = document.getElementById('notiList');
             allFetchedIds = items.map(i => i.id.toString());
-            
             notiList.innerHTML = items.map(item => {
                 const isRead = readIds.includes(item.id.toString());
+                // Sử dụng Moment.js để format thời gian nếu cần
+                const displayTime = item.time; 
+
                 return `
                     <a href="/FormHR/ChiTiet/${item.idFormHr}" onclick="markAsRead('${item.id}')" 
                        style="display:flex; gap:15px; padding:15px 20px; border-bottom:1px solid #f8fafc; text-decoration:none; color:inherit; background:${isRead ? '#fff' : '#f0f9ff'}; transition:0.2s;">
@@ -472,7 +675,7 @@
                         <div style="flex:1;">
                             <div style="font-size:0.85rem; font-weight:${isRead ? '500' : '800'}; color:#1e293b;">${item.tieuDe}</div>
                             <div style="font-size:0.75rem; color:#64748b; margin-top:3px;">${item.mota || ''}</div>
-                            <div style="font-size:0.65rem; color:#94a3b8; margin-top:5px;"><i class="fa fa-clock-o"></i> ${item.time}</div>
+                            <div style="font-size:0.65rem; color:#94a3b8; margin-top:5px;"><i class="fa fa-clock-o"></i> ${displayTime}</div>
                         </div>
                         ${!isRead ? '<div style="width:8px; height:8px; background:#3b82f6; border-radius:50%; align-self:center;"></div>' : ''}
                     </a>`;
@@ -485,7 +688,7 @@
             if (latestText) latestText.innerText = item.tieuDe;
             if (latestTag) latestTag.style.display = 'flex';
             notiSound.play().catch(() => {});
-            setTimeout(() => { latestTag.style.display = 'none'; }, 6000);
+            setTimeout(() => { if(latestTag) latestTag.style.display = 'none'; }, 6000);
         }
 
         function getReadIds() {
@@ -513,26 +716,8 @@
             loadNotifications(true);
         }
 
-        // Initial & Interval
-        const bell = document.getElementById('notiBell');
-        const drop = document.getElementById('notificationDropdown');
-        if (bell) {
-            bell.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const isHidden = drop.style.display === 'none';
-                drop.style.display = isHidden ? 'flex' : 'none';
-                if (isHidden) loadNotifications(true);
-            });
-        }
-
-        document.addEventListener('click', () => {
-            if (drop) drop.style.display = 'none';
-            if (userDrop) userDrop.style.display = 'none';
-        });
-
         setInterval(() => loadNotifications(false), 30000);
         loadNotifications(false);
-
     </script>
 
     @RenderSection("Scripts", required: false)

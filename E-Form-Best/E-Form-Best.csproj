@@ -26,6 +26,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<Folder Include="Areas\SHDform\Controllers\" />
+		<Folder Include="Areas\SHDform\Views\" />
 		<Folder Include="wwwroot\FileIT\" />
 	</ItemGroup>
 </Project>

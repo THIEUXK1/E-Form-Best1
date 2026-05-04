@@ -794,11 +794,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
                             ?? User.FindFirst("UserRole")?.Value ?? "";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
-
-            // --- LẤY THÊM THÔNG TIN TÊN CÔNG TY TỪ CLAIM ---
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
-            // --- CẬP NHẬT: LẤY DANH SÁCH CÔNG VIỆC THAY VÌ NGƯỜI HỖ TRỢ ---
             ViewBag.CongViecList = await _context.CongViecIts
                 .Where(x => x.Ten.Contains("Đăng kí sử dụng wifi"))
                 .OrderBy(x => x.Ten)
@@ -810,7 +807,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 BoPhan = phongBan,
                 ViTri = userRole,
                 SoNhanVien = userEmail,
-                TenCongTy = tenCongTy, // Gán thông ty vào model
+                TenCongTy = tenCongTy,
                 Ngay = DateOnly.FromDateTime(DateTime.Now),
                 IdNguoiTao = userId,
                 TenNguoiTao = userName,
@@ -825,7 +822,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         [HttpPost("/FormIT/TaoIT_Wifi")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> TaoIT_Wifi(FormIt form, [FromForm] ItDangKiSuDungWifi3 itWifi, int selectedCongViecId)
+        public async Task<IActionResult> TaoIT_Wifi(FormIt form, [FromForm] List<ItDangKiSuDungWifi3> itWifiList, int selectedCongViecId)
         {
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim)) return Redirect("/DonXetDuyet/DangNhap");
@@ -873,7 +870,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
                     string timeStamp = DateTime.Now.ToString("ddMMyy_HHmmss");
 
-                    // --- 3. XỬ LÝ FILE ĐÍNH KÈM (UploadFile) ---
+                    // --- 3. XỬ LÝ FILE ĐÍNH KÈM (Dùng chung cho cả đơn) ---
                     var uploadFile = Request.Form.Files["UploadFile"];
                     string fileLog = "Không có tệp đính kèm";
 
@@ -894,32 +891,34 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- 4. CHI TIẾT WIFI (ItDangKiSuDungWifi3) & XỬ LÝ ẢNH ---
-                    if (itWifi != null)
+                    // --- 4. CHI TIẾT WIFI (List<ItDangKiSuDungWifi3>) & XỬ LÝ ẢNH ---
+                    string imgFileName = null;
+                    var anhFile = Request.Form.Files["Anh"];
+                    if (anhFile != null && anhFile.Length > 0)
                     {
-                        itWifi.IdFormIt = form.Id;
+                        string imgExtension = Path.GetExtension(anhFile.FileName);
+                        if (string.IsNullOrEmpty(imgExtension)) imgExtension = ".jpg";
+                        imgFileName = $"AnhWifi_ID{form.Id}_{safeName}_{timeStamp}{imgExtension}";
+                        string imgFullPath = Path.Combine(networkPath, imgFileName);
 
-                        // Xử lý lưu ảnh vật lý thay vì lưu vào DB
-                        var anhFile = Request.Form.Files["Anh"];
-                        if (anhFile != null && anhFile.Length > 0)
+                        using (var imgStream = new FileStream(imgFullPath, FileMode.Create))
                         {
-                            string imgExtension = Path.GetExtension(anhFile.FileName);
-                            if (string.IsNullOrEmpty(imgExtension)) imgExtension = ".jpg";
-
-                            string imgFileName = $"AnhWifi_ID{form.Id}_{safeName}_{timeStamp}{imgExtension}";
-                            string imgFullPath = Path.Combine(networkPath, imgFileName);
-
-                            using (var imgStream = new FileStream(imgFullPath, FileMode.Create))
-                            {
-                                await anhFile.CopyToAsync(imgStream);
-                            }
-
-                            // Lưu tên file vào cột DuongDanAnh và để cột Anh null
-                            itWifi.DuongDanAnh = imgFileName;
-                            itWifi.Anh = null;
+                            await anhFile.CopyToAsync(imgStream);
                         }
+                    }
 
-                        _context.ItDangKiSuDungWifi3s.Add(itWifi);
+                    if (itWifiList != null && itWifiList.Any())
+                    {
+                        foreach (var itWifi in itWifiList)
+                        {
+                            itWifi.IdFormIt = form.Id;
+                            if (!string.IsNullOrEmpty(imgFileName))
+                            {
+                                itWifi.DuongDanAnh = imgFileName;
+                                itWifi.Anh = null;
+                            }
+                        }
+                        _context.ItDangKiSuDungWifi3s.AddRange(itWifiList);
                         await _context.SaveChangesAsync();
                     }
 
@@ -934,24 +933,22 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             Stt = 1
                         };
                         _context.ItCtNguoiHoTros.Add(ctNguoiHoTro);
-                        supporterLog = $"Đã tự động gán: {congViec.IdItNguoiHoTroNavigation?.Ten ?? "Nhân viên IT"} (Dựa trên loại CV: {congViec.Ten})";
+                        supporterLog = $"Đã tự động gán: {congViec.IdItNguoiHoTroNavigation?.Ten ?? "Nhân viên IT"}";
                     }
 
                     // --- 6. LƯU LỊCH SỬ CHI TIẾT ---
-                    string anhLog = string.IsNullOrEmpty(itWifi?.DuongDanAnh) ? "Không có ảnh" : $"Ảnh: {itWifi.DuongDanAnh}";
+                    string anhLog = string.IsNullOrEmpty(imgFileName) ? "Không có ảnh" : $"Ảnh: {imgFileName}";
                     var lichSu = new LichSuFormIt
                     {
                         IdFormIt = form.Id,
                         TieuDe = "Khởi tạo đơn Wifi",
-                        Mota = $"Người tạo: {userName} (ID: {userId}) | Công ty: {tenCongTy} | Thiết bị: {itWifi?.LoaiThietBi} | MAC: {itWifi?.MacTb}. " +
-                               $"{supporterLog}. {fileLog}. {anhLog}",
+                        Mota = $"Người tạo: {userName} | Số lượng thiết bị: {itWifiList?.Count}. {supporterLog}. {fileLog}. {anhLog}",
                         Time = DateTime.Now
                     };
                     _context.LichSuFormIts.Add(lichSu);
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
-
 
                     TempData["Success"] = "Gửi yêu cầu đăng ký Wifi thành công!";
                     return Redirect("/FormIT/DonCho");
@@ -1198,7 +1195,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/FormIT/DonTaiKhoanHeThong")]
-        public async Task<IActionResult> DonTaiKhoanHeThong(FormIt form, [FromForm] ItDangKiTaiKhoanHeThong5 itTaiKhoan, int SelectedCongViecId)
+        public async Task<IActionResult> DonTaiKhoanHeThong(FormIt form, [FromForm] List<ItDangKiTaiKhoanHeThong5> itTaiKhoanList, int SelectedCongViecId)
         {
             // --- LẤY THÔNG TIN TỪ CLAIMS ---
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -1268,30 +1265,40 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 3: LƯU CHI TIẾT (ItDangKiTaiKhoanHeThong5) & XỬ LÝ ẢNH ---
-                    if (itTaiKhoan != null)
+                    // --- BƯỚC 3: LƯU CHI TIẾT (List<ItDangKiTaiKhoanHeThong5>) & XỬ LÝ ẢNH ---
+                    string imgFileName = null;
+                    var anhFile = Request.Form.Files["Anh"];
+
+                    // Xử lý lưu ảnh 1 lần nếu có
+                    if (anhFile != null && anhFile.Length > 0)
                     {
-                        itTaiKhoan.IdFormIt = form.Id;
+                        string imgExtension = Path.GetExtension(anhFile.FileName);
+                        if (string.IsNullOrEmpty(imgExtension)) imgExtension = ".jpg";
 
-                        var anhFile = Request.Form.Files["Anh"];
-                        if (anhFile != null && anhFile.Length > 0)
+                        imgFileName = $"AnhTKHT_ID{form.Id}_{safeName}_{timeStamp}{imgExtension}";
+                        string imgFullPath = Path.Combine(networkPath, imgFileName);
+
+                        using (var imgStream = new FileStream(imgFullPath, FileMode.Create))
                         {
-                            string imgExtension = Path.GetExtension(anhFile.FileName);
-                            if (string.IsNullOrEmpty(imgExtension)) imgExtension = ".jpg";
+                            await anhFile.CopyToAsync(imgStream);
+                        }
+                    }
 
-                            string imgFileName = $"AnhTKHT_ID{form.Id}_{safeName}_{timeStamp}{imgExtension}";
-                            string imgFullPath = Path.Combine(networkPath, imgFileName);
+                    if (itTaiKhoanList != null && itTaiKhoanList.Any())
+                    {
+                        foreach (var itTaiKhoan in itTaiKhoanList)
+                        {
+                            itTaiKhoan.IdFormIt = form.Id;
 
-                            using (var imgStream = new FileStream(imgFullPath, FileMode.Create))
+                            // Gán chung đường dẫn ảnh cho tất cả người/hệ thống được đăng ký
+                            if (!string.IsNullOrEmpty(imgFileName))
                             {
-                                await anhFile.CopyToAsync(imgStream);
+                                itTaiKhoan.DuongDanAnh = imgFileName;
+                                itTaiKhoan.Anh = null;
                             }
-
-                            itTaiKhoan.DuongDanAnh = imgFileName;
-                            itTaiKhoan.Anh = null; // Đảm bảo không lưu byte[] vào DB nếu đã dùng file
                         }
 
-                        _context.ItDangKiTaiKhoanHeThong5s.Add(itTaiKhoan);
+                        _context.ItDangKiTaiKhoanHeThong5s.AddRange(itTaiKhoanList);
                         await _context.SaveChangesAsync();
                     }
 
@@ -1311,13 +1318,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     }
 
                     // --- BƯỚC 5: LƯU LỊCH SỬ ---
-                    string anhLog = string.IsNullOrEmpty(itTaiKhoan?.DuongDanAnh) ? "Không có ảnh" : $"Ảnh: {itTaiKhoan.DuongDanAnh}";
+                    string anhLog = string.IsNullOrEmpty(imgFileName) ? "Không có ảnh" : $"Ảnh: {imgFileName}";
+                    var soLuongDangKy = itTaiKhoanList?.Count ?? 0;
                     var lichSu = new LichSuFormIt
                     {
                         IdFormIt = form.Id,
                         TieuDe = "Khởi tạo đơn Tài khoản Hệ thống",
-                        Mota = $"Người thao tác: {userName} | Hệ thống: {itTaiKhoan?.HeThongNao} | Loại đơn: {itTaiKhoan?.LoaiDon}. " +
-                               $"Cấp quyền giống: {itTaiKhoan?.CapQuyenGiongAi}. {supporterLog}. {fileLog}. {anhLog}",
+                        Mota = $"Người thao tác: {userName} | Đăng ký cho {soLuongDangKy} tài khoản/hệ thống. {supporterLog}. {fileLog}. {anhLog}",
                         Time = DateTime.Now
                     };
                     _context.LichSuFormIts.Add(lichSu);

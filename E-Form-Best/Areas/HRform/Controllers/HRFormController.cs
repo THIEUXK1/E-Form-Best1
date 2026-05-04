@@ -2231,18 +2231,27 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
                         string timeStamp = DateTime.Now.ToString("ddMMyy_HHmm");
 
-                        // A. File đính kèm chính (UploadFile)
-                        var uploadFile = Request.Form.Files["UploadFile"];
-                        if (uploadFile != null && uploadFile.Length > 0)
+                        // A. File đính kèm chính (UploadFiles - Cho phép tải nhiều file)
+                        var uploadFiles = Request.Form.Files.GetFiles("UploadFiles");
+                        if (uploadFiles != null && uploadFiles.Count > 0)
                         {
-                            string ext = Path.GetExtension(uploadFile.FileName);
-                            string fileName = $"File_HTCT_ID{form.Id}_{safeName}_{timeStamp}{ext}";
-                            string fullPath = Path.Combine(networkPath, fileName);
-                            using (var fs = new FileStream(fullPath, FileMode.Create))
+                            List<string> savedFileNames = new List<string>();
+                            for (int i = 0; i < uploadFiles.Count; i++)
                             {
-                                await uploadFile.CopyToAsync(fs);
+                                var file = uploadFiles[i];
+                                if (file.Length > 0)
+                                {
+                                    string ext = Path.GetExtension(file.FileName);
+                                    string fileName = $"File_HTCT_ID{form.Id}_{safeName}_{timeStamp}_{i}{ext}";
+                                    string fullPath = Path.Combine(networkPath, fileName);
+                                    using (var fs = new FileStream(fullPath, FileMode.Create))
+                                    {
+                                        await file.CopyToAsync(fs);
+                                    }
+                                    savedFileNames.Add(fileName);
+                                }
                             }
-                            form.FileDinhKem = fileName;
+                            form.FileDinhKem = string.Join("|", savedFileNames);
                         }
 
                         // B. Ảnh minh chứng (Anh)

@@ -33,11 +33,13 @@
 
     // ── 3. FILE & ẢNH ──
     List<string> listImages = new List<string>();
-    string chiTietNoiDung = "", fileName = "", fileUrl = "";
+    string chiTietNoiDung = "";
+    
+    // MỚI: Xử lý cắt chuỗi nhiều file đính kèm
+    List<string> listFileDinhKem = new List<string>();
     if (!string.IsNullOrEmpty(Model.FileDinhKem))
     {
-        fileName = System.IO.Path.GetFileName(Model.FileDinhKem);
-        fileUrl = "/FormHR/DownloadFile/" + Uri.EscapeDataString(fileName);
+        listFileDinhKem = Model.FileDinhKem.Split('|', StringSplitOptions.RemoveEmptyEntries).ToList();
     }
 
     // ── 4. HELPERS ──
@@ -68,123 +70,129 @@
             listImages.Add("data:image/png;base64," + Convert.ToBase64String(rawData));
     }
 
-    // ── 5. NỘI DUNG 9 LOẠI ĐƠN ──
-    if (Model.HrXinRaNgoai1s?.Any() == true)
+    // ── 5. NỘI DUNG 9 LOẠI ĐƠN (ĐƯỢC GOM VÀO HÀM ĐỂ CHỐNG PHÌNH TO CODE) ──
+    void BuildNoiDung9LoaiDon()
     {
-        var ct = Model.HrXinRaNgoai1s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
-        chiTietNoiDung += RenderInfoRow("📍", "Địa điểm", ct.DiaDiem, "#eff6ff", "#1e40af");
-        chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#eff6ff", "#1e40af");
-        chiTietNoiDung += RenderInfoRow("🕒", "Giờ ra", ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "#fef2f2", "#991b1b");
-        chiTietNoiDung += RenderInfoRow("🔄", "Dự kiến về", ct.ThoiGianVeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#ecfdf5", "#065f46");
-    }
-    if (Model.HrMangHangHoaRaCong2s?.Any() == true)
-    {
-        var ct = Model.HrMangHangHoaRaCong2s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
-        chiTietNoiDung += RenderInfoRow("📦", "Loại đơn", "Mang hàng hóa ra cổng", "#f0fdf4", "#166534");
-        chiTietNoiDung += RenderInfoRow("📋", "Mô tả", ct.MoTa, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("📅", "Thời gian dự tính", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#f0fdf4", "#166534");
-        chiTietNoiDung += RenderSecurityBox(ct.TenCong, ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "hàng ra thực tế");
-    }
-    if (Model.HrDangKySuDungXeCongTac3s?.Any() == true)
-    {
-        var ct = Model.HrDangKySuDungXeCongTac3s.First();
-        ProcessImage(ct.DuongDanAnh, ct.Anh);
-        chiTietNoiDung += RenderInfoRow("🚗", "Dịch vụ", "Đăng ký xe công tác", "#eef2ff", "#1e40af");
-        chiTietNoiDung += RenderInfoRow("📞", "Số điện thoại", !string.IsNullOrEmpty(ct.SoDienThoai) ? ct.SoDienThoai : "Chưa cung cấp", "#f0fdf4", "#166534");
-        chiTietNoiDung += RenderInfoRow("👥", "Số lượng người", ct.SoLuong.HasValue ? $"{ct.SoLuong} người" : "Chưa xác định", "#f0fdf4", "#166534");
-        string thoiGianDi = ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa xác định";
-        string thoiGianVe = ct.ThoiGianVe?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa xác định";
-        chiTietNoiDung += RenderInfoRow("📅", "Thời gian (Đi - Về)", $"{thoiGianDi} ➜ {thoiGianVe}", "#eff6ff", "#1e40af");
-        chiTietNoiDung += RenderInfoRow("📍", "Mục đích / Lộ trình", !string.IsNullOrEmpty(ct.LiDo) ? ct.LiDo : "Trống", "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("📝", "Ghi chú", !string.IsNullOrEmpty(ct.GhiChu) ? ct.GhiChu : "Không có ghi chú", "#fff7ed", "#9a3412");
-    }
-    if (Model.HrDangKySuDungXeDaily4s?.Any() == true)
-    {
-        var ct = Model.HrDangKySuDungXeDaily4s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
-        chiTietNoiDung += RenderInfoRow("🚌", "Dịch vụ", "Đăng ký xe Daily", "#fff7ed", "#9a3412");
-        chiTietNoiDung += RenderInfoRow("🕒", "Thời gian", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#fff7ed", "#9a3412");
-        chiTietNoiDung += RenderInfoRow("📍", "Điểm đón", ct.DiemDon, "#f0f9ff", "#0369a1");
-        chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#f8fafc", "#0f172a");
-    }
-    if (Model.HrDonTiepKhac5s?.Any() == true)
-    {
-        var ct = Model.HrDonTiepKhac5s.First();
-        if (!string.IsNullOrEmpty(ct.DuongDanAnh))
-            listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
-        chiTietNoiDung += RenderInfoRow("🤝", "Loại đơn", "Đăng ký Tiếp khách", "#fdf2f8", "#9d174d");
-        chiTietNoiDung += RenderInfoRow("🏢", "Công ty khách", ct.TenCongTyKhach ?? "...", "#fff1f2", "#be123c");
-        chiTietNoiDung += RenderInfoRow("👥", "Số lượng khách", (ct.SoLuongKhach?.ToString() ?? "0") + " người", "#fff1f2", "#be123c");
-        chiTietNoiDung += RenderInfoRow("📞", "Người đặt", $"{(ct.NguoiBook ?? "...")} - Ext: {(ct.SoMayBan ?? "...")}", "#fff1f2", "#be123c");
-        chiTietNoiDung += RenderInfoRow("📝", "Yêu cầu", ct.YeuCauTiepKhach ?? "Không có", "#f8fafc", "#475569");
-        chiTietNoiDung += RenderInfoRow("📅", "Ngày yêu cầu", Model.Ngay?.ToString("dd/MM/yyyy") ?? "...", "#fff1f2", "#be123c");
-        chiTietNoiDung += "<div style='margin-top:10px;border-top:1px dashed #f9a8d4;padding-top:10px;'></div>";
-        chiTietNoiDung += RenderInfoRow("🏫", "Phòng họp", ct.TenPhongHop ?? "Không đăng ký", "#f0f9ff", "#0369a1");
-        chiTietNoiDung += RenderInfoRow("⚙️", "Tiện ích", ct.NhuCauPhongHop ?? "Không có", "#f0f9ff", "#0369a1");
-        chiTietNoiDung += RenderInfoRow("⏰", "Bắt đầu", ct.ThoiGianBatDau?.ToString("HH:mm dd/MM/yyyy") ?? "...", "#f0f9ff", "#0369a1");
-        chiTietNoiDung += RenderInfoRow("⌛", "Kết thúc", ct.ThoiGianKetThuc?.ToString("HH:mm dd/MM/yyyy") ?? "...", "#f0f9ff", "#0369a1");
-        chiTietNoiDung += RenderInfoRow("💬", "Ghi chú phòng", ct.GhiChuPhongHop ?? "Không có", "#f0f9ff", "#0369a1");
-        chiTietNoiDung += "<div style='margin-top:10px;border-top:1px dashed #f9a8d4;padding-top:10px;'></div>";
-        chiTietNoiDung += RenderInfoRow("🍱", "Loại suất ăn", string.IsNullOrEmpty(ct.LoaiSuatAn) ? "Không đăng ký" : "Loại " + ct.LoaiSuatAn, "#f0fdf4", "#15803d");
-        chiTietNoiDung += RenderInfoRow("🔢", "Tổng số suất", (ct.SoLuongSuat?.ToString() ?? "0") + " suất", "#f0fdf4", "#15803d");
-        chiTietNoiDung += RenderInfoRow("🌿", "Ăn chay", ct.AnChay ?? "Không", "#f0fdf4", "#15803d");
-        chiTietNoiDung += RenderInfoRow("🥗", "Số lượng chay", (ct.SoLuongSuatAnChay?.ToString() ?? "0") + " suất", "#f0fdf4", "#15803d");
-        chiTietNoiDung += RenderInfoRow("💡", "Ghi chú ăn", ct.GhiChuSuatAn ?? "Không có", "#f0fdf4", "#15803d");
-    }
-    if (Model.HrNhaThauQuaCong6s?.Any() == true)
-    {
-        var ct = Model.HrNhaThauQuaCong6s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
-        chiTietNoiDung += RenderInfoRow("🏗️", "Loại đơn", "Nhà thầu qua cổng", "#f1f5f9", "#334155");
-        chiTietNoiDung += RenderInfoRow("🏢", "Tên nhà thầu", ct.TenNhaThau, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("👥", "Số người", ct.SoNguoi?.ToString() + " người", "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("👤", "Người đăng ký", ct.NguoiDangKy, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDichCongViec, "#f8fafc", "#0f172a");
-    }
-    if (Model.HrHoTroTienDienThoai7s?.Any() == true)
-    {
-        var ct = Model.HrHoTroTienDienThoai7s.First();
-        ProcessImage(ct.DuongDanAnh, ct.Anh);
-        chiTietNoiDung += RenderInfoRow("📱", "Dịch vụ", "Hỗ trợ tiền điện thoại", "#f0fdf4", "#166534");
-        chiTietNoiDung += RenderInfoRow("📞", "Số điện thoại", ct.SoDienThoai ?? "Chưa cập nhật", "#eff6ff", "#1e40af");
-        chiTietNoiDung += RenderInfoRow("💰", "Mức hỗ trợ", (ct.MucHoTro.HasValue ? ct.MucHoTro.Value.ToString("N0") : "0") + " VNĐ", "#fff7ed", "#9a3412");
-        chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDich ?? "Chưa có nội dung", "#f8fafc", "#0f172a");
-    }
-    if (Model.HrDoiCaLam8s?.Any() == true)
-    {
-        var ct = Model.HrDoiCaLam8s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
-        chiTietNoiDung += RenderInfoRow("⏰", "Loại đơn", "Đổi ca làm việc", "#fff7ed", "#c2410c");
-        chiTietNoiDung += RenderInfoRow("📅", "Ngày cần đổi", ct.NgayCanDoi?.ToString("dd/MM/yyyy"), "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("🔄", "Ca gốc", ct.CaGoc, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("➡️", "Ca muốn đổi", ct.CaMuonDoi, "#f8fafc", "#0f172a");
-        chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LyDoDoiCa, "#f8fafc", "#0f172a");
-    }
-    if (Model.HrDonHoTroCongTac9s?.Any() == true)
-    {
-        var ct = Model.HrDonHoTroCongTac9s.First();
-        if (!string.IsNullOrEmpty(ct.DuongDanAnh))
-            listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
-        chiTietNoiDung += RenderInfoRow("📋", "Loại đơn", "Hỗ trợ công tác", "#eef2ff", "#1e40af");
-        chiTietNoiDung += RenderInfoRow("🆔", "Mã nhân viên", ct.MaNhanVien, "#f8fafc", "#0f172a");
-        string genderIcon = ct.GioiTinh == "Nữ" ? "👩‍💼" : "👨‍💼";
-        chiTietNoiDung += RenderInfoRow(genderIcon, "Khách hàng", $"[{ct.GioiTinh}] {ct.TenKhachHang}", "#f0fdf4", "#166534");
-        List<string> selectedServices = new List<string>();
-        if (ct.DatVeMayBay == true) selectedServices.Add("✈️ Vé máy bay");
-        if (ct.DatChoO == true) selectedServices.Add("🏨 Chỗ ở");
-        if (ct.BookXeCtyDuaDon == true) selectedServices.Add("🚗 Xe đưa đón");
-        if (ct.DatBuaAn == true)
+        if (Model.HrXinRaNgoai1s?.Any() == true)
         {
-            string loaiCom = "🍽️ Đặt bữa ăn";
-            if (ct.NoiDungYeuCauChiTiet != null)
-            {
-                if (ct.NoiDungYeuCauChiTiet.Contains("VietNam")) loaiCom = "🍽️ Cơm Việt Nam";
-                else if (ct.NoiDungYeuCauChiTiet.Contains("TrungQuoc")) loaiCom = "🍽️ Cơm Trung Quốc";
-            }
-            selectedServices.Add(loaiCom);
+            var ct = Model.HrXinRaNgoai1s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
+            chiTietNoiDung += RenderInfoRow("📍", "Địa điểm", ct.DiaDiem, "#eff6ff", "#1e40af");
+            chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#eff6ff", "#1e40af");
+            chiTietNoiDung += RenderInfoRow("🕒", "Giờ ra", ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "#fef2f2", "#991b1b");
+            chiTietNoiDung += RenderInfoRow("🔄", "Dự kiến về", ct.ThoiGianVeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#ecfdf5", "#065f46");
         }
-        chiTietNoiDung += RenderInfoRow("🛠️", "Dịch vụ yêu cầu",
-            selectedServices.Count > 0 ? string.Join(" | ", selectedServices) : "Không có yêu cầu đặc biệt",
-            "#fff7ed", "#9a3412");
-        chiTietNoiDung += RenderInfoRow("📝", "Nội dung chi tiết", ct.NoiDungYeuCauChiTiet ?? "", "#f8fafc", "#0f172a");
+        if (Model.HrMangHangHoaRaCong2s?.Any() == true)
+        {
+            var ct = Model.HrMangHangHoaRaCong2s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
+            chiTietNoiDung += RenderInfoRow("📦", "Loại đơn", "Mang hàng hóa ra cổng", "#f0fdf4", "#166534");
+            chiTietNoiDung += RenderInfoRow("📋", "Mô tả", ct.MoTa, "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("📅", "Thời gian dự tính", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#f0fdf4", "#166534");
+            chiTietNoiDung += RenderSecurityBox(ct.TenCong, ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "hàng ra thực tế");
+        }
+        if (Model.HrDangKySuDungXeCongTac3s?.Any() == true)
+        {
+            var ct = Model.HrDangKySuDungXeCongTac3s.First();
+            ProcessImage(ct.DuongDanAnh, ct.Anh);
+            chiTietNoiDung += RenderInfoRow("🚗", "Dịch vụ", "Đăng ký xe công tác", "#eef2ff", "#1e40af");
+            chiTietNoiDung += RenderInfoRow("📞", "Số điện thoại", !string.IsNullOrEmpty(ct.SoDienThoai) ? ct.SoDienThoai : "Chưa cung cấp", "#f0fdf4", "#166534");
+            chiTietNoiDung += RenderInfoRow("👥", "Số lượng người", ct.SoLuong.HasValue ? $"{ct.SoLuong} người" : "Chưa xác định", "#f0fdf4", "#166534");
+            string thoiGianDi = ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa xác định";
+            string thoiGianVe = ct.ThoiGianVe?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa xác định";
+            chiTietNoiDung += RenderInfoRow("📅", "Thời gian (Đi - Về)", $"{thoiGianDi} ➜ {thoiGianVe}", "#eff6ff", "#1e40af");
+            chiTietNoiDung += RenderInfoRow("📍", "Mục đích / Lộ trình", !string.IsNullOrEmpty(ct.LiDo) ? ct.LiDo : "Trống", "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("📝", "Ghi chú", !string.IsNullOrEmpty(ct.GhiChu) ? ct.GhiChu : "Không có ghi chú", "#fff7ed", "#9a3412");
+        }
+        if (Model.HrDangKySuDungXeDaily4s?.Any() == true)
+        {
+            var ct = Model.HrDangKySuDungXeDaily4s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
+            chiTietNoiDung += RenderInfoRow("🚌", "Dịch vụ", "Đăng ký xe Daily", "#fff7ed", "#9a3412");
+            chiTietNoiDung += RenderInfoRow("🕒", "Thời gian", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#fff7ed", "#9a3412");
+            chiTietNoiDung += RenderInfoRow("📍", "Điểm đón", ct.DiemDon, "#f0f9ff", "#0369a1");
+            chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#f8fafc", "#0f172a");
+        }
+        if (Model.HrDonTiepKhac5s?.Any() == true)
+        {
+            var ct = Model.HrDonTiepKhac5s.First();
+            if (!string.IsNullOrEmpty(ct.DuongDanAnh))
+                listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
+            chiTietNoiDung += RenderInfoRow("🤝", "Loại đơn", "Đăng ký Tiếp khách", "#fdf2f8", "#9d174d");
+            chiTietNoiDung += RenderInfoRow("🏢", "Công ty khách", ct.TenCongTyKhach ?? "...", "#fff1f2", "#be123c");
+            chiTietNoiDung += RenderInfoRow("👥", "Số lượng khách", (ct.SoLuongKhach?.ToString() ?? "0") + " người", "#fff1f2", "#be123c");
+            chiTietNoiDung += RenderInfoRow("📞", "Người đặt", $"{(ct.NguoiBook ?? "...")} - Ext: {(ct.SoMayBan ?? "...")}", "#fff1f2", "#be123c");
+            chiTietNoiDung += RenderInfoRow("📝", "Yêu cầu", ct.YeuCauTiepKhach ?? "Không có", "#f8fafc", "#475569");
+            chiTietNoiDung += RenderInfoRow("📅", "Ngày yêu cầu", Model.Ngay?.ToString("dd/MM/yyyy") ?? "...", "#fff1f2", "#be123c");
+            chiTietNoiDung += "<div style='margin-top:10px;border-top:1px dashed #f9a8d4;padding-top:10px;'></div>";
+            chiTietNoiDung += RenderInfoRow("🏫", "Phòng họp", ct.TenPhongHop ?? "Không đăng ký", "#f0f9ff", "#0369a1");
+            chiTietNoiDung += RenderInfoRow("⚙️", "Tiện ích", ct.NhuCauPhongHop ?? "Không có", "#f0f9ff", "#0369a1");
+            chiTietNoiDung += RenderInfoRow("⏰", "Bắt đầu", ct.ThoiGianBatDau?.ToString("HH:mm dd/MM/yyyy") ?? "...", "#f0f9ff", "#0369a1");
+            chiTietNoiDung += RenderInfoRow("⌛", "Kết thúc", ct.ThoiGianKetThuc?.ToString("HH:mm dd/MM/yyyy") ?? "...", "#f0f9ff", "#0369a1");
+            chiTietNoiDung += RenderInfoRow("💬", "Ghi chú phòng", ct.GhiChuPhongHop ?? "Không có", "#f0f9ff", "#0369a1");
+            chiTietNoiDung += "<div style='margin-top:10px;border-top:1px dashed #f9a8d4;padding-top:10px;'></div>";
+            chiTietNoiDung += RenderInfoRow("🍱", "Loại suất ăn", string.IsNullOrEmpty(ct.LoaiSuatAn) ? "Không đăng ký" : "Loại " + ct.LoaiSuatAn, "#f0fdf4", "#15803d");
+            chiTietNoiDung += RenderInfoRow("🔢", "Tổng số suất", (ct.SoLuongSuat?.ToString() ?? "0") + " suất", "#f0fdf4", "#15803d");
+            chiTietNoiDung += RenderInfoRow("🌿", "Ăn chay", ct.AnChay ?? "Không", "#f0fdf4", "#15803d");
+            chiTietNoiDung += RenderInfoRow("🥗", "Số lượng chay", (ct.SoLuongSuatAnChay?.ToString() ?? "0") + " suất", "#f0fdf4", "#15803d");
+            chiTietNoiDung += RenderInfoRow("💡", "Ghi chú ăn", ct.GhiChuSuatAn ?? "Không có", "#f0fdf4", "#15803d");
+        }
+        if (Model.HrNhaThauQuaCong6s?.Any() == true)
+        {
+            var ct = Model.HrNhaThauQuaCong6s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
+            chiTietNoiDung += RenderInfoRow("🏗️", "Loại đơn", "Nhà thầu qua cổng", "#f1f5f9", "#334155");
+            chiTietNoiDung += RenderInfoRow("🏢", "Tên nhà thầu", ct.TenNhaThau, "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("👥", "Số người", ct.SoNguoi?.ToString() + " người", "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("👤", "Người đăng ký", ct.NguoiDangKy, "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDichCongViec, "#f8fafc", "#0f172a");
+        }
+        if (Model.HrHoTroTienDienThoai7s?.Any() == true)
+        {
+            var ct = Model.HrHoTroTienDienThoai7s.First();
+            ProcessImage(ct.DuongDanAnh, ct.Anh);
+            chiTietNoiDung += RenderInfoRow("📱", "Dịch vụ", "Hỗ trợ tiền điện thoại", "#f0fdf4", "#166534");
+            chiTietNoiDung += RenderInfoRow("📞", "Số điện thoại", ct.SoDienThoai ?? "Chưa cập nhật", "#eff6ff", "#1e40af");
+            chiTietNoiDung += RenderInfoRow("💰", "Mức hỗ trợ", (ct.MucHoTro.HasValue ? ct.MucHoTro.Value.ToString("N0") : "0") + " VNĐ", "#fff7ed", "#9a3412");
+            chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDich ?? "Chưa có nội dung", "#f8fafc", "#0f172a");
+        }
+        if (Model.HrDoiCaLam8s?.Any() == true)
+        {
+            var ct = Model.HrDoiCaLam8s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
+            chiTietNoiDung += RenderInfoRow("⏰", "Loại đơn", "Đổi ca làm việc", "#fff7ed", "#c2410c");
+            chiTietNoiDung += RenderInfoRow("📅", "Ngày cần đổi", ct.NgayCanDoi?.ToString("dd/MM/yyyy"), "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("🔄", "Ca gốc", ct.CaGoc, "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("➡️", "Ca muốn đổi", ct.CaMuonDoi, "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LyDoDoiCa, "#f8fafc", "#0f172a");
+        }
+        if (Model.HrDonHoTroCongTac9s?.Any() == true)
+        {
+            var ct = Model.HrDonHoTroCongTac9s.First();
+            if (!string.IsNullOrEmpty(ct.DuongDanAnh))
+                listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
+            chiTietNoiDung += RenderInfoRow("📋", "Loại đơn", "Hỗ trợ công tác", "#eef2ff", "#1e40af");
+            chiTietNoiDung += RenderInfoRow("🆔", "Mã nhân viên", ct.MaNhanVien, "#f8fafc", "#0f172a");
+            string genderIcon = ct.GioiTinh == "Nữ" ? "👩‍💼" : "👨‍💼";
+            chiTietNoiDung += RenderInfoRow(genderIcon, "Khách hàng", $"[{ct.GioiTinh}] {ct.TenKhachHang}", "#f0fdf4", "#166534");
+            List<string> selectedServices = new List<string>();
+            if (ct.DatVeMayBay == true) selectedServices.Add("✈️ Vé máy bay");
+            if (ct.DatChoO == true) selectedServices.Add("🏨 Chỗ ở");
+            if (ct.BookXeCtyDuaDon == true) selectedServices.Add("🚗 Xe đưa đón");
+            if (ct.DatBuaAn == true)
+            {
+                string loaiCom = "🍽️ Đặt bữa ăn";
+                if (ct.NoiDungYeuCauChiTiet != null)
+                {
+                    if (ct.NoiDungYeuCauChiTiet.Contains("VietNam")) loaiCom = "🍽️ Cơm Việt Nam";
+                    else if (ct.NoiDungYeuCauChiTiet.Contains("TrungQuoc")) loaiCom = "🍽️ Cơm Trung Quốc";
+                }
+                selectedServices.Add(loaiCom);
+            }
+            chiTietNoiDung += RenderInfoRow("🛠️", "Dịch vụ yêu cầu",
+                selectedServices.Count > 0 ? string.Join(" | ", selectedServices) : "Không có yêu cầu đặc biệt",
+                "#fff7ed", "#9a3412");
+            chiTietNoiDung += RenderInfoRow("📝", "Nội dung chi tiết", ct.NoiDungYeuCauChiTiet ?? "", "#f8fafc", "#0f172a");
+        }
     }
+    
+    // GỌI HÀM VỪA TẠO ĐỂ XỬ LÝ DỮ LIỆU
+    BuildNoiDung9LoaiDon();
 
     // ── 6. DỮ LIỆU XÁC NHẬN GIÁM ĐỐC ──
     var danhSachXacNhan = ViewBag.DanhSachXacNhan as List<E_Form_Best.Models.ITForm.HrNguoiXacNhan>
@@ -392,14 +400,21 @@
                         }
                     }
 
-                    @if (!string.IsNullOrEmpty(fileUrl))
+                    @if (listFileDinhKem.Any())
                     {
-                        <div style="background:#f0f9ff;border:2px solid #bae6fd;padding:22px;border-radius:24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:25px;">
-                            <div style="display:flex;align-items:center;gap:12px;overflow:hidden;">
-                                <i class="fa fa-file-download" style="font-size:24px;color:#0369a1;"></i>
-                                <span style="font-size:14px;font-weight:800;color:#0369a1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@fileName</span>
-                            </div>
-                            <a href="@fileUrl" download style="background:#0369a1;color:white;padding:12px 24px;border-radius:14px;font-weight:800;text-decoration:none;font-size:13px;flex-shrink:0;">TẢI VỀ</a>
+                        <div style="margin-bottom:25px;">
+                            @foreach (var fileItem in listFileDinhKem)
+                            {
+                                string fName = System.IO.Path.GetFileName(fileItem);
+                                string fUrl = "/FormHR/DownloadFile/" + Uri.EscapeDataString(fName);
+                                <div style="background:#f0f9ff;border:2px solid #bae6fd;padding:22px;border-radius:24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                                    <div style="display:flex;align-items:center;gap:12px;overflow:hidden;">
+                                        <i class="fa fa-file-download" style="font-size:24px;color:#0369a1;"></i>
+                                        <span style="font-size:14px;font-weight:800;color:#0369a1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@fName</span>
+                                    </div>
+                                    <a href="@fUrl" download style="background:#0369a1;color:white;padding:12px 24px;border-radius:14px;font-weight:800;text-decoration:none;font-size:13px;flex-shrink:0;">TẢI VỀ</a>
+                                </div>
+                            }
                         </div>
                     }
 
@@ -721,9 +736,27 @@
         </div>
     </div>
 
-    <div id="imageOverlay" onclick="closeZoom()"
-         style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(8px);">
-        <img id="fullImage" src="" style="max-width:95%;max-height:95%;border-radius:16px;">
+    @* --- MỚI: OVERLAY ZOOM CÓ NÚT XOAY ẢNH SIÊU ĐẸP, 100% INLINE CSS --- *@
+    <div id="imageOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(8px);">
+        <!-- Thanh công cụ chứa các nút bấm -->
+        <div style="position:absolute;top:25px;right:35px;display:flex;gap:15px;z-index:10000;">
+            <button onclick="rotateImage(-90, event)" style="background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.3);border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;transition:all 0.3s;backdrop-filter:blur(8px);" onmouseover="this.style.background='rgba(255,255,255,0.3)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.15)';this.style.transform='none'" title="Xoay trái">
+                <i class="fa fa-undo"></i>
+            </button>
+            <button onclick="rotateImage(90, event)" style="background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.3);border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;transition:all 0.3s;backdrop-filter:blur(8px);" onmouseover="this.style.background='rgba(255,255,255,0.3)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.15)';this.style.transform='none'" title="Xoay phải">
+                <i class="fa fa-rotate-right"></i>
+            </button>
+            <div style="width:2px;background:rgba(255,255,255,0.2);margin:10px 0;"></div>
+            <button onclick="closeZoom(event)" style="background:#ef4444;color:white;border:none;border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:26px;transition:all 0.3s;box-shadow:0 4px 15px rgba(239,68,68,0.4);" onmouseover="this.style.background='#dc2626';this.style.transform='translateY(-2px) scale(1.05)'" onmouseout="this.style.background='#ef4444';this.style.transform='none'" title="Đóng">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <!-- Vùng nhấp chuột bên ngoài để đóng -->
+        <div style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:9998;" onclick="closeZoom()"></div>
+        <!-- Container chứa ảnh -->
+        <div style="position:relative;z-index:9999;width:80%;height:80%;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+            <img id="fullImage" src="" style="max-width:100%;max-height:100%;border-radius:16px;transition:transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);object-fit:contain;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);pointer-events:auto;">
+        </div>
     </div>
 </div>
 
@@ -731,7 +764,7 @@
     const formId        = @Model.Id;
     const currentUserId = '@currentUserId';
     const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                                                                                        User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
+                                                                                                                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
     const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
     function hasRole(r) { return userRoles.includes(r); }
@@ -757,9 +790,32 @@
         }
     }
 
-    // ── ZOOM ──
-    function openZoom(src) { document.getElementById('fullImage').src=src; document.getElementById('imageOverlay').style.display='flex'; document.body.style.overflow='hidden'; }
-    function closeZoom()   { document.getElementById('imageOverlay').style.display='none'; document.body.style.overflow='auto'; }
+    // ── ZOOM & XOAY ẢNH (CẬP NHẬT MỚI) ──
+    let currentImageRotation = 0;
+
+    function openZoom(src) {
+        const imgEl = document.getElementById('fullImage');
+        imgEl.src = src;
+        currentImageRotation = 0; // Reset góc xoay mỗi khi mở ảnh mới
+        imgEl.style.transform = `rotate(${currentImageRotation}deg)`;
+        
+        document.getElementById('imageOverlay').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeZoom(event) {
+        if(event) event.stopPropagation();
+        document.getElementById('imageOverlay').style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    function rotateImage(degree, event) {
+        if(event) event.stopPropagation(); // Ngăn sự kiện click đóng ảnh bên dưới
+        currentImageRotation += degree;
+        const imgEl = document.getElementById('fullImage');
+        imgEl.style.transform = `rotate(${currentImageRotation}deg)`;
+    }
+
     document.addEventListener('keydown', e => { if (e.key==='Escape') closeZoom(); });
 
     // ── DUYỆT BƯỚC 2 (B2) ──

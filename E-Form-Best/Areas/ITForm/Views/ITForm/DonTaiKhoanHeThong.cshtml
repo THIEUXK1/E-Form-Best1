@@ -38,6 +38,51 @@
         box-shadow: 0 15px 30px -5px rgba(219, 39, 119, 0.5);
         filter: brightness(1.1);
     }
+
+    .btn-add-item {
+        background: #fdf2f8;
+        color: @colorPrimary;
+        border: 1px dashed @colorPrimary;
+        padding: 10px 20px;
+        border-radius: 12px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .btn-add-item:hover {
+            background: @colorPrimary;
+            color: white;
+        }
+
+    .btn-remove-item {
+        color: #ef4444;
+        background: #fef2f2;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 12px;
+    }
+
+        .btn-remove-item:hover {
+            background: #ef4444;
+            color: white;
+        }
+    
+    /* Box chứa từng item yêu cầu */
+    .tai-khoan-item {
+        background: #fafaf9;
+        border: 1px solid #e7e5e4;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+        position: relative;
+    }
 </style>
 
 <div style="background: linear-gradient(135deg, #fff1f2 0%, #fdf2f8 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif;">
@@ -88,58 +133,80 @@
 
             @* --- PHẦN 2: CHI TIẾT ĐĂNG KÝ TÀI KHOẢN --- *@
             <div style="@boxDetail">
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
-                    <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
-                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin chi tiết tài khoản</h3>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                    <div>
-                        <label style="@labelBase">Hệ thống đăng ký <span style="color:red">*</span></label>
-                        <input type="text" name="HeThongNao" placeholder="BPVN-MES,BPVN-WMS,BPVN-EHR..." required class="input-focus" style="@inputBase">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 25px; gap: 20px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
+                        <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin chi tiết tài khoản</h3>
                     </div>
-                    <div>
-                        <label style="@labelBase">Loại yêu cầu <span style="color:red">*</span></label>
-                        <select name="LoaiDon" required class="input-focus" style="@inputBase">
-                            <option value="Cấp mới">Cấp mới tài khoản</option>
-                            <option value="Chỉnh sửa">Chỉnh sửa/Phân quyền lại</option>
-                            <option value="Khóa/Hủy">Khóa/Hủy tài khoản</option>
-                        </select>
+                    <div style="text-align: right;">
+                        <button type="button" class="btn-add-item" onclick="themTaiKhoan()">
+                            <i class="fa fa-plus"></i> Thêm người/hệ thống
+                        </button>
+                        <p style="margin: 8px 0 0 0; font-size: 11px; font-weight: 700; color: @colorPrimary; font-style: italic;">
+                            * Bấm nút này để đăng ký cho nhiều người trong 1 đơn
+                        </p>
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                    <div>
-                        <label style="@labelBase">Đăng ký cho nhân viên <span style="color:red">*</span></label>
-                        <input type="text" name="DangKiChoAi" placeholder="Họ tên - Mã số nhân viên" required class="input-focus" style="@inputBase">
+                <!-- Danh sách các item -->
+                <div id="danhSachTaiKhoan">
+                    <div class="tai-khoan-item" data-index="0">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                            <span style="font-weight: bold; color: @colorPrimary;">#1</span>
+                            <button type="button" class="btn-remove-item" onclick="xoaTaiKhoan(this)" style="display: none;">Xóa</button>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                            <div>
+                                <label style="@labelBase">Hệ thống đăng ký <span style="color:red">*</span></label>
+                                <input type="text" name="itTaiKhoanList[0].HeThongNao" placeholder="BPVN-MES,BPVN-WMS,BPVN-EHR..." required class="input-focus" style="@inputBase">
+                            </div>
+                            <div>
+                                <label style="@labelBase">Loại yêu cầu <span style="color:red">*</span></label>
+                                <select name="itTaiKhoanList[0].LoaiDon" required class="input-focus" style="@inputBase">
+                                    <option value="Cấp mới">Cấp mới tài khoản</option>
+                                    <option value="Chỉnh sửa">Chỉnh sửa/Phân quyền lại</option>
+                                    <option value="Khóa/Hủy">Khóa/Hủy tài khoản</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                            <div>
+                                <label style="@labelBase">Đăng ký cho nhân viên <span style="color:red">*</span></label>
+                                <input type="text" name="itTaiKhoanList[0].DangKiChoAi" placeholder="Họ tên - Mã số nhân viên" required class="input-focus" style="@inputBase">
+                            </div>
+                            <div>
+                                <label style="@labelBase">Sử dụng tại máy tính/IP</label>
+                                <input type="text" name="itTaiKhoanList[0].DungTrenMayNao" placeholder="Tên máy hoặc địa chỉ IP" class="input-focus" style="@inputBase">
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="@labelBase">Mô tả quyền, truy cập hệ thống </label>
+                            <input type="text" name="itTaiKhoanList[0].CapQuyenGiongAi" placeholder="Nhập tên người, mã vn có quyền tương tự để IT đối chiếu" class="input-focus" style="@inputBase">
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="@labelBase">Mô tả chi tiết quyền hạn <span style="color:red">*</span></label>
+                            <textarea name="itTaiKhoanList[0].MoTaChiTiet" placeholder="Ghi rõ các Module, Folder hoặc tính năng cần truy cập..." required class="input-focus req-mota" style="@inputBase height: 100px; resize: none;"></textarea>
+                        </div>
+
+                        <div>
+                            <label style="@labelBase">Mục đích sử dụng <span style="color:red">*</span></label>
+                            <textarea name="itTaiKhoanList[0].MucDich" placeholder="Giải trình sự cần thiết của tài khoản đối với công việc..." required class="input-focus req-mucdich" style="@inputBase height: 80px; resize: none;"></textarea>
+                        </div>
                     </div>
-                    <div>
-                        <label style="@labelBase">Sử dụng tại máy tính/IP</label>
-                        <input type="text" name="DungTrenMayNao" placeholder="Tên máy hoặc địa chỉ IP" class="input-focus" style="@inputBase">
-                    </div>
                 </div>
 
-                <div style="margin-bottom: 20px;">
-                    <label style="@labelBase">Mô tả quyền, truy cập hệ thống </label>
-                    <input type="text" name="CapQuyenGiongAi" placeholder="Nhập tên người, mã vn có quyền tương tự để IT đối chiếu" class="input-focus" style="@inputBase">
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <label style="@labelBase">Mô tả chi tiết quyền hạn <span style="color:red">*</span></label>
-                    <textarea name="MoTaChiTiet" placeholder="Ghi rõ các Module, Folder hoặc tính năng cần truy cập..." required class="input-focus" style="@inputBase height: 100px; resize: none;"></textarea>
-                </div>
-
-                <div style="margin-bottom: 25px;">
-                    <label style="@labelBase">Mục đích sử dụng <span style="color:red">*</span></label>
-                    <textarea name="MucDich" placeholder="Giải trình sự cần thiết của tài khoản đối với công việc..." required class="input-focus" style="@inputBase height: 80px; resize: none;"></textarea>
-                </div>
+                <hr style="border: 0; border-top: 1px dashed @colorBorder; margin: 30px 0;" />
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div>
-                        <label style="@labelBase">Ảnh minh họa (Ctrl+V)</label>
+                        <label style="@labelBase">Ảnh minh họa chung (Ctrl+V)</label>
                         <div id="paste_AnhTk" tabindex="0"
                              style="width: 100%; border: 2px dashed @colorBorder; height: 160px; border-radius: 15px; display: flex; align-items: center; justify-content: center; background: #fffafb; color: @colorPrimary; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 700; transition: 0.3s; position: relative; outline: none;">
-                            <div style="text-align:center;"><i style="font-size: 24px; margin-bottom:8px; display:block;" class="fa fa-id-badge"></i>Bấm và Ctrl+V ảnh</div>
+                            <div style="text-align:center;"><i style="font-size: 24px; margin-bottom:8px; display:block;" class="fa fa-image"></i>Bấm và Ctrl+V ảnh</div>
                         </div>
                         <input type="file" id="input_Anh" name="Anh" hidden accept="image/*">
                     </div>
@@ -214,31 +281,110 @@
         }
     });
 
+    let itemIndex = 1;
+
+    // Hàm thêm mới 1 block form nhập tài khoản
+    function themTaiKhoan() {
+        const container = document.getElementById("danhSachTaiKhoan");
+        const firstItem = container.querySelector(".tai-khoan-item");
+        
+        // Clone item đầu tiên
+        const newItem = firstItem.cloneNode(true);
+        newItem.setAttribute("data-index", itemIndex);
+        
+        // Cập nhật lại số thứ tự hiển thị
+        newItem.querySelector("span").innerText = "#" + (itemIndex + 1);
+        
+        // Hiển thị nút xóa
+        newItem.querySelector(".btn-remove-item").style.display = "block";
+
+        // Cập nhật lại thuộc tính name cho các input/select/textarea
+        const inputs = newItem.querySelectorAll("input, select, textarea");
+        inputs.forEach(input => {
+            const oldName = input.getAttribute("name");
+            if (oldName) {
+                const newName = oldName.replace(/\[\d+\]/, `[${itemIndex}]`);
+                input.setAttribute("name", newName);
+            }
+            // Clear giá trị rỗng cho row mới
+            if (input.tagName === "SELECT") {
+                input.selectedIndex = 0;
+            } else {
+                input.value = "";
+            }
+        });
+
+        container.appendChild(newItem);
+        itemIndex++;
+        capNhatHienThiNutXoa();
+    }
+
+    // Hàm xóa 1 block form nhập tài khoản
+    function xoaTaiKhoan(btn) {
+        const item = btn.closest(".tai-khoan-item");
+        item.remove();
+        
+        // Sắp xếp lại index cho List gửi về C# (Bắt buộc phải liên tục từ 0, 1, 2...)
+        const items = document.querySelectorAll(".tai-khoan-item");
+        items.forEach((div, index) => {
+            div.setAttribute("data-index", index);
+            div.querySelector("span").innerText = "#" + (index + 1);
+            
+            const inputs = div.querySelectorAll("input, select, textarea");
+            inputs.forEach(input => {
+                const oldName = input.getAttribute("name");
+                if (oldName) {
+                    const newName = oldName.replace(/\[\d+\]/, `[${index}]`);
+                    input.setAttribute("name", newName);
+                }
+            });
+        });
+        
+        itemIndex = items.length;
+        capNhatHienThiNutXoa();
+    }
+
+    // Đảm bảo item đầu tiên không bị xóa
+    function capNhatHienThiNutXoa() {
+        const items = document.querySelectorAll(".tai-khoan-item");
+        if (items.length === 1) {
+            items[0].querySelector(".btn-remove-item").style.display = "none";
+        } else {
+            items[0].querySelector(".btn-remove-item").style.display = "block";
+        }
+    }
+
     // Validate và Submit
     function xuLyLuuDonTK() {
-        const requiredFields = [
-            { id: "HeThongNao", label: "Hệ thống đăng ký" },
-            { id: "DangKiChoAi", label: "Nhân viên sử dụng" },
-            { id: "MoTaChiTiet", label: "Mô tả chi tiết quyền" },
-            { id: "MucDich", label: "Mục đích sử dụng" },
-            { id: "SelectedCongViecId", label: "Nhóm IT xử lý" }
-        ];
-
-        for (let field of requiredFields) {
-            const input = document.getElementsByName(field.id)[0];
-            if (!input || !input.value.trim()) {
-                alert(`⚠️ Vui lòng nhập: ${field.label}`);
-                input?.focus();
-                return;
-            }
+        // Validate nhóm IT
+        const nhomIT = document.getElementById("SelectedCongViecId");
+        if (!nhomIT.value.trim()) {
+            alert("⚠️ Vui lòng chọn: Nhóm IT xử lý");
+            nhomIT.focus();
+            return;
         }
 
+        // Validate các field trong từng item được sinh động
+        const items = document.querySelectorAll(".tai-khoan-item");
+        for (let i = 0; i < items.length; i++) {
+            const heThong = items[i].querySelector(`[name="itTaiKhoanList[${i}].HeThongNao"]`);
+            const nhanVien = items[i].querySelector(`[name="itTaiKhoanList[${i}].DangKiChoAi"]`);
+            const moTa = items[i].querySelector(`[name="itTaiKhoanList[${i}].MoTaChiTiet"]`);
+            const mucDich = items[i].querySelector(`[name="itTaiKhoanList[${i}].MucDich"]`);
+
+            if (!heThong.value.trim()) { alert(`⚠️ Dòng #${i+1}: Vui lòng nhập Hệ thống đăng ký`); heThong.focus(); return; }
+            if (!nhanVien.value.trim()) { alert(`⚠️ Dòng #${i+1}: Vui lòng nhập Nhân viên sử dụng`); nhanVien.focus(); return; }
+            if (!moTa.value.trim()) { alert(`⚠️ Dòng #${i+1}: Vui lòng nhập Mô tả chi tiết quyền`); moTa.focus(); return; }
+            if (!mucDich.value.trim()) { alert(`⚠️ Dòng #${i+1}: Vui lòng nhập Mục đích sử dụng`); mucDich.focus(); return; }
+        }
+
+        // Validate checkbox
         if (!document.getElementById("chkCamKet").checked) {
             alert("⚠️ Bạn chưa tích chọn cam kết bảo mật!");
             return;
         }
 
-        if (confirm("Gửi đơn đăng ký này tới bộ phận IT?")) {
+        if (confirm(`Gửi đơn đăng ký (${items.length} yêu cầu) này tới bộ phận IT?`)) {
             const btn = document.getElementById("btnSubmit");
             btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG XỬ LÝ...';
             btn.style.pointerEvents = 'none';
