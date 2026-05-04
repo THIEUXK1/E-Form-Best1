@@ -1,13 +1,19 @@
 ﻿@using Microsoft.AspNetCore.Http
 @using System.Security.Claims
+@using Microsoft.AspNetCore.Localization
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     var isLoginPage = currentController == "TaiKhoan" && currentAction == "DangNhap";
 
+    // Lấy thông tin người dùng từ Claims
     var currentUserName = User.Identity.IsAuthenticated ? User.Identity.Name : "";
     var currentUserRole = User.FindFirst("UserRole")?.Value ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+
+    // Lấy thông tin ngôn ngữ hiện tại từ Cookie hệ thống
+    var requestCulture = Context.Features.Get<IRequestCultureFeature>();
+    var cultureCode = requestCulture?.RequestCulture.Culture.Name ?? "vi-VN";
 
     bool isITSystem = currentController.Contains("IT") || currentController == "Mail" || currentController.Contains("Order");
 
@@ -19,7 +25,7 @@
 }
 
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="@cultureCode">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -48,7 +54,7 @@
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
         #notiList::-webkit-scrollbar-thumb { background: #cbd5e1; }
 
-        /* Tối ưu Hover cho Menu Sidebar */
+        /* Sidebar Nav Item */
         .nav-link-item {
             display: flex;
             align-items: center;
@@ -91,6 +97,60 @@
         }
 
         .user-dropdown-item:hover { background-color: #f1f5f9 !important; color: #1d4ed8 !important; }
+
+        /* Language Switcher Styles */
+        .lang-btn {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            padding: 8px 15px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #1e293b;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+        }
+        .lang-btn:hover { background: #f1f5f9; transform: translateY(-1px); border-color: #3b82f6; }
+        
+        #langDropdown {
+            display: none;
+            position: absolute;
+            top: 55px;
+            left: 0;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+            border: 1px solid #e2e8f0;
+            min-width: 180px;
+            overflow: hidden;
+            z-index: 1001;
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @@keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .lang-item {
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #334155;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 600;
+            transition: 0.2s;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .lang-item:last-child { border-bottom: none; }
+        .lang-item:hover { background: #eff6ff; color: #2563eb; }
+        .lang-item.active { color: #2563eb; background: #f0f9ff; }
     </style>
 </head>
 
@@ -106,18 +166,19 @@
                 </div>
                 <div style="display:flex; flex-direction:column;">
                     <span style="font-size:1.35rem; font-weight:800; letter-spacing:1px; color:#fff; line-height:1;">@(isITSystem ? "SERVICE" : "E-FORM")</span>
-                    <span style="font-size:0.7rem; color:rgba(255,255,255,0.6); text-transform:uppercase; margin-top:4px; font-weight:600; letter-spacing: 0.5px;">Digital Portal</span>
+                    <span class="lang-text" data-key="digital_portal" style="font-size:0.7rem; color:rgba(255,255,255,0.6); text-transform:uppercase; margin-top:4px; font-weight:600; letter-spacing: 0.5px;">Digital Portal</span>
                 </div>
             </a>
 
             <nav id="main-sidebar-nav" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right: 5px;">
-                <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 700;">Chức năng chính</div>
+                <div class="lang-text" data-key="main_function" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 700;">Chức năng chính</div>
 
                 @if (User.Identity.IsAuthenticated)
                 {
                     <div id="btnMainMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-radius: 14px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isITSubActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
                         <span style="display:flex; align-items:center;">
-                            <i class="fa @(isITSystem ? "fa-plus-circle" : "fa-pencil-square-o")" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i> Đăng ký đơn
+                            <i class="fa @(isITSystem ? "fa-plus-circle" : "fa-pencil-square-o")" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i> 
+                            <span class="lang-text" data-key="reg_form">Đăng ký đơn</span>
                         </span>
                         <i class="fa fa-angle-down" id="menuArrow" style="transition: 0.3s; transform: @(isITSubActive ? "rotate(180deg)" : "rotate(0deg)");"></i>
                     </div>
@@ -126,52 +187,52 @@
                         @if (isITSystem)
                         {
                             <a href="/FormIT/DonMail" class="submenu-link @(currentAction == "DonMail" ? "active" : "")">
-                                <i class="fa fa-envelope-o" style="margin-right:12px; width:15px; color: #fbbf24;"></i> 1. Đăng ký Mail
+                                <i class="fa fa-envelope-o" style="margin-right:12px; width:15px; color: #fbbf24;"></i> <span class="lang-text" data-key="reg_mail">1. Đăng ký Mail</span>
                             </a>
                             <a href="/FormIT/TaoIT_Order" class="submenu-link @(currentAction == "TaoIT_Order" ? "active" : "")">
-                                <i class="fa fa-wrench" style="margin-right:12px; width:15px; color: #ea580c;"></i> 2. Sửa chữa thiết bị
+                                <i class="fa fa-wrench" style="margin-right:12px; width:15px; color: #ea580c;"></i> <span class="lang-text" data-key="repair_it">2. Sửa chữa thiết bị</span>
                             </a>
                             <a href="/FormIT/TaoIT_Wifi" class="submenu-link @(currentAction == "TaoIT_Wifi" ? "active" : "")">
-                                <i class="fa fa-wifi" style="margin-right:12px; width:15px; color: #059669;"></i> 3. Đăng ký Wifi
+                                <i class="fa fa-wifi" style="margin-right:12px; width:15px; color: #059669;"></i> <span class="lang-text" data-key="reg_wifi">3. Đăng ký Wifi</span>
                             </a>
                             <a href="/FormIT/DonDienThoaiBan" class="submenu-link @(currentAction == "DonDienThoaiBan" ? "active" : "")">
-                                <i class="fa fa-phone" style="margin-right:12px; width:15px; color: #4f46e5;"></i> 4. Đăng ký ĐT bàn
+                                <i class="fa fa-phone" style="margin-right:12px; width:15px; color: #4f46e5;"></i> <span class="lang-text" data-key="reg_phone">4. Đăng ký ĐT bàn</span>
                             </a>
                             <a href="/FormIT/DonTaiKhoanHeThong" class="submenu-link @(currentAction == "DonTaiKhoanHeThong" ? "active" : "")">
-                                <i class="fa fa-user-circle-o" style="margin-right:12px; width:15px; color: #db2777;"></i> 5. Đăng ký TK Hệ thống
+                                <i class="fa fa-user-circle-o" style="margin-right:12px; width:15px; color: #db2777;"></i> <span class="lang-text" data-key="reg_system_acc">5. Đăng ký TK Hệ thống</span>
                             </a>
                             <a href="/FormIT/DonTaiKhoanMayTinh" class="submenu-link @(currentAction == "DonTaiKhoanMayTinh" ? "active" : "")">
-                                <i class="fa fa-desktop" style="margin-right:12px; width:15px; color: #06b6d4;"></i> 6. Đăng ký TK Máy tính
+                                <i class="fa fa-desktop" style="margin-right:12px; width:15px; color: #06b6d4;"></i> <span class="lang-text" data-key="reg_pc_acc">6. Đăng ký TK Máy tính</span>
                             </a>
                         }
                     </div>
 
                     <a href="@(isITSystem ? "/FormIT/DonCho" : "/FormHR/DonCho")" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
-                        <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> Đơn của tôi
+                        <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text" data-key="my_forms">Đơn của tôi</span>
                     </a>
 
                     <a href="/FormIT/LichSuIT" class="nav-link-item @(currentAction == "LichSuIT" ? "active" : "")">
-                        <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> Nhật ký hệ thống
+                        <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text" data-key="sys_logs">Nhật ký hệ thống</span>
                     </a>
 
                     @if (User.IsInRole("QuanLyDuyetDonIT") || User.IsInRole("All"))
                     {
                         <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-                        <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Phê duyệt</div>
+                        <div class="lang-text" data-key="approval_sec" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Phê duyệt</div>
                         <a href="@(isITSystem ? "/FormIT/QuanLyXetDuyet" : "/FormHR/QuanLyXetDuyet")" class="nav-link-item @(currentAction == "QuanLyXetDuyet" ? "active" : "")">
-                            <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> Quản lý xét duyệt
+                            <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> <span class="lang-text" data-key="manage_appr">Quản lý xét duyệt</span>
                         </a>
                     }
 
                     @if (User.IsInRole("AdminIT") || User.IsInRole("All"))
                     {
                         <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-                        <div style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị IT</div>
+                        <div class="lang-text" data-key="admin_sec" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị IT</div>
                         <a href="/FormIT/HoanTatDon" class="nav-link-item @(currentAction == "HoanTatDon" ? "active" : "")">
-                            <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> Lưu trữ đơn
+                            <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text" data-key="archive_form">Lưu trữ đơn</span>
                         </a>
                         <a href="/FormIT/BaoCaoThongKe" class="nav-link-item @(currentAction == "BaoCaoThongKe" ? "active" : "")">
-                            <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> Thống kê báo cáo
+                            <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> <span class="lang-text" data-key="statistics">Thống kê báo cáo</span>
                         </a>
                     }
                 }
@@ -193,10 +254,10 @@
 
                     <div id="userDropdown" style="position:absolute; bottom:90px; left:0; right:0; background:#fff; border-radius:16px; box-shadow:0 -15px 35px rgba(0,0,0,0.25); display:none; flex-direction:column; overflow:hidden; border: 1px solid #edf2f7; z-index: 1001;">
                         <a href="/ThongTinTaiKhoan" target="_blank" rel="noopener noreferrer" class="user-dropdown-item" style="padding:15px 20px; color:#334155; text-decoration:none; font-size:0.92rem; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; font-weight: 500;">
-                            <i class="fa fa-user-circle" style="margin-right:12px; color:#64748b; font-size: 1.1rem;"></i> Hồ sơ cá nhân
+                            <i class="fa fa-user-circle" style="margin-right:12px; color:#64748b; font-size: 1.1rem;"></i> <span class="lang-text" data-key="profile">Hồ sơ cá nhân</span>
                         </a>
                         <a href="/DonXetDuyet/DangXuat" class="user-dropdown-item" style="padding:15px 20px; color:#ef4444; text-decoration:none; font-size:0.92rem; font-weight:700; display:flex; align-items:center;">
-                            <i class="fa fa-sign-out" style="margin-right:12px; font-size: 1.1rem;"></i> Đăng xuất
+                            <i class="fa fa-sign-out" style="margin-right:12px; font-size: 1.1rem;"></i> <span class="lang-text" data-key="logout">Đăng xuất</span>
                         </a>
                     </div>
                 }
@@ -207,8 +268,8 @@
                             <i class="fa fa-sign-in" style="color: #fff;"></i>
                         </div>
                         <div style="flex:1;">
-                            <div style="font-weight:700; font-size:0.92rem; color: #fff;">Đăng nhập</div>
-                            <div style="font-size:0.75rem; color:rgba(255,255,255,0.5);">Truy cập hệ thống</div>
+                            <div class="lang-text" data-key="login" style="font-weight:700; font-size:0.92rem; color: #fff;">Đăng nhập</div>
+                            <div class="lang-text" data-key="access_sys" style="font-size:0.75rem; color:rgba(255,255,255,0.5);">Truy cập hệ thống</div>
                         </div>
                     </a>
                 }
@@ -217,35 +278,55 @@
 
         <main style="margin-left:280px; width:calc(100% - 280px); box-sizing: border-box; min-height:100vh; position:relative; display: flex; flex-direction: column;">
 
-            <header style="padding: 20px 50px; display: flex; justify-content: flex-end; align-items: center; background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 999; font-family: 'Inter', system-ui, -apple-system, sans-serif; border-bottom: 1px solid rgba(226, 232, 240, 0.6);">
+            <header style="padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 999; font-family: 'Inter', system-ui, -apple-system, sans-serif; border-bottom: 1px solid rgba(226, 232, 240, 0.6);">
+                
+                <!-- Language Switcher (Left Side) -->
+                <div style="position: relative;">
+                    <button id="btnLanguage" class="lang-btn">
+                        <i class="fa fa-globe" style="color: #2563eb;"></i>
+                        <span id="currentLangText">Tiếng Việt</span>
+                        <i class="fa fa-angle-down" style="font-size: 0.8rem; color: #94a3b8;"></i>
+                    </button>
+                    <div id="langDropdown">
+                        <a href="javascript:void(0)" onclick="handleLangChange('vi-VN', 'Tiếng Việt')" class="lang-item" id="lang-vi-VN">
+                            <span>Tiếng Việt</span> <i class="fa fa-check"></i>
+                        </a>
+                        <a href="javascript:void(0)" onclick="handleLangChange('en-US', 'English')" class="lang-item" id="lang-en-US">
+                            <span>English</span> <i class="fa fa-check" style="display:none;"></i>
+                        </a>
+                        <a href="javascript:void(0)" onclick="handleLangChange('zh-CN', '中文')" class="lang-item" id="lang-zh-CN">
+                            <span>中文</span> <i class="fa fa-check" style="display:none;"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Notifications (Right Side) -->
                 <div style="position: relative; display: flex; align-items: center; gap: 15px;">
 
                     <div id="latestNotiTag" style="display: none; position: absolute; right: 65px; white-space: nowrap; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 10px 16px; border-radius: 12px; font-size: 0.85rem; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2); z-index: 1001; border-left: 4px solid #fff; align-items: center; gap: 10px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i class="fa fa-info-circle"></i>
                             <div style="display: flex; flex-direction: column; line-height: 1.2;">
-                                <span style="font-size: 0.65rem; text-transform: uppercase; font-weight: 800; opacity: 0.8;">Vừa xong</span>
+                                <span class="lang-text" data-key="just_now" style="font-size: 0.65rem; text-transform: uppercase; font-weight: 800; opacity: 0.8;">Vừa xong</span>
                                 <span id="latestNotiText" style="font-weight: 600;">Có thông báo mới!</span>
                             </div>
                             <i class="fa fa-times" onclick="this.parentElement.parentElement.style.display='none'" style="cursor: pointer; margin-left: 8px; opacity: 0.7;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'"></i>
                         </div>
-                        <div style="position: absolute; right: -6px; top: 50%; transform: translateY(-50%); border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 6px solid #1d4ed8;"></div>
                     </div>
 
-                    <div id="notiBell" style="width: 48px; height: 48px; background: #fff; border-radius: 15px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; color: #64748b; position: relative; transition: 0.2s;" onmouseover="this.style.borderColor='#3b82f6'; this.style.color='#3b82f6'" onmouseout="this.style.borderColor='#e2e8f0'; this.style.color='#64748b'">
+                    <div id="notiBell" style="width: 48px; height: 48px; background: #fff; border-radius: 15px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; color: #64748b; position: relative; transition: 0.2s;">
                         <i class="fa fa-bell-o" style="font-size: 1.3rem;"></i>
                         <span id="notiBadge" style="position: absolute; top: -2px; right: -2px; min-width: 20px; height: 20px; background: #ef4444; border-radius: 50%; border: 2px solid #fff; display: none; color: white; font-size: 10px; font-weight: 800; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);">0</span>
                     </div>
 
                     <div id="notificationDropdown" style="display: none; flex-direction: column; width: 380px; position: absolute; right: 0; top: 60px; background: white; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); overflow: hidden; z-index: 1000; border: 1px solid #f1f5f9;">
                         <div style="padding: 15px 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fff;">
-                            <span style="font-weight: 800; color: #1e293b; font-size: 1rem; letter-spacing: -0.5px;">Thông báo</span>
-                            <button onclick="markAllAsRead(event)" style="background: #eff6ff; border: none; color: #3b82f6; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">Đọc tất cả</button>
+                            <span class="lang-text" data-key="notifications" style="font-weight: 800; color: #1e293b; font-size: 1rem; letter-spacing: -0.5px;">Thông báo</span>
+                            <button class="lang-text" data-key="read_all" onclick="markAllAsRead(event)" style="background: #eff6ff; border: none; color: #3b82f6; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: 0.2s;">Đọc tất cả</button>
                         </div>
-                        <div id="notiList" style="max-height: 450px; overflow-y: auto;">
-                            </div>
+                        <div id="notiList" style="max-height: 450px; overflow-y: auto;"></div>
                         <div style="padding: 12px; text-align: center; border-top: 1px solid #f1f5f9; background: #f8fafc;">
-                            <a href="/FormIT/LichSuIT" style="text-decoration: none; color: #94a3b8; font-size: 0.75rem; font-weight: 600;">Xem tất cả</a>
+                            <a class="lang-text" data-key="view_all" href="/FormIT/LichSuIT" style="text-decoration: none; color: #94a3b8; font-size: 0.75rem; font-weight: 600;">Xem tất cả</a>
                         </div>
                     </div>
                 </div>
@@ -273,12 +354,79 @@
 
     <script>
         // ==========================================
+        // 0. HỆ THỐNG ĐA NGÔN NGỮ (CLIENT-SIDE)
+        // ==========================================
+        const translations = {
+            'vi-VN': {
+                'digital_portal': 'Digital Portal', 'main_function': 'Chức năng chính', 'reg_form': 'Đăng ký đơn',
+                'reg_mail': '1. Đăng ký Mail', 'repair_it': '2. Sửa chữa thiết bị', 'reg_wifi': '3. Đăng ký Wifi',
+                'reg_phone': '4. Đăng ký ĐT bàn', 'reg_system_acc': '5. Đăng ký TK Hệ thống', 'reg_pc_acc': '6. Đăng ký TK Máy tính',
+                'my_forms': 'Đơn của tôi', 'sys_logs': 'Nhật ký hệ thống', 'approval_sec': 'Phê duyệt',
+                'manage_appr': 'Quản lý xét duyệt', 'admin_sec': 'Quản trị IT', 'archive_form': 'Lưu trữ đơn',
+                'statistics': 'Thống kê báo cáo', 'profile': 'Hồ sơ cá nhân', 'logout': 'Đăng xuất',
+                'login': 'Đăng nhập', 'access_sys': 'Truy cập hệ thống', 'notifications': 'Thông báo',
+                'read_all': 'Đọc tất cả', 'view_all': 'Xem tất cả', 'just_now': 'Vừa xong'
+            },
+            'en-US': {
+                'digital_portal': 'Digital Portal', 'main_function': 'Main Functions', 'reg_form': 'Register Form',
+                'reg_mail': '1. Email Account', 'repair_it': '2. IT Repair Order', 'reg_wifi': '3. Wifi Access',
+                'reg_phone': '4. Desk Phone', 'reg_system_acc': '5. System Account', 'reg_pc_acc': '6. PC Account',
+                'my_forms': 'My Requests', 'sys_logs': 'System Logs', 'approval_sec': 'Approval',
+                'manage_appr': 'Approval Management', 'admin_sec': 'IT Admin', 'archive_form': 'Archive',
+                'statistics': 'Statistics', 'profile': 'My Profile', 'logout': 'Logout',
+                'login': 'Login', 'access_sys': 'System Access', 'notifications': 'Notifications',
+                'read_all': 'Read All', 'view_all': 'View All', 'just_now': 'Just now'
+            },
+            'zh-CN': {
+                'digital_portal': '数字化门户', 'main_function': '主要功能', 'reg_form': '申请表单',
+                'reg_mail': '1. 邮箱账号', 'repair_it': '2. IT 维修单', 'reg_wifi': '3. 无线网络',
+                'reg_phone': '4. 座机电话', 'reg_system_acc': '5. 系统账号', 'reg_pc_acc': '6. 电脑账号',
+                'my_forms': '我的申请', 'sys_logs': '系统日志', 'approval_sec': '审批管理',
+                'manage_appr': '审核管理', 'admin_sec': 'IT 管理', 'archive_form': '归档',
+                'statistics': '统计报表', 'profile': '个人资料', 'logout': '登出',
+                'login': '登录', 'access_sys': '系统访问', 'notifications': '通知',
+                'read_all': '全部已读', 'view_all': '查看全部', 'just_now': '刚才'
+            }
+        };
+
+        function handleLangChange(code, label) {
+            const cookieValue = `c=${code}|uic=${code}`;
+            const date = new Date();
+            date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
+            document.cookie = `.AspNetCore.Culture=${encodeURIComponent(cookieValue)}; expires=${date.toUTCString()}; path=/`;
+            localStorage.setItem('preferred_lang_hr', code);
+            window.location.reload();
+        }
+
+        function applyTranslations() {
+            const lang = localStorage.getItem('preferred_lang_hr') || '@cultureCode';
+            document.querySelectorAll('.lang-text').forEach(el => {
+                const key = el.getAttribute('data-key');
+                if (translations[lang] && translations[lang][key]) el.innerText = translations[lang][key];
+            });
+            const labels = { 'vi-VN': 'Tiếng Việt', 'en-US': 'English', 'zh-CN': '中文' };
+            if(currentLangText) currentLangText.innerText = labels[lang] || 'Tiếng Việt';
+            document.querySelectorAll('.lang-item i').forEach(i => i.style.display = 'none');
+            const activeCheck = document.querySelector(`#lang-${lang} i`);
+            if(activeCheck) activeCheck.style.display = 'inline-block';
+        }
+
+        // ==========================================
         // 1. Quản lý Sidebar & User Dropdown
         // ==========================================
         const btnMenu = document.getElementById('btnMainMenu');
         const submenu = document.getElementById('mainSubmenu');
         const arrow = document.getElementById('menuArrow');
         const sidebarNav = document.getElementById('main-sidebar-nav');
+        const btnLang = document.getElementById('btnLanguage');
+        const langDrop = document.getElementById('langDropdown');
+
+        if (btnLang) {
+            btnLang.addEventListener('click', (e) => {
+                e.stopPropagation();
+                langDrop.style.display = langDrop.style.display === 'block' ? 'none' : 'block';
+            });
+        }
 
         if (btnMenu && submenu) {
             btnMenu.addEventListener('click', () => {
@@ -290,15 +438,10 @@
             });
         }
 
-        // Persistent State cho Menu và Cuộn
-        window.addEventListener('beforeunload', () => {
-            if (sidebarNav) sessionStorage.setItem('sidebarScrollPosIT', sidebarNav.scrollTop);
-        });
-
         document.addEventListener('DOMContentLoaded', () => {
+            applyTranslations();
             const savedScrollPos = sessionStorage.getItem('sidebarScrollPosIT');
             if (sidebarNav && savedScrollPos) sidebarNav.scrollTop = parseInt(savedScrollPos);
-
             const isSubActiveServer = @isITSubActive.ToString().ToLower();
             const savedMenuState = localStorage.getItem('itMenuState');
             if ((isSubActiveServer || savedMenuState === 'open') && submenu) {
@@ -308,9 +451,33 @@
             }
         });
 
+        // (Notification Logic và các thành phần khác giữ nguyên như cũ của bạn...)
+        const notiSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        notiSound.volume = 0.6;
+
+        let lastTopId = localStorage.getItem('lastNotifiedId') || null;
+        let currentSkip = 0;
+        const take = 20;
+        let isLoading = false;
+        let hasMoreData = true;
+        let allFetchedIds = [];
+
+        const notiBell = document.getElementById('notiBell');
+        const notiDrop = document.getElementById('notificationDropdown');
+        const notiList = document.getElementById('notiList');
+        const notiBadge = document.getElementById('notiBadge');
         const userBtn = document.getElementById('userMenuButton');
         const userDrop = document.getElementById('userDropdown');
         const userArrow = document.getElementById('arrowIcon');
+
+        if (notiBell) {
+            notiBell.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = notiDrop.style.display === 'none' || notiDrop.style.display === '';
+                notiDrop.style.display = isHidden ? 'flex' : 'none';
+                if (isHidden) loadNotifications(true, false);
+            });
+        }
 
         if (userBtn && userDrop) {
             userBtn.addEventListener('click', (e) => {
@@ -321,24 +488,50 @@
             });
         }
 
-        // ==========================================
-        // 2. Quản lý Thông báo (Âm thanh & Cookie)
-        // ==========================================
-        const notiSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        notiSound.volume = 0.6;
+        document.addEventListener('click', () => {
+            if (userDrop) userDrop.style.display = 'none';
+            if (userArrow) userArrow.style.transform = 'rotate(0deg)';
+            if (notiDrop) notiDrop.style.display = 'none';
+            if (langDrop) langDrop.style.display = 'none';
+        });
 
-        document.addEventListener('click', function unlockAudio() {
-            notiSound.play().then(() => {
-                notiSound.pause();
-                notiSound.currentTime = 0;
-            }).catch(e => console.log("Waiting for user interaction for audio..."));
-            document.removeEventListener('click', unlockAudio);
-        }, { once: true });
-
-        function setReadCookie(ids) {
-            const d = new Date();
-            d.setTime(d.getTime() + (30 * 24 * 60 * 60 * 1000));
-            document.cookie = "read_notifications=" + ids.join(',') + ";expires=" + d.toUTCString() + ";path=/";
+        async function loadNotifications(isOpen = false, isLoadMore = false) {
+            if (isLoading) return;
+            const readIdsFromCookie = getReadIds();
+            if (!isLoadMore) { currentSkip = 0; hasMoreData = true; }
+            try {
+                isLoading = true;
+                const res = await fetch(`/FormIT/GetNotifications?skip=${currentSkip}&take=${take}`);
+                const data = await res.json();
+                const listItems = data.top5 || data.dataList || [];
+                if (listItems.length > 0) {
+                    const currentTopId = listItems[0].id.toString();
+                    if (lastTopId !== null && currentTopId !== lastTopId && !readIdsFromCookie.includes(currentTopId)) {
+                        triggerNewNotificationEffect(listItems[0]);
+                    }
+                    lastTopId = currentTopId;
+                    localStorage.setItem('lastNotifiedId', currentTopId);
+                }
+                const unreadCount = listItems.filter(item => !readIdsFromCookie.includes(item.id.toString())).length;
+                if (notiBadge) {
+                    if (unreadCount > 0) {
+                        notiBadge.innerText = unreadCount > 99 ? "99+" : unreadCount;
+                        notiBadge.style.display = 'flex';
+                    } else { notiBadge.style.display = 'none'; }
+                }
+                const html = listItems.map(item => {
+                    const isRead = readIdsFromCookie.includes(item.id.toString());
+                    if(!allFetchedIds.includes(item.id.toString())) allFetchedIds.push(item.id.toString());
+                    return `<a href="/FormIT/ChiTiet/${item.idFormIt}" onclick="markAsRead('${item.id}')" style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit; background: ${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.05)'};">
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fa ${item.icon || 'fa-bell'}"></i></div>
+                        <div style="flex:1;"><div style="font-size: 0.88rem; font-weight: ${isRead ? '600' : '800'}; color: #1e293b;">${item.tieuDe}</div>
+                        <div style="font-size: 0.8rem; color: #64748b;">${item.mota || ''}</div>
+                        <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 6px;"><i class="fa fa-clock-o"></i> ${item.time}</div></div></a>`;
+                }).join('');
+                if (isOpen && notiList) { if (isLoadMore) notiList.insertAdjacentHTML('beforeend', html); else notiList.innerHTML = html; }
+                currentSkip += listItems.length;
+                if (listItems.length < take) hasMoreData = false;
+            } catch (err) { } finally { isLoading = false; }
         }
 
         function getReadIds() {
@@ -351,147 +544,20 @@
             return [];
         }
 
-        // ==========================================
-        // 3. Logic Thông báo & Hiệu ứng
-        // ==========================================
-        let lastTopId = localStorage.getItem('lastNotifiedId') || null;
-        let currentSkip = 0;
-        const take = 20;
-        let isLoading = false;
-        let hasMoreData = true;
-        let allFetchedIds = [];
-
-        const notiBell = document.getElementById('notiBell');
-        const notiDrop = document.getElementById('notificationDropdown');
-        const notiList = document.getElementById('notiList');
-        const notiBadge = document.getElementById('notiBadge');
-        const latestTag = document.getElementById('latestNotiTag');
-        const latestText = document.getElementById('latestNotiText');
-
-        if (notiBell) {
-            notiBell.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const isHidden = notiDrop.style.display === 'none' || notiDrop.style.display === '';
-
-                notiDrop.style.display = isHidden ? 'flex' : 'none';
-                notiBell.style.transform = isHidden ? 'scale(0.95)' : 'scale(1)';
-                notiBell.style.background = isHidden ? '#f1f5f9' : '#fff';
-
-                if (isHidden) {
-                    if (latestTag) latestTag.style.display = 'none';
-                    loadNotifications(true, false);
-                }
-            });
+        function setReadCookie(ids) {
+            const d = new Date();
+            d.setTime(d.getTime() + (30 * 24 * 60 * 60 * 1000));
+            document.cookie = "read_notifications=" + ids.join(',') + ";expires=" + d.toUTCString() + ";path=/";
         }
-
-        document.addEventListener('click', () => {
-            if (userDrop) userDrop.style.display = 'none';
-            if (userArrow) userArrow.style.transform = 'rotate(0deg)';
-            if (notiDrop) {
-                notiDrop.style.display = 'none';
-                notiBell.style.background = '#fff';
-                notiBell.style.transform = 'scale(1)';
-            }
-        });
-
-        if (notiDrop) notiDrop.addEventListener('click', (e) => e.stopPropagation());
 
         function triggerNewNotificationEffect(item) {
-            localStorage.setItem('lastNotifiedId', item.id.toString());
+            const latestTag = document.getElementById('latestNotiTag');
+            const latestText = document.getElementById('latestNotiText');
             if (latestText) latestText.innerText = item.tieuDe;
             if (latestTag) latestTag.style.display = 'flex';
-
-            notiSound.play().catch(e => console.log("Sound policy block."));
-
-            setTimeout(() => {
-                if (latestTag) latestTag.style.display = 'none';
-            }, 8000);
+            notiSound.play().catch(() => {});
+            setTimeout(() => { if (latestTag) latestTag.style.display = 'none'; }, 8000);
         }
-
-        async function loadNotifications(isOpen = false, isLoadMore = false) {
-            if (isLoading) return;
-            const readIdsFromCookie = getReadIds();
-
-            if (!isLoadMore) { currentSkip = 0; hasMoreData = true; }
-
-            try {
-                isLoading = true;
-                const res = await fetch(`/FormIT/GetNotifications?skip=${currentSkip}&take=${take}`);
-                const data = await res.json();
-                const listItems = data.top5 || data.dataList || [];
-
-                if (listItems.length > 0) {
-                    const currentTopId = listItems[0].id.toString();
-                    if (lastTopId !== null && currentTopId !== lastTopId && !readIdsFromCookie.includes(currentTopId)) {
-                        triggerNewNotificationEffect(listItems[0]);
-                    }
-                    lastTopId = currentTopId;
-                    localStorage.setItem('lastNotifiedId', currentTopId);
-                }
-
-                const unreadCount = listItems.filter(item => !readIdsFromCookie.includes(item.id.toString())).length;
-                if (notiBadge) {
-                    if (unreadCount > 0) {
-                        notiBadge.innerText = unreadCount > 99 ? "99+" : unreadCount;
-                        notiBadge.style.display = 'flex';
-                    } else {
-                        notiBadge.style.display = 'none';
-                    }
-                }
-
-                const html = listItems.map(item => {
-                    const isRead = readIdsFromCookie.includes(item.id.toString());
-                    const isError = item.tieuDe && (item.tieuDe.includes('Hủy') || item.tieuDe.includes('Từ chối'));
-                    if(!allFetchedIds.includes(item.id.toString())) allFetchedIds.push(item.id.toString());
-
-                    return `
-                    <a href="/FormIT/ChiTiet/${item.idFormIt}"
-                       onclick="markAsRead('${item.id}')"
-                       style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit; background: ${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.05)'};"
-                       onmouseover="this.style.background='#f1f5f9'"
-                       onmouseout="this.style.background='${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.05)'}'">
-                        <div style="width: 44px; height: 44px; border-radius: 12px; background: ${isError ? '#fff7ed' : '#eff6ff'}; color: ${isError ? '#ea580c' : '#3b82f6'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                            <i class="fa ${item.icon || 'fa-bell'}"></i>
-                        </div>
-                        <div style="flex:1; min-width: 0;">
-                            <div style="font-size: 0.88rem; font-weight: ${isRead ? '600' : '800'}; color: #1e293b; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                ${item.tieuDe}
-                            </div>
-                            <div style="font-size: 0.8rem; color: #64748b; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                                ${item.mota || ''}
-                            </div>
-                            <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 6px;">
-                                <i class="fa fa-clock-o"></i> ${item.time}
-                            </div>
-                        </div>
-                        ${!isRead ? '<div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; align-self: center; flex-shrink: 0;"></div>' : ''}
-                    </a>`;
-                }).join('');
-
-                if (isOpen && notiList) {
-                    if (isLoadMore) {
-                        notiList.insertAdjacentHTML('beforeend', html);
-                    } else {
-                        notiList.innerHTML = html;
-                    }
-                }
-
-                currentSkip += listItems.length;
-                if (listItems.length < take) hasMoreData = false;
-
-            } catch (err) { console.error("Error loading notifications:", err); } finally { isLoading = false; }
-        }
-
-        if (notiList) {
-            notiList.addEventListener('scroll', () => {
-                if (notiList.scrollTop + notiList.clientHeight >= notiList.scrollHeight - 10) {
-                    if (hasMoreData && !isLoading) loadNotifications(true, true);
-                }
-            });
-        }
-
-        setInterval(() => loadNotifications(false, false), 30000);
-        loadNotifications(false, false);
 
         function markAsRead(id) {
             let readIds = getReadIds();
@@ -506,15 +572,10 @@
             if(e) e.stopPropagation();
             setReadCookie(allFetchedIds);
             loadNotifications(false, false);
-            if (notiList) {
-                const items = notiList.querySelectorAll('a');
-                items.forEach(item => {
-                    item.style.background = '#ffffff';
-                    const dot = item.querySelector('div[style*="background: #3b82f6"]');
-                    if(dot) dot.style.display = 'none';
-                });
-            }
         }
+
+        setInterval(() => loadNotifications(false, false), 30000);
+        loadNotifications(false, false);
     </script>
 
     @RenderSection("Scripts", required: false)
