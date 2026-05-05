@@ -140,6 +140,7 @@
             chiTietNoiDung += RenderInfoRow("🏢", "Tên nhà thầu", ct.TenNhaThau, "#f8fafc", "#0f172a");
             chiTietNoiDung += RenderInfoRow("👥", "Số người", ct.SoNguoi?.ToString() + " người", "#f8fafc", "#0f172a");
             chiTietNoiDung += RenderInfoRow("👤", "Người đăng ký", ct.NguoiDangKy, "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("🚗", "Biển số xe", !string.IsNullOrEmpty(ct.BienSoXe) ? ct.BienSoXe : "Không có", "#f0f9ff", "#0369a1");
             chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDichCongViec, "#f8fafc", "#0f172a");
         }
         if (Model.HrHoTroTienDienThoai7s?.Any() == true)
@@ -147,7 +148,6 @@
             var ct = Model.HrHoTroTienDienThoai7s.First();
             ProcessImage(ct.DuongDanAnh, ct.Anh);
             chiTietNoiDung += RenderInfoRow("📱", "Dịch vụ", "Hỗ trợ tiền điện thoại", "#f0fdf4", "#166534");
-            chiTietNoiDung += RenderInfoRow("📞", "Số điện thoại", ct.SoDienThoai ?? "Chưa cập nhật", "#eff6ff", "#1e40af");
             chiTietNoiDung += RenderInfoRow("💰", "Mức hỗ trợ", (ct.MucHoTro.HasValue ? ct.MucHoTro.Value.ToString("N0") : "0") + " VNĐ", "#fff7ed", "#9a3412");
             chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDich ?? "Chưa có nội dung", "#f8fafc", "#0f172a");
         }
@@ -222,14 +222,6 @@
                             || User.IsInRole("BaoVeHR") || User.IsInRole("QuanLyDuyetDonHR");
 }
 
-@* --- CSS ẨN CÔNG CỤ DỊCH MẶC ĐỊNH CỦA GOOGLE ĐỂ LÀM ĐẸP GIAO DIỆN --- *@
-<style>
-    .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
-    .goog-te-banner-frame { display: none !important; }
-    body { top: 0px !important; }
-    #goog-gt-tt { display: none !important; }
-</style>
-
 @Html.AntiForgeryToken()
 
 <div style="max-width:1200px;margin:0 auto;padding:25px;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#f8fafc;">
@@ -243,18 +235,6 @@
 
         <div style="background:@headerGradient;padding:50px 40px;color:white;position:relative;">
             
-            @* --- TÍNH NĂNG CHỌN NGÔN NGỮ (GÓC TRÊN BÊN PHẢI) --- *@
-            <div style="position:absolute; top:20px; right:20px; z-index:100; display:flex; align-items:center; gap:10px;">
-                <i class="fa fa-language" style="font-size:20px; opacity:0.8;"></i>
-                <select id="langSelector" onchange="changeLanguage(this.value)" style="padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.4); background: rgba(0,0,0,0.2); color: white; font-weight: bold; outline: none; cursor: pointer; font-family:'Segoe UI', sans-serif;">
-                    <option value="vi" style="color: black;">🇻🇳 Tiếng Việt</option>
-                    <option value="en" style="color: black;">🇬🇧 English</option>
-                    <option value="zh-CN" style="color: black;">🇨🇳 中文</option>
-                </select>
-            </div>
-            <!-- Div ảo để chứa widget Google (đã được ẩn bằng CSS phía trên) -->
-            <div id="google_translate_element" style="display:none;"></div>
-
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;">
                 <div>
                     <span style="background:rgba(255,255,255,0.25);padding:8px 20px;border-radius:50px;font-size:13px;font-weight:800;text-transform:uppercase;">Mã số: #@Model.Id</span>
@@ -687,7 +667,7 @@
                                 @if (!daBaoVe)
                                 {
                                     <p style="margin:0 0 14px 0;font-size:13px;color:#78716c;line-height:1.6;">
-                                        Gửi phiếu này đến đội <strong>Bảo Vệ</strong> để xử lý. Bảo Vệ sẽ bổ sung thông tin sau.
+                                        Gửi phiếu này đến đội <strong>Bảo Vệ</strong> để xử lý. Bảo Vệ sẽ bổ bật thông tin sau.
                                     </p>
                                     <button id="btnDayBaoVe" onclick="dayDenBaoVe()"
                                             style="width:100%;padding:16px;background:linear-gradient(135deg,#292524,#57534e);color:white;border:none;border-radius:14px;font-weight:900;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 12px rgba(0,0,0,0.18);transition:all 0.2s;"
@@ -780,51 +760,11 @@
     </div>
 </div>
 
-@* --- SCRIPT GOOGLE TRANSLATE --- *@
-<script type="text/javascript">
-    function googleTranslateElementInit() {
-        new google.translate.TranslateElement({ pageLanguage: 'vi', autoDisplay: false }, 'google_translate_element');
-    }
-</script>
-<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-
 <script>
-    // --- LOGIC TRANSLATION LOCAL STORAGE ---
-    function initLanguage() {
-        let currentLang = localStorage.getItem('siteLangHrForm');
-        if (!currentLang) {
-            currentLang = 'vi';
-            localStorage.setItem('siteLangHrForm', 'vi');
-        }
-        const selectEl = document.getElementById('langSelector');
-        if (selectEl) selectEl.value = currentLang;
-
-        if (currentLang !== 'vi') {
-            document.cookie = `googtrans=/vi/${currentLang}; path=/; domain=${window.location.hostname}`;
-            document.cookie = `googtrans=/vi/${currentLang}; path=/;`;
-        }
-    }
-
-    function changeLanguage(lang) {
-        localStorage.setItem('siteLangHrForm', lang);
-        if (lang === 'vi') {
-            // Xóa cookie translate để trở về ngôn ngữ gốc
-            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
-        } else {
-            document.cookie = `googtrans=/vi/${lang}; path=/; domain=${window.location.hostname}`;
-            document.cookie = `googtrans=/vi/${lang}; path=/;`;
-        }
-        window.location.reload();
-    }
-
-    document.addEventListener('DOMContentLoaded', initLanguage);
-
-
     const formId        = @Model.Id;
     const currentUserId = '@currentUserId';
     const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                    User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
+                                                                        User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
     const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
     function hasRole(r) { return userRoles.includes(r); }
