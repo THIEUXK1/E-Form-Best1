@@ -1,12 +1,12 @@
-﻿@model E_Form_Best.Models.ITForm.FormHr
+﻿@model E_Form_Best.Models.ITForm.FormShd
 @using System
 @using System.Collections.Generic
 @using System.Linq
 @using System.Security.Claims
 
 @{
-    ViewData["Title"] = "Chi tiết đơn đăng ký HR";
-    Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Chi tiết đơn đăng ký SHD";
+    Layout = "~/Areas/SHDForm/Views/Shared/_Layout.cshtml";
 
     // ── 1. THÔNG TIN USER ──
     var currentUserName = User.Identity.Name ?? "";
@@ -24,8 +24,8 @@
 
     string statusColor = "#3b82f6"; string statusText = "CHỜ QUẢN LÝ";
     if (isCancelled) { statusColor = "#dc2626"; statusText = "ĐÃ HỦY"; }
-    else if (isFinished) { statusColor = "#059669"; statusText = "ĐÃ XỬ LÝ (HR)"; }
-    else if (isApprovedByManager) { statusColor = "#d97706"; statusText = "CHỜ HR XỬ LÝ"; }
+    else if (isFinished) { statusColor = "#059669"; statusText = "ĐÃ XỬ LÝ (SHD)"; }
+    else if (isApprovedByManager) { statusColor = "#d97706"; statusText = "CHỜ SHD XỬ LÝ"; }
 
     string headerGradient = "linear-gradient(135deg,#1e40af 0%,#3b82f6 100%)";
     if (isCancelled) headerGradient = "linear-gradient(135deg,#991b1b 0%,#dc2626 100%)";
@@ -35,6 +35,7 @@
     List<string> listImages = new List<string>();
     string chiTietNoiDung = "";
     
+    // Xử lý cắt chuỗi nhiều file đính kèm
     List<string> listFileDinhKem = new List<string>();
     if (!string.IsNullOrEmpty(Model.FileDinhKem))
     {
@@ -52,150 +53,43 @@
                 <span style='font-size:15px;color:#1e293b;font-weight:700;'>{value}</span>
             </div></div>";
     }
-    string RenderSecurityBox(string bvTen, string tgThucTe, string note)
-    {
-        string ten = string.IsNullOrEmpty(bvTen) ? "<span style='color:#94a3b8;'>Chưa xác nhận</span>" : $"<span style='color:#0f172a;font-weight:900;'>{bvTen}</span>";
-        string tg = string.IsNullOrEmpty(tgThucTe) ? "<span style='color:#94a3b8;font-style:italic;'>Chưa ghi nhận</span>" : $"<span style='color:#059669;font-weight:900;'>{tgThucTe}</span>";
-        return $@"<div style='margin-top:20px;padding:20px;background:#f8fafc;border-radius:20px;border:2.5px dashed #94a3b8;'>
-            <h4 style='margin:0 0 15px 0;font-size:13px;color:#1e293b;font-weight:900;text-transform:uppercase;'>🛡️ Xác nhận bảo vệ</h4>
-            <div style='font-size:14px;margin-bottom:5px;'><strong>Trực ban:</strong> {ten}</div>
-            <div style='font-size:14px;'><strong>Xác nhận {note}:</strong> {tg}</div></div>";
-    }
-    void ProcessImage(string path, byte[] rawData)
+
+    // Chỉ sử dụng đường dẫn ảnh, đã bỏ phần mảng byte (rawData) không cần thiết
+    void ProcessImage(string path)
     {
         if (!string.IsNullOrEmpty(path))
-            listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(path));
-        else if (rawData != null && rawData.Length > 0)
-            listImages.Add("data:image/png;base64," + Convert.ToBase64String(rawData));
+            listImages.Add("/FormSHD/DownloadFile/" + System.IO.Path.GetFileName(path));
     }
 
-    // ── 5. NỘI DUNG 9 LOẠI ĐƠN ──
-    void BuildNoiDung9LoaiDon()
+    // ── 5. NỘI DUNG ĐƠN SHD ──
+    void BuildNoiDungSHD()
     {
-        if (Model.HrXinRaNgoai1s?.Any() == true)
+        if (Model.ShdDangKySuDungXeCongTac1s?.Any() == true)
         {
-            var ct = Model.HrXinRaNgoai1s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
-            chiTietNoiDung += RenderInfoRow("📍", "Địa điểm", ct.DiaDiem, "#eff6ff", "#1e40af");
-            chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#eff6ff", "#1e40af");
-            chiTietNoiDung += RenderInfoRow("🕒", "Giờ ra", ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "#fef2f2", "#991b1b");
-            chiTietNoiDung += RenderInfoRow("🔄", "Dự kiến về", ct.ThoiGianVeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#ecfdf5", "#065f46");
-        }
-        if (Model.HrMangHangHoaRaCong2s?.Any() == true)
-        {
-            var ct = Model.HrMangHangHoaRaCong2s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
-            chiTietNoiDung += RenderInfoRow("📦", "Loại đơn", "Mang hàng hóa ra cổng", "#f0fdf4", "#166534");
-            chiTietNoiDung += RenderInfoRow("📋", "Mô tả", ct.MoTa, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("📅", "Thời gian dự tính", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#f0fdf4", "#166534");
-            chiTietNoiDung += RenderSecurityBox(ct.TenCong, ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "hàng ra thực tế");
-        }
-        if (Model.HrDangKySuDungXeCongTac3s?.Any() == true)
-        {
-            var ct = Model.HrDangKySuDungXeCongTac3s.First();
-            ProcessImage(ct.DuongDanAnh, ct.Anh);
-            chiTietNoiDung += RenderInfoRow("🚗", "Dịch vụ", "Đăng ký xe công tác", "#eef2ff", "#1e40af");
-            chiTietNoiDung += RenderInfoRow("📞", "Số điện thoại", !string.IsNullOrEmpty(ct.SoDienThoai) ? ct.SoDienThoai : "Chưa cung cấp", "#f0fdf4", "#166534");
-            chiTietNoiDung += RenderInfoRow("👥", "Số lượng người", ct.SoLuong.HasValue ? $"{ct.SoLuong} người" : "Chưa xác định", "#f0fdf4", "#166534");
+            var ct = Model.ShdDangKySuDungXeCongTac1s.First();
+            
+            // Xử lý ảnh: chỉ truyền thuộc tính DuongDanAnh
+            ProcessImage(ct.DuongDanAnh);
+
+            chiTietNoiDung += RenderInfoRow("🚗", "Dịch vụ", "Đăng ký xe công tác SHD", "#eef2ff", "#1e40af");
+            chiTietNoiDung += RenderInfoRow("📞", "Số điện thoại", ct.SoDienThoai, "#f0fdf4", "#166534");
+            chiTietNoiDung += RenderInfoRow("👥", "Số lượng người", ct.SoLuong?.ToString() + " người", "#f0fdf4", "#166534");
+            
             string thoiGianDi = ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa xác định";
             string thoiGianVe = ct.ThoiGianVe?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa xác định";
             chiTietNoiDung += RenderInfoRow("📅", "Thời gian (Đi - Về)", $"{thoiGianDi} ➜ {thoiGianVe}", "#eff6ff", "#1e40af");
-            chiTietNoiDung += RenderInfoRow("📍", "Mục đích / Lộ trình", !string.IsNullOrEmpty(ct.LiDo) ? ct.LiDo : "Trống", "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("📝", "Ghi chú", !string.IsNullOrEmpty(ct.GhiChu) ? ct.GhiChu : "Không có ghi chú", "#fff7ed", "#9a3412");
-        }
-        if (Model.HrDangKySuDungXeDaily4s?.Any() == true)
-        {
-            var ct = Model.HrDangKySuDungXeDaily4s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
-            chiTietNoiDung += RenderInfoRow("🚌", "Dịch vụ", "Đăng ký xe Daily", "#fff7ed", "#9a3412");
-            chiTietNoiDung += RenderInfoRow("🕒", "Thời gian", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#fff7ed", "#9a3412");
-            chiTietNoiDung += RenderInfoRow("📍", "Điểm đón", ct.DiemDon, "#f0f9ff", "#0369a1");
-            chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#f8fafc", "#0f172a");
-        }
-        if (Model.HrDonTiepKhac5s?.Any() == true)
-        {
-            var ct = Model.HrDonTiepKhac5s.First();
-            if (!string.IsNullOrEmpty(ct.DuongDanAnh))
-                listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
-            chiTietNoiDung += RenderInfoRow("🤝", "Loại đơn", "Đăng ký Tiếp khách", "#fdf2f8", "#9d174d");
-            chiTietNoiDung += RenderInfoRow("🏢", "Công ty khách", ct.TenCongTyKhach ?? "...", "#fff1f2", "#be123c");
-            chiTietNoiDung += RenderInfoRow("👥", "Số lượng khách", (ct.SoLuongKhach?.ToString() ?? "0") + " người", "#fff1f2", "#be123c");
-            chiTietNoiDung += RenderInfoRow("📞", "Người đặt", $"{(ct.NguoiBook ?? "...")} - Ext: {(ct.SoMayBan ?? "...")}", "#fff1f2", "#be123c");
-            chiTietNoiDung += RenderInfoRow("📝", "Yêu cầu", ct.YeuCauTiepKhach ?? "Không có", "#f8fafc", "#475569");
-            chiTietNoiDung += RenderInfoRow("📅", "Ngày yêu cầu", Model.Ngay?.ToString("dd/MM/yyyy") ?? "...", "#fff1f2", "#be123c");
-            chiTietNoiDung += "<div style='margin-top:10px;border-top:1px dashed #f9a8d4;padding-top:10px;'></div>";
-            chiTietNoiDung += RenderInfoRow("🏫", "Phòng họp", ct.TenPhongHop ?? "Không đăng ký", "#f0f9ff", "#0369a1");
-            chiTietNoiDung += RenderInfoRow("⚙️", "Tiện ích", ct.NhuCauPhongHop ?? "Không có", "#f0f9ff", "#0369a1");
-            chiTietNoiDung += RenderInfoRow("⏰", "Bắt đầu", ct.ThoiGianBatDau?.ToString("HH:mm dd/MM/yyyy") ?? "...", "#f0f9ff", "#0369a1");
-            chiTietNoiDung += RenderInfoRow("⌛", "Kết thúc", ct.ThoiGianKetThuc?.ToString("HH:mm dd/MM/yyyy") ?? "...", "#f0f9ff", "#0369a1");
-            chiTietNoiDung += RenderInfoRow("💬", "Ghi chú phòng", ct.GhiChuPhongHop ?? "Không có", "#f0f9ff", "#0369a1");
-            chiTietNoiDung += "<div style='margin-top:10px;border-top:1px dashed #f9a8d4;padding-top:10px;'></div>";
-            chiTietNoiDung += RenderInfoRow("🍱", "Loại suất ăn", string.IsNullOrEmpty(ct.LoaiSuatAn) ? "Không đăng ký" : "Loại " + ct.LoaiSuatAn, "#f0fdf4", "#15803d");
-            chiTietNoiDung += RenderInfoRow("🔢", "Tổng số suất", (ct.SoLuongSuat?.ToString() ?? "0") + " suất", "#f0fdf4", "#15803d");
-            chiTietNoiDung += RenderInfoRow("🌿", "Ăn chay", ct.AnChay ?? "Không", "#f0fdf4", "#15803d");
-            chiTietNoiDung += RenderInfoRow("🥗", "Số lượng chay", (ct.SoLuongSuatAnChay?.ToString() ?? "0") + " suất", "#f0fdf4", "#15803d");
-            chiTietNoiDung += RenderInfoRow("💡", "Ghi chú ăn", ct.GhiChuSuatAn ?? "Không có", "#f0fdf4", "#15803d");
-        }
-        if (Model.HrNhaThauQuaCong6s?.Any() == true)
-        {
-            var ct = Model.HrNhaThauQuaCong6s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
-            chiTietNoiDung += RenderInfoRow("🏗️", "Loại đơn", "Nhà thầu qua cổng", "#f1f5f9", "#334155");
-            chiTietNoiDung += RenderInfoRow("🏢", "Tên nhà thầu", ct.TenNhaThau, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("👥", "Số người", ct.SoNguoi?.ToString() + " người", "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("👤", "Người đăng ký", ct.NguoiDangKy, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDichCongViec, "#f8fafc", "#0f172a");
-        }
-        if (Model.HrHoTroTienDienThoai7s?.Any() == true)
-        {
-            var ct = Model.HrHoTroTienDienThoai7s.First();
-            ProcessImage(ct.DuongDanAnh, ct.Anh);
-            chiTietNoiDung += RenderInfoRow("📱", "Dịch vụ", "Hỗ trợ tiền điện thoại", "#f0fdf4", "#166534");
-            chiTietNoiDung += RenderInfoRow("📞", "Số điện thoại", ct.SoDienThoai ?? "Chưa cập nhật", "#eff6ff", "#1e40af");
-            chiTietNoiDung += RenderInfoRow("💰", "Mức hỗ trợ", (ct.MucHoTro.HasValue ? ct.MucHoTro.Value.ToString("N0") : "0") + " VNĐ", "#fff7ed", "#9a3412");
-            chiTietNoiDung += RenderInfoRow("📝", "Mục đích", ct.MucDich ?? "Chưa có nội dung", "#f8fafc", "#0f172a");
-        }
-        if (Model.HrDoiCaLam8s?.Any() == true)
-        {
-            var ct = Model.HrDoiCaLam8s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
-            chiTietNoiDung += RenderInfoRow("⏰", "Loại đơn", "Đổi ca làm việc", "#fff7ed", "#c2410c");
-            chiTietNoiDung += RenderInfoRow("📅", "Ngày cần đổi", ct.NgayCanDoi?.ToString("dd/MM/yyyy"), "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("🔄", "Ca gốc", ct.CaGoc, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("➡️", "Ca muốn đổi", ct.CaMuonDoi, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LyDoDoiCa, "#f8fafc", "#0f172a");
-        }
-        if (Model.HrDonHoTroCongTac9s?.Any() == true)
-        {
-            var ct = Model.HrDonHoTroCongTac9s.First();
-            if (!string.IsNullOrEmpty(ct.DuongDanAnh))
-                listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
-            chiTietNoiDung += RenderInfoRow("📋", "Loại đơn", "Hỗ trợ công tác", "#eef2ff", "#1e40af");
-            chiTietNoiDung += RenderInfoRow("🆔", "Mã nhân viên", ct.MaNhanVien, "#f8fafc", "#0f172a");
-            string genderIcon = ct.GioiTinh == "Nữ" ? "👩‍💼" : "👨‍💼";
-            chiTietNoiDung += RenderInfoRow(genderIcon, "Khách hàng", $"[{ct.GioiTinh}] {ct.TenKhachHang}", "#f0fdf4", "#166534");
-            List<string> selectedServices = new List<string>();
-            if (ct.DatVeMayBay == true) selectedServices.Add("✈️ Vé máy bay");
-            if (ct.DatChoO == true) selectedServices.Add("🏨 Chỗ ở");
-            if (ct.BookXeCtyDuaDon == true) selectedServices.Add("🚗 Xe đưa đón");
-            if (ct.DatBuaAn == true)
-            {
-                string loaiCom = "🍽️ Đặt bữa ăn";
-                if (ct.NoiDungYeuCauChiTiet != null)
-                {
-                    if (ct.NoiDungYeuCauChiTiet.Contains("VietNam")) loaiCom = "🍽️ Cơm Việt Nam";
-                    else if (ct.NoiDungYeuCauChiTiet.Contains("TrungQuoc")) loaiCom = "🍽️ Cơm Trung Quốc";
-                }
-                selectedServices.Add(loaiCom);
-            }
-            chiTietNoiDung += RenderInfoRow("🛠️", "Dịch vụ yêu cầu",
-                selectedServices.Count > 0 ? string.Join(" | ", selectedServices) : "Không có yêu cầu đặc biệt",
-                "#fff7ed", "#9a3412");
-            chiTietNoiDung += RenderInfoRow("📝", "Nội dung chi tiết", ct.NoiDungYeuCauChiTiet ?? "", "#f8fafc", "#0f172a");
+            
+            chiTietNoiDung += RenderInfoRow("📝", "Mục đích / Lý do", ct.LiDo, "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("📌", "Ghi chú", ct.GhiChu, "#fff7ed", "#9a3412");
         }
     }
     
     // GỌI HÀM VỪA TẠO ĐỂ XỬ LÝ DỮ LIỆU
-    BuildNoiDung9LoaiDon();
+    BuildNoiDungSHD();
 
     // ── 6. DỮ LIỆU XÁC NHẬN GIÁM ĐỐC ──
-    var danhSachXacNhan = ViewBag.DanhSachXacNhan as List<E_Form_Best.Models.ITForm.HrNguoiXacNhan>
-                          ?? new List<E_Form_Best.Models.ITForm.HrNguoiXacNhan>();
+    var danhSachXacNhan = ViewBag.DanhSachXacNhan as List<E_Form_Best.Models.ITForm.ShdNguoiXacNhan>
+                          ?? new List<E_Form_Best.Models.ITForm.ShdNguoiXacNhan>();
     var myXacNhan = danhSachXacNhan
         .FirstOrDefault(x =>
             (string.Equals(x.MaNguoiXacNhan ?? "", userEmailView, StringComparison.OrdinalIgnoreCase)
@@ -203,58 +97,29 @@
             && (x.TrangThaiXacNhan ?? 0) == 0);
     int soNguoiDaDuyet = danhSachXacNhan.Count(x => x.TrangThaiXacNhan == 1);
 
-    // ── 7. DỮ LIỆU BƯỚC 2 (HrQuanLyDuyetB2) ──
-    var danhSachB2 = ViewBag.DanhSachB2 as List<E_Form_Best.Models.ITForm.HrQuanLyDuyetB2>
-                    ?? (Model.HrQuanLyDuyetB2s?.OrderBy(x => x.ThuTuXacNhan).ToList() ?? new List<E_Form_Best.Models.ITForm.HrQuanLyDuyetB2>());
+    // ── 7. DỮ LIỆU BƯỚC 2 (ShdQuanLyDuyetB2) ──
+    var danhSachB2 = ViewBag.DanhSachB2 as List<E_Form_Best.Models.ITForm.ShdQuanLyDuyetB2>
+                    ?? (Model.ShdQuanLyDuyetB2s?.OrderBy(x => x.ThuTuXacNhan).ToList() ?? new List<E_Form_Best.Models.ITForm.ShdQuanLyDuyetB2>());
     string hinhThucDuyetB2 = danhSachB2.FirstOrDefault()?.Loai?.ToUpper() ?? "AND";
     var myB2Pending = danhSachB2.FirstOrDefault(x =>
         (string.Equals(x.MaNguoiXacNhan ?? "", userEmailView, StringComparison.OrdinalIgnoreCase)
          || x.IdnguoiXacNhan == currentUserId)
         && (x.TrangThaiXacNhan ?? 0) == 0);
     int soNguoiB2DaDuyet = danhSachB2.Count(x => x.TrangThaiXacNhan == 1);
-
-    // ── 8. BẢO VỆ ──
-    var baoVeRecord = ViewBag.BaoVeRecord as E_Form_Best.Models.ITForm.BaoVeHr;
-    bool daBaoVe = baoVeRecord != null;
-    bool baoVeHoanTat = baoVeRecord?.TrangThai == 1;
-    bool canBaoVeAction = User.IsInRole("All") || User.IsInRole("BaoVeHR");
-    bool canDayBaoVe = User.IsInRole("All") || User.IsInRole("AdminHR")
-                            || User.IsInRole("BaoVeHR") || User.IsInRole("QuanLyDuyetDonHR");
 }
-
-@* --- CSS ẨN CÔNG CỤ DỊCH MẶC ĐỊNH CỦA GOOGLE ĐỂ LÀM ĐẸP GIAO DIỆN --- *@
-<style>
-    .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
-    .goog-te-banner-frame { display: none !important; }
-    body { top: 0px !important; }
-    #goog-gt-tt { display: none !important; }
-</style>
 
 @Html.AntiForgeryToken()
 
 <div style="max-width:1200px;margin:0 auto;padding:25px;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#f8fafc;">
     <div style="margin-bottom:25px;">
-        <a href="/FormHR/DonCho" style="display:inline-flex;align-items:center;gap:10px;padding:12px 24px;background:#fff;color:#1e40af;text-decoration:none;border-radius:12px;font-weight:800;border:2px solid #e2e8f0;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+        <a href="/FormSHD/DonCho" style="display:inline-flex;align-items:center;gap:10px;padding:12px 24px;background:#fff;color:#1e40af;text-decoration:none;border-radius:12px;font-weight:800;border:2px solid #e2e8f0;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
             <i class="fa fa-arrow-left"></i> DANH SÁCH PHIẾU
         </a>
     </div>
 
     <div style="background:white;border-radius:30px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.1);overflow:hidden;border:1px solid #f1f5f9;">
 
-        <div style="background:@headerGradient;padding:50px 40px;color:white;position:relative;">
-            
-            @* --- TÍNH NĂNG CHỌN NGÔN NGỮ (GÓC TRÊN BÊN PHẢI) --- *@
-            <div style="position:absolute; top:20px; right:20px; z-index:100; display:flex; align-items:center; gap:10px;">
-                <i class="fa fa-language" style="font-size:20px; opacity:0.8;"></i>
-                <select id="langSelector" onchange="changeLanguage(this.value)" style="padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.4); background: rgba(0,0,0,0.2); color: white; font-weight: bold; outline: none; cursor: pointer; font-family:'Segoe UI', sans-serif;">
-                    <option value="vi" style="color: black;">🇻🇳 Tiếng Việt</option>
-                    <option value="en" style="color: black;">🇬🇧 English</option>
-                    <option value="zh-CN" style="color: black;">🇨🇳 中文</option>
-                </select>
-            </div>
-            <!-- Div ảo để chứa widget Google (đã được ẩn bằng CSS phía trên) -->
-            <div id="google_translate_element" style="display:none;"></div>
-
+        <div style="background:@headerGradient;padding:50px 40px;color:white;">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;">
                 <div>
                     <span style="background:rgba(255,255,255,0.25);padding:8px 20px;border-radius:50px;font-size:13px;font-weight:800;text-transform:uppercase;">Mã số: #@Model.Id</span>
@@ -266,16 +131,16 @@
                     </div>
 
                     @* --- KIỂM TRA QUYỀN TRƯỚC KHI HIỂN THỊ CỤM NÚT XUẤT FILE --- *@
-                    @if (User.IsInRole("All") || User.IsInRole("AdminHR"))
+                    @if (User.IsInRole("All") || User.IsInRole("AdminSHD"))
                     {
                         <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-                            <a href="/FormHR/ExportExcel/@Model.Id" class="btn-export" style="background: rgba(255,255,255,0.2); color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; border: 1px solid rgba(255,255,255,0.4); transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                            <a href="/FormSHD/ExportExcel/@Model.Id" class="btn-export" style="background: rgba(255,255,255,0.2); color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; border: 1px solid rgba(255,255,255,0.4); transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
                                 <i class="fa fa-file-excel"></i> Xuất Excel
                             </a>
-                            <a href="/FormHR/ExportWord/@Model.Id" class="btn-export" style="background: rgba(255,255,255,0.2); color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; border: 1px solid rgba(255,255,255,0.4); transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                            <a href="/FormSHD/ExportWord/@Model.Id" class="btn-export" style="background: rgba(255,255,255,0.2); color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; border: 1px solid rgba(255,255,255,0.4); transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
                                 <i class="fa fa-file-word"></i> Xuất Word
                             </a>
-                            <a href="/FormHR/ExportPDF/@Model.Id" target="_blank" class="btn-export" style="background: rgba(255,255,255,0.2); color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; border: 1px solid rgba(255,255,255,0.4); transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                            <a href="/FormSHD/ExportPDF/@Model.Id" target="_blank" class="btn-export" style="background: rgba(255,255,255,0.2); color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; border: 1px solid rgba(255,255,255,0.4); transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
                                 <i class="fa fa-file-pdf"></i> Xuất PDF
                             </a>
                         </div>
@@ -315,21 +180,21 @@
                     </div>
 
                     <h3 style="margin-bottom:20px;color:#ea580c;font-size:20px;font-weight:800;display:flex;align-items:center;gap:10px;">
-                        <i class="fa fa-tools"></i> ĐỘI NGŨ HR HỖ TRỢ
+                        <i class="fa fa-tools"></i> ĐỘI NGŨ SHD HỖ TRỢ
                     </h3>
                     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;margin-bottom:35px;">
-                        @if (Model.HrCtNguoiHoTros?.Any() == true)
+                        @if (Model.ShdCtNguoiHoTros?.Any() == true)
                         {
-                            var currentSupport = Model.HrCtNguoiHoTros.OrderByDescending(x => x.Stt).First();
-                            foreach (var hoTro in Model.HrCtNguoiHoTros.OrderBy(x => x.Stt))
+                            var currentSupport = Model.ShdCtNguoiHoTros.OrderByDescending(x => x.Stt).First();
+                            foreach (var hoTro in Model.ShdCtNguoiHoTros.OrderBy(x => x.Stt))
                             {
                                 <div style="background:white;border:2px solid #fed7aa;padding:20px;border-radius:22px;display:flex;align-items:center;gap:15px;position:relative;">
                                     <div style="background:#ffedd5;color:#9a3412;width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;">
-                                        @(hoTro.IdHrNguoiHoTroNavigation?.Ten?.Substring(0, 1).ToUpper() ?? "HR")
+                                        @(hoTro.IdShdNguoiHoTroNavigation?.Ten?.Substring(0, 1).ToUpper() ?? "SHD")
                                     </div>
                                     <div>
-                                        <div style="font-weight:800;color:#9a3412;font-size:16px;">@hoTro.IdHrNguoiHoTroNavigation?.Ten</div>
-                                        <div style="font-size:13px;color:#c2410c;margin-top:2px;">@hoTro.IdHrNguoiHoTroNavigation?.MaNv</div>
+                                        <div style="font-weight:800;color:#9a3412;font-size:16px;">@hoTro.IdShdNguoiHoTroNavigation?.Ten</div>
+                                        <div style="font-size:13px;color:#c2410c;margin-top:2px;">@hoTro.IdShdNguoiHoTroNavigation?.MaNv</div>
                                     </div>
                                     @if (hoTro.Id == currentSupport.Id)
                                     {
@@ -340,24 +205,24 @@
                         }
                     </div>
 
-                    @* Chỉ All và AdminHR mới thấy block chỉ định người hỗ trợ *@
-                    @if ((User.IsInRole("All") || User.IsInRole("AdminHR")) && !isCancelled && !isFinished)
+                    @* Chỉ All và AdminSHD mới thấy block chỉ định người hỗ trợ *@
+                    @if ((User.IsInRole("All") || User.IsInRole("AdminSHD")) && !isCancelled && !isFinished)
                     {
                         <div style="background:#fff7ed;border:2px dashed #fb923c;padding:25px;border-radius:24px;margin-bottom:45px;">
                             <p style="margin:0 0 15px 0;font-size:13px;font-weight:800;color:#9a3412;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:0.5px;">
                                 <i class="fa fa-user-edit" style="font-size:16px;"></i> CHỈ ĐỊNH / THAY ĐỔI NGƯỜI HỖ TRỢ:
                             </p>
                             <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                                <select id="selectHR"
+                                <select id="selectSHD"
                                         style="flex:1;min-width:200px;padding:14px;border-radius:12px;border:1.5px solid #fdba74;font-weight:600;outline:none;background:white;font-size:15px;color:#1e293b;transition:border-color 0.2s;"
                                         onfocus="this.style.borderColor='#ea580c'"
                                         onblur="this.style.borderColor='#fdba74'">
-                                    <option value="">-- Chọn nhân viên HR hỗ trợ --</option>
+                                    <option value="">-- Chọn nhân viên SHD hỗ trợ --</option>
                                     @if (ViewBag.ListNguoiHoTro != null)
                                     {
-                                        foreach (var hr in (List<E_Form_Best.Models.ITForm.HrNguoiHoTro>)ViewBag.ListNguoiHoTro)
+                                        foreach (var shd in (List<E_Form_Best.Models.ITForm.ShdNguoiHoTro>)ViewBag.ListNguoiHoTro)
                                         {
-                                            <option value="@hr.MaNv">@hr.Ten (@hr.MaNv)</option>
+                                            <option value="@shd.MaNv">@shd.Ten (@shd.MaNv)</option>
                                         }
                                     }
                                 </select>
@@ -369,7 +234,7 @@
                                 </button>
                             </div>
                             <small style="color:#c2410c;display:block;margin-top:10px;font-style:italic;font-weight:500;">
-                                * Lưu ý: Chỉ tài khoản có quyền <b>AdminHR</b> hoặc <b>All</b> mới có thể thực hiện thao tác này.
+                                * Lưu ý: Chỉ tài khoản có quyền <b>AdminSHD</b> hoặc <b>All</b> mới có thể thực hiện thao tác này.
                             </small>
                         </div>
                     }
@@ -379,9 +244,9 @@
                     </h3>
                     <div style="background:#fff;border:1px solid #e2e8f0;border-radius:28px;padding:35px;">
                         <div style="margin-left:10px;border-left:2px dashed #e2e8f0;padding-left:30px;">
-                            @if (Model.LichSuFormHrs?.Any() == true)
+                            @if (Model.LichSuFormShds?.Any() == true)
                             {
-                                foreach (var ls in Model.LichSuFormHrs.OrderByDescending(x => x.Time))
+                                foreach (var ls in Model.LichSuFormShds.OrderByDescending(x => x.Time))
                                 {
                                     <div style="position:relative;margin-bottom:30px;">
                                         <div style="position:absolute;left:-41px;top:0;width:20px;height:20px;background:white;border:4px solid #3b82f6;border-radius:50%;z-index:1;"></div>
@@ -426,7 +291,7 @@
                             @foreach (var fileItem in listFileDinhKem)
                             {
                                 string fName = System.IO.Path.GetFileName(fileItem);
-                                string fUrl = "/FormHR/DownloadFile/" + Uri.EscapeDataString(fName);
+                                string fUrl = "/FormSHD/DownloadFile/" + Uri.EscapeDataString(fName);
                                 <div style="background:#f0f9ff;border:2px solid #bae6fd;padding:22px;border-radius:24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                                     <div style="display:flex;align-items:center;gap:12px;overflow:hidden;">
                                         <i class="fa fa-file-download" style="font-size:24px;color:#0369a1;"></i>
@@ -455,7 +320,7 @@
                             </div>
                             <div style="position:relative;">
                                 <div style="position:absolute;left:-37px;top:0;width:14px;height:14px;border-radius:50%;background:@(isFinished ? "#1e40af" : "#cbd5e1");border:3px solid white;box-shadow:0 0 0 2px @(isFinished ? "#1e40af" : "#cbd5e1");"></div>
-                                <div style="font-weight:800;font-size:15px;color:#1e293b;">HR Xử lý: @(Model.TenAdmin ?? "---")</div>
+                                <div style="font-weight:800;font-size:15px;color:#1e293b;">SHD Xử lý: @(Model.TenAdmin ?? "---")</div>
                                 <div style="font-size:13px;color:#64748b;margin-top:4px;">@(Model.TimeAdmin?.ToString("HH:mm dd/MM/yyyy") ?? "Đang xử lý...")</div>
                             </div>
                         </div>
@@ -604,7 +469,7 @@
                     @if (!isCancelled && !isFinished)
                     {
                         <div style="display:flex;flex-direction:column;gap:15px;margin-bottom:25px;">
-                            @if (!isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminHR") || User.IsInRole("QuanLyDuyetDonHR")))
+                            @if (!isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminSHD") || User.IsInRole("QuanLyDuyetDonSHD")))
                             {
                                 <button id="btnDuyet" onclick="handleAction('Duyet')"
                                         style="background:#059669;color:white;border:none;padding:20px;border-radius:18px;font-weight:900;cursor:pointer;font-size:16px;box-shadow:0 10px 15px -3px rgba(5,150,105,0.3);transition:all 0.2s;"
@@ -612,15 +477,15 @@
                                     <i class="fa fa-check-circle"></i> DUYỆT ĐƠN (QUẢN LÝ)
                                 </button>
                             }
-                            @if (isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminHR")))
+                            @if (isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminSHD")))
                             {
                                 <button id="btnHoanThanh" onclick="handleXacNhanHoanThanh()"
                                         style="background:#1e40af;color:white;border:none;padding:20px;border-radius:18px;font-weight:900;cursor:pointer;font-size:16px;box-shadow:0 10px 15px -3px rgba(30,64,175,0.3);transition:all 0.2s;"
                                         onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-                                    <i class="fa fa-star"></i> XÁC NHẬN HOÀN TẤT (HR)
+                                    <i class="fa fa-star"></i> XÁC NHẬN HOÀN TẤT (SHD)
                                 </button>
                             }
-                            @if (User.IsInRole("All") || User.IsInRole("AdminHR") || User.IsInRole("QuanLyDuyetDonHR"))
+                            @if (User.IsInRole("All") || User.IsInRole("AdminSHD") || User.IsInRole("QuanLyDuyetDonSHD"))
                             {
                                 <button id="btnHuy" onclick="handleAction('Huy')"
                                         style="background:white;color:#dc2626;border:2px solid #dc2626;padding:18px;border-radius:18px;font-weight:800;cursor:pointer;font-size:15px;transition:all 0.2s;"
@@ -667,96 +532,13 @@
                             </form>
                         </div>
                     </div>
-
-                    @if (User.IsInRole("All") || User.IsInRole("AdminHR") || User.IsInRole("BaoVeHR"))
-                    {
-                        <div style="background:#fff;border-radius:28px;border:1px solid #d1d5db;overflow:hidden;box-shadow:0 10px 15px -3px rgba(0,0,0,0.06);">
-                            <div style="background:linear-gradient(135deg,#1c1917 0%,#44403c 100%);padding:18px 25px;display:flex;align-items:center;justify-content:space-between;">
-                                <h4 style="margin:0;font-size:15px;font-weight:900;color:white;display:flex;align-items:center;gap:10px;">
-                                    <i class="fa fa-shield"></i> BẢO VỆ
-                                </h4>
-                                @if (daBaoVe)
-                                {
-                                    <span style="background:@(baoVeHoanTat ? "#059669" : "#d97706");color:white;padding:3px 12px;border-radius:12px;font-size:11px;font-weight:800;">
-                                        <i class="fa fa-@(baoVeHoanTat ? "check-circle" : "clock-o")"></i>
-                                        @(baoVeHoanTat ? "HOÀN TẤT" : "ĐANG XỬ LÝ")
-                                    </span>
-                                }
-                            </div>
-                            <div style="padding:22px;">
-                                @if (!daBaoVe)
-                                {
-                                    <p style="margin:0 0 14px 0;font-size:13px;color:#78716c;line-height:1.6;">
-                                        Gửi phiếu này đến đội <strong>Bảo Vệ</strong> để xử lý. Bảo Vệ sẽ bổ sung thông tin sau.
-                                    </p>
-                                    <button id="btnDayBaoVe" onclick="dayDenBaoVe()"
-                                            style="width:100%;padding:16px;background:linear-gradient(135deg,#292524,#57534e);color:white;border:none;border-radius:14px;font-weight:900;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 12px rgba(0,0,0,0.18);transition:all 0.2s;"
-                                            onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 10px 20px rgba(0,0,0,0.25)'"
-                                            onmouseout="this.style.transform='';this.style.boxShadow='0 6px 12px rgba(0,0,0,0.18)'">
-                                        <i class="fa fa-shield"></i> ĐẨY SANG BẢO VỆ
-                                    </button>
-                                }
-                                else if (baoVeHoanTat)
-                                {
-                                    <div style="background:#f0fdf4;border:2px solid #bbf7d0;border-radius:16px;padding:18px;">
-                                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                                            <div style="width:42px;height:42px;background:#059669;border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;font-size:20px;flex-shrink:0;">
-                                                <i class="fa fa-check"></i>
-                                            </div>
-                                            <div>
-                                                <div style="font-weight:900;color:#065f46;font-size:15px;">Bảo Vệ đã xác nhận hoàn tất</div>
-                                                <div style="font-size:12px;color:#059669;margin-top:2px;">
-                                                    <i class="fa fa-user"></i> @baoVeRecord!.TenBaoVe
-                                                    &nbsp;·&nbsp;
-                                                    <i class="fa fa-clock-o"></i> @baoVeRecord.TimeBaoVe?.ToString("HH:mm dd/MM/yyyy")
-                                                </div>
-                                            </div>
-                                        </div>
-                                        @if (!string.IsNullOrEmpty(baoVeRecord!.GhiChu))
-                                        {
-                                            <div style="background:white;border-left:4px solid #059669;padding:10px 14px;border-radius:8px;font-size:13px;color:#374151;font-style:italic;">
-                                                <i class="fa fa-comment" style="color:#059669;"></i> @baoVeRecord.GhiChu
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div style="background:#fff7ed;border:2px solid #fed7aa;border-radius:16px;padding:18px;margin-bottom:16px;">
-                                        <div style="display:flex;align-items:center;gap:10px;">
-                                            <i class="fa fa-clock-o" style="color:#d97706;font-size:22px;"></i>
-                                            <div>
-                                                <div style="font-weight:800;color:#92400e;font-size:14px;">Đang chờ Bảo Vệ xử lý</div>
-                                                <div style="font-size:12px;color:#b45309;margin-top:2px;">Phiếu đã được gửi đến đội Bảo Vệ</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    @if (canBaoVeAction)
-                                    {
-                                        <div style="background:#f8fafc;border:2px dashed #94a3b8;border-radius:16px;padding:18px;">
-                                            <p style="margin:0 0 12px 0;font-size:13px;font-weight:800;color:#334155;display:flex;align-items:center;gap:8px;">
-                                                <i class="fa fa-shield"></i> XÁC NHẬN HOÀN TẤT (BẢO VỆ):
-                                            </p>
-                                            <textarea id="txtGhiChuBaoVe" placeholder="Nhập ghi chú xác nhận (tùy chọn)..."
-                                                      style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:13px;resize:vertical;min-height:70px;outline:none;font-family:'Segoe UI',sans-serif;box-sizing:border-box;margin-bottom:12px;transition:border 0.2s;"
-                                                      onfocus="this.style.borderColor='#475569'" onblur="this.style.borderColor='#cbd5e1'"></textarea>
-                                            <button id="btnBaoVeXacNhan" onclick="baoVeXacNhan(@baoVeRecord!.Id)"
-                                                    style="width:100%;padding:14px;background:linear-gradient(135deg,#1c1917,#44403c);color:white;border:none;border-radius:12px;font-weight:900;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 10px rgba(0,0,0,0.2);transition:all 0.2s;"
-                                                    onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-                                                <i class="fa fa-check-circle"></i> XÁC NHẬN HOÀN TẤT
-                                            </button>
-                                        </div>
-                                    }
-                                }
-                            </div>
-                        </div>
-                    }
+                    
                 </div>
             </div>
         </div>
     </div>
 
-    @* --- MỚI: OVERLAY ZOOM CÓ NÚT XOAY ẢNH SIÊU ĐẸP, 100% INLINE CSS --- *@
+    @* --- OVERLAY ZOOM CÓ NÚT XOAY ẢNH SIÊU ĐẸP, 100% INLINE CSS --- *@
     <div id="imageOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(8px);">
         <!-- Thanh công cụ chứa các nút bấm -->
         <div style="position:absolute;top:25px;right:35px;display:flex;gap:15px;z-index:10000;">
@@ -780,51 +562,11 @@
     </div>
 </div>
 
-@* --- SCRIPT GOOGLE TRANSLATE --- *@
-<script type="text/javascript">
-    function googleTranslateElementInit() {
-        new google.translate.TranslateElement({ pageLanguage: 'vi', autoDisplay: false }, 'google_translate_element');
-    }
-</script>
-<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-
 <script>
-    // --- LOGIC TRANSLATION LOCAL STORAGE ---
-    function initLanguage() {
-        let currentLang = localStorage.getItem('siteLangHrForm');
-        if (!currentLang) {
-            currentLang = 'vi';
-            localStorage.setItem('siteLangHrForm', 'vi');
-        }
-        const selectEl = document.getElementById('langSelector');
-        if (selectEl) selectEl.value = currentLang;
-
-        if (currentLang !== 'vi') {
-            document.cookie = `googtrans=/vi/${currentLang}; path=/; domain=${window.location.hostname}`;
-            document.cookie = `googtrans=/vi/${currentLang}; path=/;`;
-        }
-    }
-
-    function changeLanguage(lang) {
-        localStorage.setItem('siteLangHrForm', lang);
-        if (lang === 'vi') {
-            // Xóa cookie translate để trở về ngôn ngữ gốc
-            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
-        } else {
-            document.cookie = `googtrans=/vi/${lang}; path=/; domain=${window.location.hostname}`;
-            document.cookie = `googtrans=/vi/${lang}; path=/;`;
-        }
-        window.location.reload();
-    }
-
-    document.addEventListener('DOMContentLoaded', initLanguage);
-
-
     const formId        = @Model.Id;
     const currentUserId = '@currentUserId';
     const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                    User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
+                                                                                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
     const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
     function hasRole(r) { return userRoles.includes(r); }
@@ -856,7 +598,7 @@
     function openZoom(src) {
         const imgEl = document.getElementById('fullImage');
         imgEl.src = src;
-        currentImageRotation = 0; // Reset góc xoay mỗi khi mở ảnh mới
+        currentImageRotation = 0;
         imgEl.style.transform = `rotate(${currentImageRotation}deg)`;
         
         document.getElementById('imageOverlay').style.display = 'flex';
@@ -870,7 +612,7 @@
     }
 
     function rotateImage(degree, event) {
-        if(event) event.stopPropagation(); // Ngăn sự kiện click đóng ảnh bên dưới
+        if(event) event.stopPropagation();
         currentImageRotation += degree;
         const imgEl = document.getElementById('fullImage');
         imgEl.style.transform = `rotate(${currentImageRotation}deg)`;
@@ -883,7 +625,7 @@
         const ghiChu = prompt('Ghi chú (tùy chọn):', '') || '';
         if (!confirm('Xác nhận ' + (action === 'Approve' ? 'duyệt' : 'từ chối') + ' bước này?')) return;
         try {
-            const res = await fetch('/FormHR/DuyetB2', {
+            const res = await fetch('/FormSHD/DuyetB2', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': TOKEN },
                 body: JSON.stringify({ idB2: idRecord, idForm: formId, loaiHanhDong: action, ghiChu })
@@ -910,7 +652,7 @@
         if (btnD) btnD.disabled = true;
         if (btnR) btnR.disabled = true;
         try {
-            const res  = await fetch('/FormHR/GiamDocPheDuyet', { method:'POST', headers:{'Content-Type':'application/json','RequestVerificationToken':TOKEN}, body:JSON.stringify({ idForm:formId, idNguoiXacNhan:idXacNhan, loaiHanhDong:action, lyDo:ghiChu }) });
+            const res  = await fetch('/FormSHD/GiamDocPheDuyet', { method:'POST', headers:{'Content-Type':'application/json','RequestVerificationToken':TOKEN}, body:JSON.stringify({ idForm:formId, idNguoiXacNhan:idXacNhan, loaiHanhDong:action, lyDo:ghiChu }) });
             const data = await res.json();
             if (data.success) {
                 const isApprove = data.trangThai === 1;
@@ -940,58 +682,28 @@
             reason = prompt('Vui lòng nhập lý do hủy đơn:');
             if (reason === null || reason.trim() === '') return;
         }
-        if (!hasRole('All') && !hasRole('AdminHR') && !hasRole('QuanLyDuyetDonHR'))
+        if (!hasRole('All') && !hasRole('AdminSHD') && !hasRole('QuanLyDuyetDonSHD'))
             return alert('Bạn không có quyền thực hiện thao tác này!');
         if (confirm('Xác nhận thao tác?'))
-            apiPost('/FormHR/XuLyDon', { id:formId, action:type, reason }, ['btnDuyet','btnHuy']);
+            apiPost('/FormSHD/XuLyDon', { id:formId, action:type, reason }, ['btnDuyet','btnHuy']);
     }
 
     function handleXacNhanHoanThanh() {
-        if (!hasRole('All') && !hasRole('AdminHR')) return alert('Chỉ HR Admin mới có quyền xác nhận hoàn tất!');
+        if (!hasRole('All') && !hasRole('AdminSHD')) return alert('Chỉ SHD Admin mới có quyền xác nhận hoàn tất!');
         if (confirm('Xác nhận đã hoàn thành?'))
-            apiPost('/FormHR/XacNhanHoanThanh', { id:formId }, ['btnHoanThanh']);
+            apiPost('/FormSHD/XacNhanHoanThanh', { id:formId }, ['btnHoanThanh']);
     }
 
+    // change supporter
     function changeSupporter() {
-        const select = document.getElementById('selectHR');
+        const select = document.getElementById('selectSHD');
         const maNv   = select?.value;
         const tenNv  = select?.options[select.selectedIndex]?.text;
-        if (!maNv) return alert('Vui lòng chọn một nhân viên HR!');
-        if (!hasRole('All') && !hasRole('AdminHR'))
+        if (!maNv) return alert('Vui lòng chọn một nhân viên SHD!');
+        if (!hasRole('All') && !hasRole('AdminSHD'))
             return alert('Bạn không có quyền gán người hỗ trợ!');
         if (confirm(`Xác nhận chỉ định [${tenNv}] hỗ trợ đơn này?`))
-            apiPost('/FormHR/ThemNguoiHoTro', { idFormHr:formId, maNv });
-    }
-
-    // ĐẨY SANG BẢO VỆ
-    async function dayDenBaoVe() {
-        if (!hasRole('All') && !hasRole('AdminHR') && !hasRole('BaoVeHR') && !hasRole('QuanLyDuyetDonHR'))
-            return alert('Bạn không có quyền thực hiện thao tác này!');
-        if (!confirm('Xác nhận đẩy phiếu này sang Bảo Vệ?')) return;
-        const btn = document.getElementById('btnDayBaoVe');
-        if (btn) { btn.disabled=true; btn.innerHTML='<i class="fa fa-spinner fa-spin"></i> Đang gửi...'; }
-        try {
-            const res  = await fetch('/FormHR/DayDenBaoVe', { method:'POST', headers:{'Content-Type':'application/json','RequestVerificationToken':TOKEN}, body:JSON.stringify({ idFormHr:formId }) });
-            const data = await res.json();
-            if (data.success) { alert(data.message||'Đã gửi sang Bảo Vệ thành công!'); location.reload(); }
-            else { alert(data.message||'Thất bại!'); if(btn) { btn.disabled=false; btn.innerHTML='<i class="fa fa-shield"></i> ĐẨY SANG BẢO VỆ'; } }
-        } catch(err) { alert('Lỗi kết nối: '+err.message); if(btn) { btn.disabled=false; btn.innerHTML='<i class="fa fa-shield"></i> ĐẨY SANG BẢO VỆ'; } }
-    }
-
-    // BẢO VỆ XÁC NHẬN HOÀN TẤT
-    async function baoVeXacNhan(idBaoVe) {
-        if (!hasRole('All') && !hasRole('BaoVeHR'))
-            return alert('Bạn không có quyền xác nhận!');
-        const ghiChu = document.getElementById('txtGhiChuBaoVe')?.value?.trim() ?? '';
-        if (!confirm('Xác nhận hoàn tất xử lý Bảo Vệ?')) return;
-        const btn = document.getElementById('btnBaoVeXacNhan');
-        if (btn) { btn.disabled=true; btn.innerHTML='<i class="fa fa-spinner fa-spin"></i> Đang xử lý...'; }
-        try {
-            const res  = await fetch('/FormHR/BaoVeXacNhan', { method:'POST', headers:{'Content-Type':'application/json','RequestVerificationToken':TOKEN}, body:JSON.stringify({ idBaoVe, ghiChu }) });
-            const data = await res.json();
-            if (data.success) { alert(data.message||'Xác nhận hoàn tất thành công!'); location.reload(); }
-            else { alert(data.message||'Thất bại!'); if(btn) { btn.disabled=false; btn.innerHTML='<i class="fa fa-check-circle"></i> XÁC NHẬN HOÀN TẤT'; } }
-        } catch(err) { alert('Lỗi kết nối: '+err.message); if(btn) { btn.disabled=false; btn.innerHTML='<i class="fa fa-check-circle"></i> XÁC NHẬN HOÀN TẤT'; } }
+            apiPost('/FormSHD/ThemNguoiHoTro', { idFormShd:formId, maNv });
     }
 
     // BÌNH LUẬN
@@ -1002,7 +714,7 @@
         if (isLoadingComments) return;
         isLoadingComments = true;
         try {
-            const res  = await fetch(`/FormHR/LayBinhLuan/${formId}?skip=${currentSkipComment}&take=${takeComment}`);
+            const res  = await fetch(`/FormSHD/LayBinhLuan/${formId}?skip=${currentSkipComment}&take=${takeComment}`);
             const data = await res.json();
             if (data.success) {
                 const list = document.getElementById('commentList');
@@ -1025,7 +737,7 @@
 
     function renderComment(bl) {
         const isOwn  = currentUserId === String(bl.idNguoiBinhLuan);
-        const canDel = isOwn || hasRole('All') || hasRole('AdminHR');
+        const canDel = isOwn || hasRole('All') || hasRole('AdminSHD');
         const time   = new Date(bl.thoiGian).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});
         let fileHtml = '';
         if (bl.fileDinhKem) {
@@ -1033,8 +745,8 @@
             const ext  = bl.fileDinhKem.split('.').pop().toLowerCase();
             const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext);
             fileHtml = isImg
-                ? `<div style="margin-top:8px;"><img src="/FormHR/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" onclick="openZoom(this.src)" style="max-width:200px;border-radius:8px;cursor:zoom-in;border:1px solid #e2e8f0;"/></div>`
-                : `<div style="margin-top:10px;padding:10px;background:#f1f5f9;border-radius:8px;display:inline-flex;align-items:center;gap:8px;"><i class="fa fa-paperclip" style="color:#64748b;"></i><a href="/FormHR/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color:#3b82f6;text-decoration:none;font-weight:600;font-size:13px;">${escapeHtml(name)}</a></div>`;
+                ? `<div style="margin-top:8px;"><img src="/FormSHD/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" onclick="openZoom(this.src)" style="max-width:200px;border-radius:8px;cursor:zoom-in;border:1px solid #e2e8f0;"/></div>`
+                : `<div style="margin-top:10px;padding:10px;background:#f1f5f9;border-radius:8px;display:inline-flex;align-items:center;gap:8px;"><i class="fa fa-paperclip" style="color:#64748b;"></i><a href="/FormSHD/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color:#3b82f6;text-decoration:none;font-weight:600;font-size:13px;">${escapeHtml(name)}</a></div>`;
         }
         const initial = (bl.tenNguoiBinhLuan || 'U').substring(0,1).toUpperCase();
         return `<div style="margin-bottom:15px;display:flex;gap:12px;${isOwn?'flex-direction:row-reverse;':''}" data-comment-id="${bl.id}">
@@ -1069,7 +781,7 @@
         const btn = document.getElementById('btnGuiBinhLuan');
         isSubmitting=true; btn.disabled=true; btn.innerHTML='<i class="fa fa-spinner fa-spin"></i> Đang gửi...';
         try {
-            const res  = await fetch('/FormHR/ThemBinhLuan',{method:'POST',body:fd});
+            const res  = await fetch('/FormSHD/ThemBinhLuan',{method:'POST',body:fd});
             const data = await res.json();
             if (data.success) {
                 const list = document.getElementById('commentList');
@@ -1086,7 +798,7 @@
 
     async function xoaBinhLuan(id) {
         if (!confirm('Xóa bình luận này?')) return;
-        const res  = await fetch('/FormHR/XoaBinhLuan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+        const res  = await fetch('/FormSHD/XoaBinhLuan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
         const data = await res.json();
         if (data.success) {
             document.querySelector(`[data-comment-id="${id}"]`)?.remove();
@@ -1109,4 +821,5 @@
         }
     });
     document.getElementById('formBinhLuan')?.addEventListener('submit', guiBinhLuan);
+    document.addEventListener('DOMContentLoaded', ()=>taiBinhLuan(false));
 </script>

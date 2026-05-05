@@ -1,0 +1,572 @@
+﻿@using Microsoft.AspNetCore.Http
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Localization
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+
+    // Kiểm tra trang đăng nhập để ẩn Sidebar/Header
+    var isLoginPage = (currentController == "TaiKhoan" || currentController == "DonXetDuyet") && currentAction == "DangNhap";
+
+    // Lấy thông tin người dùng từ Claims
+    var currentUserName = User.Identity.IsAuthenticated ? User.Identity.Name : "Khách";
+    var currentUserRole = User.FindFirst("UserRole")?.Value ?? (User.FindFirst(ClaimTypes.Role)?.Value ?? "Guest");
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+
+    // Lấy thông tin ngôn ngữ hiện tại từ Cookie hệ thống
+    var requestCulture = Context.Features.Get<IRequestCultureFeature>();
+    var cultureCode = requestCulture?.RequestCulture.Culture.Name ?? "vi-VN";
+
+    // Danh sách các Action thuộc menu Đăng ký để giữ trạng thái Active
+    string[] subPages = { "DangKySuDungXeCongTac" };
+    bool isSubPageActive = subPages.Contains(currentAction);
+
+    // ==========================================
+    // BỘ MÀU: LUXURY DEEP INDIGO & CYAN (Đồng bộ SHD 2026)
+    // ==========================================
+    string primaryGradient = "linear-gradient(180deg, #1e1b4b 0%, #312e81 100%)"; 
+    string accentColor = "#22d3ee"; 
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - SHD Import Export Portal</title>
+
+    <!-- FAVICON 🚢 -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚢</text></svg>">
+
+    <!-- Core Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.css" rel="stylesheet" />
+
+    <style>
+        :root {
+            --shd-primary: #1e1b4b;
+            --shd-accent: @accentColor;
+            --shd-bg: #f8fafc;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--shd-bg);
+            color: #1e293b;
+            overflow-x: hidden;
+        }
+
+        /* SIDEBAR STYLING */
+        #sidebar {
+            width: 280px;
+            background: @primaryGradient;
+            color: #fff;
+            padding: 25px 15px;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            box-shadow: 10px 0 40px rgba(0,0,0,0.15);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        #main-sidebar-nav::-webkit-scrollbar { width: 4px; }
+        #main-sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+
+        .nav-link-item {
+            display: flex; align-items: center;
+            padding: 12px 18px; border-radius: 14px;
+            color: rgba(255,255,255,0.75); text-decoration: none;
+            font-weight: 600; margin-bottom: 4px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); font-size: 0.9rem;
+        }
+
+        .nav-link-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--shd-accent); transform: translateX(5px);
+        }
+
+        .nav-link-item.active {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--shd-accent);
+        }
+
+        /* SUBMENU STYLING */
+        #registrationSubmenu a {
+            padding: 10px 15px 10px 48px;
+            color: rgba(255,255,255,0.6); text-decoration: none;
+            font-size: 0.85rem; display: flex; align-items: center;
+            transition: 0.3s; border-radius: 10px; position: relative;
+        }
+
+        #registrationSubmenu a:hover { color: var(--shd-accent); background: rgba(255,255,255,0.05); }
+        #registrationSubmenu a.active { color: var(--shd-accent); font-weight: 700; background: rgba(255,255,255,0.08); }
+
+        /* CONTENT AREA */
+        main {
+            margin-left: 280px; width: calc(100% - 280px);
+            min-height: 100vh; display: flex; flex-direction: column;
+        }
+
+        header {
+            padding: 15px 40px; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(15px);
+            position: sticky; top: 0; z-index: 990;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .lang-btn {
+            background: #fff; border: 1.5px solid #e2e8f0;
+            padding: 8px 18px; border-radius: 14px;
+            font-size: 0.85rem; font-weight: 700; color: #1e293b;
+            cursor: pointer; display: flex; align-items: center; gap: 10px;
+            transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        }
+        .lang-btn:hover { background: #f1f5f9; border-color: var(--shd-accent); }
+        
+        #langDropdown {
+            display: none; position: absolute; top: 55px; left: 0;
+            background: #fff; border-radius: 18px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+            border: 1px solid #e2e8f0; min-width: 190px;
+            overflow: hidden; z-index: 1001;
+            animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @@keyframes slideDown {
+            from { opacity: 0; transform: translateY(-12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .lang-item {
+            padding: 14px 20px; display: flex; align-items: center;
+            justify-content: space-between; color: #475569;
+            text-decoration: none; font-size: 0.88rem; font-weight: 600;
+            transition: 0.2s; border-bottom: 1px solid #f8fafc;
+        }
+        .lang-item:hover { background: #f0f9ff; color: #1e40af; }
+        .lang-item.active { color: #1e40af; background: #eff6ff; }
+
+        #nprogress .bar { background: var(--shd-accent) !important; height: 3px !important; }
+        
+        .user-dropdown-item:hover { background-color: #f8fafc !important; color: #1e3a8a !important; }
+
+        /* --- CSS ẨN WIDGET GOOGLE TRANSLATE MẶC ĐỊNH --- */
+        .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
+        .goog-te-banner-frame { display: none !important; }
+        body { top: 0px !important; }
+        #goog-gt-tt { display: none !important; }
+    </style>
+</head>
+
+<body>
+
+    @if (!isLoginPage)
+    {
+        <aside id="sidebar">
+            @* --- LOGO --- *@
+            <a href="/" style="text-decoration:none; display:flex; align-items:center; gap:12px; margin-bottom:35px; padding: 12px; border-radius: 18px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
+                <div style="width:48px; height:48px; background:#fff; border-radius:14px; display:flex; justify-content:center; align-items:center; font-weight:900; font-size:1.3rem; color:#1e1b4b; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    SHD
+                </div>
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-size:1.25rem; font-weight:800; letter-spacing:0.5px; color:#fff; line-height:1;">E-FORM</span>
+                    <span class="lang-text" data-key="digital_portal" style="font-size:0.65rem; color:rgba(255,255,255,0.4); text-transform:uppercase; margin-top:4px; font-weight:700; letter-spacing:1px;">Import Export Portal</span>
+                </div>
+            </a>
+
+            <nav id="main-sidebar-nav" style="flex:1; overflow-y:auto; padding-right:5px; display:flex; flex-direction:column; gap:3px;">
+
+                <div class="lang-text" data-key="personal_reg" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 15px 0 10px 12px; font-weight: 800;">Cá nhân & Đăng ký</div>
+
+                @* --- MENU ĐĂNG KÝ --- *@
+                <div id="btnRegistrationMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-radius: 14px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isSubPageActive ? "rgba(255,255,255,0.1)" : "transparent")">
+                    <span style="display:flex; align-items:center;">
+                        <i class="fa fa-pencil-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> 
+                        <span class="lang-text" data-key="reg_form">Đăng ký mẫu đơn</span>
+                    </span>
+                    <i class="fa fa-angle-down" id="regArrow" style="transition: 0.3s; transform: @(isSubPageActive ? "rotate(180deg)" : "rotate(0deg)")"></i>
+                </div>
+
+                <div id="registrationSubmenu" style="display: @(isSubPageActive ? "flex" : "none"); flex-direction: column; background: rgba(0, 0, 0, 0.12); border-radius: 14px; margin: 5px 0 10px 0; padding: 5px 0;">
+                    <a href="/FormSHD/DangKySuDungXeCongTac" class="@(currentAction == "DangKySuDungXeCongTac" ? "active" : "")">
+                        <i class="fa fa-car" style="position:absolute; left:22px; color: var(--shd-accent); font-size: 1rem;"></i> 
+                        <span class="lang-text" data-key="car_biz">Đăng ký xe công tác</span>
+                    </a>
+                </div>
+
+                <a href="/FormSHD/DonCho" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
+                    <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text" data-key="my_forms">Đơn của tôi</span>
+                </a>
+
+                <a href="/FormSHD/LichSuSHD" class="nav-link-item @(currentAction == "LichSuSHD" ? "active" : "")">
+                    <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text" data-key="sys_logs">Nhật ký hệ thống</span>
+                </a>
+
+                @* --- PHẦN PHÊ DUYỆT --- *@
+                @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonSHD") || User.IsInRole("All")))
+                {
+                    <div style="height:1px; background:rgba(255,255,255,0.08); margin:15px 10px;"></div>
+                    <div class="lang-text" data-key="approval_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 5px 0 10px 12px; font-weight: 800;">Phê duyệt</div>
+
+                    <a href="/FormSHD/QuanLyXetDuyet" class="nav-link-item @(currentAction == "QuanLyXetDuyet" ? "active" : "")">
+                        <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> <span class="lang-text" data-key="manage_appr">Quản lý xét duyệt</span>
+                    </a>
+                }
+
+                @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonSHD_B2") || User.IsInRole("All")))
+                {
+                    <a href="/FormSHD/QuanLyXetDuyetB2" class="nav-link-item @(currentAction == "QuanLyXetDuyetB2" ? "active" : "")">
+                        <i class="fa fa-users" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#818cf8;"></i> <span class="lang-text" data-key="manage_appr_b2">Quản lý xét duyệt B2</span>
+                    </a>
+                }
+
+                @* --- PHẦN QUẢN TRỊ --- *@
+                @if (User.Identity.IsAuthenticated && (User.IsInRole("AdminSHD") || User.IsInRole("All")))
+                {
+                    <div style="height:1px; background:rgba(255,255,255,0.08); margin:15px 10px;"></div>
+                    <div class="lang-text" data-key="admin_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 5px 0 10px 12px; font-weight: 800;">Quản trị SHD</div>
+
+                    <a href="/FormSHD/HoanTatDon" class="nav-link-item @(currentAction == "HoanTatDon" ? "active" : "")">
+                        <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#c084fc;"></i> <span class="lang-text" data-key="archive_form">Lưu trữ đơn</span>
+                    </a>
+                    <a href="/FormSHD/XuatBaoCao" class="nav-link-item @(currentAction == "XuatBaoCao" ? "active" : "")">
+                        <i class="fa fa-database" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#38bdf8;"></i> <span class="lang-text" data-key="all_forms">Kho đơn tổng hợp</span>
+                    </a>
+                    <a href="/FormSHD/BaoCaoThongKe" class="nav-link-item @(currentAction == "BaoCaoThongKe" ? "active" : "")">
+                        <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#4ade80;"></i> <span class="lang-text" data-key="statistics">Thống kê báo cáo</span>
+                    </a>
+                }
+            </nav>
+
+            @* --- USER WIDGET --- *@
+            <div style="margin-top:20px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 20px; position:relative; border: 1px solid rgba(255,255,255,0.05);">
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <div id="userMenuButton" style="display:flex; align-items:center; gap:12px; cursor:pointer;">
+                        <div style="width:42px; height:42px; border-radius:14px; background:linear-gradient(135deg, var(--shd-accent), #0891b2); display:flex; justify-content:center; align-items:center; font-weight:bold; color: #1e1b4b; border:2px solid rgba(255,255,255,0.2);">
+                            @(string.IsNullOrEmpty(currentUserName) ? "U" : currentUserName.Substring(0, 1).ToUpper())
+                        </div>
+                        <div style="flex:1; overflow:hidden;">
+                            <div style="font-weight:700; font-size:0.9rem; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; color: #fff;">@currentUserName</div>
+                            <div style="font-size:0.7rem; color:rgba(255,255,255,0.4); font-weight: 600;">@phongBan</div>
+                        </div>
+                        <i class="fa fa-angle-up" id="arrowIcon" style="transition: 0.3s; color: rgba(255,255,255,0.3);"></i>
+                    </div>
+
+                    <div id="userDropdown" style="position:absolute; bottom:85px; left:0; right:0; background:#fff; border-radius:18px; box-shadow:0 -15px 35px rgba(0,0,0,0.2); display:none; flex-direction:column; overflow:hidden; border: 1px solid #e2e8f0; z-index: 1001;">
+                        <a href="/ThongTinTaiKhoan" target="_blank" class="user-dropdown-item" style="padding:14px 20px; color:#334155; text-decoration:none; font-size:0.9rem; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; font-weight: 600;">
+                            <i class="fa fa-user-circle-o" style="margin-right:12px; color:#1e1b4b;"></i> <span class="lang-text" data-key="profile">Hồ sơ cá nhân</span>
+                        </a>
+                        <a href="/DonXetDuyet/DangXuat" class="user-dropdown-item" style="padding:14px 20px; color:#ef4444; text-decoration:none; font-size:0.9rem; font-weight:700; display:flex; align-items:center;">
+                            <i class="fa fa-sign-out" style="margin-right:12px;"></i> <span class="lang-text" data-key="logout">Đăng xuất</span>
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <a href="/DonXetDuyet/DangNhap" style="display:flex; align-items:center; gap:12px; text-decoration:none;">
+                        <div style="width:42px; height:42px; border-radius:14px; background:rgba(255,255,255,0.08); display:flex; justify-content:center; align-items:center; border:1px dashed rgba(255,255,255,0.2);">
+                            <i class="fa fa-sign-in" style="color: #fff;"></i>
+                        </div>
+                        <div style="flex:1;">
+                            <div class="lang-text" data-key="login" style="font-weight:700; font-size:0.9rem; color: #fff;">Đăng nhập</div>
+                            <div class="lang-text" data-key="access_sys" style="font-size:0.7rem; color:rgba(255,255,255,0.4);">Truy cập hệ thống</div>
+                        </div>
+                    </a>
+                }
+            </div>
+        </aside>
+
+        <main>
+            <header>
+                @* --- LANGUAGE SWITCHER - ĐÃ ĐỒNG BỘ GOOGLE TRANSLATE --- *@
+                <div style="position: relative;">
+                    <button id="btnLanguage" class="lang-btn">
+                        <i class="fa fa-globe" style="color: #312e81; font-size: 1.1rem;"></i>
+                        <span id="currentLangText">Tiếng Việt</span>
+                        <i class="fa fa-angle-down" style="font-size: 0.8rem; color: #94a3b8;"></i>
+                    </button>
+                    <div id="langDropdown">
+                        <a href="javascript:void(0)" onclick="changeLanguageGTranslate('vi', 'Tiếng Việt')" class="lang-item" id="lang-vi">
+                            <span>Tiếng Việt</span> <i class="fa fa-check"></i>
+                        </a>
+                        <a href="javascript:void(0)" onclick="changeLanguageGTranslate('en', 'English')" class="lang-item" id="lang-en">
+                            <span>English</span> <i class="fa fa-check" style="display:none;"></i>
+                        </a>
+                        <a href="javascript:void(0)" onclick="changeLanguageGTranslate('zh-CN', '中文')" class="lang-item" id="lang-zh-CN">
+                            <span>中文</span> <i class="fa fa-check" style="display:none;"></i>
+                        </a>
+                    </div>
+                    <!-- Div ảo chứa widget Google Translate -->
+                    <div id="google_translate_element" style="display:none;"></div>
+                </div>
+
+                @* --- NOTIFICATIONS --- *@
+                <div style="position: relative; display: flex; align-items: center; gap: 15px;">
+                    <div id="latestNotiTag" style="display: none; position: absolute; right: 65px; white-space: nowrap; background: #1e1b4b; color: white; padding: 12px 22px; border-radius: 16px; font-size: 0.85rem; box-shadow: 0 15px 30px rgba(0,0,0,0.25); z-index: 1001; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                        <div style="width: 10px; height: 10px; background: var(--shd-accent); border-radius: 50%; box-shadow: 0 0 10px var(--shd-accent); animation: pulse 1.5s infinite;"></div>
+                        <div style="display: flex; flex-direction: column; line-height: 1.4;">
+                            <span class="lang-text" data-key="new_noti" style="font-size: 0.65rem; text-transform: uppercase; font-weight: 800; color: rgba(255,255,255,0.5); letter-spacing: 0.5px;">Thông báo mới</span>
+                            <span id="latestNotiText" style="font-weight: 600;">...</span>
+                        </div>
+                        <i class="fa fa-times" onclick="this.parentElement.style.display='none'" style="cursor: pointer; margin-left: 10px; color: rgba(255,255,255,0.4);"></i>
+                    </div>
+
+                    <div id="notiBell" style="width: 48px; height: 48px; background: #fff; border-radius: 14px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 1.5px solid #e2e8f0; color: #475569; position: relative; transition: 0.2s;">
+                        <i class="fa fa-bell-o" style="font-size: 1.2rem;"></i>
+                        <span id="notiBadge" style="position: absolute; top: -6px; right: -6px; min-width: 22px; height: 22px; background: #ef4444; border-radius: 50%; border: 3px solid #fff; display: none; color: white; font-size: 10px; font-weight: 800; align-items: center; justify-content: center;">0</span>
+                    </div>
+
+                    <div id="notificationDropdown" style="display: none; flex-direction: column; width: 400px; position: absolute; right: 0; top: 60px; background: white; border-radius: 24px; box-shadow: 0 25px 60px rgba(0,0,0,0.18); overflow: hidden; z-index: 1000; border: 1px solid #e2e8f0;">
+                        <div style="padding: 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fdfdfd;">
+                            <span class="lang-text" data-key="notifications" style="font-weight: 800; color: #0f172a; font-size: 1.15rem;">Thông báo</span>
+                            <button class="lang-text" data-key="read_all" onclick="markAllAsRead(event)" style="background: #f0f9ff; border: none; color: #1d4ed8; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 7px 16px; border-radius: 10px; transition: 0.2s;">Đọc tất cả</button>
+                        </div>
+                        <div id="notiList" style="max-height: 500px; overflow-y: auto;"></div>
+                        <div style="padding: 18px; text-align: center; background: #f8fafc; border-top: 1px solid #f1f5f9;">
+                            <a class="lang-text" data-key="view_logs" href="/FormSHD/LichSuSHD" style="text-decoration: none; color: #64748b; font-size: 0.85rem; font-weight: 700;">Xem nhật ký hệ thống</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div style="padding: 35px 45px; flex: 1;">
+                <div style="background:#fff; border-radius:32px; box-shadow:0 15px 60px rgba(0,0,0,0.03); padding:40px; min-height:82vh; border:1px solid #f1f5f9;">
+                    @RenderBody()
+                </div>
+
+                <footer style="margin-top:45px; text-align:center; color:#94a3b8; font-size:0.85rem; padding-bottom: 35px; font-weight: 500;">
+                    &copy; @DateTime.Now.Year - <span style="color:#1e40af; font-weight:700;">SHD E-Form System</span> - Digital Transformation Best Solution
+                </footer>
+            </div>
+        </main>
+    }
+    else
+    {
+        <div style="width:100%;">@RenderBody()</div>
+    }
+
+    <!-- Scripts Section -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
+
+    <!-- SCRIPT GOOGLE TRANSLATE -->
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({ pageLanguage: 'vi', autoDisplay: false }, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+    <script>
+        NProgress.start();
+        window.onload = function() { NProgress.done(); };
+
+        // ==========================================
+        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE
+        // ==========================================
+        function initLanguageGTranslate() {
+            let currentLang = localStorage.getItem('siteLangShdForm');
+            if (!currentLang) {
+                currentLang = 'vi';
+                localStorage.setItem('siteLangShdForm', 'vi');
+            }
+
+            const labels = { 'vi': 'Tiếng Việt', 'en': 'English', 'zh-CN': '中文' };
+            const currentLangText = document.getElementById('currentLangText');
+            if(currentLangText) currentLangText.innerText = labels[currentLang] || 'Tiếng Việt';
+            
+            document.querySelectorAll('.lang-item i').forEach(i => i.style.display = 'none');
+            const activeCheck = document.querySelector(`#lang-${currentLang} i`);
+            if(activeCheck) activeCheck.style.display = 'inline-block';
+
+            if (currentLang !== 'vi') {
+                document.cookie = `googtrans=/vi/${currentLang}; path=/; domain=${window.location.hostname}`;
+                document.cookie = `googtrans=/vi/${currentLang}; path=/;`;
+            }
+        }
+
+        function changeLanguageGTranslate(lang, label) {
+            localStorage.setItem('siteLangShdForm', lang);
+            if (lang === 'vi') {
+                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
+            } else {
+                document.cookie = `googtrans=/vi/${lang}; path=/; domain=${window.location.hostname}`;
+                document.cookie = `googtrans=/vi/${lang}; path=/;`;
+            }
+            window.location.reload();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initLanguageGTranslate();
+            if (typeof $ !== 'undefined') { $('.select2').select2({ width: '100%' }); }
+
+            // Restore Scroll Position
+            const sidebarNav = document.getElementById('main-sidebar-nav');
+            if (sidebarNav && sessionStorage.getItem('sidebarScrollPos_shd')) {
+                sidebarNav.scrollTop = parseInt(sessionStorage.getItem('sidebarScrollPos_shd'));
+            }
+
+            // Submenu persistence
+            const regSub = document.getElementById('registrationSubmenu');
+            const regBtn = document.getElementById('btnRegistrationMenu');
+            const regArrow = document.getElementById('regArrow');
+            if (localStorage.getItem('regMenuState_shd') === 'open' && regSub) {
+                regSub.style.display = 'flex';
+                if(regArrow) regArrow.style.transform = 'rotate(180deg)';
+                if(regBtn) regBtn.style.background = 'rgba(255, 255, 255, 0.12)';
+            }
+
+            if (regBtn) {
+                regBtn.addEventListener('click', () => {
+                    const isHidden = regSub.style.display === 'none';
+                    regSub.style.display = isHidden ? 'flex' : 'none';
+                    if(regArrow) regArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+                    regBtn.style.background = isHidden ? 'rgba(255, 255, 255, 0.12)' : 'transparent';
+                    localStorage.setItem('regMenuState_shd', isHidden ? 'open' : 'closed');
+                });
+            }
+        });
+
+        // Dropdown Click Handlers
+        const userBtn = document.getElementById('userMenuButton');
+        const userDrop = document.getElementById('userDropdown');
+        const userArrow = document.getElementById('arrowIcon');
+        if (userBtn) {
+            userBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = userDrop.style.display === 'none';
+                userDrop.style.display = isHidden ? 'flex' : 'none';
+                if (userArrow) userArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+            });
+        }
+
+        const bell = document.getElementById('notiBell');
+        const dropNotiMenu = document.getElementById('notificationDropdown');
+        if (bell) {
+            bell.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = dropNotiMenu.style.display === 'none';
+                dropNotiMenu.style.display = isHidden ? 'flex' : 'none';
+                if (isHidden) loadNotifications(true);
+            });
+        }
+
+        document.getElementById('btnLanguage')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const drop = document.getElementById('langDropdown');
+            drop.style.display = (drop.style.display === 'none' || drop.style.display === '') ? 'block' : 'none';
+        });
+
+        document.addEventListener('click', () => {
+            if(document.getElementById('langDropdown')) document.getElementById('langDropdown').style.display = 'none';
+            if (dropNotiMenu) dropNotiMenu.style.display = 'none';
+            if (userDrop) userDrop.style.display = 'none';
+            if (userArrow) userArrow.style.transform = 'rotate(0deg)';
+        });
+
+        // Notifications Logic
+        const notiSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        let lastTopId = localStorage.getItem('lastNotifiedIdSHD') || null;
+        let currentLoadedNotifications = []; 
+
+        async function loadNotifications(isOpen = false) {
+            try {
+                const res = await fetch(`/FormSHD/GetNotificationsSHD?skip=0&take=20`);
+                const data = await res.json();
+                const listItems = data.dataList || [];
+                currentLoadedNotifications = listItems; 
+                const readIds = (document.cookie.match(/(^| )read_notifications_shd=([^;]+)/)?.[2] || "").split(',');
+
+                if (listItems.length > 0) {
+                    const currentTopId = listItems[0].id.toString();
+                    if (lastTopId !== null && currentTopId !== lastTopId) {
+                        const tag = document.getElementById('latestNotiTag');
+                        const textEl = document.getElementById('latestNotiText');
+                        if(textEl) textEl.innerText = listItems[0].tieuDe;
+                        if(tag) tag.style.display = 'flex';
+                        
+                        notiSound.play().catch(() => { });
+                        
+                        setTimeout(() => { if(tag) tag.style.display = 'none'; }, 7000);
+                    }
+                    lastTopId = currentTopId;
+                    localStorage.setItem('lastNotifiedIdSHD', currentTopId);
+                }
+
+                const unread = listItems.filter(item => !readIds.includes(item.id.toString())).length;
+                const badge = document.getElementById('notiBadge');
+                if (badge) {
+                    badge.innerText = unread > 99 ? "99+" : unread;
+                    badge.style.display = unread > 0 ? 'flex' : 'none';
+                }
+
+                if (isOpen) {
+                    const listContainer = document.getElementById('notiList');
+                    if(listContainer){
+                        listContainer.innerHTML = listItems.map(item => {
+                            const isRead = readIds.includes(item.id.toString());
+                            return `<a href="/FormSHD/ChiTiet/${item.idFormShd}" onclick="markAsRead('${item.id}')" style="display:flex; gap:16px; padding:18px 22px; border-bottom:1px solid #f1f5f9; text-decoration:none; color:inherit; background:${isRead ? '#fff' : '#f0f9ff'}; transition: 0.2s;">
+                                <div style="width:42px; height:42px; border-radius:12px; background:#e0f2fe; color:#0369a1; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fa ${item.icon || 'fa-bell-o'}"></i></div>
+                                <div style="flex:1;">
+                                    <div style="font-size:0.88rem; font-weight:${isRead ? '600' : '800'}; color:#1e293b;">${item.tieuDe}</div>
+                                    <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">${item.mota || ''}</div>
+                                    <div style="font-size:0.65rem; color:#94a3b8; margin-top:5px; font-weight:600;"><i class="fa fa-clock-o"></i> ${item.time}</div>
+                                </div>
+                            </a>`;
+                        }).join('');
+                    }
+                }
+            } catch (err) { console.log("SHD Noti Error:", err); }
+        }
+
+        function markAsRead(id) {
+            let readIds = (document.cookie.match(/(^| )read_notifications_shd=([^;]+)/)?.[2] || "").split(',').filter(x => x);
+            if (!readIds.includes(id.toString())) {
+                readIds.push(id.toString());
+                const d = new Date(); d.setTime(d.getTime() + (30*24*60*60*1000));
+                document.cookie = `read_notifications_shd=${readIds.join(',')};expires=${d.toUTCString()};path=/`;
+            }
+        }
+
+        function markAllAsRead(event) {
+            if (event) event.stopPropagation(); 
+            
+            let readIds = (document.cookie.match(/(^| )read_notifications_shd=([^;]+)/)?.[2] || "").split(',').filter(x => x);
+            let hasChanges = false;
+
+            currentLoadedNotifications.forEach(item => {
+                if (!readIds.includes(item.id.toString())) {
+                    readIds.push(item.id.toString());
+                    hasChanges = true;
+                }
+            });
+
+            if (hasChanges) {
+                const d = new Date(); d.setTime(d.getTime() + (30*24*60*60*1000)); 
+                document.cookie = `read_notifications_shd=${readIds.join(',')};expires=${d.toUTCString()};path=/`;
+                
+                loadNotifications(true);
+            }
+        }
+
+        setInterval(() => loadNotifications(false), 30000); 
+        loadNotifications(false);
+    </script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

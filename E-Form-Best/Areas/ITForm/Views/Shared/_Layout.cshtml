@@ -25,7 +25,7 @@
 }
 
 <!DOCTYPE html>
-<html lang="@cultureCode">
+<html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -151,6 +151,12 @@
         .lang-item:last-child { border-bottom: none; }
         .lang-item:hover { background: #eff6ff; color: #2563eb; }
         .lang-item.active { color: #2563eb; background: #f0f9ff; }
+
+        /* --- CSS ẨN WIDGET GOOGLE TRANSLATE MẶC ĐỊNH --- */
+        .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
+        .goog-te-banner-frame { display: none !important; }
+        body { top: 0px !important; }
+        #goog-gt-tt { display: none !important; }
     </style>
 </head>
 
@@ -171,7 +177,8 @@
             </a>
 
             <nav id="main-sidebar-nav" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right: 5px;">
-                <div class="lang-text" data-key="main_function" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 700;">Chức năng chính</div>
+                @* Đã đổi text theo yêu cầu *@
+                <div class="lang-text" data-key="main_function" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 700;">Cá nhân & Đăng ký</div>
 
                 @if (User.Identity.IsAuthenticated)
                 {
@@ -247,7 +254,7 @@
                         </div>
                         <div style="flex:1; overflow:hidden;">
                             <div style="font-weight:700; font-size:0.92rem; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; color: #fff;">@currentUserName</div>
-                            <div style="font-size:0.75rem; color:rgba(255,255,255,0.5); font-weight: 500;">@currentUserRole</div>
+                            <div style="font-size:0.75rem; color:rgba(255,255,255,0.5); font-weight: 500;">@phongBan</div>
                         </div>
                         <i class="fa fa-angle-up" id="arrowIcon" style="transition: 0.3s; color: rgba(255,255,255,0.5);"></i>
                     </div>
@@ -280,7 +287,7 @@
 
             <header style="padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 999; font-family: 'Inter', system-ui, -apple-system, sans-serif; border-bottom: 1px solid rgba(226, 232, 240, 0.6);">
                 
-                <!-- Language Switcher (Left Side) -->
+                <!-- Language Switcher (Left Side) - ĐÃ ĐỒNG BỘ GOOGLE TRANSLATE -->
                 <div style="position: relative;">
                     <button id="btnLanguage" class="lang-btn">
                         <i class="fa fa-globe" style="color: #2563eb;"></i>
@@ -288,16 +295,18 @@
                         <i class="fa fa-angle-down" style="font-size: 0.8rem; color: #94a3b8;"></i>
                     </button>
                     <div id="langDropdown">
-                        <a href="javascript:void(0)" onclick="handleLangChange('vi-VN', 'Tiếng Việt')" class="lang-item" id="lang-vi-VN">
+                        <a href="javascript:void(0)" onclick="changeLanguageGTranslate('vi', 'Tiếng Việt')" class="lang-item" id="lang-vi">
                             <span>Tiếng Việt</span> <i class="fa fa-check"></i>
                         </a>
-                        <a href="javascript:void(0)" onclick="handleLangChange('en-US', 'English')" class="lang-item" id="lang-en-US">
+                        <a href="javascript:void(0)" onclick="changeLanguageGTranslate('en', 'English')" class="lang-item" id="lang-en">
                             <span>English</span> <i class="fa fa-check" style="display:none;"></i>
                         </a>
-                        <a href="javascript:void(0)" onclick="handleLangChange('zh-CN', '中文')" class="lang-item" id="lang-zh-CN">
+                        <a href="javascript:void(0)" onclick="changeLanguageGTranslate('zh-CN', '中文')" class="lang-item" id="lang-zh-CN">
                             <span>中文</span> <i class="fa fa-check" style="display:none;"></i>
                         </a>
                     </div>
+                    <!-- Div ảo chứa widget Google Translate -->
+                    <div id="google_translate_element" style="display:none;"></div>
                 </div>
 
                 <!-- Notifications (Right Side) -->
@@ -352,63 +361,49 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <!-- SCRIPT GOOGLE TRANSLATE -->
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({ pageLanguage: 'vi', autoDisplay: false }, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
     <script>
         // ==========================================
-        // 0. HỆ THỐNG ĐA NGÔN NGỮ (CLIENT-SIDE)
+        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE
         // ==========================================
-        const translations = {
-            'vi-VN': {
-                'digital_portal': 'Digital Portal', 'main_function': 'Chức năng chính', 'reg_form': 'Đăng ký đơn',
-                'reg_mail': '1. Đăng ký Mail', 'repair_it': '2. Sửa chữa thiết bị', 'reg_wifi': '3. Đăng ký Wifi',
-                'reg_phone': '4. Đăng ký ĐT bàn', 'reg_system_acc': '5. Đăng ký TK Hệ thống', 'reg_pc_acc': '6. Đăng ký TK Máy tính',
-                'my_forms': 'Đơn của tôi', 'sys_logs': 'Nhật ký hệ thống', 'approval_sec': 'Phê duyệt',
-                'manage_appr': 'Quản lý xét duyệt', 'admin_sec': 'Quản trị IT', 'archive_form': 'Lưu trữ đơn',
-                'statistics': 'Thống kê báo cáo', 'profile': 'Hồ sơ cá nhân', 'logout': 'Đăng xuất',
-                'login': 'Đăng nhập', 'access_sys': 'Truy cập hệ thống', 'notifications': 'Thông báo',
-                'read_all': 'Đọc tất cả', 'view_all': 'Xem tất cả', 'just_now': 'Vừa xong'
-            },
-            'en-US': {
-                'digital_portal': 'Digital Portal', 'main_function': 'Main Functions', 'reg_form': 'Register Form',
-                'reg_mail': '1. Email Account', 'repair_it': '2. IT Repair Order', 'reg_wifi': '3. Wifi Access',
-                'reg_phone': '4. Desk Phone', 'reg_system_acc': '5. System Account', 'reg_pc_acc': '6. PC Account',
-                'my_forms': 'My Requests', 'sys_logs': 'System Logs', 'approval_sec': 'Approval',
-                'manage_appr': 'Approval Management', 'admin_sec': 'IT Admin', 'archive_form': 'Archive',
-                'statistics': 'Statistics', 'profile': 'My Profile', 'logout': 'Logout',
-                'login': 'Login', 'access_sys': 'System Access', 'notifications': 'Notifications',
-                'read_all': 'Read All', 'view_all': 'View All', 'just_now': 'Just now'
-            },
-            'zh-CN': {
-                'digital_portal': '数字化门户', 'main_function': '主要功能', 'reg_form': '申请表单',
-                'reg_mail': '1. 邮箱账号', 'repair_it': '2. IT 维修单', 'reg_wifi': '3. 无线网络',
-                'reg_phone': '4. 座机电话', 'reg_system_acc': '5. 系统账号', 'reg_pc_acc': '6. 电脑账号',
-                'my_forms': '我的申请', 'sys_logs': '系统日志', 'approval_sec': '审批管理',
-                'manage_appr': '审核管理', 'admin_sec': 'IT 管理', 'archive_form': '归档',
-                'statistics': '统计报表', 'profile': '个人资料', 'logout': '登出',
-                'login': '登录', 'access_sys': '系统访问', 'notifications': '通知',
-                'read_all': '全部已读', 'view_all': '查看全部', 'just_now': '刚才'
+        function initLanguageGTranslate() {
+            let currentLang = localStorage.getItem('siteLangItForm');
+            if (!currentLang) {
+                currentLang = 'vi';
+                localStorage.setItem('siteLangItForm', 'vi');
             }
-        };
 
-        function handleLangChange(code, label) {
-            const cookieValue = `c=${code}|uic=${code}`;
-            const date = new Date();
-            date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
-            document.cookie = `.AspNetCore.Culture=${encodeURIComponent(cookieValue)}; expires=${date.toUTCString()}; path=/`;
-            localStorage.setItem('preferred_lang_hr', code);
-            window.location.reload();
+            const labels = { 'vi': 'Tiếng Việt', 'en': 'English', 'zh-CN': '中文' };
+            const currentLangText = document.getElementById('currentLangText');
+            if(currentLangText) currentLangText.innerText = labels[currentLang] || 'Tiếng Việt';
+            
+            document.querySelectorAll('.lang-item i').forEach(i => i.style.display = 'none');
+            const activeCheck = document.querySelector(`#lang-${currentLang} i`);
+            if(activeCheck) activeCheck.style.display = 'inline-block';
+
+            if (currentLang !== 'vi') {
+                document.cookie = `googtrans=/vi/${currentLang}; path=/; domain=${window.location.hostname}`;
+                document.cookie = `googtrans=/vi/${currentLang}; path=/;`;
+            }
         }
 
-        function applyTranslations() {
-            const lang = localStorage.getItem('preferred_lang_hr') || '@cultureCode';
-            document.querySelectorAll('.lang-text').forEach(el => {
-                const key = el.getAttribute('data-key');
-                if (translations[lang] && translations[lang][key]) el.innerText = translations[lang][key];
-            });
-            const labels = { 'vi-VN': 'Tiếng Việt', 'en-US': 'English', 'zh-CN': '中文' };
-            if(currentLangText) currentLangText.innerText = labels[lang] || 'Tiếng Việt';
-            document.querySelectorAll('.lang-item i').forEach(i => i.style.display = 'none');
-            const activeCheck = document.querySelector(`#lang-${lang} i`);
-            if(activeCheck) activeCheck.style.display = 'inline-block';
+        function changeLanguageGTranslate(lang, label) {
+            localStorage.setItem('siteLangItForm', lang);
+            if (lang === 'vi') {
+                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
+            } else {
+                document.cookie = `googtrans=/vi/${lang}; path=/; domain=${window.location.hostname}`;
+                document.cookie = `googtrans=/vi/${lang}; path=/;`;
+            }
+            window.location.reload();
         }
 
         // ==========================================
@@ -439,10 +434,12 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            applyTranslations();
+            initLanguageGTranslate();
+            
             const savedScrollPos = sessionStorage.getItem('sidebarScrollPosIT');
             if (sidebarNav && savedScrollPos) sidebarNav.scrollTop = parseInt(savedScrollPos);
-            const isSubActiveServer = @isITSubActive.ToString().ToLower();
+            
+            const isSubActiveServer = '@isITSubActive'.toLowerCase() === 'true';
             const savedMenuState = localStorage.getItem('itMenuState');
             if ((isSubActiveServer || savedMenuState === 'open') && submenu) {
                 submenu.style.display = 'flex';
@@ -451,7 +448,7 @@
             }
         });
 
-        // (Notification Logic và các thành phần khác giữ nguyên như cũ của bạn...)
+        // Notification Logic 
         const notiSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         notiSound.volume = 0.6;
 
@@ -504,6 +501,7 @@
                 const res = await fetch(`/FormIT/GetNotifications?skip=${currentSkip}&take=${take}`);
                 const data = await res.json();
                 const listItems = data.top5 || data.dataList || [];
+                
                 if (listItems.length > 0) {
                     const currentTopId = listItems[0].id.toString();
                     if (lastTopId !== null && currentTopId !== lastTopId && !readIdsFromCookie.includes(currentTopId)) {
@@ -512,6 +510,7 @@
                     lastTopId = currentTopId;
                     localStorage.setItem('lastNotifiedId', currentTopId);
                 }
+
                 const unreadCount = listItems.filter(item => !readIdsFromCookie.includes(item.id.toString())).length;
                 if (notiBadge) {
                     if (unreadCount > 0) {
@@ -519,6 +518,7 @@
                         notiBadge.style.display = 'flex';
                     } else { notiBadge.style.display = 'none'; }
                 }
+
                 const html = listItems.map(item => {
                     const isRead = readIdsFromCookie.includes(item.id.toString());
                     if(!allFetchedIds.includes(item.id.toString())) allFetchedIds.push(item.id.toString());
@@ -528,7 +528,11 @@
                         <div style="font-size: 0.8rem; color: #64748b;">${item.mota || ''}</div>
                         <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 6px;"><i class="fa fa-clock-o"></i> ${item.time}</div></div></a>`;
                 }).join('');
-                if (isOpen && notiList) { if (isLoadMore) notiList.insertAdjacentHTML('beforeend', html); else notiList.innerHTML = html; }
+
+                if (isOpen && notiList) { 
+                    if (isLoadMore) notiList.insertAdjacentHTML('beforeend', html); 
+                    else notiList.innerHTML = html; 
+                }
                 currentSkip += listItems.length;
                 if (listItems.length < take) hasMoreData = false;
             } catch (err) { } finally { isLoading = false; }
@@ -570,8 +574,21 @@
 
         function markAllAsRead(e) {
             if(e) e.stopPropagation();
-            setReadCookie(allFetchedIds);
-            loadNotifications(false, false);
+            
+            let readIds = getReadIds();
+            let hasChanges = false;
+            
+            allFetchedIds.forEach(id => {
+                if (!readIds.includes(id)) {
+                    readIds.push(id);
+                    hasChanges = true;
+                }
+            });
+
+            if (hasChanges) {
+                setReadCookie(readIds);
+                loadNotifications(true, false);
+            }
         }
 
         setInterval(() => loadNotifications(false, false), 30000);
