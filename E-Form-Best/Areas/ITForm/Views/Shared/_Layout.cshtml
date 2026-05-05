@@ -157,6 +157,54 @@
         .goog-te-banner-frame { display: none !important; }
         body { top: 0px !important; }
         #goog-gt-tt { display: none !important; }
+
+        /* ==========================================
+           THÊM MỚI: CSS CHO MOBILE RESPONSIVE
+           ========================================== */
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 995;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        @@media (max-width: 768px) {
+            #sidebar {
+                transform: translateX(-100%);
+            }
+            #sidebar.open {
+                transform: translateX(0);
+            }
+            .sidebar-backdrop.show {
+                display: block;
+                opacity: 1;
+            }
+            main {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+            header {
+                padding: 15px 20px !important;
+            }
+            #mobile-menu-btn {
+                display: block !important;
+            }
+            #notificationDropdown {
+                width: 300px !important;
+                right: -20px !important;
+            }
+            .main-content-wrapper {
+                padding: 15px !important;
+            }
+            .main-card {
+                padding: 20px !important;
+                border-radius: 20px !important;
+                min-height: auto !important;
+            }
+        }
     </style>
 </head>
 
@@ -164,6 +212,9 @@
 
     @if (!isLoginPage)
     {
+        <!-- Backdrop cho mobile -->
+        <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
         <aside id="sidebar" style="width:280px; background:@primaryGradient; color:#fff; padding:25px 15px; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; box-shadow:10px 0 40px rgba(0,0,0,0.15); z-index:1000; transition: all 0.3s ease;">
 
             <a href="/" style="text-decoration:none; display:flex; align-items:center; gap:12px; margin-bottom:35px; padding: 15px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(10px);">
@@ -283,30 +334,38 @@
             </div>
         </aside>
 
-        <main style="margin-left:280px; width:calc(100% - 280px); box-sizing: border-box; min-height:100vh; position:relative; display: flex; flex-direction: column;">
+        <main style="margin-left:280px; width:calc(100% - 280px); box-sizing: border-box; min-height:100vh; position:relative; display: flex; flex-direction: column; transition: all 0.3s ease;">
 
-            <header style="padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 999; font-family: 'Inter', system-ui, -apple-system, sans-serif; border-bottom: 1px solid rgba(226, 232, 240, 0.6);">
+            <header style="padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 999; font-family: 'Inter', system-ui, -apple-system, sans-serif; border-bottom: 1px solid rgba(226, 232, 240, 0.6); transition: all 0.3s ease;">
                 
-                <!-- Language Switcher (Left Side) - ĐÃ ĐỒNG BỘ GOOGLE TRANSLATE -->
-                <div style="position: relative;">
-                    <button id="btnLanguage" class="lang-btn">
-                        <i class="fa fa-globe" style="color: #2563eb;"></i>
-                        <span id="currentLangText">Tiếng Việt</span>
-                        <i class="fa fa-angle-down" style="font-size: 0.8rem; color: #94a3b8;"></i>
+                <!-- Nhóm trái: Mobile Button + Language Switcher -->
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <!-- Nút mở Menu Mobile (Chỉ hiện trên điện thoại) -->
+                    <button id="mobile-menu-btn" style="display: none; background: none; border: none; font-size: 1.5rem; color: #1e293b; cursor: pointer; padding: 0;">
+                        <i class="fa fa-bars"></i>
                     </button>
-                    <div id="langDropdown">
-                        <a href="javascript:void(0)" onclick="changeLanguageGTranslate('vi', 'Tiếng Việt')" class="lang-item" id="lang-vi">
-                            <span>Tiếng Việt</span> <i class="fa fa-check"></i>
-                        </a>
-                        <a href="javascript:void(0)" onclick="changeLanguageGTranslate('en', 'English')" class="lang-item" id="lang-en">
-                            <span>English</span> <i class="fa fa-check" style="display:none;"></i>
-                        </a>
-                        <a href="javascript:void(0)" onclick="changeLanguageGTranslate('zh-CN', '中文')" class="lang-item" id="lang-zh-CN">
-                            <span>中文</span> <i class="fa fa-check" style="display:none;"></i>
-                        </a>
+
+                    <!-- Language Switcher - ĐÃ ĐỒNG BỘ GOOGLE TRANSLATE -->
+                    <div style="position: relative;">
+                        <button id="btnLanguage" class="lang-btn">
+                            <i class="fa fa-globe" style="color: #2563eb;"></i>
+                            <span id="currentLangText">Tiếng Việt</span>
+                            <i class="fa fa-angle-down" style="font-size: 0.8rem; color: #94a3b8;"></i>
+                        </button>
+                        <div id="langDropdown">
+                            <a href="javascript:void(0)" onclick="changeLanguageGTranslate('vi', 'Tiếng Việt')" class="lang-item" id="lang-vi">
+                                <span>Tiếng Việt</span> <i class="fa fa-check"></i>
+                            </a>
+                            <a href="javascript:void(0)" onclick="changeLanguageGTranslate('en', 'English')" class="lang-item" id="lang-en">
+                                <span>English</span> <i class="fa fa-check" style="display:none;"></i>
+                            </a>
+                            <a href="javascript:void(0)" onclick="changeLanguageGTranslate('zh-CN', '中文')" class="lang-item" id="lang-zh-CN">
+                                <span>中文</span> <i class="fa fa-check" style="display:none;"></i>
+                            </a>
+                        </div>
+                        <!-- Div ảo chứa widget Google Translate -->
+                        <div id="google_translate_element" style="display:none;"></div>
                     </div>
-                    <!-- Div ảo chứa widget Google Translate -->
-                    <div id="google_translate_element" style="display:none;"></div>
                 </div>
 
                 <!-- Notifications (Right Side) -->
@@ -341,8 +400,8 @@
                 </div>
             </header>
 
-            <div style="padding: 10px 50px 50px 50px; flex: 1;">
-                <div style="background:#fff; border-radius:35px; box-shadow: 0 20px 60px rgba(0,0,0,0.04); padding:45px; min-height:82vh; border:1px solid rgba(226, 232, 240, 0.8);">
+            <div class="main-content-wrapper" style="padding: 10px 50px 50px 50px; flex: 1;">
+                <div class="main-card" style="background:#fff; border-radius:35px; box-shadow: 0 20px 60px rgba(0,0,0,0.04); padding:45px; min-height:82vh; border:1px solid rgba(226, 232, 240, 0.8);">
                     @RenderBody()
                 </div>
             </div>
@@ -370,6 +429,26 @@
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
     <script>
+        // ==========================================
+        // THÊM MỚI: XỬ LÝ GIAO DIỆN MENU MOBILE
+        // ==========================================
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const sidebarApp = document.getElementById('sidebar');
+        const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+        if (mobileMenuBtn && sidebarApp && sidebarBackdrop) {
+            mobileMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                sidebarApp.classList.toggle('open');
+                sidebarBackdrop.classList.toggle('show');
+            });
+
+            sidebarBackdrop.addEventListener('click', () => {
+                sidebarApp.classList.remove('open');
+                sidebarBackdrop.classList.remove('show');
+            });
+        }
+
         // ==========================================
         // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE
         // ==========================================

@@ -2533,6 +2533,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userName = User.Identity.Name ?? "N/A";
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "N/A";
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "N/A";
 
             var form = await _context.FormIts.FindAsync(request.Id);
             if (form == null) return Json(new { success = false, message = "Không tìm thấy đơn." });
@@ -2559,7 +2560,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         form.TrangThai = "DaDuyet";
 
                         tieuDeLichSu = "Phê duyệt đơn IT";
-                        moTaChiTiet = $"Người duyệt: {userName}. Bộ phận: {phongBan}.";
+                        moTaChiTiet = $"Người duyệt: {userName}({userEmail}). Bộ phận: {phongBan}.";
                     }
                     else if (request.Action == "Huy")
                     {
@@ -2573,7 +2574,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             form.TenForm = "[ĐÃ HỦY] " + form.TenForm;
 
                         tieuDeLichSu = "Hủy đơn IT";
-                        moTaChiTiet = $"Người hủy: {userName}. Lý do: {request.Reason}.";
+                        moTaChiTiet = $"Người hủy: {userName}({userEmail}). Lý do: {request.Reason}.";
                     }
                     else if (request.Action == "HoanTat")
                     {
@@ -2585,7 +2586,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                         form.TrangThai = "HoanTat";
                         tieuDeLichSu = "Hoàn tất đơn IT";
-                        moTaChiTiet = $"Đơn đã được xử lý xong bởi: {userName}.";
+                        moTaChiTiet = $"Đơn đã được xử lý xong bởi: {userName}({userEmail}).";
                     }
 
                     var lichSu = new LichSuFormIt

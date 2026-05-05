@@ -24,30 +24,75 @@
     string pasteZoneStyle = $"width: 100%; border: 2px dotted {softBorder}; height: 180px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: {lightBg}; color: {primaryColor}; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 600; transition: 0.3s; margin-top: 10px; position: relative; outline: none;";
 }
 
-<div style="background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%); padding: 40px 15px; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
+<style>
+    /* ==========================================
+           THÊM MỚI: CSS CHO MOBILE RESPONSIVE
+           ========================================== */
+    @@media (max-width: 768px) {
+        .mobile-wrapper {
+            padding: 15px 10px !important;
+        }
 
-    <form id="hrForm" method="post" enctype="multipart/form-data" action="/FormHR/DangKySuDungXeDaily"
+        .mobile-card {
+            border-radius: 20px !important;
+        }
+
+        .mobile-header {
+            padding: 30px 15px !important;
+        }
+
+            .mobile-header h2 {
+                font-size: 18px !important;
+                margin-top: 12px !important;
+            }
+
+        .system-badge {
+            position: relative !important;
+            top: 0 !important;
+            right: 0 !important;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .mobile-body {
+            padding: 20px 15px !important;
+        }
+        /* Chuyển các lưới grid đa cột về 1 cột */
+        .grid-mobile-1 {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+        }
+
+        .mobile-section {
+            padding: 15px !important;
+        }
+    }
+</style>
+
+<div class="mobile-wrapper" style="background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%); padding: 40px 15px; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
+
+    <form id="hrForm" class="mobile-card" method="post" enctype="multipart/form-data" action="/FormHR/DangKySuDungXeDaily"
           style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 30px; box-shadow: 0 20px 50px rgba(237, 137, 54, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
 
         @Html.AntiForgeryToken()
 
         @* --- HEADER (MÀU CAM) --- *@
-        <div style="background: linear-gradient(135deg, @primaryColor 0%, @secondaryColor 100%); padding: 40px; color: #ffffff; text-align: center; position: relative;">
-            <div style="position: absolute; top: 15px; right: 25px; font-size: 11px; opacity: 0.9; font-weight: 500; letter-spacing: 1px;">HỆ THỐNG E-FORM V3.0</div>
+        <div class="mobile-header" style="background: linear-gradient(135deg, @primaryColor 0%, @secondaryColor 100%); padding: 40px; color: #ffffff; text-align: center; position: relative;">
+            <div class="system-badge" style="position: absolute; top: 15px; right: 25px; font-size: 11px; opacity: 0.9; font-weight: 500; letter-spacing: 1px;">HỆ THỐNG E-FORM V3.0</div>
             <h2 style="margin: 0; font-size: 24px; text-transform: uppercase; font-weight: 900; letter-spacing: 1.5px;">Đăng ký sử dụng xe Daily</h2>
             <div style="margin-top: 12px; display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.2); border-radius: 50px; font-size: 13px;">
                 📅 Ngày lập đơn: <span style="font-weight: 700; color: #ffffff;">@ngayHienThi</span>
             </div>
         </div>
 
-        <div style="padding: 40px;">
+        <div class="mobile-body" style="padding: 40px;">
             @* --- PHẦN 1: THÔNG TIN NHÂN SỰ --- *@
             <div style="margin-bottom: 35px;">
                 <h3 style="color: @secondaryColor; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
                     <span style="background: @primaryColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">1</span>
                     Thông tin người đăng ký
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                <div class="grid-mobile-1" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
                     <div>
                         <label style="@labelStyle">Họ tên nhân viên</label>
                         <input name="TenNguoiNv" value="@tenNguoiNv" readonly style="@inputStyle; background: #fffaf0; border-color: #fbd38d;">
@@ -62,7 +107,7 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="grid-mobile-1" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div>
                         <label style="@labelStyle">Đơn vị / Công ty</label>
                         <input name="TenCongTy" value="@tenCongTy" readonly style="@inputStyle; background: #fffaf0; border-style: dashed;">
@@ -75,7 +120,7 @@
             </div>
 
             @* --- PHẦN 2: CHI TIẾT ĐĂNG KÝ XE --- *@
-            <div style="background: #fffcf9; padding: 25px; border-radius: 20px; border: 1px solid @softBorder; margin-bottom: 30px; box-shadow: inset 0 2px 4px rgba(237, 137, 54, 0.02);">
+            <div class="mobile-section" style="background: #fffcf9; padding: 25px; border-radius: 20px; border: 1px solid @softBorder; margin-bottom: 30px; box-shadow: inset 0 2px 4px rgba(237, 137, 54, 0.02);">
                 <h3 style="color: @secondaryColor; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
                     <span style="background: @secondaryColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">2</span>
                     Nội dung và Lộ trình
@@ -86,7 +131,7 @@
                     <textarea name="chiTiet.LiDo" placeholder="Vui lòng nhập mục đích sử dụng xe..." required style="@inputStyle; height: 80px; resize: none; border: 1px solid @primaryColor;"></textarea>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                <div class="grid-mobile-1" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
                     <div>
                         <label style="@labelStyle">📍 Điểm đón / Tuyến đường</label>
                         <input name="chiTiet.DiemDon" placeholder="Ví dụ: Xưởng A - Kho B..." required style="@inputStyle">
@@ -97,7 +142,7 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="grid-mobile-1" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div>
                         <label style="@labelStyle">Ảnh minh chứng (Click & Ctrl+V)</label>
                         <div id="paste_AnhXe" class="paste-zone" style="@pasteZoneStyle" tabindex="0">
@@ -116,8 +161,8 @@
                 </div>
             </div>
 
-            @* --- PHẦN 3: CHỌN LOẠI YÊU CẦU HỖ TRỢ (MỚI THÊM) --- *@
-            <div style="background: #ffffff; padding: 25px; border-radius: 20px; border: 1px solid @softBorder; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(237, 137, 54, 0.05);">
+            @* --- PHẦN 3: CHỌN LOẠI YÊU CẦU HỖ TRỢ --- *@
+            <div class="mobile-section" style="background: #ffffff; padding: 25px; border-radius: 20px; border: 1px solid @softBorder; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(237, 137, 54, 0.05);">
                 <h3 style="color: @secondaryColor; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
                     <span style="background: @primaryColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">3</span>
                     Chọn loại yêu cầu hỗ trợ
@@ -156,7 +201,7 @@
             </div>
 
             @* --- PHẦN 4: QUY ĐỊNH & CAM KẾT --- *@
-            <div style="background: #fffaf0; border: 1.5px solid @primaryColor; border-radius: 20px; padding: 25px; margin-bottom: 30px;">
+            <div class="mobile-section" style="background: #fffaf0; border: 1.5px solid @primaryColor; border-radius: 20px; padding: 25px; margin-bottom: 30px;">
                 <h3 style="color: @secondaryColor; font-size: 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-weight: 800; text-transform: uppercase;">
                     <i class="fa fa-car"></i> Quy định sử dụng xe công ty
                 </h3>
@@ -189,7 +234,8 @@
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
         const timeString = now.toISOString().slice(0, 16);
-        document.getElementById('inpTimeDuTinh').value = timeString;
+        const el = document.getElementById('inpTimeDuTinh');
+        if(el) el.value = timeString;
     };
 
     function handlePaste(e, inputId, zoneId) {

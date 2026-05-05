@@ -3,43 +3,93 @@
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 }
 
-<div style="
+<style>
+    /* ==========================================
+           THÊM MỚI: CSS CHO MOBILE RESPONSIVE
+           ========================================== */
+    @@media (max-width: 768px) {
+        .mobile-container {
+            padding: 10px !important;
+            min-height: 85vh !important;
+        }
+
+        .mobile-card {
+            padding: 40px 20px !important;
+            border-radius: 35px !important;
+        }
+
+        .mobile-logo-box {
+            width: 90px !important;
+            height: 90px !important;
+            font-size: 36px !important;
+            margin-bottom: 25px !important;
+        }
+
+        .mobile-title {
+            font-size: 2.2rem !important; /* Thu nhỏ tiêu đề HR FORM */
+        }
+
+        .mobile-subtitle {
+            font-size: 1.1rem !important; /* Thu nhỏ Hành Chính - Nhân Sự */
+            margin-bottom: 25px !important;
+        }
+
+        .mobile-description-box {
+            padding: 20px !important;
+            border-radius: 20px !important;
+        }
+
+        .mobile-description-text {
+            font-size: 0.95rem !important;
+            line-height: 1.6 !important;
+        }
+
+        .mobile-badge {
+            font-size: 0.65rem !important;
+            letter-spacing: 3px !important;
+        }
+    }
+</style>
+
+<div class="mobile-container" style="
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 90vh;
     background: radial-gradient(at 0% 0%, #e0e8f0 0%, #f8fafc 50%, #d1d9e6 100%);
     font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-    padding: 20px;
-">
-    <div style="
+    padding: 20px;">
+
+    <div class="mobile-card" style="
         background: rgba(255, 255, 255, 0.7);
         backdrop-filter: blur(20px) saturate(180%);
         -webkit-backdrop-filter: blur(20px) saturate(180%);
         padding: 70px 60px;
         border-radius: 50px;
         box-shadow:
-            0 20px 50px rgba(0, 0, 0, 0.05),
-            inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+        0 20px 50px rgba(0, 0, 0, 0.05),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.5);
         text-align: center;
         max-width: 600px;
         width: 100%;
         position: relative;
         overflow: hidden;
-    ">
+        ">
 
+        @* Hiệu ứng hình tròn mờ phía sau *@
         <div style="
-            position: absolute;
-            top: -50px;
-            right: -50px;
-            width: 200px;
-            height: 200px;
-            background: linear-gradient(135deg, rgba(79, 172, 254, 0.2) 0%, rgba(0, 242, 254, 0.1) 100%);
-            border-radius: 50%;
-            z-index: -1;
+        position: absolute;
+        top: -50px;
+        right: -50px;
+        width: 200px;
+        height: 200px;
+        background: linear-gradient(135deg, rgba(79, 172, 254, 0.2) 0%, rgba(0, 242, 254, 0.1) 100%);
+        border-radius: 50%;
+        z-index: -1;
         "></div>
 
-        <div style="
+        @* Logo Icon *@
+        <div class="mobile-logo-box" style="
             width: 120px;
             height: 120px;
             margin: 0 auto 35px;
@@ -54,11 +104,12 @@
             box-shadow: 0 20px 40px rgba(30, 60, 114, 0.4);
             transform: rotate(-4deg);
             border: 4px solid rgba(255, 255, 255, 0.3);
-        ">
+            ">
             HR
         </div>
 
-        <div style="
+        @* Badge *@
+        <div class="mobile-badge" style="
             display: inline-block;
             letter-spacing: 5px;
             color: #2a5298;
@@ -69,11 +120,12 @@
             background: rgba(42, 82, 152, 0.05);
             border-radius: 50px;
             text-transform: uppercase;
-        ">
+            ">
             Digital Transformation
         </div>
 
-        <h1 style="
+        @* Tiêu đề chính *@
+        <h1 class="mobile-title" style="
             margin: 0;
             font-size: 4rem;
             background: linear-gradient(to bottom, #1e3c72 20%, #2a5298 100%);
@@ -81,49 +133,53 @@
             -webkit-text-fill-color: transparent;
             font-weight: 900;
             line-height: 1;
-        ">
+            ">
             HR FORM
         </h1>
 
+        @* Thanh trang trí *@
         <div style="
-            width: 80px;
-            height: 6px;
-            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
-            margin: 25px auto;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(79, 172, 254, 0.4);
+        width: 80px;
+        height: 6px;
+        background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+        margin: 25px auto;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(79, 172, 254, 0.4);
         "></div>
 
-        <p style="
+        @* Phụ đề *@
+        <p class="mobile-subtitle" style="
             margin: 0 0 35px;
             font-size: 1.5rem;
             color: #1e293b;
             font-weight: 700;
             letter-spacing: 1px;
-        ">
+            ">
             Hành Chính – Nhân Sự
         </p>
 
-        <div style="
+        @* Khung trích dẫn / Mô tả *@
+        <div class="mobile-description-box" style="
             background: rgba(255, 255, 255, 0.5);
             padding: 30px;
             border-radius: 30px;
             border: 1px solid rgba(226, 232, 240, 0.8);
             box-shadow: 0 10px 20px rgba(0,0,0,0.02);
-        ">
-            <p style="
+            ">
+            <p class="mobile-description-text" style="
                 font-size: 1.05rem;
                 color: #475569;
                 line-height: 1.8;
                 margin: 0;
                 font-style: italic;
-            ">
+                ">
                 "Nền tảng quản lý quy trình hành chính nhân sự,
                 tiếp nhận – xử lý – theo dõi các yêu cầu nội bộ
                 một cách <span style="color:#1e3c72; font-weight:800; border-bottom: 2px solid #4facfe;">nhanh chóng</span> và <span style="color:#1e3c72; font-weight:800; border-bottom: 2px solid #4facfe;">minh bạch</span>."
             </p>
         </div>
 
+        @* Footer *@
         <div style="margin-top: 45px; font-size: 0.85rem; color: #94a3b8; font-weight: 500;">
             &copy; 2026 <span style="color: #64748b; font-weight: 700;">E-Form Best</span>. All rights reserved.
         </div>

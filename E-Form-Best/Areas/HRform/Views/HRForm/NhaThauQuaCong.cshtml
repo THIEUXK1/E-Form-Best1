@@ -22,16 +22,66 @@
     string boxStyle = $"background: #ffffff; padding: 30px; border-radius: 24px; border: 1px solid #ccfbf1; margin-bottom: 25px; box-shadow: 0 10px 15px -3px rgba(13, 148, 136, 0.05);";
 }
 
-<div style="background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%); padding: 50px 15px; min-height: 100vh; font-family: 'Inter', sans-serif;">
+<style>
+    /* ==========================================
+           THÊM MỚI: CSS CHO MOBILE RESPONSIVE
+           ========================================== */
+    @@media (max-width: 768px) {
+        .mobile-container {
+            padding: 15px 10px !important;
+        }
 
-    <form id="nhaThauForm" method="post" enctype="multipart/form-data" action="/FormHR/NhaThauQuaCong"
+        .mobile-form {
+            border-radius: 25px !important;
+        }
+
+        .mobile-header {
+            padding: 30px 20px !important;
+        }
+
+            .mobile-header h2 {
+                font-size: 18px !important;
+            }
+
+        .security-badge {
+            position: relative !important;
+            top: 0 !important;
+            right: 0 !important;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .mobile-body {
+            padding: 20px 15px !important;
+        }
+
+        .mobile-box {
+            padding: 20px !important;
+            border-radius: 20px !important;
+        }
+        /* Ép các Grid về 1 cột */
+        .mobile-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+        }
+
+        .mobile-footer-btn {
+            font-size: 15px !important;
+            padding: 15px !important;
+        }
+    }
+</style>
+
+<div class="mobile-container" style="background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%); padding: 50px 15px; min-height: 100vh; font-family: 'Inter', sans-serif;">
+
+    <form id="nhaThauForm" class="mobile-form" method="post" enctype="multipart/form-data" action="/FormHR/NhaThauQuaCong"
           style="max-width: 850px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(13, 78, 74, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
 
         @Html.AntiForgeryToken()
 
         @* --- HEADER --- *@
-        <div style="background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); padding: 45px 40px; color: #ffffff; text-align: center; position: relative;">
-            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">E-FORM SECURITY</div>
+        <div class="mobile-header" style="background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); padding: 45px 40px; color: #ffffff; text-align: center; position: relative;">
+            <div class="security-badge" style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">E-FORM SECURITY</div>
             <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px;">Đăng ký Nhà thầu qua cổng</h2>
             <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 6px 18px; background: rgba(255,255,255,0.2); border-radius: 100px; font-size: 13px; backdrop-filter: blur(4px);">
                 <span>📅 Ngày yêu cầu:</span>
@@ -39,14 +89,14 @@
             </div>
         </div>
 
-        <div style="padding: 40px;">
+        <div class="mobile-body" style="padding: 40px;">
 
             @* --- PHẦN 1: THÔNG TIN NGƯỜI PHỤ TRÁCH --- *@
             <div style="margin-bottom: 35px;">
                 <h3 style="color: #115e59; font-size: 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
                     <i class="fa fa-user-shield" style="font-size: 18px; color: #0d9488;"></i> Người phụ trách nhân sự
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
                     <div>
                         <label style="@labelStyle">Họ tên nhân viên</label>
                         <input name="TenNguoiNv" value="@tenNguoiNv" readonly style="@inputStyle; background: #f0fdfa;">
@@ -60,7 +110,7 @@
                         <input name="SoNhanVien" value="@soNhanVien" readonly style="@inputStyle; background: #f0fdfa;">
                     </div>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="mobile-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div>
                         <label style="@labelStyle">Đơn vị / Công ty</label>
                         <input name="TenCongTy" value="@tenCongTy" readonly style="@inputStyle; background: #f0fdfa; border-style: dashed;">
@@ -73,12 +123,12 @@
             </div>
 
             @* --- PHẦN 2: CHI TIẾT NHÀ THẦU --- *@
-            <div style="@boxStyle">
+            <div class="mobile-box" style="@boxStyle">
                 <h3 style="color: #115e59; font-size: 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 25px; font-weight: 800; text-transform: uppercase;">
                     <i class="fa fa-building" style="font-size: 18px; color: #0d9488;"></i> Thông tin hồ sơ nhà thầu
                 </h3>
 
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div class="mobile-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 20px;">
                     <div>
                         <label style="@labelStyle">Tên đơn vị nhà thầu <span style="color:red">*</span></label>
                         <input name="TenNhaThau" placeholder="Nhập tên công ty nhà thầu..." required style="@inputStyle">
@@ -89,12 +139,11 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div class="mobile-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                     <div>
                         <label style="@labelStyle">Người đăng ký (Đại diện nhà thầu)</label>
                         <input name="NguoiDangKy" placeholder="Họ tên người dẫn đoàn hoặc đại diện..." style="@inputStyle">
                     </div>
-                    <!-- --- THÊM TRƯỜNG BIỂN SỐ XE Ở ĐÂY --- -->
                     <div>
                         <label style="@labelStyle">Biển số xe (Nếu có)</label>
                         <input name="BienSoXe" placeholder="Ví dụ: 34A-123.45..." style="@inputStyle">
@@ -107,7 +156,7 @@
                               style="@inputStyle; height: 80px; resize: none; font-family: inherit;"></textarea>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="mobile-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     @* VÙNG DÁN ẢNH *@
                     <div>
                         <label style="@labelStyle">Ảnh minh chứng (Thẻ/Lệnh làm việc)</label>
@@ -132,7 +181,7 @@
             </div>
 
             @* --- PHẦN 3: CHỌN LOẠI YÊU CẦU HỖ TRỢ --- *@
-            <div style="@boxStyle">
+            <div class="mobile-box" style="@boxStyle">
                 <h3 style="color: #115e59; font-size: 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
                     <i class="fa fa-cogs" style="font-size: 18px; color: #0d9488;"></i> Chọn loại yêu cầu hỗ trợ
                 </h3>
@@ -164,7 +213,7 @@
             </div>
 
             @* --- PHẦN 4: QUY ĐỊNH & CAM KẾT --- *@
-            <div style="@boxStyle; border-color: #fde68a; background: #fffbeb; padding: 25px;">
+            <div class="mobile-box" style="@boxStyle; border-color: #fde68a; background: #fffbeb; padding: 25px;">
                 <h3 style="color: #92400e; font-size: 13px; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-weight: 800; text-transform: uppercase;">
                     <i class="fa fa-exclamation-triangle"></i> Cam kết an toàn & Nội quy
                 </h3>
@@ -183,7 +232,7 @@
 
             @* --- NÚT GỬI --- *@
             <div style="text-align: center;">
-                <button type="button" onclick="guiDonNhaThau()"
+                <button type="button" class="mobile-footer-btn" onclick="guiDonNhaThau()"
                         style="width: 100%; padding: 20px; background: linear-gradient(to right, #0d9488, #0f766e); color: #fff; border: none; border-radius: 20px; font-weight: 900; font-size: 17px; cursor: pointer; transition: 0.3s; box-shadow: 0 15px 30px -5px rgba(13, 148, 136, 0.4); text-transform: uppercase; letter-spacing: 1px;">
                     <i class="fa fa-check-square-o" style="margin-right: 10px;"></i> Xác nhận đăng ký nhà thầu
                 </button>
@@ -197,26 +246,27 @@
     const zone = document.getElementById("paste_AnhNhaThau");
     const input = document.getElementById("Anh");
 
-    zone.addEventListener('paste', (e) => {
-        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf("image") !== -1) {
-                const blob = items[i].getAsFile();
-                const reader = new FileReader();
-                reader.onload = function (event) {
-                    zone.innerHTML = `<img src="${event.target.result}" style="width:100%; height:100%; object-fit:contain; border-radius:15px;">`;
-                    zone.style.borderColor = "#0d9488";
+    if (zone) {
+        zone.addEventListener('paste', (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf("image") !== -1) {
+                    const blob = items[i].getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        zone.innerHTML = `<img src="${event.target.result}" style="width:100%; height:100%; object-fit:contain; border-radius:15px;">`;
+                        zone.style.borderColor = "#0d9488";
 
-                    const dataTransfer = new DataTransfer();
-                    dataTransfer.items.add(blob);
-                    input.files = dataTransfer.files;
-                };
-                reader.readAsDataURL(blob);
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(blob);
+                        input.files = dataTransfer.files;
+                    };
+                    reader.readAsDataURL(blob);
+                }
             }
-        }
-    });
-
-    zone.addEventListener('click', () => zone.focus());
+        });
+        zone.addEventListener('click', () => zone.focus());
+    }
 
     function guiDonNhaThau() {
         const tenNT = document.querySelector('input[name="TenNhaThau"]').value.trim();
