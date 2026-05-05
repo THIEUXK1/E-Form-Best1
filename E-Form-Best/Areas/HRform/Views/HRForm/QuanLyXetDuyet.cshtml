@@ -4,7 +4,7 @@
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 
     // Vẫn lấy Role từ Claim để JS và HTML Header xài
-    var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("UserRole")?.Value ?? "Guest";
+    var userRole = User.Identity.Name ?? "Guest";
 }
 
 <style>
@@ -40,12 +40,81 @@
         background: #f8fafc;
         border-color: #cbd5e1;
     }
+
+    /* ==========================================
+       BỔ SUNG CSS CHO MOBILE RESPONSIVE
+       ========================================== */
+    @@media (max-width: 768px) {
+        .mobile-top-bar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+        }
+        .mobile-controls {
+            flex-direction: column !important;
+            width: 100% !important;
+        }
+        .mobile-search-input {
+            width: 100% !important;
+        }
+        .mobile-stat-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+        
+        /* Chuyển bảng thành dạng Card */
+        #dataTable thead {
+            display: none; /* Ẩn tiêu đề bảng trên mobile */
+        }
+        #dataTable, #dataTable tbody, #dataTable tr, #dataTable td {
+            display: block;
+            width: 100%;
+        }
+        #dataTable tr {
+            margin-bottom: 15px;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        #dataTable td {
+            text-align: right !important;
+            padding: 12px 15px !important;
+            border-bottom: 1px dashed #f1f5f9;
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #dataTable td:last-child {
+            border-bottom: none;
+            background: #f8fafc;
+            justify-content: center;
+        }
+        /* Hiển thị nhãn cột bằng data-label */
+        #dataTable td::before {
+            content: attr(data-label);
+            float: left;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            font-size: 10px;
+        }
+        
+        .pagination-container {
+            flex-direction: column !important;
+            gap: 20px;
+            text-align: center !important;
+        }
+        #paginationButtons {
+            justify-content: center;
+        }
+    }
 </style>
 
 <div style="padding: 20px; background: #f1f5f9; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
 
     @* --- TOP BAR --- *@
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px;">
+    <div class="mobile-top-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px;">
         <h2 style="margin: 0; color: #1e40af; font-weight: 1000; font-size: 24px; display: flex; align-items: center; gap: 10px;">
             <span style="background: #1e40af; color: white; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                 <i class="fa fa-users"></i>
@@ -53,7 +122,7 @@
             XÉT DUYỆT NHÂN SỰ
         </h2>
 
-        <div style="display: flex; gap: 15px; align-items: center;">
+        <div class="mobile-controls" style="display: flex; gap: 15px; align-items: center;">
             @* Khung chọn số lượng hiển thị *@
             <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 8px 15px; border-radius: 12px; border: 2px solid #cbd5e1;">
                 <span style="font-size: 12px; font-weight: 700; color: #64748b;">Hiển thị:</span>
@@ -65,17 +134,17 @@
                 </select>
             </div>
 
-            <div style="position: relative;">
+            <div class="mobile-search-input" style="position: relative;">
                 <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px; font-weight: 900;"></i>
                 <input type="text" id="quickSearch" onkeyup="handleFilterAndPaginate()" placeholder="Tìm tên, bộ phận, mã đơn..."
-                       style="padding: 10px 12px 10px 38px; border-radius: 12px; border: 2px solid #cbd5e1; font-size: 14px; width: 280px; outline: none; font-weight: 700;">
+                       style="padding: 10px 12px 10px 38px; border-radius: 12px; border: 2px solid #cbd5e1; font-size: 14px; width: 280px; outline: none; font-weight: 700; box-sizing: border-box; width: 100%;">
             </div>
-            <div style="font-size: 11px; background: #1e40af; padding: 8px 15px; border-radius: 8px; font-weight: 900; color: #ffffff; text-transform: uppercase;">@userRole</div>
+            <div style="font-size: 11px; background: #1e40af; padding: 8px 15px; border-radius: 8px; font-weight: 900; color: #ffffff; text-transform: uppercase; text-align: center;">@userRole</div>
         </div>
     </div>
 
-    @* --- STATS ROW (Cập nhật động bằng JS) --- *@
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 25px;">
+    @* --- STATS ROW --- *@
+    <div class="mobile-stat-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 25px;">
         <div onclick="filterByStatus('')" class="stat-card" style="background: white; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
             <div style="font-size: 10px; font-weight: 900; color: #1e293b; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">TỔNG ĐƠN</div>
             <div id="stat-total" style="font-size: 22px; font-weight: 1000; color: #1e293b;">0</div>
@@ -121,7 +190,7 @@
             </thead>
             <tbody id="tableBody">
                 <tr>
-                    <td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;">
+                    <td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8; border: none;">
                         <i class="fa fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 15px;"></i>
                         <p style="font-weight: 600;">Đang tải danh sách xét duyệt...</p>
                     </td>
@@ -131,7 +200,7 @@
     </div>
 
     @* --- PHẦN PHÂN TRANG --- *@
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 5px;">
+    <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 5px;">
         <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
         <div style="text-align: right;">
             <div style="color: #64748b; font-size: 13px; font-weight: 700;">
@@ -163,7 +232,6 @@
             }
         });
 
-        // Cập nhật thẻ thống kê
         function updateStatistics(data) {
             document.getElementById("stat-total").innerText = data.length;
             document.getElementById("stat-ql").innerText = data.filter(x => x.statusTag === "CHỜ QL").length;
@@ -190,7 +258,6 @@
             setTimeout(() => { table.style.opacity = "1"; }, 150);
         }
 
-        // Lọc Search và Phân trang chung
         function handleFilterAndPaginate() {
             const searchText = document.getElementById("quickSearch").value.toUpperCase().trim();
 
@@ -215,13 +282,12 @@
             renderPaginationButtons(totalPages);
         }
 
-        // Vẽ Data
         function renderTable(pageData) {
             const tbody = document.getElementById("tableBody");
             tbody.innerHTML = "";
 
             if (pageData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;"><i class="fa fa-folder-open-o" style="font-size: 40px; display: block; margin-bottom: 10px; opacity: 0.5;"></i>Không tìm thấy dữ liệu.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8; border:none; display:block;">Không tìm thấy dữ liệu.</td></tr>`;
                 return;
             }
 
@@ -235,44 +301,49 @@
                     badgesHtml += `<span class="sub-badge" style="color: #86198f; border-color: #f5d0fe; background: #fdf4ff; margin-left: 5px;"><i class="fa fa-briefcase"></i> GĐ (${item.gdApprovedCount}/${item.gdTotalCount})</span>`;
                 }
 
-                let btnText = item.idNguoiDuyet == null ? "Xử lý" : "Xem lại";
-                let btnBg = item.idNguoiDuyet != null ? "#f1f5f9" : "#1e40af";
-                let btnColor = item.idNguoiDuyet != null ? "#64748b" : "#ffffff";
+                // --- LOGIC XỬ LÝ NÚT BẤM (BAO GỒM TRƯỜNG HỢP HỦY) ---
+                const isCancelled = item.statusTag === "ĐÃ HỦY";
+                
+                let btnText = (item.idNguoiDuyet == null && !isCancelled) ? "Xử lý" : "Xem lại";
+                let btnBg = (item.idNguoiDuyet != null || isCancelled) ? "#f1f5f9" : "#1e40af";
+                let btnColor = (item.idNguoiDuyet != null || isCancelled) ? "#64748b" : "#ffffff";
 
                 html += `
                     <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                        <td style="padding: 15px 20px;">
+                        <td data-label="Nhân viên" style="padding: 15px 20px;">
                             <div style="font-weight: 1000; color: #0f172a; font-size: 14px;">${item.tenNguoiNv}</div>
                             <div style="font-size: 11px; color: #64748b; font-weight: 800;">${item.boPhan} • <span style="color: #1e40af;">MS: ${item.soNhanVien}</span></div>
                         </td>
-                        <td style="padding: 15px 20px;">
+                        <td data-label="Thông tin đơn" style="padding: 15px 20px;">
                             <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${item.tenForm}</div>
-                            <div style="font-size: 11px; color: #64748b; font-weight: 700; display: flex; flex-wrap: wrap; align-items: center; margin-top: 4px;">
+                            <div style="font-size: 11px; color: #64748b; font-weight: 700; display: flex; flex-wrap: wrap; align-items: center; margin-top: 4px; justify-content: flex-end;">
                                 ${badgesHtml}
                             </div>
                         </td>
-                        <td style="padding: 15px 20px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
+                        <td data-label="Hỗ Trợ" style="padding: 15px 20px;">
+                            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-end;">
                                 <div class="support-avatar"><i class="fa fa-user-circle-o" style="font-size: 14px;"></i></div>
                                 <div style="font-weight: 700; color: #334155; font-size: 13px;">${item.supportName}</div>
                             </div>
                         </td>
-                        <td style="padding: 15px 20px;">
-                            <div style="font-size: 9px; font-weight: 1000; color: ${item.pColor}; margin-bottom: 4px; display: flex; justify-content: space-between;">
-                                <span>${item.pText}</span> <span>${item.pWidth}</span>
-                            </div>
-                            <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden;">
-                                <div style="width: ${item.pWidth}; height: 100%; background: ${item.pColor}; border-radius: 10px; transition: 0.5s ease;"></div>
+                        <td data-label="Tiến trình" style="padding: 15px 20px;">
+                            <div style="width: 100px; margin-left: auto;">
+                                <div style="font-size: 9px; font-weight: 1000; color: ${item.pColor}; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                                    <span>${item.pText}</span> <span>${item.pWidth}</span>
+                                </div>
+                                <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden;">
+                                    <div style="width: ${item.pWidth}; height: 100%; background: ${item.pColor}; border-radius: 10px; transition: 0.5s ease;"></div>
+                                </div>
                             </div>
                         </td>
-                        <td style="padding: 15px 20px; text-align: center;">
+                        <td data-label="Trạng thái" style="padding: 15px 20px; text-align: center;">
                             <span style="background:${item.bg}; color:${item.fg}; padding:6px 12px; border-radius:8px; font-size:10px; font-weight:1000; border: 1.5px solid ${item.fg}; display: inline-block; min-width: 85px;">${item.statusTag}</span>
                         </td>
                         <td style="padding: 15px 20px; text-align: right;">
                             <a href="/FormHR/ChiTiet/${item.id}"
-                               style="text-decoration: none; padding: 8px 16px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s; background: ${btnBg}; color: ${btnColor};"
+                               style="text-decoration: none; padding: 8px 20px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s; background: ${btnBg}; color: ${btnColor}; width: 100%; text-align: center; box-sizing: border-box;"
                                onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
-                                ${btnText}
+                                 ${btnText}
                             </a>
                         </td>
                     </tr>
@@ -281,7 +352,6 @@
             tbody.innerHTML = html;
         }
 
-        // Vẽ Phân Trang
         function renderPaginationButtons(totalPages) {
             const container = document.getElementById("paginationButtons");
             container.innerHTML = "";

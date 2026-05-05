@@ -10,85 +10,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.11/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
-    
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
-
-    <style>
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            background: #f4f7fa;
-            min-height: 100vh;
-            display: flex;
-            color: #1a202c;
-        }
-
-        aside a { text-decoration: none !important; }
-
-        .nav-link-custom {
-            display: flex;
-            align-items: center;
-            padding: 13px 25px;
-            color: rgba(255,255,255,0.7);
-            transition: all 0.2s;
-            gap: 12px;
-            font-size: 14px;
-            border-left: 4px solid transparent;
-        }
-
-        .nav-link-custom:hover {
-            background: rgba(255,255,255,0.05);
-            color: white;
-        }
-
-        .nav-link-custom.active {
-            background: rgba(74, 144, 226, 0.15) !important;
-            border-left: 4px solid #4a90e2 !important;
-            color: #4a90e2 !important;
-            font-weight: 600;
-        }
-
-        .nav-section-title {
-            padding: 20px 25px 10px;
-            font-size: 11px;
-            font-weight: 700;
-            color: rgba(255,255,255,0.4);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        main { flex-grow: 1; display: flex; flex-direction: column; min-width: 0; }
-        header { background: white; padding: 15px 30px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 999; }
-        
-        .select2-container--default .select2-selection--single {
-            height: 38px;
-            border: 1px solid #dee2e6;
-            display: flex;
-            align-items: center;
-        }
-    </style>
 </head>
-<body>
+<body style="font-family: 'Inter', sans-serif; margin: 0; background: #f4f7fa; min-height: 100vh; display: flex; color: #1a202c; overflow-x: hidden;">
 
-    <aside style="width: 260px; background: #1a202c; color: white; display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 2px 0 10px rgba(0,0,0,0.1); position: sticky; top: 0; height: 100vh; z-index: 1000;">
-        <a href="/MenuA" style="color: inherit; display: block;">
+    <!-- Sidebar Menu -->
+    <aside id="sidebar" style="width: 260px; background: #1a202c; color: white; display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 2px 0 10px rgba(0,0,0,0.1); position: sticky; top: 0; height: 100vh; z-index: 1000; transition: transform 0.3s ease-in-out;">
+        <a href="/MenuA" style="color: inherit; display: block; text-decoration: none;">
             <div style="padding: 25px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
                 <h2 style="margin: 0; font-size: 20px; letter-spacing: 1px; font-weight: 800; color: #4a90e2;">BEST PACIFIC</h2>
                 <span style="font-size: 10px; opacity: 0.6;">ADMIN MANAGEMENT</span>
@@ -96,75 +33,86 @@
         </a>
 
         <nav style="padding: 10px 0; flex-grow: 1; overflow-y: auto;">
-            <div class="nav-section-title">Hệ thống</div>
-            <a href="/QLtaiKhoan" class="nav-link-custom @(Context.Request.Path.Value == "/QLtaiKhoan" ? "active" : "")">
+            <div style="padding: 20px 25px 10px; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px;">Hệ thống</div>
+            
+            <a href="/QLtaiKhoan" data-active="@(Context.Request.Path.Value == "/QLtaiKhoan" ? "true" : "false")" style="display: flex; align-items: center; padding: 13px 25px; transition: all 0.2s; gap: 12px; font-size: 14px; text-decoration: none; @(Context.Request.Path.Value == "/QLtaiKhoan" ? "background: rgba(74, 144, 226, 0.15); border-left: 4px solid #4a90e2; color: #4a90e2; font-weight: 600;" : "color: rgba(255,255,255,0.7); border-left: 4px solid transparent;")" onmouseenter="if(this.getAttribute('data-active') !== 'true') { this.style.background='rgba(255,255,255,0.05)'; this.style.color='white'; }" onmouseleave="if(this.getAttribute('data-active') !== 'true') { this.style.background='transparent'; this.style.color='rgba(255,255,255,0.7)'; }">
                 <i class="fas fa-users-cog" style="width: 20px;"></i>
                 <span>Quản lý tài khoản</span>
             </a>
 
-            <a href="/QLQuyenTruyCap" class="nav-link-custom @(Context.Request.Path.Value == "/QLQuyenTruyCap" ? "active" : "")">
+            <a href="/QLQuyenTruyCap" data-active="@(Context.Request.Path.Value == "/QLQuyenTruyCap" ? "true" : "false")" style="display: flex; align-items: center; padding: 13px 25px; transition: all 0.2s; gap: 12px; font-size: 14px; text-decoration: none; @(Context.Request.Path.Value == "/QLQuyenTruyCap" ? "background: rgba(74, 144, 226, 0.15); border-left: 4px solid #4a90e2; color: #4a90e2; font-weight: 600;" : "color: rgba(255,255,255,0.7); border-left: 4px solid transparent;")" onmouseenter="if(this.getAttribute('data-active') !== 'true') { this.style.background='rgba(255,255,255,0.05)'; this.style.color='white'; }" onmouseleave="if(this.getAttribute('data-active') !== 'true') { this.style.background='transparent'; this.style.color='rgba(255,255,255,0.7)'; }">
                 <i class="fas fa-user-lock" style="width: 20px;"></i>
                 <span>Quản lý Quyền</span>
             </a>
 
-            <a href="/QLBoPhanAamin" class="nav-link-custom @(Context.Request.Path.Value == "/QLBoPhanAamin" ? "active" : "")">
+            <a href="/QLBoPhanAamin" data-active="@(Context.Request.Path.Value == "/QLBoPhanAamin" ? "true" : "false")" style="display: flex; align-items: center; padding: 13px 25px; transition: all 0.2s; gap: 12px; font-size: 14px; text-decoration: none; @(Context.Request.Path.Value == "/QLBoPhanAamin" ? "background: rgba(74, 144, 226, 0.15); border-left: 4px solid #4a90e2; color: #4a90e2; font-weight: 600;" : "color: rgba(255,255,255,0.7); border-left: 4px solid transparent;")" onmouseenter="if(this.getAttribute('data-active') !== 'true') { this.style.background='rgba(255,255,255,0.05)'; this.style.color='white'; }" onmouseleave="if(this.getAttribute('data-active') !== 'true') { this.style.background='transparent'; this.style.color='rgba(255,255,255,0.7)'; }">
                 <i class="fas fa-sitemap" style="width: 20px;"></i>
                 <span>Quản lý Bộ phận</span>
             </a>
 
-            <a href="/QLTruyCap" class="nav-link-custom @(Context.Request.Path.Value == "/QLTruyCap" ? "active" : "")">
+            <a href="/QLTruyCap" data-active="@(Context.Request.Path.Value == "/QLTruyCap" ? "true" : "false")" style="display: flex; align-items: center; padding: 13px 25px; transition: all 0.2s; gap: 12px; font-size: 14px; text-decoration: none; @(Context.Request.Path.Value == "/QLTruyCap" ? "background: rgba(74, 144, 226, 0.15); border-left: 4px solid #4a90e2; color: #4a90e2; font-weight: 600;" : "color: rgba(255,255,255,0.7); border-left: 4px solid transparent;")" onmouseenter="if(this.getAttribute('data-active') !== 'true') { this.style.background='rgba(255,255,255,0.05)'; this.style.color='white'; }" onmouseleave="if(this.getAttribute('data-active') !== 'true') { this.style.background='transparent'; this.style.color='rgba(255,255,255,0.7)'; }">
                 <i class="fas fa-history" style="width: 20px; color: #a29bfe;"></i>
                 <span>Lịch sử truy cập</span>
             </a>
 
-            <div class="nav-section-title">Cấu hình Quy trình</div>
-            <a href="/QLtaiKhoan/QLGiamDoc" class="nav-link-custom @(Context.Request.Path.Value == "/QLtaiKhoan/QLGiamDoc" ? "active" : "")">
+            <div style="padding: 20px 25px 10px; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px;">Cấu hình Quy trình</div>
+            
+            <a href="/QLtaiKhoan/QLGiamDoc" data-active="@(Context.Request.Path.Value == "/QLtaiKhoan/QLGiamDoc" ? "true" : "false")" style="display: flex; align-items: center; padding: 13px 25px; transition: all 0.2s; gap: 12px; font-size: 14px; text-decoration: none; @(Context.Request.Path.Value == "/QLtaiKhoan/QLGiamDoc" ? "background: rgba(74, 144, 226, 0.15); border-left: 4px solid #4a90e2; color: #4a90e2; font-weight: 600;" : "color: rgba(255,255,255,0.7); border-left: 4px solid transparent;")" onmouseenter="if(this.getAttribute('data-active') !== 'true') { this.style.background='rgba(255,255,255,0.05)'; this.style.color='white'; }" onmouseleave="if(this.getAttribute('data-active') !== 'true') { this.style.background='transparent'; this.style.color='rgba(255,255,255,0.7)'; }">
                 <i class="fas fa-user-tie" style="width: 20px; color: #f6ad55;"></i>
                 <span>Quản lý Giám đốc</span>
             </a>
             
-            <a href="/HR_QuanLyDuyetB2" class="nav-link-custom @(Context.Request.Path.Value == "/HR_QuanLyDuyetB2" ? "active" : "")">
+            <a href="/HR_QuanLyDuyetB2" data-active="@(Context.Request.Path.Value == "/HR_QuanLyDuyetB2" ? "true" : "false")" style="display: flex; align-items: center; padding: 13px 25px; transition: all 0.2s; gap: 12px; font-size: 14px; text-decoration: none; @(Context.Request.Path.Value == "/HR_QuanLyDuyetB2" ? "background: rgba(74, 144, 226, 0.15); border-left: 4px solid #4a90e2; color: #4a90e2; font-weight: 600;" : "color: rgba(255,255,255,0.7); border-left: 4px solid transparent;")" onmouseenter="if(this.getAttribute('data-active') !== 'true') { this.style.background='rgba(255,255,255,0.05)'; this.style.color='white'; }" onmouseleave="if(this.getAttribute('data-active') !== 'true') { this.style.background='transparent'; this.style.color='rgba(255,255,255,0.7)'; }">
                 <i class="fas fa-project-diagram" style="width: 20px; color: #63b3ed;"></i>
                 <span>Quản lý Duyệt Bước 2</span>
             </a>
 
-            <div class="nav-section-title">Hỗ trợ E-Form</div>
-            <a href="/QLtaiKhoan/NguoiHoTro" class="nav-link-custom @(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTro" ? "active" : "")">
+            <div style="padding: 20px 25px 10px; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px;">Hỗ trợ E-Form</div>
+            
+            <a href="/QLtaiKhoan/NguoiHoTro" data-active="@(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTro" ? "true" : "false")" style="display: flex; align-items: center; padding: 13px 25px; transition: all 0.2s; gap: 12px; font-size: 14px; text-decoration: none; @(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTro" ? "background: rgba(74, 144, 226, 0.15); border-left: 4px solid #4a90e2; color: #4a90e2; font-weight: 600;" : "color: rgba(255,255,255,0.7); border-left: 4px solid transparent;")" onmouseenter="if(this.getAttribute('data-active') !== 'true') { this.style.background='rgba(255,255,255,0.05)'; this.style.color='white'; }" onmouseleave="if(this.getAttribute('data-active') !== 'true') { this.style.background='transparent'; this.style.color='rgba(255,255,255,0.7)'; }">
                 <i class="fas fa-user-shield" style="width: 20px;"></i>
                 <span>Người hỗ trợ IT</span>
             </a>
 
-            <a href="/QLtaiKhoan/NguoiHoTroHR" class="nav-link-custom @(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTroHR" ? "active" : "")">
+            <a href="/QLtaiKhoan/NguoiHoTroHR" data-active="@(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTroHR" ? "true" : "false")" style="display: flex; align-items: center; padding: 13px 25px; transition: all 0.2s; gap: 12px; font-size: 14px; text-decoration: none; @(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTroHR" ? "background: rgba(74, 144, 226, 0.15); border-left: 4px solid #4a90e2; color: #4a90e2; font-weight: 600;" : "color: rgba(255,255,255,0.7); border-left: 4px solid transparent;")" onmouseenter="if(this.getAttribute('data-active') !== 'true') { this.style.background='rgba(255,255,255,0.05)'; this.style.color='white'; }" onmouseleave="if(this.getAttribute('data-active') !== 'true') { this.style.background='transparent'; this.style.color='rgba(255,255,255,0.7)'; }">
                 <i class="fas fa-user-tie" style="width: 20px;"></i>
                 <span>Người hỗ trợ HR</span>
             </a>
 
-            <!-- CẬP NHẬT MỚI: NGƯỜI HỖ TRỢ SHD -->
-            <a href="/QLtaiKhoan/NguoiHoTroSHD" class="nav-link-custom @(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTroSHD" ? "active" : "")">
+            <a href="/QLtaiKhoan/NguoiHoTroSHD" data-active="@(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTroSHD" ? "true" : "false")" style="display: flex; align-items: center; padding: 13px 25px; transition: all 0.2s; gap: 12px; font-size: 14px; text-decoration: none; @(Context.Request.Path.Value == "/QLtaiKhoan/NguoiHoTroSHD" ? "background: rgba(74, 144, 226, 0.15); border-left: 4px solid #4a90e2; color: #4a90e2; font-weight: 600;" : "color: rgba(255,255,255,0.7); border-left: 4px solid transparent;")" onmouseenter="if(this.getAttribute('data-active') !== 'true') { this.style.background='rgba(255,255,255,0.05)'; this.style.color='white'; }" onmouseleave="if(this.getAttribute('data-active') !== 'true') { this.style.background='transparent'; this.style.color='rgba(255,255,255,0.7)'; }">
                 <i class="fas fa-hand-holding-heart" style="width: 20px; color: #f687b3;"></i>
                 <span>Người hỗ trợ SHD</span>
             </a>
 
-            <a href="/QLPhongHopHR" class="nav-link-custom @(Context.Request.Path.Value == "/QLPhongHopHR" ? "active" : "")">
+            <a href="/QLPhongHopHR" data-active="@(Context.Request.Path.Value == "/QLPhongHopHR" ? "true" : "false")" style="display: flex; align-items: center; padding: 13px 25px; transition: all 0.2s; gap: 12px; font-size: 14px; text-decoration: none; @(Context.Request.Path.Value == "/QLPhongHopHR" ? "background: rgba(74, 144, 226, 0.15); border-left: 4px solid #4a90e2; color: #4a90e2; font-weight: 600;" : "color: rgba(255,255,255,0.7); border-left: 4px solid transparent;")" onmouseenter="if(this.getAttribute('data-active') !== 'true') { this.style.background='rgba(255,255,255,0.05)'; this.style.color='white'; }" onmouseleave="if(this.getAttribute('data-active') !== 'true') { this.style.background='transparent'; this.style.color='rgba(255,255,255,0.7)'; }">
                 <i class="fas fa-door-open" style="width: 20px; color: #4fd1c5;"></i>
                 <span>Quản lý Phòng họp HR</span>
             </a>
         </nav>
 
         <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <a href="/Logout" style="color: #feb2b2; font-size: 14px; display: flex; align-items: center; gap: 10px; transition: opacity 0.2s; text-decoration: none;">
+            <a href="/Logout" style="color: #feb2b2; font-size: 14px; display: flex; align-items: center; gap: 10px; transition: opacity 0.2s; text-decoration: none;" onmouseenter="this.style.opacity='0.8'" onmouseleave="this.style.opacity='1'">
                 <i class="fas fa-sign-out-alt"></i>
                 <strong>Đăng xuất</strong>
             </a>
         </div>
     </aside>
 
-    <main>
-        <header>
-            <div style="font-weight: 500; color: #4a5568;">
-                <i class="fas fa-chevron-right me-2" style="font-size: 12px; color: #cbd5e0;"></i> @ViewData["Title"]
+    <!-- Nền mờ cho Mobile Menu -->
+    <div id="sidebar-backdrop" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; opacity: 0; transition: opacity 0.3s;"></div>
+
+    <main style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
+        <header id="main-header" style="background: white; padding: 15px 30px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 998; transition: padding 0.3s;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <!-- Nút bật menu trên Mobile -->
+                <button id="mobile-menu-btn" style="display: none; background: none; border: none; font-size: 20px; color: #4a5568; cursor: pointer; padding: 0;">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div style="font-weight: 500; color: #4a5568;">
+                    <i class="fas fa-chevron-right me-2" style="font-size: 12px; color: #cbd5e0;"></i> @ViewData["Title"]
+                </div>
             </div>
-            <div style="font-size: 13px; color: #718096;">
+            <div id="header-info-text" style="font-size: 13px; color: #718096; display: block;">
                 Hệ thống quản lý E-Form <i class="fas fa-check-circle" style="color: #38a169;"></i>
             </div>
         </header>
@@ -179,6 +127,75 @@
     <script src="https://cdn.datatables.net/1.13.11/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <!-- Script xử lý Giao diện, Responsive & Thanh cuộn (Tuyệt đối không dùng thẻ style) -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+        // Tùy chỉnh thanh cuộn cho web (hỗ trợ các trình duyệt chuẩn mới)
+        document.documentElement.style.scrollbarWidth = "thin";
+        document.documentElement.style.scrollbarColor = "#cbd5e0 #f1f1f1";
+
+        var sidebar = document.getElementById('sidebar');
+        var mobileBtn = document.getElementById('mobile-menu-btn');
+        var backdrop = document.getElementById('sidebar-backdrop');
+        var header = document.getElementById('main-header');
+        var infoText = document.getElementById('header-info-text');
+
+        // Xử lý Responsive thay vì dùng @@media trong CSS
+        function handleResize() {
+        if (window.innerWidth <= 768) {
+        mobileBtn.style.display = 'block';
+        header.style.padding = '15px';
+        infoText.style.display = 'none';
+        if (sidebar.getAttribute('data-open') !== 'true') {
+        sidebar.style.position = 'fixed';
+        sidebar.style.transform = 'translateX(-100%)';
+        }
+        } else {
+        mobileBtn.style.display = 'none';
+        header.style.padding = '15px 30px';
+        infoText.style.display = 'block';
+        sidebar.style.position = 'sticky';
+        sidebar.style.transform = 'translateX(0)';
+        sidebar.setAttribute('data-open', 'false');
+        backdrop.style.display = 'none';
+        backdrop.style.opacity = '0';
+        }
+        }
+
+        // Mở menu trên mobile
+        mobileBtn.addEventListener('click', function() {
+        sidebar.style.position = 'fixed';
+        sidebar.style.transform = 'translateX(0)';
+        sidebar.setAttribute('data-open', 'true');
+        backdrop.style.display = 'block';
+        setTimeout(function() { backdrop.style.opacity = '1'; }, 10);
+        });
+
+        // Đóng menu khi bấm ra ngoài nền mờ
+        backdrop.addEventListener('click', function() {
+        sidebar.style.transform = 'translateX(-100%)';
+        sidebar.setAttribute('data-open', 'false');
+        backdrop.style.opacity = '0';
+        setTimeout(function() { backdrop.style.display = 'none'; }, 300);
+        });
+
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Khởi tạo lần đầu
+            
+        // Xử lý giao diện cho Select2
+        $(document).on('select2:open', function() {
+        setTimeout(function() {
+        $('.select2-container--default .select2-selection--single').css({
+        'height': '38px',
+        'border': '1px solid #dee2e6',
+        'display': 'flex',
+        'align-items': 'center'
+        });
+        }, 0);
+        });
+        });
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

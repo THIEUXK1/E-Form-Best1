@@ -1249,7 +1249,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                         form.TrangThai = "DaDuyet";
 
                         tieuDeLichSu = "Phê duyệt đơn SHD";
-                        moTaChiTiet = $"Người duyệt: {userName}. Bộ phận xử lý: {phongBanUser}.";
+                        moTaChiTiet = $"Người duyệt: {userName}({userEmail}). Bộ phận xử lý: {phongBanUser}.";
                     }
                     else if (request.Action == "Huy")
                     {
@@ -1266,7 +1266,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                             form.TenForm = "[ĐÃ HỦY] " + form.TenForm;
 
                         tieuDeLichSu = "Hủy đơn SHD";
-                        moTaChiTiet = $"Người hủy: {userName}. Lý do: {request.Reason}.";
+                        moTaChiTiet = $"Người hủy: {userName}({userEmail}). Lý do: {request.Reason}.";
                     }
                     else if (request.Action == "HoanTat")
                     {
@@ -1284,7 +1284,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                         form.TrangThai = "HoanTat";
 
                         tieuDeLichSu = "Hoàn tất đơn SHD";
-                        moTaChiTiet = $"Đơn đã được xử lý xong bởi: {userName}.";
+                        moTaChiTiet = $"Đơn đã được xử lý xong bởi: {userName}({userEmail}).";
                     }
 
                     _context.LichSuFormShds.Add(new LichSuFormShd

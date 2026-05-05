@@ -59,18 +59,126 @@
             background: #f8fafc;
             border-color: #cbd5e1;
         }
+
+    /* ==========================================
+           THÊM MỚI: CSS CHO MOBILE RESPONSIVE
+           ========================================== */
+    @@media (max-width: 768px) {
+        .mobile-header-container {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 15px;
+        }
+
+        .mobile-controls {
+            flex-direction: column !important;
+            width: 100% !important;
+            gap: 12px !important;
+        }
+
+        .mobile-controls-row {
+            width: 100% !important;
+            justify-content: space-between !important;
+        }
+
+        .mobile-search-wrapper {
+            width: 100% !important;
+        }
+
+        .mobile-search-input {
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        .mobile-btn-create {
+            width: 100% !important;
+            text-align: center !important;
+            padding: 14px !important;
+            font-size: 14px !important;
+            box-sizing: border-box !important;
+        }
+        /* Chuyển Bảng thành dạng Thẻ (Cards) */
+        #myTable thead {
+            display: none;
+        }
+
+        #myTable tbody tr {
+            display: block;
+            margin-bottom: 15px;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 12px;
+            padding: 10px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            background: #fff;
+        }
+
+        #myTable tbody td {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 5px !important;
+            text-align: right !important;
+            border-bottom: 1px dashed #e2e8f0 !important;
+        }
+
+            #myTable tbody td:last-child {
+                border-bottom: none !important;
+                justify-content: center !important;
+                padding-top: 15px !important;
+            }
+            /* Tạo Nhãn (Label) cho dạng Thẻ */
+            #myTable tbody td::before {
+                content: attr(data-label);
+                font-weight: 800;
+                color: #64748b;
+                text-transform: uppercase;
+                font-size: 11px;
+                margin-right: 15px;
+                text-align: left;
+                flex-shrink: 0;
+            }
+
+        .mobile-td-content {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            text-align: right;
+        }
+
+        .mobile-badges-wrapper {
+            justify-content: flex-end !important;
+        }
+
+        .mobile-progress {
+            margin: 8px 0 0 auto !important;
+        }
+        /* Phân trang */
+        .pagination-container {
+            flex-direction: column !important;
+            gap: 20px !important;
+            align-items: center !important;
+        }
+
+        .pagination-info {
+            text-align: center !important;
+        }
+
+        #paginationButtons {
+            justify-content: center !important;
+        }
+    }
 </style>
 
 <div style="max-width: 1400px; margin: 20px auto; padding: 0 15px; font-family: 'Inter', sans-serif;">
 
     @* --- HEADER --- *@
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+    <div class="mobile-header-container" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
         <h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #0f172a;">
             <i class="fa fa-history" style="color: #2563eb;"></i> LỊCH SỬ YÊU CẦU HR
         </h2>
-        <div style="display: flex; gap: 15px; align-items: center;">
+        <div class="mobile-controls" style="display: flex; gap: 15px; align-items: center;">
             @* Khối chọn dòng hiển thị mới *@
-            <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 8px 15px; border-radius: 10px; border: 1px solid #cbd5e1;">
+            <div class="mobile-controls-row" style="display: flex; align-items: center; gap: 10px; background: white; padding: 8px 15px; border-radius: 10px; border: 1px solid #cbd5e1;">
                 <span style="font-size: 12px; font-weight: 700; color: #64748b;">Hiển thị:</span>
                 <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: #2563eb; cursor: pointer; background: transparent; font-size: 14px;">
                     <option value="10">10</option>
@@ -80,13 +188,13 @@
                 </select>
             </div>
 
-            <div style="position: relative;">
+            <div class="mobile-search-wrapper" style="position: relative;">
                 <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b;"></i>
                 <input type="text" id="myInput" onkeyup="handleFilterAndPaginate()" placeholder="Tìm kiếm nội dung, mã đơn..."
-                       style="padding: 10px 15px 10px 35px; border-radius: 10px; border: 1px solid #cbd5e1; width: 250px; outline: none; font-weight: 600;">
+                       class="mobile-search-input" style="padding: 10px 15px 10px 35px; border-radius: 10px; border: 1px solid #cbd5e1; width: 250px; outline: none; font-weight: 600;">
             </div>
             
-            <a href="/FormHR/DangKy" style="padding: 10px 20px; background: #1e293b; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 13px; transition: 0.2s;" onmouseover="this.style.background='#000'" onmouseout="this.style.background='#1e293b'">
+            <a href="/FormHR/DangKy" class="mobile-btn-create" style="padding: 10px 20px; background: #1e293b; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 13px; transition: 0.2s;" onmouseover="this.style.background='#000'" onmouseout="this.style.background='#1e293b'">
                 <i class="fa fa-plus"></i> TẠO ĐƠN MỚI
             </a>
         </div>
@@ -149,9 +257,9 @@
     </div>
 
     @* --- PHẦN PHÂN TRANG --- *@
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 25px 0; margin-top: 10px;">
+    <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; padding: 25px 0; margin-top: 10px;">
         <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
-        <div style="text-align: right;">
+        <div class="pagination-info" style="text-align: right;">
             <div style="color: #64748b; font-size: 13px; font-weight: 700;">
                 Trang <span id="currentPageNum" style="color: #2563eb;">1</span> / <span id="totalPagesNum">1</span>
             </div>
@@ -248,7 +356,7 @@
         if (pageData.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;">
+                    <td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8; display: block; border: none;">
                         <i class="fa fa-folder-open-o" style="font-size: 40px; display: block; margin-bottom: 10px; opacity: 0.5;"></i>
                         Không tìm thấy yêu cầu nào phù hợp.
                     </td>
@@ -281,38 +389,44 @@
 
             html += `
                 <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
-                    <td style="padding: 15px; font-weight: 700; color: #2563eb;">#${item.id}</td>
-                    <td style="padding: 15px;">
-                        <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${item.tenForm}</div>
-                        <div style="font-size: 11px; color: #64748b; margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center;">
-                            ${badgesHtml}
+                    <td data-label="ID" style="padding: 15px; font-weight: 700; color: #2563eb;">#${item.id}</td>
+                    <td data-label="NỘI DUNG" style="padding: 15px;">
+                        <div class="mobile-td-content">
+                            <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${item.tenForm}</div>
+                            <div class="mobile-badges-wrapper" style="font-size: 11px; color: #64748b; margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center;">
+                                ${badgesHtml}
+                            </div>
                         </div>
                     </td>
-                    <td style="padding: 15px;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
+                    <td data-label="NGƯỜI HỖ TRỢ" style="padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-end;">
                             <div style="width: 24px; height: 24px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #475569;">
                                 ${avatarChar}
                             </div>
                             <span style="font-weight: 600; color: #334155;">${item.supportName}</span>
                         </div>
                     </td>
-                    <td style="padding: 15px;">
-                        <div style="font-weight: 600; font-size: 12px; color: #334155;">
-                            <i class="fa fa-calendar"></i> ${item.ngay}
-                        </div>
-                        <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
-                            <i class="fa fa-clock-o"></i> ${item.timeNguoiTao}
-                        </div>
-                    </td>
-                    <td style="padding: 15px; text-align: center;">
-                        <span class="status-badge" style="background: ${item.bgColor}; color: ${item.fgColor}; border-color: ${item.fgColor};">
-                            ${item.statusText}
-                        </span>
-                        <div style="width: 100px; height: 5px; background: #e2e8f0; border-radius: 10px; margin: 8px auto 0; overflow: hidden; border: 1px solid #f1f5f9;">
-                            <div style="width: ${item.progressWidth}; height: 100%; background: ${item.progressColor}; transition: 0.5s ease;"></div>
+                    <td data-label="THỜI GIAN" style="padding: 15px;">
+                        <div class="mobile-td-content">
+                            <div style="font-weight: 600; font-size: 12px; color: #334155;">
+                                <i class="fa fa-calendar"></i> ${item.ngay}
+                            </div>
+                            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
+                                <i class="fa fa-clock-o"></i> ${item.timeNguoiTao}
+                            </div>
                         </div>
                     </td>
-                    <td style="padding: 15px; text-align: center;">
+                    <td data-label="TRẠNG THÁI" style="padding: 15px; text-align: center;">
+                        <div class="mobile-td-content" style="width: 100%; align-items: flex-end;">
+                            <span class="status-badge" style="background: ${item.bgColor}; color: ${item.fgColor}; border-color: ${item.fgColor};">
+                                ${item.statusText}
+                            </span>
+                            <div class="mobile-progress" style="width: 100px; height: 5px; background: #e2e8f0; border-radius: 10px; margin: 8px auto 0; overflow: hidden; border: 1px solid #f1f5f9;">
+                                <div style="width: ${item.progressWidth}; height: 100%; background: ${item.progressColor}; transition: 0.5s ease;"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td data-label="XEM CHI TIẾT" style="padding: 15px; text-align: center;">
                         <a href="/FormHR/ChiTiet/${item.id}" title="Xem chi tiết đơn" style="color: #94a3b8; font-size: 18px; transition: 0.2s;" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#94a3b8'">
                             <i class="fa fa-arrow-circle-right"></i>
                         </a>

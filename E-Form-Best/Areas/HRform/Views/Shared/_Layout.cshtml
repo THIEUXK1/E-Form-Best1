@@ -128,6 +128,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            transition: all 0.3s ease;
         }
 
         header {
@@ -141,6 +142,7 @@
             top: 0;
             z-index: 990;
             border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            transition: all 0.3s ease;
         }
 
         .user-dropdown-item:hover { background-color: #f8fafc !important; color: #1e3a8a !important; }
@@ -211,6 +213,50 @@
         .goog-te-banner-frame { display: none !important; }
         body { top: 0px !important; }
         #goog-gt-tt { display: none !important; }
+
+        /* ==========================================
+           THÊM MỚI: CSS CHO MOBILE RESPONSIVE
+           (Dùng @@media để tránh lỗi Razor)
+           ========================================== */
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 995;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        @@media (max-width: 768px) {
+            #sidebar {
+                transform: translateX(-100%);
+            }
+            #sidebar.open {
+                transform: translateX(0);
+            }
+            .sidebar-backdrop.show {
+                display: block;
+                opacity: 1;
+            }
+            main {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+            header {
+                padding: 15px 20px !important;
+            }
+            #mobile-menu-btn {
+                display: block !important;
+            }
+            #notificationDropdown {
+                width: 300px !important;
+                right: -20px !important; /* Tránh tràn màn hình trên điện thoại */
+            }
+            .main-content-wrapper {
+                padding: 20px 15px !important; /* Giảm padding content trên đt */
+            }
+        }
     </style>
 </head>
 
@@ -218,6 +264,9 @@
 
     @if (!isLoginPage)
     {
+        <!-- Backdrop cho mobile -->
+        <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
         <aside id="sidebar">
             <a href="/" style="text-decoration:none; display:flex; align-items:center; gap:12px; margin-bottom:30px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);">
                 <div style="width:45px; height:45px; background:#fff; border-radius:12px; display:flex; justify-content:center; align-items:center; font-weight:900; font-size:1.2rem; color:#1a365d;">
@@ -373,8 +422,13 @@
 
         <main>
             <header>
-                <!-- Language Switcher (Left Side) - ĐÃ ĐỒNG BỘ VỚI GOOGLE TRANSLATE -->
-                <div style="position: relative;">
+                <!-- Language Switcher (Left Side) & Mobile Menu Toggle - ĐÃ ĐỒNG BỘ VỚI GOOGLE TRANSLATE -->
+                <div style="position: relative; display: flex; align-items: center; gap: 15px;">
+                    <!-- Nút mở Menu Mobile (Chỉ hiện trên điện thoại) -->
+                    <button id="mobile-menu-btn" style="display: none; background: none; border: none; font-size: 1.5rem; color: #1e293b; cursor: pointer; padding: 0;">
+                        <i class="fa fa-bars"></i>
+                    </button>
+
                     <button id="btnLanguage" class="lang-btn">
                         <i class="fa fa-globe" style="color: #2563eb;"></i>
                         <span id="currentLangText">Tiếng Việt</span>
@@ -426,7 +480,7 @@
                 </div>
             </header>
 
-            <div style="padding: 30px 40px; flex: 1;">
+            <div class="main-content-wrapper" style="padding: 30px 40px; flex: 1;">
                 <div style="background:#fff; border-radius:28px; box-shadow:0 15px 50px rgba(0,0,0,0.04); padding:35px; min-height:80vh; border:1px solid #f1f5f9;">
                     @RenderBody()
                 </div>
@@ -466,6 +520,26 @@
         // Start NProgress on page load
         NProgress.start();
         window.onload = function() { NProgress.done(); };
+
+        // ==========================================
+        // THÊM MỚI: XỬ LÝ GIAO DIỆN MENU MOBILE
+        // ==========================================
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+        if (mobileMenuBtn && sidebar && sidebarBackdrop) {
+            mobileMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                sidebar.classList.toggle('open');
+                sidebarBackdrop.classList.toggle('show');
+            });
+
+            sidebarBackdrop.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                sidebarBackdrop.classList.remove('show');
+            });
+        }
 
         // ==========================================
         // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE
