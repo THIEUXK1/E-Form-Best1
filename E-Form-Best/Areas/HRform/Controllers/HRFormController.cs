@@ -1524,6 +1524,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         chiTietNhaThau = $"- Nhà thầu: {chiTiet.TenNhaThau}\n" +
                                          $"- Số người: {chiTiet.SoNguoi}\n" +
                                          $"- Người đăng ký: {chiTiet.NguoiDangKy}\n" +
+                                         $"- Biển số xe: {(string.IsNullOrEmpty(chiTiet.BienSoXe) ? "Không có" : chiTiet.BienSoXe)}\n" + // <-- ĐÃ THÊM BIỂN SỐ XE
                                          $"- Mục đích: {chiTiet.MucDichCongViec}";
                     }
 
