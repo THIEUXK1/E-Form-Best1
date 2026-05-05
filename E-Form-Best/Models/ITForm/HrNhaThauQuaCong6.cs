@@ -30,6 +30,9 @@ public partial class HrNhaThauQuaCong6
 
     public string? MucDichCongViec { get; set; }
 
+    [StringLength(50)]
+    public string? BienSoXe { get; set; }
+
     [ForeignKey("IdFormHr")]
     [InverseProperty("HrNhaThauQuaCong6s")]
     public virtual FormHr? IdFormHrNavigation { get; set; }

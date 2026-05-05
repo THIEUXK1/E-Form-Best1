@@ -5,14 +5,12 @@
     ViewData["Title"] = "Đăng ký hỗ trợ tiền điện thoại";
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 
-    // --- LẤY THÔNG TIN TỪ CLAIMS ---
     var tenNguoiNv = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
     var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
-    // Styles nội bộ (Đồng nhất tone Xanh Dương Chuyên nghiệp)
     string inputStyle = "width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #bfdbfe; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: #1e3a8a;";
     string labelStyle = "font-weight: 700; color: #1e40af; font-size: 11px; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px;";
     string pasteZoneStyle = "width: 100%; border: 2px dotted #93c5fd; height: 180px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #f0f7ff; color: #2563eb; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 600; transition: 0.3s; margin-top: 10px; position: relative; outline: none;";
@@ -25,7 +23,6 @@
 
         @Html.AntiForgeryToken()
 
-        @* --- HEADER --- *@
         <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 40px; color: #ffffff; text-align: center; position: relative;">
             <div style="position: absolute; top: 15px; right: 25px; font-size: 11px; opacity: 0.9; font-weight: 500; letter-spacing: 1px;">E-FORM SYSTEM V3.0</div>
             <h2 style="margin: 0; font-size: 24px; text-transform: uppercase; font-weight: 900; letter-spacing: 1.5px;">Đăng ký hỗ trợ tiền điện thoại</h2>
@@ -75,15 +72,10 @@
                     Nội dung đề nghị
                 </h3>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                    <div>
-                        <label style="@labelStyle">Số điện thoại nhận hỗ trợ <span style="color:#ef4444">*</span></label>
-                        <input name="SoDienThoai" placeholder="09xxx..." required style="@inputStyle; border-color: #3b82f6;">
-                    </div>
-                    <div>
-                        <label style="@labelStyle">Mức hỗ trợ đề xuất (VNĐ) <span style="color:#ef4444">*</span></label>
-                        <input type="number" name="MucHoTro" placeholder="Nhập số tiền..." required style="@inputStyle; border-color: #3b82f6;">
-                    </div>
+                @* Bỏ số điện thoại, đẩy mức hỗ trợ rộng ra *@
+                <div style="margin-bottom: 20px;">
+                    <label style="@labelStyle">Mức hỗ trợ đề xuất (VNĐ) <span style="color:#ef4444">*</span></label>
+                    <input type="number" name="MucHoTro" placeholder="Nhập số tiền hỗ trợ..." required style="@inputStyle; border-color: #3b82f6;">
                 </div>
 
                 <div style="margin-bottom: 20px;">
@@ -127,9 +119,7 @@
                                        onmouseover="this.style.borderColor='#3b82f6'; this.style.background='#eff6ff'; this.style.transform='translateY(-2px)';"
                                        onmouseout="this.style.borderColor='#dbeafe'; this.style.background='#fcfdfe'; this.style.transform='translateY(0)';"
                                        title="Phụ trách bởi: @item.Ten">
-                                    
                                     <input type="checkbox" name="SelectedCongViecIds" value="@cv.Id" style="width: 20px; height: 20px; accent-color: #2563eb;">
-                                    
                                     <div style="flex: 1;">
                                         <div style="font-weight: 700; color: #1e40af; font-size: 14px; display: flex; align-items: center; gap: 8px;">
                                             <span style="font-size: 16px;">📱</span> @cv.Ten
@@ -141,10 +131,6 @@
                                 </label>
                             }
                         }
-                    }
-                    else
-                    {
-                        <p style="font-size: 12px; color: #1d4ed8; font-style: italic; grid-column: 1/-1;">Đang tải danh sách nhân sự hỗ trợ...</p>
                     }
                 </div>
             </div>
@@ -159,7 +145,6 @@
                 </label>
             </div>
 
-            @* --- NÚT GỬI --- *@
             <div style="text-align: center;">
                 <button type="button" onclick="xuLyLuuDon()"
                         style="width: 100%; padding: 18px; background: linear-gradient(to right, #3b82f6, #2563eb); color: #fff; border: none; border-radius: 15px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3); text-transform: uppercase; letter-spacing: 1px;">
@@ -204,18 +189,13 @@
         zoneEl.onclick = () => zoneEl.focus();
     }
 
-    // Kiểm tra dữ liệu trước khi gửi
+    // Kiểm tra dữ liệu (Đã bỏ kiểm tra số điện thoại)
     function xuLyLuuDon() {
-        const sdt = document.querySelector('input[name="SoDienThoai"]').value.trim();
         const mucHoTro = document.querySelector('input[name="MucHoTro"]').value;
         const mucDich = document.querySelector('textarea[name="MucDich"]').value.trim();
         const selectedHoTro = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
         const chk = document.getElementById('chkCamKet');
 
-        if (sdt.length < 10) {
-            alert("⚠️ Vui lòng nhập số điện thoại nhận hỗ trợ hợp lệ!");
-            return;
-        }
         if (!mucHoTro || mucHoTro <= 0) {
             alert("⚠️ Vui lòng nhập mức hỗ trợ đề xuất!");
             return;

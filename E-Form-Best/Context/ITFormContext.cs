@@ -22,11 +22,15 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<BinhLuanFormIt> BinhLuanFormIts { get; set; }
 
+    public virtual DbSet<BinhLuanFormShd> BinhLuanFormShds { get; set; }
+
     public virtual DbSet<BoPhan> BoPhans { get; set; }
 
     public virtual DbSet<CongViecHr> CongViecHrs { get; set; }
 
     public virtual DbSet<CongViecIt> CongViecIts { get; set; }
+
+    public virtual DbSet<CongViecShd> CongViecShds { get; set; }
 
     public virtual DbSet<DanhGiaFormIt> DanhGiaFormIts { get; set; }
 
@@ -45,6 +49,8 @@ public partial class ITFormContext : DbContext
     public virtual DbSet<FormHr> FormHrs { get; set; }
 
     public virtual DbSet<FormIt> FormIts { get; set; }
+
+    public virtual DbSet<FormShd> FormShds { get; set; }
 
     public virtual DbSet<HrBaoVeXacNhan> HrBaoVeXacNhans { get; set; }
 
@@ -94,11 +100,25 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<LichSuFormIt> LichSuFormIts { get; set; }
 
+    public virtual DbSet<LichSuFormShd> LichSuFormShds { get; set; }
+
     public virtual DbSet<LichSuTruyCap> LichSuTruyCaps { get; set; }
 
     public virtual DbSet<PhongHopHr> PhongHopHrs { get; set; }
 
     public virtual DbSet<Quyen> Quyens { get; set; }
+
+    public virtual DbSet<ShdCtNguoiHoTro> ShdCtNguoiHoTros { get; set; }
+
+    public virtual DbSet<ShdDangKySuDungXeCongTac1> ShdDangKySuDungXeCongTac1s { get; set; }
+
+    public virtual DbSet<ShdDangKySuDungXeDaily2> ShdDangKySuDungXeDaily2s { get; set; }
+
+    public virtual DbSet<ShdNguoiHoTro> ShdNguoiHoTros { get; set; }
+
+    public virtual DbSet<ShdNguoiXacNhan> ShdNguoiXacNhans { get; set; }
+
+    public virtual DbSet<ShdQuanLyDuyetB2> ShdQuanLyDuyetB2s { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
@@ -136,6 +156,13 @@ public partial class ITFormContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__BinhLuan__3213E83F980A0B9F");
 
             entity.HasOne(d => d.IdFormNavigation).WithMany(p => p.BinhLuanFormIts).HasConstraintName("FK_BinhLuan_Form");
+        });
+
+        modelBuilder.Entity<BinhLuanFormShd>(entity =>
+        {
+            entity.HasOne(d => d.IdFormShdNavigation).WithMany(p => p.BinhLuanFormShds)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_BinhLuan_FormSHD");
         });
 
         modelBuilder.Entity<BoPhan>(entity =>
@@ -427,6 +454,13 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.LichSuFormIts).HasConstraintName("FK_LichSu_FormIT");
         });
 
+        modelBuilder.Entity<LichSuFormShd>(entity =>
+        {
+            entity.HasOne(d => d.IdFormShdNavigation).WithMany(p => p.LichSuFormShds)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_LichSuFormSHD_FormSHD");
+        });
+
         modelBuilder.Entity<LichSuTruyCap>(entity =>
         {
             entity.HasKey(e => e.IdLichSu).HasName("PK__LichSuTr__016DB95DC467B7FB");
@@ -446,6 +480,47 @@ public partial class ITFormContext : DbContext
         modelBuilder.Entity<Quyen>(entity =>
         {
             entity.HasKey(e => e.IdQuyen).HasName("PK__Quyen__AE8CD30F6693B373");
+        });
+
+        modelBuilder.Entity<ShdCtNguoiHoTro>(entity =>
+        {
+            entity.HasOne(d => d.IdFormShdNavigation).WithMany(p => p.ShdCtNguoiHoTros)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_SHD_CT_NguoiHoTro_FormSHD");
+
+            entity.HasOne(d => d.IdShdNguoiHoTroNavigation).WithMany(p => p.ShdCtNguoiHoTros).HasConstraintName("FK_SHD_CT_NguoiHoTro_NguoiHoTro");
+        });
+
+        modelBuilder.Entity<ShdDangKySuDungXeCongTac1>(entity =>
+        {
+            entity.HasOne(d => d.IdFormShdNavigation).WithMany(p => p.ShdDangKySuDungXeCongTac1s)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_XeCongTac_FormSHD");
+        });
+
+        modelBuilder.Entity<ShdDangKySuDungXeDaily2>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK_SHD_DangKySuDungXeDaily_1");
+
+            entity.HasOne(d => d.IdFormShdNavigation).WithMany(p => p.ShdDangKySuDungXeDaily2s)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_XeDaily_FormSHD");
+        });
+
+        modelBuilder.Entity<ShdNguoiXacNhan>(entity =>
+        {
+            entity.HasOne(d => d.IdFormShdNavigation).WithMany(p => p.ShdNguoiXacNhans)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_SHD_NguoiXacNhan_FormSHD");
+
+            entity.HasOne(d => d.IdnguoiXacNhanNavigation).WithMany(p => p.ShdNguoiXacNhans).HasConstraintName("FK_SHD_NguoiXacNhan_DM_NguoiXacNhan");
+        });
+
+        modelBuilder.Entity<ShdQuanLyDuyetB2>(entity =>
+        {
+            entity.HasOne(d => d.IdFormShdNavigation).WithMany(p => p.ShdQuanLyDuyetB2s)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_SHD_QuanLyDuyetB2_FormSHD");
         });
 
         modelBuilder.Entity<User>(entity =>

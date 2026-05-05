@@ -629,6 +629,144 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
 
         #endregion
 
+        #region QUẢN LÝ NGƯỜI HỖ TRỢ VÀ CÔNG VIỆC SHD
+
+        // GET: /QLtaiKhoan/NguoiHoTroSHD
+        [HttpGet("/QLtaiKhoan/NguoiHoTroSHD")]
+        public IActionResult NguoiHoTroSHD()
+        {
+            if (!IsLoggedIn()) return Redirect("/QL");
+            return View();
+        }
+
+        // --- PHẦN: NGƯỜI HỖ TRỢ SHD (ShdNguoiHoTro) ---
+
+        [HttpGet("/QLtaiKhoan/GetAllNguoiHoTroSHD")]
+        public IActionResult GetAllNguoiHoTroSHD()
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            return Json(_context.ShdNguoiHoTros.OrderByDescending(x => x.Id).ToList());
+        }
+
+        [HttpPost("/QLtaiKhoan/AddNguoiHoTroSHD")]
+        public async Task<IActionResult> AddNguoiHoTroSHD(ShdNguoiHoTro model)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            if (string.IsNullOrEmpty(model.MaNv)) return BadRequest("Vui lòng nhập Mã nhân viên");
+
+            _context.ShdNguoiHoTros.Add(model);
+            await _context.SaveChangesAsync();
+            return Ok(model);
+        }
+
+        [HttpPost("/QLtaiKhoan/UpdateNguoiHoTroSHD")]
+        public async Task<IActionResult> UpdateNguoiHoTroSHD(ShdNguoiHoTro model)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+
+            var nht = await _context.ShdNguoiHoTros.FindAsync(model.Id);
+            if (nht == null) return NotFound();
+
+            nht.MaNv = model.MaNv;
+            nht.Ten = model.Ten;
+            nht.BoPhan = model.BoPhan;
+            nht.GhiChu = model.GhiChu;
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpPost("/QLtaiKhoan/DeleteNguoiHoTroSHD")]
+        public async Task<IActionResult> DeleteNguoiHoTroSHD(int id)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+
+            var nht = await _context.ShdNguoiHoTros.FindAsync(id);
+            if (nht == null) return NotFound();
+
+            _context.ShdNguoiHoTros.Remove(nht);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        // --- PHẦN: CÔNG VIỆC SHD (CongViecShd) ---
+
+        [HttpGet("/QLtaiKhoan/GetAllCongViecSHD")]
+        public IActionResult GetAllCongViecSHD()
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+
+            var data = _context.CongViecShds
+                .OrderByDescending(x => x.Id)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.Ten,
+                    x.TrangThai,
+                    x.IdShdNguoiHoTro,
+                    // Lấy tên người hỗ trợ từ navigation property
+                    TenNguoiHoTroSHD = _context.ShdNguoiHoTros.Where(h => h.Id == x.IdShdNguoiHoTro).Select(h => h.Ten).FirstOrDefault() ?? "Chưa phân công"
+                }).ToList();
+
+            return Json(data);
+        }
+
+        [HttpPost("/QLtaiKhoan/AddCongViecSHD")]
+        public async Task<IActionResult> AddCongViecSHD(CongViecShd model)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+            if (string.IsNullOrEmpty(model.Ten)) return BadRequest("Vui lòng nhập tên công việc");
+
+            model.TrangThai = "Hiển thị";
+            _context.CongViecShds.Add(model);
+            await _context.SaveChangesAsync();
+            return Ok(model);
+        }
+
+        [HttpPost("/QLtaiKhoan/UpdateCongViecSHD")]
+        public async Task<IActionResult> UpdateCongViecSHD(CongViecShd model)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+
+            var cv = await _context.CongViecShds.FindAsync(model.Id);
+            if (cv == null) return NotFound();
+
+            cv.Ten = model.Ten;
+            cv.IdShdNguoiHoTro = model.IdShdNguoiHoTro;
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpPost("/QLtaiKhoan/UpdateStatusCVSHD")]
+        public async Task<IActionResult> UpdateStatusCVSHD(int id)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+
+            var cv = await _context.CongViecShds.FindAsync(id);
+            if (cv == null) return Json(new { success = false });
+
+            cv.TrangThai = (cv.TrangThai == "Hiển thị") ? "Ẩn" : "Hiển thị";
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true });
+        }
+
+        [HttpPost("/QLtaiKhoan/DeleteCongViecSHD")]
+        public async Task<IActionResult> DeleteCongViecSHD(int id)
+        {
+            if (!IsLoggedIn()) return Unauthorized();
+
+            var cv = await _context.CongViecShds.FindAsync(id);
+            if (cv == null) return NotFound();
+
+            _context.CongViecShds.Remove(cv);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        #endregion
+
         #region Quản lý Giám đốc - Loại Đơn & Người Xác Nhận
 
         [HttpGet("/QLtaiKhoan/QLGiamDoc")]

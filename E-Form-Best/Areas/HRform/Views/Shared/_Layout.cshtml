@@ -13,10 +13,6 @@
     var currentUserRole = User.FindFirst("UserRole")?.Value ?? (User.FindFirst(ClaimTypes.Role)?.Value ?? "Guest");
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
 
-    // Lấy thông tin ngôn ngữ hiện tại từ Cookie hệ thống
-    var requestCulture = Context.Features.Get<IRequestCultureFeature>();
-    var cultureCode = requestCulture?.RequestCulture.Culture.Name ?? "vi-VN";
-
     // Danh sách các Action thuộc menu Đăng ký
     string[] subPages = {
         "DonXinRaNgoai", "MangHangHoaRaCong", "DangKySuDungXeCongTac",
@@ -30,14 +26,14 @@
 }
 
 <!DOCTYPE html>
-<html lang="@cultureCode">
+<html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] - HR E-Form</title>
 
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👥</text></svg>">
-
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤝</text></svg>">
+    
     <!-- Core Libraries -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -209,6 +205,12 @@
 
         /* NProgress customization */
         #nprogress .bar { background: #2563eb !important; height: 3px !important; }
+
+        /* --- CSS ẨN WIDGET GOOGLE TRANSLATE MẶC ĐỊNH --- */
+        .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
+        .goog-te-banner-frame { display: none !important; }
+        body { top: 0px !important; }
+        #goog-gt-tt { display: none !important; }
     </style>
 </head>
 
@@ -223,112 +225,110 @@
                 </div>
                 <div style="display:flex; flex-direction:column;">
                     <span style="font-size:1.2rem; font-weight:800; letter-spacing:1px; color:#fff; line-height:1;">E-FORM</span>
-                    <span class="lang-text" data-key="digital_portal" style="font-size:0.65rem; color:rgba(255,255,255,0.5); text-transform:uppercase; margin-top:4px; font-weight:700;">Digital Portal</span>
+                    <span style="font-size:0.65rem; color:rgba(255,255,255,0.5); text-transform:uppercase; margin-top:4px; font-weight:700;">Digital Portal</span>
                 </div>
             </a>
 
             <nav id="main-sidebar-nav" style="flex:1; overflow-y:auto; padding-right:5px; display:flex; flex-direction:column; gap:2px;">
 
-                <div class="lang-text" data-key="personal_reg" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 800;">Cá nhân & Đăng ký</div>
+                <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 800;">Cá nhân & Đăng ký</div>
 
                 <div id="btnRegistrationMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-radius: 12px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isSubPageActive ? "rgba(255,255,255,0.1)" : "transparent")">
                     <span style="display:flex; align-items:center;">
-                        <i class="fa fa-pencil-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i> <span class="lang-text" data-key="reg_form">Đăng ký mẫu đơn</span>
+                        <i class="fa fa-pencil-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i> <span>Đăng ký mẫu đơn</span>
                     </span>
                     <i class="fa fa-angle-down" id="regArrow" style="transition: 0.3s; transform: @(isSubPageActive ? "rotate(180deg)" : "rotate(0deg)")"></i>
                 </div>
 
                 <div id="registrationSubmenu" style="display: @(isSubPageActive ? "flex" : "none"); flex-direction: column; background: rgba(0, 0, 0, 0.1); border-radius: 12px; margin: 5px 0 10px 0; padding: 5px 0;">
                     <a href="/FormHR/DonXinRaNgoai" class="@(currentAction == "DonXinRaNgoai" ? "active" : "")">
-                        <i class="fa fa-external-link" style="position:absolute; left:20px; color: #ff4d4d;"></i> <span class="lang-text" data-key="out_form">Đơn xin ra ngoài</span>
+                        <i class="fa fa-external-link" style="position:absolute; left:20px; color: #ff4d4d;"></i> <span>Đơn xin ra ngoài</span>
                     </a>
                     <a href="/FormHR/MangHangHoaRaCong" class="@(currentAction == "MangHangHoaRaCong" ? "active" : "")">
-                        <i class="fa fa-archive" style="position:absolute; left:20px; color:#48bb78;"></i> <span class="lang-text" data-key="goods_form">Mang hàng hóa ra cổng</span>
-                    </a>
-                    <a href="/FormHR/DangKySuDungXeCongTac" class="@(currentAction == "DangKySuDungXeCongTac" ? "active" : "")">
-                        <i class="fa fa-car" style="position:absolute; left:20px; color:#3182ce;"></i> <span class="lang-text" data-key="car_biz">Đăng ký xe công tác</span>
+                        <i class="fa fa-archive" style="position:absolute; left:20px; color:#48bb78;"></i> <span>Mang hàng hóa ra cổng</span>
                     </a>
                     <a href="/FormHR/DangKySuDungXeDaily" class="@(currentAction == "DangKySuDungXeDaily" ? "active" : "")">
-                        <i class="fa fa-bus" style="position:absolute; left:20px; color:#ed8936;"></i> <span class="lang-text" data-key="car_daily">Đăng ký xe Daily</span>
+                        <i class="fa fa-bus" style="position:absolute; left:20px; color:#ed8936;"></i> <span>Đăng ký xe Daily</span>
                     </a>
                     <a href="/FormHR/DonTiepKhac" class="@(currentAction == "DonTiepKhac" ? "active" : "")">
-                        <i class="fa fa-handshake-o" style="position:absolute; left:20px; color:#f472b6;"></i> <span class="lang-text" data-key="guest_form">Đơn tiếp khách / Khác</span>
+                        <i class="fa fa-handshake-o" style="position:absolute; left:20px; color:#f472b6;"></i> <span>Đơn tiếp khách / Khác</span>
                     </a>
                     <a href="/FormHR/NhaThauQuaCong" class="@(currentAction == "NhaThauQuaCong" ? "active" : "")">
-                        <i class="fa fa-id-badge" style="position:absolute; left:20px; color:#2dd4bf;"></i> <span class="lang-text" data-key="contractor_form">Nhà thầu qua cổng</span>
+                        <i class="fa fa-id-badge" style="position:absolute; left:20px; color:#2dd4bf;"></i> <span>Nhà thầu qua cổng</span>
                     </a>
                     <a href="/FormHR/HoTroTienDienThoai" class="@(currentAction == "HoTroTienDienThoai" ? "active" : "")">
-                        <i class="fa fa-phone" style="position:absolute; left:20px; color:#3b82f6;"></i> <span class="lang-text" data-key="phone_form">Hỗ trợ tiền điện thoại</span>
-                    </a>
-                    <a href="/FormHR/DoiCaLam" class="@(currentAction == "DoiCaLam" ? "active" : "")">
-                        <i class="fa fa-calendar-check-o" style="position:absolute; left:20px; color:#f59e0b;"></i> <span class="lang-text" data-key="shift_form">Đổi ca làm việc</span>
+                        <i class="fa fa-phone" style="position:absolute; left:20px; color:#3b82f6;"></i> <span>Hỗ trợ tiền điện thoại</span>
                     </a>
                     <a href="/FormHR/DonHoTroCongTac" class="@(currentAction == "DonHoTroCongTac" ? "active" : "")">
-                        <i class="fa fa-briefcase" style="position:absolute; left:20px; color:#a855f7;"></i> <span class="lang-text" data-key="biz_support">Đơn hỗ trợ công tác</span>
+                        <i class="fa fa-briefcase" style="position:absolute; left:20px; color:#a855f7;"></i> <span>Đơn hỗ trợ công tác</span>
                     </a>
                 </div>
 
                 <a href="/FormHR/DonCho" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
-                    <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text" data-key="my_forms">Đơn của tôi</span>
+                    <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span>Đơn của tôi</span>
                 </a>
 
                 <a href="/FormHR/LichSuHR" class="nav-link-item @(currentAction == "LichSuHR" ? "active" : "")">
-                    <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text" data-key="sys_logs">Nhật ký hệ thống</span>
+                    <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span>Nhật ký hệ thống</span>
                 </a>
 
                 @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonHR") || User.IsInRole("All")))
                 {
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
-                    <div class="lang-text" data-key="approval_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Phê duyệt</div>
+                    <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Phê duyệt</div>
 
                     <a href="/FormHR/QuanLyXetDuyet" class="nav-link-item @(currentAction == "QuanLyXetDuyet" ? "active" : "")">
-                        <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> <span class="lang-text" data-key="manage_appr">Quản lý xét duyệt</span>
+                        <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> <span>Quản lý xét duyệt</span>
                     </a>
                 }
 
                 @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonHR_B2") || User.IsInRole("All")))
                 {
+
+                      <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
+                    <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Phê duyệt B2</div>
+
                     <a href="/FormHR/QuanLyXetDuyetB2" class="nav-link-item @(currentAction == "QuanLyXetDuyetB2" ? "active" : "")">
-                        <i class="fa fa-users" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#63b3ed;"></i> <span class="lang-text" data-key="manage_appr_b2">Quản lý xét duyệt B2</span>
+                        <i class="fa fa-users" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#63b3ed;"></i> <span>Quản lý xét duyệt B2</span>
                     </a>
                 }
 
                 @if (User.Identity.IsAuthenticated && (User.IsInRole("GiamDocHR") || User.IsInRole("All")))
                 {
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
-                    <div class="lang-text" data-key="bod_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Ban Điều Hành</div>
+                    <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Ban Điều Hành</div>
 
                     <a href="/FormHR/PheDuyetCapCao" class="nav-link-item @(currentAction == "PheDuyetCapCao" ? "active" : "")">
-                        <i class="fa fa-diamond" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#fbbf24;"></i> <span class="lang-text" data-key="high_appr">Phê duyệt cấp cao</span>
+                        <i class="fa fa-diamond" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#fbbf24;"></i> <span>Phê duyệt cấp cao</span>
                     </a>
                 }
 
                 @if (User.Identity.IsAuthenticated && (User.IsInRole("AdminHR") || User.IsInRole("All")))
                 {
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
-                    <div class="lang-text" data-key="admin_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Quản trị HR</div>
+                    <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Quản trị HR</div>
 
                     <a href="/FormHR/QuanLyPhongHop" class="nav-link-item @(currentAction == "QuanLyPhongHop" ? "active" : "")">
-                        <i class="fa fa-calendar-check-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f59e0b;"></i> <span class="lang-text" data-key="meeting_room">Quản lý phòng họp</span>
+                        <i class="fa fa-calendar-check-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f59e0b;"></i> <span>Quản lý phòng họp</span>
                     </a>
                     <a href="/FormHR/HoanTatDon" class="nav-link-item @(currentAction == "HoanTatDon" ? "active" : "")">
-                        <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text" data-key="archive_form">Lưu trữ đơn</span>
+                        <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span>Lưu trữ đơn</span>
                     </a>
                     <a href="/FormHR/XuatBaoCao" class="nav-link-item @(currentAction == "XuatBaoCao" ? "active" : "")">
-                        <i class="fa fa-database" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text" data-key="all_forms">Kho đơn tổng hợp</span>
+                        <i class="fa fa-database" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span>Kho đơn tổng hợp</span>
                     </a>
                     <a href="/FormHR/BaoCaoThongKe" class="nav-link-item @(currentAction == "BaoCaoThongKe" ? "active" : "")">
-                        <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> <span class="lang-text" data-key="statistics">Thống kê báo cáo</span>
+                        <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> <span>Thống kê báo cáo</span>
                     </a>
                 }
 
                 @if (User.Identity.IsAuthenticated && (User.IsInRole("GiamDocHR") || User.IsInRole("All") || User.IsInRole("BaoVeHR") || User.IsInRole("AdminHR") || User.IsInRole("QuanLyDuyetDonHR_B2")))
                 {
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:20px 10px;"></div>
-                    <div class="lang-text" data-key="security_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.8px; margin: 0 0 12px 15px; font-weight: 800;">AN NINH & CỔNG</div>
+                    <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.8px; margin: 0 0 12px 15px; font-weight: 800;">AN NINH & CỔNG</div>
 
                     <a href="/FormHR/BaoVePheDuyet" class="nav-link-item @(currentAction.Contains("BaoVe") ? "active" : "")">
-                        <i class="fa fa-shield" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#63b3ed;"></i> <span class="lang-text" data-key="entry_control">Kiểm soát ra vào</span>
+                        <i class="fa fa-shield" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#63b3ed;"></i> <span>Kiểm soát ra vào</span>
                     </a>
                 }
             </nav>
@@ -349,10 +349,10 @@
 
                     <div id="userDropdown" style="position:absolute; bottom:85px; left:0; right:0; background:#fff; border-radius:16px; box-shadow:0 -10px 25px rgba(0,0,0,0.2); display:none; flex-direction:column; overflow:hidden; border: 1px solid #e2e8f0; z-index: 1001;">
                         <a href="/ThongTinTaiKhoan" target="_blank" class="user-dropdown-item" style="padding:12px 20px; color:#334155; text-decoration:none; font-size:0.9rem; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; font-weight: 600;">
-                            <i class="fa fa-user-circle-o" style="margin-right:12px; color:#64748b;"></i> <span class="lang-text" data-key="profile">Hồ sơ cá nhân</span>
+                            <i class="fa fa-user-circle-o" style="margin-right:12px; color:#64748b;"></i> <span>Hồ sơ cá nhân</span>
                         </a>
                         <a href="/DonXetDuyet/DangXuat" class="user-dropdown-item" style="padding:12px 20px; color:#ef4444; text-decoration:none; font-size:0.9rem; font-weight:700; display:flex; align-items:center;">
-                            <i class="fa fa-sign-out" style="margin-right:12px;"></i> <span class="lang-text" data-key="logout">Đăng xuất</span>
+                            <i class="fa fa-sign-out" style="margin-right:12px;"></i> <span>Đăng xuất</span>
                         </a>
                     </div>
                 }
@@ -363,8 +363,8 @@
                             <i class="fa fa-sign-in" style="color: #fff;"></i>
                         </div>
                         <div style="flex:1;">
-                            <div class="lang-text" data-key="login" style="font-weight:700; font-size:0.9rem; color: #fff;">Đăng nhập</div>
-                            <div class="lang-text" data-key="access_sys" style="font-size:0.7rem; color:rgba(255,255,255,0.4);">Truy cập hệ thống</div>
+                            <div style="font-weight:700; font-size:0.9rem; color: #fff;">Đăng nhập</div>
+                            <div style="font-size:0.7rem; color:rgba(255,255,255,0.4);">Truy cập hệ thống</div>
                         </div>
                     </a>
                 }
@@ -373,7 +373,7 @@
 
         <main>
             <header>
-                <!-- Language Switcher (Left Side) -->
+                <!-- Language Switcher (Left Side) - ĐÃ ĐỒNG BỘ VỚI GOOGLE TRANSLATE -->
                 <div style="position: relative;">
                     <button id="btnLanguage" class="lang-btn">
                         <i class="fa fa-globe" style="color: #2563eb;"></i>
@@ -381,16 +381,19 @@
                         <i class="fa fa-angle-down" style="font-size: 0.8rem; color: #94a3b8;"></i>
                     </button>
                     <div id="langDropdown">
-                        <a href="javascript:void(0)" onclick="handleLangChange('vi-VN', 'Tiếng Việt')" class="lang-item" id="lang-vi-VN">
+                        <a href="javascript:void(0)" onclick="changeLanguageGTranslate('vi', 'Tiếng Việt')" class="lang-item" id="lang-vi">
                             <span>Tiếng Việt</span> <i class="fa fa-check"></i>
                         </a>
-                        <a href="javascript:void(0)" onclick="handleLangChange('en-US', 'English')" class="lang-item" id="lang-en-US">
+                        <a href="javascript:void(0)" onclick="changeLanguageGTranslate('en', 'English')" class="lang-item" id="lang-en">
                             <span>English</span> <i class="fa fa-check" style="display:none;"></i>
                         </a>
-                        <a href="javascript:void(0)" onclick="handleLangChange('zh-CN', '中文')" class="lang-item" id="lang-zh-CN">
+                        <a href="javascript:void(0)" onclick="changeLanguageGTranslate('zh-CN', '中文')" class="lang-item" id="lang-zh-CN">
                             <span>中文</span> <i class="fa fa-check" style="display:none;"></i>
                         </a>
                     </div>
+                    
+                    <!-- Div ảo chứa widget Google Translate -->
+                    <div id="google_translate_element" style="display:none;"></div>
                 </div>
 
                 <!-- Notifications (Right Side) -->
@@ -398,7 +401,7 @@
                     <div id="latestNotiTag" style="display: none; position: absolute; right: 65px; white-space: nowrap; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 12px 20px; border-radius: 14px; font-size: 0.85rem; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 1001; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.1);">
                         <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981;"></div>
                         <div style="display: flex; flex-direction: column; line-height: 1.3;">
-                            <span class="lang-text" data-key="new_noti" style="font-size: 0.65rem; text-transform: uppercase; font-weight: 800; color: #94a3b8;">Thông báo mới</span>
+                            <span style="font-size: 0.65rem; text-transform: uppercase; font-weight: 800; color: #94a3b8;">Thông báo mới</span>
                             <span id="latestNotiText" style="font-weight: 600;">Bạn có tin nhắn mới!</span>
                         </div>
                         <i class="fa fa-times" onclick="this.parentElement.style.display='none'" style="cursor: pointer; margin-left: 10px; color: #64748b;"></i>
@@ -411,13 +414,13 @@
 
                     <div id="notificationDropdown" style="display: none; flex-direction: column; width: 380px; position: absolute; right: 0; top: 55px; background: white; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); overflow: hidden; z-index: 1000; border: 1px solid #e2e8f0;">
                         <div style="padding: 18px 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
-                            <span class="lang-text" data-key="notifications" style="font-weight: 800; color: #1e293b; font-size: 1.1rem;">Thông báo</span>
-                            <button class="lang-text" data-key="read_all" onclick="markAllAsRead(event)" style="background: #eff6ff; border: none; color: #2563eb; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 14px; border-radius: 8px;">Đọc tất cả</button>
+                            <span style="font-weight: 800; color: #1e293b; font-size: 1.1rem;">Thông báo</span>
+                            <button onclick="markAllAsRead(event)" style="background: #eff6ff; border: none; color: #2563eb; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 14px; border-radius: 8px;">Đọc tất cả</button>
                         </div>
                         <div id="notiList" style="max-height: 480px; overflow-y: auto;">
                         </div>
                         <div style="padding: 15px; text-align: center; background: #f8fafc; border-top: 1px solid #f1f5f9;">
-                            <a class="lang-text" data-key="view_logs" href="/FormHR/LichSuHR" style="text-decoration: none; color: #64748b; font-size: 0.8rem; font-weight: 600;">Xem nhật ký hệ thống</a>
+                            <a href="/FormHR/LichSuHR" style="text-decoration: none; color: #64748b; font-size: 0.8rem; font-weight: 600;">Xem nhật ký hệ thống</a>
                         </div>
                     </div>
                 </div>
@@ -451,56 +454,22 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
 
+    <!-- SCRIPT GOOGLE TRANSLATE -->
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({ pageLanguage: 'vi', autoDisplay: false }, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
     <script>
         // Start NProgress on page load
         NProgress.start();
         window.onload = function() { NProgress.done(); };
 
         // ==========================================
-        // 0. HỆ THỐNG ĐA NGÔN NGỮ (CLIENT-SIDE DICTIONARY)
+        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE
         // ==========================================
-        const translations = {
-            'vi-VN': {
-                'digital_portal': 'Digital Portal', 'personal_reg': 'Cá nhân & Đăng ký', 'reg_form': 'Đăng ký mẫu đơn', 'out_form': 'Đơn xin ra ngoài',
-                'goods_form': 'Mang hàng hóa ra cổng', 'car_biz': 'Đăng ký xe công tác', 'car_daily': 'Đăng ký xe Daily',
-                'guest_form': 'Đơn tiếp khách / Khác', 'contractor_form': 'Nhà thầu qua cổng', 'phone_form': 'Hỗ trợ tiền điện thoại',
-                'shift_form': 'Đổi ca làm việc', 'biz_support': 'Đơn hỗ trợ công tác', 'my_forms': 'Đơn của tôi',
-                'sys_logs': 'Nhật ký hệ thống', 'approval_sec': 'Phê duyệt', 'manage_appr': 'Quản lý xét duyệt',
-                'manage_appr_b2': 'Quản lý xét duyệt B2', 'bod_sec': 'Ban Điều Hành', 'high_appr': 'Phê duyệt cấp cao',
-                'admin_sec': 'Quản trị HR', 'meeting_room': 'Quản lý phòng họp', 'archive_form': 'Lưu trữ đơn',
-                'all_forms': 'Kho đơn tổng hợp', 'statistics': 'Thống kê báo cáo', 'security_sec': 'AN NINH & CỔNG',
-                'entry_control': 'Kiểm soát ra vào', 'profile': 'Hồ sơ cá nhân', 'logout': 'Đăng xuất',
-                'login': 'Đăng nhập', 'access_sys': 'Truy cập hệ thống', 'notifications': 'Thông báo',
-                'read_all': 'Đọc tất cả', 'view_logs': 'Xem nhật ký hệ thống', 'new_noti': 'Thông báo mới'
-            },
-            'en-US': {
-                'digital_portal': 'Digital Portal', 'personal_reg': 'Personal & Registration', 'reg_form': 'Form Registration', 'out_form': 'Gate Pass (Personal)',
-                'goods_form': 'Goods Removal Form', 'car_biz': 'Business Car Reg', 'car_daily': 'Daily Bus Reg',
-                'guest_form': 'Guest / Other Form', 'contractor_form': 'Contractor Access', 'phone_form': 'Phone Allowance',
-                'shift_form': 'Shift Change Form', 'biz_support': 'Business Trip Support', 'my_forms': 'My Requests',
-                'sys_logs': 'System Logs', 'approval_sec': 'Approval', 'manage_appr': 'Approval Management',
-                'manage_appr_b2': 'B2 Approval Management', 'bod_sec': 'Management Board', 'high_appr': 'High-Level Approval',
-                'admin_sec': 'HR Admin', 'meeting_room': 'Meeting Room', 'archive_form': 'Form Archive',
-                'all_forms': 'Master Data', 'statistics': 'Reports & Stats', 'security_sec': 'SECURITY & GATE',
-                'entry_control': 'Entry Control', 'profile': 'User Profile', 'logout': 'Logout',
-                'login': 'Login', 'access_sys': 'System Access', 'notifications': 'Notifications',
-                'read_all': 'Mark all as read', 'view_logs': 'View system logs', 'new_noti': 'New Notification'
-            },
-            'zh-CN': {
-                'digital_portal': '数字化门户', 'personal_reg': '个人与注册', 'reg_form': '表单注册', 'out_form': '出门证 (个人)',
-                'goods_form': '货物出门证', 'car_biz': '公务车登记', 'car_daily': '日常班车登记',
-                'guest_form': '接待/其他申请', 'contractor_form': '承包商准入', 'phone_form': '话费补贴',
-                'shift_form': '换班申请', 'biz_support': '出差支援申请', 'my_forms': '我的单据',
-                'sys_logs': '系统日志', 'approval_sec': '审批管理', 'manage_appr': '审核管理',
-                'manage_appr_b2': 'B2审核管理', 'bod_sec': '执行委员会', 'high_appr': '高级审批',
-                'admin_sec': 'HR 管理', 'meeting_room': '会议室管理', 'archive_form': '表单归档',
-                'all_forms': '综合单据库', 'statistics': '统计报表', 'security_sec': '安保与大门',
-                'entry_control': '出入控制', 'profile': '个人资料', 'logout': '退出登录',
-                'login': '登录', 'access_sys': '访问系统', 'notifications': '通知',
-                'read_all': '全部已读', 'view_logs': '查看系统日志', 'new_noti': '新通知'
-            }
-        };
-
         const btnLang = document.getElementById('btnLanguage');
         const langDrop = document.getElementById('langDropdown');
         const currentLangText = document.getElementById('currentLangText');
@@ -514,29 +483,43 @@
             });
         }
 
-        // Xử lý đổi ngôn ngữ
-        function handleLangChange(code, label) {
-            const cookieValue = `c=${code}|uic=${code}`;
-            const date = new Date();
-            date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
-            document.cookie = `.AspNetCore.Culture=${encodeURIComponent(cookieValue)}; expires=${date.toUTCString()}; path=/`;
-            localStorage.setItem('preferred_lang_hr', code);
-            window.location.reload();
+        // Khởi tạo trạng thái ngôn ngữ
+        function initLanguageGTranslate() {
+            let currentLang = localStorage.getItem('siteLangHrForm');
+            if (!currentLang) {
+                currentLang = 'vi';
+                localStorage.setItem('siteLangHrForm', 'vi');
+            }
+
+            // Cập nhật text trên Nút và Dropdown
+            const labels = { 'vi': 'Tiếng Việt', 'en': 'English', 'zh-CN': '中文' };
+            if(currentLangText) currentLangText.innerText = labels[currentLang] || 'Tiếng Việt';
+            
+            // Xử lý dấu checkmark
+            document.querySelectorAll('.lang-item i').forEach(i => i.style.display = 'none');
+            const activeCheck = document.querySelector(`#lang-${currentLang} i`);
+            if(activeCheck) activeCheck.style.display = 'inline-block';
+
+            // Lưu Cookie để kích hoạt Google Translate
+            if (currentLang !== 'vi') {
+                document.cookie = `googtrans=/vi/${currentLang}; path=/; domain=${window.location.hostname}`;
+                document.cookie = `googtrans=/vi/${currentLang}; path=/;`;
+            }
         }
 
-        function applyTranslations() {
-            const lang = localStorage.getItem('preferred_lang_hr') || '@cultureCode';
-            document.querySelectorAll('.lang-text').forEach(el => {
-                const key = el.getAttribute('data-key');
-                if (translations[lang] && translations[lang][key]) {
-                    el.innerText = translations[lang][key];
-                }
-            });
-            const labels = { 'vi-VN': 'Tiếng Việt', 'en-US': 'English', 'zh-CN': '中文' };
-            if(currentLangText) currentLangText.innerText = labels[lang] || 'Tiếng Việt';
-            document.querySelectorAll('.lang-item i').forEach(i => i.style.display = 'none');
-            const activeCheck = document.querySelector(`#lang-${lang} i`);
-            if(activeCheck) activeCheck.style.display = 'inline-block';
+        // Đổi ngôn ngữ
+        function changeLanguageGTranslate(lang, label) {
+            localStorage.setItem('siteLangHrForm', lang);
+            if (lang === 'vi') {
+                // Xóa cookie để về lại tiếng Việt gốc
+                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
+            } else {
+                // Set cookie dịch
+                document.cookie = `googtrans=/vi/${lang}; path=/; domain=${window.location.hostname}`;
+                document.cookie = `googtrans=/vi/${lang}; path=/;`;
+            }
+            window.location.reload();
         }
 
         // ==========================================
@@ -568,7 +551,8 @@
         // 2. Restore State & Init Libraries
         // ==========================================
         document.addEventListener('DOMContentLoaded', () => {
-            applyTranslations();
+            // Chạy logic ngôn ngữ của Google Translate
+            initLanguageGTranslate();
             
             // Khởi tạo Select2 cho tất cả dropdown có class .select2
             $('.select2').select2({ width: '100%' });
@@ -663,7 +647,6 @@
             allFetchedIds = items.map(i => i.id.toString());
             notiList.innerHTML = items.map(item => {
                 const isRead = readIds.includes(item.id.toString());
-                // Sử dụng Moment.js để format thời gian nếu cần
                 const displayTime = item.time; 
 
                 return `

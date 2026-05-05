@@ -17,6 +17,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         {
             _context = new ITFormContext();
         }
+
         #region Trang logo
         [HttpGet("/HRForm/logo")]
         public IActionResult logo()
@@ -1646,7 +1647,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.FormHrs.Add(form);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 2: LƯU NHÂN SỰ HỖ TRỢ ĐÃ CHỌN (MỚI) ---
+                    // --- BƯỚC 2: LƯU NHÂN SỰ HỖ TRỢ ĐÃ CHỌN ---
                     if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
                     {
                         foreach (var cvId in SelectedCongViecIds)
@@ -1666,8 +1667,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 3: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN (CẤU HÌNH THEO BỘ PHẬN & CÔNG TY) ---
-                    // Truy vấn lấy người duyệt từ cấu hình dựa trên IdForm, Tên Bộ Phận và Tên Công Ty
+                    // --- BƯỚC 3: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN ---
                     var listDuyetTheoBoPhan = await _context.DmNguoiDuyetLoaiDonBoPhans
                         .Include(x => x.IdnguoiXacNhanNavigation)
                         .Where(x => x.IdloaiDonNavigation.MaLoaiDon == form.IdForm
@@ -1688,16 +1688,16 @@ namespace E_Form_Best.Areas.HRform.Controllers
                                 ThuTuXacNhan = item.Stt,
                                 MaNguoiXacNhan = item.IdnguoiXacNhanNavigation?.MaNv,
                                 TenNguoiXacNhan = item.IdnguoiXacNhanNavigation?.HoTen,
-                                TrangThaiXacNhan = 0, // 0: Chờ duyệt
+                                TrangThaiXacNhan = 0,
                                 ThoiGianXacNhan = null,
-                                Loai = item.Loai // Map thêm cột Loai (AND / OR) từ cấu hình để file View nhận diện
+                                Loai = item.Loai
                             };
                             _context.HrQuanLyDuyetB2s.Add(quanLyDuyet);
                         }
                         await _context.SaveChangesAsync();
                     }
 
-                    // Fallback: Nếu không có cấu hình theo bộ phận, lấy theo cấu hình mặc định (DmNguoiXacNhanLoaiDon)
+                    // Fallback: Mặc định
                     var loaiDon = await _context.DmLoaiDons.FirstOrDefaultAsync(x => x.MaLoaiDon == form.IdForm && x.TrangThai == true);
                     if (loaiDon != null)
                     {
@@ -1723,7 +1723,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 4: XỬ LÝ FILE/ẢNH TRÊN FILESERVER ---
+                    // --- BƯỚC 4: XỬ LÝ FILE/ẢNH ---
                     if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
 
                     string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
@@ -1735,7 +1735,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         string extension = Path.GetExtension(uploadFile.FileName);
                         string fileName = $"File_TDT_Don{form.Id}_User{userId}_{safeName}_{timeStamp}{extension}";
                         string fullPath = Path.Combine(networkPath, fileName);
-
                         using (var fileStream = new FileStream(fullPath, FileMode.Create))
                         {
                             await uploadFile.CopyToAsync(fileStream);
@@ -1746,29 +1745,24 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     if (chiTiet != null)
                     {
                         chiTiet.IdFormHr = form.Id;
-
                         var anhFile = Request.Form.Files["Anh"];
                         if (anhFile != null && anhFile.Length > 0)
                         {
-                            string imgExt = Path.GetExtension(anhFile.FileName);
-                            if (string.IsNullOrEmpty(imgExt)) imgExt = ".jpg";
-
+                            string imgExt = Path.GetExtension(anhFile.FileName) ?? ".jpg";
                             string imgName = $"Anh_TDT_Don{form.Id}_User{userId}_{safeName}_{timeStamp}{imgExt}";
                             string imgPath = Path.Combine(networkPath, imgName);
-
                             using (var fileStream = new FileStream(imgPath, FileMode.Create))
                             {
                                 await anhFile.CopyToAsync(fileStream);
                             }
                             chiTiet.DuongDanAnh = imgName;
                         }
-
                         chiTiet.Anh = null;
                         _context.HrHoTroTienDienThoai7s.Add(chiTiet);
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- BƯỚC 5: LƯU LỊCH SỬ THAO TÁC (LichSuFormHr) ---
+                    // --- BƯỚC 5: LỊCH SỬ ---
                     string moTaLichSu = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn hỗ trợ tiền điện thoại.";
                     if (chiTiet != null)
                     {
@@ -1790,7 +1784,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     await _context.SaveChangesAsync();
 
                     await transaction.CommitAsync();
-
                     TempData["Success"] = "Gửi đơn hỗ trợ tiền điện thoại thành công!";
                     return RedirectToAction("DonCho");
                 }
@@ -1802,7 +1795,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 }
             }
         }
-
         #endregion
 
         #region ĐƠN DoiCaLam (HR_DoiCaLam_8)

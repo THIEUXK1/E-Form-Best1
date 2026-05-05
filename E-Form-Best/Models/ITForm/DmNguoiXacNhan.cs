@@ -40,4 +40,7 @@ public partial class DmNguoiXacNhan
 
     [InverseProperty("IdnguoiXacNhanNavigation")]
     public virtual ICollection<HrNguoiXacNhan> HrNguoiXacNhans { get; set; } = new List<HrNguoiXacNhan>();
+
+    [InverseProperty("IdnguoiXacNhanNavigation")]
+    public virtual ICollection<ShdNguoiXacNhan> ShdNguoiXacNhans { get; set; } = new List<ShdNguoiXacNhan>();
 }
