@@ -211,22 +211,26 @@
                 </a>
 
                 @* --- PHẦN PHÊ DUYỆT --- *@
-                @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonSHD") || User.IsInRole("All")))
-                {
-                    <div style="height:1px; background:rgba(255,255,255,0.08); margin:15px 10px;"></div>
-                    <div class="lang-text" data-key="approval_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 5px 0 10px 12px; font-weight: 800;">Phê duyệt</div>
+              @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonSHD") || User.IsInRole("All")))
+{
+    <div style="height:1px; background:rgba(255,255,255,0.08); margin:15px 10px;"></div>
+    <div class="lang-text" data-key="approval_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 5px 0 10px 12px; font-weight: 800;">Phê duyệt</div>
 
-                    <a href="/FormSHD/QuanLyXetDuyet" class="nav-link-item @(currentAction == "QuanLyXetDuyet" ? "active" : "")">
-                        <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> <span class="lang-text" data-key="manage_appr">Quản lý xét duyệt</span>
-                    </a>
-                }
+    <a href="/FormSHD/QuanLyXetDuyet" class="nav-link-item @(currentAction == "QuanLyXetDuyet" ? "active" : "")">
+        <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> <span class="lang-text" data-key="manage_appr">Quản lý xét duyệt</span>
+    </a>
+}
 
-                @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonSHD_B2") || User.IsInRole("All")))
-                {
-                    <a href="/FormSHD/QuanLyXetDuyetB2" class="nav-link-item @(currentAction == "QuanLyXetDuyetB2" ? "active" : "")">
-                        <i class="fa fa-users" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#818cf8;"></i> <span class="lang-text" data-key="manage_appr_b2">Quản lý xét duyệt B2</span>
-                    </a>
-                }
+@if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonSHD_B2") || User.IsInRole("All")))
+{
+    @* Thêm phần ghi chú B2 tại đây *@
+    <div style="height:1px; background:rgba(255,255,255,0.08); margin:15px 10px;"></div>
+    <div class="lang-text" data-key="approval_b2_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 5px 0 10px 12px; font-weight: 800;">Phê duyệt B2</div>
+
+    <a href="/FormSHD/QuanLyXetDuyetB2" class="nav-link-item @(currentAction == "QuanLyXetDuyetB2" ? "active" : "")">
+        <i class="fa fa-users" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#818cf8;"></i> <span class="lang-text" data-key="manage_appr_b2">Quản lý xét duyệt B2</span>
+    </a>
+}
 
                 @* --- PHẦN QUẢN TRỊ --- *@
                 @if (User.Identity.IsAuthenticated && (User.IsInRole("AdminSHD") || User.IsInRole("All")))
