@@ -37,26 +37,26 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             if (string.IsNullOrEmpty(userIdClaim)) return RedirectToAction("Login");
 
             int userId = int.Parse(userIdClaim);
-            var user = _context.Users.FirstOrDefault(u => u.IdNguoiDung == userId);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.IdNguoiDung == userId);
 
-            // Truyền trực tiếp đường dẫn ảnh từ Database vào ViewBag để View hiển thị
-            ViewBag.AnhDaiDien = user?.AnhDaiDien;
+            if (user == null) return NotFound();
 
-            return View();
+            return View(user); // Truyền model user vào View
         }
 
         [HttpPost("/DonXetDuyet/CapNhatAnh")]
         [Authorize]
         public async Task<IActionResult> CapNhatAnh(IFormFile fileAnh)
         {
-            if (fileAnh == null || fileAnh.Length == 0) return Json(new { success = false, message = "File không hợp lệ." });
+            if (fileAnh == null || fileAnh.Length == 0)
+                return Json(new { success = false, message = "File không hợp lệ." });
 
             try
             {
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
                 var user = await _context.Users.FindAsync(userId);
 
-                // 1. Xóa ảnh cũ nếu có (để dọn dẹp bộ nhớ File Server)
+                // 1. Xóa ảnh cũ nếu có
                 if (!string.IsNullOrEmpty(user.AnhDaiDien) && System.IO.File.Exists(user.AnhDaiDien))
                 {
                     System.IO.File.Delete(user.AnhDaiDien);
@@ -98,10 +98,10 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
 
                 if (!string.IsNullOrEmpty(user.AnhDaiDien) && System.IO.File.Exists(user.AnhDaiDien))
                 {
-                    System.IO.File.Delete(user.AnhDaiDien); // Xóa file vật lý trong thư mục
+                    System.IO.File.Delete(user.AnhDaiDien);
                 }
 
-                user.AnhDaiDien = null; // Gán lại null trong DB
+                user.AnhDaiDien = null;
                 _context.Users.Update(user);
                 await _context.SaveChangesAsync();
 
@@ -119,10 +119,11 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         {
             if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path))
             {
-                return NotFound();
+                // Trả về ảnh mặc định nếu không tìm thấy file trên server
+                return File(System.IO.File.OpenRead("wwwroot/images/default-avatar.png"), "image/png");
             }
             var image = System.IO.File.OpenRead(path);
-            return File(image, "image/jpeg"); // Trả về FileStream cho thẻ <img>
+            return File(image, "image/jpeg");
         }
 
         [HttpPost("/DonXetDuyet/DoiMatKhau")]
@@ -141,26 +142,18 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                 if (user == null)
                     return Json(new { success = false, message = "Người dùng không tồn tại." });
 
-                // 1. Kiểm tra mật khẩu cũ
                 if (user.MatKhau != oldPassword)
-                {
                     return Json(new { success = false, message = "Mật khẩu hiện tại không đúng." });
-                }
 
-                // 2. Kiểm tra khớp mật khẩu mới
                 if (newPassword != confirmPassword)
-                {
                     return Json(new { success = false, message = "Mật khẩu xác nhận không khớp." });
-                }
 
-                // 3. Cập nhật mật khẩu
                 user.MatKhau = newPassword;
                 user.NgayCapNhat = DateTime.Now;
 
                 _context.Users.Update(user);
                 await _context.SaveChangesAsync();
 
-                // --- MỚI: Đăng xuất ngay lập tức sau khi đổi mật khẩu thành công ---
                 await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
                 return Json(new { success = true, message = "Đổi mật khẩu thành công! Hệ thống sẽ yêu cầu đăng nhập lại." });
@@ -171,7 +164,6 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             }
         }
         #endregion
-
     }
 
 }
