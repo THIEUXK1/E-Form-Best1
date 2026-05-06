@@ -393,6 +393,19 @@
             <div style="margin-top:20px; padding: 15px; background: rgba(0,0,0,0.25); border-radius: 16px; position:relative; border: 1px solid rgba(255,255,255,0.05);">
                 @if (User.Identity.IsAuthenticated)
                 {
+                    <!-- KIỂM TRA MẬT KHẨU MẶC ĐỊNH -->
+                    @if (User.HasClaim("IsDefaultPassword", "true"))
+                    {
+                        <div style="background: rgba(239, 68, 68, 0.2); border: 1px dashed #ef4444; border-radius: 12px; padding: 10px; margin-bottom: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                            <div style="color: #fca5a5; font-size: 0.75rem; font-weight: 700; margin-bottom: 6px;">
+                                <i class="fa fa-exclamation-triangle" style="color: #ef4444;"></i> Bạn đang dùng mật khẩu mặc định!
+                            </div>
+                            <a href="/ThongTinTaiKhoan" target="_blank" style="display: inline-block; background: #ef4444; color: #fff; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 5px 12px; border-radius: 8px; transition: 0.2s;">
+                                Đổi mật khẩu ngay
+                            </a>
+                        </div>
+                    }
+
                     <div id="userMenuButton" style="display:flex; align-items:center; gap:12px; cursor:pointer;">
                         <div style="width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg, #34d399, #059669); display:flex; justify-content:center; align-items:center; font-weight:bold; border:2px solid rgba(255,255,255,0.2);">
                             @(string.IsNullOrEmpty(currentUserName) ? "U" : currentUserName.Substring(0, 1).ToUpper())

@@ -4,6 +4,8 @@ using WebPush;
 using E_Form_Best.Context; // Đảm bảo namespace này đúng
 using E_Form_Best.Areas.AdminForm.Controllers; // Nhận diện PushNotificationService
 using E_Form_Best.Areas.ITForm.Services; // Thêm namespace của Worker mới
+using Microsoft.AspNetCore.Authentication; // Thêm để dùng SignOutAsync
+using System.Security.Claims; // Thêm để làm việc với Claims
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +19,7 @@ builder.Services.AddHostedService<AutoRatingWorker>();
 // 3. Thêm dịch vụ MVC (Controllers + Views)
 builder.Services.AddControllersWithViews();
 
-// 4. CẤU HÌNH COOKIE AUTHENTICATION
+// 4. CẤU HÌNH COOKIE AUTHENTICATION (Đã thêm logic kiểm tra SecurityStamp)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -28,6 +30,41 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
         options.Cookie.IsEssential = true;
+
+        // --- MỚI: LOGIC KIỂM TRA ĐĂNG XUẤT TOÀN BỘ ---
+        options.Events = new CookieAuthenticationEvents
+        {
+            OnValidatePrincipal = async context =>
+            {
+                // 1. Lấy UserId và SecurityStamp từ Cookie hiện tại
+                var userId = context.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var stampInCookie = context.Principal.FindFirst("SecurityStamp")?.Value;
+
+                if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(stampInCookie))
+                {
+                    context.RejectPrincipal();
+                    await context.HttpContext.SignOutAsync();
+                    return;
+                }
+
+                // 2. Lấy Service Database để truy vấn
+                var dbContext = context.HttpContext.RequestServices.GetRequiredService<ITFormContext>();
+
+                // 3. Kiểm tra SecurityStamp trong Database
+                // Giả sử bảng User của bạn có khóa chính là id_nguoi_dung (int)
+                var currentStampInDb = await dbContext.Users
+                    .Where(u => u.IdNguoiDung.ToString() == userId)
+                    .Select(u => u.SecurityStamp)
+                    .FirstOrDefaultAsync();
+
+                // 4. So sánh: Nếu Stamp thay đổi (do Admin reset) -> Đuổi người dùng ra
+                if (currentStampInDb == null || currentStampInDb != stampInCookie)
+                {
+                    context.RejectPrincipal();
+                    await context.HttpContext.SignOutAsync();
+                }
+            }
+        };
     });
 
 // 5. Cấu hình Session
