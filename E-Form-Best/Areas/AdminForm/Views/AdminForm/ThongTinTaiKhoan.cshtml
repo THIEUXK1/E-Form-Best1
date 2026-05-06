@@ -1,0 +1,340 @@
+﻿@using System.Security.Claims
+@{
+    Layout = null;
+    ViewData["Title"] = "Hồ Sơ Cá Nhân";
+
+    var hoTen = User.Identity?.Name ?? "N/A";
+    var email = User.FindFirst(ClaimTypes.Email)?.Value ?? "N/A";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "N/A";
+    var congTy = User.FindFirst("TenCongTy")?.Value ?? "N/A";
+    
+    // Xử lý hiển thị nhiều bộ phận
+    var tenBoPhanRaw = User.FindFirst("TenBoPhan")?.Value ?? "Chưa xác định";
+    var danhSachBoPhan = tenBoPhanRaw.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries);
+    var moTaBoPhan = User.FindFirst("MoTaBoPhan")?.Value ?? "Không có mô tả chi tiết";
+
+    // Xử lý hiển thị tất cả các quyền (Roles)
+    var danhSachQuyen = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+    if (!danhSachQuyen.Any())
+    {
+        var vaiTroMacDinh = User.FindFirst("UserRole")?.Value;
+        if (!string.IsNullOrEmpty(vaiTroMacDinh)) danhSachQuyen.Add(vaiTroMacDinh);
+    }
+
+    var anhDaiDien = ViewBag.AnhDaiDien ?? User.FindFirst("AnhDaiDien")?.Value;
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #1e1b4b 0%, #06b6d4 100%);
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(253,16%,7%,0.05) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(225,39%,30%,0.05) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(339,49%,30%,0.05) 0, transparent 50%);
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px 10px; margin: 0;
+        }
+
+        /* Language Switcher */
+        .lang-switcher {
+            position: fixed; top: 20px; right: 20px;
+            display: flex; gap: 8px; z-index: 2000;
+        }
+        .lang-btn {
+            background: white; border: 1px solid #e2e8f0; padding: 8px 12px;
+            border-radius: 10px; cursor: pointer; font-size: 0.8rem; font-weight: 600;
+            display: flex; align-items: center; gap: 5px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            transition: 0.2s;
+        }
+        .lang-btn:hover { background: #f8fafc; transform: translateY(-2px); }
+        .lang-btn img { width: 18px; border-radius: 2px; }
+
+        /* Container & Animations */
+        @@keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .profile-container {
+            width: 100%; max-width: 850px;
+            background: var(--card-bg); border-radius: 28px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+            overflow: hidden; animation: slideUpFade 0.6s ease forwards;
+        }
+
+        .profile-cover { height: 200px; background: var(--primary-gradient); position: relative; }
+        .profile-content { padding: 0 40px 40px 40px; position: relative; }
+        .header-row { display: flex; align-items: flex-end; margin-top: -75px; margin-bottom: 25px; }
+
+        /* AVATAR: Chống méo ảnh tuyệt đối */
+        .avatar-wrapper {
+            width: 150px; height: 150px;
+            border-radius: 50%; border: 6px solid var(--card-bg);
+            background: #f1f5f9; position: relative;
+            overflow: hidden; flex-shrink: 0; z-index: 10;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .avatar-wrapper img {
+            width: 100%; height: 100%;
+            object-fit: cover; /* Quan trọng: Giữ tỷ lệ, không làm bẹt ảnh */
+            object-position: center;
+        }
+
+        .avatar-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6); display: flex;
+            align-items: center; justify-content: center; gap: 10px;
+            opacity: 0; transition: 0.3s ease;
+        }
+        .avatar-wrapper:hover .avatar-overlay { opacity: 1; }
+        .btn-avatar-action {
+            background: white; border: none; width: 38px; height: 38px;
+            border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+
+        .user-titles { margin-left: 25px; flex-grow: 1; }
+        .user-name { color: var(--text-main); font-weight: 800; font-size: 1.6rem; margin: 0; }
+        
+        .badge-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .role-badge {
+            background: #eff6ff; color: #0284c7; padding: 5px 12px;
+            border-radius: 8px; font-size: 0.75rem; font-weight: 700;
+            border: 1px solid #bae6fd; display: inline-flex; align-items: center; gap: 6px;
+        }
+
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .info-card { background: #fff; border: 1px solid #f1f5f9; border-radius: 16px; padding: 20px; transition: 0.3s; }
+        .info-card:hover { border-color: #cbd5e1; transform: translateY(-2px); }
+        .info-label { color: #94a3b8; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
+        .info-value { color: #334155; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .dept-tag { background: #fdf2f8; color: #be185d; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; border: 1px solid #fce7f3; }
+        .full-width { grid-column: 1 / -1; }
+
+        .profile-footer { background: #f8fafc; padding: 25px 40px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+        .btn-custom { padding: 10px 20px; border-radius: 12px; font-weight: 600; border: none; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+        .btn-primary-custom { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; }
+        .btn-primary-custom:hover { opacity: 0.9; }
+        .btn-outline-custom { background: white; border: 1.5px solid #e2e8f0; color: #475569; }
+        .btn-danger-custom { background: white; border: 1.5px solid #fecaca; color: #ef4444; }
+
+        .status-badge {
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px);
+            padding: 6px 12px; border-radius: 10px; color: white; font-size: 0.7rem; font-weight: 700;
+            display: flex; align-items: center; gap: 6px; border: 1px solid rgba(255,255,255,0.3);
+        }
+        .status-dot { width: 8px; height: 8px; background: #22d3ee; border-radius: 50%; box-shadow: 0 0 8px #22d3ee; }
+
+        /* Modal */
+        .modal-backdrop-custom { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; }
+        .modal-content-custom { background: white; width: 90%; max-width: 420px; border-radius: 24px; padding: 30px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+
+        @@media (max-width: 768px) {
+            .header-row { flex-direction: column; align-items: center; text-align: center; }
+            .user-titles { margin-left: 0; margin-top: 15px; }
+            .info-grid { grid-template-columns: 1fr; }
+            .profile-footer { flex-direction: column; gap: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="lang-switcher">
+        <button class="lang-btn" onclick="translatePage('vi')"><img src="https://flagcdn.com/w20/vn.png"> VN</button>
+        <button class="lang-btn" onclick="translatePage('en')"><img src="https://flagcdn.com/w20/us.png"> EN</button>
+        <button class="lang-btn" onclick="translatePage('zh')"><img src="https://flagcdn.com/w20/cn.png"> CN</button>
+    </div>
+
+    <div class="profile-container">
+        <div class="profile-cover">
+            <div class="status-badge">
+                <div class="status-dot"></div> <span data-key="status-online">Online</span>
+            </div>
+        </div>
+
+        <div class="profile-content">
+            <div class="header-row">
+                <div class="avatar-wrapper">
+                    <img id="profileImg" src="/DonXetDuyet/GetAvatar?path=@Uri.EscapeDataString(anhDaiDien ?? "")" 
+                         onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';">
+                    <div class="avatar-overlay">
+                        <button onclick="document.getElementById('fileInput').click()" class="btn-avatar-action" title="Đổi ảnh"><i class="fas fa-camera"></i></button>
+                        @if (!string.IsNullOrEmpty(anhDaiDien)) {
+                            <button onclick="deleteAvatar()" class="btn-avatar-action text-danger" title="Xóa ảnh"><i class="fas fa-trash-alt"></i></button>
+                        }
+                    </div>
+                </div>
+                <input type="file" id="fileInput" hidden accept="image/*" onchange="uploadAvatar(this)">
+
+                <div class="user-titles">
+                    <h2 class="user-name">@hoTen</h2>
+                    <div style="color: #64748b;"><i class="fas fa-envelope me-2"></i>@email</div>
+                    <div class="badge-list">
+                        @foreach (var quyen in danhSachQuyen) {
+                            <span class="role-badge"><i class="fas fa-shield-alt"></i> @quyen</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-label" data-key="label-co">Công ty</div>
+                    <div class="info-value"><i class="fas fa-building text-primary"></i> @congTy</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label" data-key="label-dept">Phòng ban</div>
+                    <div class="info-value"><i class="fas fa-layer-group text-info"></i> @phongBan</div>
+                </div>
+
+                <div class="info-card full-width">
+                    <div class="info-label" style="color: #f43f5e;" data-key="label-assigned">Bộ phận phụ trách</div>
+                    <div class="badge-list">
+                        @foreach (var bp in danhSachBoPhan) {
+                            <span class="dept-tag">@bp</span>
+                        }
+                    </div>
+                    <div style="margin-top: 15px; font-size: 0.85rem; color: #64748b; border-top: 1px dashed #e2e8f0; padding-top: 10px;">
+                        <i class="fas fa-info-circle me-1"></i> <span>@moTaBoPhan</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-footer">
+            <div style="color: #94a3b8; font-size: 0.85rem;"><i class="fas fa-calendar-alt me-2"></i>@DateTime.Now.ToString("dd/MM/yyyy")</div>
+            <div style="display: flex; gap: 12px;">
+                <button onclick="openPasswordModal()" class="btn-custom btn-primary-custom"><i class="fas fa-key"></i> <span data-key="btn-pass">Đổi mật khẩu</span></button>
+                <button onclick="window.close()" class="btn-custom btn-outline-custom" data-key="btn-close">Đóng</button>
+                <a href="/DonXetDuyet/DangXuat" class="btn-custom btn-danger-custom"><i class="fas fa-sign-out-alt"></i> <span data-key="btn-exit">Thoát</span></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Đổi mật khẩu -->
+    <div id="passwordModal" class="modal-backdrop-custom">
+        <div class="modal-content-custom">
+            <h4 style="margin-bottom: 20px; font-weight: 800;" data-key="title-pass">Thay đổi mật khẩu</h4>
+            <form id="changePasswordForm">
+                <div class="mb-3">
+                    <label class="small fw-bold text-muted" data-key="old-pass">Mật khẩu hiện tại</label>
+                    <input type="password" name="oldPassword" required class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="small fw-bold text-muted" data-key="new-pass">Mật khẩu mới</label>
+                    <input type="password" id="newPassword" name="newPassword" required class="form-control">
+                </div>
+                <div class="mb-4">
+                    <label class="small fw-bold text-muted" data-key="confirm-pass">Xác nhận mật khẩu mới</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required class="form-control">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" id="btnUpdatePass" class="btn-custom btn-primary-custom" style="flex:1; justify-content:center;" data-key="btn-save">Cập nhật</button>
+                    <button type="button" onclick="closePasswordModal()" class="btn-custom btn-outline-custom" data-key="btn-cancel">Hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // DỊCH OFFLINE
+        const translations = {
+            'vi': {
+                'status-online': 'Trực tuyến', 'label-co': 'Công ty', 'label-dept': 'Phòng ban', 
+                'label-assigned': 'Bộ phận phụ trách', 'btn-pass': 'Đổi mật khẩu', 'btn-close': 'Đóng', 
+                'btn-exit': 'Thoát', 'title-pass': 'Thay đổi mật khẩu', 'old-pass': 'Mật khẩu hiện tại', 
+                'new-pass': 'Mật khẩu mới', 'confirm-pass': 'Xác nhận mật khẩu mới', 'btn-save': 'Cập nhật', 'btn-cancel': 'Hủy'
+            },
+            'en': {
+                'status-online': 'Online', 'label-co': 'Company', 'label-dept': 'Department', 
+                'label-assigned': 'Assigned Sections', 'btn-pass': 'Change Password', 'btn-close': 'Close', 
+                'btn-exit': 'Logout', 'title-pass': 'Update Password', 'old-pass': 'Current Password', 
+                'new-pass': 'New Password', 'confirm-pass': 'Confirm New Password', 'btn-save': 'Update', 'btn-cancel': 'Cancel'
+            },
+            'zh': {
+                'status-online': '在线', 'label-co': '公司', 'label-dept': '部门', 
+                'label-assigned': '负责部门', 'btn-pass': '更改密码', 'btn-close': '关闭', 
+                'btn-exit': '退出', 'title-pass': '更新密码', 'old-pass': '当前密码', 
+                'new-pass': '新密码', 'confirm-pass': '确认新密码', 'btn-save': '更新', 'btn-cancel': '取消'
+            }
+        };
+
+        function translatePage(lang) {
+            document.querySelectorAll('[data-key]').forEach(el => {
+                const key = el.getAttribute('data-key');
+                if (translations[lang][key]) el.innerText = translations[lang][key];
+            });
+        }
+
+        // XỬ LÝ AVATAR
+        async function uploadAvatar(input) {
+            if (input.files && input.files[0]) {
+                const formData = new FormData();
+                formData.append('fileAnh', input.files[0]);
+                try {
+                    const response = await fetch('/DonXetDuyet/CapNhatAnh', { method: 'POST', body: formData });
+                    const result = await response.json();
+                    if (result.success) location.reload();
+                    else alert(result.message);
+                } catch (err) { alert("Lỗi kết nối!"); }
+            }
+        }
+
+        async function deleteAvatar() {
+            if (confirm("Xóa ảnh đại diện?")) {
+                const response = await fetch('/DonXetDuyet/XoaAnhDaiDien', { method: 'POST' });
+                const result = await response.json();
+                if (result.success) location.reload();
+            }
+        }
+
+        function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
+        function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
+
+        // XỬ LÝ ĐỔI MẬT KHẨU & ĐĂNG XUẤT
+        document.getElementById('changePasswordForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const n = document.getElementById('newPassword').value;
+            const c = document.getElementById('confirmPassword').value;
+            if (n !== c) { alert("Mật khẩu xác nhận không khớp!"); return; }
+            
+            const btn = document.getElementById('btnUpdatePass');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+            try {
+                const formData = new FormData(this);
+                const response = await fetch('/DonXetDuyet/DoiMatKhau', { method: 'POST', body: formData });
+                const result = await response.json();
+                
+                if (result.success) { 
+                    alert("Đổi mật khẩu thành công! Vui lòng đăng nhập lại."); 
+                    // Chuyển hướng ngay lập tức về trang đăng nhập
+                    window.location.href = "/DonXetDuyet/DangNhap"; 
+                }
+                else alert(result.message);
+            } catch (err) { alert("Lỗi hệ thống!"); }
+            finally { btn.disabled = false; btn.innerHTML = 'Cập nhật'; }
+        };
+    </script>
+</body>
+</html>

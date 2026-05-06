@@ -63,6 +63,10 @@ public partial class User
     [Column("anh_dai_dien")]
     public string? AnhDaiDien { get; set; }
 
+    [Column("security_stamp")]
+    [StringLength(255)]
+    public string? SecurityStamp { get; set; }
+
     [InverseProperty("IdNguoiDungNavigation")]
     public virtual ICollection<LichSuTruyCap> LichSuTruyCaps { get; set; } = new List<LichSuTruyCap>();
 

@@ -68,27 +68,30 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return View();
             }
 
+            // --- MỚI: ĐẢM BẢO CÓ SECURITY STAMP ---
+            if (string.IsNullOrEmpty(user.SecurityStamp))
+            {
+                user.SecurityStamp = Guid.NewGuid().ToString();
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+            }
+
             // 3. XỬ LÝ ĐỊNH DANH THIẾT BỊ (LAPTOP/PHONE) VÀ TÊN MÁY TÍNH
             string userAgent = Request.Headers["User-Agent"].ToString();
             var remoteIpAddress = HttpContext.Connection.RemoteIpAddress;
             string ipAddress = remoteIpAddress?.ToString();
 
             // --- MỚI: LẤY TÊN MÁY TÍNH TỪ ĐỊA CHỈ IP (Cho mạng nội bộ Intranet) ---
-            string resolvedComputerName = deviceName; // Ưu tiên tên từ client gửi lên (nếu có)
+            string resolvedComputerName = deviceName;
 
-            // Nếu client không gửi lên tên máy, tiến hành phân giải từ IP
             if (string.IsNullOrEmpty(resolvedComputerName) || resolvedComputerName == "Thiết bị không xác định")
             {
                 try
                 {
                     if (remoteIpAddress != null)
                     {
-                        // Lấy HostName (Tên máy tính) trong mạng LAN dựa vào IP
                         var hostEntry = System.Net.Dns.GetHostEntry(remoteIpAddress);
                         resolvedComputerName = hostEntry.HostName;
-
-                        // Thông thường HostName có thể kèm theo domain (ví dụ: DESKTOP-123.bestpacific.local)
-                        // Nếu bạn chỉ muốn lấy phần tên máy tính đầu tiên, có thể cắt chuỗi:
                         if (resolvedComputerName.Contains("."))
                         {
                             resolvedComputerName = resolvedComputerName.Split('.')[0];
@@ -97,11 +100,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
                 catch (Exception)
                 {
-                    // Không phân giải được (do ngoại mạng hoặc DNS không hỗ trợ), dùng tên mặc định
                     resolvedComputerName = "Không thể xác định tên máy";
                 }
             }
-            // ----------------------------------------------------------------------
 
             var device = _context.UserDevices
                 .FirstOrDefault(d => d.IdNguoiDung == user.IdNguoiDung && d.DeviceFingerprint == userAgent);
@@ -112,7 +113,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     IdNguoiDung = user.IdNguoiDung,
                     DeviceFingerprint = userAgent,
-                    DeviceName = resolvedComputerName, // Sử dụng tên máy tính vừa lấy được
+                    DeviceName = resolvedComputerName,
                     LastLogin = DateTime.Now,
                     IsTrusted = true
                 };
@@ -121,7 +122,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             else
             {
                 device.LastLogin = DateTime.Now;
-                device.DeviceName = resolvedComputerName; // Cập nhật lại tên máy tính mới nhất
+                device.DeviceName = resolvedComputerName;
                 _context.UserDevices.Update(device);
             }
 
@@ -130,7 +131,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 IdNguoiDung = user.IdNguoiDung,
                 ThoiGianDangNhap = DateTime.Now,
-                TenMayTinh = resolvedComputerName, // Sử dụng tên máy tính vừa lấy được
+                TenMayTinh = resolvedComputerName,
                 DiaChiIp = ipAddress,
                 TrinhDuyet = userAgent,
                 TrangThai = "Đang hoạt động"
@@ -141,15 +142,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             // 4. THIẾT LẬP COOKIE AUTHENTICATION
             var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.IdNguoiDung.ToString()),
-                new Claim(ClaimTypes.Name, user.HoTen ?? ""),
-                new Claim(ClaimTypes.Email, user.Tk ?? ""),
-                new Claim("UserRole", user.VaiTro ?? ""),
-                new Claim("PhongBan", user.PhongBan ?? ""),
-                new Claim("TenCongTy", user.TenCongTy ?? ""),
-                new Claim("AnhDaiDien", user.AnhDaiDien ?? "/images/default-avatar.png")
-            };
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.IdNguoiDung.ToString()),
+        new Claim(ClaimTypes.Name, user.HoTen ?? ""),
+        new Claim(ClaimTypes.Email, user.Tk ?? ""),
+        new Claim("UserRole", user.VaiTro ?? ""),
+        new Claim("PhongBan", user.PhongBan ?? ""),
+        new Claim("TenCongTy", user.TenCongTy ?? ""),
+        new Claim("AnhDaiDien", user.AnhDaiDien ?? "/images/default-avatar.png"),
+        // THÊM CLAIM NÀY ĐỂ KIỂM SOÁT ĐĂNG XUẤT TOÀN BỘ
+        new Claim("SecurityStamp", user.SecurityStamp ?? "")
+    };
 
             if (user.UserBoPhans != null && user.UserBoPhans.Any())
             {
@@ -178,6 +181,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         claims.Add(new Claim(ClaimTypes.Role, tenQuyen));
                     }
                 }
+            }
+
+            if (matKhau == "abc12345")
+            {
+                claims.Add(new Claim("IsDefaultPassword", "true"));
             }
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -213,6 +221,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             TempData["ShowPushPrompt"] = true;
             return Redirect("/menuA");
         }
+
 
         [HttpGet("/DonXetDuyet/DangXuat")]
         public async Task<IActionResult> DangXuat()
