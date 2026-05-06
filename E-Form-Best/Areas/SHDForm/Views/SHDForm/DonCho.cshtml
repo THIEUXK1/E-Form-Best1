@@ -38,7 +38,6 @@
         border: 1px solid;
     }
 
-    /* Phân trang CSS SHD Style */
     .page-btn {
         padding: 8px 16px;
         border-radius: 10px;
@@ -62,18 +61,86 @@
             background: #f0f9ff;
             border-color: @accentCyan;
         }
+
+    /* ==========================================
+           CSS RESPONSIVE CHO MOBILE (2026 STYLE)
+           ========================================== */
+    @@media (max-width: 768px) {
+        .shd-header-mobile {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 15px !important;
+        }
+
+        .shd-controls-mobile {
+            flex-direction: column !important;
+            gap: 10px !important;
+        }
+
+        #myInput, .shd-select-box {
+            width: 100% !important;
+        }
+
+        .btn-create-mobile {
+            width: 100% !important;
+            text-align: center;
+            padding: 12px !important;
+        }
+        /* Thống kê: Lưới 2 cột trên mobile */
+        .stat-grid-mobile {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+        /* Biến Table thành Card list */
+        #myTable, #myTable thead, #myTable tbody, #myTable th, #myTable td, #myTable tr {
+            display: block;
+        }
+
+            #myTable thead {
+                display: none; /* Ẩn tiêu đề bảng */
+            }
+
+            #myTable tr {
+                margin-bottom: 15px;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 15px;
+                padding: 15px;
+                background: #ffffff;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+                position: relative;
+                border-left: 5px solid @primaryIndigo !important;
+            }
+
+            #myTable td {
+                border: none !important;
+                padding: 5px 0 !important;
+                width: 100% !important;
+                text-align: left !important;
+            }
+        /* Định vị lại nút xem chi tiết trên Card */
+        .action-cell-mobile {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: auto !important;
+        }
+
+        .pagination-mobile {
+            flex-direction: column !important;
+            gap: 20px;
+            align-items: center !important;
+        }
+    }
 </style>
 
 <div style="max-width: 1400px; margin: 20px auto; padding: 0 15px; font-family: 'Inter', sans-serif;">
 
     @* --- HEADER --- *@
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+    <div class="shd-header-mobile" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
         <h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #0f172a;">
             <i class="fa fa-ship" style="color: @primaryIndigo;"></i> LỊCH SỬ YÊU CẦU SHD
         </h2>
-        <div style="display: flex; gap: 15px; align-items: center;">
-            @* Khối chọn dòng hiển thị *@
-            <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 8px 15px; border-radius: 10px; border: 1px solid #cbd5e1;">
+        <div class="shd-controls-mobile" style="display: flex; gap: 15px; align-items: center;">
+            <div class="shd-select-box" style="display: flex; align-items: center; gap: 10px; background: white; padding: 8px 15px; border-radius: 10px; border: 1px solid #cbd5e1;">
                 <span style="font-size: 12px; font-weight: 700; color: #64748b;">Hiển thị:</span>
                 <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: @primaryIndigo; cursor: pointer; background: transparent; font-size: 14px;">
                     <option value="10">10</option>
@@ -83,21 +150,20 @@
                 </select>
             </div>
 
-            <div style="position: relative;">
+            <div style="position: relative;" class="shd-select-box">
                 <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b;"></i>
-                <input type="text" id="myInput" onkeyup="handleFilterAndPaginate()" placeholder="Tìm kiếm nội dung, mã đơn..."
-                       style="padding: 10px 15px 10px 35px; border-radius: 10px; border: 1px solid #cbd5e1; width: 250px; outline: none; font-weight: 600;">
+                <input type="text" id="myInput" onkeyup="handleFilterAndPaginate()" placeholder="Tìm nội dung, mã đơn..."
+                       style="padding: 10px 15px 10px 35px; border-radius: 10px; border: 1px solid #cbd5e1; width: 250px; outline: none; font-weight: 600; box-sizing: border-box;">
             </div>
             
-            @* Chỉnh lại link tạo đơn cho SHD *@
-            <a href="/FormSHD/DangKy" style="padding: 10px 20px; background: @primaryIndigo; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 13px; transition: 0.2s;" onmouseover="this.style.background='#1e1b4b'" onmouseout="this.style.background='@primaryIndigo'">
+            <a href="/FormSHD/DangKy" class="btn-create-mobile" style="padding: 10px 20px; background: @primaryIndigo; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 13px; transition: 0.2s;" onmouseover="this.style.background='#1e1b4b'" onmouseout="this.style.background='@primaryIndigo'">
                 <i class="fa fa-plus"></i> TẠO ĐƠN MỚI
             </a>
         </div>
     </div>
 
     @* --- THỐNG KÊ (Stat Cards) --- *@
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 25px;">
+    <div class="stat-grid-mobile" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 25px;">
         <div onclick="filterByStatus('')" class="stat-card" style="@statBox border-left: 5px solid #64748b;">
             <span style="font-size: 10px; color: #64748b; font-weight: 800;">TỔNG ĐƠN</span>
             <span id="stat-total" style="font-size: 20px; font-weight: 900;">0</span>
@@ -129,7 +195,7 @@
     </div>
 
     @* --- BẢNG DỮ LIỆU --- *@
-    <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+    <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
         <table id="myTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
             <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
                 <tr>
@@ -153,7 +219,7 @@
     </div>
 
     @* --- PHẦN PHÂN TRANG --- *@
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 25px 0; margin-top: 10px;">
+    <div class="pagination-mobile" style="display: flex; justify-content: space-between; align-items: center; padding: 25px 0; margin-top: 10px;">
         <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
         <div style="text-align: right;">
             <div style="color: #64748b; font-size: 13px; font-weight: 700;">
@@ -167,8 +233,8 @@
 </div>
 
 <script>
-    let masterData = [];     // Toàn bộ Data
-    let filteredData = [];   // Data sau khi search/filter
+    let masterData = [];
+    let filteredData = [];
     let currentPage = 1;
     let rowsPerPage = 20;
 
@@ -176,13 +242,10 @@
         try {
             const response = await fetch('/FormSHD/GetDonChoData');
             masterData = await response.json();
-            
-            // Cập nhật thẻ thống kê
             updateStatistics(masterData);
-            
             handleFilterAndPaginate();
         } catch (error) {
-            document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: red;">Lỗi tải dữ liệu SHD. Vui lòng thử lại.</td></tr>`;
+            document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: red;">Lỗi tải dữ liệu.</td></tr>`;
         }
     });
 
@@ -206,10 +269,6 @@
         document.getElementById("myInput").value = s;
         currentPage = 1;
         handleFilterAndPaginate();
-        
-        let table = document.getElementById("myTable");
-        table.style.opacity = "0.6";
-        setTimeout(() => { table.style.opacity = "1"; }, 150);
     }
 
     function handleFilterAndPaginate() {
@@ -229,8 +288,7 @@
         document.getElementById("totalPagesNum").innerText = totalPages;
 
         const startIndex = (currentPage - 1) * rowsPerPage;
-        const endIndex = startIndex + rowsPerPage;
-        const pageData = filteredData.slice(startIndex, endIndex);
+        const pageData = filteredData.slice(startIndex, startIndex + rowsPerPage);
 
         renderTable(pageData);
         renderPaginationButtons(totalPages);
@@ -241,19 +299,12 @@
         tbody.innerHTML = "";
 
         if (pageData.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;">
-                        <i class="fa fa-folder-open-o" style="font-size: 40px; display: block; margin-bottom: 10px; opacity: 0.5;"></i>
-                        Không tìm thấy yêu cầu SHD nào phù hợp.
-                    </td>
-                </tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;">Không tìm thấy kết quả.</td></tr>`;
             return;
         }
 
         let html = "";
         pageData.forEach(item => {
-            // Render Badges (B2, GĐ) - SHD Không có BV
             let badgesHtml = `<span><i class="fa fa-tag"></i> ${item.danhmuc}</span>`;
             if (item.hasB2) {
                 badgesHtml += `<span class="sub-status-badge" style="background: #f0f9ff; color: #0369a1; border-color: #bae6fd; margin-left: 8px;">
@@ -266,14 +317,14 @@
                                </span>`;
             }
 
-            let avatarChar = item.supportName.length > 0 && item.supportName !== "Chờ phân công" ? item.supportName.charAt(0).toUpperCase() : "?";
+            let avatarChar = item.supportName && item.supportName !== "Chờ phân công" ? item.supportName.charAt(0).toUpperCase() : "?";
 
             html += `
-                <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                <tr style="border-bottom: 1px solid #f1f5f9;">
                     <td style="padding: 15px; font-weight: 700; color: @primaryIndigo;">#${item.id}</td>
                     <td style="padding: 15px;">
                         <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${item.tenForm}</div>
-                        <div style="font-size: 11px; color: #64748b; margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center;">
+                        <div style="font-size: 11px; color: #64748b; margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 5px;">
                             ${badgesHtml}
                         </div>
                     </td>
@@ -286,23 +337,17 @@
                         </div>
                     </td>
                     <td style="padding: 15px;">
-                        <div style="font-weight: 600; font-size: 12px; color: #334155;">
-                            <i class="fa fa-calendar"></i> ${item.ngay}
-                        </div>
-                        <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
-                            <i class="fa fa-clock-o"></i> ${item.timeNguoiTao}
-                        </div>
+                        <div style="font-weight: 600; font-size: 12px; color: #334155;"><i class="fa fa-calendar"></i> ${item.ngay}</div>
+                        <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;"><i class="fa fa-clock-o"></i> ${item.timeNguoiTao}</div>
                     </td>
                     <td style="padding: 15px; text-align: center;">
-                        <span class="status-badge" style="background: ${item.bgColor}; color: ${item.fgColor}; border-color: ${item.fgColor};">
-                            ${item.statusText}
-                        </span>
-                        <div style="width: 100px; height: 5px; background: #e2e8f0; border-radius: 10px; margin: 8px auto 0; overflow: hidden; border: 1px solid #f1f5f9;">
-                            <div style="width: ${item.progressWidth}; height: 100%; background: ${item.progressColor}; transition: 0.5s ease;"></div>
+                        <span class="status-badge" style="background: ${item.bgColor}; color: ${item.fgColor}; border-color: ${item.fgColor};">${item.statusText}</span>
+                        <div style="width: 100px; height: 5px; background: #e2e8f0; border-radius: 10px; margin: 8px auto 0; overflow: hidden;">
+                            <div style="width: ${item.progressWidth}; height: 100%; background: ${item.progressColor}; transition: 0.5s;"></div>
                         </div>
                     </td>
-                    <td style="padding: 15px; text-align: center;">
-                        <a href="/FormSHD/ChiTiet/${item.id}" title="Xem chi tiết đơn SHD" style="color: #94a3b8; font-size: 18px; transition: 0.2s;" onmouseover="this.style.color='@primaryIndigo'" onmouseout="this.style.color='#94a3b8'">
+                    <td class="action-cell-mobile" style="padding: 15px; text-align: center;">
+                        <a href="/FormSHD/ChiTiet/${item.id}" style="color: #94a3b8; font-size: 22px;">
                             <i class="fa fa-arrow-circle-right"></i>
                         </a>
                     </td>
@@ -315,30 +360,15 @@
     function renderPaginationButtons(totalPages) {
         const container = document.getElementById("paginationButtons");
         container.innerHTML = "";
-
         if (totalPages <= 1) return;
-
         for (let i = 1; i <= totalPages; i++) {
-            if (totalPages > 7 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
-                if (i === 3 || i === totalPages - 2) {
-                    const dot = document.createElement("span");
-                    dot.innerText = "...";
-                    dot.style.padding = "8px";
-                    dot.style.color = "#64748b";
-                    dot.style.fontWeight = "700";
-                    container.appendChild(dot);
-                }
+            if (totalPages > 5 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
+                if (i === 3 || i === totalPages - 2) container.insertAdjacentHTML('beforeend', `<span style="padding:8px">...</span>`);
                 continue;
             }
-
             const btn = document.createElement("button");
-            btn.innerText = i;
-            btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
-            btn.onclick = () => {
-                currentPage = i;
-                handleFilterAndPaginate();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            };
+            btn.innerText = i; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+            btn.onclick = () => { currentPage = i; handleFilterAndPaginate(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
             container.appendChild(btn);
         }
     }
