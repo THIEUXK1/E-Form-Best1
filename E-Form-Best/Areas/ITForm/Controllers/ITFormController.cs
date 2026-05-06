@@ -1591,15 +1591,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr))
             {
-                // Sử dụng Redirect để quay về chính xác đường dẫn bạn mong muốn
                 return Redirect("/DonXetDuyet/DangNhap");
             }
 
             int userId = int.Parse(userIdStr);
 
-            // Lấy Email và Công ty từ Claims (giống logic đồng bộ bên HR)
+            // Lấy các thông tin từ Claims để check quyền
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
-            var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+            var tenCongTyUser = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+            var boPhanUser = User.FindFirst("TenBoPhan")?.Value ?? "";
+            // Lưu ý: TenBoPhan có thể chứa chuỗi gộp "IT, HR, Kế toán", ta sẽ check chứa chuỗi (contains)
 
             // 2. Lấy dữ liệu đơn (Giữ nguyên toàn bộ các Include hiện có)
             var don = await _context.FormIts
@@ -1619,13 +1620,39 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (don == null)
             {
                 TempData["Error"] = "⚠️ Không tìm thấy đơn yêu cầu IT!";
-                return RedirectToAction("LichSuIT"); // Hoặc trang danh sách tương ứng
+                return RedirectToAction("LichSuIT");
             }
 
-            // 3. KIỂM TRA QUYỀN XEM (Đồng bộ logic phân quyền)
+            // 3. KIỂM TRA QUYỀN XEM (LOGIC CỘNG DỒN)
+            bool isAllowed = false;
 
-            // Kiểm tra cùng công ty (trừ quyền All và AdminIT)
-            if (don.TenCongTy?.Trim() != tenCongTy && !User.IsInRole("All") && !User.IsInRole("AdminIT"))
+            // Điều kiện 1: Là người tạo đơn
+            if (don.IdNguoiTao == userId)
+            {
+                isAllowed = true;
+            }
+            // Điều kiện 2: Có quyền cao nhất (AdminIT hoặc All)
+            else if (User.IsInRole("AdminIT") || User.IsInRole("All"))
+            {
+                isAllowed = true;
+            }
+            // Điều kiện 3: Có quyền Quản lý duyệt đơn (QuanLyDuyetDonIT)
+            // Phải thỏa mãn: Cùng Công ty AND Cùng Bộ phận
+            else if (User.IsInRole("QuanLyDuyetDonIT"))
+            {
+                bool isSameCompany = string.Equals(don.TenCongTy?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
+
+                // Vì một người có thể thuộc nhiều bộ phận (cách nhau bởi dấu phẩy), ta check xem bộ phận của đơn có nằm trong list của user không
+                bool isSameDepartment = !string.IsNullOrEmpty(don.BoPhan) && boPhanUser.Contains(don.BoPhan);
+
+                if (isSameCompany && isSameDepartment)
+                {
+                    isAllowed = true;
+                }
+            }
+
+            // Nếu không thỏa mãn bất kỳ điều kiện nào ở trên
+            if (!isAllowed)
             {
                 return Forbid();
             }
@@ -1651,6 +1678,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             return View(don);
         }
+
         // --- ACTION DOWNLOAD / XEM FILE (Giữ nguyên 100%) ---
         [HttpGet("/FormIT/DownloadFile/{fileName}")]
         public async Task<IActionResult> DownloadFile(string fileName)

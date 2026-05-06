@@ -2316,14 +2316,17 @@ namespace E_Form_Best.Areas.HRform.Controllers
         [HttpGet("/FormHR/ChiTiet/{id}")]
         public async Task<IActionResult> ChiTiet(int id)
         {
+            // 1. Kiểm tra đăng nhập
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr))
                 return RedirectToAction("DangNhap", "DonXetDuyet");
 
             int userId = int.Parse(userIdStr);
-            // Fix lỗi System.Security.Claims.Email bằng cách dùng ClaimTypes.Email
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+            var tenCongTyUser = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+            var boPhanUser = User.FindFirst("TenBoPhan")?.Value ?? "";
 
+            // 2. Lấy dữ liệu đơn (Giữ nguyên các Include hiện có)
             var don = await _context.FormHrs
                 .Include(f => f.HrXinRaNgoai1s)
                 .Include(f => f.HrMangHangHoaRaCong2s)
@@ -2349,7 +2352,43 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 return RedirectToAction("LichSuHR");
             }
 
-            // Sắp xếp nhật ký
+            // 3. KIỂM TRA QUYỀN XEM (Logic cộng dồn tương tự IT)
+            bool isAllowed = false;
+
+            // Quyền 1: Người tạo đơn
+            if (don.IdNguoiTao == userId)
+            {
+                isAllowed = true;
+            }
+            // Quyền 2: Admin tổng hoặc AdminHR
+            else if (User.IsInRole("All") || User.IsInRole("AdminHR"))
+            {
+                isAllowed = true;
+            }
+            // Quyền 3: Quản lý duyệt đơn HR (Phải cùng công ty và thuộc bộ phận quản lý)
+            else if (User.IsInRole("QuanLyDuyetDonHR"))
+            {
+                bool isSameCompany = string.Equals(don.TenCongTy?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
+                bool isSameDepartment = !string.IsNullOrEmpty(don.BoPhan) && boPhanUser.Contains(don.BoPhan);
+
+                if (isSameCompany && isSameDepartment)
+                {
+                    isAllowed = true;
+                }
+            }
+            // Quyền 4: Người có tên trong danh sách xác nhận (B1 hoặc B2)
+            else if (don.HrNguoiXacNhans.Any(x => x.IdnguoiXacNhan == userId) ||
+                     don.HrQuanLyDuyetB2s.Any(x => x.IdnguoiXacNhan == userId))
+            {
+                isAllowed = true;
+            }
+
+            if (!isAllowed)
+            {
+                return Forbid();
+            }
+
+            // 4. Sắp xếp nhật ký
             if (don.LichSuFormHrs != null)
                 don.LichSuFormHrs = don.LichSuFormHrs.OrderByDescending(x => x.Time).ToList();
 
@@ -2369,12 +2408,12 @@ namespace E_Form_Best.Areas.HRform.Controllers
             ViewBag.DanhSachXacNhan = don.HrNguoiXacNhans?
                 .OrderBy(x => x.ThuTuXacNhan).ToList() ?? new List<HrNguoiXacNhan>();
 
-            // ── XỬ LÝ DANH SÁCH BƯỚC 2 ──
             ViewBag.DanhSachB2 = don.HrQuanLyDuyetB2s?
                 .OrderBy(x => x.ThuTuXacNhan).ToList() ?? new List<HrQuanLyDuyetB2>();
 
             return View(don);
         }
+
 
         // Action xử lý duyệt Bước 2: Tích hợp logic Duyệt tất cả (AND) vs Duyệt 1 người (OR)
         [HttpPost("/FormHR/PheDuyetB2")]

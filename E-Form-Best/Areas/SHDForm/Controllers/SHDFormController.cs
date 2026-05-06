@@ -328,16 +328,20 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         [HttpGet("/FormSHD/ChiTiet/{id}")]
         public async Task<IActionResult> ChiTiet(int id)
         {
+            // 1. Kiểm tra đăng nhập
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr))
                 return RedirectToAction("DangNhap", "DonXetDuyet");
 
             int userId = int.Parse(userIdStr);
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+            var tenCongTyUser = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+            var boPhanUser = User.FindFirst("TenBoPhan")?.Value ?? "";
 
-            // Include duy nhất đơn Xe công tác SHD và các bảng bổ trợ
+            // 2. Lấy dữ liệu đơn (Include các bảng liên quan của SHD)
             var don = await _context.FormShds
                 .Include(f => f.ShdDangKySuDungXeCongTac1s)
+                .Include(f => f.ShdDangKySuDungXeDaily2s)
                 .Include(f => f.ShdCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdShdNguoiHoTroNavigation)
                 .Include(f => f.ShdNguoiXacNhans)
@@ -353,9 +357,47 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 return RedirectToAction("LichSuSHD");
             }
 
+            // 3. KIỂM TRA QUYỀN XEM (Logic cộng dồn)
+            bool isAllowed = false;
+
+            // Quyền 1: Người tạo đơn
+            if (don.IdNguoiTao == userId)
+            {
+                isAllowed = true;
+            }
+            // Quyền 2: Admin tổng hoặc AdminSHD
+            else if (User.IsInRole("All") || User.IsInRole("AdminSHD"))
+            {
+                isAllowed = true;
+            }
+            // Quyền 3: Quản lý duyệt đơn SHD (Cùng công ty và thuộc bộ phận quản lý)
+            else if (User.IsInRole("QuanLyDuyetDonSHD"))
+            {
+                bool isSameCompany = string.Equals(don.TenCongTy?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
+                bool isSameDepartment = !string.IsNullOrEmpty(don.BoPhan) && boPhanUser.Contains(don.BoPhan);
+
+                if (isSameCompany && isSameDepartment)
+                {
+                    isAllowed = true;
+                }
+            }
+            // Quyền 4: Người có tên trong danh sách xác nhận (B1 hoặc B2)
+            else if ((don.ShdNguoiXacNhans != null && don.ShdNguoiXacNhans.Any(x => x.IdnguoiXacNhan == userId)) ||
+                     (don.ShdQuanLyDuyetB2s != null && don.ShdQuanLyDuyetB2s.Any(x => x.IdnguoiXacNhan == userId)))
+            {
+                isAllowed = true;
+            }
+
+            if (!isAllowed)
+            {
+                return Forbid();
+            }
+
+            // 4. Xử lý dữ liệu hiển thị
             if (don.LichSuFormShds != null)
                 don.LichSuFormShds = don.LichSuFormShds.OrderByDescending(x => x.Time).ToList();
 
+            // Load danh sách người hỗ trợ cho Admin điều phối
             if (User.IsInRole("All") || User.IsInRole("AdminSHD"))
             {
                 ViewBag.ListNguoiHoTro = await _context.ShdNguoiHoTros
@@ -367,8 +409,6 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             ViewBag.CurrentUserId = userId;
             ViewBag.UserEmail = userEmail;
 
-            // Đã loại bỏ dòng ViewBag.BaoVeRecord theo yêu cầu
-
             ViewBag.DanhSachXacNhan = don.ShdNguoiXacNhans?
                 .OrderBy(x => x.ThuTuXacNhan).ToList() ?? new List<ShdNguoiXacNhan>();
 
@@ -378,8 +418,121 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             return View(don);
         }
 
-        #endregion
+        // 5. Xử lý duyệt Bước 2 SHD
+        [HttpPost("/FormSHD/PheDuyetB2")]
+        public async Task<IActionResult> PheDuyetB2([FromBody] System.Text.Json.JsonElement data)
+        {
+            try
+            {
+                int idB2 = data.GetProperty("idB2").GetInt32();
+                string action = data.GetProperty("action").GetString(); // "Approve" hoặc "Reject"
+                string note = data.GetProperty("note").GetString() ?? "";
 
+                var record = await _context.ShdQuanLyDuyetB2s.FindAsync(idB2);
+                if (record == null) return Json(new { success = false, message = "Không tìm thấy dữ liệu!" });
+
+                var don = await _context.FormShds.FindAsync(record.IdFormShd);
+
+                record.TrangThaiXacNhan = (action == "Approve" ? 1 : 2);
+                record.ThoiGianXacNhan = DateTime.Now;
+                record.GhiChu = note;
+
+                if (action == "Approve" && (record.Loai == "OR" || record.Loai == "ANY"))
+                {
+                    _context.LichSuFormShds.Add(new LichSuFormShd
+                    {
+                        IdFormShd = don.Id,
+                        TieuDe = "PHÊ DUYỆT BƯỚC 2 SHD (OR)",
+                        Mota = $"Người duyệt {record.TenNguoiXacNhan} đã phê duyệt. Hệ thống xác nhận hoàn tất bước này.",
+                        Time = DateTime.Now
+                    });
+                }
+                else
+                {
+                    _context.LichSuFormShds.Add(new LichSuFormShd
+                    {
+                        IdFormShd = don.Id,
+                        TieuDe = action == "Approve" ? "BƯỚC 2 SHD: CHẤP THUẬN" : "BƯỚC 2 SHD: TỪ CHỐI",
+                        Mota = $"Nhân viên {record.TenNguoiXacNhan} đã xử lý. Nội dung: {note}",
+                        Time = DateTime.Now
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = "Cập nhật trạng thái thành công!" });
+            }
+            catch (Exception ex) { return Json(new { success = false, message = "Lỗi: " + ex.Message }); }
+        }
+
+        // 6. Tải tệp tin SHD
+        [HttpGet("/FormSHD/DownloadFile/{fileName}")]
+        public async Task<IActionResult> DownloadFile(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) return NotFound();
+            // Đường dẫn thư mục riêng cho SHD
+            string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonSHD";
+            string fullPath = Path.Combine(networkPath, fileName);
+            if (!System.IO.File.Exists(fullPath)) return NotFound("Tệp tin không tồn tại.");
+
+            var memory = new MemoryStream();
+            using (var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
+            {
+                await stream.CopyToAsync(memory);
+            }
+            memory.Position = 0;
+
+            string ext = Path.GetExtension(fileName).ToLowerInvariant();
+            string contentType = ext switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".pdf" => "application/pdf",
+                ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                _ => "application/octet-stream"
+            };
+            return contentType.StartsWith("image/") ? File(memory, contentType) : File(memory, contentType, fileName);
+        }
+
+        // 7. Chỉ định người hỗ trợ SHD
+        [HttpPost("/FormSHD/ThemNguoiHoTro")]
+        public async Task<IActionResult> ThemNguoiHoTro([FromBody] System.Text.Json.JsonElement data)
+        {
+            var roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+            if (!roles.Any(r => r == "AdminSHD" || r == "All"))
+                return Json(new { success = false, message = "Không có quyền!" });
+
+            try
+            {
+                int idForm = data.GetProperty("idFormShd").GetInt32();
+                string maNvMoi = data.GetProperty("maNv").GetString();
+                var nvShd = await _context.ShdNguoiHoTros.FirstOrDefaultAsync(x => x.MaNv == maNvMoi);
+
+                var hienTai = await _context.ShdCtNguoiHoTros.Where(x => x.IdFormShd == idForm).OrderByDescending(x => x.Stt).FirstOrDefaultAsync();
+                if (hienTai?.IdShdNguoiHoTroNavigation?.MaNv == maNvMoi)
+                    return Json(new { success = false, message = "Nhân viên này đang xử lý rồi!" });
+
+                _context.ShdCtNguoiHoTros.Add(new ShdCtNguoiHoTro
+                {
+                    IdFormShd = idForm,
+                    IdShdNguoiHoTro = nvShd.Id,
+                    Stt = (hienTai?.Stt ?? 0) + 1
+                });
+
+                _context.LichSuFormShds.Add(new LichSuFormShd
+                {
+                    IdFormShd = idForm,
+                    TieuDe = "CHỈ ĐỊNH NGƯỜI HỖ TRỢ SHD",
+                    Mota = $"Thay đổi sang: {nvShd.Ten} ({nvShd.MaNv})",
+                    Time = DateTime.Now
+                });
+
+                await _context.SaveChangesAsync();
+                return Json(new { success = true });
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        #endregion
         #region Xuất file Excel, Word, PDF cho hệ thống SHD
 
         // ============================================================
