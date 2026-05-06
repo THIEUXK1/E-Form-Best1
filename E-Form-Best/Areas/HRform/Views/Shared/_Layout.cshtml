@@ -225,7 +225,6 @@
 
         /* ==========================================
            THÊM MỚI: CSS CHO MOBILE RESPONSIVE
-           (Dùng @@media để tránh lỗi Razor)
            ========================================== */
         .sidebar-backdrop {
             display: none;
@@ -553,7 +552,7 @@
         window.onload = function() { NProgress.done(); };
 
         // ==========================================
-        // THÊM MỚI: XỬ LÝ GIAO DIỆN MENU MOBILE
+        // XỬ LÝ GIAO DIỆN MENU MOBILE
         // ==========================================
         const mobileMenuBtn = document.getElementById('mobile-menu-btn');
         const sidebar = document.getElementById('sidebar');
@@ -573,7 +572,7 @@
         }
 
         // ==========================================
-        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE (ĐÃ FIX LỖI KẸT)
+        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE (CẬP NHẬT LOGIC CLEAR -> MẶC ĐỊNH -> NEW)
         // ==========================================
         const btnLang = document.getElementById('btnLanguage');
         const langDrop = document.getElementById('langDropdown');
@@ -588,28 +587,23 @@
             });
         }
 
-        // Hàm dọn rác cookie cực mạnh: quét sạch trên cả domain và root path
         function clearGoogTransCookie() {
             const domain = window.location.hostname;
             const paths = ['/', window.location.pathname];
             
             paths.forEach(p => {
-                // Xóa cookie đường dẫn hiện tại
                 document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p};`;
                 if (domain !== 'localhost') {
-                    // Xóa cookie cấp độ tên miền có dấu chấm (VD: .bestpacific.com)
                     document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}; domain=.${domain};`;
-                    // Xóa cookie cấp độ tên miền không có dấu chấm (VD: bestpacific.com)
                     document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}; domain=${domain};`;
                 }
             });
         }
 
         function setGoogTransCookie(lang) {
-            clearGoogTransCookie(); // Dọn sạch rác cookie cũ trước khi áp dụng cái mới
             if (lang !== 'vi') {
                 const domain = window.location.hostname;
-                document.cookie = `googtrans=/vi/${lang}; path=/;`; // Set cookie cấp độ root chuẩn xác nhất
+                document.cookie = `googtrans=/vi/${lang}; path=/;`;
                 if (domain !== 'localhost') {
                     document.cookie = `googtrans=/vi/${lang}; path=/; domain=.${domain};`;
                 }
@@ -629,26 +623,43 @@
             const activeCheck = document.querySelector(`#lang-${currentLang} i`);
             if(activeCheck) activeCheck.style.display = 'inline-block';
 
-            // So khớp xem trình duyệt có bị mất Cookie không để tự động bù lại
             let match = document.cookie.match(/(^| )googtrans=([^;]+)/);
             let currentCookie = match ? match[2] : null;
             let expectedCookie = currentLang === 'vi' ? null : `/vi/${currentLang}`;
 
             if (currentCookie !== expectedCookie) {
-                setGoogTransCookie(currentLang);
+                clearGoogTransCookie();
+                if (currentLang !== 'vi') {
+                    setGoogTransCookie(currentLang);
+                }
             }
         }
 
         function changeLanguageGTranslate(lang, label) {
+            // Lưu thiết lập vào localStorage
             localStorage.setItem('siteLangGlobal', lang); 
-            setGoogTransCookie(lang);
-            // Reload lại để Google Translate nhận diện Cookie sạch sẽ nhất
-            window.location.reload();
+            
+            // 1. CLEAR TRƯỚC: Xóa sạch toàn bộ rác Cookie và Storage của Google Translate
+            clearGoogTransCookie();
+            window.localStorage.removeItem('googtrans');
+            window.sessionStorage.removeItem('googtrans');
+
+            // 2. CHUYỂN VỀ MẶC ĐỊNH: Nếu chọn 'vi', việc clear ở trên đã hoàn tất quy trình, chỉ cần reload.
+            if (lang === 'vi') {
+                window.location.reload();
+                return;
+            }
+
+            // 3. ĐỢI CHỐT TRẠNG THÁI MẶC ĐỊNH RỒI MỚI SET NGÔN NGỮ MỚI:
+            // Cố tình delay 50ms để trình duyệt thực sự xóa xong cookie và ở trạng thái sạch, sau đó gắn cookie mới.
+            setTimeout(() => {
+                setGoogTransCookie(lang);
+                window.location.reload();
+            }, 50);
         }
 
         // ==========================================
         // HỆ THỐNG ZOOM % KÍCH THƯỚC WEB
-        // Gộp chung Zoom Cookie (siteZoomGlobal) cho cả 3 phân hệ
         // ==========================================
         const btnZoom = document.getElementById('btnZoom');
         const zoomDrop = document.getElementById('zoomDropdown');
@@ -664,7 +675,6 @@
         }
 
         function initZoom() {
-            // Dùng chung một biến cho cả 3 phân hệ
             let currentZoom = getCookieHR('siteZoomGlobal') || '100';
             applyZoom(currentZoom);
         }
@@ -744,7 +754,7 @@
         // ==========================================
         document.addEventListener('DOMContentLoaded', () => {
             initLanguageGTranslate();
-            initZoom(); // Chạy hàm khởi tạo Zoom chung
+            initZoom(); 
             
             $('.select2').select2({ width: '100%' });
 

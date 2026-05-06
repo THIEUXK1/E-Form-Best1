@@ -236,7 +236,6 @@
             </a>
 
             <nav id="main-sidebar-nav" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right: 5px;">
-                @* Đã đổi text theo yêu cầu *@
                 <div class="lang-text" data-key="main_function" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 700;">Cá nhân & Đăng ký</div>
 
                 @if (User.Identity.IsAuthenticated)
@@ -457,7 +456,7 @@
 
     <script>
         // ==========================================
-        // THÊM MỚI: XỬ LÝ GIAO DIỆN MENU MOBILE
+        // XỬ LÝ GIAO DIỆN MENU MOBILE
         // ==========================================
         const mobileMenuBtn = document.getElementById('mobile-menu-btn');
         const sidebarApp = document.getElementById('sidebar');
@@ -477,7 +476,7 @@
         }
 
         // ==========================================
-        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE (ĐÃ FIX LỖI KẸT)
+        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE (CẬP NHẬT LOGIC CLEAR -> MẶC ĐỊNH -> NEW)
         // ==========================================
         function clearGoogTransCookie() {
             const domain = window.location.hostname;
@@ -492,7 +491,6 @@
         }
 
         function setGoogTransCookie(lang) {
-            clearGoogTransCookie();
             if (lang !== 'vi') {
                 const domain = window.location.hostname;
                 document.cookie = `googtrans=/vi/${lang}; path=/;`;
@@ -521,19 +519,36 @@
             let expectedCookie = currentLang === 'vi' ? null : `/vi/${currentLang}`;
 
             if (currentCookie !== expectedCookie) {
-                setGoogTransCookie(currentLang);
+                clearGoogTransCookie();
+                if (currentLang !== 'vi') {
+                    setGoogTransCookie(currentLang);
+                }
             }
         }
 
         function changeLanguageGTranslate(lang, label) {
             localStorage.setItem('siteLangGlobal', lang); 
-            setGoogTransCookie(lang);
-            window.location.reload();
+            
+            // 1. CLEAR TRƯỚC
+            clearGoogTransCookie();
+            window.localStorage.removeItem('googtrans');
+            window.sessionStorage.removeItem('googtrans');
+
+            // 2. CHUYỂN VỀ MẶC ĐỊNH
+            if (lang === 'vi') {
+                window.location.reload();
+                return;
+            }
+
+            // 3. ĐỢI CHỐT TRẠNG THÁI MẶC ĐỊNH RỒI MỚI SET NGÔN NGỮ MỚI
+            setTimeout(() => {
+                setGoogTransCookie(lang);
+                window.location.reload();
+            }, 50);
         }
 
         // ==========================================
         // HỆ THỐNG ZOOM % KÍCH THƯỚC WEB
-        // Gộp chung Zoom Cookie (siteZoomGlobal) cho cả 3 phân hệ
         // ==========================================
         const btnZoom = document.getElementById('btnZoom');
         const zoomDrop = document.getElementById('zoomDropdown');
@@ -549,7 +564,6 @@
         }
 
         function initZoom() {
-            // Dùng chung một biến cho cả 3 phân hệ
             let currentZoom = getCookieIT('siteZoomGlobal') || '100';
             applyZoom(currentZoom);
         }
@@ -629,7 +643,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             initLanguageGTranslate();
-            initZoom(); // Chạy zoom IT chung
+            initZoom(); 
             
             const savedScrollPos = sessionStorage.getItem('sidebarScrollPosIT');
             if (sidebarNav && savedScrollPos) sidebarNav.scrollTop = parseInt(savedScrollPos);

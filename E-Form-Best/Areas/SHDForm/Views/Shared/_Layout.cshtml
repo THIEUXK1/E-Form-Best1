@@ -467,7 +467,7 @@
         window.onload = function() { NProgress.done(); };
 
         // ==========================================
-        // THÊM MỚI: XỬ LÝ GIAO DIỆN MENU MOBILE
+        // XỬ LÝ GIAO DIỆN MENU MOBILE
         // ==========================================
         const mobileMenuBtn = document.getElementById('mobile-menu-btn');
         const sidebarApp = document.getElementById('sidebar');
@@ -487,7 +487,7 @@
         }
 
         // ==========================================
-        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE (ĐÃ FIX LỖI KẸT)
+        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE (CẬP NHẬT LOGIC CLEAR -> MẶC ĐỊNH -> NEW)
         // ==========================================
         function clearGoogTransCookie() {
             const domain = window.location.hostname;
@@ -502,7 +502,6 @@
         }
 
         function setGoogTransCookie(lang) {
-            clearGoogTransCookie();
             if (lang !== 'vi') {
                 const domain = window.location.hostname;
                 document.cookie = `googtrans=/vi/${lang}; path=/;`;
@@ -531,19 +530,36 @@
             let expectedCookie = currentLang === 'vi' ? null : `/vi/${currentLang}`;
 
             if (currentCookie !== expectedCookie) {
-                setGoogTransCookie(currentLang);
+                clearGoogTransCookie();
+                if (currentLang !== 'vi') {
+                    setGoogTransCookie(currentLang);
+                }
             }
         }
 
         function changeLanguageGTranslate(lang, label) {
             localStorage.setItem('siteLangGlobal', lang); 
-            setGoogTransCookie(lang);
-            window.location.reload();
+            
+            // 1. CLEAR TRƯỚC
+            clearGoogTransCookie();
+            window.localStorage.removeItem('googtrans');
+            window.sessionStorage.removeItem('googtrans');
+
+            // 2. CHUYỂN VỀ MẶC ĐỊNH
+            if (lang === 'vi') {
+                window.location.reload();
+                return;
+            }
+
+            // 3. ĐỢI CHỐT TRẠNG THÁI MẶC ĐỊNH RỒI MỚI SET NGÔN NGỮ MỚI
+            setTimeout(() => {
+                setGoogTransCookie(lang);
+                window.location.reload();
+            }, 50);
         }
         
         // ==========================================
         // HỆ THỐNG ZOOM % KÍCH THƯỚC WEB
-        // Gộp chung Zoom Cookie (siteZoomGlobal) cho cả 3 phân hệ
         // ==========================================
         const btnZoom = document.getElementById('btnZoom');
         const zoomDrop = document.getElementById('zoomDropdown');
@@ -560,7 +576,6 @@
         }
 
         function initZoom() {
-            // Dùng chung một biến cho cả 3 phân hệ
             let currentZoom = getCookieSHD('siteZoomGlobal') || '100';
             applyZoom(currentZoom);
         }
@@ -612,7 +627,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             initLanguageGTranslate();
-            initZoom(); // Khởi tạo Zoom chung
+            initZoom(); 
             
             if (typeof $ !== 'undefined') { $('.select2').select2({ width: '100%' }); }
 
