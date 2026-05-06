@@ -4,11 +4,11 @@
 }
 
 @* Container chính *@
-<div style="background-color: #f1f5f9; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; min-height: 100vh; padding: 40px 20px; font-family: 'Inter', 'Segoe UI', sans-serif;">
+<div class="main-log-page" style="background-color: #f1f5f9; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; min-height: 100vh; padding: 40px 20px; font-family: 'Inter', 'Segoe UI', sans-serif;">
     <div style="max-width: 1100px; margin: 0 auto;">
 
         @* --- HEADER SECTION --- *@
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; flex-wrap: wrap; gap: 20px;">
+        <div class="header-section-mobile" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; flex-wrap: wrap; gap: 20px;">
             <div>
                 <h1 style="margin: 0; color: #0f172a; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 15px;">
                     <span style="background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%); color: white; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 12px; box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);">
@@ -16,10 +16,10 @@
                     </span>
                     NHẬT KÝ HỆ THỐNG SHD
                 </h1>
-                <p style="margin: 8px 0 0 60px; color: #64748b; font-size: 15px; font-weight: 500;">Theo dõi chi tiết quy trình xác nhận đa cấp và xử lý đơn Xuất Nhập Khẩu</p>
+                <p class="header-desc-mobile" style="margin: 8px 0 0 60px; color: #64748b; font-size: 15px; font-weight: 500;">Theo dõi chi tiết quy trình xác nhận đa cấp và xử lý đơn Xuất Nhập Khẩu</p>
             </div>
 
-            <div style="display: flex; gap: 15px; align-items: center;">
+            <div class="controls-mobile" style="display: flex; gap: 15px; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 12px 15px; border-radius: 14px; border: 2px solid white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                     <span style="font-size: 13px; font-weight: 700; color: #64748b;">Hiển thị:</span>
                     <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: #1e293b; cursor: pointer; background: transparent; font-size: 14px;">
@@ -30,7 +30,7 @@
                     </select>
                 </div>
                 
-                <div style="position: relative;">
+                <div class="search-box-mobile" style="position: relative;">
                     <i class="fa fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #0891b2; z-index: 10;"></i>
                     <input type="text" id="logSearch" onkeyup="handleFilterAndPaginate()" placeholder="Tìm tên đơn, mã đơn, nội dung..."
                            style="padding: 14px 20px 14px 45px; border-radius: 14px; border: 2px solid white; width: 350px; outline: none; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-size: 14px; font-weight: 600; color: #1e293b;">
@@ -39,7 +39,7 @@
         </div>
 
         @* --- FILTER TABS --- *@
-        <div style="display: flex; gap: 8px; margin-bottom: 25px; flex-wrap: wrap;">
+        <div class="filter-tabs-mobile" style="display: flex; gap: 8px; margin-bottom: 25px; flex-wrap: wrap;">
             <button onclick="filterByStatus('ALL', this)" class="filter-btn active">Tất cả</button>
             <button onclick="filterByStatus('CHỜ QL', this)" class="filter-btn" style="color: #b45309;">Chờ QL</button>
             <button onclick="filterByStatus('BP XÁC NHẬN', this)" class="filter-btn" style="color: #0369a1;">BP Xác nhận</button>
@@ -58,7 +58,7 @@
         </div>
 
         @* --- PHẦN PHÂN TRANG --- *@
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 15px;">
+        <div class="pagination-footer-mobile" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 15px;">
             <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
             <div style="text-align: right;">
                 <div style="color: #64748b; font-size: 13px; font-weight: 700;">
@@ -89,6 +89,61 @@
 
     .log-item:hover { transform: translateX(8px); }
     .log-item:hover > div { border-color: #cbd5e1 !important; box-shadow: 0 10px 20px -5px rgba(0,0,0,0.1) !important; background-color: #fcfdfe !important; }
+
+    /* ==========================================
+       BỔ SUNG CSS MOBILE (CHỈ KÍCH HOẠT KHI < 768PX)
+       PC GIỮ NGUYÊN 100%
+       ========================================== */
+    @@media (max-width: 768px) {
+        .main-log-page { padding: 20px 15px !important; }
+
+        /* Stack Header & Search */
+        .header-section-mobile { flex-direction: column !important; align-items: flex-start !important; gap: 15px !important; }
+        .header-desc-mobile { margin-left: 0 !important; font-size: 13px !important; }
+        .controls-mobile { width: 100% !important; flex-direction: column !important; align-items: stretch !important; }
+        .search-box-mobile, #logSearch { width: 100% !important; }
+
+        /* Filter Tabs cuộn ngang mượt mà */
+        .filter-tabs-mobile { 
+            overflow-x: auto; 
+            white-space: nowrap; 
+            padding-bottom: 10px; 
+            margin-bottom: 15px !important;
+            display: flex !important;
+            scrollbar-width: none;
+        }
+        .filter-tabs-mobile::-webkit-scrollbar { display: none; }
+        .filter-btn { padding: 10px 15px !important; font-size: 11px !important; }
+
+        /* Log Items chuyển sang card dọc */
+        .log-inner-container { 
+            flex-direction: column !important; 
+            align-items: flex-start !important; 
+            gap: 15px !important; 
+            padding: 15px !important;
+        }
+        
+        .time-box-mobile { 
+            width: 100% !important; 
+            text-align: left !important; 
+            border-right: none !important; 
+            border-bottom: 1px dashed #e2e8f0 !important; 
+            padding-right: 0 !important; 
+            padding-bottom: 10px !important; 
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+        }
+        .time-box-mobile .time-date { margin-top: 0 !important; }
+
+        .log-metadata-mobile { gap: 6px !important; }
+        .log-metadata-mobile span { font-size: 10px !important; }
+
+        .footer-avatars-mobile { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+
+        .pagination-footer-mobile { flex-direction: column !important; gap: 15px !important; align-items: center !important; }
+        .pagination-footer-mobile > div { text-align: center !important; }
+    }
 </style>
 
 @section Scripts {
@@ -143,8 +198,7 @@
             document.getElementById("totalPagesNum").innerText = totalPages;
 
             const startIndex = (currentPage - 1) * rowsPerPage;
-            const endIndex = startIndex + rowsPerPage;
-            const pageData = filteredData.slice(startIndex, endIndex);
+            const pageData = filteredData.slice(startIndex, startIndex + rowsPerPage);
 
             renderLogs(pageData);
             renderPaginationButtons(totalPages);
@@ -155,11 +209,7 @@
             container.innerHTML = "";
 
             if (pageData.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 60px; background: white; border-radius: 24px; color: #94a3b8; border: 2px dashed #e2e8f0;">
-                        <i class="fa fa-folder-open-o" style="font-size: 50px; margin-bottom: 15px; display: block;"></i>
-                        <p style="font-weight: 700; font-size: 16px;">Không tìm thấy dữ liệu nhật ký SHD phù hợp.</p>
-                    </div>`;
+                container.innerHTML = `<div style="text-align: center; padding: 60px; background: white; border-radius: 24px; color: #94a3b8; border: 2px dashed #e2e8f0;"><i class="fa fa-folder-open-o" style="font-size: 50px; margin-bottom: 15px; display: block;"></i><p style="font-weight: 700; font-size: 16px;">Không tìm thấy dữ liệu.</p></div>`;
                 return;
             }
 
@@ -167,91 +217,58 @@
             pageData.forEach(item => {
                 let supHtml = "";
                 if (item.nguoiHoTro) {
-                    supHtml = `
-                        <div style="font-size: 12px; color: #0891b2; background: #ecfeff; padding: 3px 10px; border-radius: 8px; font-weight: 700;">
-                            <i class="fa fa-user-circle"></i> Hỗ trợ: ${item.nguoiHoTro}
-                        </div>`;
+                    supHtml = `<div style="font-size: 12px; color: #0891b2; background: #ecfeff; padding: 3px 10px; border-radius: 8px; font-weight: 700;"><i class="fa fa-user-circle"></i> ${item.nguoiHoTro}</div>`;
                 }
-
                 let avatarChar = item.tenAdmin ? item.tenAdmin.charAt(0) : "S";
 
                 html += `
                     <a href="/FormSHD/ChiTiet/${item.idFormShd}" class="log-item" style="text-decoration: none; display: block; border-radius: 20px; transition: all 0.3s ease;">
-                        <div style="background: white; border-radius: 20px; padding: 20px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); position: relative; overflow: hidden;">
-                            
+                        <div class="log-inner-container" style="background: white; border-radius: 20px; padding: 20px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); position: relative; overflow: hidden;">
                             <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: ${item.statusColor};"></div>
-
-                            <div style="min-width: 100px; text-align: center; border-right: 1px dashed #e2e8f0; padding-right: 20px;">
+                            
+                            <div class="time-box-mobile" style="min-width: 100px; text-align: center; border-right: 1px dashed #e2e8f0; padding-right: 20px;">
                                 <div style="font-size: 20px; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">${item.timeHHmm}</div>
-                                <div style="font-size: 12px; font-weight: 700; color: #94a3b8; margin-top: 4px;">${item.timeDate}</div>
+                                <div class="time-date" style="font-size: 12px; font-weight: 700; color: #94a3b8; margin-top: 4px;">${item.timeDate}</div>
                             </div>
 
                             <div style="flex-grow: 1;">
-                                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
-                                    <span style="background: ${item.actionColor}; color: white; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase;">
-                                        ${item.tieuDe}
-                                    </span>
-
-                                    <span style="background: ${item.statusColor}15; color: ${item.statusColor}; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; border: 1px solid ${item.statusColor}30;">
-                                        <i class="fa fa-circle" style="font-size: 8px; margin-right: 5px; vertical-align: middle;"></i>
-                                        ${item.statusText}
-                                    </span>
-
-                                    <span style="color: #475569; font-size: 13px; font-weight: 700; background: #f8fafc; padding: 3px 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                                        ID: #${item.idFormShd} - ${item.tenForm}
-                                    </span>
+                                <div class="log-metadata-mobile" style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                                    <span style="background: ${item.actionColor}; color: white; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase;">${item.tieuDe}</span>
+                                    <span style="background: ${item.statusColor}15; color: ${item.statusColor}; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; border: 1px solid ${item.statusColor}30;">${item.statusText}</span>
+                                    <span style="color: #475569; font-size: 13px; font-weight: 700; background: #f8fafc; padding: 3px 10px; border-radius: 8px; border: 1px solid #e2e8f0;">ID: #${item.idFormShd}</span>
                                 </div>
-
-                                <div style="color: #334155; font-size: 15px; line-height: 1.5; font-weight: 500; margin-bottom: 12px;">
-                                    ${item.mota}
-                                </div>
-
-                                <div style="display: flex; gap: 15px; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+                                <div style="color: #334155; font-size: 15px; line-height: 1.5; font-weight: 500; margin-bottom: 12px;">${item.mota}</div>
+                                <div class="footer-avatars-mobile" style="display: flex; gap: 15px; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 10px;">
                                     <div style="font-size: 12px; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 6px;">
                                         <img src="https://ui-avatars.com/api/?name=${avatarChar}&background=0891b2&color=fff" style="width: 20px; height: 20px; border-radius: 50%;" />
-                                        Nhân sự SHD: <span style="color: #1e293b;">${item.tenAdmin}</span>
+                                        <span>${item.tenAdmin}</span>
                                     </div>
                                     ${supHtml}
                                 </div>
                             </div>
-
-                            <div style="color: #cbd5e1; font-size: 20px;">
-                                <i class="fa fa-angle-right"></i>
-                            </div>
+                            <div class="arrow-mobile" style="color: #cbd5e1; font-size: 20px;"><i class="fa fa-angle-right"></i></div>
                         </div>
-                    </a>
-                `;
+                    </a>`;
             });
             container.innerHTML = html;
-            
-            container.style.opacity = "0.4";
-            setTimeout(() => { container.style.opacity = "1"; }, 150);
         }
 
         function renderPaginationButtons(totalPages) {
             const container = document.getElementById("paginationButtons");
             container.innerHTML = "";
             if (totalPages <= 1) return;
-
             for (let i = 1; i <= totalPages; i++) {
                 if (totalPages > 7 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
                     if (i === 3 || i === totalPages - 2) {
-                        const dot = document.createElement("span");
-                        dot.innerText = "...";
+                        const dot = document.createElement("span"); dot.innerText = "...";
                         dot.style.padding = "8px"; dot.style.color = "#64748b"; dot.style.fontWeight = "700";
                         container.appendChild(dot);
                     }
                     continue;
                 }
-
                 const btn = document.createElement("button");
-                btn.innerText = i;
-                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
-                btn.onclick = () => {
-                    currentPage = i;
-                    handleFilterAndPaginate();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                };
+                btn.innerText = i; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                btn.onclick = () => { currentPage = i; handleFilterAndPaginate(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
                 container.appendChild(btn);
             }
         }

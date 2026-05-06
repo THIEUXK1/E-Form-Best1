@@ -9,9 +9,63 @@
     string luxuryGradient = "linear-gradient(135deg, #312e81 0%, #1e1b4b 100%)";
 }
 
-<div style="display: flex; justify-content: center; align-items: center; min-height: 80vh; background-color: #f1f5f9; font-family: 'Inter', 'Segoe UI', Roboto, sans-serif; padding: 20px;">
+<style>
+    /* Hiệu ứng mượt mà cho 2026 */
+    .brand-card {
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .brand-logo:hover {
+        transform: scale(1.05) rotate(2deg);
+    }
 
-    <div style="background: #ffffff; padding: 60px; border-radius: 40px; box-shadow: 0 25px 50px -12px rgba(30, 46, 129, 0.15); text-align: center; max-width: 600px; width: 100%; border: 1px solid #e2e8f0; position: relative; overflow: hidden;">
+    /* ==========================================
+           CSS RESPONSIVE CHO MOBILE (2026 STYLE)
+           ========================================== */
+    @@media (max-width: 768px) {
+        .brand-wrapper {
+            padding: 10px !important;
+            min-height: 90vh !important;
+        }
+
+        .brand-card {
+            padding: 40px 20px !important; /* Giảm padding trên mobile */
+            border-radius: 30px !important;
+        }
+
+        .brand-logo {
+            width: 120px !important; /* Thu nhỏ logo box */
+            height: 120px !important;
+            margin-bottom: 30px !important;
+        }
+
+            .brand-logo div {
+                font-size: 32px !important; /* Giảm font chữ SHD */
+            }
+
+        .brand-title {
+            font-size: 2rem !important; /* Giảm size tiêu đề h1 */
+        }
+
+        .btn-group-mobile {
+            flex-direction: column !important; /* Nút bấm xếp dọc */
+            gap: 10px !important;
+        }
+
+        .btn-mobile {
+            width: 100% !important;
+            box-sizing: border-box;
+        }
+
+        .brand-desc {
+            font-size: 0.95rem !important;
+        }
+    }
+</style>
+
+<div class="brand-wrapper" style="display: flex; justify-content: center; align-items: center; min-height: 80vh; background-color: #f1f5f9; font-family: 'Inter', 'Segoe UI', Roboto, sans-serif; padding: 20px;">
+
+    <div class="brand-card" style="background: #ffffff; padding: 60px; border-radius: 40px; box-shadow: 0 25px 50px -12px rgba(30, 46, 129, 0.15); text-align: center; max-width: 600px; width: 100%; border: 1px solid #e2e8f0; position: relative; overflow: hidden;">
         
         <!-- Các khối decor nghệ thuật -->
         <div style="position: absolute; top: -40px; left: -40px; width: 150px; height: 150px; background: linear-gradient(135deg, rgba(34, 211, 238, 0.1), rgba(49, 46, 129, 0.05)); border-radius: 50%; z-index: 0;"></div>
@@ -19,8 +73,8 @@
 
         <div style="position: relative; z-index: 1;">
             
-            <!-- Hiển thị Logo SHD chính diện (Đã bỏ icon, tập trung vào Branding) -->
-            <div style="width: 160px; height: 160px; margin: 0 auto 40px; border-radius: 35px; background: @luxuryGradient; display: flex; justify-content: center; align-items: center; box-shadow: 0 20px 40px rgba(30, 46, 129, 0.3); border: 2px solid rgba(255,255,255,0.1); transition: transform 0.3s ease;">
+            <!-- Hiển thị Logo SHD chính diện -->
+            <div class="brand-logo" style="width: 160px; height: 160px; margin: 0 auto 40px; border-radius: 35px; background: @luxuryGradient; display: flex; justify-content: center; align-items: center; box-shadow: 0 20px 40px rgba(30, 46, 129, 0.3); border: 2px solid rgba(255,255,255,0.1); transition: transform 0.3s ease; cursor: pointer;">
                 <div style="color: #ffffff; font-size: 42px; font-weight: 900; letter-spacing: 3px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
                     SHD
                 </div>
@@ -32,7 +86,7 @@
             </div>
 
             <!-- Tiêu đề chính -->
-            <h1 style="margin: 0; font-size: 2.8rem; color: @indigoDeep; font-weight: 900; letter-spacing: -1.5px; line-height: 1.1;">
+            <h1 class="brand-title" style="margin: 0; font-size: 2.8rem; color: @indigoDeep; font-weight: 900; letter-spacing: -1.5px; line-height: 1.1;">
                 Hệ Thống <span style="color: @cyanAccent; text-shadow: 1px 1px 0px rgba(0,0,0,0.05);">SHD FORM</span>
             </h1>
 
@@ -43,16 +97,16 @@
                 <div style="width: 40px; height: 4px; background: @indigoDeep; border-radius: 10px; opacity: 0.2;"></div>
             </div>
 
-            <p style="font-size: 1.1rem; color: #64748b; line-height: 1.6; max-width: 450px; margin: 0 auto;">
+            <p class="brand-desc" style="font-size: 1.1rem; color: #64748b; line-height: 1.6; max-width: 450px; margin: 0 auto;">
                 Cổng thông tin quản lý đơn từ và biểu mẫu điện tử của bộ phận <strong>SHD Import Export</strong>. Số hóa quy trình làm việc chuyên nghiệp.
             </p>
 
             <!-- Nút chức năng giả lập -->
-            <div style="margin-top: 40px; display: flex; justify-content: center; gap: 15px;">
-                <div style="padding: 12px 25px; background: @indigoDeep; color: #fff; border-radius: 15px; font-size: 0.9rem; font-weight: 600; cursor: default; box-shadow: 0 10px 20px rgba(30, 46, 129, 0.2); border: 1px solid rgba(34, 211, 238, 0.2);">
+            <div class="btn-group-mobile" style="margin-top: 40px; display: flex; justify-content: center; gap: 15px;">
+                <div class="btn-mobile" style="padding: 12px 25px; background: @indigoDeep; color: #fff; border-radius: 15px; font-size: 0.9rem; font-weight: 600; cursor: default; box-shadow: 0 10px 20px rgba(30, 46, 129, 0.2); border: 1px solid rgba(34, 211, 238, 0.2);">
                     E-Form Portal
                 </div>
-                <div style="padding: 12px 25px; background: #fff; color: @indigoDeep; border-radius: 15px; font-size: 0.9rem; font-weight: 600; cursor: default; border: 1px solid #e2e8f0;">
+                <div class="btn-mobile" style="padding: 12px 25px; background: #fff; color: @indigoDeep; border-radius: 15px; font-size: 0.9rem; font-weight: 600; cursor: default; border: 1px solid #e2e8f0;">
                     Indigo Theme
                 </div>
             </div>

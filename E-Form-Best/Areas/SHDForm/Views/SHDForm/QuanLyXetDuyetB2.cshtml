@@ -36,12 +36,96 @@
     .page-btn:hover:not(.active) {
         background: #f0fdfa; border-color: @cyanAccent;
     }
+
+    /* ==========================================
+       CSS RESPONSIVE CHO MOBILE (2026 STYLE)
+       ========================================== */
+    @@media (max-width: 768px) {
+        .header-mobile {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 15px !important;
+        }
+
+        .controls-mobile {
+            width: 100% !important;
+            flex-direction: column !important;
+            gap: 12px !important;
+        }
+
+        .controls-mobile > div, #quickSearch {
+            width: 100% !important;
+        }
+
+        /* Thống kê: Lưới 2 cột */
+        .stat-grid-mobile {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+        }
+
+        /* Biến Table thành Card list */
+        #dataTable, #dataTable thead, #dataTable tbody, #dataTable th, #dataTable td, #dataTable tr {
+            display: block;
+        }
+
+        #dataTable thead {
+            display: none; /* Ẩn tiêu đề bảng */
+        }
+
+        #dataTable tr {
+            margin-bottom: 20px;
+            border: 2px solid #e2e8f0 !important;
+            border-radius: 20px;
+            padding: 15px;
+            background: #ffffff;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+
+        #dataTable td {
+            border: none !important;
+            padding: 8px 0 !important;
+            width: 100% !important;
+            text-align: left !important;
+        }
+
+        /* Tùy chỉnh các khối trong Card */
+        .progress-cell-mobile {
+            margin: 10px 0;
+            padding: 10px 0 !important;
+            border-top: 1px dashed #f1f5f9 !important;
+            border-bottom: 1px dashed #f1f5f9 !important;
+        }
+
+        .status-cell-mobile {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .action-cell-mobile {
+            text-align: center !important;
+            padding-top: 10px !important;
+        }
+
+        .action-cell-mobile a {
+            width: 100% !important;
+            padding: 12px !important;
+            font-size: 14px !important;
+        }
+
+        .pagination-mobile {
+            flex-direction: column !important;
+            gap: 15px;
+            align-items: center !important;
+        }
+    }
 </style>
 
 <div style="padding: 20px; background: #f8fafc; min-height: 100vh; font-family: 'Inter', sans-serif;">
 
     @* --- TOP BAR --- *@
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px;">
+    <div class="header-mobile" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px;">
         <h2 style="margin: 0; color: @indigoPrimary; font-weight: 1000; font-size: 24px; display: flex; align-items: center; gap: 10px;">
             <span style="background: @indigoPrimary; color: white; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                 <i class="fa fa-ship"></i>
@@ -49,7 +133,7 @@
             XÉT DUYỆT BỘ PHẬN SHD (B2)
         </h2>
 
-        <div style="display: flex; gap: 10px; align-items: center;">
+        <div class="controls-mobile" style="display: flex; gap: 10px; align-items: center;">
             <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 8px 15px; border-radius: 12px; border: 2px solid #e2e8f0;">
                 <span style="font-size: 12px; font-weight: 700; color: #64748b;">Hiển thị:</span>
                 <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: @indigoPrimary; cursor: pointer; background: transparent; font-size: 14px;">
@@ -70,21 +154,21 @@
     </div>
 
     @* --- STATS ROW --- *@
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 25px;">
+    <div class="stat-grid-mobile" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 25px;">
         <div onclick="filterByStatus('')" class="stat-card" style="background: white; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: #1e293b; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">TỔNG ĐƠN SHD B2</div>
+            <div style="font-size: 10px; font-weight: 900; color: #1e293b; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">TỔNG ĐƠN</div>
             <div id="stat-total" style="font-size: 22px; font-weight: 1000; color: #1e293b;">0</div>
         </div>
         <div onclick="filterByStatus('BP XÁC NHẬN')" class="stat-card" style="background: #ecfeff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: #0891b2; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">CHỜ B2 DUYỆT</div>
+            <div style="font-size: 10px; font-weight: 900; color: #0891b2; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">CHỜ B2</div>
             <div id="stat-b2" style="font-size: 22px; font-weight: 1000; color: #0891b2;">0</div>
         </div>
         <div onclick="filterByStatus('GIÁM ĐỐC')" class="stat-card" style="background: #fdf4ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: #86198f; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">CHỜ GĐ DUYỆT</div>
+            <div style="font-size: 10px; font-weight: 900; color: #86198f; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">CHỜ GĐ</div>
             <div id="stat-gd" style="font-size: 22px; font-weight: 1000; color: #86198f;">0</div>
         </div>
         <div onclick="filterByStatus('ADMIN')" class="stat-card" style="background: #e0e7ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: @indigoPrimary; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">CHỜ ADMIN</div>
+            <div style="font-size: 10px; font-weight: 900; color: @indigoPrimary; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">ADMIN</div>
             <div id="stat-admin" style="font-size: 22px; font-weight: 1000; color: @indigoPrimary;">0</div>
         </div>
         <div onclick="filterByStatus('HOÀN TẤT')" class="stat-card" style="background: #ecfdf5; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
@@ -92,7 +176,7 @@
             <div id="stat-xong" style="font-size: 22px; font-weight: 1000; color: #10b981;">0</div>
         </div>
         <div onclick="filterByStatus('ĐÃ HỦY')" class="stat-card" style="background: #fef2f2; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: #b91c1c; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">ĐÃ HỦY</div>
+            <div style="font-size: 10px; font-weight: 900; color: #b91c1c; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">HỦY</div>
             <div id="stat-huy" style="font-size: 22px; font-weight: 1000; color: #b91c1c;">0</div>
         </div>
     </div>
@@ -122,7 +206,7 @@
     </div>
 
     @* --- PHẦN PHÂN TRANG --- *@
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 5px;">
+    <div class="pagination-mobile" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 5px;">
         <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
         <div style="text-align: right;">
             <div style="color: #64748b; font-size: 13px; font-weight: 700;">
@@ -144,14 +228,12 @@
 
         document.addEventListener("DOMContentLoaded", async () => {
             try {
-                // API SHD B2
                 const response = await fetch('/FormSHD/GetQuanLyXetDuyetB2Data');
                 masterData = await response.json();
-                
                 updateStatistics(masterData);
                 handleFilterAndPaginate();
             } catch (error) {
-                document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: red;">Lỗi tải dữ liệu SHD. Vui lòng F5.</td></tr>`;
+                document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: red;">Lỗi tải dữ liệu.</td></tr>`;
             }
         });
 
@@ -174,10 +256,6 @@
             document.getElementById("quickSearch").value = s;
             currentPage = 1;
             handleFilterAndPaginate();
-            
-            let table = document.getElementById("dataTable");
-            table.style.opacity = "0.4";
-            setTimeout(() => { table.style.opacity = "1"; }, 150);
         }
 
         function handleFilterAndPaginate() {
@@ -197,8 +275,7 @@
             document.getElementById("totalPagesNum").innerText = totalPages;
 
             const startIndex = (currentPage - 1) * rowsPerPage;
-            const endIndex = startIndex + rowsPerPage;
-            const pageData = filteredData.slice(startIndex, endIndex);
+            const pageData = filteredData.slice(startIndex, startIndex + rowsPerPage);
 
             renderTable(pageData);
             renderPaginationButtons(totalPages);
@@ -209,14 +286,13 @@
             tbody.innerHTML = "";
 
             if (pageData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;"><i class="fa fa-folder-open-o" style="font-size: 40px; display: block; margin-bottom: 10px; opacity: 0.5;"></i>Không tìm thấy dữ liệu SHD.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;">Không tìm thấy kết quả.</td></tr>`;
                 return;
             }
 
             let html = "";
             pageData.forEach(item => {
                 let badgesHtml = `<span>ID: #${item.id} • <i class="fa fa-clock-o"></i> ${item.timeNguoiTao}</span>`;
-                
                 if (item.hasB2) {
                     badgesHtml += `<span class="sub-badge" style="color: #0891b2; border-color: #cffafe; background: #ecfeff; margin-left:5px;"><i class="fa fa-users"></i> B2 (${item.b2DuyetCount}/${item.b2TotalCount})</span>`;
                 }
@@ -230,10 +306,10 @@
                 let btnColor = item.isB2Processing ? "#ffffff" : "#64748b";
 
                 html += `
-                    <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
                         <td style="padding: 15px 20px;">
                             <div style="font-weight: 1000; color: #0f172a; font-size: 14px;">${item.tenNguoiNv}</div>
-                            <div style="font-size: 11px; color: #64748b; font-weight: 800;">${item.boPhan} • <span style="color: @indigoPrimary;">MS: ${item.soNhanVien}</span></div>
+                            <div style="font-size: 11px; color: #64748b; font-weight: 800;">${item.boPhan} • MS: ${item.soNhanVien}</div>
                         </td>
                         <td style="padding: 15px 20px;">
                             <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${item.tenForm}</div>
@@ -247,7 +323,7 @@
                                 <div style="font-weight: 700; color: #334155; font-size: 13px;">${item.supportName}</div>
                             </div>
                         </td>
-                        <td style="padding: 15px 20px;">
+                        <td class="progress-cell-mobile" style="padding: 15px 20px;">
                             <div style="font-size: 9px; font-weight: 1000; color: ${item.pColor}; margin-bottom: 4px; display: flex; justify-content: space-between;">
                                 <span>${item.pText}</span> <span>${item.pWidth}</span>
                             </div>
@@ -255,13 +331,12 @@
                                 <div style="width: ${item.pWidth}; height: 100%; background: ${item.pColor}; border-radius: 10px; transition: 0.5s ease;"></div>
                             </div>
                         </td>
-                        <td style="padding: 15px 20px; text-align: center;">
+                        <td class="status-cell-mobile" style="padding: 15px 20px; text-align: center;">
                             <span class="status-pill" style="background:${item.bg}; color:${item.fg}; border: 1.5px solid ${item.fg};">${item.statusTag}</span>
                         </td>
-                        <td style="padding: 15px 20px; text-align: right;">
+                        <td class="action-cell-mobile" style="padding: 15px 20px; text-align: right;">
                             <a href="/FormSHD/ChiTiet/${item.id}"
-                               style="text-decoration: none; padding: 8px 16px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s; background: ${btnBg}; color: ${btnColor};"
-                               onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                               style="text-decoration: none; padding: 8px 16px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s; background: ${btnBg}; color: ${btnColor};">
                                 <i class="fa ${btnClass}"></i> ${btnText}
                             </a>
                         </td>
@@ -275,28 +350,14 @@
             const container = document.getElementById("paginationButtons");
             container.innerHTML = "";
             if (totalPages <= 1) return;
-
             for (let i = 1; i <= totalPages; i++) {
-                if (totalPages > 7 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
-                    if (i === 3 || i === totalPages - 2) {
-                        const dot = document.createElement("span");
-                        dot.innerText = "...";
-                        dot.style.padding = "8px";
-                        dot.style.color = "#64748b";
-                        dot.style.fontWeight = "700";
-                        container.appendChild(dot);
-                    }
+                if (totalPages > 5 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
+                    if (i === 3 || i === totalPages - 2) container.insertAdjacentHTML('beforeend', `<span style="padding:8px">...</span>`);
                     continue;
                 }
-
                 const btn = document.createElement("button");
-                btn.innerText = i;
-                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
-                btn.onclick = () => {
-                    currentPage = i;
-                    handleFilterAndPaginate();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                };
+                btn.innerText = i; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                btn.onclick = () => { currentPage = i; handleFilterAndPaginate(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
                 container.appendChild(btn);
             }
         }
