@@ -4,25 +4,25 @@
 }
 
 @* Container chính *@
-<div style="background-color: #f1f5f9; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; min-height: 100vh; padding: 40px 20px; font-family: 'Inter', 'Segoe UI', sans-serif;">
+<div class="main-container">
     <div style="max-width: 1100px; margin: 0 auto;">
 
         @* --- HEADER SECTION --- *@
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; flex-wrap: wrap; gap: 20px;">
-            <div>
-                <h1 style="margin: 0; color: #0f172a; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 15px;">
-                    <span style="background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); color: white; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 12px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">
+        <div class="header-section">
+            <div class="header-title-box">
+                <h1 class="page-title">
+                    <span class="icon-box">
                         <i class="fa fa-history"></i>
                     </span>
-                    NHẬT KÝ HỆ THỐNG HR
+                    NHẬT KÝ HỆ THỐNG
                 </h1>
-                <p style="margin: 8px 0 0 60px; color: #64748b; font-size: 15px; font-weight: 500;">Theo dõi chi tiết quy trình xác nhận đa cấp và xử lý đơn</p>
+                <p class="page-subtitle">Theo dõi quy trình xử lý đơn</p>
             </div>
 
-            <div style="display: flex; gap: 15px; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 12px 15px; border-radius: 14px; border: 2px solid white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-                    <span style="font-size: 13px; font-weight: 700; color: #64748b;">Hiển thị:</span>
-                    <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: #1e293b; cursor: pointer; background: transparent; font-size: 14px;">
+            <div class="header-controls">
+                <div class="pagesize-box">
+                    <span style="font-size: 13px; font-weight: 700; color: #64748b;">Dòng:</span>
+                    <select id="pageSizeSelect" onchange="changePageSize()" class="clean-select">
                         <option value="10">10</option>
                         <option value="20" selected>20</option>
                         <option value="50">50</option>
@@ -30,41 +30,42 @@
                     </select>
                 </div>
                 
-                <div style="position: relative;">
-                    <i class="fa fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #6366f1; z-index: 10;"></i>
-                    <input type="text" id="logSearch" onkeyup="handleFilterAndPaginate()" placeholder="Tìm tên đơn, mã đơn, nội dung..."
-                           style="padding: 14px 20px 14px 45px; border-radius: 14px; border: 2px solid white; width: 350px; outline: none; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-size: 14px; font-weight: 600; color: #1e293b;">
+                <div class="search-box">
+                    <i class="fa fa-search search-icon"></i>
+                    <input type="text" id="logSearch" onkeyup="handleFilterAndPaginate()" placeholder="Tìm tên đơn, mã số..." class="search-input">
                 </div>
             </div>
         </div>
 
-        @* --- FILTER TABS --- *@
-        <div style="display: flex; gap: 8px; margin-bottom: 25px; flex-wrap: wrap;">
-            <button onclick="filterByStatus('ALL', this)" class="filter-btn active">Tất cả</button>
-            <button onclick="filterByStatus('CHỜ QL', this)" class="filter-btn" style="color: #b45309;">Chờ QL</button>
-            <button onclick="filterByStatus('BP XÁC NHẬN', this)" class="filter-btn" style="color: #0369a1;">BP Xác nhận</button>
-            <button onclick="filterByStatus('GIÁM ĐỐC', this)" class="filter-btn" style="color: #86198f;">Giám đốc/Cấp 2</button>
-            <button onclick="filterByStatus('CHỜ ADMIN', this)" class="filter-btn" style="color: #1e40af;">Chờ Admin</button>
-            <button onclick="filterByStatus('HOÀN TẤT', this)" class="filter-btn" style="color: #10b981;">Hoàn tất</button>
-            <button onclick="filterByStatus('ĐÃ HỦY', this)" class="filter-btn" style="color: #ef4444;">Đã hủy</button>
+        @* --- FILTER TABS (Scrollable on mobile) --- *@
+        <div class="filter-wrapper">
+            <div class="filter-scroll-container">
+                <button onclick="filterByStatus('ALL', this)" class="filter-btn active">Tất cả</button>
+                <button onclick="filterByStatus('CHỜ QL', this)" class="filter-btn" style="color: #b45309;">Chờ QL</button>
+                <button onclick="filterByStatus('BP XÁC NHẬN', this)" class="filter-btn" style="color: #0369a1;">BP Xác nhận</button>
+                <button onclick="filterByStatus('GIÁM ĐỐC', this)" class="filter-btn" style="color: #86198f;">Giám đốc</button>
+                <button onclick="filterByStatus('CHỜ ADMIN', this)" class="filter-btn" style="color: #1e40af;">Chờ Admin</button>
+                <button onclick="filterByStatus('HOÀN TẤT', this)" class="filter-btn" style="color: #10b981;">Hoàn tất</button>
+                <button onclick="filterByStatus('ĐÃ HỦY', this)" class="filter-btn" style="color: #ef4444;">Đã hủy</button>
+            </div>
         </div>
 
         @* --- LOG CONTAINER --- *@
-        <div id="logContainer" style="display: flex; flex-direction: column; gap: 16px;">
-            <div style="text-align: center; padding: 60px; background: white; border-radius: 24px; color: #94a3b8; border: 2px dashed #e2e8f0;">
-                <i class="fa fa-spinner fa-spin" style="font-size: 50px; margin-bottom: 15px; display: block;"></i>
-                <p style="font-weight: 700; font-size: 16px;">Đang tải nhật ký hệ thống...</p>
+        <div id="logContainer" class="logs-wrapper">
+            <div class="loading-state">
+                <i class="fa fa-spinner fa-spin"></i>
+                <p>Đang tải nhật ký hệ thống...</p>
             </div>
         </div>
 
-        @* --- PHẦN PHÂN TRANG --- *@
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 15px;">
-            <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
-            <div style="text-align: right;">
+        @* --- PAGINATION --- *@
+        <div class="pagination-container">
+            <div id="paginationButtons" class="pagination-btns"></div>
+            <div class="pagination-info">
                 <div style="color: #64748b; font-size: 13px; font-weight: 700;">
                     Trang <span id="currentPageNum" style="color: #4338ca;">1</span> / <span id="totalPagesNum">1</span>
                 </div>
-                <div style="color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px;">
+                <div class="total-count">
                     Tổng cộng: <span id="totalVisibleCount">0</span> bản ghi
                 </div>
             </div>
@@ -74,22 +75,100 @@
 </div>
 
 <style>
-    /* Style UI phân trang */
-    .page-btn { padding: 8px 16px; border-radius: 10px; border: 1px solid #e2e8f0; background: white; color: #64748b; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.3s; }
-    .page-btn.active { background: #4338ca; color: white; border-color: #4338ca; box-shadow: 0 4px 6px -1px rgba(67, 56, 202, 0.2); }
-    .page-btn:hover:not(.active) { background: #f8fafc; border-color: #cbd5e1; }
+    /* NỀN VÀ LAYOUT TỔNG THỂ */
+    .main-container {
+        background-color: #f1f5f9;
+        background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+        background-size: 20px 20px;
+        min-height: 100vh;
+        padding: 40px 20px;
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+    }
 
-    /* CSS Gốc của bạn */
+    /* HEADER */
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    .page-title {
+        margin: 0; color: #0f172a; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;
+        display: flex; align-items: center; gap: 15px;
+    }
+    .icon-box {
+        background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+        color: white; width: 45px; height: 45px; display: flex;
+        align-items: center; justify-content: center; border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+    .page-subtitle { margin: 8px 0 0 60px; color: #64748b; font-size: 15px; font-weight: 500; }
+
+    /* CONTROLS */
+    .header-controls { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; width: 100%; justify-content: flex-end; }
+    .pagesize-box {
+        display: flex; align-items: center; gap: 10px; background: white;
+        padding: 12px 15px; border-radius: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .clean-select { border: none; outline: none; font-weight: 800; color: #1e293b; background: transparent; font-size: 14px; }
+    .search-box { position: relative; flex-grow: 1; max-width: 350px; }
+    .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #6366f1; z-index: 10; }
+    .search-input {
+        padding: 14px 20px 14px 45px; border-radius: 14px; border: 2px solid white;
+        width: 100%; outline: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        font-size: 14px; font-weight: 600; color: #1e293b; box-sizing: border-box;
+    }
+
+    /* FILTER TABS */
+    .filter-wrapper { margin-bottom: 25px; overflow: hidden; }
+    .filter-scroll-container {
+        display: flex; gap: 8px; overflow-x: auto; padding: 5px 2px 15px 2px;
+        scrollbar-width: none; /* Firefox */
+    }
+    .filter-scroll-container::-webkit-scrollbar { display: none; /* Chrome, Safari */ }
     .filter-btn {
-        padding: 10px 18px; border-radius: 12px; border: none; background: white; color: #64748b; font-weight: 800;
-        font-size: 12px; text-transform: uppercase; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 10px 18px; border-radius: 12px; border: none; background: white;
+        color: #64748b; font-weight: 800; font-size: 12px; text-transform: uppercase;
+        cursor: pointer; transition: all 0.25s ease; white-space: nowrap;
         box-shadow: 0 2px 4px rgba(0,0,0,0.04);
     }
-    .filter-btn.active { background: #4338ca !important; color: white !important; box-shadow: 0 8px 15px -3px rgba(67, 56, 202, 0.3) !important; transform: translateY(-2px); }
-    .filter-btn:hover:not(.active) { background: #f8fafc; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.08); }
+    .filter-btn.active { background: #4338ca !important; color: white !important; transform: translateY(-2px); }
 
-    .log-item:hover { transform: translateX(8px); }
-    .log-item:hover > div { border-color: #cbd5e1 !important; box-shadow: 0 10px 20px -5px rgba(0,0,0,0.1) !important; background-color: #fcfdfe !important; }
+    /* LOGS */
+    .logs-wrapper { display: flex; flex-direction: column; gap: 16px; }
+    .loading-state { text-align: center; padding: 60px; background: white; border-radius: 24px; color: #94a3b8; border: 2px dashed #e2e8f0; }
+    .loading-state i { font-size: 50px; margin-bottom: 15px; display: block; }
+
+    /* PAGINATION */
+    .pagination-container { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; flex-wrap: wrap; gap: 20px; }
+    .pagination-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .page-btn { padding: 8px 16px; border-radius: 10px; border: 1px solid #e2e8f0; background: white; color: #64748b; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .page-btn.active { background: #4338ca; color: white; border-color: #4338ca; }
+    .total-count { color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px; }
+
+    /* RESPONSIVE MOBILE */
+    @@media (max-width: 768px) {
+        .main-container { padding: 20px 15px; }
+        .header-section { align-items: stretch; text-align: center; }
+        .page-title { font-size: 22px; justify-content: center; }
+        .page-subtitle { margin: 8px 0 0 0; font-size: 13px; }
+        .header-controls { flex-direction: column; align-items: stretch; }
+        .search-box { max-width: 100%; }
+        .log-item-inner { flex-direction: column !important; align-items: flex-start !important; gap: 15px !important; }
+        .log-time-column { 
+            border-right: none !important; border-bottom: 1px dashed #e2e8f0 !important; 
+            padding-right: 0 !important; padding-bottom: 10px !important; 
+            width: 100% !important; text-align: left !important;
+            display: flex !important; justify-content: space-between !important; align-items: center !important;
+        }
+        .log-time-column div:last-child { margin-top: 0 !important; }
+        .log-arrow { display: none; }
+        .pagination-container { justify-content: center; }
+    }
 </style>
 
 @section Scripts {
@@ -106,7 +185,7 @@
                 masterData = await response.json();
                 handleFilterAndPaginate();
             } catch (error) {
-                document.getElementById('logContainer').innerHTML = `<div style="text-align: center; padding: 60px; background: white; border-radius: 24px; color: #ef4444; border: 2px dashed #fca5a5;"><i class="fa fa-exclamation-triangle" style="font-size: 50px; margin-bottom: 15px; display: block;"></i><p style="font-weight: 700; font-size: 16px;">Lỗi tải dữ liệu. Vui lòng F5 trang.</p></div>`;
+                document.getElementById('logContainer').innerHTML = `<div class="loading-state" style="color: #ef4444; border-color: #fca5a5;"><i class="fa fa-exclamation-triangle"></i><p>Lỗi tải dữ liệu. Vui lòng F5 trang.</p></div>`;
             }
         });
 
@@ -131,7 +210,6 @@
                 const matchStatus = (currentFilterStatus === 'ALL' || item.statusText === currentFilterStatus);
                 const rowString = `${item.tieuDe} ${item.mota} ${item.tenForm} ${item.idFormHr}`.toUpperCase();
                 const matchSearch = searchText === "" || rowString.includes(searchText);
-
                 return matchStatus && matchSearch;
             });
 
@@ -144,8 +222,7 @@
             document.getElementById("totalPagesNum").innerText = totalPages;
 
             const startIndex = (currentPage - 1) * rowsPerPage;
-            const endIndex = startIndex + rowsPerPage;
-            const pageData = filteredData.slice(startIndex, endIndex);
+            const pageData = filteredData.slice(startIndex, startIndex + rowsPerPage);
 
             renderLogs(pageData);
             renderPaginationButtons(totalPages);
@@ -156,34 +233,27 @@
             container.innerHTML = "";
 
             if (pageData.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 60px; background: white; border-radius: 24px; color: #94a3b8; border: 2px dashed #e2e8f0;">
-                        <i class="fa fa-folder-open-o" style="font-size: 50px; margin-bottom: 15px; display: block;"></i>
-                        <p style="font-weight: 700; font-size: 16px;">Không tìm thấy dữ liệu nhật ký phù hợp.</p>
-                    </div>`;
+                container.innerHTML = `<div class="loading-state"><i class="fa fa-folder-open-o"></i><p>Không tìm thấy dữ liệu nhật ký phù hợp.</p></div>`;
                 return;
             }
 
             let html = "";
             pageData.forEach(item => {
-                let supHtml = "";
-                if (item.nguoiHoTro) {
-                    supHtml = `
-                        <div style="font-size: 12px; color: #059669; background: #f0fdf4; padding: 3px 10px; border-radius: 8px; font-weight: 700;">
-                            <i class="fa fa-user-circle"></i> Hỗ trợ: ${item.nguoiHoTro}
-                        </div>`;
-                }
+                let supHtml = item.nguoiHoTro ? `
+                    <div style="font-size: 12px; color: #059669; background: #f0fdf4; padding: 3px 10px; border-radius: 8px; font-weight: 700;">
+                        <i class="fa fa-user-circle"></i> Hỗ trợ: ${item.nguoiHoTro}
+                    </div>` : "";
 
                 let avatarChar = item.tenAdmin ? item.tenAdmin.charAt(0) : "A";
 
                 html += `
-                    <a href="/FormHR/ChiTiet/${item.idFormHr}" class="log-item" style="text-decoration: none; display: block; border-radius: 20px; transition: all 0.3s ease;">
-                        <div style="background: white; border-radius: 20px; padding: 20px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); position: relative; overflow: hidden;">
+                    <a href="/FormHR/ChiTiet/${item.idFormHr}" class="log-item" style="text-decoration: none; display: block; border-radius: 20px; margin-bottom: 16px;">
+                        <div class="log-item-inner" style="background: white; border-radius: 20px; padding: 20px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); position: relative; overflow: hidden; transition: all 0.3s ease;">
                             
                             <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: ${item.statusColor};"></div>
 
-                            <div style="min-width: 100px; text-align: center; border-right: 1px dashed #e2e8f0; padding-right: 20px;">
-                                <div style="font-size: 20px; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">${item.timeHHmm}</div>
+                            <div class="log-time-column" style="min-width: 100px; text-align: center; border-right: 1px dashed #e2e8f0; padding-right: 20px;">
+                                <div style="font-size: 20px; font-weight: 800; color: #1e293b;">${item.timeHHmm}</div>
                                 <div style="font-size: 12px; font-weight: 700; color: #94a3b8; margin-top: 4px;">${item.timeDate}</div>
                             </div>
 
@@ -192,22 +262,17 @@
                                     <span style="background: ${item.actionColor}; color: white; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase;">
                                         ${item.tieuDe}
                                     </span>
-
                                     <span style="background: ${item.statusColor}15; color: ${item.statusColor}; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; border: 1px solid ${item.statusColor}30;">
-                                        <i class="fa fa-circle" style="font-size: 8px; margin-right: 5px; vertical-align: middle;"></i>
                                         ${item.statusText}
                                     </span>
-
-                                    <span style="color: #475569; font-size: 13px; font-weight: 700; background: #f8fafc; padding: 3px 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                                        ID: #${item.idFormHr} - ${item.tenForm}
-                                    </span>
+                                    <span style="color: #475569; font-size: 13px; font-weight: 700;">#${item.idFormHr} - ${item.tenForm}</span>
                                 </div>
 
                                 <div style="color: #334155; font-size: 15px; line-height: 1.5; font-weight: 500; margin-bottom: 12px;">
                                     ${item.mota}
                                 </div>
 
-                                <div style="display: flex; gap: 15px; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+                                <div style="display: flex; gap: 15px; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 10px; flex-wrap: wrap;">
                                     <div style="font-size: 12px; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 6px;">
                                         <img src="https://ui-avatars.com/api/?name=${avatarChar}&background=6366f1&color=fff" style="width: 20px; height: 20px; border-radius: 50%;" />
                                         Nhân sự: <span style="color: #1e293b;">${item.tenAdmin}</span>
@@ -216,18 +281,13 @@
                                 </div>
                             </div>
 
-                            <div style="color: #cbd5e1; font-size: 20px;">
+                            <div class="log-arrow" style="color: #cbd5e1; font-size: 20px;">
                                 <i class="fa fa-angle-right"></i>
                             </div>
                         </div>
-                    </a>
-                `;
+                    </a>`;
             });
             container.innerHTML = html;
-            
-            // Effect mượt
-            container.style.opacity = "0.4";
-            setTimeout(() => { container.style.opacity = "1"; }, 150);
         }
 
         function renderPaginationButtons(totalPages) {
@@ -240,12 +300,11 @@
                     if (i === 3 || i === totalPages - 2) {
                         const dot = document.createElement("span");
                         dot.innerText = "...";
-                        dot.style.padding = "8px"; dot.style.color = "#64748b"; dot.style.fontWeight = "700";
+                        dot.style.padding = "8px"; dot.style.color = "#64748b";
                         container.appendChild(dot);
                     }
                     continue;
                 }
-
                 const btn = document.createElement("button");
                 btn.innerText = i;
                 btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;

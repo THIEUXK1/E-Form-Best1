@@ -4787,8 +4787,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
         #endregion
 
-
-
         #region BÁO CÁO THỐNG KÊ FORM HR (Đồng bộ 7 trạng thái)
 
         [HttpGet("/FormHR/BaoCaoThongKe")]

@@ -3,26 +3,138 @@
     Layout = "~/Areas/AdminForm/Views/Shared/_Layout.cshtml";
 }
 
-<div style="background-color: #f0f4f8; border-radius: 15px; padding: 20px;">
+<style>
+    /* CSS TỐI ƯU MOBILE - GEMINI 2026 STYLE */
+    .shd-admin-wrapper {
+        background-color: #f0f4f8;
+        border-radius: 15px;
+        padding: 20px;
+    }
+
+    .shd-card {
+        flex: 1;
+        min-width: 450px;
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        border: 1px solid #cbd5e0;
+        margin-bottom: 20px;
+    }
+
+    .shd-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 10px;
+        margin-bottom: 20px;
+        background: #edf2f7;
+        padding: 15px;
+        border-radius: 10px;
+    }
+
+    .task-form-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 10px;
+    }
+
+    /* Media Query cho Mobile */
+    @@media (max-width: 768px) {
+        .shd-admin-wrapper {
+            padding: 10px;
+        }
+        
+        .shd-card {
+            min-width: 100% !important;
+            padding: 15px !important;
+        }
+
+        .shd-form-grid, .task-form-grid {
+            grid-template-columns: 1fr !important;
+        }
+
+        #btnSaveNHT_SHD, #btnSaveCV_SHD {
+            grid-column: span 1 !important;
+        }
+        /* Biến Table thành dạng Cards */
+        .mobile-responsive-table,
+        .mobile-responsive-table thead,
+        .mobile-responsive-table tbody,
+        .mobile-responsive-table th,
+        .mobile-responsive-table td,
+        .mobile-responsive-table tr {
+            display: block;
+        }
+
+            .mobile-responsive-table thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+
+            .mobile-responsive-table tr {
+                border: 1px solid #e2e8f0;
+                margin-bottom: 15px;
+                border-radius: 10px;
+                padding: 10px;
+                background: #fff;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            }
+
+            .mobile-responsive-table td {
+                border: none;
+                position: relative;
+                padding-left: 45% !important;
+                text-align: right !important;
+                min-height: 35px;
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                border-bottom: 1px solid #f7fafc;
+            }
+
+                .mobile-responsive-table td:last-child {
+                    border-bottom: none;
+                    justify-content: center;
+                    padding-left: 0 !important;
+                    padding-top: 15px !important;
+                }
+
+                .mobile-responsive-table td:before {
+                    position: absolute;
+                    left: 10px;
+                    width: 40%;
+                    white-space: nowrap;
+                    font-weight: bold;
+                    text-align: left;
+                    color: #4a5568;
+                    content: attr(data-label);
+                    font-size: 11px;
+                    text-transform: uppercase;
+                }
+    }
+</style>
+
+<div class="shd-admin-wrapper">
     <div style="display: flex; gap: 25px; flex-wrap: wrap; align-items: flex-start;">
 
         <!-- BẢN: NGƯỜI HỖ TRỢ SHD -->
-        <div style="flex: 1; min-width: 450px; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #cbd5e0;">
+        <div class="shd-card">
             <h3 style="margin-top: 0; color: #2c5282; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px;">
                 <span style="background: #ebf8ff; padding: 8px; border-radius: 10px;">👥</span> Quản lý Người Hỗ Trợ SHD
             </h3>
 
-            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 20px; background: #edf2f7; padding: 15px; border-radius: 10px;">
+            <div class="shd-form-grid">
                 <input type="hidden" id="txtIdSHD" value="0" />
-                <input type="text" id="txtMaNvSHD" placeholder="Mã NV SHD" style="padding: 10px; border: 1px solid #a0aec0; border-radius: 6px; outline: none;" />
-                <input type="text" id="txtTenSHD" placeholder="Họ tên nhân viên" style="padding: 10px; border: 1px solid #a0aec0; border-radius: 6px; outline: none;" />
-                <input type="text" id="txtBoPhanSHD" placeholder="Bộ phận" style="padding: 10px; border: 1px solid #a0aec0; border-radius: 6px; outline: none;" />
-                <input type="text" id="txtGhiChuSHD" placeholder="Ghi chú" style="padding: 10px; border: 1px solid #a0aec0; border-radius: 6px; outline: none;" />
-                <button onclick="saveNHT_SHD()" id="btnSaveNHT_SHD" style="grid-column: span 2; background: linear-gradient(135deg, #3182ce 0%, #2b6cb0 100%); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s;">Lưu Nhân Viên SHD</button>
+                <input type="text" id="txtMaNvSHD" placeholder="Mã NV SHD" style="padding: 12px; border: 1px solid #a0aec0; border-radius: 8px; outline: none;" />
+                <input type="text" id="txtTenSHD" placeholder="Họ tên nhân viên" style="padding: 12px; border: 1px solid #a0aec0; border-radius: 8px; outline: none;" />
+                <input type="text" id="txtBoPhanSHD" placeholder="Bộ phận" style="padding: 12px; border: 1px solid #a0aec0; border-radius: 8px; outline: none;" />
+                <input type="text" id="txtGhiChuSHD" placeholder="Ghi chú" style="padding: 12px; border: 1px solid #a0aec0; border-radius: 8px; outline: none;" />
+                <button onclick="saveNHT_SHD()" id="btnSaveNHT_SHD" style="grid-column: span 2; background: linear-gradient(135deg, #3182ce 0%, #2b6cb0 100%); color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s;">Lưu Nhân Viên SHD</button>
             </div>
 
             <div style="overflow-x: auto;">
-                <table class="table table-hover" style="font-size: 13px;">
+                <table class="table table-hover mobile-responsive-table" style="font-size: 13px;">
                     <thead class="table-light">
                         <tr style="color: #2c5282; text-transform: uppercase; font-size: 11px;">
                             <th>Mã NV</th>
@@ -37,22 +149,22 @@
         </div>
 
         <!-- BẢN: CÔNG VIỆC SHD -->
-        <div style="flex: 1.2; min-width: 500px; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
+        <div class="shd-card" style="flex: 1.2; min-width: 500px; border: 1px solid #e2e8f0;">
             <h3 style="margin-top: 0; color: #2d3748; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #edf2f7; padding-bottom: 15px;">
                 <span style="background: #f0fdf4; padding: 8px; border-radius: 10px;">📝</span> Danh sách Công Việc SHD
             </h3>
 
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 10px;">
                 <input type="hidden" id="txtCvIdSHD" value="0" />
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
-                    <input type="text" id="txtCvTenSHD" placeholder="Tên công việc SHD..." style="padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; outline: none;" />
-                    <select id="ddlNguoiHoTroSHD" style="padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; background: white; cursor: pointer;"></select>
+                <div class="task-form-grid">
+                    <input type="text" id="txtCvTenSHD" placeholder="Tên công việc SHD..." style="padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; outline: none;" />
+                    <select id="ddlNguoiHoTroSHD" style="padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background: white; cursor: pointer;"></select>
                 </div>
-                <button onclick="saveCV_SHD()" id="btnSaveCV_SHD" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: 600;">+ THÊM CÔNG VIỆC SHD</button>
+                <button onclick="saveCV_SHD()" id="btnSaveCV_SHD" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: 600;">+ THÊM CÔNG VIỆC SHD</button>
             </div>
 
             <div style="overflow-x: auto;">
-                <table class="table table-hover" style="font-size: 13px;">
+                <table class="table table-hover mobile-responsive-table" style="font-size: 13px;">
                     <thead class="table-light">
                         <tr style="text-transform: uppercase; font-size: 11px;">
                             <th>Công Việc</th>
@@ -76,18 +188,18 @@
             loadCV_SHD();
         });
 
-        const btnStyleSua = "color: #3182ce; background: #ebf8ff; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: 600; margin-right: 5px;";
-        const btnStyleXoa = "color: #e53e3e; background: #fff5f5; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: 600;";
+        const btnStyleSua = "color: #3182ce; background: #ebf8ff; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; margin-right: 5px; display: inline-block;";
+        const btnStyleXoa = "color: #e53e3e; background: #fff5f5; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block;";
 
         // --- PHẦN 1: XỬ LÝ NHÂN VIÊN SHD ---
         function loadNHT_SHD() {
             $.get('/QLtaiKhoan/GetAllNguoiHoTroSHD', function (data) {
                 let html = data.map(i => `
                     <tr style="vertical-align: middle;">
-                        <td style="font-weight: bold;">${i.maNv || ''}</td>
-                        <td>${i.ten || ''}</td>
-                        <td>${i.boPhan || ''}</td>
-                        <td style="text-align: center; white-space: nowrap;">
+                        <td data-label="Mã NV" style="font-weight: bold;">${i.maNv || ''}</td>
+                        <td data-label="Tên">${i.ten || ''}</td>
+                        <td data-label="Bộ Phận">${i.boPhan || ''}</td>
+                        <td data-label="Thao tác" style="text-align: center; white-space: nowrap;">
                             <a href="javascript:void(0)" onclick='editNHT_SHD(${JSON.stringify(i)})' style="${btnStyleSua}">Sửa</a>
                             <a href="javascript:void(0)" onclick="deleteNHT_SHD(${i.id})" style="${btnStyleXoa}">Xóa</a>
                         </td>
@@ -129,6 +241,7 @@
             $('#txtBoPhanSHD').val(i.boPhan || "");
             $('#txtGhiChuSHD').val(i.ghiChu || "");
             $('#btnSaveNHT_SHD').text("Cập nhật SHD").css("background", "linear-gradient(135deg, #ecc94b 0%, #d69e2e 100%)");
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function resetNHT_SHD() {
@@ -169,14 +282,14 @@
 
                     return `
                     <tr style="vertical-align: middle;">
-                        <td style="font-weight: 500;">${i.ten}</td>
-                        <td style="text-align: center;">
+                        <td data-label="Công Việc" style="font-weight: 500;">${i.ten}</td>
+                        <td data-label="Trạng Thái" style="text-align: center;">
                             <span onclick="toggleStatusSHD(${i.id})" style="${statusStyle} padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; cursor: pointer; user-select: none;">
                                 ${isShow ? "Hiển thị" : "Ẩn"}
                             </span>
                         </td>
-                        <td><span style="color: #2c5282; font-weight: 600;">${i.tenNguoiHoTroSHD || 'Chưa phân công'}</span></td>
-                        <td style="text-align: center; white-space: nowrap;">
+                        <td data-label="Phụ Trách"><span style="color: #2c5282; font-weight: 600;">${i.tenNguoiHoTroSHD || 'Chưa phân công'}</span></td>
+                        <td data-label="Thao tác" style="text-align: center; white-space: nowrap;">
                             <a href="javascript:void(0)" onclick='editCV_SHD(${JSON.stringify(i)})' style="${btnStyleSua}">Sửa</a>
                             <a href="javascript:void(0)" onclick="deleteCV_SHD(${i.id})" style="${btnStyleXoa}">Xóa</a>
                         </td>

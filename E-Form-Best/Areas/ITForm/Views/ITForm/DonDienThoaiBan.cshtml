@@ -9,7 +9,7 @@
     var tenNguoiNv = User.Identity.Name ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
-    var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? ""; // Bổ sung tên công ty
+    var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
     // Định nghĩa bảng màu (Indigo/Blue)
@@ -25,6 +25,7 @@
 }
 
 <style>
+    /* HIỆU ỨNG DESKTOP */
     .input-focus:focus {
         border-color: @colorPrimary !important;
         box-shadow: 0 0 0 4px rgba(63, 81, 181, 0.1) !important;
@@ -40,17 +41,62 @@
         box-shadow: 0 15px 30px -5px rgba(63, 81, 181, 0.5);
         filter: brightness(1.1);
     }
+
+    /* ==========================================
+           CSS RESPONSIVE CHO MOBILE (2026 STYLE)
+           ========================================== */
+    @@media (max-width: 768px) {
+        .main-page-container {
+            padding: 20px 10px !important;
+        }
+
+        .form-card {
+            border-radius: 25px !important;
+        }
+
+        .form-header {
+            padding: 35px 15px !important;
+        }
+
+            .form-header h2 {
+                font-size: 20px !important;
+            }
+
+        .form-body {
+            padding: 20px 15px !important;
+        }
+        /* Chuyển các Grid đa cột về 1 cột trên Mobile */
+        .grid-responsive-4,
+        .grid-responsive-2 {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+        }
+
+        .box-detail-mobile {
+            padding: 15px !important;
+            border-radius: 20px !important;
+        }
+
+        #paste_AnhDt, .file-upload-box {
+            height: 140px !important;
+        }
+
+        #btnSubmit {
+            padding: 18px !important;
+            font-size: 16px !important;
+        }
+    }
 </style>
 
-<div style="background: linear-gradient(135deg, #f5f7ff 0%, #e8eaf6 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif;">
+<div class="main-page-container" style="background: linear-gradient(135deg, #f5f7ff 0%, #e8eaf6 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif;">
 
-    <form id="itPhoneForm" method="post" enctype="multipart/form-data" asp-action="DonDienThoaiBan" asp-controller="FormIT" asp-area="ITForm"
+    <form id="itPhoneForm" method="post" enctype="multipart/form-data" asp-action="DonDienThoaiBan" asp-controller="FormIT" asp-area="ITForm" class="form-card"
           style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(26, 35, 126, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
 
         @Html.AntiForgeryToken()
 
         @* --- HEADER --- *@
-        <div style="background: linear-gradient(135deg, @colorPrimary 0%, @colorDark 100%); padding: 45px 20px; color: #ffffff; text-align: center; position: relative;">
+        <div class="form-header" style="background: linear-gradient(135deg, @colorPrimary 0%, @colorDark 100%); padding: 45px 20px; color: #ffffff; text-align: center; position: relative;">
             <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">VOIP SYSTEM V1.0</div>
             <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Phiếu đăng ký điện thoại bàn</h2>
             <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: rgba(255,255,255,0.2); border-radius: 50px; font-size: 13px; backdrop-filter: blur(4px);">
@@ -59,7 +105,7 @@
             </div>
         </div>
 
-        <div style="padding: 40px;">
+        <div class="form-body" style="padding: 40px;">
 
             @* --- PHẦN 1: THÔNG TIN NGƯỜI YÊU CẦU --- *@
             <div style="margin-bottom: 40px;">
@@ -68,7 +114,7 @@
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin người yêu cầu</h3>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                <div class="grid-responsive-4" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
                     <div style="background: #f8faff; padding: 15px; border-radius: 15px; border: 1px solid #e8eaf6;">
                         <label style="@labelBase">Mã nhân viên</label>
                         <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@soNhanVien</div>
@@ -89,7 +135,7 @@
             </div>
 
             @* --- PHẦN 2: NỘI DUNG ĐĂNG KÝ --- *@
-            <div style="@boxDetail">
+            <div class="box-detail-mobile" style="@boxDetail">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Nội dung đăng ký</h3>
@@ -107,7 +153,7 @@
                               class="input-focus" style="@inputBase height: 80px; resize: none;"></textarea>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="grid-responsive-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div>
                         <label style="@labelBase">Ảnh sơ đồ/Vị trí (Ctrl+V)</label>
                         <div id="paste_AnhDt" tabindex="0"
@@ -118,7 +164,7 @@
                     </div>
                     <div>
                         <label style="@labelBase">Tài liệu kèm theo</label>
-                        <div style="border: 2px dashed #e2e8f0; height: 160px; border-radius: 15px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; background: #ffffff;">
+                        <div class="file-upload-box" style="border: 2px dashed #e2e8f0; height: 160px; border-radius: 15px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; background: #ffffff;">
                             <input type="file" name="UploadFile" style="font-size: 12px; width: 100%;">
                             <p style="font-size: 11px; color: #64748b; margin-top: 15px; line-height: 1.5;">Đính kèm danh sách số điện thoại hoặc file vị trí nếu cần.</p>
                         </div>
@@ -127,7 +173,7 @@
             </div>
 
             @* --- PHẦN 3: LOẠI YÊU CẦU HỖ TRỢ --- *@
-            <div style="@boxDetail">
+            <div class="box-detail-mobile" style="@boxDetail">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">3</span>
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Loại yêu cầu hỗ trợ</h3>
@@ -135,7 +181,7 @@
 
                 <label style="@labelBase">Vui lòng chọn vấn đề bạn đang gặp <span style="color:red">*</span></label>
 
-                <select name="selectedCongViecId" id="selectedCongViecId" required style="@inputBase cursor: pointer;">
+                <select name="selectedCongViecId" id="selectedCongViecId" required class="input-focus" style="@inputBase cursor: pointer;">
                     <option value="">-- Click để chọn loại công việc --</option>
                     @if (ViewBag.CongViecList != null)
                     {
@@ -148,7 +194,7 @@
             </div>
 
             @* --- PHẦN 4: BẢN CAM KẾT --- *@
-            <div style="margin-bottom: 35px; background: #f5f7ff; border: 1px dashed @colorBorder; border-radius: 24px; padding: 25px;">
+            <div class="box-detail-mobile" style="margin-bottom: 35px; background: #f5f7ff; border: 1px dashed @colorBorder; border-radius: 24px; padding: 25px;">
                 <h3 style="margin: 0 0 15px 0; color: @colorDark; font-size: 15px; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 1px;">
                     CAM KẾT SỬ DỤNG VÀ BẢO QUẢN THIẾT BỊ
                 </h3>

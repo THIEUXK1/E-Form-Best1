@@ -450,13 +450,13 @@
         }
 
         // ==========================================
-        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE
+        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE (ĐÃ HỢP NHẤT)
         // ==========================================
         function initLanguageGTranslate() {
-            let currentLang = localStorage.getItem('siteLangItForm');
+            let currentLang = localStorage.getItem('siteLangGlobal'); // Dùng chung cho HR, IT, SHD
             if (!currentLang) {
                 currentLang = 'vi';
-                localStorage.setItem('siteLangItForm', 'vi');
+                localStorage.setItem('siteLangGlobal', 'vi');
             }
 
             const labels = { 'vi': 'Tiếng Việt', 'en': 'English', 'zh-CN': '中文' };
@@ -474,7 +474,7 @@
         }
 
         function changeLanguageGTranslate(lang, label) {
-            localStorage.setItem('siteLangItForm', lang);
+            localStorage.setItem('siteLangGlobal', lang); // Dùng chung cho HR, IT, SHD
             if (lang === 'vi') {
                 document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
                 document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;

@@ -4,23 +4,22 @@
 }
 
 @* Container chính *@
-<div style="background-color: #f1f5f9; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; min-height: 100vh; padding: 40px 20px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+<div style="background-color: #f1f5f9; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; min-height: 100vh; padding: 40px 20px; font-family: 'Inter', 'Segoe UI', sans-serif;" class="main-container">
     <div style="max-width: 1100px; margin: 0 auto;">
 
         @* --- HEADER SECTION --- *@
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px;">
-            <div>
+        <div class="header-section" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px;">
+            <div class="title-group">
                 <h1 style="margin: 0; color: #0f172a; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 15px;">
                     <span style="background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); color: white; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 12px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">
                         <i class="fa fa-history"></i>
                     </span>
                     NHẬT KÝ HỆ THỐNG IT
                 </h1>
-                <p style="margin: 8px 0 0 60px; color: #64748b; font-size: 15px; font-weight: 500;">Quản lý luồng xử lý và vết hoạt động thời gian thực</p>
+                <p class="subtitle" style="margin: 8px 0 0 60px; color: #64748b; font-size: 15px; font-weight: 500;">Quản lý luồng xử lý và vết hoạt động thời gian thực</p>
             </div>
 
-            <div style="display: flex; gap: 15px; align-items: center;">
-                @* --- CHỌN SỐ DÒNG HIỂN THỊ --- *@
+            <div class="controls-group" style="display: flex; gap: 15px; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 10px 15px; border-radius: 14px; border: 2px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                     <span style="font-size: 12px; font-weight: 700; color: #64748b;">Hiển thị:</span>
                     <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: #6366f1; cursor: pointer; background: transparent; font-size: 14px;">
@@ -31,23 +30,22 @@
                     </select>
                 </div>
 
-                @* --- TÌM KIẾM --- *@
-                <div style="position: relative;">
+                <div class="search-box" style="position: relative;">
                     <i class="fa fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #6366f1; z-index: 10;"></i>
-                    <input type="text" id="logSearch" onkeyup="handleFilterAndPaginate()" placeholder="Tìm tên đơn, mã đơn, nội dung..."
+                    <input type="text" id="logSearch" onkeyup="handleFilterAndPaginate()" placeholder="Tìm tên đơn, mã đơn..."
                            style="padding: 14px 20px 14px 45px; border-radius: 14px; border: 2px solid white; width: 350px; outline: none; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-size: 14px; font-weight: 600; color: #1e293b;">
                 </div>
             </div>
         </div>
 
         @* --- FILTER TABS --- *@
-        <div style="display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap;">
-            <button onclick="filterByStatus('all', this)" class="filter-btn active" style="padding: 8px 16px; border-radius: 10px; border: none; background: white; color: #64748b; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">Tất cả</button>
-            <button onclick="filterByStatus('Chờ phê duyệt', this)" class="filter-btn" style="padding: 8px 16px; border-radius: 10px; border: none; background: white; color: #f97316; font-weight: 700; cursor: pointer; transition: all 0.2s;">Chờ phê duyệt</button>
-            <button onclick="filterByStatus('Đang xử lý', this)" class="filter-btn" style="padding: 8px 16px; border-radius: 10px; border: none; background: white; color: #3b82f6; font-weight: 700; cursor: pointer; transition: all 0.2s;">Đang xử lý</button>
-            <button onclick="filterByStatus('Chờ đánh giá', this)" class="filter-btn" style="padding: 8px 16px; border-radius: 10px; border: none; background: white; color: #db2777; font-weight: 700; cursor: pointer; transition: all 0.2s;">Chờ đánh giá</button>
-            <button onclick="filterByStatus('Hoàn tất 100%', this)" class="filter-btn" style="padding: 8px 16px; border-radius: 10px; border: none; background: white; color: #10b981; font-weight: 700; cursor: pointer; transition: all 0.2s;">Hoàn tất</button>
-            <button onclick="filterByStatus('Đã hủy đơn', this)" class="filter-btn" style="padding: 8px 16px; border-radius: 10px; border: none; background: white; color: #ef4444; font-weight: 700; cursor: pointer; transition: all 0.2s;">Đã hủy</button>
+        <div style="display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap;" class="filter-tabs">
+            <button onclick="filterByStatus('all', this)" class="filter-btn active">Tất cả</button>
+            <button onclick="filterByStatus('Chờ phê duyệt', this)" class="filter-btn status-pending">Chờ phê duyệt</button>
+            <button onclick="filterByStatus('Đang xử lý', this)" class="filter-btn status-processing">Đang xử lý</button>
+            <button onclick="filterByStatus('Chờ đánh giá', this)" class="filter-btn status-rating">Chờ đánh giá</button>
+            <button onclick="filterByStatus('Hoàn tất 100%', this)" class="filter-btn status-done">Hoàn tất</button>
+            <button onclick="filterByStatus('Đã hủy đơn', this)" class="filter-btn status-cancel">Đã hủy</button>
         </div>
 
         @* --- LOG CONTAINER --- *@
@@ -59,9 +57,9 @@
         </div>
 
         @* --- PHẦN PHÂN TRANG --- *@
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 25px 0; border-top: 2px solid #e2e8f0; margin-top: 20px;">
+        <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; padding: 25px 0; border-top: 2px solid #e2e8f0; margin-top: 20px;">
             <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
-            <div style="text-align: right;">
+            <div class="pagination-info" style="text-align: right;">
                 <div style="color: #64748b; font-size: 13px; font-weight: 700;">
                     Trang <span id="currentPageNum" style="color: #6366f1;">1</span> / <span id="totalPagesNum">1</span>
                 </div>
@@ -75,19 +73,32 @@
 </div>
 
 <style>
+    /* Desktop Hover Effects */
+    .filter-btn {
+        padding: 8px 16px; 
+        border-radius: 10px; 
+        border: none; 
+        background: white; 
+        color: #64748b; 
+        font-weight: 700; 
+        cursor: pointer; 
+        transition: all 0.2s; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
     .filter-btn.active {
         background: #6366f1 !important;
         color: white !important;
         box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3) !important;
     }
+    .filter-btn.status-pending { color: #f97316; }
+    .filter-btn.status-processing { color: #3b82f6; }
+    .filter-btn.status-rating { color: #db2777; }
+    .filter-btn.status-done { color: #10b981; }
+    .filter-btn.status-cancel { color: #ef4444; }
 
     .filter-btn:hover:not(.active) {
         background: #f8fafc !important;
         transform: translateY(-2px);
-    }
-
-    .log-item {
-        will-change: transform;
     }
 
     .page-btn {
@@ -101,46 +112,97 @@
         cursor: pointer;
         transition: 0.3s;
     }
+    .page-btn.active {
+        background: #6366f1;
+        color: white;
+        border-color: #6366f1;
+        box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);
+    }
 
-        .page-btn.active {
-            background: #6366f1;
-            color: white;
-            border-color: #6366f1;
-            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);
+    /* ==========================================
+       CSS RESPONSIVE CHO MOBILE (2026 STYLE)
+       ========================================== */
+    @@media (max-width: 768px) {
+        .main-container { padding: 20px 10px !important; }
+        
+        .header-section {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 20px !important;
         }
 
-        .page-btn:hover:not(.active) {
-            background: #f8fafc;
-            border-color: #cbd5e1;
+        .subtitle { margin-left: 0 !important; font-size: 13px !important; }
+
+        .controls-group {
+            width: 100% !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
         }
+
+        #logSearch { width: 100% !important; }
+
+        /* Chỉnh lại Card cho mobile */
+        .log-card-inner {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 15px !important;
+            padding: 15px !important;
+        }
+
+        .log-time-block {
+            width: 100% !important;
+            text-align: left !important;
+            border-right: none !important;
+            border-bottom: 1px dashed #e2e8f0 !important;
+            padding-right: 0 !important;
+            padding-bottom: 10px !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+        }
+
+        .log-status-meta {
+            border-left: none !important;
+            padding-left: 0 !important;
+            width: 100% !important;
+            text-align: left !important;
+            padding-top: 10px !important;
+            border-top: 1px dashed #e2e8f0 !important;
+        }
+
+        .pagination-container {
+            flex-direction: column !important;
+            gap: 20px !important;
+            text-align: center !important;
+        }
+
+        .pagination-info { text-align: center !important; }
+    }
 </style>
 
 <script>
-    let masterLogs = [];      // Chứa toàn bộ Data từ API
-    let filteredLogs = [];    // Chứa Data sau khi Lọc (Search + Tab)
+    let masterLogs = [];
+    let filteredLogs = [];
     let currentFilterStatus = 'all';
     let currentPage = 1;
     let rowsPerPage = 20;
 
-    // 1. Tải Dữ liệu từ API khi mở trang
     document.addEventListener("DOMContentLoaded", async () => {
         try {
             const response = await fetch('/FormIT/GetLichSuITData');
             masterLogs = await response.json();
-            handleFilterAndPaginate(); // Lọc và vẽ giao diện
+            handleFilterAndPaginate();
         } catch (error) {
-            document.getElementById('logContainer').innerHTML = `<div style="text-align:center; padding:50px; color:red;">Lỗi tải dữ liệu. Vui lòng F5 lại trang.</div>`;
+            document.getElementById('logContainer').innerHTML = `<div style="text-align:center; padding:50px; color:red;">Lỗi tải dữ liệu.</div>`;
         }
     });
 
-    // 2. Chuyển đổi Số dòng hiển thị
     function changePageSize() {
         rowsPerPage = parseInt(document.getElementById("pageSizeSelect").value);
         currentPage = 1;
         handleFilterAndPaginate();
     }
 
-    // 3. Chuyển đổi Tab trạng thái
     function filterByStatus(status, btn) {
         currentFilterStatus = status;
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -149,20 +211,15 @@
         handleFilterAndPaginate();
     }
 
-    // 4. Hàm xử lý LỌC DỮ LIỆU và TÍNH PHÂN TRANG (Master)
     function handleFilterAndPaginate() {
         const searchText = document.getElementById('logSearch').value.toLowerCase().trim();
 
-        // Lọc Data
         filteredLogs = masterLogs.filter(log => {
             const matchStatus = (currentFilterStatus === 'all' || log.statusText === currentFilterStatus);
             const contentString = `${log.tieuDe} ${log.mota} ${log.tenForm} ${log.idFormIt} ${log.kyThuatTen} ${log.tenAdmin} ${log.statusText}`.toLowerCase();
-            const matchSearch = searchText === "" || contentString.includes(searchText);
-            
-            return matchStatus && matchSearch;
+            return matchStatus && (searchText === "" || contentString.includes(searchText));
         });
 
-        // Tính phân trang
         const totalItems = filteredLogs.length;
         const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
         if (currentPage > totalPages) currentPage = totalPages;
@@ -171,176 +228,101 @@
         document.getElementById("currentPageNum").innerText = currentPage;
         document.getElementById("totalPagesNum").innerText = totalPages;
 
-        // Cắt data của trang hiện tại để Render
-        const startIndex = (currentPage - 1) * rowsPerPage;
-        const endIndex = startIndex + rowsPerPage;
-        const pageData = filteredLogs.slice(startIndex, endIndex);
-
+        const pageData = filteredLogs.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
         renderLogs(pageData);
         renderPaginationButtons(totalPages);
     }
 
-    // 5. Render Data ra HTML y hệt Razor
     function renderLogs(pageData) {
         const container = document.getElementById('logContainer');
         container.innerHTML = "";
 
         if (pageData.length === 0) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 50px; background: white; border-radius: 20px; color: #94a3b8;">
-                    <i class="fa fa-folder-open-o" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
-                    <p style="font-weight: 600;">Không có nhật ký hoạt động nào để hiển thị.</p>
-                </div>`;
+            container.innerHTML = `<div style="text-align: center; padding: 50px; background: white; border-radius: 20px; color: #94a3b8;"><i class="fa fa-folder-open-o" style="font-size: 48px; margin-bottom: 15px; display: block;"></i><p style="font-weight: 600;">Không có kết quả nào.</p></div>`;
             return;
         }
 
         let htmlString = "";
-
         pageData.forEach(log => {
-            let iconClass = log.isCanceled ? "fa-ban" :
-                            log.statusText === "Chờ đánh giá" ? "fa-star" :
-                            log.statusText === "Chờ phê duyệt" ? "fa-clock-o" :
-                            log.statusText === "Hoàn tất 100%" ? "fa-check-circle" : "fa-circle";
+            let iconClass = log.isCanceled ? "fa-ban" : log.statusText === "Chờ đánh giá" ? "fa-star" : log.statusText === "Chờ phê duyệt" ? "fa-clock-o" : log.statusText === "Hoàn tất 100%" ? "fa-check-circle" : "fa-circle";
 
-            // Block thời gian + đánh giá
-            let timeBlock = "";
+            let timeBlockHtml = "";
             if ((log.statusText === "Hoàn tất 100%" || log.statusText === "Chờ đánh giá") && log.timeProcessing) {
                 let stars = "";
                 if (log.hasDanhGia) {
-                    stars += `<div style="color: #f59e0b; font-size: 13px; white-space: nowrap; margin-bottom: 2px;">`;
-                    for (let i = 1; i <= 5; i++) {
-                        stars += `<i class="fa ${i <= log.danhGiaMucDo ? "fa-star" : "fa-star-o"}"></i>`;
-                    }
+                    stars += `<div style="color: #f59e0b; font-size: 13px; margin-bottom: 2px;">`;
+                    for (let i = 1; i <= 5; i++) stars += `<i class="fa ${i <= log.danhGiaMucDo ? "fa-star" : "fa-star-o"}"></i>`;
                     stars += `</div>`;
                 }
-
-                let timeTotal = log.timeTotal ? `
-                    <div title="Tổng thời gian (Duyệt -> Đánh giá)" style="font-size: 10px; color: #15803d; font-weight: 700; background: #f0fdf4; padding: 2px 8px; border-radius: 6px; border: 1px solid #bbf7d0; display: inline-block; white-space: nowrap;">
-                        <i class="fa fa-check-circle"></i> Tổng: ${log.timeTotal}
-                    </div>` : "";
-
-                timeBlock = `
-                    <div style="min-width: 150px; text-align: right; border-left: 1px dashed #e2e8f0; padding-left: 15px; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
+                timeBlockHtml = `
+                    <div class="log-status-meta" style="min-width: 150px; text-align: right; border-left: 1px dashed #e2e8f0; padding-left: 15px; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
                         ${stars}
-                        <div title="Thời gian IT xử lý (Duyệt -> Xong)" style="font-size: 10px; color: #0369a1; font-weight: 700; background: #f0f9ff; padding: 2px 8px; border-radius: 6px; border: 1px solid #bae6fd; display: inline-block; white-space: nowrap;">
-                            <i class="fa fa-wrench"></i> Xử lý: ${log.timeProcessing}
-                        </div>
-                        ${timeTotal}
+                        <div style="font-size: 10px; color: #0369a1; font-weight: 700; background: #f0f9ff; padding: 2px 8px; border-radius: 6px; border: 1px solid #bae6fd; display: inline-block; white-space: nowrap;"><i class="fa fa-wrench"></i> Xử lý: ${log.timeProcessing}</div>
+                        ${log.timeTotal ? `<div style="font-size: 10px; color: #15803d; font-weight: 700; background: #f0fdf4; padding: 2px 8px; border-radius: 6px; border: 1px solid #bbf7d0; display: inline-block; white-space: nowrap;"><i class="fa fa-check-circle"></i> Tổng: ${log.timeTotal}</div>` : ""}
                     </div>`;
             }
 
-            let ktBlock = log.kyThuatTen ? `
-                <div style="font-size: 12px; color: #059669; background: #f0fdf4; padding: 4px 12px; border-radius: 10px; border: 1px solid #dcfce7; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa fa-wrench"></i> Kỹ thuật: ${log.kyThuatTen}
-                </div>` : "";
-
             htmlString += `
-                <a href="/FormIT/ChiTiet/${log.idFormIt}" class="log-item"
-                   data-canceled="${log.isCanceled}" data-status-color="${log.statusColor}"
-                   style="text-decoration: none; display: block; border-radius: 20px; transition: all 0.3s ease; transform-origin: left;">
-
-                    <div style="background: ${log.isCanceled ? "#fff5f5" : "white"}; border-radius: 20px; padding: 20px; border: 1px solid ${log.isCanceled ? "#fecaca" : "#e2e8f0"}; display: flex; align-items: center; gap: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.02); position: relative; overflow: hidden;">
-                        
+                <a href="/FormIT/ChiTiet/${log.idFormIt}" class="log-item" data-canceled="${log.isCanceled}" data-status-color="${log.statusColor}" style="text-decoration: none; display: block; border-radius: 20px; transition: all 0.3s ease;">
+                    <div class="log-card-inner" style="background: ${log.isCanceled ? "#fff5f5" : "white"}; border-radius: 20px; padding: 20px; border: 1px solid ${log.isCanceled ? "#fecaca" : "#e2e8f0"}; display: flex; align-items: center; gap: 20px; position: relative; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.02);">
                         <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: ${log.statusColor};"></div>
-
-                        <div style="min-width: 100px; text-align: center; border-right: 1px dashed ${log.isCanceled ? "#fecaca" : "#e2e8f0"}; padding-right: 20px;">
-                            <div style="font-size: 20px; font-weight: 800; color: ${log.isCanceled ? "#991b1b" : "#1e293b"}; letter-spacing: -0.5px;">${log.timeHHmm}</div>
-                            <div style="font-size: 12px; font-weight: 700; color: ${log.isCanceled ? "#f87171" : "#94a3b8"}; margin-top: 4px;">${log.timeDDMM}</div>
+                        
+                        <div class="log-time-block" style="min-width: 100px; text-align: center; border-right: 1px dashed ${log.isCanceled ? "#fecaca" : "#e2e8f0"}; padding-right: 20px;">
+                            <div style="font-size: 20px; font-weight: 800; color: ${log.isCanceled ? "#991b1b" : "#1e293b"};">${log.timeHHmm}</div>
+                            <div style="font-size: 12px; font-weight: 700; color: ${log.isCanceled ? "#f87171" : "#94a3b8"};">${log.timeDDMM}</div>
                         </div>
 
                         <div style="flex-grow: 1;">
-                            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
-                                <span style="background: ${log.actionColor}; color: white; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 4px ${log.actionColor}40;">
-                                    ${log.tieuDe}
-                                </span>
-
-                                <span class="status-badge" style="background: ${log.statusColor}15; color: ${log.statusColor}; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; border: 1px solid ${log.statusColor}30;">
-                                    <i class="fa ${iconClass}" style="margin-right: 5px; vertical-align: middle;"></i> ${log.statusText}
-                                </span>
-
-                                <span style="color: ${log.isCanceled ? "#991b1b" : "#475569"}; font-size: 14px; font-weight: 700; background: ${log.isCanceled ? "#fee2e2" : "#f8fafc"}; padding: 3px 10px; border-radius: 8px; border: 1px solid ${log.isCanceled ? "#fecaca" : "#e2e8f0"};">
-                                    #${log.idFormIt} - ${log.tenForm}
-                                </span>
+                            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                                <span style="background: ${log.actionColor}; color: white; padding: 3px 10px; border-radius: 8px; font-size: 10px; font-weight: 700; text-transform: uppercase;">${log.tieuDe}</span>
+                                <span style="background: ${log.statusColor}15; color: ${log.statusColor}; padding: 3px 10px; border-radius: 8px; font-size: 10px; font-weight: 700; border: 1px solid ${log.statusColor}30;"><i class="fa ${iconClass}"></i> ${log.statusText}</span>
+                                <span style="color: #475569; font-size: 13px; font-weight: 700; background: #f8fafc; padding: 3px 10px; border-radius: 8px; border: 1px solid #e2e8f0;">#${log.idFormIt} - ${log.tenForm}</span>
                             </div>
-
-                            <div style="color: ${log.isCanceled ? "#7f1d1d" : "#334155"}; font-size: 15px; line-height: 1.5; font-weight: 500; margin-bottom: 12px;">
-                                ${log.mota}
-                            </div>
-
-                            <div style="display: flex; gap: 15px; align-items: center; border-top: 1px solid ${log.isCanceled ? "#fecaca" : "#f1f5f9"}; padding-top: 10px;">
-                                <div style="font-size: 12px; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                                    <img src="https://ui-avatars.com/api/?name=${log.tenAdmin.charAt(0)}&background=${log.isCanceled ? "ef4444" : "6366f1"}&color=fff" style="width: 20px; height: 20px; border-radius: 50%;" />
-                                    Admin: <span style="color: #1e293b;">${log.tenAdmin}</span>
-                                </div>
-                                ${ktBlock}
+                            <div style="color: #334155; font-size: 14px; line-height: 1.5; font-weight: 500; margin-bottom: 10px;">${log.mota}</div>
+                            <div style="display: flex; gap: 12px; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 8px;">
+                                <div style="font-size: 11px; color: #64748b; font-weight: 600;"><i class="fa fa-user-circle"></i> Admin: <span style="color: #1e293b;">${log.tenAdmin}</span></div>
+                                ${log.kyThuatTen ? `<div style="font-size: 11px; color: #059669; font-weight: 700;"><i class="fa fa-wrench"></i> Kỹ thuật: ${log.kyThuatTen}</div>` : ""}
                             </div>
                         </div>
-
-                        ${timeBlock}
-
-                        <div style="color: ${log.isCanceled ? "#f87171" : "#cbd5e1"}; font-size: 20px; padding-left: 10px;">
-                            <i class="fa fa-angle-right"></i>
-                        </div>
+                        ${timeBlockHtml}
                     </div>
                 </a>`;
         });
-
         container.innerHTML = htmlString;
-        initHoverEffects(); // Khởi tạo lại hiệu ứng Hover
+        initHoverEffects();
     }
 
-    // 6. Vẽ các nút Phân trang
     function renderPaginationButtons(totalPages) {
         const container = document.getElementById("paginationButtons");
         container.innerHTML = "";
-
         if (totalPages <= 1) return;
-
         for (let i = 1; i <= totalPages; i++) {
-            if (totalPages > 7 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
-                if (i === 3 || i === totalPages - 2) {
-                    const dot = document.createElement("span");
-                    dot.innerText = "...";
-                    dot.style.padding = "8px";
-                    dot.style.color = "#64748b";
-                    dot.style.fontWeight = "700";
-                    container.appendChild(dot);
-                }
+            if (totalPages > 5 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
+                if (i === 3 || i === totalPages - 2) container.insertAdjacentHTML('beforeend', `<span style="padding:8px">...</span>`);
                 continue;
             }
-
             const btn = document.createElement("button");
-            btn.innerText = i;
-            btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
-            btn.onclick = () => {
-                currentPage = i;
-                handleFilterAndPaginate();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            };
+            btn.innerText = i; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+            btn.onclick = () => { currentPage = i; handleFilterAndPaginate(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
             container.appendChild(btn);
         }
     }
 
-    // 7. Hàm xử lý CSS Hover linh hoạt của bạn
     function initHoverEffects() {
+        if (window.innerWidth <= 768) return; // Không dùng hover trên mobile
         document.querySelectorAll('.log-item').forEach(item => {
-            const isCanceled = item.getAttribute('data-canceled') === 'true';
             const statusColor = item.getAttribute('data-status-color');
-
             item.addEventListener('mouseenter', () => {
-                item.style.transform = 'translateX(10px)';
-                const innerDiv = item.querySelector('div');
-                innerDiv.style.borderColor = statusColor;
-                innerDiv.style.boxShadow = `0 20px 25px -5px ${statusColor}33`;
-                innerDiv.style.backgroundColor = isCanceled ? '#fff1f1' : `${statusColor}05`;
+                item.style.transform = 'translateX(8px)';
+                const inner = item.querySelector('.log-card-inner');
+                inner.style.borderColor = statusColor;
+                inner.style.boxShadow = `0 15px 20px -5px ${statusColor}25`;
             });
-
             item.addEventListener('mouseleave', () => {
                 item.style.transform = 'translateX(0)';
-                const innerDiv = item.querySelector('div');
-                innerDiv.style.borderColor = isCanceled ? '#fecaca' : '#e2e8f0';
-                innerDiv.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.02)';
-                innerDiv.style.backgroundColor = isCanceled ? '#fff5f5' : 'white';
+                const inner = item.querySelector('.log-card-inner');
+                inner.style.borderColor = item.getAttribute('data-canceled') === 'true' ? '#fecaca' : '#e2e8f0';
+                inner.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.02)';
             });
         });
     }

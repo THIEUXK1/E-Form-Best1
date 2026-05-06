@@ -23,16 +23,66 @@
     string boxDetail = $"background: #ffffff; padding: 25px; border-radius: 24px; border: 1px solid {colorLight}; margin-bottom: 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);";
 }
 
-<div style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', sans-serif;">
+<style>
+    /* CSS RESPONSIVE CHO MOBILE */
+    @@media (max-width: 768px) {
+        .main-container {
+            padding: 20px 10px !important;
+        }
 
-    <form id="itOrderForm" method="post" enctype="multipart/form-data" asp-action="TaoIT_Order" asp-controller="FormIT" asp-area="ITform"
+        .form-wrapper {
+            border-radius: 25px !important;
+        }
+
+        .header-section {
+            padding: 35px 15px !important;
+        }
+
+            .header-section h2 {
+                font-size: 20px !important;
+            }
+
+        .body-content {
+            padding: 20px !important;
+        }
+        /* Chuyển grid từ 4 cột hoặc 2 cột về 1 cột */
+        .grid-responsive-4, .grid-responsive-2 {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+        }
+
+        .box-detail-mobile {
+            padding: 15px !important;
+            border-radius: 20px !important;
+        }
+
+        #paste_area, .file-upload-box {
+            height: 150px !important;
+        }
+
+        #btnSubmit {
+            padding: 18px !important;
+            font-size: 16px !important;
+        }
+    }
+
+    /* Hiệu ứng hover cho input */
+    .input-hover:focus {
+        border-color: @colorPrimary !important;
+        box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.1) !important;
+    }
+</style>
+
+<div class="main-container" style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', sans-serif;">
+
+    <form id="itOrderForm" method="post" enctype="multipart/form-data" asp-action="TaoIT_Order" asp-controller="FormIT" asp-area="ITform" class="form-wrapper"
           style="max-width: 950px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(124, 45, 18, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
 
         @Html.AntiForgeryToken()
         @Html.ValidationSummary(true, "", new { @class = "text-danger", style = "margin:10px 0;" })
 
         @* --- HEADER --- *@
-        <div style="background: linear-gradient(135deg, @colorPrimary 0%, @colorDark 100%); padding: 45px 20px; color: #ffffff; text-align: center; position: relative;">
+        <div class="header-section" style="background: linear-gradient(135deg, @colorPrimary 0%, @colorDark 100%); padding: 45px 20px; color: #ffffff; text-align: center; position: relative;">
             <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">TECH REPAIR V3.1</div>
             <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">Phiếu yêu cầu hỗ trợ kỹ thuật</h2>
             <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: rgba(255,255,255,0.2); border-radius: 50px; font-size: 13px; backdrop-filter: blur(4px);">
@@ -41,16 +91,16 @@
             </div>
         </div>
 
-        <div style="padding: 40px;">
+        <div class="body-content" style="padding: 40px;">
 
-            @* --- PHẦN 1: THÔNG TIN HÀNH CHÍNH (Đã cập nhật 4 cột) --- *@
+            @* --- PHẦN 1: THÔNG TIN HÀNH CHÍNH --- *@
             <div style="margin-bottom: 40px;">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3);">1</span>
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin hành chính</h3>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                <div class="grid-responsive-4" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
                     <div style="background: #fffaf5; padding: 15px; border-radius: 15px; border: 1px solid #ffedd5;">
                         <label style="@labelBase">Mã nhân viên</label>
                         <div style="font-weight: 700; color: #9a3412; font-size: 14px;">@soNhanVien</div>
@@ -63,7 +113,6 @@
                         <label style="@labelBase">Bộ phận</label>
                         <div style="font-weight: 700; color: #9a3412; font-size: 14px;">@phongBan</div>
                     </div>
-                    @* CỘT MỚI: CÔNG TY *@
                     <div style="background: #fffaf5; padding: 15px; border-radius: 15px; border: 1px solid #ffedd5;">
                         <label style="@labelBase">Công ty</label>
                         <div style="font-weight: 700; color: @colorPrimary; font-size: 14px;">@tenCongTy</div>
@@ -72,14 +121,14 @@
             </div>
 
             @* --- PHẦN 2: CHỌN LOẠI CÔNG VIỆC --- *@
-            <div style="@boxDetail">
+            <div class="box-detail-mobile" style="@boxDetail">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Loại yêu cầu hỗ trợ</h3>
                 </div>
 
                 <label style="@labelBase">Vui lòng chọn vấn đề bạn đang gặp <span style="color:red">*</span></label>
-                <select name="selectedCongViecId" id="selectedCongViecId" required style="@inputBase cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237c2d12%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
+                <select name="selectedCongViecId" id="selectedCongViecId" required class="input-hover" style="@inputBase cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237c2d12%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
                     <option value="">-- Click để chọn loại công việc --</option>
                     @if (ViewBag.CongViecList != null)
                     {
@@ -92,7 +141,7 @@
             </div>
 
             @* --- PHẦN 3: CHI TIẾT LỖI --- *@
-            <div style="@boxDetail">
+            <div class="box-detail-mobile" style="@boxDetail">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">3</span>
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Mô tả lỗi thiết bị</h3>
@@ -100,16 +149,17 @@
 
                 <div style="margin-bottom: 20px;">
                     <label style="@labelBase">Tiêu đề yêu cầu <span style="color:red">*</span></label>
-                    <input type="text" name="itOrder.Ten" id="TieuDe" required placeholder="VD: Lỗi máy in, Không vào được mạng..." style="@inputBase" />
+                    <input type="text" name="itOrder.Ten" id="TieuDe" required placeholder="VD: Lỗi máy in, Không vào được mạng..." class="input-hover" style="@inputBase" />
                 </div>
 
                 <div style="margin-bottom: 25px;">
                     <label style="@labelBase">Nội dung chi tiết <span style="color:red">*</span></label>
                     <textarea name="itOrder.GhiChu" id="GhiChu" required placeholder="Vui lòng mô tả chi tiết lỗi thiết bị của bạn tại đây..."
+                              class="input-hover"
                               style="@inputBase height: 120px; resize: none;"></textarea>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="grid-responsive-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div>
                         <label style="@labelBase">Ảnh lỗi thực tế (Ctrl+V)</label>
                         <div id="paste_area" tabindex="0"
@@ -120,7 +170,7 @@
                     </div>
                     <div>
                         <label style="@labelBase">File bổ sung</label>
-                        <div style="border: 2px dashed #e2e8f0; height: 180px; border-radius: 15px; padding: 20px; box-sizing: border-box; background: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        <div class="file-upload-box" style="border: 2px dashed #e2e8f0; height: 180px; border-radius: 15px; padding: 20px; box-sizing: border-box; background: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center;">
                             <input type="file" name="UploadFile" style="font-size: 12px; width: 100%;">
                             <p style="font-size: 11px; color: #9a3412; margin-top: 15px; text-align: center;">Đính kèm tài liệu liên quan nếu có.</p>
                         </div>
@@ -129,7 +179,7 @@
             </div>
 
             @* --- PHẦN 4: BẢN CAM KẾT --- *@
-            <div style="margin-bottom: 30px; background: #fffaf5; border: 1px dashed @colorBorder; border-radius: 24px; padding: 25px;">
+            <div class="box-detail-mobile" style="margin-bottom: 30px; background: #fffaf5; border: 1px dashed @colorBorder; border-radius: 24px; padding: 25px;">
                 <h3 style="margin: 0 0 15px 0; color: @colorDark; font-size: 15px; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 1px;">
                     CAM KẾT SỬ DỤNG & BẢO QUẢN THIẾT BỊ
                 </h3>
