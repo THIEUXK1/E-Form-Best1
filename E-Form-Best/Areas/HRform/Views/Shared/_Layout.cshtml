@@ -589,6 +589,14 @@
             });
         }
 
+        // Xóa hoàn toàn cookie của Google Translate để nó không bị kẹt
+        function clearGoogTransCookie() {
+            const domain = window.location.hostname;
+            document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + domain;
+            document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=." + domain;
+        }
+
         // Khởi tạo trạng thái ngôn ngữ
         function initLanguageGTranslate() {
             let currentLang = localStorage.getItem('siteLangGlobal'); // Dùng chung cho HR, IT, SHD
@@ -606,30 +614,34 @@
             const activeCheck = document.querySelector(`#lang-${currentLang} i`);
             if(activeCheck) activeCheck.style.display = 'inline-block';
 
-            // Lưu Cookie để kích hoạt Google Translate
-            if (currentLang !== 'vi') {
-                document.cookie = `googtrans=/vi/${currentLang}; path=/; domain=${window.location.hostname}`;
+            if (currentLang === 'vi') {
+                // Tiếng Việt là mặc định, xóa hết mọi dấu vết của google translate
+                clearGoogTransCookie();
+            } else {
+                // Đảm bảo thiết lập đúng cookie cho ngôn ngữ khác
                 document.cookie = `googtrans=/vi/${currentLang}; path=/;`;
+                document.cookie = `googtrans=/vi/${currentLang}; path=/; domain=.${window.location.hostname}`;
             }
         }
 
         // Đổi ngôn ngữ
         function changeLanguageGTranslate(lang, label) {
-            localStorage.setItem('siteLangGlobal', lang); // Dùng chung cho HR, IT, SHD
-            if (lang === 'vi') {
-                // Xóa cookie để về lại tiếng Việt gốc
-                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
-            } else {
-                // Set cookie dịch
-                document.cookie = `googtrans=/vi/${lang}; path=/; domain=${window.location.hostname}`;
+            localStorage.setItem('siteLangGlobal', lang); 
+            // Bước 1: Xóa trắng cookie cũ để tránh lỗi kẹt ngôn ngữ
+            clearGoogTransCookie();
+            
+            if (lang !== 'vi') {
+                // Bước 2: Set cookie mới nếu không phải tiếng Việt
                 document.cookie = `googtrans=/vi/${lang}; path=/;`;
+                document.cookie = `googtrans=/vi/${lang}; path=/; domain=.${window.location.hostname}`;
             }
+            // Bước 3: Reload web để nhận kết quả
             window.location.reload();
         }
 
         // ==========================================
         // HỆ THỐNG ZOOM % KÍCH THƯỚC WEB
+        // Gộp chung Zoom Cookie cho hệ thống HR
         // ==========================================
         const btnZoom = document.getElementById('btnZoom');
         const zoomDrop = document.getElementById('zoomDropdown');
@@ -645,6 +657,7 @@
         }
 
         function initZoom() {
+            // Dùng chung một biến cho cả 3 phân hệ
             let currentZoom = getCookieHR('siteZoomGlobal') || '100';
             applyZoom(currentZoom);
         }
@@ -724,7 +737,7 @@
         // ==========================================
         document.addEventListener('DOMContentLoaded', () => {
             initLanguageGTranslate();
-            initZoom(); // Chạy hàm khởi tạo Zoom
+            initZoom(); // Chạy hàm khởi tạo Zoom chung
             
             // Khởi tạo Select2 cho tất cả dropdown có class .select2
             $('.select2').select2({ width: '100%' });
