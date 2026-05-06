@@ -476,28 +476,37 @@
         }
 
         // ==========================================
-        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE (CẬP NHẬT LOGIC CLEAR -> MẶC ĐỊNH -> NEW)
+        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE (NUCLEAR OPTION CHỐNG KẸT)
         // ==========================================
         function clearGoogTransCookie() {
-            const domain = window.location.hostname;
-            const paths = ['/', window.location.pathname];
+            let domain = window.location.hostname;
+            let paths = ['/', window.location.pathname];
+            let domainParts = domain.split('.');
+            let domainsToClear = [domain, '.' + domain, ''];
+            
+            if (domainParts.length >= 2) {
+                domainsToClear.push('.' + domainParts.slice(-2).join('.'));
+                domainsToClear.push(domainParts.slice(-2).join('.'));
+            }
+
             paths.forEach(p => {
-                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p};`;
-                if (domain !== 'localhost') {
-                    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}; domain=.${domain};`;
-                    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}; domain=${domain};`;
-                }
+                domainsToClear.forEach(d => {
+                    let dStr = d ? `; domain=${d}` : '';
+                    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}${dStr};`;
+                });
             });
+            
+            window.localStorage.removeItem('googtrans');
+            window.sessionStorage.removeItem('googtrans');
         }
 
         function setGoogTransCookie(lang) {
-            if (lang !== 'vi') {
-                const domain = window.location.hostname;
-                document.cookie = `googtrans=/vi/${lang}; path=/;`;
-                if (domain !== 'localhost') {
-                    document.cookie = `googtrans=/vi/${lang}; path=/; domain=.${domain};`;
-                }
-            }
+            let domain = window.location.hostname;
+            let domainParts = domain.split('.');
+            let rootDomain = domainParts.length >= 2 ? '.' + domainParts.slice(-2).join('.') : domain;
+
+            document.cookie = `googtrans=/vi/${lang}; path=/; domain=${rootDomain};`;
+            document.cookie = `googtrans=/vi/${lang}; path=/;`;
         }
 
         function initLanguageGTranslate() {
@@ -529,21 +538,21 @@
         function changeLanguageGTranslate(lang, label) {
             localStorage.setItem('siteLangGlobal', lang); 
             
-            // 1. CLEAR TRƯỚC
+            // BƯỚC 1: PHÁ HỦY DOM CỦA GOOGLE TRANSLATE
+            const gtEl = document.getElementById('google_translate_element');
+            if (gtEl) gtEl.innerHTML = '';
+            const iframes = document.querySelectorAll('iframe.goog-te-menu-frame, iframe.goog-te-banner-frame');
+            iframes.forEach(f => f.remove());
+
+            // BƯỚC 2: DỌN RÁC COOKIE
             clearGoogTransCookie();
-            window.localStorage.removeItem('googtrans');
-            window.sessionStorage.removeItem('googtrans');
 
-            // 2. CHUYỂN VỀ MẶC ĐỊNH
-            if (lang === 'vi') {
-                window.location.reload();
-                return;
-            }
-
-            // 3. ĐỢI CHỐT TRẠNG THÁI MẶC ĐỊNH RỒI MỚI SET NGÔN NGỮ MỚI
+            // BƯỚC 3: GÁN COOKIE MỚI & ĐIỀU HƯỚNG
             setTimeout(() => {
-                setGoogTransCookie(lang);
-                window.location.reload();
+                if (lang !== 'vi') {
+                    setGoogTransCookie(lang);
+                }
+                window.location.href = window.location.pathname + window.location.search;
             }, 50);
         }
 
@@ -557,6 +566,7 @@
         if (btnZoom) {
             btnZoom.addEventListener('click', (e) => {
                 e.stopPropagation();
+                const langDrop = document.getElementById('langDropdown');
                 if(langDrop) langDrop.style.display = 'none';
                 const isHidden = zoomDrop.style.display === 'none' || zoomDrop.style.display === '';
                 zoomDrop.style.display = isHidden ? 'block' : 'none';
