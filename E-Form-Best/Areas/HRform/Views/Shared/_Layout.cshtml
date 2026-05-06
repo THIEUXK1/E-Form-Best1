@@ -572,7 +572,7 @@
         }
 
         // ==========================================
-        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE (CẬP NHẬT LOGIC CLEAR -> MẶC ĐỊNH -> NEW)
+        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE (NUCLEAR OPTION CHỐNG KẸT)
         // ==========================================
         const btnLang = document.getElementById('btnLanguage');
         const langDrop = document.getElementById('langDropdown');
@@ -587,27 +587,39 @@
             });
         }
 
+        // Hàm dọn rác quét sạch mọi ngóc ngách của Cookie và Storage
         function clearGoogTransCookie() {
-            const domain = window.location.hostname;
-            const paths = ['/', window.location.pathname];
+            let domain = window.location.hostname;
+            let paths = ['/', window.location.pathname];
+            let domainParts = domain.split('.');
+            let domainsToClear = [domain, '.' + domain, ''];
             
+            // Nếu có sub-domain (ví dụ: portal.bestpacific.com), quét thêm cấp root (.bestpacific.com)
+            if (domainParts.length >= 2) {
+                domainsToClear.push('.' + domainParts.slice(-2).join('.'));
+                domainsToClear.push(domainParts.slice(-2).join('.'));
+            }
+
             paths.forEach(p => {
-                document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p};`;
-                if (domain !== 'localhost') {
-                    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}; domain=.${domain};`;
-                    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}; domain=${domain};`;
-                }
+                domainsToClear.forEach(d => {
+                    let dStr = d ? `; domain=${d}` : '';
+                    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}${dStr};`;
+                });
             });
+            
+            window.localStorage.removeItem('googtrans');
+            window.sessionStorage.removeItem('googtrans');
         }
 
+        // Hàm gắn lại cookie mới
         function setGoogTransCookie(lang) {
-            if (lang !== 'vi') {
-                const domain = window.location.hostname;
-                document.cookie = `googtrans=/vi/${lang}; path=/;`;
-                if (domain !== 'localhost') {
-                    document.cookie = `googtrans=/vi/${lang}; path=/; domain=.${domain};`;
-                }
-            }
+            let domain = window.location.hostname;
+            let domainParts = domain.split('.');
+            let rootDomain = domainParts.length >= 2 ? '.' + domainParts.slice(-2).join('.') : domain;
+
+            // Gắn cookie ở cả 2 cấp độ để chắc ăn 100%
+            document.cookie = `googtrans=/vi/${lang}; path=/; domain=${rootDomain};`;
+            document.cookie = `googtrans=/vi/${lang}; path=/;`;
         }
 
         function initLanguageGTranslate() {
@@ -623,6 +635,7 @@
             const activeCheck = document.querySelector(`#lang-${currentLang} i`);
             if(activeCheck) activeCheck.style.display = 'inline-block';
 
+            // Kiểm tra xem trình duyệt có lén lút giữ lại cookie sai lệch không
             let match = document.cookie.match(/(^| )googtrans=([^;]+)/);
             let currentCookie = match ? match[2] : null;
             let expectedCookie = currentLang === 'vi' ? null : `/vi/${currentLang}`;
@@ -636,25 +649,25 @@
         }
 
         function changeLanguageGTranslate(lang, label) {
-            // Lưu thiết lập vào localStorage
             localStorage.setItem('siteLangGlobal', lang); 
             
-            // 1. CLEAR TRƯỚC: Xóa sạch toàn bộ rác Cookie và Storage của Google Translate
+            // BƯỚC 1: TẤN CÔNG DOM CỦA GOOGLE TRANSLATE 
+            // Cắt đứt toàn bộ liên kết của Widget để nó không thể tự động lưu lại cookie cũ lúc Unload trang
+            const gtEl = document.getElementById('google_translate_element');
+            if (gtEl) gtEl.innerHTML = '';
+            const iframes = document.querySelectorAll('iframe.goog-te-menu-frame, iframe.goog-te-banner-frame');
+            iframes.forEach(f => f.remove());
+
+            // BƯỚC 2: QUÉT SẠCH MỌI DẤU VẾT COOKIE CŨ
             clearGoogTransCookie();
-            window.localStorage.removeItem('googtrans');
-            window.sessionStorage.removeItem('googtrans');
 
-            // 2. CHUYỂN VỀ MẶC ĐỊNH: Nếu chọn 'vi', việc clear ở trên đã hoàn tất quy trình, chỉ cần reload.
-            if (lang === 'vi') {
-                window.location.reload();
-                return;
-            }
-
-            // 3. ĐỢI CHỐT TRẠNG THÁI MẶC ĐỊNH RỒI MỚI SET NGÔN NGỮ MỚI:
-            // Cố tình delay 50ms để trình duyệt thực sự xóa xong cookie và ở trạng thái sạch, sau đó gắn cookie mới.
+            // BƯỚC 3: GÁN COOKIE MỚI & ĐIỀU HƯỚNG BẰNG HREF 
             setTimeout(() => {
-                setGoogTransCookie(lang);
-                window.location.reload();
+                if (lang !== 'vi') {
+                    setGoogTransCookie(lang);
+                }
+                // Dùng href thay vì location.reload() để vứt bỏ cache và tránh bị dính POST form resubmit
+                window.location.href = window.location.pathname + window.location.search;
             }, 50);
         }
 
