@@ -133,13 +133,17 @@
         }
         .lang-btn:hover { background: #f1f5f9; border-color: var(--shd-accent); }
         
-        #langDropdown {
+        #langDropdown, #zoomDropdown {
             display: none; position: absolute; top: 55px; left: 0;
             background: #fff; border-radius: 18px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.12);
             border: 1px solid #e2e8f0; min-width: 190px;
             overflow: hidden; z-index: 1001;
             animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        #zoomDropdown {
+            min-width: 130px;
         }
 
         @@keyframes slideDown {
@@ -344,7 +348,7 @@
 
         <main>
             <header>
-                <!-- Nhóm trái: Mobile Button + Language Switcher -->
+                <!-- Nhóm trái: Mobile Button + Language Switcher + Zoom -->
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <!-- Nút mở Menu Mobile (Chỉ hiện trên điện thoại) -->
                     <button id="mobile-menu-btn" style="display: none; background: none; border: none; font-size: 1.5rem; color: #1e293b; cursor: pointer; padding: 0;">
@@ -371,6 +375,22 @@
                         </div>
                         <!-- Div ảo chứa widget Google Translate -->
                         <div id="google_translate_element" style="display:none;"></div>
+                    </div>
+                    
+                    <!-- Zoom Switcher -->
+                    <div style="position: relative;">
+                        <button id="btnZoom" class="lang-btn">
+                            <i class="fa fa-search-plus" style="color: #1e1b4b;"></i>
+                            <span id="currentZoomText">100%</span>
+                            <i class="fa fa-angle-down" style="font-size: 0.8rem; color: #94a3b8;"></i>
+                        </button>
+                        <div id="zoomDropdown">
+                            <a href="javascript:void(0)" onclick="changeZoom(80)" class="lang-item"><span>80%</span> <i class="fa fa-check" style="display:none;"></i></a>
+                            <a href="javascript:void(0)" onclick="changeZoom(90)" class="lang-item"><span>90%</span> <i class="fa fa-check" style="display:none;"></i></a>
+                            <a href="javascript:void(0)" onclick="changeZoom(100)" class="lang-item"><span>100%</span> <i class="fa fa-check" style="display:none;"></i></a>
+                            <a href="javascript:void(0)" onclick="changeZoom(110)" class="lang-item"><span>110%</span> <i class="fa fa-check" style="display:none;"></i></a>
+                            <a href="javascript:void(0)" onclick="changeZoom(120)" class="lang-item"><span>120%</span> <i class="fa fa-check" style="display:none;"></i></a>
+                        </div>
                     </div>
                 </div>
 
@@ -473,7 +493,7 @@
             const currentLangText = document.getElementById('currentLangText');
             if(currentLangText) currentLangText.innerText = labels[currentLang] || 'Tiếng Việt';
             
-            document.querySelectorAll('.lang-item i').forEach(i => i.style.display = 'none');
+            document.querySelectorAll('#langDropdown .lang-item i').forEach(i => i.style.display = 'none');
             const activeCheck = document.querySelector(`#lang-${currentLang} i`);
             if(activeCheck) activeCheck.style.display = 'inline-block';
 
@@ -494,9 +514,78 @@
             }
             window.location.reload();
         }
+        
+        // ==========================================
+        // HỆ THỐNG ZOOM % KÍCH THƯỚC WEB
+        // ==========================================
+        const btnZoom = document.getElementById('btnZoom');
+        const zoomDrop = document.getElementById('zoomDropdown');
+        const currentZoomText = document.getElementById('currentZoomText');
+
+        if (btnZoom) {
+            btnZoom.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const langDrop = document.getElementById('langDropdown');
+                if(langDrop) langDrop.style.display = 'none';
+                const isHidden = zoomDrop.style.display === 'none' || zoomDrop.style.display === '';
+                zoomDrop.style.display = isHidden ? 'block' : 'none';
+            });
+        }
+
+        function initZoom() {
+            let currentZoom = getCookieSHD('siteZoomGlobal') || '100';
+            applyZoom(currentZoom);
+        }
+
+        function changeZoom(percent) {
+            setCookieSHD('siteZoomGlobal', percent, 365);
+            applyZoom(percent);
+            if (zoomDrop) zoomDrop.style.display = 'none';
+        }
+
+        function applyZoom(percent) {
+            document.body.style.zoom = percent + '%';
+            if (currentZoomText) currentZoomText.innerText = percent + '%';
+            
+            if (zoomDrop) {
+                const items = zoomDrop.querySelectorAll('.lang-item');
+                items.forEach(item => {
+                    const text = item.querySelector('span').innerText;
+                    const check = item.querySelector('i');
+                    if (text === percent + '%') {
+                        if(check) check.style.display = 'inline-block';
+                        item.classList.add('active');
+                    } else {
+                        if(check) check.style.display = 'none';
+                        item.classList.remove('active');
+                    }
+                });
+            }
+        }
+
+        function setCookieSHD(cname, cvalue, exdays) {
+            const d = new Date();
+            d.setTime(d.getTime() + (exdays*24*60*60*1000));
+            let expires = "expires="+ d.toUTCString();
+            document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+        }
+
+        function getCookieSHD(cname) {
+            let name = cname + "=";
+            let decodedCookie = decodeURIComponent(document.cookie);
+            let ca = decodedCookie.split(';');
+            for(let i = 0; i <ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) == ' ') { c = c.substring(1); }
+                if (c.indexOf(name) == 0) { return c.substring(name.length, c.length); }
+            }
+            return "";
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             initLanguageGTranslate();
+            initZoom(); // Khởi tạo Zoom SHD
+            
             if (typeof $ !== 'undefined') { $('.select2').select2({ width: '100%' }); }
 
             // Restore Scroll Position
@@ -552,12 +641,14 @@
 
         document.getElementById('btnLanguage')?.addEventListener('click', (e) => {
             e.stopPropagation();
+            if(zoomDrop) zoomDrop.style.display = 'none';
             const drop = document.getElementById('langDropdown');
             drop.style.display = (drop.style.display === 'none' || drop.style.display === '') ? 'block' : 'none';
         });
 
         document.addEventListener('click', () => {
             if(document.getElementById('langDropdown')) document.getElementById('langDropdown').style.display = 'none';
+            if(document.getElementById('zoomDropdown')) document.getElementById('zoomDropdown').style.display = 'none';
             if (dropNotiMenu) dropNotiMenu.style.display = 'none';
             if (userDrop) userDrop.style.display = 'none';
             if (userArrow) userArrow.style.transform = 'rotate(0deg)';
