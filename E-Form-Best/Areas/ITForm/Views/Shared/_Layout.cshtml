@@ -133,7 +133,11 @@
         
         #zoomDropdown {
             min-width: 130px;
+            max-height: 250px;
+            overflow-y: auto;
         }
+        #zoomDropdown::-webkit-scrollbar { width: 4px; }
+        #zoomDropdown::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
         @@keyframes slideDown {
             from { opacity: 0; transform: translateY(-10px); }
@@ -379,6 +383,9 @@
                             <i class="fa fa-angle-down" style="font-size: 0.8rem; color: #94a3b8;"></i>
                         </button>
                         <div id="zoomDropdown">
+                            <a href="javascript:void(0)" onclick="changeZoom(50)" class="lang-item"><span>50%</span> <i class="fa fa-check" style="display:none;"></i></a>
+                            <a href="javascript:void(0)" onclick="changeZoom(60)" class="lang-item"><span>60%</span> <i class="fa fa-check" style="display:none;"></i></a>
+                            <a href="javascript:void(0)" onclick="changeZoom(70)" class="lang-item"><span>70%</span> <i class="fa fa-check" style="display:none;"></i></a>
                             <a href="javascript:void(0)" onclick="changeZoom(80)" class="lang-item"><span>80%</span> <i class="fa fa-check" style="display:none;"></i></a>
                             <a href="javascript:void(0)" onclick="changeZoom(90)" class="lang-item"><span>90%</span> <i class="fa fa-check" style="display:none;"></i></a>
                             <a href="javascript:void(0)" onclick="changeZoom(100)" class="lang-item"><span>100%</span> <i class="fa fa-check" style="display:none;"></i></a>
