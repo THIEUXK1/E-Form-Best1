@@ -542,7 +542,7 @@
         }
 
         // ==========================================
-        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE
+        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE (ĐÃ HỢP NHẤT)
         // ==========================================
         const btnLang = document.getElementById('btnLanguage');
         const langDrop = document.getElementById('langDropdown');
@@ -559,10 +559,10 @@
 
         // Khởi tạo trạng thái ngôn ngữ
         function initLanguageGTranslate() {
-            let currentLang = localStorage.getItem('siteLangHrForm');
+            let currentLang = localStorage.getItem('siteLangGlobal'); // Dùng chung cho HR, IT, SHD
             if (!currentLang) {
                 currentLang = 'vi';
-                localStorage.setItem('siteLangHrForm', 'vi');
+                localStorage.setItem('siteLangGlobal', 'vi');
             }
 
             // Cập nhật text trên Nút và Dropdown
@@ -583,7 +583,7 @@
 
         // Đổi ngôn ngữ
         function changeLanguageGTranslate(lang, label) {
-            localStorage.setItem('siteLangHrForm', lang);
+            localStorage.setItem('siteLangGlobal', lang); // Dùng chung cho HR, IT, SHD
             if (lang === 'vi') {
                 // Xóa cookie để về lại tiếng Việt gốc
                 document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;

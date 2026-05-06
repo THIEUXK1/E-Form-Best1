@@ -5,7 +5,6 @@
     ViewData["Title"] = "Lịch sử yêu cầu IT";
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 
-    // Vẫn giữ biến style này để tái sử dụng ở các thẻ div bên dưới như cũ
     string statBox = "display: flex; flex-direction: column; padding: 12px 15px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);";
 }
 
@@ -50,24 +49,87 @@
             border-color: #94a3b8;
         }
         
-    /* Màn hình loading khi JS đang fetch API */
     #loadingRow {
         text-align: center;
         padding: 30px;
         color: #64748b;
         font-weight: 600;
     }
+
+    /* ==========================================
+           CSS RESPONSIVE CHO MOBILE (2026 STYLE)
+           ========================================== */
+    @@media (max-width: 768px) {
+        .header-mobile {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 15px !important;
+        }
+
+        .search-box-mobile {
+            width: 100% !important;
+            flex-direction: column !important;
+        }
+
+        #myInput {
+            width: 100% !important;
+        }
+
+        .btn-create-mobile {
+            width: 100% !important;
+            text-align: center;
+        }
+        /* Thống kê: 2 cột trên mobile */
+        .stats-grid-mobile {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+        /* Biến Table thành Cards */
+        #myTable, #myTable thead, #myTable tbody, #myTable th, #myTable td, #myTable tr {
+            display: block;
+        }
+
+            #myTable thead {
+                display: none; /* Ẩn tiêu đề bảng */
+            }
+
+            #myTable tr {
+                margin-bottom: 15px;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 15px;
+                padding: 10px;
+                background: #fff;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            }
+
+            #myTable td {
+                border: none !important;
+                padding: 8px 5px !important;
+                width: 100% !important;
+                text-align: left !important;
+            }
+        /* Tùy chỉnh vị trí nút chi tiết trên Card */
+        .action-cell {
+            text-align: right !important;
+            border-top: 1px solid #f1f5f9 !important;
+            margin-top: 5px;
+        }
+
+        .pagination-mobile {
+            flex-direction: column !important;
+            gap: 15px;
+            align-items: center !important;
+        }
+    }
 </style>
 
 <div style="max-width: 1400px; margin: 20px auto; padding: 0 15px; font-family: 'Inter', sans-serif;">
 
     @* --- HEADER --- *@
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+    <div class="header-mobile" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
         <h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #0c4a6e;">
             <i class="fa fa-history" style="color: #0284c7;"></i> LỊCH SỬ YÊU CẦU
         </h2>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            @* --- CHỌN SỐ LƯỢNG HIỂN THỊ --- *@
+        <div class="search-box-mobile" style="display: flex; gap: 10px; align-items: center;">
             <div style="display: flex; align-items: center; gap: 8px; background: white; padding: 8px 12px; border-radius: 10px; border: 1px solid #cbd5e1;">
                 <span style="font-size: 11px; font-weight: 800; color: #64748b;">HIỂN THỊ:</span>
                 <select id="pageSizeSelect" onchange="changePageSize()"
@@ -81,14 +143,14 @@
 
             <input type="text" id="myInput" onkeyup="handleSearch()" placeholder="Tìm kiếm..."
                    style="padding: 10px 15px; border-radius: 10px; border: 1px solid #cbd5e1; width: 250px; outline: none;">
-            <a href="/FormIT/DonMail" style="padding: 10px 20px; background: #0284c7; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 13px;">
+            <a href="/FormIT/DonMail" class="btn-create-mobile" style="padding: 10px 20px; background: #0284c7; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 13px;">
                 + TẠO ĐƠN MỚI
             </a>
         </div>
     </div>
 
     @* --- STATS ROW --- *@
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 25px;">
+    <div class="stats-grid-mobile" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 25px;">
         <div onclick="filterByStatus('')" class="stat-card" style="@statBox border-left: 5px solid #64748b;">
             <span style="font-size: 11px; color: #64748b; font-weight: 800;">TỔNG ĐƠN</span>
             <span id="stat-tong" style="font-size: 20px; font-weight: 900;">0</span>
@@ -134,7 +196,7 @@
     </div>
 
     @* --- PHÂN TRANG & FOOTER --- *@
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 5px;">
+    <div class="pagination-mobile" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 5px;">
         <div id="paginationButtons" style="display: flex; gap: 6px;"></div>
         <div style="text-align: right;">
             <div style="color: #64748b; font-size: 12px; font-weight: 700;">
@@ -148,13 +210,11 @@
 </div>
 
 <script>
-    // Toàn bộ Data sẽ được lưu trong JS Memory
     let masterData = [];
     let filteredData = [];
     let currentPage = 1;
     let rowsPerPage = 30;
     
-    // Gọi API khi load trang
     document.addEventListener("DOMContentLoaded", () => {
         loadDataFromAPI();
     });
@@ -176,33 +236,19 @@
         }
     }
 
-    // JS Logic thay thế đoạn C# thống kê
     function calculateStats(data) {
         let total = data.length;
-        let daHuy = 0;
-        let choQLDuyet = 0;
-        let itDangXuLy = 0;
-        let choDanhGia = 0;
-        let hoanTat = 0;
-
+        let daHuy = 0; let choQLDuyet = 0; let itDangXuLy = 0; let choDanhGia = 0; let hoanTat = 0;
         data.forEach(item => {
             let isCancelled = (item.tenForm || "").includes("[ĐÃ HỦY]");
-            
-            if (isCancelled) {
-                daHuy++;
-            } else {
-                if (item.idNguoiDuyet == null) {
-                    choQLDuyet++;
-                } else if (item.idNguoiDuyet != null && item.idAdmin == null) {
-                    itDangXuLy++;
-                } else if (item.idAdmin != null && !item.daDanhGia) {
-                    choDanhGia++;
-                } else if (item.idAdmin != null && item.daDanhGia) {
-                    hoanTat++;
-                }
+            if (isCancelled) { daHuy++; }
+            else {
+                if (item.idNguoiDuyet == null) { choQLDuyet++; }
+                else if (item.idAdmin == null) { itDangXuLy++; }
+                else if (!item.daDanhGia) { choDanhGia++; }
+                else { hoanTat++; }
             }
         });
-
         document.getElementById("stat-tong").innerText = total;
         document.getElementById("stat-cho-ql").innerText = choQLDuyet;
         document.getElementById("stat-dang-xu-ly").innerText = itDangXuLy;
@@ -212,75 +258,44 @@
     }
 
     function changePageSize() {
-        const select = document.getElementById("pageSizeSelect");
-        rowsPerPage = parseInt(select.value);
-        currentPage = 1;
-        renderTable();
+        rowsPerPage = parseInt(document.getElementById("pageSizeSelect").value);
+        currentPage = 1; renderTable();
     }
 
     function handleSearch() {
         const keyword = document.getElementById("myInput").value.toUpperCase();
-        
-        // Lọc Data thay vì DOM
         filteredData = masterData.filter(item => {
-            const rawStatus = determineStatus(item).statusText.toUpperCase();
-            const textToSearch = `${item.id} ${item.tenForm} ${item.danhmuc} ${item.ngay} ${item.tenNguoiHoTro} ${rawStatus}`.toUpperCase();
-            return textToSearch.includes(keyword);
+            const status = determineStatus(item).statusText.toUpperCase();
+            return `${item.id} ${item.tenForm} ${item.danhmuc} ${item.ngay} ${item.tenNguoiHoTro} ${status}`.toUpperCase().includes(keyword);
         });
-
-        currentPage = 1;
-        renderTable();
+        currentPage = 1; renderTable();
     }
 
     function filterByStatus(s) {
         document.getElementById("myInput").value = s;
         handleSearch();
-
-        const table = document.getElementById("myTable");
-        table.style.opacity = "0.5";
-        setTimeout(() => { table.style.opacity = "1"; }, 150);
     }
 
-    // Định nghĩa logic trạng thái
     function determineStatus(item) {
         let isCancelled = (item.tenForm || "").includes("[ĐÃ HỦY]");
-        let isManagerApproved = item.idNguoiDuyet != null;
-        let isITDone = item.idAdmin != null;
+        let isMngOk = item.idNguoiDuyet != null;
+        let isITOk = item.idAdmin != null;
         let isRated = item.daDanhGia;
-
         let res = { statusText: "", bgColor: "", fgColor: "", progressWidth: "", progressColor: "" };
 
-        if (isCancelled) {
-            res.statusText = "HỦY BỎ"; res.bgColor = "#fef2f2"; res.fgColor = "#b91c1c";
-            res.progressWidth = "100%"; res.progressColor = "#ef4444";
-        }
-        else if (isITDone && isRated) {
-            res.statusText = "HOÀN TẤT"; res.bgColor = "#ecfdf5"; res.fgColor = "#047857";
-            res.progressWidth = "100%"; res.progressColor = "#10b981";
-        }
-        else if (isITDone && !isRated) {
-            res.statusText = "CHỜ ĐÁNH GIÁ"; res.bgColor = "#f5f3ff"; res.fgColor = "#6d28d9";
-            res.progressWidth = "90%"; res.progressColor = "#8b5cf6";
-        }
-        else if (isManagerApproved) {
-            res.statusText = "ĐANG XỬ LÝ"; res.bgColor = "#eff6ff"; res.fgColor = "#1e40af";
-            res.progressWidth = "60%"; res.progressColor = "#0284c7";
-        }
-        else {
-            res.statusText = "CHỜ QL DUYỆT"; res.bgColor = "#fffbeb"; res.fgColor = "#b45309";
-            res.progressWidth = "25%"; res.progressColor = "#f59e0b";
-        }
+        if (isCancelled) { res.statusText = "HỦY BỎ"; res.bgColor = "#fef2f2"; res.fgColor = "#b91c1c"; res.progressWidth = "100%"; res.progressColor = "#ef4444"; }
+        else if (isITOk && isRated) { res.statusText = "HOÀN TẤT"; res.bgColor = "#ecfdf5"; res.fgColor = "#047857"; res.progressWidth = "100%"; res.progressColor = "#10b981"; }
+        else if (isITOk && !isRated) { res.statusText = "CHỜ ĐÁNH GIÁ"; res.bgColor = "#f5f3ff"; res.fgColor = "#6d28d9"; res.progressWidth = "90%"; res.progressColor = "#8b5cf6"; }
+        else if (isMngOk) { res.statusText = "ĐANG XỬ LÝ"; res.bgColor = "#eff6ff"; res.fgColor = "#1e40af"; res.progressWidth = "60%"; res.progressColor = "#0284c7"; }
+        else { res.statusText = "CHỜ QL DUYỆT"; res.bgColor = "#fffbeb"; res.fgColor = "#b45309"; res.progressWidth = "25%"; res.progressColor = "#f59e0b"; }
         return res;
     }
 
     function renderTable() {
         const tbody = document.getElementById("tableBody");
-        tbody.innerHTML = ""; // Clear
-        
-        // Tính toán records cần show
+        tbody.innerHTML = "";
         const startIndex = (currentPage - 1) * rowsPerPage;
-        const endIndex = startIndex + rowsPerPage;
-        const pageData = filteredData.slice(startIndex, endIndex);
+        const pageData = filteredData.slice(startIndex, startIndex + rowsPerPage);
 
         if(pageData.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">Không tìm thấy dữ liệu phù hợp</td></tr>';
@@ -290,7 +305,6 @@
                 let cleanTenForm = (item.tenForm || "").replace("[ĐÃ HỦY]", "");
                 let avatarChar = item.tenNguoiHoTro && item.tenNguoiHoTro !== "Chưa có" ? item.tenNguoiHoTro.charAt(0) : "?";
 
-                // Render row
                 const tr = document.createElement("tr");
                 tr.style.borderBottom = "1px solid #f1f5f9";
                 tr.innerHTML = `
@@ -298,70 +312,49 @@
                     <td style="padding: 15px;">
                         <div style="font-weight: 800; color: #1e293b;">${cleanTenForm}</div>
                         <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
-                            <i class="fa fa-tag"></i> ${item.danhmuc} |
-                            <i class="fa fa-clock"></i> ${item.ngay}
+                            <i class="fa fa-tag"></i> ${item.danhmuc} | <i class="fa fa-clock"></i> ${item.ngay}
                         </div>
                     </td>
                     <td style="padding: 15px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 24px; height: 24px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;">
-                                ${avatarChar}
-                            </div>
+                            <div style="width: 24px; height: 24px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;">${avatarChar}</div>
                             <span style="font-weight: 600;">${item.tenNguoiHoTro}</span>
                         </div>
                     </td>
                     <td style="padding: 15px; text-align: center;">
-                        <span class="status-badge" style="background: ${s.bgColor}; color: ${s.fgColor}; border-color: ${s.fgColor};">
-                            ${s.statusText}
-                        </span>
+                        <span class="status-badge" style="background: ${s.bgColor}; color: ${s.fgColor}; border-color: ${s.fgColor};">${s.statusText}</span>
                         <div style="width: 80px; height: 4px; background: #e2e8f0; border-radius: 10px; margin: 6px auto 0; overflow: hidden;">
                             <div style="width: ${s.progressWidth}; height: 100%; background: ${s.progressColor};"></div>
                         </div>
                     </td>
-                    <td style="padding: 15px; text-align: center;">
-                        <a href="/FormIT/ChiTiet/${item.id}" style="color: #64748b; font-size: 16px;"><i class="fa fa-arrow-circle-right"></i></a>
+                    <td class="action-cell" style="padding: 15px; text-align: center;">
+                        <a href="/FormIT/ChiTiet/${item.id}" style="color: #64748b; font-size: 18px;"><i class="fa fa-arrow-circle-right"></i></a>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
-
         renderPagination(filteredData.length);
-        
-        // Cập nhật text thống kê phía dưới
         document.getElementById("totalVisibleCount").innerText = filteredData.length;
         document.getElementById("currentPageNum").innerText = currentPage;
     }
 
     function renderPagination(totalRows) {
         const totalPages = Math.ceil(totalRows / rowsPerPage);
-        const paginationContainer = document.getElementById("paginationButtons");
-        paginationContainer.innerHTML = "";
-        
+        const container = document.getElementById("paginationButtons");
+        container.innerHTML = "";
         if (totalPages > 1) {
             for (let i = 1; i <= totalPages; i++) {
-                if (totalPages > 6 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
+                if (totalPages > 5 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
                     if (i == 3 || i == totalPages - 2) {
-                        const dot = document.createElement("span");
-                        dot.innerText = "...";
-                        dot.style.padding = "6px";
-                        paginationContainer.appendChild(dot);
+                        const dot = document.createElement("span"); dot.innerText = "..."; container.appendChild(dot);
                     }
                     continue;
                 }
-
                 const btn = document.createElement("button");
-                btn.innerText = i;
-                
-                // ĐÃ SỬA LỖI Ở DÒNG NÀY: Loại bỏ dấu gạch chéo ngược (\) thừa
-                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
-                
-                btn.onclick = () => {
-                    currentPage = i;
-                    renderTable();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                };
-                paginationContainer.appendChild(btn);
+                btn.innerText = i; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                btn.onclick = () => { currentPage = i; renderTable(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+                container.appendChild(btn);
             }
         }
     }

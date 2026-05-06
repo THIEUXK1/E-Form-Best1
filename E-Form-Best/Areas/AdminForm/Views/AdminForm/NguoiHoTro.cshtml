@@ -2,15 +2,120 @@
     Layout = "~/Areas/AdminForm/Views/Shared/_Layout.cshtml";
 }
 
-<div style="padding: 30px; background-color: #f7fafc; min-height: 100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-    <div style="display: flex; gap: 25px; flex-wrap: wrap; align-items: flex-start;">
+<style>
+    /* CSS TỐI ƯU MOBILE - GEMINI COLLABORATION */
+    .admin-card {
+        flex: 1;
+        min-width: 450px;
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
+    }
 
-        <div style="flex: 1; min-width: 500px; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 10px;
+        margin-bottom: 20px;
+        background: #f8fafc;
+        padding: 15px;
+        border-radius: 10px;
+    }
+
+    .form-grid-task {
+        display: grid; 
+        grid-template-columns: 2fr 1fr; 
+        gap: 10px;
+    }
+
+    @@media (max-width: 768px) {
+        .admin-card {
+            min-width: 100% !important;
+            padding: 15px !important;
+        }
+
+        .form-grid, .form-grid-task {
+            grid-template-columns: 1fr !important;
+        }
+
+        #btnSaveNHT, #btnSaveCV {
+            grid-column: span 1 !important;
+        }
+
+        /* Biến Table thành Card trên Mobile */
+        table, thead, tbody, th, td, tr {
+            display: block;
+        }
+
+        thead tr {
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+        }
+
+        tr {
+            border: 1px solid #edf2f7;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            padding: 10px;
+            background: #fff;
+        }
+
+        td {
+            border: none;
+            position: relative;
+            padding-left: 40% !important;
+            text-align: right !important;
+            min-height: 30px;
+        }
+
+        td:before {
+            position: absolute;
+            left: 10px;
+            width: 35%;
+            white-space: nowrap;
+            font-weight: bold;
+            text-align: left;
+            color: #718096;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        /* Gán nhãn cho bảng Người hỗ trợ */
+        #bodyNHT td:nth-of-type(1):before { content: "Mã NV"; }
+        #bodyNHT td:nth-of-type(2):before { content: "Tên"; }
+        #bodyNHT td:nth-of-type(3):before { content: "Bộ phận"; }
+        #bodyNHT td:nth-of-type(4):before { content: "Ghi chú"; }
+        #bodyNHT td:nth-of-type(5):before { content: "Thao tác"; }
+
+        /* Gán nhãn cho bảng Công việc */
+        #bodyCV td:nth-of-type(1):before { content: "Công việc"; }
+        #bodyCV td:nth-of-type(2):before { content: "Trạng thái"; }
+        #bodyCV td:nth-of-type(3):before { content: "Phụ trách"; }
+        #bodyCV td:nth-of-type(4):before { content: "Thao tác"; }
+        
+        td:last-child {
+            text-align: center !important;
+            padding-left: 0 !important;
+            margin-top: 10px;
+            border-top: 1px dashed #edf2f7;
+            padding-top: 15px !important;
+        }
+    }
+</style>
+
+<div style="padding: 20px; background-color: #f7fafc; min-height: 100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
+
+        <!-- PANEL: NGƯỜI HỖ TRỢ -->
+        <div class="admin-card">
             <h3 style="margin-top: 0; color: #2d3748; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #edf2f7; padding-bottom: 15px;">
                 <span style="background: #ebf8ff; padding: 8px; border-radius: 10px;">👤</span> Quản lý Người Hỗ Trợ
             </h3>
 
-            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 10px;">
+            <div class="form-grid">
                 <input type="hidden" id="txtId" value="0" />
                 <input type="text" id="txtMaNv" placeholder="Mã NV" style="padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; outline: none;" />
                 <input type="text" id="txtTen" placeholder="Họ tên nhân viên" style="padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; outline: none;" />
@@ -35,14 +140,15 @@
             </div>
         </div>
 
-        <div style="flex: 1; min-width: 500px; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
+        <!-- PANEL: CÔNG VIỆC -->
+        <div class="admin-card">
             <h3 style="margin-top: 0; color: #2d3748; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #edf2f7; padding-bottom: 15px;">
                 <span style="background: #f0fff4; padding: 8px; border-radius: 10px;">📋</span> Danh sách Công Việc
             </h3>
 
             <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 10px;">
                 <input type="hidden" id="txtCvId" value="0" />
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                <div class="form-grid-task">
                     <input type="text" id="txtCvTen" placeholder="Tên công việc mới..." style="padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; outline: none;" />
                     <select id="ddlNguoiHoTro" style="padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; background: white; cursor: pointer;"></select>
                 </div>
@@ -71,8 +177,8 @@
 <script>
     document.addEventListener("DOMContentLoaded", () => { loadNHT(); loadCV(); });
 
-    const btnStyleSua = "color: #3182ce; background: #ebf8ff; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: 600; margin-right: 5px;";
-    const btnStyleXoa = "color: #e53e3e; background: #fff5f5; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: 600;";
+    const btnStyleSua = "color: #3182ce; background: #ebf8ff; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-weight: 600; margin-right: 5px; display: inline-block;";
+    const btnStyleXoa = "color: #e53e3e; background: #fff5f5; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-weight: 600; display: inline-block;";
 
     // --- NGƯỜI HỖ TRỢ ---
     function loadNHT() {
@@ -118,6 +224,7 @@
         document.getElementById('txtGhiChu').value = i.ghiChu || "";
         document.getElementById('btnSaveNHT').innerText = "Cập nhật";
         document.getElementById('btnSaveNHT').style.background = "linear-gradient(135deg, #ecc94b 0%, #d69e2e 100%)";
+        window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
     function resetNHT() {
@@ -126,7 +233,7 @@
         document.getElementById('txtTen').value = "";
         document.getElementById('txtBoPhan').value = "";
         document.getElementById('txtGhiChu').value = "";
-        document.getElementById('btnSaveNHT').innerText = "Lưu";
+        document.getElementById('btnSaveNHT').innerText = "Lưu Nhân Viên";
         document.getElementById('btnSaveNHT').style.background = "linear-gradient(135deg, #3182ce 0%, #2b6cb0 100%)";
     }
 
@@ -136,7 +243,6 @@
     function loadCV() {
         fetch('/QLtaiKhoan/GetAllCongViec').then(r => r.json()).then(data => {
             document.getElementById('bodyCV').innerHTML = data.map(i => {
-                // Style cho trạng thái: Xanh nếu Hiển thị, Đỏ nếu Ẩn
                 const isShow = i.trangThai === "Hiển thị" || !i.trangThai;
                 const statusStyle = isShow
                     ? "background: #c6f6d5; color: #22543d; border: 1px solid #9ae6b4;"
@@ -160,7 +266,6 @@
         });
     }
 
-    // Hàm đổi trạng thái nhanh
     function toggleStatus(id) {
         fetch('/QLtaiKhoan/UpdateStatusCV?id=' + id, { method: 'POST' })
             .then(r => r.json())
@@ -173,7 +278,6 @@
             Id: id,
             Ten: document.getElementById('txtCvTen').value,
             IdItNguoiHoTro: document.getElementById('ddlNguoiHoTro').value
-            // Không gửi TrangThai, Backend tự xử lý mặc định hoặc giữ nguyên
         };
         if(!data.Ten) return alert("Vui lòng nhập tên công việc");
         fetch(id == "0" ? '/QLtaiKhoan/AddCongViec' : '/QLtaiKhoan/UpdateCongViec', {

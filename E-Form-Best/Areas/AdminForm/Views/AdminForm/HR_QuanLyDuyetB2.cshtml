@@ -3,9 +3,23 @@
     Layout = "~/Areas/AdminForm/Views/Shared/_Layout.cshtml";
 }
 
-@* CSS tối ưu hóa giao diện - GIỮ NGUYÊN *@
 <style>
-    .nav-tabs { border-bottom: 2px solid #ebeef2; }
+    /* PHONG CÁCH SIÊU ĐẸP 2026 & MOBILE RESPONSIVE */
+    :root {
+        --primary-indigo: #4f46e5;
+        --primary-cyan: #06b6d4;
+    }
+
+    /* Tab Navigation Tối ưu Cuộn ngang trên Mobile */
+    .nav-tabs { 
+        border-bottom: 2px solid #ebeef2; 
+        flex-wrap: nowrap; 
+        overflow-x: auto; 
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+    .nav-tabs .nav-item { white-space: nowrap; }
     .nav-tabs .nav-link { 
         color: #6c757d; 
         font-weight: 600; 
@@ -13,38 +27,97 @@
         padding: 14px 24px; 
         transition: all 0.3s ease;
     }
-    .nav-tabs .nav-link:hover { border: none; color: #0d6efd; background: rgba(13, 110, 253, 0.05); }
+    .nav-tabs .nav-link:hover { 
+        color: var(--primary-cyan); 
+        background: rgba(6, 182, 212, 0.05); 
+    }
     .nav-tabs .nav-link.active { 
-        color: #0d6efd; 
-        border-bottom: 3px solid #0d6efd; 
+        color: var(--primary-indigo); 
+        border-bottom: 3px solid var(--primary-indigo); 
         background: none; 
     }
 
+    /* Nội dung Tab - Glassmorphism */
     .tab-content { 
         border: 1px solid #ebeef2; 
         border-top: none; 
-        background: #fff; 
-        border-bottom-left-radius: 8px;
-        border-bottom-right-radius: 8px;
+        background: rgba(255, 255, 255, 0.95); 
+        backdrop-filter: blur(10px);
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.03);
     }
+
     .table thead th { 
         vertical-align: middle; 
         text-align: center; 
-        background-color: #f8f9fa; 
+        background-color: #f8fafc; 
         text-transform: uppercase; 
         font-size: 0.75rem; 
         letter-spacing: 0.5px;
-        color: #495057;
+        color: #475569;
+        border-bottom: 2px solid var(--primary-indigo);
     }
     .card-header-flex { display: flex; justify-content: space-between; align-items: center; }
 
     .select2-container { z-index: 1061 !important; }
-    .badge { font-weight: 500; padding: 0.5em 0.8em; border-radius: 6px; }
-    .select2-result-bp__title { font-weight: 600; color: #2d3436; }
-    .select2-result-bp__note { font-size: 0.8rem; color: #95a5a6; font-style: italic; }
+    .badge { font-weight: 600; padding: 0.5em 0.8em; border-radius: 8px; }
+    .select2-result-bp__title { font-weight: 700; color: #1e293b; }
+    .select2-result-bp__note { font-size: 0.8rem; color: #94a3b8; font-style: italic; }
     
     .modal.fade .modal-dialog { transform: translate(0, -20px); transition: transform 0.3s ease-out; }
     .modal.show .modal-dialog { transform: translate(0, 0); }
+    .modal-content { border-radius: 16px; border: none; }
+
+    /* CSS TABLE RESPONSIVE - BIẾN BẢNG THÀNH CARD TRÊN MOBILE */
+    @@media (max-width: 991.98px) {
+        .card-header-flex { flex-direction: column; gap: 12px; align-items: flex-start; }
+        .card-header-flex div { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+        .card-header-flex div button, .card-header-flex > button { width: 100%; padding: 10px; border-radius: 8px; }
+
+        .table-responsive { border: none; }
+        .table thead { display: none; }
+        
+        .table tbody tr { 
+            display: block; 
+            margin-bottom: 1.2rem; 
+            border: 1px solid #e2e8f0 !important; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            background: #fff;
+            padding: 8px;
+        }
+
+        .table tbody td { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            text-align: right !important; 
+            padding: 10px 12px !important;
+            border: none !important;
+            border-bottom: 1px dashed #f1f5f9 !important;
+            min-height: 45px;
+        }
+
+        .table tbody td:last-child { 
+            border-bottom: none !important; 
+            justify-content: center; 
+            padding-top: 15px !important; 
+        }
+
+        .table tbody td::before {
+            content: attr(data-label);
+            font-weight: 700;
+            color: var(--primary-indigo);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            text-align: left;
+            margin-right: 15px;
+        }
+
+        .btn-group { display: flex; width: 100%; gap: 8px; }
+        .btn-group .btn { flex: 1; border-radius: 8px !important; padding: 10px; }
+    }
 </style>
 
 <div class="container-fluid mt-3 mb-5">
@@ -72,31 +145,31 @@
         </li>
     </ul>
 
-    <div class="tab-content p-4 shadow-sm" id="hrManageTabContent">
+    <div class="tab-content p-3 p-md-4 shadow-sm" id="hrManageTabContent">
         @* TAB 1: QUY TRÌNH CHÍNH *@
         <div class="tab-pane fade show active" id="tab-quytrinh" role="tabpanel">
             <div class="card-header-flex mb-4">
-                <h5 class="mb-0 text-primary fw-bold">
+                <h5 class="mb-0 fw-bold" style="color: var(--primary-indigo);">
                     <i class="fa fa-cog me-2"></i>Cấu hình luồng duyệt Bước 2
                 </h5>
                 <div>
-                    <button class="btn btn-outline-warning btn-sm me-2 fw-bold" onclick="syncBoPhan()">
+                    <button class="btn btn-outline-warning btn-sm me-md-2 fw-bold rounded-pill" onclick="syncBoPhan()">
                         <i class="fa fa-sync-alt me-1"></i> Đồng bộ Bộ phận
                     </button>
-                    <button class="btn btn-primary btn-sm fw-bold px-3" onclick="openCreateModal()">
+                    <button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm rounded-pill" onclick="openCreateModal()">
                         <i class="fa fa-plus me-1"></i> Thêm cấu hình mới
                     </button>
                 </div>
             </div>
-            <div class="table-responsive">
-                <table id="tableMain" class="table table-bordered table-hover w-100 align-middle">
-                    <thead>
+            <div class="table-responsive border-0">
+                <table id="tableMain" class="table table-hover w-100 align-middle">
+                    <thead class="table-light">
                         <tr>
                             <th>Công ty</th>
                             <th>Loại đơn</th>
                             <th>Bộ phận áp dụng</th>
                             <th>Thứ tự</th>
-                            <th>Hình thức duyệt</th> @* Cột mới *@
+                            <th>Hình thức duyệt</th>
                             <th>Người duyệt (B2)</th>
                             <th>Trạng thái</th>
                             <th>Thao tác</th>
@@ -106,72 +179,78 @@
             </div>
         </div>
 
-        @* TAB 2: CÔNG TY - GIỮ NGUYÊN *@
+        @* TAB 2: CÔNG TY *@
         <div class="tab-pane fade" id="tab-congty" role="tabpanel">
             <div class="card-header-flex mb-4">
                 <h5 class="mb-0 text-success fw-bold"><i class="fa fa-list me-2"></i>Danh sách Công ty</h5>
-                <button class="btn btn-success btn-sm fw-bold px-3" onclick="openModalCongTy()">
+                <button class="btn btn-success btn-sm fw-bold px-3 shadow-sm rounded-pill" onclick="openModalCongTy()">
                     <i class="fa fa-plus me-1"></i> Thêm Công ty
                 </button>
             </div>
-            <table id="tableCongTy" class="table table-bordered table-hover w-100 align-middle">
-                <thead>
-                    <tr>
-                        <th style="width: 50px">ID</th>
-                        <th>Tên Công ty</th>
-                        <th>Ghi chú</th>
-                        <th>Trạng thái</th>
-                        <th style="width: 80px">Thao tác</th>
-                    </tr>
-                </thead>
-            </table>
+            <div class="table-responsive border-0">
+                <table id="tableCongTy" class="table table-hover w-100 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 50px">ID</th>
+                            <th>Tên Công ty</th>
+                            <th>Ghi chú</th>
+                            <th>Trạng thái</th>
+                            <th style="width: 80px">Thao tác</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
         </div>
 
-        @* TAB 3: BỘ PHẬN - GIỮ NGUYÊN *@
+        @* TAB 3: BỘ PHẬN *@
         <div class="tab-pane fade" id="tab-bophan" role="tabpanel">
             <div class="card-header-flex mb-4">
                 <h5 class="mb-0 text-info fw-bold"><i class="fa fa-database me-2"></i>Danh mục Bộ phận (Dữ liệu gốc)</h5>
             </div>
-            <table id="tableBoPhan" class="table table-bordered table-hover w-100 align-middle">
-                <thead>
-                    <tr>
-                        <th style="width: 80px">ID Gốc</th>
-                        <th>Tên Bộ phận</th>
-                        <th>Ghi chú (Mô tả)</th>
-                        <th>Trạng thái</th>
-                    </tr>
-                </thead>
-            </table>
+            <div class="table-responsive border-0">
+                <table id="tableBoPhan" class="table table-hover w-100 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 80px">ID Gốc</th>
+                            <th>Tên Bộ phận</th>
+                            <th>Ghi chú (Mô tả)</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
         </div>
 
-        @* TAB 4: LOẠI ĐƠN - GIỮ NGUYÊN *@
+        @* TAB 4: LOẠI ĐƠN *@
         <div class="tab-pane fade" id="tab-loaidon" role="tabpanel">
             <div class="card-header-flex mb-4">
                 <h5 class="mb-0 text-dark fw-bold"><i class="fa fa-folder-open me-2"></i>Danh mục Loại đơn</h5>
-                <button class="btn btn-dark btn-sm fw-bold px-3" onclick="openModalLoaiDon()">
+                <button class="btn btn-dark btn-sm fw-bold px-3 shadow-sm rounded-pill" onclick="openModalLoaiDon()">
                     <i class="fa fa-plus me-1"></i> Thêm Loại đơn
                 </button>
             </div>
-            <table id="tableLoaiDon" class="table table-bordered table-hover w-100 align-middle">
-                <thead>
-                    <tr>
-                        <th>Mã đơn</th>
-                        <th>Tên Loại đơn</th>
-                        <th>Trạng thái</th>
-                        <th style="width: 80px">Thao tác</th>
-                    </tr>
-                </thead>
-            </table>
+            <div class="table-responsive border-0">
+                <table id="tableLoaiDon" class="table table-hover w-100 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã đơn</th>
+                            <th>Tên Loại đơn</th>
+                            <th>Trạng thái</th>
+                            <th style="width: 80px">Thao tác</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
         </div>
     </div>
 </div>
 
 @* --- MODALS SECTION --- *@
 
-@* MODAL CẤU HÌNH QUY TRÌNH - CẬP NHẬT TRƯỜNG LOẠI *@
+@* MODAL CẤU HÌNH QUY TRÌNH *@
 <div class="modal fade" id="modalAction" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow-lg">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow-lg">
             <div class="modal-header bg-primary text-white border-0">
                 <h5 class="modal-title fw-bold" id="modalLabel">Thông tin cấu hình</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -181,21 +260,21 @@
                     <input type="hidden" id="Id" value="0" />
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold text-secondary small">Công ty <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold text-secondary small text-uppercase">Công ty <span class="text-danger">*</span></label>
                             <select class="form-select select2-modal" id="IdcongTy" required></select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold text-secondary small">Loại đơn <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold text-secondary small text-uppercase">Loại đơn <span class="text-danger">*</span></label>
                             <select class="form-select select2-modal" id="IdloaiDon" required></select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold text-secondary small">Bộ phận</label>
+                            <label class="form-label fw-bold text-secondary small text-uppercase">Bộ phận</label>
                             <select class="form-select" id="IdboPhan">
                                 <option value="">-- Áp dụng cho tất cả bộ phận --</option>
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold text-secondary small">Người duyệt Bước 2 <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold text-secondary small text-uppercase">Người duyệt Bước 2 <span class="text-danger">*</span></label>
                             <select class="form-select select2-modal" id="IdnguoiXacNhan" required>
                                 <option value="">-- Chọn nhân viên --</option>
                                 @foreach (var item in ViewBag.NguoiXacNhan)
@@ -205,31 +284,31 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold text-secondary small">Hình thức xác nhận <span class="text-danger">*</span></label>
-                            <select class="form-select" id="Loai" required>
+                            <label class="form-label fw-bold text-secondary small text-uppercase">Hình thức xác nhận <span class="text-danger">*</span></label>
+                            <select class="form-select rounded-3" id="Loai" required>
                                 <option value="ALL">Tất cả phải xác nhận (AND)</option>
                                 <option value="ANY">Chỉ cần 1 người duyệt (OR)</option>
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold text-secondary small">Thứ tự duyệt (STT)</label>
-                            <input type="number" class="form-control" id="Stt" min="1" value="1" required />
+                            <label class="form-label fw-bold text-secondary small text-uppercase">Thứ tự duyệt (STT)</label>
+                            <input type="number" class="form-control rounded-3" id="Stt" min="1" value="1" required />
                         </div>
                         <div class="col-md-12">
-                            <label class="form-label fw-bold text-secondary small">Ghi chú cấu hình</label>
-                            <input type="text" class="form-control" id="GhiChu" placeholder="Ví dụ: Duyệt thay trưởng phòng..." />
+                            <label class="form-label fw-bold text-secondary small text-uppercase">Ghi chú cấu hình</label>
+                            <input type="text" class="form-control rounded-3" id="GhiChu" placeholder="Ví dụ: Duyệt thay trưởng phòng..." />
                         </div>
                         <div class="col-12">
-                            <div class="form-check form-switch p-2 bg-light rounded border px-5">
-                                <input class="form-check-input" type="checkbox" id="TrangThai" checked>
-                                <label class="form-check-label fw-bold" for="TrangThai">Kích hoạt cấu hình này</label>
+                            <div class="form-check form-switch p-3 bg-light rounded-3 border d-flex align-items-center">
+                                <input class="form-check-input ms-0 me-3" type="checkbox" id="TrangThai" checked style="width: 40px; height: 20px;">
+                                <label class="form-check-label fw-bold text-dark" for="TrangThai">Kích hoạt cấu hình này</label>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light border-0">
+                <div class="modal-footer bg-light border-0" style="border-radius: 0 0 16px 16px;">
                     <button type="button" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">Đóng</button>
-                    <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">
+                    <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm rounded-pill">
                         <i class="fa fa-save me-1"></i> Lưu cấu hình
                     </button>
                 </div>
@@ -238,63 +317,64 @@
     </div>
 </div>
 
-@* MODAL CÔNG TY & LOẠI ĐƠN - GIỮ NGUYÊN *@
+@* MODAL CÔNG TY *@
 <div class="modal fade" id="modalCongTy" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-success text-white">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-success text-white border-0">
                 <h5 class="modal-title fw-bold" id="modalLabelCT">Thông tin Công ty</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="formCongTy">
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <input type="hidden" id="IdcongTy_Modal" value="0" />
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Tên Công ty</label>
-                        <input type="text" class="form-control" id="TenCongTy" required />
+                        <label class="form-label fw-bold small text-uppercase">Tên Công ty</label>
+                        <input type="text" class="form-control rounded-3" id="TenCongTy" required />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Ghi chú</label>
-                        <input type="text" class="form-control" id="GhiChuCT" />
+                        <label class="form-label fw-bold small text-uppercase">Ghi chú</label>
+                        <input type="text" class="form-control rounded-3" id="GhiChuCT" />
                     </div>
-                    <div class="form-check form-switch border rounded p-2 ps-5 bg-light">
-                        <input class="form-check-input" type="checkbox" id="TrangThaiCT" checked>
+                    <div class="form-check form-switch border rounded-3 p-3 bg-light d-flex align-items-center">
+                        <input class="form-check-input ms-0 me-3" type="checkbox" id="TrangThaiCT" checked style="width: 40px; height: 20px;">
                         <label class="form-check-label fw-bold">Đang hoạt động</label>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-success w-100 fw-bold">Lưu dữ liệu Công ty</button>
+                <div class="modal-footer border-0 bg-light" style="border-radius: 0 0 16px 16px;">
+                    <button type="submit" class="btn btn-success w-100 fw-bold rounded-pill shadow-sm">Lưu dữ liệu Công ty</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+@* MODAL LOẠI ĐƠN *@
 <div class="modal fade" id="modalLoaiDon" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-dark text-white">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-dark text-white border-0">
                 <h5 class="modal-title fw-bold" id="modalLabelLD">Thông tin Loại đơn</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="formLoaiDon">
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <input type="hidden" id="IdloaiDon_LD" value="0" />
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Mã loại đơn (Ví dụ: DXP, DXN)</label>
-                        <input type="text" class="form-control text-uppercase" id="MaLoaiDon" required />
+                        <label class="form-label fw-bold small text-uppercase">Mã loại đơn (Ví dụ: DXP, DXN)</label>
+                        <input type="text" class="form-control text-uppercase rounded-3" id="MaLoaiDon" required />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Tên loại đơn</label>
-                        <input type="text" class="form-control" id="TenLoaiDon" required />
+                        <label class="form-label fw-bold small text-uppercase">Tên loại đơn</label>
+                        <input type="text" class="form-control rounded-3" id="TenLoaiDon" required />
                     </div>
-                    <div class="form-check form-switch border rounded p-2 ps-5 bg-light">
-                        <input class="form-check-input" type="checkbox" id="TrangThaiLD" checked>
+                    <div class="form-check form-switch border rounded-3 p-3 bg-light d-flex align-items-center">
+                        <input class="form-check-input ms-0 me-3" type="checkbox" id="TrangThaiLD" checked style="width: 40px; height: 20px;">
                         <label class="form-check-label fw-bold">Cho phép sử dụng</label>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-dark w-100 fw-bold">Lưu Loại đơn</button>
+                <div class="modal-footer border-0 bg-light" style="border-radius: 0 0 16px 16px;">
+                    <button type="submit" class="btn btn-dark w-100 fw-bold rounded-pill shadow-sm">Lưu Loại đơn</button>
                 </div>
             </form>
         </div>
@@ -350,29 +430,33 @@
                 ...commonConfig,
                 ajax: '/HR_QuanLyDuyetB2/GetData',
                 columns: [
-                    { data: 'tenCongTy' },
-                    { data: 'tenLoaiDon' },
+                    { data: 'tenCongTy', createdCell: function (td) { $(td).attr('data-label', 'Công ty'); } },
+                    { data: 'tenLoaiDon', createdCell: function (td) { $(td).attr('data-label', 'Loại đơn'); } },
                     { 
                         data: 'tenBoPhan',
+                        createdCell: function (td) { $(td).attr('data-label', 'Bộ phận áp dụng'); },
                         render: d => d === "Tất cả" ? `<span class="text-muted"><i>${d}</i></span>` : `<b class="text-dark">${d}</b>`
                     },
-                    { data: 'stt', className: 'text-center fw-bold text-primary' },
+                    { data: 'stt', className: 'text-center fw-bold text-primary', createdCell: function (td) { $(td).attr('data-label', 'Thứ tự'); } },
                     { 
                         data: 'loai',
                         className: 'text-center',
+                        createdCell: function (td) { $(td).attr('data-label', 'Hình thức duyệt'); },
                         render: d => d === "ANY" 
                             ? '<span class="badge bg-info"><i class="fa fa-check me-1"></i>Chỉ cần 1 người</span>' 
                             : '<span class="badge bg-secondary"><i class="fa fa-users me-1"></i>Tất cả xác nhận</span>'
                     },
-                    { data: 'hoTenNguoiDuyet' },
+                    { data: 'hoTenNguoiDuyet', createdCell: function (td) { $(td).attr('data-label', 'Người duyệt (B2)'); } },
                     {
                         data: 'trangThai',
                         className: 'text-center',
+                        createdCell: function (td) { $(td).attr('data-label', 'Trạng thái'); },
                         render: d => d ? '<span class="badge bg-success">Đang dùng</span>' : '<span class="badge bg-danger">Tạm ngưng</span>'
                     },
                     {
                         data: 'id',
                         className: 'text-center',
+                        createdCell: function (td) { $(td).attr('data-label', 'Thao tác'); },
                         render: (data, type, row) => `
                             <div class="btn-group">
                                 <button class="btn btn-sm btn-outline-info" title="Sửa" onclick='editItem(${JSON.stringify(row)})'><i class="fa fa-edit"></i></button>
@@ -386,18 +470,20 @@
                 ...commonConfig,
                 ajax: '/HR_QuanLyDuyetB2/GetCongTy',
                 columns: [
-                    { data: 'idcongTy', className: 'text-center' },
-                    { data: 'tenCongTy', className: 'fw-bold' },
-                    { data: 'ghiChu' },
+                    { data: 'idcongTy', className: 'text-center', createdCell: function (td) { $(td).attr('data-label', 'ID'); } },
+                    { data: 'tenCongTy', className: 'fw-bold', createdCell: function (td) { $(td).attr('data-label', 'Tên Công ty'); } },
+                    { data: 'ghiChu', createdCell: function (td) { $(td).attr('data-label', 'Ghi chú'); } },
                     {
                         data: 'trangThai',
                         className: 'text-center',
+                        createdCell: function (td) { $(td).attr('data-label', 'Trạng thái'); },
                         render: d => d ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Locked</span>'
                     },
                     {
                         data: 'idcongTy',
                         className: 'text-center',
-                        render: (data, type, row) => `<button class="btn btn-sm btn-outline-success" onclick='editCT(${JSON.stringify(row)})'><i class="fa fa-edit"></i></button>`
+                        createdCell: function (td) { $(td).attr('data-label', 'Thao tác'); },
+                        render: (data, type, row) => `<button class="btn btn-sm btn-outline-success rounded-pill px-3" onclick='editCT(${JSON.stringify(row)})'><i class="fa fa-edit"></i></button>`
                     }
                 ]
             });
@@ -406,12 +492,13 @@
                 ...commonConfig,
                 ajax: '/HR_QuanLyDuyetB2/GetBoPhan',
                 columns: [
-                    { data: 'idboPhan', className: 'text-center fw-bold' },
-                    { data: 'tenBoPhan' },
-                    { data: 'ghiChu' },
+                    { data: 'idboPhan', className: 'text-center fw-bold', createdCell: function (td) { $(td).attr('data-label', 'ID Gốc'); } },
+                    { data: 'tenBoPhan', createdCell: function (td) { $(td).attr('data-label', 'Tên Bộ phận'); } },
+                    { data: 'ghiChu', createdCell: function (td) { $(td).attr('data-label', 'Ghi chú'); } },
                     {
                         data: 'trangThai',
                         className: 'text-center',
+                        createdCell: function (td) { $(td).attr('data-label', 'Trạng thái'); },
                         render: d => d ? '<span class="badge bg-info">Active</span>' : '<span class="badge bg-danger">Locked</span>'
                     }
                 ]
@@ -421,17 +508,19 @@
                 ...commonConfig,
                 ajax: '/HR_QuanLyDuyetB2/GetLoaiDon',
                 columns: [
-                    { data: 'maLoaiDon', className: 'fw-bold' },
-                    { data: 'tenLoaiDon' },
+                    { data: 'maLoaiDon', className: 'fw-bold', createdCell: function (td) { $(td).attr('data-label', 'Mã đơn'); } },
+                    { data: 'tenLoaiDon', createdCell: function (td) { $(td).attr('data-label', 'Tên Loại đơn'); } },
                     {
                         data: 'trangThai',
                         className: 'text-center',
+                        createdCell: function (td) { $(td).attr('data-label', 'Trạng thái'); },
                         render: d => d ? '<span class="badge bg-success">Hoạt động</span>' : '<span class="badge bg-danger">Khóa</span>'
                     },
                     {
                         data: 'idloaiDon',
                         className: 'text-center',
-                        render: (data, type, row) => `<button class="btn btn-sm btn-outline-secondary" onclick='editLD(${JSON.stringify(row)})'><i class="fa fa-edit"></i></button>`
+                        createdCell: function (td) { $(td).attr('data-label', 'Thao tác'); },
+                        render: (data, type, row) => `<button class="btn btn-sm btn-outline-dark rounded-pill px-3" onclick='editLD(${JSON.stringify(row)})'><i class="fa fa-edit"></i></button>`
                     }
                 ]
             });
@@ -515,6 +604,7 @@
                     
                     $('#Id').val(0);
                     $('#GhiChu').val('');
+                    $('#modalAction').modal('hide');
                 } else {
                     Swal.fire('Lỗi', res.message, 'error');
                 }
@@ -530,7 +620,7 @@
                 text: "Dữ liệu này sẽ biến mất khỏi danh sách!",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#d33',
+                confirmButtonColor: '#ef4444',
                 confirmButtonText: 'Đồng ý xóa',
                 cancelButtonText: 'Bỏ qua'
             }).then((result) => {

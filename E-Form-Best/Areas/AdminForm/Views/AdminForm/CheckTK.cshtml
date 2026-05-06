@@ -1,16 +1,33 @@
-﻿
-
-<style>
+﻿<style>
     html, body {
         height: 100%;
         margin: 0;
         padding: 0;
     }
-    /* Nếu Layout của bạn có container bao ngoài, hãy đảm bảo nó không giới hạn chiều cao */
+    /* Đảm bảo container của layout không chặn chiều cao */
     main, .container, .body-content {
         height: 100%;
         display: flex;
         flex-direction: column;
+    }
+
+    /* CSS tối ưu riêng cho Mobile */
+    @@media (max-width: 480px) {
+        .login-card {
+            padding: 30px 20px !important; /* Giảm padding để rộng chỗ hơn */
+            border-radius: 20px !important;
+        }
+        .login-icon {
+            width: 60px !important;
+            height: 60px !important;
+            font-size: 24px !important;
+        }
+        .login-title {
+            font-size: 24px !important;
+        }
+        .input-label {
+            font-size: 12px !important;
+        }
     }
 </style>
 
@@ -23,10 +40,10 @@
     background: radial-gradient(circle at top left, #1a2a6c, #b21f1f, #fdbb2d);
     font-family: 'Segoe UI', Roboto, sans-serif;
     margin: 0;
-    padding: 20px;
-    box-sizing: border-box;
-">
-    <div style="
+    padding: 15px; /* Giảm nhẹ padding ngoài để card rộng hơn trên mobile */
+    box-sizing: border-box;">
+
+    <div class="login-card" style="
         width: 100%;
         max-width: 450px;
         background: rgba(255, 255, 255, 0.15);
@@ -35,117 +52,127 @@
         border-radius: 24px;
         border: 1px solid rgba(255, 255, 255, 0.2);
         box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
-        padding: 40px;
+        padding: 45px 40px;
         box-sizing: border-box;
     ">
 
-        <div style="text-align: center; margin-bottom: 40px;">
-            <div style="
-                width: 70px;
-                height: 70px;
+        <div style="text-align: center; margin-bottom: 35px;">
+            <div class="login-icon" style="
+                width: 75px;
+                height: 75px;
                 background: white;
-                border-radius: 20px;
+                border-radius: 22px;
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                margin: 0 auto 20px;
-                font-size: 30px;
-                box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+                margin: 0 auto 18px;
+                font-size: 32px;
+                box-shadow: 0 10px 20px rgba(0,0,0,0.15);
             ">
                 🔑
             </div>
-            <h1 style="color: white; font-size: 28px; font-weight: 800; margin: 0; letter-spacing: 1px; text-transform: uppercase;">
+            <h1 class="login-title" style="color: white; font-size: 28px; font-weight: 800; margin: 0; letter-spacing: 1.5px; text-transform: uppercase;">
                 Đăng Nhập
             </h1>
-            <p style="color: rgba(255,255,255,0.7); font-size: 14px; margin-top: 10px;">Vui lòng truy cập tài khoản của bạn</p>
+            <p style="color: rgba(255,255,255,0.75); font-size: 14px; margin-top: 10px; font-weight: 500;">Hệ thống Cổng Thông tin E-Portal</p>
         </div>
 
         @if (ViewBag.Error != null)
         {
             <div style="
-                            background: rgba(255, 0, 0, 0.2);
-                            color: #fff;
-                            padding: 12px 15px;
-                            border-radius: 12px;
-                            margin-bottom: 25px;
-                            border: 1px solid rgba(255, 0, 0, 0.3);
-                            font-size: 14px;
-                            display: flex;
-                            align-items: center;
-                            gap: 10px;
-                        ">
-                <span>⚠️</span> @ViewBag.Error
+                background: rgba(220, 38, 38, 0.25);
+                color: #fff;
+                padding: 14px 18px;
+                border-radius: 15px;
+                margin-bottom: 25px;
+                border: 1px solid rgba(239, 68, 68, 0.4);
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                animation: shake 0.5s ease-in-out;
+            ">
+                <span style="font-size: 18px;">⚠️</span> @ViewBag.Error
             </div>
         }
 
         <form method="post" action="/CheckTK">
             @Html.AntiForgeryToken()
 
-            <div style="margin-bottom: 25px; position: relative;">
-                <label for="email" style="display: block; color: white; font-size: 13px; font-weight: 600; margin-bottom: 8px; margin-left: 5px; text-transform: uppercase;">Email Address</label>
-                <input type="text" id="email" name="email" placeholder="email@vi-du.com"
-                       onfocus="this.style.background='rgba(255,255,255,0.25)'; this.style.borderColor='white'; this.style.boxShadow='0 0 15px rgba(255,255,255,0.2)';"
+            <div style="margin-bottom: 22px; position: relative;">
+                <label class="input-label" for="email" style="display: block; color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 700; margin-bottom: 10px; margin-left: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Email Address</label>
+                <input type="text" id="email" name="email" placeholder="Nhập email của bạn..."
+                       onfocus="this.style.background='rgba(255,255,255,0.25)'; this.style.borderColor='white'; this.style.boxShadow='0 0 20px rgba(255,255,255,0.2)';"
                        onblur="this.style.background='rgba(255,255,255,0.15)'; this.style.borderColor='rgba(255,255,255,0.3)'; this.style.boxShadow='none';"
                        style="
                         width: 100%;
-                        padding: 14px 20px;
+                        padding: 15px 20px;
                         background: rgba(255, 255, 255, 0.15);
                         border: 1px solid rgba(255, 255, 255, 0.3);
-                        border-radius: 15px;
+                        border-radius: 16px;
                         color: white;
                         font-size: 16px;
                         outline: none;
-                        transition: all 0.3s ease;
+                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                         box-sizing: border-box;
                     " required />
             </div>
 
-            <div style="margin-bottom: 35px; position: relative;">
-                <label for="matkhau" style="display: block; color: white; font-size: 13px; font-weight: 600; margin-bottom: 8px; margin-left: 5px; text-transform: uppercase;">Password</label>
+            <div style="margin-bottom: 32px; position: relative;">
+                <label class="input-label" for="matkhau" style="display: block; color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 700; margin-bottom: 10px; margin-left: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Password</label>
                 <input type="password" id="matkhau" name="matkhau" placeholder="••••••••"
-                       onfocus="this.style.background='rgba(255,255,255,0.25)'; this.style.borderColor='white'; this.style.boxShadow='0 0 15px rgba(255,255,255,0.2)';"
+                       onfocus="this.style.background='rgba(255,255,255,0.25)'; this.style.borderColor='white'; this.style.boxShadow='0 0 20px rgba(255,255,255,0.2)';"
                        onblur="this.style.background='rgba(255,255,255,0.15)'; this.style.borderColor='rgba(255,255,255,0.3)'; this.style.boxShadow='none';"
                        style="
                         width: 100%;
-                        padding: 14px 20px;
+                        padding: 15px 20px;
                         background: rgba(255, 255, 255, 0.15);
                         border: 1px solid rgba(255, 255, 255, 0.3);
-                        border-radius: 15px;
+                        border-radius: 16px;
                         color: white;
                         font-size: 16px;
                         outline: none;
-                        transition: all 0.3s ease;
+                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                         box-sizing: border-box;
                     " required />
             </div>
 
             <button type="submit"
-                    onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.2)'; this.style.filter='brightness(1.1)';"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 5px 15px rgba(0,0,0,0.1)'; this.style.filter='brightness(1)';"
+                    onmouseover="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 15px 30px rgba(0,0,0,0.3)'; this.style.background='#ffffff';"
+                    onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 5px 15px rgba(0,0,0,0.1)'; this.style.background='#ffffff';"
                     style="
                     width: 100%;
                     padding: 16px;
-                    background: white;
+                    background: #ffffff;
                     color: #1a2a6c;
                     font-size: 16px;
-                    font-weight: 800;
+                    font-weight: 900;
                     border: none;
-                    border-radius: 15px;
+                    border-radius: 16px;
                     cursor: pointer;
-                    transition: all 0.3s ease;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     text-transform: uppercase;
-                    letter-spacing: 1px;
-                    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+                    letter-spacing: 1.5px;
+                    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
                 ">
                 Đăng Nhập
             </button>
         </form>
 
         <div style="margin-top: 30px; text-align: center;">
-            <a href="#" style="color: rgba(255,255,255,0.6); text-decoration: none; font-size: 13px;"
-               onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">
+            <a href="#" style="color: rgba(255,255,255,0.65); text-decoration: none; font-size: 13px; font-weight: 600; transition: color 0.2s;"
+               onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.65)'">
                 Quên mật khẩu?
             </a>
         </div>
     </div>
 </div>
+
+<style>
+    /* Hiệu ứng rung khi có lỗi */
+    @@keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+</style>
