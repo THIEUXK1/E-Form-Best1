@@ -182,10 +182,21 @@
                 chiTietNoiDung += $"<div style='background: #db2777; color: white; display: inline-block; padding: 4px 12px; border-radius: 8px; font-weight: bold; font-size: 12px; margin-bottom: 15px;'>TÀI KHOẢN #{index5}</div>";
             }
 
+            // Đồng bộ Form đăng ký: Xử lý hiển thị danh sách nhân viên đăng ký (cách nhau bằng dấu |)
+            string danhSachNhanVien = ct.DangKiChoAi;
+            if (!string.IsNullOrEmpty(danhSachNhanVien) && danhSachNhanVien.Contains("|"))
+            {
+                var listNv = danhSachNhanVien.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                danhSachNhanVien = string.Join("<br/>• ", listNv.Select(x => x.Trim()));
+                danhSachNhanVien = "<div style='margin-top: 5px; line-height: 1.6;'>• " + danhSachNhanVien + "</div>";
+            }
+
             chiTietNoiDung += RenderInfoRow("🔑", "Hệ thống", ct.HeThongNao, "#fdf2f8", "#9d174d");
             chiTietNoiDung += RenderInfoRow("📝", "Loại đơn", ct.LoaiDon, "#fdf2f8", "#9d174d");
-            chiTietNoiDung += RenderInfoRow("👤", "Đăng ký cho", ct.DangKiChoAi, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("💻", "Sử dụng tại máy", ct.DungTrenMayNao, "#f8fafc", "#0f172a");
+            chiTietNoiDung += RenderInfoRow("👤", "Đăng ký cho", danhSachNhanVien, "#f8fafc", "#0f172a");
+            
+            // Đã xóa trường: Sử dụng tại máy tính/IP theo form yêu cầu mới
+            
             chiTietNoiDung += RenderInfoRow("👥", "Quyền giống", ct.CapQuyenGiongAi, "#f8fafc", "#0f172a");
             chiTietNoiDung += RenderInfoRow("📄", "Mô tả chi tiết", ct.MoTaChiTiet, "#f8fafc", "#0f172a");
             chiTietNoiDung += RenderInfoRow("🎯", "Mục đích", ct.MucDich, "#fff1f2", "#be123c");
@@ -587,7 +598,7 @@
                                     </div>
                                     <textarea id="txtNhanXet" placeholder="Nhận xét của bạn (tùy chọn)..." style="width: 100%; padding: 12px; border: 2px solid #d1fae5; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; font-family: 'Segoe UI', sans-serif; box-sizing: border-box;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#d1fae5'"></textarea>
                                     <button id="btnGuiDanhGia" onclick="handleDanhGia()" disabled style="width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 900; cursor: not-allowed; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); transition: all 0.2s; margin-top: 12px; opacity: 0.5;">
-                                        <i class="fa fa-paper-plane"></i> GỬI ĐÁĐNH GIÁ
+                                        <i class="fa fa-paper-plane"></i> GỬI ĐÁNH GIÁ
                                     </button>
                                 </div>
 

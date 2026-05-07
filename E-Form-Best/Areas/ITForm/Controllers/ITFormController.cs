@@ -1181,7 +1181,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             // --- LẤY DANH SÁCH CÔNG VIỆC LIÊN QUAN ĐẾN TÀI KHOẢN ---
             ViewBag.CongViecList = await _context.CongViecIts
-                .Where(x => x.Ten.Contains("tài khoản") || x.Ten.Contains("Account"))
+                .Where(x => x.Ten.Contains("tài khoản hệ thống") || x.Ten.Contains("Account"))
                 .OrderBy(x => x.Ten)
                 .ToListAsync();
 
