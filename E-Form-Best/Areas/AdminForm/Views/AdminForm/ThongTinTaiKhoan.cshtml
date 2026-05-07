@@ -143,7 +143,8 @@
             padding: 6px 12px; border-radius: 10px; color: white; font-size: 0.7rem; font-weight: 700;
             display: flex; align-items: center; gap: 6px; border: 1px solid rgba(255,255,255,0.3);
         }
-        .status-dot { width: 8px; height: 8px; background: #22d3ee; border-radius: 50%; box-shadow: 0 0 8px #22d3ee; }
+        /* CẬP NHẬT: Màu xanh lá cây cho tín hiệu trực tuyến */
+        .status-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981; }
 
         /* Modal */
         .modal-backdrop-custom { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; }
@@ -168,7 +169,7 @@
     <div class="profile-container">
         <div class="profile-cover">
             <div class="status-badge">
-                <div class="status-dot"></div> <span data-key="status-online">Online</span>
+                <div class="status-dot"></div> <span data-key="status-online">Trực tuyến</span>
             </div>
         </div>
 
@@ -226,7 +227,7 @@
             <div style="display: flex; gap: 12px;">
                 <button onclick="openPasswordModal()" class="btn-custom btn-primary-custom"><i class="fas fa-key"></i> <span data-key="btn-pass">Đổi mật khẩu</span></button>
                 <button onclick="window.close()" class="btn-custom btn-outline-custom" data-key="btn-close">Đóng</button>
-                <a href="/DonXetDuyet/DangXuat" class="btn-custom btn-danger-custom"><i class="fas fa-sign-out-alt"></i> <span data-key="btn-exit">Thoát</span></a>
+                <a href="/DonXetDuyet/DangXuat" class="btn-custom btn-danger-custom"><i class="fas fa-sign-out-alt"></i> <span data-key="btn-exit">Đăng xuất</span></a>
             </div>
         </div>
     </div>
@@ -262,7 +263,7 @@
             'vi': {
                 'status-online': 'Trực tuyến', 'label-co': 'Công ty', 'label-dept': 'Phòng ban', 
                 'label-assigned': 'Bộ phận phụ trách', 'btn-pass': 'Đổi mật khẩu', 'btn-close': 'Đóng', 
-                'btn-exit': 'Thoát', 'title-pass': 'Thay đổi mật khẩu', 'old-pass': 'Mật khẩu hiện tại', 
+                'btn-exit': 'Đăng xuất', 'title-pass': 'Thay đổi mật khẩu', 'old-pass': 'Mật khẩu hiện tại', 
                 'new-pass': 'Mật khẩu mới', 'confirm-pass': 'Xác nhận mật khẩu mới', 'btn-save': 'Cập nhật', 'btn-cancel': 'Hủy'
             },
             'en': {
