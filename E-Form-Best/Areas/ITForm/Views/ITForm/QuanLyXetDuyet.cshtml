@@ -9,29 +9,35 @@
 }
 
 <style>
-    /* Style cho phân trang */
+    /* Hiệu ứng chung & Glassmorphism */
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+        border-color: #1e40af !important;
+    }
+
     .page-btn {
-        padding: 7px 14px;
-        border-radius: 8px;
-        border: 1px solid #cbd5e1;
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
         background: white;
-        color: #475569;
-        font-weight: 800;
-        font-size: 12px;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 13px;
         cursor: pointer;
-        transition: 0.2s;
+        transition: 0.3s;
     }
 
         .page-btn.active {
             background: #1e40af;
             color: white;
             border-color: #1e40af;
-            box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
+            box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.3);
         }
 
         .page-btn:hover:not(.active) {
-            background: #f1f5f9;
-            border-color: #94a3b8;
+            background: #f8fafc;
+            border-color: #cbd5e1;
         }
 
     /* ==========================================
@@ -41,6 +47,7 @@
         .top-bar-mobile {
             flex-direction: column !important;
             align-items: stretch !important;
+            gap: 15px !important;
         }
 
         .search-container-mobile {
@@ -49,92 +56,87 @@
 
         #quickSearch {
             width: 100% !important;
+            box-sizing: border-box;
         }
-        /* Thống kê: Chuyển sang lưới 2 cột */
+
         .stats-grid-mobile {
             grid-template-columns: repeat(2, 1fr) !important;
         }
-        
+
             .stats-grid-mobile > div:last-child {
-                grid-column: span 2; /* Đơn đã hủy dàn hàng ngang cuối */
+                grid-column: span 2;
             }
         /* Biến Table thành danh sách Card */
-        #dataTable, #dataTable thead, #dataTable tbody, #dataTable th, #dataTable td, #dataTable tr {
+        #dataTable thead {
+            display: none;
+        }
+
+        #dataTable tbody tr {
             display: block;
+            margin-bottom: 20px;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 20px;
+            padding: 12px;
+            background: #ffffff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
 
-            #dataTable thead {
-                display: none; /* Ẩn tiêu đề bảng trên mobile */
-            }
-
-            #dataTable tr {
-                margin-bottom: 20px;
-                border: 2px solid #e2e8f0 !important;
-                border-radius: 20px;
-                padding: 15px;
-                background: #ffffff;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-            }
-
-            #dataTable td {
-                padding: 8px 0 !important;
-                border: none !important;
-                width: 100% !important;
-                text-align: left !important;
-            }
-        /* Tùy chỉnh các khối trong Card */
-        .td-progress {
-            margin: 10px 0;
-        }
-
-        .td-status {
+        #dataTable td {
             display: flex;
-            justify-content: center;
-            margin: 10px 0;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 5px !important;
+            border-bottom: 1px dashed #f1f5f9 !important;
+            width: 100% !important;
+            text-align: right !important;
         }
 
-        .td-action {
-            text-align: center !important;
-            border-top: 1px dashed #e2e8f0 !important;
-            padding-top: 15px !important;
-            margin-top: 5px;
-        }
-
-            .td-action a {
-                width: 100%;
-                text-align: center;
-                padding: 12px !important;
+            #dataTable td:last-child {
+                border-bottom: none !important;
+                justify-content: center !important;
+                padding-top: 15px !important;
             }
+            /* Hiển thị nhãn bằng data-label */
+            #dataTable td::before {
+                content: attr(data-label);
+                font-weight: 800;
+                color: #64748b;
+                text-transform: uppercase;
+                font-size: 10px;
+                text-align: left;
+                flex-shrink: 0;
+            }
+
+        .mobile-td-content {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
 
         .pagination-mobile {
             flex-direction: column !important;
             gap: 20px;
-            text-align: center !important;
+            align-items: center !important;
         }
-        
-            .pagination-mobile > div {
-                justify-content: center;
-                width: 100%;
-            }
     }
 </style>
 
-<div style="padding: 20px; background: #f1f5f9; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
+<div style="max-width: 1450px; margin: 0 auto; padding: 20px; background: #f1f5f9; min-height: 100vh; font-family: 'Inter', sans-serif;">
 
     @* --- TOP BAR --- *@
-    <div class="top-bar-mobile" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px;">
-        <h2 style="margin: 0; color: #1e40af; font-weight: 1000; font-size: 24px; display: flex; align-items: center; gap: 10px;">
-            <span style="background: #1e40af; color: white; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+    <div class="top-bar-mobile" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 15px;">
+        <h2 style="margin: 0; color: #1e40af; font-weight: 1000; font-size: 26px; display: flex; align-items: center; gap: 12px;">
+            <span style="background: #1e40af; color: white; width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(30, 64, 175, 0.3);">
                 <i class="fa fa-shield"></i>
             </span>
-            XÉT DUYỆT YÊU CẦU IT
+            XÉT DUYỆT IT
         </h2>
 
-        <div class="top-bar-mobile" style="display: flex; gap: 10px; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 8px; background: white; padding: 8px 12px; border-radius: 12px; border: 2px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                <span style="font-size: 11px; font-weight: 900; color: #64748b;">HIỂN THỊ:</span>
+        <div class="top-bar-mobile" style="display: flex; gap: 12px; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px; background: white; padding: 8px 15px; border-radius: 12px; border: 2px solid #cbd5e1;">
+                <span style="font-size: 12px; font-weight: 800; color: #64748b;">HIỂN THỊ:</span>
                 <select id="pageSizeSelect" onchange="changePageSize()"
-                        style="border: none; outline: none; font-weight: 900; color: #1e40af; cursor: pointer; font-size: 13px; background: transparent;">
+                        style="border: none; outline: none; font-weight: 900; color: #1e40af; cursor: pointer; font-size: 14px; background: transparent;">
                     <option value="10">10</option>
                     <option value="30" selected>30</option>
                     <option value="50">50</option>
@@ -143,38 +145,38 @@
             </div>
 
             <div class="search-container-mobile" style="position: relative;">
-                <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px; font-weight: 900;"></i>
+                <i class="fa fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px; font-weight: 900;"></i>
                 <input type="text" id="quickSearch" onkeyup="handleSearch()" placeholder="Tìm tên, bộ phận, mã đơn..."
-                       style="padding: 10px 12px 10px 38px; border-radius: 12px; border: 2px solid #cbd5e1; font-size: 14px; width: 280px; outline: none; font-weight: 700;">
+                       style="padding: 11px 15px 11px 42px; border-radius: 12px; border: 2px solid #cbd5e1; font-size: 14px; width: 300px; outline: none; font-weight: 700; transition: 0.3s; border-color: #cbd5e1;">
             </div>
 
-            <div style="font-size: 11px; background: #1e40af; padding: 8px 15px; border-radius: 8px; font-weight: 900; color: #ffffff; text-transform: uppercase; text-align: center;">
+            <div style="font-size: 11px; background: #1e40af; padding: 10px 18px; border-radius: 10px; font-weight: 900; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px;">
                 @currentUserRole
             </div>
         </div>
     </div>
 
     @* --- STATS ROW --- *@
-    <div class="stats-grid-mobile" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 25px;">
-        <div onclick="filterByStatus('CHỜ QL')" style="background: #fffbeb; padding: 18px 15px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#b45309';" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(0,0,0,0.03)';">
-            <div style="font-size: 11px; font-weight: 900; color: #b45309; text-transform: uppercase; margin-bottom: 5px;">CHỜ QL DUYỆT</div>
-            <div id="stat-cho-ql" style="font-size: 26px; font-weight: 1000; color: #b45309;">0</div>
+    <div class="stats-grid-mobile" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 30px;">
+        <div onclick="filterByStatus('CHỜ QL')" class="stat-card" style="background: #fffbeb; padding: 20px 15px; border-radius: 18px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.04);">
+            <div style="font-size: 11px; font-weight: 900; color: #b45309; text-transform: uppercase; margin-bottom: 8px;">Chờ QL duyệt</div>
+            <div id="stat-cho-ql" style="font-size: 28px; font-weight: 1000; color: #b45309;">0</div>
         </div>
-        <div onclick="filterByStatus('IT XỬ LÝ')" style="background: #eff6ff; padding: 18px 15px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#1e40af';" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(0,0,0,0.03)';">
-            <div style="font-size: 11px; font-weight: 900; color: #1e40af; text-transform: uppercase; margin-bottom: 5px;">IT CẦN XỬ LÝ</div>
-            <div id="stat-it-xu-ly" style="font-size: 26px; font-weight: 1000; color: #1e40af;">0</div>
+        <div onclick="filterByStatus('IT XỬ LÝ')" class="stat-card" style="background: #eff6ff; padding: 20px 15px; border-radius: 18px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.04);">
+            <div style="font-size: 11px; font-weight: 900; color: #1e40af; text-transform: uppercase; margin-bottom: 8px;">IT cần xử lý</div>
+            <div id="stat-it-xu-ly" style="font-size: 28px; font-weight: 1000; color: #1e40af;">0</div>
         </div>
-        <div onclick="filterByStatus('CHỜ ĐG')" style="background: #f5f3ff; padding: 18px 15px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#6366f1';" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(0,0,0,0.03)';">
-            <div style="font-size: 11px; font-weight: 900; color: #6366f1; text-transform: uppercase; margin-bottom: 5px;">CHỜ ĐÁNH GIÁ</div>
-            <div id="stat-cho-dg" style="font-size: 26px; font-weight: 1000; color: #6366f1;">0</div>
+        <div onclick="filterByStatus('CHỜ ĐG')" class="stat-card" style="background: #f5f3ff; padding: 20px 15px; border-radius: 18px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.04);">
+            <div style="font-size: 11px; font-weight: 900; color: #6366f1; text-transform: uppercase; margin-bottom: 8px;">Chờ đánh giá</div>
+            <div id="stat-cho-dg" style="font-size: 28px; font-weight: 1000; color: #6366f1;">0</div>
         </div>
-        <div onclick="filterByStatus('HOÀN TẤT')" style="background: #ecfdf5; padding: 18px 15px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#10b981';" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(0,0,0,0.03)';">
-            <div style="font-size: 11px; font-weight: 900; color: #10b981; text-transform: uppercase; margin-bottom: 5px;">HOÀN TẤT</div>
-            <div id="stat-hoan-tat" style="font-size: 26px; font-weight: 1000; color: #10b981;">0</div>
+        <div onclick="filterByStatus('HOÀN TẤT')" class="stat-card" style="background: #ecfdf5; padding: 20px 15px; border-radius: 18px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.04);">
+            <div style="font-size: 11px; font-weight: 900; color: #10b981; text-transform: uppercase; margin-bottom: 8px;">Hoàn tất</div>
+            <div id="stat-hoan-tat" style="font-size: 28px; font-weight: 1000; color: #10b981;">0</div>
         </div>
-        <div onclick="filterByStatus('ĐÃ HỦY')" style="background: #fef2f2; padding: 18px 15px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#b91c1c';" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(0,0,0,0.03)';">
-            <div style="font-size: 11px; font-weight: 900; color: #b91c1c; text-transform: uppercase; margin-bottom: 5px;">ĐƠN ĐÃ HỦY</div>
-            <div id="stat-huy" style="font-size: 26px; font-weight: 1000; color: #b91c1c;">0</div>
+        <div onclick="filterByStatus('ĐÃ HỦY')" class="stat-card" style="background: #fef2f2; padding: 20px 15px; border-radius: 18px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.04);">
+            <div style="font-size: 11px; font-weight: 900; color: #b91c1c; text-transform: uppercase; margin-bottom: 8px;">Đơn đã hủy</div>
+            <div id="stat-huy" style="font-size: 28px; font-weight: 1000; color: #b91c1c;">0</div>
         </div>
     </div>
 
@@ -183,35 +185,35 @@
         <table id="dataTable" style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr style="background: #f8fafc; border-bottom: 3px solid #e2e8f0;">
-                    <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Nhân viên yêu cầu</th>
-                    <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Danh mục</th>
-                    <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Nội dung thiết bị</th>
-                    <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Người Hỗ Trợ</th>
-                    <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase; width: 140px;">Tiến trình</th>
-                    <th style="padding: 18px 20px; text-align: center; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Trạng thái</th>
-                    <th style="padding: 18px 20px; text-align: right;"></th>
+                    <th style="padding: 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Nhân viên yêu cầu</th>
+                    <th style="padding: 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase; width: 150px;">Danh mục</th>
+                    <th style="padding: 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Thông tin thiết bị</th>
+                    <th style="padding: 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase; width: 180px;">Phụ trách</th>
+                    <th style="padding: 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase; width: 140px;">Tiến trình</th>
+                    <th style="padding: 20px; text-align: center; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase; width: 140px;">Trạng thái</th>
+                    <th style="padding: 20px; text-align: right; width: 100px;"></th>
                 </tr>
             </thead>
             <tbody id="tableBody">
-                <tr><td colspan="7" id="loadingRow" style="text-align: center; padding: 40px; color: #64748b; font-weight: 600;"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>
+                <tr><td colspan="7" id="loadingRow" style="text-align: center; padding: 60px; color: #64748b; font-weight: 600;"><i class="fa fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br>Đang đồng bộ dữ liệu xét duyệt...</td></tr>
             </tbody>
         </table>
         
-        <div id="emptyState" style="display: none; text-align: center; padding: 50px; color: #94a3b8;">
-            <i class="fa fa-inbox" style="font-size: 48px; margin-bottom: 10px; opacity: 0.3;"></i>
-            <p style="font-weight: 700;">Hiện không có yêu cầu nào cần xử lý</p>
+        <div id="emptyState" style="display: none; text-align: center; padding: 80px 20px; color: #94a3b8;">
+            <i class="fa fa-inbox" style="font-size: 54px; margin-bottom: 15px; opacity: 0.2;"></i>
+            <p style="font-weight: 700; font-size: 16px;">Tuyệt vời! Hiện không có yêu cầu nào đang chờ xử lý</p>
         </div>
     </div>
 
     @* --- PHÂN TRANG & FOOTER --- *@
     <div class="pagination-mobile" style="display: flex; justify-content: space-between; align-items: center; padding: 25px 5px;">
-        <div id="paginationButtons" style="display: flex; gap: 6px;"></div>
+        <div id="paginationButtons" style="display: flex; gap: 8px;"></div>
         <div style="text-align: right;">
-            <div style="color: #64748b; font-size: 12px; font-weight: 700;">
-                Trang <span id="currentPageNum" style="color: #1e40af;">1</span>
+            <div style="color: #475569; font-size: 13px; font-weight: 800;">
+                Trang <span id="currentPageNum" style="color: #1e40af;">1</span> / <span id="totalPagesNum">1</span>
             </div>
-            <div style="color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px;">
-                Tổng hiển thị: <span id="totalVisibleCount">0</span> yêu cầu
+            <div style="color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-top: 6px;">
+                Tổng bản ghi: <span id="totalVisibleCount">0</span>
             </div>
         </div>
     </div>
@@ -239,138 +241,177 @@
             renderTable();
         } catch (error) {
             console.error("Lỗi:", error);
-            document.getElementById('tableBody').innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px; color: red; font-weight:bold;">Lỗi tải dữ liệu. Vui lòng tải lại trang.</td></tr>';
+            document.getElementById('tableBody').innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px; color: #ef4444; font-weight:bold;"><i class="fa fa-warning"></i> Không thể kết nối máy chủ. Vui lòng thử lại sau.</td></tr>';
         }
     }
 
     function calculateStats(data) {
-        let daHuy = 0, choQuanLy = 0, choITAdmin = 0, choDanhGia = 0, hoanTat = 0;
+        let daHuy = 0, choQL = 0, itXuLy = 0, choDG = 0, hoanTat = 0;
         data.forEach(item => {
-            let isCancelled = (item.tenForm || "").includes("[ĐÃ HỦY]");
-            if (isCancelled) { daHuy++; }
-            else {
-                if (item.idNguoiDuyet == null) { choQuanLy++; }
-                else if (item.idAdmin == null) { choITAdmin++; }
-                else if (!item.daDanhGia) { choDanhGia++; }
-                else { hoanTat++; }
-            }
+            const status = determineStatus(item).statusTag;
+            if (status === "ĐÃ HỦY") daHuy++;
+            else if (status === "CHỜ QL") choQL++;
+            else if (status === "IT XỬ LÝ") itXuLy++;
+            else if (status === "CHỜ ĐG") choDG++;
+            else if (status === "HOÀN TẤT") hoanTat++;
         });
-        document.getElementById("stat-cho-ql").innerText = choQuanLy;
-        document.getElementById("stat-it-xu-ly").innerText = choITAdmin;
-        document.getElementById("stat-cho-dg").innerText = choDanhGia;
+        document.getElementById("stat-cho-ql").innerText = choQL;
+        document.getElementById("stat-it-xu-ly").innerText = itXuLy;
+        document.getElementById("stat-cho-dg").innerText = choDG;
         document.getElementById("stat-hoan-tat").innerText = hoanTat;
         document.getElementById("stat-huy").innerText = daHuy;
     }
 
     function changePageSize() {
         rowsPerPage = parseInt(document.getElementById("pageSizeSelect").value);
-        currentPage = 1; renderTable();
+        currentPage = 1;
+        renderTable();
     }
 
     function handleSearch() {
         const keyword = document.getElementById("quickSearch").value.toUpperCase();
         filteredData = masterData.filter(item => {
             const status = determineStatus(item).statusTag.toUpperCase();
-            return `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.danhmuc} ${item.tenForm} ${item.id} ${item.tenNguoiHoTro} ${status}`.toUpperCase().includes(keyword);
+            const rowContent = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.danhmuc} ${item.tenForm} ${item.id} ${item.tenNguoiHoTro} ${status}`.toUpperCase();
+            return rowContent.includes(keyword);
         });
-        currentPage = 1; renderTable();
+        currentPage = 1;
+        renderTable();
     }
 
     function filterByStatus(s) {
         document.getElementById("quickSearch").value = s;
         handleSearch();
+        const table = document.getElementById("dataTable");
+        table.style.opacity = "0.5";
+        setTimeout(() => table.style.opacity = "1", 200);
     }
 
     function determineStatus(item) {
-        let isCancelled = (item.tenForm || "").includes("[ĐÃ HỦY]");
-        let isApprMng = item.idNguoiDuyet != null;
-        let isITOk = item.idAdmin != null;
-        let hasRate = item.daDanhGia;
-        let res = { pWidth: "10%", pColor: "#94a3b8", pText: "Khởi tạo", bg: "#f1f5f9", fg: "#475569", statusTag: "KHỞI TẠO" };
+        const isCancelled = (item.tenForm || "").includes("[ĐÃ HỦY]");
+        const isApprMng = item.idNguoiDuyet != null;
+        const isITOk = item.idAdmin != null;
+        const hasRate = item.daDanhGia;
 
-        if (isCancelled) { res.pWidth = "100%"; res.pColor = "#ef4444"; res.pText = "ĐÃ HỦY"; res.bg = "#fee2e2"; res.fg = "#b91c1c"; res.statusTag = "ĐÃ HỦY"; }
-        else if (hasRate) { res.pWidth = "100%"; res.pColor = "#10b981"; res.pText = "HOÀN TẤT"; res.bg = "#d1fae5"; res.fg = "#047857"; res.statusTag = "HOÀT TẤT"; }
-        else if (isITOk) { res.pWidth = "85%"; res.pColor = "#6366f1"; res.pText = "CHỜ ĐG"; res.bg = "#f5f3ff"; res.fg = "#4f46e5"; res.statusTag = "CHỜ ĐG"; }
-        else if (isApprMng) { res.pWidth = "60%"; res.pColor = "#1e40af"; res.pText = "IT XỬ LÝ"; res.bg = "#dbeafe"; res.fg = "#1e40af"; res.statusTag = "IT XỬ LÝ"; }
-        else { res.pWidth = "30%"; res.pColor = "#f59e0b"; res.pText = "CHỜ QL"; res.bg = "#fef3c7"; res.fg = "#b45309"; res.statusTag = "CHỜ QL"; }
+        let res = { pWidth: "15%", pColor: "#94a3b8", pText: "Khởi tạo", bg: "#f1f5f9", fg: "#475569", statusTag: "KHỞI TẠO" };
+
+        if (isCancelled) {
+            res = { pWidth: "100%", pColor: "#ef4444", pText: "ĐÃ HỦY", bg: "#fee2e2", fg: "#b91c1c", statusTag: "ĐÃ HỦY" };
+        } else if (isITOk && hasRate) {
+            res = { pWidth: "100%", pColor: "#10b981", pText: "HOÀN TẤT", bg: "#d1fae5", fg: "#047857", statusTag: "HOÀN TẤT" };
+        } else if (isITOk && !hasRate) {
+            res = { pWidth: "85%", pColor: "#6366f1", pText: "CHỜ ĐG", bg: "#f5f3ff", fg: "#4f46e5", statusTag: "CHỜ ĐG" };
+        } else if (isApprMng) {
+            res = { pWidth: "60%", pColor: "#1e40af", pText: "IT XỬ LÝ", bg: "#dbeafe", fg: "#1e40af", statusTag: "IT XỬ LÝ" };
+        } else {
+            res = { pWidth: "30%", pColor: "#f59e0b", pText: "CHỜ QL", bg: "#fef3c7", fg: "#b45309", statusTag: "CHỜ QL" };
+        }
         return res;
     }
 
     function renderTable() {
         const tbody = document.getElementById("tableBody");
         const emptyState = document.getElementById("emptyState");
+        const table = document.getElementById("dataTable");
         tbody.innerHTML = "";
+        
         const startIndex = (currentPage - 1) * rowsPerPage;
         const pageData = filteredData.slice(startIndex, startIndex + rowsPerPage);
 
         if(pageData.length === 0) {
             emptyState.style.display = "block";
-            document.getElementById("dataTable").style.display = "none";
+            table.style.display = "none";
         } else {
             emptyState.style.display = "none";
-            document.getElementById("dataTable").style.display = "table";
+            table.style.display = "table";
             pageData.forEach(item => {
                 const s = determineStatus(item);
-                let cleanTenForm = (item.tenForm || "").replace("[ĐÃ HỦY]", "");
-                let buttonStyle = s.statusTag === "HOÀN TẤT" || s.statusTag === "ĐÃ HỦY" ? "background: #f1f5f9; color: #64748b;" : "background: #1e40af; color: #ffffff;";
-                let buttonText = s.statusTag === "HOÀN TẤT" || s.statusTag === "ĐÃ HỦY" ? "Xem lại" : "Xử lý";
+                const cleanTenForm = (item.tenForm || "").replace("[ĐÃ HỦY]", "").trim();
+                const avatar = item.tenNguoiHoTro && item.tenNguoiHoTro !== "Chưa có" ? item.tenNguoiHoTro.charAt(0).toUpperCase() : "?";
+                
+                const isFinal = s.statusTag === "HOÀN TẤT" || s.statusTag === "ĐÃ HỦY";
+                const buttonStyle = isFinal ? "background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1;" : "background: #1e40af; color: #ffffff; box-shadow: 0 4px 6px rgba(30,64,175,0.2);";
+                const buttonText = isFinal ? "Xem lại" : "Xử lý";
 
                 const tr = document.createElement("tr");
                 tr.style.borderBottom = "1px solid #f1f5f9";
+                tr.style.transition = "0.2s";
+                tr.onmouseover = () => tr.style.background = "#f8fafc";
+                tr.onmouseout = () => tr.style.background = "transparent";
+
                 tr.innerHTML = `
-                    <td style="padding: 15px 20px;">
-                        <div style="font-weight: 1000; color: #0f172a; font-size: 14px;">${item.tenNguoiNv}</div>
-                        <div style="font-size: 11px; color: #64748b; font-weight: 800;">${item.boPhan} • <span style="color: #1e40af;">MS: ${item.soNhanVien}</span></div>
-                    </td>
-                    <td style="padding: 15px 20px;">
-                        <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid #e2e8f0; display: inline-block;"><i class="fa fa-tag" style="margin-right: 4px;"></i> ${item.danhmuc}</span>
-                    </td>
-                    <td style="padding: 15px 20px;">
-                        <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${cleanTenForm}</div>
-                        <div style="font-size: 11px; color: #64748b; font-weight: 700;">ID: #${item.id} • ${item.timeNguoiTao}</div>
-                    </td>
-                    <td style="padding: 15px 20px;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 28px; height: 28px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #1e40af;"><i class="fa fa-user-gear" style="font-size: 12px;"></i></div>
-                            <div style="font-weight: 700; color: #334155; font-size: 13px;">${item.tenNguoiHoTro}</div>
+                    <td data-label="Nhân viên" style="padding: 15px 20px;">
+                        <div class="mobile-td-content">
+                            <div style="font-weight: 1000; color: #0f172a; font-size: 14px;">${item.tenNguoiNv}</div>
+                            <div style="font-size: 11px; color: #64748b; font-weight: 800; margin-top: 2px;">${item.boPhan} • <span style="color: #1e40af;">MS: ${item.soNhanVien}</span></div>
                         </div>
                     </td>
-                    <td class="td-progress" style="padding: 15px 20px;">
-                        <div style="font-size: 9px; font-weight: 1000; color: ${s.pColor}; margin-bottom: 4px; display: flex; justify-content: space-between;"><span>${s.pText}</span> <span>${s.pWidth}</span></div>
-                        <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden;"><div style="width: ${s.pWidth}; height: 100%; background: ${s.pColor}; border-radius: 10px;"></div></div>
+                    <td data-label="Danh mục" style="padding: 15px 20px;">
+                        <span style="background: #f1f5f9; color: #475569; padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: 800; border: 1px solid #e2e8f0; display: inline-block;"><i class="fa fa-tag" style="margin-right: 5px; opacity: 0.7;"></i>${item.danhmuc}</span>
                     </td>
-                    <td class="td-status" style="padding: 15px 20px; text-align: center;">
-                        <span style="background:${s.bg}; color:${s.fg}; padding:6px 12px; border-radius:8px; font-size:10px; font-weight:1000; border: 1.5px solid ${s.fg}; display: inline-block; min-width: 80px;">${s.statusTag}</span>
+                    <td data-label="Thiết bị" style="padding: 15px 20px;">
+                        <div class="mobile-td-content">
+                            <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${cleanTenForm}</div>
+                            <div style="font-size: 11px; color: #94a3b8; font-weight: 700; margin-top: 4px;">ID: #${item.id} • ${item.timeNguoiTao}</div>
+                        </div>
                     </td>
-                    <td class="td-action" style="padding: 15px 20px; text-align: right;">
-                        <a href="/FormIT/ChiTiet/${item.id}" style="text-decoration: none; padding: 8px 16px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s; ${buttonStyle}">${buttonText}</a>
+                    <td data-label="Phụ trách" style="padding: 15px 20px;">
+                        <div style="display: flex; align-items: center; gap: 10px; justify-content: flex-end;">
+                            <div style="width: 28px; height: 28px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #1e40af; border: 1px solid #dbeafe; font-weight: 900; font-size: 11px;">${avatar}</div>
+                            <div style="font-weight: 700; color: #334155; font-size: 13px;">${item.tenNguoiHoTro || 'Chưa có'}</div>
+                        </div>
+                    </td>
+                    <td data-label="Tiến trình" style="padding: 15px 20px;">
+                        <div style="min-width: 100px;">
+                            <div style="font-size: 10px; font-weight: 1000; color: ${s.pColor}; margin-bottom: 6px; display: flex; justify-content: space-between; text-transform: uppercase;"><span>${s.pText}</span> <span>${s.pWidth}</span></div>
+                            <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden; border: 1px solid #f1f5f9;">
+                                <div style="width: ${s.pWidth}; height: 100%; background: ${s.pColor}; border-radius: 10px; transition: 0.6s ease;"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td data-label="Trạng thái" style="padding: 15px 20px; text-align: center;">
+                        <span style="background:${s.bg}; color:${s.fg}; padding:6px 14px; border-radius:10px; font-size:10px; font-weight:1000; border: 1.5px solid ${s.fg}; display: inline-block; min-width: 90px; text-align: center;">${s.statusTag}</span>
+                    </td>
+                    <td data-label="Thao tác" style="padding: 15px 20px; text-align: right;">
+                        <a href="/FormIT/ChiTiet/${item.id}" style="text-decoration: none; padding: 9px 20px; border-radius: 12px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.3s; ${buttonStyle}" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">${buttonText}</a>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
-        renderPagination(filteredData.length);
+        
+        const totalPages = Math.ceil(filteredData.length / rowsPerPage) || 1;
+        renderPaginationButtons(totalPages);
         document.getElementById("totalVisibleCount").innerText = filteredData.length;
         document.getElementById("currentPageNum").innerText = currentPage;
+        document.getElementById("totalPagesNum").innerText = totalPages;
     }
 
-    function renderPagination(totalRows) {
-        const totalPages = Math.ceil(totalRows / rowsPerPage);
+    function renderPaginationButtons(totalPages) {
         const container = document.getElementById("paginationButtons");
         container.innerHTML = "";
-        if (totalPages > 1) {
-            for (let i = 1; i <= totalPages; i++) {
-                if (totalPages > 5 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
-                    if (i == 3 || i == totalPages - 2) {
-                        const dot = document.createElement("span"); dot.innerText = "..."; dot.style.padding = "5px"; container.appendChild(dot);
-                    }
-                    continue;
+        if (totalPages <= 1) return;
+
+        for (let i = 1; i <= totalPages; i++) {
+            if (totalPages > 6 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
+                if (i === 3 || i === totalPages - 2) {
+                    const dot = document.createElement("span");
+                    dot.innerText = "...";
+                    dot.style.padding = "8px";
+                    dot.style.color = "#94a3b8";
+                    container.appendChild(dot);
                 }
-                const btn = document.createElement("button");
-                btn.innerText = i; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
-                btn.onclick = () => { currentPage = i; renderTable(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-                container.appendChild(btn);
+                continue;
             }
+            const btn = document.createElement("button");
+            btn.innerText = i;
+            btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+            btn.onclick = () => {
+                currentPage = i;
+                renderTable();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+            container.appendChild(btn);
         }
     }
 </script>

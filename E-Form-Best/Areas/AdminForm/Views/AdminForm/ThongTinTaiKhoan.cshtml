@@ -21,6 +21,7 @@
         if (!string.IsNullOrEmpty(vaiTroMacDinh)) danhSachQuyen.Add(vaiTroMacDinh);
     }
 
+    // Ưu tiên lấy từ ViewBag (vừa cập nhật) sau đó mới đến Claim
     var anhDaiDien = ViewBag.AnhDaiDien ?? User.FindFirst("AnhDaiDien")?.Value;
 }
 
@@ -95,7 +96,7 @@
         }
         .avatar-wrapper img {
             width: 100%; height: 100%;
-            object-fit: cover; /* Quan trọng: Giữ tỷ lệ, không làm bẹt ảnh */
+            object-fit: cover;
             object-position: center;
         }
 
@@ -175,7 +176,7 @@
             <div class="header-row">
                 <div class="avatar-wrapper">
                     <img id="profileImg" src="/DonXetDuyet/GetAvatar?path=@Uri.EscapeDataString(anhDaiDien ?? "")" 
-                         onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';">
+                         onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';">
                     <div class="avatar-overlay">
                         <button onclick="document.getElementById('fileInput').click()" class="btn-avatar-action" title="Đổi ảnh"><i class="fas fa-camera"></i></button>
                         @if (!string.IsNullOrEmpty(anhDaiDien)) {
@@ -290,8 +291,30 @@
             if (input.files && input.files[0]) {
                 const formData = new FormData();
                 formData.append('fileAnh', input.files[0]);
+                
+                // Hiển thị trạng thái đang xử lý (optional)
+                document.getElementById('profileImg').style.opacity = "0.5";
+
                 try {
                     const response = await fetch('/DonXetDuyet/CapNhatAnh', { method: 'POST', body: formData });
+                    const result = await response.json();
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        alert("Lỗi: " + result.message);
+                        document.getElementById('profileImg').style.opacity = "1";
+                    }
+                } catch (err) { 
+                    alert("Lỗi kết nối Server!"); 
+                    document.getElementById('profileImg').style.opacity = "1";
+                }
+            }
+        }
+
+        async function deleteAvatar() {
+            if (confirm("Xóa ảnh đại diện hiện tại?")) {
+                try {
+                    const response = await fetch('/DonXetDuyet/XoaAnhDaiDien', { method: 'POST' });
                     const result = await response.json();
                     if (result.success) location.reload();
                     else alert(result.message);
@@ -299,23 +322,19 @@
             }
         }
 
-        async function deleteAvatar() {
-            if (confirm("Xóa ảnh đại diện?")) {
-                const response = await fetch('/DonXetDuyet/XoaAnhDaiDien', { method: 'POST' });
-                const result = await response.json();
-                if (result.success) location.reload();
-            }
-        }
-
         function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
         function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
 
-        // XỬ LÝ ĐỔI MẬT KHẨU & ĐĂNG XUẤT
+        // XỬ LÝ ĐỔI MẬT KHẨU
         document.getElementById('changePasswordForm').onsubmit = async function(e) {
             e.preventDefault();
             const n = document.getElementById('newPassword').value;
             const c = document.getElementById('confirmPassword').value;
-            if (n !== c) { alert("Mật khẩu xác nhận không khớp!"); return; }
+            
+            if (n !== c) { 
+                alert("Mật khẩu xác nhận không khớp!"); 
+                return; 
+            }
             
             const btn = document.getElementById('btnUpdatePass');
             btn.disabled = true;
@@ -327,13 +346,17 @@
                 const result = await response.json();
                 
                 if (result.success) { 
-                    alert("Đổi mật khẩu thành công! Vui lòng đăng nhập lại."); 
-                    // Chuyển hướng ngay lập tức về trang đăng nhập
+                    alert(result.message); 
                     window.location.href = "/DonXetDuyet/DangNhap"; 
+                } else {
+                    alert(result.message);
                 }
-                else alert(result.message);
-            } catch (err) { alert("Lỗi hệ thống!"); }
-            finally { btn.disabled = false; btn.innerHTML = 'Cập nhật'; }
+            } catch (err) { 
+                alert("Lỗi hệ thống!"); 
+            } finally { 
+                btn.disabled = false; 
+                btn.innerHTML = 'Cập nhật'; 
+            }
         };
     </script>
 </body>

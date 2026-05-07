@@ -115,7 +115,8 @@
                     
                     @* XỬ LÝ HIỂN THỊ ẢNH ĐẠI DIỆN - SỬA LẠI THEO LOGIC TRANG HỒ SƠ *@
                     @{
-                        var avatarPath = User.FindFirst("AnhDaiDien")?.Value;
+                        // [FIX] Ưu tiên lấy từ ViewBag (ảnh mới nhất), sau đó mới lấy từ Claim
+                        var avatarPath = ViewBag.AnhDaiDien as string ?? User.FindFirst("AnhDaiDien")?.Value;
                         if (!string.IsNullOrEmpty(avatarPath))
                         {
                             <img src="/DonXetDuyet/GetAvatar?path=@Uri.EscapeDataString(avatarPath)" 
