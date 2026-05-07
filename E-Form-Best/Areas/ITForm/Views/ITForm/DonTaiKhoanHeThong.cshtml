@@ -39,53 +39,92 @@
         filter: brightness(1.1);
     }
 
-    .btn-add-item {
-        background: #fdf2f8;
-        color: @colorPrimary;
-        border: 1px dashed @colorPrimary;
-        padding: 10px 20px;
-        border-radius: 12px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: 0.3s;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
+    /* CSS cho các Checkbox và Radio đẹp mắt */
+    .custom-check-radio {
+        display: flex;
+        gap: 15px;
+        margin-top: 8px;
+        flex-wrap: wrap;
     }
 
-        .btn-add-item:hover {
-            background: @colorPrimary;
-            color: white;
+        .custom-check-radio label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: @colorDark;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 10px 15px;
+            border: 1px solid @colorBorder;
+            border-radius: 12px;
+            background: #fffafb;
+            transition: 0.3s;
         }
 
-    .btn-remove-item {
-        color: #ef4444;
-        background: #fef2f2;
+            .custom-check-radio label:hover {
+                background: @colorLight;
+            }
+
+        .custom-check-radio input[type="radio"],
+        .custom-check-radio input[type="checkbox"] {
+            accent-color: @colorPrimary;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+    .btn-add-employee {
+        background: @colorPrimary;
+        color: white;
         border: none;
-        padding: 6px 12px;
-        border-radius: 8px;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
         cursor: pointer;
+        font-size: 20px;
         font-weight: bold;
-        font-size: 12px;
+        transition: 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-        .btn-remove-item:hover {
-            background: #ef4444;
-            color: white;
+        .btn-add-employee:hover {
+            background: @colorDark;
         }
-    
+
+    .btn-remove-employee {
+        background: #ef4444;
+        color: white;
+        border: none;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: bold;
+        transition: 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .btn-remove-employee:hover {
+            background: #b91c1c;
+        }
+
     .tai-khoan-item {
         background: #fafaf9;
         border: 1px solid #e7e5e4;
         border-radius: 16px;
         padding: 20px;
-        margin-bottom: 20px;
         position: relative;
     }
 
     /* ==========================================
-           CSS RESPONSIVE CHO MOBILE (2026 STYLE)
-           ========================================== */
+               CSS RESPONSIVE CHO MOBILE (2026 STYLE)
+               ========================================== */
     @@media (max-width: 768px) {
         .page-container {
             padding: 20px 10px !important;
@@ -122,11 +161,6 @@
                 text-align: left !important;
                 width: 100%;
             }
-
-        .btn-add-item {
-            width: 100%;
-            justify-content: center;
-        }
 
         .box-detail-mobile {
             padding: 15px !important;
@@ -197,64 +231,55 @@
                         <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
                         <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin chi tiết tài khoản</h3>
                     </div>
-                    <div style="text-align: right;">
-                        <button type="button" class="btn-add-item" onclick="themTaiKhoan()">
-                            <i class="fa fa-plus"></i> Thêm người/hệ thống
-                        </button>
-                        <p style="margin: 8px 0 0 0; font-size: 11px; font-weight: 700; color: @colorPrimary; font-style: italic;">
-                            * Bấm nút này để đăng ký cho nhiều người trong 1 đơn
-                        </p>
-                    </div>
                 </div>
 
-                <!-- Danh sách các item -->
-                <div id="danhSachTaiKhoan">
-                    <div class="tai-khoan-item" data-index="0">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-                            <span style="font-weight: bold; color: @colorPrimary;">#1</span>
-                            <button type="button" class="btn-remove-item" onclick="xoaTaiKhoan(this)" style="display: none;">Xóa</button>
-                        </div>
-
-                        <div class="grid-responsive" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                            <div>
-                                <label style="@labelBase">Hệ thống đăng ký <span style="color:red">*</span></label>
-                                <input type="text" name="itTaiKhoanList[0].HeThongNao" placeholder="BPVN-MES,BPVN-WMS,BPVN-EHR..." required class="input-focus" style="@inputBase">
-                            </div>
-                            <div>
-                                <label style="@labelBase">Loại yêu cầu <span style="color:red">*</span></label>
-                                <select name="itTaiKhoanList[0].LoaiDon" required class="input-focus" style="@inputBase">
-                                    <option value="Cấp mới">Cấp mới tài khoản</option>
-                                    <option value="Chỉnh sửa">Chỉnh sửa/Phân quyền lại</option>
-                                    <option value="Khóa/Hủy">Khóa/Hủy tài khoản</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="grid-responsive" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                            <div>
-                                <label style="@labelBase">Đăng ký cho nhân viên <span style="color:red">*</span></label>
-                                <input type="text" name="itTaiKhoanList[0].DangKiChoAi" placeholder="Họ tên - Mã số nhân viên" required class="input-focus" style="@inputBase">
-                            </div>
-                            <div>
-                                <label style="@labelBase">Sử dụng tại máy tính/IP</label>
-                                <input type="text" name="itTaiKhoanList[0].DungTrenMayNao" placeholder="Tên máy hoặc địa chỉ IP" class="input-focus" style="@inputBase">
-                            </div>
-                        </div>
-
-                        <div style="margin-bottom: 20px;">
-                            <label style="@labelBase">Mô tả quyền, truy cập hệ thống </label>
-                            <input type="text" name="itTaiKhoanList[0].CapQuyenGiongAi" placeholder="Nhập tên người, mã vn có quyền tương tự để IT đối chiếu" class="input-focus" style="@inputBase">
-                        </div>
-
-                        <div style="margin-bottom: 20px;">
-                            <label style="@labelBase">Mô tả chi tiết quyền hạn <span style="color:red">*</span></label>
-                            <textarea name="itTaiKhoanList[0].MoTaChiTiet" placeholder="Ghi rõ các Module, Folder hoặc tính năng cần truy cập..." required class="input-focus req-mota" style="@inputBase height: 100px; resize: none;"></textarea>
-                        </div>
-
+                <div class="tai-khoan-item">
+                    <div class="grid-responsive" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                         <div>
-                            <label style="@labelBase">Mục đích sử dụng <span style="color:red">*</span></label>
-                            <textarea name="itTaiKhoanList[0].MucDich" placeholder="Giải trình sự cần thiết của tài khoản đối với công việc..." required class="input-focus req-mucdich" style="@inputBase height: 80px; resize: none;"></textarea>
+                            <label style="@labelBase">Hệ thống đăng ký <span style="color:red">*</span></label>
+                            <div class="custom-check-radio">
+                                <label><input type="checkbox" value="BPVN-MES" class="chk-hethong"> BPVN-MES</label>
+                                <label><input type="checkbox" value="BPVN-WMS" class="chk-hethong"> BPVN-WMS</label>
+                                <label><input type="checkbox" value="BPVN-EHR" class="chk-hethong"> BPVN-EHR</label>
+                            </div>
+                            <input type="hidden" name="itTaiKhoanList[0].HeThongNao" id="HeThongNao_Hidden">
                         </div>
+                        <div>
+                            <label style="@labelBase">Loại yêu cầu <span style="color:red">*</span></label>
+                            <div class="custom-check-radio">
+                                <label><input type="radio" name="itTaiKhoanList[0].LoaiDon" value="Cấp mới" checked> Cấp mới</label>
+                                <label><input type="radio" name="itTaiKhoanList[0].LoaiDon" value="Chỉnh sửa"> Chỉnh sửa</label>
+                                <label><input type="radio" name="itTaiKhoanList[0].LoaiDon" value="Khóa/Hủy"> Khóa/Hủy</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="@labelBase">Đăng ký cho nhân viên <span style="color:red">*</span></label>
+                        <div id="nhanVienContainer" style="display: flex; flex-direction: column; gap: 10px;">
+                            <div class="nhanvien-row" style="display: flex; gap: 10px; align-items: center;">
+                                <input type="text" class="input-focus input-nhanvien" placeholder="Họ tên - Mã số nhân viên" required style="@inputBase flex: 1;">
+                                <button type="button" onclick="themNhanVien()" class="btn-add-employee" title="Thêm nhân viên">
+                                    <i class="fa fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <input type="hidden" name="itTaiKhoanList[0].DangKiChoAi" id="DangKiChoAi_Hidden">
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="@labelBase">Mô tả quyền, truy cập hệ thống </label>
+                        <input type="text" name="itTaiKhoanList[0].CapQuyenGiongAi" placeholder="Nhập tên người, mã vn có quyền tương tự để IT đối chiếu" class="input-focus" style="@inputBase">
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="@labelBase">Mô tả chi tiết quyền hạn <span style="color:red">*</span></label>
+                        <textarea name="itTaiKhoanList[0].MoTaChiTiet" id="MoTaChiTiet" placeholder="Ghi rõ các Module, Folder hoặc tính năng cần truy cập..." required class="input-focus req-mota" style="@inputBase height: 100px; resize: none;"></textarea>
+                    </div>
+
+                    <div>
+                        <label style="@labelBase">Mục đích sử dụng <span style="color:red">*</span></label>
+                        <textarea name="itTaiKhoanList[0].MucDich" id="MucDich" placeholder="Giải trình sự cần thiết của tài khoản đối với công việc..." required class="input-focus req-mucdich" style="@inputBase height: 80px; resize: none;"></textarea>
                     </div>
                 </div>
 
@@ -340,77 +365,26 @@
         }
     });
 
-    let itemIndex = 1;
-
-    // Hàm thêm mới 1 block form nhập tài khoản
-    function themTaiKhoan() {
-        const container = document.getElementById("danhSachTaiKhoan");
-        const firstItem = container.querySelector(".tai-khoan-item");
+    // Thêm ô nhập liệu nhân viên
+    function themNhanVien() {
+        const container = document.getElementById("nhanVienContainer");
+        const div = document.createElement("div");
+        div.className = "nhanvien-row";
+        div.style.cssText = "display: flex; gap: 10px; align-items: center;";
         
-        // Clone item đầu tiên
-        const newItem = firstItem.cloneNode(true);
-        newItem.setAttribute("data-index", itemIndex);
-        
-        // Cập nhật lại số thứ tự hiển thị
-        newItem.querySelector("span").innerText = "#" + (itemIndex + 1);
-        
-        // Hiển thị nút xóa
-        newItem.querySelector(".btn-remove-item").style.display = "block";
-
-        // Cập nhật lại thuộc tính name cho các input/select/textarea
-        const inputs = newItem.querySelectorAll("input, select, textarea");
-        inputs.forEach(input => {
-            const oldName = input.getAttribute("name");
-            if (oldName) {
-                const newName = oldName.replace(/\[\d+\]/, `[${itemIndex}]`);
-                input.setAttribute("name", newName);
-            }
-            // Clear giá trị rỗng cho row mới
-            if (input.tagName === "SELECT") {
-                input.selectedIndex = 0;
-            } else {
-                input.value = "";
-            }
-        });
-
-        container.appendChild(newItem);
-        itemIndex++;
-        capNhatHienThiNutXoa();
+        div.innerHTML = `
+            <input type="text" class="input-focus input-nhanvien" placeholder="Họ tên - Mã số nhân viên" required style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #f472b6; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; color: #831843; transition: all 0.3s; flex: 1;">
+            <button type="button" onclick="xoaNhanVien(this)" class="btn-remove-employee" title="Xóa nhân viên">
+                <i class="fa fa-minus"></i>
+            </button>
+        `;
+        container.appendChild(div);
     }
 
-    // Hàm xóa 1 block form nhập tài khoản
-    function xoaTaiKhoan(btn) {
-        const item = btn.closest(".tai-khoan-item");
-        item.remove();
-        
-        // Sắp xếp lại index cho List gửi về C# (Bắt buộc phải liên tục từ 0, 1, 2...)
-        const items = document.querySelectorAll(".tai-khoan-item");
-        items.forEach((div, index) => {
-            div.setAttribute("data-index", index);
-            div.querySelector("span").innerText = "#" + (index + 1);
-            
-            const inputs = div.querySelectorAll("input, select, textarea");
-            inputs.forEach(input => {
-                const oldName = input.getAttribute("name");
-                if (oldName) {
-                    const newName = oldName.replace(/\[\d+\]/, `[${index}]`);
-                    input.setAttribute("name", newName);
-                }
-            });
-        });
-        
-        itemIndex = items.length;
-        capNhatHienThiNutXoa();
-    }
-
-    // Đảm bảo item đầu tiên không bị xóa
-    function capNhatHienThiNutXoa() {
-        const items = document.querySelectorAll(".tai-khoan-item");
-        if (items.length === 1) {
-            items[0].querySelector(".btn-remove-item").style.display = "none";
-        } else {
-            items[0].querySelector(".btn-remove-item").style.display = "block";
-        }
+    // Xóa ô nhập liệu nhân viên
+    function xoaNhanVien(btn) {
+        const row = btn.closest('.nhanvien-row');
+        row.remove();
     }
 
     // Validate và Submit
@@ -422,25 +396,44 @@
             return;
         }
 
-        const items = document.querySelectorAll(".tai-khoan-item");
-        for (let i = 0; i < items.length; i++) {
-            const heThong = items[i].querySelector(`[name="itTaiKhoanList[${i}].HeThongNao"]`);
-            const nhanVien = items[i].querySelector(`[name="itTaiKhoanList[${i}].DangKiChoAi"]`);
-            const moTa = items[i].querySelector(`[name="itTaiKhoanList[${i}].MoTaChiTiet"]`);
-            const mucDich = items[i].querySelector(`[name="itTaiKhoanList[${i}].MucDich"]`);
-
-            if (!heThong.value.trim()) { alert(`⚠️ Dòng #${i+1}: Vui lòng nhập Hệ thống đăng ký`); heThong.focus(); return; }
-            if (!nhanVien.value.trim()) { alert(`⚠️ Dòng #${i+1}: Vui lòng nhập Nhân viên sử dụng`); nhanVien.focus(); return; }
-            if (!moTa.value.trim()) { alert(`⚠️ Dòng #${i+1}: Vui lòng nhập Mô tả chi tiết quyền`); moTa.focus(); return; }
-            if (!mucDich.value.trim()) { alert(`⚠️ Dòng #${i+1}: Vui lòng nhập Mục đích sử dụng`); mucDich.focus(); return; }
+        // Xử lý lấy dữ liệu Checkbox Hệ thống
+        const chkHeThong = document.querySelectorAll('.chk-hethong:checked');
+        if (chkHeThong.length === 0) {
+            alert("⚠️ Vui lòng tick chọn ít nhất 1 Hệ thống đăng ký!");
+            return;
         }
+        const dsHeThong = Array.from(chkHeThong).map(cb => cb.value);
+        document.getElementById("HeThongNao_Hidden").value = dsHeThong.join(", ");
+
+        // Xử lý lấy dữ liệu các input Nhân viên (Gộp bằng dấu | )
+        const inputsNhanVien = document.querySelectorAll('.input-nhanvien');
+        let dsNhanVien = [];
+        inputsNhanVien.forEach(input => {
+            if(input.value.trim() !== '') {
+                dsNhanVien.push(input.value.trim());
+            }
+        });
+
+        if (dsNhanVien.length === 0) {
+            alert("⚠️ Vui lòng nhập ít nhất 1 Nhân viên cần đăng ký!");
+            if(inputsNhanVien.length > 0) inputsNhanVien[0].focus();
+            return;
+        }
+        document.getElementById("DangKiChoAi_Hidden").value = dsNhanVien.join(" | ");
+
+        // Kiểm tra mô tả và mục đích
+        const moTa = document.getElementById("MoTaChiTiet");
+        const mucDich = document.getElementById("MucDich");
+
+        if (!moTa.value.trim()) { alert("⚠️ Vui lòng nhập Mô tả chi tiết quyền hạn"); moTa.focus(); return; }
+        if (!mucDich.value.trim()) { alert("⚠️ Vui lòng nhập Mục đích sử dụng"); mucDich.focus(); return; }
 
         if (!document.getElementById("chkCamKet").checked) {
             alert("⚠️ Bạn chưa tích chọn cam kết bảo mật!");
             return;
         }
 
-        if (confirm(`Gửi đơn đăng ký (${items.length} yêu cầu) này tới bộ phận IT?`)) {
+        if (confirm(`Gửi đơn đăng ký này tới bộ phận IT?`)) {
             const btn = document.getElementById("btnSubmit");
             btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG XỬ LÝ...';
             btn.style.pointerEvents = 'none';
