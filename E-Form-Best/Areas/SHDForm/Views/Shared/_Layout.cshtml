@@ -212,12 +212,16 @@
                 width: 300px !important;
                 right: -20px !important;
             }
+            
+            /* SỬA LẠI ĐỂ RENDERBODY() SÁT LỀ TRÊN MOBILE TƯƠNG TỰ BẢN HR/IT */
             .main-content-wrapper {
-                padding: 15px !important;
+                padding: 20px 0 !important; /* Bỏ padding trái phải của wrapper chính */
             }
             .main-card {
-                padding: 20px !important;
-                border-radius: 20px !important;
+                padding: 20px 10px !important; /* Thu hẹp padding bên trong nội dung */
+                border-radius: 0 !important; /* Bỏ bo góc để sát viền màn hình */
+                border-left: none !important;
+                border-right: none !important;
                 min-height: auto !important;
             }
         }
