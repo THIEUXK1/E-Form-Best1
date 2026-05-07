@@ -2368,9 +2368,31 @@ namespace E_Form_Best.Areas.HRform.Controllers
             // Quyền 3: Quản lý duyệt đơn HR (Phải cùng công ty và thuộc bộ phận quản lý)
             else if (User.IsInRole("QuanLyDuyetDonHR"))
             {
+                // Giữ nguyên logic kiểm tra công ty
                 bool isSameCompany = string.Equals(don.TenCongTy?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
-                bool isSameDepartment = !string.IsNullOrEmpty(don.BoPhan) && boPhanUser.Contains(don.BoPhan);
 
+                // Lấy dữ liệu từ Claims (Ưu tiên TenBoPhan chứa danh sách, PhongBan là bộ phận đơn lẻ)
+                string listBoPhan = User.FindFirst("TenBoPhan")?.Value ?? "";
+                string phongBanDon = User.FindFirst("PhongBan")?.Value ?? "";
+
+                bool isSameDepartment = false;
+
+                // Kiểm tra tính hợp lệ của bộ phận trong đơn
+                if (!string.IsNullOrEmpty(don.BoPhan))
+                {
+                    if (!string.IsNullOrEmpty(listBoPhan))
+                    {
+                        // Trường hợp 1: Nếu có danh sách nhiều bộ phận, kiểm tra xem bộ phận của đơn có nằm trong chuỗi này không
+                        isSameDepartment = listBoPhan.Contains(don.BoPhan);
+                    }
+                    else
+                    {
+                        // Trường hợp 2: Nếu danh sách rỗng, so sánh trực tiếp với claim PhongBan đơn lẻ
+                        isSameDepartment = string.Equals(don.BoPhan.Trim(), phongBanDon.Trim(), StringComparison.OrdinalIgnoreCase);
+                    }
+                }
+
+                // Kết hợp điều kiện công ty và bộ phận để cấp quyền cho phép duyệt
                 if (isSameCompany && isSameDepartment)
                 {
                     isAllowed = true;

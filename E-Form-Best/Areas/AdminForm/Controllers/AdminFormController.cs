@@ -20,9 +20,22 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             _context = new ITFormContext();
         }
         #region MenuA
-        [HttpGet("/MenuA")]
-        public IActionResult MenuA()
+        [HttpGet("/MenuA")] // Hoặc đường dẫn tương ứng của bạn
+        [Authorize]
+        public async Task<IActionResult> MenuA()
         {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userIdClaim))
+            {
+                int userId = int.Parse(userIdClaim);
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.IdNguoiDung == userId);
+                if (user != null)
+                {
+                    // Truyền ảnh mới nhất ra giao diện
+                    ViewBag.AnhDaiDien = user.AnhDaiDien;
+                }
+            }
+
             return View();
         }
         #endregion
@@ -41,7 +54,11 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
 
             if (user == null) return NotFound();
 
-            return View(user); // Truyền model user vào View
+            // [FIX 1] Gán trực tiếp ảnh từ DB vào ViewBag.
+            // Điều này giúp View nhận được ảnh mới nhất thay vì dùng Claim cũ chưa được update.
+            ViewBag.AnhDaiDien = user.AnhDaiDien;
+
+            return View(user);
         }
 
         [HttpPost("/DonXetDuyet/CapNhatAnh")]
@@ -59,12 +76,17 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                 // 1. Xóa ảnh cũ nếu có
                 if (!string.IsNullOrEmpty(user.AnhDaiDien) && System.IO.File.Exists(user.AnhDaiDien))
                 {
-                    System.IO.File.Delete(user.AnhDaiDien);
+                    try { System.IO.File.Delete(user.AnhDaiDien); } catch { /* Bỏ qua nếu ko xóa đc ảnh cũ */ }
                 }
 
                 // 2. Lưu ảnh mới vào File Server
+                // LƯU Ý: User chạy IIS AppPool phải có quyền Write vào thư mục mạng này
                 string folderPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\User";
-                if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
+
+                if (!Directory.Exists(folderPath))
+                {
+                    Directory.CreateDirectory(folderPath);
+                }
 
                 string fileName = $"Avatar_{userId}_{DateTime.Now:yyyyMMddHHmmss}{Path.GetExtension(fileAnh.FileName)}";
                 string fullPath = Path.Combine(folderPath, fileName);
@@ -83,7 +105,8 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                // Trả về thông báo lỗi chi tiết để debug
+                return Json(new { success = false, message = "Lỗi Server: " + ex.Message });
             }
         }
 
@@ -119,11 +142,29 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         {
             if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path))
             {
-                // Trả về ảnh mặc định nếu không tìm thấy file trên server
-                return File(System.IO.File.OpenRead("wwwroot/images/default-avatar.png"), "image/png");
+                // [FIX 2] Kiểm tra tồn tại file mặc định trước khi đọc để tránh sập (Lỗi 500).
+                // Nếu không có, trả về NotFound() để View kích hoạt hàm "onerror" và hiện ảnh thay thế.
+                var defaultPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "default-avatar.png");
+                if (System.IO.File.Exists(defaultPath))
+                {
+                    return File(System.IO.File.OpenRead(defaultPath), "image/png");
+                }
+                return NotFound();
             }
+
             var image = System.IO.File.OpenRead(path);
-            return File(image, "image/jpeg");
+
+            // [FIX 3] Trả về đúng định dạng extension của ảnh thay vì fix cứng jpeg
+            string ext = Path.GetExtension(path).ToLower();
+            string contentType = ext switch
+            {
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                _ => "image/jpeg"
+            };
+
+            return File(image, contentType);
         }
 
         [HttpPost("/DonXetDuyet/DoiMatKhau")]
@@ -166,4 +207,4 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         #endregion
     }
 
-}
+    }

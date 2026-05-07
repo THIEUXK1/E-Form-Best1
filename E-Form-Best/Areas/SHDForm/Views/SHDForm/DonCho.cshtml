@@ -9,9 +9,10 @@
 }
 
 <style>
+    /* 1. Desktop & General Styles */
     .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(49, 46, 129, 0.1) !important;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(49, 46, 129, 0.1) !important;
         border-color: @accentCyan !important;
     }
 
@@ -29,13 +30,14 @@
 
     .sub-status-badge {
         font-size: 9px;
-        padding: 2px 6px;
-        border-radius: 4px;
+        padding: 2px 8px;
+        border-radius: 6px;
         font-weight: 700;
         display: inline-flex;
         align-items: center;
         gap: 4px;
         border: 1px solid;
+        background: #f8fafc;
     }
 
     .page-btn {
@@ -54,17 +56,10 @@
             background: @primaryIndigo;
             color: white;
             border-color: @primaryIndigo;
-            box-shadow: 0 4px 6px -1px rgba(49, 46, 129, 0.2);
+            box-shadow: 0 4px 12px rgba(49, 46, 129, 0.3);
         }
 
-        .page-btn:hover:not(.active) {
-            background: #f0f9ff;
-            border-color: @accentCyan;
-        }
-
-    /* ==========================================
-           CSS RESPONSIVE CHO MOBILE (2026 STYLE)
-           ========================================== */
+    /* 2. Responsive Mobile (Đồng bộ cấu trúc bản HR) */
     @@media (max-width: 768px) {
         .shd-header-mobile {
             flex-direction: column !important;
@@ -74,54 +69,75 @@
 
         .shd-controls-mobile {
             flex-direction: column !important;
-            gap: 10px !important;
+            width: 100% !important;
+            gap: 12px !important;
         }
 
-        #myInput, .shd-select-box {
+        .shd-search-wrapper, #myInput, .shd-select-box, .btn-create-mobile {
             width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        /* Biến Table thành Card giống bản HR */
+        #myTable thead {
+            display: none;
         }
 
-        .btn-create-mobile {
-            width: 100% !important;
-            text-align: center;
-            padding: 12px !important;
+        #myTable tbody tr {
+            display: block;
+            margin-bottom: 15px;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 16px;
+            padding: 12px;
+            background: #fff;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            position: relative;
+            border-left: 6px solid @primaryIndigo !important;
         }
-        /* Thống kê: Lưới 2 cột trên mobile */
+
+        #myTable tbody td {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 5px !important;
+            text-align: right !important;
+            border-bottom: 1px dashed #e2e8f0 !important;
+            width: 100% !important;
+        }
+            /* Nút xem chi tiết đặt góc trên giống bản HR */
+            #myTable tbody td:last-child {
+                border-bottom: none !important;
+                justify-content: center !important;
+                padding-top: 15px !important;
+            }
+
+            #myTable tbody td::before {
+                content: attr(data-label);
+                font-weight: 800;
+                color: #64748b;
+                text-transform: uppercase;
+                font-size: 11px;
+                text-align: left;
+                flex-shrink: 0;
+                margin-right: 15px;
+            }
+
+        .mobile-td-content {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            text-align: right;
+        }
+
+        .mobile-badges-wrapper {
+            justify-content: flex-end !important;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
         .stat-grid-mobile {
             grid-template-columns: repeat(2, 1fr) !important;
-        }
-        /* Biến Table thành Card list */
-        #myTable, #myTable thead, #myTable tbody, #myTable th, #myTable td, #myTable tr {
-            display: block;
-        }
-
-            #myTable thead {
-                display: none; /* Ẩn tiêu đề bảng */
-            }
-
-            #myTable tr {
-                margin-bottom: 15px;
-                border: 1px solid #e2e8f0 !important;
-                border-radius: 15px;
-                padding: 15px;
-                background: #ffffff;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-                position: relative;
-                border-left: 5px solid @primaryIndigo !important;
-            }
-
-            #myTable td {
-                border: none !important;
-                padding: 5px 0 !important;
-                width: 100% !important;
-                text-align: left !important;
-            }
-        /* Định vị lại nút xem chi tiết trên Card */
-        .action-cell-mobile {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: auto !important;
         }
 
         .pagination-mobile {
@@ -139,7 +155,7 @@
         <h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #0f172a;">
             <i class="fa fa-ship" style="color: @primaryIndigo;"></i> LỊCH SỬ YÊU CẦU SHD
         </h2>
-        <div class="shd-controls-mobile" style="display: flex; gap: 15px; align-items: center;">
+        <div class="shd-controls-mobile" style="display: flex; gap: 12px; align-items: center;">
             <div class="shd-select-box" style="display: flex; align-items: center; gap: 10px; background: white; padding: 8px 15px; border-radius: 10px; border: 1px solid #cbd5e1;">
                 <span style="font-size: 12px; font-weight: 700; color: #64748b;">Hiển thị:</span>
                 <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: @primaryIndigo; cursor: pointer; background: transparent; font-size: 14px;">
@@ -150,19 +166,19 @@
                 </select>
             </div>
 
-            <div style="position: relative;" class="shd-select-box">
+            <div class="shd-search-wrapper" style="position: relative;">
                 <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b;"></i>
                 <input type="text" id="myInput" onkeyup="handleFilterAndPaginate()" placeholder="Tìm nội dung, mã đơn..."
                        style="padding: 10px 15px 10px 35px; border-radius: 10px; border: 1px solid #cbd5e1; width: 250px; outline: none; font-weight: 600; box-sizing: border-box;">
             </div>
             
-            <a href="/FormSHD/DangKy" class="btn-create-mobile" style="padding: 10px 20px; background: @primaryIndigo; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 13px; transition: 0.2s;" onmouseover="this.style.background='#1e1b4b'" onmouseout="this.style.background='@primaryIndigo'">
+            <a href="/FormSHD/DangKy" class="btn-create-mobile" style="padding: 10px 20px; background: @primaryIndigo; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 13px; transition: 0.2s;">
                 <i class="fa fa-plus"></i> TẠO ĐƠN MỚI
             </a>
         </div>
     </div>
 
-    @* --- THỐNG KÊ (Stat Cards) --- *@
+    @* --- THỐNG KÊ --- *@
     <div class="stat-grid-mobile" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 25px;">
         <div onclick="filterByStatus('')" class="stat-card" style="@statBox border-left: 5px solid #64748b;">
             <span style="font-size: 10px; color: #64748b; font-weight: 800;">TỔNG ĐƠN</span>
@@ -195,15 +211,15 @@
     </div>
 
     @* --- BẢNG DỮ LIỆU --- *@
-    <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
+    <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
         <table id="myTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
             <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
                 <tr>
                     <th style="padding: 15px; text-align: left; color: #64748b; font-weight: 800; width: 80px;">ID</th>
                     <th style="padding: 15px; text-align: left; color: #64748b; font-weight: 800;">NỘI DUNG YÊU CẦU SHD</th>
-                    <th style="padding: 15px; text-align: left; color: #64748b; font-weight: 800; width: 160px;">NGƯỜI HỖ TRỢ</th>
+                    <th style="padding: 15px; text-align: left; color: #64748b; font-weight: 800; width: 180px;">NGƯỜI HỖ TRỢ</th>
                     <th style="padding: 15px; text-align: left; color: #64748b; font-weight: 800; width: 160px;">THỜI GIAN</th>
-                    <th style="padding: 15px; text-align: center; color: #64748b; font-weight: 800; width: 160px;">TRẠNG THÁI</th>
+                    <th style="padding: 15px; text-align: center; color: #64748b; font-weight: 800; width: 170px;">TRẠNG THÁI</th>
                     <th style="padding: 15px; text-align: center; width: 60px;"></th>
                 </tr>
             </thead>
@@ -211,14 +227,14 @@
                 <tr>
                     <td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;">
                         <i class="fa fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 15px; color: @primaryIndigo;"></i>
-                        <p style="font-weight: 600;">Đang tải dữ liệu lịch sử SHD...</p>
+                        <p style="font-weight: 600;">Đang đồng bộ dữ liệu SHD...</p>
                     </td>
                 </tr>
             </tbody>
         </table>
     </div>
 
-    @* --- PHẦN PHÂN TRANG --- *@
+    @* --- PHÂN TRANG --- *@
     <div class="pagination-mobile" style="display: flex; justify-content: space-between; align-items: center; padding: 25px 0; margin-top: 10px;">
         <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
         <div style="text-align: right;">
@@ -273,7 +289,6 @@
 
     function handleFilterAndPaginate() {
         const searchText = document.getElementById("myInput").value.toUpperCase().trim();
-
         filteredData = masterData.filter(item => {
             const rowString = `${item.id} ${item.tenForm} ${item.danhmuc} ${item.statusText} ${item.supportName}`.toUpperCase();
             return searchText === "" || rowString.includes(searchText);
@@ -299,7 +314,7 @@
         tbody.innerHTML = "";
 
         if (pageData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;">Không tìm thấy kết quả.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;">Không tìm thấy yêu cầu nào phù hợp.</td></tr>`;
             return;
         }
 
@@ -307,12 +322,12 @@
         pageData.forEach(item => {
             let badgesHtml = `<span><i class="fa fa-tag"></i> ${item.danhmuc}</span>`;
             if (item.hasB2) {
-                badgesHtml += `<span class="sub-status-badge" style="background: #f0f9ff; color: #0369a1; border-color: #bae6fd; margin-left: 8px;">
+                badgesHtml += `<span class="sub-status-badge" style="color: #0369a1; border-color: #bae6fd; margin-left: 8px;">
                                 <i class="fa fa-users"></i> BP.XN (${item.b2ApprovedCount}/${item.b2TotalCount})
                                </span>`;
             }
             if (item.hasGD) {
-                badgesHtml += `<span class="sub-status-badge" style="background: #fdf4ff; color: #86198f; border-color: #f5d0fe; margin-left: 8px;">
+                badgesHtml += `<span class="sub-status-badge" style="color: #86198f; border-color: #f5d0fe; margin-left: 8px;">
                                 <i class="fa fa-briefcase"></i> GĐ (${item.gdApprovedCount}/${item.gdTotalCount})
                                </span>`;
             }
@@ -320,33 +335,41 @@
             let avatarChar = item.supportName && item.supportName !== "Chờ phân công" ? item.supportName.charAt(0).toUpperCase() : "?";
 
             html += `
-                <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 15px; font-weight: 700; color: @primaryIndigo;">#${item.id}</td>
-                    <td style="padding: 15px;">
-                        <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${item.tenForm}</div>
-                        <div style="font-size: 11px; color: #64748b; margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 5px;">
-                            ${badgesHtml}
-                        </div>
-                    </td>
-                    <td style="padding: 15px;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 24px; height: 24px; background: @primaryIndigo; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff;">
-                                ${avatarChar}
+                <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;">
+                    <td data-label="ID" style="padding: 15px; font-weight: 700; color: @primaryIndigo;">#${item.id}</td>
+                    <td data-label="NỘI DUNG SHD" style="padding: 15px;">
+                        <div class="mobile-td-content">
+                            <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${item.tenForm}</div>
+                            <div class="mobile-badges-wrapper" style="font-size: 11px; color: #64748b;">
+                                ${badgesHtml}
                             </div>
-                            <span style="font-weight: 600; color: #334155;">${item.supportName}</span>
                         </div>
                     </td>
-                    <td style="padding: 15px;">
-                        <div style="font-weight: 600; font-size: 12px; color: #334155;"><i class="fa fa-calendar"></i> ${item.ngay}</div>
-                        <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;"><i class="fa fa-clock-o"></i> ${item.timeNguoiTao}</div>
-                    </td>
-                    <td style="padding: 15px; text-align: center;">
-                        <span class="status-badge" style="background: ${item.bgColor}; color: ${item.fgColor}; border-color: ${item.fgColor};">${item.statusText}</span>
-                        <div style="width: 100px; height: 5px; background: #e2e8f0; border-radius: 10px; margin: 8px auto 0; overflow: hidden;">
-                            <div style="width: ${item.progressWidth}; height: 100%; background: ${item.progressColor}; transition: 0.5s;"></div>
+                    <td data-label="HỖ TRỢ" style="padding: 15px;">
+                        <div class="mobile-td-content" style="align-items: flex-end;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 24px; height: 24px; background: @primaryIndigo; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff;">
+                                    ${avatarChar}
+                                </div>
+                                <span style="font-weight: 600; color: #334155;">${item.supportName}</span>
+                            </div>
                         </div>
                     </td>
-                    <td class="action-cell-mobile" style="padding: 15px; text-align: center;">
+                    <td data-label="THỜI GIAN" style="padding: 15px;">
+                        <div class="mobile-td-content">
+                            <div style="font-weight: 600; font-size: 12px; color: #334155;"><i class="fa fa-calendar"></i> ${item.ngay}</div>
+                            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;"><i class="fa fa-clock-o"></i> ${item.timeNguoiTao}</div>
+                        </div>
+                    </td>
+                    <td data-label="TRẠNG THÁI" style="padding: 15px; text-align: center;">
+                        <div class="mobile-td-content">
+                            <span class="status-badge" style="background: ${item.bgColor}; color: ${item.fgColor}; border-color: ${item.fgColor};">${item.statusText}</span>
+                            <div style="width: 100px; height: 5px; background: #e2e8f0; border-radius: 10px; margin: 8px auto 0; overflow: hidden;">
+                                <div style="width: ${item.progressWidth}; height: 100%; background: ${item.progressColor}; transition: 0.5s;"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td data-label="CHI TIẾT" style="padding: 15px; text-align: center;">
                         <a href="/FormSHD/ChiTiet/${item.id}" style="color: #94a3b8; font-size: 22px;">
                             <i class="fa fa-arrow-circle-right"></i>
                         </a>

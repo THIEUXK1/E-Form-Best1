@@ -1651,8 +1651,25 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 bool isSameCompany = string.Equals(don.TenCongTy?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
 
-                // Vì một người có thể thuộc nhiều bộ phận (cách nhau bởi dấu phẩy), ta check xem bộ phận của đơn có nằm trong list của user không
-                bool isSameDepartment = !string.IsNullOrEmpty(don.BoPhan) && boPhanUser.Contains(don.BoPhan);
+                // 1. Lấy danh sách nhiều bộ phận và bộ phận đơn lẻ từ Claims
+                string listBoPhan = User.FindFirst("TenBoPhan")?.Value ?? "";
+                string phongBanDon = User.FindFirst("PhongBan")?.Value ?? "";
+
+                bool isSameDepartment = false;
+
+                if (!string.IsNullOrEmpty(don.BoPhan))
+                {
+                    if (!string.IsNullOrEmpty(listBoPhan))
+                    {
+                        // Nếu có list bộ phận (nhiều bộ phận), check xem bộ phận của đơn có nằm trong list không
+                        isSameDepartment = listBoPhan.Contains(don.BoPhan);
+                    }
+                    else
+                    {
+                        // Nếu list rỗng, check theo claim PhongBan đơn lẻ
+                        isSameDepartment = string.Equals(don.BoPhan.Trim(), phongBanDon.Trim(), StringComparison.OrdinalIgnoreCase);
+                    }
+                }
 
                 if (isSameCompany && isSameDepartment)
                 {

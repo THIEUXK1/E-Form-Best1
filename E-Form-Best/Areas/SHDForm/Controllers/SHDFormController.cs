@@ -373,9 +373,31 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             // Quyền 3: Quản lý duyệt đơn SHD (Cùng công ty và thuộc bộ phận quản lý)
             else if (User.IsInRole("QuanLyDuyetDonSHD"))
             {
+                // Giữ nguyên logic kiểm tra công ty
                 bool isSameCompany = string.Equals(don.TenCongTy?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
-                bool isSameDepartment = !string.IsNullOrEmpty(don.BoPhan) && boPhanUser.Contains(don.BoPhan);
 
+                // Lấy dữ liệu từ Claims
+                string listBoPhan = User.FindFirst("TenBoPhan")?.Value ?? "";
+                string phongBanDon = User.FindFirst("PhongBan")?.Value ?? "";
+
+                bool isSameDepartment = false;
+
+                // Kiểm tra bộ phận của đơn
+                if (!string.IsNullOrEmpty(don.BoPhan))
+                {
+                    if (!string.IsNullOrEmpty(listBoPhan))
+                    {
+                        // Nếu có danh sách nhiều bộ phận (từ UserBoPhans), check xem bộ phận đơn có nằm trong chuỗi list không
+                        isSameDepartment = listBoPhan.Contains(don.BoPhan);
+                    }
+                    else
+                    {
+                        // Nếu danh sách nhiều bộ phận rỗng, lấy giá trị từ claim PhongBan đơn lẻ để so sánh
+                        isSameDepartment = string.Equals(don.BoPhan.Trim(), phongBanDon.Trim(), StringComparison.OrdinalIgnoreCase);
+                    }
+                }
+
+                // Nếu khớp cả công ty và bộ phận thì cho phép
                 if (isSameCompany && isSameDepartment)
                 {
                     isAllowed = true;
@@ -533,6 +555,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         }
 
         #endregion
+
         #region Xuất file Excel, Word, PDF cho hệ thống SHD
 
         // ============================================================
