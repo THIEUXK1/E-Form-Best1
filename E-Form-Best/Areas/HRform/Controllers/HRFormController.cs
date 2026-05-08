@@ -2352,7 +2352,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 return RedirectToAction("LichSuHR");
             }
 
-            // 3. KIỂM TRA QUYỀN XEM (Logic cộng dồn tương tự IT)
+            // 3. KIỂM TRA QUYỀN XEM
             bool isAllowed = false;
 
             // Quyền 1: Người tạo đơn
@@ -2365,42 +2365,33 @@ namespace E_Form_Best.Areas.HRform.Controllers
             {
                 isAllowed = true;
             }
-            // Quyền 3: Quản lý duyệt đơn HR (Phải cùng công ty và thuộc bộ phận quản lý)
+            // Quyền 3: Quản lý duyệt đơn HR (Bước 1 - Theo bộ phận)
             else if (User.IsInRole("QuanLyDuyetDonHR"))
             {
-                // Giữ nguyên logic kiểm tra công ty
                 bool isSameCompany = string.Equals(don.TenCongTy?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
-
-                // Lấy dữ liệu từ Claims (Ưu tiên TenBoPhan chứa danh sách, PhongBan là bộ phận đơn lẻ)
                 string listBoPhan = User.FindFirst("TenBoPhan")?.Value ?? "";
                 string phongBanDon = User.FindFirst("PhongBan")?.Value ?? "";
 
                 bool isSameDepartment = false;
-
-                // Kiểm tra tính hợp lệ của bộ phận trong đơn
                 if (!string.IsNullOrEmpty(don.BoPhan))
                 {
                     if (!string.IsNullOrEmpty(listBoPhan))
                     {
-                        // Trường hợp 1: Nếu có danh sách nhiều bộ phận, kiểm tra xem bộ phận của đơn có nằm trong chuỗi này không
                         isSameDepartment = listBoPhan.Contains(don.BoPhan);
                     }
                     else
                     {
-                        // Trường hợp 2: Nếu danh sách rỗng, so sánh trực tiếp với claim PhongBan đơn lẻ
                         isSameDepartment = string.Equals(don.BoPhan.Trim(), phongBanDon.Trim(), StringComparison.OrdinalIgnoreCase);
                     }
                 }
 
-                // Kết hợp điều kiện công ty và bộ phận để cấp quyền cho phép duyệt
                 if (isSameCompany && isSameDepartment)
                 {
                     isAllowed = true;
                 }
             }
-            // Quyền 4: Người có tên trong danh sách xác nhận (B1 hoặc B2)
-            else if (don.HrNguoiXacNhans.Any(x => x.IdnguoiXacNhan == userId) ||
-                     don.HrQuanLyDuyetB2s.Any(x => x.IdnguoiXacNhan == userId))
+            // Quyền 4: Kiểm tra theo Role QuanLyDuyetDonHR_B2 hoặc GiamDocHR
+            else if (User.IsInRole("QuanLyDuyetDonHR_B2") || User.IsInRole("GiamDocHR"))
             {
                 isAllowed = true;
             }
@@ -2436,7 +2427,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
             return View(don);
         }
 
-
         // Action xử lý duyệt Bước 2: Tích hợp logic Duyệt tất cả (AND) vs Duyệt 1 người (OR)
         [HttpPost("/FormHR/PheDuyetB2")]
         public async Task<IActionResult> PheDuyetB2([FromBody] System.Text.Json.JsonElement data)
@@ -2456,11 +2446,8 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 record.ThoiGianXacNhan = DateTime.Now;
                 record.GhiChu = note;
 
-                // Logic biểu đạt: Kiểm tra hình thức duyệt (Loai)
-                // Giả sử record.Loai == "OR" là chỉ cần 1 người, "AND" là tất cả
                 if (action == "Approve" && (record.Loai == "OR" || record.Loai == "ANY"))
                 {
-                    // Nếu là loại OR, khi 1 người duyệt, ta có thể đánh dấu các người khác trong cùng bước là "Skip" hoặc đơn giản là đơn chuyển trạng thái
                     _context.LichSuFormHrs.Add(new LichSuFormHr
                     {
                         IdFormHr = don.Id,
@@ -2516,7 +2503,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         [HttpPost("/FormHR/ThemNguoiHoTro")]
         public async Task<IActionResult> ThemNguoiHoTro([FromBody] System.Text.Json.JsonElement data)
         {
-            var roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+            var roles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
             if (!roles.Any(r => r == "AdminHR" || r == "All"))
                 return Json(new { success = false, message = "Không có quyền!" });
 
@@ -2545,7 +2532,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
 
         #endregion
-
         #region Xuất file Excel, Word, PDF
 
         // ============================================================

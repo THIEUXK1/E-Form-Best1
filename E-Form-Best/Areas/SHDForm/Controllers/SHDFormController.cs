@@ -373,39 +373,30 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             // Quyền 3: Quản lý duyệt đơn SHD (Cùng công ty và thuộc bộ phận quản lý)
             else if (User.IsInRole("QuanLyDuyetDonSHD"))
             {
-                // Giữ nguyên logic kiểm tra công ty
                 bool isSameCompany = string.Equals(don.TenCongTy?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
-
-                // Lấy dữ liệu từ Claims
                 string listBoPhan = User.FindFirst("TenBoPhan")?.Value ?? "";
                 string phongBanDon = User.FindFirst("PhongBan")?.Value ?? "";
 
                 bool isSameDepartment = false;
-
-                // Kiểm tra bộ phận của đơn
                 if (!string.IsNullOrEmpty(don.BoPhan))
                 {
                     if (!string.IsNullOrEmpty(listBoPhan))
                     {
-                        // Nếu có danh sách nhiều bộ phận (từ UserBoPhans), check xem bộ phận đơn có nằm trong chuỗi list không
                         isSameDepartment = listBoPhan.Contains(don.BoPhan);
                     }
                     else
                     {
-                        // Nếu danh sách nhiều bộ phận rỗng, lấy giá trị từ claim PhongBan đơn lẻ để so sánh
                         isSameDepartment = string.Equals(don.BoPhan.Trim(), phongBanDon.Trim(), StringComparison.OrdinalIgnoreCase);
                     }
                 }
 
-                // Nếu khớp cả công ty và bộ phận thì cho phép
                 if (isSameCompany && isSameDepartment)
                 {
                     isAllowed = true;
                 }
             }
-            // Quyền 4: Người có tên trong danh sách xác nhận (B1 hoặc B2)
-            else if ((don.ShdNguoiXacNhans != null && don.ShdNguoiXacNhans.Any(x => x.IdnguoiXacNhan == userId)) ||
-                     (don.ShdQuanLyDuyetB2s != null && don.ShdQuanLyDuyetB2s.Any(x => x.IdnguoiXacNhan == userId)))
+            // Quyền 4: Thay đổi check theo Role QuanLyDuyetDonSHD_B2 và GiamDocSHD
+            else if (User.IsInRole("QuanLyDuyetDonSHD_B2") || User.IsInRole("GiamDocSHD"))
             {
                 isAllowed = true;
             }
@@ -491,7 +482,6 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         public async Task<IActionResult> DownloadFile(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return NotFound();
-            // Đường dẫn thư mục riêng cho SHD
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonSHD";
             string fullPath = Path.Combine(networkPath, fileName);
             if (!System.IO.File.Exists(fullPath)) return NotFound("Tệp tin không tồn tại.");
@@ -519,7 +509,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         [HttpPost("/FormSHD/ThemNguoiHoTro")]
         public async Task<IActionResult> ThemNguoiHoTro([FromBody] System.Text.Json.JsonElement data)
         {
-            var roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+            var roles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
             if (!roles.Any(r => r == "AdminSHD" || r == "All"))
                 return Json(new { success = false, message = "Không có quyền!" });
 
