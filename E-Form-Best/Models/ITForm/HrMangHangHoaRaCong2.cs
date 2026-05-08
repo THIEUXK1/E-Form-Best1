@@ -35,6 +35,12 @@ public partial class HrMangHangHoaRaCong2
 
     public string? DuongDanAnh { get; set; }
 
+    [StringLength(250)]
+    public string? TenLoaiHang { get; set; }
+
+    [StringLength(255)]
+    public string? SoLuong { get; set; }
+
     [ForeignKey("IdFormHr")]
     [InverseProperty("HrMangHangHoaRaCong2s")]
     public virtual FormHr? IdFormHrNavigation { get; set; }

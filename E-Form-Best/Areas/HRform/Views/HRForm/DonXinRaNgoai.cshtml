@@ -57,6 +57,17 @@
             margin-bottom: 10px;
         }
     }
+
+    /* CSS cho nút Add/Remove Nhân Viên */
+    .btn-add-nguoixin {
+        background: #dc2626; color: white; border: none; width: 44px; height: 44px; border-radius: 10px; cursor: pointer; font-size: 18px; font-weight: bold; transition: 0.3s; display: flex; align-items: center; justify-content: center;
+    }
+    .btn-add-nguoixin:hover { background: #991b1b; }
+
+    .btn-remove-nguoixin {
+        background: #ef4444; color: white; border: none; width: 44px; height: 44px; border-radius: 10px; cursor: pointer; font-size: 18px; font-weight: bold; transition: 0.3s; display: flex; align-items: center; justify-content: center;
+    }
+    .btn-remove-nguoixin:hover { background: #b91c1c; }
 </style>
 
 <div class="mobile-wrapper" style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); padding: 40px 15px; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
@@ -115,6 +126,21 @@
                     <span style="background: #b91c1c; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">2</span>
                     Nội dung và Thời gian
                 </h3>
+
+                @* --- THÊM MỚI: DANH SÁCH NGƯỜI XIN RA NGOÀI --- *@
+                <div style="margin-bottom: 20px;">
+                    <label style="@labelStyle">Đăng ký cho nhân viên (Người xin ra ngoài) <span style="color:#dc2626">*</span></label>
+                    <div id="nguoiXinContainer" style="display: flex; flex-direction: column; gap: 10px;">
+                        <div class="nguoixin-row" style="display: flex; gap: 10px; align-items: center;">
+                            <input type="text" class="input-nguoixin" placeholder="Mã số nhân viên - Họ tên" required style="@inputStyle flex: 1; border: 1px solid #ef4444;">
+                            <button type="button" onclick="themNguoiXin()" class="btn-add-nguoixin" title="Thêm người">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Input ẩn để lưu giá trị gộp sau cùng truyền vào Model -->
+                    <input type="hidden" name="NguoiXin" id="NguoiXin_Hidden">
+                </div>
 
                 <div style="margin-bottom: 20px;">
                     <label style="@labelStyle">Lý do cụ thể <span style="color:#dc2626">*</span></label>
@@ -235,6 +261,26 @@
         document.getElementById('inpThoiGianVe').value = returnTime.toISOString().slice(0, 16);
     };
 
+    // --- THÊM MỚI: Script xử lý thêm/xóa Người Xin Ra Ngoài ---
+    function themNguoiXin() {
+        const container = document.getElementById("nguoiXinContainer");
+        const div = document.createElement("div");
+        div.className = "nguoixin-row";
+        div.style.cssText = "display: flex; gap: 10px; align-items: center;";
+        
+        div.innerHTML = `
+            <input type="text" class="input-nguoixin" placeholder="Họ tên - Mã số nhân viên" required style="@inputStyle flex: 1; border: 1px solid #ef4444;">
+            <button type="button" onclick="xoaNguoiXin(this)" class="btn-remove-nguoixin" title="Xóa người này">
+                <i class="fa fa-minus"></i>
+            </button>
+        `;
+        container.appendChild(div);
+    }
+
+    function xoaNguoiXin(btn) {
+        btn.closest('.nguoixin-row').remove();
+    }
+
     function handlePaste(e, inputId, zoneId) {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         let blob = null;
@@ -272,6 +318,24 @@
         const tgVe = document.getElementById('inpThoiGianVe').value;
         const chk = document.getElementById('chkCamKet');
         const selectedHoTro = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
+
+        // --- MỚI: Xử lý lấy dữ liệu Người Xin và gộp bằng dấu | ---
+        const inputsNguoiXin = document.querySelectorAll('.input-nguoixin');
+        let dsNguoiXin = [];
+        inputsNguoiXin.forEach(input => {
+            if(input.value.trim() !== '') {
+                dsNguoiXin.push(input.value.trim());
+            }
+        });
+
+        if (dsNguoiXin.length === 0) {
+            alert("⚠️ Vui lòng nhập ít nhất 1 Người xin ra ngoài!");
+            if(inputsNguoiXin.length > 0) inputsNguoiXin[0].focus();
+            return;
+        }
+        
+        // Gán chuỗi gộp vào input ẩn để đẩy vào backend
+        document.getElementById("NguoiXin_Hidden").value = dsNguoiXin.join(" | ");
 
         if (liDo.length < 5) {
             alert("⚠️ Vui lòng nhập lý do ra ngoài cụ thể!");

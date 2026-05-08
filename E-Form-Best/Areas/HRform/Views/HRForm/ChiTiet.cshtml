@@ -47,7 +47,7 @@
         if (string.IsNullOrEmpty(value)) value = "---";
         return $@"<div class='mobile-info-row' style='margin-bottom:12px;display:flex;align-items:center;gap:12px;background:#fff;padding:14px;border-radius:16px;border:1.5px solid #e2e8f0;box-shadow:0 2px 4px rgba(0,0,0,0.02);'>
             <span style='background:{bgColor};width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:12px;font-size:20px;flex-shrink:0;'>{icon}</span>
-            <div style='display:flex;flex-direction:column;word-break:break-word;'>
+            <div style='display:flex;flex-direction:column;word-break:break-word; width: 100%;'>
                 <strong style='color:{textColor};font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;'>{label}</strong>
                 <span style='font-size:15px;color:#1e293b;font-weight:700;'>{value}</span>
             </div></div>";
@@ -75,19 +75,85 @@
         if (Model.HrXinRaNgoai1s?.Any() == true)
         {
             var ct = Model.HrXinRaNgoai1s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
+            
+            // --- THÊM PHẦN HIỂN THỊ DANH SÁCH NGƯỜI XIN ĐÃ LƯU GỘP ---
+            string danhSachNguoiXin = "Không có thông tin";
+            if (!string.IsNullOrEmpty(ct.NguoiXin)) 
+            {
+                danhSachNguoiXin = "• " + ct.NguoiXin.Replace("|", "<br/>• ");
+            }
+            chiTietNoiDung += RenderInfoRow("👥", "Người xin ra ngoài", danhSachNguoiXin, "#fff1f2", "#be123c");
+            // ---------------------------------------------------------
+            
             chiTietNoiDung += RenderInfoRow("📍", "Địa điểm", ct.DiaDiem, "#eff6ff", "#1e40af");
             chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#eff6ff", "#1e40af");
             chiTietNoiDung += RenderInfoRow("🕒", "Giờ ra", ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "#fef2f2", "#991b1b");
             chiTietNoiDung += RenderInfoRow("🔄", "Dự kiến về", ct.ThoiGianVeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#ecfdf5", "#065f46");
         }
-        if (Model.HrMangHangHoaRaCong2s?.Any() == true)
+      if (Model.HrMangHangHoaRaCong2s?.Any() == true)
+{
+    var ct = Model.HrMangHangHoaRaCong2s.First(); 
+    
+    // 1. Giữ nguyên xử lý ảnh
+    ProcessImage(ct.DuongDanAnh, ct.Anh);
+
+    // 2. Các dòng thông tin cơ bản
+    chiTietNoiDung += RenderInfoRow("📦", "Loại đơn", "Mang hàng hóa ra cổng", "#f0fdf4", "#166534");
+    chiTietNoiDung += RenderInfoRow("📋", "Mô tả", ct.MoTa, "#f8fafc", "#0f172a");
+
+    // --- 3. XỬ LÝ BÓC TÁCH MẢNG HÀNG HÓA (GIA CỐ CỘT STT TUYỆT ĐỐI KHÔNG XUỐNG DÒNG) ---
+    string bangHangHoa = "";
+    if (!string.IsNullOrEmpty(ct.TenLoaiHang) && !string.IsNullOrEmpty(ct.SoLuong))
+    {
+        var arrTen = ct.TenLoaiHang.Split('|', StringSplitOptions.RemoveEmptyEntries);
+        var arrSl = ct.SoLuong.Split('|', StringSplitOptions.RemoveEmptyEntries);
+        int count = Math.Min(arrTen.Length, arrSl.Length);
+
+        if (count > 0)
         {
-            var ct = Model.HrMangHangHoaRaCong2s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
-            chiTietNoiDung += RenderInfoRow("📦", "Loại đơn", "Mang hàng hóa ra cổng", "#f0fdf4", "#166534");
-            chiTietNoiDung += RenderInfoRow("📋", "Mô tả", ct.MoTa, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("📅", "Thời gian dự tính", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#f0fdf4", "#166534");
-            chiTietNoiDung += RenderSecurityBox(ct.TenCong, ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "hàng ra thực tế");
+            bangHangHoa += "<div style='margin-top:10px; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden;'>";
+            bangHangHoa += "<table style='width:100%; border-collapse:collapse; text-align:left; font-size:14px; background:#fff; table-layout: auto;'>";
+            
+            // Header: Dùng width: 1% và nowrap cho STT
+            bangHangHoa += "<thead style='background:#f8fafc;'>";
+            bangHangHoa += "<tr style='border-bottom:2px solid #e2e8f0;'>";
+            bangHangHoa += "<th style='padding:12px 10px; color:#475569; width:1%; white-space:nowrap; text-align:center; font-weight:700;'>STT</th>";
+            bangHangHoa += "<th style='padding:12px 15px; color:#475569; font-weight:700;'>Tên loại hàng</th>";
+            bangHangHoa += "<th style='padding:12px 15px; color:#475569; text-align:center; width:80px; font-weight:700;'>Số lượng</th>";
+            bangHangHoa += "</tr>";
+            bangHangHoa += "</thead>";
+            
+            bangHangHoa += "<tbody>";
+            for (int i = 0; i < count; i++)
+            {
+                string bgRow = (i % 2 == 0) ? "#ffffff" : "#fbfcfd";
+                bangHangHoa += $"<tr style='background:{bgRow}; border-bottom:1px solid #f1f5f9;'>";
+                
+                // Cột STT: width: 1% để nó không chiếm thêm diện tích, white-space:nowrap để ép 1 hàng
+                bangHangHoa += $"<td style='padding:12px 10px; text-align:center; font-weight:700; color:#94a3b8; width:1%; white-space:nowrap;'>{i + 1}</td>";
+                
+                // Cột Tên hàng (Cột này sẽ chiếm diện tích còn lại)
+                bangHangHoa += $"<td style='padding:12px 15px; color:#1e293b; font-weight:600;'>{arrTen[i].Trim()}</td>";
+                
+                // Cột Số lượng
+                bangHangHoa += $"<td style='padding:12px 15px; text-align:center; font-weight:800; color:#ea580c; width:80px;'>{arrSl[i].Trim()}</td>";
+                
+                bangHangHoa += "</tr>";
+            }
+            bangHangHoa += "</tbody></table></div>";
         }
+    }
+    else
+    {
+        bangHangHoa = "<div style='padding:10px; color:#94a3b8; font-style:italic;'>Không có chi tiết hàng hóa</div>";
+    }
+    
+    chiTietNoiDung += RenderInfoRow("🛒", "Danh sách mặt hàng", bangHangHoa, "#fff7ed", "#ea580c");
+
+    // 4. Giữ nguyên phần còn lại
+    chiTietNoiDung += RenderInfoRow("📅", "Thời gian dự tính", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#f0fdf4", "#166534");
+    chiTietNoiDung += RenderSecurityBox(ct.TenCong, ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "hàng ra thực tế");
+}
         if (Model.HrDangKySuDungXeCongTac3s?.Any() == true)
         {
             var ct = Model.HrDangKySuDungXeCongTac3s.First();
@@ -802,7 +868,7 @@
     const formId        = @Model.Id;
     const currentUserId = '@currentUserId';
     const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
+                                        User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
     const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
     function hasRole(r) { return userRoles.includes(r); }
