@@ -24,8 +24,16 @@
 
 <style>
     /* ==========================================
-           THÊM MỚI: CSS CHO MOBILE RESPONSIVE
-           ========================================== */
+                       THÊM MỚI: CSS CHO MOBILE RESPONSIVE VÀ KHUNG ĐỘNG
+                       ========================================== */
+    .dynamic-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr 45px;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
     @@media (max-width: 768px) {
         .mobile-wrapper {
             padding: 15px 10px !important;
@@ -47,6 +55,10 @@
         .grid-mobile-1 {
             grid-template-columns: 1fr !important;
             gap: 12px !important;
+        }
+        /* Grid cho ô hàng hóa động trên mobile */
+        .dynamic-row {
+            grid-template-columns: 1.5fr 1fr 40px !important;
         }
         /* Badge V3.0 đẩy lên trên title */
         .system-badge {
@@ -105,8 +117,20 @@
                 </h3>
 
                 <div style="margin-bottom: 20px;">
-                    <label style="@labelStyle">Mô tả hàng hóa (Số lượng, chủng loại...) <span style="color:#e53e3e">*</span></label>
-                    <textarea name="chiTiet.MoTa" placeholder="Ví dụ: 05 kiện hàng nguyên seal, 01 bộ dụng cụ sửa chữa..." required style="@inputStyle; height: 80px; resize: none; border: 1px solid @primaryColor;"></textarea>
+                    <label style="@labelStyle">Mô tả chung lý do/hàng hóa <span style="color:#e53e3e">*</span></label>
+                    <textarea name="chiTiet.MoTa" placeholder="Ví dụ: Mang linh kiện hỏng ra cổng bảo hành..." required style="@inputStyle; height: 80px; resize: none; border: 1px solid @primaryColor;"></textarea>
+                </div>
+
+                @* --- THÊM KHUNG THÊM NHIỀU HÀNG HÓA --- *@
+                <div style="margin-bottom: 25px; padding: 20px; border-radius: 12px; background: #ffffff; border: 1px dashed @primaryColor;">
+                    <label style="@labelStyle">Danh sách hàng hóa (Tên & Số lượng) <span style="color:#e53e3e">*</span></label>
+                    <div id="dynamicItemsWrapper">
+                        <div class="dynamic-row">
+                            <input type="text" name="arrTenLoaiHang" placeholder="Tên loại hàng" style="@inputStyle" required>
+                            <input type="number" name="arrSoLuong" placeholder="Số lượng" min="1" style="@inputStyle" required>
+                            <button type="button" onclick="addHangHoaRow()" style="background: @primaryColor; color: white; border: none; border-radius: 10px; height: 42px; font-size: 20px; font-weight: 900; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='@darkGreen'" onmouseout="this.style.background='@primaryColor'">+</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="grid-mobile-1" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
@@ -239,11 +263,34 @@
         zoneEl.onclick = () => zoneEl.focus();
     }
 
+    // --- HÀM THÊM Ô HÀNG HÓA ---
+    function addHangHoaRow() {
+        const wrapper = document.getElementById('dynamicItemsWrapper');
+        const row = document.createElement('div');
+        row.className = 'dynamic-row';
+        row.innerHTML = `
+            <input type="text" name="arrTenLoaiHang" placeholder="Tên loại hàng" style="@inputStyle" required>
+            <input type="number" name="arrSoLuong" placeholder="Số lượng" min="1" style="@inputStyle" required>
+            <button type="button" onclick="this.parentElement.remove()" style="background: #e53e3e; color: white; border: none; border-radius: 10px; height: 42px; font-size: 20px; font-weight: 900; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#c53030'" onmouseout="this.style.background='#e53e3e'">-</button>
+        `;
+        wrapper.appendChild(row);
+    }
+
     function xuLyLuuDon() {
         const moTa = document.querySelector('textarea[name="chiTiet.MoTa"]').value.trim();
         const chk = document.getElementById('chkCamKet');
         const timeDuTinh = document.getElementById('inpTimeDuTinh').value;
         const selectedHoTro = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
+        
+        // KIỂM TRA MẢNG HÀNG HÓA RỖNG
+        const arrTen = document.getElementsByName('arrTenLoaiHang');
+        const arrSl = document.getElementsByName('arrSoLuong');
+        for (let i = 0; i < arrTen.length; i++) {
+            if (!arrTen[i].value.trim() || !arrSl[i].value.trim()) {
+                alert("⚠️ Ô 'Tên loại hàng' và 'Số lượng' bạn vừa thêm không được để trống!");
+                return;
+            }
+        }
 
         if (moTa.length < 5) {
             alert("⚠️ Vui lòng nhập mô tả hàng hóa chi tiết!");

@@ -247,7 +247,8 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     string chiTietDon = "";
                     if (xinRaNgoai != null)
                     {
-                        chiTietDon = $"- Lý do: {xinRaNgoai.LiDo}\n" +
+                        chiTietDon = $"- Người xin: {xinRaNgoai.NguoiXin}\n" +
+                                     $"- Lý do: {xinRaNgoai.LiDo}\n" +
                                      $"- Địa điểm: {xinRaNgoai.DiaDiem}\n" +
                                      $"- Thời gian ra: {xinRaNgoai.ThoiGianRa?.ToString("dd/MM/yyyy HH:mm")}\n" +
                                      $"- Dự kiến về: {xinRaNgoai.ThoiGianVeDuTinh?.ToString("dd/MM/yyyy HH:mm")}";
@@ -364,7 +365,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
 
         [HttpPost("/FormHR/MangHangHoaRaCong")]
-        public async Task<IActionResult> MangHangHoaRaCong(FormHr form, [FromForm] HrMangHangHoaRaCong2 chiTiet, int[] SelectedCongViecIds)
+        public async Task<IActionResult> MangHangHoaRaCong(FormHr form, [FromForm] HrMangHangHoaRaCong2 chiTiet, int[] SelectedCongViecIds, List<string> arrTenLoaiHang, List<string> arrSoLuong)
         {
             if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
 
@@ -438,7 +439,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     }
 
                     // --- BƯỚC 3: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN (CẤU HÌNH THEO BỘ PHẬN & CÔNG TY) ---
-                    // Truy vấn lấy người duyệt từ cấu hình dựa trên IdForm, Tên Bộ Phận và Tên Công Ty
                     var listDuyetTheoBoPhan = await _context.DmNguoiDuyetLoaiDonBoPhans
                         .Include(x => x.IdnguoiXacNhanNavigation)
                         .Where(x => x.IdloaiDonNavigation.MaLoaiDon == form.IdForm
@@ -459,16 +459,16 @@ namespace E_Form_Best.Areas.HRform.Controllers
                                 ThuTuXacNhan = item.Stt,
                                 MaNguoiXacNhan = item.IdnguoiXacNhanNavigation?.MaNv,
                                 TenNguoiXacNhan = item.IdnguoiXacNhanNavigation?.HoTen,
-                                TrangThaiXacNhan = 0, // 0: Chờ duyệt
+                                TrangThaiXacNhan = 0,
                                 ThoiGianXacNhan = null,
-                                Loai = item.Loai // Map thêm cột Loai (AND / OR) từ cấu hình để file View nhận diện
+                                Loai = item.Loai
                             };
                             _context.HrQuanLyDuyetB2s.Add(quanLyDuyet);
                         }
                         await _context.SaveChangesAsync();
                     }
 
-                    // Fallback: Nếu không có cấu hình theo bộ phận, lấy theo cấu hình mặc định (DmNguoiXacNhanLoaiDon)
+                    // Fallback
                     var loaiDon = await _context.DmLoaiDons.FirstOrDefaultAsync(x => x.MaLoaiDon == form.IdForm && x.TrangThai == true);
                     if (loaiDon != null)
                     {
@@ -494,12 +494,52 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         await _context.SaveChangesAsync();
                     }
 
+                    // --- BƯỚC MỚI: XỬ LÝ GHÉP DANH SÁCH MẶT HÀNG ---
+                    int tongSl = 0; // Biến tính tổng riêng
+                    if (arrTenLoaiHang != null && arrTenLoaiHang.Count > 0 && chiTiet != null)
+                    {
+                        var dsHang = new List<string>();
+                        var dsSoLuong = new List<string>(); // Danh sách số lượng tương ứng
+
+                        for (int i = 0; i < arrTenLoaiHang.Count; i++)
+                        {
+                            if (!string.IsNullOrWhiteSpace(arrTenLoaiHang[i]))
+                            {
+                                dsHang.Add(arrTenLoaiHang[i].Trim());
+
+                                // Ép kiểu an toàn để tránh lỗi OutOfRange nếu mảng bị lệch
+                                int sl = 0;
+                                if (arrSoLuong != null && i < arrSoLuong.Count)
+                                {
+                                    int.TryParse(arrSoLuong[i], out sl);
+                                }
+                                dsSoLuong.Add(sl.ToString());
+                                tongSl += sl; // Cộng dồn tổng số lượng
+                            }
+                        }
+
+                        // Lưu tên hàng bằng dấu |
+                        chiTiet.TenLoaiHang = string.Join(" | ", dsHang);
+                        if (chiTiet.TenLoaiHang.Length > 250)
+                        {
+                            chiTiet.TenLoaiHang = chiTiet.TenLoaiHang.Substring(0, 247) + "...";
+                        }
+
+                        // Lưu số lượng tương ứng bằng dấu |
+                        chiTiet.SoLuong = string.Join(" | ", dsSoLuong);
+                        if (chiTiet.SoLuong.Length > 250)
+                        {
+                            chiTiet.SoLuong = chiTiet.SoLuong.Substring(0, 247) + "...";
+                        }
+                    }
 
                     // --- BƯỚC 4: LƯU LỊCH SỬ ---
                     string chiTietDon = "";
                     if (chiTiet != null)
                     {
                         chiTietDon = $"- Nội dung: {chiTiet.MoTa}\n" +
+                                     $"- Chi tiết hàng: {chiTiet.TenLoaiHang}\n" +
+                                     $"- Số lượng tương ứng: {chiTiet.SoLuong} (Tổng SL: {tongSl})\n" +
                                      $"- Cổng ra: {chiTiet.TenCong}\n" +
                                      $"- Thời gian dự tính: {chiTiet.TimeDuTinh?.ToString("dd/MM/yyyy HH:mm")}";
                     }
@@ -2532,6 +2572,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
 
         #endregion
+
         #region Xuất file Excel, Word, PDF
 
         // ============================================================
