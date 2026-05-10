@@ -102,6 +102,15 @@ public partial class FormHr
     public virtual ICollection<HrDonHoTroCongTac9> HrDonHoTroCongTac9s { get; set; } = new List<HrDonHoTroCongTac9>();
 
     [InverseProperty("IdFormHrNavigation")]
+    public virtual ICollection<HrDonKiTucXa10> HrDonKiTucXa10s { get; set; } = new List<HrDonKiTucXa10>();
+
+    [InverseProperty("IdFormHrNavigation")]
+    public virtual ICollection<HrDonLamLaiThe11> HrDonLamLaiThe11s { get; set; } = new List<HrDonLamLaiThe11>();
+
+    [InverseProperty("IdFormHrNavigation")]
+    public virtual ICollection<HrDonSuDungDienThoai12> HrDonSuDungDienThoai12s { get; set; } = new List<HrDonSuDungDienThoai12>();
+
+    [InverseProperty("IdFormHrNavigation")]
     public virtual ICollection<HrDonTiepKhac5> HrDonTiepKhac5s { get; set; } = new List<HrDonTiepKhac5>();
 
     [InverseProperty("IdFormHrNavigation")]
