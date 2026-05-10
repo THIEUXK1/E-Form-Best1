@@ -306,29 +306,44 @@
                     <i class="fa fa-angle-down" id="regArrow" style="transition: 0.3s; transform: @(isSubPageActive ? "rotate(180deg)" : "rotate(0deg)")"></i>
                 </div>
 
-                <div id="registrationSubmenu" style="display: @(isSubPageActive ? "flex" : "none"); flex-direction: column; background: rgba(0, 0, 0, 0.1); border-radius: 12px; margin: 5px 0 10px 0; padding: 5px 0;">
-                    <a href="/FormHR/DonXinRaNgoai" class="@(currentAction == "DonXinRaNgoai" ? "active" : "")">
-                        <i class="fa fa-external-link" style="position:absolute; left:20px; color: #ff4d4d;"></i> <span>Đơn xin ra ngoài</span>
-                    </a>
-                    <a href="/FormHR/MangHangHoaRaCong" class="@(currentAction == "MangHangHoaRaCong" ? "active" : "")">
-                        <i class="fa fa-archive" style="position:absolute; left:20px; color:#48bb78;"></i> <span>Mang hàng hóa ra cổng</span>
-                    </a>
-                    <a href="/FormHR/DangKySuDungXeDaily" class="@(currentAction == "DangKySuDungXeDaily" ? "active" : "")">
-                        <i class="fa fa-bus" style="position:absolute; left:20px; color:#ed8936;"></i> <span>Đăng ký xe Daily</span>
-                    </a>
-                    <a href="/FormHR/DonTiepKhac" class="@(currentAction == "DonTiepKhac" ? "active" : "")">
-                        <i class="fa fa-handshake-o" style="position:absolute; left:20px; color:#f472b6;"></i> <span>Đơn tiếp khách / Khác</span>
-                    </a>
-                    <a href="/FormHR/NhaThauQuaCong" class="@(currentAction == "NhaThauQuaCong" ? "active" : "")">
-                        <i class="fa fa-id-badge" style="position:absolute; left:20px; color:#2dd4bf;"></i> <span>Nhà thầu qua cổng</span>
-                    </a>
-                    <a href="/FormHR/HoTroTienDienThoai" class="@(currentAction == "HoTroTienDienThoai" ? "active" : "")">
-                        <i class="fa fa-phone" style="position:absolute; left:20px; color:#3b82f6;"></i> <span>Hỗ trợ tiền điện thoại</span>
-                    </a>
-                    <a href="/FormHR/DonHoTroCongTac" class="@(currentAction == "DonHoTroCongTac" ? "active" : "")">
-                        <i class="fa fa-briefcase" style="position:absolute; left:20px; color:#a855f7;"></i> <span>Đơn hỗ trợ công tác</span>
-                    </a>
-                </div>
+<div id="registrationSubmenu" style="display: @(isSubPageActive ? "flex" : "none"); flex-direction: column; background: rgba(0, 0, 0, 0.1); border-radius: 12px; margin: 5px 0 10px 0; padding: 5px 0;">
+    <a href="/FormHR/DonXinRaNgoai" class="@(currentAction == "DonXinRaNgoai" ? "active" : "")">
+        <i class="fa fa-external-link" style="position:absolute; left:20px; color: #ff4d4d;"></i> <span>Đơn xin ra ngoài</span>
+    </a>
+    <a href="/FormHR/MangHangHoaRaCong" class="@(currentAction == "MangHangHoaRaCong" ? "active" : "")">
+        <i class="fa fa-archive" style="position:absolute; left:20px; color:#48bb78;"></i> <span>Mang hàng hóa ra cổng</span>
+    </a>
+    <a href="/FormHR/DangKySuDungXeDaily" class="@(currentAction == "DangKySuDungXeDaily" ? "active" : "")">
+        <i class="fa fa-bus" style="position:absolute; left:20px; color:#ed8936;"></i> <span>Đăng ký xe Daily</span>
+    </a>
+    <a href="/FormHR/DonTiepKhac" class="@(currentAction == "DonTiepKhac" ? "active" : "")">
+        <i class="fa fa-handshake-o" style="position:absolute; left:20px; color:#f472b6;"></i> <span>Đơn tiếp khách / Khác</span>
+    </a>
+    <a href="/FormHR/NhaThauQuaCong" class="@(currentAction == "NhaThauQuaCong" ? "active" : "")">
+        <i class="fa fa-id-badge" style="position:absolute; left:20px; color:#2dd4bf;"></i> <span>Nhà thầu qua cổng</span>
+    </a>
+    <a href="/FormHR/HoTroTienDienThoai" class="@(currentAction == "HoTroTienDienThoai" ? "active" : "")">
+        <i class="fa fa-phone" style="position:absolute; left:20px; color:#3b82f6;"></i> <span>Hỗ trợ tiền điện thoại</span>
+    </a>
+    <a href="/FormHR/DonHoTroCongTac" class="@(currentAction == "DonHoTroCongTac" ? "active" : "")">
+        <i class="fa fa-briefcase" style="position:absolute; left:20px; color:#a855f7;"></i> <span>Đơn hỗ trợ công tác</span>
+    </a>
+
+    <!-- MỚI THÊM: ĐƠN KÝ TÚC XÁ (Màu Xanh Chàm / Indigo) -->
+    <a href="/FormHR/DonKiTucXa" class="@(currentAction == "DonKiTucXa" ? "active" : "")">
+        <i class="fa fa-bed" style="position:absolute; left:20px; color:#4338ca;"></i> <span>Đăng ký Ký túc xá</span>
+    </a>
+    
+    <!-- MỚI THÊM: ĐƠN LÀM LẠI THẺ (Màu Vàng Đồng / Gold) -->
+    <a href="/FormHR/DonLamLaiThe" class="@(currentAction == "DonLamLaiThe" ? "active" : "")">
+        <i class="fa fa-id-card-o" style="position:absolute; left:20px; color:#d69e2e;"></i> <span>Đơn xin làm lại thẻ</span>
+    </a>
+    
+    <!-- MỚI THÊM: ĐƠN SỬ DỤNG ĐIỆN THOẠI (Màu Xanh Rêu / Olive) -->
+    <a href="/FormHR/DonSuDungDienThoai" class="@(currentAction == "DonSuDungDienThoai" ? "active" : "")">
+        <i class="fa fa-mobile" style="position:absolute; left:20px; font-size:18px; color:#65a30d;"></i> <span>Sử dụng điện thoại</span>
+    </a>
+</div>
 
                 <a href="/FormHR/DonCho" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
                     <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span>Đơn của tôi</span>
