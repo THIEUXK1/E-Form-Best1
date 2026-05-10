@@ -64,6 +64,12 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<HrDonHoTroCongTac9> HrDonHoTroCongTac9s { get; set; }
 
+    public virtual DbSet<HrDonKiTucXa10> HrDonKiTucXa10s { get; set; }
+
+    public virtual DbSet<HrDonLamLaiThe11> HrDonLamLaiThe11s { get; set; }
+
+    public virtual DbSet<HrDonSuDungDienThoai12> HrDonSuDungDienThoai12s { get; set; }
+
     public virtual DbSet<HrDonTiepKhac5> HrDonTiepKhac5s { get; set; }
 
     public virtual DbSet<HrHoTroTienDienThoai7> HrHoTroTienDienThoai7s { get; set; }
@@ -311,6 +317,27 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrDonHoTroCongTac9s)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_DonHoTro_FormHR");
+        });
+
+        modelBuilder.Entity<HrDonKiTucXa10>(entity =>
+        {
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrDonKiTucXa10s)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_HR_DonKiTucXa_FormHR");
+        });
+
+        modelBuilder.Entity<HrDonLamLaiThe11>(entity =>
+        {
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrDonLamLaiThe11s)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_HR_DonLamLaiThe_FormHR");
+        });
+
+        modelBuilder.Entity<HrDonSuDungDienThoai12>(entity =>
+        {
+            entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrDonSuDungDienThoai12s)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_HR_DonSuDungDienThoai_FormHR");
         });
 
         modelBuilder.Entity<HrDonTiepKhac5>(entity =>

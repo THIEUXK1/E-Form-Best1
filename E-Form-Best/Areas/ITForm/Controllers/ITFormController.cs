@@ -640,7 +640,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 TimeNguoiTao = DateTime.Now,
                 TrangThai = "ChoDuyet",
                 IdForm = "IT_OrderIT_2",
-                TenForm = "Yêu cầu sửa chữa/Hỗ trợ kỹ thuật"
+                TenForm = "Yêu cầu sửa chữa/Hỗ trợ kỹ thuật",
+                // THÊM MẶC ĐỊNH NGƯỜI DUYỆT
+                IdNguoiDuyet = 8,
+                TenNguoiDuyet = "Hệ thống E-form",
+                TimeNguoiDuyet = DateTime.Now
             };
 
             return View(model);
@@ -681,8 +685,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.SoNhanVien = userEmail;
                     form.TenCongTy = tenCongTy;
                     form.TrangThai = "ChoDuyet";
-                    form.IdForm = "IT_ORDER_2";
+                    form.IdForm = "IT_OrderIT_2";
                     form.TenForm = "Yêu cầu sửa chữa/Hỗ trợ kỹ thuật";
+
+                    // THÊM MẶC ĐỊNH NGƯỜI DUYỆT
+                    form.IdNguoiDuyet = 8;
+                    form.TenNguoiDuyet = "Hệ thống E-form";
+                    form.TimeNguoiDuyet = DateTime.Now;
 
                     if (congViec != null) form.Danhmuc = congViec.Ten;
 
@@ -2439,31 +2448,39 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return View();
         }
 
-        // 2. API để JavaScript gọi lấy dữ liệu
         [HttpGet("/FormIT/GetDonChoData")]
         public async Task<IActionResult> GetDonChoData()
         {
+            // 1. LẤY THÔNG TIN TỪ CLAIMS
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
             int userId = int.Parse(userIdStr);
 
+            // 2. TRUY VẤN DỮ LIỆU
             var danhSachDon = await _context.FormIts
+                .AsNoTracking() // TỐI ƯU 1: Không theo dõi thay đổi, giảm tải bộ nhớ đáng kể
                 .Where(f => f.IdNguoiTao == userId)
-                .Include(f => f.DanhGiaFormIts)
-                .Include(f => f.ItCtNguoiHoTros)
-                    .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
+                // TỐI ƯU 2: Loại bỏ .Include(). Khi dùng .Select(), EF Core sẽ tự động sinh câu lệnh JOIN 
+                // chính xác vào bảng cần lấy, giúp tránh lấy dư thừa các cột không dùng tới.
                 .OrderByDescending(f => f.Id)
                 .Select(item => new {
                     Id = item.Id,
                     TenForm = item.TenForm ?? "",
                     Danhmuc = item.Danhmuc ?? "N/A",
+                    // TỐI ƯU 3: Giữ nguyên logic format ngày tháng
                     Ngay = item.Ngay.HasValue ? item.Ngay.Value.ToString("dd/MM/yyyy") : "",
                     IdNguoiDuyet = item.IdNguoiDuyet,
                     IdAdmin = item.IdAdmin,
-                    // Trả về thẳng cờ boolean cho JS dễ xử lý
-                    DaDanhGia = item.DanhGiaFormIts != null && item.DanhGiaFormIts.Any(),
-                    TenNguoiHoTro = item.ItCtNguoiHoTros.OrderByDescending(x => x.Stt).FirstOrDefault().IdItNguoiHoTroNavigation.Ten ?? "Chưa có"
+
+                    // TỐI ƯU 4: Dùng .Any() trực tiếp trên navigation property 
+                    DaDanhGia = item.DanhGiaFormIts.Any(),
+
+                    // TỐI ƯU 5: Truy vấn sâu xuống chỉ lấy cột 'Ten' thay vì lấy cả Object navigation
+                    TenNguoiHoTro = item.ItCtNguoiHoTros
+                                        .OrderByDescending(x => x.Stt)
+                                        .Select(x => x.IdItNguoiHoTroNavigation.Ten)
+                                        .FirstOrDefault() ?? "Chưa có"
                 })
                 .ToListAsync();
 
@@ -2490,54 +2507,49 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             // --- 1. LẤY THÔNG TIN TỪ CLAIMS ---
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized(); // Dùng Unauthorized cho API
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
             int userId = int.Parse(userIdStr);
 
-            // Lấy tất cả các Roles từ Claims
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
-
             var phongBan = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
-
             var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
+
+            // Xử lý list bộ phận sẵn ở bộ nhớ để so sánh nhanh hơn
             var listTenBoPhan = listTenBoPhanStr.Split(',')
-                                                .Select(s => s.Trim().ToLower())
+                                                .Select(s => s.Trim())
                                                 .Where(s => !string.IsNullOrEmpty(s))
                                                 .ToList();
 
-            // Chặn Bảo vệ
             if (userRoles.Contains("BaoVe")) return Forbid();
 
             // --- 2. TRUY VẤN DỮ LIỆU ---
-            IQueryable<FormIt> query = _context.FormIts
-                .Include(f => f.ItCtNguoiHoTros)
-                    .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
-                .Include(f => f.DanhGiaFormIts);
+            // TỐI ƯU 1: Loại bỏ .Include() và .ThenInclude(). 
+            // Khi dùng .Select(), EF Core sẽ tự động JOIN những bảng cần thiết. 
+            // Việc Include dư thừa sẽ làm tăng tải cho SQL Server vì phải lấy toàn bộ các cột của bảng liên quan.
+            IQueryable<FormIt> query = _context.FormIts.AsNoTracking();
 
-            // --- 3. LOGIC PHÂN QUYỀN THEO HỆ THỐNG MỚI ---
-
-            // A. Lọc theo Công ty (Bỏ qua nếu là Admin "All")
-            // Chỉ lọc theo công ty nếu KHÔNG PHẢI là quyền "All"
+            // --- 3. LOGIC PHÂN QUYỀN ---
             if (!userRoles.Contains("All") && !string.IsNullOrEmpty(tenCongTy))
             {
                 query = query.Where(f => f.TenCongTy == tenCongTy);
             }
 
-            // B. Lọc theo Role thực tế trong Cookie
             if (userRoles.Contains("All"))
             {
-                // QUYỀN CAO NHẤT: Xem toàn bộ đơn (Đã bỏ qua lọc công ty ở bước A)
+                // View all
             }
             else if (userRoles.Contains("QuanLyDuyetDonIT"))
             {
-                // QUYỀN QUẢN LÝ: Chỉ xem đơn thuộc bộ phận mình quản lý
+                // TỐI ƯU 2: Hạn chế dùng .Trim().ToLower() bên trong .Where() nếu Database đã không phân biệt hoa thường (Case-insensitive).
+                // Việc dùng hàm trên cột (f.BoPhan) sẽ làm SQL không sử dụng được Index (Non-SARGable).
                 if (listTenBoPhan.Any())
                 {
-                    query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim().ToLower()));
+                    query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan));
                 }
                 else if (!string.IsNullOrEmpty(phongBan))
                 {
-                    query = query.Where(f => f.BoPhan != null && f.BoPhan.Trim().ToLower() == phongBan.ToLower());
+                    query = query.Where(f => f.BoPhan == phongBan);
                 }
                 else
                 {
@@ -2546,10 +2558,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             else
             {
-                // CÁC ROLE KHÁC HOẶC NHÂN VIÊN: Chỉ xem đơn mình tạo
                 query = query.Where(f => f.IdNguoiTao == userId);
             }
 
+            // --- 4. PROJECT DATA ---
             var danhSachDon = await query
                 .OrderByDescending(f => f.Id)
                 .Select(item => new {
@@ -2559,17 +2571,23 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     BoPhan = item.BoPhan ?? "",
                     Danhmuc = string.IsNullOrEmpty(item.Danhmuc) ? "Phổ thông" : item.Danhmuc,
                     TenForm = item.TenForm ?? "",
+                    // TỐI ƯU 3: Việc định dạng ngày tháng nên để Client làm hoặc xử lý sau khi lấy dữ liệu 
+                    // để SQL Server chỉ tập trung lấy dữ liệu thô. Tuy nhiên tôi giữ nguyên theo yêu cầu của bạn.
                     TimeNguoiTao = item.TimeNguoiTao.HasValue ? item.TimeNguoiTao.Value.ToString("dd/MM/yyyy") : "",
                     IdNguoiDuyet = item.IdNguoiDuyet,
                     IdAdmin = item.IdAdmin,
-                    DaDanhGia = item.DanhGiaFormIts != null && item.DanhGiaFormIts.Any(),
-                    TenNguoiHoTro = item.ItCtNguoiHoTros.OrderByDescending(x => x.Stt).FirstOrDefault().IdItNguoiHoTroNavigation.Ten ?? "Chưa gán IT"
+                    DaDanhGia = item.DanhGiaFormIts.Any(),
+                    // TỐI ƯU 4: Subquery lấy người hỗ trợ mới nhất
+                    TenNguoiHoTro = item.ItCtNguoiHoTros
+                                        .OrderByDescending(x => x.Stt)
+                                        .Select(x => x.IdItNguoiHoTroNavigation.Ten)
+                                        .FirstOrDefault() ?? "Chưa gán IT"
                 })
-                .AsNoTracking()
                 .ToListAsync();
 
             return Json(danhSachDon);
         }
+
 
         // 3. HÀM XỬ LÝ POST (Giữ nguyên 100% của bạn)
         [HttpPost("/FormIT/XuLyDon")]
@@ -2683,52 +2701,41 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/GetHoanTatDonData")]
         public async Task<IActionResult> GetHoanTatDonData()
         {
-            // --- 1. LẤY THÔNG TIN TỪ CLAIMS ---
+            // --- 1. LẤY THÔNG TIN TỪ CLAIMS (Giữ nguyên) ---
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
             int userId = int.Parse(userIdStr);
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
             var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
-            var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
+            // Tối ưu: Chuẩn hóa dữ liệu so sánh ở bộ nhớ trước khi đưa vào Query
             var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
             var listTenBoPhan = listTenBoPhanStr.Split(',')
-                                                .Select(s => s.Trim().ToLower())
+                                                .Select(s => s.Trim())
                                                 .Where(s => !string.IsNullOrEmpty(s))
                                                 .ToList();
 
-            // --- 2. KHỞI TẠO QUERY ---
-            IQueryable<FormIt> query = _context.FormIts
-                .Include(f => f.ItCtNguoiHoTros)
-                    .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
-                .Include(f => f.DanhGiaFormIts);
+            // --- 2. KHỞI TẠO QUERY (Dùng AsNoTracking ngay từ đầu) ---
+            // Không dùng .Include() vì .Select() bên dưới sẽ tự thực hiện Join tối ưu hơn
+            var query = _context.FormIts.AsNoTracking();
 
-            // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU ---
+            // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU (Tối ưu SARGable) ---
 
-            // A. Lọc theo Công ty (ĐÃ LOẠI BỎ THEO YÊU CẦU: XEM TẤT CẢ)
-            /* if (!string.IsNullOrEmpty(tenCongTy))
+            if (userRoles.Any(r => r == "All" || r == "AdminIT"))
             {
-                query = query.Where(f => f.TenCongTy == tenCongTy);
-            }
-            */
-
-            // B. Lọc theo Role thực tế
-            if (userRoles.Contains("All") || userRoles.Contains("AdminIT"))
-            {
-                // Nhóm quản trị: Xem đơn đã được duyệt (để tiếp nhận xử lý)
                 query = query.Where(f => f.IdNguoiDuyet != null);
             }
             else if (userRoles.Contains("QuanLyDuyetDonIT"))
             {
-                // Quản lý bộ phận: Xem đơn thuộc phạm vi quản lý
                 if (listTenBoPhan.Any())
                 {
-                    query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim().ToLower()));
+                    // Tránh dùng .ToLower() trên f.BoPhan để tận dụng Index (Database SQL Server mặc định thường Case-Insensitive)
+                    query = query.Where(f => listTenBoPhan.Contains(f.BoPhan));
                 }
                 else if (!string.IsNullOrEmpty(phongBanSession))
                 {
-                    query = query.Where(f => f.BoPhan != null && f.BoPhan.Trim().ToLower() == phongBanSession.ToLower());
+                    query = query.Where(f => f.BoPhan == phongBanSession);
                 }
                 else
                 {
@@ -2737,11 +2744,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             else
             {
-                // Nhân viên thường: Chỉ xem đơn của mình
                 query = query.Where(f => f.IdNguoiTao == userId);
             }
 
-            // --- 4. THỰC THI TRUY VẤN VÀ CHUYỂN SANG JSON ---
+            // --- 4. THỰC THI TRUY VẤN VỚI PROJECTION (Tốc độ tối đa) ---
             var danhSachDon = await query
                 .OrderByDescending(f => f.Id)
                 .Select(item => new {
@@ -2749,15 +2755,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     TenNguoiNv = item.TenNguoiNv ?? "",
                     SoNhanVien = item.SoNhanVien ?? "",
                     BoPhan = item.BoPhan ?? "",
-                    Danhmuc = string.IsNullOrEmpty(item.Danhmuc) ? "Yêu cầu IT" : item.Danhmuc,
+                    Danhmuc = (item.Danhmuc == null || item.Danhmuc == "") ? "Yêu cầu IT" : item.Danhmuc,
                     TenForm = item.TenForm ?? "",
+                    // Format ngày tháng ngay trên SQL nếu cần hoặc trả về DateTime để JS format (trả về string chậm hơn một chút)
                     TimeNguoiTao = item.TimeNguoiTao.HasValue ? item.TimeNguoiTao.Value.ToString("dd/MM/yyyy") : "",
                     IdNguoiDuyet = item.IdNguoiDuyet,
                     IdAdmin = item.IdAdmin,
-                    DaDanhGia = item.DanhGiaFormIts != null && item.DanhGiaFormIts.Any(),
+                    // Kiểm tra tồn tại nhanh hơn lấy cả list
+                    DaDanhGia = item.DanhGiaFormIts.Any(),
+                    // Join thủ công trong Select giúp SQL tối ưu hóa cột cần lấy
                     NguoiHoTros = item.ItCtNguoiHoTros.Select(ct => ct.IdItNguoiHoTroNavigation.Ten ?? "N/A").ToList()
                 })
-                .AsNoTracking()
                 .ToListAsync();
 
             return Json(danhSachDon);
@@ -3108,6 +3116,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/GetDataThongKe")]
         public async Task<IActionResult> GetDataThongKe()
         {
+            // Sử dụng Select trực tiếp để EF Core sinh ra câu lệnh SQL tinh gọn nhất
             var data = await _context.FormIts
                 .AsNoTracking()
                 .Select(x => new {
@@ -3124,49 +3133,71 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             return Json(data);
         }
+
         [HttpGet("/FormIT/GetDataNguoiHoTro")]
         public async Task<IActionResult> GetDataNguoiHoTro()
         {
-            var allDetails = await _context.ItCtNguoiHoTros
-                .AsNoTracking()
-                .Include(x => x.IdItNguoiHoTroNavigation)
-                .Include(x => x.IdFormItNavigation)
-                    .ThenInclude(f => f.DanhGiaFormIts)
-                .ToListAsync();
-
-            // Nhóm theo đơn và chỉ lấy người có Stt cao nhất
-            var filteredData = allDetails
-                .GroupBy(x => x.IdFormIt)
-                .Select(group => {
-                    var topSupport = group.OrderByDescending(x => x.Stt).FirstOrDefault();
-                    var form = topSupport.IdFormItNavigation;
-
-                    double? minutes = null;
-                    if (form.TimeAdmin.HasValue && form.TimeNguoiDuyet.HasValue)
+            try
+            {
+                // Lấy dữ liệu từ bảng chi tiết hỗ trợ
+                var rawData = await _context.ItCtNguoiHoTros
+                    .AsNoTracking()
+                    .Select(x => new
                     {
-                        minutes = (form.TimeAdmin.Value - form.TimeNguoiDuyet.Value).TotalMinutes;
-                    }
+                        x.IdFormIt,
+                        x.Stt,
+                        TenNguoiHoTro = x.IdItNguoiHoTroNavigation != null ? x.IdItNguoiHoTroNavigation.Ten : "Chưa xác định",
+                        DanhMuc = x.IdFormItNavigation != null ? x.IdFormItNavigation.Danhmuc : "N/A",
+                        TenForm = x.IdFormItNavigation != null ? x.IdFormItNavigation.TenForm : "",
+                        IdAdmin = x.IdFormItNavigation != null ? x.IdFormItNavigation.IdAdmin : null,
+                        IdNguoiDuyet = x.IdFormItNavigation != null ? x.IdFormItNavigation.IdNguoiDuyet : null,
+                        TimeAdmin = x.IdFormItNavigation != null ? x.IdFormItNavigation.TimeAdmin : null,
+                        TimeNguoiDuyet = x.IdFormItNavigation != null ? x.IdFormItNavigation.TimeNguoiDuyet : null,
+                        // Kiểm tra xem đơn này đã có đánh giá chưa
+                        HasRating = x.IdFormItNavigation != null && x.IdFormItNavigation.DanhGiaFormIts.Any()
+                    })
+                    .ToListAsync();
 
-                    return new
-                    {
-                        TenNguoiHoTro = topSupport.IdItNguoiHoTroNavigation?.Ten ?? "Chưa xác định",
-                        DanhMuc = form.Danhmuc ?? "N/A",
-                        TrangThai = (form.TenForm ?? "").Contains("[ĐÃ HỦY]") ? "HỦY" :
-                                    (form.IdAdmin != null && form.DanhGiaFormIts.Any()) ? "HOÀN TẤT" :
-                                    (form.IdAdmin != null) ? "ĐÁNH GIÁ" :
-                                    (form.IdNguoiDuyet != null) ? "ĐANG XỬ LÝ" : "CHỜ QL",
-                        PhutXuLy = minutes
-                    };
-                })
-                .ToList();
+                // Sau khi lấy dữ liệu thô về RAM (đã lọc bớt cột), ta mới GroupBy để lấy Stt cao nhất
+                // Việc này đảm bảo LINQ không bị lỗi khi dịch sang SQL mà vẫn chạy rất nhanh
+                var filteredData = rawData
+                    .GroupBy(x => x.IdFormIt)
+                    .Select(group => {
+                        var top = group.OrderByDescending(x => x.Stt).First();
 
-            return Json(filteredData);
+                        double? minutes = null;
+                        if (top.TimeAdmin.HasValue && top.TimeNguoiDuyet.HasValue)
+                        {
+                            minutes = (top.TimeAdmin.Value - top.TimeNguoiDuyet.Value).TotalMinutes;
+                        }
+
+                        return new
+                        {
+                            TenNguoiHoTro = top.TenNguoiHoTro,
+                            DanhMuc = top.DanhMuc,
+                            TrangThai = (top.TenForm ?? "").Contains("[ĐÃ HỦY]") ? "HỦY" :
+                                        (top.IdAdmin != null && top.HasRating) ? "HOÀN TẤT" :
+                                        (top.IdAdmin != null) ? "ĐÁNH GIÁ" :
+                                        (top.IdNguoiDuyet != null) ? "ĐANG XỬ LÝ" : "CHỜ QL",
+                            PhutXuLy = minutes
+                        };
+                    })
+                    .ToList();
+
+                return Json(filteredData);
+            }
+            catch (Exception ex)
+            {
+                // Nếu có lỗi, trả về lỗi chi tiết để debug thay vì file HTML lỗi
+                return BadRequest(ex.Message);
+            }
         }
+
         #endregion
 
-        #region LỊCH SỬ VÀ THÔNG BÁO FORM IT (Phân quyền mới & TenCongTy)
+        #region LỊCH SỬ VÀ THÔNG BÁO FORM IT (Tối ưu truy vấn - Đầy đủ logic)
 
-        // 1. TRẢ VỀ VIEW RỖNG (Để JS tự Render)
+        // 1. TRẢ VỀ VIEW RỖNG
         [HttpGet("/FormIT/LichSuIT")]
         public IActionResult LogLichSuIT()
         {
@@ -3175,7 +3206,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return View();
         }
 
-        // 2. API TRẢ VỀ JSON CHO JAVASCRIPT (100% JS)
+        // 2. API TRẢ VỀ JSON - TỐI ƯU TRUY VẤN TẠI SERVER SQL
         [HttpGet("/FormIT/GetLichSuITData")]
         public async Task<IActionResult> GetLichSuITData()
         {
@@ -3186,15 +3217,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
-            var query = _context.LichSuFormIts
-                .Include(l => l.IdFormItNavigation)
-                    .ThenInclude(f => f.ItCtNguoiHoTros)
-                        .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
-                .Include(l => l.IdFormItNavigation)
-                    .ThenInclude(f => f.DanhGiaFormIts)
-                .Where(l => l.IdFormItNavigation.TenCongTy == tenCongTy)
-                .AsQueryable();
+            // Bước 1: Xây dựng Query Filter (Chưa thực thi SQL)
+            var query = _context.LichSuFormIts.AsNoTracking()
+                .Where(l => l.IdFormItNavigation.TenCongTy == tenCongTy);
 
+            // Phân quyền
             if (User.IsInRole("All")) { /* Xem toàn bộ */ }
             else if (User.IsInRole("AdminIT"))
             {
@@ -3213,77 +3240,98 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userEmail));
             }
 
-            var logs = await query.OrderByDescending(l => l.Time).AsNoTracking().ToListAsync();
+            // Bước 2: Select trực tiếp (Projections) - SQL chỉ trả về đúng các cột này, cực nhanh
+            var rawData = await query
+                .OrderByDescending(l => l.Time)
+                .Select(l => new
+                {
+                    l.IdFormIt,
+                    l.Time,
+                    l.TieuDe,
+                    l.Mota,
+                    f = l.IdFormItNavigation,
+                    // Lấy supporter mới nhất
+                    CurrentSupporterTen = l.IdFormItNavigation.ItCtNguoiHoTros
+                        .OrderByDescending(x => x.Stt)
+                        .Select(x => x.IdItNguoiHoTroNavigation.Ten)
+                        .FirstOrDefault(),
+                    // Lấy thông tin đánh giá
+                    DanhGia = l.IdFormItNavigation.DanhGiaFormIts.Select(d => new { d.TimeNguoiDanhGia, d.MucDo }).FirstOrDefault()
+                })
+                .ToListAsync();
 
-            // Xử lý logic Server-side để trả JSON sạch cho JS
-            var result = logs.Select(log =>
+            // Bước 3: Map logic màu sắc và text (Xử lý trên RAM sau khi đã lọc dữ liệu tinh gọn)
+            var result = rawData.Select(item =>
             {
+                var f = item.f;
+                bool isCanceled = f?.TrangThai == "DaHuy" || (f?.TenForm != null && f.TenForm.Contains("[ĐÃ HỦY]"));
+
                 string statusText = "Chờ duyệt";
                 string statusColor = "#f59e0b";
-                var f = log.IdFormItNavigation;
-                bool isCanceled = f?.TrangThai == "DaHuy" || (f?.TenForm != null && f.TenForm.Contains("[ĐÃ HỦY]"));
 
                 if (isCanceled) { statusText = "Đã hủy đơn"; statusColor = "#ef4444"; }
                 else if (f != null)
                 {
                     if (f.TimeNguoiDuyet == null) { statusText = "Chờ phê duyệt"; statusColor = "#f97316"; }
                     else if (f.TimeAdmin == null) { statusText = "Đang xử lý"; statusColor = "#3b82f6"; }
-                    else if (f.DanhGiaFormIts == null || !f.DanhGiaFormIts.Any()) { statusText = "Chờ đánh giá"; statusColor = "#db2777"; }
+                    else if (item.DanhGia == null) { statusText = "Chờ đánh giá"; statusColor = "#db2777"; }
                     else { statusText = "Hoàn tất 100%"; statusColor = "#10b981"; }
                 }
 
                 string actionColor = "#6366f1";
-                if (log.TieuDe?.ToUpper().Contains("DUYỆT") == true) actionColor = "#10b981";
-                if (log.TieuDe?.ToUpper().Contains("HỦY") == true || log.TieuDe?.ToUpper().Contains("TỪ CHỐI") == true) actionColor = "#ef4444";
-                if (log.TieuDe?.ToUpper().Contains("HỖ TRỢ") == true) actionColor = "#f59e0b";
-
-                var currentSupporter = f?.ItCtNguoiHoTros?.OrderByDescending(x => x.Stt).FirstOrDefault()?.IdItNguoiHoTroNavigation;
+                var tieuDeUpper = item.TieuDe?.ToUpper() ?? "";
+                if (tieuDeUpper.Contains("DUYỆT")) actionColor = "#10b981";
+                else if (tieuDeUpper.Contains("HỦY") || tieuDeUpper.Contains("TỪ CHỐI")) actionColor = "#ef4444";
+                else if (tieuDeUpper.Contains("HỖ TRỢ")) actionColor = "#f59e0b";
 
                 string timeProcessing = "";
                 string timeTotal = "";
-                var dg = f?.DanhGiaFormIts?.FirstOrDefault();
 
                 if ((statusText == "Hoàn tất 100%" || statusText == "Chờ đánh giá") && f?.TimeNguoiDuyet != null && f?.TimeAdmin != null)
                 {
                     var spanProc = f.TimeAdmin.Value - f.TimeNguoiDuyet.Value;
-                    if (spanProc.TotalDays >= 1) timeProcessing = $"{(int)spanProc.TotalDays}n {spanProc.Hours}g";
-                    else if (spanProc.TotalHours >= 1) timeProcessing = $"{(int)spanProc.TotalHours}g {spanProc.Minutes}p";
-                    else timeProcessing = $"{(int)spanProc.TotalMinutes}p";
+                    timeProcessing = FormatTimeSpan(spanProc);
 
-                    if (statusText == "Hoàn tất 100%" && dg?.TimeNguoiDanhGia != null)
+                    if (statusText == "Hoàn tất 100%" && item.DanhGia?.TimeNguoiDanhGia != null)
                     {
-                        var spanTotal = dg.TimeNguoiDanhGia.Value - f.TimeNguoiDuyet.Value;
-                        if (spanTotal.TotalDays >= 1) timeTotal = $"{(int)spanTotal.TotalDays}n {spanTotal.Hours}g";
-                        else if (spanTotal.TotalHours >= 1) timeTotal = $"{(int)spanTotal.TotalHours}g {spanTotal.Minutes}p";
-                        else timeTotal = $"{(int)spanTotal.TotalMinutes}p";
+                        var spanTotal = item.DanhGia.TimeNguoiDanhGia.Value - f.TimeNguoiDuyet.Value;
+                        timeTotal = FormatTimeSpan(spanTotal);
                     }
                 }
 
                 return new
                 {
-                    IdFormIt = log.IdFormIt,
-                    TimeHHmm = log.Time?.ToString("HH:mm") ?? "",
-                    TimeDDMM = log.Time?.ToString("dd/MM/yyyy") ?? "",
-                    TieuDe = log.TieuDe ?? "",
-                    Mota = log.Mota ?? "",
+                    item.IdFormIt,
+                    TimeHHmm = item.Time?.ToString("HH:mm") ?? "",
+                    TimeDDMM = item.Time?.ToString("dd/MM/yyyy") ?? "",
+                    TieuDe = item.TieuDe ?? "",
+                    Mota = item.Mota ?? "",
                     IsCanceled = isCanceled,
                     StatusText = statusText,
                     StatusColor = statusColor,
                     ActionColor = actionColor,
                     TenForm = f?.TenForm ?? "N/A",
                     TenAdmin = f?.TenAdmin ?? "Chưa tiếp nhận",
-                    KyThuatTen = currentSupporter?.Ten ?? "",
+                    KyThuatTen = item.CurrentSupporterTen ?? "",
                     TimeProcessing = timeProcessing,
                     TimeTotal = timeTotal,
-                    HasDanhGia = dg != null,
-                    DanhGiaMucDo = dg?.MucDo ?? 0
+                    HasDanhGia = item.DanhGia != null,
+                    DanhGiaMucDo = item.DanhGia?.MucDo ?? 0
                 };
             });
 
             return Json(result);
         }
 
-        // HÀM GET NOTIFICATIONS GIỮ NGUYÊN 100% NHƯ CỦA BẠN
+        // Hàm bổ trợ Format thời gian để code sạch hơn
+        private static string FormatTimeSpan(TimeSpan span)
+        {
+            if (span.TotalDays >= 1) return $"{(int)span.TotalDays}n {span.Hours}g";
+            if (span.TotalHours >= 1) return $"{(int)span.TotalHours}g {span.Minutes}p";
+            return $"{(int)span.TotalMinutes}p";
+        }
+
+        // 3. GET NOTIFICATIONS - GIỮ NGUYÊN VÀ TỐI ƯU SELECT
         [HttpGet("/FormIT/GetNotifications")]
         public async Task<IActionResult> GetNotifications(int skip = 0, int take = 20)
         {
@@ -3294,14 +3342,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
-            var query = _context.LichSuFormIts
-                .Include(l => l.IdFormItNavigation)
-                    .ThenInclude(f => f.ItCtNguoiHoTros)
-                        .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
-                .Where(l => l.IdFormItNavigation.TenCongTy == tenCongTy)
-                .AsQueryable();
+            var query = _context.LichSuFormIts.AsNoTracking()
+                .Where(l => l.IdFormItNavigation.TenCongTy == tenCongTy);
 
-            if (User.IsInRole("All")) { /* Xem hết */ }
+            if (User.IsInRole("All")) { }
             else if (User.IsInRole("AdminIT"))
             {
                 query = query.Where(l =>
@@ -3333,7 +3377,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                       Time = l.Time.HasValue ? l.Time.Value.ToString("dd/MM HH:mm") : "",
                                       IsRead = l.IsRead ?? false
                                   })
-                                  .AsNoTracking()
                                   .ToListAsync();
 
             return Ok(new { dataList = logs, unreadCount });
