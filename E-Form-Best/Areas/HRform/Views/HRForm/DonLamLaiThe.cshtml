@@ -1,0 +1,311 @@
+﻿@model E_Form_Best.Models.ITForm.FormHr
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Đơn xin làm lại thẻ";
+    Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
+
+    // --- CẤU HÌNH MÀU CHỦ ĐẠO (VÀNG ĐỒNG) ---
+    string primaryColor = "#d69e2e";
+    string darkColor = "#744210";
+    string lightColor = "#fffff0";
+    string borderColor = "#f6e05e";
+
+    var tenNguoiNv = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+    var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+    var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
+
+    string inputStyle = $"width: 100%; padding: 12px; border-radius: 10px; border: 1px solid {borderColor}; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: {darkColor};";
+    string labelStyle = $"font-weight: 700; color: {darkColor}; font-size: 11px; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px;";
+    string pasteZoneStyle = $"width: 100%; border: 2px dotted {borderColor}; height: 180px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: {lightColor}; color: {darkColor}; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 600; transition: 0.3s; margin-top: 10px; position: relative; outline: none;";
+}
+
+<style>
+    @@media (max-width: 768px) {
+        .mobile-wrapper { padding: 15px 10px !important; }
+        .mobile-header { padding: 25px 15px !important; }
+        .mobile-header h2 { font-size: 18px !important; margin-top: 15px !important; }
+        .mobile-body { padding: 20px 15px !important; }
+        .mobile-section { padding: 15px !important; }
+        .mobile-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+        .system-badge { position: relative !important; top: 0 !important; right: 0 !important; display: inline-block; margin-bottom: 10px; }
+    }
+</style>
+
+<div class="mobile-wrapper" style="background: linear-gradient(135deg, #fffff0 0%, #fefcbf 100%); padding: 40px 15px; min-height: 100vh; font-family: 'Inter', sans-serif;">
+    <form id="hrForm" method="post" enctype="multipart/form-data" action="/FormHR/DonLamLaiThe" style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 30px; box-shadow: 0 20px 50px rgba(214, 158, 46, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
+        @Html.AntiForgeryToken()
+
+        <div class="mobile-header" style="background: linear-gradient(135deg, @primaryColor 0%, @darkColor 100%); padding: 40px; color: #ffffff; text-align: center; position: relative;">
+            <div class="system-badge" style="position: absolute; top: 15px; right: 25px; font-size: 11px; opacity: 0.9; font-weight: 500; letter-spacing: 1px;">HỆ THỐNG E-FORM V3.0</div>
+            <h2 style="margin: 0; font-size: 24px; text-transform: uppercase; font-weight: 900; letter-spacing: 1.5px;">Đơn xin làm lại thẻ</h2>
+            <div style="margin-top: 12px; display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.2); border-radius: 50px; font-size: 13px;">
+                💳 Trạng thái: <span style="font-weight: 700;">KHỞI TẠO ĐƠN</span> | 📅 @ngayHienThi
+            </div>
+        </div>
+
+        <div class="mobile-body" style="padding: 40px;">
+            <div style="margin-bottom: 35px;">
+                <h3 style="color: @darkColor; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: @primaryColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">1</span>
+                    Thông tin nhân viên tạo
+                </h3>
+                <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                    <div><label style="@labelStyle">Họ tên nhân viên</label><input name="TenNguoiNv" value="@tenNguoiNv" readonly style="@inputStyle; background: #f8fafc;"></div>
+                    <div><label style="@labelStyle">Phòng ban</label><input name="BoPhan" value="@phongBan" readonly style="@inputStyle; background: #f8fafc;"></div>
+                    <div><label style="@labelStyle">Mã nhân viên</label><input name="SoNhanVien" value="@soNhanVien" readonly style="@inputStyle; background: #f8fafc;"></div>
+                </div>
+                <div class="mobile-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div><label style="@labelStyle">Công ty</label><input name="TenCongTy" value="@tenCongTy" readonly style="@inputStyle; background: @lightColor; border-style: dashed;"></div>
+                    <div><label style="@labelStyle">Danh mục</label><input name="Danhmuc" value="ĐƠN LÀM LẠI THẺ" readonly style="@inputStyle; background: @lightColor; border-style: dashed; color: @primaryColor;"></div>
+                </div>
+            </div>
+
+            <div class="mobile-section" style="background: #fbfdfe; padding: 25px; border-radius: 20px; border: 1px solid @borderColor; margin-bottom: 30px;">
+                <h3 style="color: @darkColor; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: @darkColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">2</span>
+                    Nội dung thẻ cần cấp lại (Tự điền)
+                </h3>
+
+                <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label style="@labelStyle">Họ tên in trên thẻ <span style="color:#e53e3e">*</span></label>
+                        <input name="chiTiet.HoTen" placeholder="Nhập họ tên in trên thẻ" required style="@inputStyle border: 1px solid @primaryColor;">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Mã số thẻ <span style="color:#e53e3e">*</span></label>
+                        <input name="chiTiet.MaSoThe" placeholder="Nhập mã số thẻ" required style="@inputStyle border: 1px solid @primaryColor;">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Bộ phận <span style="color:#e53e3e">*</span></label>
+                        <input name="chiTiet.BoPhan" placeholder="Nhập bộ phận" required style="@inputStyle border: 1px solid @primaryColor;">
+                    </div>
+                </div>
+
+                <div class="mobile-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label style="@labelStyle">Cấp bậc</label>
+                        <input name="chiTiet.CapBac" placeholder="Staff, Worker..." style="@inputStyle">
+                    </div>
+                    <div>
+                        <label style="@labelStyle">Chức vụ <span style="color:#e53e3e">*</span></label>
+                        <input name="chiTiet.ChucVu" placeholder="Nhập chức vụ" required style="@inputStyle border: 1px solid @primaryColor;">
+                    </div>
+                </div>
+
+                <!-- LÝ DO CHỌN TÙY CHỌN -->
+                <div style="margin-bottom: 20px; padding: 15px; border-radius: 12px; background: #fffaf0; border: 1px dashed @primaryColor;">
+                    <label style="@labelStyle">Lý do làm lại thẻ <span style="color:#e53e3e">*</span></label>
+                    <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin-top: 10px; font-size: 14px;">
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; color: @darkColor; font-weight: 700;">
+                            <input type="radio" name="rdLyDo" value="Bị mất" onchange="toggleLyDoKhac(false)" style="accent-color: @primaryColor; width: 18px; height: 18px;"> 1. Bị mất
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; color: @darkColor; font-weight: 700;">
+                            <input type="radio" name="rdLyDo" value="Thẻ mờ" onchange="toggleLyDoKhac(false)" style="accent-color: @primaryColor; width: 18px; height: 18px;"> 2. Bị mờ (Yêu cầu ảnh)
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; color: @darkColor; font-weight: 700;">
+                            <input type="radio" name="rdLyDo" value="Thẻ gãy" onchange="toggleLyDoKhac(false)" style="accent-color: @primaryColor; width: 18px; height: 18px;"> 3. Bị gãy (Yêu cầu ảnh)
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; color: @darkColor; font-weight: 700;">
+                            <input type="radio" name="rdLyDo" value="Khác" onchange="toggleLyDoKhac(true)" style="accent-color: @primaryColor; width: 18px; height: 18px;"> 4. Khác
+                        </label>
+                    </div>
+                    <!-- Ô NHẬP LÝ DO KHÁC -->
+                    <input type="text" id="txtLyDoKhac" placeholder="Vui lòng nhập lý do khác chi tiết..." style="@inputStyle margin-top: 15px; display: none; border: 1px solid @primaryColor;">
+                    <input type="hidden" name="chiTiet.LyDoLamLaiThe" id="hdnLyDoLamLaiThe">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="@labelStyle">Ghi chú bổ sung</label>
+                    <textarea name="chiTiet.GhiChu" placeholder="Ghi chú thêm (nếu có)" style="@inputStyle; height: 60px; resize: none;"></textarea>
+                </div>
+
+                <!-- KHU VỰC ẢNH & FILE ĐÍNH KÈM -->
+                <div class="mobile-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label style="@labelStyle">Ảnh minh chứng <span id="lblPicRequired" style="color:#e53e3e; display:none;">(Bắt buộc cho Thẻ mờ/gãy) *</span></label>
+                        <div id="paste_AnhMinhChung" class="paste-zone" style="@pasteZoneStyle" tabindex="0">
+                            Nhấp vào đây và nhấn Ctrl+V để dán ảnh
+                        </div>
+                        <input type="file" id="AnhMinhChung" name="AnhMinhChung" hidden accept="image/*">
+                    </div>
+
+                    <div>
+                        <label style="@labelStyle">Tài liệu đính kèm (Biên bản mất, File...)</label>
+                        <div style="margin-top:10px; background: #ffffff; padding: 15px; border-radius: 12px; border: 1px dashed @borderColor; height: 180px; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box;">
+                            <input type="file" id="UploadFile" name="UploadFile" style="font-size: 13px; width: 100%;">
+                            <p style="font-size: 11px; color: @darkColor; margin-top: 15px; line-height: 1.4; opacity: 0.7;">Có thể tải lên biên bản báo mất hoặc tài liệu liên quan khác.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mobile-section" style="background: #ffffff; padding: 25px; border-radius: 20px; border: 1px solid @borderColor; margin-bottom: 30px;">
+                <h3 style="color: @darkColor; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
+                    <span style="background: @primaryColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">3</span>
+                    Chọn nhân sự hỗ trợ
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px;">
+                    @if (ViewBag.ListNguoiHoTro != null)
+                    {
+                        foreach (var item in (List<E_Form_Best.Models.ITForm.HrNguoiHoTro>)ViewBag.ListNguoiHoTro)
+                        {
+                            foreach (var cv in item.CongViecHrs)
+                            {
+                                <label style="display: flex; align-items: center; gap: 12px; padding: 15px; border: 1px solid @borderColor; border-radius: 12px; cursor: pointer; transition: 0.2s; background: #fffcfc;"
+                                       onmouseover="this.style.borderColor='@primaryColor'; this.style.background='@lightColor'; this.style.transform='translateY(-2px)';"
+                                       onmouseout="this.style.borderColor='@borderColor'; this.style.background='#fffcfc'; this.style.transform='translateY(0)';">
+                                    <input type="checkbox" name="SelectedCongViecIds" value="@cv.Id" style="width: 20px; height: 20px; accent-color: @primaryColor;">
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 700; color: @darkColor; font-size: 14px;">💳 @cv.Ten</div>
+                                        <div style="font-size: 11px; color: #718096; margin-top: 2px;">Tiếp nhận: @item.Ten</div>
+                                    </div>
+                                </label>
+                            }
+                        }
+                    }
+                    else
+                    {
+                        <p style="font-size: 12px; color: #718096; font-style: italic; grid-column: 1/-1;">Đang tải danh sách hỗ trợ...</p>
+                    }
+                </div>
+            </div>
+
+            <div class="mobile-section" style="background: @lightColor; border: 1.5px solid @primaryColor; border-radius: 20px; padding: 25px; margin-bottom: 30px;">
+                <label style="cursor: pointer; display: flex; align-items: flex-start; gap: 12px;">
+                    <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; margin-top: 2px; accent-color: @primaryColor; cursor: pointer;">
+                    <span style="font-size: 13px; font-weight: 700; color: @darkColor; line-height: 1.5;">
+                        Tôi xác nhận mọi thông tin yêu cầu làm lại thẻ là chính xác.
+                    </span>
+                </label>
+            </div>
+
+            <div style="text-align: center;">
+                <button type="button" onclick="xuLyLuuDon()" style="width: 100%; padding: 20px; background: linear-gradient(to right, @primaryColor, @darkColor); color: #fff; border: none; border-radius: 15px; font-weight: 900; font-size: 18px; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 25px rgba(214, 158, 46, 0.3); text-transform: uppercase;">
+                    <i class="fa fa-share-square" style="margin-right: 10px;"></i> Gửi yêu cầu làm thẻ
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    function handlePaste(e, inputId, zoneId) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        let blob = null;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                blob = items[i].getAsFile();
+                break;
+            }
+        }
+        if (blob) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const zone = document.getElementById(zoneId);
+                zone.innerHTML = `<img src="${event.target.result}" style="width:100%; height:100%; object-fit:contain; border-radius:10px;">`;
+                zone.style.border = "2px solid @primaryColor";
+
+                const fileInput = document.getElementById(inputId);
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(blob);
+                fileInput.files = dataTransfer.files;
+            };
+            reader.readAsDataURL(blob);
+        }
+    }
+
+    const zoneEl = document.getElementById("paste_AnhMinhChung");
+    if (zoneEl) {
+        zoneEl.addEventListener('paste', (e) => handlePaste(e, "AnhMinhChung", "paste_AnhMinhChung"));
+        zoneEl.onclick = () => zoneEl.focus();
+    }
+
+    function toggleLyDoKhac(showInput) {
+        const txtBox = document.getElementById('txtLyDoKhac');
+        const lblReq = document.getElementById('lblPicRequired');
+        
+        // Hiện ô nhập nếu là Khác
+        if(showInput) {
+            txtBox.style.display = 'block';
+            txtBox.focus();
+        } else {
+            txtBox.style.display = 'none';
+            txtBox.value = '';
+        }
+
+        // Hiện cảnh báo bắt buộc File nếu là Mờ / Gãy
+        const rds = document.getElementsByName('rdLyDo');
+        let val = '';
+        for(let i=0; i<rds.length; i++) {
+            if(rds[i].checked) { val = rds[i].value; break; }
+        }
+        
+        if(val === 'Thẻ mờ' || val === 'Thẻ gãy') {
+            lblReq.style.display = 'inline-block';
+        } else {
+            lblReq.style.display = 'none';
+        }
+    }
+
+    function xuLyLuuDon() {
+        const chk = document.getElementById('chkCamKet');
+        const selectedHoTro = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
+        
+        if (selectedHoTro.length === 0) {
+            alert("⚠️ Vui lòng chọn người tiếp nhận hỗ trợ!");
+            return;
+        }
+        if (!chk.checked) {
+            alert("⚠️ Bạn chưa tích chọn xác nhận cam kết!");
+            return;
+        }
+
+        // --- VALIDATE LOGIC LÝ DO VÀ ẢNH ĐÍNH KÈM ---
+        const rds = document.getElementsByName('rdLyDo');
+        let selectedReason = '';
+        for(let i=0; i < rds.length; i++){
+            if(rds[i].checked){
+                selectedReason = rds[i].value;
+                break;
+            }
+        }
+        
+        if(selectedReason === '') {
+            alert("⚠️ Vui lòng chọn Lý do làm lại thẻ (1 trong 4 tùy chọn)!");
+            return;
+        }
+        
+        let finalReason = selectedReason;
+        if(selectedReason === 'Khác') {
+            const txtKhac = document.getElementById('txtLyDoKhac').value.trim();
+            if(txtKhac === '') {
+                alert("⚠️ Bạn đã chọn 'Khác', vui lòng điền lý do chi tiết vào ô trống!");
+                document.getElementById('txtLyDoKhac').focus();
+                return;
+            }
+            finalReason = txtKhac;
+        }
+        
+        document.getElementById('hdnLyDoLamLaiThe').value = finalReason;
+        
+        // Bắt buộc đính kèm File hoặc Paste Ảnh nếu Mờ / Gãy
+        if(selectedReason === 'Thẻ mờ' || selectedReason === 'Thẻ gãy') {
+            const fileInput = document.getElementById('UploadFile');
+            const picInput = document.getElementById('AnhMinhChung');
+            const hasFile = fileInput.files && fileInput.files.length > 0;
+            const hasPic = picInput.files && picInput.files.length > 0;
+
+            if(!hasFile && !hasPic) {
+                alert(`⚠️ Vì thẻ của bạn bị ${selectedReason === 'Thẻ mờ' ? 'Mờ' : 'Gãy'}, bắt buộc phải Paste ảnh hoặc Tải file chụp hình thẻ cũ bị lỗi!`);
+                return;
+            }
+        }
+
+        if (confirm("Xác nhận gửi đơn xin làm lại thẻ này đi phê duyệt?")) {
+            document.getElementById("hrForm").submit();
+        }
+    }
+</script>

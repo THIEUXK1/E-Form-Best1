@@ -176,6 +176,17 @@
         'HOÀN TẤT': '#10b981'
     };
 
+    // Hàm mapping chuyển đổi chuỗi trạng thái từ Backend trả về thành chuẩn của Frontend biểu đồ
+    function mapStatus(backendStatus) {
+        if (!backendStatus) return "CHỜ ADMIN";
+        if (backendStatus.includes("HỦY") || backendStatus.includes("TỪ CHỐI")) return "HỦY";
+        if (backendStatus.includes("HOÀN TẤT")) return "HOÀN TẤT";
+        if (backendStatus.includes("CHỜ QL")) return "CHỜ QL";
+        if (backendStatus.includes("BP XÁC NHẬN")) return "BP XÁC NHẬN";
+        if (backendStatus.includes("GIÁM ĐỐC")) return "GIÁM ĐỐC";
+        return "CHỜ ADMIN"; // HR ĐANG XỬ LÝ mapping vào CHỜ ADMIN
+    }
+
     const commonLabelOptions = {
         color: '#fff',
         font: { weight: 'bold', family: 'Inter', size: 11 },
@@ -201,8 +212,12 @@
                 fetch('/FormHR/GetDataNguoiHoTro')
             ]);
 
-            const dataChung = await resChung.json();
-            const dataStaff = await resStaff.json();
+            const dataChungRaw = await resChung.json();
+            const dataStaffRaw = await resStaff.json();
+
+            // Áp dụng Mapping cho tất cả dữ liệu để khớp màu biểu đồ
+            const dataChung = dataChungRaw.map(x => ({...x, trangThaiDon: mapStatus(x.trangThaiDon)}));
+            const dataStaff = dataStaffRaw.map(x => ({...x, trangThai: mapStatus(x.trangThai)}));
 
             const s = { "HỦY": 0, "CHỜ QL": 0, "BP XÁC NHẬN": 0, "GIÁM ĐỐC": 0, "CHỜ ADMIN": 0, "HOÀN TẤT": 0 };
             dataChung.forEach(item => {
