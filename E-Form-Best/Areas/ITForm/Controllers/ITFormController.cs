@@ -1699,11 +1699,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     string timeStamp = DateTime.Now.ToString("ddMMyy_HHmmss");
 
                     // --- BƯỚC 2: XỬ LÝ FILE ĐÍNH KÈM & ẢNH ---
-                    // Lưu ý: Do model ItDonLapDatThietBi7 của bạn không có trường DuongDanAnh, tôi sẽ lưu tên file ảnh 
-                    // ghép vào trường FileDinhKem của bảng FormIt chính. Không bỏ bớt tính năng gửi ảnh.
                     var uploadFile = Request.Form.Files["UploadFile"];
                     var anhFile = Request.Form.Files["Anh"];
-                    string finalFileNames = "";
 
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
@@ -1715,7 +1712,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         {
                             await uploadFile.CopyToAsync(fileStream);
                         }
-                        finalFileNames = fileName;
+
+                        form.FileDinhKem = fileName;
+                        _context.Entry(form).Property(x => x.FileDinhKem).IsModified = true;
                     }
 
                     if (anhFile != null && anhFile.Length > 0)
@@ -1731,16 +1730,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             await anhFile.CopyToAsync(imgStream);
                         }
 
-                        // Ghép tên file ảnh vào chung với file đính kèm nếu có
-                        finalFileNames = string.IsNullOrEmpty(finalFileNames) ? imgFileName : finalFileNames + "|" + imgFileName;
+                        // Gán thẳng tên file ảnh vào model số 7
+                        if (itEquipment != null)
+                        {
+                            itEquipment.DuongDanAnh = imgFileName;
+                        }
                     }
 
-                    if (!string.IsNullOrEmpty(finalFileNames))
-                    {
-                        form.FileDinhKem = finalFileNames;
-                        _context.Entry(form).Property(x => x.FileDinhKem).IsModified = true;
-                        await _context.SaveChangesAsync();
-                    }
+                    await _context.SaveChangesAsync();
 
                     // --- BƯỚC 3: LƯU CHI TIẾT LẮP ĐẶT ---
                     if (itEquipment != null)
@@ -1800,6 +1797,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                          $"- Tên thiết bị: {itEquipment?.TenThietBi}\n" +
                                          $"- Vị trí: {itEquipment?.ViTri}\n" +
                                          $"- Mục đích: {itEquipment?.MucDich}\n" +
+                                         $"- Ảnh đính kèm: {(string.IsNullOrEmpty(itEquipment?.DuongDanAnh) ? "Không có" : itEquipment.DuongDanAnh)}\n" +
+                                         $"- File đính kèm: {(string.IsNullOrEmpty(form.FileDinhKem) ? "Không có" : form.FileDinhKem)}\n" +
                                          $"- Người hỗ trợ: {danhSachTenHoTro}.";
 
                     var lichSu = new LichSuFormIt
@@ -1821,7 +1820,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     await transaction.RollbackAsync();
 
-                    // Load lại list hỗ trợ khi lỗi
+                    // Load lại list hỗ trợ khi xảy ra lỗi để trả về View
                     ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros
                         .Include(x => x.CongViecIts)
                         .Where(x => x.BoPhan == "IT")
@@ -1830,6 +1829,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             Id = x.Id,
                             MaNv = x.MaNv,
                             Ten = x.Ten,
+                            BoPhan = x.BoPhan,
+                            GhiChu = x.GhiChu,
                             CongViecIts = x.CongViecIts.Where(cv => cv.Ten == "Lắp đặt thiết bị").ToList()
                         })
                         .Where(x => x.CongViecIts.Any())
@@ -1841,7 +1842,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
-        #endregion
+        #endregion 
 
         #region CHI TIẾT ĐƠN FORM IT (TẤT CẢ LOẠI ĐƠN)
 
@@ -1863,7 +1864,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var boPhanUser = User.FindFirst("TenBoPhan")?.Value ?? "";
             // Lưu ý: TenBoPhan có thể chứa chuỗi gộp "IT, HR, Kế toán", ta sẽ check chứa chuỗi (contains)
 
-            // 2. Lấy dữ liệu đơn (Giữ nguyên toàn bộ các Include hiện có)
+            // 2. Lấy dữ liệu đơn (Giữ nguyên toàn bộ các Include hiện có và THÊM FORM 7)
             var don = await _context.FormIts
                 .Include(f => f.ItMail1s)
                 .Include(f => f.ItOrderIt2s)
@@ -1871,6 +1872,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 .Include(f => f.ItDangKiSuDungDtban4s)
                 .Include(f => f.ItDangKiTaiKhoanHeThong5s)
                 .Include(f => f.ItDangkiTaiKhoanMayTinh6s)
+                .Include(f => f.ItDonLapDatThietBi7s) // <--- ĐÃ BỔ SUNG ĐỂ LẤY DỮ LIỆU FORM 7
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .Include(f => f.LichSuFormIts)
