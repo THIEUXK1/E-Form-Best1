@@ -227,6 +227,17 @@
             chiTietNoiDung += RenderInfoRow("📝", "Ghi chú thêm", ct.GhiChu, "#f8fafc", "#475569");
         }
     }
+    // FORM 7: ĐƠN LẮP ĐẶT THIẾT BỊ
+    else if (Model.ItDonLapDatThietBi7s != null && Model.ItDonLapDatThietBi7s.Any())
+    {
+        var ct = Model.ItDonLapDatThietBi7s.First();
+        ProcessImage(ct.DuongDanAnh, null); // ĐÃ THÊM DÒNG NÀY ĐỂ HIỂN THỊ ẢNH CHO FORM 7
+
+        chiTietNoiDung += RenderInfoRow("🏗️", "Loại yêu cầu", "LẮP ĐẶT THIẾT BỊ", "#e0e7ff", "#4338ca");
+        chiTietNoiDung += RenderInfoRow("🖥️", "Tên thiết bị", ct.TenThietBi, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("📍", "Vị trí lắp đặt", ct.ViTri, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🎯", "Mục đích", ct.MucDich, "#f0fdf4", "#166534");
+    }
 
     void ProcessImage(string path, byte[] rawData)
     {
