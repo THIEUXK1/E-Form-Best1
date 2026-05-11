@@ -11,61 +11,40 @@
     string lightBg = "#fffaf0";
     string softBorder = "#fbd38d";
 
-    // --- LẤY THÔNG TIN TỪ CLAIMS ---
     var tenNguoiNv = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
     var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
-    // Styles nội bộ đã chuyển sang tông Cam
     string inputStyle = $"width: 100%; padding: 12px; border-radius: 10px; border: 1px solid {softBorder}; background: #fffdfa; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: {secondaryColor};";
     string labelStyle = $"font-weight: 700; color: {secondaryColor}; font-size: 11px; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px;";
     string pasteZoneStyle = $"width: 100%; border: 2px dotted {softBorder}; height: 180px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: {lightBg}; color: {primaryColor}; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 600; transition: 0.3s; margin-top: 10px; position: relative; outline: none;";
 }
 
 <style>
-    /* ==========================================
-           THÊM MỚI: CSS CHO MOBILE RESPONSIVE
-           ========================================== */
+    /* Grid cho ô lộ trình động */
+    .dynamic-row-xe {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 45px;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
     @@media (max-width: 768px) {
-        .mobile-wrapper {
-            padding: 15px 10px !important;
-        }
-
-        .mobile-card {
-            border-radius: 20px !important;
-        }
-
-        .mobile-header {
-            padding: 30px 15px !important;
-        }
-
-            .mobile-header h2 {
-                font-size: 18px !important;
-                margin-top: 12px !important;
-            }
-
-        .system-badge {
-            position: relative !important;
-            top: 0 !important;
-            right: 0 !important;
-            display: inline-block;
-            margin-bottom: 10px;
-        }
-
-        .mobile-body {
-            padding: 20px 15px !important;
-        }
-        /* Chuyển các lưới grid đa cột về 1 cột */
-        .grid-mobile-1 {
-            grid-template-columns: 1fr !important;
-            gap: 12px !important;
-        }
-
-        .mobile-section {
-            padding: 15px !important;
-        }
+        .mobile-wrapper { padding: 15px 10px !important; }
+        .mobile-card { border-radius: 20px !important; }
+        .mobile-header { padding: 30px 15px !important; }
+        .mobile-header h2 { font-size: 18px !important; margin-top: 12px !important; }
+        .system-badge { position: relative !important; top: 0 !important; right: 0 !important; display: inline-block; margin-bottom: 10px; }
+        .mobile-body { padding: 20px 15px !important; }
+        .grid-mobile-1 { grid-template-columns: 1fr !important; gap: 12px !important; }
+        .mobile-section { padding: 15px !important; }
+        
+        /* Grid mobile cho ô lộ trình */
+        .dynamic-row-xe { grid-template-columns: 1fr !important; gap: 8px !important; padding: 10px; border: 1px dashed #fbd38d; border-radius: 8px; margin-bottom: 15px; position: relative; }
+        .btn-remove-row { position: absolute; top: -10px; right: -10px; width: 30px !important; height: 30px !important; border-radius: 50% !important; font-size: 14px !important; }
     }
 </style>
 
@@ -76,7 +55,6 @@
 
         @Html.AntiForgeryToken()
 
-        @* --- HEADER (MÀU CAM) --- *@
         <div class="mobile-header" style="background: linear-gradient(135deg, @primaryColor 0%, @secondaryColor 100%); padding: 40px; color: #ffffff; text-align: center; position: relative;">
             <div class="system-badge" style="position: absolute; top: 15px; right: 25px; font-size: 11px; opacity: 0.9; font-weight: 500; letter-spacing: 1px;">HỆ THỐNG E-FORM V3.0</div>
             <h2 style="margin: 0; font-size: 24px; text-transform: uppercase; font-weight: 900; letter-spacing: 1.5px;">Đăng ký sử dụng xe Daily</h2>
@@ -93,29 +71,14 @@
                     Thông tin người đăng ký
                 </h3>
                 <div class="grid-mobile-1" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
-                    <div>
-                        <label style="@labelStyle">Họ tên nhân viên</label>
-                        <input name="TenNguoiNv" value="@tenNguoiNv" readonly style="@inputStyle; background: #fffaf0; border-color: #fbd38d;">
-                    </div>
-                    <div>
-                        <label style="@labelStyle">Phòng ban</label>
-                        <input name="BoPhan" value="@phongBan" readonly style="@inputStyle; background: #fffaf0; border-color: #fbd38d;">
-                    </div>
-                    <div>
-                        <label style="@labelStyle">Mã nhân viên</label>
-                        <input name="SoNhanVien" value="@soNhanVien" readonly style="@inputStyle; background: #fffaf0; border-color: #fbd38d;">
-                    </div>
+                    <div><label style="@labelStyle">Họ tên nhân viên</label><input name="TenNguoiNv" value="@tenNguoiNv" readonly style="@inputStyle; background: #fffaf0; border-color: #fbd38d;"></div>
+                    <div><label style="@labelStyle">Phòng ban</label><input name="BoPhan" value="@phongBan" readonly style="@inputStyle; background: #fffaf0; border-color: #fbd38d;"></div>
+                    <div><label style="@labelStyle">Mã nhân viên</label><input name="SoNhanVien" value="@soNhanVien" readonly style="@inputStyle; background: #fffaf0; border-color: #fbd38d;"></div>
                 </div>
 
                 <div class="grid-mobile-1" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div>
-                        <label style="@labelStyle">Đơn vị / Công ty</label>
-                        <input name="TenCongTy" value="@tenCongTy" readonly style="@inputStyle; background: #fffaf0; border-style: dashed;">
-                    </div>
-                    <div>
-                        <label style="@labelStyle">Danh mục hồ sơ</label>
-                        <input name="Danhmuc" value="ĐƠN ĐĂNG KÝ SỬ DỤNG XE DAILY" readonly style="@inputStyle; background: #fffaf0; border-style: dashed; color: @primaryColor;">
-                    </div>
+                    <div><label style="@labelStyle">Đơn vị / Công ty</label><input name="TenCongTy" value="@tenCongTy" readonly style="@inputStyle; background: #fffaf0; border-style: dashed;"></div>
+                    <div><label style="@labelStyle">Danh mục hồ sơ</label><input name="Danhmuc" value="ĐƠN ĐĂNG KÝ SỬ DỤNG XE DAILY" readonly style="@inputStyle; background: #fffaf0; border-style: dashed; color: @primaryColor;"></div>
                 </div>
             </div>
 
@@ -131,14 +94,16 @@
                     <textarea name="chiTiet.LiDo" placeholder="Vui lòng nhập mục đích sử dụng xe..." required style="@inputStyle; height: 80px; resize: none; border: 1px solid @primaryColor;"></textarea>
                 </div>
 
-                <div class="grid-mobile-1" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
-                    <div>
-                        <label style="@labelStyle">📍 Điểm đón / Tuyến đường</label>
-                        <input name="chiTiet.DiemDon" placeholder="Ví dụ: Xưởng A - Kho B..." required style="@inputStyle">
-                    </div>
-                    <div>
-                        <label style="@labelStyle">🕒 Thời gian dự tính</label>
-                        <input type="datetime-local" id="inpTimeDuTinh" name="chiTiet.TimeDuTinh" required style="@inputStyle; border: 1px solid @primaryColor;">
+                @* --- KHUNG THÊM NHIỀU LỘ TRÌNH --- *@
+                <div style="margin-bottom: 25px; padding: 20px; border-radius: 12px; background: #ffffff; border: 1px dashed @primaryColor;">
+                    <label style="@labelStyle">Danh sách lộ trình (Mã NV - Họ Tên, Điểm đón, Thời gian) <span style="color:#e53e3e">*</span></label>
+                    <div id="dynamicItemsWrapper">
+                        <div class="dynamic-row-xe">
+                            <input type="text" name="arrHoTen" placeholder="VD: V01234 - Nguyễn Văn A" style="@inputStyle" required>
+                            <input type="text" name="arrDiemDon" placeholder="Điểm đón" style="@inputStyle" required>
+                            <input type="datetime-local" name="arrTime" class="inp-time-xe" style="@inputStyle" required>
+                            <button type="button" onclick="addXeRow()" style="background: @primaryColor; color: white; border: none; border-radius: 10px; height: 42px; font-size: 20px; font-weight: 900; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='@secondaryColor'" onmouseout="this.style.background='@primaryColor'">+</button>
+                        </div>
                     </div>
                 </div>
 
@@ -218,7 +183,6 @@
                 </label>
             </div>
 
-            @* --- NÚT GỬI (MÀU CAM) --- *@
             <div style="text-align: center;">
                 <button type="button" onclick="xuLyLuuDon()"
                         style="width: 100%; padding: 20px; background: linear-gradient(to right, @primaryColor, @secondaryColor); color: #fff; border: none; border-radius: 15px; font-weight: 900; font-size: 18px; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 25px rgba(237, 137, 54, 0.4); text-transform: uppercase; letter-spacing: 1px;">
@@ -234,8 +198,10 @@
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
         const timeString = now.toISOString().slice(0, 16);
-        const el = document.getElementById('inpTimeDuTinh');
-        if(el) el.value = timeString;
+        
+        // Gán thời gian hiện tại cho ô datetime-local đầu tiên
+        const inputs = document.getElementsByClassName('inp-time-xe');
+        if(inputs.length > 0) inputs[0].value = timeString;
     };
 
     function handlePaste(e, inputId, zoneId) {
@@ -269,23 +235,44 @@
         zoneEl.onclick = () => zoneEl.focus();
     }
 
+    // --- HÀM THÊM Ô LỘ TRÌNH ĐỘNG ---
+    function addXeRow() {
+        const wrapper = document.getElementById('dynamicItemsWrapper');
+        const row = document.createElement('div');
+        row.className = 'dynamic-row-xe';
+
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        const timeString = now.toISOString().slice(0, 16);
+
+        row.innerHTML = `
+            <input type="text" name="arrHoTen" placeholder="VD: V01234 - Nguyễn Văn A" style="@inputStyle" required>
+            <input type="text" name="arrDiemDon" placeholder="Điểm đón" style="@inputStyle" required>
+            <input type="datetime-local" name="arrTime" value="${timeString}" class="inp-time-xe" style="@inputStyle" required>
+            <button type="button" class="btn-remove-row" onclick="this.parentElement.remove()" style="background: #e53e3e; color: white; border: none; border-radius: 10px; height: 42px; width: 100%; font-size: 20px; font-weight: 900; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#c53030'" onmouseout="this.style.background='#e53e3e'">-</button>
+        `;
+        wrapper.appendChild(row);
+    }
+
     function xuLyLuuDon() {
         const liDo = document.querySelector('textarea[name="chiTiet.LiDo"]').value.trim();
-        const diemDon = document.querySelector('input[name="chiTiet.DiemDon"]').value.trim();
-        const tgDuTinh = document.getElementById('inpTimeDuTinh').value;
         const chk = document.getElementById('chkCamKet');
         const selectedHoTro = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
 
+        // KIỂM TRA MẢNG ĐỘNG
+        const arrHoTen = document.getElementsByName('arrHoTen');
+        const arrDiemDon = document.getElementsByName('arrDiemDon');
+        const arrTime = document.getElementsByName('arrTime');
+        
+        for (let i = 0; i < arrHoTen.length; i++) {
+            if (!arrHoTen[i].value.trim() || !arrDiemDon[i].value.trim() || !arrTime[i].value) {
+                alert("⚠️ Vui lòng điền đầy đủ (Họ tên, Điểm đón, Thời gian) ở danh sách lộ trình!");
+                return;
+            }
+        }
+
         if (liDo.length < 5) {
             alert("⚠️ Vui lòng nhập lý do sử dụng xe cụ thể!");
-            return;
-        }
-        if (diemDon === "") {
-            alert("⚠️ Vui lòng nhập điểm đón / tuyến đường!");
-            return;
-        }
-        if (!tgDuTinh) {
-            alert("⚠️ Vui lòng chọn thời gian dự tính!");
             return;
         }
         if (selectedHoTro.length === 0) {

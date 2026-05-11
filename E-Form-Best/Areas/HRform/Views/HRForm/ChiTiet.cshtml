@@ -90,70 +90,62 @@
             chiTietNoiDung += RenderInfoRow("🕒", "Giờ ra", ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "#fef2f2", "#991b1b");
             chiTietNoiDung += RenderInfoRow("🔄", "Dự kiến về", ct.ThoiGianVeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#ecfdf5", "#065f46");
         }
-      if (Model.HrMangHangHoaRaCong2s?.Any() == true)
-{
-    var ct = Model.HrMangHangHoaRaCong2s.First(); 
-    
-    // 1. Giữ nguyên xử lý ảnh
-    ProcessImage(ct.DuongDanAnh, ct.Anh);
-
-    // 2. Các dòng thông tin cơ bản
-    chiTietNoiDung += RenderInfoRow("📦", "Loại đơn", "Mang hàng hóa ra cổng", "#f0fdf4", "#166534");
-    chiTietNoiDung += RenderInfoRow("📋", "Mô tả", ct.MoTa, "#f8fafc", "#0f172a");
-
-    // --- 3. XỬ LÝ BÓC TÁCH MẢNG HÀNG HÓA (GIA CỐ CỘT STT TUYỆT ĐỐI KHÔNG XUỐNG DÒNG) ---
-    string bangHangHoa = "";
-    if (!string.IsNullOrEmpty(ct.TenLoaiHang) && !string.IsNullOrEmpty(ct.SoLuong))
-    {
-        var arrTen = ct.TenLoaiHang.Split('|', StringSplitOptions.RemoveEmptyEntries);
-        var arrSl = ct.SoLuong.Split('|', StringSplitOptions.RemoveEmptyEntries);
-        int count = Math.Min(arrTen.Length, arrSl.Length);
-
-        if (count > 0)
+        if (Model.HrMangHangHoaRaCong2s?.Any() == true)
         {
-            bangHangHoa += "<div style='margin-top:10px; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden;'>";
-            bangHangHoa += "<table style='width:100%; border-collapse:collapse; text-align:left; font-size:14px; background:#fff; table-layout: auto;'>";
+            var ct = Model.HrMangHangHoaRaCong2s.First(); 
             
-            // Header: Dùng width: 1% và nowrap cho STT
-            bangHangHoa += "<thead style='background:#f8fafc;'>";
-            bangHangHoa += "<tr style='border-bottom:2px solid #e2e8f0;'>";
-            bangHangHoa += "<th style='padding:12px 10px; color:#475569; width:1%; white-space:nowrap; text-align:center; font-weight:700;'>STT</th>";
-            bangHangHoa += "<th style='padding:12px 15px; color:#475569; font-weight:700;'>Tên loại hàng</th>";
-            bangHangHoa += "<th style='padding:12px 15px; color:#475569; text-align:center; width:80px; font-weight:700;'>Số lượng</th>";
-            bangHangHoa += "</tr>";
-            bangHangHoa += "</thead>";
-            
-            bangHangHoa += "<tbody>";
-            for (int i = 0; i < count; i++)
-            {
-                string bgRow = (i % 2 == 0) ? "#ffffff" : "#fbfcfd";
-                bangHangHoa += $"<tr style='background:{bgRow}; border-bottom:1px solid #f1f5f9;'>";
-                
-                // Cột STT: width: 1% để nó không chiếm thêm diện tích, white-space:nowrap để ép 1 hàng
-                bangHangHoa += $"<td style='padding:12px 10px; text-align:center; font-weight:700; color:#94a3b8; width:1%; white-space:nowrap;'>{i + 1}</td>";
-                
-                // Cột Tên hàng (Cột này sẽ chiếm diện tích còn lại)
-                bangHangHoa += $"<td style='padding:12px 15px; color:#1e293b; font-weight:600;'>{arrTen[i].Trim()}</td>";
-                
-                // Cột Số lượng
-                bangHangHoa += $"<td style='padding:12px 15px; text-align:center; font-weight:800; color:#ea580c; width:80px;'>{arrSl[i].Trim()}</td>";
-                
-                bangHangHoa += "</tr>";
-            }
-            bangHangHoa += "</tbody></table></div>";
-        }
-    }
-    else
-    {
-        bangHangHoa = "<div style='padding:10px; color:#94a3b8; font-style:italic;'>Không có chi tiết hàng hóa</div>";
-    }
-    
-    chiTietNoiDung += RenderInfoRow("🛒", "Danh sách mặt hàng", bangHangHoa, "#fff7ed", "#ea580c");
+            // 1. Giữ nguyên xử lý ảnh
+            ProcessImage(ct.DuongDanAnh, ct.Anh);
 
-    // 4. Giữ nguyên phần còn lại
-    chiTietNoiDung += RenderInfoRow("📅", "Thời gian dự tính", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#f0fdf4", "#166534");
-    chiTietNoiDung += RenderSecurityBox(ct.TenCong, ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "hàng ra thực tế");
-}
+            // 2. Các dòng thông tin cơ bản
+            chiTietNoiDung += RenderInfoRow("📦", "Loại đơn", "Mang hàng hóa ra cổng", "#f0fdf4", "#166534");
+            chiTietNoiDung += RenderInfoRow("📋", "Mô tả", ct.MoTa, "#f8fafc", "#0f172a");
+
+            // --- 3. XỬ LÝ BÓC TÁCH MẢNG HÀNG HÓA ---
+            string bangHangHoa = "";
+            if (!string.IsNullOrEmpty(ct.TenLoaiHang) && !string.IsNullOrEmpty(ct.SoLuong))
+            {
+                var arrTen = ct.TenLoaiHang.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                var arrSl = ct.SoLuong.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                int count = Math.Min(arrTen.Length, arrSl.Length);
+
+                if (count > 0)
+                {
+                    bangHangHoa += "<div style='margin-top:10px; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden;'>";
+                    bangHangHoa += "<table style='width:100%; border-collapse:collapse; text-align:left; font-size:14px; background:#fff; table-layout: auto;'>";
+                    
+                    bangHangHoa += "<thead style='background:#f8fafc;'>";
+                    bangHangHoa += "<tr style='border-bottom:2px solid #e2e8f0;'>";
+                    bangHangHoa += "<th style='padding:12px 10px; color:#475569; width:1%; white-space:nowrap; text-align:center; font-weight:700;'>STT</th>";
+                    bangHangHoa += "<th style='padding:12px 15px; color:#475569; font-weight:700;'>Tên loại hàng</th>";
+                    bangHangHoa += "<th style='padding:12px 15px; color:#475569; text-align:center; width:80px; font-weight:700;'>Số lượng</th>";
+                    bangHangHoa += "</tr>";
+                    bangHangHoa += "</thead>";
+                    
+                    bangHangHoa += "<tbody>";
+                    for (int i = 0; i < count; i++)
+                    {
+                        string bgRow = (i % 2 == 0) ? "#ffffff" : "#fbfcfd";
+                        bangHangHoa += $"<tr style='background:{bgRow}; border-bottom:1px solid #f1f5f9;'>";
+                        bangHangHoa += $"<td style='padding:12px 10px; text-align:center; font-weight:700; color:#94a3b8; width:1%; white-space:nowrap;'>{i + 1}</td>";
+                        bangHangHoa += $"<td style='padding:12px 15px; color:#1e293b; font-weight:600;'>{arrTen[i].Trim()}</td>";
+                        bangHangHoa += $"<td style='padding:12px 15px; text-align:center; font-weight:800; color:#ea580c; width:80px;'>{arrSl[i].Trim()}</td>";
+                        bangHangHoa += "</tr>";
+                    }
+                    bangHangHoa += "</tbody></table></div>";
+                }
+            }
+            else
+            {
+                bangHangHoa = "<div style='padding:10px; color:#94a3b8; font-style:italic;'>Không có chi tiết hàng hóa</div>";
+            }
+            
+            chiTietNoiDung += RenderInfoRow("🛒", "Danh sách mặt hàng", bangHangHoa, "#fff7ed", "#ea580c");
+
+            // 4. Giữ nguyên phần còn lại
+            chiTietNoiDung += RenderInfoRow("📅", "Thời gian dự tính", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#f0fdf4", "#166534");
+            chiTietNoiDung += RenderSecurityBox(ct.TenCong, ct.ThoiGianRa?.ToString("HH:mm dd/MM/yyyy"), "hàng ra thực tế");
+        }
         if (Model.HrDangKySuDungXeCongTac3s?.Any() == true)
         {
             var ct = Model.HrDangKySuDungXeCongTac3s.First();
@@ -171,9 +163,84 @@
         {
             var ct = Model.HrDangKySuDungXeDaily4s.First(); ProcessImage(ct.DuongDanAnh, ct.Anh);
             chiTietNoiDung += RenderInfoRow("🚌", "Dịch vụ", "Đăng ký xe Daily", "#fff7ed", "#9a3412");
-            chiTietNoiDung += RenderInfoRow("🕒", "Thời gian", ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy"), "#fff7ed", "#9a3412");
-            chiTietNoiDung += RenderInfoRow("📍", "Điểm đón", ct.DiemDon, "#f0f9ff", "#0369a1");
-            chiTietNoiDung += RenderInfoRow("📝", "Lý do", ct.LiDo, "#f8fafc", "#0f172a");
+
+            // --- LỌC BỎ THỜI GIAN ĐƯỢC LƯU GỘP TRONG LÝ DO (NẾU CÓ) ---
+            string cleanLiDo = ct.LiDo ?? "";
+            string[] arrTime = null;
+            string timeMarker = "[Chi tiết thời gian đón:";
+            
+            if (cleanLiDo.Contains(timeMarker))
+            {
+                int startIndex = cleanLiDo.IndexOf(timeMarker);
+                int endIndex = cleanLiDo.IndexOf("]", startIndex);
+                if (endIndex > startIndex)
+                {
+                    string timeStr = cleanLiDo.Substring(startIndex + timeMarker.Length, endIndex - startIndex - timeMarker.Length).Trim();
+                    arrTime = timeStr.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    // Cắt bỏ đoạn ghép thời gian để LiDo hiển thị sạch đẹp
+                    cleanLiDo = cleanLiDo.Remove(startIndex, endIndex - startIndex + 1).Trim();
+                }
+            }
+
+            chiTietNoiDung += RenderInfoRow("📝", "Lý do", cleanLiDo, "#f8fafc", "#0f172a");
+
+            // --- XỬ LÝ BÓC TÁCH MẢNG LỘ TRÌNH THÀNH BẢNG ---
+            string bangLoTrinh = "";
+            if (!string.IsNullOrEmpty(ct.HoTenNguoiDangKy) && !string.IsNullOrEmpty(ct.DiemDon))
+            {
+                var arrNguoi = ct.HoTenNguoiDangKy.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                var arrDiem = ct.DiemDon.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                int count = Math.Max(arrNguoi.Length, arrDiem.Length);
+
+                if (count > 0)
+                {
+                    bangLoTrinh += "<div style='margin-top:10px; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden;'>";
+                    bangLoTrinh += "<table style='width:100%; border-collapse:collapse; text-align:left; font-size:14px; background:#fff; table-layout: auto;'>";
+                    
+                    bangLoTrinh += "<thead style='background:#f8fafc;'>";
+                    bangLoTrinh += "<tr style='border-bottom:2px solid #e2e8f0;'>";
+                    bangLoTrinh += "<th style='padding:12px 10px; color:#475569; width:1%; white-space:nowrap; text-align:center; font-weight:700;'>STT</th>";
+                    bangLoTrinh += "<th style='padding:12px 15px; color:#475569; font-weight:700;'>Họ tên người đăng ký</th>";
+                    bangLoTrinh += "<th style='padding:12px 15px; color:#475569; font-weight:700;'>Điểm đón</th>";
+                    bangLoTrinh += "<th style='padding:12px 15px; color:#475569; text-align:center; width:120px; font-weight:700;'>Thời gian</th>";
+                    bangLoTrinh += "</tr>";
+                    bangLoTrinh += "</thead>";
+                    
+                    bangLoTrinh += "<tbody>";
+                    for (int i = 0; i < count; i++)
+                    {
+                        string bgRow = (i % 2 == 0) ? "#ffffff" : "#fbfcfd";
+                        bangLoTrinh += $"<tr style='background:{bgRow}; border-bottom:1px solid #f1f5f9;'>";
+                        bangLoTrinh += $"<td style='padding:12px 10px; text-align:center; font-weight:700; color:#94a3b8; width:1%; white-space:nowrap;'>{i + 1}</td>";
+                        
+                        string nguoi = i < arrNguoi.Length ? arrNguoi[i].Trim() : "---";
+                        bangLoTrinh += $"<td style='padding:12px 15px; color:#1e293b; font-weight:600;'>{nguoi}</td>";
+                        
+                        string diem = i < arrDiem.Length ? arrDiem[i].Trim() : "---";
+                        bangLoTrinh += $"<td style='padding:12px 15px; color:#0369a1; font-weight:600;'>{diem}</td>";
+
+                        string tgText = "---";
+                        if (arrTime != null && i < arrTime.Length) 
+                        {
+                            tgText = arrTime[i].Trim();
+                        } 
+                        else if (i == 0 && ct.TimeDuTinh.HasValue) 
+                        {
+                            tgText = ct.TimeDuTinh.Value.ToString("HH:mm dd/MM/yyyy");
+                        }
+
+                        bangLoTrinh += $"<td style='padding:12px 15px; text-align:center; font-weight:700; color:#ea580c;'>{tgText}</td>";
+                        bangLoTrinh += "</tr>";
+                    }
+                    bangLoTrinh += "</tbody></table></div>";
+                }
+            }
+            else
+            {
+                bangLoTrinh = "<div style='padding:10px; color:#94a3b8; font-style:italic;'>Không có chi tiết lộ trình</div>";
+            }
+            
+            chiTietNoiDung += RenderInfoRow("📍", "Danh sách lộ trình", bangLoTrinh, "#f0f9ff", "#0369a1");
         }
         if (Model.HrDonTiepKhac5s?.Any() == true)
         {
