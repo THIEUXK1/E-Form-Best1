@@ -96,6 +96,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<ItDangkiTaiKhoanMayTinh6> ItDangkiTaiKhoanMayTinh6s { get; set; }
 
+    public virtual DbSet<ItDonLapDatThietBi7> ItDonLapDatThietBi7s { get; set; }
+
     public virtual DbSet<ItMail1> ItMail1s { get; set; }
 
     public virtual DbSet<ItNguoiHoTro> ItNguoiHoTros { get; set; }
@@ -441,6 +443,11 @@ public partial class ITFormContext : DbContext
         modelBuilder.Entity<ItDangkiTaiKhoanMayTinh6>(entity =>
         {
             entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.ItDangkiTaiKhoanMayTinh6s).HasConstraintName("FK_IT_6_FormIT");
+        });
+
+        modelBuilder.Entity<ItDonLapDatThietBi7>(entity =>
+        {
+            entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.ItDonLapDatThietBi7s).HasConstraintName("FK_IT_DonLapDatThietBi_7_FormIT");
         });
 
         modelBuilder.Entity<ItMail1>(entity =>

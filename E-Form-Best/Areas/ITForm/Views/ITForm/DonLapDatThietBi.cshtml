@@ -1,0 +1,257 @@
+﻿@model E_Form_Best.Models.ITForm.FormIt
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Phiếu yêu cầu lắp đặt thiết bị";
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+
+    // Lấy thông tin từ Claims để hiển thị mặc định (giống Form 6)
+    var tenNguoiNv = User.Identity.Name ?? "";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+    var emailHienTai = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    var userRole = User.FindFirst("UserRole")?.Value ?? "";
+    var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+    var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
+
+    // Hệ màu sắc chủ đạo theo yêu cầu: #65a30d (Xanh lá cây đậm)
+    string colorPrimary = "#65a30d";
+    string colorDark = "#1a2e05"; 
+    string colorLight = "#f7fee7"; 
+    string colorBorder = "#bef264";
+
+    // Các biến style dùng chung để đảm bảo tính đồng nhất
+    string inputBase = $"width: 100%; padding: 12px; border-radius: 12px; border: 1px solid {colorBorder}; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; color: {colorDark}; transition: all 0.3s;";
+    string labelBase = $"font-weight: 800; color: {colorDark}; font-size: 11px; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.8px;";
+    string boxDetail = $"background: #ffffff; padding: 25px; border-radius: 24px; border: 1px solid {colorLight}; margin-bottom: 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);";
+}
+
+<style>
+    .input-hover:focus {
+        border-color: @colorPrimary !important;
+        box-shadow: 0 0 0 4px rgba(101, 163, 13, 0.1) !important;
+    }
+
+    .btn-grad:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px -5px rgba(101, 163, 13, 0.4) !important;
+        opacity: 0.95;
+    }
+
+    #paste_AnhThietBi:hover {
+        border-color: @colorPrimary !important;
+        background: #f7fee7 !important;
+    }
+
+    .ho-tro-item:hover {
+        border-color: @colorPrimary !important;
+        background-color: #f7fee7;
+        transform: translateY(-2px);
+    }
+
+    /* CSS RESPONSIVE CHO MOBILE 2026 */
+    @@media (max-width: 768px) {
+        .main-container { padding: 20px 10px !important; }
+        .form-card { border-radius: 25px !important; }
+        .header-section { padding: 35px 15px !important; }
+        .header-section h2 { font-size: 19px !important; }
+        .body-section { padding: 20px 15px !important; }
+        .grid-responsive { grid-template-columns: 1fr !important; gap: 12px !important; }
+        .box-detail-mobile { padding: 15px !important; border-radius: 20px !important; }
+        #paste_AnhThietBi, .file-upload-box { height: 140px !important; }
+        #btnSubmit { padding: 18px !important; font-size: 16px !important; }
+    }
+</style>
+
+<div class="main-container" style="background: linear-gradient(135deg, #f7fee7 0%, #ecfccb 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif;">
+
+    <form id="itEquipmentForm" action="/FormIT/DonLapDatThietBi" method="post" enctype="multipart/form-data" class="form-card"
+          style="max-width: 950px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(26, 46, 5, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
+
+        @Html.AntiForgeryToken()
+
+        @* Header Section *@
+        <div class="header-section" style="background: linear-gradient(135deg, @colorPrimary 0%, #4d7c0f 100%); padding: 45px 20px; color: #ffffff; text-align: center; position: relative;">
+            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">EQUIPMENT SERVICE V7.0</div>
+            <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Phiếu yêu cầu lắp đặt thiết bị</h2>
+            <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: rgba(255,255,255,0.2); border-radius: 50px; font-size: 13px; backdrop-filter: blur(4px);">
+                <span>📅 Ngày yêu cầu:</span>
+                <span style="font-weight: 800; color: #ffffff;">@ngayHienThi</span>
+            </div>
+        </div>
+
+        <div class="body-section" style="padding: 40px;">
+
+            @* PHẦN 1: THÔNG TIN NHÂN VIÊN *@
+            <div style="margin-bottom: 40px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 10px rgba(101, 163, 13, 0.3);">1</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin nhân viên đơn vị</h3>
+                </div>
+
+                <div class="grid-responsive" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                    <div style="background: #f9fafb; padding: 15px; border-radius: 15px; border: 1px solid #f3f4f6;">
+                        <label style="@labelBase">Người làm đơn</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@tenNguoiNv</div>
+                    </div>
+                    <div style="background: #f9fafb; padding: 15px; border-radius: 15px; border: 1px solid #f3f4f6;">
+                        <label style="@labelBase">Bộ phận</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@phongBan</div>
+                    </div>
+                    <div style="background: #f9fafb; padding: 15px; border-radius: 15px; border: 1px solid #f3f4f6;">
+                        <label style="@labelBase">Công ty</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@tenCongTy</div>
+                    </div>
+                    <div style="background: #f9fafb; padding: 15px; border-radius: 15px; border: 1px solid #f3f4f6;">
+                        <label style="@labelBase">Email liên hệ</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px; word-break: break-all;">@emailHienTai</div>
+                    </div>
+                </div>
+            </div>
+
+            @* PHẦN 2: CHI TIẾT THIẾT BỊ *@
+            <div class="box-detail-mobile" style="@boxDetail">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Chi tiết yêu cầu lắp đặt</h3>
+                </div>
+
+                <div class="grid-responsive" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <label style="@labelBase">Tên thiết bị cần lắp <span style="color:red">*</span></label>
+                        <input type="text" name="TenThietBi" id="TenThietBi" placeholder="Ví dụ: Máy in, Màn hình, Switch..." required class="input-hover" style="@inputBase">
+                    </div>
+                    <div>
+                        <label style="@labelBase">Vị trí lắp đặt chi tiết <span style="color:red">*</span></label>
+                        <input type="text" name="ViTri" id="ViTri" placeholder="Ví dụ: Chuyền 1 - Xưởng A" required class="input-hover" style="@inputBase">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="@labelBase">Mục đích lắp đặt / Lý do <span style="color:red">*</span></label>
+                    <textarea name="MucDich" id="MucDich" required placeholder="Ghi rõ lý do cần lắp đặt thiết bị này..." class="input-hover" style="@inputBase height: 100px; resize: none;"></textarea>
+                </div>
+
+                <div class="grid-responsive" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label style="@labelBase">Ảnh hiện trạng / Vị trí (Ctrl+V để dán)</label>
+                        <div id="paste_AnhThietBi" tabindex="0"
+                             style="width: 100%; border: 2px dashed @colorBorder; height: 160px; border-radius: 15px; display: flex; align-items: center; justify-content: center; background: #fdfdfd; color: @colorDark; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 700; transition: 0.3s; position: relative; outline: none;">
+                            <div style="text-align:center;"><i style="font-size: 24px; margin-bottom:8px; color:@colorPrimary" class="fa fa-camera"></i><br>Click vào đây rồi Ctrl+V ảnh</div>
+                        </div>
+                        <input type="file" id="input_Anh" name="Anh" hidden accept="image/*">
+                    </div>
+                    <div>
+                        <label style="@labelBase">File đính kèm (Sơ đồ, báo giá...)</label>
+                        <div class="file-upload-box" style="border: 2px dashed #e5e7eb; height: 160px; border-radius: 15px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; background: #ffffff;">
+                            <input type="file" name="UploadFile" style="font-size: 12px; width: 100%;">
+                            <p style="font-size: 11px; color: #4d7c0f; margin-top: 15px; line-height: 1.5;">Chấp nhận: PDF, Excel, Hình ảnh...<br>Dung lượng tối đa: 10MB</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* PHẦN 3: NHÂN SỰ IT HỖ TRỢ *@
+            <div class="box-detail-mobile" style="@boxDetail">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">3</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Chọn nhân sự IT hỗ trợ</h3>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+                    @if (ViewBag.ListNguoiHoTro != null)
+                    {
+                        foreach (var item in (List<E_Form_Best.Models.ITForm.ItNguoiHoTro>)ViewBag.ListNguoiHoTro)
+                        {
+                            foreach (var cv in item.CongViecIts)
+                            {
+                                <label class="ho-tro-item" style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 15px; background: white; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                    <input type="checkbox" name="SelectedCongViecIds" value="@cv.Id" style="width: 20px; height: 20px; accent-color: @colorPrimary;" />
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@item.Ten</div>
+                                        <div style="font-size: 11px; color: #6b7280;">Mã NV: @item.MaNv</div>
+                                        <div style="margin-top: 5px; display: inline-block; padding: 2px 8px; background: #f7fee7; color: @colorPrimary; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                                            @cv.Ten
+                                        </div>
+                                    </div>
+                                </label>
+                            }
+                        }
+                    }
+                </div>
+            </div>
+
+            @* CAM KẾT *@
+            <div class="box-detail-mobile" style="margin-bottom: 30px; background: #f9fafb; border: 1px dashed @colorBorder; border-radius: 24px; padding: 25px;">
+                <h3 style="margin: 0 0 20px 0; color: @colorDark; font-size: 15px; font-weight: 900; text-align: center; text-transform: uppercase;">QUY ĐỊNH LẮP ĐẶT</h3>
+                <div style="font-size: 13px; line-height: 1.6; color: #374151; margin-bottom: 20px;">
+                    <ol>
+                        <li>Vị trí lắp đặt phải đảm bảo an toàn về điện và môi trường làm việc.</li>
+                        <li>Bộ phận sử dụng chịu trách nhiệm bảo quản thiết bị sau khi bàn giao.</li>
+                        <li>Mọi thay đổi vị trí sau khi lắp đặt phải thông báo lại cho IT.</li>
+                    </ol>
+                </div>
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 12px; background: #ffffff; padding: 18px; border-radius: 15px; border: 1px solid @colorBorder;">
+                    <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; accent-color: @colorPrimary;">
+                    <span style="font-size: 14px; font-weight: 800; color: @colorDark;">Tôi đã kiểm tra vị trí và đồng ý với quy định.</span>
+                </label>
+            </div>
+
+            <button type="button" id="btnSubmit" onclick="xuLyLuuDonThietBi()" class="btn-grad"
+                    style="width: 100%; padding: 22px; background: linear-gradient(to right, @colorPrimary, #4d7c0f); color: #ffffff; border: none; border-radius: 20px; font-weight: 900; font-size: 18px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px;">
+                Gửi đơn yêu cầu lắp đặt
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Logic dán ảnh từ Clipboard (Đặc trưng của hệ thống bạn)
+    document.getElementById("paste_AnhThietBi").addEventListener('paste', function(e) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    this.innerHTML = `<img src="${event.target.result}" style="height:100%; width:100%; object-fit:contain; border-radius:12px;">`;
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(blob);
+                    document.getElementById("input_Anh").files = dataTransfer.files;
+                };
+                reader.readAsDataURL(blob);
+            }
+        }
+    });
+
+    // Hàm xử lý Lưu đơn với validation chặt chẽ
+    function xuLyLuuDonThietBi() {
+        const tenTB = document.getElementById("TenThietBi").value;
+        const viTri = document.getElementById("ViTri").value;
+        const mucDich = document.getElementById("MucDich").value;
+        const chk = document.getElementById('chkCamKet');
+        const selectedCVs = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
+
+        if (!tenTB.trim() || !viTri.trim() || !mucDich.trim()) {
+            alert("⚠️ Vui lòng điền đầy đủ các thông tin bắt buộc (*)");
+            return;
+        }
+
+        if (selectedCVs.length === 0) {
+            alert("⚠️ Vui lòng chọn ít nhất một nhân sự IT hỗ trợ!");
+            return;
+        }
+
+        if (!chk.checked) {
+            alert("⚠️ Bạn cần xác nhận vào ô cam kết trước khi gửi!");
+            return;
+        }
+
+        if (confirm("Xác nhận gửi đơn yêu cầu lắp đặt thiết bị này?")) {
+            const btn = document.getElementById("btnSubmit");
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG XỬ LÝ...';
+            btn.style.pointerEvents = 'none';
+            btn.style.opacity = '0.7';
+            document.getElementById("itEquipmentForm").submit();
+        }
+    }
+</script>

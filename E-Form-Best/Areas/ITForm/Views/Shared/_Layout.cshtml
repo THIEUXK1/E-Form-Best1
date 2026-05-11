@@ -252,29 +252,33 @@
                         <i class="fa fa-angle-down" id="menuArrow" style="transition: 0.3s; transform: @(isITSubActive ? "rotate(180deg)" : "rotate(0deg)");"></i>
                     </div>
 
-                    <div id="mainSubmenu" style="display: @(isITSubActive ? "flex" : "none"); flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
-                        @if (isITSystem)
-                        {
-                            <a href="/FormIT/DonMail" class="submenu-link @(currentAction == "DonMail" ? "active" : "")">
-                                <i class="fa fa-envelope-o" style="margin-right:12px; width:15px; color: #fbbf24;"></i> <span class="lang-text" data-key="reg_mail">1. Đăng ký Mail</span>
-                            </a>
-                            <a href="/FormIT/TaoIT_Order" class="submenu-link @(currentAction == "TaoIT_Order" ? "active" : "")">
-                                <i class="fa fa-wrench" style="margin-right:12px; width:15px; color: #ea580c;"></i> <span class="lang-text" data-key="repair_it">2. Sửa chữa thiết bị</span>
-                            </a>
-                            <a href="/FormIT/TaoIT_Wifi" class="submenu-link @(currentAction == "TaoIT_Wifi" ? "active" : "")">
-                                <i class="fa fa-wifi" style="margin-right:12px; width:15px; color: #059669;"></i> <span class="lang-text" data-key="reg_wifi">3. Đăng ký Wifi</span>
-                            </a>
-                            <a href="/FormIT/DonDienThoaiBan" class="submenu-link @(currentAction == "DonDienThoaiBan" ? "active" : "")">
-                                <i class="fa fa-phone" style="margin-right:12px; width:15px; color: #4f46e5;"></i> <span class="lang-text" data-key="reg_phone">4. Đăng ký ĐT bàn</span>
-                            </a>
-                            <a href="/FormIT/DonTaiKhoanHeThong" class="submenu-link @(currentAction == "DonTaiKhoanHeThong" ? "active" : "")">
-                                <i class="fa fa-user-circle-o" style="margin-right:12px; width:15px; color: #db2777;"></i> <span class="lang-text" data-key="reg_system_acc">5. Đăng ký TK Hệ thống</span>
-                            </a>
-                            <a href="/FormIT/DonTaiKhoanMayTinh" class="submenu-link @(currentAction == "DonTaiKhoanMayTinh" ? "active" : "")">
-                                <i class="fa fa-desktop" style="margin-right:12px; width:15px; color: #06b6d4;"></i> <span class="lang-text" data-key="reg_pc_acc">6. Đăng ký TK Máy tính</span>
-                            </a>
-                        }
-                    </div>
+                   <div id="mainSubmenu" style="display: @(isITSubActive ? "flex" : "none"); flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
+    @if (isITSystem)
+    {
+        <a href="/FormIT/DonMail" class="submenu-link @(currentAction == "DonMail" ? "active" : "")">
+            <i class="fa fa-envelope-o" style="margin-right:12px; width:15px; color: #fbbf24;"></i> <span class="lang-text" data-key="reg_mail">1. Đăng ký Mail</span>
+        </a>
+        <a href="/FormIT/TaoIT_Order" class="submenu-link @(currentAction == "TaoIT_Order" ? "active" : "")">
+            <i class="fa fa-wrench" style="margin-right:12px; width:15px; color: #ea580c;"></i> <span class="lang-text" data-key="repair_it">2. Sửa chữa thiết bị</span>
+        </a>
+        <a href="/FormIT/TaoIT_Wifi" class="submenu-link @(currentAction == "TaoIT_Wifi" ? "active" : "")">
+            <i class="fa fa-wifi" style="margin-right:12px; width:15px; color: #059669;"></i> <span class="lang-text" data-key="reg_wifi">3. Đăng ký Wifi</span>
+        </a>
+        <a href="/FormIT/DonDienThoaiBan" class="submenu-link @(currentAction == "DonDienThoaiBan" ? "active" : "")">
+            <i class="fa fa-phone" style="margin-right:12px; width:15px; color: #4f46e5;"></i> <span class="lang-text" data-key="reg_phone">4. Đăng ký ĐT bàn</span>
+        </a>
+        <a href="/FormIT/DonTaiKhoanHeThong" class="submenu-link @(currentAction == "DonTaiKhoanHeThong" ? "active" : "")">
+            <i class="fa fa-user-circle-o" style="margin-right:12px; width:15px; color: #db2777;"></i> <span class="lang-text" data-key="reg_system_acc">5. Đăng ký TK Hệ thống</span>
+        </a>
+        <a href="/FormIT/DonTaiKhoanMayTinh" class="submenu-link @(currentAction == "DonTaiKhoanMayTinh" ? "active" : "")">
+            <i class="fa fa-desktop" style="margin-right:12px; width:15px; color: #06b6d4;"></i> <span class="lang-text" data-key="reg_pc_acc">6. Đăng ký TK Máy tính</span>
+        </a>
+       @* Mục số 7 với màu mới #65a30d *@
+        <a href="/FormIT/DonLapDatThietBi" class="submenu-link @(currentAction == "DonLapDatThietBi" ? "active" : "")">
+            <i class="fa fa-plus-square" style="margin-right:12px; width:15px; color: #65a30d;"></i> <span class="lang-text" data-key="reg_install_equip">7. Đơn lắp đặt TB</span>
+        </a>
+    }
+</div>
 
                     <a href="@(isITSystem ? "/FormIT/DonCho" : "/FormHR/DonCho")" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
                         <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text" data-key="my_forms">Đơn của tôi</span>

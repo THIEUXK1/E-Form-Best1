@@ -902,7 +902,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
 
         [HttpPost("/FormHR/DangKySuDungXeDaily")]
-        public async Task<IActionResult> DangKySuDungXeDaily(FormHr form, [FromForm] HrDangKySuDungXeDaily4 chiTiet, int[] SelectedCongViecIds)
+        public async Task<IActionResult> DangKySuDungXeDaily(FormHr form, [FromForm] HrDangKySuDungXeDaily4 chiTiet, int[] SelectedCongViecIds, List<string> arrHoTen, List<string> arrDiemDon, List<string> arrTime)
         {
             if (!User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
 
@@ -941,7 +941,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.FormHrs.Add(form);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 2: LƯU NHÂN SỰ HỖ TRỢ ĐÃ CHỌN (MỚI) ---
+                    // --- BƯỚC 2: LƯU NHÂN SỰ HỖ TRỢ ĐÃ CHỌN ---
                     if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
                     {
                         foreach (var cvId in SelectedCongViecIds)
@@ -960,8 +960,8 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         }
                         await _context.SaveChangesAsync();
                     }
-                    // --- BƯỚC 3: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN (CẤU HÌNH THEO BỘ PHẬN & CÔNG TY) ---
-                    // Truy vấn lấy người duyệt từ cấu hình dựa trên IdForm, Tên Bộ Phận và Tên Công Ty
+
+                    // --- BƯỚC 3: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN ---
                     var listDuyetTheoBoPhan = await _context.DmNguoiDuyetLoaiDonBoPhans
                         .Include(x => x.IdnguoiXacNhanNavigation)
                         .Where(x => x.IdloaiDonNavigation.MaLoaiDon == form.IdForm
@@ -982,16 +982,16 @@ namespace E_Form_Best.Areas.HRform.Controllers
                                 ThuTuXacNhan = item.Stt,
                                 MaNguoiXacNhan = item.IdnguoiXacNhanNavigation?.MaNv,
                                 TenNguoiXacNhan = item.IdnguoiXacNhanNavigation?.HoTen,
-                                TrangThaiXacNhan = 0, // 0: Chờ duyệt
+                                TrangThaiXacNhan = 0,
                                 ThoiGianXacNhan = null,
-                                Loai = item.Loai // Map thêm cột Loai (AND / OR) từ cấu hình để file View nhận diện
+                                Loai = item.Loai
                             };
                             _context.HrQuanLyDuyetB2s.Add(quanLyDuyet);
                         }
                         await _context.SaveChangesAsync();
                     }
 
-                    // Fallback: Nếu không có cấu hình theo bộ phận, lấy theo cấu hình mặc định (DmNguoiXacNhanLoaiDon)
+                    // Fallback: Nếu không có cấu hình theo bộ phận
                     var loaiDon = await _context.DmLoaiDons.FirstOrDefaultAsync(x => x.MaLoaiDon == form.IdForm && x.TrangThai == true);
                     if (loaiDon != null)
                     {
@@ -1017,14 +1017,60 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         await _context.SaveChangesAsync();
                     }
 
+                    // --- BƯỚC MỚI: XỬ LÝ MẢNG LỘ TRÌNH VÀ THỜI GIAN ---
+                    if (arrHoTen != null && arrHoTen.Count > 0 && chiTiet != null)
+                    {
+                        var dsHoTen = new List<string>();
+                        var dsDiemDon = new List<string>();
+                        var dsTimeStr = new List<string>();
+
+                        for (int i = 0; i < arrHoTen.Count; i++)
+                        {
+                            if (!string.IsNullOrWhiteSpace(arrHoTen[i]))
+                            {
+                                dsHoTen.Add(arrHoTen[i].Trim());
+
+                                string dDon = (arrDiemDon != null && i < arrDiemDon.Count) ? arrDiemDon[i].Trim() : "";
+                                dsDiemDon.Add(dDon);
+
+                                string tg = (arrTime != null && i < arrTime.Count) ? arrTime[i].Trim() : "";
+                                if (!string.IsNullOrEmpty(tg))
+                                {
+                                    if (DateTime.TryParse(tg, out DateTime dt))
+                                        dsTimeStr.Add(dt.ToString("dd/MM/yyyy HH:mm"));
+                                    else
+                                        dsTimeStr.Add(tg);
+                                }
+                            }
+                        }
+
+                        chiTiet.HoTenNguoiDangKy = string.Join(" | ", dsHoTen);
+                        if (chiTiet.HoTenNguoiDangKy.Length > 250) chiTiet.HoTenNguoiDangKy = chiTiet.HoTenNguoiDangKy.Substring(0, 247) + "...";
+
+                        chiTiet.DiemDon = string.Join(" | ", dsDiemDon);
+                        if (chiTiet.DiemDon.Length > 500) chiTiet.DiemDon = chiTiet.DiemDon.Substring(0, 497) + "...";
+
+                        // Khắc phục lỗi DB DateTime: Lưu thời gian dòng đầu vào cột TimeDuTinh, các thời gian sau ghép vào LiDo
+                        if (arrTime != null && arrTime.Count > 0 && DateTime.TryParse(arrTime[0], out var firstTime))
+                        {
+                            chiTiet.TimeDuTinh = firstTime;
+                        }
+
+                        if (dsTimeStr.Count > 1)
+                        {
+                            chiTiet.LiDo += $"\n[Chi tiết thời gian đón: {string.Join(" | ", dsTimeStr)}]";
+                        }
+                    }
+
 
                     // --- BƯỚC 4: LƯU LỊCH SỬ THAO TÁC ---
                     string chiTietXeDaily = "";
                     if (chiTiet != null)
                     {
-                        chiTietXeDaily = $"- Điểm đón: {chiTiet.DiemDon}\n" +
+                        chiTietXeDaily = $"- Người đi: {chiTiet.HoTenNguoiDangKy}\n" +
+                                         $"- Điểm đón: {chiTiet.DiemDon}\n" +
                                          $"- Lý do: {chiTiet.LiDo}\n" +
-                                         $"- Thời gian dự tính: {chiTiet.TimeDuTinh?.ToString("dd/MM/yyyy HH:mm")}";
+                                         $"- TG Bắt đầu: {chiTiet.TimeDuTinh?.ToString("dd/MM/yyyy HH:mm")}";
                     }
 
                     var lichSu = new LichSuFormHr
@@ -1044,7 +1090,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
                     string timeStamp = DateTime.Now.ToString("ddMMyy_HHmm");
 
-                    // A. File đính kèm tài liệu chung (UploadFile)
                     var uploadFile = Request.Form.Files["UploadFile"];
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
@@ -1059,7 +1104,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         form.FileDinhKem = fileName;
                     }
 
-                    // B. Chi tiết và Ảnh minh chứng (AnhXe)
                     if (chiTiet != null)
                     {
                         chiTiet.IdFormHr = form.Id;
@@ -1085,7 +1129,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    // Cập nhật lại FormHr để lưu FileDinhKem
                     _context.Entry(form).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                     await _context.SaveChangesAsync();
 
