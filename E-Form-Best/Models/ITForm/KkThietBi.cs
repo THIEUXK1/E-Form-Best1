@@ -48,9 +48,22 @@ public partial class KkThietBi
     [StringLength(500)]
     public string? GhiChu { get; set; }
 
+    [StringLength(255)]
+    public string? LyDoXoa { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? NgayXoa { get; set; }
+
+    [Column("id_trang_thai")]
+    public int? IdTrangThai { get; set; }
+
     [ForeignKey("IdNguoiDung")]
     [InverseProperty("KkThietBis")]
     public virtual User? IdNguoiDungNavigation { get; set; }
+
+    [ForeignKey("IdTrangThai")]
+    [InverseProperty("KkThietBis")]
+    public virtual KkTrangThai? IdTrangThaiNavigation { get; set; }
 
     [ForeignKey("IdboPhan")]
     [InverseProperty("KkThietBis")]
