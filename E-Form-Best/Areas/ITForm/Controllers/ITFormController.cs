@@ -3629,7 +3629,66 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
-        #region QL Kiểm Kê (Công Ty, Bộ Phận, Thiết Bị, Lịch Sử)
+        #region THỐNG KÊ TỔNG QUAN KIỂM KÊ
+
+        [HttpGet("/QLKiemKe/ThongKe")]
+        public IActionResult ThongKeKiemKe()
+        {
+            return View("ThongKeKiemKe");
+        }
+
+        [HttpGet("/QLKiemKe/GetDuLieuThongKe")]
+        public IActionResult GetDuLieuThongKe()
+        {
+            try
+            {
+                // Lấy toàn bộ thiết bị đang hoạt động (Bỏ qua các thiết bị nằm trong thùng rác/có NgayXoa)
+                var thietBis = _context.KkThietBis
+                    .Include(x => x.IdcongTyNavigation)
+                    .Include(x => x.IdboPhanNavigation)
+                    .Include(x => x.IdTrangThaiNavigation)
+                    .Where(x => x.NgayXoa == null && (x.IdTrangThaiNavigation == null || x.IdTrangThaiNavigation.TenTrangThai.ToLower() != "xóa"))
+                    .ToList();
+
+                // 1. Thống kê theo Công ty
+                var thongKeCongTy = thietBis
+                    .GroupBy(x => x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : "Chưa gắn")
+                    .Select(g => new { Label = g.Key, Value = g.Count() })
+                    .OrderByDescending(x => x.Value)
+                    .ToList();
+
+                // 2. Thống kê theo Bộ phận
+                var thongKeBoPhan = thietBis
+                    .GroupBy(x => x.IdboPhanNavigation != null ? x.IdboPhanNavigation.TenBoPhan : "Chưa gắn")
+                    .Select(g => new { Label = g.Key, Value = g.Count() })
+                    .OrderByDescending(x => x.Value)
+                    .ToList();
+
+                // 3. Thống kê theo Trạng thái
+                var thongKeTrangThai = thietBis
+                    .GroupBy(x => x.IdTrangThaiNavigation != null ? x.IdTrangThaiNavigation.TenTrangThai : "Chưa rõ")
+                    .Select(g => new { Label = g.Key, Value = g.Count() })
+                    .OrderByDescending(x => x.Value)
+                    .ToList();
+
+                return Json(new
+                {
+                    success = true,
+                    tongSo = thietBis.Count,
+                    congTy = thongKeCongTy,
+                    boPhan = thongKeBoPhan,
+                    trangThai = thongKeTrangThai
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, msg = ex.Message });
+            }
+        }
+
+        #endregion
+
+        #region QL Kiểm Kê (Công Ty, Bộ Phận, Thiết Bị, Trạng Thái, Lịch Sử)
 
         [HttpGet("/QLKiemKe")]
         public IActionResult IndexKiemKe()
@@ -3663,19 +3722,92 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLKiemKe/GetLichSu")]
         public IActionResult GetLichSu()
         {
-            var data = _context.KkLichSuThaoTacs
-                .OrderByDescending(x => x.ThoiGian)
-                .Take(500) // Lấy 500 lịch sử gần nhất để tối ưu hiệu suất
-                .ToList();
-            return Json(new { data = data });
+            try
+            {
+                var data = _context.KkLichSuThaoTacs
+                    .OrderByDescending(x => x.ThoiGian)
+                    .Take(500) // Lấy 500 lịch sử gần nhất để tối ưu hiệu suất
+                    .ToList();
+                return Json(new { success = true, data = data });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        // ==================== TRẠNG THÁI ====================
+        [HttpGet("/QLKiemKe/GetKkTrangThais")]
+        public IActionResult GetKkTrangThais()
+        {
+            try
+            {
+                var data = _context.KkTrangThais.OrderByDescending(x => x.IdTrangThai).ToList();
+                return Json(new { success = true, data = data });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        [HttpPost("/QLKiemKe/SaveKkTrangThai")]
+        public IActionResult SaveKkTrangThai(KkTrangThai model)
+        {
+            try
+            {
+                string action = model.IdTrangThai == 0 ? "Thêm mới" : "Cập nhật";
+                int objId = model.IdTrangThai;
+
+                if (model.IdTrangThai == 0)
+                {
+                    _context.KkTrangThais.Add(model);
+                }
+                else
+                {
+                    var existing = _context.KkTrangThais.Find(model.IdTrangThai);
+                    if (existing != null)
+                    {
+                        existing.TenTrangThai = model.TenTrangThai;
+                        existing.MoTa = model.MoTa;
+                    }
+                }
+                _context.SaveChanges();
+
+                if (objId == 0) objId = model.IdTrangThai;
+                GhiLichSu(action, "Trạng Thái", objId, $"Tên trạng thái: {model.TenTrangThai}");
+
+                return Json(new { success = true, msg = "Lưu trạng thái thành công!" });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        [HttpPost("/QLKiemKe/DeleteKkTrangThai")]
+        public IActionResult DeleteKkTrangThai(int id)
+        {
+            try
+            {
+                var item = _context.KkTrangThais.Find(id);
+                if (item != null)
+                {
+                    if (item.TenTrangThai.ToLower() == "xóa")
+                        return Json(new { success = false, msg = "Không thể xóa trạng thái mặc định của hệ thống!" });
+
+                    string tenTT = item.TenTrangThai;
+                    _context.KkTrangThais.Remove(item);
+                    _context.SaveChanges();
+
+                    GhiLichSu("Xóa", "Trạng Thái", id, $"Đã xóa trạng thái: {tenTT}");
+                }
+                return Json(new { success = true, msg = "Đã xóa trạng thái!" });
+            }
+            catch (Exception) { return Json(new { success = false, msg = "Không thể xóa vì trạng thái này đang được gán cho thiết bị." }); }
         }
 
         // ==================== CÔNG TY ====================
         [HttpGet("/QLKiemKe/GetKkCongTys")]
         public IActionResult GetKkCongTys()
         {
-            var data = _context.KkCongTies.OrderByDescending(x => x.IdcongTy).ToList();
-            return Json(new { data = data });
+            try
+            {
+                var data = _context.KkCongTies.OrderByDescending(x => x.IdcongTy).ToList();
+                return Json(new { success = true, data = data });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
         }
 
         [HttpPost("/QLKiemKe/SaveKkCongTy")]
@@ -3705,7 +3837,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 _context.SaveChanges();
 
-                // Ghi log sau khi save để lấy được ID mới nếu là Thêm mới
                 if (objId == 0) objId = model.IdcongTy;
                 GhiLichSu(action, "Công Ty", objId, $"Tên công ty: {model.TenCongTy}");
 
@@ -3730,26 +3861,30 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
                 return Json(new { success = true, msg = "Đã xóa công ty!" });
             }
-            catch (Exception) { return Json(new { success = false, msg = "Không thể xóa vì công ty này đang được sử dụng ở Bộ phận hoặc Thiết bị." }); }
+            catch (Exception) { return Json(new { success = false, msg = "Không thể xóa vì công ty này đang được sử dụng." }); }
         }
 
         // ==================== BỘ PHẬN ====================
         [HttpGet("/QLKiemKe/GetKkBoPhans")]
         public IActionResult GetKkBoPhans()
         {
-            var data = _context.KkBoPhans
-                .Select(x => new
-                {
-                    x.IdboPhan,
-                    x.TenBoPhan,
-                    x.IdcongTy,
-                    TenCongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : "",
-                    x.GhiChu,
-                    x.NgayTao,
-                    x.TrangThai
-                })
-                .OrderByDescending(x => x.IdboPhan).ToList();
-            return Json(new { data = data });
+            try
+            {
+                var data = _context.KkBoPhans
+                    .Select(x => new
+                    {
+                        x.IdboPhan,
+                        x.TenBoPhan,
+                        x.IdcongTy,
+                        TenCongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : "",
+                        x.GhiChu,
+                        x.NgayTao,
+                        x.TrangThai
+                    })
+                    .OrderByDescending(x => x.IdboPhan).ToList();
+                return Json(new { success = true, data = data });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
         }
 
         [HttpPost("/QLKiemKe/SaveKkBoPhan")]
@@ -3804,33 +3939,62 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
                 return Json(new { success = true, msg = "Đã xóa bộ phận!" });
             }
-            catch (Exception) { return Json(new { success = false, msg = "Không thể xóa vì bộ phận này đang được sử dụng ở Thiết bị." }); }
+            catch (Exception) { return Json(new { success = false, msg = "Không thể xóa vì bộ phận này đang được sử dụng." }); }
         }
 
         // ==================== THIẾT BỊ ====================
         [HttpGet("/QLKiemKe/GetKkThietBis")]
         public IActionResult GetKkThietBis()
         {
-            var data = _context.KkThietBis
-                .Select(x => new
+            try
+            {
+                // DỌN DẸP THIẾT BỊ ĐÃ XÓA QUÁ 1 THÁNG (Dựa vào NgayXoa)
+                var oneMonthAgo = DateTime.Now.AddMonths(-1);
+                var itemsToDelete = _context.KkThietBis
+                    .Include(x => x.IdTrangThaiNavigation)
+                    .Where(x => x.IdTrangThaiNavigation != null
+                             && x.IdTrangThaiNavigation.TenTrangThai.ToLower() == "xóa"
+                             && x.NgayXoa.HasValue
+                             && x.NgayXoa.Value <= oneMonthAgo)
+                    .ToList();
+
+                if (itemsToDelete.Any())
                 {
-                    x.IdThietBi,
-                    x.TenThietBi,
-                    x.TenMayTinh,
-                    x.TenDangNhap,
-                    x.LoaiThietBi,
-                    x.GhiChu,
-                    x.IdNguoiDung,
-                    TenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : "",
-                    x.IdcongTy,
-                    TenCongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : "",
-                    x.IdboPhan,
-                    TenBoPhan = x.IdboPhanNavigation != null ? x.IdboPhanNavigation.TenBoPhan : "",
-                    x.NgayTao,
-                    x.NgayCapNhat
-                })
-                .OrderByDescending(x => x.IdThietBi).ToList();
-            return Json(new { data = data });
+                    foreach (var del in itemsToDelete)
+                    {
+                        GhiLichSu("Xóa vĩnh viễn", "Thiết Bị", del.IdThietBi, $"Hệ thống tự động hủy thiết bị (Hostname: {del.TenMayTinh}) do nằm trong thùng rác quá 1 tháng.");
+                    }
+                    _context.KkThietBis.RemoveRange(itemsToDelete);
+                    _context.SaveChanges();
+                }
+
+                // Trả về kèm NgayXoa và LyDoXoa để làm Tab Đã Xóa
+                var data = _context.KkThietBis
+                    .Select(x => new
+                    {
+                        x.IdThietBi,
+                        x.TenThietBi,
+                        x.TenMayTinh,
+                        x.TenDangNhap,
+                        x.LoaiThietBi,
+                        x.GhiChu,
+                        x.IdNguoiDung,
+                        TenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : "",
+                        x.IdcongTy,
+                        TenCongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : "",
+                        x.IdboPhan,
+                        TenBoPhan = x.IdboPhanNavigation != null ? x.IdboPhanNavigation.TenBoPhan : "",
+                        x.IdTrangThai,
+                        TenTrangThai = x.IdTrangThaiNavigation != null ? x.IdTrangThaiNavigation.TenTrangThai : "",
+                        x.NgayTao,
+                        x.NgayCapNhat,
+                        NgayXoa = x.NgayXoa,
+                        LyDoXoa = x.LyDoXoa
+                    })
+                    .OrderByDescending(x => x.IdThietBi).ToList();
+                return Json(new { success = true, data = data });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
         }
 
         [HttpPost("/QLKiemKe/SaveKkThietBi")]
@@ -3838,34 +4002,30 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             try
             {
-                // CẬP NHẬT: Đổi check trùng từ Tên Thiết Bị sang Tên Máy Tính (Hostname)
                 bool isDuplicate = false;
                 if (!string.IsNullOrWhiteSpace(model.TenMayTinh))
                 {
                     if (model.IdThietBi == 0)
-                    {
                         isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh.ToLower().Trim() == model.TenMayTinh.ToLower().Trim());
-                    }
                     else
-                    {
                         isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh.ToLower().Trim() == model.TenMayTinh.ToLower().Trim() && x.IdThietBi != model.IdThietBi);
-                    }
                 }
 
                 if (isDuplicate)
-                {
                     return Json(new { success = false, msg = $"Tên máy tính (Hostname) '{model.TenMayTinh}' đã tồn tại trong hệ thống. Vui lòng kiểm tra lại!" });
-                }
 
-                // Chống null nếu Tên Thiết Bị bị để trống
                 if (string.IsNullOrWhiteSpace(model.TenThietBi)) model.TenThietBi = "";
 
                 string action = model.IdThietBi == 0 ? "Thêm mới" : "Cập nhật";
                 int objId = model.IdThietBi;
 
+                var statusCheck = _context.KkTrangThais.Find(model.IdTrangThai);
+                string statusName = statusCheck != null ? statusCheck.TenTrangThai : "Chưa rõ";
+
                 if (model.IdThietBi == 0)
                 {
                     model.NgayTao = DateTime.Now;
+                    model.NgayCapNhat = DateTime.Now;
                     _context.KkThietBis.Add(model);
                 }
                 else
@@ -3881,12 +4041,19 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         existing.IdNguoiDung = model.IdNguoiDung;
                         existing.IdcongTy = model.IdcongTy;
                         existing.IdboPhan = model.IdboPhan;
+                        existing.IdTrangThai = model.IdTrangThai;
                         existing.NgayCapNhat = DateTime.Now;
+
+                        // Nếu cập nhật thoát khỏi trạng thái Xóa thì clear ngày xóa & lý do xóa
+                        if (statusName.ToLower() != "xóa")
+                        {
+                            existing.NgayXoa = null;
+                            existing.LyDoXoa = null;
+                        }
                     }
                 }
                 _context.SaveChanges();
 
-                // =============== LẤY THÊM TÊN ĐỂ LƯU LỊCH SỬ ===============
                 if (objId == 0) objId = model.IdThietBi;
 
                 string tenNguoiDung = "Chưa cấp phát";
@@ -3903,9 +4070,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     if (bp != null) tenBoPhan = bp.TenBoPhan;
                 }
 
-                // Nối chuỗi chi tiết
-                string chiTietLog = $"Tên máy tính: {model.TenMayTinh} | Account: {model.TenDangNhap} | Người dùng: {tenNguoiDung} | Bộ phận: {tenBoPhan} | Loại: {model.LoaiThietBi} | Mã/Serial: {model.TenThietBi}";
-
+                string chiTietLog = $"Máy tính: {model.TenMayTinh} | Trạng thái: {statusName} | Account: {model.TenDangNhap} | N.Dùng: {tenNguoiDung} | B.Phận: {tenBoPhan} | Loại: {model.LoaiThietBi}";
                 GhiLichSu(action, "Thiết Bị", objId, chiTietLog);
 
                 return Json(new { success = true, msg = "Lưu thiết bị thành công!" });
@@ -3913,42 +4078,66 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
         }
 
+        // NÚT XÓA: Chuyển vào thùng rác
         [HttpPost("/QLKiemKe/DeleteKkThietBi")]
-        public IActionResult DeleteKkThietBi(int id)
+        public IActionResult DeleteKkThietBi(int id, string lyDo)
         {
             try
             {
                 var item = _context.KkThietBis.Find(id);
                 if (item != null)
                 {
-                    // =============== LẤY THÊM TÊN ĐỂ LƯU LỊCH SỬ TRƯỚC KHI XÓA ===============
-                    string tenNguoiDung = "Chưa cấp phát";
-                    if (item.IdNguoiDung.HasValue)
+                    var statusXoa = _context.KkTrangThais.FirstOrDefault(x => x.TenTrangThai.ToLower() == "xóa");
+                    if (statusXoa == null)
                     {
-                        var user = _context.Users.Find(item.IdNguoiDung.Value);
-                        if (user != null) tenNguoiDung = user.HoTen;
+                        statusXoa = new KkTrangThai { TenTrangThai = "Xóa", MoTa = "Đã xóa (Chờ hủy 30 ngày)" };
+                        _context.KkTrangThais.Add(statusXoa);
+                        _context.SaveChanges();
                     }
 
-                    string tenBoPhan = "Chưa gắn";
-                    if (item.IdboPhan.HasValue)
-                    {
-                        var bp = _context.KkBoPhans.Find(item.IdboPhan.Value);
-                        if (bp != null) tenBoPhan = bp.TenBoPhan;
-                    }
+                    item.IdTrangThai = statusXoa.IdTrangThai;
+                    item.NgayCapNhat = DateTime.Now;
 
-                    string chiTietLog = $"Đã xóa: Tên máy tính: {item.TenMayTinh} | Account: {item.TenDangNhap} | Người dùng: {tenNguoiDung} | Bộ phận: {tenBoPhan} | Loại: {item.LoaiThietBi} | Mã/Serial: {item.TenThietBi}";
+                    // Lưu dữ liệu vào 2 cột riêng biệt
+                    item.NgayXoa = DateTime.Now;
+                    item.LyDoXoa = lyDo;
 
-                    _context.KkThietBis.Remove(item);
                     _context.SaveChanges();
 
-                    GhiLichSu("Xóa", "Thiết Bị", id, chiTietLog);
+                    string chiTietLog = $"Chuyển vào thùng rác. Tên máy tính: {item.TenMayTinh} | Lý do: {lyDo} | Chờ hủy sau 1 tháng.";
+                    GhiLichSu("Xóa (Tạm)", "Thiết Bị", id, chiTietLog);
                 }
-                return Json(new { success = true, msg = "Đã xóa thiết bị!" });
+                return Json(new { success = true, msg = "Đã chuyển thiết bị vào Thùng Rác!" });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        // NÚT KHÔI PHỤC: Lấy lại từ thùng rác
+        [HttpPost("/QLKiemKe/RestoreKkThietBi")]
+        public IActionResult RestoreKkThietBi(int id)
+        {
+            try
+            {
+                var item = _context.KkThietBis.Find(id);
+                if (item != null)
+                {
+                    // Lấy trạng thái mặc định (ví dụ: Đang hoạt động) hoặc bỏ trống
+                    var statusHoatDong = _context.KkTrangThais.FirstOrDefault(x => x.TenTrangThai.ToLower() == "đang hoạt động");
+
+                    item.IdTrangThai = statusHoatDong?.IdTrangThai;
+                    item.NgayXoa = null;
+                    item.LyDoXoa = null;
+                    item.NgayCapNhat = DateTime.Now;
+
+                    _context.SaveChanges();
+
+                    GhiLichSu("Khôi phục", "Thiết Bị", id, $"Đã khôi phục thiết bị: {item.TenMayTinh}");
+                }
+                return Json(new { success = true, msg = "Khôi phục thiết bị thành công!" });
             }
             catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
         }
 
         #endregion
-
     }
-}
+    }

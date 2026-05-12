@@ -1,9 +1,9 @@
 ﻿@{
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Quản lý Kiểm Kê (Công ty, Bộ phận, Thiết bị, Lịch Sử)";
+    ViewData["Title"] = "Quản lý Kiểm Kê (Công ty, Bộ phận, Thiết bị, Trạng thái, Lịch Sử)";
 }
 
-<!-- THÊM THƯ VIỆN SELECT2 & FONT AWESOME 6 ĐỂ HIỂN THỊ ICON VÀ Ô TÌM KIẾM -->
+<!-- THÊM THƯ VIỆN SELECT2 & FONT AWESOME 6 -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -16,7 +16,7 @@
                 </h4>
             </div>
             <div class="col-md-6 col-12 text-md-end text-start">
-                <button class="btn btn-sm rounded-pill px-3 shadow-sm text-white w-100 w-md-auto" style="background-color: #4f46e5; border-color: #4f46e5; padding-top: 8px; padding-bottom: 8px;" onclick="openModalCurrentTab()">
+                <button class="btn btn-sm rounded-pill px-3 shadow-sm text-white w-100 w-md-auto" style="background-color: #4f46e5; border-color: #4f46e5; padding-top: 8px; padding-bottom: 8px;" onclick="openModalCurrentTab()" id="btnMasterThemMoi">
                     <i class="fas fa-plus me-1"></i> Thêm mới <span id="txtBtnThemMoi">Thiết bị</span>
                 </button>
             </div>
@@ -30,6 +30,12 @@
             <div class="card-header bg-white pt-3 pb-0 border-0" style="border-radius: 15px 15px 0 0;">
                 <!-- TABS -->
                 <ul class="nav nav-tabs border-bottom flex-nowrap overflow-x-auto" id="myTab" role="tablist" style="border-color: #e2e8f0; white-space: nowrap; -webkit-overflow-scrolling: touch;">
+                    <!-- TAB THỐNG KÊ (MỚI) -->
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold text-muted px-4 py-2" style="border: none; border-radius: 10px 10px 0 0; background-color: transparent;" id="thongke-tab" data-bs-toggle="tab" data-bs-target="#thongke" type="button" role="tab" onclick="changeTab('Tổng quan', this)">
+                            <i class="fas fa-chart-pie me-1"></i> Tổng quan
+                        </button>
+                    </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active fw-bold px-4 py-2" style="border: none; border-radius: 10px 10px 0 0; background-color: transparent;" id="thietbi-tab" data-bs-toggle="tab" data-bs-target="#thietbi" type="button" role="tab" onclick="changeTab('Thiết bị', this)">
                             <i class="fas fa-laptop me-1"></i> Thiết bị
@@ -46,29 +52,38 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold text-muted px-4 py-2" style="border: none; border-radius: 10px 10px 0 0; background-color: transparent;" id="trangthai-tab" data-bs-toggle="tab" data-bs-target="#trangthai" type="button" role="tab" onclick="changeTab('Trạng thái', this)">
+                            <i class="fas fa-info-circle me-1"></i> Trạng thái
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold text-muted px-4 py-2" style="border: none; border-radius: 10px 10px 0 0; background-color: transparent;" id="daxoa-tab" data-bs-toggle="tab" data-bs-target="#daxoa" type="button" role="tab" onclick="changeTab('Đã xóa', this)">
+                            <i class="fas fa-trash-alt me-1"></i> Đã xóa
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
                         <button class="nav-link fw-bold text-muted px-4 py-2" style="border: none; border-radius: 10px 10px 0 0; background-color: transparent;" id="lichsu-tab" data-bs-toggle="tab" data-bs-target="#lichsu" type="button" role="tab" onclick="changeTab('Lịch sử', this)">
-                            <i class="fas fa-history me-1"></i> Lịch sử thao tác
+                            <i class="fas fa-history me-1"></i> Lịch sử
                         </button>
                     </li>
                 </ul>
             </div>
             
             <div class="card-body p-2 p-md-3">
-                <!-- BẮT ĐẦU: KHU VỰC THANH LỌC (FILTER BAR) -->
+                <!-- KHU VỰC THANH LỌC -->
                 <div class="row mb-3 pb-3 border-bottom align-items-center" id="filterBar" style="background: #f8fafc; padding: 15px; border-radius: 10px; margin: 0 5px;">
-                    <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
+                    <div class="col-md-2 col-sm-6 mb-2 mb-md-0">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-building"></i> Công ty</label>
                         <select id="filterCongTy" class="form-select select2-filter rounded-3 border-0 shadow-sm">
                             <option value="">-- Tất cả Công ty --</option>
                         </select>
                     </div>
-                    <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
+                    <div class="col-md-2 col-sm-6 mb-2 mb-md-0">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sitemap"></i> Bộ phận</label>
                         <select id="filterBoPhan" class="form-select select2-filter rounded-3 border-0 shadow-sm">
                             <option value="">-- Tất cả Bộ phận --</option>
                         </select>
                     </div>
-                    <!-- THÊM LỌC: LOẠI THIẾT BỊ -->
                     <div class="col-md-2 col-sm-4 mb-2 mb-md-0">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-tags"></i> Loại thiết bị</label>
                         <select id="filterLoai" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
@@ -79,6 +94,12 @@
                             <option value="Switch">Switch</option>
                             <option value="Loa">Loa</option>
                             <option value="Khác">Khác</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-sm-4 mb-2 mb-md-0" id="boxFilterTrangThai">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-info-circle"></i> Trạng thái</label>
+                        <select id="filterTrangThai" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
+                            <option value="">-- Tất cả --</option>
                         </select>
                     </div>
                     <div class="col-md-2 col-sm-4 mb-2 mb-md-0">
@@ -95,10 +116,34 @@
                         <button class="btn btn-outline-secondary rounded-pill px-3 shadow-sm w-100" onclick="clearFilters()" style="height: 38px;"><i class="fas fa-sync-alt"></i> Bỏ lọc</button>
                     </div>
                 </div>
-                <!-- KẾT THÚC: KHU VỰC THANH LỌC -->
 
                 <div class="tab-content" id="myTabContent">
                     
+                    <!-- TAB THỐNG KÊ (TỔNG QUAN) -->
+                    <div class="tab-pane fade" id="thongke" role="tabpanel">
+                        <div class="row g-3 mb-4" id="boxThongKeCards">
+                            <!-- JS Sẽ tự động vẽ 4 thẻ (Tổng số, Đang hoạt động, Hỏng, Chưa cấp phát) vào đây -->
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                                    <div class="card-header bg-white border-0 fw-bold pt-3 pb-0"><i class="fas fa-chart-bar text-primary me-1"></i> Số lượng theo Loại thiết bị</div>
+                                    <div class="card-body">
+                                        <canvas id="chartLoaiThietBi" style="max-height: 300px;"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                                    <div class="card-header bg-white border-0 fw-bold pt-3 pb-0"><i class="fas fa-chart-pie text-success me-1"></i> Tỷ lệ theo Trạng thái</div>
+                                    <div class="card-body d-flex justify-content-center">
+                                        <canvas id="chartTrangThai" style="max-height: 300px;"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- TAB THIẾT BỊ (MẶC ĐỊNH) -->
                     <div class="tab-pane fade show active" id="thietbi" role="tabpanel">
                         <div class="table-responsive">
@@ -108,8 +153,8 @@
                                         <th width="70">ID</th>
                                         <th>Tên Thiết Bị</th>
                                         <th>Thông tin máy</th>
-                                        <th>Người dùng</th>
-                                        <th>Vị trí (CT/BP)</th>
+                                        <th>Người dùng & Vị trí</th>
+                                        <th>Trạng thái</th>
                                         <th width="120" class="text-center">Thao tác</th>
                                     </tr>
                                 </thead>
@@ -156,10 +201,46 @@
                         </div>
                     </div>
 
+                    <!-- TAB TRẠNG THÁI -->
+                    <div class="tab-pane fade" id="trangthai" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" style="min-width: 100%;">
+                                <thead class="table-light d-none d-md-table-header-group">
+                                    <tr>
+                                        <th width="70">ID</th>
+                                        <th>Tên Trạng Thái</th>
+                                        <th>Mô tả / Ghi chú</th>
+                                        <th width="120" class="text-center">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyTrangThai"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TAB ĐÃ XÓA (THÙNG RÁC) -->
+                    <div class="tab-pane fade" id="daxoa" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" style="min-width: 100%;">
+                                <thead class="table-light d-none d-md-table-header-group">
+                                    <tr>
+                                        <th width="70">ID</th>
+                                        <th>Thông tin máy</th>
+                                        <th>Vị trí cũ</th>
+                                        <th>Ngày Xóa</th>
+                                        <th>Lý do xóa</th>
+                                        <th width="120" class="text-center">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyDaXoa"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <!-- TAB LỊCH SỬ THAO TÁC -->
                     <div class="tab-pane fade" id="lichsu" role="tabpanel">
                         <div class="d-flex justify-content-end mb-3">
-                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="loadLichSu(true)"><i class="fas fa-sync-alt me-1"></i>Làm mới lịch sử từ Server</button>
+                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="loadLichSu(true)"><i class="fas fa-sync-alt me-1"></i>Làm mới</button>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0" style="min-width: 100%;">
@@ -168,7 +249,7 @@
                                         <th width="160">Thời gian</th>
                                         <th width="150">Người thao tác</th>
                                         <th width="120">Hành động</th>
-                                        <th width="120">Đối tượng (ID)</th>
+                                        <th width="150">Đối tượng</th>
                                         <th>Chi tiết</th>
                                     </tr>
                                 </thead>
@@ -183,6 +264,7 @@
     </div>
 </section>
 
+<!-- CÁC MODAL THÊM/SỬA DỮ LIỆU -->
 <!-- MODAL CÔNG TY -->
 <div class="modal fade" id="modalCongTy" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -199,7 +281,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Ghi chú</label>
-                    <textarea id="ct_GhiChu" class="form-control rounded-3" rows="2" placeholder="Ghi chú..." style="border: 1px solid #e2e8f0; padding: 10px 15px;"></textarea>
+                    <textarea id="ct_GhiChu" class="form-control rounded-3" rows="2" style="border: 1px solid #e2e8f0; padding: 10px 15px;"></textarea>
                 </div>
                 <div class="form-check form-switch mt-3">
                     <input class="form-check-input" type="checkbox" id="ct_TrangThai" checked style="cursor: pointer; transform: scale(1.2); margin-top: 0.3rem;">
@@ -251,6 +333,33 @@
     </div>
 </div>
 
+<!-- MODAL TRẠNG THÁI -->
+<div class="modal fade" id="modalTrangThai" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header text-white border-0" style="background-color: #8b5cf6; border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title fw-bold" id="titleModalTrangThai">Thông tin Trạng thái</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="tt_Id" value="0" />
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Tên trạng thái <span class="text-danger">*</span></label>
+                    <input type="text" id="tt_Ten" class="form-control rounded-3" placeholder="Ví dụ: Đang hoạt động, Hỏng..." style="border: 1px solid #e2e8f0; padding: 10px 15px;" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Mô tả / Ghi chú</label>
+                    <textarea id="tt_GhiChu" class="form-control rounded-3" rows="2" style="border: 1px solid #e2e8f0; padding: 10px 15px;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0 bg-light" style="border-radius: 0 0 20px 20px;">
+                <button type="button" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn text-white px-4 rounded-pill" style="background-color: #8b5cf6;" onclick="saveTrangThai()">Lưu dữ liệu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL THIẾT BỊ -->
 <div class="modal fade" id="modalThietBi" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -263,7 +372,7 @@
                 <input type="hidden" id="tb_Id" value="0" />
                 
                 <div class="row g-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label fw-bold">Loại thiết bị <span class="text-danger">*</span></label>
                         <select id="tb_LoaiThietBi" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
                             <option value="">-- Chọn loại --</option>
@@ -275,10 +384,15 @@
                             <option value="Khác">Khác...</option>
                         </select>
                     </div>
-                    <div class="col-md-6">
-                        <!-- ĐÃ BỎ YÊU CẦU BẮT BUỘC (*) Ở TÊN THIẾT BỊ -->
+                    <div class="col-md-4">
                         <label class="form-label fw-bold">Tên thiết bị (Mã/Serial)</label>
                         <input type="text" id="tb_TenThietBi" class="form-control rounded-3" placeholder="VD: LAPTOP DELL XPS..." style="border: 1px solid #e2e8f0; height: 45px; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold" style="color: #8b5cf6;">Trạng thái <span class="text-danger">*</span></label>
+                        <select id="tb_IdTrangThai" class="form-select rounded-3" style="border: 1px solid #8b5cf6; height: 45px;">
+                            <option value="">-- Chọn trạng thái --</option>
+                        </select>
                     </div>
 
                     <div class="col-md-6">
@@ -291,8 +405,8 @@
                     </div>
 
                     <div class="col-md-12">
-                        <label class="form-label fw-bold">Ghi chú</label>
-                        <input type="text" id="tb_GhiChu" class="form-control rounded-3" placeholder="Thông tin thêm (Cấu hình, tình trạng...)" style="border: 1px solid #e2e8f0; height: 45px;" />
+                        <label class="form-label fw-bold">Ghi chú (Cấu hình, thông tin...)</label>
+                        <input type="text" id="tb_GhiChu" class="form-control rounded-3" placeholder="Thông tin thêm..." style="border: 1px solid #e2e8f0; height: 45px;" />
                     </div>
 
                     <div class="col-12 mt-4 mb-2">
@@ -335,28 +449,29 @@
 </div>
 
 @section Scripts {
-    <!-- THÊM JS SELECT2 VÀO SECTION SCRIPTS ĐỂ ĐẢM BẢO HOẠT ĐỘNG -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Thư viện Chart.js để vẽ biểu đồ thống kê -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <script>
         var currentTab = 'Thiết bị';
         
-        // CÁC BIẾN CACHE GLOBAL CHỨA TOÀN BỘ DATA TỪ SERVER ĐỂ RENDER MƯỢT MÀ
         let listCongTyCache = [];
         let listBoPhanCache = [];
+        let listTrangThaiCache = [];
         let allThietBiCache = [];
         let allLichSuCache = [];
+
+        // Biến lưu biểu đồ để cập nhật lại thay vì vẽ đè
+        let chartLoai = null;
+        let chartTT = null;
 
         $(document).ready(function () {
         stylizeActiveTab(document.getElementById('thietbi-tab'));
 
-        // KHỞI TẠO SELECT2 CHO Ô LỌC TRÊN THANH CÔNG CỤ
         if($.fn.select2) {
-        $('.select2-filter').select2({
-        width: '100%',
-        minimumResultsForSearch: 0
-        });
-
+        $('.select2-filter').select2({ width: '100%', minimumResultsForSearch: 0 });
         $('.select2-modal').select2({
         dropdownParent: $('#modalThietBi'),
         placeholder: "-- Chọn người dùng --",
@@ -367,9 +482,7 @@
 
         $(document).on('select2:open', () => {
         let searchField = document.querySelector('.select2-search__field');
-        if (searchField) {
-        setTimeout(() => { searchField.focus(); }, 10);
-        }
+        if (searchField) { setTimeout(() => { searchField.focus(); }, 10); }
         });
 
         setTimeout(() => {
@@ -381,27 +494,17 @@
         }, 200);
         }
 
-        // GÁN GIÁ TRỊ BAN ĐẦU TỪ LOCALSTORAGE (NẾU CÓ)
         let savedLimit = localStorage.getItem('kk_filterLimit') || '50';
         $('#filterLimit').val(savedLimit);
-            
+                
         let savedLoai = localStorage.getItem('kk_filterLoai') || '';
         $('#filterLoai').val(savedLoai);
 
-        // BẮT SỰ KIỆN KHI THAY ĐỔI LỌC
-        $('#filterCongTy').on('change', function() {
-        renderFilterBoPhan();
-        applyFilters();
-        });
+        $('#filterCongTy').on('change', function() { renderFilterBoPhan(); applyFilters(); });
+        $('#filterBoPhan, #filterLimit, #filterLoai, #filterTrangThai').on('change', function() { applyFilters(); });
 
-        $('#filterBoPhan, #filterLimit, #filterLoai').on('change', function() {
-        applyFilters();
-        });
-
-        // TẢI DATA
-        loadCongTy();
-            
-        // Clear modal khi đóng
+        loadTrangThai();
+                
         $('.modal').on('hidden.bs.modal', function () {
         $(this).find('input[type="text"], textarea').val('');
         $(this).find('input[type="hidden"]').val('0');
@@ -409,7 +512,6 @@
         $(this).find('input[type="checkbox"]').prop('checked', true);
         });
 
-        // Lọc Bộ Phận theo Công Ty trong Modal Thiết bị
         $('#tb_IdCongTy').on('change', function() {
         let idCT = $(this).val();
         let html = '<option value="">-- Chọn bộ phận --</option>';
@@ -424,8 +526,18 @@
         });
 
         // ==========================================
-        // CÁC HÀM XỬ LÝ LỌC VÀ LƯU STATE LOCALSTORAGE
+        // CÁC HÀM XỬ LÝ LỌC
         // ==========================================
+        function renderFilterTrangThai() {
+        let savedTT = localStorage.getItem('kk_filterTT') || '';
+        let html = '<option value="">-- Tất cả --</option>';
+        listTrangThaiCache.forEach(c => {
+        html += `<option value="${c.idTrangThai}" ${c.idTrangThai == savedTT ? 'selected' : ''}>${c.tenTrangThai}</option>`;
+        });
+        $('#filterTrangThai').html(html);
+        fillSelectTrangThai('#tb_IdTrangThai');
+        }
+
         function renderFilterCongTy() {
         let savedCT = localStorage.getItem('kk_filterCT') || '';
         let html = '<option value="">-- Tất cả Công ty --</option>';
@@ -439,17 +551,15 @@
         let savedBP = localStorage.getItem('kk_filterBP') || '';
         let fCT = $('#filterCongTy').val();
         let html = '<option value="">-- Tất cả Bộ phận --</option>';
-            
+                
         let filteredBPs = listBoPhanCache;
-        if(fCT) {
-        filteredBPs = listBoPhanCache.filter(b => b.idcongTy == fCT);
-        }
+        if(fCT) filteredBPs = listBoPhanCache.filter(b => b.idcongTy == fCT);
 
         filteredBPs.forEach(b => {
         let extendName = (!fCT && b.tenCongTy) ? ` (${b.tenCongTy})` : '';
         html += `<option value="${b.idboPhan}" ${b.idboPhan == savedBP ? 'selected' : ''}>${b.tenBoPhan}${extendName}</option>`;
         });
-            
+                
         $('#filterBoPhan').html(html);
         if(!filteredBPs.some(b => b.idboPhan == savedBP)) {
         $('#filterBoPhan').val('');
@@ -462,11 +572,14 @@
         localStorage.setItem('kk_filterCT', $('#filterCongTy').val() || '');
         localStorage.setItem('kk_filterBP', $('#filterBoPhan').val() || '');
         localStorage.setItem('kk_filterLoai', $('#filterLoai').val() || '');
+        localStorage.setItem('kk_filterTT', $('#filterTrangThai').val() || '');
         localStorage.setItem('kk_filterLimit', $('#filterLimit').val());
 
         renderUIThietBi();
+        renderUIDaXoa();
         renderUIBoPhan();
         renderUICongTy();
+        renderUITrangThai();
         renderUILichSu();
         }
 
@@ -474,29 +587,42 @@
         localStorage.removeItem('kk_filterCT');
         localStorage.removeItem('kk_filterBP');
         localStorage.removeItem('kk_filterLoai');
+        localStorage.removeItem('kk_filterTT');
         localStorage.setItem('kk_filterLimit', '50');
 
         $('#filterCongTy').val('').trigger('change.select2');
         renderFilterBoPhan();
         $('#filterBoPhan').val('').trigger('change.select2');
-        $('#filterLoai').val('');
+        $('#filterLoai, #filterTrangThai').val('');
         $('#filterLimit').val('50');
 
         applyFilters();
         }
 
-
         // ==========================================
-        // UI TABS & MODALS MẶC ĐỊNH
+        // UI TABS & MODALS
         // ==========================================
         function changeTab(tabName, element) {
         currentTab = tabName;
-            
-        if(tabName === 'Lịch sử') {
-        $('#txtBtnThemMoi').parent().hide();
+
+        // Ẩn / Hiện nút Thêm mới
+        if(tabName === 'Lịch sử' || tabName === 'Đã xóa' || tabName === 'Tổng quan') {
+        $('#btnMasterThemMoi').parent().hide();
         } else {
-        $('#txtBtnThemMoi').parent().show();
+        $('#btnMasterThemMoi').parent().show();
         $('#txtBtnThemMoi').text(tabName);
+        }
+
+        // Xử lý hiển thị thanh công cụ bộ lọc
+        if(tabName === 'Tổng quan') {
+        $('#filterBar').hide();
+        } else {
+        $('#filterBar').show();
+        if(tabName === 'Đã xóa') {
+        $('#boxFilterTrangThai').hide();
+        } else {
+        $('#boxFilterTrangThai').show();
+        }
         }
 
         $('.nav-link').removeClass('active').addClass('text-muted').css({'border-bottom': 'none', 'color': '#64748b'});
@@ -505,8 +631,7 @@
 
         function stylizeActiveTab(element) {
         if(!element) return;
-        $(element).addClass('active').removeClass('text-muted');
-        $(element).css({'border-bottom': '3px solid #4f46e5', 'color': '#4f46e5'});
+        $(element).addClass('active').removeClass('text-muted').css({'border-bottom': '3px solid #4f46e5', 'color': '#4f46e5'});
         }
 
         function openModalCurrentTab() {
@@ -521,63 +646,306 @@
         $('#titleModalThietBi').text("Thêm Thiết bị mới");
         fillSelectCongTy('#tb_IdCongTy');
         fillSelectBoPhan('#tb_IdBoPhan');
+        fillSelectTrangThai('#tb_IdTrangThai');
         $('#modalThietBi').modal('show');
+        } else if (currentTab === 'Trạng thái') {
+        $('#titleModalTrangThai').text("Thêm Trạng thái mới");
+        $('#modalTrangThai').modal('show');
         }
         }
 
+        // ==========================================
+        // TẢI DỮ LIỆU
+        // ==========================================
+        function loadTrangThai() {
+        $.get('/QLKiemKe/GetKkTrangThais', function (res) {
+        if (res && res.success) {
+        listTrangThaiCache = res.data || [];
+        renderFilterTrangThai();
+        renderUITrangThai();
+        } else console.error("Lỗi API Trạng thái: " + (res.msg || ""));
+        loadCongTy();
+        }).fail(function() {
+        Swal.fire("Lỗi Máy Chủ", "Không thể tải dữ liệu trạng thái!", "error");
+        loadCongTy();
+        });
+        }
 
-        // ==========================================
-        // HÀM TẢI DỮ LIỆU TỪ SERVER VÀ GÁN VÀO CACHE GLOBAL
-        // ==========================================
-        
         function loadCongTy() {
         $.get('/QLKiemKe/GetKkCongTys', function (res) {
-        listCongTyCache = res.data || [];
-        renderFilterCongTy();
-        renderUICongTy();
+        if (res && res.success) { listCongTyCache = res.data || []; renderFilterCongTy(); renderUICongTy(); }
         loadBoPhan();
-        });
+        }).fail(function() { loadBoPhan(); });
         }
 
         function loadBoPhan() {
         $.get('/QLKiemKe/GetKkBoPhans', function (res) {
-        listBoPhanCache = res.data || [];
-        renderFilterBoPhan();
-        renderUIBoPhan();
+        if (res && res.success) { listBoPhanCache = res.data || []; renderFilterBoPhan(); renderUIBoPhan(); }
         loadThietBi();
-        });
+        }).fail(function() { loadThietBi(); });
         }
 
         function loadThietBi() {
         $.get('/QLKiemKe/GetKkThietBis', function (res) {
+        if (res && res.success) {
         allThietBiCache = res.data || [];
-        renderUIThietBi();
+        renderThongKe(); // Vẽ màn hình Tổng quan
+        renderUIThietBi(); // Vẽ tab Thiết bị
+        renderUIDaXoa();   // Vẽ tab Thùng rác
+        }
         loadLichSu();
-        });
+        }).fail(function() { loadLichSu(); });
         }
 
         function loadLichSu(forceReload = false) {
         if(forceReload || allLichSuCache.length === 0) {
         $.get('/QLKiemKe/GetLichSu', function (res) {
-        allLichSuCache = res.data || [];
-        renderUILichSu();
+        if (res && res.success) { allLichSuCache = res.data || []; renderUILichSu(); }
         });
-        } else {
-        renderUILichSu();
-        }
+        } else { renderUILichSu(); }
         }
 
+        // ==========================================
+        // HÀM RENDER THỐNG KÊ (DASHBOARD)
+        // ==========================================
+        function renderThongKe() {
+        // Lấy toàn bộ thiết bị đang không nằm trong thùng rác
+        let activeDevices = allThietBiCache.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
+
+        let total = activeDevices.length;
+        let dangHoatDong = activeDevices.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('hoạt động')).length;
+        let hongHoc = activeDevices.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('hỏng')).length;
+        let chuaCapPhat = activeDevices.filter(x => !x.idNguoiDung).length;
+
+        // Đổ HTML cho 4 thẻ bài cơ bản
+        $('#boxThongKeCards').html(`
+        <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white border-0 shadow-sm h-100" style="border-radius:15px">
+        <div class="card-body d-flex align-items-center">
+        <div class="me-3"><i class="fas fa-boxes fa-3x" style="opacity: 0.7;"></i></div>
+        <div><h3 class="mb-0 fw-bold">${total}</h3><div class="small">Tổng Thiết Bị (Thực tế)</div></div>
+        </div>
+        </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white border-0 shadow-sm h-100" style="border-radius:15px">
+        <div class="card-body d-flex align-items-center">
+        <div class="me-3"><i class="fas fa-check-circle fa-3x" style="opacity: 0.7;"></i></div>
+        <div><h3 class="mb-0 fw-bold">${dangHoatDong}</h3><div class="small">Đang Hoạt Động</div></div>
+        </div>
+        </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-danger text-white border-0 shadow-sm h-100" style="border-radius:15px">
+        <div class="card-body d-flex align-items-center">
+        <div class="me-3"><i class="fas fa-tools fa-3x" style="opacity: 0.7;"></i></div>
+        <div><h3 class="mb-0 fw-bold">${hongHoc}</h3><div class="small">Hỏng / Cần sửa</div></div>
+        </div>
+        </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-dark border-0 shadow-sm h-100" style="border-radius:15px">
+        <div class="card-body d-flex align-items-center">
+        <div class="me-3"><i class="fas fa-user-slash fa-3x" style="opacity: 0.7;"></i></div>
+        <div><h3 class="mb-0 fw-bold">${chuaCapPhat}</h3><div class="small">Chưa Cấp Phát N.Dùng</div></div>
+        </div>
+        </div>
+        </div>
+        `);
+
+        // Chuẩn bị Dữ liệu cho Biểu đồ Loại Thiết Bị
+        let countLoai = {};
+        activeDevices.forEach(d => {
+        let loai = d.loaiThietBi || 'Chưa rõ';
+        countLoai[loai] = (countLoai[loai] || 0) + 1;
+        });
+            
+        // Vẽ biểu đồ Bar (Cột)
+        if(chartLoai) chartLoai.destroy();
+        let ctxLoai = document.getElementById('chartLoaiThietBi').getContext('2d');
+        chartLoai = new Chart(ctxLoai, {
+        type: 'bar',
+        data: {
+        labels: Object.keys(countLoai),
+        datasets: [{
+        label: 'Số lượng thiết bị',
+        data: Object.values(countLoai),
+        backgroundColor: '#3b82f6',
+        borderRadius: 5
+        }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+
+        // Chuẩn bị Dữ liệu cho Biểu đồ Trạng Thái
+        let countTT = {};
+        activeDevices.forEach(d => {
+        let tt = d.tenTrangThai || 'Chưa rõ';
+        countTT[tt] = (countTT[tt] || 0) + 1;
+        });
+
+        // Vẽ biểu đồ Doughnut (Tròn)
+        if(chartTT) chartTT.destroy();
+        let ctxTT = document.getElementById('chartTrangThai').getContext('2d');
+        chartTT = new Chart(ctxTT, {
+        type: 'doughnut',
+        data: {
+        labels: Object.keys(countTT),
+        datasets: [{
+        data: Object.values(countTT),
+        backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4', '#64748b']
+        }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+        });
+        }
 
         // ==========================================
-        // HÀM RENDER HTML TỪ CACHE (ÁP DỤNG BỘ LỌC)
+        // RENDER CÁC BẢNG DỮ LIỆU
         // ==========================================
+        function renderUIThietBi() {
+        let fCT = $('#filterCongTy').val(); let fBP = $('#filterBoPhan').val(); let fLoai = $('#filterLoai').val(); let fTT = $('#filterTrangThai').val(); let fLimit = $('#filterLimit').val();
+
+        // Loại bỏ các thiết bị đã bị đưa vào Thùng rác
+        let filtered = allThietBiCache.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
+
+        if (fCT) filtered = filtered.filter(x => x.idcongTy == fCT);
+        if (fBP) filtered = filtered.filter(x => x.idboPhan == fBP);
+        if (fLoai) filtered = filtered.filter(x => x.loaiThietBi === fLoai);
+        if (fTT) filtered = filtered.filter(x => x.idTrangThai == fTT);
+        if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
+
+        let html = '';
+        filtered.forEach(item => {
+        let userStr = item.tenNguoiDung ? `<span class="text-success fw-bold"><i class="fas fa-user me-1"></i>${item.tenNguoiDung}</span>` : `<span class="text-muted fst-italic">Chưa cấp phát</span>`;
+        let locStr = [item.tenCongTy, item.tenBoPhan].filter(Boolean).join(' - ');
+        if(!locStr) locStr = "Chưa gắn";
+
+        let ttName = item.tenTrangThai || "Chưa gắn";
+        let badgeClass = ttName.toLowerCase().includes("hoạt động") ? "success" : "info";
+
+        html += `
+        <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">ID:</span>
+        ${item.idThietBi}
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Tên TB:</span>
+        <div class="fw-bold text-dark" style="font-size:15px;">${item.tenThietBi}</div>
+        <div class="small text-muted mt-1">Loại: <span class="badge bg-secondary">${item.loaiThietBi || 'N/A'}</span></div>
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Thông tin máy:</span>
+        <div class="small mb-1"><b>Host:</b> ${item.tenMayTinh || 'N/A'}</div>
+        <div class="small text-truncate d-inline-block text-end text-md-start" style="max-width:200px" title="${item.ghiChu || ''}"><b>Note:</b> ${item.ghiChu || ''}</div>
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Người dùng & Vị trí:</span>
+        ${userStr}
+        <br/><span class="small text-muted"><i class="fas fa-map-marker-alt mt-1"></i> ${locStr}</span>
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Trạng thái:</span>
+        <span class="badge bg-${badgeClass}">${ttName}</span>
+        </td>
+        <td class="d-block d-md-table-cell text-center border-0 py-3 py-md-2 mt-2 mt-md-0">
+        <div class="btn-group d-flex d-md-inline-flex w-100 w-md-auto">
+        <button class="btn btn-sm btn-outline-dark flex-fill flex-md-grow-0" onclick='editThietBi(${JSON.stringify(item).replace(/'/g, "&#39;")})'><i class="fas fa-edit"></i> Sửa</button>
+        <button class="btn btn-sm btn-outline-danger flex-fill flex-md-grow-0" onclick="deleteThietBi(${item.idThietBi})"><i class="fas fa-trash"></i> Xóa</button>
+        </div>
+        </td>
+        </tr>`;
+        });
+        $('#tbodyThietBi').html(html);
+        }
+
+        // RENDER TAB ĐÃ XÓA (THÙNG RÁC)
+        function renderUIDaXoa() {
+        let fCT = $('#filterCongTy').val(); let fBP = $('#filterBoPhan').val(); let fLoai = $('#filterLoai').val(); let fLimit = $('#filterLimit').val();
+
+        // CHỈ LẤY những thiết bị có trạng thái "Xóa"
+        let filtered = allThietBiCache.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa'));
+
+        if (fCT) filtered = filtered.filter(x => x.idcongTy == fCT);
+        if (fBP) filtered = filtered.filter(x => x.idboPhan == fBP);
+        if (fLoai) filtered = filtered.filter(x => x.loaiThietBi === fLoai);
+        if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
+
+        let html = '';
+        filtered.forEach(item => {
+        let locStr = [item.tenCongTy, item.tenBoPhan].filter(Boolean).join(' - ');
+        if(!locStr) locStr = "Chưa gắn";
+        let dateXoa = item.ngayXoa ? new Date(item.ngayXoa).toLocaleString('vi-VN') : 'Không rõ';
+
+        html += `
+        <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">ID:</span>
+        ${item.idThietBi}
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Thông tin:</span>
+        <div class="fw-bold text-dark" style="font-size:15px;">${item.tenMayTinh || 'N/A'}</div>
+        <div class="small text-muted mt-1">Mã: ${item.tenThietBi}</div>
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Vị trí cũ:</span>
+        <span class="small text-muted"><i class="fas fa-map-marker-alt"></i> ${locStr}</span>
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ngày xóa:</span>
+        <span class="text-danger fw-bold"><i class="fas fa-clock"></i> ${dateXoa}</span>
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Lý do:</span>
+        <span class="text-danger">${item.lyDoXoa || 'Không rõ lý do'}</span>
+        </td>
+        <td class="d-block d-md-table-cell text-center border-0 py-3 py-md-2 mt-2 mt-md-0">
+        <button class="btn btn-sm btn-outline-success w-100" onclick="restoreThietBi(${item.idThietBi})"><i class="fas fa-undo-alt"></i> Khôi phục</button>
+        </td>
+        </tr>`;
+        });
+
+        if (filtered.length === 0) {
+        html = `<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-box-open fs-2 mb-2 d-block"></i> Thùng rác rỗng</td></tr>`;
+        }
+        $('#tbodyDaXoa').html(html);
+        }
+
+        // Render các bảng khác...
+        function renderUITrangThai() {
+        let html = '';
+        listTrangThaiCache.forEach(item => {
+        let badgeClass = item.tenTrangThai.toLowerCase().includes("xóa") ? "danger" : (item.tenTrangThai.toLowerCase().includes("hoạt động") ? "success" : "info");
+        html += `
+        <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">ID:</span>
+        ${item.idTrangThai}
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Tên trạng thái:</span>
+        <span class="badge bg-${badgeClass} fs-6">${item.tenTrangThai}</span>
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ghi chú:</span>
+        ${item.moTa || ''}
+        </td>
+        <td class="d-block d-md-table-cell text-center border-0 py-3 py-md-2 mt-2 mt-md-0">
+        <div class="btn-group d-flex d-md-inline-flex w-100 w-md-auto">
+        <button class="btn btn-sm btn-outline-warning flex-fill flex-md-grow-0" onclick='editTrangThai(${JSON.stringify(item)})'><i class="fas fa-edit"></i> Sửa</button>
+        <button class="btn btn-sm btn-outline-danger flex-fill flex-md-grow-0" onclick="deleteTrangThai(${item.idTrangThai})"><i class="fas fa-trash"></i> Xóa</button>
+        </div>
+        </td>
+        </tr>`;
+        });
+        $('#tbodyTrangThai').html(html);
+        }
 
         function renderUICongTy() {
-        let fCT = $('#filterCongTy').val();
-        let fLimit = $('#filterLimit').val();
-
+        let fCT = $('#filterCongTy').val(); let fLimit = $('#filterLimit').val();
         let filtered = listCongTyCache;
-            
         if (fCT) filtered = filtered.filter(x => x.idcongTy == fCT);
         if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
 
@@ -585,7 +953,6 @@
         filtered.forEach(item => {
         let status = item.trangThai ? `<span class="badge bg-success">Hoạt động</span>` : `<span class="badge bg-danger">Khóa</span>`;
         let date = item.ngayTao ? new Date(item.ngayTao).toLocaleDateString('vi-VN') : '';
-                
         html += `
         <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
@@ -620,12 +987,8 @@
         }
 
         function renderUIBoPhan() {
-        let fCT = $('#filterCongTy').val();
-        let fBP = $('#filterBoPhan').val();
-        let fLimit = $('#filterLimit').val();
-
+        let fCT = $('#filterCongTy').val(); let fBP = $('#filterBoPhan').val(); let fLimit = $('#filterLimit').val();
         let filtered = listBoPhanCache;
-            
         if (fCT) filtered = filtered.filter(x => x.idcongTy == fCT);
         if (fBP) filtered = filtered.filter(x => x.idboPhan == fBP);
         if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
@@ -633,7 +996,6 @@
         let html = '';
         filtered.forEach(item => {
         let status = item.trangThai ? `<span class="badge bg-success">Hoạt động</span>` : `<span class="badge bg-danger">Khóa</span>`;
-                
         html += `
         <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
@@ -667,71 +1029,16 @@
         $('#tbodyBoPhan').html(html);
         }
 
-        function renderUIThietBi() {
-        let fCT = $('#filterCongTy').val();
-        let fBP = $('#filterBoPhan').val();
-        let fLoai = $('#filterLoai').val();
-        let fLimit = $('#filterLimit').val();
-
-        let filtered = allThietBiCache;
-
-        if (fCT) filtered = filtered.filter(x => x.idcongTy == fCT);
-        if (fBP) filtered = filtered.filter(x => x.idboPhan == fBP);
-        if (fLoai) filtered = filtered.filter(x => x.loaiThietBi === fLoai);
-        if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
-
-        let html = '';
-        filtered.forEach(item => {
-        let userStr = item.tenNguoiDung ? `<span class="text-success fw-bold"><i class="fas fa-user me-1"></i>${item.tenNguoiDung}</span>` : `<span class="text-muted fst-italic">Chưa cấp phát</span>`;
-        let locStr = [item.tenCongTy, item.tenBoPhan].filter(Boolean).join(' - ');
-        if(!locStr) locStr = "Chưa gắn";
-
-        html += `
-        <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">ID:</span>
-        ${item.idThietBi}
-        </td>
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Tên TB:</span>
-        <div class="fw-bold text-dark" style="font-size:15px;">${item.tenThietBi}</div>
-        <div class="small text-muted mt-1">Loại: <span class="badge bg-secondary">${item.loaiThietBi || 'N/A'}</span></div>
-        </td>
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Thông tin máy:</span>
-        <div class="small mb-1"><b>Host:</b> ${item.tenMayTinh || 'N/A'}</div>
-        <div class="small text-truncate d-inline-block text-end text-md-start" style="max-width:200px" title="${item.ghiChu || ''}"><b>Note:</b> ${item.ghiChu || ''}</div>
-        </td>
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Người dùng:</span>
-        ${userStr}
-        </td>
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Vị trí:</span>
-        ${locStr}
-        </td>
-        <td class="d-block d-md-table-cell text-center border-0 py-3 py-md-2 mt-2 mt-md-0">
-        <div class="btn-group d-flex d-md-inline-flex w-100 w-md-auto">
-        <button class="btn btn-sm btn-outline-dark flex-fill flex-md-grow-0" onclick='editThietBi(${JSON.stringify(item).replace(/'/g, "&#39;")})'><i class="fas fa-edit"></i> Sửa</button>
-        <button class="btn btn-sm btn-outline-danger flex-fill flex-md-grow-0" onclick="deleteThietBi(${item.idThietBi})"><i class="fas fa-trash"></i> Xóa</button>
-        </div>
-        </td>
-        </tr>`;
-        });
-        $('#tbodyThietBi').html(html);
-        }
-
         function renderUILichSu() {
         let fLimit = $('#filterLimit').val();
         let filtered = allLichSuCache;
-
         if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
 
         let html = '';
         filtered.forEach(item => {
         let date = item.thoiGian ? new Date(item.thoiGian).toLocaleString('vi-VN') : '';
-        let actionColor = item.hanhDong.includes("Thêm") ? "success" : (item.hanhDong.includes("Xóa") ? "danger" : "primary");
-                                
+        let actionColor = item.hanhDong.includes("Thêm") ? "success" : (item.hanhDong.includes("Xóa") ? "danger" : (item.hanhDong.includes("Khôi phục") ? "info" : "primary"));
+                
         html += `
         <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
@@ -762,7 +1069,6 @@
         // ==========================================
         // CÁC HÀM TIỆN ÍCH DÙNG TRONG MODAL
         // ==========================================
-
         function fillSelectCongTy(selector, selectedVal = '') {
         let html = '<option value="">-- Chọn công ty --</option>';
         listCongTyCache.forEach(c => { html += `<option value="${c.idcongTy}">${c.tenCongTy}</option>`; });
@@ -775,89 +1081,38 @@
         $(selector).html(html).val(selectedVal);
         }
 
-        // ======================= CÁC HÀM SỬA/LƯU/XÓA CÔNG TY =======================
-        function editCongTy(item) {
-        $('#ct_Id').val(item.idcongTy);
-        $('#ct_Ten').val(item.tenCongTy);
-        $('#ct_GhiChu').val(item.ghiChu);
-        $('#ct_TrangThai').prop('checked', item.trangThai);
-        $('#titleModalCongTy').text("Cập nhật Công ty");
-        $('#modalCongTy').modal('show');
+        function fillSelectTrangThai(selector, selectedVal = '') {
+        let html = '<option value="">-- Chọn trạng thái --</option>';
+        listTrangThaiCache.forEach(c => { html += `<option value="${c.idTrangThai}">${c.tenTrangThai}</option>`; });
+        $(selector).html(html).val(selectedVal);
         }
 
+        // ======================= CÁC HÀM CRUD CƠ BẢN (CÔNG TY, BỘ PHẬN, TRẠNG THÁI) =======================
+        function editTrangThai(item) { $('#tt_Id').val(item.idTrangThai); $('#tt_Ten').val(item.tenTrangThai); $('#tt_GhiChu').val(item.moTa); $('#titleModalTrangThai').text("Cập nhật Trạng thái"); $('#modalTrangThai').modal('show'); }
+        function saveTrangThai() {
+        let data = { IdTrangThai: parseInt($('#tt_Id').val()), TenTrangThai: $('#tt_Ten').val().trim(), MoTa: $('#tt_GhiChu').val().trim() };
+        if(!data.TenTrangThai) return Swal.fire("Lỗi", "Nhập tên trạng thái!", "warning");
+        $.post('/QLKiemKe/SaveKkTrangThai', data, function(res) { if(res.success) { $('#modalTrangThai').modal('hide'); loadTrangThai(); loadLichSu(true); } else Swal.fire("Lỗi", res.msg, "error"); });
+        }
+        function deleteTrangThai(id) { Swal.fire({ title: 'Xóa?', icon: 'warning', showCancelButton: true }).then(r => { if(r.isConfirmed) $.post('/QLKiemKe/DeleteKkTrangThai', { id: id }, function(res) { if(res.success) { loadTrangThai(); loadLichSu(true); } else Swal.fire("Lỗi", res.msg, "error"); }); }); }
+
+        function editCongTy(item) { $('#ct_Id').val(item.idcongTy); $('#ct_Ten').val(item.tenCongTy); $('#ct_GhiChu').val(item.ghiChu); $('#ct_TrangThai').prop('checked', item.trangThai); $('#modalCongTy').modal('show'); }
         function saveCongTy() {
-        let data = {
-        IdcongTy: parseInt($('#ct_Id').val()),
-        TenCongTy: $('#ct_Ten').val().trim(),
-        GhiChu: $('#ct_GhiChu').val().trim(),
-        TrangThai: $('#ct_TrangThai').is(':checked')
-        };
-        if(!data.TenCongTy) return Swal.fire("Lỗi", "Vui lòng nhập tên công ty!", "warning");
-
-        $.post('/QLKiemKe/SaveKkCongTy', data, function(res) {
-        if(res.success) {
-        $('#modalCongTy').modal('hide');
-        loadCongTy();
-        loadLichSu(true);
-        Swal.fire("Thành công", res.msg, "success");
-        } else Swal.fire("Lỗi", res.msg, "error");
-        });
+        let data = { IdcongTy: parseInt($('#ct_Id').val()), TenCongTy: $('#ct_Ten').val().trim(), GhiChu: $('#ct_GhiChu').val().trim(), TrangThai: $('#ct_TrangThai').is(':checked') };
+        if(!data.TenCongTy) return Swal.fire("Lỗi", "Nhập tên công ty!", "warning");
+        $.post('/QLKiemKe/SaveKkCongTy', data, function(res) { if(res.success) { $('#modalCongTy').modal('hide'); loadCongTy(); loadLichSu(true); } else Swal.fire("Lỗi", res.msg, "error"); });
         }
+        function deleteCongTy(id) { Swal.fire({ title: 'Xóa?', icon: 'warning', showCancelButton: true }).then(r => { if (r.isConfirmed) $.post('/QLKiemKe/DeleteKkCongTy', { id: id }, function(res) { if(res.success) { loadCongTy(); loadLichSu(true); } else Swal.fire("Lỗi", res.msg, "error"); }); }); }
 
-        function deleteCongTy(id) {
-        Swal.fire({ title: 'Xóa công ty?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Xóa' }).then((r) => {
-        if (r.isConfirmed) {
-        $.post('/QLKiemKe/DeleteKkCongTy', { id: id }, function(res) {
-        if(res.success) { loadCongTy(); loadLichSu(true); }
-        else Swal.fire("Lỗi", res.msg, "error");
-        });
-        }
-        });
-        }
-
-        // ======================= CÁC HÀM SỬA/LƯU/XÓA BỘ PHẬN =======================
-        function editBoPhan(item) {
-        $('#bp_Id').val(item.idboPhan);
-        $('#bp_Ten').val(item.tenBoPhan);
-        $('#bp_GhiChu').val(item.ghiChu);
-        $('#bp_TrangThai').prop('checked', item.trangThai);
-        fillSelectCongTy('#bp_IdCongTy', item.idcongTy || '');
-        $('#titleModalBoPhan').text("Cập nhật Bộ phận");
-        $('#modalBoPhan').modal('show');
-        }
-
+        function editBoPhan(item) { $('#bp_Id').val(item.idboPhan); $('#bp_Ten').val(item.tenBoPhan); $('#bp_GhiChu').val(item.ghiChu); $('#bp_TrangThai').prop('checked', item.trangThai); fillSelectCongTy('#bp_IdCongTy', item.idcongTy || ''); $('#modalBoPhan').modal('show'); }
         function saveBoPhan() {
-        let data = {
-        IdboPhan: parseInt($('#bp_Id').val()),
-        TenBoPhan: $('#bp_Ten').val().trim(),
-        IdcongTy: $('#bp_IdCongTy').val() ? parseInt($('#bp_IdCongTy').val()) : null,
-        GhiChu: $('#bp_GhiChu').val().trim(),
-        TrangThai: $('#bp_TrangThai').is(':checked')
-        };
-        if(!data.TenBoPhan) return Swal.fire("Lỗi", "Vui lòng nhập tên bộ phận!", "warning");
-
-        $.post('/QLKiemKe/SaveKkBoPhan', data, function(res) {
-        if(res.success) {
-        $('#modalBoPhan').modal('hide');
-        loadBoPhan();
-        loadLichSu(true);
-        Swal.fire("Thành công", res.msg, "success");
-        } else Swal.fire("Lỗi", res.msg, "error");
-        });
+        let data = { IdboPhan: parseInt($('#bp_Id').val()), TenBoPhan: $('#bp_Ten').val().trim(), IdcongTy: $('#bp_IdCongTy').val(), GhiChu: $('#bp_GhiChu').val().trim(), TrangThai: $('#bp_TrangThai').is(':checked') };
+        if(!data.TenBoPhan) return Swal.fire("Lỗi", "Nhập tên bộ phận!", "warning");
+        $.post('/QLKiemKe/SaveKkBoPhan', data, function(res) { if(res.success) { $('#modalBoPhan').modal('hide'); loadBoPhan(); loadLichSu(true); } else Swal.fire("Lỗi", res.msg, "error"); });
         }
+        function deleteBoPhan(id) { Swal.fire({ title: 'Xóa?', icon: 'warning', showCancelButton: true }).then(r => { if (r.isConfirmed) $.post('/QLKiemKe/DeleteKkBoPhan', { id: id }, function(res) { if(res.success) { loadBoPhan(); loadLichSu(true); } else Swal.fire("Lỗi", res.msg, "error"); }); }); }
 
-        function deleteBoPhan(id) {
-        Swal.fire({ title: 'Xóa bộ phận?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Xóa' }).then((r) => {
-        if (r.isConfirmed) {
-        $.post('/QLKiemKe/DeleteKkBoPhan', { id: id }, function(res) {
-        if(res.success) { loadBoPhan(); loadLichSu(true); }
-        else Swal.fire("Lỗi", res.msg, "error");
-        });
-        }
-        });
-        }
-
-        // ======================= CÁC HÀM SỬA/LƯU/XÓA THIẾT BỊ =======================
+        // ======================= THAO TÁC VỚI THIẾT BỊ =======================
         function editThietBi(item) {
         $('#tb_Id').val(item.idThietBi);
         $('#tb_LoaiThietBi').val(item.loaiThietBi);
@@ -867,6 +1122,7 @@
         $('#tb_GhiChu').val(item.ghiChu || '');
             
         fillSelectCongTy('#tb_IdCongTy', item.idcongTy || '');
+        fillSelectTrangThai('#tb_IdTrangThai', item.idTrangThai || '');
             
         if (item.idcongTy) {
         let html = '<option value="">-- Chọn bộ phận --</option>';
@@ -878,18 +1134,16 @@
         }
 
         $('#tb_IdNguoiDung').val(item.idNguoiDung || '').trigger('change');
-
         $('#titleModalThietBi').text("Cập nhật Thiết bị");
         $('#modalThietBi').modal('show');
         }
 
         function saveThietBi() {
         let isAddMode = parseInt($('#tb_Id').val()) === 0;
-
         let data = {
         IdThietBi: parseInt($('#tb_Id').val()),
         LoaiThietBi: $('#tb_LoaiThietBi').val(),
-        // Ép viết hoa khi gửi lên server
+        IdTrangThai: $('#tb_IdTrangThai').val() ? parseInt($('#tb_IdTrangThai').val()) : null,
         TenThietBi: $('#tb_TenThietBi').val().trim().toUpperCase(),
         TenMayTinh: $('#tb_TenMayTinh').val().trim().toUpperCase(),
         TenDangNhap: $('#tb_TenDangNhap').val().trim().toUpperCase(),
@@ -899,8 +1153,7 @@
         IdboPhan: $('#tb_IdBoPhan').val() ? parseInt($('#tb_IdBoPhan').val()) : null
         };
             
-        if(!data.LoaiThietBi) return Swal.fire("Lỗi", "Vui lòng chọn loại thiết bị!", "warning");
-        // Đã gỡ lỗi bắt buộc nhập Tên thiết bị
+        if(!data.LoaiThietBi || !data.IdTrangThai) return Swal.fire("Lỗi", "Vui lòng chọn loại thiết bị và Trạng thái!", "warning");
 
         $.post('/QLKiemKe/SaveKkThietBi', data, function(res) {
         if(res.success) {
@@ -908,39 +1161,54 @@
         loadLichSu(true);
 
         if(isAddMode) {
-        Swal.fire({
-        toast: true,
-        position: 'top-end',
-        icon: 'success',
-        title: 'Thêm thiết bị thành công!',
-        showConfirmButton: false,
-        timer: 2000
-        });
-                        
-        // KHÔNG RESET 3 TRƯỜNG NÀY THEO YÊU CẦU ĐỂ TIẾP TỤC ĐIỀN
-        // $('#tb_TenThietBi').val('');
-        // $('#tb_TenMayTinh').val('');
-        // $('#tb_TenDangNhap').val('');
-                        
-        // Có thể reset ghi chú cho đỡ nhầm lẫn ở máy tiếp theo
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Thêm thiết bị thành công!', showConfirmButton: false, timer: 2000 });
         $('#tb_GhiChu').val('');
         $('#tb_TenThietBi').focus();
         } else {
         $('#modalThietBi').modal('hide');
         Swal.fire("Thành công", res.msg, "success");
         }
-        } else {
-        Swal.fire("Lỗi", res.msg, "error");
-        }
+        } else Swal.fire("Lỗi", res.msg, "error");
         });
         }
 
         function deleteThietBi(id) {
-        Swal.fire({ title: 'Xóa thiết bị?', text: "Dữ liệu sẽ bị mất hoàn toàn!", icon: 'warning', showCancelButton: true, confirmButtonText: 'Xóa' }).then((r) => {
+        Swal.fire({
+        title: 'Chuyển vào Thùng Rác?',
+        text: "Thiết bị sẽ được chuyển sang Tab Đã Xóa và tự động hủy hoàn toàn sau 1 tháng. Nhập lý do:",
+        input: 'text',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Đồng ý',
+        cancelButtonText: 'Hủy',
+        inputValidator: (value) => { if (!value) { return 'Bạn phải nhập lý do xóa!' } }
+        }).then((r) => {
         if (r.isConfirmed) {
-        $.post('/QLKiemKe/DeleteKkThietBi', { id: id }, function(res) {
-        if(res.success) { loadThietBi(); loadLichSu(true); }
-        else Swal.fire("Lỗi", res.msg, "error");
+        $.post('/QLKiemKe/DeleteKkThietBi', { id: id, lyDo: r.value }, function(res) {
+        if(res.success) {
+        loadThietBi(); loadLichSu(true);
+        Swal.fire("Đã chuyển", res.msg, "success");
+        } else Swal.fire("Lỗi", res.msg, "error");
+        });
+        }
+        });
+        }
+
+        function restoreThietBi(id) {
+        Swal.fire({
+        title: 'Khôi phục thiết bị?',
+        text: "Thiết bị sẽ được khôi phục về trạng thái 'Đang hoạt động'.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Khôi phục',
+        cancelButtonText: 'Hủy'
+        }).then((r) => {
+        if (r.isConfirmed) {
+        $.post('/QLKiemKe/RestoreKkThietBi', { id: id }, function(res) {
+        if(res.success) {
+        loadThietBi(); loadLichSu(true);
+        Swal.fire("Thành công", res.msg, "success");
+        } else Swal.fire("Lỗi", res.msg, "error");
         });
         }
         });

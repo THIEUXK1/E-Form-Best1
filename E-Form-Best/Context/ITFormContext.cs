@@ -112,6 +112,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<KkThietBi> KkThietBis { get; set; }
 
+    public virtual DbSet<KkTrangThai> KkTrangThais { get; set; }
+
     public virtual DbSet<LichSuFormHr> LichSuFormHrs { get; set; }
 
     public virtual DbSet<LichSuFormIt> LichSuFormIts { get; set; }
@@ -518,6 +520,8 @@ public partial class ITFormContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_KK_ThietBi_User");
 
+            entity.HasOne(d => d.IdTrangThaiNavigation).WithMany(p => p.KkThietBis).HasConstraintName("FK_ThietBi_TrangThai");
+
             entity.HasOne(d => d.IdboPhanNavigation).WithMany(p => p.KkThietBis)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_KK_ThietBi_KK_BoPhan");
@@ -525,6 +529,11 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdcongTyNavigation).WithMany(p => p.KkThietBis)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_KK_ThietBi_KK_CongTy");
+        });
+
+        modelBuilder.Entity<KkTrangThai>(entity =>
+        {
+            entity.HasKey(e => e.IdTrangThai).HasName("PK__KK_Trang__D82677B0116A98B3");
         });
 
         modelBuilder.Entity<LichSuFormHr>(entity =>

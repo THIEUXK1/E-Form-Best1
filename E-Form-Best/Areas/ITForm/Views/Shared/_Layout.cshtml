@@ -300,23 +300,32 @@
                         </a>
                     }
 
-                    @if (User.IsInRole("AdminIT") || User.IsInRole("All"))
-                    {
-                        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-                        <div class="lang-text" data-key="admin_sec" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị IT</div>
-                        <a href="/FormIT/HoanTatDon" class="nav-link-item @(currentAction == "HoanTatDon" ? "active" : "")">
-                            <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text" data-key="archive_form">Lưu trữ đơn</span>
-                        </a>
-                        <a href="/FormIT/BaoCaoThongKe" class="nav-link-item @(currentAction == "BaoCaoThongKe" ? "active" : "")">
-                            <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> <span class="lang-text" data-key="statistics">Thống báo báo cáo</span>
-                        </a>
-                    }
+                   @if (User.IsInRole("AdminIT") || User.IsInRole("All"))
+{
+    <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
+    <div class="lang-text" data-key="admin_sec" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị IT</div>
+    
+    <a href="/FormIT/HoanTatDon" class="nav-link-item @(currentAction == "HoanTatDon" ? "active" : "")">
+        <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text" data-key="archive_form">Lưu trữ đơn</span>
+    </a>
+    
+    <a href="/FormIT/BaoCaoThongKe" class="nav-link-item @(currentAction == "BaoCaoThongKe" ? "active" : "")">
+        <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> <span class="lang-text" data-key="statistics">Thống báo báo cáo</span>
+    </a>
+
+   <!-- MỤC MỚI THÊM: QUẢN LÝ KIỂM KÊ & THỐNG KÊ TÀI SẢN -->
+<a href="/QLKiemKe/ThongKe" class="nav-link-item @(currentAction == "ThongKeKiemKe" ? "active" : "")">
+    <i class="fa fa-pie-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#3b82f6;"></i> 
+    <span class="lang-text" data-key="inventory_stats">Kiểm kê tài sản</span>
+</a>
+
+}
 
                     @if (User.IsInRole("KKTS-PFVN") || User.IsInRole("All"))
                     {
                         <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
                         <div class="lang-text" data-key="inventory_sec" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Kiểm Kê Thiết Bị</div>
-                        <a href="/QLKiemKe" class="nav-link-item @(currentController == "QLKiemKe" || currentAction == "IndexKiemKe" ? "active" : "")">
+                        <a href="/QLKiemKe" class="nav-link-item @(currentController == "QLKiemKe" && currentAction == "IndexKiemKe" ? "active" : "")">
                             <i class="fa fa-cubes" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f472b6;"></i> <span class="lang-text" data-key="inventory">Quản lý Kiểm Kê</span>
                         </a>
                     }
@@ -593,7 +602,7 @@
         }
 
         // ==========================================
-        // HỆ THỐNG ZOOM % KÍCH THƯỚC WEB
+        // HỆ THỐNG ZOOM KÍCH THƯỚC WEB
         // ==========================================
         const btnZoom = document.getElementById('btnZoom');
         const zoomDrop = document.getElementById('zoomDropdown');

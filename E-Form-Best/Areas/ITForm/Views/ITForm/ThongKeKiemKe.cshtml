@@ -1,0 +1,425 @@
+﻿@{
+    ViewData["Title"] = "Thống kê tổng quan Kiểm Kê";
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+}
+
+<!-- FontAwesome, Select2 & Chart.js -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    /* CSS cho các thẻ thống kê khi Hover và Click */
+    .stat-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 3px solid transparent !important;
+    position: relative;
+    overflow: hidden;
+    }
+
+    .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
+    }
+
+    .stat-card.active {
+    border-color: #1e293b !important;
+    transform: scale(1.05);
+    box-shadow: 0 15px 25px rgba(0,0,0,0.2) !important;
+    z-index: 10;
+    }
+
+    .stat-card.active::after {
+    content: '\f058'; /* Icon check-circle */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #fff;
+    font-size: 1.5rem;
+    opacity: 0.8;
+    }
+</style>
+
+<div class="content-header py-3">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-12">
+                <h4 class="m-0 fw-bold" style="color: #1e293b; letter-spacing: -0.5px;">
+                    <i class="fas fa-chart-pie me-2" style="color: #4f46e5;"></i> Báo cáo & Thống kê tài sản IT
+                </h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        
+        <!-- BỘ LỌC TÌM KIẾM (FILTERS) -->
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; background: #fff;">
+            <div class="card-body p-3">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-2 col-sm-6">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-building"></i> Công ty</label>
+                        <select id="filterCongTy" class="form-select select2-filter">
+                            <option value="">-- Tất cả --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-sm-6">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sitemap"></i> Bộ phận</label>
+                        <select id="filterBoPhan" class="form-select select2-filter">
+                            <option value="">-- Tất cả --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-sm-4">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-tags"></i> Loại thiết bị</label>
+                        <select id="filterLoai" class="form-select select2-filter">
+                            <option value="">-- Tất cả --</option>
+                        </select>
+                    </div>
+                    <!-- Ô tìm kiếm Text -->
+                    <div class="col-md-3 col-sm-4">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search"></i> Tìm Kiếm</label>
+                        <input type="text" id="filterText" class="form-control" placeholder="Tên máy, S/N, Người dùng..." style="height: 38px;">
+                    </div>
+                    <div class="col-md-2 col-sm-4 text-end">
+                        <button class="btn btn-outline-secondary rounded-pill w-100" onclick="clearFilters()" style="height: 38px;">
+                            <i class="fas fa-sync-alt"></i> Bỏ lọc
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- THẺ TỔNG QUAN (CLICK ĐỂ LỌC TRẠNG THÁI) -->
+        <div class="row g-3 mb-4">
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card text-white border-0 shadow-sm h-100 stat-card active" id="card-all" onclick="setCardFilter('', 'card-all')" style="border-radius:15px; background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                    <div class="card-body p-3 text-center">
+                        <i class="fas fa-boxes fa-2x mb-2 opacity-75"></i>
+                        <h3 class="fw-bold mb-0" id="cardTong">0</h3>
+                        <div class="small fw-bold text-uppercase opacity-75">Tổng cộng</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card text-white border-0 shadow-sm h-100 stat-card" id="card-hd" onclick="setCardFilter('hoạt động', 'card-hd')" style="border-radius:15px; background: linear-gradient(135deg, #10b981, #059669);">
+                    <div class="card-body p-3 text-center">
+                        <i class="fas fa-check-circle fa-2x mb-2 opacity-75"></i>
+                        <h3 class="fw-bold mb-0" id="cardHoatDong">0</h3>
+                        <div class="small fw-bold text-uppercase opacity-75">Hoạt động</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card border-0 shadow-sm h-100 stat-card" id="card-muon" onclick="setCardFilter('mượn', 'card-muon')" style="border-radius:15px; background: linear-gradient(135deg, #fcd34d, #f59e0b); color: #fff;">
+                    <div class="card-body p-3 text-center">
+                        <i class="fas fa-hand-holding fa-2x mb-2 opacity-75"></i>
+                        <h3 class="fw-bold mb-0" id="cardChoMuon">0</h3>
+                        <div class="small fw-bold text-uppercase opacity-75">Cho mượn</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card text-white border-0 shadow-sm h-100 stat-card" id="card-bt" onclick="setCardFilter('bảo trì', 'card-bt')" style="border-radius:15px; background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                    <div class="card-body p-3 text-center">
+                        <i class="fas fa-tools fa-2x mb-2 opacity-75"></i>
+                        <h3 class="fw-bold mb-0" id="cardBaoTri">0</h3>
+                        <div class="small fw-bold text-uppercase opacity-75">Bảo trì</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card text-white border-0 shadow-sm h-100 stat-card" id="card-hong" onclick="setCardFilter('hỏng', 'card-hong')" style="border-radius:15px; background: linear-gradient(135deg, #ef4444, #dc2626);">
+                    <div class="card-body p-3 text-center">
+                        <i class="fas fa-car-crash fa-2x mb-2 opacity-75"></i>
+                        <h3 class="fw-bold mb-0" id="cardHong">0</h3>
+                        <div class="small fw-bold text-uppercase opacity-75">Hỏng</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card text-white border-0 shadow-sm h-100 stat-card" id="card-xoa" onclick="setCardFilter('xóa', 'card-xoa')" style="border-radius:15px; background: linear-gradient(135deg, #64748b, #475569);">
+                    <div class="card-body p-3 text-center">
+                        <i class="fas fa-trash-alt fa-2x mb-2 opacity-75"></i>
+                        <h3 class="fw-bold mb-0" id="cardXoa">0</h3>
+                        <div class="small fw-bold text-uppercase opacity-75">Đã Xóa</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KHU VỰC BIỂU ĐỒ (CHARTS) -->
+        <div class="row g-4 mb-4">
+            <!-- Biểu đồ Công ty / Bộ phận -->
+            <div class="col-md-7">
+                <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                    <div class="card-header bg-white border-0 pt-4 pb-0">
+                        <h6 class="fw-bold text-dark mb-0"><i class="fas fa-chart-bar text-primary me-2"></i>Thống kê theo Công ty / Bộ phận</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="chartCongTy" style="max-height: 280px;"></canvas>
+                    </div>
+                </div>
+            </div>
+            <!-- Biểu đồ Loại thiết bị -->
+            <div class="col-md-5">
+                <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                    <div class="card-header bg-white border-0 pt-4 pb-0">
+                        <h6 class="fw-bold text-dark mb-0"><i class="fas fa-chart-pie text-warning me-2"></i>Tỷ lệ Loại Thiết bị</h6>
+                    </div>
+                    <div class="card-body d-flex justify-content-center">
+                        <canvas id="chartLoai" style="max-height: 280px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DANH SÁCH BẢN GHI (DATA TABLE) -->
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px;">
+            <div class="card-header bg-white border-bottom pt-3 pb-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-list text-success me-2"></i>Danh sách thiết bị theo bộ lọc (<span id="lblCountTable">0</span>)</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-hover table-striped mb-0 align-middle">
+                        <thead class="table-light position-sticky top-0" style="z-index: 10;">
+                            <tr>
+                                <th class="ps-4" width="80">ID</th>
+                                <th>Tên Máy/Hostname</th>
+                                <th>Loại thiết bị</th>
+                                <th>Người sử dụng</th>
+                                <th>Công ty - Bộ phận</th>
+                                <th width="150" class="text-center">Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyData">
+                            <tr><td colspan="6" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        let allDataCache = [];
+        let chartCT = null;
+        let chartLoai = null;
+        
+        // Biến lưu trạng thái đang được chọn từ việc click vào Card (Mặc định rỗng = Tất cả)
+        let activeCardFilter = '';
+
+        $(document).ready(function () {
+        // Khởi tạo Select2
+        $('.select2-filter').select2({ width: '100%', minimumResultsForSearch: 0 });
+
+        // Lắng nghe sự kiện thay đổi của Dropdown hoặc Input Text
+        $('.select2-filter, #filterText').on('change keyup', function () {
+        applyFiltersAndRender();
+        });
+
+        // Tải dữ liệu từ server
+        loadData();
+        });
+
+        function loadData() {
+        $.get('/QLKiemKe/GetKkThietBis', function (res) {
+        if (res.success) {
+        allDataCache = res.data || [];
+        populateFilters(allDataCache);
+        applyFiltersAndRender();
+        } else {
+        alert("Lỗi tải dữ liệu: " + res.msg);
+        }
+        }).fail(function() { alert("Lỗi kết nối máy chủ!"); });
+        }
+
+        // Đổ dữ liệu vào các thẻ Select2
+        function populateFilters(data) {
+        let companies = [...new Set(data.map(x => x.tenCongTy).filter(Boolean))];
+        let depts = [...new Set(data.map(x => x.tenBoPhan).filter(Boolean))];
+        let types = [...new Set(data.map(x => x.loaiThietBi).filter(Boolean))];
+
+        companies.forEach(x => $('#filterCongTy').append(new Option(x, x)));
+        depts.forEach(x => $('#filterBoPhan').append(new Option(x, x)));
+        types.forEach(x => $('#filterLoai').append(new Option(x, x)));
+        }
+
+        function clearFilters() {
+        $('.select2-filter').val('').trigger('change.select2');
+        $('#filterText').val('');
+        setCardFilter('', 'card-all'); // Đưa về card tổng
+        }
+
+        // Sự kiện khi bấm vào các Card Thống kê
+        function setCardFilter(status, cardId) {
+        activeCardFilter = status.toLowerCase();
+
+        // Xóa class active của tất cả thẻ
+        $('.stat-card').removeClass('active');
+        // Thêm class active cho thẻ vừa click
+        $('#' + cardId).addClass('active');
+
+        // Gọi hàm render lại dữ liệu
+        applyFiltersAndRender();
+        }
+
+        // HÀM LỌC CHÍNH VÀ VẼ LẠI TOÀN BỘ
+        function applyFiltersAndRender() {
+        let fCT = $('#filterCongTy').val();
+        let fBP = $('#filterBoPhan').val();
+        let fLoai = $('#filterLoai').val();
+        let fText = $('#filterText').val().toLowerCase().trim();
+
+        // 1. Lọc theo Dropdown (Select2) và Text trước (Lọc Base)
+        let baseFiltered = allDataCache;
+            
+        if (fCT) baseFiltered = baseFiltered.filter(x => x.tenCongTy === fCT);
+        if (fBP) baseFiltered = baseFiltered.filter(x => x.tenBoPhan === fBP);
+        if (fLoai) baseFiltered = baseFiltered.filter(x => x.loaiThietBi === fLoai);
+            
+        if (fText) {
+        baseFiltered = baseFiltered.filter(x =>
+        (x.tenMayTinh && x.tenMayTinh.toLowerCase().includes(fText)) ||
+        (x.tenThietBi && x.tenThietBi.toLowerCase().includes(fText)) ||
+        (x.tenNguoiDung && x.tenNguoiDung.toLowerCase().includes(fText)) ||
+        (x.taiKhoan && x.taiKhoan.toLowerCase().includes(fText))
+        );
+        }
+
+        // Tính số lượng và Update lên Thẻ (Card) dựa vào BaseFilter
+        let countTotal = baseFiltered.length;
+        let countHD = 0, countMuon = 0, countBaoTri = 0, countHong = 0, countXoa = 0;
+
+        baseFiltered.forEach(x => {
+        let t = (x.tenTrangThai || '').toLowerCase();
+        if (t.includes('hoạt động')) countHD++;
+        else if (t.includes('mượn')) countMuon++;
+        else if (t.includes('bảo trì')) countBaoTri++;
+        else if (t.includes('hỏng')) countHong++;
+        else if (t.includes('xóa')) countXoa++;
+        });
+
+        $('#cardTong').text(countTotal);
+        $('#cardHoatDong').text(countHD);
+        $('#cardChoMuon').text(countMuon);
+        $('#cardBaoTri').text(countBaoTri);
+        $('#cardHong').text(countHong);
+        $('#cardXoa').text(countXoa);
+
+        // 2. Lọc tiếp tục theo Card đang được click (Để vẽ Bảng và Biểu đồ)
+        let finalFiltered = baseFiltered;
+        if (activeCardFilter !== '') {
+        finalFiltered = finalFiltered.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes(activeCardFilter));
+        }
+
+        // 3. Vẽ Bảng dữ liệu chi tiết
+        $('#lblCountTable').text(finalFiltered.length);
+        let htmlTable = '';
+            
+        if (finalFiltered.length === 0) {
+        htmlTable = `<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-box-open fa-2x mb-2 d-block"></i> Không tìm thấy thiết bị nào phù hợp</td></tr>`;
+        } else {
+        finalFiltered.forEach(item => {
+        // Hiển thị Tên người dùng và (Tài khoản) cực kỳ đẹp
+        let userStr = item.tenNguoiDung
+        ? `<div class="fw-bold text-primary">${item.tenNguoiDung}</div><div class="small text-muted"><i class="fas fa-id-badge me-1"></i>${item.taiKhoan || 'N/A'}</div>`
+        : `<span class="text-muted fst-italic">Chưa cấp phát</span>`;
+                        
+        let locStr = [item.tenCongTy, item.tenBoPhan].filter(Boolean).join(' - ') || 'Chưa gắn';
+                    
+        let t = (item.tenTrangThai || '').toLowerCase();
+        let badgeClass = "bg-secondary";
+        if (t.includes("hoạt động")) badgeClass = "bg-success";
+        else if (t.includes("mượn")) badgeClass = "bg-warning text-dark";
+        else if (t.includes("bảo trì")) badgeClass = "bg-info text-white";
+        else if (t.includes("hỏng") || t.includes("xóa")) badgeClass = "bg-danger";
+
+        htmlTable += `
+        <tr>
+        <td class="ps-4">${item.idThietBi}</td>
+        <td>
+        <div class="fw-bold text-dark">${item.tenMayTinh || 'N/A'}</div>
+        <div class="small text-muted">S/N: ${item.tenThietBi}</div>
+        </td>
+        <td><span class="badge border border-secondary text-secondary bg-light">${item.loaiThietBi || 'Khác'}</span></td>
+        <td>${userStr}</td>
+        <td class="small"><i class="fas fa-map-marker-alt text-muted me-1"></i>${locStr}</td>
+        <td class="text-center"><span class="badge ${badgeClass} w-100 py-2">${item.tenTrangThai || 'Chưa rõ'}</span></td>
+        </tr>`;
+        });
+        }
+        $('#tbodyData').html(htmlTable);
+
+        // 4. Vẽ lại Biểu đồ
+        let mapBar = {};
+        let isLocCongTy = fCT !== ""; // Đã chọn Công ty -> Vẽ theo Bộ phận
+        finalFiltered.forEach(x => {
+        let key = isLocCongTy ? (x.tenBoPhan || 'Chưa gắn BP') : (x.tenCongTy || 'Chưa gắn CT');
+        mapBar[key] = (mapBar[key] || 0) + 1;
+        });
+        drawBarChart(Object.keys(mapBar), Object.values(mapBar), isLocCongTy ? 'Số lượng theo Bộ phận' : 'Số lượng theo Công ty');
+
+        let mapPie = {};
+        finalFiltered.forEach(x => {
+        let type = x.loaiThietBi || 'Chưa rõ';
+        mapPie[type] = (mapPie[type] || 0) + 1;
+        });
+        drawPieChart(Object.keys(mapPie), Object.values(mapPie));
+        }
+
+        // ==========================================
+        // CÁC HÀM VẼ CHART.JS
+        // ==========================================
+        function drawBarChart(labels, data, labelTitle) {
+        if(chartCT) chartCT.destroy();
+        chartCT = new Chart(document.getElementById('chartCongTy').getContext('2d'), {
+        type: 'bar',
+        data: {
+        labels: labels,
+        datasets: [{
+        label: labelTitle,
+        data: data,
+        backgroundColor: '#3b82f6',
+        borderRadius: 6,
+        }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+        });
+        }
+
+        function drawPieChart(labels, data) {
+        let colors = ['#f472b6', '#38bdf8', '#fbbf24', '#a3e635', '#a78bfa', '#94a3b8'];
+        if(chartLoai) chartLoai.destroy();
+        chartLoai = new Chart(document.getElementById('chartLoai').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+        labels: labels,
+        datasets: [{
+        data: data,
+        backgroundColor: colors,
+        borderWidth: 2
+        }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'right' } }
+        }
+        });
+        }
+    </script>
+}
