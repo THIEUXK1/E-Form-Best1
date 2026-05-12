@@ -3838,20 +3838,27 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             try
             {
+                // CẬP NHẬT: Đổi check trùng từ Tên Thiết Bị sang Tên Máy Tính (Hostname)
                 bool isDuplicate = false;
-                if (model.IdThietBi == 0)
+                if (!string.IsNullOrWhiteSpace(model.TenMayTinh))
                 {
-                    isDuplicate = _context.KkThietBis.Any(x => x.TenThietBi.ToLower().Trim() == model.TenThietBi.ToLower().Trim());
-                }
-                else
-                {
-                    isDuplicate = _context.KkThietBis.Any(x => x.TenThietBi.ToLower().Trim() == model.TenThietBi.ToLower().Trim() && x.IdThietBi != model.IdThietBi);
+                    if (model.IdThietBi == 0)
+                    {
+                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh.ToLower().Trim() == model.TenMayTinh.ToLower().Trim());
+                    }
+                    else
+                    {
+                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh.ToLower().Trim() == model.TenMayTinh.ToLower().Trim() && x.IdThietBi != model.IdThietBi);
+                    }
                 }
 
                 if (isDuplicate)
                 {
-                    return Json(new { success = false, msg = $"Thiết bị mang tên '{model.TenThietBi}' đã tồn tại trong hệ thống. Vui lòng nhập tên khác!" });
+                    return Json(new { success = false, msg = $"Tên máy tính (Hostname) '{model.TenMayTinh}' đã tồn tại trong hệ thống. Vui lòng kiểm tra lại!" });
                 }
+
+                // Chống null nếu Tên Thiết Bị bị để trống
+                if (string.IsNullOrWhiteSpace(model.TenThietBi)) model.TenThietBi = "";
 
                 string action = model.IdThietBi == 0 ? "Thêm mới" : "Cập nhật";
                 int objId = model.IdThietBi;
@@ -3879,8 +3886,27 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
                 _context.SaveChanges();
 
+                // =============== LẤY THÊM TÊN ĐỂ LƯU LỊCH SỬ ===============
                 if (objId == 0) objId = model.IdThietBi;
-                GhiLichSu(action, "Thiết Bị", objId, $"Tên thiết bị/Serial: {model.TenThietBi} - Loại: {model.LoaiThietBi}");
+
+                string tenNguoiDung = "Chưa cấp phát";
+                if (model.IdNguoiDung.HasValue)
+                {
+                    var user = _context.Users.Find(model.IdNguoiDung.Value);
+                    if (user != null) tenNguoiDung = user.HoTen;
+                }
+
+                string tenBoPhan = "Chưa gắn";
+                if (model.IdboPhan.HasValue)
+                {
+                    var bp = _context.KkBoPhans.Find(model.IdboPhan.Value);
+                    if (bp != null) tenBoPhan = bp.TenBoPhan;
+                }
+
+                // Nối chuỗi chi tiết
+                string chiTietLog = $"Tên máy tính: {model.TenMayTinh} | Account: {model.TenDangNhap} | Người dùng: {tenNguoiDung} | Bộ phận: {tenBoPhan} | Loại: {model.LoaiThietBi} | Mã/Serial: {model.TenThietBi}";
+
+                GhiLichSu(action, "Thiết Bị", objId, chiTietLog);
 
                 return Json(new { success = true, msg = "Lưu thiết bị thành công!" });
             }
@@ -3895,11 +3921,27 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var item = _context.KkThietBis.Find(id);
                 if (item != null)
                 {
-                    string tenTB = item.TenThietBi;
+                    // =============== LẤY THÊM TÊN ĐỂ LƯU LỊCH SỬ TRƯỚC KHI XÓA ===============
+                    string tenNguoiDung = "Chưa cấp phát";
+                    if (item.IdNguoiDung.HasValue)
+                    {
+                        var user = _context.Users.Find(item.IdNguoiDung.Value);
+                        if (user != null) tenNguoiDung = user.HoTen;
+                    }
+
+                    string tenBoPhan = "Chưa gắn";
+                    if (item.IdboPhan.HasValue)
+                    {
+                        var bp = _context.KkBoPhans.Find(item.IdboPhan.Value);
+                        if (bp != null) tenBoPhan = bp.TenBoPhan;
+                    }
+
+                    string chiTietLog = $"Đã xóa: Tên máy tính: {item.TenMayTinh} | Account: {item.TenDangNhap} | Người dùng: {tenNguoiDung} | Bộ phận: {tenBoPhan} | Loại: {item.LoaiThietBi} | Mã/Serial: {item.TenThietBi}";
+
                     _context.KkThietBis.Remove(item);
                     _context.SaveChanges();
 
-                    GhiLichSu("Xóa", "Thiết Bị", id, $"Đã xóa thiết bị: {tenTB}");
+                    GhiLichSu("Xóa", "Thiết Bị", id, chiTietLog);
                 }
                 return Json(new { success = true, msg = "Đã xóa thiết bị!" });
             }
