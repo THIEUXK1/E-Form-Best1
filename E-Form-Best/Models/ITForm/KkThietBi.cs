@@ -1,0 +1,62 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
+
+namespace E_Form_Best.Models.ITForm;
+
+[Table("KK_ThietBi")]
+public partial class KkThietBi
+{
+    [Key]
+    [Column("id_thiet_bi")]
+    public int IdThietBi { get; set; }
+
+    [Column("ten_thiet_bi")]
+    [StringLength(255)]
+    public string TenThietBi { get; set; } = null!;
+
+    [Column("ten_may_tinh")]
+    [StringLength(100)]
+    public string? TenMayTinh { get; set; }
+
+    [Column("ten_dang_nhap")]
+    [StringLength(100)]
+    public string? TenDangNhap { get; set; }
+
+    [Column("id_nguoi_dung")]
+    public int? IdNguoiDung { get; set; }
+
+    [Column("IDCongTy")]
+    public int? IdcongTy { get; set; }
+
+    [Column("IDBoPhan")]
+    public int? IdboPhan { get; set; }
+
+    [Column("ngay_tao", TypeName = "datetime")]
+    public DateTime? NgayTao { get; set; }
+
+    [Column("ngay_cap_nhat", TypeName = "datetime")]
+    public DateTime? NgayCapNhat { get; set; }
+
+    [Column("loai_thiet_bi")]
+    [StringLength(100)]
+    public string? LoaiThietBi { get; set; }
+
+    [Column("ghi_chu")]
+    [StringLength(500)]
+    public string? GhiChu { get; set; }
+
+    [ForeignKey("IdNguoiDung")]
+    [InverseProperty("KkThietBis")]
+    public virtual User? IdNguoiDungNavigation { get; set; }
+
+    [ForeignKey("IdboPhan")]
+    [InverseProperty("KkThietBis")]
+    public virtual KkBoPhan? IdboPhanNavigation { get; set; }
+
+    [ForeignKey("IdcongTy")]
+    [InverseProperty("KkThietBis")]
+    public virtual KkCongTy? IdcongTyNavigation { get; set; }
+}

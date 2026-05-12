@@ -104,6 +104,14 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<ItOrderIt2> ItOrderIt2s { get; set; }
 
+    public virtual DbSet<KkBoPhan> KkBoPhans { get; set; }
+
+    public virtual DbSet<KkCongTy> KkCongTies { get; set; }
+
+    public virtual DbSet<KkLichSuThaoTac> KkLichSuThaoTacs { get; set; }
+
+    public virtual DbSet<KkThietBi> KkThietBis { get; set; }
+
     public virtual DbSet<LichSuFormHr> LichSuFormHrs { get; set; }
 
     public virtual DbSet<LichSuFormIt> LichSuFormIts { get; set; }
@@ -471,6 +479,52 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.ItOrderIt2s)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_ITOrder_FormIT");
+        });
+
+        modelBuilder.Entity<KkBoPhan>(entity =>
+        {
+            entity.HasKey(e => e.IdboPhan).HasName("PK__KK_BoPha__0E503FF5B3982733");
+
+            entity.Property(e => e.NgayTao).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.TrangThai).HasDefaultValue(true);
+
+            entity.HasOne(d => d.IdcongTyNavigation).WithMany(p => p.KkBoPhans)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_KK_BoPhan_KK_CongTy");
+        });
+
+        modelBuilder.Entity<KkCongTy>(entity =>
+        {
+            entity.HasKey(e => e.IdcongTy).HasName("PK__KK_CongT__3E616C9080673D61");
+
+            entity.Property(e => e.NgayTao).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.TrangThai).HasDefaultValue(true);
+        });
+
+        modelBuilder.Entity<KkLichSuThaoTac>(entity =>
+        {
+            entity.HasKey(e => e.IdLichSu).HasName("PK__KK_LichS__823B17723D03585D");
+
+            entity.Property(e => e.ThoiGian).HasDefaultValueSql("(getdate())");
+        });
+
+        modelBuilder.Entity<KkThietBi>(entity =>
+        {
+            entity.HasKey(e => e.IdThietBi).HasName("PK__KK_Thiet__68D7BE4D3451C805");
+
+            entity.Property(e => e.NgayTao).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.IdNguoiDungNavigation).WithMany(p => p.KkThietBis)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_KK_ThietBi_User");
+
+            entity.HasOne(d => d.IdboPhanNavigation).WithMany(p => p.KkThietBis)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_KK_ThietBi_KK_BoPhan");
+
+            entity.HasOne(d => d.IdcongTyNavigation).WithMany(p => p.KkThietBis)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_KK_ThietBi_KK_CongTy");
         });
 
         modelBuilder.Entity<LichSuFormHr>(entity =>

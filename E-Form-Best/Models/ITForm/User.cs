@@ -68,6 +68,9 @@ public partial class User
     public string? SecurityStamp { get; set; }
 
     [InverseProperty("IdNguoiDungNavigation")]
+    public virtual ICollection<KkThietBi> KkThietBis { get; set; } = new List<KkThietBi>();
+
+    [InverseProperty("IdNguoiDungNavigation")]
     public virtual ICollection<LichSuTruyCap> LichSuTruyCaps { get; set; } = new List<LichSuTruyCap>();
 
     [InverseProperty("IdNguoiDungNavigation")]

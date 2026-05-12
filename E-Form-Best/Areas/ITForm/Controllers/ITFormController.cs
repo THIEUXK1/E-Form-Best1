@@ -3628,5 +3628,285 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
+
+        #region QL Kiểm Kê (Công Ty, Bộ Phận, Thiết Bị, Lịch Sử)
+
+        [HttpGet("/QLKiemKe")]
+        public IActionResult IndexKiemKe()
+        {
+            ViewBag.Users = _context.Users.OrderBy(u => u.HoTen).ToList();
+            return View("IndexKiemKe");
+        }
+
+        // HÀM HỖ TRỢ: GHI LẠI LỊCH SỬ THAO TÁC
+        private void GhiLichSu(string hanhDong, string doiTuong, int idDoiTuong, string chiTiet)
+        {
+            try
+            {
+                var userName = User.Identity?.Name ?? "Hệ thống";
+                var history = new KkLichSuThaoTac
+                {
+                    HanhDong = hanhDong,
+                    DoiTuong = doiTuong,
+                    IdDoiTuong = idDoiTuong,
+                    ChiTiet = chiTiet,
+                    ThoiGian = DateTime.Now,
+                    NguoiThaoTac = userName
+                };
+                _context.KkLichSuThaoTacs.Add(history);
+                _context.SaveChanges();
+            }
+            catch { /* Bỏ qua lỗi ghi log để không làm gián đoạn luồng chính */ }
+        }
+
+        // ==================== LỊCH SỬ THAO TÁC ====================
+        [HttpGet("/QLKiemKe/GetLichSu")]
+        public IActionResult GetLichSu()
+        {
+            var data = _context.KkLichSuThaoTacs
+                .OrderByDescending(x => x.ThoiGian)
+                .Take(500) // Lấy 500 lịch sử gần nhất để tối ưu hiệu suất
+                .ToList();
+            return Json(new { data = data });
+        }
+
+        // ==================== CÔNG TY ====================
+        [HttpGet("/QLKiemKe/GetKkCongTys")]
+        public IActionResult GetKkCongTys()
+        {
+            var data = _context.KkCongTies.OrderByDescending(x => x.IdcongTy).ToList();
+            return Json(new { data = data });
+        }
+
+        [HttpPost("/QLKiemKe/SaveKkCongTy")]
+        public IActionResult SaveKkCongTy(KkCongTy model)
+        {
+            try
+            {
+                string action = model.IdcongTy == 0 ? "Thêm mới" : "Cập nhật";
+                int objId = model.IdcongTy;
+
+                if (model.IdcongTy == 0)
+                {
+                    model.NgayTao = DateTime.Now;
+                    model.TrangThai = true;
+                    _context.KkCongTies.Add(model);
+                }
+                else
+                {
+                    var existing = _context.KkCongTies.Find(model.IdcongTy);
+                    if (existing != null)
+                    {
+                        existing.TenCongTy = model.TenCongTy;
+                        existing.GhiChu = model.GhiChu;
+                        existing.TrangThai = model.TrangThai;
+                    }
+                }
+
+                _context.SaveChanges();
+
+                // Ghi log sau khi save để lấy được ID mới nếu là Thêm mới
+                if (objId == 0) objId = model.IdcongTy;
+                GhiLichSu(action, "Công Ty", objId, $"Tên công ty: {model.TenCongTy}");
+
+                return Json(new { success = true, msg = "Lưu công ty thành công!" });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        [HttpPost("/QLKiemKe/DeleteKkCongTy")]
+        public IActionResult DeleteKkCongTy(int id)
+        {
+            try
+            {
+                var item = _context.KkCongTies.Find(id);
+                if (item != null)
+                {
+                    string tenCT = item.TenCongTy;
+                    _context.KkCongTies.Remove(item);
+                    _context.SaveChanges();
+
+                    GhiLichSu("Xóa", "Công Ty", id, $"Đã xóa công ty: {tenCT}");
+                }
+                return Json(new { success = true, msg = "Đã xóa công ty!" });
+            }
+            catch (Exception) { return Json(new { success = false, msg = "Không thể xóa vì công ty này đang được sử dụng ở Bộ phận hoặc Thiết bị." }); }
+        }
+
+        // ==================== BỘ PHẬN ====================
+        [HttpGet("/QLKiemKe/GetKkBoPhans")]
+        public IActionResult GetKkBoPhans()
+        {
+            var data = _context.KkBoPhans
+                .Select(x => new
+                {
+                    x.IdboPhan,
+                    x.TenBoPhan,
+                    x.IdcongTy,
+                    TenCongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : "",
+                    x.GhiChu,
+                    x.NgayTao,
+                    x.TrangThai
+                })
+                .OrderByDescending(x => x.IdboPhan).ToList();
+            return Json(new { data = data });
+        }
+
+        [HttpPost("/QLKiemKe/SaveKkBoPhan")]
+        public IActionResult SaveKkBoPhan(KkBoPhan model)
+        {
+            try
+            {
+                string action = model.IdboPhan == 0 ? "Thêm mới" : "Cập nhật";
+                int objId = model.IdboPhan;
+
+                if (model.IdboPhan == 0)
+                {
+                    model.NgayTao = DateTime.Now;
+                    model.TrangThai = true;
+                    _context.KkBoPhans.Add(model);
+                }
+                else
+                {
+                    var existing = _context.KkBoPhans.Find(model.IdboPhan);
+                    if (existing != null)
+                    {
+                        existing.TenBoPhan = model.TenBoPhan;
+                        existing.IdcongTy = model.IdcongTy;
+                        existing.GhiChu = model.GhiChu;
+                        existing.TrangThai = model.TrangThai;
+                    }
+                }
+
+                _context.SaveChanges();
+
+                if (objId == 0) objId = model.IdboPhan;
+                GhiLichSu(action, "Bộ Phận", objId, $"Tên bộ phận: {model.TenBoPhan}");
+
+                return Json(new { success = true, msg = "Lưu bộ phận thành công!" });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        [HttpPost("/QLKiemKe/DeleteKkBoPhan")]
+        public IActionResult DeleteKkBoPhan(int id)
+        {
+            try
+            {
+                var item = _context.KkBoPhans.Find(id);
+                if (item != null)
+                {
+                    string tenBP = item.TenBoPhan;
+                    _context.KkBoPhans.Remove(item);
+                    _context.SaveChanges();
+
+                    GhiLichSu("Xóa", "Bộ Phận", id, $"Đã xóa bộ phận: {tenBP}");
+                }
+                return Json(new { success = true, msg = "Đã xóa bộ phận!" });
+            }
+            catch (Exception) { return Json(new { success = false, msg = "Không thể xóa vì bộ phận này đang được sử dụng ở Thiết bị." }); }
+        }
+
+        // ==================== THIẾT BỊ ====================
+        [HttpGet("/QLKiemKe/GetKkThietBis")]
+        public IActionResult GetKkThietBis()
+        {
+            var data = _context.KkThietBis
+                .Select(x => new
+                {
+                    x.IdThietBi,
+                    x.TenThietBi,
+                    x.TenMayTinh,
+                    x.TenDangNhap,
+                    x.LoaiThietBi,
+                    x.GhiChu,
+                    x.IdNguoiDung,
+                    TenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : "",
+                    x.IdcongTy,
+                    TenCongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : "",
+                    x.IdboPhan,
+                    TenBoPhan = x.IdboPhanNavigation != null ? x.IdboPhanNavigation.TenBoPhan : "",
+                    x.NgayTao,
+                    x.NgayCapNhat
+                })
+                .OrderByDescending(x => x.IdThietBi).ToList();
+            return Json(new { data = data });
+        }
+
+        [HttpPost("/QLKiemKe/SaveKkThietBi")]
+        public IActionResult SaveKkThietBi(KkThietBi model)
+        {
+            try
+            {
+                bool isDuplicate = false;
+                if (model.IdThietBi == 0)
+                {
+                    isDuplicate = _context.KkThietBis.Any(x => x.TenThietBi.ToLower().Trim() == model.TenThietBi.ToLower().Trim());
+                }
+                else
+                {
+                    isDuplicate = _context.KkThietBis.Any(x => x.TenThietBi.ToLower().Trim() == model.TenThietBi.ToLower().Trim() && x.IdThietBi != model.IdThietBi);
+                }
+
+                if (isDuplicate)
+                {
+                    return Json(new { success = false, msg = $"Thiết bị mang tên '{model.TenThietBi}' đã tồn tại trong hệ thống. Vui lòng nhập tên khác!" });
+                }
+
+                string action = model.IdThietBi == 0 ? "Thêm mới" : "Cập nhật";
+                int objId = model.IdThietBi;
+
+                if (model.IdThietBi == 0)
+                {
+                    model.NgayTao = DateTime.Now;
+                    _context.KkThietBis.Add(model);
+                }
+                else
+                {
+                    var existing = _context.KkThietBis.Find(model.IdThietBi);
+                    if (existing != null)
+                    {
+                        existing.TenThietBi = model.TenThietBi;
+                        existing.TenMayTinh = model.TenMayTinh;
+                        existing.TenDangNhap = model.TenDangNhap;
+                        existing.LoaiThietBi = model.LoaiThietBi;
+                        existing.GhiChu = model.GhiChu;
+                        existing.IdNguoiDung = model.IdNguoiDung;
+                        existing.IdcongTy = model.IdcongTy;
+                        existing.IdboPhan = model.IdboPhan;
+                        existing.NgayCapNhat = DateTime.Now;
+                    }
+                }
+                _context.SaveChanges();
+
+                if (objId == 0) objId = model.IdThietBi;
+                GhiLichSu(action, "Thiết Bị", objId, $"Tên thiết bị/Serial: {model.TenThietBi} - Loại: {model.LoaiThietBi}");
+
+                return Json(new { success = true, msg = "Lưu thiết bị thành công!" });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        [HttpPost("/QLKiemKe/DeleteKkThietBi")]
+        public IActionResult DeleteKkThietBi(int id)
+        {
+            try
+            {
+                var item = _context.KkThietBis.Find(id);
+                if (item != null)
+                {
+                    string tenTB = item.TenThietBi;
+                    _context.KkThietBis.Remove(item);
+                    _context.SaveChanges();
+
+                    GhiLichSu("Xóa", "Thiết Bị", id, $"Đã xóa thiết bị: {tenTB}");
+                }
+                return Json(new { success = true, msg = "Đã xóa thiết bị!" });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        #endregion
+
     }
-    }
+}
