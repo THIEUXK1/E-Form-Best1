@@ -17,7 +17,7 @@
 
     bool isITSystem = currentController.Contains("IT") || currentController == "Mail" || currentController.Contains("Order");
 
-    string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh" };
+    string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi" };
     bool isITSubActive = itSubPages.Contains(currentAction);
 
     string primaryGradient = isITSystem ? "linear-gradient(180deg, #0f172a 0%, #1e40af 100%)" : "linear-gradient(180deg, #1a365d 0%, #2d3748 100%)";
@@ -37,6 +37,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    
+    <!-- THÊM THƯ VIỆN SELECT2 (CSS) BỊ THIẾU -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
     <style>
         body {
@@ -252,7 +255,7 @@
                         <i class="fa fa-angle-down" id="menuArrow" style="transition: 0.3s; transform: @(isITSubActive ? "rotate(180deg)" : "rotate(0deg)");"></i>
                     </div>
 
-                   <div id="mainSubmenu" style="display: @(isITSubActive ? "flex" : "none"); flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
+                    <div id="mainSubmenu" style="display: @(isITSubActive ? "flex" : "none"); flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
     @if (isITSystem)
     {
         <a href="/FormIT/DonMail" class="submenu-link @(currentAction == "DonMail" ? "active" : "")">
@@ -306,6 +309,15 @@
                         </a>
                         <a href="/FormIT/BaoCaoThongKe" class="nav-link-item @(currentAction == "BaoCaoThongKe" ? "active" : "")">
                             <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> <span class="lang-text" data-key="statistics">Thống báo báo cáo</span>
+                        </a>
+                    }
+
+                    @if (User.IsInRole("KKTS-PFVN") || User.IsInRole("All"))
+                    {
+                        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
+                        <div class="lang-text" data-key="inventory_sec" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Kiểm Kê Thiết Bị</div>
+                        <a href="/QLKiemKe" class="nav-link-item @(currentController == "QLKiemKe" || currentAction == "IndexKiemKe" ? "active" : "")">
+                            <i class="fa fa-cubes" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f472b6;"></i> <span class="lang-text" data-key="inventory">Quản lý Kiểm Kê</span>
                         </a>
                     }
                 }
@@ -466,6 +478,9 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- THÊM THƯ VIỆN SELECT2 (JS) BỊ THIẾU -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <!-- SCRIPT GOOGLE TRANSLATE -->
     <script type="text/javascript">
