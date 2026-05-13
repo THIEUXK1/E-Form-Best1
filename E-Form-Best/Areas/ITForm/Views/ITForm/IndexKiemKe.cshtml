@@ -30,7 +30,6 @@
             <div class="card-header bg-white pt-3 pb-0 border-0" style="border-radius: 15px 15px 0 0;">
                 <!-- TABS -->
                 <ul class="nav nav-tabs border-bottom flex-nowrap overflow-x-auto" id="myTab" role="tablist" style="border-color: #e2e8f0; white-space: nowrap; -webkit-overflow-scrolling: touch;">
-                    <!-- TAB THỐNG KÊ (MỚI) -->
                     <li class="nav-item" role="presentation">
                         <button class="nav-link fw-bold text-muted px-4 py-2" style="border: none; border-radius: 10px 10px 0 0; background-color: transparent;" id="thongke-tab" data-bs-toggle="tab" data-bs-target="#thongke" type="button" role="tab" onclick="changeTab('Tổng quan', this)">
                             <i class="fas fa-chart-pie me-1"></i> Tổng quan
@@ -52,6 +51,11 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold text-muted px-4 py-2" style="border: none; border-radius: 10px 10px 0 0; background-color: transparent;" id="loaithietbi-tab" data-bs-toggle="tab" data-bs-target="#loaithietbi" type="button" role="tab" onclick="changeTab('Loại thiết bị', this)">
+                            <i class="fas fa-tags me-1"></i> Loại thiết bị
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
                         <button class="nav-link fw-bold text-muted px-4 py-2" style="border: none; border-radius: 10px 10px 0 0; background-color: transparent;" id="trangthai-tab" data-bs-toggle="tab" data-bs-target="#trangthai" type="button" role="tab" onclick="changeTab('Trạng thái', this)">
                             <i class="fas fa-info-circle me-1"></i> Trạng thái
                         </button>
@@ -68,7 +72,7 @@
                     </li>
                 </ul>
             </div>
-            
+
             <div class="card-body p-2 p-md-3">
                 <!-- KHU VỰC THANH LỌC -->
                 <div class="row mb-3 pb-3 border-bottom align-items-center" id="filterBar" style="background: #f8fafc; padding: 15px; border-radius: 10px; margin: 0 5px;">
@@ -86,14 +90,9 @@
                     </div>
                     <div class="col-md-2 col-sm-4 mb-2 mb-md-0">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-tags"></i> Loại thiết bị</label>
+                        <!-- Thẻ Select sẽ được đổ dữ liệu từ JS -->
                         <select id="filterLoai" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
                             <option value="">-- Tất cả --</option>
-                            <option value="Máy tính">Máy tính</option>
-                            <option value="Máy in">Máy in</option>
-                            <option value="Máy chấm công">Máy chấm công</option>
-                            <option value="Switch">Switch</option>
-                            <option value="Loa">Loa</option>
-                            <option value="Khác">Khác</option>
                         </select>
                     </div>
                     <div class="col-md-2 col-sm-4 mb-2 mb-md-0" id="boxFilterTrangThai">
@@ -118,12 +117,10 @@
                 </div>
 
                 <div class="tab-content" id="myTabContent">
-                    
+
                     <!-- TAB THỐNG KÊ (TỔNG QUAN) -->
                     <div class="tab-pane fade" id="thongke" role="tabpanel">
-                        <div class="row g-3 mb-4" id="boxThongKeCards">
-                            <!-- JS Sẽ tự động vẽ 4 thẻ (Tổng số, Đang hoạt động, Hỏng, Chưa cấp phát) vào đây -->
-                        </div>
+                        <div class="row g-3 mb-4" id="boxThongKeCards"></div>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
@@ -201,6 +198,24 @@
                         </div>
                     </div>
 
+                    <!-- TAB LOẠI THIẾT BỊ -->
+                    <div class="tab-pane fade" id="loaithietbi" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" style="min-width: 100%;">
+                                <thead class="table-light d-none d-md-table-header-group">
+                                    <tr>
+                                        <th width="70">ID</th>
+                                        <th>Tên Loại Thiết Bị</th>
+                                        <th>Ghi chú</th>
+                                        <th width="150">Ngày tạo</th>
+                                        <th width="120" class="text-center">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyLoaiThietBi"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <!-- TAB TRẠNG THÁI -->
                     <div class="tab-pane fade" id="trangthai" role="tabpanel">
                         <div class="table-responsive">
@@ -229,7 +244,7 @@
                                         <th>Vị trí cũ</th>
                                         <th>Ngày Xóa</th>
                                         <th>Lý do xóa</th>
-                                        <th width="120" class="text-center">Thao tác</th>
+                                        <th width="180" class="text-center">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbodyDaXoa"></tbody>
@@ -333,6 +348,33 @@
     </div>
 </div>
 
+<!-- MODAL LOẠI THIẾT BỊ -->
+<div class="modal fade" id="modalLoaiThietBi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header text-white border-0" style="background-color: #ec4899; border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title fw-bold" id="titleModalLoaiThietBi">Thông tin Loại Thiết Bị</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="ltb_Id" value="0" />
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Tên loại <span class="text-danger">*</span></label>
+                    <input type="text" id="ltb_Ten" class="form-control rounded-3" placeholder="Ví dụ: Máy tính, Máy in..." style="border: 1px solid #e2e8f0; padding: 10px 15px;" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Ghi chú</label>
+                    <textarea id="ltb_GhiChu" class="form-control rounded-3" rows="2" style="border: 1px solid #e2e8f0; padding: 10px 15px;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0 bg-light" style="border-radius: 0 0 20px 20px;">
+                <button type="button" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn text-white px-4 rounded-pill" style="background-color: #ec4899;" onclick="saveLoaiThietBi()">Lưu dữ liệu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL TRẠNG THÁI -->
 <div class="modal fade" id="modalTrangThai" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -370,18 +412,13 @@
             </div>
             <div class="modal-body p-3 p-md-4">
                 <input type="hidden" id="tb_Id" value="0" />
-                
+
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Loại thiết bị <span class="text-danger">*</span></label>
+                        <!-- Thẻ này giờ đã được đổ tự động -->
                         <select id="tb_LoaiThietBi" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
                             <option value="">-- Chọn loại --</option>
-                            <option value="Máy tính">Máy tính (PC/Laptop)</option>
-                            <option value="Máy in">Máy in</option>
-                            <option value="Máy chấm công">Máy chấm công</option>
-                            <option value="Switch">Switch mạng</option>
-                            <option value="Loa">Loa / Âm thanh</option>
-                            <option value="Khác">Khác...</option>
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -406,13 +443,13 @@
 
                     <div class="col-md-12">
                         <label class="form-label fw-bold">Ghi chú (Cấu hình, thông tin...)</label>
-                        <input type="text" id="tb_GhiChu" class="form-control rounded-3" placeholder="Thông tin thêm..." style="border: 1px solid #e2e8f0; height: 45px;" />
+                        <input type="text" id="tb_GhiChu" class="form-control rounded-3" placeholder="Thông tự thêm..." style="border: 1px solid #e2e8f0; height: 45px;" />
                     </div>
 
                     <div class="col-12 mt-4 mb-2">
                         <div style="border-top: 1px dashed #cbd5e1;"></div>
                     </div>
-                    
+
                     <div class="col-md-12">
                         <label class="form-label fw-bold" style="color: #4f46e5;">Gán người sử dụng</label>
                         <select id="tb_IdNguoiDung" class="form-control select2-modal w-100">
@@ -456,10 +493,11 @@
 
     <script>
         var currentTab = 'Thiết bị';
-        
+
         let listCongTyCache = [];
         let listBoPhanCache = [];
         let listTrangThaiCache = [];
+        let listLoaiThietBiCache = []; // Bộ đệm Loại thiết bị
         let allThietBiCache = [];
         let allLichSuCache = [];
 
@@ -496,7 +534,7 @@
 
         let savedLimit = localStorage.getItem('kk_filterLimit') || '50';
         $('#filterLimit').val(savedLimit);
-                
+
         let savedLoai = localStorage.getItem('kk_filterLoai') || '';
         $('#filterLoai').val(savedLoai);
 
@@ -504,7 +542,7 @@
         $('#filterBoPhan, #filterLimit, #filterLoai, #filterTrangThai').on('change', function() { applyFilters(); });
 
         loadTrangThai();
-                
+
         $('.modal').on('hidden.bs.modal', function () {
         $(this).find('input[type="text"], textarea').val('');
         $(this).find('input[type="hidden"]').val('0');
@@ -538,6 +576,20 @@
         fillSelectTrangThai('#tb_IdTrangThai');
         }
 
+        function renderFilterLoaiThietBi() {
+        let savedLoai = localStorage.getItem('kk_filterLoai') || '';
+        let htmlFilter = '<option value="">-- Tất cả --</option>';
+        let htmlForm = '<option value="">-- Chọn loại --</option>';
+
+        listLoaiThietBiCache.forEach(c => {
+        htmlFilter += `<option value="${c.tenLoai}" ${c.tenLoai == savedLoai ? 'selected' : ''}>${c.tenLoai}</option>`;
+        htmlForm += `<option value="${c.tenLoai}">${c.tenLoai}</option>`;
+        });
+
+        $('#filterLoai').html(htmlFilter);
+        $('#tb_LoaiThietBi').html(htmlForm);
+        }
+
         function renderFilterCongTy() {
         let savedCT = localStorage.getItem('kk_filterCT') || '';
         let html = '<option value="">-- Tất cả Công ty --</option>';
@@ -551,7 +603,7 @@
         let savedBP = localStorage.getItem('kk_filterBP') || '';
         let fCT = $('#filterCongTy').val();
         let html = '<option value="">-- Tất cả Bộ phận --</option>';
-                
+
         let filteredBPs = listBoPhanCache;
         if(fCT) filteredBPs = listBoPhanCache.filter(b => b.idcongTy == fCT);
 
@@ -559,7 +611,7 @@
         let extendName = (!fCT && b.tenCongTy) ? ` (${b.tenCongTy})` : '';
         html += `<option value="${b.idboPhan}" ${b.idboPhan == savedBP ? 'selected' : ''}>${b.tenBoPhan}${extendName}</option>`;
         });
-                
+
         $('#filterBoPhan').html(html);
         if(!filteredBPs.some(b => b.idboPhan == savedBP)) {
         $('#filterBoPhan').val('');
@@ -580,6 +632,7 @@
         renderUIBoPhan();
         renderUICongTy();
         renderUITrangThai();
+        renderUILoaiThietBi();
         renderUILichSu();
         }
 
@@ -651,11 +704,17 @@
         } else if (currentTab === 'Trạng thái') {
         $('#titleModalTrangThai').text("Thêm Trạng thái mới");
         $('#modalTrangThai').modal('show');
+        } else if (currentTab === 'Loại thiết bị') {
+        $('#titleModalLoaiThietBi').text("Thêm Loại Thiết Bị mới");
+        $('#ltb_Id').val('0');
+        $('#ltb_Ten').val('');
+        $('#ltb_GhiChu').val('');
+        $('#modalLoaiThietBi').modal('show');
         }
         }
 
         // ==========================================
-        // TẢI DỮ LIỆU
+        // TẢI DỮ LIỆU CHUỖI
         // ==========================================
         function loadTrangThai() {
         $.get('/QLKiemKe/GetKkTrangThais', function (res) {
@@ -664,11 +723,22 @@
         renderFilterTrangThai();
         renderUITrangThai();
         } else console.error("Lỗi API Trạng thái: " + (res.msg || ""));
-        loadCongTy();
+        loadLoaiThietBi();
         }).fail(function() {
         Swal.fire("Lỗi Máy Chủ", "Không thể tải dữ liệu trạng thái!", "error");
-        loadCongTy();
+        loadLoaiThietBi();
         });
+        }
+
+        function loadLoaiThietBi() {
+        $.get('/QLKiemKe/GetKkLoaiThietBis', function (res) {
+        if (res && res.success) {
+        listLoaiThietBiCache = res.data || [];
+        renderFilterLoaiThietBi();
+        renderUILoaiThietBi();
+        }
+        loadCongTy();
+        }).fail(function() { loadCongTy(); });
         }
 
         function loadCongTy() {
@@ -689,9 +759,9 @@
         $.get('/QLKiemKe/GetKkThietBis', function (res) {
         if (res && res.success) {
         allThietBiCache = res.data || [];
-        renderThongKe(); // Vẽ màn hình Tổng quan
-        renderUIThietBi(); // Vẽ tab Thiết bị
-        renderUIDaXoa();   // Vẽ tab Thùng rác
+        renderThongKe();
+        renderUIThietBi();
+        renderUIDaXoa();
         }
         loadLichSu();
         }).fail(function() { loadLichSu(); });
@@ -709,7 +779,6 @@
         // HÀM RENDER THỐNG KÊ (DASHBOARD)
         // ==========================================
         function renderThongKe() {
-        // Lấy toàn bộ thiết bị đang không nằm trong thùng rác
         let activeDevices = allThietBiCache.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
 
         let total = activeDevices.length;
@@ -717,7 +786,6 @@
         let hongHoc = activeDevices.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('hỏng')).length;
         let chuaCapPhat = activeDevices.filter(x => !x.idNguoiDung).length;
 
-        // Đổ HTML cho 4 thẻ bài cơ bản
         $('#boxThongKeCards').html(`
         <div class="col-xl-3 col-md-6 mb-3">
         <div class="card bg-primary text-white border-0 shadow-sm h-100" style="border-radius:15px">
@@ -753,48 +821,36 @@
         </div>
         `);
 
-        // Chuẩn bị Dữ liệu cho Biểu đồ Loại Thiết Bị
         let countLoai = {};
         activeDevices.forEach(d => {
         let loai = d.loaiThietBi || 'Chưa rõ';
         countLoai[loai] = (countLoai[loai] || 0) + 1;
         });
-            
-        // Vẽ biểu đồ Bar (Cột)
+
         if(chartLoai) chartLoai.destroy();
         let ctxLoai = document.getElementById('chartLoaiThietBi').getContext('2d');
         chartLoai = new Chart(ctxLoai, {
         type: 'bar',
         data: {
         labels: Object.keys(countLoai),
-        datasets: [{
-        label: 'Số lượng thiết bị',
-        data: Object.values(countLoai),
-        backgroundColor: '#3b82f6',
-        borderRadius: 5
-        }]
+        datasets: [{ label: 'Số lượng thiết bị', data: Object.values(countLoai), backgroundColor: '#3b82f6', borderRadius: 5 }]
         },
         options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
         });
 
-        // Chuẩn bị Dữ liệu cho Biểu đồ Trạng Thái
         let countTT = {};
         activeDevices.forEach(d => {
         let tt = d.tenTrangThai || 'Chưa rõ';
         countTT[tt] = (countTT[tt] || 0) + 1;
         });
 
-        // Vẽ biểu đồ Doughnut (Tròn)
         if(chartTT) chartTT.destroy();
         let ctxTT = document.getElementById('chartTrangThai').getContext('2d');
         chartTT = new Chart(ctxTT, {
         type: 'doughnut',
         data: {
         labels: Object.keys(countTT),
-        datasets: [{
-        data: Object.values(countTT),
-        backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4', '#64748b']
-        }]
+        datasets: [{ data: Object.values(countTT), backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4', '#64748b'] }]
         },
         options: { responsive: true, maintainAspectRatio: false }
         });
@@ -806,7 +862,6 @@
         function renderUIThietBi() {
         let fCT = $('#filterCongTy').val(); let fBP = $('#filterBoPhan').val(); let fLoai = $('#filterLoai').val(); let fTT = $('#filterTrangThai').val(); let fLimit = $('#filterLimit').val();
 
-        // Loại bỏ các thiết bị đã bị đưa vào Thùng rác
         let filtered = allThietBiCache.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
 
         if (fCT) filtered = filtered.filter(x => x.idcongTy == fCT);
@@ -860,11 +915,10 @@
         $('#tbodyThietBi').html(html);
         }
 
-        // RENDER TAB ĐÃ XÓA (THÙNG RÁC)
+        // BẢNG ĐÃ XÓA (THÙNG RÁC) - BỔ SUNG NÚT XÓA VĨNH VIỄN
         function renderUIDaXoa() {
         let fCT = $('#filterCongTy').val(); let fBP = $('#filterBoPhan').val(); let fLoai = $('#filterLoai').val(); let fLimit = $('#filterLimit').val();
 
-        // CHỈ LẤY những thiết bị có trạng thái "Xóa"
         let filtered = allThietBiCache.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa'));
 
         if (fCT) filtered = filtered.filter(x => x.idcongTy == fCT);
@@ -902,7 +956,10 @@
         <span class="text-danger">${item.lyDoXoa || 'Không rõ lý do'}</span>
         </td>
         <td class="d-block d-md-table-cell text-center border-0 py-3 py-md-2 mt-2 mt-md-0">
-        <button class="btn btn-sm btn-outline-success w-100" onclick="restoreThietBi(${item.idThietBi})"><i class="fas fa-undo-alt"></i> Khôi phục</button>
+        <div class="btn-group d-flex d-md-inline-flex w-100 w-md-auto">
+        <button class="btn btn-sm btn-outline-success flex-fill flex-md-grow-0" onclick="restoreThietBi(${item.idThietBi})"><i class="fas fa-undo-alt"></i> Khôi phục</button>
+        <button class="btn btn-sm btn-outline-danger flex-fill flex-md-grow-0" onclick="hardDeleteThietBi(${item.idThietBi})"><i class="fas fa-times"></i> Xóa luôn</button>
+        </div>
         </td>
         </tr>`;
         });
@@ -913,7 +970,6 @@
         $('#tbodyDaXoa').html(html);
         }
 
-        // Render các bảng khác...
         function renderUITrangThai() {
         let html = '';
         listTrangThaiCache.forEach(item => {
@@ -1029,6 +1085,39 @@
         $('#tbodyBoPhan').html(html);
         }
 
+        function renderUILoaiThietBi() {
+        let html = '';
+        listLoaiThietBiCache.forEach(item => {
+        let date = item.ngayTao ? new Date(item.ngayTao).toLocaleDateString('vi-VN') : '';
+        html += `
+        <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">ID:</span>
+        ${item.idLoai}
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Tên Loại:</span>
+        <span class="fw-bold" style="color:#ec4899; font-size:15px;">${item.tenLoai}</span>
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ghi chú:</span>
+        ${item.ghiChu || ''}
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ngày tạo:</span>
+        ${date}
+        </td>
+        <td class="d-block d-md-table-cell text-center border-0 py-3 py-md-2 mt-2 mt-md-0">
+        <div class="btn-group d-flex d-md-inline-flex w-100 w-md-auto">
+        <button class="btn btn-sm btn-outline-warning flex-fill flex-md-grow-0" onclick='editLoaiThietBi(${JSON.stringify(item)})'><i class="fas fa-edit"></i> Sửa</button>
+        <button class="btn btn-sm btn-outline-danger flex-fill flex-md-grow-0" onclick="deleteLoaiThietBi(${item.idLoai})"><i class="fas fa-trash"></i> Xóa</button>
+        </div>
+        </td>
+        </tr>`;
+        });
+        $('#tbodyLoaiThietBi').html(html);
+        }
+
         function renderUILichSu() {
         let fLimit = $('#filterLimit').val();
         let filtered = allLichSuCache;
@@ -1038,7 +1127,7 @@
         filtered.forEach(item => {
         let date = item.thoiGian ? new Date(item.thoiGian).toLocaleString('vi-VN') : '';
         let actionColor = item.hanhDong.includes("Thêm") ? "success" : (item.hanhDong.includes("Xóa") ? "danger" : (item.hanhDong.includes("Khôi phục") ? "info" : "primary"));
-                
+
         html += `
         <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
@@ -1087,7 +1176,48 @@
         $(selector).html(html).val(selectedVal);
         }
 
-        // ======================= CÁC HÀM CRUD CƠ BẢN (CÔNG TY, BỘ PHẬN, TRẠNG THÁI) =======================
+        // ======================= CÁC HÀM CRUD CƠ BẢN (LOẠI THIẾT BỊ, CÔNG TY, BỘ PHẬN, TRẠNG THÁI) =======================
+        function editLoaiThietBi(item) {
+        $('#ltb_Id').val(item.idLoai);
+        $('#ltb_Ten').val(item.tenLoai);
+        $('#ltb_GhiChu').val(item.ghiChu);
+        $('#titleModalLoaiThietBi').text("Cập nhật Loại Thiết Bị");
+        $('#modalLoaiThietBi').modal('show');
+        }
+
+        function saveLoaiThietBi() {
+        let isAddMode = parseInt($('#ltb_Id').val()) === 0;
+        let data = { IdLoai: parseInt($('#ltb_Id').val()), TenLoai: $('#ltb_Ten').val().trim(), GhiChu: $('#ltb_GhiChu').val().trim() };
+        if(!data.TenLoai) return Swal.fire("Lỗi", "Nhập tên loại thiết bị!", "warning");
+
+        $.post('/QLKiemKe/SaveKkLoaiThietBi', data, function(res) {
+        if(res.success) {
+        loadLoaiThietBi(); // Làm mới Dropdown & Bảng
+        loadLichSu(true);
+
+        if (isAddMode) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Thêm mới thành công!', showConfirmButton: false, timer: 2000 });
+        $('#ltb_Id').val('0');
+        $('#ltb_Ten').select();
+        } else {
+        $('#modalLoaiThietBi').modal('hide');
+        Swal.fire("Thành công", res.msg, "success");
+        }
+        } else Swal.fire("Lỗi", res.msg, "error");
+        });
+        }
+
+        function deleteLoaiThietBi(id) {
+        Swal.fire({ title: 'Xóa?', icon: 'warning', showCancelButton: true }).then(r => {
+        if (r.isConfirmed) {
+        $.post('/QLKiemKe/DeleteKkLoaiThietBi', { id: id }, function(res) {
+        if(res.success) { loadLoaiThietBi(); loadLichSu(true); }
+        else Swal.fire("Lỗi", res.msg, "error");
+        });
+        }
+        });
+        }
+
         function editTrangThai(item) { $('#tt_Id').val(item.idTrangThai); $('#tt_Ten').val(item.tenTrangThai); $('#tt_GhiChu').val(item.moTa); $('#titleModalTrangThai').text("Cập nhật Trạng thái"); $('#modalTrangThai').modal('show'); }
         function saveTrangThai() {
         let data = { IdTrangThai: parseInt($('#tt_Id').val()), TenTrangThai: $('#tt_Ten').val().trim(), MoTa: $('#tt_GhiChu').val().trim() };
@@ -1120,10 +1250,10 @@
         $('#tb_TenMayTinh').val(item.tenMayTinh || '');
         $('#tb_TenDangNhap').val(item.tenDangNhap || '');
         $('#tb_GhiChu').val(item.ghiChu || '');
-            
+
         fillSelectCongTy('#tb_IdCongTy', item.idcongTy || '');
         fillSelectTrangThai('#tb_IdTrangThai', item.idTrangThai || '');
-            
+
         if (item.idcongTy) {
         let html = '<option value="">-- Chọn bộ phận --</option>';
         let filtered = listBoPhanCache.filter(b => b.idcongTy == item.idcongTy);
@@ -1152,7 +1282,7 @@
         IdcongTy: $('#tb_IdCongTy').val() ? parseInt($('#tb_IdCongTy').val()) : null,
         IdboPhan: $('#tb_IdBoPhan').val() ? parseInt($('#tb_IdBoPhan').val()) : null
         };
-            
+
         if(!data.LoaiThietBi || !data.IdTrangThai) return Swal.fire("Lỗi", "Vui lòng chọn loại thiết bị và Trạng thái!", "warning");
 
         $.post('/QLKiemKe/SaveKkThietBi', data, function(res) {
@@ -1161,9 +1291,13 @@
         loadLichSu(true);
 
         if(isAddMode) {
+        // KHÔNG TẮT MODAL VÀ KHÔNG XÓA GIÁ TRỊ THEO YÊU CẦU
         Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Thêm thiết bị thành công!', showConfirmButton: false, timer: 2000 });
-        $('#tb_GhiChu').val('');
-        $('#tb_TenThietBi').focus();
+        $('#tb_Id').val('0'); // Set id về 0 để insert mới cho lần sau
+
+        // Select/bôi đen văn bản để người dùng có thể gõ đè luôn mà không cần xóa tay,
+        // nhưng nếu ấn lưu tiếp thì text cũ vẫn còn nguyên.
+        $('#tb_TenThietBi').select().focus();
         } else {
         $('#modalThietBi').modal('hide');
         Swal.fire("Thành công", res.msg, "success");
@@ -1208,6 +1342,28 @@
         if(res.success) {
         loadThietBi(); loadLichSu(true);
         Swal.fire("Thành công", res.msg, "success");
+        } else Swal.fire("Lỗi", res.msg, "error");
+        });
+        }
+        });
+        }
+
+        // HÀM XÓA VĨNH VIỄN THIẾT BỊ KHỎI THÙNG RÁC
+        function hardDeleteThietBi(id) {
+        Swal.fire({
+        title: 'Xóa vĩnh viễn?',
+        text: "Thiết bị sẽ bị xóa vĩnh viễn khỏi CSDL và không thể khôi phục!",
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'Xóa vĩnh viễn',
+        cancelButtonText: 'Hủy'
+        }).then((r) => {
+        if (r.isConfirmed) {
+        $.post('/QLKiemKe/HardDeleteKkThietBi', { id: id }, function(res) {
+        if(res.success) {
+        loadThietBi(); loadLichSu(true);
+        Swal.fire("Đã xóa!", res.msg, "success");
         } else Swal.fire("Lỗi", res.msg, "error");
         });
         }
