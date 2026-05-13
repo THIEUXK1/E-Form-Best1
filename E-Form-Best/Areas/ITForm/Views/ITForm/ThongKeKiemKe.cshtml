@@ -130,7 +130,7 @@
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-info"></i> Tìm Kiếm Nhanh</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-                            <input type="text" id="filterText" class="form-control border-start-0 ps-0" placeholder="S/N, Hostname, Account, Tên..." style="height: 38px;">
+                            <input type="text" id="filterText" class="form-control border-start-0 ps-0" placeholder="S/N, Hostname, Account, Tên, Mã TK..." style="height: 38px;">
                         </div>
                     </div>
                     <div class="col-lg-2 col-md-4 col-sm-12 text-end">
@@ -319,7 +319,7 @@
 
         function loadData() {
         // Sử dụng API lấy toàn bộ danh sách thiết bị
-        $.get('/QLKiemKe/GetKkThietBis', function (res) {
+        $.get('/QLKiemKe/GetKkThietBiss', function (res) {
         if (res.success) {
         allDataCache = res.data || [];
         populateFilters(allDataCache);
@@ -384,7 +384,8 @@
         (x.tenMayTinh && x.tenMayTinh.toLowerCase().includes(fText)) ||
         (x.tenThietBi && x.tenThietBi.toLowerCase().includes(fText)) ||
         (x.tenNguoiDung && x.tenNguoiDung.toLowerCase().includes(fText)) ||
-        (x.tenDangNhap && x.tenDangNhap.toLowerCase().includes(fText))
+        (x.tenDangNhap && x.tenDangNhap.toLowerCase().includes(fText)) ||
+        (x.tk && x.tk.toLowerCase().includes(fText)) // <--- Đã bổ sung lọc thêm theo Tk
         );
         }
 
@@ -520,8 +521,10 @@
         $('#paginationInfo').html(`Đang hiển thị <b>${startIndex + 1}</b> đến <b>${endIndex}</b> trong tổng số <b class="text-primary">${totalItems}</b> thiết bị`);
 
         pageData.forEach(item => {
+
+        // ---> CẬP NHẬT Ở ĐÂY: Hiển thị thêm (item.tk) bên cạnh tên người dùng
         let userStr = item.tenNguoiDung
-        ? `<div class="fw-bold text-primary">${item.tenNguoiDung}</div><div class="small text-muted"><i class="fas fa-user-circle me-1"></i>${item.tenDangNhap || 'N/A'}</div>`
+        ? `<div class="fw-bold text-primary">${item.tenNguoiDung} <span class="text-danger fw-normal">(${item.tk || 'N/A'})</span></div><div class="small text-muted"><i class="fas fa-user-circle me-1"></i>${item.tenDangNhap || 'N/A'}</div>`
         : `<span class="text-muted fst-italic">Chưa cấp phát</span>`;
 
         let locStr = [item.tenCongTy, item.tenBoPhan].filter(Boolean).join(' - ') || 'Chưa gắn';
@@ -734,7 +737,8 @@
         "Tên Máy (Hostname)": item.tenMayTinh || '',
         "Loại Thiết Bị": item.loaiThietBi || '',
         "Tên Đăng Nhập (Account)": item.tenDangNhap || '',
-        "Người Sử Dụng": item.tenNguoiDung || 'Chưa cấp phát',
+        // ---> CẬP NHẬT Ở ĐÂY: Thêm tk vào dữ liệu xuất Excel
+        "Người Sử Dụng": item.tenNguoiDung ? `${item.tenNguoiDung} (${item.tk || 'N/A'})` : 'Chưa cấp phát',
         "Công Ty": item.tenCongTy || 'Chưa gắn',
         "Bộ Phận": item.tenBoPhan || 'Chưa gắn',
         "Trạng Thái": item.tenTrangThai || 'Chưa rõ',
@@ -756,7 +760,7 @@
         { wch: 20 }, // Hostname
         { wch: 15 }, // Loại
         { wch: 20 }, // Account
-        { wch: 25 }, // Người dùng
+        { wch: 35 }, // Người dùng (Đã nới rộng ra để chứa Tk)
         { wch: 20 }, // Công ty
         { wch: 20 }, // Bộ phận
         { wch: 15 }, // Trạng thái
