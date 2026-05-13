@@ -60,6 +60,9 @@ public partial class KkThietBi
     [Column("duong_dan_anh")]
     public string? DuongDanAnh { get; set; }
 
+    [Column("thoi_gian_check", TypeName = "datetime")]
+    public DateTime? ThoiGianCheck { get; set; }
+
     [ForeignKey("IdNguoiDung")]
     [InverseProperty("KkThietBis")]
     public virtual User? IdNguoiDungNavigation { get; set; }

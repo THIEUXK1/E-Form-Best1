@@ -320,13 +320,19 @@
 </a>
 
 }
-
                     @if (User.IsInRole("KKTS-PFVN") || User.IsInRole("All"))
                     {
                         <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
                         <div class="lang-text" data-key="inventory_sec" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Kiểm Kê Thiết Bị</div>
+
+                        <!-- Menu 1: Quản lý Thiết bị (View chuyên add/thống kê) -->
+                        <a href="/QLKiemKe/ThietBi" class="nav-link-item @(currentController == "QLKiemKe" && currentAction == "IndexThietBi" ? "active" : "")">
+                            <i class="fa fa-laptop" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text" data-key="device_manage">Quản lý Thiết bị</span>
+                        </a>
+
+                        <!-- Menu 2: Danh mục (View cũ nhưng giờ chỉ chuyên cấu hình) -->
                         <a href="/QLKiemKe" class="nav-link-item @(currentController == "QLKiemKe" && currentAction == "IndexKiemKe" ? "active" : "")">
-                            <i class="fa fa-cubes" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f472b6;"></i> <span class="lang-text" data-key="inventory">Quản lý Kiểm Kê</span>
+                            <i class="fa fa-cubes" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f472b6;"></i> <span class="lang-text" data-key="inventory">Cấu hình Danh mục</span>
                         </a>
                     }
                 }
