@@ -1,9 +1,8 @@
 ﻿@{
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Quản lý Kiểm Kê (Công ty, Bộ phận, Thiết bị, Trạng thái, Lịch Sử)";
+    ViewData["Title"] = "Cấu hình Danh mục Kiểm kê";
 }
 
-<!-- THÊM THƯ VIỆN SELECT2 & FONT AWESOME 6 -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -12,12 +11,12 @@
         <div class="row align-items-center">
             <div class="col-md-6 col-12 mb-2 mb-md-0">
                 <h4 class="m-0 fw-bold" style="color: #1e293b; letter-spacing: -0.5px;">
-                    <i class="fas fa-boxes me-2" style="color: #4f46e5;"></i> Quản lý Kiểm kê tài sản
+                    <i class="fas fa-cogs me-2" style="color: #4f46e5;"></i> Cấu hình Danh mục Kiểm kê
                 </h4>
             </div>
             <div class="col-md-6 col-12 text-md-end text-start">
                 <button class="btn btn-sm rounded-pill px-3 shadow-sm text-white w-100 w-md-auto" style="background-color: #4f46e5; border-color: #4f46e5; padding-top: 8px; padding-bottom: 8px;" onclick="openModalCurrentTab()" id="btnMasterThemMoi">
-                    <i class="fas fa-plus me-1"></i> Thêm mới <span id="txtBtnThemMoi">Thiết bị</span>
+                    <i class="fas fa-plus me-1"></i> Thêm mới <span id="txtBtnThemMoi">Công ty</span>
                 </button>
             </div>
         </div>
@@ -28,20 +27,9 @@
     <div class="container-fluid">
         <div class="card border-0 shadow-sm bg-white" style="border-radius: 15px;">
             <div class="card-header bg-white pt-3 pb-0 border-0" style="border-radius: 15px 15px 0 0;">
-                <!-- TABS -->
                 <ul class="nav nav-tabs border-bottom flex-nowrap overflow-x-auto" id="myTab" role="tablist" style="border-color: #e2e8f0; white-space: nowrap; -webkit-overflow-scrolling: touch;">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-bold text-muted px-4 py-2" style="border: none; border-radius: 10px 10px 0 0; background-color: transparent;" id="thongke-tab" data-bs-toggle="tab" data-bs-target="#thongke" type="button" role="tab" onclick="changeTab('Tổng quan', this)">
-                            <i class="fas fa-chart-pie me-1"></i> Tổng quan
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active fw-bold px-4 py-2" style="border: none; border-radius: 10px 10px 0 0; background-color: transparent;" id="thietbi-tab" data-bs-toggle="tab" data-bs-target="#thietbi" type="button" role="tab" onclick="changeTab('Thiết bị', this)">
-                            <i class="fas fa-laptop me-1"></i> Thiết bị
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-bold text-muted px-4 py-2" style="border: none; border-radius: 10px 10px 0 0; background-color: transparent;" id="congty-tab" data-bs-toggle="tab" data-bs-target="#congty" type="button" role="tab" onclick="changeTab('Công ty', this)">
+                        <button class="nav-link active fw-bold px-4 py-2" style="border: none; border-radius: 10px 10px 0 0; background-color: transparent; border-bottom: 3px solid #4f46e5; color: #4f46e5;" id="congty-tab" data-bs-toggle="tab" data-bs-target="#congty" type="button" role="tab" onclick="changeTab('Công ty', this)">
                             <i class="fas fa-building me-1"></i> Công ty
                         </button>
                     </li>
@@ -61,11 +49,6 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-bold text-muted px-4 py-2" style="border: none; border-radius: 10px 10px 0 0; background-color: transparent;" id="daxoa-tab" data-bs-toggle="tab" data-bs-target="#daxoa" type="button" role="tab" onclick="changeTab('Đã xóa', this)">
-                            <i class="fas fa-trash-alt me-1"></i> Đã xóa
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
                         <button class="nav-link fw-bold text-muted px-4 py-2" style="border: none; border-radius: 10px 10px 0 0; background-color: transparent;" id="lichsu-tab" data-bs-toggle="tab" data-bs-target="#lichsu" type="button" role="tab" onclick="changeTab('Lịch sử', this)">
                             <i class="fas fa-history me-1"></i> Lịch sử
                         </button>
@@ -74,33 +57,8 @@
             </div>
 
             <div class="card-body p-2 p-md-3">
-                <!-- KHU VỰC THANH LỌC -->
                 <div class="row mb-3 pb-3 border-bottom align-items-center" id="filterBar" style="background: #f8fafc; padding: 15px; border-radius: 10px; margin: 0 5px;">
-                    <div class="col-md-2 col-sm-6 mb-2 mb-md-0">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-building"></i> Công ty</label>
-                        <select id="filterCongTy" class="form-select select2-filter rounded-3 border-0 shadow-sm">
-                            <option value="">-- Tất cả Công ty --</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2 col-sm-6 mb-2 mb-md-0">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sitemap"></i> Bộ phận</label>
-                        <select id="filterBoPhan" class="form-select select2-filter rounded-3 border-0 shadow-sm">
-                            <option value="">-- Tất cả Bộ phận --</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2 col-sm-4 mb-2 mb-md-0">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-tags"></i> Loại thiết bị</label>
-                        <select id="filterLoai" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
-                            <option value="">-- Tất cả --</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2 col-sm-4 mb-2 mb-md-0" id="boxFilterTrangThai">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-info-circle"></i> Trạng thái</label>
-                        <select id="filterTrangThai" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
-                            <option value="">-- Tất cả --</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2 col-sm-4 mb-2 mb-md-0">
+                    <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-list-ol"></i> Hiển thị</label>
                         <select id="filterLimit" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
                             <option value="10">10 dòng</option>
@@ -110,57 +68,11 @@
                             <option value="all">Tất cả</option>
                         </select>
                     </div>
-                    <div class="col-md-2 col-sm-4 mt-3 mt-md-0 text-md-end text-center d-flex align-items-end justify-content-md-end gap-2">
-                        <button class="btn btn-outline-secondary rounded-pill px-3 shadow-sm w-100" onclick="clearFilters()" style="height: 38px;"><i class="fas fa-sync-alt"></i> Bỏ lọc</button>
-                    </div>
                 </div>
 
                 <div class="tab-content" id="myTabContent">
-
-                    <!-- TAB THỐNG KÊ (TỔNG QUAN) -->
-                    <div class="tab-pane fade" id="thongke" role="tabpanel">
-                        <div class="row g-3 mb-4" id="boxThongKeCards"></div>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
-                                    <div class="card-header bg-white border-0 fw-bold pt-3 pb-0"><i class="fas fa-chart-bar text-primary me-1"></i> Số lượng theo Loại thiết bị</div>
-                                    <div class="card-body">
-                                        <canvas id="chartLoaiThietBi" style="max-height: 300px;"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
-                                    <div class="card-header bg-white border-0 fw-bold pt-3 pb-0"><i class="fas fa-chart-pie text-success me-1"></i> Tỷ lệ theo Trạng thái</div>
-                                    <div class="card-body d-flex justify-content-center">
-                                        <canvas id="chartTrangThai" style="max-height: 300px;"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- TAB THIẾT BỊ (MẶC ĐỊNH) -->
-                    <div class="tab-pane fade show active" id="thietbi" role="tabpanel">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0" style="min-width: 100%;">
-                                <thead class="table-light d-none d-md-table-header-group">
-                                    <tr>
-                                        <th width="70">ID</th>
-                                        <th>Tên Thiết Bị</th>
-                                        <th>Thông tin máy</th>
-                                        <th>Người dùng & Vị trí</th>
-                                        <th>Trạng thái</th>
-                                        <th width="120" class="text-center">Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbodyThietBi"></tbody>
-                            </table>
-                        </div>
-                    </div>
-
                     <!-- TAB CÔNG TY -->
-                    <div class="tab-pane fade" id="congty" role="tabpanel">
+                    <div class="tab-pane fade show active" id="congty" role="tabpanel">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0" style="min-width: 100%;">
                                 <thead class="table-light d-none d-md-table-header-group">
@@ -232,25 +144,6 @@
                         </div>
                     </div>
 
-                    <!-- TAB ĐÃ XÓA (THÙNG RÁC) -->
-                    <div class="tab-pane fade" id="daxoa" role="tabpanel">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0" style="min-width: 100%;">
-                                <thead class="table-light d-none d-md-table-header-group">
-                                    <tr>
-                                        <th width="70">ID</th>
-                                        <th>Thông tin máy</th>
-                                        <th>Vị trí cũ</th>
-                                        <th>Ngày Xóa</th>
-                                        <th>Lý do xóa</th>
-                                        <th width="180" class="text-center">Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbodyDaXoa"></tbody>
-                            </table>
-                        </div>
-                    </div>
-
                     <!-- TAB LỊCH SỬ THAO TÁC -->
                     <div class="tab-pane fade" id="lichsu" role="tabpanel">
                         <div class="d-flex justify-content-end mb-3">
@@ -271,14 +164,12 @@
                             </table>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- CÁC MODAL THÊM/SỬA DỮ LIỆU -->
 <!-- MODAL CÔNG TY -->
 <div class="modal fade" id="modalCongTy" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -401,332 +292,43 @@
     </div>
 </div>
 
-<!-- MODAL THIẾT BỊ CÓ ẢNH VÀ CAMERA TRỰC TIẾP -->
-<div class="modal fade" id="modalThietBi" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-            <div class="modal-header bg-dark text-white border-0" style="border-radius: 20px 20px 0 0;">
-                <h5 class="modal-title fw-bold" id="titleModalThietBi">Thông tin Thiết bị</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-3 p-md-4">
-                <input type="hidden" id="tb_Id" value="0" />
-
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Loại thiết bị <span class="text-danger">*</span></label>
-                        <select id="tb_LoaiThietBi" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
-                            <option value="">-- Chọn loại --</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Tên thiết bị (Mã/Serial)</label>
-                        <input type="text" id="tb_TenThietBi" class="form-control rounded-3" placeholder="VD: LAPTOP DELL XPS..." style="border: 1px solid #e2e8f0; height: 45px; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold" style="color: #8b5cf6;">Trạng thái <span class="text-danger">*</span></label>
-                        <select id="tb_IdTrangThai" class="form-select rounded-3" style="border: 1px solid #8b5cf6; height: 45px;">
-                            <option value="">-- Chọn trạng thái --</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Tên máy tính (Hostname)</label>
-                        <input type="text" id="tb_TenMayTinh" class="form-control rounded-3" placeholder="VD: DESKTOP-123" style="border: 1px solid #e2e8f0; height: 45px; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()" />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Tên đăng nhập (Account)</label>
-                        <input type="text" id="tb_TenDangNhap" class="form-control rounded-3" placeholder="VD: ADMIN_LOCAL" style="border: 1px solid #e2e8f0; height: 45px; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()" />
-                    </div>
-
-                    <div class="col-md-12">
-                        <label class="form-label fw-bold">Ghi chú (Cấu hình, thông tin...)</label>
-                        <input type="text" id="tb_GhiChu" class="form-control rounded-3" placeholder="Thông tự thêm..." style="border: 1px solid #e2e8f0; height: 45px;" />
-                    </div>
-
-                    <!-- THÊM KHU VỰC CHỤP ẢNH TỪ CAMERA HOẶC UPLOAD -->
-                    <div class="col-md-12 mt-3">
-                        <label class="form-label fw-bold"><i class="fas fa-camera text-secondary me-1"></i> Ảnh thiết bị đính kèm</label>
-                        <div class="d-flex gap-2 mb-2">
-                            <button type="button" class="btn btn-outline-primary flex-fill" onclick="$('#tb_Anh').click()">
-                                <i class="fas fa-upload"></i> Tải ảnh lên
-                            </button>
-                            <button type="button" class="btn btn-outline-success flex-fill" onclick="openCamera()">
-                                <i class="fas fa-camera"></i> Chụp trực tiếp
-                            </button>
-                        </div>
-
-                        <!-- Input file thật được ẩn đi -->
-                        <input type="file" id="tb_Anh" accept="image/*" class="d-none" onchange="previewImage(this)" />
-
-                        <!-- Giao diện luồng Camera trực tiếp -->
-                        <div id="boxCamera" style="display: none;" class="mt-2 text-center border rounded p-2 bg-light shadow-sm">
-                            <video id="videoCamera" autoplay playsinline style="width: 100%; max-height: 300px; border-radius: 10px; background: #000; object-fit: cover;"></video>
-                            <div class="mt-3 mb-2">
-                                <button type="button" class="btn btn-danger rounded-pill px-4" onclick="takeSnapshot()">
-                                    <i class="fas fa-dot-circle me-1"></i> Chụp ngay
-                                </button>
-                                <button type="button" class="btn btn-secondary rounded-pill px-3 ms-2" onclick="closeCamera()">
-                                    Đóng Camera
-                                </button>
-                            </div>
-                            <!-- Canvas dùng để trích xuất frame từ Video ẩn đi -->
-                            <canvas id="canvasCamera" style="display: none;"></canvas>
-                        </div>
-
-                        <!-- Giao diện Preview ảnh (Đã chụp hoặc Đã tải lên) -->
-                        <div class="mt-3 text-center" id="boxPreviewImg" style="display: none;">
-                            <div class="position-relative d-inline-block">
-                                <img id="imgThietBi" src="" alt="Ảnh thiết bị" class="shadow-sm" style="max-height: 250px; max-width: 100%; border-radius: 10px; border: 2px dashed #cbd5e1; padding: 5px;" />
-                                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 start-100 translate-middle rounded-circle shadow" onclick="clearImage()" style="width: 28px; height: 28px; padding: 0; line-height: 1;">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-12 mt-4 mb-2">
-                        <div style="border-top: 1px dashed #cbd5e1;"></div>
-                    </div>
-
-                    <div class="col-md-12">
-                        <label class="form-label fw-bold" style="color: #4f46e5;">Gán người sử dụng</label>
-                        <select id="tb_IdNguoiDung" class="form-control select2-modal w-100">
-                            <option value="">-- Chưa cấp phát --</option>
-                            @if (ViewBag.Users != null)
-                            {
-                                foreach (var item in ViewBag.Users)
-                                {
-                                    <option value="@item.IdNguoiDung">@item.HoTen (@item.Tk)</option>
-                                }
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Gán Công ty</label>
-                        <select id="tb_IdCongTy" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
-                            <option value="">-- Chưa rõ --</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Gán Bộ phận</label>
-                        <select id="tb_IdBoPhan" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
-                            <option value="">-- Chưa rõ --</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer border-0 bg-light" style="border-radius: 0 0 20px 20px;">
-                <button type="button" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">Đóng</button>
-                <button type="button" class="btn btn-dark px-4 rounded-pill w-100 w-md-auto" onclick="saveThietBi()">Lưu dữ liệu</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
     <script>
-        var currentTab = 'Thiết bị';
+        var currentTab = 'Công ty';
 
         let listCongTyCache = [];
         let listBoPhanCache = [];
         let listTrangThaiCache = [];
         let listLoaiThietBiCache = [];
-        let allThietBiCache = [];
         let allLichSuCache = [];
 
-        let chartLoai = null;
-        let chartTT = null;
-
-        // Biến toàn cục lưu trữ Camera Stream và Ảnh đã chụp
-        let currentStream = null;
-        let capturedPhotoBlob = null;
-
         $(document).ready(function () {
-        stylizeActiveTab(document.getElementById('thietbi-tab'));
-
-        if($.fn.select2) {
-        $('.select2-filter').select2({ width: '100%', minimumResultsForSearch: 0 });
-        $('.select2-modal').select2({
-        dropdownParent: $('#modalThietBi'),
-        placeholder: "-- Chọn người dùng --",
-        allowClear: true,
-        width: '100%',
-        minimumResultsForSearch: 0
-        });
-
-        $(document).on('select2:open', () => {
-        let searchField = document.querySelector('.select2-search__field');
-        if (searchField) { setTimeout(() => { searchField.focus(); }, 10); }
-        });
-
-        setTimeout(() => {
-        $('.select2-selection--single').css({
-        'height': '38px', 'display': 'flex', 'align-items': 'center',
-        'border': '1px solid #e2e8f0', 'border-radius': '0.5rem'
-        });
-        $('.select2-modal').next('.select2-container').find('.select2-selection--single').css('height', '45px');
-        }, 200);
-        }
-
         let savedLimit = localStorage.getItem('kk_filterLimit') || '50';
         $('#filterLimit').val(savedLimit);
+        $('#filterLimit').on('change', function() { applyFilters(); });
 
-        let savedLoai = localStorage.getItem('kk_filterLoai') || '';
-        $('#filterLoai').val(savedLoai);
-
-        $('#filterCongTy').on('change', function() { renderFilterBoPhan(); applyFilters(); });
-        $('#filterBoPhan, #filterLimit, #filterLoai, #filterTrangThai').on('change', function() { applyFilters(); });
-
-        loadTrangThai();
-
-        // Cập nhật reset toàn bộ dữ liệu, form ẩn và luồng Camera khi đóng Modal
         $('.modal').on('hidden.bs.modal', function () {
         $(this).find('input[type="text"], textarea').val('');
         $(this).find('input[type="hidden"]').val('0');
         $(this).find('select').val('').trigger('change');
         $(this).find('input[type="checkbox"]').prop('checked', true);
-
-        closeCamera();
-        clearImage();
         });
 
-        $('#tb_IdCongTy').on('change', function() {
-        let idCT = $(this).val();
-        let html = '<option value="">-- Chọn bộ phận --</option>';
-        if(idCT) {
-        let filtered = listBoPhanCache.filter(b => b.idcongTy == idCT);
-        filtered.forEach(b => { html += `<option value="${b.idboPhan}">${b.tenBoPhan}</option>`; });
-        } else {
-        listBoPhanCache.forEach(b => { html += `<option value="${b.idboPhan}">${b.tenBoPhan} (${b.tenCongTy || 'Trống'})</option>`; });
-        }
-        $('#tb_IdBoPhan').html(html);
-        });
+        loadTrangThai();
         });
 
-        // ==========================================
-        // CÁC HÀM XỬ LÝ LỌC
-        // ==========================================
-        function renderFilterTrangThai() {
-        let savedTT = localStorage.getItem('kk_filterTT') || '';
-        let html = '<option value="">-- Tất cả --</option>';
-        listTrangThaiCache.forEach(c => {
-        html += `<option value="${c.idTrangThai}" ${c.idTrangThai == savedTT ? 'selected' : ''}>${c.tenTrangThai}</option>`;
-        });
-        $('#filterTrangThai').html(html);
-        fillSelectTrangThai('#tb_IdTrangThai');
-        }
-
-        function renderFilterLoaiThietBi() {
-        let savedLoai = localStorage.getItem('kk_filterLoai') || '';
-        let htmlFilter = '<option value="">-- Tất cả --</option>';
-        let htmlForm = '<option value="">-- Chọn loại --</option>';
-
-        listLoaiThietBiCache.forEach(c => {
-        htmlFilter += `<option value="${c.tenLoai}" ${c.tenLoai == savedLoai ? 'selected' : ''}>${c.tenLoai}</option>`;
-        htmlForm += `<option value="${c.tenLoai}">${c.tenLoai}</option>`;
-        });
-
-        $('#filterLoai').html(htmlFilter);
-        $('#tb_LoaiThietBi').html(htmlForm);
-        }
-
-        function renderFilterCongTy() {
-        let savedCT = localStorage.getItem('kk_filterCT') || '';
-        let html = '<option value="">-- Tất cả Công ty --</option>';
-        listCongTyCache.forEach(c => {
-        html += `<option value="${c.idcongTy}" ${c.idcongTy == savedCT ? 'selected' : ''}>${c.tenCongTy}</option>`;
-        });
-        $('#filterCongTy').html(html).trigger('change.select2');
-        }
-
-        function renderFilterBoPhan() {
-        let savedBP = localStorage.getItem('kk_filterBP') || '';
-        let fCT = $('#filterCongTy').val();
-        let html = '<option value="">-- Tất cả Bộ phận --</option>';
-
-        let filteredBPs = listBoPhanCache;
-        if(fCT) filteredBPs = listBoPhanCache.filter(b => b.idcongTy == fCT);
-
-        filteredBPs.forEach(b => {
-        let extendName = (!fCT && b.tenCongTy) ? ` (${b.tenCongTy})` : '';
-        html += `<option value="${b.idboPhan}" ${b.idboPhan == savedBP ? 'selected' : ''}>${b.tenBoPhan}${extendName}</option>`;
-        });
-
-        $('#filterBoPhan').html(html);
-        if(!filteredBPs.some(b => b.idboPhan == savedBP)) {
-        $('#filterBoPhan').val('');
-        localStorage.removeItem('kk_filterBP');
-        }
-        $('#filterBoPhan').trigger('change.select2');
-        }
-
-        function applyFilters() {
-        localStorage.setItem('kk_filterCT', $('#filterCongTy').val() || '');
-        localStorage.setItem('kk_filterBP', $('#filterBoPhan').val() || '');
-        localStorage.setItem('kk_filterLoai', $('#filterLoai').val() || '');
-        localStorage.setItem('kk_filterTT', $('#filterTrangThai').val() || '');
-        localStorage.setItem('kk_filterLimit', $('#filterLimit').val());
-
-        renderUIThietBi();
-        renderUIDaXoa();
-        renderUIBoPhan();
-        renderUICongTy();
-        renderUITrangThai();
-        renderUILoaiThietBi();
-        renderUILichSu();
-        }
-
-        function clearFilters() {
-        localStorage.removeItem('kk_filterCT');
-        localStorage.removeItem('kk_filterBP');
-        localStorage.removeItem('kk_filterLoai');
-        localStorage.removeItem('kk_filterTT');
-        localStorage.setItem('kk_filterLimit', '50');
-
-        $('#filterCongTy').val('').trigger('change.select2');
-        renderFilterBoPhan();
-        $('#filterBoPhan').val('').trigger('change.select2');
-        $('#filterLoai, #filterTrangThai').val('');
-        $('#filterLimit').val('50');
-
-        applyFilters();
-        }
-
-        // ==========================================
-        // UI TABS & MODALS
-        // ==========================================
         function changeTab(tabName, element) {
         currentTab = tabName;
-
-        if(tabName === 'Lịch sử' || tabName === 'Đã xóa' || tabName === 'Tổng quan') {
+        if(tabName === 'Lịch sử') {
         $('#btnMasterThemMoi').parent().hide();
         } else {
         $('#btnMasterThemMoi').parent().show();
         $('#txtBtnThemMoi').text(tabName);
         }
 
-        if(tabName === 'Tổng quan') {
-        $('#filterBar').hide();
-        } else {
-        $('#filterBar').show();
-        if(tabName === 'Đã xóa') {
-        $('#boxFilterTrangThai').hide();
-        } else {
-        $('#boxFilterTrangThai').show();
-        }
-        }
-
         $('.nav-link').removeClass('active').addClass('text-muted').css({'border-bottom': 'none', 'color': '#64748b'});
-        stylizeActiveTab(element);
-        }
-
-        function stylizeActiveTab(element) {
-        if(!element) return;
         $(element).addClass('active').removeClass('text-muted').css({'border-bottom': '3px solid #4f46e5', 'color': '#4f46e5'});
         }
 
@@ -738,12 +340,6 @@
         $('#titleModalBoPhan').text("Thêm Bộ phận mới");
         fillSelectCongTy('#bp_IdCongTy');
         $('#modalBoPhan').modal('show');
-        } else if (currentTab === 'Thiết bị') {
-        $('#titleModalThietBi').text("Thêm Thiết bị mới");
-        fillSelectCongTy('#tb_IdCongTy');
-        fillSelectBoPhan('#tb_IdBoPhan');
-        fillSelectTrangThai('#tb_IdTrangThai');
-        $('#modalThietBi').modal('show');
         } else if (currentTab === 'Trạng thái') {
         $('#titleModalTrangThai').text("Thêm Trạng thái mới");
         $('#modalTrangThai').modal('show');
@@ -756,56 +352,40 @@
         }
         }
 
-        // ==========================================
-        // TẢI DỮ LIỆU CHUỖI
-        // ==========================================
+        function applyFilters() {
+        localStorage.setItem('kk_filterLimit', $('#filterLimit').val());
+        renderUICongTy();
+        renderUIBoPhan();
+        renderUITrangThai();
+        renderUILoaiThietBi();
+        renderUILichSu();
+        }
+
+        // LOAD DATA
         function loadTrangThai() {
         $.get('/QLKiemKe/GetKkTrangThais', function (res) {
-        if (res && res.success) {
-        listTrangThaiCache = res.data || [];
-        renderFilterTrangThai();
-        renderUITrangThai();
-        } else console.error("Lỗi API Trạng thái: " + (res.msg || ""));
+        if (res && res.success) { listTrangThaiCache = res.data || []; renderUITrangThai(); }
         loadLoaiThietBi();
-        }).fail(function() {
-        Swal.fire("Lỗi Máy Chủ", "Không thể tải dữ liệu trạng thái!", "error");
-        loadLoaiThietBi();
-        });
+        }).fail(function() { loadLoaiThietBi(); });
         }
 
         function loadLoaiThietBi() {
         $.get('/QLKiemKe/GetKkLoaiThietBis', function (res) {
-        if (res && res.success) {
-        listLoaiThietBiCache = res.data || [];
-        renderFilterLoaiThietBi();
-        renderUILoaiThietBi();
-        }
+        if (res && res.success) { listLoaiThietBiCache = res.data || []; renderUILoaiThietBi(); }
         loadCongTy();
         }).fail(function() { loadCongTy(); });
         }
 
         function loadCongTy() {
         $.get('/QLKiemKe/GetKkCongTys', function (res) {
-        if (res && res.success) { listCongTyCache = res.data || []; renderFilterCongTy(); renderUICongTy(); }
+        if (res && res.success) { listCongTyCache = res.data || []; renderUICongTy(); }
         loadBoPhan();
         }).fail(function() { loadBoPhan(); });
         }
 
         function loadBoPhan() {
         $.get('/QLKiemKe/GetKkBoPhans', function (res) {
-        if (res && res.success) { listBoPhanCache = res.data || []; renderFilterBoPhan(); renderUIBoPhan(); }
-        loadThietBi();
-        }).fail(function() { loadThietBi(); });
-        }
-
-        function loadThietBi() {
-        $.get('/QLKiemKe/GetKkThietBis', function (res) {
-        if (res && res.success) {
-        allThietBiCache = res.data || [];
-        renderThongKe();
-        renderUIThietBi();
-        renderUIDaXoa();
-        }
+        if (res && res.success) { listBoPhanCache = res.data || []; renderUIBoPhan(); }
         loadLichSu();
         }).fail(function() { loadLichSu(); });
         }
@@ -818,236 +398,16 @@
         } else { renderUILichSu(); }
         }
 
-        // ==========================================
-        // HÀM RENDER THỐNG KÊ (DASHBOARD)
-        // ==========================================
-        function renderThongKe() {
-        let activeDevices = allThietBiCache.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
-
-        let total = activeDevices.length;
-        let dangHoatDong = activeDevices.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('hoạt động')).length;
-        let hongHoc = activeDevices.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('hỏng')).length;
-        let chuaCapPhat = activeDevices.filter(x => !x.idNguoiDung).length;
-
-        $('#boxThongKeCards').html(`
-        <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white border-0 shadow-sm h-100" style="border-radius:15px">
-        <div class="card-body d-flex align-items-center">
-        <div class="me-3"><i class="fas fa-boxes fa-3x" style="opacity: 0.7;"></i></div>
-        <div><h3 class="mb-0 fw-bold">${total}</h3><div class="small">Tổng Thiết Bị (Thực tế)</div></div>
-        </div>
-        </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white border-0 shadow-sm h-100" style="border-radius:15px">
-        <div class="card-body d-flex align-items-center">
-        <div class="me-3"><i class="fas fa-check-circle fa-3x" style="opacity: 0.7;"></i></div>
-        <div><h3 class="mb-0 fw-bold">${dangHoatDong}</h3><div class="small">Đang Hoạt Động</div></div>
-        </div>
-        </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-danger text-white border-0 shadow-sm h-100" style="border-radius:15px">
-        <div class="card-body d-flex align-items-center">
-        <div class="me-3"><i class="fas fa-tools fa-3x" style="opacity: 0.7;"></i></div>
-        <div><h3 class="mb-0 fw-bold">${hongHoc}</h3><div class="small">Hỏng / Cần sửa</div></div>
-        </div>
-        </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-dark border-0 shadow-sm h-100" style="border-radius:15px">
-        <div class="card-body d-flex align-items-center">
-        <div class="me-3"><i class="fas fa-user-slash fa-3x" style="opacity: 0.7;"></i></div>
-        <div><h3 class="mb-0 fw-bold">${chuaCapPhat}</h3><div class="small">Chưa Cấp Phát N.Dùng</div></div>
-        </div>
-        </div>
-        </div>
-        `);
-
-        let countLoai = {};
-        activeDevices.forEach(d => {
-        let loai = d.loaiThietBi || 'Chưa rõ';
-        countLoai[loai] = (countLoai[loai] || 0) + 1;
-        });
-
-        if(chartLoai) chartLoai.destroy();
-        let ctxLoai = document.getElementById('chartLoaiThietBi').getContext('2d');
-        chartLoai = new Chart(ctxLoai, {
-        type: 'bar',
-        data: {
-        labels: Object.keys(countLoai),
-        datasets: [{ label: 'Số lượng thiết bị', data: Object.values(countLoai), backgroundColor: '#3b82f6', borderRadius: 5 }]
-        },
-        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-        });
-
-        let countTT = {};
-        activeDevices.forEach(d => {
-        let tt = d.tenTrangThai || 'Chưa rõ';
-        countTT[tt] = (countTT[tt] || 0) + 1;
-        });
-
-        if(chartTT) chartTT.destroy();
-        let ctxTT = document.getElementById('chartTrangThai').getContext('2d');
-        chartTT = new Chart(ctxTT, {
-        type: 'doughnut',
-        data: {
-        labels: Object.keys(countTT),
-        datasets: [{ data: Object.values(countTT), backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4', '#64748b'] }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-        });
+        function fillSelectCongTy(selector, selectedVal = '') {
+        let html = '<option value="">-- Chọn công ty --</option>';
+        listCongTyCache.forEach(c => { html += `<option value="${c.idcongTy}">${c.tenCongTy}</option>`; });
+        $(selector).html(html).val(selectedVal);
         }
 
-        // ==========================================
-        // RENDER CÁC BẢNG DỮ LIỆU
-        // ==========================================
-        function renderUIThietBi() {
-        let fCT = $('#filterCongTy').val(); let fBP = $('#filterBoPhan').val(); let fLoai = $('#filterLoai').val(); let fTT = $('#filterTrangThai').val(); let fLimit = $('#filterLimit').val();
-
-        let filtered = allThietBiCache.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
-
-        if (fCT) filtered = filtered.filter(x => x.idcongTy == fCT);
-        if (fBP) filtered = filtered.filter(x => x.idboPhan == fBP);
-        if (fLoai) filtered = filtered.filter(x => x.loaiThietBi === fLoai);
-        if (fTT) filtered = filtered.filter(x => x.idTrangThai == fTT);
-        if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
-
-        let html = '';
-        filtered.forEach(item => {
-        let userStr = item.tenNguoiDung ? `<span class="text-success fw-bold"><i class="fas fa-user me-1"></i>${item.tenNguoiDung}</span>` : `<span class="text-muted fst-italic">Chưa cấp phát</span>`;
-        let locStr = [item.tenCongTy, item.tenBoPhan].filter(Boolean).join(' - ');
-        if(!locStr) locStr = "Chưa gắn";
-
-        let ttName = item.tenTrangThai || "Chưa gắn";
-        let badgeClass = ttName.toLowerCase().includes("hoạt động") ? "success" : "info";
-
-        // Hiển thị icon có ảnh đính kèm
-        let imgIcon = item.duongDanAnh ? `<span class="badge bg-info ms-1" title="Có ảnh đính kèm"><i class="fas fa-image"></i></span>` : '';
-
-        html += `
-        <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">ID:</span>
-        ${item.idThietBi}
-        </td>
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Tên TB:</span>
-        <div class="fw-bold text-dark" style="font-size:15px;">${item.tenThietBi} ${imgIcon}</div>
-        <div class="small text-muted mt-1">Loại: <span class="badge bg-secondary">${item.loaiThietBi || 'N/A'}</span></div>
-        </td>
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Thông tin máy:</span>
-        <div class="small mb-1"><b>Host:</b> ${item.tenMayTinh || 'N/A'}</div>
-        <div class="small text-truncate d-inline-block text-end text-md-start" style="max-width:200px" title="${item.ghiChu || ''}"><b>Note:</b> ${item.ghiChu || ''}</div>
-        </td>
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Người dùng & Vị trí:</span>
-        ${userStr}
-        <br/><span class="small text-muted"><i class="fas fa-map-marker-alt mt-1"></i> ${locStr}</span>
-        </td>
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Trạng thái:</span>
-        <span class="badge bg-${badgeClass}">${ttName}</span>
-        </td>
-        <td class="d-block d-md-table-cell text-center border-0 py-3 py-md-2 mt-2 mt-md-0">
-        <div class="btn-group d-flex d-md-inline-flex w-100 w-md-auto">
-        <button class="btn btn-sm btn-outline-dark flex-fill flex-md-grow-0" onclick='editThietBi(${JSON.stringify(item).replace(/'/g, "&#39;")})'><i class="fas fa-edit"></i> Sửa</button>
-        <button class="btn btn-sm btn-outline-danger flex-fill flex-md-grow-0" onclick="deleteThietBi(${item.idThietBi})"><i class="fas fa-trash"></i> Xóa</button>
-        </div>
-        </td>
-        </tr>`;
-        });
-        $('#tbodyThietBi').html(html);
-        }
-
-        function renderUIDaXoa() {
-        let fCT = $('#filterCongTy').val(); let fBP = $('#filterBoPhan').val(); let fLoai = $('#filterLoai').val(); let fLimit = $('#filterLimit').val();
-
-        let filtered = allThietBiCache.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa'));
-
-        if (fCT) filtered = filtered.filter(x => x.idcongTy == fCT);
-        if (fBP) filtered = filtered.filter(x => x.idboPhan == fBP);
-        if (fLoai) filtered = filtered.filter(x => x.loaiThietBi === fLoai);
-        if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
-
-        let html = '';
-        filtered.forEach(item => {
-        let locStr = [item.tenCongTy, item.tenBoPhan].filter(Boolean).join(' - ');
-        if(!locStr) locStr = "Chưa gắn";
-        let dateXoa = item.ngayXoa ? new Date(item.ngayXoa).toLocaleString('vi-VN') : 'Không rõ';
-
-        html += `
-        <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">ID:</span>
-        ${item.idThietBi}
-        </td>
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Thông tin:</span>
-        <div class="fw-bold text-dark" style="font-size:15px;">${item.tenMayTinh || 'N/A'}</div>
-        <div class="small text-muted mt-1">Mã: ${item.tenThietBi}</div>
-        </td>
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Vị trí cũ:</span>
-        <span class="small text-muted"><i class="fas fa-map-marker-alt"></i> ${locStr}</span>
-        </td>
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ngày xóa:</span>
-        <span class="text-danger fw-bold"><i class="fas fa-clock"></i> ${dateXoa}</span>
-        </td>
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Lý do:</span>
-        <span class="text-danger">${item.lyDoXoa || 'Không rõ lý do'}</span>
-        </td>
-        <td class="d-block d-md-table-cell text-center border-0 py-3 py-md-2 mt-2 mt-md-0">
-        <div class="btn-group d-flex d-md-inline-flex w-100 w-md-auto">
-        <button class="btn btn-sm btn-outline-success flex-fill flex-md-grow-0" onclick="restoreThietBi(${item.idThietBi})"><i class="fas fa-undo-alt"></i> Khôi phục</button>
-        <button class="btn btn-sm btn-outline-danger flex-fill flex-md-grow-0" onclick="hardDeleteThietBi(${item.idThietBi})"><i class="fas fa-times"></i> Xóa luôn</button>
-        </div>
-        </td>
-        </tr>`;
-        });
-
-        if (filtered.length === 0) {
-        html = `<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-box-open fs-2 mb-2 d-block"></i> Thùng rác rỗng</td></tr>`;
-        }
-        $('#tbodyDaXoa').html(html);
-        }
-
-        function renderUITrangThai() {
-        let html = '';
-        listTrangThaiCache.forEach(item => {
-        let badgeClass = item.tenTrangThai.toLowerCase().includes("xóa") ? "danger" : (item.tenTrangThai.toLowerCase().includes("hoạt động") ? "success" : "info");
-        html += `
-        <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">ID:</span>
-        ${item.idTrangThai}
-        </td>
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Tên trạng thái:</span>
-        <span class="badge bg-${badgeClass} fs-6">${item.tenTrangThai}</span>
-        </td>
-        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ghi chú:</span>
-        ${item.moTa || ''}
-        </td>
-        <td class="d-block d-md-table-cell text-center border-0 py-3 py-md-2 mt-2 mt-md-0">
-        <div class="btn-group d-flex d-md-inline-flex w-100 w-md-auto">
-        <button class="btn btn-sm btn-outline-warning flex-fill flex-md-grow-0" onclick='editTrangThai(${JSON.stringify(item)})'><i class="fas fa-edit"></i> Sửa</button>
-        <button class="btn btn-sm btn-outline-danger flex-fill flex-md-grow-0" onclick="deleteTrangThai(${item.idTrangThai})"><i class="fas fa-trash"></i> Xóa</button>
-        </div>
-        </td>
-        </tr>`;
-        });
-        $('#tbodyTrangThai').html(html);
-        }
-
+        // RENDERS
         function renderUICongTy() {
-        let fCT = $('#filterCongTy').val(); let fLimit = $('#filterLimit').val();
+        let fLimit = $('#filterLimit').val();
         let filtered = listCongTyCache;
-        if (fCT) filtered = filtered.filter(x => x.idcongTy == fCT);
         if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
 
         let html = '';
@@ -1057,24 +417,20 @@
         html += `
         <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">ID:</span>
-        ${item.idcongTy}
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">ID:</span> ${item.idcongTy}
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
         <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Tên Công Ty:</span>
         <span class="fw-bold" style="color:#4f46e5; font-size:15px;">${item.tenCongTy}</span>
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ghi chú:</span>
-        ${item.ghiChu || ''}
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ghi chú:</span> ${item.ghiChu || ''}
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ngày tạo:</span>
-        ${date}
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ngày tạo:</span> ${date}
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Trạng thái:</span>
-        ${status}
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Trạng thái:</span> ${status}
         </td>
         <td class="d-block d-md-table-cell text-center border-0 py-3 py-md-2 mt-2 mt-md-0">
         <div class="btn-group d-flex d-md-inline-flex w-100 w-md-auto">
@@ -1088,10 +444,8 @@
         }
 
         function renderUIBoPhan() {
-        let fCT = $('#filterCongTy').val(); let fBP = $('#filterBoPhan').val(); let fLimit = $('#filterLimit').val();
+        let fLimit = $('#filterLimit').val();
         let filtered = listBoPhanCache;
-        if (fCT) filtered = filtered.filter(x => x.idcongTy == fCT);
-        if (fBP) filtered = filtered.filter(x => x.idboPhan == fBP);
         if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
 
         let html = '';
@@ -1100,24 +454,20 @@
         html += `
         <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">ID:</span>
-        ${item.idboPhan}
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">ID:</span> ${item.idboPhan}
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
         <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Tên Bộ Phận:</span>
         <span class="fw-bold" style="color:#06b6d4; font-size:15px;">${item.tenBoPhan}</span>
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Thuộc CT:</span>
-        <b>${item.tenCongTy || 'N/A'}</b>
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Thuộc CT:</span> <b>${item.tenCongTy || 'N/A'}</b>
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ghi chú:</span>
-        ${item.ghiChu || ''}
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ghi chú:</span> ${item.ghiChu || ''}
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Trạng thái:</span>
-        ${status}
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Trạng thái:</span> ${status}
         </td>
         <td class="d-block d-md-table-cell text-center border-0 py-3 py-md-2 mt-2 mt-md-0">
         <div class="btn-group d-flex d-md-inline-flex w-100 w-md-auto">
@@ -1137,20 +487,17 @@
         html += `
         <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">ID:</span>
-        ${item.idLoai}
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">ID:</span> ${item.idLoai}
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
         <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Tên Loại:</span>
         <span class="fw-bold" style="color:#ec4899; font-size:15px;">${item.tenLoai}</span>
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ghi chú:</span>
-        ${item.ghiChu || ''}
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ghi chú:</span> ${item.ghiChu || ''}
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ngày tạo:</span>
-        ${date}
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ngày tạo:</span> ${date}
         </td>
         <td class="d-block d-md-table-cell text-center border-0 py-3 py-md-2 mt-2 mt-md-0">
         <div class="btn-group d-flex d-md-inline-flex w-100 w-md-auto">
@@ -1163,6 +510,33 @@
         $('#tbodyLoaiThietBi').html(html);
         }
 
+        function renderUITrangThai() {
+        let html = '';
+        listTrangThaiCache.forEach(item => {
+        let badgeClass = item.tenTrangThai.toLowerCase().includes("xóa") ? "danger" : (item.tenTrangThai.toLowerCase().includes("hoạt động") ? "success" : "info");
+        html += `
+        <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">ID:</span> ${item.idTrangThai}
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Tên trạng thái:</span>
+        <span class="badge bg-${badgeClass} fs-6">${item.tenTrangThai}</span>
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Ghi chú:</span> ${item.moTa || ''}
+        </td>
+        <td class="d-block d-md-table-cell text-center border-0 py-3 py-md-2 mt-2 mt-md-0">
+        <div class="btn-group d-flex d-md-inline-flex w-100 w-md-auto">
+        <button class="btn btn-sm btn-outline-warning flex-fill flex-md-grow-0" onclick='editTrangThai(${JSON.stringify(item)})'><i class="fas fa-edit"></i> Sửa</button>
+        <button class="btn btn-sm btn-outline-danger flex-fill flex-md-grow-0" onclick="deleteTrangThai(${item.idTrangThai})"><i class="fas fa-trash"></i> Xóa</button>
+        </div>
+        </td>
+        </tr>`;
+        });
+        $('#tbodyTrangThai').html(html);
+        }
+
         function renderUILichSu() {
         let fLimit = $('#filterLimit').val();
         let filtered = allLichSuCache;
@@ -1172,96 +546,36 @@
         filtered.forEach(item => {
         let date = item.thoiGian ? new Date(item.thoiGian).toLocaleString('vi-VN') : '';
         let actionColor = item.hanhDong.includes("Thêm") ? "success" : (item.hanhDong.includes("Xóa") ? "danger" : (item.hanhDong.includes("Khôi phục") ? "info" : "primary"));
-
         html += `
         <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-color: #f1f5f9 !important;">
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Thời gian:</span>
-        <span class="text-muted"><i class="fas fa-clock me-1"></i> ${date}</span>
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Thời gian:</span> <span class="text-muted"><i class="fas fa-clock me-1"></i> ${date}</span>
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Người thao tác:</span>
-        <span class="fw-bold text-dark"><i class="fas fa-user-circle me-1 text-secondary"></i> ${item.nguoiThaoTac || 'N/A'}</span>
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Người thao tác:</span> <span class="fw-bold text-dark"><i class="fas fa-user-circle me-1 text-secondary"></i> ${item.nguoiThaoTac || 'N/A'}</span>
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Hành động:</span>
-        <span class="badge bg-${actionColor} px-2 py-1 rounded-pill">${item.hanhDong}</span>
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Hành động:</span> <span class="badge bg-${actionColor} px-2 py-1 rounded-pill">${item.hanhDong}</span>
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2" style="border-bottom: 1px solid #f8fafc !important;">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Đối tượng:</span>
-        <span class="fw-bold">${item.doiTuong}</span> (ID: ${item.idDoiTuong})
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Đối tượng:</span> <span class="fw-bold">${item.doiTuong}</span> (ID: ${item.idDoiTuong})
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2">
-        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Chi tiết:</span>
-        <span class="text-secondary small">${item.chiTiet || ''}</span>
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px; margin-top: 2px;">Chi tiết:</span> <span class="text-secondary small">${item.chiTiet || ''}</span>
         </td>
         </tr>`;
         });
         $('#tbodyLichSu').html(html);
         }
 
-        // ==========================================
-        // CÁC HÀM TIỆN ÍCH DÙNG TRONG MODAL
-        // ==========================================
-        function fillSelectCongTy(selector, selectedVal = '') {
-        let html = '<option value="">-- Chọn công ty --</option>';
-        listCongTyCache.forEach(c => { html += `<option value="${c.idcongTy}">${c.tenCongTy}</option>`; });
-        $(selector).html(html).val(selectedVal);
-        }
-
-        function fillSelectBoPhan(selector, selectedVal = '') {
-        let html = '<option value="">-- Chọn bộ phận --</option>';
-        listBoPhanCache.forEach(b => { html += `<option value="${b.idboPhan}">${b.tenBoPhan} (${b.tenCongTy || 'Trống'})</option>`; });
-        $(selector).html(html).val(selectedVal);
-        }
-
-        function fillSelectTrangThai(selector, selectedVal = '') {
-        let html = '<option value="">-- Chọn trạng thái --</option>';
-        listTrangThaiCache.forEach(c => { html += `<option value="${c.idTrangThai}">${c.tenTrangThai}</option>`; });
-        $(selector).html(html).val(selectedVal);
-        }
-
-        // ======================= CÁC HÀM CRUD CƠ BẢN (LOẠI THIẾT BỊ, CÔNG TY, BỘ PHẬN, TRẠNG THÁI) =======================
-        function editLoaiThietBi(item) {
-        $('#ltb_Id').val(item.idLoai);
-        $('#ltb_Ten').val(item.tenLoai);
-        $('#ltb_GhiChu').val(item.ghiChu);
-        $('#titleModalLoaiThietBi').text("Cập nhật Loại Thiết Bị");
-        $('#modalLoaiThietBi').modal('show');
-        }
-
+        // CRUD AJAX CALLS
+        function editLoaiThietBi(item) { $('#ltb_Id').val(item.idLoai); $('#ltb_Ten').val(item.tenLoai); $('#ltb_GhiChu').val(item.ghiChu); $('#titleModalLoaiThietBi').text("Cập nhật Loại Thiết Bị"); $('#modalLoaiThietBi').modal('show'); }
         function saveLoaiThietBi() {
-        let isAddMode = parseInt($('#ltb_Id').val()) === 0;
         let data = { IdLoai: parseInt($('#ltb_Id').val()), TenLoai: $('#ltb_Ten').val().trim(), GhiChu: $('#ltb_GhiChu').val().trim() };
         if(!data.TenLoai) return Swal.fire("Lỗi", "Nhập tên loại thiết bị!", "warning");
-
-        $.post('/QLKiemKe/SaveKkLoaiThietBi', data, function(res) {
-        if(res.success) {
-        loadLoaiThietBi(); // Làm mới Dropdown & Bảng
-        loadLichSu(true);
-
-        if (isAddMode) {
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Thêm mới thành công!', showConfirmButton: false, timer: 2000 });
-        $('#ltb_Id').val('0');
-        $('#ltb_Ten').select();
-        } else {
-        $('#modalLoaiThietBi').modal('hide');
-        Swal.fire("Thành công", res.msg, "success");
+        $.post('/QLKiemKe/SaveKkLoaiThietBi', data, function(res) { if(res.success) { $('#modalLoaiThietBi').modal('hide'); loadLoaiThietBi(); loadLichSu(true); Swal.fire({toast: true, position: 'top-end', icon: 'success', title: 'Thành công!', showConfirmButton: false, timer: 2000}); } else Swal.fire("Lỗi", res.msg, "error"); });
         }
-        } else Swal.fire("Lỗi", res.msg, "error");
-        });
-        }
-
-        function deleteLoaiThietBi(id) {
-        Swal.fire({ title: 'Xóa?', icon: 'warning', showCancelButton: true }).then(r => {
-        if (r.isConfirmed) {
-        $.post('/QLKiemKe/DeleteKkLoaiThietBi', { id: id }, function(res) {
-        if(res.success) { loadLoaiThietBi(); loadLichSu(true); }
-        else Swal.fire("Lỗi", res.msg, "error");
-        });
-        }
-        });
-        }
+        function deleteLoaiThietBi(id) { Swal.fire({ title: 'Xóa?', icon: 'warning', showCancelButton: true }).then(r => { if (r.isConfirmed) $.post('/QLKiemKe/DeleteKkLoaiThietBi', { id: id }, function(res) { if(res.success) { loadLoaiThietBi(); loadLichSu(true); } else Swal.fire("Lỗi", res.msg, "error"); }); }); }
 
         function editTrangThai(item) { $('#tt_Id').val(item.idTrangThai); $('#tt_Ten').val(item.tenTrangThai); $('#tt_GhiChu').val(item.moTa); $('#titleModalTrangThai').text("Cập nhật Trạng thái"); $('#modalTrangThai').modal('show'); }
         function saveTrangThai() {
@@ -1286,244 +600,5 @@
         $.post('/QLKiemKe/SaveKkBoPhan', data, function(res) { if(res.success) { $('#modalBoPhan').modal('hide'); loadBoPhan(); loadLichSu(true); } else Swal.fire("Lỗi", res.msg, "error"); });
         }
         function deleteBoPhan(id) { Swal.fire({ title: 'Xóa?', icon: 'warning', showCancelButton: true }).then(r => { if (r.isConfirmed) $.post('/QLKiemKe/DeleteKkBoPhan', { id: id }, function(res) { if(res.success) { loadBoPhan(); loadLichSu(true); } else Swal.fire("Lỗi", res.msg, "error"); }); }); }
-
-        // ======================= THAO TÁC CAMERA HTML5 & UPLOAD ẢNH =======================
-        function openCamera() {
-        // Yêu cầu quyền truy cập Camera, ưu tiên camera sau trên thiết bị di động (environment)
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-        .then(function(stream) {
-        currentStream = stream;
-        let video = document.getElementById('videoCamera');
-        video.srcObject = stream;
-        video.play();
-        $('#boxCamera').slideDown();
-        $('#boxPreviewImg').hide(); // Tạm ẩn preview khi đang mở luồng cam
-        })
-        .catch(function(err) {
-        Swal.fire("Lỗi Camera", "Không thể truy cập camera: " + err.message, "error");
-        });
-        } else {
-        Swal.fire("Không hỗ trợ", "Trình duyệt của thiết bị không hỗ trợ tính năng chụp trực tiếp.", "warning");
-        }
-        }
-
-        function closeCamera() {
-        if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-        currentStream = null;
-        }
-        $('#boxCamera').slideUp();
-        }
-
-        function takeSnapshot() {
-        let video = document.getElementById('videoCamera');
-        let canvas = document.getElementById('canvasCamera');
-        let context = canvas.getContext('2d');
-
-        // Set kích thước canvas vừa bằng kích thước thật của video
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-
-        // Chụp frame vào canvas
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        // Chuyển canvas thành Data URL để làm preview
-        let dataUrl = canvas.toDataURL('image/jpeg', 0.8); // Nén jpeg 80%
-        $('#imgThietBi').attr('src', dataUrl);
-        $('#boxPreviewImg').show();
-
-        // Chuyển canvas thành Blob để lát gửi qua FormData
-        canvas.toBlob(function(blob) {
-        capturedPhotoBlob = blob;
-        // Nếu chụp thành công, ta xóa dữ liệu của input file (nếu có chọn trước đó)
-        $('#tb_Anh').val('');
-        }, 'image/jpeg', 0.8);
-
-        closeCamera();
-        }
-
-        function clearImage() {
-        $('#tb_Anh').val('');
-        capturedPhotoBlob = null;
-        $('#imgThietBi').attr('src', '');
-        $('#boxPreviewImg').hide();
-        }
-
-        function previewImage(input) {
-        if (input.files && input.files[0]) {
-        // Nếu người dùng chọn Upload file -> Xóa dữ liệu Blob của Camera
-        capturedPhotoBlob = null;
-
-        var reader = new FileReader();
-        reader.onload = function(e) {
-        $('#imgThietBi').attr('src', e.target.result);
-        $('#boxPreviewImg').show();
-        }
-        reader.readAsDataURL(input.files[0]);
-        } else {
-        clearImage();
-        }
-        }
-
-        function editThietBi(item) {
-        $('#tb_Id').val(item.idThietBi);
-        $('#tb_LoaiThietBi').val(item.loaiThietBi);
-        $('#tb_TenThietBi').val(item.tenThietBi);
-        $('#tb_TenMayTinh').val(item.tenMayTinh || '');
-        $('#tb_TenDangNhap').val(item.tenDangNhap || '');
-        $('#tb_GhiChu').val(item.ghiChu || '');
-
-        // Xóa rác dữ liệu ảnh tạm mỗi khi mở Modal cập nhật
-        clearImage();
-
-        // Nạp ảnh cũ nếu đã có
-        if (item.duongDanAnh) {
-        $('#imgThietBi').attr('src', '/QLKiemKe/GetImage?fileName=' + encodeURIComponent(item.duongDanAnh));
-        $('#boxPreviewImg').show();
-        }
-
-        fillSelectCongTy('#tb_IdCongTy', item.idcongTy || '');
-        fillSelectTrangThai('#tb_IdTrangThai', item.idTrangThai || '');
-
-        if (item.idcongTy) {
-        let html = '<option value="">-- Chọn bộ phận --</option>';
-        let filtered = listBoPhanCache.filter(b => b.idcongTy == item.idcongTy);
-        filtered.forEach(b => { html += `<option value="${b.idboPhan}">${b.tenBoPhan}</option>`; });
-        $('#tb_IdBoPhan').html(html).val(item.idboPhan || '');
-        } else {
-        fillSelectBoPhan('#tb_IdBoPhan', item.idboPhan || '');
-        }
-
-        $('#tb_IdNguoiDung').val(item.idNguoiDung || '').trigger('change');
-        $('#titleModalThietBi').text("Cập nhật Thiết bị");
-        $('#modalThietBi').modal('show');
-        }
-
-        function saveThietBi() {
-        let isAddMode = parseInt($('#tb_Id').val()) === 0;
-        let loaiThietBi = $('#tb_LoaiThietBi').val();
-        let idTrangThai = $('#tb_IdTrangThai').val();
-
-        if(!loaiThietBi || !idTrangThai) return Swal.fire("Lỗi", "Vui lòng chọn loại thiết bị và Trạng thái!", "warning");
-
-        // KHỞI TẠO FORMDATA THAY CHO OBJECT JSON ĐỂ GỬI ĐƯỢC FILE / BLOB
-        var formData = new FormData();
-        formData.append("IdThietBi", parseInt($('#tb_Id').val()));
-        formData.append("LoaiThietBi", loaiThietBi);
-        formData.append("IdTrangThai", parseInt(idTrangThai));
-        formData.append("TenThietBi", $('#tb_TenThietBi').val().trim().toUpperCase());
-        formData.append("TenMayTinh", $('#tb_TenMayTinh').val().trim().toUpperCase());
-        formData.append("TenDangNhap", $('#tb_TenDangNhap').val().trim().toUpperCase());
-        formData.append("GhiChu", $('#tb_GhiChu').val().trim());
-
-        if($('#tb_IdNguoiDung').val()) formData.append("IdNguoiDung", parseInt($('#tb_IdNguoiDung').val()));
-        if($('#tb_IdCongTy').val()) formData.append("IdcongTy", parseInt($('#tb_IdCongTy').val()));
-        if($('#tb_IdBoPhan').val()) formData.append("IdboPhan", parseInt($('#tb_IdBoPhan').val()));
-
-        // KIỂM TRA ƯU TIÊN GỬI ẢNH CHỤP TỪ CAMERA TRƯỚC, SAU ĐÓ MỚI XÉT FILE UPLOAD
-        if (capturedPhotoBlob) {
-        // Đóng gói cục Blob thành 1 file ảo để gửi lên
-        formData.append("AnhThietBi", capturedPhotoBlob, "camera_photo.jpg");
-        } else {
-        var fileInput = $('#tb_Anh')[0].files;
-        if(fileInput.length > 0) {
-        formData.append("AnhThietBi", fileInput[0]);
-        }
-        }
-
-        $.ajax({
-        url: '/QLKiemKe/SaveKkThietBi',
-        type: 'POST',
-        data: formData,
-        processData: false, // Bắt buộc false đối với formData
-        contentType: false, // Bắt buộc false đối với formData
-        success: function(res) {
-        if(res.success) {
-        loadThietBi();
-        loadLichSu(true);
-
-        if(isAddMode) {
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Thêm thiết bị thành công!', showConfirmButton: false, timer: 2000 });
-        $('#tb_Id').val('0');
-
-        // Reset lại dữ liệu ảnh cho lần thêm tiếp theo
-        clearImage();
-        $('#tb_TenThietBi').select().focus();
-        } else {
-        $('#modalThietBi').modal('hide');
-        Swal.fire("Thành công", res.msg, "success");
-        }
-        } else Swal.fire("Lỗi", res.msg, "error");
-        },
-        error: function() {
-        Swal.fire("Lỗi", "Không thể kết nối đến máy chủ!", "error");
-        }
-        });
-        }
-
-        function deleteThietBi(id) {
-        Swal.fire({
-        title: 'Chuyển vào Thùng Rác?',
-        text: "Thiết bị sẽ được chuyển sang Tab Đã Xóa và tự động hủy hoàn toàn sau 1 tháng. Nhập lý do:",
-        input: 'text',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Đồng ý',
-        cancelButtonText: 'Hủy',
-        inputValidator: (value) => { if (!value) { return 'Bạn phải nhập lý do xóa!' } }
-        }).then((r) => {
-        if (r.isConfirmed) {
-        $.post('/QLKiemKe/DeleteKkThietBi', { id: id, lyDo: r.value }, function(res) {
-        if(res.success) {
-        loadThietBi(); loadLichSu(true);
-        Swal.fire("Đã chuyển", res.msg, "success");
-        } else Swal.fire("Lỗi", res.msg, "error");
-        });
-        }
-        });
-        }
-
-        function restoreThietBi(id) {
-        Swal.fire({
-        title: 'Khôi phục thiết bị?',
-        text: "Thiết bị sẽ được khôi phục về trạng thái 'Đang hoạt động'.",
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Khôi phục',
-        cancelButtonText: 'Hủy'
-        }).then((r) => {
-        if (r.isConfirmed) {
-        $.post('/QLKiemKe/RestoreKkThietBi', { id: id }, function(res) {
-        if(res.success) {
-        loadThietBi(); loadLichSu(true);
-        Swal.fire("Thành công", res.msg, "success");
-        } else Swal.fire("Lỗi", res.msg, "error");
-        });
-        }
-        });
-        }
-
-        // HÀM XÓA VĨNH VIỄN THIẾT BỊ KHỎI THÙNG RÁC
-        function hardDeleteThietBi(id) {
-        Swal.fire({
-        title: 'Xóa vĩnh viễn?',
-        text: "Thiết bị sẽ bị xóa vĩnh viễn khỏi CSDL và không thể khôi phục!",
-        icon: 'error',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        confirmButtonText: 'Xóa vĩnh viễn',
-        cancelButtonText: 'Hủy'
-        }).then((r) => {
-        if (r.isConfirmed) {
-        $.post('/QLKiemKe/HardDeleteKkThietBi', { id: id }, function(res) {
-        if(res.success) {
-        loadThietBi(); loadLichSu(true);
-        Swal.fire("Đã xóa!", res.msg, "success");
-        } else Swal.fire("Lỗi", res.msg, "error");
-        });
-        }
-        });
-        }
     </script>
 }

@@ -3671,13 +3671,35 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .OrderByDescending(x => x.Value)
                     .ToList();
 
+                // 4. Thống kê theo Loại thiết bị
+                var thongKeLoai = thietBis
+                    .GroupBy(x => !string.IsNullOrEmpty(x.LoaiThietBi) ? x.LoaiThietBi : "Khác")
+                    .Select(g => new { Label = g.Key, Value = g.Count() })
+                    .OrderByDescending(x => x.Value)
+                    .ToList();
+
+                // 5. Thống kê Tiến độ kiểm kê (CẬP NHẬT LOGIC 4 THÁNG)
+                var fourMonthsAgo = DateTime.Now.AddMonths(-4);
+
+                // Đã check: Phải có thời gian check VÀ thời gian đó phải lớn hơn hoặc bằng 4 tháng trước
+                int daCheck = thietBis.Count(x => x.ThoiGianCheck != null && x.ThoiGianCheck >= fourMonthsAgo);
+
+                // Chưa check: Chưa check bao giờ HOẶC thời gian check nhỏ hơn 4 tháng trước (đã quá hạn)
+                int chuaCheck = thietBis.Count(x => x.ThoiGianCheck == null || x.ThoiGianCheck < fourMonthsAgo);
+
                 return Json(new
                 {
                     success = true,
                     tongSo = thietBis.Count,
                     congTy = thongKeCongTy,
                     boPhan = thongKeBoPhan,
-                    trangThai = thongKeTrangThai
+                    trangThai = thongKeTrangThai,
+                    loaiThietBi = thongKeLoai,
+                    tienDo = new
+                    {
+                        DaKiemKe = daCheck,
+                        ChuaKiemKe = chuaCheck
+                    }
                 });
             }
             catch (Exception ex)
@@ -3688,16 +3710,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
-        #region QL Kiểm Kê (Công Ty, Bộ Phận, Thiết Bị, Loại Thiết Bị, Trạng Thái, Lịch Sử)
-
-        [HttpGet("/QLKiemKe")]
-        public IActionResult IndexKiemKe()
-        {
-            ViewBag.Users = _context.Users.OrderBy(u => u.HoTen).ToList();
-            return View("IndexKiemKe");
-        }
-
-        // HÀM HỖ TRỢ: GHI LẠI LỊCH SỬ THAO TÁC
+        // =================================================================================
+        // HÀM HỖ TRỢ DÙNG CHUNG CHO CẢ 2 REGION
+        // =================================================================================
         private void GhiLichSu(string hanhDong, string doiTuong, int idDoiTuong, string chiTiet)
         {
             try
@@ -3716,6 +3731,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 _context.SaveChanges();
             }
             catch { /* Bỏ qua lỗi ghi log để không làm gián đoạn luồng chính */ }
+        }
+
+
+        #region 1. QL KIỂM KÊ: DANH MỤC & CẤU HÌNH (Công Ty, Bộ Phận, Loại Thiết Bị, Trạng Thái, Lịch Sử)
+
+        // View dành cho Danh mục
+        [HttpGet("/QLKiemKe")]
+        public IActionResult IndexKiemKe()
+        {
+            return View("IndexKiemKe");
         }
 
         // ==================== LỊCH SỬ THAO TÁC ====================
@@ -4006,7 +4031,20 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception) { return Json(new { success = false, msg = "Không thể xóa vì loại thiết bị này đang được gán cho thiết bị." }); }
         }
 
-        // ==================== THIẾT BỊ VÀ XỬ LÝ ẢNH ====================
+        #endregion
+
+
+        #region 2. QL KIỂM KÊ: THIẾT BỊ (Xử lý Thiết Bị & Hình Ảnh)
+
+        // View chuyên biệt quản lý Thiết Bị
+        [HttpGet("/QLKiemKe/ThietBi")]
+        public IActionResult IndexThietBi()
+        {
+            // Truyền User list sang View để đổ vào Dropdown Người Dùng
+            ViewBag.Users = _context.Users.OrderBy(u => u.HoTen).ToList();
+            return View("IndexThietBi"); // Bạn cần tạo file IndexThietBi.cshtml trong thư mục Views
+        }
+
         [HttpGet("/QLKiemKe/GetKkThietBis")]
         public IActionResult GetKkThietBis()
         {
@@ -4032,7 +4070,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     _context.SaveChanges();
                 }
 
-                // Trả về kèm NgayXoa, LyDoXoa và DuongDanAnh
+                // Trả về kèm NgayXoa, LyDoXoa, DuongDanAnh và ThoiGianCheck
                 var data = _context.KkThietBis
                     .Select(x => new
                     {
@@ -4054,7 +4092,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         x.NgayCapNhat,
                         NgayXoa = x.NgayXoa,
                         LyDoXoa = x.LyDoXoa,
-                        x.DuongDanAnh // Trả về đường dẫn ảnh
+                        x.DuongDanAnh, // Trả về đường dẫn ảnh
+                        x.ThoiGianCheck // Trả về thời gian check
                     })
                     .OrderByDescending(x => x.IdThietBi).ToList();
                 return Json(new { success = true, data = data });
@@ -4062,7 +4101,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
         }
 
-        // HÀM LƯU THIẾT BỊ (BỔ SUNG UPLOAD ẢNH BẤT ĐỒNG BỘ)
+        // HÀM LƯU THIẾT BỊ (BỔ SUNG UPLOAD ẢNH BẤT ĐỒNG BỘ VÀ LÀM MỚI TIME CHECK)
         [HttpPost("/QLKiemKe/SaveKkThietBi")]
         public async Task<IActionResult> SaveKkThietBi([FromForm] KkThietBi model, IFormFile? AnhThietBi)
         {
@@ -4122,6 +4161,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     model.NgayTao = DateTime.Now;
                     model.NgayCapNhat = DateTime.Now;
+                    model.ThoiGianCheck = DateTime.Now; // Làm mới thời gian check khi thêm mới
                     model.DuongDanAnh = newImageFileName; // Gán tên ảnh mới tạo
                     _context.KkThietBis.Add(model);
                 }
@@ -4140,6 +4180,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         existing.IdboPhan = model.IdboPhan;
                         existing.IdTrangThai = model.IdTrangThai;
                         existing.NgayCapNhat = DateTime.Now;
+                        existing.ThoiGianCheck = DateTime.Now; // Làm mới thời gian check khi cập nhật
 
                         // Chỉ cập nhật DuongDanAnh nếu có ảnh mới upload lên
                         if (newImageFileName != null)
@@ -4202,6 +4243,27 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             else if (ext == ".webp") mimeType = "image/webp";
 
             return PhysicalFile(filePath, mimeType);
+        }
+
+        // HÀM XÁC NHẬN CHECK THIẾT BỊ
+        [HttpPost("/QLKiemKe/XacNhanCheck")]
+        public async Task<IActionResult> XacNhanCheck(int idThietBi)
+        {
+            try
+            {
+                var thietBi = await _context.KkThietBis.FindAsync(idThietBi);
+                if (thietBi == null) return Json(new { success = false, msg = "Không tìm thấy thiết bị trong hệ thống." });
+
+                thietBi.ThoiGianCheck = DateTime.Now;
+                _context.Update(thietBi);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, msg = "Cập nhật thời gian kiểm tra thành công." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, msg = ex.Message });
+            }
         }
 
         // NÚT XÓA: Chuyển vào thùng rác
@@ -4285,5 +4347,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
+        
     }
-    }
+}
