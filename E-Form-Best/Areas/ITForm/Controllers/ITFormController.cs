@@ -3629,7 +3629,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
-        #region THỐNG KÊ TỔNG QUAN KIỂM KÊ
+        #region THỐNG KÊ TỔNG QUAN KIỂM KÊ VÀ LẤY DANH SÁCH
 
         [HttpGet("/QLKiemKe/ThongKe")]
         public IActionResult ThongKeKiemKe()
@@ -3637,6 +3637,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return View("ThongKeKiemKe");
         }
 
+        // 1. HÀM NÀY DÙNG ĐỂ VẼ BIỂU ĐỒ (Giữ nguyên logic cực chuẩn của bạn)
         [HttpGet("/QLKiemKe/GetDuLieuThongKe")]
         public IActionResult GetDuLieuThongKe()
         {
@@ -3701,6 +3702,48 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         ChuaKiemKe = chuaCheck
                     }
                 });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, msg = ex.Message });
+            }
+        }
+
+        // 2. HÀM NÀY DÙNG ĐỂ ĐỔ DỮ LIỆU VÀO BẢNG & XUẤT EXCEL (Đã bổ sung trường TK)
+        [HttpGet("/QLKiemKe/GetKkThietBiss")]
+        public IActionResult GetKkThietBiss()
+        {
+            try
+            {
+                var data = _context.KkThietBis
+                    .Include(x => x.IdcongTyNavigation)
+                    .Include(x => x.IdboPhanNavigation)
+                    .Include(x => x.IdTrangThaiNavigation)
+                    .Include(x => x.IdNguoiDungNavigation) // Bắt buộc Include bảng User
+                    .Select(x => new
+                    {
+                        idThietBi = x.IdThietBi, // Hoặc x.Id tùy vào tên cột khóa chính trong class DB của bạn
+                        tenThietBi = x.TenThietBi,
+                        tenMayTinh = x.TenMayTinh,
+                        loaiThietBi = x.LoaiThietBi,
+                        tenDangNhap = x.TenDangNhap,
+
+                        // Lấy thông tin từ bảng User
+                        tenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : null,
+                        tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : null, // <--- Trường Tk đã được thêm
+
+                        tenCongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : null,
+                        tenBoPhan = x.IdboPhanNavigation != null ? x.IdboPhanNavigation.TenBoPhan : null,
+                        tenTrangThai = x.IdTrangThaiNavigation != null ? x.IdTrangThaiNavigation.TenTrangThai : null,
+                        ghiChu = x.GhiChu,
+                        duongDanAnh = x.DuongDanAnh,
+                        thoiGianCheck = x.ThoiGianCheck,
+                        ngayCapNhat = x.NgayCapNhat,
+                        ngayXoa = x.NgayXoa
+                    })
+                    .ToList();
+
+                return Json(new { success = true, data = data });
             }
             catch (Exception ex)
             {
@@ -4082,6 +4125,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         x.GhiChu,
                         x.IdNguoiDung,
                         TenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : "",
+
+                        // ---> CẬP NHẬT Ở ĐÂY: Thêm trường lấy Mã TK
+                        Tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : "",
+
                         x.IdcongTy,
                         TenCongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : "",
                         x.IdboPhan,
