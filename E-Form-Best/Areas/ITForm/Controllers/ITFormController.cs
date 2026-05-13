@@ -3688,7 +3688,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
-        #region QL Kiểm Kê (Công Ty, Bộ Phận, Thiết Bị, Trạng Thái, Lịch Sử)
+        #region QL Kiểm Kê (Công Ty, Bộ Phận, Thiết Bị, Loại Thiết Bị, Trạng Thái, Lịch Sử)
 
         [HttpGet("/QLKiemKe")]
         public IActionResult IndexKiemKe()
@@ -3942,6 +3942,70 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception) { return Json(new { success = false, msg = "Không thể xóa vì bộ phận này đang được sử dụng." }); }
         }
 
+        // ==================== LOẠI THIẾT BỊ ====================
+        [HttpGet("/QLKiemKe/GetKkLoaiThietBis")]
+        public IActionResult GetKkLoaiThietBis()
+        {
+            try
+            {
+                var data = _context.KkLoaiThietBis.OrderByDescending(x => x.IdLoai).ToList();
+                return Json(new { success = true, data = data });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        [HttpPost("/QLKiemKe/SaveKkLoaiThietBi")]
+        public IActionResult SaveKkLoaiThietBi(KkLoaiThietBi model)
+        {
+            try
+            {
+                string action = model.IdLoai == 0 ? "Thêm mới" : "Cập nhật";
+                int objId = model.IdLoai;
+
+                if (model.IdLoai == 0)
+                {
+                    model.NgayTao = DateTime.Now;
+                    _context.KkLoaiThietBis.Add(model);
+                }
+                else
+                {
+                    var existing = _context.KkLoaiThietBis.Find(model.IdLoai);
+                    if (existing != null)
+                    {
+                        existing.TenLoai = model.TenLoai;
+                        existing.GhiChu = model.GhiChu;
+                    }
+                }
+
+                _context.SaveChanges();
+
+                if (objId == 0) objId = model.IdLoai;
+                GhiLichSu(action, "Loại Thiết Bị", objId, $"Tên loại: {model.TenLoai}");
+
+                return Json(new { success = true, msg = "Lưu loại thiết bị thành công!" });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        [HttpPost("/QLKiemKe/DeleteKkLoaiThietBi")]
+        public IActionResult DeleteKkLoaiThietBi(int id)
+        {
+            try
+            {
+                var item = _context.KkLoaiThietBis.Find(id);
+                if (item != null)
+                {
+                    string tenLoai = item.TenLoai;
+                    _context.KkLoaiThietBis.Remove(item);
+                    _context.SaveChanges();
+
+                    GhiLichSu("Xóa", "Loại Thiết Bị", id, $"Đã xóa loại: {tenLoai}");
+                }
+                return Json(new { success = true, msg = "Đã xóa loại thiết bị!" });
+            }
+            catch (Exception) { return Json(new { success = false, msg = "Không thể xóa vì loại thiết bị này đang được gán cho thiết bị." }); }
+        }
+
         // ==================== THIẾT BỊ ====================
         [HttpGet("/QLKiemKe/GetKkThietBis")]
         public IActionResult GetKkThietBis()
@@ -4136,6 +4200,26 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Json(new { success = true, msg = "Khôi phục thiết bị thành công!" });
             }
             catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        // NÚT XÓA VĨNH VIỄN: Hủy hoàn toàn khỏi CSDL
+        [HttpPost("/QLKiemKe/HardDeleteKkThietBi")]
+        public IActionResult HardDeleteKkThietBi(int id)
+        {
+            try
+            {
+                var item = _context.KkThietBis.Find(id);
+                if (item != null)
+                {
+                    string tenMay = item.TenMayTinh ?? item.TenThietBi ?? "Không rõ";
+                    _context.KkThietBis.Remove(item);
+                    _context.SaveChanges();
+
+                    GhiLichSu("Xóa vĩnh viễn", "Thiết Bị", id, $"Đã xóa vĩnh viễn thiết bị (Hostname/Mã: {tenMay}) khỏi thùng rác.");
+                }
+                return Json(new { success = true, msg = "Đã xóa vĩnh viễn thiết bị khỏi hệ thống!" });
+            }
+            catch (Exception ex) { return Json(new { success = false, msg = "Lỗi: Không thể xóa vì ràng buộc dữ liệu hoặc lỗi hệ thống. Chi tiết: " + ex.Message }); }
         }
 
         #endregion

@@ -110,6 +110,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<KkLichSuThaoTac> KkLichSuThaoTacs { get; set; }
 
+    public virtual DbSet<KkLoaiThietBi> KkLoaiThietBis { get; set; }
+
     public virtual DbSet<KkThietBi> KkThietBis { get; set; }
 
     public virtual DbSet<KkTrangThai> KkTrangThais { get; set; }
@@ -508,6 +510,13 @@ public partial class ITFormContext : DbContext
             entity.HasKey(e => e.IdLichSu).HasName("PK__KK_LichS__823B17723D03585D");
 
             entity.Property(e => e.ThoiGian).HasDefaultValueSql("(getdate())");
+        });
+
+        modelBuilder.Entity<KkLoaiThietBi>(entity =>
+        {
+            entity.HasKey(e => e.IdLoai).HasName("PK__DM_LoaiT__9A03AA723C838926");
+
+            entity.Property(e => e.NgayTao).HasDefaultValueSql("(getdate())");
         });
 
         modelBuilder.Entity<KkThietBi>(entity =>
