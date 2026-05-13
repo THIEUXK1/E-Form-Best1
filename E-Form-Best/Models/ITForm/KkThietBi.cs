@@ -57,6 +57,9 @@ public partial class KkThietBi
     [Column("id_trang_thai")]
     public int? IdTrangThai { get; set; }
 
+    [Column("duong_dan_anh")]
+    public string? DuongDanAnh { get; set; }
+
     [ForeignKey("IdNguoiDung")]
     [InverseProperty("KkThietBis")]
     public virtual User? IdNguoiDungNavigation { get; set; }

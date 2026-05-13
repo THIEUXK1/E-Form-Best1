@@ -4006,7 +4006,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception) { return Json(new { success = false, msg = "Không thể xóa vì loại thiết bị này đang được gán cho thiết bị." }); }
         }
 
-        // ==================== THIẾT BỊ ====================
+        // ==================== THIẾT BỊ VÀ XỬ LÝ ẢNH ====================
         [HttpGet("/QLKiemKe/GetKkThietBis")]
         public IActionResult GetKkThietBis()
         {
@@ -4032,7 +4032,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     _context.SaveChanges();
                 }
 
-                // Trả về kèm NgayXoa và LyDoXoa để làm Tab Đã Xóa
+                // Trả về kèm NgayXoa, LyDoXoa và DuongDanAnh
                 var data = _context.KkThietBis
                     .Select(x => new
                     {
@@ -4053,7 +4053,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         x.NgayTao,
                         x.NgayCapNhat,
                         NgayXoa = x.NgayXoa,
-                        LyDoXoa = x.LyDoXoa
+                        LyDoXoa = x.LyDoXoa,
+                        x.DuongDanAnh // Trả về đường dẫn ảnh
                     })
                     .OrderByDescending(x => x.IdThietBi).ToList();
                 return Json(new { success = true, data = data });
@@ -4061,8 +4062,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
         }
 
+        // HÀM LƯU THIẾT BỊ (BỔ SUNG UPLOAD ẢNH BẤT ĐỒNG BỘ)
         [HttpPost("/QLKiemKe/SaveKkThietBi")]
-        public IActionResult SaveKkThietBi(KkThietBi model)
+        public async Task<IActionResult> SaveKkThietBi([FromForm] KkThietBi model, IFormFile? AnhThietBi)
         {
             try
             {
@@ -4086,10 +4088,41 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var statusCheck = _context.KkTrangThais.Find(model.IdTrangThai);
                 string statusName = statusCheck != null ? statusCheck.TenTrangThai : "Chưa rõ";
 
+                // --- XỬ LÝ UPLOAD VÀ LƯU ẢNH LÊN THƯ MỤC MẠNG ---
+                string newImageFileName = null;
+                if (AnhThietBi != null && AnhThietBi.Length > 0)
+                {
+                    string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\AnhKiemKe";
+
+                    // Tạo folder nếu chưa tồn tại
+                    if (!Directory.Exists(networkPath))
+                    {
+                        Directory.CreateDirectory(networkPath);
+                    }
+
+                    string imgExtension = Path.GetExtension(AnhThietBi.FileName);
+                    if (string.IsNullOrEmpty(imgExtension)) imgExtension = ".jpg";
+
+                    string timeStamp = DateTime.Now.ToString("yyyyMMddHHmmss");
+                    // Xóa ký tự đặc biệt khỏi Tên thiết bị để làm tên file
+                    string safeName = string.Join("_", model.TenThietBi.Split(Path.GetInvalidFileNameChars()));
+                    if (string.IsNullOrEmpty(safeName)) safeName = "TB";
+
+                    newImageFileName = $"AnhTB_{safeName}_{timeStamp}{imgExtension}";
+                    string imgFullPath = Path.Combine(networkPath, newImageFileName);
+
+                    // Copy file vào thư mục mạng
+                    using (var imgStream = new FileStream(imgFullPath, FileMode.Create))
+                    {
+                        await AnhThietBi.CopyToAsync(imgStream);
+                    }
+                }
+
                 if (model.IdThietBi == 0)
                 {
                     model.NgayTao = DateTime.Now;
                     model.NgayCapNhat = DateTime.Now;
+                    model.DuongDanAnh = newImageFileName; // Gán tên ảnh mới tạo
                     _context.KkThietBis.Add(model);
                 }
                 else
@@ -4108,6 +4141,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         existing.IdTrangThai = model.IdTrangThai;
                         existing.NgayCapNhat = DateTime.Now;
 
+                        // Chỉ cập nhật DuongDanAnh nếu có ảnh mới upload lên
+                        if (newImageFileName != null)
+                        {
+                            existing.DuongDanAnh = newImageFileName;
+                        }
+
                         // Nếu cập nhật thoát khỏi trạng thái Xóa thì clear ngày xóa & lý do xóa
                         if (statusName.ToLower() != "xóa")
                         {
@@ -4116,7 +4155,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         }
                     }
                 }
-                _context.SaveChanges();
+
+                // Đã chuyển thành hàm Async nên dùng SaveChangesAsync
+                await _context.SaveChangesAsync();
 
                 if (objId == 0) objId = model.IdThietBi;
 
@@ -4140,6 +4181,27 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Json(new { success = true, msg = "Lưu thiết bị thành công!" });
             }
             catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+        }
+
+        // HÀM XUẤT ẢNH TỪ FILE SERVER RA TRÌNH DUYỆT
+        [HttpGet("/QLKiemKe/GetImage")]
+        public IActionResult GetImage(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) return NotFound();
+
+            string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\AnhKiemKe";
+            string filePath = Path.Combine(networkPath, fileName);
+
+            if (!System.IO.File.Exists(filePath)) return NotFound();
+
+            var ext = Path.GetExtension(filePath).ToLowerInvariant();
+            string mimeType = "image/jpeg"; // Mặc định
+
+            if (ext == ".png") mimeType = "image/png";
+            else if (ext == ".gif") mimeType = "image/gif";
+            else if (ext == ".webp") mimeType = "image/webp";
+
+            return PhysicalFile(filePath, mimeType);
         }
 
         // NÚT XÓA: Chuyển vào thùng rác
