@@ -94,17 +94,17 @@
         var ct = Model.ItMail1s.First();
         ProcessImage(ct.DuonDanAnh, ct.Anh);
 
-        string loaiYeuCauColor = "#1e40af"; 
+        string loaiYeuCauColor = "#1e40af";
         string loaiYeuCauBg = "#eef2ff";
 
         if (ct.LoaiYeuCau == "Hủy Email")
         {
-            loaiYeuCauColor = "#991b1b"; 
+            loaiYeuCauColor = "#991b1b";
             loaiYeuCauBg = "#fef2f2";
         }
         else if (ct.LoaiYeuCau == "Đăng ký mới")
         {
-            loaiYeuCauColor = "#166534"; 
+            loaiYeuCauColor = "#166534";
             loaiYeuCauBg = "#f0fdf4";
         }
 
@@ -114,9 +114,17 @@
         chiTietNoiDung += RenderInfoRow("💼", "Vị trí/Chức vụ", ct.ViTri, "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("📞", "Số nội bộ (Ext)", ct.SoNoiBo, "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("📱", "Số điện thoại", ct.SoDienThoai, "#fffbeb", "#92400e");
+
+        // --- ĐÃ THÊM MỚI: Nhóm Email ---
+        chiTietNoiDung += RenderInfoRow("👥", "Nhóm Email", ct.NhomEmail, "#fdf4ff", "#86198f");
+
         chiTietNoiDung += RenderInfoRow("🌍", "Gửi nhận quốc tế", (ct.GuiRaNgoai == "Yes" ? "Có" : "Không"), "#fff7ed", "#c2410c");
         chiTietNoiDung += RenderInfoRow("📲", "Dùng trên Mobile", (ct.SuDungTrenDienThoai == "Yes" ? "Có" : "Không"), "#f0fdf4", "#166534");
         chiTietNoiDung += RenderInfoRow("🌐", "Truy cập Webmail", (ct.SuDungWebMail == "Yes" ? "Cho phép" : "Khóa"), "#f5f3ff", "#5b21b6");
+
+        // --- ĐÃ THÊM MỚI: Máy tính cài Mail ---
+        chiTietNoiDung += RenderInfoRow("💻", "Tên máy tính cài Mail", ct.SuDungTrenMayTinh, "#ecfeff", "#0891b2");
+
         chiTietNoiDung += RenderInfoRow("📝", "Mục đích / Ghi chú", ct.MucDich, "#f1f5f9", "#334155");
     }
     // FORM 2: SỬA CHỮA / CẤP THIẾT BỊ
@@ -194,9 +202,9 @@
             chiTietNoiDung += RenderInfoRow("🔑", "Hệ thống", ct.HeThongNao, "#fdf2f8", "#9d174d");
             chiTietNoiDung += RenderInfoRow("📝", "Loại đơn", ct.LoaiDon, "#fdf2f8", "#9d174d");
             chiTietNoiDung += RenderInfoRow("👤", "Đăng ký cho", danhSachNhanVien, "#f8fafc", "#0f172a");
-            
+
             // Đã xóa trường: Sử dụng tại máy tính/IP theo form yêu cầu mới
-            
+
             chiTietNoiDung += RenderInfoRow("👥", "Quyền giống", ct.CapQuyenGiongAi, "#f8fafc", "#0f172a");
             chiTietNoiDung += RenderInfoRow("📄", "Mô tả chi tiết", ct.MoTaChiTiet, "#f8fafc", "#0f172a");
             chiTietNoiDung += RenderInfoRow("🎯", "Mục đích", ct.MucDich, "#fff1f2", "#be123c");
@@ -221,7 +229,7 @@
         chiTietNoiDung += RenderInfoRow("💻", "Tên máy tính", ct.TenMayCanCai, "#f0fdf4", "#166534");
         chiTietNoiDung += RenderInfoRow("📂", "Quyền ổ chung", ct.TenOchungCanAddQuyen, "#fff7ed", "#9a3412");
         chiTietNoiDung += RenderInfoRow("🎯", "Mục đích", ct.MucDich, "#fff1f2", "#be123c");
-    
+
         if (!string.IsNullOrEmpty(ct.GhiChu))
         {
             chiTietNoiDung += RenderInfoRow("📝", "Ghi chú thêm", ct.GhiChu, "#f8fafc", "#475569");
@@ -252,33 +260,110 @@
 
 <style>
     /* CSS TỐI ƯU MOBILE RESPONSIVE */
-    .mobile-history-content { display: block; }
-    
-    @@media (max-width: 768px) {
-        .mobile-wrapper { padding: 10px !important; }
-        .mobile-header { padding: 25px 15px !important; }
-        .mobile-header h1 { font-size: 24px !important; margin: 15px 0 !important; }
-        .mobile-status-box { padding: 15px !important; margin-top: 15px; width: 100%; box-sizing: border-box; }
-        .mobile-body { padding: 15px !important; }
-        .mobile-grid-main { grid-template-columns: 1fr !important; gap: 20px !important; }
-        .mobile-grid-info { grid-template-columns: 1fr !important; gap: 10px !important; }
-        .mobile-btn-export { width: 100%; justify-content: center; margin-bottom: 5px; text-align: center; }
-        .mobile-btn-action { width: 100% !important; margin-bottom: 10px; }
-        .mobile-info-row { flex-wrap: wrap !important; }
-        
-        /* Hiệu ứng đóng mở Lịch sử thao tác trên Mobile */
-        .mobile-history-toggle { cursor: pointer; background: #fff; padding: 15px 20px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-        .mobile-history-toggle h3 { font-size: 16px !important; margin-bottom: 0 !important; }
-        #historyToggleIconMobile { display: inline-flex !important; align-items: center; gap: 6px; font-weight: 800; font-size: 12px !important; }
-        .mobile-history-content { display: none; margin-top: 15px; margin-bottom: 25px; }
-        .mobile-history-content.show { display: block; animation: slideDown 0.3s ease; }
+    .mobile-history-content {
+        display: block;
     }
-    
-    @@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+    @@media (max-width: 768px) {
+        .mobile-wrapper {
+            padding: 10px !important;
+        }
+
+        .mobile-header {
+            padding: 25px 15px !important;
+        }
+
+            .mobile-header h1 {
+                font-size: 24px !important;
+                margin: 15px 0 !important;
+            }
+
+        .mobile-status-box {
+            padding: 15px !important;
+            margin-top: 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .mobile-body {
+            padding: 15px !important;
+        }
+
+        .mobile-grid-main {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+        }
+
+        .mobile-grid-info {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+        }
+
+        .mobile-btn-export {
+            width: 100%;
+            justify-content: center;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .mobile-btn-action {
+            width: 100% !important;
+            margin-bottom: 10px;
+        }
+
+        .mobile-info-row {
+            flex-wrap: wrap !important;
+        }
+        /* Hiệu ứng đóng mở Lịch sử thao tác trên Mobile */
+        .mobile-history-toggle {
+            cursor: pointer;
+            background: #fff;
+            padding: 15px 20px;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+            .mobile-history-toggle h3 {
+                font-size: 16px !important;
+                margin-bottom: 0 !important;
+            }
+
+        #historyToggleIconMobile {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 6px;
+            font-weight: 800;
+            font-size: 12px !important;
+        }
+
+        .mobile-history-content {
+            display: none;
+            margin-top: 15px;
+            margin-bottom: 25px;
+        }
+
+            .mobile-history-content.show {
+                display: block;
+                animation: slideDown 0.3s ease;
+            }
+    }
+
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 </style>
 
 <div class="mobile-wrapper" style="max-width: 1200px; margin: 0 auto; padding: 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc;">
-    
+
     <div style="margin-bottom: 25px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
         <a href="/FormIT/DonCho" class="mobile-btn-export" style="display: inline-flex; align-items: center; gap: 10px; padding: 12px 24px; background: #ffffff; color: #1e40af; text-decoration: none; border-radius: 12px; font-weight: 800; border: 2px solid #e2e8f0; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 15px -3px rgba(0,0,0,0.15)';" onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.1)';">
             <i class="fa fa-arrow-left"></i> DANH SÁCH PHIẾU
@@ -478,24 +563,24 @@
                     </div>
 
                     <style>
-                        .history-zoom-active {
-                            position: fixed !important;
-                            top: 50% !important;
-                            left: 50% !important;
-                            transform: translate(-50%, -50%) !important;
-                            width: 75vw !important;
-                            height: 80vh !important;
-                            z-index: 9999 !important;
-                            margin: 0 !important;
-                            border-radius: 28px !important;
-                            display: flex !important;
-                            flex-direction: column !important;
-                        }
+                                            .history-zoom-active {
+                                                position: fixed !important;
+                                                top: 50% !important;
+                                                left: 50% !important;
+                                                transform: translate(-50%, -50%) !important;
+                                                width: 75vw !important;
+                                                height: 80vh !important;
+                                                z-index: 9999 !important;
+                                                margin: 0 !important;
+                                                border-radius: 28px !important;
+                                                display: flex !important;
+                                                flex-direction: column !important;
+                                            }
 
-                        .history-zoom-active #historyScrollList {
-                            max-height: none !important;
-                            flex: 1 !important;
-                        }
+                                                .history-zoom-active #historyScrollList {
+                                                    max-height: none !important;
+                                                    flex: 1 !important;
+                                                }
                     </style>
                 </div>
 
@@ -515,15 +600,15 @@
 
                     @if (!string.IsNullOrEmpty(fileUrl))
                     {
-                        <div style="background: #f0f9ff; border: 2px solid #bae6fd; padding: 16px 20px; border-radius: 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); max-width: 100%; box-sizing: border-box; gap: 12px; flex-wrap: wrap;"> 
-                            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;"> 
-                                <i class="fa fa-file-pdf" style="font-size: 22px; color: #0369a1; flex-shrink: 0;"></i> 
-                                <span style="font-size: 14px; font-weight: 800; color: #0369a1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">@fileName</span> 
-                            </div> 
-                            <div style="display: flex; gap: 8px; flex-shrink: 0; width: 100%; justify-content: flex-end;"> 
-                                <a href="@fileUrl" target="_blank" style="background: white; color: #0369a1; border: 1.5px solid #0369a1; padding: 9px 18px; border-radius: 12px; font-weight: 800; text-decoration: none; font-size: 13px; text-align: center; transition: 0.2s;" onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background='white'">XEM</a> 
-                                <a href="@fileUrl" download style="background: #0369a1; color: white; padding: 10px 22px; border-radius: 12px; font-weight: 800; text-decoration: none; font-size: 13px; text-align: center; box-shadow: 0 4px 10px rgba(3, 105, 161, 0.3);" onmouseover="this.style.background='#075985'" onmouseout="this.style.background='#0369a1'">TẢI VỀ</a> 
-                            </div> 
+                        <div style="background: #f0f9ff; border: 2px solid #bae6fd; padding: 16px 20px; border-radius: 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); max-width: 100%; box-sizing: border-box; gap: 12px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
+                                <i class="fa fa-file-pdf" style="font-size: 22px; color: #0369a1; flex-shrink: 0;"></i>
+                                <span style="font-size: 14px; font-weight: 800; color: #0369a1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">@fileName</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-shrink: 0; width: 100%; justify-content: flex-end;">
+                                <a href="@fileUrl" target="_blank" style="background: white; color: #0369a1; border: 1.5px solid #0369a1; padding: 9px 18px; border-radius: 12px; font-weight: 800; text-decoration: none; font-size: 13px; text-align: center; transition: 0.2s;" onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background='white'">XEM</a>
+                                <a href="@fileUrl" download style="background: #0369a1; color: white; padding: 10px 22px; border-radius: 12px; font-weight: 800; text-decoration: none; font-size: 13px; text-align: center; box-shadow: 0 4px 10px rgba(3, 105, 161, 0.3);" onmouseover="this.style.background='#075985'" onmouseout="this.style.background='#0369a1'">TẢI VỀ</a>
+                            </div>
                         </div>
                     }
 
@@ -706,24 +791,24 @@
                     </div>
 
                     <style>
-                        .comment-zoom-active {
-                            position: fixed !important;
-                            top: 50% !important;
-                            left: 50% !important;
-                            transform: translate(-50%, -50%) !important;
-                            width: 75vw !important;
-                            height: 85vh !important;
-                            z-index: 9999 !important;
-                            margin: 0 !important;
-                            border-radius: 20px !important;
-                            display: flex !important;
-                            flex-direction: column !important;
-                        }
+                                            .comment-zoom-active {
+                                                position: fixed !important;
+                                                top: 50% !important;
+                                                left: 50% !important;
+                                                transform: translate(-50%, -50%) !important;
+                                                width: 75vw !important;
+                                                height: 85vh !important;
+                                                z-index: 9999 !important;
+                                                margin: 0 !important;
+                                                border-radius: 20px !important;
+                                                display: flex !important;
+                                                flex-direction: column !important;
+                                            }
 
-                        .comment-zoom-active #commentList {
-                            max-height: none !important;
-                            flex: 1 !important;
-                        }
+                                                .comment-zoom-active #commentList {
+                                                    max-height: none !important;
+                                                    flex: 1 !important;
+                                                }
                     </style>
                 </div>
             </div>
@@ -754,8 +839,8 @@
 
             // --- MỚI: Lấy danh sách Roles dưới dạng mảng ---
             const userRoles = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                        User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList()
-                                ));
+                                                                            User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList()
+                                                            ));
 
             // Biến trạng thái cho Bình luận
             let currentSkipComment = 0;
@@ -960,7 +1045,7 @@
                     const ext = bl.fileDinhKem.split('.').pop().toLowerCase();
                     const isImg = ['jpg','jpeg','png','gif'].includes(ext);
                     if(isImg) {
-                        fileHtml = `<div style="margin-top:8px;"><img src="/FormIT/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" onclick="openZoom(this.src)" style="max-width:200px; border-radius:8px; cursor:zoom-in; border:1px solid #e2e8f0;"/></div>`;
+                        fileHtml = `<div style="margin-top:8px;"><img src="/FormIT/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" onclick="openZoom(this.src)" style="max-width:200px; border-radius:8px; cursor:zoom-in; border:1px solid #e2e8f0"/></div>`;
                     } else {
                         fileHtml = `<div style="margin-top: 10px; padding: 10px; background: #f1f5f9; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px; word-break: break-all;"><i class="fa fa-paperclip"></i><a href="/FormIT/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color: #3b82f6; font-weight: 600; font-size: 13px; text-decoration: none;">${escapeHtml(originalName)}</a></div>`;
                     }
