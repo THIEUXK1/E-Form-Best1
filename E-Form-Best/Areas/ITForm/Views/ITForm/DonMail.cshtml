@@ -101,7 +101,7 @@
             padding: 15px !important;
             border-radius: 20px !important;
         }
-        
+
         .btn-grad {
             padding: 18px !important;
             font-size: 16px !important;
@@ -190,7 +190,8 @@
                     </div>
                 </div>
 
-                <div class="grid-options" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px;">
+                <!-- Đã đổi thành 4 cột và thêm Nhóm Email -->
+                <div class="grid-options" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 25px;">
                     <div>
                         <label style="@labelBase">Vị trí (Chức vụ)</label>
                         <input type="text" name="ViTri" value="@userRole" placeholder="Staff/Leader..." class="input-hover" style="@inputBase">
@@ -203,9 +204,14 @@
                         <label style="@labelBase">Số điện thoại</label>
                         <input type="text" name="SoDienThoai" placeholder="09xx..." class="input-hover" style="@inputBase">
                     </div>
+                    <div>
+                        <label style="@labelBase">Nhóm Email</label>
+                        <input type="text" name="NhomEmail" placeholder="Nhóm mail..." class="input-hover" style="@inputBase">
+                    </div>
                 </div>
 
-                <div class="grid-options" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; padding: 20px; background: #fffbeb; border-radius: 18px; border: 1px solid #fde68a;">
+                <!-- Đã đổi thành 4 cột và thêm Tên máy tính cài Mail -->
+                <div class="grid-options" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; padding: 20px; background: #fffbeb; border-radius: 18px; border: 1px solid #fde68a;">
                     <div>
                         <label style="@labelBase font-size: 10px;">Phạm vi gửi nhận</label>
                         <select name="GuiRaNgoai" class="input-hover" style="@inputBase">
@@ -226,6 +232,10 @@
                             <option value="Yes">Mở truy cập</option>
                             <option value="No">Khóa Webmail</option>
                         </select>
+                    </div>
+                    <div>
+                        <label style="@labelBase font-size: 10px;">Tên máy tính cài Mail</label>
+                        <input type="text" name="SuDungTrenMayTinh" placeholder="VD: PC-01..." class="input-hover" style="@inputBase">
                     </div>
                 </div>
 

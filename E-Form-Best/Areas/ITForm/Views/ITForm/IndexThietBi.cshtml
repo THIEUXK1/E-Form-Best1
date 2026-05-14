@@ -215,7 +215,7 @@
                                     <i class="fas fa-dot-circle me-1"></i> Chụp ngay
                                 </button>
                                 <button type="button" class="btn btn-secondary rounded-pill px-3 ms-2" onclick="closeCamera()">
-                                    Đóng Camera
+                                    <i class="fas fa-times me-1"></i> Đóng Camera
                                 </button>
                             </div>
                             <canvas id="canvasCamera" style="display: none;"></canvas>
@@ -291,18 +291,33 @@
         $(document).ready(function () {
         if($.fn.select2) {
         $('.select2-filter').select2({ width: '100%', minimumResultsForSearch: 0 });
+
+        // --- CẬP NHẬT Ở ĐÂY: Sửa lỗi select2 bay lung tung trên Modal ---
         $('.select2-modal').select2({
-        dropdownParent: $('#modalThietBi'),
+        dropdownParent: $('#modalThietBi .modal-content'), // Trỏ vào .modal-content
         placeholder: "-- Chọn người dùng --",
         allowClear: true,
         width: '100%',
         minimumResultsForSearch: 0
         });
 
+        // Chặn auto-focus trên thiết bị Mobile để tránh bàn phím ảo đẩy viewport
         $(document).on('select2:open', () => {
+        let isMobile = window.matchMedia("(max-width: 767px)").matches;
+        if (!isMobile) {
         let searchField = document.querySelector('.select2-search__field');
         if (searchField) { setTimeout(() => { searchField.focus(); }, 10); }
+        }
         });
+
+        // Tự động đóng Select2 khi cuộn trong modal trên mobile
+        $('#modalThietBi').on('scroll', function() {
+        let isMobile = window.matchMedia("(max-width: 767px)").matches;
+        if (isMobile) {
+        $('.select2-modal').select2("close");
+        }
+        });
+        // -----------------------------------------------------------------
 
         setTimeout(() => {
         $('.select2-selection--single').css({
@@ -605,7 +620,6 @@
         let html = '';
         filtered.forEach(item => {
 
-        // ---> CẬP NHẬT Ở ĐÂY: Hiển thị thêm item.tk bên cạnh tên người dùng
         let userStr = item.tenNguoiDung
         ? `<span class="text-success fw-bold"><i class="fas fa-user me-1"></i>${item.tenNguoiDung} <span class="text-danger fw-normal">(${item.tk || 'N/A'})</span></span>`
         : `<span class="text-muted fst-italic">Chưa cấp phát</span>`;
@@ -616,15 +630,12 @@
         let ttName = item.tenTrangThai || "Chưa gắn";
         let badgeClass = ttName.toLowerCase().includes("hoạt động") ? "success" : "warning text-dark";
 
-        // 1. Xử lý hiển thị ảnh trực tiếp (ĐÃ THÊM TÍNH NĂNG ZOOM ẢNH)
         let imgHtml = item.duongDanAnh
         ? `<img src="/QLKiemKe/GetImage?fileName=${encodeURIComponent(item.duongDanAnh)}" class="shadow-sm img-thumbnail-hover" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer; transition: transform 0.2s ease;" alt="Ảnh TB" onclick="phongToAnh('/QLKiemKe/GetImage?fileName=${encodeURIComponent(item.duongDanAnh)}', '${item.tenThietBi || 'Thiết bị'}')" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="Nhấn để phóng to ảnh" />`
         : `<div class="bg-light d-flex align-items-center justify-content-center text-muted shadow-sm" style="width: 80px; height: 80px; border-radius: 8px; border: 1px dashed #cbd5e1;"><i class="fas fa-laptop fs-3"></i></div>`;
 
-        // 2. Định dạng thời gian check
         let checkTimeStr = item.thoiGianCheck ? new Date(item.thoiGianCheck).toLocaleString('vi-VN') : '<span class="text-danger fst-italic">Chưa Check</span>';
 
-        // 3. Xử lý Hostname và Account
         let hostName = item.tenMayTinh ? item.tenMayTinh : '<i class="text-muted">Chưa có Hostname</i>';
         let accountName = item.tenDangNhap ? item.tenDangNhap : '<i class="text-muted">Chưa có Account</i>';
 
