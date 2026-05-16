@@ -86,7 +86,7 @@
     }
 
     /* ========================================================
-    CSS RESPONSIVE CHO MOBILE
+    CSS RESPONSIVE CHO MOBILE (CHỈ TÁC ĐỘNG KHI MÀN HÌNH NHỎ)
     ======================================================== */
     @@media (max-width: 768px) {
     .content-header .row > div {
@@ -118,6 +118,88 @@
     text-align: center;
     width: 100%;
     margin-bottom: 10px !important;
+    }
+    /* ----------------------------------------------------
+    BIẾN ĐỔI BẢNG (TABLE) THÀNH DẠNG DANH SÁCH THẺ (CARDS)
+    ----------------------------------------------------- */
+    #adminDataTable thead {
+    display: none; /* Ẩn thẻ tiêu đề bảng */
+    }
+
+    #adminDataTable tbody, #adminDataTable tr, #adminDataTable td {
+    display: block;
+    width: 100%;
+    }
+
+    #adminDataTable tr {
+    margin-bottom: 1rem;
+    background-color: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    padding: 10px 15px;
+    }
+
+    #adminDataTable td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start; /* Để nhãn nằm cùng hàng trên cùng khi text dài */
+    padding: 10px 0 !important;
+    border-bottom: 1px dashed #e2e8f0;
+    }
+
+    #adminDataTable td:last-child {
+    border-bottom: 0;
+    padding-bottom: 0 !important;
+    padding-top: 15px !important;
+    justify-content: center;
+    }
+    /* Hiển thị Nhãn giả (Pseudo Label) dựa trên data-label attribute */
+    #adminDataTable td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    padding-right: 15px;
+    text-align: left;
+    flex-shrink: 0;
+    max-width: 45%;
+    }
+    /* Ẩn nhãn ở cột Thao tác vì nút đã quá rõ ràng */
+    #adminDataTable td:last-child::before {
+    display: none;
+    }
+    /* Bỏ class canh lề dành riêng cho PC trên Mobile */
+    #adminDataTable td.ps-4 {
+    padding-left: 0 !important;
+    }
+    /* Cấu hình nút Thao tác Full Width trên Mobile */
+    .btn-action-mobile {
+    width: 100%;
+    padding: 12px !important;
+    font-size: 1rem !important;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+    }
+    /* Chỉnh sửa lại row trống (Loading / No data) để không bị viền như Card */
+    #adminDataTable tr.empty-row {
+    display: block;
+    text-align: center;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    padding: 0;
+    }
+
+    #adminDataTable tr.empty-row td {
+    justify-content: center;
+    border: none;
+    }
+
+    #adminDataTable tr.empty-row td::before {
+    display: none;
     }
     }
 </style>
@@ -324,10 +406,12 @@
                                 <th class="text-center">Trạng thái</th>
                                 <th class="text-center" width="160">Lần cuối Check</th>
                                 <th>Ghi chú</th>
+                                <th class="text-center" width="120">Thao tác</th> <!-- CỘT THAO TÁC MỚI BÊN PHẢI -->
                             </tr>
                         </thead>
                         <tbody id="tbodyData">
-                            <tr><td colspan="8" class="text-center text-muted py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Đang tải dữ liệu...</div></td></tr>
+                            <!-- Đã thêm class empty-row để Mobile view không bị lỗi layout -->
+                            <tr class="empty-row"><td colspan="9" class="text-center text-muted py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Đang tải dữ liệu...</div></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -344,6 +428,40 @@
 
     </div>
 </section>
+
+<!-- MODAL LỊCH SỬ THAO TÁC -->
+<div class="modal fade" id="modalLichSu" tabindex="-1" aria-labelledby="modalLichSuLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius: 15px;">
+            <div class="modal-header bg-light" style="border-radius: 15px 15px 0 0;">
+                <h5 class="modal-title fw-bold" id="modalLichSuLabel">
+                    <i class="fas fa-history text-primary me-2"></i>Lịch sử thiết bị: <span id="lsTenThietBi" class="text-danger"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light position-sticky top-0 shadow-sm">
+                            <tr>
+                                <th class="ps-4">Thời gian</th>
+                                <th>Hành động</th>
+                                <th>Người thao tác</th>
+                                <th>Chi tiết</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyLichSu">
+                            <!-- Nội dung lịch sử được nạp qua AJAX -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light" style="border-radius: 0 0 15px 15px;">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -643,7 +761,7 @@
         let htmlTable = '';
 
         if (totalItems === 0) {
-        htmlTable = `<tr><td colspan="8" class="text-center text-muted py-5"><i class="fas fa-box-open fa-3x mb-3 d-block opacity-50"></i> Không có dữ liệu phù hợp</td></tr>`;
+        htmlTable = `<tr class="empty-row"><td colspan="9" class="text-center text-muted py-5"><i class="fas fa-box-open fa-3x mb-3 d-block opacity-50"></i> Không có dữ liệu phù hợp</td></tr>`;
         $('#paginationInfo').text("Không có mục nào để hiển thị");
         $('#paginationControls').html('');
         } else {
@@ -689,7 +807,7 @@
         if (item.duongDanAnh) {
         let imgUrl = `/QLKiemKe/GetImage?fileName=${encodeURIComponent(item.duongDanAnh)}`;
         htmlImg = `
-        <div class="mt-2">
+        <div class="mt-2 text-md-start text-end">
         <img src="${imgUrl}"
         alt="Ảnh thiết bị"
         class="img-thumbnail shadow-sm"
@@ -700,7 +818,7 @@
         `;
         } else {
         htmlImg = `
-        <div class="mt-2 text-muted small fst-italic" style="font-size: 11px;">
+        <div class="mt-2 text-muted small fst-italic text-md-start text-end" style="font-size: 11px;">
         <i class="fas fa-image" style="opacity: 0.4;"></i> Không có ảnh
         </div>
         `;
@@ -710,22 +828,50 @@
         ? `<div class="small text-wrap text-muted" style="max-width: 150px;">${item.ghiChu}</div>`
         : `<span class="text-muted fst-italic small" style="opacity: 0.6;">Không</span>`;
 
+        // Gắn thêm 'data-label' và các thẻ Div bọc ngoài sử dụng class tiện ích của Bootstrap (text-end text-md-start)
+        // để nội dung trên Mobile tự động dạt về lề phải, trong khi PC giữ nguyên lề trái.
         htmlTable += `
         <tr>
-        <td class="ps-4 fw-bold text-muted">#${item.idThietBi}</td>
-        <td>
+        <td class="ps-4 fw-bold text-muted" data-label="Mã ID">
+        #${item.idThietBi}
+        </td>
+        <td data-label="Thông tin TB & Hostname">
+        <div class="text-end text-md-start">
         <div class="fw-bold text-dark fs-6">${item.tenMayTinh || '<i class="text-muted fw-normal">No Hostname</i>'}</div>
         <div class="small text-muted"><i class="fas fa-barcode"></i> ${item.tenThietBi}</div>
+        </div>
         </td>
-        <td>
+        <td data-label="Loại & Ảnh đính kèm">
+        <div class="text-end text-md-start">
         <span class="badge border border-secondary text-secondary bg-light px-2 py-1 mb-1 d-inline-block">${item.loaiThietBi || 'Khác'}</span>
         ${htmlImg}
+        </div>
         </td>
-        <td>${userStr}</td>
-        <td class="small"><i class="fas fa-map-marker-alt text-muted me-1"></i>${locStr}</td>
-        <td class="text-center"><span class="badge ${badgeClass} w-100 py-2 shadow-sm">${item.tenTrangThai || 'Chưa rõ'}</span></td>
-        <td class="text-center">${checkHtml}</td>
-        <td>${htmlGhiChu}</td>
+        <td data-label="Tài khoản & Người dùng">
+        <div class="text-end text-md-start">${userStr}</div>
+        </td>
+        <td class="small" data-label="Vị trí (Công ty - Bộ phận)">
+        <div class="text-end text-md-start"><i class="fas fa-map-marker-alt text-muted me-1"></i>${locStr}</div>
+        </td>
+        <td class="text-center" data-label="Trạng thái kiểm kê">
+        <div class="text-end text-md-center"><span class="badge ${badgeClass} w-100 py-2 shadow-sm">${item.tenTrangThai || 'Chưa rõ'}</span></div>
+        </td>
+        <td class="text-center" data-label="Lần cuối Check">
+        <div class="text-end text-md-center">${checkHtml}</div>
+        </td>
+        <td data-label="Ghi chú">
+        <div class="d-flex justify-content-end justify-content-md-start">${htmlGhiChu}</div>
+        </td>
+        <td class="text-center" data-label="Thao tác hệ thống">
+        <button class="btn btn-sm text-white rounded-pill shadow-sm px-3 py-1 btn-action-mobile"
+        style="background: linear-gradient(135deg, #8b5cf6, #6366f1); border: none; font-weight: 600; font-size: 0.8rem; transition: all 0.3s ease;"
+        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(99, 102, 241, 0.4)';"
+        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.05)';"
+        onclick="xemLichSuThietBi(${item.idThietBi}, '${item.tenMayTinh || item.tenThietBi || 'Thiết bị'}')"
+        title="Xem chi tiết lịch sử">
+        <i class="fas fa-history me-1"></i> Lịch sử
+        </button>
+        </td>
         </tr>`;
         });
 
@@ -886,6 +1032,52 @@
         image: 'rounded-3 shadow',
         popup: 'rounded-4'
         }
+        });
+        }
+
+        // ==========================================
+        // HÀM GỌI API LẤY LỊCH SỬ THIẾT BỊ VÀ HIỂN THỊ MODAL
+        // ==========================================
+        function xemLichSuThietBi(idThietBi, tenThietBi) {
+        $('#lsTenThietBi').text(tenThietBi);
+        $('#tbodyLichSu').html('<tr><td colspan="4" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Đang tải dữ liệu...</div></td></tr>');
+
+        // Dùng code chuẩn của Bootstrap 5 để mở Modal
+        let myModal = new bootstrap.Modal(document.getElementById('modalLichSu'));
+        myModal.show();
+
+        // Gọi API
+        $.get('/QLKiemKe/GetLichSuThietBi', { idThietBi: idThietBi }, function (res) {
+        if (res.success) {
+        let html = '';
+        if (res.data.length === 0) {
+        html = '<tr><td colspan="4" class="text-center text-muted py-4"><i class="fas fa-history fa-2x mb-2 d-block opacity-50"></i>Chưa ghi nhận lịch sử thao tác nào</td></tr>';
+        } else {
+        res.data.forEach(item => {
+        let time = item.thoiGian ? new Date(item.thoiGian).toLocaleString('vi-VN') : 'Không rõ thời gian';
+        let badgeHanhDong = 'bg-primary';
+
+        // Tô màu thẻ theo hành động
+        if (item.hanhDong && item.hanhDong.toLowerCase().includes('xóa')) badgeHanhDong = 'bg-danger';
+        else if (item.hanhDong && item.hanhDong.toLowerCase().includes('sửa')) badgeHanhDong = 'bg-warning text-dark';
+        else if (item.hanhDong && item.hanhDong.toLowerCase().includes('thêm')) badgeHanhDong = 'bg-success';
+
+        html += `
+        <tr>
+        <td class="ps-4 small fw-bold text-muted">${time}</td>
+        <td><span class="badge ${badgeHanhDong} rounded-pill px-3 py-1 shadow-sm">${item.hanhDong || 'Không rõ'}</span></td>
+        <td class="fw-bold text-dark"><i class="fas fa-user-circle text-muted me-1"></i>${item.nguoiThaoTac || 'N/A'}</td>
+        <td class="small text-wrap" style="max-width: 350px;">${item.chiTiet || ''}</td>
+        </tr>
+        `;
+        });
+        }
+        $('#tbodyLichSu').html(html);
+        } else {
+        $('#tbodyLichSu').html(`<tr><td colspan="4" class="text-center text-danger py-4"><i class="fas fa-exclamation-circle me-1"></i> Lỗi: ${res.msg}</td></tr>`);
+        }
+        }).fail(function () {
+        $('#tbodyLichSu').html('<tr><td colspan="4" class="text-center text-danger py-4"><i class="fas fa-exclamation-circle me-1"></i> Không thể kết nối tới máy chủ!</td></tr>');
         });
         }
 

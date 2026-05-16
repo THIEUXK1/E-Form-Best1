@@ -3451,6 +3451,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                         return new
                         {
+                            IdFormIt = top.IdFormIt, // Đã bổ sung cột này để JS có thể Join dữ liệu lọc chéo
                             TenNguoiHoTro = top.TenNguoiHoTro,
                             DanhMuc = top.DanhMuc,
                             TrangThai = (top.TenForm ?? "").Contains("[ĐÃ HỦY]") ? "HỦY" :
@@ -3997,7 +3998,36 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
-        #endregion        // =================================================================================
+        // 3. HÀM NÀY DÙNG ĐỂ LẤY LỊCH SỬ THAO TÁC CỦA THIẾT BỊ THEO ID
+        [HttpGet("/QLKiemKe/GetLichSuThietBi")]
+        public IActionResult GetLichSuThietBi(int idThietBi)
+        {
+            try
+            {
+                // Giả định DoiTuong là "Thiết bị" hoặc bạn quản lý thẳng bằng IdDoiTuong
+                var lichSuData = _context.KkLichSuThaoTacs
+                    .Where(x => x.IdDoiTuong == idThietBi)
+                    .OrderByDescending(x => x.ThoiGian)
+                    .Select(x => new
+                    {
+                        x.IdLichSu,
+                        x.HanhDong,
+                        x.DoiTuong,
+                        x.ChiTiet,
+                        x.ThoiGian,
+                        x.NguoiThaoTac
+                    })
+                    .ToList();
+
+                return Json(new { success = true, data = lichSuData });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, msg = ex.Message });
+            }
+        }
+
+        #endregion
 
 
         // HÀM HỖ TRỢ DÙNG CHUNG CHO CẢ 2 REGION
