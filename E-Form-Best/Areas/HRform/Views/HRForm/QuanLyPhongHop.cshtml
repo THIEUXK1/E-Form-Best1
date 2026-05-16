@@ -107,11 +107,73 @@
             border-color: #cbd5e1;
         }
 
-    /* ==========================================
-           RESPONSIVE & CHỐNG VỠ FORM
-           ========================================== */
+    /* Style Bộ Lọc Nâng Cao */
+    .advanced-filter {
+        background: white;
+        padding: 15px 20px;
+        border-radius: 15px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+    }
 
-    /* Desktop Large: Giới hạn chiều rộng tối đa để không bị tràn màn hình quá rộng */
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+        .filter-group label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+    .filter-input {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-size: 13px;
+        font-weight: 600;
+        color: #1e293b;
+        outline: none;
+        transition: 0.3s;
+        min-width: 140px;
+    }
+
+        .filter-input:focus {
+            border-color: #1e40af;
+            box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.1);
+        }
+
+    .btn-clear-filter {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 9px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        transition: 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+        .btn-clear-filter:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+    /* ==========================================
+               RESPONSIVE & CHỐNG VỠ FORM
+               ========================================== */
     .container-fluid-custom {
         max-width: 1600px;
         margin: 0 auto;
@@ -144,6 +206,19 @@
             .mobile-search-box input {
                 width: 100% !important;
             }
+
+        .advanced-filter {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-group {
+            width: 100%;
+        }
+
+        .filter-input {
+            width: 100%;
+        }
 
         .mobile-stat-grid {
             grid-template-columns: repeat(2, 1fr) !important;
@@ -266,10 +341,33 @@
             </div>
             <div class="mobile-search-box" style="position: relative;">
                 <i class="fa fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px; font-weight: 900;"></i>
-                <input type="text" id="quickSearch" onkeyup="filterData()" placeholder="Tìm nhanh..."
+                <input type="text" id="quickSearch" onkeyup="filterData()" placeholder="Tìm nhanh lịch đặt..."
                        style="padding: 12px 12px 12px 42px; border-radius: 14px; border: 2px solid #cbd5e1; font-size: 14px; width: 280px; outline: none; font-weight: 700; background: white;">
             </div>
             <div style="font-size: 11px; background: #1e40af; padding: 10px 18px; border-radius: 10px; font-weight: 900; color: #ffffff; text-transform: uppercase; text-align: center;">@ViewBag.UserRole</div>
+        </div>
+    </div>
+
+    @* --- BỘ LỌC NÂNG CAO --- *@
+    <div class="advanced-filter">
+        <div class="filter-group">
+            <label>Từ ngày</label>
+            <input type="date" id="txtFromDate" class="filter-input" onchange="fetchAllData()" />
+        </div>
+        <div class="filter-group">
+            <label>Đến ngày</label>
+            <input type="date" id="txtToDate" class="filter-input" onchange="fetchAllData()" />
+        </div>
+        <div class="filter-group">
+            <label>Phòng họp</label>
+            <select id="selRoom" class="filter-input" onchange="filterData()">
+                <option value="">-- Tất cả --</option>
+            </select>
+        </div>
+        <div class="filter-group" style="flex-direction: row; align-items: flex-end; gap: 10px; margin-left: auto;">
+            <button class="btn-clear-filter" onclick="clearAllFilters()">
+                <i class="fa fa-refresh"></i> Làm mới
+            </button>
         </div>
     </div>
 
@@ -414,23 +512,76 @@
         const modalEl = document.getElementById('modalRoom');
         if (modalEl) roomModal = new bootstrap.Modal(modalEl);
 
+        // --- Phục hồi trạng thái bộ lọc ---
+        const savedText = sessionStorage.getItem("savedRoomSearchText");
+        if (savedText) document.getElementById("quickSearch").value = savedText;
+
+        const savedFrom = sessionStorage.getItem("savedRoomFromDate");
+        if (savedFrom) document.getElementById("txtFromDate").value = savedFrom;
+
+        const savedTo = sessionStorage.getItem("savedRoomToDate");
+        if (savedTo) document.getElementById("txtToDate").value = savedTo;
+
         await fetchAllData();
+
+        // Phục hồi Combobox Phòng họp sau khi đổ dữ liệu Master
+        const savedRoom = sessionStorage.getItem("savedRoomFilter");
+        if (savedRoom) document.getElementById("selRoom").value = savedRoom;
+
+        filterData();
         });
 
+        function populateDropdowns() {
+        const selRoom = document.getElementById("selRoom");
+        const rooms = [...new Set(masterRooms.map(x => x.tenPhongHop))].sort();
+
+        const curVal = selRoom.value;
+        selRoom.innerHTML = '<option value="">-- Tất cả --</option>';
+        rooms.forEach(r => {
+        selRoom.innerHTML += `<option value="${r}">${r}</option>`;
+        });
+        if (curVal && rooms.includes(curVal)) {
+        selRoom.value = curVal;
+        }
+        }
+
         async function fetchAllData() {
+        // Lấy thời gian để filter Database ngay tại Server
+        const fromDate = document.getElementById("txtFromDate").value;
+        const toDate = document.getElementById("txtToDate").value;
+
+        sessionStorage.setItem("savedRoomFromDate", fromDate);
+        sessionStorage.setItem("savedRoomToDate", toDate);
+
+        const url = `/FormHR/GetPhongHopData?fromDate=${fromDate}&toDate=${toDate}`;
+
         try {
-        const response = await fetch('/FormHR/GetPhongHopData');
+        const response = await fetch(url);
         const data = await response.json();
 
         masterRooms = data.danhMucPhong || [];
         masterBookings = data.lichDatPhong || [];
 
+        populateDropdowns();
         updateStats();
         filterData();
         } catch (e) {
         console.error(e);
-        // Swal.fire("Lỗi", "Không thể tải dữ liệu", "error");
         }
+        }
+
+        function clearAllFilters() {
+        document.getElementById("quickSearch").value = "";
+        document.getElementById("txtFromDate").value = "";
+        document.getElementById("txtToDate").value = "";
+        document.getElementById("selRoom").value = "";
+
+        sessionStorage.removeItem("savedRoomSearchText");
+        sessionStorage.removeItem("savedRoomFromDate");
+        sessionStorage.removeItem("savedRoomToDate");
+        sessionStorage.removeItem("savedRoomFilter");
+
+        fetchAllData();
         }
 
         function updateStats() {
@@ -444,14 +595,21 @@
         }
 
         function filterData() {
-        const filter = document.getElementById("quickSearch").value.toUpperCase().trim();
+        const searchText = document.getElementById("quickSearch").value.toUpperCase().trim();
+        const roomFilter = document.getElementById("selRoom").value;
+
+        sessionStorage.setItem("savedRoomSearchText", searchText);
+        sessionStorage.setItem("savedRoomFilter", roomFilter);
 
         filteredBookings = masterBookings.filter(item => {
         const str = `${item.tenPhongHop} ${item.tenCongTy} ${item.nguoiBook} ${item.tenCongTyKhach}`.toUpperCase();
-        return str.includes(filter);
+        const matchText = searchText === "" || str.includes(searchText);
+        const matchRoom = roomFilter === "" || item.tenPhongHop === roomFilter;
+
+        return matchText && matchRoom;
         });
 
-        renderRooms(filter);
+        renderRooms(searchText); // Cập nhật lại Bảng Danh Mục
         currentPage = 1;
         paginateBookings();
         }
@@ -483,7 +641,7 @@
         tbody.innerHTML = "";
 
         if (pageData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8; display: block; width: 100%;">Không tìm thấy lịch đặt nào.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8; display: block; width: 100%;">Không tìm thấy lịch đặt nào phù hợp.</td></tr>`;
         return;
         }
 

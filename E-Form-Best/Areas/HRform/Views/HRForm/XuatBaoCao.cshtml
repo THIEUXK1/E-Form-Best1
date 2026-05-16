@@ -10,105 +10,182 @@
 
 <style>
     .sub-badge {
-        font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700;
-        display: inline-flex; align-items: center; gap: 3px; border: 1px solid; margin-top: 2px;
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        border: 1px solid;
+        margin-top: 2px;
     }
+
     .support-avatar {
-        width: 26px; height: 26px; background: #eff6ff; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center; color: #1e40af; border: 1px solid #dbeafe;
+        width: 26px;
+        height: 26px;
+        background: #eff6ff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #1e40af;
+        border: 1px solid #dbeafe;
     }
-    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important; }
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important;
+    }
+
     .filter-input {
-        padding: 8px 12px; border-radius: 10px; border: 2px solid #cbd5e1; font-size: 13px; font-weight: 600; outline: none;
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 2px solid #cbd5e1;
+        font-size: 13px;
+        font-weight: 600;
+        outline: none;
+        transition: 0.3s;
     }
+
+        .filter-input:focus {
+            border-color: #1e40af;
+        }
+
+    /* Nút lọc Làm mới */
+    .btn-clear-filter {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 11px 18px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 800;
+        cursor: pointer;
+        border: none;
+        transition: 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        height: 42px;
+    }
+
+        .btn-clear-filter:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
 
     /* Phân trang JS CSS */
     .page-btn {
-        padding: 8px 16px; border-radius: 10px; border: 1px solid #e2e8f0; background: white; color: #64748b; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.3s;
-    }
-    .page-btn.active {
-        background: #1e40af; color: white; border-color: #1e40af; box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
-    }
-    .page-btn:hover:not(.active) {
-        background: #f8fafc; border-color: #cbd5e1;
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: 0.3s;
     }
 
+        .page-btn.active {
+            background: #1e40af;
+            color: white;
+            border-color: #1e40af;
+            box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
+        }
+
+        .page-btn:hover:not(.active) {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+
     /* ==========================================
-       BỔ SUNG CSS CHO MOBILE RESPONSIVE
-       ========================================== */
+           BỔ SUNG CSS CHO MOBILE RESPONSIVE
+           ========================================== */
     @@media (max-width: 768px) {
         .mobile-top-bar {
             flex-direction: column !important;
             align-items: stretch !important;
         }
+
         .mobile-controls {
             flex-direction: column !important;
             width: 100% !important;
         }
+
         .mobile-search-input {
             width: 100% !important;
         }
+
         .mobile-stat-grid {
             grid-template-columns: repeat(2, 1fr) !important;
         }
+
         .filter-form {
             flex-direction: column !important;
             align-items: stretch !important;
         }
+
         .filter-input {
             width: 100% !important;
         }
-        
         /* Chuyển bảng thành dạng Card */
         #dataTable thead {
-            display: none; 
+            display: none;
         }
+
         #dataTable, #dataTable tbody, #dataTable tr, #dataTable td {
             display: block;
             width: 100%;
         }
-        #dataTable tr {
-            margin-bottom: 15px;
-            border: 1px solid #e2e8f0 !important;
-            border-radius: 15px;
-            overflow: hidden;
-            background: #fff;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-        }
-        #dataTable td {
-            text-align: right !important;
-            padding: 12px 15px !important;
-            border-bottom: 1px dashed #f1f5f9;
-            position: relative;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        #dataTable td:last-child {
-            border-bottom: none;
-            background: #f8fafc;
-            justify-content: center;
-        }
-        /* Hiển thị nhãn cột bằng data-label */
-        #dataTable td::before {
-            content: attr(data-label);
-            float: left;
-            font-weight: 800;
-            color: #64748b;
-            text-transform: uppercase;
-            font-size: 10px;
-        }
+
+            #dataTable tr {
+                margin-bottom: 15px;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 15px;
+                overflow: hidden;
+                background: #fff;
+                box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            }
+
+            #dataTable td {
+                text-align: right !important;
+                padding: 12px 15px !important;
+                border-bottom: 1px dashed #f1f5f9;
+                position: relative;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+                #dataTable td:last-child {
+                    border-bottom: none;
+                    background: #f8fafc;
+                    justify-content: center;
+                }
+
+                #dataTable td::before {
+                    content: attr(data-label);
+                    float: left;
+                    font-weight: 800;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    font-size: 10px;
+                }
+
         .mobile-td-val {
             display: flex;
             flex-direction: column;
             align-items: flex-end;
             max-width: 65%;
         }
+
         .pagination-container {
             flex-direction: column !important;
             gap: 20px;
             text-align: center !important;
         }
+
         #paginationButtons {
             justify-content: center;
         }
@@ -140,7 +217,7 @@
 
                 <div class="mobile-search-input" style="position: relative;">
                     <i class="fa fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px; font-weight: 900;"></i>
-                    <input type="text" id="quickSearch" onkeyup="handleFilterAndPaginate()" placeholder="Tìm tên, bộ phận, mã đơn..."
+                    <input type="text" id="quickSearch" onkeyup="applyAllFilters()" placeholder="Tìm tên, bộ phận, mã đơn..."
                            style="padding: 10px 15px 10px 40px; border-radius: 12px; border: 2px solid #cbd5e1; font-size: 14px; width: 300px; outline: none; font-weight: 700; width: 100%; box-sizing: border-box;">
                 </div>
                 <div style="font-size: 11px; background: #1e40af; padding: 8px 15px; border-radius: 8px; font-weight: 900; color: #ffffff; text-transform: uppercase; text-align: center;">
@@ -149,20 +226,37 @@
             </div>
         </div>
 
-        @* --- BỘ LỌC & XUẤT EXCEL --- *@
+        @* --- BỘ LỌC NÂNG CAO (GỘP FORM XUẤT EXCEL & BỘ LỌC JS BẢNG) --- *@
         <div style="background: white; padding: 20px; border-radius: 20px; border: 1px solid #e2e8f0; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
             <form action="/FormHR/ExportExcelHR" method="get" class="filter-form" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+
                 <div style="display: flex; flex-direction: column; gap: 5px; flex-grow: 1;">
                     <label style="font-size: 11px; font-weight: 800; color: #64748b;">TỪ NGÀY (HOÀN TẤT)</label>
-                    <input type="date" name="tuNgay" class="filter-input">
+                    <input type="date" id="txtFromDate" name="tuNgay" class="filter-input" onchange="applyAllFilters()">
                 </div>
+
                 <div style="display: flex; flex-direction: column; gap: 5px; flex-grow: 1;">
                     <label style="font-size: 11px; font-weight: 800; color: #64748b;">ĐẾN NGÀY</label>
-                    <input type="date" name="denNgay" class="filter-input">
+                    <input type="date" id="txtToDate" name="denNgay" class="filter-input" onchange="applyAllFilters()">
                 </div>
+
+                <div style="display: flex; flex-direction: column; gap: 5px; flex-grow: 1;">
+                    <label style="font-size: 11px; font-weight: 800; color: #64748b;">BỘ PHẬN (Lọc Bảng)</label>
+                    <select id="selBoPhan" class="filter-input" onchange="applyAllFilters()">
+                        <option value="">-- Tất cả --</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 5px; flex-grow: 1;">
+                    <label style="font-size: 11px; font-weight: 800; color: #64748b;">NGƯỜI HỖ TRỢ (Lọc Bảng)</label>
+                    <select id="selStaff" class="filter-input" onchange="applyAllFilters()">
+                        <option value="">-- Tất cả --</option>
+                    </select>
+                </div>
+
                 <div style="display: flex; flex-direction: column; gap: 5px; flex-grow: 1;">
                     <label style="font-size: 11px; font-weight: 800; color: #64748b;">LOẠI ĐƠN</label>
-                    <select name="loaiDon" class="filter-input" style="min-width: 200px;">
+                    <select id="selLoaiDon" name="loaiDon" class="filter-input" onchange="applyAllFilters()" style="min-width: 200px;">
                         <option value="">-- Tất cả loại đơn --</option>
                         <option value="HR_XinRaNgoai_1">Ra ngoài (1)</option>
                         <option value="HR_MangHangHoaRaCong_2">Hàng hóa (2)</option>
@@ -173,15 +267,20 @@
                         <option value="HR_HoTroTienDienThoai_7">Tiền ĐT (7)</option>
                         <option value="HR_DoiCaLam_8">Đổi ca (8)</option>
                         <option value="HR_DonHoTroCongTac_9">HT Công tác (9)</option>
-                        <!-- BỔ SUNG 3 ĐƠN MỚI -->
                         <option value="HR_DonKiTucXa_10">Ký túc xá (10)</option>
                         <option value="HR_DonLamLaiThe_11">Làm lại thẻ (11)</option>
-                        <option value="HR_DonSuDungDienThoai_12">Sử dụng điện thoại (12)</option>
+                        <option value="HR_DonSuDungDienThoai_12">Sử dụng ĐT (12)</option>
                     </select>
                 </div>
-                <button type="submit" style="background: #10b981; color: white; border: none; padding: 11px 25px; border-radius: 12px; font-weight: 1000; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.3s; flex-grow: 0;">
-                    <i class="fa fa-file-excel-o"></i> XUẤT EXCEL
-                </button>
+
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn-clear-filter" onclick="clearAllFilters()">
+                        <i class="fa fa-refresh"></i> Làm mới
+                    </button>
+                    <button type="submit" style="background: #10b981; color: white; border: none; padding: 0 25px; border-radius: 12px; font-weight: 1000; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.3s; height: 42px;">
+                        <i class="fa fa-file-excel-o"></i> XUẤT EXCEL
+                    </button>
+                </div>
             </form>
         </div>
 
@@ -192,7 +291,7 @@
                 <div id="stat-total" style="font-size: 26px; font-weight: 1000; color: #1e293b;">0</div>
             </div>
             <div class="stat-card" style="background: #eff6ff; padding: 20px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                <div style="font-size: 10px; font-weight: 900; color: #1e40af; text-transform: uppercase; margin-bottom: 5px;">NGƯỜI DUYỆT HR</div>
+                <div style="font-size: 10px; font-weight: 900; color: #1e40af; text-transform: uppercase; margin-bottom: 5px;">KẾT QUẢ TÌM KIẾM</div>
                 <div id="stat-hr" style="font-size: 26px; font-weight: 1000; color: #1e40af;">0</div>
             </div>
         </div>
@@ -239,40 +338,175 @@
 
 @section Scripts {
     <script>
-        let masterData = [];     
-        let filteredData = [];   
+        let masterData = [];
+        let filteredData = [];
         let currentPage = 1;
         let rowsPerPage = 20;
 
+        // Map tên đơn lấy từ select Excel (Bởi vì C# không trả ID form cho API này, nên ta lọc tương đối theo Text)
+        const formMapping = {
+            "HR_XinRaNgoai_1": "RA NGOÀI",
+            "HR_MangHangHoaRaCong_2": "HÀNG HÓA",
+            "HR_XeCongTac_3": "XE CÔNG TÁC",
+            "HR_XeDaily_4": "DAILY",
+            "HR_DonTiepKhac_5": "ĐÓN KHÁCH",
+            "HR_NhaThauQuaCong_6": "NHÀ THẦU",
+            "HR_HoTroTienDienThoai_7": "TIỀN ĐIỆN THOẠI",
+            "HR_DoiCaLam_8": "ĐỔI CA",
+            "HR_DonHoTroCongTac_9": "HỖ TRỢ CÔNG TÁC",
+            "HR_DonKiTucXa_10": "KÝ TÚC XÁ",
+            "HR_DonLamLaiThe_11": "LÀM LẠI THẺ",
+            "HR_DonSuDungDienThoai_12": "SỬ DỤNG ĐIỆN THOẠI"
+        };
+
         document.addEventListener("DOMContentLoaded", async () => {
+            // --- 1. PHỤC HỒI TEXT SEARCH ---
+            const savedText = sessionStorage.getItem("savedBaoCaoText");
+            if (savedText) document.getElementById("quickSearch").value = savedText;
+
+            // --- 2. PHỤC HỒI NGÀY THÁNG ---
+            const savedFrom = sessionStorage.getItem("savedFromDateBaoCao");
+            if (savedFrom) document.getElementById("txtFromDate").value = savedFrom;
+
+            const savedTo = sessionStorage.getItem("savedToDateBaoCao");
+            if (savedTo) document.getElementById("txtToDate").value = savedTo;
+
             try {
                 const response = await fetch('/FormHR/GetXuatBaoCaoData');
                 masterData = await response.json();
-                
+
                 document.getElementById("stat-total").innerText = masterData.length;
-                document.getElementById("stat-hr").innerText = masterData.length; 
-                
-                handleFilterAndPaginate();
+
+                // Đổ dữ liệu Combobox
+                populateDropdowns(masterData);
+
+                // --- 3. PHỤC HỒI COMBOBOX SAU KHI ĐỔ DỮ LIỆU ---
+                const savedBoPhan = sessionStorage.getItem("savedBoPhanBaoCao");
+                if (savedBoPhan) document.getElementById("selBoPhan").value = savedBoPhan;
+
+                const savedStaff = sessionStorage.getItem("savedStaffBaoCao");
+                if (savedStaff) document.getElementById("selStaff").value = savedStaff;
+
+                const savedLoaiDon = sessionStorage.getItem("savedLoaiDonBaoCao");
+                if (savedLoaiDon) document.getElementById("selLoaiDon").value = savedLoaiDon;
+
+                applyAllFilters();
             } catch (error) {
                 document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: red; border:none;">Lỗi tải dữ liệu. Vui lòng F5.</td></tr>`;
             }
         });
 
-        function changePageSize() {
-            rowsPerPage = parseInt(document.getElementById("pageSizeSelect").value);
-            currentPage = 1;
-            handleFilterAndPaginate();
-        }
+        function populateDropdowns(data) {
+            const selBoPhan = document.getElementById("selBoPhan");
+            const selStaff = document.getElementById("selStaff");
 
-        function handleFilterAndPaginate() {
-            const searchText = document.getElementById("quickSearch").value.toUpperCase().trim();
-
-            filteredData = masterData.filter(item => {
-                const supportText = item.supportNames.join(" ");
-                const rowString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.tenForm} ${item.id} ${supportText} ${item.tenAdmin}`.toUpperCase();
-                return searchText === "" || rowString.includes(searchText);
+            const depts = [...new Set(data.map(x => x.boPhan).filter(Boolean))].sort();
+            depts.forEach(d => {
+                selBoPhan.innerHTML += `<option value="${d}">${d}</option>`;
             });
 
+            // Gộp tất cả tên người hỗ trợ từ mảng supportNames
+            let allStaffs = [];
+            data.forEach(item => {
+                if(item.supportNames && item.supportNames.length > 0) {
+                    allStaffs.push(...item.supportNames);
+                }
+            });
+            const staffSet = [...new Set(allStaffs.filter(n => n && n !== "N/A"))].sort();
+            staffSet.forEach(s => {
+                selStaff.innerHTML += `<option value="${s}">${s}</option>`;
+            });
+        }
+
+        function changePageSize() {
+            rowsPerPage = parseInt(document.getElementById("pageSizeSelect").value);
+            applyAllFilters();
+        }
+
+        function clearAllFilters() {
+            document.getElementById("quickSearch").value = "";
+            document.getElementById("txtFromDate").value = "";
+            document.getElementById("txtToDate").value = "";
+            document.getElementById("selBoPhan").value = "";
+            document.getElementById("selStaff").value = "";
+            document.getElementById("selLoaiDon").value = "";
+
+            // Xóa sạch Session Storage
+            sessionStorage.removeItem("savedBaoCaoText");
+            sessionStorage.removeItem("savedFromDateBaoCao");
+            sessionStorage.removeItem("savedToDateBaoCao");
+            sessionStorage.removeItem("savedBoPhanBaoCao");
+            sessionStorage.removeItem("savedStaffBaoCao");
+            sessionStorage.removeItem("savedLoaiDonBaoCao");
+
+            applyAllFilters();
+        }
+
+        function applyAllFilters() {
+            const searchText = document.getElementById("quickSearch").value.toUpperCase().trim();
+            const fromDateStr = document.getElementById("txtFromDate").value;
+            const toDateStr = document.getElementById("txtToDate").value;
+            const deptFilter = document.getElementById("selBoPhan").value;
+            const staffFilter = document.getElementById("selStaff").value;
+            const loaiDonFilter = document.getElementById("selLoaiDon").value;
+
+            // Save to Session
+            sessionStorage.setItem("savedBaoCaoText", searchText);
+            sessionStorage.setItem("savedFromDateBaoCao", fromDateStr);
+            sessionStorage.setItem("savedToDateBaoCao", toDateStr);
+            sessionStorage.setItem("savedBoPhanBaoCao", deptFilter);
+            sessionStorage.setItem("savedStaffBaoCao", staffFilter);
+            sessionStorage.setItem("savedLoaiDonBaoCao", loaiDonFilter);
+
+            filteredData = masterData.filter(item => {
+                // 1. Lọc Bộ phận
+                if (deptFilter && item.boPhan !== deptFilter) return false;
+
+                // 2. Lọc Người Hỗ trợ
+                if (staffFilter && !item.supportNames.includes(staffFilter)) return false;
+
+                // 3. Lọc Loại Đơn (Dựa theo Tên Form tương đối vì API không trả IdForm)
+                if (loaiDonFilter) {
+                    const keyword = formMapping[loaiDonFilter];
+                    if (keyword && !item.tenForm.toUpperCase().includes(keyword)) return false;
+                }
+
+                // 4. Lọc Ngày Hoàn Tất (TimeAdmin từ API format "dd/MM/yyyy HH:mm")
+                if (fromDateStr || toDateStr) {
+                    if (!item.timeAdmin || item.timeAdmin === "--") return false;
+                    const datePart = item.timeAdmin.split(' ')[0]; // Lấy dd/MM/yyyy
+                    const parts = datePart.split('/');
+                    if (parts.length === 3) {
+                        const itemDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
+                        if (fromDateStr) {
+                            const fromD = new Date(fromDateStr + "T00:00:00");
+                            if (itemDate < fromD) return false;
+                        }
+                        if (toDateStr) {
+                            const toD = new Date(toDateStr + "T23:59:59");
+                            if (itemDate > toD) return false;
+                        }
+                    }
+                }
+
+                // 5. Lọc Text tự do
+                if (searchText) {
+                    const supportText = item.supportNames.join(" ");
+                    const rowString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.tenForm} ${item.id} ${supportText} ${item.tenAdmin}`.toUpperCase();
+                    if (!rowString.includes(searchText)) return false;
+                }
+
+                return true;
+            });
+
+            // Cập nhật thống kê kết quả tìm kiếm
+            document.getElementById("stat-hr").innerText = filteredData.length;
+
+            currentPage = 1;
+            renderCurrentPage();
+        }
+
+        function renderCurrentPage() {
             const totalItems = filteredData.length;
             const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
@@ -333,7 +567,7 @@
                                 </div>
                             </div>
                         </td>
-                        <td data-label="Hỗ Trợ" style="padding: 15px 20px;">
+                        <td data-label="Hỗ trợ" style="padding: 15px 20px;">
                             <div class="mobile-td-val" style="gap: 5px;">${supportHtml}</div>
                         </td>
                         <td data-label="Hoàn tất" style="padding: 15px 20px;">
@@ -384,7 +618,7 @@
                 btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
                 btn.onclick = () => {
                     currentPage = i;
-                    handleFilterAndPaginate();
+                    renderCurrentPage();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 };
                 container.appendChild(btn);

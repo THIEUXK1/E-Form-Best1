@@ -1122,7 +1122,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 int currentUserId = int.Parse(userIdClaim);
 
                 var danhSachDon = await _context.FormShds
-                    .Include(f => f.ShdNguoiXacNhans)
+                    .Include(f => f.ShdNguoiXacNhans).ThenInclude(xn => xn.IdnguoiXacNhanNavigation)
                     .Include(f => f.ShdQuanLyDuyetB2s)
                     .Include(f => f.ShdCtNguoiHoTros).ThenInclude(ct => ct.IdShdNguoiHoTroNavigation)
                     .Where(f => f.IdNguoiTao == currentUserId)
@@ -1130,11 +1130,10 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     .AsNoTracking()
                     .ToListAsync();
 
-                // Tính toán logic tại Server
+                // Tính toán toàn bộ logic của Razor cũ tại Server để JS chỉ việc hiển thị
                 var result = danhSachDon.Select(item =>
                 {
                     // --- LOGIC B2 (AND/OR) ---
-                    // Lưu ý: TrangThaiXacNhan của SHD là string
                     bool hasB2 = item.ShdQuanLyDuyetB2s != null && item.ShdQuanLyDuyetB2s.Any();
                     bool checkB2Approved = false;
                     if (!hasB2) checkB2Approved = true;
@@ -1147,17 +1146,20 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                             checkB2Approved = item.ShdQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
                     }
                     bool checkB2Rejected = hasB2 && item.ShdQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 2);
+
                     // --- LOGIC GIÁM ĐỐC ---
                     bool hasGD = item.ShdNguoiXacNhans != null && item.ShdNguoiXacNhans.Any();
                     bool isGDApproved = hasGD && item.ShdNguoiXacNhans.All(x => x.TrangThaiXacNhan == 1);
                     bool isGDRejected = hasGD && item.ShdNguoiXacNhans.Any(x => x.TrangThaiXacNhan == 2);
+
                     // --- TRẠNG THÁI CHUNG ---
-                    bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]");
-                    bool isFinished = item.IdAdmin != null;
+                    bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]") || item.TrangThai == "DaHuy" || item.TrangThai == "Huy";
+                    bool isFinished = item.IdAdmin != null || item.TrangThai == "HoanTat" || item.TrangThai == "DaXuLy";
                     bool isManagerApproved = item.IdNguoiDuyet != null;
 
                     string statusText, bgColor, fgColor, progressWidth, progressColor;
 
+                    // Phân loại trạng thái giống hệt if-else của Razor
                     if (isCancelled || checkB2Rejected || isGDRejected)
                     {
                         statusText = "HỦY/TỪ CHỐI"; bgColor = "#fef2f2"; fgColor = "#b91c1c";
@@ -1175,8 +1177,8 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     }
                     else if (hasB2 && !checkB2Approved)
                     {
-                        statusText = "BP XÁC NHẬN"; bgColor = "#f0f9ff"; fgColor = "#0369a1";
-                        progressWidth = "40%"; progressColor = "#0ea5e9";
+                        statusText = "BP XÁC NHẬN"; bgColor = "#ecfeff"; fgColor = "#0891b2";
+                        progressWidth = "40%"; progressColor = "#22d3ee";
                     }
                     else if (hasGD && !isGDApproved)
                     {
@@ -1185,8 +1187,8 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     }
                     else
                     {
-                        statusText = "ADMIN"; bgColor = "#eff6ff"; fgColor = "#1e40af";
-                        progressWidth = "85%"; progressColor = "#2563eb";
+                        statusText = "ADMIN"; bgColor = "#e0e7ff"; fgColor = "#312e81";
+                        progressWidth = "85%"; progressColor = "#312e81";
                     }
 
                     // --- NGƯỜI HỖ TRỢ ---
@@ -1207,7 +1209,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                         Ngay = item.Ngay?.ToDateTime(TimeOnly.MinValue).ToString("dd/MM/yyyy") ?? "--",
                         TimeNguoiTao = item.TimeNguoiTao?.ToString("HH:mm") ?? "--",
                         HasB2 = hasB2,
-                        B2ApprovedCount = hasB2 ? item.ShdQuanLyDuyetB2s.Count(x => x.TrangThaiXacNhan == 1) : 0,     
+                        B2ApprovedCount = hasB2 ? item.ShdQuanLyDuyetB2s.Count(x => x.TrangThaiXacNhan == 1) : 0,
                         B2TotalCount = hasB2 ? item.ShdQuanLyDuyetB2s.Count() : 0,
                         HasGD = hasGD,
                         GDApprovedCount = hasGD ? item.ShdNguoiXacNhans.Count(x => x.TrangThaiXacNhan == 1) : 0,
@@ -1224,6 +1226,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 return BadRequest(new { message = "Có lỗi xảy ra: " + ex.Message });
             }
         }
+
         #endregion
 
         #region XỬ LÝ ĐƠN SHD (Duyệt / Hủy / Hoàn tất) - PHÂN QUYỀN SHD 2026
@@ -1256,7 +1259,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
             // --- TRUY VẤN DỮ LIỆU SHD ---
             IQueryable<E_Form_Best.Models.ITForm.FormShd> query = _context.FormShds
-                .Include(f => f.ShdNguoiXacNhans)
+                .Include(f => f.ShdNguoiXacNhans).ThenInclude(xn => xn.IdnguoiXacNhanNavigation)
                 .Include(f => f.ShdQuanLyDuyetB2s)
                 .Include(f => f.ShdCtNguoiHoTros).ThenInclude(ct => ct.IdShdNguoiHoTroNavigation);
 
@@ -1285,7 +1288,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             // --- TÍNH TOÁN LOGIC B2, GĐ, TRẠNG THÁI TẠI SERVER (SHD VERSION) ---
             var result = danhSachDon.Select(item =>
             {
-                // Logic AND/OR B2 (TrangThaiXacNhan là string: "1" = Duyệt, "2" = Từ chối)
+                // Logic AND/OR B2
                 bool hasB2 = item.ShdQuanLyDuyetB2s != null && item.ShdQuanLyDuyetB2s.Any();
                 bool checkB2Approved = true;
                 if (hasB2)
@@ -1302,8 +1305,8 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 bool isGDRejected = hasGD && item.ShdNguoiXacNhans.Any(x => x.TrangThaiXacNhan == 2);
 
                 // Trạng thái chung
-                bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]");
-                bool isFinished = item.IdAdmin != null;
+                bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]") || item.TrangThai == "DaHuy" || item.TrangThai == "Huy";
+                bool isFinished = item.IdAdmin != null || item.TrangThai == "HoanTat" || item.TrangThai == "DaXuLy";
                 bool isManagerApproved = item.IdNguoiDuyet != null;
 
                 string pWidth, pColor, pText, bg, fg, statusTag;
@@ -1383,8 +1386,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             var phongBanUser = User.FindFirst("PhongBan")?.Value ?? "N/A";
 
             var form = await _context.FormShds
-                .Include(f => f.ShdCtNguoiHoTros)
-                    .ThenInclude(ct => ct.IdShdNguoiHoTroNavigation)
+                .Include(f => f.ShdCtNguoiHoTros).ThenInclude(ct => ct.IdShdNguoiHoTroNavigation)
                 .FirstOrDefaultAsync(f => f.Id == request.Id);
 
             if (form == null) return Json(new { success = false, message = "Không tìm thấy đơn SHD." });
@@ -1475,7 +1477,6 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             }
         }
 
-        // Model hỗ trợ request (Dùng chung hoặc tạo riêng tùy kiến trúc của bạn)
         public class SHDApprovalRequest
         {
             public int Id { get; set; }
@@ -1511,7 +1512,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             bool isQuanLyB2 = User.IsInRole("QuanLyDuyetDonSHD_B2");
 
             IQueryable<E_Form_Best.Models.ITForm.FormShd> query = _context.FormShds
-                .Include(f => f.ShdNguoiXacNhans)
+                .Include(f => f.ShdNguoiXacNhans).ThenInclude(xn => xn.IdnguoiXacNhanNavigation)
                 .Include(f => f.ShdQuanLyDuyetB2s)
                 .Include(f => f.ShdCtNguoiHoTros).ThenInclude(ct => ct.IdShdNguoiHoTroNavigation);
 
@@ -1537,13 +1538,13 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             // Tính toán trước toàn bộ Giao diện / Logic từ Server (Màu sắc theo Indigo/Cyan của SHD)
             var result = danhSachDon.Select(item =>
             {
-                bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]");
-                bool isFinished = item.IdAdmin != null;
+                bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]") || item.TrangThai == "DaHuy" || item.TrangThai == "Huy";
+                bool isFinished = item.IdAdmin != null || item.TrangThai == "HoanTat" || item.TrangThai == "DaXuLy";
 
                 var b2List = item.ShdQuanLyDuyetB2s ?? new List<E_Form_Best.Models.ITForm.ShdQuanLyDuyetB2>();
                 bool hasB2 = b2List.Any();
 
-                // Logic checkB2Approved AND/OR (SHD sử dụng string cho TrangThaiXacNhan: "1" Duyệt, "2" Hủy)
+                // Logic checkB2Approved AND/OR 
                 bool isB2Approved = true;
                 if (hasB2)
                 {
@@ -1615,7 +1616,6 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         }
 
         #region DUYỆT BƯỚC 2 SHD (SHD_QuanLyDuyetB2)
-        // GIỮ NGUYÊN 100% LOGIC REQUEST CỦA BẠN
         public class SHDDuyetB2Request
         {
             public int idB2 { get; set; }
@@ -1655,7 +1655,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 if (don == null)
                     return Json(new { success = false, message = "⚠️ Không tìm thấy đơn SHD liên quan." });
 
-                // 3. Kiểm tra trạng thái: Chỉ xử lý nếu đang chờ ("0" hoặc null)
+                // 3. Kiểm tra trạng thái: Chỉ xử lý nếu đang chờ (0 hoặc null)
                 if (record.TrangThaiXacNhan != null && record.TrangThaiXacNhan != 0)
                     return Json(new { success = false, message = "⚠️ Bước này đã được xử lý trước đó rồi." });
 
@@ -1757,7 +1757,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         #endregion
         #endregion
 
-        #region QUẢN LÝ PHÊ DUYỆT SHD (Admin SHD, All, Quản lý)
+        #region QUẢN LÝ PHÊ DUYỆT SHD (Admin, All, Quản lý)
 
         // 1. TRẢ VỀ VIEW RỖNG (Dành cho trang danh sách xử lý của SHD)
         [HttpGet("/FormSHD/HoanTatDon")]
@@ -1916,14 +1916,20 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             return Json(result);
         }
 
-        // 3. API XÁC NHẬN HOÀN THÀNH - DÀNH CHO ADMIN SHD
+        // --- HÀM POST XÁC NHẬN HOÀN THÀNH ---
+        /// <summary>
+        /// POST: /FormSHD/XacNhanHoanThanh
+        /// Nút bấm dành cho Đội SHD - Xác nhận đã xử lý xong các thủ tục/hồ sơ Xuất Nhập Khẩu
+        /// </summary>
         [HttpPost("/FormSHD/XacNhanHoanThanh")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> XacNhanHoanThanh([FromBody] SHDCompleteRequest request)
         {
+            // 1. Kiểm tra đầu vào
             if (request == null || request.Id <= 0)
                 return Json(new { success = false, message = "Dữ liệu không hợp lệ." });
 
+            // 2. Thông tin người thao tác từ Claims
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr))
                 return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn." });
@@ -2016,7 +2022,6 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             }
         }
 
-
         public class SHDCompleteRequest
         {
             public int Id { get; set; }
@@ -2025,9 +2030,9 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
         #endregion
 
-        #region QUẢN TRỊ & XUẤT BÁO CÁO SHD (ĐƠN ĐÃ HOÀN TẤT)
+        #region QUẢN TRỊ & XUẤT BÁO CÁO SHD (CHỈ ĐƠN ĐÃ HOÀN TẤT)
 
-        // 1. TRẢ VỀ VIEW CHÍNH
+        // 1. TRẢ VỀ VIEW RỖNG (Cho JavaScript tự Render)
         [HttpGet("/FormSHD/XuatBaoCao")]
         public IActionResult XuatBaoCao()
         {
@@ -2040,7 +2045,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             return View();
         }
 
-        // 2. API LẤY DỮ LIỆU JSON (Dành cho DataTables/JS Render)
+        // 2. API TRẢ VỀ DỮ LIỆU JSON (100% JS)
         [HttpGet("/FormSHD/GetXuatBaoCaoData")]
         public async Task<IActionResult> GetXuatBaoCaoData()
         {
@@ -2059,23 +2064,32 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 .Include(f => f.ShdQuanLyDuyetB2s)
                 .Include(f => f.ShdCtNguoiHoTros).ThenInclude(ct => ct.IdShdNguoiHoTroNavigation);
 
-            // ĐIỀU KIỆN: CHỈ LẤY ĐƠN ĐÃ ĐƯỢC ADMIN/SHD XỬ LÝ HOÀN TẤT
+            // ĐIỀU KIỆN HIỂN THỊ: CHỈ LẤY ĐƠN ĐÃ ĐƯỢC ADMIN XỬ LÝ XONG
             query = query.Where(f => f.IdAdmin != null && f.TenAdmin != null && f.TimeAdmin != null);
 
-            // PHÂN QUYỀN LỌC
-            if (userRoles.Contains("All")) { /* Thấy toàn bộ */ }
+            // PHÂN QUYỀN LỌC DỮ LIỆU
+            if (userRoles.Contains("All"))
+            {
+                /* Quyền All nhìn thấy toàn bộ đơn đã hoàn tất trong hệ thống */
+            }
             else
             {
+                // Lọc theo công ty cho các quyền còn lại
                 if (!string.IsNullOrEmpty(tenCongTy))
                     query = query.Where(f => f.TenCongTy == tenCongTy);
 
-                if (userRoles.Contains("AdminSHD")) { /* Thấy toàn bộ cty */ }
+                if (userRoles.Contains("AdminSHD"))
+                {
+                    // Nếu là AdminSHD: Nhìn thấy toàn bộ đơn hoàn tất của công ty mình (Không lọc theo bộ phận)
+                }
                 else
                 {
+                    // User thường: Chỉ thấy đơn mình tạo
                     query = query.Where(f => f.IdNguoiTao == userId);
                 }
             }
 
+            // THỰC THI TRUY VẤN & MAP SANG JSON
             try
             {
                 var danhSachDon = await query.OrderByDescending(f => f.TimeAdmin).AsNoTracking().ToListAsync();
@@ -2087,10 +2101,9 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     BoPhan = item.BoPhan ?? "N/A",
                     SoNhanVien = item.SoNhanVien ?? "N/A",
                     TenForm = (item.TenForm ?? "").Replace("[ĐÃ HỦY]", "").Trim(),
-                    TimeNguoiTao = item.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm") ?? "--",
+                    TimeNguoiTao = item.TimeNguoiTao?.ToString("dd/MM/yyyy") ?? "--",
                     HasB2 = item.ShdQuanLyDuyetB2s?.Any() == true,
                     HasGD = item.ShdNguoiXacNhans?.Any() == true,
-                    // Lấy danh sách tên người hỗ trợ
                     SupportNames = item.ShdCtNguoiHoTros?.Select(s => s.IdShdNguoiHoTroNavigation?.Ten ?? "N/A").ToList() ?? new List<string>(),
                     TenAdmin = item.TenAdmin ?? "N/A",
                     TimeAdmin = item.TimeAdmin?.ToString("dd/MM/yyyy HH:mm") ?? "--",
@@ -2101,14 +2114,17 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = "Lỗi SHD: " + ex.Message });
+                return BadRequest(new { message = "Lỗi hệ thống SHD: " + ex.Message });
             }
         }
 
-        // 3. XUẤT EXCEL CHI TIẾT
+        /// <summary>
+        /// Xuất dữ liệu ra Excel CHI TIẾT các đơn ĐÃ HOÀN TẤT
+        /// </summary>
         [HttpGet("/FormSHD/ExportExcelSHD")]
         public async Task<IActionResult> ExportExcelSHD(DateTime? tuNgay, DateTime? denNgay, string loaiDon)
         {
+            // --- 1. LẤY THÔNG TIN CLAIMS ---
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
                             ?? User.FindFirst("UserId")?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
@@ -2117,42 +2133,58 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
-            // TRUY VẤN FULL CHI TIẾT CÁC BẢNG LIÊN QUAN
+            // --- 2. TRUY VẤN DỮ LIỆU & INCLUDE ĐẦY ĐỦ CHI TIẾT CÁC LOẠI ĐƠN ---
             IQueryable<E_Form_Best.Models.ITForm.FormShd> query = _context.FormShds
                 .Include(f => f.ShdNguoiXacNhans).Include(f => f.ShdQuanLyDuyetB2s)
                 .Include(f => f.ShdCtNguoiHoTros).ThenInclude(ct => ct.IdShdNguoiHoTroNavigation)
                 .Include(f => f.ShdDangKySuDungXeCongTac1s)
                 .Include(f => f.ShdDangKySuDungXeDaily2s);
 
-            // CHỈ XUẤT ĐƠN HOÀN TẤT
+            // --- 3. ĐIỀU KIỆN HIỂN THỊ: CHỈ XUẤT ĐƠN ĐÃ ĐƯỢC ADMIN HOÀN TẤT ---
             query = query.Where(f => f.IdAdmin != null && f.TenAdmin != null && f.TimeAdmin != null);
 
-            // Lọc theo ngày hoàn tất
+            // --- 4. BỘ LỌC NGÀY HOÀN TẤT & LOẠI ĐƠN ---
             if (tuNgay.HasValue) query = query.Where(f => f.TimeAdmin >= tuNgay.Value);
             if (denNgay.HasValue) query = query.Where(f => f.TimeAdmin <= denNgay.Value.AddDays(1).AddSeconds(-1));
             if (!string.IsNullOrEmpty(loaiDon)) query = query.Where(f => f.IdForm == loaiDon);
 
-            // Phân quyền tương tự API
-            if (!userRoles.Contains("All"))
+            // --- 5. PHÂN QUYỀN LỌC DỮ LIỆU ---
+            if (userRoles.Contains("All"))
             {
-                if (!string.IsNullOrEmpty(tenCongTy)) query = query.Where(f => f.TenCongTy == tenCongTy);
-                if (!userRoles.Contains("AdminSHD")) query = query.Where(f => f.IdNguoiTao == userId);
+                /* Admin hệ thống xuất toàn bộ */
+            }
+            else
+            {
+                // Lọc theo công ty cho các quyền còn lại
+                if (!string.IsNullOrEmpty(tenCongTy))
+                    query = query.Where(f => f.TenCongTy == tenCongTy);
+
+                if (userRoles.Contains("AdminSHD"))
+                {
+                    // Nếu là AdminSHD: Xuất toàn bộ đơn hoàn tất của công ty mình (Không lọc bộ phận)
+                }
+                else
+                {
+                    // User thường: Chỉ xuất đơn mình tạo
+                    query = query.Where(f => f.IdNguoiTao == userId);
+                }
             }
 
             var data = await query.OrderByDescending(f => f.TimeAdmin).AsNoTracking().ToListAsync();
 
+            // --- 6. TẠO FILE EXCEL ---
             using (var workbook = new ClosedXML.Excel.XLWorkbook())
             {
                 var worksheet = workbook.Worksheets.Add("BaoCao_HoanTat_SHD");
-                string[] headers = { "STT", "ID", "Loại Đơn", "Mã NV", "Họ Tên", "Bộ Phận", "Ngày Hoàn Tất", "Người Duyệt", "Hỗ Trợ", "CHI TIẾT NỘI DUNG" };
+                string[] headers = { "STT", "ID", "Loại Đơn", "Mã NV", "Họ Tên", "Bộ Phận", "Ngày Hoàn Tất", "Người Duyệt SHD", "Người Hỗ Trợ", "CHI TIẾT NỘI DUNG" };
 
-                // Header Style (Cyan Luxury 2026)
+                // Định dạng Header theo tông màu Cyan Luxury 2026 của SHD
                 for (int i = 0; i < headers.Length; i++)
                 {
                     var cell = worksheet.Cell(1, i + 1);
                     cell.Value = headers[i];
                     cell.Style.Font.Bold = true;
-                    cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#0891b2");
+                    cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#0891b2"); // Cyan Accent
                     cell.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
                     cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
                 }
@@ -2172,34 +2204,35 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     var support = item.ShdCtNguoiHoTros.OrderByDescending(s => s.Stt).FirstOrDefault();
                     worksheet.Cell(currentRow, 9).Value = support?.IdShdNguoiHoTroNavigation?.Ten ?? "";
 
-                    // Gọi hàm Helper để lấy nội dung chi tiết dựa trên Model ShdDangKySuDungXeCongTac1
+                    // Nội dung chi tiết đơn gộp từ các bảng chi tiết SHD
                     worksheet.Cell(currentRow, 10).Value = GetChiTietDonSHD(item);
                     worksheet.Cell(currentRow, 10).Style.Alignment.WrapText = true;
 
                     currentRow++;
                 }
 
+                // Tinh chỉnh giao diện bảng Excel
                 worksheet.Columns().AdjustToContents();
-                worksheet.Column(10).Width = 80;
+                worksheet.Column(10).Width = 80; // Độ rộng cho cột chi tiết nội dung
                 worksheet.RangeUsed().Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
                 worksheet.RangeUsed().Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
 
                 using (var stream = new MemoryStream())
                 {
                     workbook.SaveAs(stream);
-                    string fileName = $"BaoCao_SHD_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+                    string fileName = $"BaoCao_SHD_HoanTat_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
                     return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
                 }
             }
         }
 
-        // --- HÀM HỖ TRỢ (HELPERS) ---
+        // --- CÁC HÀM HELPER HỆ THỐNG SHD ---
 
         private static string GetShortNameSHD(string? id) => id switch
         {
             "SHD_XeCongTac_1" => "Xe công tác",
             "SHD_XeDaily_2" => "Xe Daily",
-            _ => id ?? "N/A"
+            _ => string.IsNullOrEmpty(id) ? "N/A" : id.Replace("SHD_", "")
         };
 
         private string GetChiTietDonSHD(E_Form_Best.Models.ITForm.FormShd item)
@@ -2210,22 +2243,14 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 {
                     case "SHD_XeCongTac_1":
                         var f1 = item.ShdDangKySuDungXeCongTac1s.FirstOrDefault();
-                        if (f1 == null) return "";
-                        return $"- Lý do: {f1.LiDo}\n" +
-                               $"- SĐT: {f1.SoDienThoai}\n" +
-                               $"- Số người: {f1.SoLuong}\n" +
-                               $"- Dự kiến đi: {f1.TimeDuTinh:dd/MM HH:mm}\n" +
-                               $"- Thời gian về: {f1.ThoiGianVe:dd/MM HH:mm}";
-
+                        return f1 != null ? $"- Lý do: {f1.LiDo}\n- SĐT: {f1.SoDienThoai}\n- Số người: {f1.SoLuong}\n- Dự kiến đi: {f1.TimeDuTinh:dd/MM HH:mm}\n- Thời gian về: {f1.ThoiGianVe:dd/MM HH:mm}" : "";
                     case "SHD_XeDaily_2":
                         var f2 = item.ShdDangKySuDungXeDaily2s.FirstOrDefault();
-                        // Tương tự cho xe Daily nếu bạn có Model
-                        return f2 != null ? $"- Thông tin xe Daily..." : "";
-
+                        return f2 != null ? $"- Thông tin lộ trình xe Daily..." : "";
                     default: return "N/A";
                 }
             }
-            catch { return "Lỗi dữ liệu chi tiết"; }
+            catch { return "Lỗi xử lý dữ liệu chi tiết"; }
         }
 
         #endregion
@@ -2245,18 +2270,32 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             var allForms = await _context.FormShds
                 .AsNoTracking()
                 .OrderByDescending(x => x.TimeNguoiTao)
-                .Take(1000) // Bạn có thể điều chỉnh con số này hoặc bỏ nếu muốn lấy hết nhưng nên có giới hạn
+                .Take(1000)
                 .ToListAsync();
 
             return View(allForms);
         }
 
+        // --- ĐỒNG BỘ HR: Nhận thêm tham số bộ lọc thời gian từ client gửi lên ---
         [HttpGet("/FormSHD/GetDataThongKe")]
-        public async Task<IActionResult> GetDataThongKe()
+        public async Task<IActionResult> GetDataThongKe(DateTime? fromDate, DateTime? toDate)
         {
-            // TỐI ƯU: Loại bỏ Include dư thừa, Select trực tiếp để SQL chỉ trả về các cột cần tính toán
-            var dataRaw = await _context.FormShds
-                .AsNoTracking()
+            // TỐI ƯU: Select trực tiếp để SQL chỉ trả về các cột cần tính toán, kết hợp lọc Date tại SQL
+            var query = _context.FormShds
+                .Include(f => f.ShdCtNguoiHoTros).ThenInclude(ct => ct.IdShdNguoiHoTroNavigation)
+                .AsNoTracking();
+
+            if (fromDate.HasValue)
+            {
+                query = query.Where(x => x.TimeNguoiTao >= fromDate.Value);
+            }
+            if (toDate.HasValue)
+            {
+                var endOfToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(x => x.TimeNguoiTao <= endOfToDate);
+            }
+
+            var dataRaw = await query
                 .Select(x => new
                 {
                     x.Id,
@@ -2267,59 +2306,73 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     x.TenForm,
                     x.Danhmuc,
                     // Chỉ lấy mảng trạng thái để tính toán status, không lấy cả object liên kết
-                    B2States = x.ShdQuanLyDuyetB2s.Select(b => b.TrangThaiXacNhan),
-                    GDStates = x.ShdNguoiXacNhans.Select(g => g.TrangThaiXacNhan)
+                    B2States = x.ShdQuanLyDuyetB2s.Select(b => b.TrangThaiXacNhan).ToList(),
+                    GDStates = x.ShdNguoiXacNhans.Select(g => g.TrangThaiXacNhan).ToList(),
+                    // Lấy thông tin người hỗ trợ mới nhất phục vụ bộ lọc chéo trên RAM
+                    TenNguoiHoTro = x.ShdCtNguoiHoTros.OrderByDescending(ct => ct.Stt).Select(ct => ct.IdShdNguoiHoTroNavigation.Ten).FirstOrDefault()
                 })
                 .ToListAsync();
 
-            // Xử lý logic tại Memory để đảm bảo các hàm GetShortNameSHD và CalculateStatusSHD chạy đúng
+            // Xử lý logic tính trạng thái tại RAM
             var processedData = dataRaw.Select(x => new
             {
                 x.Id,
                 TenLoaiDon = GetShortNameSHD(x.IdForm),
                 x.BoPhan,
                 x.Danhmuc,
+                TenNguoiHoTro = x.TenNguoiHoTro ?? "Chưa xác định",
                 TrangThaiDon = CalculateStatusSHD(x.TenForm, x.IdNguoiDuyet, x.IdAdmin, x.B2States, x.GDStates)
             });
 
             return Json(processedData);
         }
 
+        // --- ĐỒNG BỘ HR: Nhận thêm tham số bộ lọc thời gian tính hiệu suất nhân sự ---
         [HttpGet("/FormSHD/GetDataNguoiHoTro")]
-        public async Task<IActionResult> GetDataNguoiHoTro()
+        public async Task<IActionResult> GetDataNguoiHoTro(DateTime? fromDate, DateTime? toDate)
         {
-            // TỐI ƯU CỰC LỚN: Thay vì lấy từ bảng Details rồi GroupBy (rất chậm), 
-            // chúng ta truy vấn từ bảng Form và lấy người hỗ trợ mới nhất qua Subquery.
-            var queryData = await _context.FormShds
+            var query = _context.FormShds
                 .AsNoTracking()
-                .Where(f => f.ShdCtNguoiHoTros.Any()) // Chỉ xét các đơn có người hỗ trợ
+                .Where(f => f.ShdCtNguoiHoTros.Any());
+
+            if (fromDate.HasValue)
+            {
+                query = query.Where(x => x.TimeNguoiTao >= fromDate.Value);
+            }
+            if (toDate.HasValue)
+            {
+                var endOfToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(x => x.TimeNguoiTao <= endOfToDate);
+            }
+
+            var queryData = await query
                 .Select(f => new
                 {
-                    // Lấy tên người hỗ trợ có STT lớn nhất (người hỗ trợ cuối cùng)
                     TenNguoiHoTro = f.ShdCtNguoiHoTros
                                     .OrderByDescending(s => s.Stt)
                                     .Select(s => s.IdShdNguoiHoTroNavigation.Ten)
                                     .FirstOrDefault(),
+                    f.BoPhan,
                     f.Danhmuc,
                     f.TenForm,
                     f.IdNguoiDuyet,
                     f.IdAdmin,
                     f.TimeAdmin,
                     f.TimeNguoiDuyet,
-                    B2States = f.ShdQuanLyDuyetB2s.Select(b => b.TrangThaiXacNhan),
-                    GDStates = f.ShdNguoiXacNhans.Select(g => g.TrangThaiXacNhan)
+                    B2States = f.ShdQuanLyDuyetB2s.Select(b => b.TrangThaiXacNhan).ToList(),
+                    GDStates = f.ShdNguoiXacNhans.Select(g => g.TrangThaiXacNhan).ToList()
                 })
                 .ToListAsync();
 
             var filteredData = queryData.Select(f =>
             {
-                // Tính phút xử lý ở Memory
                 double? minutes = (f.TimeAdmin.HasValue && f.TimeNguoiDuyet.HasValue)
                                   ? (f.TimeAdmin.Value - f.TimeNguoiDuyet.Value).TotalMinutes : null;
 
                 return new
                 {
                     TenNguoiHoTro = f.TenNguoiHoTro ?? "Chưa xác định",
+                    f.BoPhan,
                     DanhMuc = f.Danhmuc ?? "N/A",
                     TrangThai = CalculateStatusSHD(f.TenForm, f.IdNguoiDuyet, f.IdAdmin, f.B2States, f.GDStates),
                     PhutXuLy = minutes
@@ -2328,6 +2381,19 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
             return Json(filteredData);
         }
+
+        // --- CÁC HÀM HELPER PHÂN HỆ SHD ---
+        private static string CalculateStatusSHD(string? tenForm, int? idQL, int? idAdmin, IEnumerable<int?> b2, IEnumerable<int?> gd)
+        {
+            if ((tenForm ?? "").Contains("[ĐÃ HỦY]") || b2.Any(v => v == 2) || gd.Any(v => v == 2)) return "ĐÃ HỦY/TỪ CHỐI";
+            if (idAdmin != null) return "HOÀN TẤT";
+            if (idQL == null) return "CHỜ QL DUYỆT";
+            if (b2.Any() && !b2.All(v => v == 1)) return "CHỜ BP XÁC NHẬN";
+            if (gd.Any() && !gd.All(v => v == 1)) return "CHỜ GIÁM ĐỐC";
+            return "SHD ĐANG XỬ LÝ";
+        }
+
+      
 
         #endregion
 
@@ -2494,27 +2560,6 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
         #endregion
 
-        private static string CalculateStatusSHD(string? tenForm, int? idQL, int? idAdmin, IEnumerable<int?> b2, IEnumerable<int?> gd)
-        {
-            // 1. Kiểm tra đơn hủy (Tên đơn chứa [ĐÃ HỦY] hoặc có bất kỳ bước nào từ chối - giá trị 2)
-            if ((tenForm ?? "").Contains("[ĐÃ HỦY]") || b2.Any(v => v == 2) || gd.Any(v => v == 2))
-                return "ĐÃ HỦY/TỪ CHỐI";
-
-            // 2. Đã hoàn tất (Admin SHD đã nhấn xử lý)
-            if (idAdmin != null) return "HOÀN TẤT";
-
-            // 3. Chờ Quản lý (Bước 1)
-            if (idQL == null) return "CHỜ QL DUYỆT";
-
-            // 4. Chờ Bước 2 (Các bộ phận xác nhận)
-            if (b2.Any() && !b2.All(v => v == 1)) return "CHỜ BP XÁC NHẬN";
-
-            // 5. Chờ Giám đốc (Bước 3)
-            if (gd.Any() && !gd.All(v => v == 1)) return "CHỜ GIÁM ĐỐC";
-
-            // 6. Đã xong các bước duyệt, chờ Admin SHD thực hiện
-            return "SHD ĐANG XỬ LÝ";
-        }
 
     }
 }

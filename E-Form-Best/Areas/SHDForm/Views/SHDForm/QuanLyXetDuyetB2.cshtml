@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = "Quản Lý Xét Duyệt SHD - B2";
     Layout = "~/Areas/SHDform/Views/Shared/_Layout.cshtml";
-    
+
     // Đồng bộ màu Luxury SHD 2026
     string indigoPrimary = "#312e81";
     string cyanAccent = "#22d3ee";
@@ -35,11 +35,15 @@
         border: 1px solid #cffafe;
     }
 
-    .stat-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 15px -3px rgba(49, 46, 129, 0.1) !important;
-        border-color: @cyanAccent !important;
+    .stat-card {
+        transition: all 0.3s;
     }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(49, 46, 129, 0.1) !important;
+            border-color: @cyanAccent !important;
+        }
 
     .status-pill {
         padding: 6px 12px;
@@ -77,9 +81,73 @@
             border-color: @cyanAccent;
         }
 
+    /* --- CẤU TRÚC BỘ LỌC NÂNG CAO MỚI --- */
+    .advanced-filter {
+        background: white;
+        padding: 15px 20px;
+        border-radius: 15px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+        .filter-group label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+    .filter-input {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-size: 13px;
+        font-weight: 600;
+        color: #1e293b;
+        outline: none;
+        transition: 0.3s;
+        min-width: 140px;
+    }
+
+        .filter-input:focus {
+            border-color: @indigoPrimary;
+            box-shadow: 0 0 0 2px rgba(49, 46, 129, 0.1);
+        }
+
+    .btn-clear-filter {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 9px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        transition: 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+        .btn-clear-filter:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
     /* ==========================================
-           CSS RESPONSIVE CHO MOBILE (DẠNG CARD)
-           ========================================== */
+                   CSS RESPONSIVE CHO MOBILE (DẠNG CARD)
+                   ========================================== */
     @@media (max-width: 768px) {
         .header-mobile {
             flex-direction: column !important;
@@ -97,55 +165,72 @@
                 width: 100% !important;
                 box-sizing: border-box !important;
             }
-        /* Thống kê: Lưới 2 cột */
+
         .stat-grid-mobile {
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 10px !important;
+        }
+
+        .advanced-filter {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-group {
+            width: 100%;
+        }
+
+        .filter-input {
+            width: 100%;
         }
         /* Biến Table thành Card list */
         #dataTable thead {
             display: none;
         }
 
-        #dataTable tbody tr {
+        #dataTable, #dataTable tbody, #dataTable tr, #dataTable td {
             display: block;
-            margin-bottom: 15px;
-            border: 2px solid #e2e8f0 !important;
-            border-radius: 20px;
-            padding: 12px;
-            background: #ffffff;
-            position: relative;
-            border-left: 6px solid @indigoPrimary !important;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            width: 100%;
         }
 
-        #dataTable tbody td {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border: none !important;
-            padding: 10px 5px !important;
-            width: 100% !important;
-            text-align: right !important;
-            border-bottom: 1px dashed #f1f5f9 !important;
-        }
-            /* Nút thao tác cuối card */
-            #dataTable tbody td:last-child {
-                border-bottom: none !important;
-                justify-content: center !important;
-                padding-top: 15px !important;
+            #dataTable tr {
+                margin-bottom: 15px;
+                border: 2px solid #e2e8f0 !important;
+                border-radius: 20px;
+                padding: 12px;
+                background: #ffffff;
+                position: relative;
+                border-left: 6px solid @indigoPrimary !important;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.02);
             }
-            /* Nhãn giả cho Card Mobile */
-            #dataTable tbody td::before {
-                content: attr(data-label);
-                font-weight: 800;
-                color: #64748b;
-                text-transform: uppercase;
-                font-size: 10px;
-                text-align: left;
-                flex-shrink: 0;
-                margin-right: 15px;
+
+            #dataTable tbody td {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border: none !important;
+                padding: 10px 5px !important;
+                width: 100% !important;
+                text-align: right !important;
+                border-bottom: 1px dashed #f1f5f9 !important;
             }
+
+                #dataTable tbody td:last-child {
+                    border-bottom: none !important;
+                    justify-content: center !important;
+                    padding-top: 15px !important;
+                }
+
+                #dataTable tbody td::before {
+                    content: attr(data-label);
+                    font-weight: 800;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    font-size: 10px;
+                    text-align: left;
+                    flex-shrink: 0;
+                    margin-right: 15px;
+                }
 
         .mobile-td-content {
             display: flex;
@@ -154,15 +239,25 @@
             text-align: right;
         }
 
-        .pagination-mobile {
+        .mobile-td-val {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .pagination-container {
             flex-direction: column !important;
             gap: 20px;
-            align-items: center !important;
+            text-align: center !important;
+        }
+
+        #paginationButtons {
+            justify-content: center;
         }
     }
 </style>
 
-<div style="padding: 20px; background: #f8fafc; min-height: 100vh; font-family: 'Inter', sans-serif;">
+<div style="padding: 20px; background: #f8fafc; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
 
     @* --- TOP BAR --- *@
     <div class="header-mobile" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px;">
@@ -193,35 +288,64 @@
         </div>
     </div>
 
+    @* --- BỘ LỌC NÂNG CAO --- *@
+    <div class="advanced-filter">
+        <div class="filter-group">
+            <label>Từ ngày</label>
+            <input type="date" id="txtFromDate" class="filter-input" onchange="handleFilterAndPaginate()" />
+        </div>
+        <div class="filter-group">
+            <label>Đến ngày</label>
+            <input type="date" id="txtToDate" class="filter-input" onchange="handleFilterAndPaginate()" />
+        </div>
+        <div class="filter-group">
+            <label>Bộ phận</label>
+            <select id="selBoPhan" class="filter-input" onchange="handleFilterAndPaginate()">
+                <option value="">-- Tất cả --</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Người hỗ trợ</label>
+            <select id="selStaff" class="filter-input" onchange="handleFilterAndPaginate()">
+                <option value="">-- Tất cả --</option>
+            </select>
+        </div>
+        <div class="filter-group" style="flex-direction: row; align-items: flex-end; gap: 10px; margin-left: auto;">
+            <button class="btn-clear-filter" onclick="clearAllFilters()">
+                <i class="fa fa-refresh"></i> Làm mới
+            </button>
+        </div>
+    </div>
+
     @* --- THỐNG KÊ (Stats) --- *@
     <div class="stat-grid-mobile" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 25px;">
-        <div onclick="filterByStatus('')" class="stat-card" style="background: white; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: #1e293b; text-transform: uppercase; margin-bottom: 5px;">TỔNG ĐƠN</div>
+        <div onclick="filterByStatus('')" class="stat-card" data-status="" style="background: white; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #1e293b; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">TỔNG ĐƠN</div>
             <div id="stat-total" style="font-size: 22px; font-weight: 1000; color: #1e293b;">0</div>
         </div>
-        <div onclick="filterByStatus('BP XÁC NHẬN')" class="stat-card" style="background: #ecfeff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: #0891b2; text-transform: uppercase; margin-bottom: 5px;">CHỜ B2</div>
+        <div onclick="filterByStatus('BP XÁC NHẬN')" class="stat-card" data-status="BP XÁC NHẬN" style="background: #ecfeff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #0891b2; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">CHỜ B2</div>
             <div id="stat-b2" style="font-size: 22px; font-weight: 1000; color: #0891b2;">0</div>
         </div>
-        <div onclick="filterByStatus('GIÁM ĐỐC')" class="stat-card" style="background: #fdf4ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: #86198f; text-transform: uppercase; margin-bottom: 5px;">CHỜ GĐ</div>
+        <div onclick="filterByStatus('GIÁM ĐỐC')" class="stat-card" data-status="GIÁM ĐỐC" style="background: #fdf4ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #86198f; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">CHỜ GĐ</div>
             <div id="stat-gd" style="font-size: 22px; font-weight: 1000; color: #86198f;">0</div>
         </div>
-        <div onclick="filterByStatus('ADMIN')" class="stat-card" style="background: #e0e7ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: @indigoPrimary; text-transform: uppercase; margin-bottom: 5px;">ADMIN</div>
+        <div onclick="filterByStatus('ADMIN')" class="stat-card" data-status="ADMIN" style="background: #e0e7ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: @indigoPrimary; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">ADMIN</div>
             <div id="stat-admin" style="font-size: 22px; font-weight: 1000; color: @indigoPrimary;">0</div>
         </div>
-        <div onclick="filterByStatus('HOÀN TẤT')" class="stat-card" style="background: #ecfdf5; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: #10b981; text-transform: uppercase; margin-bottom: 5px;">XONG</div>
+        <div onclick="filterByStatus('HOÀN TẤT')" class="stat-card" data-status="HOÀN TẤT" style="background: #ecfdf5; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #10b981; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">XONG</div>
             <div id="stat-xong" style="font-size: 22px; font-weight: 1000; color: #10b981;">0</div>
         </div>
-        <div onclick="filterByStatus('ĐÃ HỦY')" class="stat-card" style="background: #fef2f2; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: #b91c1c; text-transform: uppercase; margin-bottom: 5px;">HỦY</div>
+        <div onclick="filterByStatus('ĐÃ HỦY')" class="stat-card" data-status="ĐÃ HỦY" style="background: #fef2f2; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #b91c1c; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">HỦY</div>
             <div id="stat-huy" style="font-size: 22px; font-weight: 1000; color: #b91c1c;">0</div>
         </div>
     </div>
 
-    @* --- BẢNG DỮ LIỆU --- *@
+    @* --- TABLE AREA --- *@
     <div style="background: white; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
         <table id="dataTable" style="width: 100%; border-collapse: collapse;">
             <thead>
@@ -246,11 +370,11 @@
     </div>
 
     @* --- PHẦN PHÂN TRANG --- *@
-    <div class="pagination-mobile" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 5px;">
+    <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 5px;">
         <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
         <div style="text-align: right;">
             <div style="color: #64748b; font-size: 13px; font-weight: 700;">
-                Trang <span id="currentPageNum" style="color: @indigoPrimary;">1</span> / <span id="totalPagesNum">1</span>
+                Trang <span id="currentPageNum" style="color: #0369a1;">1</span> / <span id="totalPagesNum">1</span>
             </div>
             <div style="color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px;">
                 Tổng cộng: <span id="totalVisibleCount">0</span> bản ghi
@@ -266,16 +390,61 @@
         let currentPage = 1;
         let rowsPerPage = 20;
 
+        // Lưu trạng thái thẻ màu
+        let currentActiveStatusFilter = "";
+
         document.addEventListener("DOMContentLoaded", async () => {
+            // --- 1. PHỤC HỒI TEXT SEARCH VÀ BỘ LỌC TỪ SESSIONSTORAGE ---
+            const savedText = sessionStorage.getItem("savedB2ShdXDText");
+            if (savedText) document.getElementById("quickSearch").value = savedText;
+
+            const savedFrom = sessionStorage.getItem("savedFromDateB2ShdXD");
+            if (savedFrom) document.getElementById("txtFromDate").value = savedFrom;
+
+            const savedTo = sessionStorage.getItem("savedToDateB2ShdXD");
+            if (savedTo) document.getElementById("txtToDate").value = savedTo;
+
+            const savedStatus = sessionStorage.getItem("savedB2ShdXDStatus");
+            if (savedStatus !== null) {
+                currentActiveStatusFilter = savedStatus;
+            }
+
             try {
                 const response = await fetch('/FormSHD/GetQuanLyXetDuyetB2Data');
                 masterData = await response.json();
+
+                // Đổ dữ liệu Dropdown
+                populateDropdowns(masterData);
+
+                // Phục hồi Combobox sau khi đổ dữ liệu
+                const savedBoPhan = sessionStorage.getItem("savedBoPhanB2ShdXD");
+                if (savedBoPhan) document.getElementById("selBoPhan").value = savedBoPhan;
+
+                const savedStaff = sessionStorage.getItem("savedStaffB2ShdXD");
+                if (savedStaff) document.getElementById("selStaff").value = savedStaff;
+
                 updateStatistics(masterData);
+                updateVisualStatusCard(currentActiveStatusFilter);
                 handleFilterAndPaginate();
             } catch (error) {
-                document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: #ef4444; font-weight: bold;">Lỗi tải dữ liệu.</td></tr>`;
+                document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: red;">Lỗi tải dữ liệu. Vui lòng F5.</td></tr>`;
             }
         });
+
+        function populateDropdowns(data) {
+            const selBoPhan = document.getElementById("selBoPhan");
+            const selStaff = document.getElementById("selStaff");
+
+            const depts = [...new Set(data.map(x => x.boPhan).filter(Boolean))].sort();
+            depts.forEach(d => {
+                selBoPhan.innerHTML += `<option value="${d}">${d}</option>`;
+            });
+
+            const staffSet = [...new Set(data.map(x => x.supportName).filter(n => n && n !== "Chưa chỉ định" && n !== "Chưa gán"))].sort();
+            staffSet.forEach(s => {
+                selStaff.innerHTML += `<option value="${s}">${s}</option>`;
+            });
+        }
 
         function updateStatistics(data) {
             const getCnt = (tag) => data.filter(x => x.statusTag === tag).length;
@@ -293,21 +462,100 @@
             handleFilterAndPaginate();
         }
 
-        function filterByStatus(s) {
-            document.getElementById("quickSearch").value = s;
+        function updateVisualStatusCard(status) {
+            document.querySelectorAll('.stat-card').forEach(el => {
+                el.style.border = "2px solid rgba(0,0,0,0.03)";
+                el.style.boxShadow = "0 4px 6px rgba(0,0,0,0.05)";
+            });
+
+            if(status) {
+                const targetCard = document.querySelector(`.stat-card[data-status="${status}"]`);
+                if (targetCard) {
+                    targetCard.style.border = "2px solid @indigoPrimary";
+                    targetCard.style.boxShadow = "0 0 0 3px rgba(49, 46, 129, 0.2)";
+                }
+            }
+        }
+
+        function filterByStatus(status) {
+            if(currentActiveStatusFilter === status) {
+                currentActiveStatusFilter = "";
+            } else {
+                currentActiveStatusFilter = status;
+            }
+
+            sessionStorage.setItem("savedB2ShdXDStatus", currentActiveStatusFilter);
+            updateVisualStatusCard(currentActiveStatusFilter);
+
             currentPage = 1;
             handleFilterAndPaginate();
-            const tb = document.getElementById("dataTable");
-            tb.style.opacity = "0.5";
-            setTimeout(() => tb.style.opacity = "1", 150);
+
+            let table = document.getElementById("dataTable");
+            table.style.opacity = "0.4";
+            setTimeout(() => { table.style.opacity = "1"; }, 150);
+        }
+
+        function clearAllFilters() {
+            document.getElementById("quickSearch").value = "";
+            document.getElementById("txtFromDate").value = "";
+            document.getElementById("txtToDate").value = "";
+            document.getElementById("selBoPhan").value = "";
+            document.getElementById("selStaff").value = "";
+
+            sessionStorage.removeItem("savedB2ShdXDText");
+            sessionStorage.removeItem("savedFromDateB2ShdXD");
+            sessionStorage.removeItem("savedToDateB2ShdXD");
+            sessionStorage.removeItem("savedBoPhanB2ShdXD");
+            sessionStorage.removeItem("savedStaffB2ShdXD");
+            sessionStorage.removeItem("savedB2ShdXDStatus");
+
+            currentActiveStatusFilter = "";
+            updateVisualStatusCard("");
+
+            currentPage = 1;
+            handleFilterAndPaginate();
         }
 
         function handleFilterAndPaginate() {
             const searchText = document.getElementById("quickSearch").value.toUpperCase().trim();
+            const fromDateStr = document.getElementById("txtFromDate").value;
+            const toDateStr = document.getElementById("txtToDate").value;
+            const deptFilter = document.getElementById("selBoPhan").value;
+            const staffFilter = document.getElementById("selStaff").value;
+
+            sessionStorage.setItem("savedB2ShdXDText", searchText);
+            sessionStorage.setItem("savedFromDateB2ShdXD", fromDateStr);
+            sessionStorage.setItem("savedToDateB2ShdXD", toDateStr);
+            sessionStorage.setItem("savedBoPhanB2ShdXD", deptFilter);
+            sessionStorage.setItem("savedStaffB2ShdXD", staffFilter);
 
             filteredData = masterData.filter(item => {
-                const rowString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.tenForm} ${item.id} ${item.supportName} ${item.statusTag}`.toUpperCase();
-                return searchText === "" || rowString.includes(searchText);
+                if (currentActiveStatusFilter && item.statusTag !== currentActiveStatusFilter) return false;
+                if (deptFilter && item.boPhan !== deptFilter) return false;
+                if (staffFilter && item.supportName !== staffFilter) return false;
+
+                if (fromDateStr || toDateStr) {
+                    if (!item.timeNguoiTao || item.timeNguoiTao === "--") return false;
+                    const parts = item.timeNguoiTao.split('/');
+                    if (parts.length === 3) {
+                        const itemDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
+                        if (fromDateStr) {
+                            const fromD = new Date(fromDateStr + "T00:00:00");
+                            if (itemDate < fromD) return false;
+                        }
+                        if (toDateStr) {
+                            const toD = new Date(toDateStr + "T23:59:59");
+                            if (itemDate > toD) return false;
+                        }
+                    }
+                }
+
+                if (searchText) {
+                    const rowString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.tenForm} ${item.id} ${item.supportName} ${item.statusTag}`.toUpperCase();
+                    if (!rowString.includes(searchText)) return false;
+                }
+
+                return true;
             });
 
             const totalItems = filteredData.length;
@@ -319,7 +567,8 @@
             document.getElementById("totalPagesNum").innerText = totalPages;
 
             const startIndex = (currentPage - 1) * rowsPerPage;
-            const pageData = filteredData.slice(startIndex, startIndex + rowsPerPage);
+            const endIndex = startIndex + rowsPerPage;
+            const pageData = filteredData.slice(startIndex, endIndex);
 
             renderTable(pageData);
             renderPaginationButtons(totalPages);
@@ -330,14 +579,14 @@
             tbody.innerHTML = "";
 
             if (pageData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8; border:none; display:block;">Không tìm thấy kết quả phù hợp.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8; border:none; display:block;">Không tìm thấy dữ liệu phù hợp bộ lọc.</td></tr>`;
                 return;
             }
 
             let html = "";
             pageData.forEach(item => {
-                // Tạo Badge B2, GD
                 let badgesHtml = `<span>ID: #${item.id} • <i class="fa fa-clock-o"></i> ${item.timeNguoiTao}</span>`;
+
                 if (item.hasB2) {
                     badgesHtml += `<span class="sub-badge" style="color: #0891b2; border-color: #cffafe; background: #ecfeff; margin-left:5px;"><i class="fa fa-users"></i> B2 (${item.b2DuyetCount}/${item.b2TotalCount})</span>`;
                 }
@@ -345,7 +594,6 @@
                     badgesHtml += `<span class="sub-badge" style="color: #86198f; border-color: #f5d0fe; background: #fdf4ff; margin-left:5px;"><i class="fa fa-briefcase"></i> GĐ (${item.gdDuyetCount}/${item.gdTotalCount})</span>`;
                 }
 
-                // Logic nút xử lý
                 const isCancelled = item.statusTag === "ĐÃ HỦY";
                 let btnClass = (item.isB2Processing && !isCancelled) ? "fa-edit" : "fa-eye";
                 let btnText = (item.isB2Processing && !isCancelled) ? "Xử lý B2" : "Xem lại";
@@ -359,41 +607,36 @@
                             <div style="font-size: 11px; color: #64748b; font-weight: 800;">${item.boPhan} • <span style="color: @indigoPrimary;">MS: ${item.soNhanVien}</span></div>
                         </td>
                         <td data-label="Nội dung đơn SHD" style="padding: 15px 20px;">
-                            <div class="mobile-td-content">
+                            <div class="mobile-td-val">
                                 <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${item.tenForm}</div>
-                                <div style="font-size: 11px; color: #64748b; font-weight: 700; display: flex; flex-wrap: wrap; align-items: center; margin-top:4px;">
+                                <div style="font-size: 11px; color: #64748b; font-weight: 700; display: flex; flex-wrap: wrap; align-items: center; margin-top:4px; justify-content: flex-end;">
                                     ${badgesHtml}
                                 </div>
                             </div>
                         </td>
                         <td data-label="Người Hỗ Trợ" style="padding: 15px 20px;">
-                            <div class="mobile-td-content">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <div class="support-avatar"><i class="fa fa-user-circle-o"></i></div>
-                                    <div style="font-weight: 700; color: #334155; font-size: 13px;">${item.supportName}</div>
-                                </div>
+                            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-end;">
+                                <div class="support-avatar"><i class="fa fa-user-circle-o"></i></div>
+                                <div style="font-weight: 700; color: #334155; font-size: 13px;">${item.supportName}</div>
                             </div>
                         </td>
                         <td data-label="Tiến độ" style="padding: 15px 20px;">
-                            <div class="mobile-td-content">
-                                <div style="width: 100px;">
-                                    <div style="font-size: 9px; font-weight: 1000; color: ${item.pColor}; margin-bottom: 4px; display: flex; justify-content: space-between;">
-                                        <span>${item.pText}</span> <span>${item.pWidth}</span>
-                                    </div>
-                                    <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden;">
-                                        <div style="width: ${item.pWidth}; height: 100%; background: ${item.pColor}; border-radius: 10px; transition: 0.5s ease;"></div>
-                                    </div>
+                            <div style="width: 120px; margin-left: auto;">
+                                <div style="font-size: 9px; font-weight: 1000; color: ${item.pColor}; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                                    <span>${item.pText}</span> <span>${item.pWidth}</span>
+                                </div>
+                                <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden;">
+                                    <div style="width: ${item.pWidth}; height: 100%; background: ${item.pColor}; border-radius: 10px; transition: 0.5s ease;"></div>
                                 </div>
                             </div>
                         </td>
                         <td data-label="Trạng thái" style="padding: 15px 20px; text-align: center;">
-                            <div class="mobile-td-content">
-                                <span class="status-pill" style="background:${item.bg}; color:${item.fg}; border: 1.5px solid ${item.fg};">${item.statusTag}</span>
-                            </div>
+                            <span class="status-pill" style="background:${item.bg}; color:${item.fg}; border: 1.5px solid ${item.fg};">${item.statusTag}</span>
                         </td>
-                        <td data-label="Thao tác" style="padding: 15px 20px; text-align: right;">
+                        <td style="padding: 15px 20px; text-align: right;">
                             <a href="/FormSHD/ChiTiet/${item.id}"
-                               style="text-decoration: none; padding: 10px 20px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s; background: ${btnBg}; color: ${btnColor}; width: 100%; text-align: center; box-sizing: border-box;">
+                               style="text-decoration: none; padding: 10px 20px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s; background: ${btnBg}; color: ${btnColor}; width: 100%; text-align: center; box-sizing: border-box;"
+                               onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
                                  <i class="fa ${btnClass}"></i> ${btnText}
                             </a>
                         </td>
@@ -407,14 +650,26 @@
             const container = document.getElementById("paginationButtons");
             container.innerHTML = "";
             if (totalPages <= 1) return;
+
             for (let i = 1; i <= totalPages; i++) {
                 if (totalPages > 5 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
-                    if (i === 3 || i === totalPages - 2) container.insertAdjacentHTML('beforeend', `<span style="padding:8px; color:#cbd5e1; font-weight:bold">...</span>`);
+                    if (i === 3 || i === totalPages - 2) {
+                        const dot = document.createElement("span");
+                        dot.innerText = "...";
+                        dot.style.padding = "8px"; dot.style.color = "#64748b"; dot.style.fontWeight = "700";
+                        container.appendChild(dot);
+                    }
                     continue;
                 }
+
                 const btn = document.createElement("button");
-                btn.innerText = i; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
-                btn.onclick = () => { currentPage = i; handleFilterAndPaginate(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+                btn.innerText = i;
+                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                btn.onclick = () => {
+                    currentPage = i;
+                    handleFilterAndPaginate();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
                 container.appendChild(btn);
             }
         }

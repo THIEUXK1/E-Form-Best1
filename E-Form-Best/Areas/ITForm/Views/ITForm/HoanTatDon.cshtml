@@ -45,9 +45,85 @@
             transform: scale(1.002);
         }
 
+    /* Style cho các thành phần bộ lọc mới */
+    .advanced-filter {
+        background: white;
+        padding: 15px 20px;
+        border-radius: 15px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+        .filter-group label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+    .filter-input {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-size: 13px;
+        font-weight: 600;
+        color: #1e293b;
+        outline: none;
+        transition: 0.3s;
+        min-width: 140px;
+    }
+
+        .filter-input:focus {
+            border-color: #1e40af;
+            box-shadow: 0 0 0 2px rgba(30,64,175,0.1);
+        }
+
+    .btn-filter-action {
+        padding: 9px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        transition: 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-primary-filter {
+        background: #1e40af;
+        color: white;
+    }
+
+        .btn-primary-filter:hover {
+            background: #1e3a8a;
+        }
+
+    .btn-clear-filter {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+        .btn-clear-filter:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
     /* ==========================================
-                    CSS RESPONSIVE CHO MOBILE (2026 STYLE)
-                    ========================================== */
+           CSS RESPONSIVE CHO MOBILE (2026 STYLE)
+           ========================================== */
     @@media (max-width: 768px) {
         .main-padding {
             padding: 15px !important;
@@ -69,6 +145,19 @@
                 width: 100% !important;
                 box-sizing: border-box;
             }
+
+        .advanced-filter {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-group {
+            width: 100%;
+        }
+
+        .filter-input {
+            width: 100%;
+        }
         /* Thống kê: Lưới 2 cột */
         .stats-grid-mobile {
             grid-template-columns: repeat(2, 1fr) !important;
@@ -107,7 +196,7 @@
                     justify-content: center !important;
                     padding-top: 15px !important;
                 }
-                /* Label cho mobile */
+
                 #dataTable td::before {
                     content: attr(data-label);
                     font-weight: 800;
@@ -137,7 +226,7 @@
     <div style="max-width: 1500px; margin: 0 auto;">
 
         @* --- HEADER --- *@
-        <div class="header-mobile" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <div class="header-mobile" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <div>
                 <h2 style="margin: 0; font-size: 28px; font-weight: 1000; color: #1e40af; letter-spacing: -0.04em; display: flex; align-items: center; gap: 15px;">
                     <span style="background: #1e40af; color: white; width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.3);">
@@ -164,35 +253,64 @@
 
                 <div style="position: relative;">
                     <i class="fa fa-search" style="position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: #64748b; font-weight: 900;"></i>
-                    <input type="text" id="searchInput" onkeyup="handleSearch()" placeholder="Tìm tên, mã đơn, trạng thái..."
-                           style="padding: 14px 20px 14px 50px; border-radius: 15px; border: 2px solid #cbd5e1; width: 350px; font-size: 14px; font-weight: 700; outline: none; transition: all 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                    <input type="text" id="searchInput" onkeyup="handleSearch()" placeholder="Tìm tên, mã đơn..."
+                           style="padding: 14px 20px 14px 50px; border-radius: 15px; border: 2px solid #cbd5e1; width: 300px; font-size: 14px; font-weight: 700; outline: none; transition: all 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                 </div>
             </div>
         </div>
 
-        @* --- THỐNG KÊ --- *@
+        @* --- BỘ LỌC NÂNG CAO --- *@
+        <div class="advanced-filter">
+            <div class="filter-group">
+                <label>Từ ngày</label>
+                <input type="date" id="txtFromDate" class="filter-input" onchange="handleSearch()" />
+            </div>
+            <div class="filter-group">
+                <label>Đến ngày</label>
+                <input type="date" id="txtToDate" class="filter-input" onchange="handleSearch()" />
+            </div>
+            <div class="filter-group">
+                <label>Bộ phận</label>
+                <select id="selDept" class="filter-input" onchange="handleSearch()">
+                    <option value="">-- Tất cả --</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Người hỗ trợ</label>
+                <select id="selStaff" class="filter-input" onchange="handleSearch()">
+                    <option value="">-- Tất cả --</option>
+                </select>
+            </div>
+            <div class="filter-group" style="flex-direction: row; align-items: flex-end; gap: 10px; margin-left: auto;">
+                <button class="btn-filter-action btn-clear-filter" onclick="clearAllFilters()">
+                    <i class="fa fa-refresh"></i> Làm mới
+                </button>
+            </div>
+        </div>
+
+        @* --- THỐNG KÊ (Đã thêm data-status để dễ dàng xác định phần tử trên JS) --- *@
         <div class="stats-grid-mobile" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 30px;">
-            <div onclick="filterByStatus('')" style="background: white; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="stat-card-item active-stat" data-status="" onclick="filterByStatus('')" style="background: white; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
                 <div style="font-size: 9px; font-weight: 900; color: #1e40af; letter-spacing: 1px; text-transform: uppercase;">TỔNG LƯU TRỮ</div>
                 <div id="stat-total" style="font-size: 28px; font-weight: 1000; color: #1e40af; margin-top: 8px;">0</div>
             </div>
-            <div onclick="filterByStatus('Chờ QL Duyệt')" style="background: #fff7ed; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
+            <div class="stat-card-item" data-status="Chờ QL Duyệt" onclick="filterByStatus('Chờ QL Duyệt')" style="background: #fff7ed; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
                 <div style="font-size: 9px; font-weight: 900; color: #f59e0b; letter-spacing: 1px; text-transform: uppercase;">CHỜ QL DUYỆT</div>
                 <div id="stat-waiting-manager" style="font-size: 28px; font-weight: 1000; color: #f59e0b; margin-top: 8px;">0</div>
             </div>
-            <div onclick="filterByStatus('IT Đang xử lý')" style="background: #eff6ff; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
+            <div class="stat-card-item" data-status="IT Đang xử lý" onclick="filterByStatus('IT Đang xử lý')" style="background: #eff6ff; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
                 <div style="font-size: 9px; font-weight: 900; color: #2563eb; letter-spacing: 1px; text-transform: uppercase;">IT ĐANG XỬ LÝ</div>
                 <div id="stat-processing" style="font-size: 28px; font-weight: 1000; color: #2563eb; margin-top: 8px;">0</div>
             </div>
-            <div onclick="filterByStatus('Chờ đánh giá')" style="background: #f5f3ff; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
+            <div class="stat-card-item" data-status="Chờ đánh giá" onclick="filterByStatus('Chờ đánh giá')" style="background: #f5f3ff; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
                 <div style="font-size: 9px; font-weight: 900; color: #7c3aed; letter-spacing: 1px; text-transform: uppercase;">CHỜ ĐÁNH GIÁ</div>
                 <div id="stat-waiting-rate" style="font-size: 28px; font-weight: 1000; color: #7c3aed; margin-top: 8px;">0</div>
             </div>
-            <div onclick="filterByStatus('Hoàn tất')" style="background: #f0fdf4; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
+            <div class="stat-card-item" data-status="Hoàn tất" onclick="filterByStatus('Hoàn tất')" style="background: #f0fdf4; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
                 <div style="font-size: 9px; font-weight: 900; color: #059669; letter-spacing: 1px; text-transform: uppercase;">ĐÃ HOÀN TẤT</div>
                 <div id="stat-completed" style="font-size: 28px; font-weight: 1000; color: #059669; margin-top: 8px;">0</div>
             </div>
-            <div onclick="filterByStatus('Đã hủy')" style="background: #fef2f2; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
+            <div class="stat-card-item" data-status="Đã hủy" onclick="filterByStatus('Đã hủy')" style="background: #fef2f2; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
                 <div style="font-size: 9px; font-weight: 900; color: #dc2626; letter-spacing: 1px; text-transform: uppercase;">ĐƠN ĐÃ HỦY</div>
                 <div id="stat-cancelled" style="font-size: 28px; font-weight: 1000; color: #dc2626; margin-top: 8px;">0</div>
             </div>
@@ -218,7 +336,7 @@
 
             <div id="emptyState" style="display: none; padding: 80px 20px; text-align: center; color: #94a3b8;">
                 <i class="fa fa-folder-open-o" style="font-size: 54px; margin-bottom: 20px; display: block; opacity: 0.5;"></i>
-                <div style="font-weight: 700; font-size: 16px;">Không tìm thấy kết quả</div>
+                <div style="font-weight: 700; font-size: 16px;">Không tìm thấy kết quả phù hợp với bộ lọc</div>
             </div>
         </div>
 
@@ -243,10 +361,27 @@
     let currentPage = 1;
     let rowsPerPage = 30;
 
+    // Lưu lại trạng thái từ các thẻ màu phía trên
+    let currentActiveStatusFilter = "";
+
     document.addEventListener("DOMContentLoaded", () => {
-        const savedFilter = sessionStorage.getItem("savedKhoLuuTruFilterIT");
-        if (savedFilter) document.getElementById("searchInput").value = savedFilter;
-        
+        // --- 1. PHỤC HỒI TEXT SEARCH ---
+        const savedText = sessionStorage.getItem("savedKhoLuuTruTextIT");
+        if (savedText) document.getElementById("searchInput").value = savedText;
+
+        // --- 2. PHỤC HỒI NGÀY THÁNG LỌC NÂNG CAO ---
+        const savedFrom = sessionStorage.getItem("savedFromDateIT");
+        if (savedFrom) document.getElementById("txtFromDate").value = savedFrom;
+
+        const savedTo = sessionStorage.getItem("savedToDateIT");
+        if (savedTo) document.getElementById("txtToDate").value = savedTo;
+
+        // --- 3. PHỤC HỒI TRẠNG THÁI THẺ CARD ---
+        const savedStatus = sessionStorage.getItem("savedKhoLuuTruStatusIT");
+        if (savedStatus !== null) {
+            currentActiveStatusFilter = savedStatus;
+        }
+
         loadDataFromAPI();
     });
 
@@ -254,16 +389,56 @@
         try {
             const response = await fetch('/FormIT/GetHoanTatDonData');
             if (!response.ok) throw new Error("API Failure");
-            
+
             masterData = await response.json();
             filteredData = masterData;
-            
+
+            // Render giao diện lần đầu
+            populateDropdowns(masterData);
+
+            // --- 4. PHỤC HỒI COMBOBOX SAU KHI ĐỔ DỮ LIỆU ---
+            const savedDept = sessionStorage.getItem("savedDeptIT");
+            if (savedDept) document.getElementById("selDept").value = savedDept;
+
+            const savedStaff = sessionStorage.getItem("savedStaffIT");
+            if (savedStaff) document.getElementById("selStaff").value = savedStaff;
+
+            // Tính toán tổng số trên thẻ
             calculateStats(masterData);
+
+            // Bật hiệu ứng CSS thẻ Trạng Thái đã lưu
+            updateVisualStatusCard(currentActiveStatusFilter);
+
+            // Chạy hàm lọc tổng hợp
             handleSearch();
         } catch (error) {
             console.error(error);
             document.getElementById('tableBody').innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 50px; color: #ef4444; font-weight: 700;">Lỗi tải dữ liệu. Vui lòng thử lại sau!</td></tr>';
         }
+    }
+
+    // Đổ dữ liệu vào Dropdown Bộ Phận và Người Hỗ Trợ
+    function populateDropdowns(data) {
+        const selDept = document.getElementById("selDept");
+        const selStaff = document.getElementById("selStaff");
+
+        // Lấy danh sách Bộ phận duy nhất
+        const depts = [...new Set(data.map(x => x.boPhan).filter(Boolean))].sort();
+        depts.forEach(d => {
+            selDept.innerHTML += `<option value="${d}">${d}</option>`;
+        });
+
+        // Lấy danh sách Người hỗ trợ duy nhất
+        const allStaff = [];
+        data.forEach(item => {
+            if (item.nguoiHoTros && item.nguoiHoTros.length > 0) {
+                allStaff.push(...item.nguoiHoTros);
+            }
+        });
+        const staffSet = [...new Set(allStaff.filter(name => name !== "N/A"))].sort();
+        staffSet.forEach(s => {
+            selStaff.innerHTML += `<option value="${s}">${s}</option>`;
+        });
     }
 
     function calculateStats(data) {
@@ -289,7 +464,7 @@
     function determineStatus(item) {
         let statusName = "";
         const isCancelled = (item.tenForm || "").includes("[ĐÃ HỦY]");
-        
+
         if (isCancelled) statusName = "Đã hủy";
         else if (item.idNguoiDuyet == null) statusName = "Chờ QL Duyệt";
         else if (item.idAdmin == null) statusName = "IT Đang xử lý";
@@ -315,25 +490,111 @@
         renderTable();
     }
 
+    // Hàm cập nhật CSS giao diện cho Thẻ Trạng thái
+    function updateVisualStatusCard(status) {
+        // Đưa tất cả thẻ về mặc định
+        document.querySelectorAll('.stat-card-item').forEach(el => {
+            el.style.boxShadow = "none";
+            el.style.border = "1px solid rgba(0,0,0,0.05)";
+        });
+
+        // Bật viền xanh thẻ đang click
+        const targetCard = document.querySelector(`.stat-card-item[data-status="${status}"]`);
+        if (targetCard) {
+            targetCard.style.boxShadow = "0 0 0 3px #1e40af40";
+            targetCard.style.border = "1px solid #1e40af";
+        }
+    }
+
+    // Nút bấm trên thẻ Thống kê màu mè
+    function filterByStatus(status) {
+        currentActiveStatusFilter = status;
+
+        // Lưu trạng thái vào Session
+        sessionStorage.setItem("savedKhoLuuTruStatusIT", status);
+
+        updateVisualStatusCard(status);
+        handleSearch();
+    }
+
+    function clearAllFilters() {
+        document.getElementById("searchInput").value = "";
+        document.getElementById("txtFromDate").value = "";
+        document.getElementById("txtToDate").value = "";
+        document.getElementById("selDept").value = "";
+        document.getElementById("selStaff").value = "";
+
+        // Xóa sạch Session Storage
+        sessionStorage.removeItem("savedKhoLuuTruTextIT");
+        sessionStorage.removeItem("savedFromDateIT");
+        sessionStorage.removeItem("savedToDateIT");
+        sessionStorage.removeItem("savedDeptIT");
+        sessionStorage.removeItem("savedStaffIT");
+        sessionStorage.removeItem("savedKhoLuuTruStatusIT");
+
+        filterByStatus(""); // Trả về thẻ TỔNG LƯU TRỮ
+    }
+
+    // Hàm Lọc tổng hợp TẤT CẢ tiêu chí
     function handleSearch() {
-        const input = document.getElementById("searchInput");
-        const filter = input.value.toUpperCase();
-        sessionStorage.setItem("savedKhoLuuTruFilterIT", input.value);
-        
+        const textFilter = document.getElementById("searchInput").value.toUpperCase();
+        const fromDateStr = document.getElementById("txtFromDate").value;
+        const toDateStr = document.getElementById("txtToDate").value;
+        const deptFilter = document.getElementById("selDept").value;
+        const staffFilter = document.getElementById("selStaff").value;
+
+        // Lưu thông số vào Session Storage để F5 không bị mất
+        sessionStorage.setItem("savedKhoLuuTruTextIT", textFilter);
+        sessionStorage.setItem("savedFromDateIT", fromDateStr);
+        sessionStorage.setItem("savedToDateIT", toDateStr);
+        sessionStorage.setItem("savedDeptIT", deptFilter);
+        sessionStorage.setItem("savedStaffIT", staffFilter);
+
         filteredData = masterData.filter(item => {
-            const st = determineStatus(item).statusName.toUpperCase();
-            const supportNames = (item.nguoiHoTros || []).join(" ").toUpperCase();
-            const searchString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.danhmuc} ${item.tenForm} ${item.id} ${supportNames} ${st}`.toUpperCase();
-            return searchString.includes(filter);
+            const stInfo = determineStatus(item);
+            const stName = stInfo.statusName;
+
+            // 1. Kiểm tra trạng thái từ Thẻ Card phía trên
+            if (currentActiveStatusFilter && stName !== currentActiveStatusFilter) return false;
+
+            // 2. Kiểm tra Bộ Phận
+            if (deptFilter && item.boPhan !== deptFilter) return false;
+
+            // 3. Kiểm tra Người Hỗ Trợ
+            if (staffFilter && !(item.nguoiHoTros || []).includes(staffFilter)) return false;
+
+            // 4. Kiểm tra Khoảng Thời Gian
+            if (fromDateStr || toDateStr) {
+                if (!item.timeNguoiTao) return false;
+
+                // C# trả về chuỗi "dd/MM/yyyy", chuyển về object Date JS
+                const parts = item.timeNguoiTao.split('/');
+                if (parts.length === 3) {
+                    const itemDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
+
+                    if (fromDateStr) {
+                        const fromD = new Date(fromDateStr + "T00:00:00");
+                        if (itemDate < fromD) return false;
+                    }
+                    if (toDateStr) {
+                        const toD = new Date(toDateStr + "T23:59:59");
+                        if (itemDate > toD) return false;
+                    }
+                }
+            }
+
+            // 5. Kiểm tra Chuỗi Text tìm kiếm tự do
+            if (textFilter) {
+                const supportNames = (item.nguoiHoTros || []).join(" ").toUpperCase();
+                const searchString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.danhmuc} ${item.tenForm} ${item.id} ${supportNames} ${stName}`.toUpperCase();
+                if (!searchString.includes(textFilter)) return false;
+            }
+
+            return true;
         });
 
         currentPage = 1;
         renderTable();
-    }
-
-    function filterByStatus(status) {
-        document.getElementById("searchInput").value = status;
-        handleSearch();
     }
 
     function renderTable() {
@@ -355,7 +616,7 @@
             pageData.forEach(item => {
                 const s = determineStatus(item);
                 const cleanTenForm = (item.tenForm || "").replace("[ĐÃ HỦY]", "").trim();
-                
+
                 let supportHtml = "";
                 if (item.nguoiHoTros && item.nguoiHoTros.length > 0) {
                     supportHtml = `<div style="display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-start;">`;

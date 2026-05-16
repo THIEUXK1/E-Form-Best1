@@ -9,14 +9,33 @@
 
 <style>
     .sub-badge {
-        font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700;
-        display: inline-flex; align-items: center; gap: 3px; border: 1px solid; margin-top: 2px;
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        border: 1px solid;
+        margin-top: 2px;
     }
+
     .support-avatar {
-        width: 28px; height: 28px; background: #eff6ff; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center; color: #1e40af; border: 1px solid #dbeafe;
+        width: 28px;
+        height: 28px;
+        background: #eff6ff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #1e40af;
+        border: 1px solid #dbeafe;
     }
-    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important; }
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important;
+    }
 
     /* CSS cho Nút Phân trang */
     .page-btn {
@@ -30,81 +49,167 @@
         cursor: pointer;
         transition: 0.3s;
     }
-    .page-btn.active {
-        background: #1e40af;
-        color: white;
-        border-color: #1e40af;
-        box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
-    }
-    .page-btn:hover:not(.active) {
-        background: #f8fafc;
-        border-color: #cbd5e1;
+
+        .page-btn.active {
+            background: #1e40af;
+            color: white;
+            border-color: #1e40af;
+            box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
+        }
+
+        .page-btn:hover:not(.active) {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+
+    /* Style Bộ lọc nâng cao mới thêm */
+    .advanced-filter {
+        background: white;
+        padding: 15px 20px;
+        border-radius: 15px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
     }
 
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+        .filter-group label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+    .filter-input {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-size: 13px;
+        font-weight: 600;
+        color: #1e293b;
+        outline: none;
+        transition: 0.3s;
+        min-width: 140px;
+    }
+
+        .filter-input:focus {
+            border-color: #1e40af;
+            box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.1);
+        }
+
+    .btn-clear-filter {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 9px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        transition: 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+        .btn-clear-filter:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
     /* ==========================================
-       BỔ SUNG CSS CHO MOBILE RESPONSIVE
-       ========================================== */
+           BỔ SUNG CSS CHO MOBILE RESPONSIVE
+           ========================================== */
     @@media (max-width: 768px) {
         .mobile-top-bar {
             flex-direction: column !important;
             align-items: stretch !important;
         }
+
         .mobile-controls {
             flex-direction: column !important;
             width: 100% !important;
         }
+
         .mobile-search-input {
             width: 100% !important;
         }
+
+        .advanced-filter {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-group {
+            width: 100%;
+        }
+
+        .filter-input {
+            width: 100%;
+        }
+
         .mobile-stat-grid {
             grid-template-columns: repeat(2, 1fr) !important;
         }
-        
         /* Chuyển bảng thành dạng Card */
         #dataTable thead {
             display: none; /* Ẩn tiêu đề bảng trên mobile */
         }
+
         #dataTable, #dataTable tbody, #dataTable tr, #dataTable td {
             display: block;
             width: 100%;
         }
-        #dataTable tr {
-            margin-bottom: 15px;
-            border: 1px solid #e2e8f0 !important;
-            border-radius: 15px;
-            overflow: hidden;
-            background: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-        #dataTable td {
-            text-align: right !important;
-            padding: 12px 15px !important;
-            border-bottom: 1px dashed #f1f5f9;
-            position: relative;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        #dataTable td:last-child {
-            border-bottom: none;
-            background: #f8fafc;
-            justify-content: center;
-        }
-        /* Hiển thị nhãn cột bằng data-label */
-        #dataTable td::before {
-            content: attr(data-label);
-            float: left;
-            font-weight: 800;
-            color: #64748b;
-            text-transform: uppercase;
-            font-size: 10px;
-        }
-        
+
+            #dataTable tr {
+                margin-bottom: 15px;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 15px;
+                overflow: hidden;
+                background: #fff;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            }
+
+            #dataTable td {
+                text-align: right !important;
+                padding: 12px 15px !important;
+                border-bottom: 1px dashed #f1f5f9;
+                position: relative;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+                #dataTable td:last-child {
+                    border-bottom: none;
+                    background: #f8fafc;
+                    justify-content: center;
+                }
+                /* Hiển thị nhãn cột bằng data-label */
+                #dataTable td::before {
+                    content: attr(data-label);
+                    float: left;
+                    font-weight: 800;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    font-size: 10px;
+                }
+
         .pagination-container {
             flex-direction: column !important;
             gap: 20px;
             text-align: center !important;
         }
+
         #paginationButtons {
             justify-content: center;
         }
@@ -143,33 +248,62 @@
         </div>
     </div>
 
+    @* --- BỘ LỌC NÂNG CAO --- *@
+    <div class="advanced-filter">
+        <div class="filter-group">
+            <label>Từ ngày</label>
+            <input type="date" id="txtFromDate" class="filter-input" onchange="handleFilterAndPaginate()" />
+        </div>
+        <div class="filter-group">
+            <label>Đến ngày</label>
+            <input type="date" id="txtToDate" class="filter-input" onchange="handleFilterAndPaginate()" />
+        </div>
+        <div class="filter-group">
+            <label>Bộ phận</label>
+            <select id="selBoPhan" class="filter-input" onchange="handleFilterAndPaginate()">
+                <option value="">-- Tất cả --</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Người hỗ trợ</label>
+            <select id="selStaff" class="filter-input" onchange="handleFilterAndPaginate()">
+                <option value="">-- Tất cả --</option>
+            </select>
+        </div>
+        <div class="filter-group" style="flex-direction: row; align-items: flex-end; gap: 10px; margin-left: auto;">
+            <button class="btn-clear-filter" onclick="clearAllFilters()">
+                <i class="fa fa-refresh"></i> Làm mới
+            </button>
+        </div>
+    </div>
+
     @* --- STATS ROW --- *@
     <div class="mobile-stat-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 25px;">
-        <div onclick="filterByStatus('')" class="stat-card" style="background: white; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div data-status="" onclick="filterByStatus('')" class="stat-card" style="background: white; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
             <div style="font-size: 10px; font-weight: 900; color: #1e293b; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">TỔNG ĐƠN</div>
             <div id="stat-total" style="font-size: 22px; font-weight: 1000; color: #1e293b;">0</div>
         </div>
-        <div onclick="filterByStatus('CHỜ QL')" class="stat-card" style="background: #fffbeb; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div data-status="CHỜ QL" onclick="filterByStatus('CHỜ QL')" class="stat-card" style="background: #fffbeb; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
             <div style="font-size: 10px; font-weight: 900; color: #b45309; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">CHỜ QL DUYỆT</div>
             <div id="stat-ql" style="font-size: 22px; font-weight: 1000; color: #b45309;">0</div>
         </div>
-        <div onclick="filterByStatus('BP XÁC NHẬN')" class="stat-card" style="background: #e0f2fe; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div data-status="BP XÁC NHẬN" onclick="filterByStatus('BP XÁC NHẬN')" class="stat-card" style="background: #e0f2fe; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
             <div style="font-size: 10px; font-weight: 900; color: #0369a1; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">BP XÁC NHẬN</div>
             <div id="stat-b2" style="font-size: 22px; font-weight: 1000; color: #0369a1;">0</div>
         </div>
-        <div onclick="filterByStatus('GIÁM ĐỐC')" class="stat-card" style="background: #fdf4ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div data-status="GIÁM ĐỐC" onclick="filterByStatus('GIÁM ĐỐC')" class="stat-card" style="background: #fdf4ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
             <div style="font-size: 10px; font-weight: 900; color: #86198f; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">GIÁM ĐỐC</div>
             <div id="stat-gd" style="font-size: 22px; font-weight: 1000; color: #86198f;">0</div>
         </div>
-        <div onclick="filterByStatus('ADMIN')" class="stat-card" style="background: #eff6ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div data-status="ADMIN" onclick="filterByStatus('ADMIN')" class="stat-card" style="background: #eff6ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
             <div style="font-size: 10px; font-weight: 900; color: #1e40af; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">CHỜ ADMIN</div>
             <div id="stat-admin" style="font-size: 22px; font-weight: 1000; color: #1e40af;">0</div>
         </div>
-        <div onclick="filterByStatus('HOÀN TẤT')" class="stat-card" style="background: #ecfdf5; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div data-status="HOÀN TẤT" onclick="filterByStatus('HOÀN TẤT')" class="stat-card" style="background: #ecfdf5; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
             <div style="font-size: 10px; font-weight: 900; color: #10b981; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">HOÀN TẤT</div>
             <div id="stat-xong" style="font-size: 22px; font-weight: 1000; color: #10b981;">0</div>
         </div>
-        <div onclick="filterByStatus('ĐÃ HỦY')" class="stat-card" style="background: #fef2f2; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div data-status="ĐÃ HỦY" onclick="filterByStatus('ĐÃ HỦY')" class="stat-card" style="background: #fef2f2; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
             <div style="font-size: 10px; font-weight: 900; color: #b91c1c; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">ĐÃ HỦY</div>
             <div id="stat-huy" style="font-size: 22px; font-weight: 1000; color: #b91c1c;">0</div>
         </div>
@@ -215,22 +349,73 @@
 
 @section Scripts {
     <script>
-        let masterData = [];     
-        let filteredData = [];   
+        let masterData = [];
+        let filteredData = [];
         let currentPage = 1;
         let rowsPerPage = 20;
 
+        // Lưu trạng thái thẻ màu
+        let currentActiveStatusFilter = "";
+
         document.addEventListener("DOMContentLoaded", async () => {
+            // --- 1. PHỤC HỒI TEXT SEARCH ---
+            const savedText = sessionStorage.getItem("savedHrXetDuyetText");
+            if (savedText) document.getElementById("quickSearch").value = savedText;
+
+            // --- 2. PHỤC HỒI NGÀY THÁNG LỌC NÂNG CAO ---
+            const savedFrom = sessionStorage.getItem("savedFromDateHrXD");
+            if (savedFrom) document.getElementById("txtFromDate").value = savedFrom;
+
+            const savedTo = sessionStorage.getItem("savedToDateHrXD");
+            if (savedTo) document.getElementById("txtToDate").value = savedTo;
+
+            // --- 3. PHỤC HỒI TRẠNG THÁI THẺ CARD ---
+            const savedStatus = sessionStorage.getItem("savedHrXetDuyetStatus");
+            if (savedStatus !== null) {
+                currentActiveStatusFilter = savedStatus;
+            }
+
             try {
                 const response = await fetch('/FormHR/GetQuanLyXetDuyetData');
                 masterData = await response.json();
-                
+
+                // Đổ dữ liệu Dropdown
+                populateDropdowns(masterData);
+
+                // --- 4. PHỤC HỒI COMBOBOX SAU KHI ĐỔ DỮ LIỆU ---
+                const savedBoPhan = sessionStorage.getItem("savedBoPhanHrXD");
+                if (savedBoPhan) document.getElementById("selBoPhan").value = savedBoPhan;
+
+                const savedStaff = sessionStorage.getItem("savedStaffHrXD");
+                if (savedStaff) document.getElementById("selStaff").value = savedStaff;
+
                 updateStatistics(masterData);
+
+                // Highlight Thẻ đang chọn
+                updateVisualStatusCard(currentActiveStatusFilter);
+
                 handleFilterAndPaginate();
             } catch (error) {
                 document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: red;">Lỗi tải dữ liệu.</td></tr>`;
             }
         });
+
+        function populateDropdowns(data) {
+            const selBoPhan = document.getElementById("selBoPhan");
+            const selStaff = document.getElementById("selStaff");
+
+            // Lấy danh sách Bộ phận duy nhất
+            const depts = [...new Set(data.map(x => x.boPhan).filter(Boolean))].sort();
+            depts.forEach(d => {
+                selBoPhan.innerHTML += `<option value="${d}">${d}</option>`;
+            });
+
+            // Lấy danh sách Người hỗ trợ duy nhất
+            const staffSet = [...new Set(data.map(x => x.supportName).filter(n => n && n !== "Chưa chỉ định"))].sort();
+            staffSet.forEach(s => {
+                selStaff.innerHTML += `<option value="${s}">${s}</option>`;
+            });
+        }
 
         function updateStatistics(data) {
             document.getElementById("stat-total").innerText = data.length;
@@ -248,22 +433,111 @@
             handleFilterAndPaginate();
         }
 
-        function filterByStatus(s) {
-            document.getElementById("quickSearch").value = s;
+        // Hàm cập nhật CSS giao diện cho Thẻ Trạng thái
+        function updateVisualStatusCard(status) {
+            document.querySelectorAll('.stat-card').forEach(el => {
+                el.style.border = "2px solid rgba(0,0,0,0.03)";
+                el.style.boxShadow = "0 4px 6px rgba(0,0,0,0.05)";
+            });
+
+            if(status) {
+                const targetCard = document.querySelector(`.stat-card[data-status="${status}"]`);
+                if (targetCard) {
+                    targetCard.style.border = "2px solid #1e40af";
+                    targetCard.style.boxShadow = "0 0 0 3px rgba(30, 64, 175, 0.2)";
+                }
+            }
+        }
+
+        function filterByStatus(status) {
+            if(currentActiveStatusFilter === status) {
+                currentActiveStatusFilter = "";
+            } else {
+                currentActiveStatusFilter = status;
+            }
+
+            sessionStorage.setItem("savedHrXetDuyetStatus", currentActiveStatusFilter);
+            updateVisualStatusCard(currentActiveStatusFilter);
+
             currentPage = 1;
             handleFilterAndPaginate();
-            
+
             let table = document.getElementById("dataTable");
             table.style.opacity = "0.5";
             setTimeout(() => { table.style.opacity = "1"; }, 150);
         }
 
+        function clearAllFilters() {
+            document.getElementById("quickSearch").value = "";
+            document.getElementById("txtFromDate").value = "";
+            document.getElementById("txtToDate").value = "";
+            document.getElementById("selBoPhan").value = "";
+            document.getElementById("selStaff").value = "";
+
+            // Xóa sạch Session Storage
+            sessionStorage.removeItem("savedHrXetDuyetText");
+            sessionStorage.removeItem("savedFromDateHrXD");
+            sessionStorage.removeItem("savedToDateHrXD");
+            sessionStorage.removeItem("savedBoPhanHrXD");
+            sessionStorage.removeItem("savedStaffHrXD");
+            sessionStorage.removeItem("savedHrXetDuyetStatus");
+
+            currentActiveStatusFilter = "";
+            updateVisualStatusCard("");
+
+            currentPage = 1;
+            handleFilterAndPaginate();
+        }
+
         function handleFilterAndPaginate() {
             const searchText = document.getElementById("quickSearch").value.toUpperCase().trim();
+            const fromDateStr = document.getElementById("txtFromDate").value;
+            const toDateStr = document.getElementById("txtToDate").value;
+            const deptFilter = document.getElementById("selBoPhan").value;
+            const staffFilter = document.getElementById("selStaff").value;
+
+            // Ghi lại thay đổi
+            sessionStorage.setItem("savedHrXetDuyetText", searchText);
+            sessionStorage.setItem("savedFromDateHrXD", fromDateStr);
+            sessionStorage.setItem("savedToDateHrXD", toDateStr);
+            sessionStorage.setItem("savedBoPhanHrXD", deptFilter);
+            sessionStorage.setItem("savedStaffHrXD", staffFilter);
 
             filteredData = masterData.filter(item => {
-                const rowString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.tenForm} ${item.id} ${item.supportName} ${item.statusTag}`.toUpperCase();
-                return searchText === "" || rowString.includes(searchText);
+                // Check Trạng thái Card
+                if (currentActiveStatusFilter && item.statusTag !== currentActiveStatusFilter) return false;
+
+                // Check Bộ Phận
+                if (deptFilter && item.boPhan !== deptFilter) return false;
+
+                // Check Người Hỗ Trợ
+                if (staffFilter && item.supportName !== staffFilter) return false;
+
+                // Check Khoảng Thời Gian (TimeNguoiTao là dd/MM/yyyy)
+                if (fromDateStr || toDateStr) {
+                    if (!item.timeNguoiTao || item.timeNguoiTao === "--") return false;
+
+                    const parts = item.timeNguoiTao.split('/');
+                    if (parts.length === 3) {
+                        const itemDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
+                        if (fromDateStr) {
+                            const fromD = new Date(fromDateStr + "T00:00:00");
+                            if (itemDate < fromD) return false;
+                        }
+                        if (toDateStr) {
+                            const toD = new Date(toDateStr + "T23:59:59");
+                            if (itemDate > toD) return false;
+                        }
+                    }
+                }
+
+                // Check Text tự do
+                if (searchText) {
+                    const rowString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.tenForm} ${item.id} ${item.supportName} ${item.statusTag}`.toUpperCase();
+                    if (!rowString.includes(searchText)) return false;
+                }
+
+                return true;
             });
 
             const totalItems = filteredData.length;
@@ -303,7 +577,7 @@
 
                 // --- LOGIC XỬ LÝ NÚT BẤM (BAO GỒM TRƯỜNG HỢP HỦY) ---
                 const isCancelled = item.statusTag === "ĐÃ HỦY";
-                
+
                 let btnText = (item.idNguoiDuyet == null && !isCancelled) ? "Xử lý" : "Xem lại";
                 let btnBg = (item.idNguoiDuyet != null || isCancelled) ? "#f1f5f9" : "#1e40af";
                 let btnColor = (item.idNguoiDuyet != null || isCancelled) ? "#64748b" : "#ffffff";
