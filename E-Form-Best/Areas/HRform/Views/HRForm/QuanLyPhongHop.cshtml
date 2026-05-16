@@ -8,77 +8,222 @@
 
 <style>
     @@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
-    
-    body { background-color: #f1f5f9; }
 
-    .stat-card { transition: 0.3s; cursor: pointer; border: none; height: 100%; }
-    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important; }
-    
-    .nav-tabs { border-bottom: 2px solid #e2e8f0; }
-    .nav-tabs .nav-link { border: none; color: #64748b; font-weight: 700; padding: 14px 24px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.8px; transition: 0.3s; }
-    .nav-tabs .nav-link.active { color: #1e40af; background: transparent; border-bottom: 3px solid #1e40af; }
+    body {
+        background-color: #f1f5f9;
+    }
+
+    .stat-card {
+        transition: 0.3s;
+        cursor: pointer;
+        border: none;
+        height: 100%;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important;
+        }
+
+    .nav-tabs {
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: #64748b;
+            font-weight: 700;
+            padding: 14px 24px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            transition: 0.3s;
+        }
+
+            .nav-tabs .nav-link.active {
+                color: #1e40af;
+                background: transparent;
+                border-bottom: 3px solid #1e40af;
+            }
 
     /* Table Desktop Style */
-    .table-modern { width: 100%; border-collapse: separate; border-spacing: 0; }
-    .table-modern thead th { 
-        background: #f8fafc; color: #475569; font-size: 11px; font-weight: 900; 
-        text-transform: uppercase; padding: 15px 20px; border-bottom: 2px solid #e2e8f0; 
-        white-space: nowrap;
+    .table-modern {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
     }
-    .table-modern tbody td { padding: 15px 20px; vertical-align: middle; border-bottom: 1px solid #f1f5f9; background: #fff; }
-    
-    .sub-badge { font-size: 10px; padding: 4px 10px; border-radius: 6px; font-weight: 800; border: 1.5px solid; display: inline-flex; align-items: center; gap: 5px; }
+
+        .table-modern thead th {
+            background: #f8fafc;
+            color: #475569;
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: uppercase;
+            padding: 15px 20px;
+            border-bottom: 2px solid #e2e8f0;
+            white-space: nowrap;
+        }
+
+        .table-modern tbody td {
+            padding: 15px 20px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f1f5f9;
+            background: #fff;
+        }
+
+    .sub-badge {
+        font-size: 10px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 800;
+        border: 1.5px solid;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
 
     /* Phân trang */
-    .page-btn { padding: 8px 16px; border-radius: 10px; border: 1px solid #e2e8f0; background: white; color: #64748b; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.3s; }
-    .page-btn.active { background: #1e40af; color: white; border-color: #1e40af; box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2); }
-    .page-btn:hover:not(.active) { background: #f8fafc; border-color: #cbd5e1; }
+    .page-btn {
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+        .page-btn.active {
+            background: #1e40af;
+            color: white;
+            border-color: #1e40af;
+            box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
+        }
+
+        .page-btn:hover:not(.active) {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
 
     /* ==========================================
-       RESPONSIVE & CHỐNG VỠ FORM
-       ========================================== */
-    
+           RESPONSIVE & CHỐNG VỠ FORM
+           ========================================== */
+
     /* Desktop Large: Giới hạn chiều rộng tối đa để không bị tràn màn hình quá rộng */
-    .container-fluid-custom { max-width: 1600px; margin: 0 auto; padding: 25px; font-family: 'Inter', sans-serif; }
+    .container-fluid-custom {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 25px;
+        font-family: 'Inter', sans-serif;
+    }
 
     @@media (max-width: 1024px) {
-        #quickSearch { width: 200px !important; }
+        #quickSearch {
+            width: 200px !important;
+        }
     }
 
     @@media (max-width: 768px) {
-        .mobile-top-bar { flex-direction: column !important; align-items: stretch !important; gap: 20px !important; }
-        .mobile-controls { flex-direction: column !important; width: 100% !important; }
-        .mobile-search-box { width: 100% !important; }
-        .mobile-search-box input { width: 100% !important; }
-        
-        .mobile-stat-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
-        .stat-card { padding: 15px !important; }
-        .card-value { font-size: 22px !important; }
+        .mobile-top-bar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 20px !important;
+        }
 
-        .nav-tabs .nav-link { padding: 12px 15px; font-size: 11px; }
+        .mobile-controls {
+            flex-direction: column !important;
+            width: 100% !important;
+        }
 
+        .mobile-search-box {
+            width: 100% !important;
+        }
+
+            .mobile-search-box input {
+                width: 100% !important;
+            }
+
+        .mobile-stat-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+        }
+
+        .stat-card {
+            padding: 15px !important;
+        }
+
+        .card-value {
+            font-size: 22px !important;
+        }
+
+        .nav-tabs .nav-link {
+            padding: 12px 15px;
+            font-size: 11px;
+        }
         /* Biến bảng thành dạng Card trên Mobile */
-        .table-modern thead { display: none; }
-        .table-modern, .table-modern tbody, .table-modern tr, .table-modern td { display: block; width: 100%; }
-        .table-modern tr { 
-            margin-bottom: 15px; border: 1px solid #e2e8f0 !important; border-radius: 15px; 
-            overflow: hidden; background: #fff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-        }
-        .table-modern td { 
-            text-align: right !important; padding: 12px 15px !important; border-bottom: 1px dashed #f1f5f9; 
-            position: relative; display: flex; justify-content: space-between; align-items: center;
-        }
-        .table-modern td:last-child { border-bottom: none; background: #f8fafc; justify-content: center; padding: 15px !important; }
-        
-        /* Hiển thị label từ thuộc tính data-label */
-        .table-modern td::before { 
-            content: attr(data-label); float: left; font-weight: 800; color: #64748b; 
-            text-transform: uppercase; font-size: 10px; 
+        .table-modern thead {
+            display: none;
         }
 
-        .mobile-val-container { display: flex; flex-direction: column; align-items: flex-end; max-width: 65%; text-align: right; }
-        .pagination-container { flex-direction: column !important; gap: 15px; text-align: center !important; }
-        #paginationButtons { justify-content: center; }
+        .table-modern, .table-modern tbody, .table-modern tr, .table-modern td {
+            display: block;
+            width: 100%;
+        }
+
+            .table-modern tr {
+                margin-bottom: 15px;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 15px;
+                overflow: hidden;
+                background: #fff;
+                box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            }
+
+            .table-modern td {
+                text-align: right !important;
+                padding: 12px 15px !important;
+                border-bottom: 1px dashed #f1f5f9;
+                position: relative;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+                .table-modern td:last-child {
+                    border-bottom: none;
+                    background: #f8fafc;
+                    justify-content: center;
+                    padding: 15px !important;
+                }
+                /* Hiển thị label từ thuộc tính data-label */
+                .table-modern td::before {
+                    content: attr(data-label);
+                    float: left;
+                    font-weight: 800;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    font-size: 10px;
+                }
+
+        .mobile-val-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            max-width: 65%;
+            text-align: right;
+        }
+
+        .pagination-container {
+            flex-direction: column !important;
+            gap: 15px;
+            text-align: center !important;
+        }
+
+        #paginationButtons {
+            justify-content: center;
+        }
     }
 </style>
 
@@ -199,7 +344,7 @@
             <div class="tab-pane fade" id="category" role="tabpanel" style="padding: 25px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                     <h6 style="font-weight: 800; color: #475569; margin: 0; text-transform: uppercase; font-size: 13px;">Danh sách phòng họp gốc</h6>
-                    <button type="button" class="btn" onclick="openRoomModal(0, '', '')" 
+                    <button type="button" class="btn" onclick="openRoomModal(0, '', '')"
                             style="background: #1e40af; color: white; font-weight: 800; border-radius: 12px; font-size: 12px; padding: 10px 24px; min-width: 180px;">
                         <i class="fa fa-plus me-2"></i> THÊM PHÒNG MỚI
                     </button>
@@ -261,268 +406,268 @@
         let masterRooms = [];
         let masterBookings = [];
         let filteredBookings = [];
-        
+
         let currentPage = 1;
         let rowsPerPage = 20;
 
         document.addEventListener('DOMContentLoaded', async function() {
-            const modalEl = document.getElementById('modalRoom');
-            if (modalEl) roomModal = new bootstrap.Modal(modalEl);
+        const modalEl = document.getElementById('modalRoom');
+        if (modalEl) roomModal = new bootstrap.Modal(modalEl);
 
-            await fetchAllData();
+        await fetchAllData();
         });
 
         async function fetchAllData() {
-            try {
-                const response = await fetch('/FormHR/GetPhongHopData');
-                const data = await response.json();
-                
-                masterRooms = data.danhMucPhong || [];
-                masterBookings = data.lichDatPhong || [];
+        try {
+        const response = await fetch('/FormHR/GetPhongHopData');
+        const data = await response.json();
 
-                updateStats();
-                filterData();
-            } catch (e) {
-                console.error(e);
-                // Swal.fire("Lỗi", "Không thể tải dữ liệu", "error");
-            }
+        masterRooms = data.danhMucPhong || [];
+        masterBookings = data.lichDatPhong || [];
+
+        updateStats();
+        filterData();
+        } catch (e) {
+        console.error(e);
+        // Swal.fire("Lỗi", "Không thể tải dữ liệu", "error");
+        }
         }
 
         function updateStats() {
-            const total = masterBookings.length;
-            const onCount = masterBookings.filter(x => x.trangThaiPhong === 'on').length;
-            
-            document.getElementById('statTotalBookings').innerText = total;
-            document.getElementById('statRoomsOn').innerText = onCount;
-            document.getElementById('statEmptyRooms').innerText = Math.max(0, masterRooms.length - onCount);
-            document.getElementById('statTotalRooms').innerText = masterRooms.length;
+        const total = masterBookings.length;
+        const onCount = masterBookings.filter(x => x.trangThaiPhong === 'on').length;
+
+        document.getElementById('statTotalBookings').innerText = total;
+        document.getElementById('statRoomsOn').innerText = onCount;
+        document.getElementById('statEmptyRooms').innerText = Math.max(0, masterRooms.length - onCount);
+        document.getElementById('statTotalRooms').innerText = masterRooms.length;
         }
 
         function filterData() {
-            const filter = document.getElementById("quickSearch").value.toUpperCase().trim();
-            
-            filteredBookings = masterBookings.filter(item => {
-                const str = `${item.tenPhongHop} ${item.tenCongTy} ${item.nguoiBook} ${item.tenCongTyKhach}`.toUpperCase();
-                return str.includes(filter);
-            });
+        const filter = document.getElementById("quickSearch").value.toUpperCase().trim();
 
-            renderRooms(filter);
-            currentPage = 1;
-            paginateBookings();
+        filteredBookings = masterBookings.filter(item => {
+        const str = `${item.tenPhongHop} ${item.tenCongTy} ${item.nguoiBook} ${item.tenCongTyKhach}`.toUpperCase();
+        return str.includes(filter);
+        });
+
+        renderRooms(filter);
+        currentPage = 1;
+        paginateBookings();
         }
 
         function changePageSize() {
-            rowsPerPage = parseInt(document.getElementById("pageSizeSelect").value);
-            currentPage = 1;
-            paginateBookings();
+        rowsPerPage = parseInt(document.getElementById("pageSizeSelect").value);
+        currentPage = 1;
+        paginateBookings();
         }
 
         function paginateBookings() {
-            const totalItems = filteredBookings.length;
-            const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
+        const totalItems = filteredBookings.length;
+        const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
 
-            document.getElementById("currentPageNum").innerText = currentPage;
-            document.getElementById("totalPagesNum").innerText = totalPages;
+        document.getElementById("currentPageNum").innerText = currentPage;
+        document.getElementById("totalPagesNum").innerText = totalPages;
 
-            const startIndex = (currentPage - 1) * rowsPerPage;
-            const endIndex = startIndex + rowsPerPage;
-            const pageData = filteredBookings.slice(startIndex, endIndex);
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const pageData = filteredBookings.slice(startIndex, endIndex);
 
-            renderBookings(pageData, startIndex);
-            renderPaginationButtons(totalPages);
+        renderBookings(pageData, startIndex);
+        renderPaginationButtons(totalPages);
         }
 
         function renderBookings(pageData, startIndex) {
-            const tbody = document.getElementById("bookingTableBody");
-            tbody.innerHTML = "";
+        const tbody = document.getElementById("bookingTableBody");
+        tbody.innerHTML = "";
 
-            if (pageData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8; display: block; width: 100%;">Không tìm thấy lịch đặt nào.</td></tr>`;
-                return;
-            }
+        if (pageData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8; display: block; width: 100%;">Không tìm thấy lịch đặt nào.</td></tr>`;
+        return;
+        }
 
-            let html = "";
-            pageData.forEach((item, index) => {
-                let statusHtml = "";
-                let actionBtn = "";
+        let html = "";
+        pageData.forEach((item, index) => {
+        let statusHtml = "";
+        let actionBtn = "";
 
-                if (item.trangThaiPhong === "on") {
-                    statusHtml = `<span class="sub-badge" style="background: #ecfdf5; color: #047857; border-color: #10b981;"><i class="fa fa-play-circle"></i> ĐANG SỬ DỤNG</span>`;
-                    actionBtn = `<button type="button" class="btn btn-sm btn-danger w-100" onclick="updateStatus(${item.id}, 'off')" style="font-weight: 800; font-size: 11px; padding: 7px 15px; border-radius: 8px;">Trả phòng</button>`;
-                } else {
-                    statusHtml = `<span class="sub-badge" style="background: #f8fafc; color: #64748b; border-color: #cbd5e1;"><i class="fa fa-stop-circle"></i> TRỐNG</span>`;
-                    actionBtn = `<button type="button" class="btn btn-sm btn-success w-100" onclick="updateStatus(${item.id}, 'on')" style="font-weight: 800; font-size: 11px; padding: 7px 15px; border-radius: 8px;">Bật 'ON'</button>`;
-                }
+        if (item.trangThaiPhong === "on") {
+        statusHtml = `<span class="sub-badge" style="background: #ecfdf5; color: #047857; border-color: #10b981;"><i class="fa fa-play-circle"></i> ĐANG SỬ DỤNG</span>`;
+        actionBtn = `<button type="button" class="btn btn-sm btn-danger w-100" onclick="updateStatus(${item.id}, 'off')" style="font-weight: 800; font-size: 11px; padding: 7px 15px; border-radius: 8px;">Trả phòng</button>`;
+        } else {
+        statusHtml = `<span class="sub-badge" style="background: #f8fafc; color: #64748b; border-color: #cbd5e1;"><i class="fa fa-stop-circle"></i> TRỐNG</span>`;
+        actionBtn = `<button type="button" class="btn btn-sm btn-success w-100" onclick="updateStatus(${item.id}, 'on')" style="font-weight: 800; font-size: 11px; padding: 7px 15px; border-radius: 8px;">Bật 'ON'</button>`;
+        }
 
-                html += `
-                    <tr>
-                        <td data-label="STT" style="text-align: center; font-weight: 800; color: #94a3b8;">${startIndex + index + 1}</td>
-                        <td data-label="Phòng & Công ty">
-                            <div class="mobile-val-container">
-                                <div style="font-weight: 1000; color: #1e40af; font-size: 15px;">${item.tenPhongHop}</div>
-                                <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">${item.tenCongTy}</div>
-                            </div>
-                        </td>
-                        <td data-label="Người đặt / Đối tác">
-                            <div class="mobile-val-container">
-                                <div style="font-weight: 800; color: #0f172a; font-size: 14px;">${item.nguoiBook}</div>
-                                <div style="font-size: 11px; color: #64748b; font-weight: 600;">Khách: ${item.tenCongTyKhach}</div>
-                            </div>
-                        </td>
-                        <td data-label="Thời gian">
-                            <div class="mobile-val-container">
-                                <div style="font-size: 12px; font-weight: 800; color: #15803d;"><i class="fa fa-sign-in"></i> ${item.thoiGianBatDau}</div>
-                                <div style="font-size: 12px; font-weight: 800; color: #dc2626;"><i class="fa fa-sign-out"></i> ${item.thoiGianKetThuc}</div>
-                            </div>
-                        </td>
-                        <td data-label="Trạng thái" style="text-align: center;">
-                            <div class="mobile-val-container">${statusHtml}</div>
-                        </td>
-                        <td style="text-align: right;">
-                            <div style="display: flex; gap: 5px; justify-content: flex-end;">
-                                ${actionBtn}
-                                <a href="/FormHR/ChiTietDon/${item.idFormHr}" class="btn btn-sm btn-light border" style="padding: 7px 15px; border-radius: 8px;"><i class="fa fa-eye"></i></a>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-            tbody.innerHTML = html;
+        html += `
+        <tr>
+        <td data-label="STT" style="text-align: center; font-weight: 800; color: #94a3b8;">${startIndex + index + 1}</td>
+        <td data-label="Phòng & Công ty">
+        <div class="mobile-val-container">
+        <div style="font-weight: 1000; color: #1e40af; font-size: 15px;">${item.tenPhongHop}</div>
+        <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">${item.tenCongTy}</div>
+        </div>
+        </td>
+        <td data-label="Người đặt / Đối tác">
+        <div class="mobile-val-container">
+        <div style="font-weight: 800; color: #0f172a; font-size: 14px;">${item.nguoiBook}</div>
+        <div style="font-size: 11px; color: #64748b; font-weight: 600;">Khách: ${item.tenCongTyKhach}</div>
+        </div>
+        </td>
+        <td data-label="Thời gian">
+        <div class="mobile-val-container">
+        <div style="font-size: 12px; font-weight: 800; color: #15803d;"><i class="fa fa-sign-in"></i> ${item.thoiGianBatDau}</div>
+        <div style="font-size: 12px; font-weight: 800; color: #dc2626;"><i class="fa fa-sign-out"></i> ${item.thoiGianKetThuc}</div>
+        </div>
+        </td>
+        <td data-label="Trạng thái" style="text-align: center;">
+        <div class="mobile-val-container">${statusHtml}</div>
+        </td>
+        <td style="text-align: right;">
+        <div style="display: flex; gap: 5px; justify-content: flex-end;">
+        ${actionBtn}
+        <a href="/FormHR/ChiTiet/${item.idFormHr}" class="btn btn-sm btn-light border" style="padding: 7px 15px; border-radius: 8px;"><i class="fa fa-eye"></i></a>
+        </div>
+        </td>
+        </tr>
+        `;
+        });
+        tbody.innerHTML = html;
         }
 
         function renderRooms(filter) {
-            const tbody = document.getElementById("roomTableBody");
-            tbody.innerHTML = "";
+        const tbody = document.getElementById("roomTableBody");
+        tbody.innerHTML = "";
 
-            const filteredRooms = masterRooms.filter(x => {
-                const str = `${x.tenPhongHop} ${x.ghiChu}`.toUpperCase();
-                return str.includes(filter);
-            });
+        const filteredRooms = masterRooms.filter(x => {
+        const str = `${x.tenPhongHop} ${x.ghiChu}`.toUpperCase();
+        return str.includes(filter);
+        });
 
-            if (filteredRooms.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 40px; color: #94a3b8; display: block; width: 100%;">Không tìm thấy phòng nào trong danh mục.</td></tr>`;
-                return;
-            }
+        if (filteredRooms.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 40px; color: #94a3b8; display: block; width: 100%;">Không tìm thấy phòng nào trong danh mục.</td></tr>`;
+        return;
+        }
 
-            let html = "";
-            filteredRooms.forEach(p => {
-                html += `
-                    <tr>
-                        <td data-label="ID" style="text-align: center; font-weight: 800; color: #94a3b8;">#${p.id}</td>
-                        <td data-label="Tên Phòng">
-                            <div class="mobile-val-container" style="font-weight: 1000; color: #1e40af; font-size: 15px;">${p.tenPhongHop}</div>
-                        </td>
-                        <td data-label="Ghi chú">
-                            <div class="mobile-val-container" style="color: #64748b; font-size: 13px; font-weight: 600;">${p.ghiChu}</div>
-                        </td>
-                        <td style="text-align: right;">
-                            <div style="display: flex; gap: 5px; justify-content: flex-end;">
-                                <button type="button" class="btn btn-sm" onclick="openRoomModal(${p.id}, '${p.tenPhongHop}', '${p.ghiChu}')" style="color: #b45309; background: #fffbeb; border: 1px solid #fed7aa; border-radius: 8px; padding: 7px 15px;"><i class="fa fa-edit"></i></button>
-                                <button type="button" class="btn btn-sm" onclick="deleteRoom(${p.id})" style="color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 7px 15px;"><i class="fa fa-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-            tbody.innerHTML = html;
+        let html = "";
+        filteredRooms.forEach(p => {
+        html += `
+        <tr>
+        <td data-label="ID" style="text-align: center; font-weight: 800; color: #94a3b8;">#${p.id}</td>
+        <td data-label="Tên Phòng">
+        <div class="mobile-val-container" style="font-weight: 1000; color: #1e40af; font-size: 15px;">${p.tenPhongHop}</div>
+        </td>
+        <td data-label="Ghi chú">
+        <div class="mobile-val-container" style="color: #64748b; font-size: 13px; font-weight: 600;">${p.ghiChu}</div>
+        </td>
+        <td style="text-align: right;">
+        <div style="display: flex; gap: 5px; justify-content: flex-end;">
+        <button type="button" class="btn btn-sm" onclick="openRoomModal(${p.id}, '${p.tenPhongHop}', '${p.ghiChu}')" style="color: #b45309; background: #fffbeb; border: 1px solid #fed7aa; border-radius: 8px; padding: 7px 15px;"><i class="fa fa-edit"></i></button>
+        <button type="button" class="btn btn-sm" onclick="deleteRoom(${p.id})" style="color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 7px 15px;"><i class="fa fa-trash"></i></button>
+        </div>
+        </td>
+        </tr>
+        `;
+        });
+        tbody.innerHTML = html;
         }
 
         function renderPaginationButtons(totalPages) {
-            const container = document.getElementById("paginationButtons");
-            container.innerHTML = "";
-            if (totalPages <= 1) return;
+        const container = document.getElementById("paginationButtons");
+        container.innerHTML = "";
+        if (totalPages <= 1) return;
 
-            for (let i = 1; i <= totalPages; i++) {
-                if (totalPages > 7 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
-                    if (i === 3 || i === totalPages - 2) {
-                        const dot = document.createElement("span");
-                        dot.innerText = "...";
-                        dot.style.padding = "8px"; dot.style.color = "#64748b";
-                        container.appendChild(dot);
-                    }
-                    continue;
-                }
-                const btn = document.createElement("button");
-                btn.innerText = i;
-                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
-                btn.onclick = () => {
-                    currentPage = i;
-                    paginateBookings();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                };
-                container.appendChild(btn);
-            }
+        for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
+        if (i === 3 || i === totalPages - 2) {
+        const dot = document.createElement("span");
+        dot.innerText = "...";
+        dot.style.padding = "8px"; dot.style.color = "#64748b";
+        container.appendChild(dot);
+        }
+        continue;
+        }
+        const btn = document.createElement("button");
+        btn.innerText = i;
+        btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+        btn.onclick = () => {
+        currentPage = i;
+        paginateBookings();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        container.appendChild(btn);
+        }
         }
 
         function openRoomModal(id, name, note) {
-            document.getElementById('room_id').value = id;
-            document.getElementById('room_name').value = name;
-            document.getElementById('room_note').value = note;
-            document.getElementById('roomModalTitle').innerText = id === 0 ? "Thêm phòng họp mới" : "Chỉnh sửa thông tin phòng";
-            if (roomModal) roomModal.show();
+        document.getElementById('room_id').value = id;
+        document.getElementById('room_name').value = name;
+        document.getElementById('room_note').value = note;
+        document.getElementById('roomModalTitle').innerText = id === 0 ? "Thêm phòng họp mới" : "Chỉnh sửa thông tin phòng";
+        if (roomModal) roomModal.show();
         }
 
         function updateStatus(id, status) {
-            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-            
-            Swal.fire({
-                title: 'Xác nhận?',
-                text: status === 'on' ? "Kích hoạt ĐANG SỬ DỤNG" : "Trả phòng/Tắt trạng thái ON",
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#1e40af',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Đồng ý',
-                cancelButtonText: 'Bỏ qua'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const formData = new FormData();
-                    formData.append('id', id);
-                    formData.append('status', status);
-                    formData.append('__RequestVerificationToken', token);
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-                    fetch('/FormHR/UpdateTrangThaiPhong', { method: 'POST', body: formData })
-                    .then(response => response.json())
-                    .then(res => {
-                        if (res.success) fetchAllData();
-                        else Swal.fire('Lỗi!', res.message, 'error');
-                    });
-                }
-            });
+        Swal.fire({
+        title: 'Xác nhận?',
+        text: status === 'on' ? "Kích hoạt ĐANG SỬ DỤNG" : "Trả phòng/Tắt trạng thái ON",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#1e40af',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Đồng ý',
+        cancelButtonText: 'Bỏ qua'
+        }).then((result) => {
+        if (result.isConfirmed) {
+        const formData = new FormData();
+        formData.append('id', id);
+        formData.append('status', status);
+        formData.append('__RequestVerificationToken', token);
+
+        fetch('/FormHR/UpdateTrangThaiPhong', { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(res => {
+        if (res.success) fetchAllData();
+        else Swal.fire('Lỗi!', res.message, 'error');
+        });
+        }
+        });
         }
 
         function deleteRoom(id) {
-            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-            Swal.fire({
-                title: 'Xóa phòng này?',
-                text: "Dữ liệu sẽ bị xóa khỏi danh mục gốc!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Xóa ngay',
-                cancelButtonText: 'Bỏ qua'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const formData = new FormData();
-                    formData.append('id', id);
-                    formData.append('__RequestVerificationToken', token);
+        Swal.fire({
+        title: 'Xóa phòng này?',
+        text: "Dữ liệu sẽ bị xóa khỏi danh mục gốc!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Xóa ngay',
+        cancelButtonText: 'Bỏ qua'
+        }).then((result) => {
+        if (result.isConfirmed) {
+        const formData = new FormData();
+        formData.append('id', id);
+        formData.append('__RequestVerificationToken', token);
 
-                    fetch('/FormHR/XoaPhongHop', { method: 'POST', body: formData })
-                    .then(response => response.json())
-                    .then(res => {
-                        if (res.success) fetchAllData();
-                        else Swal.fire('Lỗi!', res.message, 'error');
-                    });
-                }
-            });
+        fetch('/FormHR/XoaPhongHop', { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(res => {
+        if (res.success) fetchAllData();
+        else Swal.fire('Lỗi!', res.message, 'error');
+        });
+        }
+        });
         }
 
         setInterval(function () {
-            const historyTab = document.getElementById('history-tab');
-            if(historyTab && historyTab.classList.contains('active')) fetchAllData();
+        const historyTab = document.getElementById('history-tab');
+        if(historyTab && historyTab.classList.contains('active')) fetchAllData();
         }, 300000);
     </script>
 }

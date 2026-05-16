@@ -1,0 +1,714 @@
+﻿@model IEnumerable<E_Form_Best.Models.ITForm.ItDangKiSuDungWifi3>
+
+@{
+    ViewData["Title"] = "Thống Kê MAC Thiết Bị Đăng Ký Wi-Fi";
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+    .card-title {
+        font-size: 11px;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .card-value {
+        font-size: 24px;
+        font-weight: 900;
+        margin-top: 5px;
+        display: block;
+    }
+
+    .chart-container {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 20px;
+    }
+
+    .chart-header {
+        font-weight: 800;
+        color: #0c4a6e;
+        margin-bottom: 15px;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 13px;
+    }
+
+        .custom-table th {
+            background-color: #f1f5f9;
+            color: #475569;
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .custom-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+        }
+
+        .custom-table tr:hover {
+            background-color: #f8fafc;
+        }
+
+    .badge-unique {
+        background: #ccfbf1;
+        color: #0f766e;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-weight: bold;
+    }
+
+    .badge-total {
+        background: #e0f2fe;
+        color: #0369a1;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-weight: bold;
+    }
+
+    /* Style cho Sắp xếp cột */
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+        transition: background-color 0.2s;
+    }
+
+        .sortable:hover {
+            background-color: #e2e8f0 !important;
+        }
+
+    .sort-icon {
+        margin-left: 5px;
+        color: #94a3b8;
+        font-size: 12px;
+    }
+
+        .sort-icon.active {
+            color: #0284c7;
+        }
+
+    /* Style cho phân trang */
+    .page-btn {
+        padding: 6px 12px;
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: #475569;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+        .page-btn:hover {
+            background: #f1f5f9;
+        }
+
+        .page-btn.active {
+            background: #14b8a6;
+            color: white;
+            border-color: #14b8a6;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+    /* Style cho Form Lọc và Nút Bấm */
+    .filter-panel {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
+        margin-bottom: 15px;
+        background: #f8fafc;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #475569;
+        }
+
+        .filter-group input {
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+            .filter-group input:focus {
+                outline: none;
+                border-color: #0284c7;
+            }
+
+    .btn-action {
+        padding: 8px 15px;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+        border: none;
+        font-size: 13px;
+        transition: 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        text-decoration: none;
+    }
+
+    .btn-search {
+        background-color: #0284c7;
+        color: white;
+    }
+
+        .btn-search:hover {
+            background-color: #0369a1;
+            color: white;
+        }
+
+    .btn-excel {
+        background-color: #10b981;
+        color: white;
+    }
+
+        .btn-excel:hover {
+            background-color: #059669;
+            color: white;
+        }
+
+    .btn-clear {
+        background-color: #64748b;
+        color: white;
+    }
+
+        .btn-clear:hover {
+            background-color: #475569;
+            color: white;
+        }
+
+    .btn-detail {
+        background-color: #6366f1;
+        color: white;
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+        .btn-detail:hover {
+            background-color: #4f46e5;
+            color: white;
+        }
+
+    /* Animation cho việc mở đóng khung tổng hợp */
+    #summaryChartsContainer {
+        transition: all 0.3s ease-in-out;
+    }
+
+    @@media (max-width: 768px) {
+        .dashboard-container {
+            padding: 0 10px !important;
+            margin-top: 10px !important;
+        }
+
+        .header-section h2 {
+            font-size: 18px !important;
+        }
+
+        .stat-grid-mobile {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+        }
+
+        .chart-container {
+            padding: 15px !important;
+        }
+
+        .canvas-wrapper-mobile {
+            height: 300px !important;
+        }
+
+        #summaryChartsContainer {
+            display: flex !important;
+            flex-direction: column;
+        }
+    }
+</style>
+
+<div class="dashboard-container" style="max-width: 1400px; margin: 20px auto; padding: 0 20px;">
+
+    @* --- HEADER --- *@
+    <div class="header-section" style="margin-bottom: 30px;">
+        <h2 style="font-weight: 900; color: #0c4a6e; margin: 0;">
+            <i class="fa fa-wifi" style="color: #14b8a6;"></i> THỐNG KÊ ĐỊA CHỈ MAC ĐĂNG KÝ
+        </h2>
+    </div>
+
+    @* --- HÀNG CON SỐ TỔNG QUAN --- *@
+    <div class="stat-grid-mobile" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">
+        <div class="stat-card" style="border-top: 4px solid #0369a1;">
+            <span class="card-title">Tổng Lượt Đăng Ký MAC</span>
+            <span class="card-value" id="lblTotalMac" style="color: #0369a1;">0</span>
+        </div>
+        <div class="stat-card" style="border-top: 4px solid #0f766e;">
+            <span class="card-title">Tổng MAC Duy Nhất (Thực tế)</span>
+            <span class="card-value" id="lblUniqueMac" style="color: #0f766e;">0</span>
+        </div>
+    </div>
+
+    @* --- NÚT BẤM ĐỂ ẨN/HIỆN BIỂU ĐỒ TỔNG HỢP --- *@
+    <div style="margin-bottom: 20px; text-align: left;">
+        <button id="btnToggleSummary" class="btn-action" style="background-color: #f59e0b; color: white;" onclick="toggleSummary()">
+            <i class="fa fa-pie-chart"></i> Xem biểu đồ phân bổ & số liệu chi tiết
+        </button>
+    </div>
+
+    @* --- BIỂU ĐỒ & BẢNG CHI TIẾT (MẶC ĐỊNH BỊ ẨN) --- *@
+    <div id="summaryChartsContainer" style="display: none; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
+        <div class="chart-container" style="margin-bottom: 0;">
+            <div class="chart-header"><i class="fa fa-bar-chart"></i> Phân bổ theo loại thiết bị</div>
+            <div class="canvas-wrapper-mobile" style="height: 400px;"><canvas id="chartMacWifi"></canvas></div>
+        </div>
+
+        <div class="chart-container" style="margin-bottom: 0;">
+            <div class="chart-header"><i class="fa fa-list-ul"></i> Số liệu chi tiết</div>
+            <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Loại Thiết Bị</th>
+                            <th style="text-align: center;">Tổng Lượt</th>
+                            <th style="text-align: center;">MAC Duy Nhất</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tblMacBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    @* --- BẢNG DANH SÁCH CHI TIẾT & BỘ LỌC CÓ PHÂN TRANG & SẮP XẾP --- *@
+    <div class="chart-container" style="margin-top: 0;">
+        <div class="chart-header" style="justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div><i class="fa fa-filter"></i> Bộ Lọc & Danh Sách MAC</div>
+
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="font-size: 13px; font-weight: normal; color: #475569;">
+                    Hiển thị:
+                    <select id="ddlPageSize" onchange="changePageSize()" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e1; outline: none; cursor: pointer; font-family: 'Inter', sans-serif;">
+                        <option value="10">10 dòng</option>
+                        <option value="20">20 dòng</option>
+                        <option value="50" selected>50 dòng</option>
+                        <option value="100">100 dòng</option>
+                        <option value="500">500 dòng</option>
+                    </select>
+                </div>
+                <div style="font-size: 13px; font-weight: normal; color: #64748b;" id="lblTotalRecords"></div>
+            </div>
+        </div>
+
+        @* Bộ Lọc Danh Sách *@
+        <div class="filter-panel">
+            <div class="filter-group">
+                <label>Thời gian IT xử lý (Từ)</label>
+                <input type="date" id="txtFromDate">
+            </div>
+            <div class="filter-group">
+                <label>Thời gian IT xử lý (Đến)</label>
+                <input type="date" id="txtToDate">
+            </div>
+            <div class="filter-group">
+                <label>Mã Thiết Bị</label>
+                <input type="text" id="txtMaThietBi" placeholder="Nhập mã thiết bị...">
+            </div>
+            <div class="filter-group">
+                <label>Địa Chỉ MAC</label>
+                <input type="text" id="txtMac" placeholder="Nhập MAC...">
+            </div>
+            <div class="filter-group">
+                <label>Người Yêu Cầu</label>
+                <input type="text" id="txtTenNguoiNv" placeholder="Tên nhân viên...">
+            </div>
+            <div class="filter-group">
+                <label>Bộ Phận</label>
+                <input type="text" id="txtBoPhan" placeholder="Tên bộ phận...">
+            </div>
+            <div class="filter-group">
+                <label>Loại Thiết Bị</label>
+                <input type="text" id="txtLoaiThietBi" placeholder="Laptop, Điện thoại...">
+            </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+            <button class="btn-action btn-clear" onclick="clearFilters()">
+                <i class="fa fa-refresh"></i> Bỏ lọc & Sắp xếp
+            </button>
+            <button class="btn-action btn-search" onclick="loadDanhSachMac(1)">
+                <i class="fa fa-search"></i> Tìm kiếm
+            </button>
+            <button class="btn-action btn-excel" onclick="exportExcel()">
+                <i class="fa fa-file-excel-o"></i> Xuất Excel
+            </button>
+        </div>
+
+        <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+            <table class="custom-table" id="tableDanhSachMac">
+                <thead>
+                    <tr>
+                        <th class="sortable" onclick="sortData('TenNguoiNv')">Người Yêu Cầu <i class="fa fa-sort sort-icon" id="sort-TenNguoiNv"></i></th>
+                        <th class="sortable" onclick="sortData('BoPhan')">Bộ Phận <i class="fa fa-sort sort-icon" id="sort-BoPhan"></i></th>
+                        <th class="sortable" onclick="sortData('MaThietBi')">Mã Thiết Bị <i class="fa fa-sort sort-icon" id="sort-MaThietBi"></i></th>
+                        <th class="sortable" onclick="sortData('LoaiThietBi')">Loại Thiết Bị <i class="fa fa-sort sort-icon" id="sort-LoaiThietBi"></i></th>
+                        <th class="sortable" onclick="sortData('MacTb')">Địa Chỉ MAC <i class="fa fa-sort sort-icon" id="sort-MacTb"></i></th>
+                        <th class="sortable" onclick="sortData('ThoiGianBatDau')">Bắt Đầu <i class="fa fa-sort sort-icon" id="sort-ThoiGianBatDau"></i></th>
+                        <th class="sortable" onclick="sortData('ThoiGianKetThuc')">Kết Thúc <i class="fa fa-sort sort-icon" id="sort-ThoiGianKetThuc"></i></th>
+                        <th class="sortable" onclick="sortData('TenAdmin')">IT Xử Lý <i class="fa fa-sort sort-icon" id="sort-TenAdmin"></i></th>
+                        <th class="sortable" onclick="sortData('TimeAdmin')">Thời Gian Xử Lý <i class="fa fa-sort-desc sort-icon active" id="sort-TimeAdmin"></i></th>
+                        <th style="text-align: center;">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody id="tblDanhSachMacBody">
+                    <tr><td colspan="10" style="text-align: center; padding: 20px;">Đang tải dữ liệu...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        @* --- KHU VỰC PHÂN TRANG --- *@
+        <div id="paginationContainer" style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 5px; flex-wrap: wrap;"></div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<script>
+    Chart.register(ChartDataLabels);
+
+    const commonLabelOptions = {
+    color: '#fff',
+    font: { weight: 'bold', family: 'Inter', size: 12 },
+    formatter: (value) => value > 0 ? value : '',
+    anchor: 'center',
+    align: 'center'
+    };
+
+    let currentPageList = 1;
+    let pageSizeList = 50;
+    let currentSortColumn = "TimeAdmin"; // Mặc định sắp xếp theo Thời gian IT xử lý
+    let currentSortDir = "desc"; // Mặc định là mới nhất lên đầu
+    let myChartInstance = null;
+
+    async function initMacStats() {
+    try {
+    const response = await fetch('/FormIT/GetDataThongKeMac');
+    const data = await response.json();
+
+    updateOverview(data);
+    drawMacChart(data);
+    renderMacTable(data);
+
+    loadDanhSachMac(1);
+    } catch (e) {
+    console.error("Lỗi tải dữ liệu MAC:", e);
+    }
+    }
+
+    function toggleSummary() {
+    const container = document.getElementById('summaryChartsContainer');
+    const btn = document.getElementById('btnToggleSummary');
+
+    if (container.style.display === 'none' || container.style.display === '') {
+    if(window.innerWidth <= 768) { container.style.display = 'flex'; }
+    else { container.style.display = 'grid'; }
+
+    btn.innerHTML = '<i class="fa fa-eye-slash"></i> Ẩn biểu đồ phân bổ & số liệu chi tiết';
+    btn.style.backgroundColor = '#64748b';
+    } else {
+    container.style.display = 'none';
+    btn.innerHTML = '<i class="fa fa-pie-chart"></i> Xem biểu đồ phân bổ & số liệu chi tiết';
+    btn.style.backgroundColor = '#f59e0b';
+    }
+    }
+
+    function updateOverview(data) {
+    const total = data.reduce((sum, item) => sum + item.soLuongMacTong, 0);
+    const unique = data.reduce((sum, item) => sum + item.soLuongMacDuyNhat, 0);
+    document.getElementById('lblTotalMac').innerText = total;
+    document.getElementById('lblUniqueMac').innerText = unique;
+    }
+
+    function drawMacChart(data) {
+    const labels = data.map(x => x.loaiThietBi);
+    const dataUnique = data.map(x => x.soLuongMacDuyNhat);
+    const dataTotal = data.map(x => x.soLuongMacTong);
+
+    const ctx = document.getElementById('chartMacWifi');
+    if (myChartInstance != null) { myChartInstance.destroy(); }
+
+    myChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+    labels: labels,
+    datasets: [
+    { label: 'Số lượng MAC duy nhất', data: dataUnique, backgroundColor: '#14b8a6', borderRadius: 4 },
+    { label: 'Tổng lượt đăng ký', data: dataTotal, backgroundColor: '#bae6fd', borderRadius: 4 }
+    ]
+    },
+    options: {
+    maintainAspectRatio: false,
+    plugins: {
+    legend: { position: 'bottom' },
+    datalabels: {
+    ...commonLabelOptions,
+    color: function (context) { return context.datasetIndex === 1 ? '#0369a1' : '#fff'; },
+    anchor: 'end',
+    align: 'bottom'
+    }
+    },
+    scales: { y: { beginAtZero: true } }
+    }
+    });
+    }
+
+    function renderMacTable(data) {
+    const tbody = document.getElementById('tblMacBody');
+    tbody.innerHTML = data
+    .sort((a, b) => b.soLuongMacDuyNhat - a.soLuongMacDuyNhat)
+    .map(item => `
+    <tr>
+    <td style="font-weight: 600;">${item.loaiThietBi}</td>
+    <td style="text-align: center;"><span class="badge-total">${item.soLuongMacTong}</span></td>
+    <td style="text-align: center;"><span class="badge-unique">${item.soLuongMacDuyNhat}</span></td>
+    </tr>`).join('');
+    }
+
+    // --- HÀM THAY ĐỔI CỘT SẮP XẾP ---
+    function sortData(col) {
+    if (currentSortColumn === col) {
+    currentSortDir = currentSortDir === "asc" ? "desc" : "asc";
+    } else {
+    currentSortColumn = col;
+    currentSortDir = "asc";
+    }
+    updateSortIcons();
+    loadDanhSachMac(1);
+    }
+
+    // Cập nhật giao diện mũi tên sắp xếp
+    function updateSortIcons() {
+    document.querySelectorAll('.sort-icon').forEach(icon => {
+    icon.className = 'fa fa-sort sort-icon';
+    });
+    const activeIcon = document.getElementById('sort-' + currentSortColumn);
+    if (activeIcon) {
+    activeIcon.className = currentSortDir === 'asc'
+    ? 'fa fa-sort-asc sort-icon active'
+    : 'fa fa-sort-desc sort-icon active';
+    }
+    }
+
+    function getFilterParams() {
+    const params = new URLSearchParams({
+    tenNguoiNv: document.getElementById('txtTenNguoiNv').value,
+    boPhan: document.getElementById('txtBoPhan').value,
+    maThietBi: document.getElementById('txtMaThietBi').value,
+    loaiThietBi: document.getElementById('txtLoaiThietBi').value,
+    macTb: document.getElementById('txtMac').value,
+    fromDate: document.getElementById('txtFromDate').value,
+    toDate: document.getElementById('txtToDate').value,
+    sortColumn: currentSortColumn,
+    sortDir: currentSortDir
+    });
+    return params;
+    }
+
+    function changePageSize() {
+    pageSizeList = parseInt(document.getElementById('ddlPageSize').value);
+    loadDanhSachMac(1);
+    }
+
+    // --- HÀM BỎ LỌC VÀ SẮP XẾP ---
+    function clearFilters() {
+    // Xóa trắng các ô nhập
+    document.getElementById('txtTenNguoiNv').value = '';
+    document.getElementById('txtBoPhan').value = '';
+    document.getElementById('txtMaThietBi').value = '';
+    document.getElementById('txtLoaiThietBi').value = '';
+    document.getElementById('txtMac').value = '';
+    document.getElementById('txtFromDate').value = '';
+    document.getElementById('txtToDate').value = '';
+
+    // Đặt lại sắp xếp về mặc định
+    currentSortColumn = "TimeAdmin";
+    currentSortDir = "desc";
+    updateSortIcons();
+
+    // Tải lại dữ liệu trang 1
+    loadDanhSachMac(1);
+    }
+
+    async function loadDanhSachMac(page) {
+    try {
+    document.getElementById('tblDanhSachMacBody').innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px;">Đang tải dữ liệu...</td></tr>';
+
+    const queryParams = getFilterParams();
+    queryParams.append('page', page);
+    queryParams.append('pageSize', pageSizeList);
+
+    const response = await fetch(`/FormIT/GetDanhSachMacWifi?${queryParams.toString()}`);
+    const result = await response.json();
+
+    currentPageList = result.currentPage;
+
+    document.getElementById('lblTotalRecords').innerText = `Tổng số: ${result.totalRecords} bản ghi`;
+    renderTableDanhSach(result.data);
+    renderPagination(result.totalPages, result.currentPage);
+    } catch (e) {
+    console.error("Lỗi tải danh sách:", e);
+    document.getElementById('tblDanhSachMacBody').innerHTML = '<tr><td colspan="10" style="text-align: center; color: red;">Lỗi khi tải dữ liệu!</td></tr>';
+    }
+    }
+
+    function exportExcel() {
+    const queryParams = getFilterParams();
+    window.location.href = `/FormIT/ExportExcelMacWifi?${queryParams.toString()}`;
+    }
+
+    function renderTableDanhSach(data) {
+    const tbody = document.getElementById('tblDanhSachMacBody');
+    if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">Không có dữ liệu phù hợp</td></tr>';
+    return;
+    }
+
+    tbody.innerHTML = data.map(item => `
+    <tr>
+    <td>${item.tenNguoiNv || ''}</td>
+    <td style="color: #64748b;">${item.boPhan || ''}</td>
+    <td style="font-weight: bold; color: #b91c1c;">${item.maThietBi || ''}</td>
+    <td>${item.loaiThietBi || ''}</td>
+    <td style="font-family: monospace; font-weight: bold; font-size: 14px;">${item.macTb || ''}</td>
+    <td>${formatDateTimeView(item.thoiGianBatDau)}</td>
+    <td>${formatDateTimeView(item.thoiGianKetThuc)}</td>
+    <td>${item.tenAdmin || ''}</td>
+    <td style="color: #10b981;">${formatDateTimeView(item.timeAdmin)}</td>
+    <td style="text-align: center;">
+    <a href="/FormIT/ChiTiet/${item.formId}" class="btn-action btn-detail" target="_blank" title="Xem chi tiết đơn">
+    <i class="fa fa-eye"></i> Xem
+    </a>
+    </td>
+    </tr>
+    `).join('');
+    }
+
+    function renderPagination(totalPages, currentPage) {
+    const container = document.getElementById('paginationContainer');
+    container.innerHTML = '';
+
+    if (totalPages <= 1) return;
+
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'page-btn';
+    prevBtn.innerText = 'Trước';
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.onclick = () => loadDanhSachMac(currentPage - 1);
+    container.appendChild(prevBtn);
+
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
+
+    if (startPage > 1) {
+    container.appendChild(createPageBtn(1, currentPage));
+    if (startPage > 2) {
+    const ellipsis = document.createElement('span');
+    ellipsis.style.padding = '6px';
+    ellipsis.innerText = '...';
+    container.appendChild(ellipsis);
+    }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+    container.appendChild(createPageBtn(i, currentPage));
+    }
+
+    if (endPage < totalPages) {
+    if (endPage < totalPages - 1) {
+    const ellipsis = document.createElement('span');
+    ellipsis.style.padding = '6px';
+    ellipsis.innerText = '...';
+    container.appendChild(ellipsis);
+    }
+    container.appendChild(createPageBtn(totalPages, currentPage));
+    }
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'page-btn';
+    nextBtn.innerText = 'Sau';
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.onclick = () => loadDanhSachMac(currentPage + 1);
+    container.appendChild(nextBtn);
+    }
+
+    function createPageBtn(page, currentPage) {
+    const btn = document.createElement('button');
+    btn.className = `page-btn ${page === currentPage ? 'active' : ''}`;
+    btn.innerText = page;
+    btn.onclick = () => { if (page !== currentPage) loadDanhSachMac(page); };
+    return btn;
+    }
+
+    function formatDateTimeView(dateString) {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    return d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+    }
+
+    window.addEventListener('resize', () => {
+    const container = document.getElementById('summaryChartsContainer');
+    if(container.style.display !== 'none' && container.style.display !== '') {
+    if(window.innerWidth <= 768) { container.style.display = 'flex'; }
+    else { container.style.display = 'grid'; }
+    }
+    });
+
+    document.addEventListener('DOMContentLoaded', initMacStats);
+</script>
