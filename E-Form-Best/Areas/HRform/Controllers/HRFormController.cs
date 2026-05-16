@@ -5595,14 +5595,30 @@ namespace E_Form_Best.Areas.HRform.Controllers
             return View(allForms);
         }
 
+        // --- ĐÃ NÂNG CẤP: Nhận thêm tham số fromDate và toDate ---
         [HttpGet("/FormHR/GetDataThongKe")]
-        public async Task<IActionResult> GetDataThongKe()
+        public async Task<IActionResult> GetDataThongKe(DateTime? fromDate, DateTime? toDate)
         {
-            // Bước 1: Lấy dữ liệu thô từ Database (không gọi hàm C# trong này để tránh lỗi EF Core Translation)
-            var dataRaw = await _context.FormHrs
+            // Bước 1: Lấy dữ liệu thô từ Database
+            var query = _context.FormHrs
                 .Include(f => f.HrQuanLyDuyetB2s)
                 .Include(f => f.HrNguoiXacNhans)
-                .AsNoTracking()
+                // THÊM: Include bảng chi tiết hỗ trợ để lấy tên người xử lý cho báo cáo tổng
+                .Include(f => f.HrCtNguoiHoTros).ThenInclude(ct => ct.IdHrNguoiHoTroNavigation)
+                .AsNoTracking();
+
+            // Lọc theo thời gian tạo đơn nếu có
+            if (fromDate.HasValue)
+            {
+                query = query.Where(x => x.TimeNguoiTao >= fromDate.Value);
+            }
+            if (toDate.HasValue)
+            {
+                var endOfToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(x => x.TimeNguoiTao <= endOfToDate);
+            }
+
+            var dataRaw = await query
                 .Select(x => new
                 {
                     x.Id,
@@ -5614,7 +5630,9 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     x.Danhmuc,
                     // Lấy danh sách trạng thái để tính toán logic tại API
                     B2States = x.HrQuanLyDuyetB2s.Select(b => b.TrangThaiXacNhan).ToList(),
-                    GDStates = x.HrNguoiXacNhans.Select(g => g.TrangThaiXacNhan).ToList()
+                    GDStates = x.HrNguoiXacNhans.Select(g => g.TrangThaiXacNhan).ToList(),
+                    // Lấy thông tin người hỗ trợ (mới nhất) để phục vụ việc lọc chéo toàn Dashboard
+                    TenNguoiHoTro = x.HrCtNguoiHoTros.OrderByDescending(ct => ct.Stt).Select(ct => ct.IdHrNguoiHoTroNavigation.Ten).FirstOrDefault()
                 })
                 .ToListAsync();
 
@@ -5625,23 +5643,37 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 TenLoaiDon = GetTenNganGonFormHR(x.IdForm), // Đã đổi tên hàm ở đây để tránh trùng lặp
                 x.BoPhan,
                 x.Danhmuc,
+                TenNguoiHoTro = x.TenNguoiHoTro ?? "Chưa xác định",
                 TrangThaiDon = CalculateStatus(x.TenForm, x.IdNguoiDuyet, x.IdAdmin, x.B2States, x.GDStates)
             });
 
             return Json(processedData);
         }
 
+        // --- ĐÃ NÂNG CẤP: Nhận thêm tham số từ ngày đến ngày ---
         [HttpGet("/FormHR/GetDataNguoiHoTro")]
-        public async Task<IActionResult> GetDataNguoiHoTro()
+        public async Task<IActionResult> GetDataNguoiHoTro(DateTime? fromDate, DateTime? toDate)
         {
-            var allDetails = await _context.HrCtNguoiHoTros
+            var query = _context.HrCtNguoiHoTros
                 .AsNoTracking()
                 .Include(x => x.IdHrNguoiHoTroNavigation)
                 .Include(x => x.IdFormHrNavigation)
                     .ThenInclude(f => f.HrQuanLyDuyetB2s)
                 .Include(x => x.IdFormHrNavigation)
                     .ThenInclude(f => f.HrNguoiXacNhans)
-                .ToListAsync();
+                .AsQueryable();
+
+            if (fromDate.HasValue)
+            {
+                query = query.Where(x => x.IdFormHrNavigation.TimeNguoiTao >= fromDate.Value);
+            }
+            if (toDate.HasValue)
+            {
+                var endOfToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(x => x.IdFormHrNavigation.TimeNguoiTao <= endOfToDate);
+            }
+
+            var allDetails = await query.ToListAsync();
 
             var filteredData = allDetails
                 .GroupBy(x => x.IdFormHr)
@@ -5657,6 +5689,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     return new
                     {
                         TenNguoiHoTro = topSupport.IdHrNguoiHoTroNavigation?.Ten ?? "Chưa xác định",
+                        BoPhan = f.BoPhan, // Đã thêm Bộ Phận để Frontend dễ lọc chéo
                         DanhMuc = f.Danhmuc ?? "N/A",
                         TrangThai = CalculateStatus(f.TenForm, f.IdNguoiDuyet, f.IdAdmin,
                                     f.HrQuanLyDuyetB2s.Select(b => b.TrangThaiXacNhan),
@@ -5729,7 +5762,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 .Include(f => f.HrNguoiXacNhans)
                 .Include(f => f.HrQuanLyDuyetB2s)
                 .Include(f => f.BaoVeHrs)
-                .Include(f => f.HrCtNguoiHoTros);
+                .Include(f => f.HrCtNguoiHoTros).ThenInclude(ct => ct.IdHrNguoiHoTroNavigation);
 
             // LOGIC PHÂN QUYỀN & LỌC
             if (!User.IsInRole("All") && !string.IsNullOrEmpty(tenCongTy))
@@ -5778,6 +5811,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         BoPhan = item.BoPhan ?? "N/A",
                         SoNhanVien = item.SoNhanVien ?? "N/A",
                         TenForm = (item.TenForm ?? "").Replace("[ĐÃ HỦY]", "").Trim(),
+                        TimeNguoiTao = item.TimeNguoiTao?.ToString("dd/MM/yyyy") ?? "--", // Đã bổ sung phục vụ lọc ngày tháng
                         HasB2 = hasB2,
                         B2DoneCount = hasB2 ? item.HrQuanLyDuyetB2s.Count(x => x.TrangThaiXacNhan == 1) : 0,
                         B2TotalCount = hasB2 ? item.HrQuanLyDuyetB2s.Count : 0,
@@ -6098,20 +6132,21 @@ namespace E_Form_Best.Areas.HRform.Controllers
         [HttpGet("/FormHR/QuanLyPhongHop")]
         public IActionResult QuanLyPhongHop()
         {
-            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return Redirect("/DonXetDuyet/DangNhap");
 
-            ViewBag.UserRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("UserRole")?.Value ?? "Guest";
+            ViewBag.UserRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? User.FindFirst("UserRole")?.Value ?? "Guest";
             return View();
         }
 
         /// <summary>
         /// API TRẢ VỀ JSON CHO JAVASCRIPT RENDER
+        /// --- ĐÃ NÂNG CẤP: Bổ sung fromDate, toDate để lọc hiệu năng cao tại Database ---
         /// </summary>
         [HttpGet("/FormHR/GetPhongHopData")]
-        public async Task<IActionResult> GetPhongHopData()
+        public async Task<IActionResult> GetPhongHopData(DateTime? fromDate, DateTime? toDate)
         {
-            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
@@ -6126,9 +6161,20 @@ namespace E_Form_Best.Areas.HRform.Controllers
             }).ToListAsync();
 
             // --- Lấy danh sách các đơn đã đăng ký phòng (Transaction Data) ---
-            IQueryable<HrDonTiepKhac5> query = _context.HrDonTiepKhac5s
+            IQueryable<E_Form_Best.Models.ITForm.HrDonTiepKhac5> query = _context.HrDonTiepKhac5s
                 .Include(x => x.IdFormHrNavigation)
                 .Where(x => !string.IsNullOrEmpty(x.TenPhongHop));
+
+            // Lọc theo thời gian
+            if (fromDate.HasValue)
+            {
+                query = query.Where(x => x.ThoiGianBatDau >= fromDate.Value);
+            }
+            if (toDate.HasValue)
+            {
+                var endOfToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(x => x.ThoiGianBatDau <= endOfToDate);
+            }
 
             // Phân quyền: Admin xem tất cả, User thường/BP xem theo công ty
             if (!isAll && !string.IsNullOrEmpty(tenCongTy))
@@ -6161,7 +6207,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         [ValidateAntiForgeryToken] // Chống tấn công giả mạo đơn hàng
         public async Task<IActionResult> UpdateTrangThaiPhong(int id, string status)
         {
-            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return Json(new { success = false, message = "Hết phiên đăng nhập" });
 
             var chiTiet = await _context.HrDonTiepKhac5s.Include(x => x.IdFormHrNavigation).FirstOrDefaultAsync(x => x.Id == id);
@@ -6195,7 +6241,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 {
                     IdFormHr = chiTiet.IdFormHr ?? 0,
                     TieuDe = "Cập nhật trạng thái phòng",
-                    Mota = $"Thao tác: {status.ToUpper()}. Người thực hiện: {User.FindFirst(ClaimTypes.Name)?.Value}.",
+                    Mota = $"Thao tác: {status.ToUpper()}. Người thực hiện: {User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value}.",
                     Time = DateTime.Now
                 });
 
@@ -6235,7 +6281,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         /// </summary>
         [HttpPost("/FormHR/LuuPhongHop")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> LuuPhongHop(PhongHopHr model)
+        public async Task<IActionResult> LuuPhongHop(E_Form_Best.Models.ITForm.PhongHopHr model)
         {
             if (!User.IsInRole("AdminHR") && !User.IsInRole("All")) return Forbid();
 

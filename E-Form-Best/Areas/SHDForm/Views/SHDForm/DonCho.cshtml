@@ -1,4 +1,5 @@
-﻿@{
+﻿@using System.Security.Claims
+@{
     ViewData["Title"] = "Lịch sử yêu cầu SHD";
     Layout = "~/Areas/SHDForm/Views/Shared/_Layout.cshtml";
 
@@ -6,15 +7,20 @@
     string primaryIndigo = "#312e81";
     string accentCyan = "#22d3ee";
     string statBox = "display: flex; flex-direction: column; padding: 12px 10px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); text-align: center;";
+    var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("UserRole")?.Value ?? "Guest";
 }
 
 <style>
     /* 1. Desktop & General Styles */
-    .stat-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 20px rgba(49, 46, 129, 0.1) !important;
-        border-color: @accentCyan !important;
+    .stat-card {
+        border-left: 5px solid #64748b;
     }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(49, 46, 129, 0.1) !important;
+            border-color: @accentCyan !important;
+        }
 
     .status-badge {
         padding: 4px 10px;
@@ -59,7 +65,80 @@
             box-shadow: 0 4px 12px rgba(49, 46, 129, 0.3);
         }
 
-    /* 2. Responsive Mobile (Đồng bộ cấu trúc bản HR) */
+    /* Style Bộ lọc nâng cao */
+    .advanced-filter {
+        background: white;
+        padding: 15px 20px;
+        border-radius: 15px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+        .filter-group label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+    .filter-input {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-size: 13px;
+        font-weight: 600;
+        color: #1e293b;
+        outline: none;
+        transition: 0.3s;
+        min-width: 140px;
+    }
+
+        .filter-input:focus {
+            border-color: @primaryIndigo;
+            box-shadow: 0 0 0 2px rgba(49, 46, 129, 0.1);
+        }
+
+    .btn-clear-filter {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 9px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        transition: 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+        .btn-clear-filter:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+    /* --- FIX LỖI DÒNG TRỐNG NẰM DỌC --- */
+    #myTable tbody td.shd-empty-cell {
+        display: table-cell !important;
+        width: auto !important;
+        text-align: center !important;
+        padding: 50px !important;
+        color: #94a3b8 !important;
+    }
+
+    /* 2. Responsive Mobile */
     @@media (max-width: 768px) {
         .shd-header-mobile {
             flex-direction: column !important;
@@ -77,7 +156,20 @@
             width: 100% !important;
             box-sizing: border-box !important;
         }
-        /* Biến Table thành Card giống bản HR */
+
+        .advanced-filter {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-group {
+            width: 100%;
+        }
+
+        .filter-input {
+            width: 100%;
+        }
+        /* Biến Table thành Card */
         #myTable thead {
             display: none;
         }
@@ -103,7 +195,7 @@
             border-bottom: 1px dashed #e2e8f0 !important;
             width: 100% !important;
         }
-            /* Nút xem chi tiết đặt góc trên giống bản HR */
+
             #myTable tbody td:last-child {
                 border-bottom: none !important;
                 justify-content: center !important;
@@ -120,6 +212,17 @@
                 flex-shrink: 0;
                 margin-right: 15px;
             }
+            /* Khi ở mobile, reset ô trống thành block rộng 100% và ẩn label giả */
+            #myTable tbody td.shd-empty-cell {
+                display: block !important;
+                width: 100% !important;
+                text-align: center !important;
+                border-bottom: none !important;
+            }
+
+                #myTable tbody td.shd-empty-cell::before {
+                    display: none !important;
+                }
 
         .mobile-td-content {
             display: flex;
@@ -136,6 +239,10 @@
             margin-top: 5px;
         }
 
+        .mobile-progress {
+            margin: 8px 0 0 auto !important;
+        }
+
         .stat-grid-mobile {
             grid-template-columns: repeat(2, 1fr) !important;
         }
@@ -148,12 +255,12 @@
     }
 </style>
 
-<div style="max-width: 1400px; margin: 20px auto; padding: 0 15px; font-family: 'Inter', sans-serif;">
+<div style="max-width: 1400px; margin: 20px auto; padding: 0 15px; font-family: 'Inter', 'Segoe UI', sans-serif;">
 
     @* --- HEADER --- *@
     <div class="shd-header-mobile" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
         <h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #0f172a;">
-            <i class="fa fa-ship" style="color: @primaryIndigo;"></i> LỊCH SỬ YÊU CẦU SHD
+            <i class="fa fa-history" style="color: @primaryIndigo;"></i> LỊCH SỬ YÊU CẦU SHD
         </h2>
         <div class="shd-controls-mobile" style="display: flex; gap: 12px; align-items: center;">
             <div class="shd-select-box" style="display: flex; align-items: center; gap: 10px; background: white; padding: 8px 15px; border-radius: 10px; border: 1px solid #cbd5e1;">
@@ -171,40 +278,69 @@
                 <input type="text" id="myInput" onkeyup="handleFilterAndPaginate()" placeholder="Tìm nội dung, mã đơn..."
                        style="padding: 10px 15px 10px 35px; border-radius: 10px; border: 1px solid #cbd5e1; width: 250px; outline: none; font-weight: 600; box-sizing: border-box;">
             </div>
-            
-            <a href="/FormSHD/DangKy" class="btn-create-mobile" style="padding: 10px 20px; background: @primaryIndigo; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 13px; transition: 0.2s;">
+
+            <a href="/FormSHD/DangKy" class="btn-create-mobile" style="padding: 10px 20px; background: @primaryIndigo; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 13px; transition: 0.2s;" onmouseover="this.style.background='#000'" onmouseout="this.style.background='@primaryIndigo'">
                 <i class="fa fa-plus"></i> TẠO ĐƠN MỚI
             </a>
         </div>
     </div>
 
+    @* --- BỘ LỌC NÂNG CAO --- *@
+    <div class="advanced-filter">
+        <div class="filter-group">
+            <label>Từ ngày</label>
+            <input type="date" id="txtFromDate" class="filter-input" onchange="handleFilterAndPaginate()" />
+        </div>
+        <div class="filter-group">
+            <label>Đến ngày</label>
+            <input type="date" id="txtToDate" class="filter-input" onchange="handleFilterAndPaginate()" />
+        </div>
+        <div class="filter-group">
+            <label>Danh mục</label>
+            <select id="selDanhmuc" class="filter-input" onchange="handleFilterAndPaginate()">
+                <option value="">-- Tất cả --</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Người hỗ trợ</label>
+            <select id="selStaff" class="filter-input" onchange="handleFilterAndPaginate()">
+                <option value="">-- Tất cả --</option>
+            </select>
+        </div>
+        <div class="filter-group" style="flex-direction: row; align-items: flex-end; gap: 10px; margin-left: auto;">
+            <button class="btn-clear-filter" onclick="clearAllFilters()">
+                <i class="fa fa-refresh"></i> Làm mới
+            </button>
+        </div>
+    </div>
+
     @* --- THỐNG KÊ --- *@
     <div class="stat-grid-mobile" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 25px;">
-        <div onclick="filterByStatus('')" class="stat-card" style="@statBox border-left: 5px solid #64748b;">
+        <div data-status="" onclick="filterByStatus('')" class="stat-card" style="@statBox border-left: 5px solid #64748b;">
             <span style="font-size: 10px; color: #64748b; font-weight: 800;">TỔNG ĐƠN</span>
             <span id="stat-total" style="font-size: 20px; font-weight: 900;">0</span>
         </div>
-        <div onclick="filterByStatus('QUẢN LÝ')" class="stat-card" style="@statBox border-left: 5px solid #f59e0b;">
+        <div data-status="QUẢN LÝ" onclick="filterByStatus('QUẢN LÝ')" class="stat-card" style="@statBox border-left: 5px solid #f59e0b;">
             <span style="font-size: 10px; color: #b45309; font-weight: 800;">CHỜ QL DUYỆT</span>
             <span id="stat-ql" style="font-size: 20px; font-weight: 900; color: #d97706;">0</span>
         </div>
-        <div onclick="filterByStatus('BP XÁC NHẬN')" class="stat-card" style="@statBox border-left: 5px solid @accentCyan;">
+        <div data-status="BP XÁC NHẬN" onclick="filterByStatus('BP XÁC NHẬN')" class="stat-card" style="@statBox border-left: 5px solid @accentCyan;">
             <span style="font-size: 10px; color: #0369a1; font-weight: 800;">BP XÁC NHẬN</span>
-            <span id="stat-b2" style="font-size: 20px; font-weight: 900; color: @accentCyan;">0</span>
+            <span id="stat-b2" style="font-size: 20px; font-weight: 900; color: #0ea5e9;">0</span>
         </div>
-        <div onclick="filterByStatus('GIÁM ĐỐC')" class="stat-card" style="@statBox border-left: 5px solid #d946ef;">
+        <div data-status="GIÁM ĐỐC" onclick="filterByStatus('GIÁM ĐỐC')" class="stat-card" style="@statBox border-left: 5px solid #d946ef;">
             <span style="font-size: 10px; color: #86198f; font-weight: 800;">GIÁM ĐỐC</span>
             <span id="stat-gd" style="font-size: 20px; font-weight: 900; color: #d946ef;">0</span>
         </div>
-        <div onclick="filterByStatus('ADMIN')" class="stat-card" style="@statBox border-left: 5px solid @primaryIndigo;">
+        <div data-status="ADMIN" onclick="filterByStatus('ADMIN')" class="stat-card" style="@statBox border-left: 5px solid @primaryIndigo;">
             <span style="font-size: 10px; color: @primaryIndigo; font-weight: 800;">CHỜ ADMIN</span>
             <span id="stat-admin" style="font-size: 20px; font-weight: 900; color: @primaryIndigo;">0</span>
         </div>
-        <div onclick="filterByStatus('XONG')" class="stat-card" style="@statBox border-left: 5px solid #10b981;">
+        <div data-status="XONG" onclick="filterByStatus('XONG')" class="stat-card" style="@statBox border-left: 5px solid #10b981;">
             <span style="font-size: 10px; color: #065f46; font-weight: 800;">HOÀN TẤT</span>
             <span id="stat-xong" style="font-size: 20px; font-weight: 900; color: #059669;">0</span>
         </div>
-        <div onclick="filterByStatus('HỦY/TỪ CHỐI')" class="stat-card" style="@statBox border-left: 5px solid #ef4444;">
+        <div data-status="HỦY/TỪ CHỐI" onclick="filterByStatus('HỦY/TỪ CHỐI')" class="stat-card" style="@statBox border-left: 5px solid #ef4444;">
             <span style="font-size: 10px; color: #991b1b; font-weight: 800;">HỦY/TỪ CHỐI</span>
             <span id="stat-huy" style="font-size: 20px; font-weight: 900; color: #dc2626;">0</span>
         </div>
@@ -225,16 +361,16 @@
             </thead>
             <tbody id="tableBody">
                 <tr>
-                    <td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;">
-                        <i class="fa fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 15px; color: @primaryIndigo;"></i>
-                        <p style="font-weight: 600;">Đang đồng bộ dữ liệu SHD...</p>
+                    <td colspan="6" class="shd-empty-cell">
+                        <i class="fa fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 15px; color: @primaryIndigo; display: block; margin-left: auto; margin-right: auto;"></i>
+                        <p style="font-weight: 600; margin: 0;">Đang đồng bộ dữ liệu SHD...</p>
                     </td>
                 </tr>
             </tbody>
         </table>
     </div>
 
-    @* --- PHÂN TRANG --- *@
+    @* --- PHẦN PHÂN TRANG --- *@
     <div class="pagination-mobile" style="display: flex; justify-content: space-between; align-items: center; padding: 25px 0; margin-top: 10px;">
         <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
         <div style="text-align: right;">
@@ -253,17 +389,58 @@
     let filteredData = [];
     let currentPage = 1;
     let rowsPerPage = 20;
+    let currentActiveStatusFilter = "";
 
     document.addEventListener("DOMContentLoaded", async () => {
+        // --- 1. PHỤC HỒI TỪ SESSION STORAGE ---
+        const savedText = sessionStorage.getItem("savedShdDonChoText");
+        if (savedText) document.getElementById("myInput").value = savedText;
+
+        const savedFrom = sessionStorage.getItem("savedFromDateShdDC");
+        if (savedFrom) document.getElementById("txtFromDate").value = savedFrom;
+
+        const savedTo = sessionStorage.getItem("savedToDateShdDC");
+        if (savedTo) document.getElementById("txtToDate").value = savedTo;
+
+        const savedStatus = sessionStorage.getItem("savedShdDonChoStatus");
+        if (savedStatus !== null) {
+            currentActiveStatusFilter = savedStatus;
+        }
+
         try {
             const response = await fetch('/FormSHD/GetDonChoData');
             masterData = await response.json();
+
+            populateDropdowns(masterData);
+
+            const savedCat = sessionStorage.getItem("savedDanhmucShdDC");
+            if (savedCat) document.getElementById("selDanhmuc").value = savedCat;
+
+            const savedStaff = sessionStorage.getItem("savedStaffShdDC");
+            if (savedStaff) document.getElementById("selStaff").value = savedStaff;
+
             updateStatistics(masterData);
+            updateVisualStatusCard(currentActiveStatusFilter);
             handleFilterAndPaginate();
         } catch (error) {
-            document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: red;">Lỗi tải dữ liệu.</td></tr>`;
+            document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" class="shd-empty-cell" style="color: red !important;">Lỗi tải dữ liệu. Vui lòng F5.</td></tr>`;
         }
     });
+
+    function populateDropdowns(data) {
+        const selDanhmuc = document.getElementById("selDanhmuc");
+        const selStaff = document.getElementById("selStaff");
+
+        const categories = [...new Set(data.map(x => x.danhmuc).filter(Boolean))].sort();
+        categories.forEach(c => {
+            selDanhmuc.innerHTML += `<option value="${c}">${c}</option>`;
+        });
+
+        const staffSet = [...new Set(data.map(x => x.supportName).filter(n => n && n !== "Chờ phân công"))].sort();
+        staffSet.forEach(s => {
+            selStaff.innerHTML += `<option value="${s}">${s}</option>`;
+        });
+    }
 
     function updateStatistics(data) {
         document.getElementById("stat-total").innerText = data.length;
@@ -281,17 +458,103 @@
         handleFilterAndPaginate();
     }
 
-    function filterByStatus(s) {
-        document.getElementById("myInput").value = s;
+    function updateVisualStatusCard(status) {
+        document.querySelectorAll('.stat-card').forEach(el => {
+            const borderLeft = el.getAttribute('style').match(/border-left:[^;]+;/)[0];
+            el.style.cssText = `display: flex; flex-direction: column; padding: 12px 10px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; ${borderLeft} cursor: pointer; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); text-align: center;`;
+        });
+
+        if(status) {
+            const targetCard = document.querySelector(`.stat-card[data-status="${status}"]`);
+            if (targetCard) {
+                targetCard.style.boxShadow = "0 0 0 3px rgba(49, 46, 129, 0.2)";
+                targetCard.style.borderColor = "@primaryIndigo";
+                targetCard.style.borderLeft = targetCard.getAttribute('style').match(/border-left:[^;]+;/)[0];
+            }
+        }
+    }
+
+    function filterByStatus(status) {
+        if(currentActiveStatusFilter === status) {
+            currentActiveStatusFilter = "";
+        } else {
+            currentActiveStatusFilter = status;
+        }
+
+        sessionStorage.setItem("savedShdDonChoStatus", currentActiveStatusFilter);
+        updateVisualStatusCard(currentActiveStatusFilter);
+
+        currentPage = 1;
+        handleFilterAndPaginate();
+
+        let table = document.getElementById("myTable");
+        table.style.opacity = "0.5";
+        setTimeout(() => { table.style.opacity = "1"; }, 150);
+    }
+
+    function clearAllFilters() {
+        document.getElementById("myInput").value = "";
+        document.getElementById("txtFromDate").value = "";
+        document.getElementById("txtToDate").value = "";
+        document.getElementById("selDanhmuc").value = "";
+        document.getElementById("selStaff").value = "";
+
+        sessionStorage.removeItem("savedShdDonChoText");
+        sessionStorage.removeItem("savedFromDateShdDC");
+        sessionStorage.removeItem("savedToDateShdDC");
+        sessionStorage.removeItem("savedDanhmucShdDC");
+        sessionStorage.removeItem("savedStaffShdDC");
+        sessionStorage.removeItem("savedShdDonChoStatus");
+
+        currentActiveStatusFilter = "";
+        updateVisualStatusCard("");
+
         currentPage = 1;
         handleFilterAndPaginate();
     }
 
     function handleFilterAndPaginate() {
         const searchText = document.getElementById("myInput").value.toUpperCase().trim();
+        const fromDateStr = document.getElementById("txtFromDate").value;
+        const toDateStr = document.getElementById("txtToDate").value;
+        const catFilter = document.getElementById("selDanhmuc").value;
+        const staffFilter = document.getElementById("selStaff").value;
+
+        sessionStorage.setItem("savedShdDonChoText", searchText);
+        sessionStorage.setItem("savedFromDateShdDC", fromDateStr);
+        sessionStorage.setItem("savedToDateShdDC", toDateStr);
+        sessionStorage.setItem("savedDanhmucShdDC", catFilter);
+        sessionStorage.setItem("savedStaffShdDC", staffFilter);
+
         filteredData = masterData.filter(item => {
-            const rowString = `${item.id} ${item.tenForm} ${item.danhmuc} ${item.statusText} ${item.supportName}`.toUpperCase();
-            return searchText === "" || rowString.includes(searchText);
+            const stName = item.statusText;
+
+            if (currentActiveStatusFilter && stName !== currentActiveStatusFilter) return false;
+            if (catFilter && item.danhmuc !== catFilter) return false;
+            if (staffFilter && item.supportName !== staffFilter) return false;
+
+            if (fromDateStr || toDateStr) {
+                if (!item.ngay || item.ngay === "--") return false;
+                const parts = item.ngay.split('/');
+                if (parts.length === 3) {
+                    const itemDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
+                    if (fromDateStr) {
+                        const fromD = new Date(fromDateStr + "T00:00:00");
+                        if (itemDate < fromD) return false;
+                    }
+                    if (toDateStr) {
+                        const toD = new Date(toDateStr + "T23:59:59");
+                        if (itemDate > toD) return false;
+                    }
+                }
+            }
+
+            if (searchText) {
+                const rowString = `${item.id} ${item.tenForm} ${item.danhmuc} ${item.statusText} ${item.supportName}`.toUpperCase();
+                if (!rowString.includes(searchText)) return false;
+            }
+
+            return true;
         });
 
         const totalItems = filteredData.length;
@@ -313,8 +576,15 @@
         const tbody = document.getElementById("tableBody");
         tbody.innerHTML = "";
 
+        // --- ĐÃ ĐỒNG BỘ ĐỊNH DẠNG CLASS "shd-empty-cell" ĐỂ FIX LỖI CHỮ DỌC ĐỂ HIỂN THỊ CHIỀU RỘNG CHUẨN ---
         if (pageData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8;">Không tìm thấy yêu cầu nào phù hợp.</td></tr>`;
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="shd-empty-cell">
+                        <i class="fa fa-folder-open-o" style="font-size: 40px; display: block; margin-bottom: 10px; opacity: 0.5; margin-left: auto; margin-right: auto;"></i>
+                        <span style="display: inline-block; font-weight: 700;">Không tìm thấy yêu cầu SHD nào phù hợp bộ lọc.</span>
+                    </td>
+                </tr>`;
             return;
         }
 
@@ -322,12 +592,12 @@
         pageData.forEach(item => {
             let badgesHtml = `<span><i class="fa fa-tag"></i> ${item.danhmuc}</span>`;
             if (item.hasB2) {
-                badgesHtml += `<span class="sub-status-badge" style="color: #0369a1; border-color: #bae6fd; margin-left: 8px;">
+                badgesHtml += `<span class="sub-status-badge" style="color: #0369a1; border-color: #bae6fd; background: #f0f9ff; margin-left: 8px;">
                                 <i class="fa fa-users"></i> BP.XN (${item.b2ApprovedCount}/${item.b2TotalCount})
                                </span>`;
             }
             if (item.hasGD) {
-                badgesHtml += `<span class="sub-status-badge" style="color: #86198f; border-color: #f5d0fe; margin-left: 8px;">
+                badgesHtml += `<span class="sub-status-badge" style="color: #86198f; border-color: #f5d0fe; background: #fdf4ff; margin-left: 8px;">
                                 <i class="fa fa-briefcase"></i> GĐ (${item.gdApprovedCount}/${item.gdTotalCount})
                                </span>`;
             }
@@ -335,12 +605,12 @@
             let avatarChar = item.supportName && item.supportName !== "Chờ phân công" ? item.supportName.charAt(0).toUpperCase() : "?";
 
             html += `
-                <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;">
+                <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
                     <td data-label="ID" style="padding: 15px; font-weight: 700; color: @primaryIndigo;">#${item.id}</td>
-                    <td data-label="NỘI DUNG SHD" style="padding: 15px;">
+                    <td data-label="NỘI DUNG YÊU CẦU SHD" style="padding: 15px;">
                         <div class="mobile-td-content">
                             <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${item.tenForm}</div>
-                            <div class="mobile-badges-wrapper" style="font-size: 11px; color: #64748b;">
+                            <div class="mobile-badges-wrapper" style="font-size: 11px; color: #64748b; margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center;">
                                 ${badgesHtml}
                             </div>
                         </div>
@@ -362,15 +632,15 @@
                         </div>
                     </td>
                     <td data-label="TRẠNG THÁI" style="padding: 15px; text-align: center;">
-                        <div class="mobile-td-content">
+                        <div class="mobile-td-content" style="width: 100%; align-items: flex-end;">
                             <span class="status-badge" style="background: ${item.bgColor}; color: ${item.fgColor}; border-color: ${item.fgColor};">${item.statusText}</span>
-                            <div style="width: 100px; height: 5px; background: #e2e8f0; border-radius: 10px; margin: 8px auto 0; overflow: hidden;">
-                                <div style="width: ${item.progressWidth}; height: 100%; background: ${item.progressColor}; transition: 0.5s;"></div>
+                            <div class="mobile-progress" style="width: 100px; height: 5px; background: #e2e8f0; border-radius: 10px; margin: 8px auto 0; overflow: hidden; border: 1px solid #f1f5f9;">
+                                <div style="width: ${item.progressWidth}; height: 100%; background: ${item.progressColor}; transition: 0.5s ease;"></div>
                             </div>
                         </div>
                     </td>
                     <td data-label="CHI TIẾT" style="padding: 15px; text-align: center;">
-                        <a href="/FormSHD/ChiTiet/${item.id}" style="color: #94a3b8; font-size: 22px;">
+                        <a href="/FormSHD/ChiTiet/${item.id}" title="Xem chi tiết đơn" style="color: #94a3b8; font-size: 18px; transition: 0.2s;" onmouseover="this.style.color='@primaryIndigo'" onmouseout="this.style.color='#94a3b8'">
                             <i class="fa fa-arrow-circle-right"></i>
                         </a>
                     </td>
@@ -386,7 +656,7 @@
         if (totalPages <= 1) return;
         for (let i = 1; i <= totalPages; i++) {
             if (totalPages > 5 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
-                if (i === 3 || i === totalPages - 2) container.insertAdjacentHTML('beforeend', `<span style="padding:8px">...</span>`);
+                if (i === 3 || i === totalPages - 2) container.insertAdjacentHTML('beforeend', `<span style="padding:8px; font-weight:bold; color:#cbd5e1;">...</span>`);
                 continue;
             }
             const btn = document.createElement("button");

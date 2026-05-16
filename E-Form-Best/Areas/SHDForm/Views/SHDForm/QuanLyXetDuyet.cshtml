@@ -3,7 +3,7 @@
     ViewData["Title"] = "Quản Lý Xét Duyệt SHD";
     Layout = "~/Areas/SHDForm/Views/Shared/_Layout.cshtml";
 
-    // Đồng bộ mã màu Luxury SHD
+    // Đồng bộ mã màu Luxury SHD và Font chữ Inter/Segoe UI của HR
     string indigoPrimary = "#312e81";
     string cyanAccent = "#22d3ee";
     var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("UserRole")?.Value ?? "Guest";
@@ -12,32 +12,141 @@
 <style>
     /* 1. Desktop & General Styles */
     .sub-badge {
-        font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700;
-        display: inline-flex; align-items: center; gap: 3px; border: 1px solid; margin-top: 2px;
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        border: 1px solid;
+        margin-top: 2px;
     }
+
     .support-avatar {
-        width: 28px; height: 28px; background: #ecfeff; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center; color: #0891b2; border: 1px solid #cffafe;
+        width: 28px;
+        height: 28px;
+        background: #ecfeff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #0891b2;
+        border: 1px solid #cffafe;
     }
-    .stat-card:hover { 
-        transform: translateY(-3px); 
-        box-shadow: 0 10px 15px -3px rgba(49, 46, 129, 0.1) !important; 
-        border-color: @cyanAccent !important; 
+
+    .stat-card {
+        transition: all 0.3s;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(49, 46, 129, 0.1) !important;
+            border-color: @cyanAccent !important;
+        }
+
+    .status-pill {
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 1000;
+        display: inline-block;
+        min-width: 95px;
+        text-align: center;
+        text-transform: uppercase;
     }
 
     .page-btn {
-        padding: 8px 16px; border-radius: 10px; border: 1px solid #e2e8f0;
-        background: white; color: #64748b; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.3s;
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: 0.3s;
     }
-    .page-btn.active {
-        background: @indigoPrimary; color: white; border-color: @indigoPrimary;
-        box-shadow: 0 4px 6px -1px rgba(49, 46, 129, 0.2);
+
+        .page-btn.active {
+            background: @indigoPrimary;
+            color: white;
+            border-color: @indigoPrimary;
+            box-shadow: 0 4px 6px -1px rgba(49, 46, 129, 0.2);
+        }
+
+        .page-btn:hover:not(.active) {
+            background: #f0f9ff;
+            border-color: @cyanAccent;
+        }
+
+    /* --- Bộ lọc nâng cao --- */
+    .advanced-filter {
+        background: white;
+        padding: 15px 20px;
+        border-radius: 15px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
     }
-    .page-btn:hover:not(.active) { background: #f0f9ff; border-color: @cyanAccent; }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+        .filter-group label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+    .filter-input {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-size: 13px;
+        font-weight: 600;
+        color: #1e293b;
+        outline: none;
+        transition: 0.3s;
+        min-width: 140px;
+    }
+
+        .filter-input:focus {
+            border-color: @indigoPrimary;
+            box-shadow: 0 0 0 2px rgba(49, 46, 129, 0.1);
+        }
+
+    .btn-clear-filter {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 9px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        transition: 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+        .btn-clear-filter:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
 
     /* ==========================================
-       CSS RESPONSIVE CHO MOBILE (ĐỒNG BỘ BẢN HR)
-       ========================================== */
+               CSS RESPONSIVE CHO MOBILE (ĐỒNG BỘ BẢN HR)
+               ========================================== */
     @@media (max-width: 768px) {
         .header-mobile {
             flex-direction: column !important;
@@ -51,61 +160,76 @@
             gap: 12px !important;
         }
 
-        .controls-mobile > div, #quickSearch {
-            width: 100% !important;
+            .controls-mobile > div, #quickSearch {
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+
+        .advanced-filter {
+            flex-direction: column;
+            align-items: stretch;
         }
 
-        /* Thống kê: Lưới 2 cột */
+        .filter-group {
+            width: 100%;
+        }
+
+        .filter-input {
+            width: 100%;
+        }
+
         .stat-grid-mobile {
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 10px !important;
         }
-
         /* Chuyển Table thành Cards */
         #dataTable thead {
             display: none;
         }
 
-        #dataTable tbody tr {
+        #dataTable, #dataTable tbody, #dataTable tr, #dataTable td {
             display: block;
-            margin-bottom: 15px;
-            border: 2px solid #e2e8f0 !important;
-            border-radius: 20px;
-            padding: 12px;
-            background: #ffffff;
-            position: relative;
-            border-left: 6px solid @indigoPrimary !important;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            width: 100%;
         }
 
-        #dataTable tbody td {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border: none !important;
-            padding: 8px 5px !important;
-            width: 100% !important;
-            text-align: right !important;
-            border-bottom: 1px dashed #f1f5f9 !important;
-        }
+            #dataTable tbody tr {
+                margin-bottom: 15px;
+                border: 2px solid #e2e8f0 !important;
+                border-radius: 20px;
+                padding: 12px;
+                background: #ffffff;
+                position: relative;
+                border-left: 6px solid @indigoPrimary !important;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            }
 
-        #dataTable tbody td:last-child {
-            border-bottom: none !important;
-            justify-content: center !important;
-            padding-top: 15px !important;
-        }
+            #dataTable tbody td {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border: none !important;
+                padding: 8px 5px !important;
+                width: 100% !important;
+                text-align: right !important;
+                border-bottom: 1px dashed #f1f5f9 !important;
+            }
 
-        /* Nhãn giả cho Card Mobile */
-        #dataTable tbody td::before {
-            content: attr(data-label);
-            font-weight: 800;
-            color: #64748b;
-            text-transform: uppercase;
-            font-size: 10px;
-            text-align: left;
-            flex-shrink: 0;
-            margin-right: 15px;
-        }
+                #dataTable tbody td:last-child {
+                    border-bottom: none !important;
+                    justify-content: center !important;
+                    padding-top: 15px !important;
+                }
+
+                #dataTable tbody td::before {
+                    content: attr(data-label);
+                    font-weight: 800;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    font-size: 10px;
+                    text-align: left;
+                    flex-shrink: 0;
+                    margin-right: 15px;
+                }
 
         .mobile-td-content {
             display: flex;
@@ -114,15 +238,19 @@
             text-align: right;
         }
 
-        .pagination-mobile {
+        .pagination-container {
             flex-direction: column !important;
             gap: 20px;
-            align-items: center !important;
+            text-align: center !important;
+        }
+
+        #paginationButtons {
+            justify-content: center;
         }
     }
 </style>
 
-<div style="padding: 20px; background: #f1f5f9; min-height: 100vh; font-family: 'Inter', sans-serif;">
+<div style="padding: 20px; background: #f1f5f9; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif;">
 
     @* --- TOP BAR --- *@
     <div class="header-mobile" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px;">
@@ -135,7 +263,7 @@
 
         <div class="controls-mobile" style="display: flex; gap: 15px; align-items: center;">
             <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 8px 15px; border-radius: 12px; border: 2px solid #cbd5e1;">
-                <span style="font-size: 12px; font-weight: 700; color: #64748b;">Dòng:</span>
+                <span style="font-size: 12px; font-weight: 700; color: #64748b;">Hiển thị:</span>
                 <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: @indigoPrimary; cursor: pointer; background: transparent; font-size: 14px;">
                     <option value="10">10</option>
                     <option value="20" selected>20</option>
@@ -144,7 +272,7 @@
                 </select>
             </div>
 
-            <div style="position: relative;">
+            <div style="position: relative;" class="controls-mobile">
                 <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px; font-weight: 900;"></i>
                 <input type="text" id="quickSearch" onkeyup="handleFilterAndPaginate()" placeholder="Tìm tên, bộ phận, mã đơn..."
                        style="padding: 10px 12px 10px 38px; border-radius: 12px; border: 2px solid #cbd5e1; font-size: 14px; width: 280px; outline: none; font-weight: 700; box-sizing: border-box;">
@@ -153,34 +281,63 @@
         </div>
     </div>
 
-    @* --- STATS ROW --- *@
-    <div class="stat-grid-mobile" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-bottom: 25px;">
-        <div onclick="filterByStatus('')" class="stat-card" style="background: white; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: #1e293b; text-transform: uppercase; margin-bottom: 5px;">TỔNG ĐƠN</div>
+    @* --- BỘ LỌC NÂNG CAO --- *@
+    <div class="advanced-filter">
+        <div class="filter-group">
+            <label>Từ ngày</label>
+            <input type="date" id="txtFromDate" class="filter-input" onchange="handleFilterAndPaginate()" />
+        </div>
+        <div class="filter-group">
+            <label>Đến ngày</label>
+            <input type="date" id="txtToDate" class="filter-input" onchange="handleFilterAndPaginate()" />
+        </div>
+        <div class="filter-group">
+            <label>Bộ phận</label>
+            <select id="selBoPhan" class="filter-input" onchange="handleFilterAndPaginate()">
+                <option value="">-- Tất cả --</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Người hỗ trợ</label>
+            <select id="selStaff" class="filter-input" onchange="handleFilterAndPaginate()">
+                <option value="">-- Tất cả --</option>
+            </select>
+        </div>
+        <div class="filter-group" style="flex-direction: row; align-items: flex-end; gap: 10px; margin-left: auto;">
+            <button class="btn-clear-filter" onclick="clearAllFilters()">
+                <i class="fa fa-refresh"></i> Làm mới
+            </button>
+        </div>
+    </div>
+
+    @* --- STATS ROW (Có data-status) --- *@
+    <div class="stat-grid-mobile" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 25px;">
+        <div onclick="filterByStatus('')" class="stat-card" data-status="" style="background: white; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #1e293b; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">TỔNG ĐƠN</div>
             <div id="stat-total" style="font-size: 22px; font-weight: 1000; color: #1e293b;">0</div>
         </div>
-        <div onclick="filterByStatus('CHỜ QL')" class="stat-card" style="background: #fffbeb; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: #b45309; text-transform: uppercase; margin-bottom: 5px;">CHỜ QL</div>
+        <div onclick="filterByStatus('CHỜ QL')" class="stat-card" data-status="CHỜ QL" style="background: #fffbeb; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #b45309; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">CHỜ QL DUYỆT</div>
             <div id="stat-ql" style="font-size: 22px; font-weight: 1000; color: #b45309;">0</div>
         </div>
-        <div onclick="filterByStatus('BP XÁC NHẬN')" class="stat-card" style="background: #ecfeff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: #0891b2; text-transform: uppercase; margin-bottom: 5px;">BP.XN</div>
+        <div onclick="filterByStatus('BP XÁC NHẬN')" class="stat-card" data-status="BP XÁC NHẬN" style="background: #ecfeff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #0891b2; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">BP XÁC NHẬN</div>
             <div id="stat-b2" style="font-size: 22px; font-weight: 1000; color: #0891b2;">0</div>
         </div>
-        <div onclick="filterByStatus('GIÁM ĐỐC')" class="stat-card" style="background: #fdf4ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: #86198f; text-transform: uppercase; margin-bottom: 5px;">GĐ</div>
+        <div onclick="filterByStatus('GIÁM ĐỐC')" class="stat-card" data-status="GIÁM ĐỐC" style="background: #fdf4ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #86198f; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">GIÁM ĐỐC</div>
             <div id="stat-gd" style="font-size: 22px; font-weight: 1000; color: #86198f;">0</div>
         </div>
-        <div onclick="filterByStatus('ADMIN')" class="stat-card" style="background: #e0e7ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: @indigoPrimary; text-transform: uppercase; margin-bottom: 5px;">ADMIN</div>
+        <div onclick="filterByStatus('ADMIN')" class="stat-card" data-status="ADMIN" style="background: #e0e7ff; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: @indigoPrimary; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">CHỜ ADMIN</div>
             <div id="stat-admin" style="font-size: 22px; font-weight: 1000; color: @indigoPrimary;">0</div>
         </div>
-        <div onclick="filterByStatus('HOÀN TẤT')" class="stat-card" style="background: #ecfdf5; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: #10b981; text-transform: uppercase; margin-bottom: 5px;">XONG</div>
+        <div onclick="filterByStatus('HOÀN TẤT')" class="stat-card" data-status="HOÀN TẤT" style="background: #ecfdf5; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #10b981; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">HOÀN TẤT</div>
             <div id="stat-xong" style="font-size: 22px; font-weight: 1000; color: #10b981;">0</div>
         </div>
-        <div onclick="filterByStatus('ĐÃ HỦY')" class="stat-card" style="background: #fef2f2; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 10px; font-weight: 900; color: #b91c1c; text-transform: uppercase; margin-bottom: 5px;">HỦY</div>
+        <div onclick="filterByStatus('ĐÃ HỦY')" class="stat-card" data-status="ĐÃ HỦY" style="background: #fef2f2; padding: 15px 10px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 10px; font-weight: 900; color: #b91c1c; text-transform: uppercase; margin-bottom: 5px; white-space: nowrap;">ĐÃ HỦY</div>
             <div id="stat-huy" style="font-size: 22px; font-weight: 1000; color: #b91c1c;">0</div>
         </div>
     </div>
@@ -209,8 +366,8 @@
         </table>
     </div>
 
-    @* --- PHÂN TRANG --- *@
-    <div class="pagination-mobile" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 5px;">
+    @* --- PHẦN PHÂN TRANG --- *@
+    <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 5px;">
         <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
         <div style="text-align: right;">
             <div style="color: #64748b; font-size: 13px; font-weight: 700;">
@@ -225,30 +382,78 @@
 
 @section Scripts {
     <script>
-        let masterData = [];     
-        let filteredData = [];   
+        let masterData = [];
+        let filteredData = [];
         let currentPage = 1;
         let rowsPerPage = 20;
 
+        // Lưu thẻ màu đang chọn
+        let currentActiveStatusFilter = "";
+
         document.addEventListener("DOMContentLoaded", async () => {
+            // --- 1. PHỤC HỒI TEXT SEARCH ---
+            const savedText = sessionStorage.getItem("savedShdQlyXDText");
+            if (savedText) document.getElementById("quickSearch").value = savedText;
+
+            // --- 2. PHỤC HỒI NGÀY THÁNG LỌC NÂNG CAO ---
+            const savedFrom = sessionStorage.getItem("savedFromDateShdQlyXD");
+            if (savedFrom) document.getElementById("txtFromDate").value = savedFrom;
+
+            const savedTo = sessionStorage.getItem("savedToDateShdQlyXD");
+            if (savedTo) document.getElementById("txtToDate").value = savedTo;
+
+            // --- 3. PHỤC HỒI TRẠNG THÁI THẺ CARD ---
+            const savedStatus = sessionStorage.getItem("savedShdQlyXDStatus");
+            if (savedStatus !== null) {
+                currentActiveStatusFilter = savedStatus;
+            }
+
             try {
                 const response = await fetch('/FormSHD/GetQuanLyXetDuyetData');
                 masterData = await response.json();
+
+                // Đổ vào Combobox Dropdown
+                populateDropdowns(masterData);
+
+                // --- 4. PHỤC HỒI COMBOBOX SAU KHI ĐỔ DỮ LIỆU ---
+                const savedBoPhan = sessionStorage.getItem("savedBoPhanShdQlyXD");
+                if (savedBoPhan) document.getElementById("selBoPhan").value = savedBoPhan;
+
+                const savedStaff = sessionStorage.getItem("savedStaffShdQlyXD");
+                if (savedStaff) document.getElementById("selStaff").value = savedStaff;
+
                 updateStatistics(masterData);
+                updateVisualStatusCard(currentActiveStatusFilter);
                 handleFilterAndPaginate();
             } catch (error) {
-                document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: #ef4444; font-weight: bold;">Lỗi tải dữ liệu SHD.</td></tr>`;
+                document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: #ef4444; font-weight: bold; border:none;">Lỗi tải dữ liệu SHD.</td></tr>`;
             }
         });
 
+        function populateDropdowns(data) {
+            const selBoPhan = document.getElementById("selBoPhan");
+            const selStaff = document.getElementById("selStaff");
+
+            const depts = [...new Set(data.map(x => x.boPhan).filter(Boolean))].sort();
+            depts.forEach(d => {
+                selBoPhan.innerHTML += `<option value="${d}">${d}</option>`;
+            });
+
+            const staffSet = [...new Set(data.map(x => x.supportName).filter(n => n && n !== "Chưa chỉ định" && n !== "Chưa gán"))].sort();
+            staffSet.forEach(s => {
+                selStaff.innerHTML += `<option value="${s}">${s}</option>`;
+            });
+        }
+
         function updateStatistics(data) {
+            const getCnt = (tag) => data.filter(x => x.statusTag === tag).length;
             document.getElementById("stat-total").innerText = data.length;
-            document.getElementById("stat-ql").innerText = data.filter(x => x.statusTag === "CHỜ QL").length;
-            document.getElementById("stat-b2").innerText = data.filter(x => x.statusTag === "BP XÁC NHẬN").length;
-            document.getElementById("stat-gd").innerText = data.filter(x => x.statusTag === "GIÁM ĐỐC").length;
-            document.getElementById("stat-admin").innerText = data.filter(x => x.statusTag === "ADMIN").length;
-            document.getElementById("stat-xong").innerText = data.filter(x => x.statusTag === "HOÀN TẤT").length;
-            document.getElementById("stat-huy").innerText = data.filter(x => x.statusTag === "ĐÃ HỦY").length;
+            document.getElementById("stat-ql").innerText = getCnt("CHỜ QL");
+            document.getElementById("stat-b2").innerText = getCnt("BP XÁC NHẬN");
+            document.getElementById("stat-gd").innerText = getCnt("GIÁM ĐỐC");
+            document.getElementById("stat-admin").innerText = getCnt("ADMIN");
+            document.getElementById("stat-xong").innerText = getCnt("HOÀN TẤT");
+            document.getElementById("stat-huy").innerText = getCnt("ĐÃ HỦY");
         }
 
         function changePageSize() {
@@ -257,8 +462,31 @@
             handleFilterAndPaginate();
         }
 
+        function updateVisualStatusCard(status) {
+            document.querySelectorAll('.stat-card').forEach(el => {
+                el.style.border = "2px solid rgba(0,0,0,0.03)";
+                el.style.boxShadow = "0 4px 6px rgba(0,0,0,0.05)";
+            });
+
+            if(status) {
+                const targetCard = document.querySelector(`.stat-card[data-status="${status}"]`);
+                if (targetCard) {
+                    targetCard.style.border = "2px solid @indigoPrimary";
+                    targetCard.style.boxShadow = "0 0 0 3px rgba(49, 46, 129, 0.2)";
+                }
+            }
+        }
+
         function filterByStatus(s) {
-            document.getElementById("quickSearch").value = s;
+            if(currentActiveStatusFilter === s) {
+                currentActiveStatusFilter = "";
+            } else {
+                currentActiveStatusFilter = s;
+            }
+
+            sessionStorage.setItem("savedShdQlyXDStatus", currentActiveStatusFilter);
+            updateVisualStatusCard(currentActiveStatusFilter);
+
             currentPage = 1;
             handleFilterAndPaginate();
             const tb = document.getElementById("dataTable");
@@ -266,12 +494,69 @@
             setTimeout(() => tb.style.opacity = "1", 150);
         }
 
+        function clearAllFilters() {
+            document.getElementById("quickSearch").value = "";
+            document.getElementById("txtFromDate").value = "";
+            document.getElementById("txtToDate").value = "";
+            document.getElementById("selBoPhan").value = "";
+            document.getElementById("selStaff").value = "";
+
+            sessionStorage.removeItem("savedShdQlyXDText");
+            sessionStorage.removeItem("savedFromDateShdQlyXD");
+            sessionStorage.removeItem("savedToDateShdQlyXD");
+            sessionStorage.removeItem("savedBoPhanShdQlyXD");
+            sessionStorage.removeItem("savedStaffShdQlyXD");
+            sessionStorage.removeItem("savedShdQlyXDStatus");
+
+            currentActiveStatusFilter = "";
+            updateVisualStatusCard("");
+
+            currentPage = 1;
+            handleFilterAndPaginate();
+        }
+
         function handleFilterAndPaginate() {
             const searchText = document.getElementById("quickSearch").value.toUpperCase().trim();
+            const fromDateStr = document.getElementById("txtFromDate").value;
+            const toDateStr = document.getElementById("txtToDate").value;
+            const deptFilter = document.getElementById("selBoPhan").value;
+            const staffFilter = document.getElementById("selStaff").value;
+
+            sessionStorage.setItem("savedShdQlyXDText", searchText);
+            sessionStorage.setItem("savedFromDateShdQlyXD", fromDateStr);
+            sessionStorage.setItem("savedToDateShdQlyXD", toDateStr);
+            sessionStorage.setItem("savedBoPhanShdQlyXD", deptFilter);
+            sessionStorage.setItem("savedStaffShdQlyXD", staffFilter);
 
             filteredData = masterData.filter(item => {
-                const rowString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.tenForm} ${item.id} ${item.supportName} ${item.statusTag}`.toUpperCase();
-                return searchText === "" || rowString.includes(searchText);
+                const stName = item.statusTag;
+
+                if (currentActiveStatusFilter && stName !== currentActiveStatusFilter) return false;
+                if (deptFilter && item.boPhan !== deptFilter) return false;
+                if (staffFilter && item.supportName !== staffFilter) return false;
+
+                if (fromDateStr || toDateStr) {
+                    if (!item.timeNguoiTao || item.timeNguoiTao === "--") return false;
+                    const parts = item.timeNguoiTao.split('/');
+                    if (parts.length === 3) {
+                        const itemDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
+                        if (fromDateStr) {
+                            const fromD = new Date(fromDateStr + "T00:00:00");
+                            if (itemDate < fromD) return false;
+                        }
+                        if (toDateStr) {
+                            const toD = new Date(toDateStr + "T23:59:59");
+                            if (itemDate > toD) return false;
+                        }
+                    }
+                }
+
+                if (searchText) {
+                    const rowString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.tenForm} ${item.id} ${item.supportName} ${stName}`.toUpperCase();
+                    if (!rowString.includes(searchText)) return false;
+                }
+
+                return true;
             });
 
             const totalItems = filteredData.length;
@@ -322,39 +607,38 @@
                         <td data-label="Thông tin đơn SHD" style="padding: 15px 20px;">
                             <div class="mobile-td-content">
                                 <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${item.tenForm}</div>
-                                <div style="font-size: 11px; color: #64748b; font-weight: 700; display: flex; flex-wrap: wrap; align-items: center; margin-top: 4px;">
+                                <div style="font-size: 11px; color: #64748b; font-weight: 700; display: flex; flex-wrap: wrap; align-items: center; margin-top: 4px; justify-content: flex-end;">
                                     ${badgesHtml}
                                 </div>
                             </div>
                         </td>
                         <td data-label="Người Hỗ Trợ" style="padding: 15px 20px;">
                             <div class="mobile-td-content">
-                                <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-end;">
                                     <div class="support-avatar"><i class="fa fa-user-circle-o" style="font-size: 14px;"></i></div>
                                     <div style="font-weight: 700; color: #334155; font-size: 13px;">${item.supportName}</div>
                                 </div>
                             </div>
                         </td>
                         <td data-label="Tiến trình" style="padding: 15px 20px;">
-                            <div class="mobile-td-content">
-                                <div style="width: 100px;">
-                                    <div style="font-size: 9px; font-weight: 1000; color: ${item.pColor}; margin-bottom: 4px; display: flex; justify-content: space-between;">
-                                        <span>${item.pText}</span> <span>${item.pWidth}</span>
-                                    </div>
-                                    <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden;">
-                                        <div style="width: ${item.pWidth}; height: 100%; background: ${item.pColor}; border-radius: 10px; transition: 0.5s ease;"></div>
-                                    </div>
+                            <div class="mobile-td-content" style="width: 100px; margin-left: auto;">
+                                <div style="font-size: 9px; font-weight: 1000; color: ${item.pColor}; margin-bottom: 4px; display: flex; justify-content: space-between; width: 100%;">
+                                    <span>${item.pText}</span> <span>${item.pWidth}</span>
+                                </div>
+                                <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden;">
+                                    <div style="width: ${item.pWidth}; height: 100%; background: ${item.pColor}; border-radius: 10px; transition: 0.5s ease;"></div>
                                 </div>
                             </div>
                         </td>
                         <td data-label="Trạng thái" style="padding: 15px 20px; text-align: center;">
                             <div class="mobile-td-content">
-                                <span style="background:${item.bg}; color:${item.fg}; padding:6px 12px; border-radius:8px; font-size:10px; font-weight:1000; border: 1.5px solid ${item.fg}; display: inline-block; min-width: 85px;">${item.statusTag}</span>
+                                <span style="background:${item.bg}; color:${item.fg}; padding:6px 12px; border-radius:8px; font-size:10px; font-weight:1000; border: 1.5px solid ${item.fg}; display: inline-block; min-width: 85px; text-align: center;">${item.statusTag}</span>
                             </div>
                         </td>
-                        <td data-label="Thao tác" style="padding: 15px 20px; text-align: right;">
+                        <td style="padding: 15px 20px; text-align: right;">
                             <a href="/FormSHD/ChiTiet/${item.id}"
-                               style="text-decoration: none; padding: 8px 20px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s; background: ${btnBg}; color: ${btnColor}; width: 100%; text-align: center; box-sizing: border-box;">
+                               style="text-decoration: none; padding: 8px 20px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s; background: ${btnBg}; color: ${btnColor}; width: 100%; text-align: center; box-sizing: border-box;"
+                               onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
                                  ${btnText}
                             </a>
                         </td>

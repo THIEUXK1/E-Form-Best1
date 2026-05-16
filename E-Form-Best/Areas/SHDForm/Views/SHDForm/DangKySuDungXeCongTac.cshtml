@@ -13,10 +13,10 @@
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
     // Toolkit Style màu SHD 2026 (Indigo & Cyan)
-    string primaryColor = "#4338ca"; 
-    string secondaryColor = "#0891b2"; 
-    string darkBg = "#1e1b4b"; 
-    string lightBg = "#f0f9ff"; 
+    string primaryColor = "#4338ca";
+    string secondaryColor = "#0891b2";
+    string darkBg = "#1e1b4b";
+    string lightBg = "#f0f9ff";
 
     string inputStyle = $"width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #c7d2fe; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s; color: {darkBg};";
     string labelStyle = $"font-weight: 700; color: {primaryColor}; font-size: 11px; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px;";
@@ -25,15 +25,35 @@
 
 <style>
     /* ==========================================
-       CSS RESPONSIVE CHO MOBILE (2026 STYLE)
-       ========================================== */
+           ĐỒNG BỘ FONT CHỮ GIỐNG BÊN HR
+           ========================================== */
+    .shd-container, .shd-container *, input, textarea, select, button {
+        font-family: 'Inter', 'Segoe UI', sans-serif !important;
+    }
+
+    /* ==========================================
+           CSS RESPONSIVE CHO MOBILE (2026 STYLE)
+           ========================================== */
     @@media (max-width: 768px) {
-        .shd-container { padding: 15px 5px !important; }
-        .shd-form-box { border-radius: 20px !important; }
-        .shd-header { padding: 30px 20px !important; }
-        .shd-header h2 { font-size: 18px !important; }
-        .shd-body { padding: 25px 15px !important; }
-        
+        .shd-container {
+            padding: 15px 5px !important;
+        }
+
+        .shd-form-box {
+            border-radius: 20px !important;
+        }
+
+        .shd-header {
+            padding: 30px 20px !important;
+        }
+
+            .shd-header h2 {
+                font-size: 18px !important;
+            }
+
+        .shd-body {
+            padding: 25px 15px !important;
+        }
         /* Ép các grid về 1 cột trên mobile */
         .grid-responsive-3, .grid-responsive-2 {
             grid-template-columns: 1fr !important;
@@ -51,7 +71,7 @@
     }
 </style>
 
-<div class="shd-container" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%); padding: 40px 15px; min-height: 100vh; font-family: 'Inter', sans-serif;">
+<div class="shd-container" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%); padding: 40px 15px; min-height: 100vh;">
 
     <form id="shdForm" class="shd-form-box" method="post" enctype="multipart/form-data" action="/FormSHD/DangKySuDungXeCongTac"
           style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 30px; box-shadow: 0 20px 50px rgba(67, 56, 202, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">

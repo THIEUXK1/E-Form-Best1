@@ -15,104 +15,310 @@
     /* --- FONTS & BASE --- */
     @@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-    /* --- GIỮ NGUYÊN STYLE GỐC VÀ TỐI ƯU --- */
     .sub-badge {
-        font-size: 9px; padding: 2px 8px; border-radius: 6px; font-weight: 800;
-        display: inline-flex; align-items: center; gap: 4px; border: 1.5px solid; margin-top: 3px;
+        font-size: 9px;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        border: 1.5px solid;
+        margin-top: 3px;
     }
+
     .support-avatar {
-        width: 28px; height: 28px; background: #ecfeff; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center; color: #0891b2; border: 1px solid #cffafe;
+        width: 28px;
+        height: 28px;
+        background: #ecfeff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #0891b2;
+        border: 1px solid #cffafe;
     }
+
     .stat-card {
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1px solid rgba(226, 232, 240, 0.8);
+        border: 2px solid rgba(0,0,0,0.03);
         background: white;
     }
-    .stat-card:hover { 
-        transform: translateY(-5px); 
-        box-shadow: 0 20px 25px -5px rgba(49, 46, 129, 0.1) !important;
-        border-color: @cyanAccent;
-    }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(49, 46, 129, 0.1) !important;
+        }
 
     /* Modal Styles */
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.5); z-index: 9998; backdrop-filter: blur(8px); transition: 0.3s; }
-    .type-filter-modal { 
-        display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-        background: white; width: 480px; max-width: 95%; border-radius: 24px; 
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3); z-index: 9999; padding: 30px; overflow: hidden;
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.5);
+        z-index: 9998;
+        backdrop-filter: blur(8px);
+        transition: 0.3s;
     }
-    .type-checkbox-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 20px; margin-bottom: 25px; max-height: 400px; overflow-y: auto; padding-right: 8px; }
-    .type-item-label { 
-        display: flex; align-items: center; gap: 12px; padding: 14px 18px; 
-        background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; 
-        cursor: pointer; transition: 0.2s; font-size: 14px; font-weight: 700; color: #334155; 
+
+    .type-filter-modal {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        width: 480px;
+        max-width: 95%;
+        border-radius: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+        z-index: 9999;
+        padding: 30px;
+        overflow: hidden;
     }
-    .type-item-label:hover { background: #f1f5f9; border-color: @indigoPrimary; color: @indigoPrimary; }
-    .type-checkbox { width: 20px; height: 20px; accent-color: @indigoPrimary; cursor: pointer; }
+
+    .type-checkbox-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-top: 20px;
+        margin-bottom: 25px;
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 8px;
+    }
+
+    .type-item-label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 18px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        cursor: pointer;
+        transition: 0.2s;
+        font-size: 14px;
+        font-weight: 700;
+        color: #334155;
+    }
+
+        .type-item-label:hover {
+            background: #f1f5f9;
+            border-color: @indigoPrimary;
+            color: @indigoPrimary;
+        }
+
+    .type-checkbox {
+        width: 20px;
+        height: 20px;
+        accent-color: @indigoPrimary;
+        cursor: pointer;
+    }
 
     /* Custom Scrollbar */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #f1f5f9; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
 
     /* Phân trang */
     .page-btn {
-        padding: 10px 18px; border-radius: 12px; border: 1.5px solid #e2e8f0; background: white; color: #64748b; font-weight: 800; font-size: 13px; cursor: pointer; transition: 0.3s;
+        padding: 10px 18px;
+        border-radius: 12px;
+        border: 1.5px solid #e2e8f0;
+        background: white;
+        color: #64748b;
+        font-weight: 800;
+        font-size: 13px;
+        cursor: pointer;
+        transition: 0.3s;
     }
-    .page-btn.active {
-        background: @indigoPrimary; color: white; border-color: @indigoPrimary; box-shadow: 0 10px 15px -3px rgba(49, 46, 129, 0.3);
+
+        .page-btn.active {
+            background: @indigoPrimary;
+            color: white;
+            border-color: @indigoPrimary;
+            box-shadow: 0 10px 15px -3px rgba(49, 46, 129, 0.3);
+        }
+
+    /* Bộ lọc nâng cao */
+    .advanced-filter {
+        background: white;
+        padding: 15px 20px;
+        border-radius: 15px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
     }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+        .filter-group label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+    .filter-input {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-size: 13px;
+        font-weight: 600;
+        color: #1e293b;
+        outline: none;
+        transition: 0.3s;
+        min-width: 140px;
+    }
+
+        .filter-input:focus {
+            border-color: @indigoPrimary;
+            box-shadow: 0 0 0 2px rgba(49, 46, 129, 0.1);
+        }
+
+    .btn-clear-filter {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 9px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        transition: 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+        .btn-clear-filter:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
 
     /* ==========================================
-       CSS RESPONSIVE MOBILE (DẠNG CARD)
-       ========================================== */
+           CSS RESPONSIVE MOBILE (DẠNG CARD)
+           ========================================== */
     @@media (max-width: 768px) {
-        .mobile-stack { flex-direction: column !important; align-items: stretch !important; gap: 15px !important; }
-        .mobile-full-width { width: 100% !important; }
-        .mobile-search-box { width: 100% !important; }
-        
-        .stat-grid-mobile { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
-        .stat-card { padding: 15px !important; }
-        .stat-card div[id^="stat-"] { font-size: 24px !important; }
+        .mobile-stack {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 15px !important;
+        }
 
+        .mobile-full-width {
+            width: 100% !important;
+        }
+
+        .mobile-search-box {
+            width: 100% !important;
+        }
+
+        .advanced-filter {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-group {
+            width: 100%;
+        }
+
+        .filter-input {
+            width: 100%;
+        }
+
+        .stat-grid-mobile {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+        }
+
+        .stat-card {
+            padding: 15px !important;
+        }
+
+            .stat-card div[id^="stat-"] {
+                font-size: 24px !important;
+            }
         /* Biến Table thành Card */
-        #dataTable thead { display: none; }
-        #dataTable, #dataTable tbody, #dataTable tr, #dataTable td { display: block; width: 100%; }
-        
-        #dataTable tr {
-            margin-bottom: 20px;
-            border: 2px solid #e2e8f0 !important;
-            border-radius: 20px;
-            background: white;
-            padding: 10px 0;
-            border-left: 6px solid @indigoPrimary !important;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        #dataTable thead {
+            display: none;
         }
 
-        #dataTable td {
-            text-align: right !important;
-            padding: 10px 20px !important;
-            border-bottom: 1px dashed #f1f5f9;
+        #dataTable, #dataTable tbody, #dataTable tr, #dataTable td {
+            display: block;
+            width: 100%;
+        }
+
+            #dataTable tr {
+                margin-bottom: 20px;
+                border: 2px solid #e2e8f0 !important;
+                border-radius: 20px;
+                background: white;
+                padding: 10px 0;
+                border-left: 6px solid @indigoPrimary !important;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            }
+
+            #dataTable td {
+                text-align: right !important;
+                padding: 10px 20px !important;
+                border-bottom: 1px dashed #f1f5f9;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+                #dataTable td:last-child {
+                    border-bottom: none;
+                    background: #f8fafc;
+                    justify-content: center;
+                    padding: 15px !important;
+                }
+
+                #dataTable td::before {
+                    content: attr(data-label);
+                    float: left;
+                    font-weight: 800;
+                    color: #94a3b8;
+                    text-transform: uppercase;
+                    font-size: 10px;
+                    letter-spacing: 0.5px;
+                }
+
+        .mobile-val-wrap {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            align-items: flex-end;
+            text-align: right;
+            max-width: 65%;
         }
 
-        #dataTable td:last-child { border-bottom: none; background: #f8fafc; justify-content: center; padding: 15px !important; }
-
-        #dataTable td::before {
-            content: attr(data-label);
-            float: left;
-            font-weight: 800;
-            color: #94a3b8;
-            text-transform: uppercase;
-            font-size: 10px;
-            letter-spacing: 0.5px;
+        .pagination-mobile {
+            flex-direction: column !important;
+            gap: 20px;
+            text-align: center !important;
         }
-
-        .mobile-val-wrap { display: flex; flex-direction: column; align-items: flex-end; text-align: right; max-width: 65%; }
-        .pagination-mobile { flex-direction: column !important; gap: 20px; text-align: center !important; }
     }
 </style>
 
@@ -147,7 +353,7 @@
                     <input type="text" id="searchInput" onkeyup="applyAllFilters()" placeholder="Tìm tên, mã thẻ, bộ phận..."
                            style="padding: 12px 20px 12px 48px; border-radius: 16px; border: 1.5px solid #e2e8f0; font-size: 14px; width: 300px; outline: none; font-weight: 700; transition: 0.3s; box-sizing: border-box;">
                 </div>
-                
+
                 <button class="mobile-full-width" onclick="openTypeFilterModal()" style="padding: 12px 20px; background: white; border: 1.5px solid #e2e8f0; border-radius: 16px; color: #475569; font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
                     <i class="fa fa-filter"></i> Phân loại
                 </button>
@@ -158,33 +364,62 @@
             </div>
         </div>
 
+        @* --- BỘ LỌC NÂNG CAO --- *@
+        <div class="advanced-filter">
+            <div class="filter-group">
+                <label>Từ ngày</label>
+                <input type="date" id="txtFromDate" class="filter-input" onchange="applyAllFilters()" />
+            </div>
+            <div class="filter-group">
+                <label>Đến ngày</label>
+                <input type="date" id="txtToDate" class="filter-input" onchange="applyAllFilters()" />
+            </div>
+            <div class="filter-group">
+                <label>Bộ phận</label>
+                <select id="selBoPhan" class="filter-input" onchange="applyAllFilters()">
+                    <option value="">-- Tất cả --</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Người hỗ trợ</label>
+                <select id="selStaff" class="filter-input" onchange="applyAllFilters()">
+                    <option value="">-- Tất cả --</option>
+                </select>
+            </div>
+            <div class="filter-group" style="flex-direction: row; align-items: flex-end; gap: 10px; margin-left: auto;">
+                <button class="btn-clear-filter" onclick="clearAllFilters()">
+                    <i class="fa fa-refresh"></i> Làm mới
+                </button>
+            </div>
+        </div>
+
         @* --- STATS GRID --- *@
         <div class="stat-grid-mobile" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 35px;">
-            <div onclick="filterByStatus('')" class="stat-card" style="background: white; padding: 22px; border-radius: 24px; cursor: pointer; text-align: center;">
+            <div data-status="" onclick="filterByStatus('')" class="stat-card" style="background: white; padding: 22px; border-radius: 24px; cursor: pointer; text-align: center;">
                 <div style="font-size: 10px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">TỔNG KHO</div>
                 <div id="stat-total" style="font-size: 30px; font-weight: 1000; color: #1e293b;">0</div>
             </div>
-            <div onclick="filterByStatus('CHỜ QL')" class="stat-card" style="background: #fffbeb; padding: 22px; border-radius: 24px; cursor: pointer; text-align: center;">
+            <div data-status="CHỜ QL" onclick="filterByStatus('CHỜ QL')" class="stat-card" style="background: #fffbeb; padding: 22px; border-radius: 24px; cursor: pointer; text-align: center;">
                 <div style="font-size: 10px; font-weight: 900; color: #b45309; text-transform: uppercase; margin-bottom: 8px;">CHỜ QL</div>
                 <div id="stat-ql" style="font-size: 30px; font-weight: 1000; color: #b45309;">0</div>
             </div>
-            <div onclick="filterByStatus('BƯỚC 2')" class="stat-card" style="background: #f5f3ff; padding: 22px; border-radius: 24px; cursor: pointer; text-align: center;">
+            <div data-status="BƯỚC 2" onclick="filterByStatus('BƯỚC 2')" class="stat-card" style="background: #f5f3ff; padding: 22px; border-radius: 24px; cursor: pointer; text-align: center;">
                 <div style="font-size: 10px; font-weight: 900; color: #6b21a8; text-transform: uppercase; margin-bottom: 8px;">BP XN</div>
                 <div id="stat-b2" style="font-size: 30px; font-weight: 1000; color: #6b21a8;">0</div>
             </div>
-            <div onclick="filterByStatus('GIÁM ĐỐC')" class="stat-card" style="background: #fdf4ff; padding: 22px; border-radius: 24px; cursor: pointer; text-align: center;">
+            <div data-status="GIÁM ĐỐC" onclick="filterByStatus('GIÁM ĐỐC')" class="stat-card" style="background: #fdf4ff; padding: 22px; border-radius: 24px; cursor: pointer; text-align: center;">
                 <div style="font-size: 10px; font-weight: 900; color: #86198f; text-transform: uppercase; margin-bottom: 8px;">GĐ</div>
                 <div id="stat-gd" style="font-size: 30px; font-weight: 1000; color: #86198f;">0</div>
             </div>
-            <div onclick="filterByStatus('CHỜ SHD')" class="stat-card" style="background: #f0f9ff; padding: 22px; border-radius: 24px; cursor: pointer; text-align: center;">
+            <div data-status="CHỜ SHD" onclick="filterByStatus('CHỜ SHD')" class="stat-card" style="background: #f0f9ff; padding: 22px; border-radius: 24px; cursor: pointer; text-align: center;">
                 <div style="font-size: 10px; font-weight: 900; color: #0369a1; text-transform: uppercase; margin-bottom: 8px;">CHỜ SHD</div>
                 <div id="stat-shd" style="font-size: 30px; font-weight: 1000; color: #0369a1;">0</div>
             </div>
-            <div onclick="filterByStatus('HOÀN TẤT')" class="stat-card" style="background: #f0fdf4; padding: 22px; border-radius: 24px; cursor: pointer; text-align: center;">
+            <div data-status="HOÀN TẤT" onclick="filterByStatus('HOÀN TẤT')" class="stat-card" style="background: #f0fdf4; padding: 22px; border-radius: 24px; cursor: pointer; text-align: center;">
                 <div style="font-size: 10px; font-weight: 900; color: #15803d; text-transform: uppercase; margin-bottom: 8px;">XONG</div>
                 <div id="stat-hoanTat" style="font-size: 30px; font-weight: 1000; color: #15803d;">0</div>
             </div>
-            <div onclick="filterByStatus('ĐÃ HỦY')" class="stat-card" style="background: #fef2f2; padding: 22px; border-radius: 24px; cursor: pointer; text-align: center;">
+            <div data-status="ĐÃ HỦY" onclick="filterByStatus('ĐÃ HỦY')" class="stat-card" style="background: #fef2f2; padding: 22px; border-radius: 24px; cursor: pointer; text-align: center;">
                 <div style="font-size: 10px; font-weight: 900; color: #b91c1c; text-transform: uppercase; margin-bottom: 8px;">HỦY</div>
                 <div id="stat-huy" style="font-size: 30px; font-weight: 1000; color: #b91c1c;">0</div>
             </div>
@@ -214,7 +449,7 @@
             </table>
         </div>
 
-        @* --- PHÂN TRANG --- *@
+        @* --- PHẦN PHÂN TRANG --- *@
         <div class="pagination-mobile" style="display: flex; justify-content: space-between; align-items: center; padding: 25px 0;">
             <div id="paginationButtons" style="display: flex; gap: 10px; flex-wrap: wrap;"></div>
             <div style="text-align: right;">
@@ -238,10 +473,10 @@
         </h3>
         <button onclick="closeTypeFilterModal()" style="background: #f1f5f9; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer;">&times;</button>
     </div>
-    
+
     <div class="type-checkbox-grid">
         <label class="type-item-label">
-            <input type="checkbox" class="type-checkbox" value="SHD_XeCongTac_1" onchange="updateToggleBtnText()"> 
+            <input type="checkbox" class="type-checkbox" value="SHD_XeCongTac_1" onchange="updateToggleBtnText()">
             <span><i class="fa fa-car"></i> Đăng ký xe công tác SHD</span>
         </label>
         @* Thêm các loại đơn SHD khác ở đây nếu có *@
@@ -255,22 +490,64 @@
 
 @section Scripts {
     <script>
-        let masterData = [];     
-        let filteredData = [];   
+        let masterData = [];
+        let filteredData = [];
         let currentPage = 1;
         let rowsPerPage = 20;
         const STORAGE_KEY = 'ShdArchiveSelectedTypes';
+        let currentActiveStatusFilter = "";
 
         document.addEventListener("DOMContentLoaded", async () => {
+            // Phục hồi từ Session Storage giống HR
+            const savedText = sessionStorage.getItem("savedShdKhoText");
+            if (savedText) document.getElementById("searchInput").value = savedText;
+
+            const savedFrom = sessionStorage.getItem("savedFromDateShdKho");
+            if (savedFrom) document.getElementById("txtFromDate").value = savedFrom;
+
+            const savedTo = sessionStorage.getItem("savedToDateShdKho");
+            if (savedTo) document.getElementById("txtToDate").value = savedTo;
+
+            const savedStatus = sessionStorage.getItem("savedShdKhoStatus");
+            if (savedStatus !== null) {
+                currentActiveStatusFilter = savedStatus;
+            }
+
             try {
                 const response = await fetch('/FormSHD/GetHoanTatDonData');
                 masterData = await response.json();
+
+                populateDropdowns(masterData);
+
+                // Phục hồi Combobox
+                const savedBoPhan = sessionStorage.getItem("savedBoPhanShdKho");
+                if (savedBoPhan) document.getElementById("selBoPhan").value = savedBoPhan;
+
+                const savedStaff = sessionStorage.getItem("savedStaffShdKho");
+                if (savedStaff) document.getElementById("selStaff").value = savedStaff;
+
                 updateStatistics(masterData);
-                loadSavedTypeFilters(); 
+                updateVisualStatusCard(currentActiveStatusFilter);
+                loadSavedTypeFilters();
             } catch (error) {
-                document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 80px; text-align: center; color: #ef4444; font-weight: 800;">Lỗi tải dữ liệu SHD.</td></tr>`;
+                document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 80px; text-align: center; color: #ef4444; font-weight: 800;">Lỗi tải dữ liệu SHD. Vui lòng F5.</td></tr>`;
             }
         });
+
+        function populateDropdowns(data) {
+            const selBoPhan = document.getElementById("selBoPhan");
+            const selStaff = document.getElementById("selStaff");
+
+            const depts = [...new Set(data.map(x => x.boPhan).filter(Boolean))].sort();
+            depts.forEach(d => {
+                selBoPhan.innerHTML += `<option value="${d}">${d}</option>`;
+            });
+
+            const staffSet = [...new Set(data.map(x => x.supportName).filter(n => n && n !== "Chưa chỉ định" && n !== "Chưa gán"))].sort();
+            staffSet.forEach(s => {
+                selStaff.innerHTML += `<option value="${s}">${s}</option>`;
+            });
+        }
 
         function updateStatistics(data) {
             const getCnt = (tag) => data.filter(x => x.statusTag === tag).length;
@@ -329,9 +606,36 @@
             applyAllFilters();
         }
 
+        function updateVisualStatusCard(status) {
+            document.querySelectorAll('.stat-card').forEach(el => {
+                el.style.border = "2px solid rgba(0,0,0,0.03)";
+                el.style.boxShadow = "none";
+            });
+
+            if(status) {
+                const targetCard = document.querySelector(`.stat-card[data-status="${status}"]`);
+                if (targetCard) {
+                    targetCard.style.border = "2px solid #312e81";
+                    targetCard.style.boxShadow = "0 0 0 3px rgba(49, 46, 129, 0.2)";
+                }
+            }
+        }
+
         function filterByStatus(s) {
-            document.getElementById("searchInput").value = s;
+            if(currentActiveStatusFilter === s) {
+                currentActiveStatusFilter = "";
+            } else {
+                currentActiveStatusFilter = s;
+            }
+
+            sessionStorage.setItem("savedShdKhoStatus", currentActiveStatusFilter);
+            updateVisualStatusCard(currentActiveStatusFilter);
+
             applyAllFilters();
+
+            let table = document.getElementById("tableBody");
+            table.style.opacity = "0.4";
+            setTimeout(() => { table.style.opacity = "1"; }, 150);
         }
 
         function changePageSize() {
@@ -339,27 +643,93 @@
             applyAllFilters();
         }
 
+        function clearAllFilters() {
+            document.getElementById("searchInput").value = "";
+            document.getElementById("txtFromDate").value = "";
+            document.getElementById("txtToDate").value = "";
+            document.getElementById("selBoPhan").value = "";
+            document.getElementById("selStaff").value = "";
+
+            sessionStorage.removeItem("savedShdKhoText");
+            sessionStorage.removeItem("savedFromDateShdKho");
+            sessionStorage.removeItem("savedToDateShdKho");
+            sessionStorage.removeItem("savedBoPhanShdKho");
+            sessionStorage.removeItem("savedStaffShdKho");
+            sessionStorage.removeItem("savedShdKhoStatus");
+
+            currentActiveStatusFilter = "";
+            updateVisualStatusCard("");
+
+            applyAllFilters();
+        }
+
         function applyAllFilters() {
             const searchText = document.getElementById("searchInput").value.toUpperCase().trim();
+            const fromDateStr = document.getElementById("txtFromDate").value;
+            const toDateStr = document.getElementById("txtToDate").value;
+            const deptFilter = document.getElementById("selBoPhan").value;
+            const staffFilter = document.getElementById("selStaff").value;
+
+            // Đồng bộ bộ nhớ đệm session giống HR
+            sessionStorage.setItem("savedShdKhoText", searchText);
+            sessionStorage.setItem("savedFromDateShdKho", fromDateStr);
+            sessionStorage.setItem("savedToDateShdKho", toDateStr);
+            sessionStorage.setItem("savedBoPhanShdKho", deptFilter);
+            sessionStorage.setItem("savedStaffShdKho", staffFilter);
+
             const savedTypesStr = localStorage.getItem(STORAGE_KEY);
             const allowedTypes = savedTypesStr ? JSON.parse(savedTypesStr) : [];
             const totalCheckboxes = document.querySelectorAll('.type-checkbox').length;
             const isAllChecked = (allowedTypes.length === totalCheckboxes || allowedTypes.length === 0);
 
             filteredData = masterData.filter(item => {
-                const rowString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.tenForm} ${item.id} ${item.supportName || ''} ${item.statusTag}`.toUpperCase();
-                const matchText = searchText === "" || rowString.includes(searchText);
-                let matchType = isAllChecked || (item.idForm && allowedTypes.includes(item.idForm.toString().trim()));
-                return matchText && matchType;
+                // 1. Lọc Modal (Phân loại đơn)
+                if (!isAllChecked && item.idForm && !allowedTypes.includes(item.idForm.toString().trim())) return false;
+
+                // 2. Thẻ Trạng Thái độc lập
+                if (currentActiveStatusFilter && item.statusTag !== currentActiveStatusFilter) return false;
+
+                // 3. Bộ phận
+                if (deptFilter && item.boPhan !== deptFilter) return false;
+
+                // 4. Người hỗ trợ
+                if (staffFilter && item.supportName !== staffFilter) return false;
+
+                // 5. Ngày tháng (timeNguoiTao format: dd/MM/yyyy)
+                if (fromDateStr || toDateStr) {
+                    if (!item.timeNguoiTao || item.timeNguoiTao === "--") return false;
+                    const parts = item.timeNguoiTao.split('/');
+                    if (parts.length === 3) {
+                        const itemDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
+                        if (fromDateStr) {
+                            const fromD = new Date(fromDateStr + "T00:00:00");
+                            if (itemDate < fromD) return false;
+                        }
+                        if (toDateStr) {
+                            const toD = new Date(toDateStr + "T23:59:59");
+                            if (itemDate > toD) return false;
+                        }
+                    }
+                }
+
+                // 6. Text tìm kiếm đa năng
+                if (searchText) {
+                    const rowString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.tenForm} ${item.id} ${item.supportName || ''} ${item.statusTag}`.toUpperCase();
+                    if (!rowString.includes(searchText)) return false;
+                }
+
+                return true;
             });
 
-            currentPage = 1; 
+            currentPage = 1;
             renderCurrentPage();
         }
 
         function renderCurrentPage() {
             const totalItems = filteredData.length;
             const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+
             document.getElementById("totalVisibleCount").innerText = totalItems;
             document.getElementById("currentPageNum").innerText = currentPage;
             document.getElementById("totalPagesNum").innerText = totalPages;
@@ -373,22 +743,22 @@
             const tbody = document.getElementById("tableBody");
             tbody.innerHTML = "";
             if (pageData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="padding: 100px; text-align: center; color: #94a3b8; border:none; display:block;"><i class="fa fa-inbox" style="font-size: 50px; opacity: 0.2;"></i><p style="font-weight: 700; margin-top:10px;">Không có hồ sơ phù hợp.</p></td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="padding: 100px; text-align: center; color: #94a3b8; border:none; display: block;"><i class="fa fa-inbox" style="font-size: 50px; opacity: 0.2;"></i><p style="font-weight: 700; margin-top:10px;">Không có hồ sơ phù hợp bộ lọc.</p></td></tr>`;
                 return;
             }
 
             let html = "";
             pageData.forEach(item => {
                 let badgesHtml = `<span>#${item.id} • ${item.timeNguoiTao}</span>`;
-                if (item.hasB2) badgesHtml += `<span class="sub-badge" style="color: #6b21a8; border-color: #ddd6fe; background: #f5f3ff; margin-left:8px;">B2(${item.b2DoneCount}/${item.b2TotalCount})</span>`;
-                if (item.hasGD) badgesHtml += `<span class="sub-badge" style="color: #86198f; border-color: #f5d0fe; background: #fdf4ff; margin-left:8px;">GĐ(${item.gdDoneCount}/${item.gdTotalCount})</span>`;
+                if (item.hasB2) badgesHtml += `<span class="sub-badge" style="color: #6b21a8; border-color: #ddd6fe; background: #f5f3ff; margin-left:8px;">B2 (${item.b2DoneCount}/${item.b2TotalCount})</span>`;
+                if (item.hasGD) badgesHtml += `<span class="sub-badge" style="color: #86198f; border-color: #f5d0fe; background: #fdf4ff; margin-left:8px;">GĐ (${item.gdDoneCount}/${item.gdTotalCount})</span>`;
 
-                let supportHtml = item.supportName 
-                    ? `<div style="display: flex; align-items: center; gap: 8px;"><div class="support-avatar"><i class="fa fa-user-tie"></i></div><span style="font-weight: 700; color: #334155; font-size: 13px;">${item.supportName}</span></div>` 
+                let supportHtml = item.supportName
+                    ? `<div style="display: flex; align-items: center; gap: 8px;"><div class="support-avatar"><i class="fa fa-user-tie"></i></div><span style="font-weight: 700; color: #334155; font-size: 13px;">${item.supportName}</span></div>`
                     : `<span style="color: #cbd5e1; font-size: 11px; font-style: italic;">Chưa gán</span>`;
 
                 html += `
-                    <tr style="border-bottom: 1px solid #f8fafc; transition: 0.3s;">
+                    <tr style="border-bottom: 1px solid #f8fafc; transition: 0.3s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
                         <td data-label="Nhân viên" style="padding: 15px 25px;">
                             <div class="mobile-val-wrap">
                                 <div style="font-weight: 1000; color: #0f172a; font-size: 14px;">${item.tenNguoiNv}</div>
@@ -398,12 +768,12 @@
                         <td data-label="Dịch vụ SHD" style="padding: 15px 25px;">
                             <div class="mobile-val-wrap">
                                 <div style="font-weight: 800; color: #1e293b; font-size: 13px;">${item.tenForm}</div>
-                                <div style="font-size: 10px; color: #94a3b8; font-weight: 700;">${badgesHtml}</div>
+                                <div style="font-size: 10px; color: #94a3b8; font-weight: 700; display: flex; align-items: center; gap: 2px; margin-top: 4px;">${badgesHtml}</div>
                             </div>
                         </td>
                         <td data-label="Hỗ trợ" style="padding: 15px 25px;"><div class="mobile-val-wrap">${supportHtml}</div></td>
                         <td data-label="Tiến độ" style="padding: 15px 25px;">
-                            <div class="mobile-val-wrap" style="width: 100%; max-width: 150px;">
+                            <div class="mobile-val-wrap" style="width: 100%; max-width: 150px; margin-left: auto;">
                                 <div style="font-size: 9px; font-weight: 1000; color: ${item.pColor}; margin-bottom: 4px; display: flex; justify-content: space-between; width: 100%;">
                                     <span>${item.pText}</span> <span>${item.pWidth}</span>
                                 </div>
@@ -414,13 +784,13 @@
                         </td>
                         <td data-label="Trạng thái" style="padding: 15px 25px; text-align: center;">
                             <div class="mobile-val-wrap">
-                                <span style="background:${item.bg}; color:${item.fg}; padding: 4px 10px; border-radius: 8px; font-size: 9px; font-weight: 1000; border: 1.5px solid ${item.fg}; min-width: 85px; text-transform: uppercase;">
+                                <span style="background:${item.bg}; color:${item.fg}; padding: 6px 12px; border-radius: 8px; font-size: 9px; font-weight: 1000; border: 1.5px solid ${item.fg}; min-width: 95px; text-transform: uppercase; display: inline-block; text-align: center;">
                                     ${item.statusTag}
                                 </span>
                             </div>
                         </td>
                         <td style="padding: 15px 25px; text-align: right;">
-                            <a href="/FormSHD/ChiTiet/${item.id}" style="text-decoration: none; padding: 10px 18px; border-radius: 12px; font-size: 11px; font-weight: 900; background: linear-gradient(135deg, @indigoPrimary, #3b82f6); color: white; display: inline-flex; align-items: center; gap: 8px; width: 100%; justify-content: center;">
+                            <a href="/FormSHD/ChiTiet/${item.id}" style="text-decoration: none; padding: 10px 18px; border-radius: 12px; font-size: 11px; font-weight: 900; background: linear-gradient(135deg, @indigoPrimary, #3b82f6); color: white; display: inline-flex; align-items: center; gap: 8px; width: 100%; justify-content: center; box-sizing: border-box;">
                                 CHI TIẾT <i class="fa fa-chevron-right" style="font-size: 9px;"></i>
                             </a>
                         </td>
@@ -434,7 +804,7 @@
             const container = document.getElementById("paginationButtons");
             container.innerHTML = "";
             if (totalPages <= 1) return;
-            
+
             const createBtn = (i, text = i) => {
                 const btn = document.createElement("button");
                 btn.innerText = text; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
@@ -443,8 +813,10 @@
             };
 
             for (let i = 1; i <= totalPages; i++) {
-                if (totalPages > 5 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
-                    if (i === 3 || i === totalPages - 2) container.insertAdjacentHTML('beforeend', `<span style="padding:8px; font-weight:bold; color:#cbd5e1;">...</span>`);
+                if (totalPages > 7 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
+                    if (i === 3 || i === totalPages - 2) {
+                        container.insertAdjacentHTML('beforeend', `<span style="padding:8px; font-weight:bold; color:#cbd5e1;">...</span>`);
+                    }
                     continue;
                 }
                 container.appendChild(createBtn(i));
