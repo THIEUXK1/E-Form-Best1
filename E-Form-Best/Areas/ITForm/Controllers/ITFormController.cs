@@ -3720,9 +3720,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .Include(x => x.IdboPhanNavigation)
                     .Include(x => x.IdTrangThaiNavigation)
                     .Include(x => x.IdNguoiDungNavigation) // Bắt buộc Include bảng User
+                    .OrderByDescending(x => x.IdThietBi) // <--- DESCENDING ĐỂ MỚI NHẤT LÊN ĐẦU
                     .Select(x => new
                     {
-                        idThietBi = x.IdThietBi, // Hoặc x.Id tùy vào tên cột khóa chính trong class DB của bạn
+                        idThietBi = x.IdThietBi,
                         tenThietBi = x.TenThietBi,
                         tenMayTinh = x.TenMayTinh,
                         loaiThietBi = x.LoaiThietBi,
@@ -3730,7 +3731,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                         // Lấy thông tin từ bảng User
                         tenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : null,
-                        tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : null, // <--- Trường Tk đã được thêm
+                        tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : null,
 
                         tenCongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : null,
                         tenBoPhan = x.IdboPhanNavigation != null ? x.IdboPhanNavigation.TenBoPhan : null,
@@ -3751,9 +3752,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
-        #endregion
-
-        // =================================================================================
+        #endregion        // =================================================================================
         // HÀM HỖ TRỢ DÙNG CHUNG CHO CẢ 2 REGION
         // =================================================================================
         private void GhiLichSu(string hanhDong, string doiTuong, int idDoiTuong, string chiTiet)

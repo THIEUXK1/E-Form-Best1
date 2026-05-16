@@ -47,42 +47,50 @@
             </div>
 
             <div class="card-body p-2 p-md-3">
-                <div class="row mb-3 pb-3 border-bottom align-items-center" id="filterBar" style="background: #f8fafc; padding: 15px; border-radius: 10px; margin: 0 5px;">
-                    <div class="col-md-2 col-sm-6 mb-2 mb-md-0">
+                <div class="row mb-3 pb-3 border-bottom align-items-end" id="filterBar" style="background: #f8fafc; padding: 15px; border-radius: 10px; margin: 0 5px;">
+                    <!-- ĐÃ THAY ĐỔI CỘT RESPONSIVE VÀ BỔ SUNG Ô TÌM KIẾM -->
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-building"></i> Công ty</label>
                         <select id="filterCongTy" class="form-select select2-filter rounded-3 border-0 shadow-sm">
                             <option value="">-- Tất cả --</option>
                         </select>
                     </div>
-                    <div class="col-md-2 col-sm-6 mb-2 mb-md-0">
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sitemap"></i> Bộ phận</label>
                         <select id="filterBoPhan" class="form-select select2-filter rounded-3 border-0 shadow-sm">
                             <option value="">-- Tất cả --</option>
                         </select>
                     </div>
-                    <div class="col-md-2 col-sm-4 mb-2 mb-md-0">
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-tags"></i> Loại thiết bị</label>
                         <select id="filterLoai" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
                             <option value="">-- Tất cả --</option>
                         </select>
                     </div>
-                    <div class="col-md-2 col-sm-4 mb-2 mb-md-0" id="boxFilterTrangThai">
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2" id="boxFilterTrangThai">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-info-circle"></i> Trạng thái</label>
                         <select id="filterTrangThai" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
                             <option value="">-- Tất cả --</option>
                         </select>
                     </div>
-                    <div class="col-md-2 col-sm-4 mb-2 mb-md-0">
+
+                    <!-- Ô TÌM KIẾM BỔ SUNG Ở ĐÂY -->
+                    <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6 mb-2">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-primary"></i> Tìm kiếm nhanh</label>
+                        <input type="text" id="filterText" class="form-control rounded-3 border-0 shadow-sm" placeholder="S/N, Hostname, Account, Note..." style="height: 38px;">
+                    </div>
+
+                    <div class="col-xl-1 col-lg-2 col-md-4 col-sm-6 mb-2">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-list-ol"></i> Hiển thị</label>
                         <select id="filterLimit" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
-                            <option value="10">10 dòng</option>
-                            <option value="20">20 dòng</option>
-                            <option value="50">50 dòng</option>
-                            <option value="100">100 dòng</option>
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
                             <option value="all">Tất cả</option>
                         </select>
                     </div>
-                    <div class="col-md-2 col-sm-4 mt-3 mt-md-0 text-md-end text-center d-flex align-items-end justify-content-md-end gap-2">
+                    <div class="col-xl-1 col-lg-2 col-md-12 mb-2 d-flex justify-content-end">
                         <button class="btn btn-outline-secondary rounded-pill px-3 shadow-sm w-100" onclick="clearFilters()" style="height: 38px;"><i class="fas fa-sync-alt"></i> Bỏ lọc</button>
                     </div>
                 </div>
@@ -292,16 +300,14 @@
         if($.fn.select2) {
         $('.select2-filter').select2({ width: '100%', minimumResultsForSearch: 0 });
 
-        // --- CẬP NHẬT Ở ĐÂY: Sửa lỗi select2 bay lung tung trên Modal ---
         $('.select2-modal').select2({
-        dropdownParent: $('#modalThietBi .modal-content'), // Trỏ vào .modal-content
+        dropdownParent: $('#modalThietBi .modal-content'),
         placeholder: "-- Chọn người dùng --",
         allowClear: true,
         width: '100%',
         minimumResultsForSearch: 0
         });
 
-        // Chặn auto-focus trên thiết bị Mobile để tránh bàn phím ảo đẩy viewport
         $(document).on('select2:open', () => {
         let isMobile = window.matchMedia("(max-width: 767px)").matches;
         if (!isMobile) {
@@ -310,14 +316,12 @@
         }
         });
 
-        // Tự động đóng Select2 khi cuộn trong modal trên mobile
         $('#modalThietBi').on('scroll', function() {
         let isMobile = window.matchMedia("(max-width: 767px)").matches;
         if (isMobile) {
         $('.select2-modal').select2("close");
         }
         });
-        // -----------------------------------------------------------------
 
         setTimeout(() => {
         $('.select2-selection--single').css({
@@ -334,8 +338,15 @@
         let savedLoai = localStorage.getItem('kk_filterLoai') || '';
         $('#filterLoai').val(savedLoai);
 
+        // Bổ sung load lại Text Search
+        let savedText = localStorage.getItem('kk_filterText') || '';
+        $('#filterText').val(savedText);
+
         $('#filterCongTy').on('change', function() { renderFilterBoPhan(); applyFilters(); });
         $('#filterBoPhan, #filterLimit, #filterLoai, #filterTrangThai').on('change', function() { applyFilters(); });
+
+        // GÁN SỰ KIỆN TÌM KIẾM THEO CHỮ (Chạy real-time khi gõ phím)
+        $('#filterText').on('keyup input', function() { applyFilters(); });
 
         $('.modal').on('hidden.bs.modal', function () {
         $(this).find('input[type="text"], textarea').val('');
@@ -404,12 +415,14 @@
         localStorage.removeItem('kk_filterLoai');
         localStorage.removeItem('kk_filterTT');
         localStorage.setItem('kk_filterLimit', '50');
+        localStorage.removeItem('kk_filterText'); // Xóa text
 
         $('#filterCongTy').val('').trigger('change.select2');
         renderFilterBoPhan();
         $('#filterBoPhan').val('').trigger('change.select2');
         $('#filterLoai, #filterTrangThai').val('');
         $('#filterLimit').val('50');
+        $('#filterText').val(''); // Reset ô text
 
         applyFilters();
         }
@@ -420,6 +433,7 @@
         localStorage.setItem('kk_filterLoai', $('#filterLoai').val() || '');
         localStorage.setItem('kk_filterTT', $('#filterTrangThai').val() || '');
         localStorage.setItem('kk_filterLimit', $('#filterLimit').val());
+        localStorage.setItem('kk_filterText', $('#filterText').val().trim()); // Lưu lại từ khóa tìm kiếm
 
         renderUIThietBi();
         renderUIDaXoa();
@@ -449,7 +463,6 @@
         });
         }
 
-        // Dùng riêng khi reload lại Thiết bị (Thêm, Xóa, Sửa, Check)
         function loadThietBi() {
         $.get('/QLKiemKe/GetKkThietBis', function (res) {
         if (res && res.success) {
@@ -607,7 +620,12 @@
         }
 
         function renderUIThietBi() {
-        let fCT = $('#filterCongTy').val(); let fBP = $('#filterBoPhan').val(); let fLoai = $('#filterLoai').val(); let fTT = $('#filterTrangThai').val(); let fLimit = $('#filterLimit').val();
+        let fCT = $('#filterCongTy').val();
+        let fBP = $('#filterBoPhan').val();
+        let fLoai = $('#filterLoai').val();
+        let fTT = $('#filterTrangThai').val();
+        let fLimit = $('#filterLimit').val();
+        let fText = $('#filterText').val().toLowerCase().trim(); // Lấy giá trị Text Search
 
         let filtered = allThietBiCache.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
 
@@ -615,11 +633,23 @@
         if (fBP) filtered = filtered.filter(x => x.idboPhan == fBP);
         if (fLoai) filtered = filtered.filter(x => x.loaiThietBi === fLoai);
         if (fTT) filtered = filtered.filter(x => x.idTrangThai == fTT);
+
+        // XỬ LÝ TÌM KIẾM TEXT
+        if (fText) {
+        filtered = filtered.filter(x =>
+        (x.tenMayTinh && x.tenMayTinh.toLowerCase().includes(fText)) ||
+        (x.tenThietBi && x.tenThietBi.toLowerCase().includes(fText)) ||
+        (x.tenDangNhap && x.tenDangNhap.toLowerCase().includes(fText)) ||
+        (x.tenNguoiDung && x.tenNguoiDung.toLowerCase().includes(fText)) ||
+        (x.tk && x.tk.toLowerCase().includes(fText)) ||
+        (x.ghiChu && x.ghiChu.toLowerCase().includes(fText))
+        );
+        }
+
         if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
 
         let html = '';
         filtered.forEach(item => {
-
         let userStr = item.tenNguoiDung
         ? `<span class="text-success fw-bold"><i class="fas fa-user me-1"></i>${item.tenNguoiDung} <span class="text-danger fw-normal">(${item.tk || 'N/A'})</span></span>`
         : `<span class="text-muted fst-italic">Chưa cấp phát</span>`;
@@ -676,17 +706,36 @@
         </td>
         </tr>`;
         });
+
+        if (filtered.length === 0) {
+        html = `<tr><td colspan="6" class="text-center text-muted py-5"><i class="fas fa-search fs-2 mb-2 d-block opacity-50"></i> Không tìm thấy thiết bị nào khớp với từ khóa</td></tr>`;
+        }
+
         $('#tbodyThietBi').html(html);
         }
 
         function renderUIDaXoa() {
-        let fCT = $('#filterCongTy').val(); let fBP = $('#filterBoPhan').val(); let fLoai = $('#filterLoai').val(); let fLimit = $('#filterLimit').val();
+        let fCT = $('#filterCongTy').val();
+        let fBP = $('#filterBoPhan').val();
+        let fLoai = $('#filterLoai').val();
+        let fLimit = $('#filterLimit').val();
+        let fText = $('#filterText').val().toLowerCase().trim(); // Lấy giá trị Text Search
 
         let filtered = allThietBiCache.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa'));
 
         if (fCT) filtered = filtered.filter(x => x.idcongTy == fCT);
         if (fBP) filtered = filtered.filter(x => x.idboPhan == fBP);
         if (fLoai) filtered = filtered.filter(x => x.loaiThietBi === fLoai);
+
+        // XỬ LÝ TÌM KIẾM TEXT CHO TAB XÓA
+        if (fText) {
+        filtered = filtered.filter(x =>
+        (x.tenMayTinh && x.tenMayTinh.toLowerCase().includes(fText)) ||
+        (x.tenThietBi && x.tenThietBi.toLowerCase().includes(fText)) ||
+        (x.lyDoXoa && x.lyDoXoa.toLowerCase().includes(fText))
+        );
+        }
+
         if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
 
         let html = '';
