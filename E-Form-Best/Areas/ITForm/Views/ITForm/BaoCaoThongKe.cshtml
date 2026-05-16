@@ -203,8 +203,8 @@
     }
 
     /* ==========================================
-           CSS RESPONSIVE CHO MOBILE (2026 STYLE)
-           ========================================== */
+               CSS RESPONSIVE CHO MOBILE (2026 STYLE)
+               ========================================== */
     @@media (max-width: 768px) {
         .dashboard-container {
             padding: 0 10px !important;
@@ -265,7 +265,7 @@
         <span id="lblErrorText">Không thể kết nối đến hệ thống máy chủ. Vui lòng kiểm tra lại đường truyền hoặc thử lại sau!</span>
     </div>
 
-    @* --- BỘ LỌC THỜI GIAN --- *@
+    @* --- BỘ LỌC THỜI GIAN VÀ NGƯỜI HỖ TRỢ --- *@
     <div class="filter-wrapper">
         <div style="display: flex; align-items: center; gap: 8px;">
             <label style="font-size: 13px; font-weight: 700; color: #475569;">Từ ngày:</label>
@@ -275,6 +275,15 @@
             <label style="font-size: 13px; font-weight: 700; color: #475569;">Đến ngày:</label>
             <input type="date" id="txtToDate" class="filter-input" />
         </div>
+
+        @* --- ĐÃ THÊM: Ô dropdown chọn người hỗ trợ --- *@
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 13px; font-weight: 700; color: #475569;">Người hỗ trợ:</label>
+            <select id="selStaffFilter" class="filter-input" style="min-width: 160px;">
+                <option value="">-- Tất cả --</option>
+            </select>
+        </div>
+
         <button type="button" class="btn-filter" onclick="initStats()"><i class="fa fa-filter"></i> Lọc dữ liệu</button>
         <span id="lblLoading" class="loading-text"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu mới...</span>
     </div>
@@ -359,7 +368,8 @@
     let chartCategoryInstance = null;
     let chartIdFormInstance = null;
 
-    // Cache dữ liệu nhân viên phục vụ chức năng drill-down lọc dữ liệu tại chỗ
+    // Cache dữ liệu để phục vụ chức năng drill-down lọc dữ liệu tại chỗ
+    let cachedDataChung = []; // Đã thêm biến lưu dữ liệu chung
     let cachedDataStaff = [];
     let selectedStaffFilter = null;
 
@@ -405,6 +415,72 @@
     }
     }
 
+    // Đổ dữ liệu vào combobox chọn người hỗ trợ
+    function populateStaffDropdown(dataStaff) {
+    const selStaff = document.getElementById('selStaffFilter');
+    const staffs = [...new Set(dataStaff.map(item => item.tenNguoiHoTro).filter(n => n && n !== "Chưa xác định"))];
+
+    const currentVal = selStaff.value;
+    selStaff.innerHTML = '<option value="">-- Tất cả --</option>';
+
+    staffs.forEach(staff => {
+    const opt = document.createElement('option');
+    opt.value = staff;
+    opt.textContent = staff;
+    selStaff.appendChild(opt);
+    });
+
+    // Giữ lại giá trị đang chọn nếu có
+    if (currentVal && staffs.includes(currentVal)) {
+    selStaff.value = currentVal;
+    selectedStaffFilter = currentVal;
+    }
+    }
+
+    // --- MỚI THÊM: Hàm xử lý lọc đồng bộ TOÀN BỘ Dashboard ---
+    function applyStaffFilter() {
+    let displayDataStaff = cachedDataStaff;
+    let displayDataChung = cachedDataChung;
+
+    // Nếu có chọn người hỗ trợ cụ thể thì tiến hành lọc chéo
+    if (selectedStaffFilter) {
+    // 1. Lọc bảng nhân viên
+    displayDataStaff = cachedDataStaff.filter(x => x.tenNguoiHoTro === selectedStaffFilter);
+
+    // 2. Lấy ra mảng các ID Form do người này xử lý
+    const validFormIds = displayDataStaff.map(x => x.idFormIt);
+
+    // 3. Lọc lại toàn bộ cục data tổng quan dựa trên ID Form
+    displayDataChung = cachedDataChung.filter(x => validFormIds.includes(x.id));
+    }
+
+    // --- Cập nhật lại các Thẻ Số và Biểu đồ Chung ---
+    const statusResults = processStatusLogic(displayDataChung);
+    updateCounters(statusResults);
+
+    const hasDataChung = displayDataChung && displayDataChung.length > 0;
+    handleEmptyState(hasDataChung, 'wrapStatus', 'emptyStatus');
+    handleEmptyState(hasDataChung, 'wrapDept', 'emptyDept');
+    handleEmptyState(hasDataChung, 'wrapCategory', 'emptyCategory');
+    handleEmptyState(hasDataChung, 'wrapIdForm', 'emptyIdForm');
+
+    if (hasDataChung) {
+    drawStatusChart(statusResults);
+    drawDeptChart(displayDataChung);
+    drawCategoryChart(displayDataChung);
+    drawIdFormChart(displayDataChung);
+    }
+
+    // --- Cập nhật lại Biểu đồ Nhân viên và Bảng chi tiết ---
+    const hasDataStaff = displayDataStaff && displayDataStaff.length > 0;
+    handleEmptyState(hasDataStaff, 'wrapStaff', 'emptyStaff');
+    if (hasDataStaff) {
+    drawStaffChart(displayDataStaff);
+    }
+
+    renderTable(cachedDataStaff);
+    }
+
     async function initStats() {
     const fromDate = document.getElementById('txtFromDate').value;
     const toDate = document.getElementById('txtToDate').value;
@@ -431,33 +507,15 @@
     const dataChung = await resChung.json();
     const dataStaff = await resStaff.json();
 
+    // Cập nhật Cache dữ liệu cho 2 bảng
+    cachedDataChung = dataChung;
     cachedDataStaff = dataStaff;
-    selectedStaffFilter = null;
 
-    const statusResults = processStatusLogic(dataChung);
-    updateCounters(statusResults);
+    // Đổ vào combobox
+    populateStaffDropdown(dataStaff);
 
-    const hasDataChung = dataChung && dataChung.length > 0;
-    handleEmptyState(hasDataChung, 'wrapStatus', 'emptyStatus');
-    handleEmptyState(hasDataChung, 'wrapDept', 'emptyDept');
-    handleEmptyState(hasDataChung, 'wrapCategory', 'emptyCategory');
-    handleEmptyState(hasDataChung, 'wrapIdForm', 'emptyIdForm');
-
-    if (hasDataChung) {
-    drawStatusChart(statusResults);
-    drawDeptChart(dataChung);
-    drawCategoryChart(dataChung);
-    drawIdFormChart(dataChung);
-    }
-
-    const hasDataStaff = dataStaff && dataStaff.length > 0;
-    handleEmptyState(hasDataStaff, 'wrapStaff', 'emptyStaff');
-
-    if (hasDataStaff) {
-    drawStaffChart(dataStaff);
-    }
-
-    renderTable(dataStaff);
+    // Gọi hàm filter chung để dựng Dashboard, sẽ tự lo chuyện có chọn hay chưa chọn
+    applyStaffFilter();
 
     } catch (e) {
     console.error("Lỗi tải dữ liệu:", e);
@@ -516,7 +574,8 @@
 
     function clearTableFilter() {
     selectedStaffFilter = null;
-    renderTable(cachedDataStaff);
+    document.getElementById('selStaffFilter').value = ""; // Đồng bộ lại với ô dropdown
+    applyStaffFilter(); // Cập nhật lại toàn bộ dashboard
     }
 
     function processStatusLogic(data) {
@@ -605,7 +664,10 @@
     const clickedStaffName = chart.data.labels[firstElement.index];
 
     selectedStaffFilter = clickedStaffName;
-    renderTable(cachedDataStaff);
+    document.getElementById('selStaffFilter').value = clickedStaffName; // Đồng bộ với combobox
+
+    // Áp dụng lại filter để thay đổi TOÀN BỘ Dashboard
+    applyStaffFilter();
     }
     },
     plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } }, datalabels: commonLabelOptions },
@@ -657,5 +719,13 @@
     }, {});
     }
 
-    document.addEventListener('DOMContentLoaded', initStats);
+    // Gắn event listener cho việc thay đổi giá trị trong dropdown
+    document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('selStaffFilter').addEventListener('change', function() {
+    selectedStaffFilter = this.value || null;
+    applyStaffFilter(); // Gọi lại filter cho toàn bộ biểu đồ
+    });
+
+    initStats();
+    });
 </script>
