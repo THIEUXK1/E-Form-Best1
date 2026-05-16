@@ -3361,34 +3361,65 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpGet("/FormIT/GetDataThongKe")]
-        public async Task<IActionResult> GetDataThongKe()
-        {
-            // Sử dụng Select trực tiếp để EF Core sinh ra câu lệnh SQL tinh gọn nhất
-            var data = await _context.FormIts
-                .AsNoTracking()
-                .Select(x => new {
-                    x.Id,
-                    x.IdForm,   // Mã Form (IT-01, IT-02...)
-                    x.Danhmuc,  // Danh mục (Phần mềm, Phần cứng...)
-                    x.BoPhan,
-                    x.IdNguoiDuyet,
-                    x.IdAdmin,
-                    x.TenForm,
-                    IsRated = x.DanhGiaFormIts.Any()
-                })
-                .ToListAsync();
-
-            return Json(data);
-        }
-
-        [HttpGet("/FormIT/GetDataNguoiHoTro")]
-        public async Task<IActionResult> GetDataNguoiHoTro()
+        public async Task<IActionResult> GetDataThongKe(DateTime? fromDate, DateTime? toDate)
         {
             try
             {
+                var query = _context.FormIts.AsNoTracking();
+
+                // Lọc theo khoảng thời gian nếu có chọn (Sử dụng trường TimeNguoiDuyet làm mốc)
+                if (fromDate.HasValue)
+                {
+                    query = query.Where(x => x.TimeNguoiDuyet >= fromDate.Value);
+                }
+                if (toDate.HasValue)
+                {
+                    var endOfToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                    query = query.Where(x => x.TimeNguoiDuyet <= endOfToDate);
+                }
+
+                // Sử dụng Select trực tiếp để EF Core sinh ra câu lệnh SQL tinh gọn nhất
+                var data = await query
+                    .Select(x => new {
+                        x.Id,
+                        x.IdForm,   // Mã Form (IT-01, IT-02...)
+                        x.Danhmuc,  // Danh mục (Phần mềm, Phần cứng...)
+                        x.BoPhan,
+                        x.IdNguoiDuyet,
+                        x.IdAdmin,
+                        x.TenForm,
+                        IsRated = x.DanhGiaFormIts.Any()
+                    })
+                    .ToListAsync();
+
+                return Json(data);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("/FormIT/GetDataNguoiHoTro")]
+        public async Task<IActionResult> GetDataNguoiHoTro(DateTime? fromDate, DateTime? toDate)
+        {
+            try
+            {
+                var query = _context.ItCtNguoiHoTros.AsNoTracking();
+
+                // Lọc theo khoảng thời gian nếu có chọn trước khi Select
+                if (fromDate.HasValue)
+                {
+                    query = query.Where(x => x.IdFormItNavigation.TimeNguoiDuyet >= fromDate.Value);
+                }
+                if (toDate.HasValue)
+                {
+                    var endOfToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                    query = query.Where(x => x.IdFormItNavigation.TimeNguoiDuyet <= endOfToDate);
+                }
+
                 // Lấy dữ liệu từ bảng chi tiết hỗ trợ
-                var rawData = await _context.ItCtNguoiHoTros
-                    .AsNoTracking()
+                var rawData = await query
                     .Select(x => new
                     {
                         x.IdFormIt,

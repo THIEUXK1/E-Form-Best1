@@ -6,25 +6,205 @@
 }
 
 <style>
-    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-    .stat-card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: transform 0.2s; }
-    .stat-card:hover { transform: translateY(-5px); }
-    .card-title { font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-    .card-value { font-size: 24px; font-weight: 900; margin-top: 5px; display: block; }
-    .chart-container { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
-    .chart-header { font-weight: 800; color: #0c4a6e; margin-bottom: 15px; font-size: 16px; display: flex; align-items: center; gap: 10px; }
-    
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+    .card-title {
+        font-size: 11px;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .card-value {
+        font-size: 24px;
+        font-weight: 900;
+        margin-top: 5px;
+        display: block;
+    }
+
+    .chart-container {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .chart-header {
+        font-weight: 800;
+        color: #0c4a6e;
+        margin-bottom: 15px;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
     /* Style cho bảng thống kê */
-    .custom-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-    .custom-table th { background-color: #f1f5f9; color: #475569; text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; }
-    .custom-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
-    .custom-table tr:hover { background-color: #f8fafc; }
-    .badge-count { background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 12px; font-weight: bold; }
-    .badge-time { color: #0f172a; font-weight: 700; font-family: 'Inter', sans-serif; }
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 13px;
+    }
+
+        .custom-table th {
+            background-color: #f1f5f9;
+            color: #475569;
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .custom-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+        }
+
+        .custom-table tr:hover {
+            background-color: #f8fafc;
+        }
+
+    .badge-count {
+        background: #e0f2fe;
+        color: #0369a1;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-weight: bold;
+    }
+
+    .badge-time {
+        color: #0f172a;
+        font-weight: 700;
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* CSS cho bộ lọc và hiệu ứng loading */
+    .filter-wrapper {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        background: white;
+        padding: 12px 20px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 20px;
+    }
+
+    .filter-input {
+        border: 1px solid #cbd5e1;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #334155;
+        outline: none;
+    }
+
+        .filter-input:focus {
+            border-color: #0284c7;
+        }
+
+    .btn-filter {
+        background: #0284c7;
+        color: white;
+        border: none;
+        padding: 7px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+        .btn-filter:hover {
+            background: #0369a1;
+        }
+
+    .loading-text {
+        font-size: 13px;
+        color: #0284c7;
+        font-weight: 600;
+        margin-left: auto;
+        display: none;
+    }
+
+    /* CSS cho trạng thái trống và badge lọc Drill-down */
+    .chart-empty-state {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        font-size: 13px;
+        font-weight: 500;
+        text-align: center;
+        width: 100%;
+        padding: 20px;
+    }
+
+        .chart-empty-state i {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+        }
+
+    .filter-badge {
+        display: none;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        color: #166534;
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        width: fit-content;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* --- CẢI TIẾN: CSS CHO BANNER BÁO LỖI TRỰC QUAN --- */
+    .error-banner {
+        display: none;
+        background: #fef2f2;
+        border: 1px solid #fca5a5;
+        color: #b91c1c;
+        padding: 12px 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        align-items: center;
+        gap: 10px;
+    }
 
     /* ==========================================
-       CSS RESPONSIVE CHO MOBILE (2026 STYLE)
-       ========================================== */
+           CSS RESPONSIVE CHO MOBILE (2026 STYLE)
+           ========================================== */
     @@media (max-width: 768px) {
         .dashboard-container {
             padding: 0 10px !important;
@@ -34,13 +214,11 @@
         .header-section h2 {
             font-size: 18px !important;
         }
-
         /* Thống kê: 2 cột trên mobile */
         .stat-grid-mobile {
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 10px !important;
         }
-
         /* Biểu đồ: Chuyển hết về 1 cột dọc */
         .chart-row-mobile {
             grid-template-columns: 1fr !important;
@@ -50,7 +228,6 @@
         .chart-container {
             padding: 15px !important;
         }
-
         /* Điều chỉnh chiều cao canvas trên mobile */
         .canvas-wrapper-mobile {
             height: 250px !important;
@@ -59,60 +236,100 @@
         .staff-chart-wrapper {
             height: 350px !important;
         }
+
+        .filter-wrapper {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+        }
+
+        .loading-text {
+            margin-left: 0;
+            text-align: center;
+        }
     }
 </style>
 
 <div class="dashboard-container" style="max-width: 1400px; margin: 20px auto; padding: 0 20px;">
-    
+
     @* --- HEADER --- *@
-    <div class="header-section" style="margin-bottom: 30px;">
+    <div class="header-section" style="margin-bottom: 20px;">
         <h2 style="font-weight: 900; color: #0c4a6e; margin: 0;">
             <i class="fa fa-dashboard" style="color: #0284c7;"></i> HỆ THỐNG QUẢN TRỊ BÁO CÁO IT
         </h2>
     </div>
 
-    @* --- HÀNG CON SỐ TỔNG QUAN --- *@
+    @* --- CẢI TIẾN: BANNER HIỂN THỊ LỖI GIAO DIỆN TRỰC QUAN --- *@
+    <div id="lblError" class="error-banner">
+        <i class="fa fa-exclamation-triangle" style="font-size: 16px;"></i>
+        <span id="lblErrorText">Không thể kết nối đến hệ thống máy chủ. Vui lòng kiểm tra lại đường truyền hoặc thử lại sau!</span>
+    </div>
+
+    @* --- BỘ LỌC THỜI GIAN --- *@
+    <div class="filter-wrapper">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 13px; font-weight: 700; color: #475569;">Từ ngày:</label>
+            <input type="date" id="txtFromDate" class="filter-input" />
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 13px; font-weight: 700; color: #475569;">Đến ngày:</label>
+            <input type="date" id="txtToDate" class="filter-input" />
+        </div>
+        <button type="button" class="btn-filter" onclick="initStats()"><i class="fa fa-filter"></i> Lọc dữ liệu</button>
+        <span id="lblLoading" class="loading-text"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu mới...</span>
+    </div>
+
+    @* --- HÀNG CON SỐ TỔNG QUAN (Đã đồng bộ mã màu chuẩn khớp với Chart.js) --- *@
     <div class="stat-grid-mobile" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
-        <div class="stat-card" style="border-top: 4px solid #64748b;"><span class="card-title">Tổng số đơn</span><span class="card-value" id="lblTotal">0</span></div>
-        <div class="stat-card" style="border-top: 4px solid #f59e0b;"><span class="card-title">Chờ QL duyệt</span><span class="card-value" id="lblWaitQL" style="color: #d97706;">0</span></div>
+        <div class="stat-card" style="border-top: 4px solid #64748b;"><span class="card-title">Tổng số đơn</span><span class="card-value" id="lblTotal" style="color: #64748b;">0</span></div>
+        <div class="stat-card" style="border-top: 4px solid #f59e0b;"><span class="card-title">Chờ QL duyệt</span><span class="card-value" id="lblWaitQL" style="color: #f59e0b;">0</span></div>
         <div class="stat-card" style="border-top: 4px solid #0284c7;"><span class="card-title">IT đang xử lý</span><span class="card-value" id="lblProcessing" style="color: #0284c7;">0</span></div>
-        <div class="stat-card" style="border-top: 4px solid #8b5cf6;"><span class="card-title">Chờ đánh giá</span><span class="card-value" id="lblWaitRate" style="color: #7c3aed;">0</span></div>
-        <div class="stat-card" style="border-top: 4px solid #10b981;"><span class="card-title">Đã hoàn tất</span><span class="card-value" id="lblDone" style="color: #059669;">0</span></div>
+        <div class="stat-card" style="border-top: 4px solid #8b5cf6;"><span class="card-title">Chờ đánh giá</span><span class="card-value" id="lblWaitRate" style="color: #8b5cf6;">0</span></div>
+        <div class="stat-card" style="border-top: 4px solid #10b981;"><span class="card-title">Đã hoàn tất</span><span class="card-value" id="lblDone" style="color: #10b981;">0</span></div>
     </div>
 
     @* --- HÀNG BIỂU ĐỒ 1: TRẠNG THÁI & BỘ PHẬN --- *@
     <div class="chart-row-mobile" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 20px;">
         <div class="chart-container">
             <div class="chart-header"><i class="fa fa-tasks"></i> Tỉ lệ Trạng thái</div>
-            <div class="canvas-wrapper-mobile" style="height: 300px;"><canvas id="chartStatus"></canvas></div>
+            <div class="canvas-wrapper-mobile" id="wrapStatus" style="height: 300px;"><canvas id="chartStatus"></canvas></div>
+            <div class="chart-empty-state" id="emptyStatus"><i class="fa fa-pie-chart"></i>Không có dữ liệu trạng thái</div>
         </div>
         <div class="chart-container">
             <div class="chart-header"><i class="fa fa-building"></i> Yêu cầu theo Bộ phận</div>
-            <div class="canvas-wrapper-mobile" style="height: 300px;"><canvas id="chartDept"></canvas></div>
+            <div class="canvas-wrapper-mobile" id="wrapDept" style="height: 300px;"><canvas id="chartDept"></canvas></div>
+            <div class="chart-empty-state" id="emptyDept"><i class="fa fa-bar-chart"></i>Không có dữ liệu bộ phận</div>
         </div>
     </div>
 
     @* --- HÀNG BIỂU ĐỒ 2: HIỆU SUẤT NHÂN VIÊN --- *@
     <div class="chart-container">
-        <div class="chart-header"><i class="fa fa-users"></i> Hiệu suất theo Nhân viên hỗ trợ (Chi tiết trạng thái đơn)</div>
-        <div class="staff-chart-wrapper" style="height: 400px;"><canvas id="chartStaff"></canvas></div>
+        <div class="chart-header"><i class="fa fa-users"></i> Hiệu suất theo Nhân viên hỗ trợ (Chi tiết trạng thái đơn) <span style="font-size:11px; color:#64748b; font-weight:normal;">(Bấm vào cột để lọc bảng chi tiết)</span></div>
+        <div class="staff-chart-wrapper" id="wrapStaff" style="height: 400px;"><canvas id="chartStaff"></canvas></div>
+        <div class="chart-empty-state" id="emptyStaff"><i class="fa fa-user-times"></i>Không có dữ liệu nhân viên hỗ trợ</div>
     </div>
 
     @* --- HÀNG BIỂU ĐỒ 3: DANH MỤC & MÃ FORM --- *@
     <div class="chart-row-mobile" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
         <div class="chart-container">
             <div class="chart-header"><i class="fa fa-tags"></i> Thống kê theo Danh mục</div>
-            <div class="canvas-wrapper-mobile" style="height: 350px;"><canvas id="chartCategory"></canvas></div>
+            <div class="canvas-wrapper-mobile" id="wrapCategory" style="height: 350px;"><canvas id="chartCategory"></canvas></div>
+            <div class="chart-empty-state" id="emptyCategory"><i class="fa fa-tags"></i>Không có dữ liệu danh mục</div>
         </div>
         <div class="chart-container">
             <div class="chart-header"><i class="fa fa-file-code-o"></i> Thống kê theo Mã Form (IdForm)</div>
-            <div class="canvas-wrapper-mobile" style="height: 350px;"><canvas id="chartIdForm"></canvas></div>
+            <div class="canvas-wrapper-mobile" id="wrapIdForm" style="height: 350px;"><canvas id="chartIdForm"></canvas></div>
+            <div class="chart-empty-state" id="emptyIdForm"><i class="fa fa-code"></i>Không có dữ liệu mã form</div>
         </div>
     </div>
 
     @* --- HÀNG CUỐI: BẢNG THỐNG KÊ CHI TIẾT --- *@
     <div class="chart-container">
         <div class="chart-header"><i class="fa fa-list-alt"></i> Báo cáo chi tiết theo Người hỗ trợ & Danh mục</div>
+
+        @* Thanh hiển thị trạng thái đang Drill-down lọc bảng *@
+        <div id="tableFilterBadge" class="filter-badge"></div>
+
         <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
             <table class="custom-table">
                 <thead>
@@ -135,203 +352,309 @@
 <script>
     Chart.register(ChartDataLabels);
 
+    // Khai báo các biến quản lý Instance để tránh lỗi trùng lặp khi re-draw chart
+    let chartStatusInstance = null;
+    let chartDeptInstance = null;
+    let chartStaffInstance = null;
+    let chartCategoryInstance = null;
+    let chartIdFormInstance = null;
+
+    // Cache dữ liệu nhân viên phục vụ chức năng drill-down lọc dữ liệu tại chỗ
+    let cachedDataStaff = [];
+    let selectedStaffFilter = null;
+
     const commonLabelOptions = {
-        color: '#fff',
-        font: { weight: 'bold', family: 'Inter', size: 11 },
-        formatter: (value) => value > 0 ? value : '',
-        anchor: 'center',
-        align: 'center'
+    color: '#fff',
+    font: { weight: 'bold', family: 'Inter', size: 11 },
+    formatter: (value) => value > 0 ? value : '',
+    anchor: 'center',
+    align: 'center'
     };
 
     function formatDuration(totalMinutes) {
-        if (!totalMinutes || totalMinutes <= 0) return "-";
-        
-        const days = Math.floor(totalMinutes / 1440);
-        const hours = Math.floor((totalMinutes % 1440) / 60);
-        const mins = Math.round(totalMinutes % 60);
+    if (!totalMinutes || totalMinutes <= 0) return "-";
 
-        let result = "";
-        if (days > 0) {
-            result += days + " ngày ";
-            if (hours > 0) result += hours + " giờ";
-        } 
-        else if (hours > 0) {
-            result += hours + " giờ ";
-            if (mins > 0) result += mins + " phút";
-        } 
-        else {
-            result += mins + " phút";
-        }
-        return result.trim();
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const mins = Math.round(totalMinutes % 60);
+
+    let result = "";
+    if (days > 0) {
+    result += days + " ngày ";
+    if (hours > 0) result += hours + " giờ";
+    }
+    else if (hours > 0) {
+    result += hours + " giờ ";
+    if (mins > 0) result += mins + " phút";
+    }
+    else {
+    result += mins + " phút";
+    }
+    return result.trim();
+    }
+
+    function handleEmptyState(hasData, wrapperId, emptyId) {
+    const wrapper = document.getElementById(wrapperId);
+    const emptyElement = document.getElementById(emptyId);
+    if (hasData) {
+    wrapper.style.display = 'block';
+    emptyElement.style.display = 'none';
+    } else {
+    wrapper.style.display = 'none';
+    emptyElement.style.display = 'flex';
+    }
     }
 
     async function initStats() {
-        try {
-            const [resChung, resStaff] = await Promise.all([
-                fetch('/FormIT/GetDataThongKe'),
-                fetch('/FormIT/GetDataNguoiHoTro')
-            ]);
+    const fromDate = document.getElementById('txtFromDate').value;
+    const toDate = document.getElementById('txtToDate').value;
+    const lblLoading = document.getElementById('lblLoading');
+    const lblError = document.getElementById('lblError');
 
-            const dataChung = await resChung.json();
-            const dataStaff = await resStaff.json();
+    try {
+    // Ẩn lỗi cũ khi bắt đầu thực hiện truy vấn mới
+    lblError.style.display = 'none';
+    lblLoading.style.display = 'inline-block';
 
-            const statusResults = processStatusLogic(dataChung);
-            updateCounters(statusResults);
-            drawStatusChart(statusResults);
-            
-            drawDeptChart(dataChung);
-            drawCategoryChart(dataChung);
-            drawIdFormChart(dataChung);
-            drawStaffChart(dataStaff);
-            
-            renderTable(dataStaff);
+    const urlParams = `?fromDate=${fromDate}&toDate=${toDate}`;
 
-        } catch (e) { console.error("Lỗi tải dữ liệu:", e); }
+    const [resChung, resStaff] = await Promise.all([
+    fetch('/FormIT/GetDataThongKe' + urlParams),
+    fetch('/FormIT/GetDataNguoiHoTro' + urlParams)
+    ]);
+
+    // Kiểm tra trạng thái HTTP từ API trả về để kịp thời bẫy lỗi dữ liệu
+    if (!resChung.ok || !resStaff.ok) {
+    throw new Error("Lỗi API từ phía Server");
+    }
+
+    const dataChung = await resChung.json();
+    const dataStaff = await resStaff.json();
+
+    cachedDataStaff = dataStaff;
+    selectedStaffFilter = null;
+
+    const statusResults = processStatusLogic(dataChung);
+    updateCounters(statusResults);
+
+    const hasDataChung = dataChung && dataChung.length > 0;
+    handleEmptyState(hasDataChung, 'wrapStatus', 'emptyStatus');
+    handleEmptyState(hasDataChung, 'wrapDept', 'emptyDept');
+    handleEmptyState(hasDataChung, 'wrapCategory', 'emptyCategory');
+    handleEmptyState(hasDataChung, 'wrapIdForm', 'emptyIdForm');
+
+    if (hasDataChung) {
+    drawStatusChart(statusResults);
+    drawDeptChart(dataChung);
+    drawCategoryChart(dataChung);
+    drawIdFormChart(dataChung);
+    }
+
+    const hasDataStaff = dataStaff && dataStaff.length > 0;
+    handleEmptyState(hasDataStaff, 'wrapStaff', 'emptyStaff');
+
+    if (hasDataStaff) {
+    drawStaffChart(dataStaff);
+    }
+
+    renderTable(dataStaff);
+
+    } catch (e) {
+    console.error("Lỗi tải dữ liệu:", e);
+    // --- CẢI TIẾN: HIỂN THỊ BANNER BÁO LỖI TRỰC QUAN LÊN UI ---
+    lblError.style.display = 'flex';
+    } finally {
+    lblLoading.style.display = 'none';
+    }
     }
 
     function renderTable(data) {
-        const summary = data.reduce((acc, curr) => {
-            const key = `${curr.tenNguoiHoTro}|${curr.danhMuc}`;
-            if (!acc[key]) {
-                acc[key] = { name: curr.tenNguoiHoTro, cat: curr.danhMuc, count: 0, totalMin: 0, timeCount: 0 };
-            }
-            acc[key].count++;
-            if (curr.phutXuLy !== null) {
-                acc[key].totalMin += curr.phutXuLy;
-                acc[key].timeCount++;
-            }
-            return acc;
-        }, {});
+    let displayData = data;
+    const badge = document.getElementById('tableFilterBadge');
 
-        const tbody = document.getElementById('tblStaffBody');
-        tbody.innerHTML = Object.values(summary)
-            .sort((a, b) => b.count - a.count)
-            .map(item => `
-                <tr>
-                    <td style="font-weight: 600;">${item.name}</td>
-                    <td style="color: #64748b;">${item.cat}</td>
-                    <td style="text-align: center;"><span class="badge-count">${item.count}</span></td>
-                    <td style="text-align: center;" class="badge-time">
-                        ${item.timeCount > 0 ? formatDuration(item.totalMin / item.timeCount) : '-'}
-                    </td>
-                </tr>
-            `).join('');
+    if (selectedStaffFilter) {
+    displayData = data.filter(x => x.tenNguoiHoTro === selectedStaffFilter);
+    badge.innerHTML = `<i class="fa fa-filter"></i> Đang lọc theo nhân viên: <b>${selectedStaffFilter}</b> <span style="margin-left:8px; color:#dc2626; cursor:pointer; font-weight:bold;" onclick="clearTableFilter()">[Xóa bộ lọc]</span>`;
+    badge.style.display = 'flex';
+    } else {
+    badge.style.display = 'none';
+    }
+
+    const summary = displayData.reduce((acc, curr) => {
+    const key = `${curr.tenNguoiHoTro}|${curr.danhMuc}`;
+    if (!acc[key]) {
+    acc[key] = { name: curr.tenNguoiHoTro, cat: curr.danhMuc, count: 0, totalMin: 0, timeCount: 0 };
+    }
+    acc[key].count++;
+    if (curr.phutXuLy !== null) {
+    acc[key].totalMin += curr.phutXuLy;
+    acc[key].timeCount++;
+    }
+    return acc;
+    }, {});
+
+    const tbody = document.getElementById('tblStaffBody');
+
+    if (Object.keys(summary).length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:20px;">Không có dữ liệu hiển thị</td></tr>`;
+    return;
+    }
+
+    tbody.innerHTML = Object.values(summary)
+    .sort((a, b) => b.count - a.count)
+    .map(item => `
+    <tr>
+    <td style="font-weight: 600;">${item.name}</td>
+    <td style="color: #64748b;">${item.cat}</td>
+    <td style="text-align: center;"><span class="badge-count">${item.count}</span></td>
+    <td style="text-align: center;" class="badge-time">
+    ${item.timeCount > 0 ? formatDuration(item.totalMin / item.timeCount) : '-'}
+    </td>
+    </tr>
+    `).join('');
+    }
+
+    function clearTableFilter() {
+    selectedStaffFilter = null;
+    renderTable(cachedDataStaff);
     }
 
     function processStatusLogic(data) {
-        let stats = { "HỦY": 0, "CHỜ QL": 0, "ĐANG XỬ LÝ": 0, "ĐÁNH GIÁ": 0, "HOÀN TẤT": 0 };
-        data.forEach(item => {
-            const isCancelled = (item.tenForm || "").includes("[ĐÃ HỦY]");
-            if (isCancelled) stats["HỦY"]++;
-            else if (item.idAdmin && item.isRated) stats["HOÀN TẤT"]++;
-            else if (item.idAdmin && !item.isRated) stats["ĐÁNH GIÁ"]++;
-            else if (item.idNguoiDuyet) stats["ĐANG XỬ LÝ"]++;
-            else stats["CHỜ QL"]++;
-        });
-        return stats;
+    let stats = { "HỦY": 0, "CHỜ QL": 0, "ĐANG XỬ LÝ": 0, "ĐÁNH GIÁ": 0, "HOÀN TẤT": 0 };
+    data.forEach(item => {
+    const isCancelled = (item.tenForm || "").includes("[ĐÃ HỦY]");
+    if (isCancelled) stats["HỦY"]++;
+    else if (item.idAdmin && item.isRated) stats["HOÀN TẤT"]++;
+    else if (item.idAdmin && !item.isRated) stats["ĐÁNH GIÁ"]++;
+    else if (item.idNguoiDuyet) stats["ĐANG XỬ LÝ"]++;
+    else stats["CHỜ QL"]++;
+    });
+    return stats;
     }
 
     function updateCounters(s) {
-        document.getElementById('lblTotal').innerText = Object.values(s).reduce((a, b) => a + b, 0);
-        document.getElementById('lblWaitQL').innerText = s["CHỜ QL"];
-        document.getElementById('lblProcessing').innerText = s["ĐANG XỬ LÝ"];
-        document.getElementById('lblWaitRate').innerText = s["ĐÁNH GIÁ"];
-        document.getElementById('lblDone').innerText = s["HOÀN TẤT"];
+    document.getElementById('lblTotal').innerText = Object.values(s).reduce((a, b) => a + b, 0);
+    document.getElementById('lblWaitQL').innerText = s["CHỜ QL"];
+    document.getElementById('lblProcessing').innerText = s["ĐANG XỬ LÝ"];
+    document.getElementById('lblWaitRate').innerText = s["ĐÁNH GIÁ"];
+    document.getElementById('lblDone').innerText = s["HOÀN TẤT"];
     }
 
     function drawStatusChart(s) {
-        new Chart(document.getElementById('chartStatus'), {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(s),
-                datasets: [{
-                    data: Object.values(s),
-                    backgroundColor: ['#ef4444', '#f59e0b', '#0284c7', '#8b5cf6', '#10b981']
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }, datalabels: commonLabelOptions }
-            }
-        });
+    if (chartStatusInstance) { chartStatusInstance.destroy(); }
+
+    chartStatusInstance = new Chart(document.getElementById('chartStatus'), {
+    type: 'doughnut',
+    data: {
+    labels: Object.keys(s),
+    datasets: [{
+    data: Object.values(s),
+    backgroundColor: ['#ef4444', '#f59e0b', '#0284c7', '#8b5cf6', '#10b981']
+    }]
+    },
+    options: {
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }, datalabels: commonLabelOptions }
+    }
+    });
     }
 
     function drawDeptChart(data) {
-        const group = groupData(data, 'boPhan');
-        new Chart(document.getElementById('chartDept'), {
-            type: 'bar',
-            data: {
-                labels: Object.keys(group),
-                datasets: [{ label: 'Đơn', data: Object.values(group), backgroundColor: '#0284c7', borderRadius: 5 }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                plugins: { datalabels: { ...commonLabelOptions, anchor: 'end', align: 'top', color: '#444' } },
-                scales: { y: { beginAtZero: true } }
-            }
-        });
+    if (chartDeptInstance) { chartDeptInstance.destroy(); }
+
+    const group = groupData(data, 'boPhan');
+    chartDeptInstance = new Chart(document.getElementById('chartDept'), {
+    type: 'bar',
+    data: {
+    labels: Object.keys(group),
+    datasets: [{ label: 'Đơn', data: Object.values(group), backgroundColor: '#0284c7', borderRadius: 5 }]
+    },
+    options: {
+    maintainAspectRatio: false,
+    plugins: { datalabels: { ...commonLabelOptions, anchor: 'end', align: 'top', color: '#444' } },
+    scales: { y: { beginAtZero: true } }
+    }
+    });
     }
 
     function drawStaffChart(dataStaff) {
-        const staffs = [...new Set(dataStaff.map(item => item.tenNguoiHoTro))];
-        const statuses = ["CHỜ QL", "ĐANG XỬ LÝ", "ĐÁNH GIÁ", "HOÀN TẤT"];
-        const colors = ['#f59e0b', '#0284c7', '#8b5cf6', '#10b981'];
+    if (chartStaffInstance) { chartStaffInstance.destroy(); }
 
-        const datasets = statuses.map((status, i) => ({
-            label: status,
-            data: staffs.map(staff => dataStaff.filter(x => x.tenNguoiHoTro === staff && x.trangThai === status).length),
-            backgroundColor: colors[i],
-            stack: 'Stack 0'
-        }));
+    const staffs = [...new Set(dataStaff.map(item => item.tenNguoiHoTro))];
+    const statuses = ["CHỜ QL", "ĐANG XỬ LÝ", "ĐÁNH GIÁ", "HOÀN TẤT"];
+    const colors = ['#f59e0b', '#0284c7', '#8b5cf6', '#10b981'];
 
-        new Chart(document.getElementById('chartStaff'), {
-            type: 'bar',
-            data: { labels: staffs, datasets: datasets },
-            options: {
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } }, datalabels: commonLabelOptions },
-                scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
-            }
-        });
+    const datasets = statuses.map((status, i) => ({
+    label: status,
+    data: staffs.map(staff => dataStaff.filter(x => x.tenNguoiHoTro === staff && x.trangThai === status).length),
+    backgroundColor: colors[i],
+    stack: 'Stack 0'
+    }));
+
+    chartStaffInstance = new Chart(document.getElementById('chartStaff'), {
+    type: 'bar',
+    data: { labels: staffs, datasets: datasets },
+    options: {
+    maintainAspectRatio: false,
+    onHover: (event, chartElement) => {
+    event.native.target.style.cursor = chartElement.length ? 'pointer' : 'default';
+    },
+    onClick: (event, elements, chart) => {
+    if (elements && elements.length > 0) {
+    const firstElement = elements[0];
+    const clickedStaffName = chart.data.labels[firstElement.index];
+
+    selectedStaffFilter = clickedStaffName;
+    renderTable(cachedDataStaff);
+    }
+    },
+    plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } }, datalabels: commonLabelOptions },
+    scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
+    }
+    });
     }
 
     function drawCategoryChart(data) {
-        const group = groupData(data, 'danhmuc');
-        new Chart(document.getElementById('chartCategory'), {
-            type: 'bar',
-            data: {
-                labels: Object.keys(group),
-                datasets: [{ label: 'Đơn', data: Object.values(group), backgroundColor: '#4e73df', borderRadius: 5 }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                plugins: { datalabels: { ...commonLabelOptions, anchor: 'end', align: 'top', color: '#444' } }
-            }
-        });
+    if (chartCategoryInstance) { chartCategoryInstance.destroy(); }
+
+    const group = groupData(data, 'danhmuc');
+    chartCategoryInstance = new Chart(document.getElementById('chartCategory'), {
+    type: 'bar',
+    data: {
+    labels: Object.keys(group),
+    datasets: [{ label: 'Đơn', data: Object.values(group), backgroundColor: '#4e73df', borderRadius: 5 }]
+    },
+    options: {
+    maintainAspectRatio: false,
+    plugins: { datalabels: { ...commonLabelOptions, anchor: 'end', align: 'top', color: '#444' } }
+    }
+    });
     }
 
     function drawIdFormChart(data) {
-        const group = groupData(data, 'idForm');
-        new Chart(document.getElementById('chartIdForm'), {
-            type: 'bar',
-            data: {
-                labels: Object.keys(group),
-                datasets: [{ label: 'Đơn', data: Object.values(group), backgroundColor: '#1cc88a', borderRadius: 5 }]
-            },
-            options: {
-                indexAxis: 'y',
-                maintainAspectRatio: false,
-                plugins: { datalabels: { ...commonLabelOptions, anchor: 'end', align: 'right', color: '#444' } }
-            }
-        });
+    if (chartIdFormInstance) { chartIdFormInstance.destroy(); }
+
+    const group = groupData(data, 'idForm');
+    chartIdFormInstance = new Chart(document.getElementById('chartIdForm'), {
+    type: 'bar',
+    data: {
+    labels: Object.keys(group),
+    datasets: [{ label: 'Đơn', data: Object.values(group), backgroundColor: '#1cc88a', borderRadius: 5 }]
+    },
+    options: {
+    indexAxis: 'y',
+    maintainAspectRatio: false,
+    plugins: { datalabels: { ...commonLabelOptions, anchor: 'end', align: 'right', color: '#444' } }
+    }
+    });
     }
 
     function groupData(data, key) {
-        return data.reduce((acc, x) => {
-            let val = x[key] || "N/A";
-            acc[val] = (acc[val] || 0) + 1;
-            return acc;
-        }, {});
+    return data.reduce((acc, x) => {
+    let val = x[key] || "N/A";
+    acc[val] = (acc[val] || 0) + 1;
+    return acc;
+    }, {});
     }
 
     document.addEventListener('DOMContentLoaded', initStats);
