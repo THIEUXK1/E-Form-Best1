@@ -20,6 +20,10 @@
     string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi" };
     bool isITSubActive = itSubPages.Contains(currentAction);
 
+    // Khai báo biến cho menu Thống kê
+    string[] reportPages = { "BaoCaoThongKe" }; // Bạn có thể thêm các Action báo cáo khác vào đây sau này
+    bool isReportActive = reportPages.Contains(currentAction);
+
     string primaryGradient = isITSystem ? "linear-gradient(180deg, #0f172a 0%, #1e40af 100%)" : "linear-gradient(180deg, #1a365d 0%, #2d3748 100%)";
     string accentColor = isITSystem ? "#60a5fa" : "#34d399";
 }
@@ -37,189 +41,264 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-    
+
     <!-- THÊM THƯ VIỆN SELECT2 (CSS) BỊ THIẾU -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            background: #f8fafc;
-            color: #1e293b;
-            display: flex;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* Tối ưu Scrollbar */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
-        #notiList::-webkit-scrollbar-thumb { background: #cbd5e1; }
-
-        /* Sidebar Nav Item */
-        .nav-link-item {
-            display: flex;
-            align-items: center;
-            padding: 14px 18px;
-            border-radius: 14px;
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s;
-            margin-bottom: 2px;
-        }
-        .nav-link-item:hover {
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            transform: translateX(4px);
-        }
-        .nav-link-item.active {
-            background: rgba(255,255,255,0.2);
-            color: #fff;
-        }
-
-        .submenu-link {
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            font-size: 0.88rem;
-            padding: 12px 18px;
-            color: #cbd5e1;
-            border-radius: 10px;
-            transition: 0.2s;
-        }
-        .submenu-link:hover {
-            background: rgba(255,255,255,0.08);
-            color: #fff;
-        }
-        .submenu-link.active {
-            background: rgba(255,255,255,0.15);
-            color: #fff;
-            font-weight: 700;
-        }
-
-        .user-dropdown-item:hover { background-color: #f1f5f9 !important; color: #1d4ed8 !important; }
-
-        /* Language Switcher Styles */
-        .lang-btn {
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            padding: 8px 15px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #1e293b;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: 0.2s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
-        }
-        .lang-btn:hover { background: #f1f5f9; transform: translateY(-1px); border-color: #3b82f6; }
-        
-        #langDropdown, #zoomDropdown {
-            display: none;
-            position: absolute;
-            top: 55px;
-            left: 0;
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
-            border: 1px solid #e2e8f0;
-            min-width: 180px;
-            overflow: hidden;
-            z-index: 1001;
-            animation: slideDown 0.2s ease-out;
-        }
-        
-        #zoomDropdown {
-            min-width: 130px;
-            max-height: 250px;
-            overflow-y: auto;
-        }
-        #zoomDropdown::-webkit-scrollbar { width: 4px; }
-        #zoomDropdown::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
-        @@keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .lang-item {
-            padding: 12px 18px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            color: #334155;
-            text-decoration: none;
-            font-size: 0.88rem;
-            font-weight: 600;
-            transition: 0.2s;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .lang-item:last-child { border-bottom: none; }
-        .lang-item:hover { background: #eff6ff; color: #2563eb; }
-        .lang-item.active { color: #2563eb; background: #f0f9ff; }
-
-        /* --- CSS ẨN WIDGET GOOGLE TRANSLATE MẶC ĐỊNH --- */
-        .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
-        .goog-te-banner-frame { display: none !important; }
-        body { top: 0px !important; }
-        #goog-gt-tt { display: none !important; }
-
-        /* ==========================================
-           THÊM MỚI: CSS CHO MOBILE RESPONSIVE
-           ========================================== */
-        .sidebar-backdrop {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 995;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-       @@media (max-width: 768px) {
-            #sidebar {
-                transform: translateX(-100%);
+            body {
+                font-family: 'Inter', sans-serif;
+                margin: 0;
+                background: #f8fafc;
+                color: #1e293b;
+                display: flex;
+                min-height: 100vh;
+                overflow-x: hidden;
             }
-            #sidebar.open {
-                transform: translateX(0);
+
+            /* Tối ưu Scrollbar */
+            ::-webkit-scrollbar {
+                width: 5px;
             }
-            .sidebar-backdrop.show {
-                display: block;
-                opacity: 1;
+
+            ::-webkit-scrollbar-thumb {
+                background: rgba(255,255,255,0.2);
+                border-radius: 10px;
             }
-            main {
-                margin-left: 0 !important;
-                width: 100% !important;
+
+            #notiList::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
             }
-            header {
-                padding: 15px 20px !important;
+
+            /* Sidebar Nav Item */
+            .nav-link-item {
+                display: flex;
+                align-items: center;
+                padding: 14px 18px;
+                border-radius: 14px;
+                color: rgba(255,255,255,0.8);
+                text-decoration: none;
+                font-weight: 600;
+                transition: all 0.3s;
+                margin-bottom: 2px;
             }
-            #mobile-menu-btn {
-                display: block !important;
+
+                .nav-link-item:hover {
+                    background: rgba(255,255,255,0.1);
+                    color: #fff;
+                    transform: translateX(4px);
+                }
+
+                .nav-link-item.active {
+                    background: rgba(255,255,255,0.2);
+                    color: #fff;
+                }
+
+            .submenu-link {
+                text-decoration: none;
+                display: flex;
+                align-items: center;
+                font-size: 0.88rem;
+                padding: 12px 18px;
+                color: #cbd5e1;
+                border-radius: 10px;
+                transition: 0.2s;
             }
-            #notificationDropdown {
-                width: 300px !important;
-                right: -20px !important;
+
+                .submenu-link:hover {
+                    background: rgba(255,255,255,0.08);
+                    color: #fff;
+                }
+
+                .submenu-link.active {
+                    background: rgba(255,255,255,0.15);
+                    color: #fff;
+                    font-weight: 700;
+                }
+
+            /* Hiệu ứng xoay mũi tên cho menu Collapse */
+            [data-bs-toggle="collapse"] .menu-arrow {
+                transition: transform 0.3s ease;
             }
-            
-            /* SỬA LẠI ĐỂ RENDERBODY() SÁT LỀ TRÊN MOBILE HOÀN TOÀN */
-            .main-content-wrapper {
-                padding: 15px 0 !important; /* Đảm bảo padding trái phải bằng 0 */
+
+            [data-bs-toggle="collapse"][aria-expanded="true"] .menu-arrow {
+                transform: rotate(180deg);
             }
-            .main-card {
-                padding: 20px 0 !important; /* THAY ĐỔI TẠI ĐÂY: từ 10px thành 0 để ép sát lề 100% */
-                border-radius: 0 !important; 
-                border-left: none !important;
-                border-right: none !important;
-                min-height: auto !important;
+
+            .user-dropdown-item:hover {
+                background-color: #f1f5f9 !important;
+                color: #1d4ed8 !important;
             }
-        }
+
+            /* Language Switcher Styles */
+            .lang-btn {
+                background: #fff;
+                border: 1px solid #e2e8f0;
+                padding: 8px 15px;
+                border-radius: 12px;
+                font-size: 0.85rem;
+                font-weight: 700;
+                color: #1e293b;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: 0.2s;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            }
+
+                .lang-btn:hover {
+                    background: #f1f5f9;
+                    transform: translateY(-1px);
+                    border-color: #3b82f6;
+                }
+
+            #langDropdown, #zoomDropdown {
+                display: none;
+                position: absolute;
+                top: 55px;
+                left: 0;
+                background: #fff;
+                border-radius: 16px;
+                box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+                border: 1px solid #e2e8f0;
+                min-width: 180px;
+                overflow: hidden;
+                z-index: 1001;
+                animation: slideDown 0.2s ease-out;
+            }
+
+            #zoomDropdown {
+                min-width: 130px;
+                max-height: 250px;
+                overflow-y: auto;
+            }
+
+                #zoomDropdown::-webkit-scrollbar {
+                    width: 4px;
+                }
+
+                #zoomDropdown::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 10px;
+                }
+
+            @@keyframes slideDown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .lang-item {
+                padding: 12px 18px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                color: #334155;
+                text-decoration: none;
+                font-size: 0.88rem;
+                font-weight: 600;
+                transition: 0.2s;
+                border-bottom: 1px solid #f1f5f9;
+            }
+
+                .lang-item:last-child {
+                    border-bottom: none;
+                }
+
+                .lang-item:hover {
+                    background: #eff6ff;
+                    color: #2563eb;
+                }
+
+                .lang-item.active {
+                    color: #2563eb;
+                    background: #f0f9ff;
+                }
+
+            /* --- CSS ẨN WIDGET GOOGLE TRANSLATE MẶC ĐỊNH --- */
+            .VIpgJd-ZVi9od-ORHb-OEVmcd {
+                display: none !important;
+            }
+
+            .goog-te-banner-frame {
+                display: none !important;
+            }
+
+            body {
+                top: 0px !important;
+            }
+
+            #goog-gt-tt {
+                display: none !important;
+            }
+
+            /* ==========================================
+                                                   THÊM MỚI: CSS CHO MOBILE RESPONSIVE
+                                                   ========================================== */
+            .sidebar-backdrop {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                z-index: 995;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+
+            @@media (max-width: 768px) {
+                #sidebar {
+                    transform: translateX(-100%);
+                }
+
+                    #sidebar.open {
+                        transform: translateX(0);
+                    }
+
+                .sidebar-backdrop.show {
+                    display: block;
+                    opacity: 1;
+                }
+
+                main {
+                    margin-left: 0 !important;
+                    width: 100% !important;
+                }
+
+                header {
+                    padding: 15px 20px !important;
+                }
+
+                #mobile-menu-btn {
+                    display: block !important;
+                }
+
+                #notificationDropdown {
+                    width: 300px !important;
+                    right: -20px !important;
+                }
+                /* SỬA LẠI ĐỂ RENDERBODY() SÁT LỀ TRÊN MOBILE HOÀN TOÀN */
+                .main-content-wrapper {
+                    padding: 15px 0 !important; /* Đảm bảo padding trái phải bằng 0 */
+                }
+
+                .main-card {
+                    padding: 20px 0 !important; /* THAY ĐỔI TẠI ĐÂY: từ 10px thành 0 để ép sát lề 100% */
+                    border-radius: 0 !important;
+                    border-left: none !important;
+                    border-right: none !important;
+                    min-height: auto !important;
+                }
+            }
     </style>
 </head>
 
@@ -237,7 +316,7 @@
                     @(isITSystem ? "IT" : "HR")
                 </div>
                 <div style="display:flex; flex-direction:column;">
-                    <span style="font-size:1.35rem; font-weight:800; letter-spacing:1px; color:#fff; line-height:1;">@(isITSystem ?  "E-FORM":"SERVICE")</span>
+                    <span style="font-size:1.35rem; font-weight:800; letter-spacing:1px; color:#fff; line-height:1;">@(isITSystem ? "E-FORM" : "SERVICE")</span>
                     <span class="lang-text" data-key="digital_portal" style="font-size:0.7rem; color:rgba(255,255,255,0.6); text-transform:uppercase; margin-top:4px; font-weight:600; letter-spacing: 0.5px;">Digital Portal</span>
                 </div>
             </a>
@@ -249,39 +328,39 @@
                 {
                     <div id="btnMainMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-radius: 14px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isITSubActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
                         <span style="display:flex; align-items:center;">
-                            <i class="fa @(isITSystem ? "fa-plus-circle" : "fa-pencil-square-o")" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i> 
+                            <i class="fa @(isITSystem ? "fa-plus-circle" : "fa-pencil-square-o")" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i>
                             <span class="lang-text" data-key="reg_form">Đăng ký đơn</span>
                         </span>
                         <i class="fa fa-angle-down" id="menuArrow" style="transition: 0.3s; transform: @(isITSubActive ? "rotate(180deg)" : "rotate(0deg)");"></i>
                     </div>
 
                     <div id="mainSubmenu" style="display: @(isITSubActive ? "flex" : "none"); flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
-    @if (isITSystem)
-    {
-        <a href="/FormIT/DonMail" class="submenu-link @(currentAction == "DonMail" ? "active" : "")">
-            <i class="fa fa-envelope-o" style="margin-right:12px; width:15px; color: #fbbf24;"></i> <span class="lang-text" data-key="reg_mail">1. Đăng ký Mail</span>
-        </a>
-        <a href="/FormIT/TaoIT_Order" class="submenu-link @(currentAction == "TaoIT_Order" ? "active" : "")">
-            <i class="fa fa-wrench" style="margin-right:12px; width:15px; color: #ea580c;"></i> <span class="lang-text" data-key="repair_it">2. Sửa chữa thiết bị</span>
-        </a>
-        <a href="/FormIT/TaoIT_Wifi" class="submenu-link @(currentAction == "TaoIT_Wifi" ? "active" : "")">
-            <i class="fa fa-wifi" style="margin-right:12px; width:15px; color: #059669;"></i> <span class="lang-text" data-key="reg_wifi">3. Đăng ký Wifi</span>
-        </a>
-        <a href="/FormIT/DonDienThoaiBan" class="submenu-link @(currentAction == "DonDienThoaiBan" ? "active" : "")">
-            <i class="fa fa-phone" style="margin-right:12px; width:15px; color: #4f46e5;"></i> <span class="lang-text" data-key="reg_phone">4. Đăng ký ĐT bàn</span>
-        </a>
-        <a href="/FormIT/DonTaiKhoanHeThong" class="submenu-link @(currentAction == "DonTaiKhoanHeThong" ? "active" : "")">
-            <i class="fa fa-user-circle-o" style="margin-right:12px; width:15px; color: #db2777;"></i> <span class="lang-text" data-key="reg_system_acc">5. Đăng ký TK Hệ thống</span>
-        </a>
-        <a href="/FormIT/DonTaiKhoanMayTinh" class="submenu-link @(currentAction == "DonTaiKhoanMayTinh" ? "active" : "")">
-            <i class="fa fa-desktop" style="margin-right:12px; width:15px; color: #06b6d4;"></i> <span class="lang-text" data-key="reg_pc_acc">6. Đăng ký TK Máy tính</span>
-        </a>
-       @* Mục số 7 với màu mới #65a30d *@
-        <a href="/FormIT/DonLapDatThietBi" class="submenu-link @(currentAction == "DonLapDatThietBi" ? "active" : "")">
-            <i class="fa fa-plus-square" style="margin-right:12px; width:15px; color: #65a30d;"></i> <span class="lang-text" data-key="reg_install_equip">7. Đơn lắp đặt TB</span>
-        </a>
-    }
-</div>
+                        @if (isITSystem)
+                        {
+                            <a href="/FormIT/DonMail" class="submenu-link @(currentAction == "DonMail" ? "active" : "")">
+                                <i class="fa fa-envelope-o" style="margin-right:12px; width:15px; color: #fbbf24;"></i> <span class="lang-text" data-key="reg_mail">1. Đăng ký Mail</span>
+                            </a>
+                            <a href="/FormIT/TaoIT_Order" class="submenu-link @(currentAction == "TaoIT_Order" ? "active" : "")">
+                                <i class="fa fa-wrench" style="margin-right:12px; width:15px; color: #ea580c;"></i> <span class="lang-text" data-key="repair_it">2. Sửa chữa thiết bị</span>
+                            </a>
+                            <a href="/FormIT/TaoIT_Wifi" class="submenu-link @(currentAction == "TaoIT_Wifi" ? "active" : "")">
+                                <i class="fa fa-wifi" style="margin-right:12px; width:15px; color: #059669;"></i> <span class="lang-text" data-key="reg_wifi">3. Đăng ký Wifi</span>
+                            </a>
+                            <a href="/FormIT/DonDienThoaiBan" class="submenu-link @(currentAction == "DonDienThoaiBan" ? "active" : "")">
+                                <i class="fa fa-phone" style="margin-right:12px; width:15px; color: #4f46e5;"></i> <span class="lang-text" data-key="reg_phone">4. Đăng ký ĐT bàn</span>
+                            </a>
+                            <a href="/FormIT/DonTaiKhoanHeThong" class="submenu-link @(currentAction == "DonTaiKhoanHeThong" ? "active" : "")">
+                                <i class="fa fa-user-circle-o" style="margin-right:12px; width:15px; color: #db2777;"></i> <span class="lang-text" data-key="reg_system_acc">5. Đăng ký TK Hệ thống</span>
+                            </a>
+                            <a href="/FormIT/DonTaiKhoanMayTinh" class="submenu-link @(currentAction == "DonTaiKhoanMayTinh" ? "active" : "")">
+                                <i class="fa fa-desktop" style="margin-right:12px; width:15px; color: #06b6d4;"></i> <span class="lang-text" data-key="reg_pc_acc">6. Đăng ký TK Máy tính</span>
+                            </a>
+                            @* Mục số 7 với màu mới #65a30d *@
+                            <a href="/FormIT/DonLapDatThietBi" class="submenu-link @(currentAction == "DonLapDatThietBi" ? "active" : "")">
+                                <i class="fa fa-plus-square" style="margin-right:12px; width:15px; color: #65a30d;"></i> <span class="lang-text" data-key="reg_install_equip">7. Đơn lắp đặt TB</span>
+                            </a>
+                        }
+                    </div>
 
                     <a href="@(isITSystem ? "/FormIT/DonCho" : "/FormHR/DonCho")" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
                         <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text" data-key="my_forms">Đơn của tôi</span>
@@ -300,38 +379,66 @@
                         </a>
                     }
 
-                   @if (User.IsInRole("AdminIT") || User.IsInRole("All"))
-{
-    <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-    <div class="lang-text" data-key="admin_sec" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị IT</div>
-    
-    <a href="/FormIT/HoanTatDon" class="nav-link-item @(currentAction == "HoanTatDon" ? "active" : "")">
-        <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text" data-key="archive_form">Lưu trữ đơn</span>
-    </a>
-    
-    <a href="/FormIT/BaoCaoThongKe" class="nav-link-item @(currentAction == "BaoCaoThongKe" ? "active" : "")">
-        <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> <span class="lang-text" data-key="statistics">Thống báo báo cáo</span>
-    </a>
-
-   <!-- MỤC MỚI THÊM: QUẢN LÝ KIỂM KÊ & THỐNG KÊ TÀI SẢN -->
-<a href="/QLKiemKe/ThongKe" class="nav-link-item @(currentAction == "ThongKeKiemKe" ? "active" : "")">
-    <i class="fa fa-pie-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#3b82f6;"></i> 
-    <span class="lang-text" data-key="inventory_stats">Kiểm kê tài sản</span>
-</a>
-
-}
-                    @if (User.IsInRole("KKTS-PFVN") || User.IsInRole("All"))
+                    @if (User.IsInRole("AdminIT") || User.IsInRole("All"))
                     {
                         <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-                        <div class="lang-text" data-key="inventory_sec" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Kiểm Kê Thiết Bị</div>
+                        <div class="lang-text" data-key="admin_sec" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị IT</div>
 
-                        <!-- Menu 1: Quản lý Thiết bị (View chuyên add/thống kê) -->
-                        <a href="/QLKiemKe/ThietBi" class="nav-link-item @(currentController == "QLKiemKe" && currentAction == "IndexThietBi" ? "active" : "")">
+                        <a href="/FormIT/HoanTatDon" class="nav-link-item @(currentAction == "HoanTatDon" ? "active" : "")">
+                            <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text" data-key="archive_form">Lưu trữ đơn</span>
+                        </a>
+
+                        <!-- ======================================================== -->
+                        <!-- MỤC ĐÃ ĐƯỢC THAY ĐỔI: THỐNG KÊ BÁO CÁO (DẠNG MỞ RỘNG)   -->
+                        <!-- ======================================================== -->
+                        <a data-bs-toggle="collapse" href="#collapseThongKe" role="button" aria-expanded="@(isReportActive ? "true" : "false")" class="nav-link-item" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: @(isReportActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
+                            <span style="display:flex; align-items:center;">
+                                <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i>
+                                <span class="lang-text" data-key="statistics">Thống kê báo cáo</span>
+                            </span>
+                            <i class="fa fa-angle-down menu-arrow"></i>
+                        </a>
+
+                        <!-- Menu con của Thống kê báo cáo -->
+                        <div class="collapse @(isReportActive ? "show" : "")" id="collapseThongKe">
+                            <div style="display: flex; flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
+                                <a href="/FormIT/BaoCaoThongKe" class="submenu-link @(currentAction == "BaoCaoThongKe" ? "active" : "")">
+                                    <i class="fa fa-file-text-o" style="margin-right:12px; width:15px; color: #10b981;"></i>
+                                    <span class="lang-text" data-key="order_statistics">Thống kê đơn</span>
+                                </a>
+
+                                <!-- Link Thống kê MAC Wi-Fi mới thêm -->
+                                <a href="/FormIT/ThongKeMacWifi" class="submenu-link @(currentAction == "ThongKeMacWifi" ? "active" : "")">
+                                    <i class="fa fa-wifi" style="margin-right:12px; width:15px; color: #14b8a6;"></i>
+                                    <span class="lang-text" data-key="mac_statistics">Thống kê MAC Wi-Fi</span>
+                                </a>
+                            </div>
+                        </div>
+                        <!-- ======================================================== -->
+                        <!-- MỤC QUẢN LÝ KIỂM KÊ & THỐNG KÊ TÀI SẢN -->
+                        <a href="/QLKiemKe/ThongKe" class="nav-link-item @(currentController == "QLKiemKe" && (currentAction == "ThongKeKiemKe" || currentAction == "ThongKe") ? "active" : "")">
+                            <i class="fa fa-pie-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#3b82f6;"></i>
+                            <span class="lang-text" data-key="inventory_stats">Kiểm kê tài sản</span>
+                        </a>
+
+                    }
+                    @if (User.IsInRole("KKTS-PFVN") || User.IsInRole("All"))
+                    {
+                        bool isKiemKeGroupActive = currentController == "QLKiemKe";
+
+                        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
+                        <!-- Tiêu đề sẽ sáng lên (có màu xanh và thêm dấu chấm) nếu đang ở mục Kiểm Kê -->
+                        <div class="lang-text" data-key="inventory_sec" style="font-size: 0.72rem; color: @(isKiemKeGroupActive ? "#60a5fa" : "rgba(255, 255, 255, 0.45)"); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700; transition: color 0.3s;">
+                            Kiểm Kê Thiết Bị @(isKiemKeGroupActive ? "•" : "")
+                        </div>
+
+                        <!-- Menu 1: Quản lý Thiết bị (Đã sửa lại Action kiểm tra) -->
+                        <a href="/QLKiemKe/ThietBi" class="nav-link-item @(currentController == "QLKiemKe" && (currentAction == "IndexThietBi" || currentAction == "ThietBi") ? "active" : "")">
                             <i class="fa fa-laptop" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text" data-key="device_manage">Quản lý Thiết bị</span>
                         </a>
 
-                        <!-- Menu 2: Danh mục (View cũ nhưng giờ chỉ chuyên cấu hình) -->
-                        <a href="/QLKiemKe" class="nav-link-item @(currentController == "QLKiemKe" && currentAction == "IndexKiemKe" ? "active" : "")">
+                        <!-- Menu 2: Danh mục (Đã sửa lại Action kiểm tra) -->
+                        <a href="/QLKiemKe" class="nav-link-item @(currentController == "QLKiemKe" && (currentAction == "IndexKiemKe" || currentAction == "Index") ? "active" : "")">
                             <i class="fa fa-cubes" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f472b6;"></i> <span class="lang-text" data-key="inventory">Cấu hình Danh mục</span>
                         </a>
                     }
@@ -392,7 +499,7 @@
         <main style="margin-left:280px; width:calc(100% - 280px); box-sizing: border-box; min-height:100vh; position:relative; display: flex; flex-direction: column; transition: all 0.3s ease;">
 
             <header style="padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 999; font-family: 'Inter', system-ui, -apple-system, sans-serif; border-bottom: 1px solid rgba(226, 232, 240, 0.6); transition: all 0.3s ease;">
-                
+
                 <!-- Nhóm trái: Mobile Button + Language Switcher + Zoom -->
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <!-- Nút mở Menu Mobile (Chỉ hiện trên điện thoại) -->
@@ -421,7 +528,7 @@
                         <!-- Div ảo chứa widget Google Translate -->
                         <div id="google_translate_element" style="display:none;"></div>
                     </div>
-                    
+
                     <!-- Zoom Switcher -->
                     <div style="position: relative;">
                         <button id="btnZoom" class="lang-btn">
@@ -479,7 +586,7 @@
                     @RenderBody()
                 </div>
             </div>
-            
+
             <footer style="text-align:center; color:#94a3b8; font-size:0.85rem; padding-bottom: 20px;">
                 &copy; @DateTime.Now.Year - <strong>IT Service Portal</strong> - Digital Best Solution
             </footer>
@@ -493,14 +600,14 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <!-- THÊM THƯ VIỆN SELECT2 (JS) BỊ THIẾU -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <!-- SCRIPT GOOGLE TRANSLATE -->
     <script type="text/javascript">
         function googleTranslateElementInit() {
-            new google.translate.TranslateElement({ pageLanguage: 'vi', autoDisplay: false }, 'google_translate_element');
+        new google.translate.TranslateElement({ pageLanguage: 'vi', autoDisplay: false }, 'google_translate_element');
         }
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
@@ -514,97 +621,97 @@
         const sidebarBackdrop = document.getElementById('sidebar-backdrop');
 
         if (mobileMenuBtn && sidebarApp && sidebarBackdrop) {
-            mobileMenuBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                sidebarApp.classList.toggle('open');
-                sidebarBackdrop.classList.toggle('show');
-            });
+        mobileMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sidebarApp.classList.toggle('open');
+        sidebarBackdrop.classList.toggle('show');
+        });
 
-            sidebarBackdrop.addEventListener('click', () => {
-                sidebarApp.classList.remove('open');
-                sidebarBackdrop.classList.remove('show');
-            });
+        sidebarBackdrop.addEventListener('click', () => {
+        sidebarApp.classList.remove('open');
+        sidebarBackdrop.classList.remove('show');
+        });
         }
 
         // ==========================================
         // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE (NUCLEAR OPTION CHỐNG KẸT)
         // ==========================================
         function clearGoogTransCookie() {
-            let domain = window.location.hostname;
-            let paths = ['/', window.location.pathname];
-            let domainParts = domain.split('.');
-            let domainsToClear = [domain, '.' + domain, ''];
-            
-            if (domainParts.length >= 2) {
-                domainsToClear.push('.' + domainParts.slice(-2).join('.'));
-                domainsToClear.push(domainParts.slice(-2).join('.'));
-            }
+        let domain = window.location.hostname;
+        let paths = ['/', window.location.pathname];
+        let domainParts = domain.split('.');
+        let domainsToClear = [domain, '.' + domain, ''];
 
-            paths.forEach(p => {
-                domainsToClear.forEach(d => {
-                    let dStr = d ? `; domain=${d}` : '';
-                    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}${dStr};`;
-                });
-            });
-            
-            window.localStorage.removeItem('googtrans');
-            window.sessionStorage.removeItem('googtrans');
+        if (domainParts.length >= 2) {
+        domainsToClear.push('.' + domainParts.slice(-2).join('.'));
+        domainsToClear.push(domainParts.slice(-2).join('.'));
+        }
+
+        paths.forEach(p => {
+        domainsToClear.forEach(d => {
+        let dStr = d ? `; domain=${d}` : '';
+        document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}${dStr};`;
+        });
+        });
+
+        window.localStorage.removeItem('googtrans');
+        window.sessionStorage.removeItem('googtrans');
         }
 
         function setGoogTransCookie(lang) {
-            let domain = window.location.hostname;
-            let domainParts = domain.split('.');
-            let rootDomain = domainParts.length >= 2 ? '.' + domainParts.slice(-2).join('.') : domain;
+        let domain = window.location.hostname;
+        let domainParts = domain.split('.');
+        let rootDomain = domainParts.length >= 2 ? '.' + domainParts.slice(-2).join('.') : domain;
 
-            document.cookie = `googtrans=/vi/${lang}; path=/; domain=${rootDomain};`;
-            document.cookie = `googtrans=/vi/${lang}; path=/;`;
+        document.cookie = `googtrans=/vi/${lang}; path=/; domain=${rootDomain};`;
+        document.cookie = `googtrans=/vi/${lang}; path=/;`;
         }
 
         function initLanguageGTranslate() {
-            let currentLang = localStorage.getItem('siteLangGlobal') || 'vi'; 
-            if (!localStorage.getItem('siteLangGlobal')) {
-                localStorage.setItem('siteLangGlobal', 'vi');
-            }
+        let currentLang = localStorage.getItem('siteLangGlobal') || 'vi';
+        if (!localStorage.getItem('siteLangGlobal')) {
+        localStorage.setItem('siteLangGlobal', 'vi');
+        }
 
-            const labels = { 'vi': 'Tiếng Việt', 'en': 'English', 'zh-CN': '中文' };
-            const currentLangText = document.getElementById('currentLangText');
-            if(currentLangText) currentLangText.innerText = labels[currentLang] || 'Tiếng Việt';
-            
-            document.querySelectorAll('#langDropdown .lang-item i').forEach(i => i.style.display = 'none');
-            const activeCheck = document.querySelector(`#lang-${currentLang} i`);
-            if(activeCheck) activeCheck.style.display = 'inline-block';
+        const labels = { 'vi': 'Tiếng Việt', 'en': 'English', 'zh-CN': '中文' };
+        const currentLangText = document.getElementById('currentLangText');
+        if(currentLangText) currentLangText.innerText = labels[currentLang] || 'Tiếng Việt';
 
-            let match = document.cookie.match(/(^| )googtrans=([^;]+)/);
-            let currentCookie = match ? match[2] : null;
-            let expectedCookie = currentLang === 'vi' ? null : `/vi/${currentLang}`;
+        document.querySelectorAll('#langDropdown .lang-item i').forEach(i => i.style.display = 'none');
+        const activeCheck = document.querySelector(`#lang-${currentLang} i`);
+        if(activeCheck) activeCheck.style.display = 'inline-block';
 
-            if (currentCookie !== expectedCookie) {
-                clearGoogTransCookie();
-                if (currentLang !== 'vi') {
-                    setGoogTransCookie(currentLang);
-                }
-            }
+        let match = document.cookie.match(/(^| )googtrans=([^;]+)/);
+        let currentCookie = match ? match[2] : null;
+        let expectedCookie = currentLang === 'vi' ? null : `/vi/${currentLang}`;
+
+        if (currentCookie !== expectedCookie) {
+        clearGoogTransCookie();
+        if (currentLang !== 'vi') {
+        setGoogTransCookie(currentLang);
+        }
+        }
         }
 
         function changeLanguageGTranslate(lang, label) {
-            localStorage.setItem('siteLangGlobal', lang); 
-            
-            // BƯỚC 1: PHÁ HỦY DOM CỦA GOOGLE TRANSLATE
-            const gtEl = document.getElementById('google_translate_element');
-            if (gtEl) gtEl.innerHTML = '';
-            const iframes = document.querySelectorAll('iframe.goog-te-menu-frame, iframe.goog-te-banner-frame');
-            iframes.forEach(f => f.remove());
+        localStorage.setItem('siteLangGlobal', lang);
 
-            // BƯỚC 2: DỌN RÁC COOKIE
-            clearGoogTransCookie();
+        // BƯỚC 1: PHÁ HỦY DOM CỦA GOOGLE TRANSLATE
+        const gtEl = document.getElementById('google_translate_element');
+        if (gtEl) gtEl.innerHTML = '';
+        const iframes = document.querySelectorAll('iframe.goog-te-menu-frame, iframe.goog-te-banner-frame');
+        iframes.forEach(f => f.remove());
 
-            // BƯỚC 3: GÁN COOKIE MỚI & ĐIỀU HƯỚNG
-            setTimeout(() => {
-                if (lang !== 'vi') {
-                    setGoogTransCookie(lang);
-                }
-                window.location.href = window.location.pathname + window.location.search;
-            }, 50);
+        // BƯỚC 2: DỌN RÁC COOKIE
+        clearGoogTransCookie();
+
+        // BƯỚC 3: GÁN COOKIE MỚI & ĐIỀU HƯỚNG
+        setTimeout(() => {
+        if (lang !== 'vi') {
+        setGoogTransCookie(lang);
+        }
+        window.location.href = window.location.pathname + window.location.search;
+        }, 50);
         }
 
         // ==========================================
@@ -615,63 +722,63 @@
         const currentZoomText = document.getElementById('currentZoomText');
 
         if (btnZoom) {
-            btnZoom.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const langDrop = document.getElementById('langDropdown');
-                if(langDrop) langDrop.style.display = 'none';
-                const isHidden = zoomDrop.style.display === 'none' || zoomDrop.style.display === '';
-                zoomDrop.style.display = isHidden ? 'block' : 'none';
-            });
+        btnZoom.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const langDrop = document.getElementById('langDropdown');
+        if(langDrop) langDrop.style.display = 'none';
+        const isHidden = zoomDrop.style.display === 'none' || zoomDrop.style.display === '';
+        zoomDrop.style.display = isHidden ? 'block' : 'none';
+        });
         }
 
         function initZoom() {
-            let currentZoom = getCookieIT('siteZoomGlobal') || '100';
-            applyZoom(currentZoom);
+        let currentZoom = getCookieIT('siteZoomGlobal') || '100';
+        applyZoom(currentZoom);
         }
 
         function changeZoom(percent) {
-            setCookieIT('siteZoomGlobal', percent, 365);
-            applyZoom(percent);
-            if (zoomDrop) zoomDrop.style.display = 'none';
+        setCookieIT('siteZoomGlobal', percent, 365);
+        applyZoom(percent);
+        if (zoomDrop) zoomDrop.style.display = 'none';
         }
 
         function applyZoom(percent) {
-            document.body.style.zoom = percent + '%';
-            if (currentZoomText) currentZoomText.innerText = percent + '%';
-            
-            if (zoomDrop) {
-                const items = zoomDrop.querySelectorAll('.lang-item');
-                items.forEach(item => {
-                    const text = item.querySelector('span').innerText;
-                    const check = item.querySelector('i');
-                    if (text === percent + '%') {
-                        if(check) check.style.display = 'inline-block';
-                        item.classList.add('active');
-                    } else {
-                        if(check) check.style.display = 'none';
-                        item.classList.remove('active');
-                    }
-                });
-            }
+        document.body.style.zoom = percent + '%';
+        if (currentZoomText) currentZoomText.innerText = percent + '%';
+
+        if (zoomDrop) {
+        const items = zoomDrop.querySelectorAll('.lang-item');
+        items.forEach(item => {
+        const text = item.querySelector('span').innerText;
+        const check = item.querySelector('i');
+        if (text === percent + '%') {
+        if(check) check.style.display = 'inline-block';
+        item.classList.add('active');
+        } else {
+        if(check) check.style.display = 'none';
+        item.classList.remove('active');
+        }
+        });
+        }
         }
 
         function setCookieIT(cname, cvalue, exdays) {
-            const d = new Date();
-            d.setTime(d.getTime() + (exdays*24*60*60*1000));
-            let expires = "expires="+ d.toUTCString();
-            document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+        const d = new Date();
+        d.setTime(d.getTime() + (exdays*24*60*60*1000));
+        let expires = "expires="+ d.toUTCString();
+        document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
         }
 
         function getCookieIT(cname) {
-            let name = cname + "=";
-            let decodedCookie = decodeURIComponent(document.cookie);
-            let ca = decodedCookie.split(';');
-            for(let i = 0; i <ca.length; i++) {
-                let c = ca[i];
-                while (c.charAt(0) == ' ') { c = c.substring(1); }
-                if (c.indexOf(name) == 0) { return c.substring(name.length, c.length); }
-            }
-            return "";
+        let name = cname + "=";
+        let decodedCookie = decodeURIComponent(document.cookie);
+        let ca = decodedCookie.split(';');
+        for(let i = 0; i <ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) == ' ') { c = c.substring(1); }
+        if (c.indexOf(name) == 0) { return c.substring(name.length, c.length); }
+        }
+        return "";
         }
 
         // ==========================================
@@ -685,40 +792,47 @@
         const langDrop = document.getElementById('langDropdown');
 
         if (btnLang) {
-            btnLang.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if(zoomDrop) zoomDrop.style.display = 'none';
-                langDrop.style.display = langDrop.style.display === 'block' ? 'none' : 'block';
-            });
+        btnLang.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if(zoomDrop) zoomDrop.style.display = 'none';
+        langDrop.style.display = langDrop.style.display === 'block' ? 'none' : 'block';
+        });
         }
 
         if (btnMenu && submenu) {
-            btnMenu.addEventListener('click', () => {
-                const isHidden = submenu.style.display === 'none' || submenu.style.display === '';
-                submenu.style.display = isHidden ? 'flex' : 'none';
-                if (arrow) arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
-                btnMenu.style.background = isHidden ? 'rgba(255, 255, 255, 0.15)' : 'transparent';
-                localStorage.setItem('itMenuState', isHidden ? 'open' : 'closed');
-            });
+        btnMenu.addEventListener('click', () => {
+        const isHidden = submenu.style.display === 'none' || submenu.style.display === '';
+        submenu.style.display = isHidden ? 'flex' : 'none';
+        if (arrow) arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        btnMenu.style.background = isHidden ? 'rgba(255, 255, 255, 0.15)' : 'transparent';
+        localStorage.setItem('itMenuState', isHidden ? 'open' : 'closed');
+        });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            initLanguageGTranslate();
-            initZoom(); 
-            
-            const savedScrollPos = sessionStorage.getItem('sidebarScrollPosIT');
-            if (sidebarNav && savedScrollPos) sidebarNav.scrollTop = parseInt(savedScrollPos);
-            
-            const isSubActiveServer = '@isITSubActive'.toLowerCase() === 'true';
-            const savedMenuState = localStorage.getItem('itMenuState');
-            if ((isSubActiveServer || savedMenuState === 'open') && submenu) {
-                submenu.style.display = 'flex';
-                if (arrow) arrow.style.transform = 'rotate(180deg)';
-                if (btnMenu) btnMenu.style.background = 'rgba(255, 255, 255, 0.15)';
-            }
+        initLanguageGTranslate();
+        initZoom();
+
+        const savedScrollPos = sessionStorage.getItem('sidebarScrollPosIT');
+        if (sidebarNav && savedScrollPos) sidebarNav.scrollTop = parseInt(savedScrollPos);
+
+        // THÊM ĐOẠN NÀY ĐỂ LƯU VỊ TRÍ CUỘN CỦA SIDEBAR
+        if (sidebarNav) {
+        sidebarNav.addEventListener('scroll', function() {
+        sessionStorage.setItem('sidebarScrollPosIT', this.scrollTop);
+        });
+        }
+
+        const isSubActiveServer = '@isITSubActive'.toLowerCase() === 'true';
+        const savedMenuState = localStorage.getItem('itMenuState');
+        if ((isSubActiveServer || savedMenuState === 'open') && submenu) {
+        submenu.style.display = 'flex';
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+        if (btnMenu) btnMenu.style.background = 'rgba(255, 255, 255, 0.15)';
+        }
         });
 
-        // Notification Logic 
+        // Notification Logic
         const notiSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         notiSound.volume = 0.6;
 
@@ -738,128 +852,128 @@
         const userArrow = document.getElementById('arrowIcon');
 
         if (notiBell) {
-            notiBell.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const isHidden = notiDrop.style.display === 'none' || notiDrop.style.display === '';
-                notiDrop.style.display = isHidden ? 'flex' : 'none';
-                if (isHidden) loadNotifications(true, false);
-            });
+        notiBell.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = notiDrop.style.display === 'none' || notiDrop.style.display === '';
+        notiDrop.style.display = isHidden ? 'flex' : 'none';
+        if (isHidden) loadNotifications(true, false);
+        });
         }
 
         if (userBtn && userDrop) {
-            userBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const isHidden = userDrop.style.display === 'none' || userDrop.style.display === '';
-                userDrop.style.display = isHidden ? 'flex' : 'none';
-                if (userArrow) userArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
-            });
+        userBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = userDrop.style.display === 'none' || userDrop.style.display === '';
+        userDrop.style.display = isHidden ? 'flex' : 'none';
+        if (userArrow) userArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        });
         }
 
         document.addEventListener('click', () => {
-            if (userDrop) userDrop.style.display = 'none';
-            if (userArrow) userArrow.style.transform = 'rotate(0deg)';
-            if (notiDrop) notiDrop.style.display = 'none';
-            if (langDrop) langDrop.style.display = 'none';
-            if (zoomDrop) zoomDrop.style.display = 'none';
+        if (userDrop) userDrop.style.display = 'none';
+        if (userArrow) userArrow.style.transform = 'rotate(0deg)';
+        if (notiDrop) notiDrop.style.display = 'none';
+        if (langDrop) langDrop.style.display = 'none';
+        if (zoomDrop) zoomDrop.style.display = 'none';
         });
 
         async function loadNotifications(isOpen = false, isLoadMore = false) {
-            if (isLoading) return;
-            const readIdsFromCookie = getReadIds();
-            if (!isLoadMore) { currentSkip = 0; hasMoreData = true; }
-            try {
-                isLoading = true;
-                const res = await fetch(`/FormIT/GetNotifications?skip=${currentSkip}&take=${take}`);
-                const data = await res.json();
-                const listItems = data.top5 || data.dataList || [];
-                
-                if (listItems.length > 0) {
-                    const currentTopId = listItems[0].id.toString();
-                    if (lastTopId !== null && currentTopId !== lastTopId && !readIdsFromCookie.includes(currentTopId)) {
-                        triggerNewNotificationEffect(listItems[0]);
-                    }
-                    lastTopId = currentTopId;
-                    localStorage.setItem('lastNotifiedId', currentTopId);
-                }
+        if (isLoading) return;
+        const readIdsFromCookie = getReadIds();
+        if (!isLoadMore) { currentSkip = 0; hasMoreData = true; }
+        try {
+        isLoading = true;
+        const res = await fetch(`/FormIT/GetNotifications?skip=${currentSkip}&take=${take}`);
+        const data = await res.json();
+        const listItems = data.top5 || data.dataList || [];
 
-                const unreadCount = listItems.filter(item => !readIdsFromCookie.includes(item.id.toString())).length;
-                if (notiBadge) {
-                    if (unreadCount > 0) {
-                        notiBadge.innerText = unreadCount > 99 ? "99+" : unreadCount;
-                        notiBadge.style.display = 'flex';
-                    } else { notiBadge.style.display = 'none'; }
-                }
+        if (listItems.length > 0) {
+        const currentTopId = listItems[0].id.toString();
+        if (lastTopId !== null && currentTopId !== lastTopId && !readIdsFromCookie.includes(currentTopId)) {
+        triggerNewNotificationEffect(listItems[0]);
+        }
+        lastTopId = currentTopId;
+        localStorage.setItem('lastNotifiedId', currentTopId);
+        }
 
-                const html = listItems.map(item => {
-                    const isRead = readIdsFromCookie.includes(item.id.toString());
-                    if(!allFetchedIds.includes(item.id.toString())) allFetchedIds.push(item.id.toString());
-                    return `<a href="/FormIT/ChiTiet/${item.idFormIt}" onclick="markAsRead('${item.id}')" style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit; background: ${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.05)'};">
-                        <div style="width: 44px; height: 44px; border-radius: 12px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fa ${item.icon || 'fa-bell'}"></i></div>
-                        <div style="flex:1;"><div style="font-size: 0.88rem; font-weight: ${isRead ? '600' : '800'}; color: #1e293b;">${item.tieuDe}</div>
-                        <div style="font-size: 0.8rem; color: #64748b;">${item.mota || ''}</div>
-                        <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 6px;"><i class="fa fa-clock-o"></i> ${item.time}</div></div></a>`;
-                }).join('');
+        const unreadCount = listItems.filter(item => !readIdsFromCookie.includes(item.id.toString())).length;
+        if (notiBadge) {
+        if (unreadCount > 0) {
+        notiBadge.innerText = unreadCount > 99 ? "99+" : unreadCount;
+        notiBadge.style.display = 'flex';
+        } else { notiBadge.style.display = 'none'; }
+        }
 
-                if (isOpen && notiList) { 
-                    if (isLoadMore) notiList.insertAdjacentHTML('beforeend', html); 
-                    else notiList.innerHTML = html; 
-                }
-                currentSkip += listItems.length;
-                if (listItems.length < take) hasMoreData = false;
-            } catch (err) { } finally { isLoading = false; }
+        const html = listItems.map(item => {
+        const isRead = readIdsFromCookie.includes(item.id.toString());
+        if(!allFetchedIds.includes(item.id.toString())) allFetchedIds.push(item.id.toString());
+        return `<a href="/FormIT/ChiTiet/${item.idFormIt}" onclick="markAsRead('${item.id}')" style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit; background: ${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.05)'};">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fa ${item.icon || 'fa-bell'}"></i></div>
+        <div style="flex:1;"><div style="font-size: 0.88rem; font-weight: ${isRead ? '600' : '800'}; color: #1e293b;">${item.tieuDe}</div>
+        <div style="font-size: 0.8rem; color: #64748b;">${item.mota || ''}</div>
+        <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 6px;"><i class="fa fa-clock-o"></i> ${item.time}</div></div></a>`;
+        }).join('');
+
+        if (isOpen && notiList) {
+        if (isLoadMore) notiList.insertAdjacentHTML('beforeend', html);
+        else notiList.innerHTML = html;
+        }
+        currentSkip += listItems.length;
+        if (listItems.length < take) hasMoreData = false;
+        } catch (err) { } finally { isLoading = false; }
         }
 
         function getReadIds() {
-            const name = "read_notifications=";
-            const ca = document.cookie.split(';');
-            for (let i = 0; i < ca.length; i++) {
-                let c = ca[i].trim();
-                if (c.indexOf(name) === 0) return c.substring(name.length).split(',').filter(id => id !== "");
-            }
-            return [];
+        const name = "read_notifications=";
+        const ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+        let c = ca[i].trim();
+        if (c.indexOf(name) === 0) return c.substring(name.length).split(',').filter(id => id !== "");
+        }
+        return [];
         }
 
         function setReadCookie(ids) {
-            const d = new Date();
-            d.setTime(d.getTime() + (30 * 24 * 60 * 60 * 1000));
-            document.cookie = "read_notifications=" + ids.join(',') + ";expires=" + d.toUTCString() + ";path=/";
+        const d = new Date();
+        d.setTime(d.getTime() + (30 * 24 * 60 * 60 * 1000));
+        document.cookie = "read_notifications=" + ids.join(',') + ";expires=" + d.toUTCString() + ";path=/";
         }
 
         function triggerNewNotificationEffect(item) {
-            const latestTag = document.getElementById('latestNotiTag');
-            const latestText = document.getElementById('latestNotiText');
-            if (latestText) latestText.innerText = item.tieuDe;
-            if (latestTag) latestTag.style.display = 'flex';
-            notiSound.play().catch(() => {});
-            setTimeout(() => { if (latestTag) latestTag.style.display = 'none'; }, 8000);
+        const latestTag = document.getElementById('latestNotiTag');
+        const latestText = document.getElementById('latestNotiText');
+        if (latestText) latestText.innerText = item.tieuDe;
+        if (latestTag) latestTag.style.display = 'flex';
+        notiSound.play().catch(() => {});
+        setTimeout(() => { if (latestTag) latestTag.style.display = 'none'; }, 8000);
         }
 
         function markAsRead(id) {
-            let readIds = getReadIds();
-            if (!readIds.includes(id.toString())) {
-                readIds.push(id.toString());
-                setReadCookie(readIds);
-                setTimeout(() => loadNotifications(false, false), 300);
-            }
+        let readIds = getReadIds();
+        if (!readIds.includes(id.toString())) {
+        readIds.push(id.toString());
+        setReadCookie(readIds);
+        setTimeout(() => loadNotifications(false, false), 300);
+        }
         }
 
         function markAllAsRead(e) {
-            if(e) e.stopPropagation();
-            
-            let readIds = getReadIds();
-            let hasChanges = false;
-            
-            allFetchedIds.forEach(id => {
-                if (!readIds.includes(id)) {
-                    readIds.push(id);
-                    hasChanges = true;
-                }
-            });
+        if(e) e.stopPropagation();
 
-            if (hasChanges) {
-                setReadCookie(readIds);
-                loadNotifications(true, false);
-            }
+        let readIds = getReadIds();
+        let hasChanges = false;
+
+        allFetchedIds.forEach(id => {
+        if (!readIds.includes(id)) {
+        readIds.push(id);
+        hasChanges = true;
+        }
+        });
+
+        if (hasChanges) {
+        setReadCookie(readIds);
+        loadNotifications(true, false);
+        }
         }
 
         setInterval(() => loadNotifications(false, false), 30000);

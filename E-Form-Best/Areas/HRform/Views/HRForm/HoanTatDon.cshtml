@@ -10,104 +10,209 @@
 
 <style>
     .sub-badge {
-        font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700;
-        display: inline-flex; align-items: center; gap: 3px; border: 1px solid; margin-top: 2px;
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        border: 1px solid;
+        margin-top: 2px;
     }
+
     .support-avatar {
-        width: 26px; height: 26px; background: #eff6ff; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center; color: #1e40af; border: 1px solid #dbeafe;
+        width: 26px;
+        height: 26px;
+        background: #eff6ff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #1e40af;
+        border: 1px solid #dbeafe;
     }
-    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important; transition: 0.3s; }
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important;
+        transition: 0.3s;
+    }
 
     /* Modal Styles */
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 9998; backdrop-filter: blur(4px); }
-    .type-filter-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; width: 500px; max-width: 95%; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); z-index: 9999; padding: 25px; overflow: hidden; }
-    .type-checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; margin-bottom: 25px; max-height: 350px; overflow-y: auto; padding-right: 5px; }
-    .type-item-label { display: flex; align-items: center; gap: 10px; padding: 12px 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; transition: 0.2s; font-size: 13px; font-weight: 700; color: #334155; }
-    .type-item-label:hover { background: #f1f5f9; border-color: #cbd5e1; }
-    .type-checkbox { width: 18px; height: 18px; accent-color: #1e40af; cursor: pointer; }
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.6);
+        z-index: 9998;
+        backdrop-filter: blur(4px);
+    }
+
+    .type-filter-modal {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        width: 500px;
+        max-width: 95%;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        z-index: 9999;
+        padding: 25px;
+        overflow: hidden;
+    }
+
+    .type-checkbox-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 20px;
+        margin-bottom: 25px;
+        max-height: 350px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+
+    .type-item-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 15px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: 0.2s;
+        font-size: 13px;
+        font-weight: 700;
+        color: #334155;
+    }
+
+        .type-item-label:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+    .type-checkbox {
+        width: 18px;
+        height: 18px;
+        accent-color: #1e40af;
+        cursor: pointer;
+    }
 
     /* Phân trang */
     .page-btn {
-        padding: 8px 16px; border-radius: 10px; border: 1px solid #e2e8f0; background: white; color: #64748b; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.3s;
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: 0.3s;
     }
-    .page-btn.active {
-        background: #1e40af; color: white; border-color: #1e40af; box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
-    }
-    .page-btn:hover:not(.active) { background: #f8fafc; border-color: #cbd5e1; }
+
+        .page-btn.active {
+            background: #1e40af;
+            color: white;
+            border-color: #1e40af;
+            box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
+        }
+
+        .page-btn:hover:not(.active) {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
 
     /* ==========================================
-       BỔ SUNG CSS CHO MOBILE RESPONSIVE
-       ========================================== */
+           BỔ SUNG CSS CHO MOBILE RESPONSIVE
+           ========================================== */
     @@media (max-width: 768px) {
         .mobile-top-bar {
             flex-direction: column !important;
             align-items: stretch !important;
         }
+
         .mobile-controls {
             flex-direction: column !important;
             width: 100% !important;
         }
+
         .mobile-search-input {
             width: 100% !important;
         }
+
         .mobile-stat-grid {
             grid-template-columns: repeat(2, 1fr) !important;
         }
+
         .type-checkbox-grid {
             grid-template-columns: 1fr !important; /* Modal filter 1 cột trên mobile */
         }
-        
         /* Chuyển bảng thành dạng Card */
         #dataTable thead {
-            display: none; 
+            display: none;
         }
+
         #dataTable, #dataTable tbody, #dataTable tr, #dataTable td {
             display: block;
             width: 100%;
         }
-        #dataTable tr {
-            margin-bottom: 15px;
-            border: 1px solid #e2e8f0 !important;
-            border-radius: 15px;
-            overflow: hidden;
-            background: #fff;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-        }
-        #dataTable td {
-            text-align: right !important;
-            padding: 12px 15px !important;
-            border-bottom: 1px dashed #f1f5f9;
-            position: relative;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        #dataTable td:last-child {
-            border-bottom: none;
-            background: #f8fafc;
-            justify-content: center;
-        }
-        /* Hiển thị nhãn cột bằng data-label */
-        #dataTable td::before {
-            content: attr(data-label);
-            float: left;
-            font-weight: 800;
-            color: #64748b;
-            text-transform: uppercase;
-            font-size: 10px;
-        }
+
+            #dataTable tr {
+                margin-bottom: 15px;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 15px;
+                overflow: hidden;
+                background: #fff;
+                box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            }
+
+            #dataTable td {
+                text-align: right !important;
+                padding: 12px 15px !important;
+                border-bottom: 1px dashed #f1f5f9;
+                position: relative;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+                #dataTable td:last-child {
+                    border-bottom: none;
+                    background: #f8fafc;
+                    justify-content: center;
+                }
+                /* Hiển thị nhãn cột bằng data-label */
+                #dataTable td::before {
+                    content: attr(data-label);
+                    float: left;
+                    font-weight: 800;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    font-size: 10px;
+                }
+
         .mobile-td-val {
             display: flex;
             flex-direction: column;
             align-items: flex-end;
             max-width: 65%;
         }
+
         .pagination-container {
             flex-direction: column !important;
             gap: 20px;
             text-align: center !important;
         }
+
         #paginationButtons {
             justify-content: center;
         }
@@ -142,7 +247,7 @@
                     <input type="text" id="searchInput" onkeyup="applyAllFilters()" placeholder="Tìm tên, bộ phận, mã đơn..."
                            style="padding: 10px 15px 10px 40px; border-radius: 12px; border: 2px solid #cbd5e1; font-size: 14px; width: 300px; outline: none; font-weight: 700; width: 100%; box-sizing: border-box;">
                 </div>
-                
+
                 <button onclick="openTypeFilterModal()" style="padding: 10px 15px; background: white; border: 2px solid #cbd5e1; border-radius: 12px; color: #475569; font-weight: 800; font-size: 14px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.borderColor='#94a3b8'; this.style.color='#1e293b'" onmouseout="this.style.borderColor='#cbd5e1'; this.style.color='#475569'">
                     <i class="fa fa-filter"></i> <span class="d-none d-md-inline">Phân loại đơn</span>
                 </button>
@@ -233,7 +338,7 @@
         </h3>
         <button onclick="closeTypeFilterModal()" style="background: none; border: none; font-size: 20px; color: #94a3b8; cursor: pointer;">&times;</button>
     </div>
-    
+
     <div class="type-checkbox-grid">
         <label class="type-item-label"><input type="checkbox" class="type-checkbox" value="HR_XinRaNgoai_1" onchange="updateToggleBtnText()"> Đơn ra ngoài</label>
         <label class="type-item-label"><input type="checkbox" class="type-checkbox" value="HR_MangHangHoaRaCong_2" onchange="updateToggleBtnText()"> Đơn hàng hóa</label>
@@ -244,6 +349,10 @@
         <label class="type-item-label"><input type="checkbox" class="type-checkbox" value="HR_HoTroTienDienThoai_7" onchange="updateToggleBtnText()"> Tiền ĐT</label>
         <label class="type-item-label"><input type="checkbox" class="type-checkbox" value="HR_DoiCaLam_8" onchange="updateToggleBtnText()"> Đổi ca</label>
         <label class="type-item-label"><input type="checkbox" class="type-checkbox" value="HR_DonHoTroCongTac_9" onchange="updateToggleBtnText()"> HT Công tác</label>
+        <!-- BỔ SUNG 3 LOẠI ĐƠN MỚI -->
+        <label class="type-item-label"><input type="checkbox" class="type-checkbox" value="HR_DonKiTucXa_10" onchange="updateToggleBtnText()"> Ký túc xá</label>
+        <label class="type-item-label"><input type="checkbox" class="type-checkbox" value="HR_DonLamLaiThe_11" onchange="updateToggleBtnText()"> Làm lại thẻ</label>
+        <label class="type-item-label"><input type="checkbox" class="type-checkbox" value="HR_DonSuDungDienThoai_12" onchange="updateToggleBtnText()"> SD Điện thoại</label>
     </div>
 
     <div style="display: flex; justify-content: space-between; gap: 10px;">
@@ -256,19 +365,20 @@
 
 @section Scripts {
     <script>
-        let masterData = [];     
-        let filteredData = [];   
+        let masterData = [];
+        let filteredData = [];
         let currentPage = 1;
         let rowsPerPage = 20;
-        const STORAGE_KEY = 'HrSelectedFormTypes';
+        // Đã đổi tên STORAGE_KEY thành v2 để reset lại cache filter trên trình duyệt
+        const STORAGE_KEY = 'HrSelectedFormTypes_v2';
 
         document.addEventListener("DOMContentLoaded", async () => {
             try {
                 const response = await fetch('/FormHR/GetHoanTatDonData');
                 masterData = await response.json();
-                
+
                 updateStatistics(masterData);
-                loadSavedTypeFilters(); 
+                loadSavedTypeFilters();
             } catch (error) {
                 document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: red; border: none;">Lỗi tải dữ liệu. Vui lòng F5.</td></tr>`;
             }
@@ -312,7 +422,7 @@
         function loadSavedTypeFilters(applyToTable = true) {
             let saved = localStorage.getItem(STORAGE_KEY);
             let checkboxes = document.querySelectorAll('.type-checkbox');
-            
+
             if (saved) {
                 let selectedArray = JSON.parse(saved);
                 checkboxes.forEach(cb => cb.checked = selectedArray.includes(cb.value));
@@ -337,7 +447,7 @@
         function filterByStatus(s) {
             document.getElementById("searchInput").value = s;
             applyAllFilters();
-            
+
             let table = document.getElementById("tableBody");
             table.style.opacity = "0.4";
             setTimeout(() => { table.style.opacity = "1"; }, 150);
@@ -350,7 +460,7 @@
 
         function applyAllFilters() {
             const searchText = document.getElementById("searchInput").value.toUpperCase().trim();
-            
+
             let savedTypesStr = localStorage.getItem(STORAGE_KEY);
             let allowedTypes = savedTypesStr ? JSON.parse(savedTypesStr) : null;
 
@@ -366,7 +476,7 @@
                 return matchText && matchType;
             });
 
-            currentPage = 1; 
+            currentPage = 1;
             renderCurrentPage();
         }
 
@@ -402,8 +512,8 @@
                 if (item.hasB2) badgesHtml += `<span class="sub-badge" style="color: #0369a1; border-color: #bae6fd; background: #f0f9ff; margin-left:5px;"><i class="fa fa-users"></i> BP.XN (${item.b2DoneCount}/${item.b2TotalCount})</span>`;
                 if (item.hasGD) badgesHtml += `<span class="sub-badge" style="color: #86198f; border-color: #f5d0fe; background: #fdf4ff; margin-left:5px;"><i class="fa fa-briefcase"></i> GĐ (${item.gdDoneCount}/${item.gdTotalCount})</span>`;
 
-                let supportHtml = item.supportName 
-                    ? `<div style="display: flex; align-items: center; gap: 6px;"><div class="support-avatar"><i class="fa fa-user-circle-o"></i></div><span style="font-weight: 700; color: #334155; font-size: 12px;">${item.supportName}</span></div>` 
+                let supportHtml = item.supportName
+                    ? `<div style="display: flex; align-items: center; gap: 6px;"><div class="support-avatar"><i class="fa fa-user-circle-o"></i></div><span style="font-weight: 700; color: #334155; font-size: 12px;">${item.supportName}</span></div>`
                     : `<span style="color: #cbd5e1; font-size: 11px; font-style: italic;">Chưa chỉ định</span>`;
 
                 html += `

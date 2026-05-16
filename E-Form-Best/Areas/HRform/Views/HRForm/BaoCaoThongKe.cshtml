@@ -6,96 +6,178 @@
 }
 
 <style>
-    body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: #f1f5f9; }
-    .stat-card { background: white; padding: 18px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: 0.3s; text-align: center; }
-    .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-    .card-title { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px; }
-    .card-value { font-size: 24px; font-weight: 1000; display: block; }
-    
-    .chart-container { background: white; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-    .chart-header { font-weight: 900; color: #1e293b; margin-bottom: 20px; font-size: 16px; display: flex; align-items: center; gap: 10px; text-transform: uppercase; }
-    
-    .custom-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .custom-table th { background-color: #f8fafc; color: #475569; text-align: left; padding: 14px; border-bottom: 2px solid #e2e8f0; font-weight: 900; text-transform: uppercase; font-size: 11px; }
-    .custom-table td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; color: #1e293b; font-weight: 600; }
-    .badge-count { background: #eff6ff; color: #1e40af; padding: 4px 10px; border-radius: 8px; font-weight: 800; }
-    .badge-time { color: #1e40af; font-weight: 800; }
+    body {
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+        background-color: #f1f5f9;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 18px;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        transition: 0.3s;
+        text-align: center;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+    .card-title {
+        font-size: 10px;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .card-value {
+        font-size: 24px;
+        font-weight: 1000;
+        display: block;
+    }
+
+    .chart-container {
+        background: white;
+        padding: 22px;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    }
+
+    .chart-header {
+        font-weight: 900;
+        color: #1e293b;
+        margin-bottom: 20px;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-transform: uppercase;
+    }
+
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+        .custom-table th {
+            background-color: #f8fafc;
+            color: #475569;
+            text-align: left;
+            padding: 14px;
+            border-bottom: 2px solid #e2e8f0;
+            font-weight: 900;
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+
+        .custom-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+    .badge-count {
+        background: #eff6ff;
+        color: #1e40af;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-weight: 800;
+    }
+
+    .badge-time {
+        color: #1e40af;
+        font-weight: 800;
+    }
 
     /* ==========================================
-       BỔ SUNG CSS CHO MOBILE RESPONSIVE
-       ========================================== */
+           BỔ SUNG CSS CHO MOBILE RESPONSIVE
+           ========================================== */
     @@media (max-width: 768px) {
         .mobile-header {
             flex-direction: column !important;
             align-items: flex-start !important;
             gap: 15px;
         }
-        .mobile-header h2 {
-            font-size: 20px !important;
-        }
-        .mobile-header button {
-            width: 100%;
-        }
 
+            .mobile-header h2 {
+                font-size: 20px !important;
+            }
+
+            .mobile-header button {
+                width: 100%;
+            }
         /* Grid biểu đồ thành 1 cột */
         .mobile-grid-1col {
             grid-template-columns: 1fr !important;
         }
-
         /* Grid thẻ thống kê thành 2 cột */
         .mobile-stat-grid {
             grid-template-columns: repeat(2, 1fr) !important;
         }
-
         /* Chuyển bảng thành dạng Card */
         .custom-table thead {
-            display: none; 
+            display: none;
         }
+
         .custom-table, .custom-table tbody, .custom-table tr, .custom-table td {
             display: block;
             width: 100%;
         }
-        .custom-table tr {
-            margin-bottom: 15px;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            overflow: hidden;
-            background: white;
-        }
-        .custom-table td {
-            text-align: right !important;
-            padding: 10px 15px !important;
-            border-bottom: 1px dashed #f1f5f9;
-            position: relative;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .custom-table td::before {
-            content: attr(data-label);
-            float: left;
-            font-weight: 800;
-            color: #64748b;
-            text-transform: uppercase;
-            font-size: 10px;
-        }
-        .custom-table td:last-child {
-            border-bottom: none;
-            background: #f8fafc;
-        }
+
+            .custom-table tr {
+                margin-bottom: 15px;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                overflow: hidden;
+                background: white;
+            }
+
+            .custom-table td {
+                text-align: right !important;
+                padding: 10px 15px !important;
+                border-bottom: 1px dashed #f1f5f9;
+                position: relative;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+                .custom-table td::before {
+                    content: attr(data-label);
+                    float: left;
+                    font-weight: 800;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    font-size: 10px;
+                }
+
+                .custom-table td:last-child {
+                    border-bottom: none;
+                    background: #f8fafc;
+                }
     }
 </style>
 
 <div style="max-width: 1600px; margin: 10px auto; padding: 0 15px;">
-    
+
     @* --- HEADER --- *@
     <div class="mobile-header" style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
         <h2 style="font-weight: 1000; color: #1e40af; margin: 0; font-size: 26px; display: flex; align-items: center; gap: 12px;">
-            <i class="fa fa-line-chart" style="background: #1e40af; color: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 10px rgba(30,64,175,0.3);"></i> 
+            <i class="fa fa-line-chart" style="background: #1e40af; color: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 10px rgba(30,64,175,0.3);"></i>
             PHÂN TÍCH HR
         </h2>
         <div style="display: flex; gap: 10px;">
-             <button onclick="initStats()" style="background: white; border: 2px solid #e2e8f0; padding: 10px 18px; border-radius: 12px; font-weight: 800; cursor: pointer; color: #475569;">
+            <button onclick="initStats()" style="background: white; border: 2px solid #e2e8f0; padding: 10px 18px; border-radius: 12px; font-weight: 800; cursor: pointer; color: #475569;">
                 <i class="fa fa-refresh"></i> Làm mới
             </button>
         </div>
@@ -168,212 +250,212 @@
     Chart.register(ChartDataLabels);
 
     const statusColors = {
-        'HỦY': '#ef4444',
-        'CHỜ QL': '#f59e0b',
-        'BP XÁC NHẬN': '#0ea5e9',
-        'GIÁM ĐỐC': '#d946ef',
-        'CHỜ ADMIN': '#2563eb',
-        'HOÀN TẤT': '#10b981'
+    'HỦY': '#ef4444',
+    'CHỜ QL': '#f59e0b',
+    'BP XÁC NHẬN': '#0ea5e9',
+    'GIÁM ĐỐC': '#d946ef',
+    'CHỜ ADMIN': '#2563eb',
+    'HOÀN TẤT': '#10b981'
     };
 
     // Hàm mapping chuyển đổi chuỗi trạng thái từ Backend trả về thành chuẩn của Frontend biểu đồ
     function mapStatus(backendStatus) {
-        if (!backendStatus) return "CHỜ ADMIN";
-        if (backendStatus.includes("HỦY") || backendStatus.includes("TỪ CHỐI")) return "HỦY";
-        if (backendStatus.includes("HOÀN TẤT")) return "HOÀN TẤT";
-        if (backendStatus.includes("CHỜ QL")) return "CHỜ QL";
-        if (backendStatus.includes("BP XÁC NHẬN")) return "BP XÁC NHẬN";
-        if (backendStatus.includes("GIÁM ĐỐC")) return "GIÁM ĐỐC";
-        return "CHỜ ADMIN"; // HR ĐANG XỬ LÝ mapping vào CHỜ ADMIN
+    if (!backendStatus) return "CHỜ ADMIN";
+    if (backendStatus.includes("HỦY") || backendStatus.includes("TỪ CHỐI")) return "HỦY";
+    if (backendStatus.includes("HOÀN TẤT")) return "HOÀN TẤT";
+    if (backendStatus.includes("CHỜ QL")) return "CHỜ QL";
+    if (backendStatus.includes("BP XÁC NHẬN")) return "BP XÁC NHẬN";
+    if (backendStatus.includes("GIÁM ĐỐC")) return "GIÁM ĐỐC";
+    return "CHỜ ADMIN"; // HR ĐANG XỬ LÝ mapping vào CHỜ ADMIN
     }
 
     const commonLabelOptions = {
-        color: '#fff',
-        font: { weight: 'bold', family: 'Inter', size: 11 },
-        formatter: (value) => value > 0 ? value : '',
-        anchor: 'center',
-        align: 'center'
+    color: '#fff',
+    font: { weight: 'bold', family: 'Inter', size: 11 },
+    formatter: (value) => value > 0 ? value : '',
+    anchor: 'center',
+    align: 'center'
     };
 
     function formatDuration(min) {
-        if (!min || min <= 0) return "-";
-        const d = Math.floor(min / 1440);
-        const h = Math.floor((min % 1440) / 60);
-        const m = Math.round(min % 60);
-        if (d > 0) return `${d}n ${h}h`;
-        if (h > 0) return `${h}h ${m}m`;
-        return `${m}ph`;
+    if (!min || min <= 0) return "-";
+    const d = Math.floor(min / 1440);
+    const h = Math.floor((min % 1440) / 60);
+    const m = Math.round(min % 60);
+    if (d > 0) return `${d}n ${h}h`;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}ph`;
     }
 
     async function initStats() {
-        try {
-            const [resChung, resStaff] = await Promise.all([
-                fetch('/FormHR/GetDataThongKe'),
-                fetch('/FormHR/GetDataNguoiHoTro')
-            ]);
+    try {
+    const [resChung, resStaff] = await Promise.all([
+    fetch('/FormHR/GetDataThongKe'),
+    fetch('/FormHR/GetDataNguoiHoTro')
+    ]);
 
-            const dataChungRaw = await resChung.json();
-            const dataStaffRaw = await resStaff.json();
+    const dataChungRaw = await resChung.json();
+    const dataStaffRaw = await resStaff.json();
 
-            // Áp dụng Mapping cho tất cả dữ liệu để khớp màu biểu đồ
-            const dataChung = dataChungRaw.map(x => ({...x, trangThaiDon: mapStatus(x.trangThaiDon)}));
-            const dataStaff = dataStaffRaw.map(x => ({...x, trangThai: mapStatus(x.trangThai)}));
+    // Áp dụng Mapping cho tất cả dữ liệu để khớp màu biểu đồ
+    const dataChung = dataChungRaw.map(x => ({...x, trangThaiDon: mapStatus(x.trangThaiDon)}));
+    const dataStaff = dataStaffRaw.map(x => ({...x, trangThai: mapStatus(x.trangThai)}));
 
-            const s = { "HỦY": 0, "CHỜ QL": 0, "BP XÁC NHẬN": 0, "GIÁM ĐỐC": 0, "CHỜ ADMIN": 0, "HOÀN TẤT": 0 };
-            dataChung.forEach(item => {
-                if(s[item.trangThaiDon] !== undefined) s[item.trangThaiDon]++;
-            });
+    const s = { "HỦY": 0, "CHỜ QL": 0, "BP XÁC NHẬN": 0, "GIÁM ĐỐC": 0, "CHỜ ADMIN": 0, "HOÀN TẤT": 0 };
+    dataChung.forEach(item => {
+    if(s[item.trangThaiDon] !== undefined) s[item.trangThaiDon]++;
+    });
 
-            updateCounters(dataChung.length, s);
-            drawStatusChart(s);
-            drawDeptChart(dataChung);
-            drawCategoryChart(dataChung);
-            drawIdFormChart(dataChung);
-            drawStaffChart(dataStaff);
-            renderTable(dataStaff);
+    updateCounters(dataChung.length, s);
+    drawStatusChart(s);
+    drawDeptChart(dataChung);
+    drawCategoryChart(dataChung);
+    drawIdFormChart(dataChung);
+    drawStaffChart(dataStaff);
+    renderTable(dataStaff);
 
-        } catch (e) { console.error("Lỗi tải báo cáo:", e); }
+    } catch (e) { console.error("Lỗi tải báo cáo:", e); }
     }
 
     function updateCounters(total, s) {
-        document.getElementById('lblTotal').innerText = total;
-        document.getElementById('lblWaitQL').innerText = s["CHỜ QL"];
-        document.getElementById('lblB2').innerText = s["BP XÁC NHẬN"];
-        document.getElementById('lblGD').innerText = s["GIÁM ĐỐC"];
-        document.getElementById('lblWaitAdmin').innerText = s["CHỜ ADMIN"];
-        document.getElementById('lblDone').innerText = s["HOÀN TẤT"];
-        document.getElementById('lblCancel').innerText = s["HỦY"];
+    document.getElementById('lblTotal').innerText = total;
+    document.getElementById('lblWaitQL').innerText = s["CHỜ QL"];
+    document.getElementById('lblB2').innerText = s["BP XÁC NHẬN"];
+    document.getElementById('lblGD').innerText = s["GIÁM ĐỐC"];
+    document.getElementById('lblWaitAdmin').innerText = s["CHỜ ADMIN"];
+    document.getElementById('lblDone').innerText = s["HOÀN TẤT"];
+    document.getElementById('lblCancel').innerText = s["HỦY"];
     }
 
     function drawStatusChart(s) {
-        new Chart(document.getElementById('chartStatus'), {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(s),
-                datasets: [{
-                    data: Object.values(s),
-                    backgroundColor: Object.keys(s).map(key => statusColors[key])
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                cutout: '65%',
-                plugins: { 
-                    legend: { position: 'bottom', labels: { usePointStyle: true, font: { weight: 700, size: 10 } } },
-                    datalabels: commonLabelOptions
-                }
-            }
-        });
+    new Chart(document.getElementById('chartStatus'), {
+    type: 'doughnut',
+    data: {
+    labels: Object.keys(s),
+    datasets: [{
+    data: Object.values(s),
+    backgroundColor: Object.keys(s).map(key => statusColors[key])
+    }]
+    },
+    options: {
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+    legend: { position: 'bottom', labels: { usePointStyle: true, font: { weight: 700, size: 10 } } },
+    datalabels: commonLabelOptions
+    }
+    }
+    });
     }
 
     function drawDeptChart(data) {
-        const group = groupData(data, 'boPhan');
-        new Chart(document.getElementById('chartDept'), {
-            type: 'bar',
-            data: {
-                labels: Object.keys(group),
-                datasets: [{ label: 'Số đơn', data: Object.values(group), backgroundColor: '#1e40af', borderRadius: 8 }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                plugins: { datalabels: { ...commonLabelOptions, anchor: 'end', align: 'top', color: '#1e293b' } },
-                scales: { y: { beginAtZero: true, grid: { display: false } } }
-            }
-        });
+    const group = groupData(data, 'boPhan');
+    new Chart(document.getElementById('chartDept'), {
+    type: 'bar',
+    data: {
+    labels: Object.keys(group),
+    datasets: [{ label: 'Số đơn', data: Object.values(group), backgroundColor: '#1e40af', borderRadius: 8 }]
+    },
+    options: {
+    maintainAspectRatio: false,
+    plugins: { datalabels: { ...commonLabelOptions, anchor: 'end', align: 'top', color: '#1e293b' } },
+    scales: { y: { beginAtZero: true, grid: { display: false } } }
+    }
+    });
     }
 
     function drawStaffChart(dataStaff) {
-        const staffs = [...new Set(dataStaff.map(item => item.tenNguoiHoTro))];
-        const statusList = ["HOÀN TẤT", "CHỜ ADMIN"];
+    const staffs = [...new Set(dataStaff.map(item => item.tenNguoiHoTro))];
+    const statusList = ["HOÀN TẤT", "CHỜ ADMIN"];
 
-        const datasets = statusList.map(status => ({
-            label: status,
-            data: staffs.map(name => dataStaff.filter(x => x.tenNguoiHoTro === name && x.trangThai === status).length),
-            backgroundColor: statusColors[status],
-            borderRadius: 5
-        }));
+    const datasets = statusList.map(status => ({
+    label: status,
+    data: staffs.map(name => dataStaff.filter(x => x.tenNguoiHoTro === name && x.trangThai === status).length),
+    backgroundColor: statusColors[status],
+    borderRadius: 5
+    }));
 
-        new Chart(document.getElementById('chartStaff'), {
-            type: 'bar',
-            data: { labels: staffs, datasets: datasets },
-            options: {
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'top', labels: { font: { size: 10 } } }, datalabels: commonLabelOptions },
-                scales: { x: { stacked: true }, y: { stacked: true } }
-            }
-        });
+    new Chart(document.getElementById('chartStaff'), {
+    type: 'bar',
+    data: { labels: staffs, datasets: datasets },
+    options: {
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', labels: { font: { size: 10 } } }, datalabels: commonLabelOptions },
+    scales: { x: { stacked: true }, y: { stacked: true } }
+    }
+    });
     }
 
     function drawCategoryChart(data) {
-        const group = groupData(data, 'danhmuc');
-        new Chart(document.getElementById('chartCategory'), {
-            type: 'polarArea',
-            data: {
-                labels: Object.keys(group),
-                datasets: [{ 
-                    data: Object.values(group), 
-                    backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981'] 
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { font: { size: 9 } } } }
-            }
-        });
+    const group = groupData(data, 'danhmuc');
+    new Chart(document.getElementById('chartCategory'), {
+    type: 'polarArea',
+    data: {
+    labels: Object.keys(group),
+    datasets: [{
+    data: Object.values(group),
+    backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981']
+    }]
+    },
+    options: {
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { font: { size: 9 } } } }
+    }
+    });
     }
 
     function drawIdFormChart(data) {
-        const group = groupData(data, 'tenLoaiDon');
-        const sortedLabels = Object.keys(group).sort((a,b) => group[b] - group[a]).slice(0, 8);
-        
-        new Chart(document.getElementById('chartIdForm'), {
-            type: 'bar',
-            data: {
-                labels: sortedLabels,
-                datasets: [{ label: 'Số lượng', data: sortedLabels.map(l => group[l]), backgroundColor: '#ef4444', borderRadius: 5 }]
-            },
-            options: {
-                indexAxis: 'y',
-                maintainAspectRatio: false,
-                plugins: { datalabels: { ...commonLabelOptions, anchor: 'end', align: 'right', color: '#1e293b' } }
-            }
-        });
+    const group = groupData(data, 'tenLoaiDon');
+    const sortedLabels = Object.keys(group).sort((a,b) => group[b] - group[a]).slice(0, 8);
+
+    new Chart(document.getElementById('chartIdForm'), {
+    type: 'bar',
+    data: {
+    labels: sortedLabels,
+    datasets: [{ label: 'Số lượng', data: sortedLabels.map(l => group[l]), backgroundColor: '#ef4444', borderRadius: 5 }]
+    },
+    options: {
+    indexAxis: 'y',
+    maintainAspectRatio: false,
+    plugins: { datalabels: { ...commonLabelOptions, anchor: 'end', align: 'right', color: '#1e293b' } }
+    }
+    });
     }
 
     function renderTable(data) {
-        const summary = data.reduce((acc, curr) => {
-            const key = `${curr.tenNguoiHoTro}|${curr.danhMuc}`;
-            if (!acc[key]) {
-                acc[key] = { name: curr.tenNguoiHoTro, cat: curr.danhMuc, count: 0, totalMin: 0, tCount: 0 };
-            }
-            acc[key].count++;
-            if (curr.phutXuLy) {
-                acc[key].totalMin += curr.phutXuLy;
-                acc[key].tCount++;
-            }
-            return acc;
-        }, {});
+    const summary = data.reduce((acc, curr) => {
+    const key = `${curr.tenNguoiHoTro}|${curr.danhMuc}`;
+    if (!acc[key]) {
+    acc[key] = { name: curr.tenNguoiHoTro, cat: curr.danhMuc, count: 0, totalMin: 0, tCount: 0 };
+    }
+    acc[key].count++;
+    if (curr.phutXuLy) {
+    acc[key].totalMin += curr.phutXuLy;
+    acc[key].tCount++;
+    }
+    return acc;
+    }, {});
 
-        document.getElementById('tblStaffBody').innerHTML = Object.values(summary)
-            .sort((a, b) => b.count - a.count)
-            .map(item => `
-                <tr>
-                    <td data-label="Nhân Viên"><i class="fa fa-user-circle" style="color:#cbd5e1"></i> ${item.name}</td>
-                    <td data-label="Danh Mục" style="color: #64748b;">${item.cat}</td>
-                    <td data-label="Số Đơn" style="text-align: center;"><span class="badge-count">${item.count}</span></td>
-                    <td data-label="Thời Gian TB" style="text-align: center;" class="badge-time">
-                        ${item.tCount > 0 ? formatDuration(item.totalMin / item.tCount) : '-'}
-                    </td>
-                </tr>
-            `).join('');
+    document.getElementById('tblStaffBody').innerHTML = Object.values(summary)
+    .sort((a, b) => b.count - a.count)
+    .map(item => `
+    <tr>
+    <td data-label="Nhân Viên"><i class="fa fa-user-circle" style="color:#cbd5e1"></i> ${item.name}</td>
+    <td data-label="Danh Mục" style="color: #64748b;">${item.cat}</td>
+    <td data-label="Số Đơn" style="text-align: center;"><span class="badge-count">${item.count}</span></td>
+    <td data-label="Thời Gian TB" style="text-align: center;" class="badge-time">
+    ${item.tCount > 0 ? formatDuration(item.totalMin / item.tCount) : '-'}
+    </td>
+    </tr>
+    `).join('');
     }
 
     function groupData(data, key) {
-        return data.reduce((acc, x) => {
-            let val = x[key] || "N/A";
-            acc[val] = (acc[val] || 0) + 1;
-            return acc;
-        }, {});
+    return data.reduce((acc, x) => {
+    let val = x[key] || "N/A";
+    acc[val] = (acc[val] || 0) + 1;
+    return acc;
+    }, {});
     }
 
     document.addEventListener('DOMContentLoaded', initStats);

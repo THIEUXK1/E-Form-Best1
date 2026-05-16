@@ -5598,6 +5598,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         [HttpGet("/FormHR/GetDataThongKe")]
         public async Task<IActionResult> GetDataThongKe()
         {
+            // Bước 1: Lấy dữ liệu thô từ Database (không gọi hàm C# trong này để tránh lỗi EF Core Translation)
             var dataRaw = await _context.FormHrs
                 .Include(f => f.HrQuanLyDuyetB2s)
                 .Include(f => f.HrNguoiXacNhans)
@@ -5606,22 +5607,22 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 {
                     x.Id,
                     x.IdForm,
-                    TenLoaiDon = GetShortName(x.IdForm), // Tự động nhận diện 12 loại đơn
                     x.BoPhan,
                     x.IdNguoiDuyet,
                     x.IdAdmin,
                     x.TenForm,
                     x.Danhmuc,
                     // Lấy danh sách trạng thái để tính toán logic tại API
-                    B2States = x.HrQuanLyDuyetB2s.Select(b => b.TrangThaiXacNhan),
-                    GDStates = x.HrNguoiXacNhans.Select(g => g.TrangThaiXacNhan)
+                    B2States = x.HrQuanLyDuyetB2s.Select(b => b.TrangThaiXacNhan).ToList(),
+                    GDStates = x.HrNguoiXacNhans.Select(g => g.TrangThaiXacNhan).ToList()
                 })
                 .ToListAsync();
 
+            // Bước 2: Xử lý logic và gán tên ngắn gọn trên RAM (an toàn)
             var processedData = dataRaw.Select(x => new
             {
                 x.Id,
-                x.TenLoaiDon,
+                TenLoaiDon = GetTenNganGonFormHR(x.IdForm), // Đã đổi tên hàm ở đây để tránh trùng lặp
                 x.BoPhan,
                 x.Danhmuc,
                 TrangThaiDon = CalculateStatus(x.TenForm, x.IdNguoiDuyet, x.IdAdmin, x.B2States, x.GDStates)
@@ -5667,6 +5668,28 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 .ToList();
 
             return Json(filteredData);
+        }
+
+        // Đã đổi tên từ GetShortName thành GetTenNganGonFormHR
+        private string GetTenNganGonFormHR(string idForm)
+        {
+            if (string.IsNullOrEmpty(idForm)) return "Khác";
+            if (idForm.Contains("XinRaNgoai_1")) return "Ra ngoài";
+            if (idForm.Contains("MangHangHoaRaCong_2")) return "Hàng hóa";
+            if (idForm.Contains("XeCongTac_3")) return "Xe công tác";
+            if (idForm.Contains("XeDaily_4")) return "Xe Daily";
+            if (idForm.Contains("DonTiepKhac_5")) return "Tiếp khách";
+            if (idForm.Contains("NhaThauQuaCong_6")) return "Nhà thầu";
+            if (idForm.Contains("HoTroTienDienThoai_7")) return "Tiền ĐT";
+            if (idForm.Contains("DoiCaLam_8")) return "Đổi ca";
+            if (idForm.Contains("DonHoTroCongTac_9")) return "HT Công tác";
+
+            // 3 Form mới thêm vào
+            if (idForm.Contains("DonKiTucXa_10")) return "Ký túc xá";
+            if (idForm.Contains("DonLamLaiThe_11")) return "Làm lại thẻ";
+            if (idForm.Contains("DonSuDungDienThoai_12")) return "SD Điện thoại";
+
+            return idForm;
         }
 
         #endregion

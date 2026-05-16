@@ -3349,6 +3349,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
+        #region Thống kê
+
         #region BÁO CÁO THỐNG KÊ FORM IT
 
         // 1. Action này chỉ trả về giao diện (View)
@@ -3439,6 +3441,218 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
+
+        #region THỐNG KÊ MAC WIFI THIẾT BỊ
+
+        // 1. Action này trả về giao diện View mới
+        [HttpGet("/FormIT/ThongKeMacWifi")]
+        public IActionResult ThongKeMacWifi()
+        {
+            return View();
+        }
+
+        // 2. Action này lấy dữ liệu thống kê cho biểu đồ
+        [HttpGet("/FormIT/GetDataThongKeMac")]
+        public async Task<IActionResult> GetDataThongKeMac()
+        {
+            try
+            {
+                var data = await _context.ItDangKiSuDungWifi3s
+                    .AsNoTracking()
+                    .Where(x => !string.IsNullOrEmpty(x.MacTb))
+                    .GroupBy(x => x.LoaiThietBi ?? "Khác")
+                    .Select(g => new
+                    {
+                        LoaiThietBi = g.Key,
+                        SoLuongMacTong = g.Count(),
+                        SoLuongMacDuyNhat = g.Select(x => x.MacTb).Distinct().Count()
+                    })
+                    .ToListAsync();
+
+                return Json(data);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // 3. Action lấy danh sách chi tiết có bộ lọc, phân trang & SẮP XẾP
+        [HttpGet("/FormIT/GetDanhSachMacWifi")]
+        public async Task<IActionResult> GetDanhSachMacWifi(
+            int page = 1, int pageSize = 50,
+            string? idForm = null, string? tenNguoiNv = null, string? boPhan = null,
+            string? loaiThietBi = null, string? macTb = null, string? maThietBi = null,
+            DateTime? fromDate = null, DateTime? toDate = null,
+            string sortColumn = "TimeAdmin", string sortDir = "desc") // Thêm tham số sắp xếp
+        {
+            try
+            {
+                var query = _context.ItDangKiSuDungWifi3s
+                    .Include(x => x.IdFormItNavigation)
+                    .AsNoTracking()
+                    .Where(x => !string.IsNullOrEmpty(x.MacTb) &&
+                                x.IdFormItNavigation != null &&
+                                x.IdFormItNavigation.IdAdmin != null &&
+                                x.IdFormItNavigation.TenAdmin != null &&
+                                x.IdFormItNavigation.TimeAdmin != null);
+
+                // Áp dụng các bộ lọc
+                if (!string.IsNullOrEmpty(idForm)) query = query.Where(x => x.IdFormItNavigation.IdForm.Contains(idForm));
+                if (!string.IsNullOrEmpty(tenNguoiNv)) query = query.Where(x => x.IdFormItNavigation.TenNguoiNv.Contains(tenNguoiNv));
+                if (!string.IsNullOrEmpty(boPhan)) query = query.Where(x => x.IdFormItNavigation.BoPhan.Contains(boPhan));
+                if (!string.IsNullOrEmpty(loaiThietBi)) query = query.Where(x => x.LoaiThietBi.Contains(loaiThietBi));
+                if (!string.IsNullOrEmpty(macTb)) query = query.Where(x => x.MacTb.Contains(macTb));
+                if (!string.IsNullOrEmpty(maThietBi)) query = query.Where(x => x.MaThietBi.Contains(maThietBi));
+
+                if (fromDate.HasValue) query = query.Where(x => x.IdFormItNavigation.TimeAdmin >= fromDate.Value);
+                if (toDate.HasValue)
+                {
+                    var toDateEnd = toDate.Value.AddDays(1).AddTicks(-1);
+                    query = query.Where(x => x.IdFormItNavigation.TimeAdmin <= toDateEnd);
+                }
+
+                // Áp dụng Sắp Xếp Động
+                switch (sortColumn)
+                {
+                    case "IdForm": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.IdForm) : query.OrderByDescending(x => x.IdFormItNavigation.IdForm); break;
+                    case "TenNguoiNv": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.TenNguoiNv) : query.OrderByDescending(x => x.IdFormItNavigation.TenNguoiNv); break;
+                    case "BoPhan": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.BoPhan) : query.OrderByDescending(x => x.IdFormItNavigation.BoPhan); break;
+                    case "MaThietBi": query = sortDir == "asc" ? query.OrderBy(x => x.MaThietBi) : query.OrderByDescending(x => x.MaThietBi); break;
+                    case "LoaiThietBi": query = sortDir == "asc" ? query.OrderBy(x => x.LoaiThietBi) : query.OrderByDescending(x => x.LoaiThietBi); break;
+                    case "MacTb": query = sortDir == "asc" ? query.OrderBy(x => x.MacTb) : query.OrderByDescending(x => x.MacTb); break;
+                    case "ThoiGianBatDau": query = sortDir == "asc" ? query.OrderBy(x => x.ThoiGianBatDau) : query.OrderByDescending(x => x.ThoiGianBatDau); break;
+                    case "ThoiGianKetThuc": query = sortDir == "asc" ? query.OrderBy(x => x.ThoiGianKetThuc) : query.OrderByDescending(x => x.ThoiGianKetThuc); break;
+                    case "TenAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.TenAdmin) : query.OrderByDescending(x => x.IdFormItNavigation.TenAdmin); break;
+                    case "TimeAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.TimeAdmin) : query.OrderByDescending(x => x.IdFormItNavigation.TimeAdmin); break;
+                    default: query = query.OrderByDescending(x => x.IdFormItNavigation.TimeAdmin); break;
+                }
+
+                var totalRecords = await query.CountAsync();
+                var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
+
+                var data = await query
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(x => new
+                    {
+                        FormId = x.IdFormItNavigation.Id,
+                        IdForm = x.IdFormItNavigation.IdForm,
+                        TenNguoiNv = x.IdFormItNavigation.TenNguoiNv,
+                        BoPhan = x.IdFormItNavigation.BoPhan,
+                        LoaiThietBi = x.LoaiThietBi,
+                        MaThietBi = x.MaThietBi,
+                        MacTb = x.MacTb,
+                        ThoiGianBatDau = x.ThoiGianBatDau,
+                        ThoiGianKetThuc = x.ThoiGianKetThuc,
+                        TenAdmin = x.IdFormItNavigation.TenAdmin,
+                        TimeAdmin = x.IdFormItNavigation.TimeAdmin
+                    })
+                    .ToListAsync();
+
+                return Json(new { data, totalRecords, totalPages, currentPage = page, pageSize });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // 4. Action Xuất file Excel
+        [HttpGet("/FormIT/ExportExcelMacWifi")]
+        public async Task<IActionResult> ExportExcelMacWifi(
+            string? idForm = null, string? tenNguoiNv = null, string? boPhan = null,
+            string? loaiThietBi = null, string? macTb = null, string? maThietBi = null,
+            DateTime? fromDate = null, DateTime? toDate = null,
+            string sortColumn = "TimeAdmin", string sortDir = "desc") // Áp dụng sắp xếp cho xuất Excel
+        {
+            try
+            {
+                var query = _context.ItDangKiSuDungWifi3s
+                    .Include(x => x.IdFormItNavigation)
+                    .AsNoTracking()
+                    .Where(x => !string.IsNullOrEmpty(x.MacTb) &&
+                                x.IdFormItNavigation != null &&
+                                x.IdFormItNavigation.IdAdmin != null);
+
+                // Áp dụng bộ lọc
+                if (!string.IsNullOrEmpty(idForm)) query = query.Where(x => x.IdFormItNavigation.IdForm.Contains(idForm));
+                if (!string.IsNullOrEmpty(tenNguoiNv)) query = query.Where(x => x.IdFormItNavigation.TenNguoiNv.Contains(tenNguoiNv));
+                if (!string.IsNullOrEmpty(boPhan)) query = query.Where(x => x.IdFormItNavigation.BoPhan.Contains(boPhan));
+                if (!string.IsNullOrEmpty(loaiThietBi)) query = query.Where(x => x.LoaiThietBi.Contains(loaiThietBi));
+                if (!string.IsNullOrEmpty(macTb)) query = query.Where(x => x.MacTb.Contains(macTb));
+                if (!string.IsNullOrEmpty(maThietBi)) query = query.Where(x => x.MaThietBi.Contains(maThietBi));
+                if (fromDate.HasValue) query = query.Where(x => x.IdFormItNavigation.TimeAdmin >= fromDate.Value);
+                if (toDate.HasValue)
+                {
+                    var toDateEnd = toDate.Value.AddDays(1).AddTicks(-1);
+                    query = query.Where(x => x.IdFormItNavigation.TimeAdmin <= toDateEnd);
+                }
+
+                // Áp dụng Sắp Xếp Động cho Excel
+                switch (sortColumn)
+                {
+                    case "IdForm": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.IdForm) : query.OrderByDescending(x => x.IdFormItNavigation.IdForm); break;
+                    case "TenNguoiNv": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.TenNguoiNv) : query.OrderByDescending(x => x.IdFormItNavigation.TenNguoiNv); break;
+                    case "BoPhan": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.BoPhan) : query.OrderByDescending(x => x.IdFormItNavigation.BoPhan); break;
+                    case "MaThietBi": query = sortDir == "asc" ? query.OrderBy(x => x.MaThietBi) : query.OrderByDescending(x => x.MaThietBi); break;
+                    case "LoaiThietBi": query = sortDir == "asc" ? query.OrderBy(x => x.LoaiThietBi) : query.OrderByDescending(x => x.LoaiThietBi); break;
+                    case "MacTb": query = sortDir == "asc" ? query.OrderBy(x => x.MacTb) : query.OrderByDescending(x => x.MacTb); break;
+                    case "ThoiGianBatDau": query = sortDir == "asc" ? query.OrderBy(x => x.ThoiGianBatDau) : query.OrderByDescending(x => x.ThoiGianBatDau); break;
+                    case "ThoiGianKetThuc": query = sortDir == "asc" ? query.OrderBy(x => x.ThoiGianKetThuc) : query.OrderByDescending(x => x.ThoiGianKetThuc); break;
+                    case "TenAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.TenAdmin) : query.OrderByDescending(x => x.IdFormItNavigation.TenAdmin); break;
+                    case "TimeAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.TimeAdmin) : query.OrderByDescending(x => x.IdFormItNavigation.TimeAdmin); break;
+                    default: query = query.OrderByDescending(x => x.IdFormItNavigation.TimeAdmin); break;
+                }
+
+                var data = await query
+                    .Select(x => new
+                    {
+                        IdForm = x.IdFormItNavigation.IdForm,
+                        TenNguoiNv = x.IdFormItNavigation.TenNguoiNv,
+                        BoPhan = x.IdFormItNavigation.BoPhan,
+                        MaThietBi = x.MaThietBi,
+                        LoaiThietBi = x.LoaiThietBi,
+                        MacTb = x.MacTb,
+                        ThoiGianBatDau = x.ThoiGianBatDau,
+                        ThoiGianKetThuc = x.ThoiGianKetThuc,
+                        TenAdmin = x.IdFormItNavigation.TenAdmin,
+                        TimeAdmin = x.IdFormItNavigation.TimeAdmin
+                    })
+                    .ToListAsync();
+
+                var builder = new System.Text.StringBuilder();
+                builder.AppendLine("Mã Form,Người Yêu Cầu,Bộ Phận,Mã Thiết Bị,Loại Thiết Bị,Địa Chỉ MAC,Bắt Đầu,Kết Thúc,IT Xử Lý,Thời Gian Xử Lý");
+
+                foreach (var item in data)
+                {
+                    var form = $"\"{item.IdForm}\"";
+                    var nq = $"\"{item.TenNguoiNv}\"";
+                    var bp = $"\"{item.BoPhan}\"";
+                    var matb = $"\"{item.MaThietBi}\"";
+                    var loai = $"\"{item.LoaiThietBi}\"";
+                    var mac = $"\"{item.MacTb}\"";
+                    var bd = $"\"{item.ThoiGianBatDau?.ToString("dd/MM/yyyy HH:mm")}\"";
+                    var kt = $"\"{item.ThoiGianKetThuc?.ToString("dd/MM/yyyy HH:mm")}\"";
+                    var it = $"\"{item.TenAdmin}\"";
+                    var time = $"\"{item.TimeAdmin?.ToString("dd/MM/yyyy HH:mm")}\"";
+
+                    builder.AppendLine($"{form},{nq},{bp},{matb},{loai},{mac},{bd},{kt},{it},{time}");
+                }
+
+                var bytes = System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(builder.ToString())).ToArray();
+                return File(bytes, "text/csv", $"ThongKeMacWifi_{DateTime.Now:yyyyMMdd_HHmm}.csv");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        #endregion
+
+        #endregion
+
 
         #region LỊCH SỬ VÀ THÔNG BÁO FORM IT (Tối ưu truy vấn - Đầy đủ logic)
 
@@ -3753,6 +3967,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion        // =================================================================================
+
+
         // HÀM HỖ TRỢ DÙNG CHUNG CHO CẢ 2 REGION
         // =================================================================================
         private void GhiLichSu(string hanhDong, string doiTuong, int idDoiTuong, string chiTiet)
