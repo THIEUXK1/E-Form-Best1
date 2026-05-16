@@ -203,7 +203,37 @@
                         <input type="text" id="tb_GhiChu" class="form-control rounded-3" placeholder="Thông tự thêm..." style="border: 1px solid #e2e8f0; height: 45px;" />
                     </div>
 
-                    <div class="col-md-12 mt-3">
+                    <div class="col-12 mt-4 mb-2"><div style="border-top: 1px dashed #cbd5e1;"></div></div>
+
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold" style="color: #4f46e5;">Gán người sử dụng</label>
+                        <select id="tb_IdNguoiDung" class="form-control select2-modal w-100">
+                            <option value="">-- Chưa cấp phát --</option>
+                            @if (ViewBag.Users != null)
+                            {
+                                foreach (var item in ViewBag.Users)
+                                {
+                                    <option value="@item.IdNguoiDung">@item.HoTen (@item.Tk)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Gán Công ty</label>
+                        <select id="tb_IdCongTy" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
+                            <option value="">-- Chưa rõ --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Gán Bộ phận</label>
+                        <select id="tb_IdBoPhan" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
+                            <option value="">-- Chưa rõ --</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 mt-4 mb-2"><div style="border-top: 1px dashed #cbd5e1;"></div></div>
+
+                    <div class="col-md-12 mt-2">
                         <label class="form-label fw-bold"><i class="fas fa-camera text-secondary me-1"></i> Ảnh thiết bị đính kèm</label>
                         <div class="d-flex gap-2 mb-2">
                             <button type="button" class="btn btn-outline-primary flex-fill" onclick="$('#tb_Anh').click()">
@@ -239,33 +269,6 @@
                         </div>
                     </div>
 
-                    <div class="col-12 mt-4 mb-2"><div style="border-top: 1px dashed #cbd5e1;"></div></div>
-
-                    <div class="col-md-12">
-                        <label class="form-label fw-bold" style="color: #4f46e5;">Gán người sử dụng</label>
-                        <select id="tb_IdNguoiDung" class="form-control select2-modal w-100">
-                            <option value="">-- Chưa cấp phát --</option>
-                            @if (ViewBag.Users != null)
-                            {
-                                foreach (var item in ViewBag.Users)
-                                {
-                                    <option value="@item.IdNguoiDung">@item.HoTen (@item.Tk)</option>
-                                }
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Gán Công ty</label>
-                        <select id="tb_IdCongTy" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
-                            <option value="">-- Chưa rõ --</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Gán Bộ phận</label>
-                        <select id="tb_IdBoPhan" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
-                            <option value="">-- Chưa rõ --</option>
-                        </select>
-                    </div>
                 </div>
             </div>
             <div class="modal-footer border-0 bg-light" style="border-radius: 0 0 20px 20px;">
