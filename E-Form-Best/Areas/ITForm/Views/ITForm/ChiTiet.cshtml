@@ -151,6 +151,15 @@
                 chiTietNoiDung += $"<div style='background: #10b981; color: white; display: inline-block; padding: 4px 12px; border-radius: 8px; font-weight: bold; font-size: 12px; margin-bottom: 15px;'>THIẾT BỊ #{index3}</div>";
             }
 
+            // BỔ SUNG TRƯỜNG LOẠI ĐƠN VÀO CHI TIẾT VỚI MÀU NỀN ĐẸP MẮT
+            bool isHuy = ct.LoaiDon == "Hủy đăng ký của thiết bị" || ct.LoaiDon == "Hủy";
+            string loaiDonColor = isHuy ? "#991b1b" : "#166534";
+            string loaiDonBg = isHuy ? "#fef2f2" : "#f0fdf4";
+            string badgeBg = isHuy ? "#ef4444" : "#10b981";
+            string badgeHtml = $"<span style='background: {badgeBg}; color: white; padding: 4px 12px; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-block; margin-top: 4px;'>{ct.LoaiDon?.ToUpper()}</span>";
+
+            chiTietNoiDung += RenderInfoRow("📌", "Loại đơn", badgeHtml, loaiDonBg, loaiDonColor);
+
             chiTietNoiDung += RenderInfoRow("📶", "Loại thiết bị", ct.LoaiThietBi, "#f0f9ff", "#0369a1");
             chiTietNoiDung += RenderInfoRow("🆔", "Mã thiết bị", ct.MaThietBi, "#f8fafc", "#0f172a");
             chiTietNoiDung += RenderInfoRow("🌐", "Địa chỉ MAC", ct.MacTb, "#f8fafc", "#0f172a");
@@ -839,8 +848,8 @@
 
             // --- MỚI: Lấy danh sách Roles dưới dạng mảng ---
             const userRoles = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                                            User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList()
-                                                            ));
+                                                                                                                                                    User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList()
+                                                                                                                                            ));
 
             // Biến trạng thái cho Bình luận
             let currentSkipComment = 0;

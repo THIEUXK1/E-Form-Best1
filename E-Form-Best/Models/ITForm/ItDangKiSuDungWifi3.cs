@@ -43,6 +43,9 @@ public partial class ItDangKiSuDungWifi3
     [StringLength(100)]
     public string? MaThietBi { get; set; }
 
+    [StringLength(100)]
+    public string? LoaiDon { get; set; }
+
     [ForeignKey("IdFormIt")]
     [InverseProperty("ItDangKiSuDungWifi3s")]
     public virtual FormIt? IdFormItNavigation { get; set; }

@@ -73,9 +73,33 @@
         position: relative;
     }
 
+    /* CSS RADIO GROUP GIỐNG ĐƠN MAIL - ĐỔI THÀNH MÀU XANH WIFI */
+    .radio-group label {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 15px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        transition: 0.2s;
+        font-weight: 700;
+        color: @colorDark;
+        background: #ffffff;
+    }
+
+        .radio-group label:hover {
+            border-color: @colorPrimary;
+            background-color: #f0fdf4;
+        }
+
+    .radio-group input[type="radio"]:checked + span {
+        color: @colorPrimary;
+    }
+
     /* ==========================================
-           CSS RESPONSIVE CHO MOBILE (2026 STYLE)
-           ========================================== */
+                       CSS RESPONSIVE CHO MOBILE (2026 STYLE)
+                       ========================================== */
     @@media (max-width: 768px) {
         .main-page-container {
             padding: 20px 10px !important;
@@ -127,11 +151,21 @@
         #paste_AnhWifi, .file-input-box {
             height: 140px !important;
         }
-        
+
         #btnSubmit {
             padding: 18px !important;
             font-size: 16px !important;
         }
+        /* Radio mobile giống đơn mail */
+        .radio-group {
+            flex-direction: column;
+            display: flex;
+            gap: 10px;
+        }
+
+            .radio-group label {
+                width: 100%;
+            }
     }
 </style>
 
@@ -205,11 +239,27 @@
                             <button type="button" class="btn-remove-item" onclick="xoaThietBi(this)" style="display: none;">Xóa</button>
                         </div>
 
-                        <div style="margin-bottom: 20px;">
-                            <label style="@labelBase">Mã thiết bị / Định danh <span style="color:red">*</span></label>
-                            <input type="text" name="itWifiList[0].MaThietBi" required class="input-hover"
-                                   placeholder="Định dạng: Bộ phận_Mã NV_Họ tên"
-                                   style="@inputBase">
+                        <!-- KHỐI LOẠI ĐƠN VỚI RADIO GROUP GIỐNG ĐƠN MAIL BẠN YÊU CẦU -->
+                        <div class="grid-responsive" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                            <div>
+                                <label style="@labelBase">Mã thiết bị / Định danh <span style="color:red">*</span></label>
+                                <input type="text" name="itWifiList[0].MaThietBi" required class="input-hover"
+                                       placeholder="Định dạng: Bộ phận_Mã NV_Họ tên"
+                                       style="@inputBase">
+                            </div>
+                            <div>
+                                <label style="@labelBase">Loại đơn <span style="color:red">*</span></label>
+                                <div class="radio-group" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                    <label>
+                                        <input type="radio" name="itWifiList[0].LoaiDon" value="Đăng ký mới" checked required style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                                        <span>Đăng ký mới</span>
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="itWifiList[0].LoaiDon" value="Hủy đăng ký của thiết bị" required style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                                        <span>Hủy đăng ký</span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="grid-responsive" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
@@ -345,18 +395,27 @@
         const container = document.getElementById("danhSachWifi");
         const firstItem = container.querySelector(".wifi-item");
         const newItem = firstItem.cloneNode(true);
-        
+
         newItem.setAttribute("data-index", wifiIndex);
         newItem.querySelector("span").innerText = "THIẾT BỊ #" + (wifiIndex + 1);
         newItem.querySelector(".btn-remove-item").style.display = "block";
 
-        const inputs = newItem.querySelectorAll("input, textarea");
+        const inputs = newItem.querySelectorAll("input, textarea, select");
         inputs.forEach(input => {
             const oldName = input.getAttribute("name");
             if (oldName) {
                 input.setAttribute("name", oldName.replace(/\[\d+\]/, `[${wifiIndex}]`));
             }
-            input.value = "";
+
+            // Tinh chỉnh JS dựa trên value="Đăng ký"
+            if (input.type === 'radio') {
+                if (input.value === "Đăng ký") input.checked = true; // Mặc định chọn Đăng ký mới cho thẻ mới
+                else input.checked = false;
+            } else if (input.tagName === 'SELECT') {
+                input.selectedIndex = 0;
+            } else {
+                input.value = "";
+            }
         });
 
         applyMacFormat(newItem.querySelector(".mac-input"));
@@ -372,7 +431,8 @@
         items.forEach((item, idx) => {
             item.setAttribute("data-index", idx);
             item.querySelector("span").innerText = "THIẾT BỊ #" + (idx + 1);
-            item.querySelectorAll("input, textarea").forEach(input => {
+
+            item.querySelectorAll("input, textarea, select").forEach(input => {
                 const oldName = input.getAttribute("name");
                 if (oldName) {
                     input.setAttribute("name", oldName.replace(/\[\d+\]/, `[${idx}]`));
