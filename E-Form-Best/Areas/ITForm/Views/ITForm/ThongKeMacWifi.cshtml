@@ -245,6 +245,7 @@
         transition: all 0.3s ease-in-out;
     }
 
+    /* ====== CSS RESPONSIVE CHO MOBILE ====== */
     @@media (max-width: 768px) {
         .dashboard-container {
             padding: 0 10px !important;
@@ -267,11 +268,31 @@
         .canvas-wrapper-mobile {
             height: 300px !important;
         }
-
-        #summaryChartsContainer {
-            display: flex !important;
-            flex-direction: column;
+        /* Mở rộng các nút thao tác thành full-width trên mobile để dễ ấn */
+        .filter-action-group {
+            flex-direction: column !important;
+            width: 100%;
         }
+
+            .filter-action-group .btn-action {
+                width: 100%;
+                justify-content: center;
+                margin-bottom: 5px;
+            }
+        /* Căn chỉnh lại thanh toolbar số dòng hiển thị */
+        .chart-header-toolbar {
+            flex-direction: column;
+            align-items: flex-start !important;
+            width: 100%;
+        }
+
+            .chart-header-toolbar > div {
+                width: 100%;
+                display: flex;
+                justify-content: space-between;
+            }
+        /* Chú ý: Đã loại bỏ "#summaryChartsContainer { display: flex !important; }" ở đây để tránh lỗi
+               tự động hiện trên mobile. Việc ẩn/hiện sẽ được điều khiển hoàn toàn thông qua JS. */
     }
 </style>
 
@@ -332,7 +353,8 @@
         <div class="chart-header" style="justify-content: space-between; flex-wrap: wrap; gap: 10px;">
             <div><i class="fa fa-filter"></i> Bộ Lọc & Danh Sách MAC</div>
 
-            <div style="display: flex; align-items: center; gap: 15px;">
+            @* Thêm class chart-header-toolbar cho mobile *@
+            <div class="chart-header-toolbar" style="display: flex; align-items: center; gap: 15px;">
                 <div style="font-size: 13px; font-weight: normal; color: #475569;">
                     Hiển thị:
                     <select id="ddlPageSize" onchange="changePageSize()" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e1; outline: none; cursor: pointer; font-family: 'Inter', sans-serif;">
@@ -378,7 +400,9 @@
                 <input type="text" id="txtLoaiThietBi" placeholder="Laptop, Điện thoại...">
             </div>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+
+        @* Thêm class filter-action-group cho mobile *@
+        <div class="filter-action-group" style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
             <button class="btn-action btn-clear" onclick="clearFilters()">
                 <i class="fa fa-refresh"></i> Bỏ lọc & Sắp xếp
             </button>
@@ -457,8 +481,13 @@
     const btn = document.getElementById('btnToggleSummary');
 
     if (container.style.display === 'none' || container.style.display === '') {
-    if(window.innerWidth <= 768) { container.style.display = 'flex'; }
-    else { container.style.display = 'grid'; }
+    if(window.innerWidth <= 768) {
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column'; // Đảm bảo xếp dọc trên mobile
+    }
+    else {
+    container.style.display = 'grid';
+    }
 
     btn.innerHTML = '<i class="fa fa-eye-slash"></i> Ẩn biểu đồ phân bổ & số liệu chi tiết';
     btn.style.backgroundColor = '#64748b';
@@ -705,8 +734,13 @@
     window.addEventListener('resize', () => {
     const container = document.getElementById('summaryChartsContainer');
     if(container.style.display !== 'none' && container.style.display !== '') {
-    if(window.innerWidth <= 768) { container.style.display = 'flex'; }
-    else { container.style.display = 'grid'; }
+    if(window.innerWidth <= 768) {
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column'; // Cập nhật lại thuộc tính flex-direction khi resize
+    }
+    else {
+    container.style.display = 'grid';
+    }
     }
     });
 
