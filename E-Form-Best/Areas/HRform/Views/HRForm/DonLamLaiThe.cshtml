@@ -24,13 +24,39 @@
 
 <style>
     @@media (max-width: 768px) {
-        .mobile-wrapper { padding: 15px 10px !important; }
-        .mobile-header { padding: 25px 15px !important; }
-        .mobile-header h2 { font-size: 18px !important; margin-top: 15px !important; }
-        .mobile-body { padding: 20px 15px !important; }
-        .mobile-section { padding: 15px !important; }
-        .mobile-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
-        .system-badge { position: relative !important; top: 0 !important; right: 0 !important; display: inline-block; margin-bottom: 10px; }
+        .mobile-wrapper {
+            padding: 15px 10px !important;
+        }
+
+        .mobile-header {
+            padding: 25px 15px !important;
+        }
+
+            .mobile-header h2 {
+                font-size: 18px !important;
+                margin-top: 15px !important;
+            }
+
+        .mobile-body {
+            padding: 20px 15px !important;
+        }
+
+        .mobile-section {
+            padding: 15px !important;
+        }
+
+        .mobile-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+        }
+
+        .system-badge {
+            position: relative !important;
+            top: 0 !important;
+            right: 0 !important;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
     }
 </style>
 
@@ -125,7 +151,7 @@
                 <!-- KHU VỰC ẢNH & FILE ĐÍNH KÈM -->
                 <div class="mobile-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div>
-                        <label style="@labelStyle">Ảnh minh chứng <span id="lblPicRequired" style="color:#e53e3e; display:none;">(Bắt buộc cho Thẻ mờ/gãy) *</span></label>
+                        <label style="@labelStyle">Ảnh minh chứng <span id="lblPicRequired" style="color:#e53e3e; display:none;">(Bắt buộc cho Thẻ mờ/gãy/Khác) *</span></label>
                         <div id="paste_AnhMinhChung" class="paste-zone" style="@pasteZoneStyle" tabindex="0">
                             Nhấp vào đây và nhấn Ctrl+V để dán ảnh
                         </div>
@@ -226,7 +252,7 @@
     function toggleLyDoKhac(showInput) {
         const txtBox = document.getElementById('txtLyDoKhac');
         const lblReq = document.getElementById('lblPicRequired');
-        
+
         // Hiện ô nhập nếu là Khác
         if(showInput) {
             txtBox.style.display = 'block';
@@ -236,14 +262,14 @@
             txtBox.value = '';
         }
 
-        // Hiện cảnh báo bắt buộc File nếu là Mờ / Gãy
+        // Hiện cảnh báo bắt buộc File nếu là Mờ / Gãy / Khác
         const rds = document.getElementsByName('rdLyDo');
         let val = '';
         for(let i=0; i<rds.length; i++) {
             if(rds[i].checked) { val = rds[i].value; break; }
         }
-        
-        if(val === 'Thẻ mờ' || val === 'Thẻ gãy') {
+
+        if(val === 'Thẻ mờ' || val === 'Thẻ gãy' || val === 'Khác') {
             lblReq.style.display = 'inline-block';
         } else {
             lblReq.style.display = 'none';
@@ -251,9 +277,37 @@
     }
 
     function xuLyLuuDon() {
+        // Lấy giá trị các trường bắt buộc
+        const hoTen = document.querySelector('input[name="chiTiet.HoTen"]').value.trim();
+        const maSoThe = document.querySelector('input[name="chiTiet.MaSoThe"]').value.trim();
+        const boPhan = document.querySelector('input[name="chiTiet.BoPhan"]').value.trim();
+        const chucVu = document.querySelector('input[name="chiTiet.ChucVu"]').value.trim();
+
+        // Validate các trường input tự điền
+        if (hoTen === '') {
+            alert("⚠️ Vui lòng nhập Họ tên in trên thẻ!");
+            document.querySelector('input[name="chiTiet.HoTen"]').focus();
+            return;
+        }
+        if (maSoThe === '') {
+            alert("⚠️ Vui lòng nhập Mã số thẻ!");
+            document.querySelector('input[name="chiTiet.MaSoThe"]').focus();
+            return;
+        }
+        if (boPhan === '') {
+            alert("⚠️ Vui lòng nhập Bộ phận!");
+            document.querySelector('input[name="chiTiet.BoPhan"]').focus();
+            return;
+        }
+        if (chucVu === '') {
+            alert("⚠️ Vui lòng nhập Chức vụ!");
+            document.querySelector('input[name="chiTiet.ChucVu"]').focus();
+            return;
+        }
+
         const chk = document.getElementById('chkCamKet');
         const selectedHoTro = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
-        
+
         if (selectedHoTro.length === 0) {
             alert("⚠️ Vui lòng chọn người tiếp nhận hỗ trợ!");
             return;
@@ -272,12 +326,12 @@
                 break;
             }
         }
-        
+
         if(selectedReason === '') {
             alert("⚠️ Vui lòng chọn Lý do làm lại thẻ (1 trong 4 tùy chọn)!");
             return;
         }
-        
+
         let finalReason = selectedReason;
         if(selectedReason === 'Khác') {
             const txtKhac = document.getElementById('txtLyDoKhac').value.trim();
@@ -288,18 +342,23 @@
             }
             finalReason = txtKhac;
         }
-        
+
         document.getElementById('hdnLyDoLamLaiThe').value = finalReason;
-        
-        // Bắt buộc đính kèm File hoặc Paste Ảnh nếu Mờ / Gãy
-        if(selectedReason === 'Thẻ mờ' || selectedReason === 'Thẻ gãy') {
+
+        // Bắt buộc đính kèm File hoặc Paste Ảnh nếu Mờ / Gãy / Khác
+        if(selectedReason === 'Thẻ mờ' || selectedReason === 'Thẻ gãy' || selectedReason === 'Khác') {
             const fileInput = document.getElementById('UploadFile');
             const picInput = document.getElementById('AnhMinhChung');
             const hasFile = fileInput.files && fileInput.files.length > 0;
             const hasPic = picInput.files && picInput.files.length > 0;
 
             if(!hasFile && !hasPic) {
-                alert(`⚠️ Vì thẻ của bạn bị ${selectedReason === 'Thẻ mờ' ? 'Mờ' : 'Gãy'}, bắt buộc phải Paste ảnh hoặc Tải file chụp hình thẻ cũ bị lỗi!`);
+                let textLyDo = "";
+                if (selectedReason === 'Thẻ mờ') textLyDo = "Mờ";
+                else if (selectedReason === 'Thẻ gãy') textLyDo = "Gãy";
+                else textLyDo = "Lý do khác";
+
+                alert(`⚠️ Vì thẻ của bạn chọn lý do là [${textLyDo}], bắt buộc phải Paste ảnh hoặc Tải file đính kèm minh chứng!`);
                 return;
             }
         }

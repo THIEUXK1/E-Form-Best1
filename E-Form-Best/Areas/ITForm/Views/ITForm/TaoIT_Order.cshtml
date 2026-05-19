@@ -120,24 +120,55 @@
                 </div>
             </div>
 
-            @* --- PHẦN 2: CHỌN LOẠI CÔNG VIỆC --- *@
+            @* --- PHẦN 2: CHỌN LOẠI CÔNG VIỆC HOẶC CHỈ ĐỊNH NGƯỜI --- *@
             <div class="box-detail-mobile" style="@boxDetail">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
-                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Loại yêu cầu hỗ trợ</h3>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Phương thức hỗ trợ</h3>
                 </div>
 
-                <label style="@labelBase">Vui lòng chọn vấn đề bạn đang gặp <span style="color:red">*</span></label>
-                <select name="selectedCongViecId" id="selectedCongViecId" required class="input-hover" style="@inputBase cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237c2d12%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
-                    <option value="">-- Click để chọn loại công việc --</option>
-                    @if (ViewBag.CongViecList != null)
-                    {
-                        foreach (var cv in (IEnumerable<E_Form_Best.Models.ITForm.CongViecIt>)ViewBag.CongViecList)
+                <!-- Lựa chọn Chế độ -->
+                <div style="margin-bottom: 20px; display: flex; gap: 20px; flex-wrap: wrap;">
+                    <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 700; color: @colorDark;">
+                        <input type="radio" name="modeHoTro" value="Mode1" checked onchange="toggleMode()" style="accent-color: @colorPrimary; width: 18px; height: 18px;">
+                        Chọn vấn đề (Tự động gán)
+                    </label>
+                    <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 700; color: @colorDark;">
+                        <input type="radio" name="modeHoTro" value="Mode2" onchange="toggleMode()" style="accent-color: @colorPrimary; width: 18px; height: 18px;">
+                        Chỉ định người hỗ trợ
+                    </label>
+                </div>
+
+                <!-- DIV Chế độ 1 -->
+                <div id="divMode1">
+                    <label style="@labelBase">Vui lòng chọn vấn đề bạn đang gặp <span style="color:red">*</span></label>
+                    <select name="selectedCongViecId" id="selectedCongViecId" class="input-hover" style="@inputBase cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237c2d12%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
+                        <option value="">-- Click để chọn loại công việc --</option>
+                        @if (ViewBag.CongViecList != null)
                         {
-                            <option value="@cv.Id">@cv.Ten</option>
+                            foreach (var cv in (IEnumerable<E_Form_Best.Models.ITForm.CongViecIt>)ViewBag.CongViecList)
+                            {
+                                <option value="@cv.Id">@cv.Ten</option>
+                            }
                         }
-                    }
-                </select>
+                    </select>
+                </div>
+
+                <!-- DIV Chế độ 2 -->
+                <div id="divMode2" style="display: none;">
+                    <label style="@labelBase">Chỉ định người hỗ trợ trực tiếp <span style="color:red">*</span></label>
+                    <select name="selectedNguoiHoTroId" id="selectedNguoiHoTroId" class="input-hover" style="@inputBase cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237c2d12%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
+                        <option value="">-- Click để chọn người hỗ trợ --</option>
+                        @if (ViewBag.NguoiHoTroList != null)
+                        {
+                            foreach (var it in (IEnumerable<dynamic>)ViewBag.NguoiHoTroList)
+                            {
+                                <option value="@it.Id">@it.Ten</option>
+                            }
+                        }
+                    </select>
+                </div>
+
             </div>
 
             @* --- PHẦN 3: CHI TIẾT LỖI --- *@
@@ -213,6 +244,18 @@
 </div>
 
 <script>
+    // Logic ẩn/hiện chế độ hỗ trợ
+    function toggleMode() {
+        const mode = document.querySelector('input[name="modeHoTro"]:checked').value;
+        if (mode === "Mode1") {
+            document.getElementById("divMode1").style.display = "block";
+            document.getElementById("divMode2").style.display = "none";
+        } else {
+            document.getElementById("divMode1").style.display = "none";
+            document.getElementById("divMode2").style.display = "block";
+        }
+    }
+
     // Logic dán ảnh (Ctrl + V)
     document.getElementById("paste_area").addEventListener('paste', function(e) {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
@@ -232,16 +275,24 @@
     });
 
     function xuLyLuu() {
+        const mode = document.querySelector('input[name="modeHoTro"]:checked').value;
         const congViecId = document.getElementById("selectedCongViecId").value;
+        const nguoiHoTroId = document.getElementById("selectedNguoiHoTroId").value;
         const tieuDe = document.getElementById("TieuDe").value;
         const ghiChu = document.getElementById("GhiChu").value;
         const chk = document.getElementById("chkCamKet");
         const btn = document.getElementById("btnSubmit");
 
-        if (!congViecId) {
+        // Validate theo mode
+        if (mode === "Mode1" && !congViecId) {
             alert("⚠️ Vui lòng chọn loại công việc cần hỗ trợ!");
             return;
         }
+        if (mode === "Mode2" && !nguoiHoTroId) {
+            alert("⚠️ Vui lòng chỉ định người hỗ trợ!");
+            return;
+        }
+
         if (!tieuDe.trim()) {
             alert("⚠️ Vui lòng nhập tiêu đề yêu cầu!");
             return;
