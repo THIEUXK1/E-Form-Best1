@@ -24,13 +24,39 @@
 
 <style>
     @@media (max-width: 768px) {
-        .mobile-wrapper { padding: 15px 10px !important; }
-        .mobile-header { padding: 25px 15px !important; }
-        .mobile-header h2 { font-size: 18px !important; margin-top: 15px !important; }
-        .mobile-body { padding: 20px 15px !important; }
-        .mobile-section { padding: 15px !important; }
-        .mobile-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
-        .system-badge { position: relative !important; top: 0 !important; right: 0 !important; display: inline-block; margin-bottom: 10px; }
+        .mobile-wrapper {
+            padding: 15px 10px !important;
+        }
+
+        .mobile-header {
+            padding: 25px 15px !important;
+        }
+
+            .mobile-header h2 {
+                font-size: 18px !important;
+                margin-top: 15px !important;
+            }
+
+        .mobile-body {
+            padding: 20px 15px !important;
+        }
+
+        .mobile-section {
+            padding: 15px !important;
+        }
+
+        .mobile-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+        }
+
+        .system-badge {
+            position: relative !important;
+            top: 0 !important;
+            right: 0 !important;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
     }
 </style>
 
@@ -211,9 +237,43 @@
     }
 
     function xuLyLuuDon() {
+        // Lấy giá trị các trường bắt buộc
+        const hoTen = document.querySelector('input[name="chiTiet.HoTen"]').value.trim();
+        const maNhanVien = document.querySelector('input[name="chiTiet.MaNhanVien"]').value.trim();
+        const chucVu = document.querySelector('input[name="chiTiet.ChucVu"]').value.trim();
+        const loaiPhong = document.querySelector('input[name="chiTiet.LoaiPhong"]').value.trim();
+        const thoiGianNhan = document.querySelector('input[name="chiTiet.ThoiGianNhanPhong"]').value.trim();
+
+        // Validate các trường input
+        if (hoTen === '') {
+            alert("⚠️ Vui lòng nhập Họ tên người ở KTX!");
+            document.querySelector('input[name="chiTiet.HoTen"]').focus();
+            return;
+        }
+        if (maNhanVien === '') {
+            alert("⚠️ Vui lòng nhập Mã nhân viên người ở!");
+            document.querySelector('input[name="chiTiet.MaNhanVien"]').focus();
+            return;
+        }
+        if (chucVu === '') {
+            alert("⚠️ Vui lòng nhập Chức vụ!");
+            document.querySelector('input[name="chiTiet.ChucVu"]').focus();
+            return;
+        }
+        if (loaiPhong === '') {
+            alert("⚠️ Vui lòng nhập Loại phòng!");
+            document.querySelector('input[name="chiTiet.LoaiPhong"]').focus();
+            return;
+        }
+        if (thoiGianNhan === '') {
+            alert("⚠️ Vui lòng nhập Thời gian nhận phòng!");
+            document.querySelector('input[name="chiTiet.ThoiGianNhanPhong"]').focus();
+            return;
+        }
+
         const chk = document.getElementById('chkCamKet');
         const selectedHoTro = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
-        
+
         if (selectedHoTro.length === 0) {
             alert("⚠️ Vui lòng chọn người tiếp nhận hỗ trợ!");
             return;

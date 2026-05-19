@@ -326,6 +326,11 @@
         if (Model.HrDonKiTucXa10s?.Any() == true)
         {
             var ct = Model.HrDonKiTucXa10s.First();
+
+            // --- THÊM HIỂN THỊ ẢNH CHO FORM 10 ---
+            if (!string.IsNullOrEmpty(ct.DuongDanAnh))
+                listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
+
             chiTietNoiDung += RenderInfoRow("🏢", "Loại đơn", "Đăng ký ký túc xá", "#e0e7ff", "#3730a3");
             chiTietNoiDung += RenderInfoRow("🆔", "Mã nhân viên", ct.MaNhanVien, "#f8fafc", "#0f172a");
             chiTietNoiDung += RenderInfoRow("👤", "Họ tên", ct.HoTen, "#f8fafc", "#0f172a");
@@ -339,6 +344,11 @@
         if (Model.HrDonLamLaiThe11s?.Any() == true)
         {
             var ct = Model.HrDonLamLaiThe11s.First();
+
+            // --- THÊM HIỂN THỊ ẢNH CHO FORM 11 ---
+            if (!string.IsNullOrEmpty(ct.DuongDanAnh))
+                listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
+
             chiTietNoiDung += RenderInfoRow("💳", "Loại đơn", "Làm lại thẻ nhân viên", "#fdf4ff", "#86198f");
             chiTietNoiDung += RenderInfoRow("🆔", "Mã số thẻ", ct.MaSoThe, "#f8fafc", "#0f172a");
             chiTietNoiDung += RenderInfoRow("👤", "Họ tên", ct.HoTen, "#f8fafc", "#0f172a");
@@ -350,6 +360,11 @@
         if (Model.HrDonSuDungDienThoai12s?.Any() == true)
         {
             var ct = Model.HrDonSuDungDienThoai12s.First();
+
+            // --- THÊM HIỂN THỊ ẢNH CHO FORM 12 ---
+            if (!string.IsNullOrEmpty(ct.DuongDanAnh))
+                listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
+
             chiTietNoiDung += RenderInfoRow("📱", "Loại đơn", "Đăng ký sử dụng điện thoại", "#f0fdfa", "#0f766e");
             chiTietNoiDung += RenderInfoRow("🆔", "Mã số thẻ", ct.MaSoThe, "#f8fafc", "#0f172a");
             chiTietNoiDung += RenderInfoRow("👤", "Họ tên", ct.HoTen, "#f8fafc", "#0f172a");
@@ -1084,7 +1099,7 @@
     const formId        = @Model.Id;
     const currentUserId = '@currentUserId';
     const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                                                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
+                                                                                                                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
     const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
     function hasRole(r) { return userRoles.includes(r); }

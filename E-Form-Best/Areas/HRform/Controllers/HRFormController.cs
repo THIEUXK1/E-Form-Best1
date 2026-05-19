@@ -2589,6 +2589,24 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     if (chiTiet != null)
                     {
                         chiTiet.IdFormHr = form.Id;
+
+                        // --- XỬ LÝ LƯU ẢNH VÀO CỘT DuongDanAnh ---
+                        var anhFile = Request.Form.Files["AnhMinhChung"];
+                        if (anhFile != null && anhFile.Length > 0)
+                        {
+                            string imgExt = Path.GetExtension(anhFile.FileName);
+                            if (string.IsNullOrEmpty(imgExt)) imgExt = ".jpg";
+                            string imgName = $"Anh_KTX_{form.Id}_{safeName}_{timeStamp}{imgExt}";
+                            string imgPath = Path.Combine(networkPath, imgName);
+
+                            using (var fileStream = new FileStream(imgPath, FileMode.Create))
+                            {
+                                await anhFile.CopyToAsync(fileStream);
+                            }
+
+                            chiTiet.DuongDanAnh = imgName;
+                        }
+
                         _context.HrDonKiTucXa10s.Add(chiTiet);
                         await _context.SaveChangesAsync();
                     }
@@ -2797,6 +2815,24 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     if (chiTiet != null)
                     {
                         chiTiet.IdFormHr = form.Id;
+
+                        // --- XỬ LÝ LƯU ẢNH VÀO CỘT DuongDanAnh ---
+                        var anhFile = Request.Form.Files["AnhMinhChung"];
+                        if (anhFile != null && anhFile.Length > 0)
+                        {
+                            string imgExt = Path.GetExtension(anhFile.FileName);
+                            if (string.IsNullOrEmpty(imgExt)) imgExt = ".jpg";
+                            string imgName = $"Anh_The_{form.Id}_{safeName}_{timeStamp}{imgExt}";
+                            string imgPath = Path.Combine(networkPath, imgName);
+
+                            using (var fileStream = new FileStream(imgPath, FileMode.Create))
+                            {
+                                await anhFile.CopyToAsync(fileStream);
+                            }
+
+                            chiTiet.DuongDanAnh = imgName;
+                        }
+
                         _context.HrDonLamLaiThe11s.Add(chiTiet);
                         await _context.SaveChangesAsync();
                     }
@@ -3005,6 +3041,24 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     if (chiTiet != null)
                     {
                         chiTiet.IdFormHr = form.Id;
+
+                        // --- XỬ LÝ LƯU ẢNH VÀO CỘT DuongDanAnh ---
+                        var anhFile = Request.Form.Files["AnhMinhChung"];
+                        if (anhFile != null && anhFile.Length > 0)
+                        {
+                            string imgExt = Path.GetExtension(anhFile.FileName);
+                            if (string.IsNullOrEmpty(imgExt)) imgExt = ".jpg";
+                            string imgName = $"Anh_DienThoai_{form.Id}_{safeName}_{timeStamp}{imgExt}";
+                            string imgPath = Path.Combine(networkPath, imgName);
+
+                            using (var fileStream = new FileStream(imgPath, FileMode.Create))
+                            {
+                                await anhFile.CopyToAsync(fileStream);
+                            }
+
+                            chiTiet.DuongDanAnh = imgName;
+                        }
+
                         _context.HrDonSuDungDienThoai12s.Add(chiTiet);
                         await _context.SaveChangesAsync();
                     }
