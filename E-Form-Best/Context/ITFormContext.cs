@@ -580,7 +580,7 @@ public partial class ITFormContext : DbContext
         {
             entity.Property(e => e.IsRead).HasDefaultValue(false);
             entity.Property(e => e.Time).HasDefaultValueSql("(getdate())");
-            entity.Property(e => e.TrangThaiAnHien).HasDefaultValue(true);
+            entity.Property(e => e.TrangThaiAnHien).HasDefaultValue(true, "DF_LichSuFormHR_TrangThaiAnHien");
 
             entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.LichSuFormHrs).HasConstraintName("FK_LichSuFormHR_FormHR");
         });
@@ -589,14 +589,14 @@ public partial class ITFormContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__LichSu__3213E83F7913614E");
 
-            entity.Property(e => e.TrangThaiAnHien).HasDefaultValue(true);
+            entity.Property(e => e.TrangThaiAnHien).HasDefaultValue(true, "DF_LichSuFormIT_TrangThaiAnHien");
 
             entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.LichSuFormIts).HasConstraintName("FK_LichSu_FormIT");
         });
 
         modelBuilder.Entity<LichSuFormShd>(entity =>
         {
-            entity.Property(e => e.TrangThaiAnHien).HasDefaultValue(true);
+            entity.Property(e => e.TrangThaiAnHien).HasDefaultValue(true, "DF_LichSuFormSHD_TrangThaiAnHien");
 
             entity.HasOne(d => d.IdFormShdNavigation).WithMany(p => p.LichSuFormShds)
                 .OnDelete(DeleteBehavior.Cascade)

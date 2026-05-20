@@ -35,7 +35,6 @@
     List<string> listImages = new List<string>();
     string chiTietNoiDung = "";
 
-    // Xử lý cắt chuỗi nhiều file đính kèm
     List<string> listFileDinhKem = new List<string>();
     if (!string.IsNullOrEmpty(Model.FileDinhKem))
     {
@@ -352,17 +351,45 @@
                             <div style="margin-left:10px;border-left:2px dashed #e2e8f0;padding-left:30px;">
                                 @if (Model.LichSuFormShds?.Any() == true)
                                 {
-                                    foreach (var ls in Model.LichSuFormShds.OrderByDescending(x => x.Time))
+                                    bool isAdminAll = User.IsInRole("All");
+                                    // Người có quyền All thấy hết. Người khác chỉ thấy log public (TrangThaiAnHien == true)
+                                    var lichSuHienThi = Model.LichSuFormShds
+                                                             .Where(x => x.TrangThaiAnHien == true || isAdminAll)
+                                                             .OrderByDescending(x => x.Time)
+                                                             .ToList();
+
+                                    foreach (var ls in lichSuHienThi)
                                     {
-                                        <div style="position:relative;margin-bottom:30px;">
-                                            <div style="position:absolute;left:-41px;top:0;width:20px;height:20px;background:white;border:4px solid #3b82f6;border-radius:50%;z-index:1;"></div>
-                                            <div style="display:flex;justify-content:space-between;flex-wrap:wrap;background:#f8fafc;padding:20px;border-radius:20px;border:1px solid #f1f5f9;">
+                                        <div id="log-item-@ls.Id" style="position:relative;margin-bottom:30px; transition:all 0.3s; @(ls.TrangThaiAnHien == false ? "opacity:0.75; filter:grayscale(90%);" : "opacity:1; filter:none;")">
+                                            <div id="log-dot-@ls.Id" style="position:absolute;left:-41px;top:0;width:20px;height:20px;background:white;border:4px solid @(ls.TrangThaiAnHien == false ? "#ef4444" : "#3b82f6");border-radius:50%;z-index:1; transition:all 0.3s;"></div>
+
+                                            <div id="log-innerbox-@ls.Id" style="display:flex;justify-content:space-between;flex-wrap:wrap;background:@(ls.TrangThaiAnHien == false ? "#fef2f2" : "#f8fafc");padding:20px;border-radius:20px;border:1px solid @(ls.TrangThaiAnHien == false ? "#fecaca" : "#f1f5f9"); transition:all 0.3s;">
                                                 <div style="flex:1;min-width: 200px;">
-                                                    <div style="font-weight:800;color:#1e293b;font-size:15px;margin-bottom:4px;">@ls.TieuDe</div>
+                                                    <div style="font-weight:800;color:#1e293b;font-size:15px;margin-bottom:4px;display:flex;align-items:center;flex-wrap:wrap;">
+                                                        @ls.TieuDe
+
+                                                        <span id="badge-container-@ls.Id">
+                                                            @if (ls.TrangThaiAnHien == false)
+                                                            {
+                                                                <span style="background:#ef4444; color:white; font-size:10px; padding:2px 8px; border-radius:8px; margin-left: 8px;">LOG ẨN</span>
+                                                            }
+                                                        </span>
+
+                                                        @* --- NÚT TOGGLE ẨN/HIỆN CHỈ DÀNH CHO QUYỀN ALL --- *@
+                                                        @if (isAdminAll)
+                                                        {
+                                                            <button onclick="toggleLichSuVisibility(@ls.Id)"
+                                                                    id="btn-toggle-log-@ls.Id"
+                                                                    style="border:none; background:transparent; color:@(ls.TrangThaiAnHien ? "#10b981" : "#94a3b8"); cursor:pointer; font-size:16px; margin-left:10px; outline:none;"
+                                                                    title="@(ls.TrangThaiAnHien ? "Đang hiển thị - Nhấn để ẩn" : "Đang ẩn - Nhấn để hiển thị")">
+                                                                <i class="fa @(ls.TrangThaiAnHien ? "fa-eye" : "fa-eye-slash")"></i>
+                                                            </button>
+                                                        }
+                                                    </div>
                                                     <div style="color:#64748b;font-size:14px;line-height:1.6;white-space:pre-line;">@ls.Mota</div>
                                                 </div>
                                                 <div style="text-align:right;min-width:100px;margin-left:15px;flex-shrink:0;">
-                                                    <div style="font-weight:800;color:#3b82f6;font-size:14px;">@ls.Time?.ToString("HH:mm")</div>
+                                                    <div id="log-time-@ls.Id" style="font-weight:800;color:@(ls.TrangThaiAnHien == false ? "#ef4444" : "#3b82f6");font-size:14px; transition:color 0.3s;">@ls.Time?.ToString("HH:mm")</div>
                                                     <div style="color:#94a3b8;font-size:12px;margin-top:2px;">@ls.Time?.ToString("dd/MM/yyyy")</div>
                                                 </div>
                                             </div>
@@ -456,7 +483,7 @@
                                     string statusTextB2 = tt == 1 ? "ĐÃ DUYỆT" : tt == 2 ? "TỪ CHỐI" : "CHỜ DUYỆT";
                                     string statusColorB2 = tt == 1 ? "#059669" : tt == 2 ? "#dc2626" : "#7c3aed";
 
-                                    // CẬP NHẬT LOGIC KIỂM TRA QUYỀN DUYỆT BƯỚC 2
+                                    // KIỂM TRA QUYỀN DUYỆT BƯỚC 2 CHO CẢ NGƯỜI CHÍNH & ỦY QUYỀN
                                     bool isNguoiDuyetChinh = string.Equals(b2.MaNguoiXacNhan ?? "", userEmailView, StringComparison.OrdinalIgnoreCase) || b2.IdnguoiXacNhan == currentUserId;
                                     bool isNguoiDuyetUyQuyen = false;
 
@@ -682,8 +709,7 @@
 <script>
     const formId        = @Model.Id;
     const currentUserId = '@currentUserId';
-    const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                                                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
+    const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
     const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
     function hasRole(r) { return userRoles.includes(r); }
@@ -728,6 +754,66 @@
         }
     }
 
+    // --- XỬ LÝ CÔNG TẮC BẬT/TẮT TRẠNG THÁI LỊCH SỬ BẰNG JS (CHỈ ALL MỚI DÙNG) ---
+    async function toggleLichSuVisibility(idLichSu) {
+        try {
+            const res = await fetch('/FormSHD/ToggleLichSuAnHien', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': TOKEN },
+                body: JSON.stringify({ idLichSu: idLichSu })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                const isVisible = data.newState;
+
+                // Lấy các element cần đổi CSS
+                const itemDiv = document.getElementById(`log-item-${idLichSu}`);
+                const btn = document.getElementById(`btn-toggle-log-${idLichSu}`);
+                const badgeContainer = document.getElementById(`badge-container-${idLichSu}`);
+                const dot = document.getElementById(`log-dot-${idLichSu}`);
+                const innerBox = document.getElementById(`log-innerbox-${idLichSu}`);
+                const timeColor = document.getElementById(`log-time-${idLichSu}`);
+
+                if (isVisible) {
+                    // Chuyển sang dạng HIỂN THỊ
+                    itemDiv.style.opacity = "1";
+                    itemDiv.style.filter = "none";
+
+                    btn.style.color = "#10b981";
+                    btn.innerHTML = '<i class="fa fa-eye"></i>';
+                    btn.title = "Đang hiển thị - Nhấn để ẩn";
+
+                    badgeContainer.innerHTML = "";
+
+                    dot.style.borderColor = "#3b82f6";
+                    innerBox.style.background = "#f8fafc";
+                    innerBox.style.borderColor = "#f1f5f9";
+                    timeColor.style.color = "#3b82f6";
+                } else {
+                    // Chuyển sang dạng ẨN
+                    itemDiv.style.opacity = "0.75";
+                    itemDiv.style.filter = "grayscale(90%)";
+
+                    btn.style.color = "#94a3b8";
+                    btn.innerHTML = '<i class="fa fa-eye-slash"></i>';
+                    btn.title = "Đang ẩn - Nhấn để hiển thị";
+
+                    badgeContainer.innerHTML = '<span style="background:#ef4444; color:white; font-size:10px; padding:2px 8px; border-radius:8px; margin-left: 8px;">LOG ẨN</span>';
+
+                    dot.style.borderColor = "#ef4444";
+                    innerBox.style.background = "#fef2f2";
+                    innerBox.style.borderColor = "#fecaca";
+                    timeColor.style.color = "#ef4444";
+                }
+            } else {
+                alert(data.message || 'Lỗi hệ thống thao tác!');
+            }
+        } catch (err) {
+            alert('Lỗi kết nối: ' + err.message);
+        }
+    }
+
     // ── ZOOM & XOAY ẢNH ──
     let currentImageRotation = 0;
 
@@ -756,15 +842,15 @@
 
     document.addEventListener('keydown', e => { if (e.key==='Escape') closeZoom(); });
 
-    // ── DUYỆT BƯỚC 2 (B2) ──
+    // ── DUYỆT BƯỚC 2 (B2) LƯỢC BỎ GHI CHÚ ──
     async function duyetB2(idRecord, action) {
-        const ghiChu = prompt('Ghi chú (tùy chọn):', '') || '';
-        if (!confirm('Xác nhận ' + (action === 'Approve' ? 'duyệt' : 'từ chối') + ' bước này?')) return;
+        const msg = action === 'Approve' ? 'Bạn có xác nhận DUYỆT bước này?' : 'Bạn có xác nhận TỪ CHỐI bước này?';
+        if (!confirm(msg)) return;
         try {
             const res = await fetch('/FormSHD/DuyetB2', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': TOKEN },
-                body: JSON.stringify({ idB2: idRecord, idForm: formId, loaiHanhDong: action, ghiChu })
+                body: JSON.stringify({ idB2: idRecord, idForm: formId, loaiHanhDong: action })
             });
             const data = await res.json();
             if (data.success) {
