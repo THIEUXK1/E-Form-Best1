@@ -881,25 +881,22 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = "Lỗi tải bình luận: " + ex.Message });
             }
         }
 
         [HttpPost("/FormSHD/ThemBinhLuan")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ThemBinhLuan()
         {
             try
             {
-                var idForm = int.Parse(Request.Form["idForm"]);
-                var noiDung = Request.Form["noiDung"].ToString();
-                var file = Request.Form.Files.GetFile("file");
+                var formCollection = await Request.ReadFormAsync();
+                int idForm = int.Parse(formCollection["idForm"]);
+                string noiDung = formCollection["noiDung"].ToString();
+                var file = formCollection.Files.GetFile("file");
 
                 var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userName = User.Identity?.Name ?? "Unknown";
-                var userMa = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
-                var userPhongBan = User.FindFirst("PhongBan")?.Value ?? "";
-                var userTenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
-
                 if (string.IsNullOrEmpty(userIdStr))
                     return Json(new { success = false, message = "Chưa đăng nhập" });
 
@@ -914,21 +911,10 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     if (file.Length > 50 * 1024 * 1024)
                         return Json(new { success = false, message = "File không được vượt quá 50MB" });
 
-                    // Đường dẫn lưu trữ riêng cho SHD
                     string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonSHD";
+                    if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
 
-                    try
-                    {
-                        if (!Directory.Exists(networkPath))
-                            Directory.CreateDirectory(networkPath);
-                    }
-                    catch (Exception ex)
-                    {
-                        return Json(new { success = false, message = "Không thể truy cập thư mục lưu trữ SHD: " + ex.Message });
-                    }
-
-                    string safeFileName = Path.GetFileName(file.FileName);
-                    fileName = $"{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString().Substring(0, 8)}_{safeFileName}";
+                    fileName = $"{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString().Substring(0, 8)}_{Path.GetFileName(file.FileName)}";
                     string fullPath = Path.Combine(networkPath, fileName);
 
                     using (var stream = new FileStream(fullPath, FileMode.Create))
@@ -937,43 +923,37 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     }
                 }
 
-                if (string.IsNullOrWhiteSpace(noiDung) && file == null)
+                if (string.IsNullOrWhiteSpace(noiDung) && fileName == null)
                     return Json(new { success = false, message = "Vui lòng nhập nội dung hoặc đính kèm file" });
-
-                int idNguoiBinhLuan = 0;
-                if (!string.IsNullOrEmpty(userIdStr)) int.TryParse(userIdStr, out idNguoiBinhLuan);
 
                 var binhLuan = new BinhLuanFormShd
                 {
                     IdFormShd = idForm,
                     NoiDung = noiDung?.Trim(),
-                    IdNguoiBinhLuan = idNguoiBinhLuan,
-                    TenNguoiBinhLuan = userName,
-                    Ma = userMa,
-                    PhongBan = userPhongBan,
-                    TenCongTy = userTenCongTy,
+                    IdNguoiBinhLuan = int.Parse(userIdStr),
+                    TenNguoiBinhLuan = User.Identity?.Name ?? "Unknown",
+                    Ma = User.FindFirst(ClaimTypes.Email)?.Value ?? "",
+                    PhongBan = User.FindFirst("PhongBan")?.Value ?? "",
+                    TenCongTy = User.FindFirst("TenCongTy")?.Value ?? "",
                     ThoiGian = DateTime.Now,
                     TrangThai = 1,
                     FileDinhKem = fileName
                 };
 
                 _context.BinhLuanFormShds.Add(binhLuan);
-                await _context.SaveChangesAsync();
 
-                // Lưu lịch sử đơn SHD
-                var lichSu = new LichSuFormShd
+                _context.LichSuFormShds.Add(new LichSuFormShd
                 {
                     IdFormShd = idForm,
                     TieuDe = "BÌNH LUẬN MỚI (SHD)",
-                    Mota = $"👤 {userName} ({userMa})\n" +
-                           $"🏢 {userPhongBan} - {userTenCongTy}\n" +
-                           $"💬 {(string.IsNullOrWhiteSpace(noiDung) ? "[File đính kèm]" : (noiDung.Length > 50 ? noiDung.Substring(0, 50) + "..." : noiDung))}\n" +
-                           $"{(fileName != null ? "📎 Có đính kèm file" : "")}",
-                    Time = DateTime.Now
-                };
-                _context.LichSuFormShds.Add(lichSu);
+                    Mota = $"Người dùng {binhLuan.TenNguoiBinhLuan} đã bình luận: {(noiDung?.Length > 50 ? noiDung.Substring(0, 50) + "..." : noiDung)}",
+                    Time = DateTime.Now,
+                    TrangThaiAnHien = true
+                });
+
                 await _context.SaveChangesAsync();
 
+                // TRẢ VỀ DẠNG ANONYMOUS OBJECT ĐỂ TRÁNH LỖI CIRCULAR REFERENCE
                 return Json(new
                 {
                     success = true,
@@ -982,13 +962,9 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                         id = binhLuan.Id,
                         noiDung = binhLuan.NoiDung,
                         tenNguoiBinhLuan = binhLuan.TenNguoiBinhLuan,
-                        idNguoiBinhLuan = binhLuan.IdNguoiBinhLuan?.ToString(),
-                        ma = binhLuan.Ma,
-                        phongBan = binhLuan.PhongBan,
-                        tenCongTy = binhLuan.TenCongTy,
+                        idNguoiBinhLuan = binhLuan.IdNguoiBinhLuan,
                         thoiGian = binhLuan.ThoiGian,
-                        fileDinhKem = binhLuan.FileDinhKem,
-                        trangThai = binhLuan.TrangThai
+                        fileDinhKem = binhLuan.FileDinhKem
                     }
                 });
             }
@@ -999,22 +975,21 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         }
 
         [HttpPost("/FormSHD/XoaBinhLuan")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> XoaBinhLuan([FromBody] dynamic data)
         {
             try
             {
-                int id = (int)data.id;
+                // Sử dụng Newtonsoft để parse dynamic an toàn hơn hoặc dùng model class
+                int id = int.Parse(data.GetProperty("id").ToString());
+
                 var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userRole = User.FindFirst("UserRole")?.Value ?? "";
 
                 var binhLuan = await _context.BinhLuanFormShds.FindAsync(id);
-                if (binhLuan == null)
-                    return Json(new { success = false, message = "Không tìm thấy bình luận" });
+                if (binhLuan == null) return Json(new { success = false, message = "Không tìm thấy bình luận" });
 
-                int currentUserId = 0;
-                if (!string.IsNullOrEmpty(userIdStr)) int.TryParse(userIdStr, out currentUserId);
-
-                // Phân quyền: Người tạo bình luận hoặc Admin SHD / Admin Tổng
+                int currentUserId = int.Parse(userIdStr ?? "0");
                 if (binhLuan.IdNguoiBinhLuan != currentUserId && userRole != "AdminSHD" && userRole != "All")
                     return Json(new { success = false, message = "Bạn không có quyền xóa bình luận này" });
 
@@ -1022,31 +997,21 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 {
                     string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonSHD";
                     string fullPath = Path.Combine(networkPath, binhLuan.FileDinhKem);
-
-                    try
-                    {
-                        if (System.IO.File.Exists(fullPath))
-                            System.IO.File.Delete(fullPath);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Không thể xóa file SHD: {ex.Message}");
-                    }
+                    if (System.IO.File.Exists(fullPath)) System.IO.File.Delete(fullPath);
                 }
 
                 _context.BinhLuanFormShds.Remove(binhLuan);
-                await _context.SaveChangesAsync();
 
-                var lichSu = new LichSuFormShd
+                _context.LichSuFormShds.Add(new LichSuFormShd
                 {
                     IdFormShd = binhLuan.IdFormShd,
                     TieuDe = "XÓA BÌNH LUẬN (SHD)",
-                    Mota = $"{User.Identity.Name} đã xóa bình luận của {binhLuan.TenNguoiBinhLuan}",
-                    Time = DateTime.Now
-                };
-                _context.LichSuFormShds.Add(lichSu);
-                await _context.SaveChangesAsync();
+                    Mota = $"{User.Identity.Name} đã xóa một bình luận.",
+                    Time = DateTime.Now,
+                    TrangThaiAnHien = true
+                });
 
+                await _context.SaveChangesAsync();
                 return Json(new { success = true, message = "Đã xóa bình luận SHD" });
             }
             catch (Exception ex)
@@ -1056,49 +1021,17 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         }
 
         [HttpGet("/FormSHD/DownloadBinhLuanFile/{fileName}")]
-        public async Task<IActionResult> DownloadBinhLuanFile(string fileName)
+        public IActionResult DownloadBinhLuanFile(string fileName)
         {
-            if (string.IsNullOrEmpty(fileName))
-                return NotFound();
+            if (string.IsNullOrEmpty(fileName)) return NotFound();
 
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonSHD";
             string fullPath = Path.Combine(networkPath, fileName);
 
-            if (!System.IO.File.Exists(fullPath))
-                return NotFound("File SHD không tồn tại");
+            if (!System.IO.File.Exists(fullPath)) return NotFound("File SHD không tồn tại");
 
-            try
-            {
-                var memory = new MemoryStream();
-                using (var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
-                {
-                    await stream.CopyToAsync(memory);
-                }
-                memory.Position = 0;
-
-                string ext = Path.GetExtension(fileName).ToLowerInvariant();
-                string contentType = ext switch
-                {
-                    ".jpg" or ".jpeg" => "image/jpeg",
-                    ".png" => "image/png",
-                    ".gif" => "image/gif",
-                    ".pdf" => "application/pdf",
-                    ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    ".txt" => "text/plain",
-                    ".zip" => "application/zip",
-                    _ => "application/octet-stream"
-                };
-
-                // Lấy lại tên file gốc bằng cách bỏ prefix timestamp và guid
-                string originalFileName = string.Join("_", fileName.Split('_').Skip(2));
-
-                return File(memory, contentType, originalFileName);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Lỗi khi tải file SHD: " + ex.Message);
-            }
+            string originalFileName = string.Join("_", fileName.Split('_').Skip(2));
+            return PhysicalFile(fullPath, "application/octet-stream", originalFileName);
         }
 
         #endregion

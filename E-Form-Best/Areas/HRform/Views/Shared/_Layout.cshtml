@@ -33,247 +33,317 @@
     <title>@ViewData["Title"] - HR E-Form</title>
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤝</text></svg>">
-    
+
     <!-- Core Libraries -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- ĐÃ SỬA LỖI LINK FONT-AWESOME TẠI ĐÂY -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-    
+
     <!-- Added Libraries: Select2 & NProgress -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.css" rel="stylesheet" />
 
     <style>
-        body {
-            margin: 0;
-            font-family: 'Inter', sans-serif;
-            background: #f8fafc;
-            color: #1e293b;
-            overflow-x: hidden;
-        }
+            body {
+                margin: 0;
+                font-family: 'Inter', sans-serif;
+                background: #f8fafc;
+                color: #1e293b;
+                overflow-x: hidden;
+            }
 
-        /* Sidebar Customization */
-        #sidebar {
-            width: 280px;
-            background: @primaryGradient;
-            color: #fff;
-            padding: 25px 15px;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            box-shadow: 10px 0 40px rgba(0,0,0,0.15);
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-
-        #main-sidebar-nav::-webkit-scrollbar { width: 4px; }
-        #main-sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
-
-        .nav-link-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 18px;
-            border-radius: 12px;
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            font-weight: 600;
-            margin-bottom: 4px;
-            transition: all 0.2s;
-            font-size: 0.92rem;
-        }
-
-        .nav-link-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            transform: translateX(4px);
-        }
-
-        .nav-link-item.active {
-            background: rgba(255, 255, 255, 0.2);
-            color: #fff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        #registrationSubmenu a {
-            padding: 10px 15px 10px 45px;
-            color: rgba(255,255,255,0.65);
-            text-decoration: none;
-            font-size: 0.88rem;
-            display: flex;
-            align-items: center;
-            transition: 0.3s;
-            border-radius: 8px;
-            position: relative;
-        }
-
-        #registrationSubmenu a:hover {
-            color: #fff;
-            background: rgba(255,255,255,0.08);
-        }
-
-        #registrationSubmenu a.active {
-            color: #fff;
-            font-weight: 700;
-            background: rgba(255,255,255,0.1);
-        }
-
-        /* Content Area */
-        main {
-            margin-left: 280px;
-            width: calc(100% - 280px);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            transition: all 0.3s ease;
-        }
-
-        header {
-            padding: 15px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(248, 250, 252, 0.85);
-            backdrop-filter: blur(12px);
-            position: sticky;
-            top: 0;
-            z-index: 990;
-            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-            transition: all 0.3s ease;
-        }
-
-        .user-dropdown-item:hover { background-color: #f8fafc !important; color: #1e3a8a !important; }
-        
-        #notiList::-webkit-scrollbar { width: 4px; }
-        #notiList::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-
-        /* Language Switcher Styles */
-        .lang-btn {
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            padding: 8px 15px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #1e293b;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: 0.2s;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        .lang-btn:hover { background: #f1f5f9; transform: translateY(-1px); }
-        
-        #langDropdown, #zoomDropdown {
-            display: none;
-            position: absolute;
-            top: 55px;
-            left: 0;
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
-            border: 1px solid #e2e8f0;
-            min-width: 180px;
-            overflow: hidden;
-            z-index: 1001;
-            animation: slideDown 0.2s ease-out;
-        }
-        
-        /* Zoom Dropdown Width Customization */
-        #zoomDropdown {
-            min-width: 130px;
-            max-height: 250px;
-            overflow-y: auto;
-        }
-        #zoomDropdown::-webkit-scrollbar { width: 4px; }
-        #zoomDropdown::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
-        @@keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .lang-item {
-            padding: 12px 18px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            color: #334155;
-            text-decoration: none;
-            font-size: 0.88rem;
-            font-weight: 600;
-            transition: 0.2s;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .lang-item:last-child { border-bottom: none; }
-        .lang-item:hover { background: #eff6ff; color: #2563eb; }
-        .lang-item.active { color: #2563eb; background: #f0f9ff; }
-        .lang-item i { font-size: 0.8rem; }
-
-        /* NProgress customization */
-        #nprogress .bar { background: #2563eb !important; height: 3px !important; }
-
-        /* --- CSS ẨN WIDGET GOOGLE TRANSLATE MẶC ĐỊNH --- */
-        .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
-        .goog-te-banner-frame { display: none !important; }
-        body { top: 0px !important; }
-        #goog-gt-tt { display: none !important; }
-
-        /* ==========================================
-           THÊM MỚI: CSS CHO MOBILE RESPONSIVE
-           ========================================== */
-        .sidebar-backdrop {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 995;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        @@media (max-width: 768px) {
+            /* Sidebar Customization */
             #sidebar {
-                transform: translateX(-100%);
+                width: 280px;
+                background: @primaryGradient;
+                color: #fff;
+                padding: 25px 15px;
+                display: flex;
+                flex-direction: column;
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                box-shadow: 10px 0 40px rgba(0,0,0,0.15);
+                z-index: 1000;
+                transition: all 0.3s ease;
             }
-            #sidebar.open {
-                transform: translateX(0);
+
+            #main-sidebar-nav::-webkit-scrollbar {
+                width: 4px;
             }
-            .sidebar-backdrop.show {
-                display: block;
-                opacity: 1;
+
+            #main-sidebar-nav::-webkit-scrollbar-thumb {
+                background: rgba(255,255,255,0.15);
+                border-radius: 10px;
             }
+
+            .nav-link-item {
+                display: flex;
+                align-items: center;
+                padding: 12px 18px;
+                border-radius: 12px;
+                color: rgba(255,255,255,0.8);
+                text-decoration: none;
+                font-weight: 600;
+                margin-bottom: 4px;
+                transition: all 0.2s;
+                font-size: 0.92rem;
+            }
+
+                .nav-link-item:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                    color: #fff;
+                    transform: translateX(4px);
+                }
+
+                .nav-link-item.active {
+                    background: rgba(255, 255, 255, 0.2);
+                    color: #fff;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                }
+
+            #registrationSubmenu a {
+                padding: 10px 15px 10px 45px;
+                color: rgba(255,255,255,0.65);
+                text-decoration: none;
+                font-size: 0.88rem;
+                display: flex;
+                align-items: center;
+                transition: 0.3s;
+                border-radius: 8px;
+                position: relative;
+            }
+
+                #registrationSubmenu a:hover {
+                    color: #fff;
+                    background: rgba(255,255,255,0.08);
+                }
+
+                #registrationSubmenu a.active {
+                    color: #fff;
+                    font-weight: 700;
+                    background: rgba(255,255,255,0.1);
+                }
+
+            /* Content Area */
             main {
-                margin-left: 0 !important;
-                width: 100% !important;
+                margin-left: 280px;
+                width: calc(100% - 280px);
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                transition: all 0.3s ease;
             }
+
             header {
-                padding: 15px 20px !important;
+                padding: 15px 40px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: rgba(248, 250, 252, 0.85);
+                backdrop-filter: blur(12px);
+                position: sticky;
+                top: 0;
+                z-index: 990;
+                border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+                transition: all 0.3s ease;
             }
-            #mobile-menu-btn {
-                display: block !important;
+
+            .user-dropdown-item:hover {
+                background-color: #f8fafc !important;
+                color: #1e3a8a !important;
             }
-            #notificationDropdown {
-                width: 300px !important;
-                right: -20px !important; /* Tránh tràn màn hình trên điện thoại */
+
+            #notiList::-webkit-scrollbar {
+                width: 4px;
             }
-            
-            /* SỬA LẠI ĐỂ RENDERBODY() SÁT LỀ TRÊN MOBILE */
-            .main-content-wrapper {
-                padding: 20px 0 !important; /* Bỏ padding trái phải của wrapper chính */
+
+            #notiList::-webkit-scrollbar-thumb {
+                background: #e2e8f0;
+                border-radius: 10px;
             }
-            .content-inner-wrapper {
-                padding: 20px 10px !important; /* Thu hẹp padding bên trong nội dung */
-                border-radius: 0 !important; /* Bỏ bo góc để sát viền màn hình */
-                border-left: none !important;
-                border-right: none !important;
+
+            /* Language Switcher Styles */
+            .lang-btn {
+                background: #fff;
+                border: 1px solid #e2e8f0;
+                padding: 8px 15px;
+                border-radius: 12px;
+                font-size: 0.85rem;
+                font-weight: 700;
+                color: #1e293b;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: 0.2s;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             }
-        }
+
+                .lang-btn:hover {
+                    background: #f1f5f9;
+                    transform: translateY(-1px);
+                }
+
+            #langDropdown, #zoomDropdown {
+                display: none;
+                position: absolute;
+                top: 55px;
+                left: 0;
+                background: #fff;
+                border-radius: 16px;
+                box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+                border: 1px solid #e2e8f0;
+                min-width: 180px;
+                overflow: hidden;
+                z-index: 1001;
+                animation: slideDown 0.2s ease-out;
+            }
+
+            /* Zoom Dropdown Width Customization */
+            #zoomDropdown {
+                min-width: 130px;
+                max-height: 250px;
+                overflow-y: auto;
+            }
+
+                #zoomDropdown::-webkit-scrollbar {
+                    width: 4px;
+                }
+
+                #zoomDropdown::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 10px;
+                }
+
+            @@keyframes slideDown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .lang-item {
+                padding: 12px 18px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                color: #334155;
+                text-decoration: none;
+                font-size: 0.88rem;
+                font-weight: 600;
+                transition: 0.2s;
+                border-bottom: 1px solid #f1f5f9;
+            }
+
+                .lang-item:last-child {
+                    border-bottom: none;
+                }
+
+                .lang-item:hover {
+                    background: #eff6ff;
+                    color: #2563eb;
+                }
+
+                .lang-item.active {
+                    color: #2563eb;
+                    background: #f0f9ff;
+                }
+
+                .lang-item i {
+                    font-size: 0.8rem;
+                }
+
+            /* NProgress customization */
+            #nprogress .bar {
+                background: #2563eb !important;
+                height: 3px !important;
+            }
+
+            /* --- CSS ẨN WIDGET GOOGLE TRANSLATE MẶC ĐỊNH --- */
+            .VIpgJd-ZVi9od-ORHb-OEVmcd {
+                display: none !important;
+            }
+
+            .goog-te-banner-frame {
+                display: none !important;
+            }
+
+            body {
+                top: 0px !important;
+            }
+
+            #goog-gt-tt {
+                display: none !important;
+            }
+
+            /* ==========================================
+                       THÊM MỚI: CSS CHO MOBILE RESPONSIVE
+                       ========================================== */
+            .sidebar-backdrop {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                z-index: 995;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+
+            @@media (max-width: 768px) {
+                #sidebar {
+                    transform: translateX(-100%);
+                }
+
+                    #sidebar.open {
+                        transform: translateX(0);
+                    }
+
+                .sidebar-backdrop.show {
+                    display: block;
+                    opacity: 1;
+                }
+
+                main {
+                    margin-left: 0 !important;
+                    width: 100% !important;
+                }
+
+                header {
+                    padding: 15px 20px !important;
+                }
+
+                #mobile-menu-btn {
+                    display: block !important;
+                }
+
+                #notificationDropdown {
+                    width: 300px !important;
+                    right: -20px !important; /* Tránh tràn màn hình trên điện thoại */
+                }
+                /* SỬA LẠI ĐỂ RENDERBODY() SÁT LỀ TRÊN MOBILE */
+                .main-content-wrapper {
+                    padding: 20px 0 !important; /* Bỏ padding trái phải của wrapper chính */
+                }
+
+                .content-inner-wrapper {
+                    padding: 20px 10px !important; /* Thu hẹp padding bên trong nội dung */
+                    border-radius: 0 !important; /* Bỏ bo góc để sát viền màn hình */
+                    border-left: none !important;
+                    border-right: none !important;
+                }
+            }
     </style>
 </head>
 
@@ -306,44 +376,44 @@
                     <i class="fa fa-angle-down" id="regArrow" style="transition: 0.3s; transform: @(isSubPageActive ? "rotate(180deg)" : "rotate(0deg)")"></i>
                 </div>
 
-<div id="registrationSubmenu" style="display: @(isSubPageActive ? "flex" : "none"); flex-direction: column; background: rgba(0, 0, 0, 0.1); border-radius: 12px; margin: 5px 0 10px 0; padding: 5px 0;">
-    <a href="/FormHR/DonXinRaNgoai" class="@(currentAction == "DonXinRaNgoai" ? "active" : "")">
-        <i class="fa fa-external-link" style="position:absolute; left:20px; color: #ff4d4d;"></i> <span>Đơn xin ra ngoài</span>
-    </a>
-    <a href="/FormHR/MangHangHoaRaCong" class="@(currentAction == "MangHangHoaRaCong" ? "active" : "")">
-        <i class="fa fa-archive" style="position:absolute; left:20px; color:#48bb78;"></i> <span>Mang hàng hóa ra cổng</span>
-    </a>
-    <a href="/FormHR/DangKySuDungXeDaily" class="@(currentAction == "DangKySuDungXeDaily" ? "active" : "")">
-        <i class="fa fa-bus" style="position:absolute; left:20px; color:#ed8936;"></i> <span>Đăng ký xe Daily</span>
-    </a>
-    <a href="/FormHR/DonTiepKhac" class="@(currentAction == "DonTiepKhac" ? "active" : "")">
-        <i class="fa fa-handshake-o" style="position:absolute; left:20px; color:#f472b6;"></i> <span>Đơn tiếp khách / Khác</span>
-    </a>
-    <a href="/FormHR/NhaThauQuaCong" class="@(currentAction == "NhaThauQuaCong" ? "active" : "")">
-        <i class="fa fa-id-badge" style="position:absolute; left:20px; color:#2dd4bf;"></i> <span>Nhà thầu qua cổng</span>
-    </a>
-    <a href="/FormHR/HoTroTienDienThoai" class="@(currentAction == "HoTroTienDienThoai" ? "active" : "")">
-        <i class="fa fa-phone" style="position:absolute; left:20px; color:#3b82f6;"></i> <span>Hỗ trợ tiền điện thoại</span>
-    </a>
-    <a href="/FormHR/DonHoTroCongTac" class="@(currentAction == "DonHoTroCongTac" ? "active" : "")">
-        <i class="fa fa-briefcase" style="position:absolute; left:20px; color:#a855f7;"></i> <span>Đơn hỗ trợ công tác</span>
-    </a>
+                <div id="registrationSubmenu" style="display: @(isSubPageActive ? "flex" : "none"); flex-direction: column; background: rgba(0, 0, 0, 0.1); border-radius: 12px; margin: 5px 0 10px 0; padding: 5px 0;">
+                    <a href="/FormHR/DonXinRaNgoai" class="@(currentAction == "DonXinRaNgoai" ? "active" : "")">
+                        <i class="fa fa-external-link" style="position:absolute; left:20px; color: #ff4d4d;"></i> <span>Đơn xin ra ngoài</span>
+                    </a>
+                    <a href="/FormHR/MangHangHoaRaCong" class="@(currentAction == "MangHangHoaRaCong" ? "active" : "")">
+                        <i class="fa fa-archive" style="position:absolute; left:20px; color:#48bb78;"></i> <span>Mang hàng hóa ra cổng</span>
+                    </a>
+                    <a href="/FormHR/DangKySuDungXeDaily" class="@(currentAction == "DangKySuDungXeDaily" ? "active" : "")">
+                        <i class="fa fa-bus" style="position:absolute; left:20px; color:#ed8936;"></i> <span>Đăng ký xe Daily</span>
+                    </a>
+                    <a href="/FormHR/DonTiepKhac" class="@(currentAction == "DonTiepKhac" ? "active" : "")">
+                        <i class="fa fa-handshake-o" style="position:absolute; left:20px; color:#f472b6;"></i> <span>Đơn tiếp khách / Khác</span>
+                    </a>
+                    <a href="/FormHR/NhaThauQuaCong" class="@(currentAction == "NhaThauQuaCong" ? "active" : "")">
+                        <i class="fa fa-id-badge" style="position:absolute; left:20px; color:#2dd4bf;"></i> <span>Nhà thầu qua cổng</span>
+                    </a>
+                    <a href="/FormHR/HoTroTienDienThoai" class="@(currentAction == "HoTroTienDienThoai" ? "active" : "")">
+                        <i class="fa fa-phone" style="position:absolute; left:20px; color:#3b82f6;"></i> <span>Hỗ trợ tiền điện thoại</span>
+                    </a>
+                    <a href="/FormHR/DonHoTroCongTac" class="@(currentAction == "DonHoTroCongTac" ? "active" : "")">
+                        <i class="fa fa-briefcase" style="position:absolute; left:20px; color:#a855f7;"></i> <span>Đơn hỗ trợ công tác</span>
+                    </a>
 
-    <!-- MỚI THÊM: ĐƠN KÝ TÚC XÁ (Màu Xanh Chàm / Indigo) -->
-    <a href="/FormHR/DonKiTucXa" class="@(currentAction == "DonKiTucXa" ? "active" : "")">
-        <i class="fa fa-bed" style="position:absolute; left:20px; color:#4338ca;"></i> <span>Đăng ký Ký túc xá</span>
-    </a>
-    
-    <!-- MỚI THÊM: ĐƠN LÀM LẠI THẺ (Màu Vàng Đồng / Gold) -->
-    <a href="/FormHR/DonLamLaiThe" class="@(currentAction == "DonLamLaiThe" ? "active" : "")">
-        <i class="fa fa-id-card-o" style="position:absolute; left:20px; color:#d69e2e;"></i> <span>Đơn xin làm lại thẻ</span>
-    </a>
-    
-    <!-- MỚI THÊM: ĐƠN SỬ DỤNG ĐIỆN THOẠI (Màu Xanh Rêu / Olive) -->
-    <a href="/FormHR/DonSuDungDienThoai" class="@(currentAction == "DonSuDungDienThoai" ? "active" : "")">
-        <i class="fa fa-mobile" style="position:absolute; left:20px; font-size:18px; color:#65a30d;"></i> <span>Sử dụng điện thoại</span>
-    </a>
-</div>
+                    <!-- MỚI THÊM: ĐƠN KÝ TÚC XÁ (Màu Xanh Chàm / Indigo) -->
+                    <a href="/FormHR/DonKiTucXa" class="@(currentAction == "DonKiTucXa" ? "active" : "")">
+                        <i class="fa fa-bed" style="position:absolute; left:20px; color:#4338ca;"></i> <span>Đăng ký Ký túc xá</span>
+                    </a>
+
+                    <!-- MỚI THÊM: ĐƠN LÀM LẠI THẺ (Màu Vàng Đồng / Gold) -->
+                    <a href="/FormHR/DonLamLaiThe" class="@(currentAction == "DonLamLaiThe" ? "active" : "")">
+                        <i class="fa fa-id-card-o" style="position:absolute; left:20px; color:#d69e2e;"></i> <span>Đơn xin làm lại thẻ</span>
+                    </a>
+
+                    <!-- MỚI THÊM: ĐƠN SỬ DỤNG ĐIỆN THOẠI (Màu Xanh Rêu / Olive) -->
+                    <a href="/FormHR/DonSuDungDienThoai" class="@(currentAction == "DonSuDungDienThoai" ? "active" : "")">
+                        <i class="fa fa-mobile" style="position:absolute; left:20px; font-size:18px; color:#65a30d;"></i> <span>Sử dụng điện thoại</span>
+                    </a>
+                </div>
 
                 <a href="/FormHR/DonCho" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
                     <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span>Đơn của tôi</span>
@@ -366,7 +436,7 @@
                 @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonHR_B2") || User.IsInRole("All")))
                 {
 
-                      <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
+                    <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
                     <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Phê duyệt B2</div>
 
                     <a href="/FormHR/QuanLyXetDuyetB2" class="nav-link-item @(currentAction == "QuanLyXetDuyetB2" ? "active" : "")">
@@ -493,7 +563,7 @@
                             </a>
                         </div>
                     </div>
-                    
+
                     <!-- Zoom Switcher -->
                     <div style="position: relative;">
                         <button id="btnZoom" class="lang-btn">
@@ -512,7 +582,7 @@
                             <a href="javascript:void(0)" onclick="changeZoom(120)" class="lang-item"><span>120%</span> <i class="fa fa-check" style="display:none;"></i></a>
                         </div>
                     </div>
-                    
+
                     <!-- Div ảo chứa widget Google Translate -->
                     <div id="google_translate_element" style="display:none;"></div>
                 </div>
@@ -570,7 +640,7 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <!-- Added Scripts: Select2, NProgress, Moment.js -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.js"></script>
@@ -579,7 +649,7 @@
     <!-- SCRIPT GOOGLE TRANSLATE -->
     <script type="text/javascript">
         function googleTranslateElementInit() {
-            new google.translate.TranslateElement({ pageLanguage: 'vi', autoDisplay: false }, 'google_translate_element');
+        new google.translate.TranslateElement({ pageLanguage: 'vi', autoDisplay: false }, 'google_translate_element');
         }
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
@@ -597,16 +667,16 @@
         const sidebarBackdrop = document.getElementById('sidebar-backdrop');
 
         if (mobileMenuBtn && sidebar && sidebarBackdrop) {
-            mobileMenuBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                sidebar.classList.toggle('open');
-                sidebarBackdrop.classList.toggle('show');
-            });
+        mobileMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sidebar.classList.toggle('open');
+        sidebarBackdrop.classList.toggle('show');
+        });
 
-            sidebarBackdrop.addEventListener('click', () => {
-                sidebar.classList.remove('open');
-                sidebarBackdrop.classList.remove('show');
-            });
+        sidebarBackdrop.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        sidebarBackdrop.classList.remove('show');
+        });
         }
 
         // ==========================================
@@ -617,96 +687,96 @@
         const currentLangText = document.getElementById('currentLangText');
 
         if (btnLang) {
-            btnLang.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if(zoomDrop) zoomDrop.style.display = 'none'; 
-                const isHidden = langDrop.style.display === 'none' || langDrop.style.display === '';
-                langDrop.style.display = isHidden ? 'block' : 'none';
-            });
+        btnLang.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if(zoomDrop) zoomDrop.style.display = 'none';
+        const isHidden = langDrop.style.display === 'none' || langDrop.style.display === '';
+        langDrop.style.display = isHidden ? 'block' : 'none';
+        });
         }
 
         // Hàm dọn rác quét sạch mọi ngóc ngách của Cookie và Storage
         function clearGoogTransCookie() {
-            let domain = window.location.hostname;
-            let paths = ['/', window.location.pathname];
-            let domainParts = domain.split('.');
-            let domainsToClear = [domain, '.' + domain, ''];
-            
-            // Nếu có sub-domain (ví dụ: portal.bestpacific.com), quét thêm cấp root (.bestpacific.com)
-            if (domainParts.length >= 2) {
-                domainsToClear.push('.' + domainParts.slice(-2).join('.'));
-                domainsToClear.push(domainParts.slice(-2).join('.'));
-            }
+        let domain = window.location.hostname;
+        let paths = ['/', window.location.pathname];
+        let domainParts = domain.split('.');
+        let domainsToClear = [domain, '.' + domain, ''];
 
-            paths.forEach(p => {
-                domainsToClear.forEach(d => {
-                    let dStr = d ? `; domain=${d}` : '';
-                    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}${dStr};`;
-                });
-            });
-            
-            window.localStorage.removeItem('googtrans');
-            window.sessionStorage.removeItem('googtrans');
+        // Nếu có sub-domain (ví dụ: portal.bestpacific.com), quét thêm cấp root (.bestpacific.com)
+        if (domainParts.length >= 2) {
+        domainsToClear.push('.' + domainParts.slice(-2).join('.'));
+        domainsToClear.push(domainParts.slice(-2).join('.'));
+        }
+
+        paths.forEach(p => {
+        domainsToClear.forEach(d => {
+        let dStr = d ? `; domain=${d}` : '';
+        document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}${dStr};`;
+        });
+        });
+
+        window.localStorage.removeItem('googtrans');
+        window.sessionStorage.removeItem('googtrans');
         }
 
         // Hàm gắn lại cookie mới
         function setGoogTransCookie(lang) {
-            let domain = window.location.hostname;
-            let domainParts = domain.split('.');
-            let rootDomain = domainParts.length >= 2 ? '.' + domainParts.slice(-2).join('.') : domain;
+        let domain = window.location.hostname;
+        let domainParts = domain.split('.');
+        let rootDomain = domainParts.length >= 2 ? '.' + domainParts.slice(-2).join('.') : domain;
 
-            // Gắn cookie ở cả 2 cấp độ để chắc ăn 100%
-            document.cookie = `googtrans=/vi/${lang}; path=/; domain=${rootDomain};`;
-            document.cookie = `googtrans=/vi/${lang}; path=/;`;
+        // Gắn cookie ở cả 2 cấp độ để chắc ăn 100%
+        document.cookie = `googtrans=/vi/${lang}; path=/; domain=${rootDomain};`;
+        document.cookie = `googtrans=/vi/${lang}; path=/;`;
         }
 
         function initLanguageGTranslate() {
-            let currentLang = localStorage.getItem('siteLangGlobal') || 'vi'; 
-            if (!localStorage.getItem('siteLangGlobal')) {
-                localStorage.setItem('siteLangGlobal', 'vi');
-            }
+        let currentLang = localStorage.getItem('siteLangGlobal') || 'vi';
+        if (!localStorage.getItem('siteLangGlobal')) {
+        localStorage.setItem('siteLangGlobal', 'vi');
+        }
 
-            const labels = { 'vi': 'Tiếng Việt', 'en': 'English', 'zh-CN': '中文' };
-            if(currentLangText) currentLangText.innerText = labels[currentLang] || 'Tiếng Việt';
-            
-            document.querySelectorAll('#langDropdown .lang-item i').forEach(i => i.style.display = 'none');
-            const activeCheck = document.querySelector(`#lang-${currentLang} i`);
-            if(activeCheck) activeCheck.style.display = 'inline-block';
+        const labels = { 'vi': 'Tiếng Việt', 'en': 'English', 'zh-CN': '中文' };
+        if(currentLangText) currentLangText.innerText = labels[currentLang] || 'Tiếng Việt';
 
-            // Kiểm tra xem trình duyệt có lén lút giữ lại cookie sai lệch không
-            let match = document.cookie.match(/(^| )googtrans=([^;]+)/);
-            let currentCookie = match ? match[2] : null;
-            let expectedCookie = currentLang === 'vi' ? null : `/vi/${currentLang}`;
+        document.querySelectorAll('#langDropdown .lang-item i').forEach(i => i.style.display = 'none');
+        const activeCheck = document.querySelector(`#lang-${currentLang} i`);
+        if(activeCheck) activeCheck.style.display = 'inline-block';
 
-            if (currentCookie !== expectedCookie) {
-                clearGoogTransCookie();
-                if (currentLang !== 'vi') {
-                    setGoogTransCookie(currentLang);
-                }
-            }
+        // Kiểm tra xem trình duyệt có lén lút giữ lại cookie sai lệch không
+        let match = document.cookie.match(/(^| )googtrans=([^;]+)/);
+        let currentCookie = match ? match[2] : null;
+        let expectedCookie = currentLang === 'vi' ? null : `/vi/${currentLang}`;
+
+        if (currentCookie !== expectedCookie) {
+        clearGoogTransCookie();
+        if (currentLang !== 'vi') {
+        setGoogTransCookie(currentLang);
+        }
+        }
         }
 
         function changeLanguageGTranslate(lang, label) {
-            localStorage.setItem('siteLangGlobal', lang); 
-            
-            // BƯỚC 1: TẤN CÔNG DOM CỦA GOOGLE TRANSLATE 
-            // Cắt đứt toàn bộ liên kết của Widget để nó không thể tự động lưu lại cookie cũ lúc Unload trang
-            const gtEl = document.getElementById('google_translate_element');
-            if (gtEl) gtEl.innerHTML = '';
-            const iframes = document.querySelectorAll('iframe.goog-te-menu-frame, iframe.goog-te-banner-frame');
-            iframes.forEach(f => f.remove());
+        localStorage.setItem('siteLangGlobal', lang);
 
-            // BƯỚC 2: QUÉT SẠCH MỌI DẤU VẾT COOKIE CŨ
-            clearGoogTransCookie();
+        // BƯỚC 1: TẤN CÔNG DOM CỦA GOOGLE TRANSLATE
+        // Cắt đứt toàn bộ liên kết của Widget để nó không thể tự động lưu lại cookie cũ lúc Unload trang
+        const gtEl = document.getElementById('google_translate_element');
+        if (gtEl) gtEl.innerHTML = '';
+        const iframes = document.querySelectorAll('iframe.goog-te-menu-frame, iframe.goog-te-banner-frame');
+        iframes.forEach(f => f.remove());
 
-            // BƯỚC 3: GÁN COOKIE MỚI & ĐIỀU HƯỚNG BẰNG HREF 
-            setTimeout(() => {
-                if (lang !== 'vi') {
-                    setGoogTransCookie(lang);
-                }
-                // Dùng href thay vì location.reload() để vứt bỏ cache và tránh bị dính POST form resubmit
-                window.location.href = window.location.pathname + window.location.search;
-            }, 50);
+        // BƯỚC 2: QUÉT SẠCH MỌI DẤU VẾT COOKIE CŨ
+        clearGoogTransCookie();
+
+        // BƯỚC 3: GÁN COOKIE MỚI & ĐIỀU HƯỚNG BẰNG HREF
+        setTimeout(() => {
+        if (lang !== 'vi') {
+        setGoogTransCookie(lang);
+        }
+        // Dùng href thay vì location.reload() để vứt bỏ cache và tránh bị dính POST form resubmit
+        window.location.href = window.location.pathname + window.location.search;
+        }, 50);
         }
 
         // ==========================================
@@ -717,62 +787,62 @@
         const currentZoomText = document.getElementById('currentZoomText');
 
         if (btnZoom) {
-            btnZoom.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if(langDrop) langDrop.style.display = 'none'; 
-                const isHidden = zoomDrop.style.display === 'none' || zoomDrop.style.display === '';
-                zoomDrop.style.display = isHidden ? 'block' : 'none';
-            });
+        btnZoom.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if(langDrop) langDrop.style.display = 'none';
+        const isHidden = zoomDrop.style.display === 'none' || zoomDrop.style.display === '';
+        zoomDrop.style.display = isHidden ? 'block' : 'none';
+        });
         }
 
         function initZoom() {
-            let currentZoom = getCookieHR('siteZoomGlobal') || '100';
-            applyZoom(currentZoom);
+        let currentZoom = getCookieHR('siteZoomGlobal') || '100';
+        applyZoom(currentZoom);
         }
 
         function changeZoom(percent) {
-            setCookieHR('siteZoomGlobal', percent, 365);
-            applyZoom(percent);
-            if (zoomDrop) zoomDrop.style.display = 'none';
+        setCookieHR('siteZoomGlobal', percent, 365);
+        applyZoom(percent);
+        if (zoomDrop) zoomDrop.style.display = 'none';
         }
 
         function applyZoom(percent) {
-            document.body.style.zoom = percent + '%';
-            if (currentZoomText) currentZoomText.innerText = percent + '%';
-            
-            if (zoomDrop) {
-                const items = zoomDrop.querySelectorAll('.lang-item');
-                items.forEach(item => {
-                    const text = item.querySelector('span').innerText;
-                    const check = item.querySelector('i');
-                    if (text === percent + '%') {
-                        if(check) check.style.display = 'inline-block';
-                        item.classList.add('active');
-                    } else {
-                        if(check) check.style.display = 'none';
-                        item.classList.remove('active');
-                    }
-                });
-            }
+        document.body.style.zoom = percent + '%';
+        if (currentZoomText) currentZoomText.innerText = percent + '%';
+
+        if (zoomDrop) {
+        const items = zoomDrop.querySelectorAll('.lang-item');
+        items.forEach(item => {
+        const text = item.querySelector('span').innerText;
+        const check = item.querySelector('i');
+        if (text === percent + '%') {
+        if(check) check.style.display = 'inline-block';
+        item.classList.add('active');
+        } else {
+        if(check) check.style.display = 'none';
+        item.classList.remove('active');
+        }
+        });
+        }
         }
 
         function setCookieHR(cname, cvalue, exdays) {
-            const d = new Date();
-            d.setTime(d.getTime() + (exdays*24*60*60*1000));
-            let expires = "expires="+ d.toUTCString();
-            document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+        const d = new Date();
+        d.setTime(d.getTime() + (exdays*24*60*60*1000));
+        let expires = "expires="+ d.toUTCString();
+        document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
         }
 
         function getCookieHR(cname) {
-            let name = cname + "=";
-            let decodedCookie = decodeURIComponent(document.cookie);
-            let ca = decodedCookie.split(';');
-            for(let i = 0; i <ca.length; i++) {
-                let c = ca[i];
-                while (c.charAt(0) == ' ') { c = c.substring(1); }
-                if (c.indexOf(name) == 0) { return c.substring(name.length, c.length); }
-            }
-            return "";
+        let name = cname + "=";
+        let decodedCookie = decodeURIComponent(document.cookie);
+        let ca = decodedCookie.split(';');
+        for(let i = 0; i <ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) == ' ') { c = c.substring(1); }
+        if (c.indexOf(name) == 0) { return c.substring(name.length, c.length); }
+        }
+        return "";
         }
 
         // ==========================================
@@ -784,44 +854,44 @@
         const sidebarNav = document.getElementById('main-sidebar-nav');
 
         if (regBtn) {
-            regBtn.addEventListener('click', () => {
-                const isHidden = regSub.style.display === 'none';
-                if (isHidden) {
-                    regSub.style.display = 'flex';
-                    regArrow.style.transform = 'rotate(180deg)';
-                    regBtn.style.background = 'rgba(255, 255, 255, 0.1)';
-                    localStorage.setItem('regMenuState', 'open');
-                } else {
-                    regSub.style.display = 'none';
-                    regArrow.style.transform = 'rotate(0deg)';
-                    regBtn.style.background = 'transparent';
-                    localStorage.setItem('regMenuState', 'closed');
-                }
-            });
+        regBtn.addEventListener('click', () => {
+        const isHidden = regSub.style.display === 'none';
+        if (isHidden) {
+        regSub.style.display = 'flex';
+        regArrow.style.transform = 'rotate(180deg)';
+        regBtn.style.background = 'rgba(255, 255, 255, 0.1)';
+        localStorage.setItem('regMenuState', 'open');
+        } else {
+        regSub.style.display = 'none';
+        regArrow.style.transform = 'rotate(0deg)';
+        regBtn.style.background = 'transparent';
+        localStorage.setItem('regMenuState', 'closed');
+        }
+        });
         }
 
         // ==========================================
         // 2. Restore State & Init Libraries
         // ==========================================
         document.addEventListener('DOMContentLoaded', () => {
-            initLanguageGTranslate();
-            initZoom(); 
-            
-            $('.select2').select2({ width: '100%' });
+        initLanguageGTranslate();
+        initZoom();
 
-            const savedScrollPos = sessionStorage.getItem('sidebarScrollPos');
-            if (sidebarNav && savedScrollPos) sidebarNav.scrollTop = parseInt(savedScrollPos);
+        $('.select2').select2({ width: '100%' });
 
-            const savedMenuState = localStorage.getItem('regMenuState');
-            if (savedMenuState === 'open' && regSub) {
-                regSub.style.display = 'flex';
-                regArrow.style.transform = 'rotate(180deg)';
-                regBtn.style.background = 'rgba(255, 255, 255, 0.1)';
-            }
+        const savedScrollPos = sessionStorage.getItem('sidebarScrollPos');
+        if (sidebarNav && savedScrollPos) sidebarNav.scrollTop = parseInt(savedScrollPos);
+
+        const savedMenuState = localStorage.getItem('regMenuState');
+        if (savedMenuState === 'open' && regSub) {
+        regSub.style.display = 'flex';
+        regArrow.style.transform = 'rotate(180deg)';
+        regBtn.style.background = 'rgba(255, 255, 255, 0.1)';
+        }
         });
 
         window.addEventListener('beforeunload', () => {
-            if (sidebarNav) sessionStorage.setItem('sidebarScrollPos', sidebarNav.scrollTop);
+        if (sidebarNav) sessionStorage.setItem('sidebarScrollPos', sidebarNav.scrollTop);
         });
 
         // ==========================================
@@ -832,31 +902,31 @@
         const userArrow = document.getElementById('arrowIcon');
 
         if (userBtn) {
-            userBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const isHidden = userDrop.style.display === 'none';
-                userDrop.style.display = isHidden ? 'flex' : 'none';
-                if (userArrow) userArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
-            });
+        userBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = userDrop.style.display === 'none';
+        userDrop.style.display = isHidden ? 'flex' : 'none';
+        if (userArrow) userArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        });
         }
 
         const bell = document.getElementById('notiBell');
         const dropNotiMenu = document.getElementById('notificationDropdown');
         if (bell) {
-            bell.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const isHidden = dropNotiMenu.style.display === 'none';
-                dropNotiMenu.style.display = isHidden ? 'flex' : 'none';
-                if (isHidden) loadNotifications(true);
-            });
+        bell.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = dropNotiMenu.style.display === 'none';
+        dropNotiMenu.style.display = isHidden ? 'flex' : 'none';
+        if (isHidden) loadNotifications(true);
+        });
         }
 
         document.addEventListener('click', () => {
-            if (langDrop) langDrop.style.display = 'none';
-            if (zoomDrop) zoomDrop.style.display = 'none';
-            if (dropNotiMenu) dropNotiMenu.style.display = 'none';
-            if (userDrop) userDrop.style.display = 'none';
-            if (userArrow) userArrow.style.transform = 'rotate(0deg)';
+        if (langDrop) langDrop.style.display = 'none';
+        if (zoomDrop) zoomDrop.style.display = 'none';
+        if (dropNotiMenu) dropNotiMenu.style.display = 'none';
+        if (userDrop) userDrop.style.display = 'none';
+        if (userArrow) userArrow.style.transform = 'rotate(0deg)';
         });
 
         // ==========================================
@@ -869,87 +939,87 @@
         let allFetchedIds = [];
 
         async function loadNotifications(isOpen = false) {
-            try {
-                const res = await fetch(`/FormHR/GetNotificationsHR?skip=0&take=20`);
-                const data = await res.json();
-                const listItems = data.dataList || [];
-                const readIdsFromCookie = getReadIds();
+        try {
+        const res = await fetch(`/FormHR/GetNotificationsHR?skip=0&take=20`);
+        const data = await res.json();
+        const listItems = data.dataList || [];
+        const readIdsFromCookie = getReadIds();
 
-                if (listItems.length > 0) {
-                    const currentTopId = listItems[0].id.toString();
-                    if (lastTopId !== null && currentTopId !== lastTopId) {
-                        triggerNewNotificationEffect(listItems[0]);
-                    }
-                    lastTopId = currentTopId;
-                    localStorage.setItem('lastNotifiedIdHR', currentTopId);
-                }
+        if (listItems.length > 0) {
+        const currentTopId = listItems[0].id.toString();
+        if (lastTopId !== null && currentTopId !== lastTopId) {
+        triggerNewNotificationEffect(listItems[0]);
+        }
+        lastTopId = currentTopId;
+        localStorage.setItem('lastNotifiedIdHR', currentTopId);
+        }
 
-                const unreadCount = listItems.filter(item => !readIdsFromCookie.includes(item.id.toString())).length;
-                const badge = document.getElementById('notiBadge');
-                if (badge) {
-                    badge.innerText = unreadCount > 99 ? "99+" : unreadCount;
-                    badge.style.display = unreadCount > 0 ? 'flex' : 'none';
-                }
+        const unreadCount = listItems.filter(item => !readIdsFromCookie.includes(item.id.toString())).length;
+        const badge = document.getElementById('notiBadge');
+        if (badge) {
+        badge.innerText = unreadCount > 99 ? "99+" : unreadCount;
+        badge.style.display = unreadCount > 0 ? 'flex' : 'none';
+        }
 
-                if (isOpen) renderNotiList(listItems, readIdsFromCookie);
-            } catch (err) { console.log("Noti fetch error"); }
+        if (isOpen) renderNotiList(listItems, readIdsFromCookie);
+        } catch (err) { console.log("Noti fetch error"); }
         }
 
         function renderNotiList(items, readIds) {
-            const notiList = document.getElementById('notiList');
-            allFetchedIds = items.map(i => i.id.toString());
-            notiList.innerHTML = items.map(item => {
-                const isRead = readIds.includes(item.id.toString());
-                const displayTime = item.time; 
+        const notiList = document.getElementById('notiList');
+        allFetchedIds = items.map(i => i.id.toString());
+        notiList.innerHTML = items.map(item => {
+        const isRead = readIds.includes(item.id.toString());
+        const displayTime = item.time;
 
-                return `
-                    <a href="/FormHR/ChiTiet/${item.idFormHr}" onclick="markAsRead('${item.id}')" 
-                       style="display:flex; gap:15px; padding:15px 20px; border-bottom:1px solid #f8fafc; text-decoration:none; color:inherit; background:${isRead ? '#fff' : '#f0f9ff'}; transition:0.2s;">
-                        <div style="width:40px; height:40px; border-radius:10px; background:#e0f2fe; color:#0369a1; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                            <i class="fa ${item.icon || 'fa-bell-o'}"></i>
-                        </div>
-                        <div style="flex:1;">
-                            <div style="font-size:0.85rem; font-weight:${isRead ? '500' : '800'}; color:#1e293b;">${item.tieuDe}</div>
-                            <div style="font-size:0.75rem; color:#64748b; margin-top:3px;">${item.mota || ''}</div>
-                            <div style="font-size:0.65rem; color:#94a3b8; margin-top:5px;"><i class="fa fa-clock-o"></i> ${displayTime}</div>
-                        </div>
-                        ${!isRead ? '<div style="width:8px; height:8px; background:#3b82f6; border-radius:50%; align-self:center;"></div>' : ''}
-                    </a>`;
-            }).join('');
+        return `
+        <a href="/FormHR/ChiTiet/${item.idFormHr}" onclick="markAsRead('${item.id}')"
+        style="display:flex; gap:15px; padding:15px 20px; border-bottom:1px solid #f8fafc; text-decoration:none; color:inherit; background:${isRead ? '#fff' : '#f0f9ff'}; transition:0.2s;">
+        <div style="width:40px; height:40px; border-radius:10px; background:#e0f2fe; color:#0369a1; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <i class="fa ${item.icon || 'fa-bell-o'}"></i>
+        </div>
+        <div style="flex:1;">
+        <div style="font-size:0.85rem; font-weight:${isRead ? '500' : '800'}; color:#1e293b;">${item.tieuDe}</div>
+        <div style="font-size:0.75rem; color:#64748b; margin-top:3px;">${item.mota || ''}</div>
+        <div style="font-size:0.65rem; color:#94a3b8; margin-top:5px;"><i class="fa fa-clock-o"></i> ${displayTime}</div>
+        </div>
+        ${!isRead ? '<div style="width:8px; height:8px; background:#3b82f6; border-radius:50%; align-self:center;"></div>' : ''}
+        </a>`;
+        }).join('');
         }
 
         function triggerNewNotificationEffect(item) {
-            const latestTag = document.getElementById('latestNotiTag');
-            const latestText = document.getElementById('latestNotiText');
-            if (latestText) latestText.innerText = item.tieuDe;
-            if (latestTag) latestTag.style.display = 'flex';
-            notiSound.play().catch(() => {});
-            setTimeout(() => { if(latestTag) latestTag.style.display = 'none'; }, 6000);
+        const latestTag = document.getElementById('latestNotiTag');
+        const latestText = document.getElementById('latestNotiText');
+        if (latestText) latestText.innerText = item.tieuDe;
+        if (latestTag) latestTag.style.display = 'flex';
+        notiSound.play().catch(() => {});
+        setTimeout(() => { if(latestTag) latestTag.style.display = 'none'; }, 6000);
         }
 
         function getReadIds() {
-            const match = document.cookie.match(new RegExp('(^| )read_notifications_hr=([^;]+)'));
-            return match ? match[2].split(',') : [];
+        const match = document.cookie.match(new RegExp('(^| )read_notifications_hr=([^;]+)'));
+        return match ? match[2].split(',') : [];
         }
 
         function setReadCookie(ids) {
-            const d = new Date();
-            d.setTime(d.getTime() + (30*24*60*60*1000));
-            document.cookie = `read_notifications_hr=${ids.join(',')};expires=${d.toUTCString()};path=/`;
+        const d = new Date();
+        d.setTime(d.getTime() + (30*24*60*60*1000));
+        document.cookie = `read_notifications_hr=${ids.join(',')};expires=${d.toUTCString()};path=/`;
         }
 
         function markAsRead(id) {
-            let readIds = getReadIds();
-            if (!readIds.includes(id.toString())) {
-                readIds.push(id.toString());
-                setReadCookie(readIds);
-            }
+        let readIds = getReadIds();
+        if (!readIds.includes(id.toString())) {
+        readIds.push(id.toString());
+        setReadCookie(readIds);
+        }
         }
 
         function markAllAsRead(e) {
-            e.stopPropagation();
-            setReadCookie(allFetchedIds);
-            loadNotifications(true);
+        e.stopPropagation();
+        setReadCookie(allFetchedIds);
+        loadNotifications(true);
         }
 
         setInterval(() => loadNotifications(false), 30000);

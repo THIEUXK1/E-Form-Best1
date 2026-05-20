@@ -351,10 +351,12 @@
                             <div style="margin-left:10px;border-left:2px dashed #e2e8f0;padding-left:30px;">
                                 @if (Model.LichSuFormShds?.Any() == true)
                                 {
-                                    bool isAdminAll = User.IsInRole("All");
-                                    // Người có quyền All thấy hết. Người khác chỉ thấy log public (TrangThaiAnHien == true)
+                                    // Chỉ "All" mới được thấy log ẩn và có quyền thao tác
+                                    bool isUserAll = User.IsInRole("All");
+
+                                    // Nếu là All: thấy hết. Nếu không phải All: chỉ thấy log có TrangThaiAnHien == true
                                     var lichSuHienThi = Model.LichSuFormShds
-                                                             .Where(x => x.TrangThaiAnHien == true || isAdminAll)
+                                                             .Where(x => x.TrangThaiAnHien == true || isUserAll)
                                                              .OrderByDescending(x => x.Time)
                                                              .ToList();
 
@@ -368,15 +370,16 @@
                                                     <div style="font-weight:800;color:#1e293b;font-size:15px;margin-bottom:4px;display:flex;align-items:center;flex-wrap:wrap;">
                                                         @ls.TieuDe
 
+                                                        @* NHÃN LOG ẨN CHỈ HIỂN THỊ VỚI QUYỀN ALL *@
                                                         <span id="badge-container-@ls.Id">
-                                                            @if (ls.TrangThaiAnHien == false)
+                                                            @if (isUserAll && ls.TrangThaiAnHien == false)
                                                             {
                                                                 <span style="background:#ef4444; color:white; font-size:10px; padding:2px 8px; border-radius:8px; margin-left: 8px;">LOG ẨN</span>
                                                             }
                                                         </span>
 
-                                                        @* --- NÚT TOGGLE ẨN/HIỆN CHỈ DÀNH CHO QUYỀN ALL --- *@
-                                                        @if (isAdminAll)
+                                                        @* NÚT TOGGLE ẨN/HIỆN CHỈ HIỂN THỊ VỚI QUYỀN ALL *@
+                                                        @if (isUserAll)
                                                         {
                                                             <button onclick="toggleLichSuVisibility(@ls.Id)"
                                                                     id="btn-toggle-log-@ls.Id"
@@ -991,36 +994,93 @@
     }
 
     async function guiBinhLuan(e) {
-        e.preventDefault();
-        if (isSubmitting) return;
-        const noiDung = document.getElementById('txtBinhLuan').value.trim();
-        const file    = document.getElementById('fileBinhLuan').files[0];
-        if (!noiDung && !file) return alert('Vui lòng nhập nội dung hoặc đính kèm file!');
-        if (file && file.size > 50*1024*1024) return alert('File không được vượt quá 50MB!');
-        const fd = new FormData();
-        fd.append('idForm', formId); fd.append('noiDung', noiDung);
-        if (file) fd.append('file', file);
-        const btn = document.getElementById('btnGuiBinhLuan');
-        isSubmitting=true; btn.disabled=true; btn.innerHTML='<i class="fa fa-spinner fa-spin"></i> Đang gửi...';
-        try {
-            const res  = await fetch('/FormSHD/ThemBinhLuan',{method:'POST',body:fd});
-            const data = await res.json();
-            if (data.success) {
-                const list = document.getElementById('commentList');
-                if (list.innerHTML.includes('Chưa có')) list.innerHTML='';
-                list.insertAdjacentHTML('beforeend', renderComment(data.data));
-                setTimeout(()=>{ list.scrollTop=list.scrollHeight; },100);
-                document.getElementById('formBinhLuan').reset();
-                document.getElementById('fileLabel').textContent='Đính kèm file (max 50MB)';
-                totalComments++; updateCommentCount();
-            } else alert(data.message||'Lỗi');
-        } catch(err) { alert('Lỗi: '+err.message); }
-        finally { isSubmitting=false; btn.disabled=false; btn.innerHTML='<i class="fa fa-paper-plane"></i> Gửi'; }
-    }
+            e.preventDefault();
+            if (isSubmitting) return;
+
+            const txtBinhLuan = document.getElementById('txtBinhLuan');
+            const fileInput = document.getElementById('fileBinhLuan');
+            const noiDung = txtBinhLuan.value.trim();
+            const file = fileInput.files[0];
+
+            if (!noiDung && !file) {
+                alert('Vui lòng nhập nội dung hoặc đính kèm file!');
+                return;
+            }
+            if (file && file.size > 50 * 1024 * 1024) {
+                alert('File không được vượt quá 50MB!');
+                return;
+            }
+
+            const fd = new FormData();
+            fd.append('idForm', formId);
+            fd.append('noiDung', noiDung);
+            if (file) fd.append('file', file);
+            // Gửi token qua FormData để [ValidateAntiForgeryToken] đọc được
+            fd.append('__RequestVerificationToken', TOKEN);
+
+            const btn = document.getElementById('btnGuiBinhLuan');
+            isSubmitting = true;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang gửi...';
+
+            try {
+                // Khi dùng FormData, KHÔNG set Content-Type header.
+                // Trình duyệt sẽ tự động thêm "multipart/form-data" và boundary cần thiết.
+                const res = await fetch('/FormSHD/ThemBinhLuan', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': TOKEN // Header bổ sung nếu Controller cần
+                    },
+                    body: fd
+                });
+
+                // Đọc response dưới dạng text trước để debug nếu lỗi xảy ra
+                const responseText = await res.text();
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.error("Server trả về HTML lỗi (thường là 500):", responseText);
+                    throw new Error("Lỗi định dạng phản hồi từ server. Hãy kiểm tra F12 > Network tab.");
+                }
+
+                if (data.success) {
+                    const list = document.getElementById('commentList');
+                    if (list.innerHTML.includes('Chưa có')) list.innerHTML = '';
+
+                    // Render bình luận mới
+                    const bl = {
+                        id: data.data.id,
+                        noiDung: data.data.noiDung,
+                        tenNguoiBinhLuan: data.data.tenNguoiBinhLuan,
+                        idNguoiBinhLuan: data.data.idNguoiBinhLuan,
+                        thoiGian: data.data.thoiGian,
+                        fileDinhKem: data.data.fileDinhKem
+                    };
+
+                    list.insertAdjacentHTML('beforeend', renderComment(bl));
+                    setTimeout(() => { list.scrollTop = list.scrollHeight; }, 100);
+
+                    // Reset form
+                    document.getElementById('formBinhLuan').reset();
+                    document.getElementById('fileLabel').textContent = 'Đính kèm file (max 50MB)';
+                    totalComments++;
+                    updateCommentCount();
+                } else {
+                    alert(data.message || 'Lỗi gửi bình luận');
+                }
+            } catch (err) {
+                alert('Lỗi: ' + err.message);
+            } finally {
+                isSubmitting = false;
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa fa-paper-plane"></i> Gửi';
+            }
+        }
 
     async function xoaBinhLuan(id) {
         if (!confirm('Xóa bình luận này?')) return;
-        const res  = await fetch('/FormSHD/XoaBinhLuan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+        const res  = await fetch('/FormSHD/XoaBinhLuan',{method:'POST',headers:{'Content-Type':'application/json','RequestVerificationToken':TOKEN},body:JSON.stringify({id})});
         const data = await res.json();
         if (data.success) {
             document.querySelector(`[data-comment-id="${id}"]`)?.remove();
