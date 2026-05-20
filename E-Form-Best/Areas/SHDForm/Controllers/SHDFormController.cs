@@ -170,7 +170,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     _context.FormShds.Add(form);
                     await _context.SaveChangesAsync();
 
-                    // --- BƯỚC 2: LƯU NHÂN SỰ HỖ TRỢ ĐÃ CHỌN (MỚI) ---
+                    // --- BƯỚC 2: LƯU NHÂN SỰ HỖ TRỢ ĐÃ CHỌN ---
                     if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
                     {
                         foreach (var cvId in SelectedCongViecIds)
@@ -191,9 +191,10 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     }
 
                     // --- BƯỚC 3: TỰ ĐỘNG THÊM NGƯỜI XÁC NHẬN (CẤU HÌNH THEO BỘ PHẬN & CÔNG TY) ---
-                    // Truy vấn lấy người duyệt từ cấu hình dựa trên IdForm, Tên Bộ Phận và Tên Công Ty
                     var listDuyetTheoBoPhan = await _context.DmNguoiDuyetLoaiDonBoPhans
                         .Include(x => x.IdnguoiXacNhanNavigation)
+                        .Include(x => x.DmCtChiTietUyQuyens.Where(uq => uq.TrangThai == true))
+                            .ThenInclude(uq => uq.IduyQuyenNavigation)
                         .Where(x => x.IdloaiDonNavigation.MaLoaiDon == form.IdForm
                                     && x.IdboPhanNavigation.TenBoPhan == form.BoPhan
                                     && x.IdcongTyNavigation.TenCongTy == form.TenCongTy
@@ -212,11 +213,38 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                                 ThuTuXacNhan = item.Stt,
                                 MaNguoiXacNhan = item.IdnguoiXacNhanNavigation?.MaNv,
                                 TenNguoiXacNhan = item.IdnguoiXacNhanNavigation?.HoTen,
-                                TrangThaiXacNhan = 0, // 0: Chờ duyệt (Chuyển sang string vì DB ShdQuanLyDuyetB2 khai báo là string)
+                                TrangThaiXacNhan = 0,
                                 ThoiGianXacNhan = null,
-                                Loai = item.Loai // Map thêm cột Loai (AND / OR) từ cấu hình để file View nhận diện
+                                Loai = item.Loai
                             };
                             _context.ShdQuanLyDuyetB2s.Add(quanLyDuyet);
+                            await _context.SaveChangesAsync();
+
+                            // XỬ LÝ ĐIỀU KIỆN THỜI GIAN ỦY QUYỀN LINH HOẠT (CÓ XỬ LÝ NULL)
+                            var currentTime = DateTime.Now;
+                            var listUyQuyenHopLe = item.DmCtChiTietUyQuyens
+                                .Where(uq =>
+                                    (uq.ThoiGianBatDau == null || uq.ThoiGianBatDau <= currentTime) &&
+                                    (uq.ThoiGianKetThuc == null || uq.ThoiGianKetThuc >= currentTime)
+                                )
+                                .ToList();
+
+                            if (listUyQuyenHopLe.Any())
+                            {
+                                foreach (var uq in listUyQuyenHopLe)
+                                {
+                                    if (uq.IduyQuyenNavigation != null)
+                                    {
+                                        var shdUyQuyen = new ShdQuanLyDuyetB2UyQuyen
+                                        {
+                                            IdShdQuanLyDuyetB2 = quanLyDuyet.Id,
+                                            MaNvuyQuyen = uq.IduyQuyenNavigation.MaNvuyQuyen,
+                                            HoTenUyQuyen = uq.IduyQuyenNavigation.HoTenUyQuyen
+                                        };
+                                        _context.ShdQuanLyDuyetB2UyQuyens.Add(shdUyQuyen);
+                                    }
+                                }
+                            }
                         }
                         await _context.SaveChangesAsync();
                     }
@@ -239,14 +267,13 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                                 ThuTuXacNhan = item.CapDoXacNhan,
                                 MaNguoiXacNhan = item.IdnguoiXacNhanNavigation?.MaNv,
                                 TenNguoiXacNhan = item.IdnguoiXacNhanNavigation?.HoTen,
-                                TrangThaiXacNhan = 0, // 0: Chờ duyệt (Chuyển sang string vì DB ShdNguoiXacNhan khai báo là string)
+                                TrangThaiXacNhan = 0,
                                 ThoiGianXacNhan = null
                             };
                             _context.ShdNguoiXacNhans.Add(shdXacNhan);
                         }
                         await _context.SaveChangesAsync();
                     }
-
 
                     // --- BƯỚC 4: LƯU LỊCH SỬ THAO TÁC ---
                     string chiTietXe = "";
