@@ -34,7 +34,7 @@
     // ── 3. FILE & ẢNH ──
     List<string> listImages = new List<string>();
     string chiTietNoiDung = "";
-    
+
     // Xử lý cắt chuỗi nhiều file đính kèm
     List<string> listFileDinhKem = new List<string>();
     if (!string.IsNullOrEmpty(Model.FileDinhKem))
@@ -54,7 +54,6 @@
             </div></div>";
     }
 
-    // Chỉ sử dụng đường dẫn ảnh, đã bỏ phần mảng byte (rawData) không cần thiết
     void ProcessImage(string path)
     {
         if (!string.IsNullOrEmpty(path))
@@ -67,24 +66,20 @@
         if (Model.ShdDangKySuDungXeCongTac1s?.Any() == true)
         {
             var ct = Model.ShdDangKySuDungXeCongTac1s.First();
-            
-            // Xử lý ảnh: chỉ truyền thuộc tính DuongDanAnh
             ProcessImage(ct.DuongDanAnh);
 
             chiTietNoiDung += RenderInfoRow("🚗", "Dịch vụ", "Đăng ký xe công tác SHD", "#eef2ff", "#1e40af");
             chiTietNoiDung += RenderInfoRow("📞", "Số điện thoại", ct.SoDienThoai, "#f0fdf4", "#166534");
             chiTietNoiDung += RenderInfoRow("👥", "Số lượng người", ct.SoLuong?.ToString() + " người", "#f0fdf4", "#166534");
-            
+
             string thoiGianDi = ct.TimeDuTinh?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa xác định";
             string thoiGianVe = ct.ThoiGianVe?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa xác định";
             chiTietNoiDung += RenderInfoRow("📅", "Thời gian (Đi - Về)", $"{thoiGianDi} ➜ {thoiGianVe}", "#eff6ff", "#1e40af");
-            
+
             chiTietNoiDung += RenderInfoRow("📝", "Mục đích / Lý do", ct.LiDo, "#f8fafc", "#0f172a");
             chiTietNoiDung += RenderInfoRow("📌", "Ghi chú", ct.GhiChu, "#fff7ed", "#9a3412");
         }
     }
-    
-    // GỌI HÀM VỪA TẠO ĐỂ XỬ LÝ DỮ LIỆU
     BuildNoiDungSHD();
 
     // ── 6. DỮ LIỆU XÁC NHẬN GIÁM ĐỐC ──
@@ -101,10 +96,6 @@
     var danhSachB2 = ViewBag.DanhSachB2 as List<E_Form_Best.Models.ITForm.ShdQuanLyDuyetB2>
                     ?? (Model.ShdQuanLyDuyetB2s?.OrderBy(x => x.ThuTuXacNhan).ToList() ?? new List<E_Form_Best.Models.ITForm.ShdQuanLyDuyetB2>());
     string hinhThucDuyetB2 = danhSachB2.FirstOrDefault()?.Loai?.ToUpper() ?? "AND";
-    var myB2Pending = danhSachB2.FirstOrDefault(x =>
-        (string.Equals(x.MaNguoiXacNhan ?? "", userEmailView, StringComparison.OrdinalIgnoreCase)
-         || x.IdnguoiXacNhan == currentUserId)
-        && (x.TrangThaiXacNhan ?? 0) == 0);
     int soNguoiB2DaDuyet = danhSachB2.Count(x => x.TrangThaiXacNhan == 1);
 }
 
@@ -112,29 +103,110 @@
 
 <style>
     /* CSS TỐI ƯU MOBILE RESPONSIVE */
-    .mobile-history-content { display: block; }
-    
-    @@media (max-width: 768px) {
-        .mobile-wrapper { padding: 10px !important; }
-        .mobile-header { padding: 25px 15px !important; }
-        .mobile-header h1 { font-size: 24px !important; margin: 15px 0 !important; }
-        .mobile-status-box { padding: 15px !important; margin-top: 15px; width: 100%; box-sizing: border-box; }
-        .mobile-body { padding: 15px !important; }
-        .mobile-grid-main { grid-template-columns: 1fr !important; gap: 20px !important; }
-        .mobile-grid-info { grid-template-columns: 1fr !important; gap: 10px !important; }
-        .mobile-btn-export { width: 100%; justify-content: center; margin-bottom: 5px; text-align: center; }
-        .mobile-btn-action { width: 100% !important; margin-bottom: 10px; }
-        .mobile-info-row { flex-wrap: wrap !important; }
-        
-        /* Hiệu ứng đóng mở Lịch sử thao tác trên Mobile */
-        .mobile-history-toggle { cursor: pointer; background: #fff; padding: 15px 20px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex !important; align-items: center; justify-content: space-between; margin-bottom: 15px; }
-        .mobile-history-toggle h3 { font-size: 16px !important; margin-bottom: 0 !important; }
-        #historyToggleIconMobile { display: inline-flex !important; align-items: center; gap: 6px; font-weight: 800; font-size: 12px !important; }
-        .mobile-history-content { display: none; margin-top: 0; margin-bottom: 25px; }
-        .mobile-history-content.show { display: block; animation: slideDown 0.3s ease; }
+    .mobile-history-content {
+        display: block;
     }
-    
-    @@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+    @@media (max-width: 768px) {
+        .mobile-wrapper {
+            padding: 10px !important;
+        }
+
+        .mobile-header {
+            padding: 25px 15px !important;
+        }
+
+            .mobile-header h1 {
+                font-size: 24px !important;
+                margin: 15px 0 !important;
+            }
+
+        .mobile-status-box {
+            padding: 15px !important;
+            margin-top: 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .mobile-body {
+            padding: 15px !important;
+        }
+
+        .mobile-grid-main {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+        }
+
+        .mobile-grid-info {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+        }
+
+        .mobile-btn-export {
+            width: 100%;
+            justify-content: center;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .mobile-btn-action {
+            width: 100% !important;
+            margin-bottom: 10px;
+        }
+
+        .mobile-info-row {
+            flex-wrap: wrap !important;
+        }
+
+        .mobile-history-toggle {
+            cursor: pointer;
+            background: #fff;
+            padding: 15px 20px;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            display: flex !important;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+            .mobile-history-toggle h3 {
+                font-size: 16px !important;
+                margin-bottom: 0 !important;
+            }
+
+        #historyToggleIconMobile {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 6px;
+            font-weight: 800;
+            font-size: 12px !important;
+        }
+
+        .mobile-history-content {
+            display: none;
+            margin-top: 0;
+            margin-bottom: 25px;
+        }
+
+            .mobile-history-content.show {
+                display: block;
+                animation: slideDown 0.3s ease;
+            }
+    }
+
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 </style>
 
 <div class="mobile-wrapper" style="max-width:1200px;margin:0 auto;padding:25px;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#f8fafc;">
@@ -157,7 +229,6 @@
                         <span><i class="fa fa-user"></i> @Model.TenNguoiTao</span>
                     </div>
 
-                    @* --- KIỂM TRA QUYỀN TRƯỚC KHI HIỂN THỊ CỤM NÚT XUẤT FILE --- *@
                     @if (User.IsInRole("All") || User.IsInRole("AdminSHD"))
                     {
                         <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
@@ -173,7 +244,7 @@
                         </div>
                     }
                 </div>
-        
+
                 <div class="mobile-status-box" style="background:white;padding:20px 35px;border-radius:24px;text-align:center;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);">
                     <div style="font-size:11px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:5px;letter-spacing:1px;">Trạng thái</div>
                     <div style="font-size:20px;font-weight:900;color:@statusColor">@statusText</div>
@@ -232,7 +303,6 @@
                         }
                     </div>
 
-                    @* Chỉ All và AdminSHD mới thấy block chỉ định người hỗ trợ *@
                     @if ((User.IsInRole("All") || User.IsInRole("AdminSHD")) && !isCancelled && !isFinished)
                     {
                         <div style="background:#fff7ed;border:2px dashed #fb923c;padding:25px;border-radius:24px;margin-bottom:45px;">
@@ -385,6 +455,18 @@
                                     int tt = b2.TrangThaiXacNhan ?? 0;
                                     string statusTextB2 = tt == 1 ? "ĐÃ DUYỆT" : tt == 2 ? "TỪ CHỐI" : "CHỜ DUYỆT";
                                     string statusColorB2 = tt == 1 ? "#059669" : tt == 2 ? "#dc2626" : "#7c3aed";
+
+                                    // CẬP NHẬT LOGIC KIỂM TRA QUYỀN DUYỆT BƯỚC 2
+                                    bool isNguoiDuyetChinh = string.Equals(b2.MaNguoiXacNhan ?? "", userEmailView, StringComparison.OrdinalIgnoreCase) || b2.IdnguoiXacNhan == currentUserId;
+                                    bool isNguoiDuyetUyQuyen = false;
+
+                                    if (b2.ShdQuanLyDuyetB2UyQuyens != null)
+                                    {
+                                        isNguoiDuyetUyQuyen = b2.ShdQuanLyDuyetB2UyQuyens.Any(uq => string.Equals(uq.MaNvuyQuyen, userEmailView, StringComparison.OrdinalIgnoreCase));
+                                    }
+
+                                    bool isMyTurn = (isNguoiDuyetChinh || isNguoiDuyetUyQuyen) && (b2.TrangThaiXacNhan ?? 0) == 0 && !isCancelled && !isFinished;
+
                                     <div data-b2-id="@b2.Id" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;padding:12px;border-radius:12px;border:1px solid #f1ecff;background:#fff;">
                                         <div style="flex:1;">
                                             <div style="font-weight:800;color:#1f2937;">@b2.TenNguoiXacNhan</div>
@@ -400,8 +482,7 @@
                                         </div>
                                         <div style="text-align:right;min-width:120px;">
                                             <div style="display:inline-block;background:@statusColorB2;color:white;padding:6px 10px;border-radius:10px;font-weight:800;font-size:12px;margin-bottom:8px;">@statusTextB2</div>
-                                            @if ((string.Equals(b2.MaNguoiXacNhan ?? "", userEmailView, StringComparison.OrdinalIgnoreCase) || b2.IdnguoiXacNhan == currentUserId)
-                                                  && (b2.TrangThaiXacNhan ?? 0) == 0 && !isCancelled && !isFinished)
+                                            @if (isMyTurn)
                                             {
                                                 <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
                                                     <button onclick="duyetB2(@b2.Id, 'Approve')" class="mobile-btn-action" style="background:#059669;color:white;border:none;padding:8px 12px;border-radius:8px;font-weight:800;flex:1;">Duyệt</button>
@@ -571,7 +652,7 @@
                             </form>
                         </div>
                     </div>
-                    
+
                 </div>
             </div>
         </div>
@@ -579,7 +660,6 @@
 
     @* --- OVERLAY ZOOM CÓ NÚT XOAY ẢNH --- *@
     <div id="imageOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(8px);">
-        <!-- Thanh công cụ chứa các nút bấm -->
         <div style="position:absolute;top:25px;right:35px;display:flex;gap:15px;z-index:10000;">
             <button onclick="rotateImage(-90, event)" style="background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.3);border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;transition:all 0.3s;backdrop-filter:blur(8px);" onmouseover="this.style.background='rgba(255,255,255,0.3)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.15)';this.style.transform='none'" title="Xoay trái">
                 <i class="fa fa-undo"></i>
@@ -592,9 +672,7 @@
                 <i class="fa fa-times"></i>
             </button>
         </div>
-        <!-- Vùng nhấp chuột bên ngoài để đóng -->
         <div style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:9998;" onclick="closeZoom()"></div>
-        <!-- Container chứa ảnh -->
         <div style="position:relative;z-index:9999;width:80%;height:80%;display:flex;align-items:center;justify-content:center;pointer-events:none;">
             <img id="fullImage" src="" style="max-width:100%;max-height:100%;border-radius:16px;transition:transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);object-fit:contain;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);pointer-events:auto;">
         </div>
@@ -605,7 +683,7 @@
     const formId        = @Model.Id;
     const currentUserId = '@currentUserId';
     const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
+                                                                                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
     const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
     function hasRole(r) { return userRoles.includes(r); }
@@ -658,11 +736,11 @@
         imgEl.src = src;
         currentImageRotation = 0;
         imgEl.style.transform = `rotate(${currentImageRotation}deg)`;
-        
+
         document.getElementById('imageOverlay').style.display = 'flex';
         document.body.style.overflow = 'hidden';
     }
-    
+
     function closeZoom(event) {
         if(event) event.stopPropagation();
         document.getElementById('imageOverlay').style.display = 'none';

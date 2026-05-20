@@ -40,4 +40,7 @@ public partial class ShdQuanLyDuyetB2
     [ForeignKey("IdFormShd")]
     [InverseProperty("ShdQuanLyDuyetB2s")]
     public virtual FormShd? IdFormShdNavigation { get; set; }
+
+    [InverseProperty("IdShdQuanLyDuyetB2Navigation")]
+    public virtual ICollection<ShdQuanLyDuyetB2UyQuyen> ShdQuanLyDuyetB2UyQuyens { get; set; } = new List<ShdQuanLyDuyetB2UyQuyen>();
 }

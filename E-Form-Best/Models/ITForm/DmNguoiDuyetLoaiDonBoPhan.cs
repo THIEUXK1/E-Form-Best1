@@ -38,6 +38,9 @@ public partial class DmNguoiDuyetLoaiDonBoPhan
     [StringLength(255)]
     public string? Loai { get; set; }
 
+    [InverseProperty("IdCauHinhDuyetNavigation")]
+    public virtual ICollection<DmCtChiTietUyQuyen> DmCtChiTietUyQuyens { get; set; } = new List<DmCtChiTietUyQuyen>();
+
     [ForeignKey("IdboPhan")]
     [InverseProperty("DmNguoiDuyetLoaiDonBoPhans")]
     public virtual DmBoPhan? IdboPhanNavigation { get; set; }
