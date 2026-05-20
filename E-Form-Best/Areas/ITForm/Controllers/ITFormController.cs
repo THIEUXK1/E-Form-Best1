@@ -146,11 +146,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         new Claim(ClaimTypes.NameIdentifier, user.IdNguoiDung.ToString()),
         new Claim(ClaimTypes.Name, user.HoTen ?? ""),
         new Claim(ClaimTypes.Email, user.Tk ?? ""),
+        // THÊM CLAIM MaNv ĐỂ ĐỒNG BỘ VỚI LOGIC PHÂN QUYỀN B2
+        new Claim("MaNv", user.Tk ?? ""),
         new Claim("UserRole", user.VaiTro ?? ""),
         new Claim("PhongBan", user.PhongBan ?? ""),
         new Claim("TenCongTy", user.TenCongTy ?? ""),
         new Claim("AnhDaiDien", user.AnhDaiDien ?? "/images/default-avatar.png"),
-        // THÊM CLAIM NÀY ĐỂ KIỂM SOÁT ĐĂNG XUẤT TOÀN BỘ
         new Claim("SecurityStamp", user.SecurityStamp ?? "")
     };
 
@@ -221,6 +222,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             TempData["ShowPushPrompt"] = true;
             return Redirect("/menuA");
         }
+
 
 
         [HttpGet("/DonXetDuyet/DangXuat")]

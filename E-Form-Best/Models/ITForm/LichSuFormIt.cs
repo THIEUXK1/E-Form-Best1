@@ -27,6 +27,8 @@ public partial class LichSuFormIt
 
     public bool? IsRead { get; set; }
 
+    public bool TrangThaiAnHien { get; set; }
+
     [ForeignKey("IdFormIt")]
     [InverseProperty("LichSuFormIts")]
     public virtual FormIt? IdFormItNavigation { get; set; }

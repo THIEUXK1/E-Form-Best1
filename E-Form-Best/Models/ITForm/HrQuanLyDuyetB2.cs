@@ -37,6 +37,9 @@ public partial class HrQuanLyDuyetB2
     [StringLength(255)]
     public string? Loai { get; set; }
 
+    [InverseProperty("IdHrQuanLyDuyetB2Navigation")]
+    public virtual ICollection<HrQuanLyDuyetB2UyQuyen> HrQuanLyDuyetB2UyQuyens { get; set; } = new List<HrQuanLyDuyetB2UyQuyen>();
+
     [ForeignKey("IdFormHr")]
     [InverseProperty("HrQuanLyDuyetB2s")]
     public virtual FormHr? IdFormHrNavigation { get; set; }
