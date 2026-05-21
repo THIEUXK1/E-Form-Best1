@@ -1979,7 +1979,8 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                         TieuDe = "SHD Xác nhận Hoàn tất",
                         Mota = $"Admin SHD thực hiện: {userName} ({userEmail}). " +
                                $"Bộ phận: {phongBan}. Nội dung: Đã xử lý và hoàn tất hồ sơ SHD.",
-                        Time = now
+                        Time = now,
+                        TrangThaiAnHien = true
                     };
 
                     _context.LichSuFormShds.Add(lichSu);
