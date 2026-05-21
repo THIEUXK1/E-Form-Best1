@@ -3923,6 +3923,13 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 if (don == null)
                     return Json(new { success = false, message = "⚠️ Không tìm thấy đơn liên quan." });
 
+                // --- BỔ SUNG: KIỂM TRA ĐIỀU KIỆN KHÔNG NULL ---
+                // Chỉ cho phép thao tác khi IdNguoiDuyet đã được gán giá trị hợp lệ
+                if (don.IdNguoiDuyet == null || don.IdNguoiDuyet == 0 || string.IsNullOrEmpty(don.TenNguoiDuyet))
+                {
+                    return Json(new { success = false, message = "⚠️ Đơn chưa được cấu hình người duyệt, không thể thao tác!" });
+                }
+
                 // 3. Kiểm tra trạng thái: Chỉ xử lý nếu đang chờ (0 hoặc null)
                 if ((record.TrangThaiXacNhan ?? 0) != 0)
                     return Json(new { success = false, message = "⚠️ Bước này đã được xử lý trước đó rồi." });
@@ -4050,6 +4057,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 return Json(new { success = false, message = "❌ Lỗi hệ thống: " + ex.Message });
             }
         }
+
         #endregion
         #endregion
 

@@ -3732,7 +3732,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
-
         #region LỊCH SỬ VÀ THÔNG BÁO FORM IT (Tối ưu truy vấn - Đầy đủ logic)
 
         // 1. TRẢ VỀ VIEW RỖNG
@@ -4085,7 +4084,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
-
 
         // HÀM HỖ TRỢ DÙNG CHUNG CHO CẢ 2 REGION
         // =================================================================================
