@@ -3755,30 +3755,39 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
-            // Bước 1: Xây dựng Query Filter (Chưa thực thi SQL)
-            var query = _context.LichSuFormIts.AsNoTracking()
-                .Where(l => l.IdFormItNavigation.TenCongTy == tenCongTy);
+            // Khởi tạo query không lọc sẵn công ty
+            var query = _context.LichSuFormIts.AsNoTracking();
 
             // Phân quyền
-            if (User.IsInRole("All")) { /* Xem toàn bộ */ }
+            if (User.IsInRole("All"))
+            {
+                /* Xem toàn bộ - Không lọc theo TenCongTy */
+            }
             else if (User.IsInRole("AdminIT"))
             {
+                /* AdminIT - Không lọc theo TenCongTy */
                 query = query.Where(l =>
                     l.IdFormItNavigation.IdNguoiDuyet != null &&
                     (l.IdFormItNavigation.IdAdmin == userId ||
                      l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userEmail))
                 );
             }
-            else if (User.IsInRole("QuanLyDuyetDonIT"))
-            {
-                query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.IdNguoiDuyet == userId);
-            }
             else
             {
-                query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userEmail));
+                // Các trường hợp còn lại áp dụng lọc theo công ty
+                query = query.Where(l => l.IdFormItNavigation.TenCongTy == tenCongTy);
+
+                if (User.IsInRole("QuanLyDuyetDonIT"))
+                {
+                    query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.IdNguoiDuyet == userId);
+                }
+                else
+                {
+                    query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userEmail));
+                }
             }
 
-            // Bước 2: Select trực tiếp (Projections) - SQL chỉ trả về đúng các cột này, cực nhanh
+            // Bước 2: Select trực tiếp (Projections)
             var rawData = await query
                 .OrderByDescending(l => l.Time)
                 .Select(l => new
@@ -3788,17 +3797,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     l.TieuDe,
                     l.Mota,
                     f = l.IdFormItNavigation,
-                    // Lấy supporter mới nhất
                     CurrentSupporterTen = l.IdFormItNavigation.ItCtNguoiHoTros
                         .OrderByDescending(x => x.Stt)
                         .Select(x => x.IdItNguoiHoTroNavigation.Ten)
                         .FirstOrDefault(),
-                    // Lấy thông tin đánh giá
                     DanhGia = l.IdFormItNavigation.DanhGiaFormIts.Select(d => new { d.TimeNguoiDanhGia, d.MucDo }).FirstOrDefault()
                 })
                 .ToListAsync();
 
-            // Bước 3: Map logic màu sắc và text (Xử lý trên RAM sau khi đã lọc dữ liệu tinh gọn)
+            // Bước 3: Map logic màu sắc và text
             var result = rawData.Select(item =>
             {
                 var f = item.f;
@@ -3861,7 +3868,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return Json(result);
         }
 
-        // Hàm bổ trợ Format thời gian để code sạch hơn
         private static string FormatTimeSpan(TimeSpan span)
         {
             if (span.TotalDays >= 1) return $"{(int)span.TotalDays}n {span.Hours}g";
@@ -3869,7 +3875,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return $"{(int)span.TotalMinutes}p";
         }
 
-        // 3. GET NOTIFICATIONS - GIỮ NGUYÊN VÀ TỐI ƯU SELECT
+        // 3. GET NOTIFICATIONS
         [HttpGet("/FormIT/GetNotifications")]
         public async Task<IActionResult> GetNotifications(int skip = 0, int take = 20)
         {
@@ -3880,10 +3886,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
-            var query = _context.LichSuFormIts.AsNoTracking()
-                .Where(l => l.IdFormItNavigation.TenCongTy == tenCongTy);
+            var query = _context.LichSuFormIts.AsNoTracking();
 
-            if (User.IsInRole("All")) { }
+            if (User.IsInRole("All")) { /* Xem toàn bộ */ }
             else if (User.IsInRole("AdminIT"))
             {
                 query = query.Where(l =>
@@ -3892,13 +3897,18 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                      l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userEmail))
                 );
             }
-            else if (User.IsInRole("QuanLyDuyetDonIT"))
-            {
-                query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.IdNguoiDuyet == userId);
-            }
             else
             {
-                query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId);
+                query = query.Where(l => l.IdFormItNavigation.TenCongTy == tenCongTy);
+
+                if (User.IsInRole("QuanLyDuyetDonIT"))
+                {
+                    query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.IdNguoiDuyet == userId);
+                }
+                else
+                {
+                    query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId);
+                }
             }
 
             var unreadCount = await query.CountAsync(l => l.IsRead != true);
