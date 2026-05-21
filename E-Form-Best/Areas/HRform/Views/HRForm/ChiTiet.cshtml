@@ -21,6 +21,9 @@
     bool isFinished = Model.IdAdmin != null || Model.TrangThai == "HoanTat" || Model.TrangThai == "DaXuLy";
     bool isApprovedByManager = Model.IdNguoiDuyet != null || Model.TrangThai == "DaDuyet";
 
+    // BỔ SUNG: Kiểm tra xem đơn đã được cấu hình người duyệt hợp lệ hay chưa
+    bool isMissingNguoiDuyet = Model.IdNguoiDuyet == null || Model.IdNguoiDuyet == 0 || string.IsNullOrEmpty(Model.TenNguoiDuyet);
+
     string statusColor = "#3b82f6"; string statusText = "CHỜ QUẢN LÝ";
     if (isCancelled) { statusColor = "#dc2626"; statusText = "ĐÃ HỦY"; }
     else if (isFinished) { statusColor = "#059669"; statusText = "ĐÃ XỬ LÝ (HR)"; }
@@ -675,9 +678,9 @@
                                 bool isUserAll = User.IsInRole("All");
                                 // Quyền All thấy tất cả, người khác chỉ thấy log public (TrangThaiAnHien == true)
                                 var lichSuHienThi = Model.LichSuFormHrs
-                                                         .Where(x => x.TrangThaiAnHien == true || isUserAll)
-                                                         .OrderByDescending(x => x.Time)
-                                                         .ToList();
+                                                 .Where(x => x.TrangThaiAnHien == true || isUserAll)
+                                                 .OrderByDescending(x => x.Time)
+                                                 .ToList();
 
                                 foreach (var ls in lichSuHienThi)
                                 {
@@ -811,7 +814,7 @@
                                         isNguoiDuyetUyQuyen = b2.HrQuanLyDuyetB2UyQuyens.Any(uq => string.Equals(uq.MaNvuyQuyen, userEmailView, StringComparison.OrdinalIgnoreCase));
                                     }
 
-                                    bool isMyTurn = (isNguoiDuyetChinh || isNguoiDuyetUyQuyen) && (b2.TrangThaiXacNhan ?? 0) == 0 && !isCancelled && !isFinished;
+                                    bool isMyTurn = (isNguoiDuyetChinh || isNguoiDuyetUyQuyen) && (b2.TrangThaiXacNhan ?? 0) == 0 && !isCancelled && !isFinished && !isMissingNguoiDuyet;
                                     // ------------------------------------------------------------------------
 
                                     <div class="mobile-b2-item" data-b2-id="@b2.Id" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:12px;border:1px solid #f1ecff;background:#fff;">
@@ -834,6 +837,12 @@
                                                 <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end;">
                                                     <button onclick="duyetB2(@b2.Id, 'Approve')" style="flex:1;background:#059669;color:white;border:none;padding:8px 12px;border-radius:8px;font-weight:800;">Duyệt</button>
                                                     <button onclick="duyetB2(@b2.Id, 'Reject')" style="flex:1;background:white;color:#dc2626;border:2px solid #dc2626;padding:8px 12px;border-radius:8px;font-weight:800;">Từ chối</button>
+                                                </div>
+                                            }
+                                            else if ((isNguoiDuyetChinh || isNguoiDuyetUyQuyen) && (b2.TrangThaiXacNhan ?? 0) == 0 && !isCancelled && !isFinished && isMissingNguoiDuyet)
+                                            {
+                                                <div style="margin-top:8px;color:#dc2626;font-size:11px;font-weight:bold;text-align:right;">
+                                                    <i class="fa fa-exclamation-triangle"></i> Chưa cấu hình người duyệt!
                                                 </div>
                                             }
                                         </div>
@@ -908,26 +917,35 @@
                             @if (myXacNhan != null && !isCancelled)
                             {
                                 <div style="padding:0 20px 20px 20px;">
-                                    <div style="background:#faf5ff;border:2px dashed #c4b5fd;border-radius:18px;padding:20px;">
-                                        <p style="margin:0 0 12px 0;font-size:13px;font-weight:800;color:#6b21a8;display:flex;align-items:center;gap:8px;">
-                                            <i class="fa fa-pen"></i> HÀNH ĐỘNG CỦA BẠN:
-                                        </p>
-                                        <textarea id="txtGhiChuXacNhan" placeholder="Ghi chú (tùy chọn)..."
-                                                  style="width:100%;padding:10px 12px;border:1.5px solid #ddd6fe;border-radius:10px;font-size:13px;resize:vertical;min-height:60px;outline:none;font-family:'Segoe UI',sans-serif;box-sizing:border-box;margin-bottom:12px;transition:border 0.2s;"
-                                                  onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#ddd6fe'"></textarea>
-                                        <div style="display:flex;gap:10px;">
-                                            <button id="btnXnDuyet" onclick="giamDocXacNhan(@myXacNhan.Id, 'Approve')"
-                                                    style="flex:1;padding:13px;background:#059669;color:white;border:none;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;box-shadow:0 4px 10px rgba(5,150,105,0.3);transition:all 0.2s;"
-                                                    onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-                                                <i class="fa fa-check"></i> DUYỆT
-                                            </button>
-                                            <button id="btnXnTuChoi" onclick="giamDocXacNhan(@myXacNhan.Id, 'Reject')"
-                                                    style="flex:1;padding:13px;background:white;color:#dc2626;border:2px solid #dc2626;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;transition:all 0.2s;"
-                                                    onmouseover="this.style.background='#fef2f2';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='white';this.style.transform=''">
-                                                <i class="fa fa-times"></i> TỪ CHỐI
-                                            </button>
+                                    @if (isMissingNguoiDuyet)
+                                    {
+                                        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:18px;padding:20px;color:#991b1b;font-weight:bold;">
+                                            <i class="fa fa-exclamation-triangle"></i> Đơn chưa được thiết lập người duyệt. Liên hệ Admin HR để cập nhật trước khi thao tác.
                                         </div>
-                                    </div>
+                                    }
+                                    else
+                                    {
+                                        <div style="background:#faf5ff;border:2px dashed #c4b5fd;border-radius:18px;padding:20px;">
+                                            <p style="margin:0 0 12px 0;font-size:13px;font-weight:800;color:#6b21a8;display:flex;align-items:center;gap:8px;">
+                                                <i class="fa fa-pen"></i> HÀNH ĐỘNG CỦA BẠN:
+                                            </p>
+                                            <textarea id="txtGhiChuXacNhan" placeholder="Ghi chú (tùy chọn)..."
+                                                      style="width:100%;padding:10px 12px;border:1.5px solid #ddd6fe;border-radius:10px;font-size:13px;resize:vertical;min-height:60px;outline:none;font-family:'Segoe UI',sans-serif;box-sizing:border-box;margin-bottom:12px;transition:border 0.2s;"
+                                                      onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#ddd6fe'"></textarea>
+                                            <div style="display:flex;gap:10px;">
+                                                <button id="btnXnDuyet" onclick="giamDocXacNhan(@myXacNhan.Id, 'Approve')"
+                                                        style="flex:1;padding:13px;background:#059669;color:white;border:none;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;box-shadow:0 4px 10px rgba(5,150,105,0.3);transition:all 0.2s;"
+                                                        onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+                                                    <i class="fa fa-check"></i> DUYỆT
+                                                </button>
+                                                <button id="btnXnTuChoi" onclick="giamDocXacNhan(@myXacNhan.Id, 'Reject')"
+                                                        style="flex:1;padding:13px;background:white;color:#dc2626;border:2px solid #dc2626;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;transition:all 0.2s;"
+                                                        onmouseover="this.style.background='#fef2f2';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='white';this.style.transform=''">
+                                                    <i class="fa fa-times"></i> TỪ CHỐI
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
                                 </div>
                             }
                         </div>
@@ -936,13 +954,14 @@
                     @if (!isCancelled && !isFinished)
                     {
                         <div style="display:flex;flex-direction:column;gap:15px;margin-bottom:25px;">
-                            @if (!isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminHR") || User.IsInRole("QuanLyDuyetDonHR")))
+                            @if (!isApprovedByManager && (User.IsInRole("All") || User.IsInRole("QuanLyDuyetDonHR")))
                             {
-                                <button id="btnDuyet" onclick="handleAction('Duyet')"
-                                        style="background:#059669;color:white;border:none;padding:20px;border-radius:18px;font-weight:900;cursor:pointer;font-size:16px;box-shadow:0 10px 15px -3px rgba(5,150,105,0.3);transition:all 0.2s;"
-                                        onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-                                    <i class="fa fa-check-circle"></i> DUYỆT ĐƠN (QUẢN LÝ)
-                                </button>
+
+                                    <button id="btnDuyet" onclick="handleAction('Duyet')"
+                                            style="background:#059669;color:white;border:none;padding:20px;border-radius:18px;font-weight:900;cursor:pointer;font-size:16px;box-shadow:0 10px 15px -3px rgba(5,150,105,0.3);transition:all 0.2s;"
+                                            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+                                        <i class="fa fa-check-circle"></i> DUYỆT ĐƠN (QUẢN LÝ)
+                                    </button>
                             }
                             @if (isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminHR")))
                             {
@@ -1116,7 +1135,7 @@
     const formId        = @Model.Id;
     const currentUserId = '@currentUserId';
     const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                                                                                                                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
+                                                                                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
     const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
     function hasRole(r) { return userRoles.includes(r); }

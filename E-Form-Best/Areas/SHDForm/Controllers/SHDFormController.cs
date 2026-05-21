@@ -1594,6 +1594,12 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 if (don == null)
                     return Json(new { success = false, message = "⚠️ Không tìm thấy đơn SHD liên quan." });
 
+                // --- BỔ SUNG: KIỂM TRA ĐIỀU KIỆN KHÔNG NULL ---
+                if (don.IdNguoiDuyet == null || don.IdNguoiDuyet == 0 || string.IsNullOrEmpty(don.TenNguoiDuyet))
+                {
+                    return Json(new { success = false, message = "⚠️ Đơn SHD chưa được cấu hình người duyệt, không thể thao tác!" });
+                }
+
                 // 3. Kiểm tra trạng thái: Chỉ xử lý nếu đang chờ (0 hoặc null)
                 if (record.TrangThaiXacNhan != null && record.TrangThaiXacNhan != 0)
                     return Json(new { success = false, message = "⚠️ Bước này đã được xử lý trước đó rồi." });
@@ -1643,7 +1649,6 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     }
 
                     tieuDeLS = "BƯỚC 2 SHD — TỪ CHỐI";
-                    // Lịch sử hiện ra ngoài vẫn ghi tên người quản lý thật sự
                     moTaLS = $"{nguoiDaiDien} đã TỪ CHỐI duyệt bước 2 SHD.";
                 }
                 else // Hành động: DUYỆT (Approve)
@@ -1651,29 +1656,25 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     tieuDeLS = "BƯỚC 2 SHD — ĐÃ DUYỆT";
                     moTaLS = $"{nguoiDaiDien} đã DUYỆT bước 2 SHD (thứ tự: {record.ThuTuXacNhan}).";
 
-                    // Kiểm tra quy tắc duyệt AND / OR (Nếu có nhiều người duyệt chung 1 cấp)
                     string type = record.Loai?.ToUpper() ?? "AND";
                     bool conAiChuaDuyet;
 
                     if (type == "OR" || type == "ANY")
                     {
-                        // Quy tắc OR: Đã duyệt 1 người là coi như toàn bộ cấp đó xong, không chờ ai nữa
                         conAiChuaDuyet = false;
                     }
                     else
                     {
-                        // Quy tắc AND (Mặc định): Cần check xem những người khác CÙNG CẤP (ThuTuXacNhan) đã duyệt hết chưa
                         conAiChuaDuyet = await _context.ShdQuanLyDuyetB2s
                             .AnyAsync(x => x.IdFormShd == req.idForm
                                         && x.Id != record.Id
-                                        && x.ThuTuXacNhan == record.ThuTuXacNhan // Cùng 1 cấp B2
+                                        && x.ThuTuXacNhan == record.ThuTuXacNhan
                                         && (x.TrangThaiXacNhan == null || x.TrangThaiXacNhan == 0));
                     }
 
-                    // Nếu không còn ai chưa duyệt (hoặc là dạng OR), thì chuyển bước
                     if (!conAiChuaDuyet)
                     {
-                        don.TrangThai = "DaDuyet"; // Chuyển đơn sang trạng thái đã duyệt (Chờ ADMIN SHD)
+                        don.TrangThai = "DaDuyet";
                         tieuDeLS = "BƯỚC 2 SHD — HOÀN TẤT";
                         moTaLS = "Toàn bộ Bước 2 SHD đã duyệt xong. Đơn chuyển sang trạng thái Chờ ADMIN SHD xử lý.";
                     }
@@ -1686,17 +1687,15 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     _context.Update(record);
                     _context.Update(don);
 
-                    // 6.1 Ghi lịch sử công khai (Hiển thị thật)
                     _context.LichSuFormShds.Add(new LichSuFormShd
                     {
                         IdFormShd = don.Id,
                         TieuDe = tieuDeLS,
                         Mota = moTaLS,
                         Time = DateTime.Now,
-                        TrangThaiAnHien = true // true: Sẽ được hiển thị
+                        TrangThaiAnHien = true
                     });
 
-                    // 6.2 Ghi lịch sử ẩn nếu người thao tác là NGƯỜI ĐƯỢC ỦY QUYỀN
                     if (isNguoiDuocUyQuyen)
                     {
                         _context.LichSuFormShds.Add(new LichSuFormShd
@@ -1705,7 +1704,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                             TieuDe = "SYSTEM: LƯU VẾT ỦY QUYỀN BƯỚC 2",
                             Mota = $"Tài khoản ủy quyền [{userName} - {userEmail}] đã thao tác {(isApprove ? "DUYỆT" : "TỪ CHỐI")} thay cho quản lý [{nguoiDaiDien}].",
                             Time = DateTime.Now,
-                            TrangThaiAnHien = false // false: Lịch sử này ẩn, chỉ Admin thấy nếu cấp quyền All
+                            TrangThaiAnHien = false
                         });
                     }
 
@@ -1730,6 +1729,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 return Json(new { success = false, message = "❌ Lỗi hệ thống SHD: " + ex.Message });
             }
         }
+
         #endregion
         #endregion
 
