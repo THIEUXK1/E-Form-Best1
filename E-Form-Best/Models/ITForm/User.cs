@@ -67,6 +67,11 @@ public partial class User
     [StringLength(255)]
     public string? SecurityStamp { get; set; }
 
+    public int? FailedAttempts { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? LockoutEnd { get; set; }
+
     [InverseProperty("IdNguoiDungNavigation")]
     public virtual ICollection<KkThietBi> KkThietBis { get; set; } = new List<KkThietBi>();
 
@@ -78,6 +83,9 @@ public partial class User
 
     [InverseProperty("IdNguoiDungNavigation")]
     public virtual ICollection<UserDevice> UserDevices { get; set; } = new List<UserDevice>();
+
+    [InverseProperty("IdNguoiDungNavigation")]
+    public virtual ICollection<UserDomainAuth> UserDomainAuths { get; set; } = new List<UserDomainAuth>();
 
     [InverseProperty("IdNguoiDungNavigation")]
     public virtual ICollection<UserQuyen> UserQuyens { get; set; } = new List<UserQuyen>();

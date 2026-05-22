@@ -26,21 +26,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return View();
         }
         #endregion
-
         #region Trang đăng nhập
 
         [HttpGet("/DonXetDuyet/DangNhap")]
         public IActionResult DangNhap()
         {
-            // 1. Nếu người dùng đã đăng nhập (Cookie còn hạn), cho vào trang chủ luôn
-            if (User.Identity.IsAuthenticated)
-            {
-                return Redirect("/menuA");
-            }
-
-            // 2. Kiểm tra xem trình duyệt có đang lưu Cookie email để điền sẵn không
+            if (User.Identity.IsAuthenticated) return Redirect("/menuA");
             ViewBag.IsRemembered = Request.Cookies.ContainsKey("RememberedEmail");
-
             return View();
         }
 
@@ -54,21 +46,112 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return View();
             }
 
-            // 2. Kiểm tra tài khoản trong Database
-            var user = _context.Users
-                .Include(u => u.UserBoPhans)
-                    .ThenInclude(ub => ub.IdBoPhanNavigation)
-                .Include(u => u.UserQuyens)
-                    .ThenInclude(uq => uq.IdQuyenNavigation)
-                .FirstOrDefault(u => u.Tk == email && u.MatKhau == matKhau && u.TrangThai != "Đã nghỉ");
+            User? user = null;
+            UserDomainAuth? domainAuth = null;
+            bool isDomainAuth = false;
+            bool isAuthenticated = false;
 
+            // A. Tìm kiếm User và thông tin liên kết Domain
+            domainAuth = await _context.UserDomainAuths
+                .Include(a => a.IdNguoiDungNavigation)
+                    .ThenInclude(u => u.UserBoPhans).ThenInclude(ub => ub.IdBoPhanNavigation)
+                .Include(a => a.IdNguoiDungNavigation)
+                    .ThenInclude(u => u.UserQuyens).ThenInclude(uq => uq.IdQuyenNavigation)
+                .FirstOrDefaultAsync(a => a.DomainUsername.ToLower() == email.ToLower());
+
+            if (domainAuth != null)
+            {
+                user = domainAuth.IdNguoiDungNavigation;
+            }
+            else
+            {
+                user = await _context.Users
+                    .Include(u => u.UserBoPhans).ThenInclude(ub => ub.IdBoPhanNavigation)
+                    .Include(u => u.UserQuyens).ThenInclude(uq => uq.IdQuyenNavigation)
+                    .FirstOrDefaultAsync(u => u.Tk == email && u.TrangThai != "Đã nghỉ");
+            }
+
+            // B. Kiểm tra user tồn tại
             if (user == null)
             {
                 ViewBag.Error = "Tài khoản hoặc mật khẩu không đúng.";
                 return View();
             }
 
-            // --- MỚI: ĐẢM BẢO CÓ SECURITY STAMP ---
+            // C. Kiểm tra khóa tài khoản (Lockout)
+            if (user.LockoutEnd.HasValue && user.LockoutEnd > DateTime.Now)
+            {
+                var remainingSeconds = (int)(user.LockoutEnd.Value - DateTime.Now).TotalSeconds;
+                ViewBag.Error = $"Tài khoản bị khóa. Vui lòng thử lại sau {remainingSeconds} giây.";
+                return View();
+            }
+
+            // D. XỬ LÝ 3 CHẾ ĐỘ ĐĂNG NHẬP (LoginMode)
+            if (domainAuth != null)
+            {
+                // Chế độ 0 (Domain Only) hoặc 2 (Hybrid) -> Thử xác thực qua Domain trước
+                if (domainAuth.LoginMode == 0 || domainAuth.LoginMode == 2)
+                {
+                    if (AuthenticateWithDomain(email, matKhau))
+                    {
+                        isAuthenticated = true;
+                        isDomainAuth = true;
+                    }
+                }
+
+                // Nếu xác thực Domain chưa thành công VÀ Chế độ là 1 (DB Only) hoặc 2 (Hybrid) -> Thử xác thực qua DB
+                if (!isAuthenticated && (domainAuth.LoginMode == 1 || domainAuth.LoginMode == 2))
+                {
+                    if (user.MatKhau == matKhau)
+                    {
+                        isAuthenticated = true;
+                        isDomainAuth = false; // Đánh dấu là đăng nhập bằng Database
+                    }
+                }
+            }
+            else
+            {
+                // User chưa được liên kết Domain -> Chỉ xác thực qua Database
+                if (user.MatKhau == matKhau)
+                {
+                    isAuthenticated = true;
+                    isDomainAuth = false;
+                }
+            }
+
+            // E. Xử lý nếu xác thực thất bại
+            if (!isAuthenticated)
+            {
+                // Tăng số lần sai
+                user.FailedAttempts = (user.FailedAttempts ?? 0) + 1;
+
+                if (user.FailedAttempts >= 5)
+                {
+                    // Tính thời gian khóa: 30 * 2^(n-5)
+                    int multiplier = (int)Math.Pow(2, user.FailedAttempts.Value - 5);
+                    int seconds = 30 * multiplier;
+                    user.LockoutEnd = DateTime.Now.AddSeconds(seconds);
+                    ViewBag.Error = $"Bạn đã nhập sai {user.FailedAttempts} lần. Tài khoản bị khóa {seconds} giây.";
+                }
+                else
+                {
+                    ViewBag.Error = $"Tài khoản hoặc mật khẩu không đúng. (Lần thử {user.FailedAttempts}/5)";
+                }
+
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+                return View();
+            }
+
+            // F. Đăng nhập thành công -> Reset trạng thái khóa
+            user.FailedAttempts = 0;
+            user.LockoutEnd = null;
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+
+            // --- TIẾP TỤC CÁC LOGIC CŨ BÊN DƯỚI ---
+
+            // 2. Đảm bảo có Security Stamp
             if (string.IsNullOrEmpty(user.SecurityStamp))
             {
                 user.SecurityStamp = Guid.NewGuid().ToString();
@@ -76,12 +159,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 await _context.SaveChangesAsync();
             }
 
-            // 3. XỬ LÝ ĐỊNH DANH THIẾT BỊ (LAPTOP/PHONE) VÀ TÊN MÁY TÍNH
+            // 3. Xử lý định danh thiết bị
             string userAgent = Request.Headers["User-Agent"].ToString();
             var remoteIpAddress = HttpContext.Connection.RemoteIpAddress;
             string ipAddress = remoteIpAddress?.ToString();
-
-            // --- MỚI: LẤY TÊN MÁY TÍNH TỪ ĐỊA CHỈ IP (Cho mạng nội bộ Intranet) ---
             string resolvedComputerName = deviceName;
 
             if (string.IsNullOrEmpty(resolvedComputerName) || resolvedComputerName == "Thiết bị không xác định")
@@ -92,32 +173,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     {
                         var hostEntry = System.Net.Dns.GetHostEntry(remoteIpAddress);
                         resolvedComputerName = hostEntry.HostName;
-                        if (resolvedComputerName.Contains("."))
-                        {
-                            resolvedComputerName = resolvedComputerName.Split('.')[0];
-                        }
+                        if (resolvedComputerName.Contains(".")) resolvedComputerName = resolvedComputerName.Split('.')[0];
                     }
                 }
-                catch (Exception)
-                {
-                    resolvedComputerName = "Không thể xác định tên máy";
-                }
+                catch { resolvedComputerName = "Không thể xác định tên máy"; }
             }
 
-            var device = _context.UserDevices
-                .FirstOrDefault(d => d.IdNguoiDung == user.IdNguoiDung && d.DeviceFingerprint == userAgent);
-
+            var device = _context.UserDevices.FirstOrDefault(d => d.IdNguoiDung == user.IdNguoiDung && d.DeviceFingerprint == userAgent);
             if (device == null)
             {
-                var newDevice = new UserDevice
-                {
-                    IdNguoiDung = user.IdNguoiDung,
-                    DeviceFingerprint = userAgent,
-                    DeviceName = resolvedComputerName,
-                    LastLogin = DateTime.Now,
-                    IsTrusted = true
-                };
-                _context.UserDevices.Add(newDevice);
+                _context.UserDevices.Add(new UserDevice { IdNguoiDung = user.IdNguoiDung, DeviceFingerprint = userAgent, DeviceName = resolvedComputerName, LastLogin = DateTime.Now, IsTrusted = true });
             }
             else
             {
@@ -126,71 +191,39 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 _context.UserDevices.Update(device);
             }
 
-            // --- MỚI: LƯU LỊCH SỬ ĐĂNG NHẬP ---
-            var lichSu = new LichSuTruyCap
-            {
-                IdNguoiDung = user.IdNguoiDung,
-                ThoiGianDangNhap = DateTime.Now,
-                TenMayTinh = resolvedComputerName,
-                DiaChiIp = ipAddress,
-                TrinhDuyet = userAgent,
-                TrangThai = "Đang hoạt động"
-            };
-            _context.LichSuTruyCaps.Add(lichSu);
-
+            // Lưu lịch sử truy cập
+            _context.LichSuTruyCaps.Add(new LichSuTruyCap { IdNguoiDung = user.IdNguoiDung, ThoiGianDangNhap = DateTime.Now, TenMayTinh = resolvedComputerName, DiaChiIp = ipAddress, TrinhDuyet = userAgent, TrangThai = "Đang hoạt động" });
             await _context.SaveChangesAsync();
 
-            // 4. THIẾT LẬP COOKIE AUTHENTICATION
+            // 4. Thiết lập Claims
             var claims = new List<Claim>
     {
         new Claim(ClaimTypes.NameIdentifier, user.IdNguoiDung.ToString()),
         new Claim(ClaimTypes.Name, user.HoTen ?? ""),
         new Claim(ClaimTypes.Email, user.Tk ?? ""),
-        // THÊM CLAIM MaNv ĐỂ ĐỒNG BỘ VỚI LOGIC PHÂN QUYỀN B2
         new Claim("MaNv", user.Tk ?? ""),
         new Claim("UserRole", user.VaiTro ?? ""),
         new Claim("PhongBan", user.PhongBan ?? ""),
         new Claim("TenCongTy", user.TenCongTy ?? ""),
         new Claim("AnhDaiDien", user.AnhDaiDien ?? "/images/default-avatar.png"),
-        new Claim("SecurityStamp", user.SecurityStamp ?? "")
+        new Claim("SecurityStamp", user.SecurityStamp ?? ""),
+        new Claim("LoginMethod", isDomainAuth ? "Domain" : "Database")
     };
 
             if (user.UserBoPhans != null && user.UserBoPhans.Any())
             {
-                var tatCaTenBoPhan = string.Join(", ", user.UserBoPhans
-                    .Where(ub => ub.IdBoPhanNavigation != null)
-                    .Select(ub => ub.IdBoPhanNavigation.TenBoPhan));
-
-                var tatCaMoTa = string.Join(" | ", user.UserBoPhans
-                    .Where(ub => ub.IdBoPhanNavigation != null)
-                    .Select(ub => ub.IdBoPhanNavigation.MoTa));
-
-                claims.Add(new Claim("TenBoPhan", tatCaTenBoPhan));
-                claims.Add(new Claim("MoTaBoPhan", tatCaMoTa));
+                claims.Add(new Claim("TenBoPhan", string.Join(", ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation.TenBoPhan))));
+                claims.Add(new Claim("MoTaBoPhan", string.Join(" | ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation.MoTa))));
             }
 
-            if (user.UserQuyens != null && user.UserQuyens.Any())
+            foreach (var tenQuyen in user.UserQuyens.Where(uq => uq.IdQuyenNavigation != null).Select(uq => uq.IdQuyenNavigation.TenQuyen))
             {
-                var dsQuyen = user.UserQuyens
-                    .Where(uq => uq.IdQuyenNavigation != null)
-                    .Select(uq => uq.IdQuyenNavigation.TenQuyen);
-
-                foreach (var tenQuyen in dsQuyen)
-                {
-                    if (!string.IsNullOrEmpty(tenQuyen))
-                    {
-                        claims.Add(new Claim(ClaimTypes.Role, tenQuyen));
-                    }
-                }
+                if (!string.IsNullOrEmpty(tenQuyen)) claims.Add(new Claim(ClaimTypes.Role, tenQuyen));
             }
 
-            if (matKhau == "abc12345")
-            {
-                claims.Add(new Claim("IsDefaultPassword", "true"));
-            }
+            if (!isDomainAuth && matKhau == "abc12345") claims.Add(new Claim("IsDefaultPassword", "true"));
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
             var authProperties = new AuthenticationProperties
             {
                 IsPersistent = rememberMe,
@@ -203,36 +236,34 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 new ClaimsPrincipal(claimsIdentity),
                 authProperties);
 
-            // 5. Lưu email vào Cookie thường
             if (rememberMe)
-            {
-                Response.Cookies.Append("RememberedEmail", email, new CookieOptions
-                {
-                    Expires = DateTime.Now.AddDays(30),
-                    HttpOnly = true,
-                    IsEssential = true
-                });
-            }
+                Response.Cookies.Append("RememberedEmail", email, new CookieOptions { Expires = DateTime.Now.AddDays(30), HttpOnly = true, IsEssential = true });
             else
-            {
                 Response.Cookies.Delete("RememberedEmail");
-            }
 
-            // 6. Chuyển hướng thành công
             TempData["ShowPushPrompt"] = true;
             return Redirect("/menuA");
         }
 
-
+        private bool AuthenticateWithDomain(string username, string password)
+        {
+            try
+            {
+                using (var context = new System.DirectoryServices.AccountManagement.PrincipalContext(
+                    System.DirectoryServices.AccountManagement.ContextType.Domain, "bestpacific.com"))
+                {
+                    return context.ValidateCredentials(username, password);
+                }
+            }
+            catch { return false; }
+        }
 
         [HttpGet("/DonXetDuyet/DangXuat")]
         public async Task<IActionResult> DangXuat()
         {
-            // --- MỚI: CẬP NHẬT LỊCH SỬ ĐĂNG XUẤT ---
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (int.TryParse(userIdClaim, out int userId))
             {
-                // Tìm bản ghi đăng nhập gần nhất của user này mà chưa có thời gian đăng xuất
                 var lastSession = await _context.LichSuTruyCaps
                     .Where(ls => ls.IdNguoiDung == userId && ls.ThoiGianDangXuat == null)
                     .OrderByDescending(ls => ls.ThoiGianDangNhap)
@@ -247,20 +278,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
             }
 
-            // 1. Đăng xuất khỏi hệ thống Authentication
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
-            // 2. Xóa sạch Session
             HttpContext.Session.Clear();
-
-            // 3. Thông báo
             TempData["Success"] = "Bạn đã đăng xuất thành công.";
-
-            // 4. Chuyển hướng về trang đăng nhập
             return Redirect("/DonXetDuyet/DangNhap");
         }
 
         #endregion
+
 
         #region PHÂN QUYỀN TRUY CẬP (Custom Access Control)
 
