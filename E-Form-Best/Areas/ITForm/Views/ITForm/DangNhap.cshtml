@@ -10,7 +10,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>@ViewData["Title"]</title>
-    
+
     <!-- Thêm CSS Media Query cho Mobile -->
     <style>
             /* Tùy chỉnh cho màn hình điện thoại (dưới 480px) */
@@ -105,11 +105,10 @@
 
             <div class="remember-forgot-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
                 <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#718096; font-size:0.9rem;">
-                    @* Tự động tích nếu đã từng "Ghi nhớ" *@
                     <input type="checkbox" name="rememberMe" value="true"
                            style="width:18px; height:18px; accent-color:#667eea; cursor:pointer;"
                     @(string.IsNullOrEmpty(rememberedEmail) ? "" : "checked")>
-                    Duy trì đăng nhập vĩnh viễn
+                    Duy trì đăng nhập
                 </label>
                 <a href="#" style="color:#667eea; text-decoration:none; font-size:0.9rem; font-weight:600;">Quên mật khẩu?</a>
             </div>
@@ -138,9 +137,23 @@
                 else if (userAgent.match(/Android/i)) deviceName = "Điện thoại Android";
                 else if (userAgent.match(/Macintosh/i)) deviceName = "Máy tính Mac";
 
-                // Gán giá trị vào thẻ input ẩn để gửi lên Controller
                 document.getElementById('deviceName').value = deviceName;
             };
+
+            // Nếu có lỗi khóa tài khoản (có chứa giây), tự động tải lại trang sau X giây
+            @if (ViewBag.Error != null && ViewBag.Error.ToString().Contains("giây"))
+            {
+                    <text>
+                            var errorMsg = "@ViewBag.Error";
+                            var match = errorMsg.match(/(\d+)\s*giây/);
+                            if (match && match[1]) {
+                                var seconds = parseInt(match[1]);
+                                setTimeout(function() {
+                                    window.location.reload();
+                                }, seconds * 1000);
+                            }
+                    </text>
+            }
     </script>
 </body>
 </html>

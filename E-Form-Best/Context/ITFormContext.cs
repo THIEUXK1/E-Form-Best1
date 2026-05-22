@@ -154,6 +154,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<UserDevice> UserDevices { get; set; }
 
+    public virtual DbSet<UserDomainAuth> UserDomainAuths { get; set; }
+
     public virtual DbSet<UserQuyen> UserQuyens { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -676,6 +678,7 @@ public partial class ITFormContext : DbContext
         {
             entity.HasKey(e => e.IdNguoiDung).HasName("PK__User__75D6A11EB2C54D7B");
 
+            entity.Property(e => e.FailedAttempts).HasDefaultValue(0);
             entity.Property(e => e.NgayCapNhat).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.NgayTao).HasDefaultValueSql("(sysutcdatetime())");
         });
@@ -701,6 +704,15 @@ public partial class ITFormContext : DbContext
             entity.Property(e => e.LastLogin).HasDefaultValueSql("(getdate())");
 
             entity.HasOne(d => d.IdNguoiDungNavigation).WithMany(p => p.UserDevices).HasConstraintName("FK_UserDevice_User");
+        });
+
+        modelBuilder.Entity<UserDomainAuth>(entity =>
+        {
+            entity.HasKey(e => e.IdAuthDomain).HasName("PK__UserDoma__47B83539BDB0667B");
+
+            entity.Property(e => e.LastSyncDate).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.IdNguoiDungNavigation).WithMany(p => p.UserDomainAuths).HasConstraintName("FK_UserDomainAuth_User");
         });
 
         modelBuilder.Entity<UserQuyen>(entity =>
