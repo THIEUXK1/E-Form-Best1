@@ -2676,6 +2676,9 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 .Include(f => f.HrHoTroTienDienThoai7s)
                 .Include(f => f.HrDoiCaLam8s)
                 .Include(f => f.HrDonHoTroCongTac9s)
+                .Include(f => f.HrDonKiTucXa10s)
+                .Include(f => f.HrDonLamLaiThe11s)
+                .Include(f => f.HrDonSuDungDienThoai12s)
                 .Include(f => f.HrQuanLyDuyetB2s)
                 .Include(f => f.HrNguoiXacNhans).ThenInclude(x => x.IdnguoiXacNhanNavigation)
                 .FirstOrDefaultAsync(m => m.Id == id);
@@ -2707,7 +2710,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
                 int currentRow = 11;
 
-                // Xử lý 9 loại đơn chi tiết
+                // Xử lý 12 loại đơn chi tiết (Gồm cả 3 loại mới)
                 if (don.HrXinRaNgoai1s.Any())
                 {
                     var ct = don.HrXinRaNgoai1s.First();
@@ -2811,6 +2814,46 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     worksheet.Cell(currentRow, 1).Value = "Xe đưa đón:"; worksheet.Cell(currentRow, 2).Value = ct.BookXeCtyDuaDon == true ? "Có" : "Không"; currentRow++;
                     worksheet.Cell(currentRow, 1).Value = "Chi tiết:"; worksheet.Cell(currentRow, 2).Value = ct.NoiDungYeuCauChiTiet; currentRow++;
                 }
+                else if (don.HrDonKiTucXa10s.Any())
+                {
+                    var ct = don.HrDonKiTucXa10s.First();
+                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐĂNG KÝ KÍ TÚC XÁ";
+                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.CornflowerBlue);
+                    currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Mã nhân viên:"; worksheet.Cell(currentRow, 2).Value = ct.MaNhanVien; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Họ và tên:"; worksheet.Cell(currentRow, 2).Value = ct.HoTen; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Phòng ban / Chức vụ:"; worksheet.Cell(currentRow, 2).Value = $"{ct.PhongBan} / {ct.ChucVu}"; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Thời gian nhận phòng:"; worksheet.Cell(currentRow, 2).Value = ct.ThoiGianNhanPhong?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Thời gian trả phòng:"; worksheet.Cell(currentRow, 2).Value = ct.ThoiGianTraPhong?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Loại phòng đăng ký:"; worksheet.Cell(currentRow, 2).Value = ct.LoaiPhong; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Ghi chú:"; worksheet.Cell(currentRow, 2).Value = ct.GhiChu; currentRow++;
+                }
+                else if (don.HrDonLamLaiThe11s.Any())
+                {
+                    var ct = don.HrDonLamLaiThe11s.First();
+                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐĂNG KÝ LÀM LẠI THẺ";
+                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Rose);
+                    currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Mã số thẻ:"; worksheet.Cell(currentRow, 2).Value = ct.MaSoThe; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Họ và tên:"; worksheet.Cell(currentRow, 2).Value = ct.HoTen; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Bộ phận / Cấp bậc:"; worksheet.Cell(currentRow, 2).Value = $"{ct.BoPhan} / {ct.CapBac}"; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Chức vụ:"; worksheet.Cell(currentRow, 2).Value = ct.ChucVu; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Lý do làm lại:"; worksheet.Cell(currentRow, 2).Value = ct.LyDoLamLaiThe; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Ghi chú:"; worksheet.Cell(currentRow, 2).Value = ct.GhiChu; currentRow++;
+                }
+                else if (don.HrDonSuDungDienThoai12s.Any())
+                {
+                    var ct = don.HrDonSuDungDienThoai12s.First();
+                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐĂNG KÝ SỬ DỤNG ĐIỆN THOẠI";
+                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Khaki);
+                    currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Mã số thẻ / Họ tên:"; worksheet.Cell(currentRow, 2).Value = $"{ct.MaSoThe} - {ct.HoTen}"; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Bộ phận / Cấp bậc:"; worksheet.Cell(currentRow, 2).Value = $"{ct.BoPhan} / {ct.CapBac}"; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Chức vụ:"; worksheet.Cell(currentRow, 2).Value = ct.ChucVu; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Thời gian bắt đầu dùng:"; worksheet.Cell(currentRow, 2).Value = ct.ThoiGianBatDauSuDung?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Lý do sử dụng:"; worksheet.Cell(currentRow, 2).Value = ct.LyDoSuDung; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Ghi chú:"; worksheet.Cell(currentRow, 2).Value = ct.GhiChu; currentRow++;
+                }
 
                 if (currentRow > 11)
                 {
@@ -2902,6 +2945,9 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 .Include(f => f.HrHoTroTienDienThoai7s)
                 .Include(f => f.HrDoiCaLam8s)
                 .Include(f => f.HrDonHoTroCongTac9s)
+                .Include(f => f.HrDonKiTucXa10s)
+                .Include(f => f.HrDonLamLaiThe11s)
+                .Include(f => f.HrDonSuDungDienThoai12s)
                 .Include(f => f.HrQuanLyDuyetB2s)
                 .Include(f => f.HrNguoiXacNhans).ThenInclude(x => x.IdnguoiXacNhanNavigation)
                 .FirstOrDefaultAsync(m => m.Id == id);
@@ -2928,6 +2974,9 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 .Include(f => f.HrHoTroTienDienThoai7s)
                 .Include(f => f.HrDoiCaLam8s)
                 .Include(f => f.HrDonHoTroCongTac9s)
+                .Include(f => f.HrDonKiTucXa10s)
+                .Include(f => f.HrDonLamLaiThe11s)
+                .Include(f => f.HrDonSuDungDienThoai12s)
                 .Include(f => f.HrQuanLyDuyetB2s)
                 .Include(f => f.HrNguoiXacNhans).ThenInclude(x => x.IdnguoiXacNhanNavigation)
                 .FirstOrDefaultAsync(m => m.Id == id);
@@ -2964,8 +3013,41 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 .data-table th, .data-table td { border: 1px solid #000; padding: 8px 12px; font-size: 12pt; vertical-align: top; }
                 .data-table th { background-color: #f2f2f2; font-weight: bold; text-align: left; width: 35%; }
                 .status-badge { font-weight: bold; color: #000; }
-                .signature-table { width: 100%; text-align: center; margin-top: 40px; border: none; page-break-inside: avoid; }
-                .signature-table td { width: 25%; vertical-align: top; border: none; font-size: 12pt; }
+                .signature-table { width: 100%; text-align: center; margin-top: 40px; border: none; table-layout: fixed; page-break-inside: avoid; }
+                .signature-table td { vertical-align: top; border: none; font-size: 12pt; padding: 5px; word-wrap: break-word; }
+                
+                /* ĐỊNH DẠNG KHUNG CHỮ KÝ ĐIỆN TỬ THEO ẢNH MAU KHUNG CHUAN VÀNG/XANH */
+                .digital-signature-box { 
+                    border: 1px solid #2e7d32; 
+                    padding: 8px; 
+                    text-align: left; 
+                    background-color: #f1f8e9; 
+                    margin: 10px auto 0 auto; 
+                    display: block; 
+                    width: 98%;
+                    max-width: 190px;
+                    position: relative;
+                    box-sizing: border-box;
+                }
+                .sig-status { 
+                    color: #2e7d32; 
+                    font-size: 10.5pt; 
+                    font-weight: bold; 
+                    margin-bottom: 3px;
+                }
+                .sig-info { 
+                    font-size: 9pt; 
+                    color: #202124; 
+                    line-height: 1.35;
+                }
+                .sig-check-mark {
+                    position: absolute;
+                    right: 6px;
+                    bottom: 4px;
+                    font-size: 18pt;
+                    font-weight: bold;
+                    color: rgba(46, 125, 50, 0.25);
+                }
             ");
 
             if (!isForWord)
@@ -3000,7 +3082,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             sb.Append($"<tr><th>Thời gian lập đơn</th><td>{don.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
             sb.Append("</table>");
 
-            // II. CHI TIẾT YÊU CẦU
+            // II. CHI TIẾT YÊU CẦU (Bao gồm 12 loại đơn chi tiết đầy đủ)
             sb.Append("<div class='section-title'>II. NỘI DUNG CHI TIẾT</div>");
             sb.Append("<table class='data-table'>");
             if (don.HrXinRaNgoai1s.Any())
@@ -3090,6 +3172,38 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 sb.Append($"<tr><th>Các dịch vụ đề nghị</th><td>{(srv.Count > 0 ? string.Join(", ", srv) : "Không có")}</td></tr>");
                 sb.Append($"<tr><th>Nội dung chi tiết</th><td>{ct.NoiDungYeuCauChiTiet}</td></tr>");
             }
+            else if (don.HrDonKiTucXa10s.Any())
+            {
+                var ct = don.HrDonKiTucXa10s.First();
+                sb.Append($"<tr><th>Loại yêu cầu</th><td style='font-weight:bold;'>Đăng ký kí túc xá (Form 10)</td></tr>");
+                sb.Append($"<tr><th>Thông tin nhân viên</th><td>Mã NV: {ct.MaNhanVien} - Họ tên: {ct.HoTen}</td></tr>");
+                sb.Append($"<tr><th>Bộ phận / Chức vụ</th><td>{ct.PhongBan} - {ct.ChucVu}</td></tr>");
+                sb.Append($"<tr><th>Thời gian nhận phòng</th><td>{ct.ThoiGianNhanPhong?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
+                sb.Append($"<tr><th>Thời gian trả phòng</th><td>{ct.ThoiGianTraPhong?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
+                sb.Append($"<tr><th>Loại phòng ở</th><td>{ct.LoaiPhong}</td></tr>");
+                sb.Append($"<tr><th>Ghi chú đơn</th><td>{ct.GhiChu}</td></tr>");
+            }
+            else if (don.HrDonLamLaiThe11s.Any())
+            {
+                var ct = don.HrDonLamLaiThe11s.First();
+                sb.Append($"<tr><th>Loại yêu cầu</th><td style='font-weight:bold;'>Đăng ký làm lại thẻ nhân viên (Form 11)</td></tr>");
+                sb.Append($"<tr><th>Thông tin trên thẻ</th><td>Mã số thẻ: {ct.MaSoThe} - Họ tên: {ct.HoTen}</td></tr>");
+                sb.Append($"<tr><th>Bộ phận / Cấp bậc</th><td>{ct.BoPhan} - Cấp: {ct.CapBac}</td></tr>");
+                sb.Append($"<tr><th>Chức vụ</th><td>{ct.ChucVu}</td></tr>");
+                sb.Append($"<tr><th>Lý do làm lại</th><td>{ct.LyDoLamLaiThe}</td></tr>");
+                sb.Append($"<tr><th>Ghi chú đơn</th><td>{ct.GhiChu}</td></tr>");
+            }
+            else if (don.HrDonSuDungDienThoai12s.Any())
+            {
+                var ct = don.HrDonSuDungDienThoai12s.First();
+                sb.Append($"<tr><th>Loại yêu cầu</th><td style='font-weight:bold;'>Đăng ký sử dụng điện thoại công vụ (Form 12)</td></tr>");
+                sb.Append($"<tr><th>Thông tin nhân sự</th><td>Mã số thẻ: {ct.MaSoThe} - Họ tên: {ct.HoTen}</td></tr>");
+                sb.Append($"<tr><th>Bộ phận / Cấp bậc</th><td>{ct.BoPhan} - Cấp: {ct.CapBac}</td></tr>");
+                sb.Append($"<tr><th>Chức vụ</th><td>{ct.ChucVu}</td></tr>");
+                sb.Append($"<tr><th>Thời gian bắt đầu dùng</th><td>{ct.ThoiGianBatDauSuDung?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
+                sb.Append($"<tr><th>Lý do đề xuất</th><td>{ct.LyDoSuDung}</td></tr>");
+                sb.Append($"<tr><th>Ghi chú đơn</th><td>{ct.GhiChu}</td></tr>");
+            }
             sb.Append("</table>");
 
             // III. LỊCH SỬ PHÊ DUYỆT (Bước 2 & Giám Đốc)
@@ -3131,29 +3245,114 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 sb.Append("</table>");
             }
 
-            // IV. CHỮ KÝ XÁC NHẬN
-            sb.Append("<table class='signature-table'><tr>");
-            sb.Append("<td><strong>NGƯỜI LẬP ĐƠN</strong><br/><span style='font-size:10pt;'>(Ký, ghi rõ họ tên)</span><br/><br/><br/><br/><strong>" + don.TenNguoiTao + "</strong></td>");
-            sb.Append("<td><strong>QUẢN LÝ DUYỆT</strong><br/><span style='font-size:10pt;'>(Ký, ghi rõ họ tên)</span><br/><br/><br/><br/><strong>" + (don.TenNguoiDuyet ?? "") + "</strong></td>");
+            // IV. KHỐI CHỮ KÝ XÁC NHẬN ĐỘNG (Xử lý gán hộp chữ ký điện tử chuẩn chỉnh cho toàn bộ các bên)
+            // Tính toán chia tỷ lệ số cột tương ứng
+            int totalCols = 3 + (hasGD ? don.HrNguoiXacNhans.Count() : 0) + (hasB2 ? don.HrQuanLyDuyetB2s.Count() : 0);
+            double colPercent = 100.0 / (totalCols > 0 ? totalCols : 1);
 
-            // Nếu có Giám đốc duyệt, để trống 1 cột cho GĐ ký
-            if (hasGD)
+            sb.Append("<table class='signature-table'><tr>");
+
+            // 1. CỘT NGƯỜI LẬP ĐƠN
+            sb.Append($"<td style='width:{colPercent}%;'><strong>NGƯỜI LẬP ĐƠN</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
+            if (don.TimeNguoiTao.HasValue)
             {
-                sb.Append("<td><strong>BAN GIÁM ĐỐC</strong><br/><span style='font-size:10pt;'>(Ký, ghi rõ họ tên)</span><br/><br/><br/><br/></td>");
+                sb.Append("<div class='digital-signature-box'>");
+                sb.Append("<div class='sig-status'>Signature Valid</div>");
+                sb.Append($"<div class='sig-info'>Ký bởi: {don.TenNguoiTao}<br/>Ký ngày: {don.TimeNguoiTao?.ToString("dd/MM/yyyy")}</div>");
+                sb.Append("<div class='sig-check-mark'>✓</div>");
+                sb.Append("</div>");
             }
             else
             {
-                sb.Append("<td></td>");
+                sb.Append("<br/><br/><br/><br/><strong>" + don.TenNguoiTao + "</strong>");
+            }
+            sb.Append("</td>");
+
+            // 2. CỘT QUẢN LÝ TRỰC TIẾP
+            sb.Append($"<td style='width:{colPercent}%;'><strong>QUẢN LÝ TRỰC TIẾP</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
+            if (don.TimeNguoiDuyet.HasValue)
+            {
+                sb.Append("<div class='digital-signature-box'>");
+                sb.Append("<div class='sig-status'>Signature Valid</div>");
+                sb.Append($"<div class='sig-info'>Ký bởi: {don.TenNguoiDuyet}<br/>Ký ngày: {don.TimeNguoiDuyet?.ToString("dd/MM/yyyy")}</div>");
+                sb.Append("<div class='sig-check-mark'>✓</div>");
+                sb.Append("</div>");
+            }
+            else
+            {
+                sb.Append("<br/><br/><br/><br/><strong>" + (don.TenNguoiDuyet ?? "") + "</strong>");
+            }
+            sb.Append("</td>");
+
+            // 3. ĐỘNG: CÁC CỘT QUẢN LÝ PHÊ DUYỆT BƯỚC 2 (HrQuanLyDuyetB2s)
+            if (hasB2)
+            {
+                foreach (var b2 in don.HrQuanLyDuyetB2s.OrderBy(x => x.ThuTuXacNhan))
+                {
+                    sb.Append($"<td style='width:{colPercent}%;'><strong>QUẢN LÝ B2</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
+                    if (b2.TrangThaiXacNhan == 1 && b2.ThoiGianXacNhan.HasValue)
+                    {
+                        sb.Append("<div class='digital-signature-box'>");
+                        sb.Append("<div class='sig-status'>Signature Valid</div>");
+                        sb.Append($"<div class='sig-info'>Ký bởi: {b2.TenNguoiXacNhan}<br/>Ký ngày: {b2.ThoiGianXacNhan?.ToString("dd/MM/yyyy")}</div>");
+                        sb.Append("<div class='sig-check-mark'>✓</div>");
+                        sb.Append("</div>");
+                    }
+                    else
+                    {
+                        sb.Append($"<br/><br/><br/><br/><strong>{b2.TenNguoiXacNhan}</strong>");
+                    }
+                    sb.Append("</td>");
+                }
             }
 
-            sb.Append("<td><strong>XÁC NHẬN (HR)</strong><br/><span style='font-size:10pt;'>(Ký, ghi rõ họ tên)</span><br/><br/><br/><br/><strong>" + (don.TenAdmin ?? "") + "</strong></td>");
+            // 4. ĐỘNG: CÁC CỘT BAN GIÁM ĐỐC PHÊ DUYỆT (HrNguoiXacNhans)
+            if (hasGD)
+            {
+                foreach (var xn in don.HrNguoiXacNhans.OrderBy(x => x.ThuTuXacNhan))
+                {
+                    sb.Append($"<td style='width:{colPercent}%;'><strong>BAN GIÁM ĐỐC</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
+                    if (xn.TrangThaiXacNhan == 1 && xn.ThoiGianXacNhan.HasValue)
+                    {
+                        string tenGD = xn.IdnguoiXacNhanNavigation?.HoTen ?? xn.TenNguoiXacNhan;
+                        sb.Append("<div class='digital-signature-box'>");
+                        sb.Append("<div class='sig-status'>Signature Valid</div>");
+                        sb.Append($"<div class='sig-info'>Ký bởi: {tenGD}<br/>Ký ngày: {xn.ThoiGianXacNhan?.ToString("dd/MM/yyyy")}</div>");
+                        sb.Append("<div class='sig-check-mark'>✓</div>");
+                        sb.Append("</div>");
+                    }
+                    else
+                    {
+                        string tenGD = xn.IdnguoiXacNhanNavigation?.HoTen ?? xn.TenNguoiXacNhan;
+                        sb.Append($"<br/><br/><br/><br/><strong>{tenGD}</strong>");
+                    }
+                    sb.Append("</td>");
+                }
+            }
+
+            // 5. CỘT XÁC NHẬN HR (ADMIN)
+            sb.Append($"<td style='width:{colPercent}%;'><strong>XÁC NHẬN (HR)</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
+            if (don.TimeAdmin.HasValue)
+            {
+                sb.Append("<div class='digital-signature-box'>");
+                sb.Append("<div class='sig-status'>Signature Valid</div>");
+                sb.Append($"<div class='sig-info'>Ký bởi: {don.TenAdmin}<br/>Ký ngày: {don.TimeAdmin?.ToString("dd/MM/yyyy")}</div>");
+                sb.Append("<div class='sig-check-mark'>✓</div>");
+                sb.Append("</div>");
+            }
+            else
+            {
+                sb.Append("<br/><br/><br/><br/><strong>" + (don.TenAdmin ?? "") + "</strong>");
+            }
+            sb.Append("</td>");
+
             sb.Append("</tr></table>");
 
             sb.Append("</div></body></html>");
             return sb.ToString();
         }
         #endregion
-
+        
         #region BÌNH LUẬN ĐƠN HR
 
         [HttpGet("/FormHR/LayBinhLuan/{idForm}")]

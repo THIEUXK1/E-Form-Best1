@@ -732,23 +732,56 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             sb.Append("<html><head><meta charset='utf-8'/>");
             sb.Append("<style>");
             sb.Append(@"
-        body { font-family: 'Times New Roman', Times, serif; line-height: 1.5; margin: 0; padding: 0; color: #000; background: #fff; }
-        .document-container { max-width: 850px; margin: 0 auto; padding: 40px; background: #fff; }
-        .header-table { width: 100%; border: none; margin-bottom: 20px; text-align: center; }
-        .header-table td { border: none; padding: 0; }
-        .company-name { font-size: 14pt; font-weight: bold; text-transform: uppercase; }
-        .company-sub { font-size: 12pt; font-weight: bold; text-decoration: underline; margin-bottom: 10px; }
-        .national-title { font-size: 14pt; font-weight: bold; text-transform: uppercase; }
-        .national-sub { font-size: 13pt; font-weight: bold; text-decoration: underline; }
-        .form-title { font-size: 20pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 25px 0 5px 0; }
-        .form-id { font-size: 12pt; text-align: center; font-style: italic; margin-bottom: 30px; }
-        .section-title { font-size: 14pt; font-weight: bold; margin-top: 25px; margin-bottom: 10px; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 5px; }
-        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .data-table th, .data-table td { border: 1px solid #000; padding: 8px 12px; font-size: 12pt; vertical-align: top; }
-        .data-table th { background-color: #f2f2f2; font-weight: bold; text-align: left; width: 35%; }
-        .signature-table { width: 100%; text-align: center; margin-top: 40px; border: none; page-break-inside: avoid; }
-        .signature-table td { width: 25%; vertical-align: top; border: none; font-size: 12pt; }
-    ");
+                body { font-family: 'Times New Roman', Times, serif; line-height: 1.5; margin: 0; padding: 0; color: #000; background: #fff; }
+                .document-container { max-width: 850px; margin: 0 auto; padding: 40px; background: #fff; }
+                .header-table { width: 100%; border: none; margin-bottom: 20px; text-align: center; }
+                .header-table td { border: none; padding: 0; }
+                .company-name { font-size: 14pt; font-weight: bold; text-transform: uppercase; }
+                .company-sub { font-size: 12pt; font-weight: bold; text-decoration: underline; margin-bottom: 10px; }
+                .national-title { font-size: 14pt; font-weight: bold; text-transform: uppercase; }
+                .national-sub { font-size: 13pt; font-weight: bold; text-decoration: underline; }
+                .form-title { font-size: 20pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 25px 0 5px 0; }
+                .form-id { font-size: 12pt; text-align: center; font-style: italic; margin-bottom: 30px; }
+                .section-title { font-size: 14pt; font-weight: bold; margin-top: 25px; margin-bottom: 10px; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 5px; }
+                .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                .data-table th, .data-table td { border: 1px solid #000; padding: 8px 12px; font-size: 12pt; vertical-align: top; }
+                .data-table th { background-color: #f2f2f2; font-weight: bold; text-align: left; width: 35%; }
+                .signature-table { width: 100%; text-align: center; margin-top: 40px; border: none; table-layout: fixed; page-break-inside: avoid; }
+                .signature-table td { vertical-align: top; border: none; font-size: 12pt; padding: 5px; word-wrap: break-word; }
+
+                /* ĐỊNH DẠNG KHUNG CHỮ KÝ ĐIỆN TỬ THEO ẢNH MAU KHUNG CHUAN VÀNG/XANH ĐỒNG BỘ VỚI HR */
+                .digital-signature-box { 
+                    border: 1px solid #2e7d32; 
+                    padding: 8px; 
+                    text-align: left; 
+                    background-color: #f1f8e9; 
+                    margin: 10px auto 0 auto; 
+                    display: block; 
+                    width: 98%;
+                    max-width: 190px;
+                    position: relative;
+                    box-sizing: border-box;
+                }
+                .sig-status { 
+                    color: #2e7d32; 
+                    font-size: 10.5pt; 
+                    font-weight: bold; 
+                    margin-bottom: 3px;
+                }
+                .sig-info { 
+                    font-size: 9pt; 
+                    color: #202124; 
+                    line-height: 1.35;
+                }
+                .sig-check-mark {
+                    position: absolute;
+                    right: 6px;
+                    bottom: 4px;
+                    font-size: 18pt;
+                    font-weight: bold;
+                    color: rgba(46, 125, 50, 0.25);
+                }
+            ");
 
             if (!isForWord)
             {
@@ -829,17 +862,106 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 sb.Append("</table>");
             }
 
-            // IV. CHỮ KÝ XÁC NHẬN
+            // IV. KHỐI CHỮ KÝ XÁC NHẬN ĐỘNG (ĐỒNG BỘ HOÀN TOÀN THEO CẤU TRÚC BÊN HR)
+            int totalCols = 3 + (hasGD ? don.ShdNguoiXacNhans.Count() : 0) + (hasB2 ? don.ShdQuanLyDuyetB2s.Count() : 0);
+            double colPercent = 100.0 / (totalCols > 0 ? totalCols : 1);
+
             sb.Append("<table class='signature-table'><tr>");
-            sb.Append("<td><strong>NGƯỜI LẬP PHIẾU</strong><br/><span style='font-size:10pt;'>(Đã xác thực điện tử)</span><br/><br/><br/><br/><strong>" + don.TenNguoiTao + "</strong></td>");
-            sb.Append("<td><strong>QUẢN LÝ TRỰC TIẾP</strong><br/><span style='font-size:10pt;'>(Đã duyệt online)</span><br/><br/><br/><br/><strong>" + (don.TenNguoiDuyet ?? "") + "</strong></td>");
 
-            if (hasGD)
-                sb.Append("<td><strong>BAN GIÁM ĐỐC</strong><br/><span style='font-size:10pt;'>(Ký và đóng dấu)</span><br/><br/><br/><br/></td>");
+            // 1. CỘT NGƯỜI LẬP PHIẾU
+            sb.Append($"<td style='width:{colPercent}%;'><strong>NGƯỜI LẬP PHIẾU</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
+            if (don.TimeNguoiTao.HasValue)
+            {
+                sb.Append("<div class='digital-signature-box'>");
+                sb.Append("<div class='sig-status'>Signature Valid</div>");
+                sb.Append($"<div class='sig-info'>Ký bởi: {don.TenNguoiTao}<br/>Ký ngày: {don.TimeNguoiTao?.ToString("dd/MM/yyyy")}</div>");
+                sb.Append("<div class='sig-check-mark'>✓</div>");
+                sb.Append("</div>");
+            }
             else
-                sb.Append("<td></td>");
+            {
+                sb.Append("<br/><br/><br/><br/><strong>" + don.TenNguoiTao + "</strong>");
+            }
+            sb.Append("</td>");
 
-            sb.Append("<td><strong>PHÒNG SHD XÁC NHẬN</strong><br/><span style='font-size:10pt;'>(Hệ thống xác nhận)</span><br/><br/><br/><br/><strong>" + (don.TenAdmin ?? "") + "</strong></td>");
+            // 2. CỘT QUẢN LÝ TRỰC TIẾP
+            sb.Append($"<td style='width:{colPercent}%;'><strong>QUẢN LÝ TRỰC TIẾP</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
+            if (don.TimeNguoiDuyet.HasValue)
+            {
+                sb.Append("<div class='digital-signature-box'>");
+                sb.Append("<div class='sig-status'>Signature Valid</div>");
+                sb.Append($"<div class='sig-info'>Ký bởi: {don.TenNguoiDuyet}<br/>Ký ngày: {don.TimeNguoiDuyet?.ToString("dd/MM/yyyy")}</div>");
+                sb.Append("<div class='sig-check-mark'>✓</div>");
+                sb.Append("</div>");
+            }
+            else
+            {
+                sb.Append("<br/><br/><br/><br/><strong>" + (don.TenNguoiDuyet ?? "") + "</strong>");
+            }
+            sb.Append("</td>");
+
+            // 3. ĐỘNG: CÁC CỘT QUẢN LÝ PHÊ DUYỆT BƯỚC 2 (ShdQuanLyDuyetB2s)
+            if (hasB2)
+            {
+                foreach (var b2 in don.ShdQuanLyDuyetB2s.OrderBy(x => x.ThuTuXacNhan))
+                {
+                    sb.Append($"<td style='width:{colPercent}%;'><strong>QUẢN LÝ B2</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
+                    if (b2.TrangThaiXacNhan == 1 && b2.ThoiGianXacNhan.HasValue)
+                    {
+                        sb.Append("<div class='digital-signature-box'>");
+                        sb.Append("<div class='sig-status'>Signature Valid</div>");
+                        sb.Append($"<div class='sig-info'>Ký bởi: {b2.TenNguoiXacNhan}<br/>Ký ngày: {b2.ThoiGianXacNhan?.ToString("dd/MM/yyyy")}</div>");
+                        sb.Append("<div class='sig-check-mark'>✓</div>");
+                        sb.Append("</div>");
+                    }
+                    else
+                    {
+                        sb.Append($"<br/><br/><br/><br/><strong>{b2.TenNguoiXacNhan}</strong>");
+                    }
+                    sb.Append("</td>");
+                }
+            }
+
+            // 4. ĐỘNG: CÁC CỘT BAN GIÁM ĐỐC PHÊ DUYỆT (ShdNguoiXacNhans)
+            if (hasGD)
+            {
+                foreach (var xn in don.ShdNguoiXacNhans.OrderBy(x => x.ThuTuXacNhan))
+                {
+                    sb.Append($"<td style='width:{colPercent}%;'><strong>BAN GIÁM ĐỐC</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
+                    if (xn.TrangThaiXacNhan == 1 && xn.ThoiGianXacNhan.HasValue)
+                    {
+                        string tenGD = xn.IdnguoiXacNhanNavigation?.HoTen ?? xn.TenNguoiXacNhan;
+                        sb.Append("<div class='digital-signature-box'>");
+                        sb.Append("<div class='sig-status'>Signature Valid</div>");
+                        sb.Append($"<div class='sig-info'>Ký bởi: {tenGD}<br/>Ký ngày: {xn.ThoiGianXacNhan?.ToString("dd/MM/yyyy")}</div>");
+                        sb.Append("<div class='sig-check-mark'>✓</div>");
+                        sb.Append("</div>");
+                    }
+                    else
+                    {
+                        string tenGD = xn.IdnguoiXacNhanNavigation?.HoTen ?? xn.TenNguoiXacNhan;
+                        sb.Append($"<br/><br/><br/><br/><strong>{tenGD}</strong>");
+                    }
+                    sb.Append("</td>");
+                }
+            }
+
+            // 5. CỘT PHÒNG SHD XÁC NHẬN
+            sb.Append($"<td style='width:{colPercent}%;'><strong>PHÒNG SHD XÁC NHẬN</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
+            if (don.TimeAdmin.HasValue)
+            {
+                sb.Append("<div class='digital-signature-box'>");
+                sb.Append("<div class='sig-status'>Signature Valid</div>");
+                sb.Append($"<div class='sig-info'>Ký bởi: {don.TenAdmin}<br/>Ký ngày: {don.TimeAdmin?.ToString("dd/MM/yyyy")}</div>");
+                sb.Append("<div class='sig-check-mark'>✓</div>");
+                sb.Append("</div>");
+            }
+            else
+            {
+                sb.Append("<br/><br/><br/><br/><strong>" + (don.TenAdmin ?? "") + "</strong>");
+            }
+            sb.Append("</td>");
+
             sb.Append("</tr></table>");
 
             sb.Append("</div></body></html>");
