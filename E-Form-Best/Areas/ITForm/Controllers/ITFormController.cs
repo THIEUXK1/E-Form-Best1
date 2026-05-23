@@ -26,6 +26,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return View();
         }
         #endregion
+
         #region Trang đăng nhập
 
         [HttpGet("/DonXetDuyet/DangNhap")]
@@ -285,7 +286,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
-
 
         #region PHÂN QUYỀN TRUY CẬP (Custom Access Control)
 
@@ -2124,7 +2124,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
-        #region Xuất file Excel, Word, PDF chuyên nghiệp cho IT
+        #region Xuất file Excel, Word, PDF cho hệ thống IT
 
         // ============================================================
         // ACTION XUẤT BIỂU MẪU IT (EXCEL, WORD, PDF)
@@ -2134,151 +2134,62 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         public async Task<IActionResult> ExportExcel(int id)
         {
             var don = await _context.FormIts
-                .Include(f => f.ItMail1s)
-                .Include(f => f.ItOrderIt2s)
-                .Include(f => f.ItDangKiSuDungWifi3s)
-                .Include(f => f.ItDangKiSuDungDtban4s)
-                .Include(f => f.ItDangKiTaiKhoanHeThong5s)
-                .Include(f => f.ItDangkiTaiKhoanMayTinh6s)
-                .Include(f => f.ItCtNguoiHoTros).ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
-                .Include(f => f.LichSuFormIts)
+                .Include(f => f.ItDonLapDatThietBi7s)
                 .FirstOrDefaultAsync(m => m.Id == id);
 
-            if (don == null) return NotFound("Không tìm thấy đơn IT!");
+            if (don == null || don.IdAdmin == null)
+                return NotFound("Đơn chưa hoàn tất xử lý hoặc không tồn tại.");
 
             using (var workbook = new ClosedXML.Excel.XLWorkbook())
             {
                 var worksheet = workbook.Worksheets.Add("ChiTietDonIT");
 
-                // Header tiêu đề hệ thống
-                worksheet.Cell(1, 1).Value = "HỆ THỐNG E-FORM IT - BEST PACIFIC VIETNAM";
-                worksheet.Range("A1:E1").Merge().Style.Font.SetBold().Font.FontSize = 15;
+                // Header chung
+                worksheet.Cell(1, 1).Value = "HỆ THỐNG E-FORM IT - PHÒNG CÔNG NGHỆ THÔNG TIN - BEST PACIFIC";
+                worksheet.Range("A1:E1").Merge().Style.Font.SetBold().Font.FontSize = 14;
                 worksheet.Range("A1:E1").Style.Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
 
-                // THÔNG TIN CHUNG
-                worksheet.Cell(3, 1).Value = "Mã số phiếu:"; worksheet.Cell(3, 2).Value = $"#{don.Id}";
-                worksheet.Cell(4, 1).Value = "Tên loại đơn:"; worksheet.Cell(4, 2).Value = don.TenForm;
-                worksheet.Cell(5, 1).Value = "Nhân viên yêu cầu:"; worksheet.Cell(5, 2).Value = don.TenNguoiNv;
-                worksheet.Cell(6, 1).Value = "Mã nhân viên:"; worksheet.Cell(6, 2).Value = don.SoNhanVien;
-                worksheet.Cell(7, 1).Value = "Bộ phận:"; worksheet.Cell(7, 2).Value = don.BoPhan;
-                worksheet.Cell(8, 1).Value = "Công ty:"; worksheet.Cell(8, 2).Value = don.TenCongTy;
-                worksheet.Cell(9, 1).Value = "Ngày tạo:"; worksheet.Cell(9, 2).Value = don.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm");
-                worksheet.Cell(10, 1).Value = "Trạng thái:"; worksheet.Cell(10, 2).Value = "HOÀN TẤT";
+                worksheet.Cell(3, 1).Value = "Mã Đơn:"; worksheet.Cell(3, 2).Value = don.Id;
+                worksheet.Cell(4, 1).Value = "Tên Form:"; worksheet.Cell(4, 2).Value = don.TenForm;
+                worksheet.Cell(5, 1).Value = "Mã NV:"; worksheet.Cell(5, 2).Value = don.SoNhanVien;
+                worksheet.Cell(6, 1).Value = "Họ Tên:"; worksheet.Cell(6, 2).Value = don.TenNguoiNv;
+                worksheet.Cell(7, 1).Value = "Bộ Phận:"; worksheet.Cell(7, 2).Value = don.BoPhan;
+                worksheet.Cell(8, 1).Value = "Ngày Tạo:"; worksheet.Cell(8, 2).Value = don.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm");
+                worksheet.Cell(9, 1).Value = "Trạng Thái:"; worksheet.Cell(9, 2).Value = "HOÀN TẤT (IT)";
 
-                var rangeChung = worksheet.Range("A3:B10");
+                var rangeChung = worksheet.Range("A3:B9");
                 rangeChung.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
                 rangeChung.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
-                worksheet.Range("A3:A10").Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.AliceBlue);
+                worksheet.Range("A3:A9").Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
 
-                int currentRow = 12;
+                int currentRow = 11;
 
-                // XỬ LÝ 6 LOẠI CHI TIẾT
-                if (don.ItMail1s.Any())
+                // Xử lý đơn chi tiết: ĐĂNG KÝ LẮP ĐẶT THIẾT BỊ IT (Form 7)
+                if (don.ItDonLapDatThietBi7s.Any())
                 {
-                    var ct = don.ItMail1s.First();
-                    worksheet.Cell(currentRow, 1).Value = "NỘI DUNG CHI TIẾT: ĐĂNG KÝ/SỬA ĐỔI EMAIL";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightBlue);
+                    var ct = don.ItDonLapDatThietBi7s.First();
+                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐĂNG KÝ LẮP ĐẶT THIẾT BỊ IT";
+                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Khaki);
                     currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Loại yêu cầu:"; worksheet.Cell(currentRow, 2).Value = ct.LoaiYeuCau; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Người sử dụng:"; worksheet.Cell(currentRow, 2).Value = ct.NguoiSuDung; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Địa chỉ Email:"; worksheet.Cell(currentRow, 2).Value = ct.Email; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Vị trí/Chức vụ:"; worksheet.Cell(currentRow, 2).Value = ct.ViTri; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Số nội bộ:"; worksheet.Cell(currentRow, 2).Value = ct.SoNoiBo; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Số điện thoại:"; worksheet.Cell(currentRow, 2).Value = ct.SoDienThoai; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Gửi nhận quốc tế:"; worksheet.Cell(currentRow, 2).Value = ct.GuiRaNgoai; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Dùng trên Mobile:"; worksheet.Cell(currentRow, 2).Value = ct.SuDungTrenDienThoai; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Webmail:"; worksheet.Cell(currentRow, 2).Value = ct.SuDungWebMail; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Mục đích:"; worksheet.Cell(currentRow, 2).Value = ct.MucDich; currentRow++;
-                }
-                else if (don.ItOrderIt2s.Any())
-                {
-                    var ct = don.ItOrderIt2s.First();
-                    worksheet.Cell(currentRow, 1).Value = "NỘI DUNG CHI TIẾT: SỬA CHỮA / CẤP THIẾT BỊ";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightCoral);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Tên thiết bị/Sự cố:"; worksheet.Cell(currentRow, 2).Value = ct.Ten; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Mô tả lỗi/Yêu cầu:"; worksheet.Cell(currentRow, 2).Value = ct.GhiChu; currentRow++;
-                }
-                else if (don.ItDangKiSuDungWifi3s.Any())
-                {
-                    worksheet.Cell(currentRow, 1).Value = "NỘI DUNG CHI TIẾT: ĐĂNG KÝ SỬ DỤNG WIFI";
-                    worksheet.Range(currentRow, 1, currentRow, 5).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGreen);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Loại thiết bị"; worksheet.Cell(currentRow, 2).Value = "Mã thiết bị"; worksheet.Cell(currentRow, 3).Value = "Địa chỉ MAC"; worksheet.Cell(currentRow, 4).Value = "Thời gian"; worksheet.Cell(currentRow, 5).Value = "Lý do";
-                    worksheet.Range(currentRow, 1, currentRow, 5).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
-                    foreach (var w in don.ItDangKiSuDungWifi3s)
-                    {
-                        currentRow++;
-                        worksheet.Cell(currentRow, 1).Value = w.LoaiThietBi;
-                        worksheet.Cell(currentRow, 2).Value = w.MaThietBi;
-                        worksheet.Cell(currentRow, 3).Value = w.MacTb;
-                        worksheet.Cell(currentRow, 4).Value = $"{w.ThoiGianBatDau:dd/MM} - {w.ThoiGianKetThuc:dd/MM/yyyy}";
-                        worksheet.Cell(currentRow, 5).Value = w.LyDo;
-                    }
-                }
-                else if (don.ItDangKiSuDungDtban4s.Any())
-                {
-                    var ct = don.ItDangKiSuDungDtban4s.First();
-                    worksheet.Cell(currentRow, 1).Value = "NỘI DUNG CHI TIẾT: ĐIỆN THOẠI BÀN";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightYellow);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Thông tin:"; worksheet.Cell(currentRow, 2).Value = ct.ThongTin; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Mục đích:"; worksheet.Cell(currentRow, 2).Value = ct.MucDich; currentRow++;
-                }
-                else if (don.ItDangKiTaiKhoanHeThong5s.Any())
-                {
-                    var ct = don.ItDangKiTaiKhoanHeThong5s.First();
-                    worksheet.Cell(currentRow, 1).Value = "NỘI DUNG CHI TIẾT: ĐĂNG KÝ TÀI KHOẢN HỆ THỐNG";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightPink);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Hệ thống:"; worksheet.Cell(currentRow, 2).Value = ct.HeThongNao; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Loại đơn:"; worksheet.Cell(currentRow, 2).Value = ct.LoaiDon; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Đăng ký cho:"; worksheet.Cell(currentRow, 2).Value = ct.DangKiChoAi; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Sử dụng tại máy:"; worksheet.Cell(currentRow, 2).Value = ct.DungTrenMayNao; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Quyền giống:"; worksheet.Cell(currentRow, 2).Value = ct.CapQuyenGiongAi; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Mô tả chi tiết:"; worksheet.Cell(currentRow, 2).Value = ct.MoTaChiTiet; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Mục đích:"; worksheet.Cell(currentRow, 2).Value = ct.MucDich; currentRow++;
-                }
-                else if (don.ItDangkiTaiKhoanMayTinh6s.Any())
-                {
-                    var ct = don.ItDangkiTaiKhoanMayTinh6s.First();
-                    worksheet.Cell(currentRow, 1).Value = "NỘI DUNG CHI TIẾT: TÀI KHOẢN MÁY TÍNH / Ổ CHUNG";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Cyan);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Loại yêu cầu:"; worksheet.Cell(currentRow, 2).Value = ct.Loai; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Người sử dụng:"; worksheet.Cell(currentRow, 2).Value = ct.HoTenVaMaNhanVienNguoiSuDung; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Chức vụ:"; worksheet.Cell(currentRow, 2).Value = ct.ChucVu; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "SĐT / Nội bộ:"; worksheet.Cell(currentRow, 2).Value = $"{ct.SoDienThoai} (Ext: {ct.SoNoiBo})"; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Tên máy tính:"; worksheet.Cell(currentRow, 2).Value = ct.TenMayCanCai; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Quyền ổ chung:"; worksheet.Cell(currentRow, 2).Value = ct.TenOchungCanAddQuyen; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Mục đích:"; worksheet.Cell(currentRow, 2).Value = ct.MucDich; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Ghi chú:"; worksheet.Cell(currentRow, 2).Value = ct.GhiChu; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Tên thiết bị:"; worksheet.Cell(currentRow, 2).Value = ct.TenThietBi; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Vị trí lắp đặt:"; worksheet.Cell(currentRow, 2).Value = ct.ViTri; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Mục đích sử dụng:"; worksheet.Cell(currentRow, 2).Value = ct.MucDich; currentRow++;
                 }
 
-                currentRow += 2;
-
-                // ĐỘI NGŨ HỖ TRỢ
-                if (don.ItCtNguoiHoTros.Any())
+                if (currentRow > 11)
                 {
-                    worksheet.Cell(currentRow, 1).Value = "DANH SÁCH IT HỖ TRỢ";
-                    worksheet.Range(currentRow, 1, currentRow, 3).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Orange);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "STT"; worksheet.Cell(currentRow, 2).Value = "Họ Tên"; worksheet.Cell(currentRow, 3).Value = "Mã NV";
-                    int stt = 1;
-                    foreach (var ht in don.ItCtNguoiHoTros)
-                    {
-                        currentRow++;
-                        worksheet.Cell(currentRow, 1).Value = stt++;
-                        worksheet.Cell(currentRow, 2).Value = ht.IdItNguoiHoTroNavigation?.Ten;
-                        worksheet.Cell(currentRow, 3).Value = ht.IdItNguoiHoTroNavigation?.MaNv;
-                    }
+                    var rangeChiTiet = worksheet.Range(11, 1, currentRow - 1, 2);
+                    rangeChiTiet.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                    rangeChiTiet.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                    worksheet.Range(12, 1, currentRow - 1, 1).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.WhiteSmoke);
                 }
 
                 worksheet.Columns().AdjustToContents();
+
                 using (var stream = new System.IO.MemoryStream())
                 {
                     workbook.SaveAs(stream);
-                    return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"DonIT_{id}.xlsx");
+                    return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Don_EFormIT_{id}.xlsx");
                 }
             }
         }
@@ -2286,159 +2197,198 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/ExportWord/{id}")]
         public async Task<IActionResult> ExportWord(int id)
         {
-            var don = await GetFullDonIT(id);
-            if (don == null) return NotFound();
+            var don = await _context.FormIts
+                .Include(f => f.ItDonLapDatThietBi7s)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (don == null || don.IdAdmin == null)
+                return NotFound("Đơn chưa hoàn tất hoặc không tồn tại.");
+
             string htmlContent = BuildHtmlContentIT(don, isForWord: true);
+
             byte[] byteArray = System.Text.Encoding.UTF8.GetBytes(htmlContent);
-            return File(byteArray, "application/msword", $"DonIT_{id}.doc");
+            return File(byteArray, "application/msword", $"Don_EFormIT_{id}.doc");
         }
 
         [HttpGet("/FormIT/ExportPDF/{id}")]
         public async Task<IActionResult> ExportPDF(int id)
         {
-            var don = await GetFullDonIT(id);
-            if (don == null) return NotFound();
+            var don = await _context.FormIts
+                .Include(f => f.ItDonLapDatThietBi7s)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (don == null || don.IdAdmin == null)
+                return NotFound("Đơn chưa hoàn tất hoặc không tồn tại.");
+
             string htmlContent = BuildHtmlContentIT(don, isForWord: false);
             return Content(htmlContent, "text/html", System.Text.Encoding.UTF8);
         }
 
-        private async Task<FormIt?> GetFullDonIT(int id)
-        {
-            return await _context.FormIts
-                .Include(f => f.ItMail1s).Include(f => f.ItOrderIt2s).Include(f => f.ItDangKiSuDungWifi3s)
-                .Include(f => f.ItDangKiSuDungDtban4s).Include(f => f.ItDangKiTaiKhoanHeThong5s).Include(f => f.ItDangkiTaiKhoanMayTinh6s)
-                .Include(f => f.ItCtNguoiHoTros).ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
-                .Include(f => f.LichSuFormIts)
-                .FirstOrDefaultAsync(m => m.Id == id);
-        }
-
+        // ============================================================
+        // HÀM HỖ TRỢ BUILD HTML CHUYÊN NGHIỆP CHO IT
+        // ============================================================
         private string BuildHtmlContentIT(FormIt don, bool isForWord = false)
         {
             var sb = new System.Text.StringBuilder();
+
             sb.Append("<html><head><meta charset='utf-8'/>");
             sb.Append("<style>");
             sb.Append(@"
-                body { font-family: 'Times New Roman', serif; line-height: 1.5; color: #000; }
-                .container { max-width: 850px; margin: 0 auto; padding: 30px; }
-                .header-table { width: 100%; border: none; margin-bottom: 20px; }
-                .company-info { font-weight: bold; text-transform: uppercase; font-size: 14pt; }
-                .form-title { font-size: 20pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 30px 0 10px; }
-                .form-subtitle { text-align: center; font-style: italic; margin-bottom: 30px; }
-                .section-header { font-size: 13pt; font-weight: bold; text-transform: uppercase; border-bottom: 2px solid #1e40af; color: #1e40af; margin-top: 25px; margin-bottom: 10px; padding-bottom: 5px; }
+                body { font-family: 'Times New Roman', Times, serif; line-height: 1.5; margin: 0; padding: 0; color: #000; background: #fff; }
+                .document-container { max-width: 850px; margin: 0 auto; padding: 40px; background: #fff; }
+                .header-table { width: 100%; border: none; margin-bottom: 20px; text-align: center; }
+                .header-table td { border: none; padding: 0; }
+                .company-name { font-size: 14pt; font-weight: bold; text-transform: uppercase; }
+                .company-sub { font-size: 12pt; font-weight: bold; text-decoration: underline; margin-bottom: 10px; }
+                .national-title { font-size: 14pt; font-weight: bold; text-transform: uppercase; }
+                .national-sub { font-size: 13pt; font-weight: bold; text-decoration: underline; }
+                .form-title { font-size: 20pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 25px 0 5px 0; }
+                .form-id { font-size: 12pt; text-align: center; font-style: italic; margin-bottom: 30px; }
+                .section-title { font-size: 14pt; font-weight: bold; margin-top: 25px; margin-bottom: 10px; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 5px; }
                 .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                .data-table th, .data-table td { border: 1px solid #333; padding: 10px; font-size: 12pt; text-align: left; }
-                .data-table th { background: #f3f4f6; width: 35%; font-weight: bold; }
-                .signature-table { width: 100%; text-align: center; margin-top: 50px; border: none; }
-                .signature-table td { border: none; width: 33%; vertical-align: top; }
-                .log-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                .log-table td { border: 1px solid #ddd; padding: 6px; font-size: 10pt; }
-            ");
-            if (!isForWord) sb.Append("@page { size: A4; margin: 20mm; } script { window.onload = function() { window.print(); } } ");
-            sb.Append("</style></head><body><div class='container'>");
+                .data-table th, .data-table td { border: 1px solid #000; padding: 8px 12px; font-size: 12pt; vertical-align: top; }
+                .data-table th { background-color: #f2f2f2; font-weight: bold; text-align: left; width: 35%; }
+                .signature-table { width: 100%; text-align: center; margin-top: 40px; border: none; table-layout: fixed; page-break-inside: avoid; }
+                .signature-table td { vertical-align: top; border: none; font-size: 12pt; padding: 5px; word-wrap: break-word; }
 
-            // Header
+                /* ĐỊNH DẠNG KHUNG CHỮ KÝ ĐIỆN TỬ THEO ẢNH MAU KHUNG CHUAN VÀNG/XANH ĐỒNG BỘ VỚI HR VÀ SHD */
+                .digital-signature-box { 
+                    border: 1px solid #2e7d32; 
+                    padding: 8px; 
+                    text-align: left; 
+                    background-color: #f1f8e9; 
+                    margin: 10px auto 0 auto; 
+                    display: block; 
+                    width: 98%;
+                    max-width: 190px;
+                    position: relative;
+                    box-sizing: border-box;
+                }
+                .sig-status { 
+                    color: #2e7d32; 
+                    font-size: 10.5pt; 
+                    font-weight: bold; 
+                    margin-bottom: 3px;
+                }
+                .sig-info { 
+                    font-size: 9pt; 
+                    color: #202124; 
+                    line-height: 1.35;
+                }
+                .sig-check-mark {
+                    position: absolute;
+                    right: 6px;
+                    bottom: 4px;
+                    font-size: 18pt;
+                    font-weight: bold;
+                    color: rgba(46, 125, 50, 0.25);
+                }
+            ");
+
+            if (!isForWord)
+            {
+                sb.Append("@page { size: A4; margin: 20mm; } ");
+                sb.Append("@media print { .document-container { padding: 0; } } ");
+                sb.Append("</style><script>window.onload = function() { window.print(); }</script></head><body>");
+            }
+            else
+            {
+                sb.Append("</style></head><body>");
+            }
+
+            sb.Append("<div class='document-container'>");
+
+            // Phần Quốc hiệu và Tên bộ phận IT
             sb.Append("<table class='header-table'><tr>");
-            sb.Append("<td style='width:50%'><div class='company-info'>BEST PACIFIC VIETNAM</div><div>IT DEPARTMENT - SERVICE FORM</div></td>");
-            sb.Append("<td style='width:50%; text-align:right;'>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM<br/>Độc lập - Tự do - Hạnh phúc</td>");
+            sb.Append("<td style='width:45%;'><div class='company-name'>BEST PACIFIC</div><div class='company-sub'>PHÒNG CÔNG NGHỆ THÔNG TIN (IT)</div></td>");
+            sb.Append("<td style='width:55%;'><div class='national-title'>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div><div class='national-sub'>Độc lập - Tự do - Hạnh phúc</div></td>");
             sb.Append("</tr></table>");
 
+            // Tên đơn
             sb.Append($"<div class='form-title'>{don.TenForm}</div>");
-            sb.Append($"<div class='form-subtitle'>Mã phiếu: #{don.Id} | Ngày tạo: {don.TimeNguoiTao:dd/MM/yyyy HH:mm}</div>");
+            sb.Append($"<div class='form-id'>Mã phiếu: #{don.Id} | Trạng thái: ĐÃ HOÀN TẤT</div>");
 
-            // I. THÔNG TIN NGƯỜI YÊU CẦU
-            sb.Append("<div class='section-header'>I. THÔNG TIN NGƯỜI YÊU CẦU</div>");
+            // I. THÔNG TIN NGƯỜI TẠO
+            sb.Append("<div class='section-title'>I. THÔNG TIN NHÂN VIÊN ĐĂNG KÝ</div>");
             sb.Append("<table class='data-table'>");
-            sb.Append($"<tr><th>Họ và tên</th><td>{don.TenNguoiNv}</td></tr>");
+            sb.Append($"<tr><th>Họ và tên nhân viên</th><td>{don.TenNguoiNv}</td></tr>");
             sb.Append($"<tr><th>Mã nhân viên</th><td>{don.SoNhanVien}</td></tr>");
             sb.Append($"<tr><th>Bộ phận / Phòng ban</th><td>{don.BoPhan}</td></tr>");
-            sb.Append($"<tr><th>Công ty</th><td>{don.TenCongTy}</td></tr>");
-            sb.Append($"<tr><th>Danh mục yêu cầu</th><td>{don.Danhmuc}</td></tr>");
+            sb.Append($"<tr><th>Thời gian lập đơn</th><td>{don.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
             sb.Append("</table>");
 
-            // II. CHI TIẾT KỸ THUẬT
-            sb.Append("<div class='section-header'>II. NỘI DUNG CHI TIẾT</div>");
+            // II. CHI TIẾT YÊU CẦU LẮP ĐẶT THIẾT BỊ IT
+            sb.Append("<div class='section-title'>II. NỘI DUNG CHI TIẾT YÊU CẦU</div>");
             sb.Append("<table class='data-table'>");
-            if (don.ItMail1s.Any())
+            if (don.ItDonLapDatThietBi7s.Any())
             {
-                var ct = don.ItMail1s.First();
-                sb.Append($"<tr><th>Loại đơn</th><td>Đăng ký/Sửa đổi Email</td></tr>");
-                sb.Append($"<tr><th>Người sử dụng</th><td>{ct.NguoiSuDung}</td></tr>");
-                sb.Append($"<tr><th>Địa chỉ Email</th><td>{ct.Email}</td></tr>");
-                sb.Append($"<tr><th>Số nội bộ / SĐT</th><td>{ct.SoNoiBo} / {ct.SoDienThoai}</td></tr>");
-                sb.Append($"<tr><th>Cấu hình</th><td>Quốc tế: {ct.GuiRaNgoai} | Mobile: {ct.SuDungTrenDienThoai} | Webmail: {ct.SuDungWebMail}</td></tr>");
-                sb.Append($"<tr><th>Mục đích</th><td>{ct.MucDich}</td></tr>");
-            }
-            else if (don.ItOrderIt2s.Any())
-            {
-                var ct = don.ItOrderIt2s.First();
-                sb.Append($"<tr><th>Loại đơn</th><td>Sửa chữa / Cấp thiết bị</td></tr>");
-                sb.Append($"<tr><th>Thiết bị/Sự cố</th><td>{ct.Ten}</td></tr>");
-                sb.Append($"<tr><th>Mô tả chi tiết</th><td>{ct.GhiChu}</td></tr>");
-            }
-            else if (don.ItDangKiSuDungWifi3s.Any())
-            {
-                sb.Append($"<tr><th>Loại đơn</th><td>Đăng ký sử dụng Wifi</td></tr>");
-                foreach (var w in don.ItDangKiSuDungWifi3s)
-                {
-                    sb.Append($"<tr><th>Thiết bị: {w.LoaiThietBi}</th><td>MAC: {w.MacTb} | Lý do: {w.LyDo}</td></tr>");
-                }
-            }
-            else if (don.ItDangKiTaiKhoanHeThong5s.Any())
-            {
-                var ct = don.ItDangKiTaiKhoanHeThong5s.First();
-                sb.Append($"<tr><th>Loại đơn</th><td>Đăng ký tài khoản hệ thống</td></tr>");
-                sb.Append($"<tr><th>Hệ thống</th><td>{ct.HeThongNao}</td></tr>");
-                sb.Append($"<tr><th>Đăng ký cho / Tại máy</th><td>{ct.DangKiChoAi} / {ct.DungTrenMayNao}</td></tr>");
-                sb.Append($"<tr><th>Quyền giống nhân viên</th><td>{ct.CapQuyenGiongAi}</td></tr>");
-                sb.Append($"<tr><th>Mô tả chi tiết</th><td>{ct.MoTaChiTiet}</td></tr>");
-                sb.Append($"<tr><th>Mục đích</th><td>{ct.MucDich}</td></tr>");
-            }
-            else if (don.ItDangkiTaiKhoanMayTinh6s.Any())
-            {
-                var ct = don.ItDangkiTaiKhoanMayTinh6s.First();
-                sb.Append($"<tr><th>Loại đơn</th><td>Tài khoản máy tính / Ổ chung</td></tr>");
-                sb.Append($"<tr><th>Người sử dụng</th><td>{ct.HoTenVaMaNhanVienNguoiSuDung}</td></tr>");
-                sb.Append($"<tr><th>Liên hệ</th><td>SĐT: {ct.SoDienThoai} | Ext: {ct.SoNoiBo}</td></tr>");
-                sb.Append($"<tr><th>Tên máy tính / Ổ chung</th><td>Máy: {ct.TenMayCanCai} | Ổ: {ct.TenOchungCanAddQuyen}</td></tr>");
-                sb.Append($"<tr><th>Mục đích</th><td>{ct.MucDich}</td></tr>");
+                var ct = don.ItDonLapDatThietBi7s.First();
+                sb.Append($"<tr><th>Dịch vụ đăng ký</th><td style='font-weight:bold;'>Đăng ký lắp đặt thiết bị IT (Form 7)</td></tr>");
+                sb.Append($"<tr><th>Tên thiết bị đề xuất</th><td>{ct.TenThietBi}</td></tr>");
+                sb.Append($"<tr><th>Vị trí lắp đặt chi tiết</th><td>{ct.ViTri}</td></tr>");
+                sb.Append($"<tr><th>Mục đích sử dụng yêu cầu</th><td>{ct.MucDich}</td></tr>");
             }
             sb.Append("</table>");
 
-            // III. ĐỘI NGŨ IT HỖ TRỢ
-            if (don.ItCtNguoiHoTros.Any())
-            {
-                sb.Append("<div class='section-header'>III. NHÂN VIÊN IT THỰC HIỆN</div>");
-                sb.Append("<table class='data-table'><tr><th style='width:10%'>STT</th><th style='width:50%'>Họ và tên IT</th><th>Mã nhân viên</th></tr>");
-                int stt = 1;
-                foreach (var ht in don.ItCtNguoiHoTros)
-                {
-                    sb.Append($"<tr><td style='text-align:center;'>{stt++}</td><td>{ht.IdItNguoiHoTroNavigation?.Ten}</td><td>{ht.IdItNguoiHoTroNavigation?.MaNv}</td></tr>");
-                }
-                sb.Append("</table>");
-            }
+            // III. KHỐI CHỮ KÝ XÁC NHẬN CỐ ĐỊNH CHO 3 BÊN (Người lập phiếu, Quản lý trực tiếp, Phòng IT xác nhận)
+            double colPercent = 100.0 / 3.0;
 
-            // IV. NHẬT KÝ THAO TÁC
-            if (don.LichSuFormIts.Any())
-            {
-                sb.Append("<div class='section-header'>IV. NHẬT KÝ XỬ LÝ (LOGS)</div>");
-                sb.Append("<table class='log-table'>");
-                foreach (var ls in don.LichSuFormIts.OrderBy(x => x.Time))
-                {
-                    sb.Append($"<tr><td style='width:20%'>{ls.Time:dd/MM/yyyy HH:mm}</td><td style='width:25%'><b>{ls.TieuDe}</b></td><td>{ls.Mota}</td></tr>");
-                }
-                sb.Append("</table>");
-            }
-
-            // V. CHỮ KÝ
             sb.Append("<table class='signature-table'><tr>");
-            sb.Append($"<td><strong>NGƯỜI YÊU CẦU</strong><br/><span style='font-size:10pt;'>(Ký, ghi rõ họ tên)</span><br/><br/><br/><br/><strong>{don.TenNguoiNv}</strong></td>");
-            sb.Append($"<td><strong>QUẢN LÝ DUYỆT</strong><br/><span style='font-size:10pt;'>(Ký, ghi rõ họ tên)</span><br/><br/><br/><br/><strong>{don.TenNguoiDuyet}</strong></td>");
-            sb.Append($"<td><strong>PHÊ DUYỆT IT</strong><br/><span style='font-size:10pt;'>(Ký, ghi rõ họ tên)</span><br/><br/><br/><br/><strong>{don.TenAdmin}</strong></td>");
+
+            // 1. CỘT NGƯỜI LẬP PHIẾU
+            sb.Append($"<td style='width:{colPercent}%;'><strong>NGƯỜI LẬP PHIẾU</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
+            if (don.TimeNguoiTao.HasValue)
+            {
+                sb.Append("<div class='digital-signature-box'>");
+                sb.Append("<div class='sig-status'>Signature Valid</div>");
+                sb.Append($"<div class='sig-info'>Ký bởi: {don.TenNguoiTao}<br/>Ký ngày: {don.TimeNguoiTao?.ToString("dd/MM/yyyy")}</div>");
+                sb.Append("<div class='sig-check-mark'>✓</div>");
+                sb.Append("</div>");
+            }
+            else
+            {
+                sb.Append("<br/><br/><br/><br/><strong>" + don.TenNguoiTao + "</strong>");
+            }
+            sb.Append("</td>");
+
+            // 2. CỘT QUẢN LÝ TRỰC TIẾP
+            sb.Append($"<td style='width:{colPercent}%;'><strong>QUẢN LÝ TRỰC TIẾP</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
+            if (don.TimeNguoiDuyet.HasValue)
+            {
+                sb.Append("<div class='digital-signature-box'>");
+                sb.Append("<div class='sig-status'>Signature Valid</div>");
+                sb.Append($"<div class='sig-info'>Ký bởi: {don.TenNguoiDuyet}<br/>Ký ngày: {don.TimeNguoiDuyet?.ToString("dd/MM/yyyy")}</div>");
+                sb.Append("<div class='sig-check-mark'>✓</div>");
+                sb.Append("</div>");
+            }
+            else
+            {
+                sb.Append("<br/><br/><br/><br/><strong>" + (don.TenNguoiDuyet ?? "") + "</strong>");
+            }
+            sb.Append("</td>");
+
+            // 3. CỘT PHÒNG IT XÁC NHẬN
+            sb.Append($"<td style='width:{colPercent}%;'><strong>PHÒNG IT XÁC NHẬN</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
+            if (don.TimeAdmin.HasValue)
+            {
+                sb.Append("<div class='digital-signature-box'>");
+                sb.Append("<div class='sig-status'>Signature Valid</div>");
+                sb.Append($"<div class='sig-info'>Ký bởi: {don.TenAdmin}<br/>Ký ngày: {don.TimeAdmin?.ToString("dd/MM/yyyy")}</div>");
+                sb.Append("<div class='sig-check-mark'>✓</div>");
+                sb.Append("</div>");
+            }
+            else
+            {
+                sb.Append("<br/><br/><br/><br/><strong>" + (don.TenAdmin ?? "") + "</strong>");
+            }
+            sb.Append("</td>");
+
             sb.Append("</tr></table>");
 
             sb.Append("</div></body></html>");
             return sb.ToString();
         }
+
         #endregion
 
         #region BÌNH LUẬN ĐƠN IT
