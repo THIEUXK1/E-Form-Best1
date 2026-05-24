@@ -34,7 +34,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/DonXetDuyet/DangNhap")]
         public IActionResult DangNhap()
         {
-            if (User.Identity.IsAuthenticated) return Redirect("/menuA");
+            if (User?.Identity?.IsAuthenticated == true) return Redirect("/menuA");
             ViewBag.IsRemembered = Request.Cookies.ContainsKey("RememberedEmail");
             return View();
         }
@@ -54,7 +54,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             bool isDomainAuth = false;
             bool isAuthenticated = false;
 
-            // A. Tìm kiếm User và thông tin liên kết Domain
+            // A. Tìm kiếm User và thông tin liên kết Domain (Sửa đổi để EF Core có thể dịch sang SQL thành công)
             domainAuth = await _context.UserDomainAuths
                 .Include(a => a.IdNguoiDungNavigation)
                     .ThenInclude(u => u!.UserBoPhans).ThenInclude(ub => ub.IdBoPhanNavigation)
@@ -168,7 +168,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             string? ipAddress = remoteIpAddress?.ToString(); // Chuyển thành string? vì gán từ một giá trị có thể null
             string resolvedComputerName = deviceName;
 
-            if (string.IsNullOrEmpty(resolvedComputerName) || resolvedComputerName == "Thiết bị không xác định")
+            if (string.IsNullOrEmpty(resolvedComputerName) || resolvedComputerName.Equals("Thiết bị không xác định", StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {
@@ -176,7 +176,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     {
                         var hostEntry = System.Net.Dns.GetHostEntry(remoteIpAddress);
                         resolvedComputerName = hostEntry.HostName;
-                        if (resolvedComputerName.Contains(".")) resolvedComputerName = resolvedComputerName.Split('.')[0];
+                        if (resolvedComputerName.Contains('.', StringComparison.Ordinal))
+                            resolvedComputerName = resolvedComputerName.Split('.', StringSplitOptions.None)[0];
                     }
                 }
                 catch { resolvedComputerName = "Không thể xác định tên máy"; }
@@ -228,7 +229,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
             }
 
-            if (!isDomainAuth && matKhau == "abc12345") claims.Add(new Claim("IsDefaultPassword", "true"));
+            if (!isDomainAuth && matKhau.Equals("abc12345", StringComparison.Ordinal)) claims.Add(new Claim("IsDefaultPassword", "true"));
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var authProperties = new AuthenticationProperties
@@ -322,7 +323,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         private bool HasAccess(params string[] allowedRoles)
         {
             // 1. Kiểm tra trạng thái đăng nhập
-            if (User == null || !User.Identity.IsAuthenticated)
+            if (User == null || User.Identity == null ||   !User.Identity.IsAuthenticated)
             {
                 return false;
             }
@@ -423,7 +424,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/DonMail")]
         public IActionResult DonMail()
         {
-            if (User == null || !User.Identity.IsAuthenticated)
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
                 return Redirect("/DonXetDuyet/DangNhap");
 
             // Lọc danh sách nhân viên IT và CHỈ lấy những công việc có tên "Đăng kí mail"
@@ -476,7 +477,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         public async Task<IActionResult> DonMail(FormIt form, [FromForm] ItMail1 itMail, int[] SelectedCongViecIds)
         {
             // 1. Kiểm tra đăng nhập
-            if (User == null || !User.Identity.IsAuthenticated)
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
                 return Redirect("/DonXetDuyet/DangNhap");
 
             // 2. Lấy thông tin User từ Claims
@@ -672,7 +673,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (string.IsNullOrEmpty(userIdClaim)) return Redirect("/DonXetDuyet/DangNhap");
 
             int userId = int.Parse(userIdClaim);
-            var userName = User.Identity.Name ?? "";
+            var userName = User.Identity?.Name ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
             var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role) ?? User.FindFirst("UserRole");
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
@@ -722,7 +723,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (string.IsNullOrEmpty(userIdClaim)) return Redirect("/DonXetDuyet/DangNhap");
 
             int userId = int.Parse(userIdClaim);
-            var userName = User.Identity.Name ?? "";
+            var userName = User.Identity?.Name ?? "";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
             var viTri = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
@@ -909,17 +910,21 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (string.IsNullOrEmpty(userIdClaim)) return Redirect("/DonXetDuyet/DangNhap");
 
             int userId = int.Parse(userIdClaim);
-            var userName = User.Identity.Name ?? "";
+            var userName = User.Identity?.Name ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
             var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
                             ?? User.FindFirst("UserRole")?.Value ?? "";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
-            ViewBag.CongViecList = await _context.CongViecIts
-                .Where(x => x.Ten.Contains("Đăng kí sử dụng wifi"))
-                .OrderBy(x => x.Ten)
-                .ToListAsync();
+            // Thêm kiểm tra null cho _context hoặc CongViecIts nếu cần, 
+            // hoặc sử dụng toán tử bẻ khóa bang (!) nếu chắc chắn DB không null
+            ViewBag.CongViecList = _context.CongViecIts != null
+                ? await _context.CongViecIts
+                    .Where(x => x.Ten != null && x.Ten.Contains("Đăng kí sử dụng wifi"))
+                    .OrderBy(x => x.Ten)
+                    .ToListAsync()
+                : new List<CongViecIt>();
 
             var model = new FormIt
             {
@@ -1095,7 +1100,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (string.IsNullOrEmpty(userIdClaim)) return Redirect("/DonXetDuyet/DangNhap");
 
             int userId = int.Parse(userIdClaim);
-            var userName = User.Identity.Name ?? "";
+            var userName = User.Identity?.Name ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
             var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
                             ?? User.FindFirst("UserRole")?.Value ?? "";
@@ -1106,7 +1111,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             // --- LẤY DANH SÁCH CÔNG VIỆC ---
             ViewBag.CongViecList = await _context.CongViecIts
-                .Where(x => x.Ten.Contains("Đăng kí sử dụng điện thoại"))
+                .Where(x => x.Ten != null && x.Ten.Contains("Đăng kí sử dụng điện thoại"))
                 .OrderBy(x => x.Ten)
                 .ToListAsync();
 
@@ -1136,7 +1141,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (string.IsNullOrEmpty(userIdClaim)) return Redirect("/DonXetDuyet/DangNhap");
 
             int userId = int.Parse(userIdClaim);
-            var userName = User.Identity.Name ?? "";
+            var userName = User.Identity?.Name ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
             var viTri = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
                         ?? User.FindFirst("UserRole")?.Value ?? "";
@@ -1148,9 +1153,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 try
                 {
                     // --- TRUY VẤN THÔNG TIN CÔNG VIỆC VÀ NGƯỜI HỖ TRỢ LIÊN QUAN ---
-                    var congViec = await _context.CongViecIts
-                        .Include(c => c.IdItNguoiHoTroNavigation)
-                        .FirstOrDefaultAsync(c => c.Id == SelectedCongViecId);
+                    var congViec = _context.CongViecIts != null
+                        ? await _context.CongViecIts
+                            .Include(c => c.IdItNguoiHoTroNavigation)
+                            .FirstOrDefaultAsync(c => c.Id == SelectedCongViecId)
+                        : null;
 
                     // --- BƯỚC 1: LƯU BẢNG CHÍNH FormIt ---
                     form.Ngay = DateOnly.FromDateTime(DateTime.Now);
@@ -1168,8 +1175,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     if (congViec != null) form.Danhmuc = congViec.Ten;
 
-                    _context.FormIts.Add(form);
-                    await _context.SaveChangesAsync();
+                    if (_context.FormIts != null)
+                    {
+                        _context.FormIts.Add(form);
+                        await _context.SaveChangesAsync();
+                    }
 
                     // --- CẤU HÌNH ĐƯỜNG DẪN MẠNG ---
                     string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
@@ -1184,7 +1194,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
-                        string extension = Path.GetExtension(uploadFile.FileName);
+                        string extension = Path.GetExtension(uploadFile.FileName) ?? "";
                         string fileName = $"DonDTBan_ID{form.Id}_{safeName}_{timeStamp}{extension}";
                         string fullPath = Path.Combine(networkPath, fileName);
 
@@ -1224,8 +1234,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             itDtBan.Anh = null;
                         }
 
-                        _context.ItDangKiSuDungDtban4s.Add(itDtBan);
-                        await _context.SaveChangesAsync();
+                        if (_context.ItDangKiSuDungDtban4s != null)
+                        {
+                            _context.ItDangKiSuDungDtban4s.Add(itDtBan);
+                            await _context.SaveChangesAsync();
+                        }
                     }
 
                     // --- BƯỚC 4: LƯU NGƯỜI HỖ TRỢ ---
@@ -1238,9 +1251,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             IdItNguoiHoTro = congViec.IdItNguoiHoTroNavigation.Id,
                             Stt = 1
                         };
-                        _context.ItCtNguoiHoTros.Add(chiTietHoTro);
-                        supporterLog = $"Đã gán: {congViec.IdItNguoiHoTroNavigation.Ten}";
-                        await _context.SaveChangesAsync();
+
+                        // Đã sửa thành ItCtNguoiHoTros để khớp chính xác với DbContext của bạn
+                        if (_context.ItCtNguoiHoTros != null)
+                        {
+                            _context.ItCtNguoiHoTros.Add(chiTietHoTro);
+                            supporterLog = $"Đã gán: {congViec.IdItNguoiHoTroNavigation.Ten}";
+                            await _context.SaveChangesAsync();
+                        }
                     }
 
                     // --- BƯỚC 5: LƯU LỊCH SỬ ---
@@ -1253,8 +1271,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                $"Nội dung: {itDtBan?.ThongTin}. {supporterLog}. {fileLog}. {anhLog}",
                         Time = DateTime.Now
                     };
-                    _context.LichSuFormIts.Add(lichSu);
-                    await _context.SaveChangesAsync();
+
+                    if (_context.LichSuFormIts != null)
+                    {
+                        _context.LichSuFormIts.Add(lichSu);
+                        await _context.SaveChangesAsync();
+                    }
 
                     await transaction.CommitAsync();
 
@@ -1264,7 +1286,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    ViewBag.CongViecList = await _context.CongViecIts.Where(x => x.Ten.Contains("Đăng kí sử dụng điện thoại")).ToListAsync();
+
+                    ViewBag.CongViecList = _context.CongViecIts != null
+                        ? await _context.CongViecIts
+                            .Where(x => x.Ten != null && x.Ten.Contains("Đăng kí sử dụng điện thoại"))
+                            .ToListAsync()
+                        : new List<CongViecIt>();
+
                     ModelState.AddModelError("", "Lỗi hệ thống: " + ex.Message);
                     return View(form);
                 }
@@ -1283,7 +1311,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (string.IsNullOrEmpty(userIdClaim)) return Redirect("/DonXetDuyet/DangNhap");
 
             int userId = int.Parse(userIdClaim);
-            var userName = User.Identity.Name ?? "";
+            var userName = User.Identity?.Name ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
             var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role) ?? User.FindFirst("UserRole");
             var roleName = userRole?.Value ?? "";
@@ -1291,10 +1319,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
             // --- LẤY DANH SÁCH CÔNG VIỆC LIÊN QUAN ĐẾN TÀI KHOẢN ---
-            ViewBag.CongViecList = await _context.CongViecIts
-                .Where(x => x.Ten.Contains("tài khoản hệ thống") || x.Ten.Contains("Account"))
-                .OrderBy(x => x.Ten)
-                .ToListAsync();
+            ViewBag.CongViecList = _context.CongViecIts != null
+                ? await _context.CongViecIts
+                    .Where(x => x.Ten != null && (x.Ten.Contains("tài khoản hệ thống") || x.Ten.Contains("Account")))
+                    .OrderBy(x => x.Ten)
+                    .ToListAsync()
+                : new List<CongViecIt>();
 
             // Khởi tạo Model bảng chính
             var model = new FormIt
@@ -1458,7 +1488,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    ViewBag.CongViecList = await _context.CongViecIts.Where(x => x.Ten.Contains("tài khoản")).ToListAsync();
+                    ViewBag.CongViecList = await _context.CongViecIts.Where(x => x.Ten != null && x.Ten.Contains("tài khoản")).ToListAsync();
                     ModelState.AddModelError("", "Lỗi hệ thống: " + ex.Message);
                     return View(form);
                 }
@@ -1472,24 +1502,28 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/DonTaiKhoanMayTinh")]
         public IActionResult DonTaiKhoanMayTinh()
         {
-            if (User == null || !User.Identity.IsAuthenticated)
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
                 return Redirect("/DonXetDuyet/DangNhap");
 
             // Lọc danh sách nhân viên IT và lấy những công việc có tên "Đăng kí tài khoản máy tính"
-            ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros
-                .Include(x => x.CongViecIts)
-                .Where(x => x.BoPhan == "IT")
-                .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
-                {
-                    Id = x.Id,
-                    MaNv = x.MaNv,
-                    Ten = x.Ten,
-                    BoPhan = x.BoPhan,
-                    GhiChu = x.GhiChu,
-                    CongViecIts = x.CongViecIts.Where(cv => cv.Ten == "Đăng kí tài khoản máy tính").ToList()
-                })
-                .Where(x => x.CongViecIts.Any())
-                .ToList();
+            ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros != null
+                ? _context.ItNguoiHoTros
+                    .Include(x => x.CongViecIts)
+                    .Where(x => x.BoPhan == "IT")
+                    .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
+                    {
+                        Id = x.Id,
+                        MaNv = x.MaNv,
+                        Ten = x.Ten,
+                        BoPhan = x.BoPhan,
+                        GhiChu = x.GhiChu,
+                        CongViecIts = x.CongViecIts != null
+                            ? x.CongViecIts.Where(cv => cv.Ten == "Đăng kí tài khoản máy tính").ToList()
+                            : new List<CongViecIt>()
+                    })
+                    .Where(x => x.CongViecIts != null && x.CongViecIts.Any())
+                    .ToList()
+                : new List<E_Form_Best.Models.ITForm.ItNguoiHoTro>();
 
             // Lấy thông tin User từ Claims
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -1523,7 +1557,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         public async Task<IActionResult> DonTaiKhoanMayTinh(FormIt form, [FromForm] ItDangkiTaiKhoanMayTinh6 itAccount, int[] SelectedCongViecIds)
         {
             // 1. Kiểm tra đăng nhập
-            if (User == null || !User.Identity.IsAuthenticated)
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
                 return Redirect("/DonXetDuyet/DangNhap");
 
             // 2. Lấy thông tin User từ Claims
@@ -1535,6 +1569,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var viTri = User.FindFirst("UserRole")?.Value ?? "";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+
+            if (_context.Database == null)
+            {
+                ModelState.AddModelError("", "Kết nối cơ sở dữ liệu không khả dụng.");
+                return View(form);
+            }
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
@@ -1555,8 +1595,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.TenForm = "Đăng ký Tài khoản Máy tính / Ổ chung";
                     form.Danhmuc = "Đăng kí tài khoản máy tính";
 
-                    _context.FormIts.Add(form);
-                    await _context.SaveChangesAsync();
+                    if (_context.FormIts != null)
+                    {
+                        _context.FormIts.Add(form);
+                        await _context.SaveChangesAsync();
+                    }
 
                     // --- CẤU HÌNH ĐƯỜNG DẪN LƯU FILE ---
                     string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
@@ -1569,7 +1612,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     var uploadFile = Request.Form.Files["UploadFile"];
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
-                        string extension = Path.GetExtension(uploadFile.FileName);
+                        string extension = Path.GetExtension(uploadFile.FileName) ?? "";
                         string fileName = $"DonAcc_ID{form.Id}_{safeName}_{timeStamp}{extension}";
                         string fullPath = Path.Combine(networkPath, fileName);
 
@@ -1605,37 +1648,43 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             itAccount.DuongDanAnh = imgFileName;
                         }
 
-                        _context.ItDangkiTaiKhoanMayTinh6s.Add(itAccount);
-                        await _context.SaveChangesAsync();
+                        if (_context.ItDangkiTaiKhoanMayTinh6s != null)
+                        {
+                            _context.ItDangkiTaiKhoanMayTinh6s.Add(itAccount);
+                            await _context.SaveChangesAsync();
+                        }
                     }
 
                     // --- BƯỚC 4: LƯU NGƯỜI HỖ TRỢ ---
                     string danhSachTenHoTro = "Chưa chọn";
                     List<int> selectedItNguoiHoTroIds = new List<int>();
 
-                    if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
+                    if (_context.CongViecIts != null)
                     {
-                        selectedItNguoiHoTroIds = await _context.CongViecIts
-                            .Where(cv => SelectedCongViecIds.Contains(cv.Id) && cv.IdItNguoiHoTro != null)
-                            .Select(cv => cv.IdItNguoiHoTro!.Value)
-                            .Distinct()
-                            .ToListAsync();
+                        if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
+                        {
+                            selectedItNguoiHoTroIds = await _context.CongViecIts
+                                .Where(cv => SelectedCongViecIds.Contains(cv.Id) && cv.IdItNguoiHoTro != null)
+                                .Select(cv => cv.IdItNguoiHoTro!.Value)
+                                .Distinct()
+                                .ToListAsync();
+                        }
+
+                        if (!selectedItNguoiHoTroIds.Any()) // Nếu không chọn, mặc định lấy theo danh mục
+                        {
+                            selectedItNguoiHoTroIds = await _context.CongViecIts
+                                .Where(cv => cv.Ten == "Đăng kí tài khoản máy tính" && cv.IdItNguoiHoTro != null)
+                                .Select(cv => cv.IdItNguoiHoTro!.Value)
+                                .Distinct()
+                                .ToListAsync();
+                        }
                     }
 
-                    if (!selectedItNguoiHoTroIds.Any()) // Nếu không chọn, mặc định lấy theo danh mục
-                    {
-                        selectedItNguoiHoTroIds = await _context.CongViecIts
-                            .Where(cv => cv.Ten == "Đăng kí tài khoản máy tính" && cv.IdItNguoiHoTro != null)
-                            .Select(cv => cv.IdItNguoiHoTro!.Value)
-                            .Distinct()
-                            .ToListAsync();
-                    }
-
-                    if (selectedItNguoiHoTroIds.Any())
+                    if (selectedItNguoiHoTroIds.Any() && _context.ItNguoiHoTros != null)
                     {
                         var listHoTro = await _context.ItNguoiHoTros
-                            .Where(x => selectedItNguoiHoTroIds.Contains(x.Id))
-                            .Select(x => x.Ten)
+                            .Where(x => selectedItNguoiHoTroIds.Contains(x.Id) && x.Ten != null)
+                            .Select(x => x.Ten!)
                             .ToListAsync();
 
                         danhSachTenHoTro = string.Join(", ", listHoTro);
@@ -1649,7 +1698,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                 IdItNguoiHoTro = idHoTro,
                                 Stt = stt++
                             };
-                            _context.ItCtNguoiHoTros.Add(chiTietHoTro);
+
+                            if (_context.ItCtNguoiHoTros != null)
+                            {
+                                _context.ItCtNguoiHoTros.Add(chiTietHoTro);
+                            }
                         }
                         await _context.SaveChangesAsync();
                     }
@@ -1668,8 +1721,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         Mota = moTaChiTiet,
                         Time = DateTime.Now
                     };
-                    _context.LichSuFormIts.Add(lichSu);
-                    await _context.SaveChangesAsync();
+
+                    if (_context.LichSuFormIts != null)
+                    {
+                        _context.LichSuFormIts.Add(lichSu);
+                        await _context.SaveChangesAsync();
+                    }
 
                     await transaction.CommitAsync();
 
@@ -1681,18 +1738,22 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     await transaction.RollbackAsync();
 
                     // Load lại list hỗ trợ khi lỗi
-                    ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros
-                        .Include(x => x.CongViecIts)
-                        .Where(x => x.BoPhan == "IT")
-                        .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
-                        {
-                            Id = x.Id,
-                            MaNv = x.MaNv,
-                            Ten = x.Ten,
-                            CongViecIts = x.CongViecIts.Where(cv => cv.Ten == "Đăng kí tài khoản máy tính").ToList()
-                        })
-                        .Where(x => x.CongViecIts.Any())
-                        .ToList();
+                    ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros != null
+                        ? _context.ItNguoiHoTros
+                            .Include(x => x.CongViecIts)
+                            .Where(x => x.BoPhan == "IT")
+                            .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
+                            {
+                                Id = x.Id,
+                                MaNv = x.MaNv,
+                                Ten = x.Ten,
+                                CongViecIts = x.CongViecIts != null
+                                    ? x.CongViecIts.Where(cv => cv.Ten == "Đăng kí tài khoản máy tính").ToList()
+                                    : new List<CongViecIt>()
+                            })
+                            .Where(x => x.CongViecIts != null && x.CongViecIts.Any())
+                            .ToList()
+                        : new List<E_Form_Best.Models.ITForm.ItNguoiHoTro>();
 
                     ModelState.AddModelError("", "Lỗi hệ thống: " + ex.Message);
                     return View(form);
@@ -1707,24 +1768,28 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/DonLapDatThietBi")]
         public IActionResult DonLapDatThietBi()
         {
-            if (User == null || !User.Identity.IsAuthenticated)
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
                 return Redirect("/DonXetDuyet/DangNhap");
 
             // Lọc danh sách nhân viên IT và lấy những công việc có tên "Lắp đặt thiết bị"
-            ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros
-                .Include(x => x.CongViecIts)
-                .Where(x => x.BoPhan == "IT")
-                .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
-                {
-                    Id = x.Id,
-                    MaNv = x.MaNv,
-                    Ten = x.Ten,
-                    BoPhan = x.BoPhan,
-                    GhiChu = x.GhiChu,
-                    CongViecIts = x.CongViecIts.Where(cv => cv.Ten == "Lắp đặt thiết bị").ToList()
-                })
-                .Where(x => x.CongViecIts.Any())
-                .ToList();
+            ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros != null
+                ? _context.ItNguoiHoTros
+                    .Include(x => x.CongViecIts)
+                    .Where(x => x.BoPhan == "IT")
+                    .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
+                    {
+                        Id = x.Id,
+                        MaNv = x.MaNv,
+                        Ten = x.Ten,
+                        BoPhan = x.BoPhan,
+                        GhiChu = x.GhiChu,
+                        CongViecIts = x.CongViecIts != null
+                            ? x.CongViecIts.Where(cv => cv.Ten == "Lắp đặt thiết bị").ToList()
+                            : new List<CongViecIt>()
+                    })
+                    .Where(x => x.CongViecIts != null && x.CongViecIts.Any())
+                    .ToList()
+                : new List<E_Form_Best.Models.ITForm.ItNguoiHoTro>();
 
             // Lấy thông tin User từ Claims
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -1758,7 +1823,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         public async Task<IActionResult> DonLapDatThietBi(FormIt form, [FromForm] ItDonLapDatThietBi7 itEquipment, int[] SelectedCongViecIds)
         {
             // 1. Kiểm tra đăng nhập
-            if (User == null || !User.Identity.IsAuthenticated)
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
                 return Redirect("/DonXetDuyet/DangNhap");
 
             // 2. Lấy thông tin User từ Claims
@@ -1770,6 +1835,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var viTri = User.FindFirst("UserRole")?.Value ?? "";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+
+            if (_context.Database == null)
+            {
+                ModelState.AddModelError("", "Kết nối cơ sở dữ liệu không khả dụng.");
+                return View(form);
+            }
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
@@ -1790,8 +1861,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.TenForm = "Đơn yêu cầu lắp đặt thiết bị";
                     form.Danhmuc = "Lắp đặt thiết bị";
 
-                    _context.FormIts.Add(form);
-                    await _context.SaveChangesAsync();
+                    if (_context.FormIts != null)
+                    {
+                        _context.FormIts.Add(form);
+                        await _context.SaveChangesAsync();
+                    }
 
                     // --- CẤU HÌNH ĐƯỜNG DẪN LƯU FILE ---
                     string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
@@ -1806,7 +1880,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
-                        string extension = Path.GetExtension(uploadFile.FileName);
+                        string extension = Path.GetExtension(uploadFile.FileName) ?? "";
                         string fileName = $"DonLapDat_ID{form.Id}_{safeName}_{timeStamp}{extension}";
                         string fullPath = Path.Combine(networkPath, fileName);
 
@@ -1842,7 +1916,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     await _context.SaveChangesAsync();
 
                     // --- BƯỚC 3: LƯU CHI TIẾT LẮP ĐẶT ---
-                    if (itEquipment != null)
+                    if (itEquipment != null && _context.ItDonLapDatThietBi7s != null)
                     {
                         itEquipment.IdFormIt = form.Id;
                         _context.ItDonLapDatThietBi7s.Add(itEquipment);
@@ -1853,29 +1927,32 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     string danhSachTenHoTro = "Chưa chọn";
                     List<int> selectedItNguoiHoTroIds = new List<int>();
 
-                    if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
+                    if (_context.CongViecIts != null)
                     {
-                        selectedItNguoiHoTroIds = await _context.CongViecIts
-                            .Where(cv => SelectedCongViecIds.Contains(cv.Id) && cv.IdItNguoiHoTro != null)
-                            .Select(cv => cv.IdItNguoiHoTro!.Value)
-                            .Distinct()
-                            .ToListAsync();
+                        if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
+                        {
+                            selectedItNguoiHoTroIds = await _context.CongViecIts
+                                .Where(cv => SelectedCongViecIds.Contains(cv.Id) && cv.IdItNguoiHoTro != null)
+                                .Select(cv => cv.IdItNguoiHoTro!.Value)
+                                .Distinct()
+                                .ToListAsync();
+                        }
+
+                        if (!selectedItNguoiHoTroIds.Any()) // Nếu không chọn, mặc định lấy theo danh mục
+                        {
+                            selectedItNguoiHoTroIds = await _context.CongViecIts
+                                .Where(cv => cv.Ten == "Lắp đặt thiết bị" && cv.IdItNguoiHoTro != null)
+                                .Select(cv => cv.IdItNguoiHoTro!.Value)
+                                .Distinct()
+                                .ToListAsync();
+                        }
                     }
 
-                    if (!selectedItNguoiHoTroIds.Any()) // Nếu không chọn, mặc định lấy theo danh mục
-                    {
-                        selectedItNguoiHoTroIds = await _context.CongViecIts
-                            .Where(cv => cv.Ten == "Lắp đặt thiết bị" && cv.IdItNguoiHoTro != null)
-                            .Select(cv => cv.IdItNguoiHoTro!.Value)
-                            .Distinct()
-                            .ToListAsync();
-                    }
-
-                    if (selectedItNguoiHoTroIds.Any())
+                    if (selectedItNguoiHoTroIds.Any() && _context.ItNguoiHoTros != null)
                     {
                         var listHoTro = await _context.ItNguoiHoTros
-                            .Where(x => selectedItNguoiHoTroIds.Contains(x.Id))
-                            .Select(x => x.Ten)
+                            .Where(x => selectedItNguoiHoTroIds.Contains(x.Id) && x.Ten != null)
+                            .Select(x => x.Ten!)
                             .ToListAsync();
 
                         danhSachTenHoTro = string.Join(", ", listHoTro);
@@ -1889,7 +1966,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                 IdItNguoiHoTro = idHoTro,
                                 Stt = stt++
                             };
-                            _context.ItCtNguoiHoTros.Add(chiTietHoTro);
+
+                            if (_context.ItCtNguoiHoTros != null)
+                            {
+                                _context.ItCtNguoiHoTros.Add(chiTietHoTro);
+                            }
                         }
                         await _context.SaveChangesAsync();
                     }
@@ -1910,8 +1991,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         Mota = moTaChiTiet,
                         Time = DateTime.Now
                     };
-                    _context.LichSuFormIts.Add(lichSu);
-                    await _context.SaveChangesAsync();
+
+                    if (_context.LichSuFormIts != null)
+                    {
+                        _context.LichSuFormIts.Add(lichSu);
+                        await _context.SaveChangesAsync();
+                    }
 
                     await transaction.CommitAsync();
 
@@ -1923,20 +2008,24 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     await transaction.RollbackAsync();
 
                     // Load lại list hỗ trợ khi xảy ra lỗi để trả về View
-                    ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros
-                        .Include(x => x.CongViecIts)
-                        .Where(x => x.BoPhan == "IT")
-                        .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
-                        {
-                            Id = x.Id,
-                            MaNv = x.MaNv,
-                            Ten = x.Ten,
-                            BoPhan = x.BoPhan,
-                            GhiChu = x.GhiChu,
-                            CongViecIts = x.CongViecIts.Where(cv => cv.Ten == "Lắp đặt thiết bị").ToList()
-                        })
-                        .Where(x => x.CongViecIts.Any())
-                        .ToList();
+                    ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros != null
+                        ? _context.ItNguoiHoTros
+                            .Include(x => x.CongViecIts)
+                            .Where(x => x.BoPhan == "IT")
+                            .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
+                            {
+                                Id = x.Id,
+                                MaNv = x.MaNv,
+                                Ten = x.Ten,
+                                BoPhan = x.BoPhan,
+                                GhiChu = x.GhiChu,
+                                CongViecIts = x.CongViecIts != null
+                                    ? x.CongViecIts.Where(cv => cv.Ten == "Lắp đặt thiết bị").ToList()
+                                    : new List<CongViecIt>()
+                            })
+                            .Where(x => x.CongViecIts != null && x.CongViecIts.Any())
+                            .ToList()
+                        : new List<E_Form_Best.Models.ITForm.ItNguoiHoTro>();
 
                     ModelState.AddModelError("", "Lỗi hệ thống: " + ex.Message);
                     return View(form);
@@ -2886,7 +2975,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/DonCho")]
         public IActionResult DonCho()
         {
-            if (User == null || !User.Identity.IsAuthenticated)
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
             {
                 return Redirect("/DonXetDuyet/DangNhap");
             }
@@ -2923,9 +3012,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     DaDanhGia = item.DanhGiaFormIts.Any(),
 
                     // TỐI ƯU 5: Truy vấn sâu xuống chỉ lấy cột 'Ten' thay vì lấy cả Object navigation
+                    // ĐÃ SỬA: Thêm dấu '?' sau IdItNguoiHoTroNavigation để tránh lỗi cảnh báo Null Reference
                     TenNguoiHoTro = item.ItCtNguoiHoTros
                                         .OrderByDescending(x => x.Stt)
-                                        .Select(x => x.IdItNguoiHoTroNavigation.Ten)
+                                        .Select(x => x.IdItNguoiHoTroNavigation != null ? x.IdItNguoiHoTroNavigation.Ten : "Chưa có")
                                         .FirstOrDefault() ?? "Chưa có"
                 })
                 .ToListAsync();
@@ -3025,9 +3115,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     IdAdmin = item.IdAdmin,
                     DaDanhGia = item.DanhGiaFormIts.Any(),
                     // TỐI ƯU 4: Subquery lấy người hỗ trợ mới nhất
+                    // ĐÃ SỬA: Kiểm tra IdItNguoiHoTroNavigation khác null trước khi chấm .Ten để triệt tiêu cảnh báo
                     TenNguoiHoTro = item.ItCtNguoiHoTros
                                         .OrderByDescending(x => x.Stt)
-                                        .Select(x => x.IdItNguoiHoTroNavigation.Ten)
+                                        .Select(x => x.IdItNguoiHoTroNavigation != null ? x.IdItNguoiHoTroNavigation.Ten : "Chưa gán IT")
                                         .FirstOrDefault() ?? "Chưa gán IT"
                 })
                 .ToListAsync();
@@ -3049,7 +3140,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Json(new { success = false, message = "Hết phiên đăng nhập." });
 
             int userId = int.Parse(userIdStr);
-            var userName = User.Identity.Name ?? "N/A";
+            var userName = User.Identity?.Name ?? "N/A";
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "N/A";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "N/A";
@@ -3233,7 +3324,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn." });
 
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
-            var userName = User.Identity.Name ?? "N/A";
+            var userName = User.Identity?.Name ?? "N/A";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "N/A";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "N/A";
 
@@ -3334,7 +3425,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." });
             }
 
-            var userName = User.Identity.Name ?? "N/A";
+            var userName = User.Identity?.Name ?? "N/A";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "N/A";
             int userId = int.Parse(userIdStr);
 
@@ -3614,14 +3705,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var query = _context.ItCtNguoiHoTros.AsNoTracking();
 
                 // Lọc theo khoảng thời gian nếu có chọn trước khi Select
+                // ĐÃ SỬA: Thêm điều kiện IdFormItNavigation != null để triệt tiêu cảnh báo Null Reference
                 if (fromDate.HasValue)
                 {
-                    query = query.Where(x => x.IdFormItNavigation.TimeNguoiDuyet >= fromDate.Value);
+                    query = query.Where(x => x.IdFormItNavigation != null && x.IdFormItNavigation.TimeNguoiDuyet >= fromDate.Value);
                 }
                 if (toDate.HasValue)
                 {
                     var endOfToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
-                    query = query.Where(x => x.IdFormItNavigation.TimeNguoiDuyet <= endOfToDate);
+                    query = query.Where(x => x.IdFormItNavigation != null && x.IdFormItNavigation.TimeNguoiDuyet <= endOfToDate);
                 }
 
                 // Lấy dữ liệu từ bảng chi tiết hỗ trợ
@@ -3737,34 +3829,34 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                 x.IdFormItNavigation.TimeAdmin != null);
 
                 // Áp dụng các bộ lọc
-                if (!string.IsNullOrEmpty(idForm)) query = query.Where(x => x.IdFormItNavigation.IdForm.Contains(idForm));
-                if (!string.IsNullOrEmpty(tenNguoiNv)) query = query.Where(x => x.IdFormItNavigation.TenNguoiNv.Contains(tenNguoiNv));
-                if (!string.IsNullOrEmpty(boPhan)) query = query.Where(x => x.IdFormItNavigation.BoPhan.Contains(boPhan));
-                if (!string.IsNullOrEmpty(loaiThietBi)) query = query.Where(x => x.LoaiThietBi.Contains(loaiThietBi));
-                if (!string.IsNullOrEmpty(macTb)) query = query.Where(x => x.MacTb.Contains(macTb));
-                if (!string.IsNullOrEmpty(maThietBi)) query = query.Where(x => x.MaThietBi.Contains(maThietBi));
+                if (!string.IsNullOrEmpty(idForm)) query = query.Where(x => x.IdFormItNavigation!.IdForm!.Contains(idForm));
+                if (!string.IsNullOrEmpty(tenNguoiNv)) query = query.Where(x => x.IdFormItNavigation!.TenNguoiNv!.Contains(tenNguoiNv));
+                if (!string.IsNullOrEmpty(boPhan)) query = query.Where(x => x.IdFormItNavigation!.BoPhan!.Contains(boPhan));
+                if (!string.IsNullOrEmpty(loaiThietBi)) query = query.Where(x => x.LoaiThietBi!.Contains(loaiThietBi));
+                if (!string.IsNullOrEmpty(macTb)) query = query.Where(x => x.MacTb!.Contains(macTb));
+                if (!string.IsNullOrEmpty(maThietBi)) query = query.Where(x => x.MaThietBi!.Contains(maThietBi));
 
-                if (fromDate.HasValue) query = query.Where(x => x.IdFormItNavigation.TimeAdmin >= fromDate.Value);
+                if (fromDate.HasValue) query = query.Where(x => x.IdFormItNavigation!.TimeAdmin >= fromDate.Value);
                 if (toDate.HasValue)
                 {
                     var toDateEnd = toDate.Value.AddDays(1).AddTicks(-1);
-                    query = query.Where(x => x.IdFormItNavigation.TimeAdmin <= toDateEnd);
+                    query = query.Where(x => x.IdFormItNavigation!.TimeAdmin <= toDateEnd);
                 }
 
                 // Áp dụng Sắp Xếp Động
                 switch (sortColumn)
                 {
-                    case "IdForm": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.IdForm) : query.OrderByDescending(x => x.IdFormItNavigation.IdForm); break;
-                    case "TenNguoiNv": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.TenNguoiNv) : query.OrderByDescending(x => x.IdFormItNavigation.TenNguoiNv); break;
-                    case "BoPhan": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.BoPhan) : query.OrderByDescending(x => x.IdFormItNavigation.BoPhan); break;
+                    case "IdForm": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.IdForm) : query.OrderByDescending(x => x.IdFormItNavigation!.IdForm); break;
+                    case "TenNguoiNv": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.TenNguoiNv) : query.OrderByDescending(x => x.IdFormItNavigation!.TenNguoiNv); break;
+                    case "BoPhan": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.BoPhan) : query.OrderByDescending(x => x.IdFormItNavigation!.BoPhan); break;
                     case "MaThietBi": query = sortDir == "asc" ? query.OrderBy(x => x.MaThietBi) : query.OrderByDescending(x => x.MaThietBi); break;
                     case "LoaiThietBi": query = sortDir == "asc" ? query.OrderBy(x => x.LoaiThietBi) : query.OrderByDescending(x => x.LoaiThietBi); break;
                     case "MacTb": query = sortDir == "asc" ? query.OrderBy(x => x.MacTb) : query.OrderByDescending(x => x.MacTb); break;
                     case "ThoiGianBatDau": query = sortDir == "asc" ? query.OrderBy(x => x.ThoiGianBatDau) : query.OrderByDescending(x => x.ThoiGianBatDau); break;
                     case "ThoiGianKetThuc": query = sortDir == "asc" ? query.OrderBy(x => x.ThoiGianKetThuc) : query.OrderByDescending(x => x.ThoiGianKetThuc); break;
-                    case "TenAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.TenAdmin) : query.OrderByDescending(x => x.IdFormItNavigation.TenAdmin); break;
-                    case "TimeAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.TimeAdmin) : query.OrderByDescending(x => x.IdFormItNavigation.TimeAdmin); break;
-                    default: query = query.OrderByDescending(x => x.IdFormItNavigation.TimeAdmin); break;
+                    case "TenAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.TenAdmin) : query.OrderByDescending(x => x.IdFormItNavigation!.TenAdmin); break;
+                    case "TimeAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.TimeAdmin) : query.OrderByDescending(x => x.IdFormItNavigation!.TimeAdmin); break;
+                    default: query = query.OrderByDescending(x => x.IdFormItNavigation!.TimeAdmin); break;
                 }
 
                 var totalRecords = await query.CountAsync();
@@ -3775,7 +3867,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .Take(pageSize)
                     .Select(x => new
                     {
-                        FormId = x.IdFormItNavigation.Id,
+                        FormId = x.IdFormItNavigation!.Id,
                         IdForm = x.IdFormItNavigation.IdForm,
                         TenNguoiNv = x.IdFormItNavigation.TenNguoiNv,
                         BoPhan = x.IdFormItNavigation.BoPhan,
@@ -3814,40 +3906,44 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                 x.IdFormItNavigation != null &&
                                 x.IdFormItNavigation.IdAdmin != null);
 
-                // Áp dụng bộ lọc
-                if (!string.IsNullOrEmpty(idForm)) query = query.Where(x => x.IdFormItNavigation.IdForm.Contains(idForm));
-                if (!string.IsNullOrEmpty(tenNguoiNv)) query = query.Where(x => x.IdFormItNavigation.TenNguoiNv.Contains(tenNguoiNv));
-                if (!string.IsNullOrEmpty(boPhan)) query = query.Where(x => x.IdFormItNavigation.BoPhan.Contains(boPhan));
-                if (!string.IsNullOrEmpty(loaiThietBi)) query = query.Where(x => x.LoaiThietBi.Contains(loaiThietBi));
-                if (!string.IsNullOrEmpty(macTb)) query = query.Where(x => x.MacTb.Contains(macTb));
-                if (!string.IsNullOrEmpty(maThietBi)) query = query.Where(x => x.MaThietBi.Contains(maThietBi));
-                if (fromDate.HasValue) query = query.Where(x => x.IdFormItNavigation.TimeAdmin >= fromDate.Value);
+                if (!string.IsNullOrEmpty(idForm))
+                    query = query.Where(x => x.IdFormItNavigation != null && x.IdFormItNavigation.IdForm != null && x.IdFormItNavigation.IdForm.Contains(idForm));
+
+                if (!string.IsNullOrEmpty(tenNguoiNv))
+                    query = query.Where(x => x.IdFormItNavigation != null && x.IdFormItNavigation.TenNguoiNv != null && x.IdFormItNavigation.TenNguoiNv.Contains(tenNguoiNv));
+
+                if (!string.IsNullOrEmpty(boPhan))
+                    query = query.Where(x => x.IdFormItNavigation != null && x.IdFormItNavigation.BoPhan != null && x.IdFormItNavigation.BoPhan.Contains(boPhan));
+                if (!string.IsNullOrEmpty(loaiThietBi)) query = query.Where(x => x.LoaiThietBi!.Contains(loaiThietBi));
+                if (!string.IsNullOrEmpty(macTb)) query = query.Where(x => x.MacTb!.Contains(macTb));
+                if (!string.IsNullOrEmpty(maThietBi)) query = query.Where(x => x.MaThietBi!.Contains(maThietBi));
+                if (fromDate.HasValue) query = query.Where(x => x.IdFormItNavigation!.TimeAdmin >= fromDate.Value);
                 if (toDate.HasValue)
                 {
                     var toDateEnd = toDate.Value.AddDays(1).AddTicks(-1);
-                    query = query.Where(x => x.IdFormItNavigation.TimeAdmin <= toDateEnd);
+                    query = query.Where(x => x.IdFormItNavigation!.TimeAdmin <= toDateEnd);
                 }
 
                 // Áp dụng Sắp Xếp Động cho Excel
                 switch (sortColumn)
                 {
-                    case "IdForm": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.IdForm) : query.OrderByDescending(x => x.IdFormItNavigation.IdForm); break;
-                    case "TenNguoiNv": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.TenNguoiNv) : query.OrderByDescending(x => x.IdFormItNavigation.TenNguoiNv); break;
-                    case "BoPhan": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.BoPhan) : query.OrderByDescending(x => x.IdFormItNavigation.BoPhan); break;
+                    case "IdForm": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.IdForm) : query.OrderByDescending(x => x.IdFormItNavigation!.IdForm); break;
+                    case "TenNguoiNv": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.TenNguoiNv) : query.OrderByDescending(x => x.IdFormItNavigation!.TenNguoiNv); break;
+                    case "BoPhan": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.BoPhan) : query.OrderByDescending(x => x.IdFormItNavigation!.BoPhan); break;
                     case "MaThietBi": query = sortDir == "asc" ? query.OrderBy(x => x.MaThietBi) : query.OrderByDescending(x => x.MaThietBi); break;
                     case "LoaiThietBi": query = sortDir == "asc" ? query.OrderBy(x => x.LoaiThietBi) : query.OrderByDescending(x => x.LoaiThietBi); break;
                     case "MacTb": query = sortDir == "asc" ? query.OrderBy(x => x.MacTb) : query.OrderByDescending(x => x.MacTb); break;
                     case "ThoiGianBatDau": query = sortDir == "asc" ? query.OrderBy(x => x.ThoiGianBatDau) : query.OrderByDescending(x => x.ThoiGianBatDau); break;
                     case "ThoiGianKetThuc": query = sortDir == "asc" ? query.OrderBy(x => x.ThoiGianKetThuc) : query.OrderByDescending(x => x.ThoiGianKetThuc); break;
-                    case "TenAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.TenAdmin) : query.OrderByDescending(x => x.IdFormItNavigation.TenAdmin); break;
-                    case "TimeAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation.TimeAdmin) : query.OrderByDescending(x => x.IdFormItNavigation.TimeAdmin); break;
-                    default: query = query.OrderByDescending(x => x.IdFormItNavigation.TimeAdmin); break;
+                    case "TenAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.TenAdmin) : query.OrderByDescending(x => x.IdFormItNavigation!.TenAdmin); break;
+                    case "TimeAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.TimeAdmin) : query.OrderByDescending(x => x.IdFormItNavigation!.TimeAdmin); break;
+                    default: query = query.OrderByDescending(x => x.IdFormItNavigation!.TimeAdmin); break;
                 }
 
                 var data = await query
                     .Select(x => new
                     {
-                        IdForm = x.IdFormItNavigation.IdForm,
+                        IdForm = x.IdFormItNavigation!.IdForm,
                         TenNguoiNv = x.IdFormItNavigation.TenNguoiNv,
                         BoPhan = x.IdFormItNavigation.BoPhan,
                         MaThietBi = x.MaThietBi,
@@ -3888,6 +3984,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
+
         #endregion
 
         #endregion
@@ -3926,23 +4023,24 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 /* AdminIT - Không lọc theo TenCongTy */
                 query = query.Where(l =>
+                    l.IdFormItNavigation != null &&
                     l.IdFormItNavigation.IdNguoiDuyet != null &&
                     (l.IdFormItNavigation.IdAdmin == userId ||
-                     l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userEmail))
+                     l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation != null && ct.IdItNguoiHoTroNavigation.MaNv == userEmail))
                 );
             }
             else
             {
                 // Các trường hợp còn lại áp dụng lọc theo công ty
-                query = query.Where(l => l.IdFormItNavigation.TenCongTy == tenCongTy);
+                query = query.Where(l => l.IdFormItNavigation != null && l.IdFormItNavigation.TenCongTy == tenCongTy);
 
                 if (User.IsInRole("QuanLyDuyetDonIT"))
                 {
-                    query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.IdNguoiDuyet == userId);
+                    query = query.Where(l => l.IdFormItNavigation != null && (l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.IdNguoiDuyet == userId));
                 }
                 else
                 {
-                    query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userEmail));
+                    query = query.Where(l => l.IdFormItNavigation != null && (l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation != null && ct.IdItNguoiHoTroNavigation.MaNv == userEmail)));
                 }
             }
 
@@ -3956,11 +4054,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     l.TieuDe,
                     l.Mota,
                     f = l.IdFormItNavigation,
-                    CurrentSupporterTen = l.IdFormItNavigation.ItCtNguoiHoTros
-                        .OrderByDescending(x => x.Stt)
-                        .Select(x => x.IdItNguoiHoTroNavigation.Ten)
-                        .FirstOrDefault(),
-                    DanhGia = l.IdFormItNavigation.DanhGiaFormIts.Select(d => new { d.TimeNguoiDanhGia, d.MucDo }).FirstOrDefault()
+                    CurrentSupporterTen = l.IdFormItNavigation != null
+                        ? l.IdFormItNavigation.ItCtNguoiHoTros
+                            .OrderByDescending(x => x.Stt)
+                            .Select(x => x.IdItNguoiHoTroNavigation != null ? x.IdItNguoiHoTroNavigation.Ten : null)
+                            .FirstOrDefault()
+                        : null,
+                    DanhGia = l.IdFormItNavigation != null
+                        ? l.IdFormItNavigation.DanhGiaFormIts.Select(d => new { d.TimeNguoiDanhGia, d.MucDo }).FirstOrDefault()
+                        : null
                 })
                 .ToListAsync();
 
@@ -4051,22 +4153,23 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             else if (User.IsInRole("AdminIT"))
             {
                 query = query.Where(l =>
+                    l.IdFormItNavigation != null &&
                     l.IdFormItNavigation.IdNguoiDuyet != null &&
                     (l.IdFormItNavigation.IdAdmin == userId ||
-                     l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation.MaNv == userEmail))
+                     l.IdFormItNavigation.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation != null && ct.IdItNguoiHoTroNavigation.MaNv == userEmail))
                 );
             }
             else
             {
-                query = query.Where(l => l.IdFormItNavigation.TenCongTy == tenCongTy);
+                query = query.Where(l => l.IdFormItNavigation != null && l.IdFormItNavigation.TenCongTy == tenCongTy);
 
                 if (User.IsInRole("QuanLyDuyetDonIT"))
                 {
-                    query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.IdNguoiDuyet == userId);
+                    query = query.Where(l => l.IdFormItNavigation != null && (l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.IdNguoiDuyet == userId));
                 }
                 else
                 {
-                    query = query.Where(l => l.IdFormItNavigation.IdNguoiTao == userId);
+                    query = query.Where(l => l.IdFormItNavigation != null && l.IdFormItNavigation.IdNguoiTao == userId);
                 }
             }
 
@@ -4106,11 +4209,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             try
             {
                 // Lấy toàn bộ thiết bị đang hoạt động (Bỏ qua các thiết bị nằm trong thùng rác/có NgayXoa)
+                // Đã chuyển đổi phép so sánh chuỗi sang Equals kèm StringComparison để dứt điểm cảnh báo
                 var thietBis = _context.KkThietBis
                     .Include(x => x.IdcongTyNavigation)
                     .Include(x => x.IdboPhanNavigation)
                     .Include(x => x.IdTrangThaiNavigation)
-                    .Where(x => x.NgayXoa == null && (x.IdTrangThaiNavigation == null || x.IdTrangThaiNavigation.TenTrangThai.ToLower() != "xóa"))
+                    .Where(x => x.NgayXoa == null && (x.IdTrangThaiNavigation == null || !x.IdTrangThaiNavigation.TenTrangThai.Equals("xóa", StringComparison.OrdinalIgnoreCase)))
                     .ToList();
 
                 // 1. Thống kê theo Công ty
@@ -4343,10 +4447,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var item = _context.KkTrangThais.Find(id);
                 if (item != null)
                 {
-                    if (item.TenTrangThai.ToLower() == "xóa")
+                    // Sử dụng Equals kết hợp StringComparison.OrdinalIgnoreCase để dứt điểm cảnh báo
+                    if (item.TenTrangThai != null && item.TenTrangThai.Equals("xóa", StringComparison.OrdinalIgnoreCase))
                         return Json(new { success = false, msg = "Không thể xóa trạng thái mặc định của hệ thống!" });
 
-                    string tenTT = item.TenTrangThai;
+                    string tenTT = item.TenTrangThai ?? "";
                     _context.KkTrangThais.Remove(item);
                     _context.SaveChanges();
 
@@ -4589,7 +4694,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var itemsToDelete = _context.KkThietBis
                     .Include(x => x.IdTrangThaiNavigation)
                     .Where(x => x.IdTrangThaiNavigation != null
-                             && x.IdTrangThaiNavigation.TenTrangThai.ToLower() == "xóa"
+                             && x.IdTrangThaiNavigation.TenTrangThai != null
+                             && x.IdTrangThaiNavigation.TenTrangThai.Equals("xóa", StringComparison.OrdinalIgnoreCase)
                              && x.NgayXoa.HasValue
                              && x.NgayXoa.Value <= oneMonthAgo)
                     .ToList();
@@ -4648,10 +4754,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 bool isDuplicate = false;
                 if (!string.IsNullOrWhiteSpace(model.TenMayTinh))
                 {
+                    string trimmedTarget = model.TenMayTinh.Trim();
+
                     if (model.IdThietBi == 0)
-                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh != null && x.TenMayTinh.ToLower().Trim() == model.TenMayTinh.ToLower().Trim()); // SỬA: Thêm kiểm tra x.TenMayTinh != null
+                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh != null && x.TenMayTinh.Trim().Equals(trimmedTarget, StringComparison.OrdinalIgnoreCase));
                     else
-                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh != null && x.TenMayTinh.ToLower().Trim() == model.TenMayTinh.ToLower().Trim() && x.IdThietBi != model.IdThietBi); // SỬA: Thêm kiểm tra x.TenMayTinh != null
+                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh != null && x.TenMayTinh.Trim().Equals(trimmedTarget, StringComparison.OrdinalIgnoreCase) && x.IdThietBi != model.IdThietBi);
                 }
 
                 if (isDuplicate)
@@ -4663,10 +4771,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 int objId = model.IdThietBi;
 
                 var statusCheck = _context.KkTrangThais.Find(model.IdTrangThai);
-                string statusName = statusCheck != null ? (statusCheck.TenTrangThai ?? "Chưa rõ") : "Chưa rõ"; // SỬA: Thêm fallback phòng trường hợp thuộc tính TenTrangThai bị null trong DB
+                string statusName = statusCheck != null ? (statusCheck.TenTrangThai ?? "Chưa rõ") : "Chưa rõ";
 
                 // --- XỬ LÝ UPLOAD VÀ LƯU ẢNH LÊN THƯ MỤC MẠNG ---
-                string? newImageFileName = null; // SỬA: Khai báo dạng string? (nullable string) vì ban đầu được gán bằng null
+                string? newImageFileName = null;
                 if (AnhThietBi != null && AnhThietBi.Length > 0)
                 {
                     string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\AnhKiemKe";
@@ -4677,12 +4785,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         Directory.CreateDirectory(networkPath);
                     }
 
-                    string imgExtension = Path.GetExtension(AnhThietBi.FileName) ?? ""; // SỬA: Thêm fallback ?? "" phòng trường hợp Extension trả về null
+                    string imgExtension = Path.GetExtension(AnhThietBi.FileName) ?? "";
                     if (string.IsNullOrEmpty(imgExtension)) imgExtension = ".jpg";
 
                     string timeStamp = DateTime.Now.ToString("yyyyMMddHHmmss");
-                    // Xóa ký tự đặc biệt khỏi Tên thiết bị để làm tên file
-                    string safeName = string.Join("_", (model.TenThietBi ?? "").Split(Path.GetInvalidFileNameChars())); // SỬA: Thêm (model.TenThietBi ?? "") phòng trường hợp thuộc tính này null
+                    // Xóa ký tự đặc biệt khỏi Tên thiết bị để làm tên file (Sử dụng StringSplitOptions để tối ưu hóa)
+                    string safeName = string.Join("_", (model.TenThietBi ?? "").Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
                     if (string.IsNullOrEmpty(safeName)) safeName = "TB";
 
                     newImageFileName = $"AnhTB_{safeName}_{timeStamp}{imgExtension}";
@@ -4708,7 +4816,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     var existing = _context.KkThietBis.Find(model.IdThietBi);
                     if (existing != null)
                     {
-                        // SỬA: Thêm toán tử ?? "" cho các trường chuỗi nhận từ model để tránh gán giá trị null vào thực thể non-nullable
                         existing.TenThietBi = model.TenThietBi ?? "";
                         existing.TenMayTinh = model.TenMayTinh ?? "";
                         existing.TenDangNhap = model.TenDangNhap ?? "";
@@ -4728,7 +4835,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         }
 
                         // Nếu cập nhật thoát khỏi trạng thái Xóa thì clear ngày xóa & lý do xóa
-                        if (statusName.ToLower() != "xóa")
+                        if (!statusName.Equals("xóa", StringComparison.OrdinalIgnoreCase))
                         {
                             existing.NgayXoa = null;
                             existing.LyDoXoa = null;
@@ -4745,14 +4852,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (model.IdNguoiDung.HasValue)
                 {
                     var user = _context.Users.Find(model.IdNguoiDung.Value);
-                    if (user != null) tenNguoiDung = user.HoTen ?? "Chưa cấp phát"; // SỬA: Thêm fallback phòng trường hợp HoTen trong DB bị null
+                    if (user != null) tenNguoiDung = user.HoTen ?? "Chưa cấp phát";
                 }
 
                 string tenBoPhan = "Chưa gắn";
                 if (model.IdboPhan.HasValue)
                 {
                     var bp = _context.KkBoPhans.Find(model.IdboPhan.Value);
-                    if (bp != null) tenBoPhan = bp.TenBoPhan ?? "Chưa gắn"; // SỬA: Thêm fallback phòng trường hợp TenBoPhan trong DB bị null
+                    if (bp != null) tenBoPhan = bp.TenBoPhan ?? "Chưa gắn";
                 }
 
                 string chiTietLog = $"Máy tính: {model.TenMayTinh} | Trạng thái: {statusName} | Account: {model.TenDangNhap} | N.Dùng: {tenNguoiDung} | B.Phận: {tenBoPhan} | Loại: {model.LoaiThietBi}";
@@ -4814,7 +4921,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var item = _context.KkThietBis.Find(id);
                 if (item != null)
                 {
-                    var statusXoa = _context.KkTrangThais.FirstOrDefault(x => x.TenTrangThai.ToLower() == "xóa");
+                    // Sử dụng Equals kết hợp StringComparison.OrdinalIgnoreCase để dứt điểm cảnh báo
+                    var statusXoa = _context.KkTrangThais.FirstOrDefault(x => x.TenTrangThai != null && x.TenTrangThai.Equals("xóa", StringComparison.OrdinalIgnoreCase));
                     if (statusXoa == null)
                     {
                         statusXoa = new KkTrangThai { TenTrangThai = "Xóa", MoTa = "Đã xóa (Chờ hủy 30 ngày)" };
@@ -4848,8 +4956,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var item = _context.KkThietBis.Find(id);
                 if (item != null)
                 {
-                    // Lấy trạng thái mặc định (ví dụ: Đang hoạt động) hoặc bỏ trống
-                    var statusHoatDong = _context.KkTrangThais.FirstOrDefault(x => x.TenTrangThai.ToLower() == "đang hoạt động");
+                    // Sử dụng Equals kết hợp StringComparison.OrdinalIgnoreCase để dứt điểm cảnh báo
+                    var statusHoatDong = _context.KkTrangThais.FirstOrDefault(x => x.TenTrangThai != null && x.TenTrangThai.Equals("đang hoạt động", StringComparison.OrdinalIgnoreCase));
 
                     item.IdTrangThai = statusHoatDong?.IdTrangThai;
                     item.NgayXoa = null;

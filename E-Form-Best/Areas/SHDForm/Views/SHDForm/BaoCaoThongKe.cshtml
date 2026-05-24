@@ -6,8 +6,12 @@
 }
 
 <style>
-    body { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
-    
+    body {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+        background-color: #f8fafc;
+        color: #1e293b;
+    }
+
     /* Layout Thẻ Thống Kê - Cố định 7 cột trên 1 hàng */
     .stats-row {
         display: grid;
@@ -16,78 +20,327 @@
         margin-bottom: 25px;
     }
 
-    .stat-card { 
-        background: white; padding: 15px 10px; border-radius: 20px; 
-        border: 1.5px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
-        transition: 0.3s; text-align: center; display: flex; flex-direction: column; justify-content: center;
-        min-width: 0; /* Tránh tràn layout */
+    .stat-card {
+        background: white;
+        padding: 15px 10px;
+        border-radius: 20px;
+        border: 1.5px solid #e2e8f0;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        transition: 0.3s;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
     }
-    .stat-card:hover { transform: translateY(-5px); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.08); border-color: #0891b2; }
-    
-    .card-title { font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-    .card-value { font-size: 22px; font-weight: 1000; display: block; line-height: 1; }
-    
-    /* Container Biểu Đồ */
-    .chart-container { 
-        background: white; padding: 25px; border-radius: 24px; 
-        border: 1px solid #e2e8f0; margin-bottom: 20px; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
-        display: flex; flex-direction: column;
-    }
-    .chart-header { 
-        font-weight: 900; color: #1e293b; margin-bottom: 20px; 
-        font-size: 15px; display: flex; align-items: center; gap: 10px; 
-        text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    
-    /* Table Styles */
-    .custom-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .custom-table th { background-color: #f8fafc; color: #475569; text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; font-weight: 900; text-transform: uppercase; font-size: 11px; }
-    .custom-table td { padding: 14px; border-bottom: 1px solid #f1f5f9; color: #1e293b; font-weight: 600; }
-    .badge-count { background: #ecfeff; color: #0891b2; padding: 5px 12px; border-radius: 8px; font-weight: 800; border: 1px solid #a5f3fc; }
-    .badge-time { color: #0891b2; font-weight: 800; font-size: 13px; }
 
-    /* Scrollbar cho bảng */
-    .table-responsive { overflow-x: auto; border-radius: 15px; }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px -5px rgba(0,0,0,0.08);
+            border-color: #0891b2;
+        }
+
+    .card-title {
+        font-size: 9px;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+    }
+
+    .card-value {
+        font-size: 22px;
+        font-weight: 1000;
+        display: block;
+        line-height: 1;
+    }
+
+    /* Container Biểu Đồ */
+    .chart-container {
+        background: white;
+        padding: 25px;
+        border-radius: 24px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+
+    .chart-header {
+        font-weight: 900;
+        color: #1e293b;
+        margin-bottom: 20px;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Table Styles */
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+        .custom-table th {
+            background-color: #f8fafc;
+            color: #475569;
+            text-align: left;
+            padding: 16px;
+            border-bottom: 2px solid #e2e8f0;
+            font-weight: 900;
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+
+        .custom-table td {
+            padding: 14px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+    .badge-count {
+        background: #ecfeff;
+        color: #0891b2;
+        padding: 5px 12px;
+        border-radius: 8px;
+        font-weight: 800;
+        border: 1px solid #a5f3fc;
+    }
+
+    .badge-time {
+        color: #0891b2;
+        font-weight: 800;
+        font-size: 13px;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+        border-radius: 15px;
+    }
+
+    /* CSS cho bộ lọc nâng cao giống bên IT */
+    .filter-wrapper {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        background: white;
+        padding: 12px 20px;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    }
+
+    .filter-input {
+        border: 1px solid #cbd5e1;
+        padding: 6px 12px;
+        border-radius: 10px;
+        font-size: 13px;
+        color: #334155;
+        outline: none;
+        font-weight: 600;
+    }
+
+        .filter-input:focus {
+            border-color: #0891b2;
+        }
+
+    .btn-filter {
+        background: #0891b2;
+        color: white;
+        border: none;
+        padding: 8px 18px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+        .btn-filter:hover {
+            background: #06b6d4;
+        }
+
+    .loading-text {
+        font-size: 13px;
+        color: #0891b2;
+        font-weight: 800;
+        margin-left: auto;
+        display: none;
+    }
+
+    .chart-empty-state {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        font-size: 13px;
+        font-weight: 700;
+        text-align: center;
+        width: 100%;
+        padding: 20px;
+    }
+
+        .chart-empty-state i {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+        }
+
+    .filter-badge {
+        display: none;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        color: #166534;
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 15px;
+        width: fit-content;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .error-banner {
+        display: none;
+        background: #fef2f2;
+        border: 1px solid #fca5a5;
+        color: #b91c1c;
+        padding: 12px 20px;
+        border-radius: 16px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        font-weight: 700;
+        align-items: center;
+        gap: 10px;
+    }
 
     /* ==========================================
-       BỔ SUNG CSS CHO MOBILE (DƯỚI 768PX)
-       PC GIỮ NGUYÊN 100%
-       ========================================== */
+           BỔ SUNG CSS CHO MOBILE (DƯỚI 768PX)
+           PC GIỮ NGUYÊN 100%
+           ========================================== */
     @@media (max-width: 768px) {
-        /* Tiêu đề và nút bấm xếp chồng */
-        .page-header { flex-direction: column !important; align-items: flex-start !important; gap: 20px !important; }
-        .page-header h2 { font-size: 20px !important; }
-        .page-header p { margin-left: 0 !important; font-size: 12px !important; }
-        .page-header button { width: 100% !important; justify-content: center !important; }
-
-        /* Thẻ thống kê: Chia làm 2 cột thay vì 7 */
-        .stats-row { 
-            grid-template-columns: repeat(2, 1fr) !important; 
-            gap: 10px !important; 
-        }
-        .stat-card { padding: 15px 5px !important; }
-        .card-value { font-size: 18px !important; }
-
-        /* Biểu đồ: Xếp chồng 1 cột */
-        .chart-grid-split { 
-            grid-template-columns: 1fr !important; 
-            gap: 15px !important; 
+        .page-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 20px !important;
         }
 
-        /* Padding cho container chính */
-        .main-container { padding: 15px !important; }
-        
-        .chart-container { padding: 15px !important; }
-        .chart-header { font-size: 13px !important; }
-        
-        /* Chỉnh lại chiều cao canvas trên mobile để không bị quá dài */
-        canvas { max-height: 300px !important; }
+            .page-header h2 {
+                font-size: 20px !important;
+            }
+
+            .page-header p {
+                margin-left: 0 !important;
+                font-size: 12px !important;
+            }
+
+            .page-header button {
+                width: 100% !important;
+                justify-content: center !important;
+            }
+
+        .stats-row {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+        }
+
+        .stat-card {
+            padding: 15px 5px !important;
+        }
+
+        .card-value {
+            font-size: 18px !important;
+        }
+
+        .chart-grid-split {
+            grid-template-columns: 1fr !important;
+            gap: 15px !important;
+        }
+
+        .main-container {
+            padding: 15px !important;
+        }
+
+        .chart-container {
+            padding: 15px !important;
+        }
+
+        .chart-header {
+            font-size: 13px !important;
+        }
+
+        .filter-wrapper {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+        }
+
+        .loading-text {
+            margin-left: 0;
+            text-align: center;
+        }
+
+        .custom-table thead {
+            display: none;
+        }
+
+        .custom-table, .custom-table tbody, .custom-table tr, .custom-table td {
+            display: block;
+            width: 100%;
+        }
+
+            .custom-table tr {
+                margin-bottom: 15px;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                overflow: hidden;
+                background: white;
+            }
+
+            .custom-table td {
+                text-align: right !important;
+                padding: 10px 15px !important;
+                border-bottom: 1px dashed #f1f5f9;
+                position: relative;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+                .custom-table td::before {
+                    content: attr(data-label);
+                    float: left;
+                    font-weight: 800;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    font-size: 10px;
+                }
+
+                .custom-table td:last-child {
+                    border-bottom: none;
+                    background: #f8fafc;
+                }
     }
 </style>
 
 <div class="main-container" style="max-width: 1650px; margin: 0 auto; padding: 25px;">
-    
+
     @* --- HEADER --- *@
     <div class="page-header" style="margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
         <div>
@@ -99,12 +352,40 @@
             </h2>
             <p style="margin: 5px 0 0 65px; color: #64748b; font-weight: 600;">Báo cáo trực quan tình trạng hồ sơ & năng suất bộ phận Xuất Nhập Khẩu</p>
         </div>
-        <button onclick="initStats()" style="background: white; border: 2px solid #e2e8f0; padding: 12px 24px; border-radius: 14px; font-weight: 800; cursor: pointer; color: #475569; transition: 0.3s; display: flex; align-items: center; gap: 8px;">
-            <i class="fa fa-refresh"></i> Tải lại dữ liệu
-        </button>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="clearAllFilters()" style="background: white; border: 2px solid #e2e8f0; padding: 12px 24px; border-radius: 14px; font-weight: 800; cursor: pointer; color: #475569; transition: 0.3s; display: flex; align-items: center; gap: 8px;">
+                <i class="fa fa-refresh"></i> Làm mới bộ lọc
+            </button>
+        </div>
     </div>
 
-    @* --- 7 THẺ THỐNG KÊ CHI TIẾT --- *@
+    @* --- BANNER HIỂN THỊ LỖI --- *@
+    <div id="lblError" class="error-banner">
+        <i class="fa fa-exclamation-triangle" style="font-size: 16px;"></i>
+        <span id="lblErrorText">Không thể kết nối đến hệ thống máy chủ SHD. Vui lòng thử lại sau!</span>
+    </div>
+
+    @* --- BỘ LỌC THỜI GIAN VÀ NGƯỜI HỖ TRỢ (Đồng bộ nâng cấp từ IT) --- *@
+    <div class="filter-wrapper">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 13px; font-weight: 700; color: #475569;">Từ ngày:</label>
+            <input type="date" id="txtFromDate" class="filter-input" />
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 13px; font-weight: 700; color: #475569;">Đến ngày:</label>
+            <input type="date" id="txtToDate" class="filter-input" />
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 13px; font-weight: 700; color: #475569;">Người phụ trách:</label>
+            <select id="selStaffFilter" class="filter-input" style="min-width: 160px;">
+                <option value="">-- Tất cả --</option>
+            </select>
+        </div>
+        <button type="button" class="btn-filter" onclick="initStats()"><i class="fa fa-filter"></i> Lọc dữ liệu</button>
+        <span id="lblLoading" class="loading-text"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu mới...</span>
+    </div>
+
+    @* --- 7 THÈ THỐNG KÊ CHI TIẾT --- *@
     <div class="stats-row">
         <div class="stat-card" style="border-top: 5px solid #1e293b;"><span class="card-title">Tổng đơn nhận</span><span class="card-value" id="lblTotal">0</span></div>
         <div class="stat-card" style="border-top: 5px solid #f59e0b;"><span class="card-title">Chờ QL Duyệt</span><span class="card-value" id="lblWaitQL" style="color: #b45309;">0</span></div>
@@ -119,37 +400,43 @@
     <div class="chart-grid-split" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 20px;">
         <div class="chart-container">
             <div class="chart-header"><i class="fa fa-pie-chart" style="color: #0891b2;"></i> Phân bổ trạng thái SHD</div>
-            <div style="height: 350px;"><canvas id="chartStatus"></canvas></div>
+            <div id="wrapStatus" style="height: 350px;"><canvas id="chartStatus"></canvas></div>
+            <div class="chart-empty-state" id="emptyStatus"><i class="fa fa-pie-chart"></i>Không có dữ liệu trạng thái</div>
         </div>
         <div class="chart-container">
             <div class="chart-header"><i class="fa fa-truck" style="color: #1e40af;"></i> Lưu lượng đơn theo Bộ phận sử dụng</div>
-            <div style="height: 350px;"><canvas id="chartDept"></canvas></div>
+            <div id="wrapDept" style="height: 350px;"><canvas id="chartDept"></canvas></div>
+            <div class="chart-empty-state" id="emptyDept"><i class="fa fa-bar-chart"></i>Không có dữ liệu bộ phận</div>
         </div>
     </div>
 
     @* --- HÀNG BIỂU ĐỒ 2: HIỆU SUẤT NHÂN VIÊN --- *@
     <div class="chart-container">
-        <div class="chart-header"><i class="fa fa-users" style="color: #0891b2;"></i> Hiệu suất xử lý của Nhân sự Admin SHD (Đã xong vs Đang xử lý)</div>
-        <div style="height: 400px;"><canvas id="chartStaff"></canvas></div>
+        <div class="chart-header"><i class="fa fa-users" style="color: #0891b2;"></i> Hiệu suất xử lý của Nhân sự Admin SHD <span style="font-size:11px; color:#64748b; font-weight:normal; text-transform: none;">(Bấm vào cột để lọc bảng chi tiết)</span></div>
+        <div id="wrapStaff" style="height: 400px;"><canvas id="chartStaff"></canvas></div>
+        <div class="chart-empty-state" id="emptyStaff"><i class="fa fa-user-times"></i>Không có dữ liệu nhân viên hỗ trợ</div>
     </div>
 
     @* --- HÀNG BIỂU ĐỒ 3: DANH MỤC & LOẠI ĐƠN --- *@
     <div class="chart-grid-split" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
         <div class="chart-container">
-            <div class="chart-header"><i class="fa fa-th-large" style="color: #f59e0b;"></i> Thống kê theo Danh mục</div>
-            <div style="height: 380px;"><canvas id="chartCategory"></canvas></div>
+            <div class="chart-header"><i class="fa fa-th-large" style="color: #f59e0b;"></i> Theo Danh mục</div>
+            <div id="wrapCategory" style="height: 380px;"><canvas id="chartCategory"></canvas></div>
+            <div class="chart-empty-state" id="emptyCategory"><i class="fa fa-tags"></i>Không có dữ liệu danh mục</div>
         </div>
         <div class="chart-container">
             <div class="chart-header"><i class="fa fa-list-ul" style="color: #ef4444;"></i> Top loại đơn yêu cầu SHD</div>
-            <div style="height: 380px;"><canvas id="chartIdForm"></canvas></div>
+            <div id="wrapIdForm" style="height: 380px;"><canvas id="chartIdForm"></canvas></div>
+            <div class="chart-empty-state" id="emptyIdForm"><i class="fa fa-code"></i>Không có dữ liệu loại đơn</div>
         </div>
     </div>
 
     @* --- BẢNG CHI TIẾT --- *@
     <div class="chart-container" style="margin-bottom: 50px;">
         <div class="chart-header"><i class="fa fa-clock-o" style="color: #475569;"></i> Chỉ số thời gian xử lý trung bình theo nghiệp vụ SHD</div>
+        <div id="tableFilterBadge" class="filter-badge"></div>
         <div class="table-responsive">
-            <table class="custom-table">
+            <table class="custom-table" id="dataTable">
                 <thead>
                     <tr>
                         <th>Nhân Viên Phụ Trách</th>
@@ -170,218 +457,377 @@
 <script>
     Chart.register(ChartDataLabels);
 
+    // Quản lý Instance tránh chồng chập biểu đồ khi re-draw
+    let chartStatusInstance = null;
+    let chartDeptInstance = null;
+    let chartStaffInstance = null;
+    let chartCategoryInstance = null;
+    let chartIdFormInstance = null;
+
+    // Cache dữ liệu phục vụ bộ lọc nâng cao và drill-down
+    let cachedDataChung = [];
+    let cachedDataStaff = [];
+    let selectedStaffFilter = null;
+
     const statusColors = {
-        'ĐÃ HỦY/TỪ CHỐI': '#ef4444',
-        'CHỜ QL DUYỆT': '#f59e0b',
-        'CHỜ BP XÁC NHẬN': '#0ea5e9',
-        'CHỜ GIÁM ĐỐC': '#d946ef',
-        'SHD ĐANG XỬ LÝ': '#0891b2',
-        'HOÀN TẤT': '#10b981'
+    'HỦY': '#ef4444',
+    'CHỜ QL': '#f59e0b',
+    'BP XÁC NHẬN': '#0ea5e9',
+    'GIÁM ĐỐC': '#d946ef',
+    'SHD ĐANG XỬ LÝ': '#0891b2',
+    'HOÀN TẤT': '#10b981'
     };
 
+    function mapStatus(backendStatus) {
+    if (!backendStatus) return "SHD ĐANG XỬ LÝ";
+    if (backendStatus.includes("HỦY") || backendStatus.includes("TỪ CHỐI")) return "HỦY";
+    if (backendStatus.includes("HOÀN TẤT")) return "HOÀN TẤT";
+    if (backendStatus.includes("CHỜ QL")) return "CHỜ QL";
+    if (backendStatus.includes("BP XÁC NHẬN")) return "BP XÁC NHẬN";
+    if (backendStatus.includes("GIÁM ĐỐC")) return "GIÁM ĐỐC";
+    return "SHD ĐANG XỬ LÝ";
+    }
+
     const commonLabelOptions = {
-        color: '#fff',
-        font: { weight: 'bold', family: 'Plus Jakarta Sans', size: 11 },
-        formatter: (value) => value > 0 ? value : '',
-        anchor: 'center',
-        align: 'center'
+    color: '#fff',
+    font: { weight: 'bold', family: 'Plus Jakarta Sans', size: 11 },
+    formatter: (value) => value > 0 ? value : '',
+    anchor: 'center',
+    align: 'center'
     };
 
     function formatDuration(min) {
-        if (!min || min <= 0) return "-";
-        const d = Math.floor(min / 1440);
-        const h = Math.floor((min % 1440) / 60);
-        const m = Math.round(min % 60);
-        if (d > 0) return `${d}n ${h}h`;
-        if (h > 0) return `${h}h ${m}m`;
-        return `${m}ph`;
+    if (!min || min <= 0) return "-";
+    const d = Math.floor(min / 1440);
+    const h = Math.floor((min % 1440) / 60);
+    const m = Math.round(min % 60);
+    if (d > 0) return `${d}n ${h}h`;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}ph`;
     }
 
-    let charts = {};
+    function handleEmptyState(hasData, wrapperId, emptyId) {
+    const wrapper = document.getElementById(wrapperId);
+    const emptyElement = document.getElementById(emptyId);
+    if (hasData) {
+    wrapper.style.display = 'block';
+    emptyElement.style.display = 'none';
+    } else {
+    wrapper.style.display = 'none';
+    emptyElement.style.display = 'flex';
+    }
+    }
+
+    function populateStaffDropdown(dataStaff) {
+    const selStaff = document.getElementById('selStaffFilter');
+    const staffs = [...new Set(dataStaff.map(item => item.tenNguoiHoTro).filter(n => n && n !== "Chưa xác định"))].sort();
+
+    const currentVal = selStaff.value;
+    selStaff.innerHTML = '<option value="">-- Tất cả --</option>';
+
+    staffs.forEach(staff => {
+    const opt = document.createElement('option');
+    opt.value = staff;
+    opt.textContent = staff;
+    selStaff.appendChild(opt);
+    });
+
+    if (currentVal && staffs.includes(currentVal)) {
+    selStaff.value = currentVal;
+    selectedStaffFilter = currentVal;
+    }
+    }
+
+    function applyStaffFilter() {
+    let displayDataStaff = cachedDataStaff;
+    let displayDataChung = cachedDataChung;
+
+    if (selectedStaffFilter) {
+    displayDataStaff = cachedDataStaff.filter(x => x.tenNguoiHoTro === selectedStaffFilter);
+    const validFormIds = displayDataStaff.map(x => x.idFormShd);
+    displayDataChung = cachedDataChung.filter(x => validFormIds.includes(x.id));
+    }
+
+    const s = { "HỦY": 0, "CHỜ QL": 0, "BP XÁC NHẬN": 0, "GIÁM ĐỐC": 0, "SHD ĐANG XỬ LÝ": 0, "HOÀN TẤT": 0 };
+    displayDataChung.forEach(item => {
+    if(s[item.trangThaiDon] !== undefined) s[item.trangThaiDon]++;
+    });
+
+    updateCounters(displayDataChung.length, s);
+
+    const hasDataChung = displayDataChung && displayDataChung.length > 0;
+    handleEmptyState(hasDataChung, 'wrapStatus', 'emptyStatus');
+    handleEmptyState(hasDataChung, 'wrapDept', 'emptyDept');
+    handleEmptyState(hasDataChung, 'wrapCategory', 'emptyCategory');
+    handleEmptyState(hasDataChung, 'wrapIdForm', 'emptyIdForm');
+
+    if (hasDataChung) {
+    drawStatusChart(s);
+    drawDeptChart(displayDataChung);
+    drawCategoryChart(displayDataChung);
+    drawIdFormChart(displayDataChung);
+    }
+
+    const hasDataStaff = displayDataStaff && displayDataStaff.length > 0;
+    handleEmptyState(hasDataStaff, 'wrapStaff', 'emptyStaff');
+    if (hasDataStaff) {
+    drawStaffChart(displayDataStaff);
+    }
+
+    renderTable(cachedDataStaff);
+    }
 
     async function initStats() {
-        try {
-            Object.values(charts).forEach(c => c.destroy());
+    const fromDate = document.getElementById('txtFromDate').value;
+    const toDate = document.getElementById('txtToDate').value;
+    const lblLoading = document.getElementById('lblLoading');
+    const lblError = document.getElementById('lblError');
 
-            const [resChung, resStaff] = await Promise.all([
-                fetch('/FormSHD/GetDataThongKe'),
-                fetch('/FormSHD/GetDataNguoiHoTro')
-            ]);
+    try {
+    lblError.style.display = 'none';
+    lblLoading.style.display = 'inline-block';
 
-            const dataChung = await resChung.json();
-            const dataStaff = await resStaff.json();
+    const urlParams = `?fromDate=${fromDate}&toDate=${toDate}`;
 
-            const s = { "ĐÃ HỦY/TỪ CHỐI": 0, "CHỜ QL DUYỆT": 0, "CHỜ BP XÁC NHẬN": 0, "CHỜ GIÁM ĐỐC": 0, "SHD ĐANG XỬ LÝ": 0, "HOÀN TẤT": 0 };
-            dataChung.forEach(item => {
-                if(s[item.trangThaiDon] !== undefined) s[item.trangThaiDon]++;
-            });
+    const [resChung, resStaff] = await Promise.all([
+    fetch('/FormSHD/GetDataThongKe' + urlParams),
+    fetch('/FormSHD/GetDataNguoiHoTro' + urlParams)
+    ]);
 
-            updateCounters(dataChung.length, s);
-            charts.status = drawStatusChart(s);
-            charts.dept = drawDeptChart(dataChung);
-            charts.category = drawCategoryChart(dataChung);
-            charts.idForm = drawIdFormChart(dataChung);
-            charts.staff = drawStaffChart(dataStaff);
-            renderTable(dataStaff);
+    if (!resChung.ok || !resStaff.ok) {
+    throw new Error("Lỗi API hệ thống");
+    }
 
-        } catch (e) { console.error("Lỗi tải báo cáo SHD:", e); }
+    const dataChungRaw = await resChung.json();
+    const dataStaffRaw = await resStaff.json();
+
+    cachedDataChung = dataChungRaw.map(x => ({...x, trangThaiDon: mapStatus(x.trangThaiDon)}));
+    cachedDataStaff = dataStaffRaw.map(x => ({...x, trangThai: mapStatus(x.trangThai)}));
+
+    populateStaffDropdown(cachedDataStaff);
+    applyStaffFilter();
+
+    } catch (e) {
+    console.error("Lỗi tải báo cáo SHD:", e);
+    lblError.style.display = 'flex';
+    } finally { // <--- ĐÃ SỬA: Thay "file" bằng "finally"
+    lblLoading.style.display = 'none';
+    }
     }
 
     function updateCounters(total, s) {
-        document.getElementById('lblTotal').innerText = total;
-        document.getElementById('lblWaitQL').innerText = s["CHỜ QL DUYỆT"];
-        document.getElementById('lblB2').innerText = s["CHỜ BP XÁC NHẬN"];
-        document.getElementById('lblGD').innerText = s["CHỜ GIÁM ĐỐC"];
-        document.getElementById('lblWaitAdmin').innerText = s["SHD ĐANG XỬ LÝ"];
-        document.getElementById('lblDone').innerText = s["HOÀN TẤT"];
-        document.getElementById('lblCancel').innerText = s["ĐÃ HỦY/TỪ CHỐI"];
+    document.getElementById('lblTotal').innerText = total;
+    document.getElementById('lblWaitQL').innerText = s["CHỜ QL"];
+    document.getElementById('lblB2').innerText = s["BP XÁC NHẬN"];
+    document.getElementById('lblGD').innerText = s["GIÁM ĐỐC"];
+    document.getElementById('lblWaitAdmin').innerText = s["SHD ĐANG XỬ LÝ"];
+    document.getElementById('lblDone').innerText = s["HOÀN TẤT"];
+    document.getElementById('lblCancel').innerText = s["HỦY"];
     }
 
     function drawStatusChart(s) {
-        return new Chart(document.getElementById('chartStatus'), {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(s),
-                datasets: [{
-                    data: Object.values(s),
-                    backgroundColor: Object.keys(s).map(key => statusColors[key]),
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                cutout: '70%',
-                plugins: { 
-                    legend: { position: 'bottom', labels: { usePointStyle: true, font: { weight: 700, size: 10 } } },
-                    datalabels: commonLabelOptions
-                }
-            }
-        });
+    if (chartStatusInstance) { chartStatusInstance.destroy(); }
+
+    chartStatusInstance = new Chart(document.getElementById('chartStatus'), {
+    type: 'doughnut',
+    data: {
+    labels: Object.keys(s),
+    datasets: [{
+    data: Object.values(s),
+    backgroundColor: Object.keys(s).map(key => statusColors[key]),
+    borderWidth: 0
+    }]
+    },
+    options: {
+    maintainAspectRatio: false,
+    cutout: '70%',
+    plugins: {
+    legend: { position: 'bottom', labels: { usePointStyle: true, font: { weight: 700, size: 10 } } },
+    datalabels: commonLabelOptions
+    }
+    }
+    });
     }
 
     function drawDeptChart(data) {
-        const group = groupData(data, 'boPhan');
-        return new Chart(document.getElementById('chartDept'), {
-            type: 'bar',
-            data: {
-                labels: Object.keys(group),
-                datasets: [{ label: 'Số lượng đơn', data: Object.values(group), backgroundColor: '#1e40af', borderRadius: 10 }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                plugins: { 
-                    legend: { display: false },
-                    datalabels: { ...commonLabelOptions, anchor: 'end', align: 'top', color: '#1e293b' } 
-                },
-                scales: { 
-                    y: { beginAtZero: true, grid: { borderDash: [5, 5] } },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
+    if (chartDeptInstance) { chartDeptInstance.destroy(); }
+
+    const group = groupData(data, 'boPhan');
+    chartDeptInstance = new Chart(document.getElementById('chartDept'), {
+    type: 'bar',
+    data: {
+    labels: Object.keys(group),
+    datasets: [{ label: 'Số lượng đơn', data: Object.values(group), backgroundColor: '#1e40af', borderRadius: 10 }]
+    },
+    options: {
+    maintainAspectRatio: false,
+    plugins: {
+    legend: { display: false },
+    datalabels: { ...commonLabelOptions, anchor: 'end', align: 'top', color: '#1e293b' }
+    },
+    scales: {
+    y: { beginAtZero: true, grid: { borderDash: [5, 5] } },
+    x: { grid: { display: false } }
+    }
+    }
+    });
     }
 
     function drawStaffChart(dataStaff) {
-        const staffs = [...new Set(dataStaff.map(item => item.tenNguoiHoTro))];
-        const statusList = ["HOÀN TẤT", "SHD ĐANG XỬ LÝ"]; 
+    if (chartStaffInstance) { chartStaffInstance.destroy(); }
 
-        const datasets = statusList.map(status => ({
-            label: status,
-            data: staffs.map(name => dataStaff.filter(x => x.tenNguoiHoTro === name && x.trangThai === status).length),
-            backgroundColor: statusColors[status],
-            borderRadius: 6,
-            barThickness: 35
-        }));
+    const staffs = [...new Set(dataStaff.map(item => item.tenNguoiHoTro))];
+    const statusList = ["HOÀN TẤT", "SHD ĐANG XỬ LÝ"];
 
-        return new Chart(document.getElementById('chartStaff'), {
-            type: 'bar',
-            data: { labels: staffs, datasets: datasets },
-            options: {
-                maintainAspectRatio: false,
-                plugins: { 
-                    legend: { position: 'top', labels: { font: { weight: 700 } } }, 
-                    datalabels: commonLabelOptions 
-                },
-                scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, grid: { borderDash: [5, 5] } } }
-            }
-        });
+    const datasets = statusList.map(status => ({
+    label: status,
+    data: staffs.map(name => dataStaff.filter(x => x.tenNguoiHoTro === name && x.trangThai === status).length),
+    backgroundColor: statusColors[status],
+    borderRadius: 6,
+    barThickness: 35
+    }));
+
+    chartStaffInstance = new Chart(document.getElementById('chartStaff'), {
+    type: 'bar',
+    data: { labels: staffs, datasets: datasets },
+    options: {
+    maintainAspectRatio: false,
+    onHover: (event, chartElement) => {
+    event.native.target.style.cursor = chartElement.length ? 'pointer' : 'default';
+    },
+    onClick: (event, elements, chart) => {
+    if (elements && elements.length > 0) {
+    const clickedStaffName = chart.data.labels[elements[0].index];
+    selectedStaffFilter = clickedStaffName;
+    document.getElementById('selStaffFilter').value = clickedStaffName;
+    applyStaffFilter();
+    }
+    },
+    plugins: {
+    legend: { position: 'top', labels: { font: { weight: 700 } } },
+    datalabels: commonLabelOptions
+    },
+    scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, grid: { borderDash: [5, 5] } } }
+    }
+    });
     }
 
     function drawCategoryChart(data) {
-        const group = groupData(data, 'danhmuc');
-        return new Chart(document.getElementById('chartCategory'), {
-            type: 'polarArea',
-            data: {
-                labels: Object.keys(group),
-                datasets: [{ 
-                    data: Object.values(group), 
-                    backgroundColor: ['#0891b2', '#06b6d4', '#22d3ee', '#1e40af', '#3b82f6', '#60a5fa'] 
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'right', labels: { font: { weight: 700 } } }, datalabels: { display: false } }
-            }
-        });
+    if (chartCategoryInstance) { chartCategoryInstance.destroy(); }
+
+    const group = groupData(data, 'danhmuc');
+    chartCategoryInstance = new Chart(document.getElementById('chartCategory'), {
+    type: 'polarArea',
+    data: {
+    labels: Object.keys(group),
+    datasets: [{
+    data: Object.values(group),
+    backgroundColor: ['#0891b2', '#06b6d4', '#22d3ee', '#1e40af', '#3b82f6', '#60a5fa']
+    }]
+    },
+    options: {
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'right', labels: { font: { weight: 700 } } }, datalabels: { display: false } }
+    }
+    });
     }
 
     function drawIdFormChart(data) {
-        const group = groupData(data, 'tenLoaiDon');
-        const sortedLabels = Object.keys(group).sort((a,b) => group[b] - group[a]).slice(0, 8);
-        
-        return new Chart(document.getElementById('chartIdForm'), {
-            type: 'bar',
-            data: {
-                labels: sortedLabels,
-                datasets: [{ label: 'Số lượng', data: sortedLabels.map(l => group[l]), backgroundColor: '#3b82f6', borderRadius: 8 }]
-            },
-            options: {
-                indexAxis: 'y',
-                maintainAspectRatio: false,
-                plugins: { 
-                    legend: { display: false },
-                    datalabels: { ...commonLabelOptions, anchor: 'end', align: 'right', color: '#1e293b' } 
-                },
-                scales: { x: { grid: { borderDash: [5, 5] } }, y: { grid: { display: false } } }
-            }
-        });
+    if (chartIdFormInstance) { chartIdFormInstance.destroy(); }
+
+    const group = groupData(data, 'idForm');
+    const sortedLabels = Object.keys(group).sort((a,b) => group[b] - group[a]).slice(0, 8);
+
+    chartIdFormInstance = new Chart(document.getElementById('chartIdForm'), {
+    type: 'bar',
+    data: {
+    labels: sortedLabels,
+    datasets: [{ label: 'Số lượng', data: sortedLabels.map(l => group[l]), backgroundColor: '#3b82f6', borderRadius: 8 }]
+    },
+    options: {
+    indexAxis: 'y',
+    maintainAspectRatio: false,
+    plugins: {
+    legend: { display: false },
+    datalabels: { ...commonLabelOptions, anchor: 'end', align: 'right', color: '#1e293b' }
+    },
+    scales: { x: { grid: { borderDash: [5, 5] } }, y: { grid: { display: false } } }
+    }
+    });
     }
 
     function renderTable(data) {
-        const summary = data.reduce((acc, curr) => {
-            const key = `${curr.tenNguoiHoTro}|${curr.danhMuc}`;
-            if (!acc[key]) {
-                acc[key] = { name: curr.tenNguoiHoTro, cat: curr.danhMuc, count: 0, totalMin: 0, tCount: 0 };
-            }
-            acc[key].count++;
-            if (curr.phutXuLy) {
-                acc[key].totalMin += curr.phutXuLy;
-                acc[key].tCount++;
-            }
-            return acc;
-        }, {});
+    let displayData = data;
+    const badge = document.getElementById('tableFilterBadge');
 
-        document.getElementById('tblStaffBody').innerHTML = Object.values(summary)
-            .sort((a, b) => b.count - a.count)
-            .map(item => `
-                <tr>
-                    <td><div style="display:flex; align-items:center; gap:10px;"><i class="fa fa-user-circle" style="color:#cbd5e1; font-size:18px;"></i> ${item.name}</div></td>
-                    <td style="color: #64748b;">${item.cat}</td>
-                    <td style="text-align: center;"><span class="badge-count">${item.count}</span></td>
-                    <td style="text-align: center;" class="badge-time">
-                        <i class="fa fa-hourglass-half" style="font-size:11px; opacity:0.6;"></i> ${item.tCount > 0 ? formatDuration(item.totalMin / item.tCount) : '-'}
-                    </td>
-                </tr>
-            `).join('');
+    if (selectedStaffFilter) {
+    displayData = data.filter(x => x.tenNguoiHoTro === selectedStaffFilter);
+    badge.innerHTML = `<i class="fa fa-filter"></i> Đang lọc theo nhân viên: <b>${selectedStaffFilter}</b> <span style="margin-left:8px; color:#dc2626; cursor:pointer; font-weight:bold;" onclick="clearTableFilter()">[Xóa bộ lọc]</span>`;
+    badge.style.display = 'flex';
+    } else {
+    badge.style.display = 'none';
+    }
+
+    const summary = displayData.reduce((acc, curr) => {
+    const key = `${curr.tenNguoiHoTro}|${curr.danhMuc}`;
+    if (!acc[key]) {
+    acc[key] = { name: curr.tenNguoiHoTro, cat: curr.danhMuc, count: 0, totalMin: 0, tCount: 0 };
+    }
+    acc[key].count++;
+    if (curr.phutXuLy) {
+    acc[key].totalMin += curr.phutXuLy;
+    acc[key].tCount++;
+    }
+    return acc;
+    }, {});
+
+    const tbody = document.getElementById('tblStaffBody');
+    if (Object.keys(summary).length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:20px;">Không có dữ liệu hiển thị</td></tr>`;
+    return;
+    }
+
+    tbody.innerHTML = Object.values(summary)
+    .sort((a, b) => b.count - a.count)
+    .map(item => `
+    <tr>
+    <td data-label="Nhân Viên Phụ Trách"><div style="display:flex; align-items:center; gap:10px;"><i class="fa fa-user-circle" style="color:#cbd5e1; font-size:18px;"></i> ${item.name}</div></td>
+    <td data-label="Danh Mục Nghiệp Vụ" style="color: #64748b;">${item.cat}</td>
+    <td data-label="Số Đơn Xử Lý" style="text-align: center;"><span class="badge-count">${item.count}</span></td>
+    <td data-label="Thời Gian Hoàn Tất TB" style="text-align: center;" class="badge-time">
+    <i class="fa fa-hourglass-half" style="font-size:11px; opacity:0.6;"></i> ${item.tCount > 0 ? formatDuration(item.totalMin / item.tCount) : '-'}
+    </td>
+    </tr>
+    `).join('');
+    }
+
+    function clearTableFilter() {
+    selectedStaffFilter = null;
+    document.getElementById('selStaffFilter').value = "";
+    applyStaffFilter();
+    }
+
+    function clearAllFilters() {
+    document.getElementById('txtFromDate').value = "";
+    document.getElementById('txtToDate').value = "";
+    document.getElementById('selStaffFilter').value = "";
+    selectedStaffFilter = null;
+    initStats();
     }
 
     function groupData(data, key) {
-        return data.reduce((acc, x) => {
-            let val = x[key] || "N/A";
-            acc[val] = (acc[val] || 0) + 1;
-            return acc;
-        }, {});
+    return data.reduce((acc, x) => {
+    let val = x[key] || "N/A";
+    acc[val] = (acc[val] || 0) + 1;
+    return acc;
+    }, {});
     }
 
-    document.addEventListener('DOMContentLoaded', initStats);
+    document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('selStaffFilter').addEventListener('change', function() {
+    selectedStaffFilter = this.value || null;
+    applyStaffFilter();
+    });
+    initStats();
+    });
 </script>

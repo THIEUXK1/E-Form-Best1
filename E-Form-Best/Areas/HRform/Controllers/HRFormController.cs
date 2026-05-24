@@ -4857,152 +4857,161 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
         #endregion
 
-        #region BÁO CÁO THỐNG KÊ FORM HR (Đồng bộ 7 trạng thái)
+        #region BÁO CÁO THỐNG KÊ FORM HR (Đồng bộ kiến trúc tối ưu từ IT)
 
+        // 1. Action này chỉ trả về giao diện (View)
         [HttpGet("/FormHR/BaoCaoThongKe")]
-        public async Task<IActionResult> BaoCaoThongKe()
+        public IActionResult BaoCaoThongKe()
         {
-            // Kiểm tra User và Identity an toàn trước khi sử dụng
             if (User?.Identity == null || !User.Identity.IsAuthenticated)
                 return Redirect("/DonXetDuyet/DangNhap");
 
-            // Kiểm tra quyền (IsInRole là phương thức mở rộng an toàn, 
-            // nhưng việc kiểm tra User tồn tại ở trên đã bảo vệ khối lệnh này)
             bool isAuthorized = User.IsInRole("AdminHR") || User.IsInRole("All");
             if (!isAuthorized)
                 return Redirect("/");
 
-            var allForms = await _context.FormHrs
-                .AsNoTracking()
-                .OrderByDescending(x => x.TimeNguoiTao)
-                .ToListAsync();
-
-            return View(allForms);
+            return View();
         }
 
-        // --- ĐÃ NÂNG CẤP: Nhận thêm tham số fromDate và toDate ---
         [HttpGet("/FormHR/GetDataThongKe")]
         public async Task<IActionResult> GetDataThongKe(DateTime? fromDate, DateTime? toDate)
         {
-            // Bước 1: Lấy dữ liệu thô từ Database với xử lý null-safe
-            var query = _context.FormHrs.AsNoTracking();
-
-            if (fromDate.HasValue) query = query.Where(x => x.TimeNguoiTao >= fromDate.Value);
-            if (toDate.HasValue)
+            try
             {
-                var endOfToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
-                query = query.Where(x => x.TimeNguoiTao <= endOfToDate);
-            }
+                var query = _context.FormHrs.AsNoTracking();
 
-            var dataRaw = await query
-                .Select(x => new
+                // Lọc theo khoảng thời gian nếu có chọn (Sử dụng TimeNguoiTao làm mốc cho HR)
+                if (fromDate.HasValue)
                 {
-                    x.Id,
-                    IdFormValue = x.IdForm ?? "",
-                    x.BoPhan,
-                    x.IdNguoiDuyet,
-                    x.IdAdmin,
-                    x.TenForm,
-                    x.Danhmuc,
-                    // Sử dụng ?? Enumerable.Empty để đảm bảo list không bao giờ là null
-                    B2States = (x.HrQuanLyDuyetB2s ?? Enumerable.Empty<E_Form_Best.Models.ITForm.HrQuanLyDuyetB2>())
-                               .Select(b => b.TrangThaiXacNhan).ToList(),
-                    GDStates = (x.HrNguoiXacNhans ?? Enumerable.Empty<E_Form_Best.Models.ITForm.HrNguoiXacNhan>())
-                               .Select(g => g.TrangThaiXacNhan).ToList(),
-                    TenNguoiHoTro = x.HrCtNguoiHoTros
-                                    .OrderByDescending(ct => ct.Stt)
-                                    .Select(ct => ct.IdHrNguoiHoTroNavigation != null ? ct.IdHrNguoiHoTroNavigation.Ten : null)
-                                    .FirstOrDefault()
-                })
-                .ToListAsync();
+                    query = query.Where(x => x.TimeNguoiTao >= fromDate.Value);
+                }
+                if (toDate.HasValue)
+                {
+                    var endOfToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                    query = query.Where(x => x.TimeNguoiTao <= endOfToDate);
+                }
 
-            // Bước 2: Xử lý logic trên RAM
-            var processedData = dataRaw.Select(x => new
+                // Sử dụng Select trực tiếp để EF Core sinh ra câu lệnh SQL tinh gọn nhất
+                var rawData = await query
+                    .Select(x => new
+                    {
+                        x.Id,
+                        IdFormValue = x.IdForm ?? "",
+                        BoPhan = x.BoPhan,
+                        x.IdNguoiDuyet,
+                        x.IdAdmin,
+                        x.TenForm,
+                        Danhmuc = string.IsNullOrEmpty(x.Danhmuc) ? "Biểu mẫu HR" : x.Danhmuc,
+                        // Lấy trạng thái B2 và GĐ để xử lý Logic 7 trạng thái
+                        B2States = x.HrQuanLyDuyetB2s.Select(b => b.TrangThaiXacNhan).ToList(),
+                        GDStates = x.HrNguoiXacNhans.Select(g => g.TrangThaiXacNhan).ToList()
+                    })
+                    .ToListAsync();
+
+                // Xử lý logic trạng thái trên RAM
+                var data = rawData.Select(x => new
+                {
+                    Id = x.Id,
+                    IdForm = GetTenNganGonFormHR(x.IdFormValue), // Chuẩn hóa tên viết tắt cho biểu đồ
+                    Danhmuc = x.Danhmuc,
+                    BoPhan = string.IsNullOrEmpty(x.BoPhan) ? "N/A" : x.BoPhan,
+                    // Đồng bộ trả ra chuỗi trạng thái khớp chính xác với mapStatus() của Frontend
+                    TrangThaiDon = CalculateStatusHR(x.TenForm, x.IdNguoiDuyet, x.IdAdmin, x.B2States, x.GDStates)
+                }).ToList();
+
+                return Json(data);
+            }
+            catch (Exception ex)
             {
-                x.Id,
-                TenLoaiDon = GetTenNganGonFormHR(x.IdFormValue),
-                BoPhan = x.BoPhan ?? "N/A",
-                Danhmuc = string.IsNullOrEmpty(x.Danhmuc) ? "Biểu mẫu HR" : x.Danhmuc,
-                TenNguoiHoTro = x.TenNguoiHoTro ?? "Chưa xác định",
-                TrangThaiDon = CalculateStatus(
-                    x.TenForm ?? "",
-                    x.IdNguoiDuyet,
-                    x.IdAdmin,
-                    x.B2States, // Đã an toàn từ Bước 1
-                    x.GDStates  // Đã an toàn từ Bước 1
-                )
-            });
-
-            return Json(processedData);
+                return BadRequest(ex.Message);
+            }
         }
 
-
-        // --- ĐÃ NÂNG CẤP: Nhận thêm tham số từ ngày đến ngày ---
         [HttpGet("/FormHR/GetDataNguoiHoTro")]
         public async Task<IActionResult> GetDataNguoiHoTro(DateTime? fromDate, DateTime? toDate)
         {
-            IQueryable<E_Form_Best.Models.ITForm.HrCtNguoiHoTro> query = _context.HrCtNguoiHoTros
-                .AsNoTracking()
-                .Include(x => x.IdHrNguoiHoTroNavigation)
-                .Include(x => x.IdFormHrNavigation)
-                    .ThenInclude(f => f!.HrQuanLyDuyetB2s)
-                .Include(x => x.IdFormHrNavigation)
-                    .ThenInclude(f => f!.HrNguoiXacNhans);
-
-            if (fromDate.HasValue)
+            try
             {
-                query = query.Where(x => x.IdFormHrNavigation != null && x.IdFormHrNavigation.TimeNguoiTao >= fromDate.Value);
-            }
+                var query = _context.HrCtNguoiHoTros.AsNoTracking();
 
-            if (toDate.HasValue)
-            {
-                var endOfToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
-                query = query.Where(x => x.IdFormHrNavigation != null && x.IdFormHrNavigation.TimeNguoiTao <= endOfToDate);
-            }
-
-            var allDetails = await query.ToListAsync();
-
-            // Sử dụng kỹ thuật SelectMany để lọc null ngay từ đầu
-            var filteredData = allDetails
-                .GroupBy(x => x.IdFormHr)
-                .Select(group => group.OrderByDescending(x => x.Stt).FirstOrDefault())
-                // SỬA: Sử dụng Pattern Matching (is { }) để ép kiểu và khẳng định chắc chắn với Compiler rằng cả hai đều KHÔNG NULL
-                .Where(topSupport => topSupport is { IdFormHrNavigation: { } })
-                .Select(topSupport =>
+                // Lọc theo khoảng thời gian nếu có chọn trước khi Select
+                if (fromDate.HasValue)
                 {
-                    // Trình biên dịch bây giờ đã chắc chắn topSupport và IdFormHrNavigation không null dưới đây
-                    var ts = topSupport!;
-                    var f = ts.IdFormHrNavigation!;
+                    query = query.Where(x => x.IdFormHrNavigation != null && x.IdFormHrNavigation.TimeNguoiTao >= fromDate.Value);
+                }
+                if (toDate.HasValue)
+                {
+                    var endOfToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                    query = query.Where(x => x.IdFormHrNavigation != null && x.IdFormHrNavigation.TimeNguoiTao <= endOfToDate);
+                }
 
-                    var b2Statuses = (f.HrQuanLyDuyetB2s ?? Enumerable.Empty<E_Form_Best.Models.ITForm.HrQuanLyDuyetB2>())
-                                     .Select(b => b.TrangThaiXacNhan);
-                    var gdStatuses = (f.HrNguoiXacNhans ?? Enumerable.Empty<E_Form_Best.Models.ITForm.HrNguoiXacNhan>())
-                                     .Select(g => g.TrangThaiXacNhan);
-
-                    return new
+                // Lấy dữ liệu thô từ bảng chi tiết hỗ trợ
+                var rawData = await query
+                    .Select(x => new
                     {
-                        TenNguoiHoTro = ts.IdHrNguoiHoTroNavigation?.Ten ?? "Chưa xác định",
-                        BoPhan = f.BoPhan ?? "N/A",
-                        DanhMuc = f.Danhmuc ?? "N/A",
-                        TrangThai = CalculateStatus(
-                            f.TenForm ?? string.Empty,
-                            f.IdNguoiDuyet,
-                            f.IdAdmin,
-                            b2Statuses,
-                            gdStatuses
-                        ),
-                        PhutXuLy = (f.TimeAdmin.HasValue && f.TimeNguoiDuyet.HasValue)
-                                   ? (f.TimeAdmin.Value - f.TimeNguoiDuyet.Value).TotalMinutes
-                                   : (double?)null
-                    };
-                })
-                .ToList();
+                        x.IdFormHr,
+                        x.Stt,
+                        TenNguoiHoTro = x.IdHrNguoiHoTroNavigation != null ? x.IdHrNguoiHoTroNavigation.Ten : "Chưa xác định",
+                        Danhmuc = x.IdFormHrNavigation != null && !string.IsNullOrEmpty(x.IdFormHrNavigation.Danhmuc) ? x.IdFormHrNavigation.Danhmuc : "Biểu mẫu HR",
+                        TenForm = x.IdFormHrNavigation != null ? x.IdFormHrNavigation.TenForm : "",
+                        IdAdmin = x.IdFormHrNavigation != null ? x.IdFormHrNavigation.IdAdmin : null,
+                        IdNguoiDuyet = x.IdFormHrNavigation != null ? x.IdFormHrNavigation.IdNguoiDuyet : null,
+                        TimeAdmin = x.IdFormHrNavigation != null ? x.IdFormHrNavigation.TimeAdmin : null,
+                        TimeNguoiDuyet = x.IdFormHrNavigation != null ? x.IdFormHrNavigation.TimeNguoiDuyet : null,
+                        B2States = x.IdFormHrNavigation != null ? x.IdFormHrNavigation.HrQuanLyDuyetB2s.Select(b => b.TrangThaiXacNhan).ToList() : new List<int?>(),
+                        GDStates = x.IdFormHrNavigation != null ? x.IdFormHrNavigation.HrNguoiXacNhans.Select(g => g.TrangThaiXacNhan).ToList() : new List<int?>()
+                    })
+                    .ToListAsync();
 
-            return Json(filteredData);
+                // Sau khi lấy dữ liệu thô về RAM, GroupBy để lấy Stt cao nhất (Người hỗ trợ cuối cùng)
+                var filteredData = rawData
+                    .GroupBy(x => x.IdFormHr)
+                    .Select(group =>
+                    {
+                        var top = group.OrderByDescending(x => x.Stt).First();
+
+                        double? minutes = null;
+                        if (top.TimeAdmin.HasValue && top.TimeNguoiDuyet.HasValue)
+                        {
+                            minutes = (top.TimeAdmin.Value - top.TimeNguoiDuyet.Value).TotalMinutes;
+                        }
+
+                        return new
+                        {
+                            IdFormHr = top.IdFormHr, // Giữ ID gốc phục vụ JS kết nối dữ liệu lọc chéo lọc đồng bộ
+                            TenNguoiHoTro = top.TenNguoiHoTro,
+                            DanhMuc = top.Danhmuc,
+                            // Đồng bộ trả ra chuỗi trạng thái khớp chính xác với mapStatus() của Frontend
+                            TrangThai = CalculateStatusHR(top.TenForm, top.IdNguoiDuyet, top.IdAdmin, top.B2States, top.GDStates),
+                            PhutXuLy = minutes
+                        };
+                    })
+                    .ToList();
+
+                return Json(filteredData);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
-        // Đã đổi tên từ GetShortName thành GetTenNganGonFormHR
-        private string GetTenNganGonFormHR(string idForm)
+        // --- CÁC HÀM HELPER BỔ TRỢ ---
+
+        private static string CalculateStatusHR(string? tenForm, int? idQL, int? idAdmin, IEnumerable<int?> b2, IEnumerable<int?> gd)
+        {
+            var b2List = b2 ?? Enumerable.Empty<int?>();
+            var gdList = gd ?? Enumerable.Empty<int?>();
+
+            if ((tenForm ?? "").Contains("[ĐÃ HỦY]") || b2List.Any(v => v == 2) || gdList.Any(v => v == 2)) return "HỦY";
+            if (idAdmin != null) return "HOÀN TẤT";
+            if (idQL == null) return "CHỜ QL";
+            if (b2List.Any() && !b2List.All(v => v == 1)) return "BP XÁC NHẬN"; // Khớp chuỗi mapStatus() phía JS
+            if (gdList.Any() && !gdList.All(v => v == 1)) return "GIÁM ĐỐC";    // Khớp chuỗi mapStatus() phía JS
+            return "CHỜ ADMIN"; // Thay cho chuỗi cũ giúp Frontend hiểu ngay không cần qua bước xử lý trung gian
+        }
+
+        private static string GetTenNganGonFormHR(string? idForm)
         {
             if (string.IsNullOrEmpty(idForm)) return "Khác";
             if (idForm.Contains("XinRaNgoai_1")) return "Ra ngoài";
@@ -5014,8 +5023,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
             if (idForm.Contains("HoTroTienDienThoai_7")) return "Tiền ĐT";
             if (idForm.Contains("DoiCaLam_8")) return "Đổi ca";
             if (idForm.Contains("DonHoTroCongTac_9")) return "HT Công tác";
-
-            // 3 Form mới thêm vào
             if (idForm.Contains("DonKiTucXa_10")) return "Ký túc xá";
             if (idForm.Contains("DonLamLaiThe_11")) return "Làm lại thẻ";
             if (idForm.Contains("DonSuDungDienThoai_12")) return "SD Điện thoại";

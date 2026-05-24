@@ -21,10 +21,6 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="10.0.2" />
-		<PackageReference Include="SonarAnalyzer.CSharp" Version="10.26.0.140279">
-		  <PrivateAssets>all</PrivateAssets>
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
 		<PackageReference Include="WebPush" Version="1.0.12" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 

@@ -1,16 +1,17 @@
-﻿@using Microsoft.AspNetCore.Http
-@using System.Security.Claims
-@using Microsoft.AspNetCore.Localization
-@{
+﻿@{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
 
     // Kiểm tra trang đăng nhập
     var isLoginPage = (currentController == "TaiKhoan" || currentController == "DonXetDuyet") && currentAction == "DangNhap";
 
-    // Lấy thông tin người dùng từ Claims
-    var currentUserName = User.Identity.IsAuthenticated ? User.Identity.Name : "Khách";
-    var currentUserRole = User.FindFirst("UserRole")?.Value ?? (User.FindFirst(ClaimTypes.Role)?.Value ?? "Guest");
+    // Lấy thông tin người dùng từ Claims (Xử lý kiểm tra an toàn cho Identity)
+    var currentUserName = (User.Identity != null && User.Identity.IsAuthenticated) ? (User.Identity.Name ?? "Khách") : "Khách";
+
+    // Xử lý an toàn cho các hàm FindFirst để tránh lỗi gọi .Value khi claim bị null
+    var currentUserRole = User.FindFirst("UserRole")?.Value
+        ?? (User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Guest");
+
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
 
     // Danh sách các Action thuộc menu Đăng ký
@@ -423,7 +424,7 @@
                     <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span>Nhật ký hệ thống</span>
                 </a>
 
-                @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonHR") || User.IsInRole("All")))
+                @if (User?.Identity?.IsAuthenticated == true && (User.IsInRole("QuanLyDuyetDonHR") || User.IsInRole("All")))
                 {
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
                     <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Phê duyệt</div>
@@ -433,18 +434,18 @@
                     </a>
                 }
 
-                @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonHR_B2") || User.IsInRole("All")))
+                @if (User?.Identity?.IsAuthenticated == true && (User.IsInRole("QuanLyDuyetDonHR_B2") || User.IsInRole("All")))
                 {
 
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
                     <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Phê duyệt B2</div>
 
-                    <a href="/FormHR/QuanLyXetDuyetB2" class="nav-link-item @(currentAction == "QuanLyXetDuyetB2" ? "active" : "")">
+                    <a href="/FormHR/QuanLyXetDuyetB2" class="nav-link-item @(currentAction?.Equals("QuanLyXetDuyetB2") == true ? "active" : "")">
                         <i class="fa fa-users" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#63b3ed;"></i> <span>Quản lý xét duyệt B2</span>
                     </a>
                 }
 
-                @if (User.Identity.IsAuthenticated && (User.IsInRole("GiamDocHR") || User.IsInRole("All")))
+                @if (User?.Identity?.IsAuthenticated == true && (User.IsInRole("GiamDocHR") || User.IsInRole("All")))
                 {
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
                     <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Ban Điều Hành</div>
@@ -454,7 +455,7 @@
                     </a>
                 }
 
-                @if (User.Identity.IsAuthenticated && (User.IsInRole("AdminHR") || User.IsInRole("All")))
+                @if (User?.Identity?.IsAuthenticated == true && (User.IsInRole("AdminHR") || User.IsInRole("All")))
                 {
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:15px 10px;"></div>
                     <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 10px 12px; font-weight: 800;">Quản trị HR</div>
@@ -473,19 +474,19 @@
                     </a>
                 }
 
-                @if (User.Identity.IsAuthenticated && (User.IsInRole("GiamDocHR") || User.IsInRole("All") || User.IsInRole("BaoVeHR") || User.IsInRole("AdminHR") || User.IsInRole("QuanLyDuyetDonHR_B2")))
+                @if (User?.Identity?.IsAuthenticated == true && (User.IsInRole("GiamDocHR") || User.IsInRole("All") || User.IsInRole("BaoVeHR") || User.IsInRole("AdminHR") || User.IsInRole("QuanLyDuyetDonHR_B2")))
                 {
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:20px 10px;"></div>
                     <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.8px; margin: 0 0 12px 15px; font-weight: 800;">AN NINH & CỔNG</div>
 
-                    <a href="/FormHR/BaoVePheDuyet" class="nav-link-item @(currentAction.Contains("BaoVe") ? "active" : "")">
+                    <a href="/FormHR/BaoVePheDuyet" class="nav-link-item @(currentAction?.Contains("BaoVe") == true  ? "active" : "")">
                         <i class="fa fa-shield" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#63b3ed;"></i> <span>Kiểm soát ra vào</span>
                     </a>
                 }
             </nav>
 
             <div style="margin-top:20px; padding: 15px; background: rgba(0,0,0,0.25); border-radius: 16px; position:relative; border: 1px solid rgba(255,255,255,0.05);">
-                @if (User.Identity.IsAuthenticated)
+                @if (User?.Identity?.IsAuthenticated == true)
                 {
                     <!-- KIỂM TRA MẬT KHẨU MẶC ĐỊNH -->
                     @if (User.HasClaim("IsDefaultPassword", "true"))
