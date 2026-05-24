@@ -845,14 +845,15 @@
 </div>
 <script>
     // ==========================================
+      // ==========================================
     // 1. KHAI BÁO BIẾN CƠ BẢN & TRẠNG THÁI
     // ==========================================
-    // SỬA LỖI: Mã hóa qua JsonSerializer và viết gọn trên một dòng để IDE không nhận diện sai cú pháp JS
-    const formId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.Id));
-    const currentUserId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.CurrentUserId));
-    // --- MỚI: Lấy danh sách Roles dưới dạng mảng ---
-    const userRoles = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList()));
+    // Biến code C# thành một chuỗi JSON thuần túy trong JS, IDE sẽ hiểu đây là chuỗi hợp lệ và tắt cảnh báo.
+    const formId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.Id))');
+    const currentUserId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.CurrentUserId))');
 
+    // --- MỚI: Lấy danh sách Roles dưới dạng mảng ---
+    const userRoles = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList()))');
     // Biến trạng thái cho Bình luận
     let currentSkipComment = 0;
     const takeComment = 20;
