@@ -3501,7 +3501,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
             var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
             var listTenBoPhan = listTenBoPhanStr.Split(',')
-                                                .Select(s => s.Trim().ToLower())
+                                                .Select(s => s.Trim())
                                                 .Where(s => !string.IsNullOrEmpty(s))
                                                 .ToList();
 
@@ -3521,9 +3521,21 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
                 if (User.IsInRole("QuanLyDuyetDonHR"))
                 {
-                    if (listTenBoPhan.Any()) query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim().ToLower()));
-                    else if (!string.IsNullOrEmpty(phongBan)) query = query.Where(f => f.BoPhan != null && f.BoPhan.Trim().ToLower() == phongBan.ToLower());
-                    else query = query.Where(f => f.IdNguoiTao == userId);
+                    // Lưu ý quan trọng: EF Core không dịch trực tiếp StringComparison.OrdinalIgnoreCase ra SQL được.
+                    // Thông thường EF Core chạy trên SQL Server đã mặc định cấu hình không phân biệt hoa thường (Case-Insensitive).
+                    // Vì vậy ở tầng IQueryable này, ta dùng Equals/Contains thông thường hoặc EF.Functions.Like nếu cần ép luật.
+                    if (listTenBoPhan.Any())
+                    {
+                        query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim()));
+                    }
+                    else if (!string.IsNullOrEmpty(phongBan))
+                    {
+                        query = query.Where(f => f.BoPhan != null && f.BoPhan.Trim() == phongBan);
+                    }
+                    else
+                    {
+                        query = query.Where(f => f.IdNguoiTao == userId);
+                    }
                 }
                 else
                 {
@@ -3540,13 +3552,16 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 var gdList = item.HrNguoiXacNhans ?? Enumerable.Empty<E_Form_Best.Models.ITForm.HrNguoiXacNhan>();
                 var supportList = item.HrCtNguoiHoTros ?? Enumerable.Empty<E_Form_Best.Models.ITForm.HrCtNguoiHoTro>();
 
-                // Logic B2
+                // Logic B2 (Thực hiện trên Memory sau khi ToListAsync nên dùng tốt StringComparison)
                 bool hasB2 = b2List.Any();
                 bool checkB2Approved = true;
                 if (hasB2)
                 {
-                    string type = b2List.FirstOrDefault()?.Loai?.ToUpper() ?? "AND";
-                    checkB2Approved = (type == "OR" || type == "ANY") ? b2List.Any(x => x.TrangThaiXacNhan == 1) : b2List.All(x => x.TrangThaiXacNhan == 1);
+                    string type = b2List.FirstOrDefault()?.Loai ?? "AND";
+                    bool isOrType = string.Equals(type, "OR", StringComparison.OrdinalIgnoreCase) ||
+                                    string.Equals(type, "ANY", StringComparison.OrdinalIgnoreCase);
+
+                    checkB2Approved = isOrType ? b2List.Any(x => x.TrangThaiXacNhan == 1) : b2List.All(x => x.TrangThaiXacNhan == 1);
                 }
                 bool checkB2Rejected = hasB2 && b2List.Any(x => x.TrangThaiXacNhan == 2);
 
@@ -3556,7 +3571,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 bool isGDRejected = hasGD && gdList.Any(x => x.TrangThaiXacNhan == 2);
 
                 // Trạng thái chung
-                bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]");
+                bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]", StringComparison.OrdinalIgnoreCase);
                 bool isFinished = item.IdAdmin != null;
                 bool isManagerApproved = item.IdNguoiDuyet != null;
 
@@ -3590,13 +3605,17 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 var supportLog = supportList.OrderByDescending(x => x.Stt).FirstOrDefault();
                 string supportName = supportLog?.IdHrNguoiHoTroNavigation?.Ten ?? "Chưa chỉ định";
 
+                // Loại bỏ cụm "[ĐÃ HỦY]" không phân biệt chữ hoa/thường bằng Replace trong .NET Core
+                string responseTenForm = (item.TenForm ?? "");
+                responseTenForm = responseTenForm.Replace("[ĐÃ HỦY]", "", StringComparison.OrdinalIgnoreCase).Trim();
+
                 return new
                 {
                     item.Id,
                     TenNguoiNv = item.TenNguoiNv ?? "N/A",
                     BoPhan = item.BoPhan ?? "N/A",
                     SoNhanVien = item.SoNhanVien ?? "N/A",
-                    TenForm = (item.TenForm ?? "").Replace("[ĐÃ HỦY]", "").Trim(),
+                    TenForm = responseTenForm,
                     TimeNguoiTao = item.TimeNguoiTao?.ToString("dd/MM/yyyy") ?? "--",
                     HasB2 = hasB2,
                     B2ApprovedCount = b2List.Count(x => x.TrangThaiXacNhan == 1),
@@ -4342,14 +4361,15 @@ namespace E_Form_Best.Areas.HRform.Controllers
             if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
             int userId = int.Parse(userIdStr);
-            var userEmail = (User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "").Trim().ToLower();
+            // Giữ nguyên chuỗi gốc, loại bỏ ToLower() ở đây để tránh tạo chuỗi thừa, việc so sánh sẽ dùng StringComparison sau
+            var userEmail = (User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "").Trim();
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
             var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
             var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
             var listTenBoPhan = listTenBoPhanStr.Split(',')
-                                                .Select(s => s.Trim().ToLower())
+                                                .Select(s => s.Trim())
                                                 .Where(s => !string.IsNullOrEmpty(s))
                                                 .ToList();
 
@@ -4359,6 +4379,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             bool isQuanLyDuyet = userRoles.Contains("QuanLyDuyetDonHR");
             bool isGiamDocHR = userRoles.Contains("GiamDocHR");
 
+            // --- TRUY VẤN DỮ LIỆU CƠ BẢN ---
             IQueryable<E_Form_Best.Models.ITForm.FormHr> query = _context.FormHrs
                 .Include(f => f.HrNguoiXacNhans).ThenInclude(xn => xn.IdnguoiXacNhanNavigation)
                 .Include(f => f.HrQuanLyDuyetB2s)
@@ -4368,12 +4389,15 @@ namespace E_Form_Best.Areas.HRform.Controllers
             query = query.Where(f => f.IdNguoiDuyet != null && f.TenNguoiDuyet != null && f.TimeNguoiDuyet != null);
 
             // --- LOGIC PHÂN QUYỀN AN TOÀN ---
+            // Lưu ý: Các biểu thức trong tầng IQueryable này sẽ được EF Core dịch sang SQL.
+            // SQL Server mặc định không phân biệt hoa thường (Case-Insensitive), do đó ta lược bỏ .ToLower() và .Trim() 
+            // để giúp EF Core sinh câu lệnh SQL tối ưu nhất và tận dụng được Index của Database.
             query = query.Where(f =>
                 isAll || isAdminHR ||
-                (isQuanLyB2 && (f.HrQuanLyDuyetB2s ?? Enumerable.Empty<E_Form_Best.Models.ITForm.HrQuanLyDuyetB2>()).Any(b2 => b2.IdnguoiXacNhan == userId || (b2.MaNguoiXacNhan != null && b2.MaNguoiXacNhan.ToLower() == userEmail))) ||
-                (isGiamDocHR && (f.HrNguoiXacNhans ?? Enumerable.Empty<E_Form_Best.Models.ITForm.HrNguoiXacNhan>()).Any(xn => xn.IdnguoiXacNhan == userId || (xn.MaNguoiXacNhan != null && xn.MaNguoiXacNhan.ToLower() == userEmail))) ||
-                (isQuanLyDuyet && (f.IdNguoiTao == userId || (listTenBoPhan.Any() && f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim().ToLower())) || (!listTenBoPhan.Any() && !string.IsNullOrEmpty(phongBanSession) && f.BoPhan != null && f.BoPhan.Trim().ToLower() == phongBanSession.ToLower()))) ||
-                (f.IdNguoiTao == userId || (f.HrCtNguoiHoTros ?? Enumerable.Empty<E_Form_Best.Models.ITForm.HrCtNguoiHoTro>()).Any(ct => ct.IdHrNguoiHoTroNavigation != null && (ct.IdHrNguoiHoTroNavigation.MaNv ?? "").ToLower() == userEmail))
+                (isQuanLyB2 && (f.HrQuanLyDuyetB2s ?? Enumerable.Empty<E_Form_Best.Models.ITForm.HrQuanLyDuyetB2>()).Any(b2 => b2.IdnguoiXacNhan == userId || (b2.MaNguoiXacNhan != null && b2.MaNguoiXacNhan == userEmail))) ||
+                (isGiamDocHR && (f.HrNguoiXacNhans ?? Enumerable.Empty<E_Form_Best.Models.ITForm.HrNguoiXacNhan>()).Any(xn => xn.IdnguoiXacNhan == userId || (xn.MaNguoiXacNhan != null && xn.MaNguoiXacNhan == userEmail))) ||
+                (isQuanLyDuyet && (f.IdNguoiTao == userId || (listTenBoPhan.Any() && f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim())) || (!listTenBoPhan.Any() && !string.IsNullOrEmpty(phongBanSession) && f.BoPhan != null && f.BoPhan.Trim() == phongBanSession))) ||
+                (f.IdNguoiTao == userId || (f.HrCtNguoiHoTros ?? Enumerable.Empty<E_Form_Best.Models.ITForm.HrCtNguoiHoTro>()).Any(ct => ct.IdHrNguoiHoTroNavigation != null && ct.IdHrNguoiHoTroNavigation.MaNv != null && ct.IdHrNguoiHoTroNavigation.MaNv == userEmail))
             );
 
             if (!isAll && !isAdminHR && !string.IsNullOrEmpty(tenCongTy))
@@ -4383,19 +4407,29 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
             var danhSachDon = await query.OrderByDescending(f => f.Id).AsNoTracking().ToListAsync();
 
+            // --- XỬ LÝ TRÊN MEMORY (LINQ to Objects) ---
             var result = danhSachDon.Select(item =>
             {
                 var b2List = item.HrQuanLyDuyetB2s ?? Enumerable.Empty<E_Form_Best.Models.ITForm.HrQuanLyDuyetB2>();
                 var gdList = item.HrNguoiXacNhans ?? Enumerable.Empty<E_Form_Best.Models.ITForm.HrNguoiXacNhan>();
                 var hoTroList = item.HrCtNguoiHoTros ?? Enumerable.Empty<E_Form_Best.Models.ITForm.HrCtNguoiHoTro>();
 
-                bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]") || item.TrangThai == "DaHuy";
-                bool isFinished = item.IdAdmin != null || item.TrangThai == "HoanTat";
+                // Sử dụng StringComparison.OrdinalIgnoreCase cho các thao tác so sánh chuỗi trên bộ nhớ
+                bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]", StringComparison.OrdinalIgnoreCase) ||
+                                   string.Equals(item.TrangThai, "DaHuy", StringComparison.OrdinalIgnoreCase);
+
+                bool isFinished = item.IdAdmin != null ||
+                                  string.Equals(item.TrangThai, "HoanTat", StringComparison.OrdinalIgnoreCase);
+
                 bool isManagerApproved = item.IdNguoiDuyet != null;
 
                 bool hasB2 = b2List.Any();
-                string b2Type = hasB2 ? (b2List.FirstOrDefault()?.Loai?.ToUpper() ?? "AND") : "AND";
-                bool isB2Approved = hasB2 && (b2Type == "OR" || b2Type == "ANY" ? b2List.Any(x => x.TrangThaiXacNhan == 1) : b2List.All(x => x.TrangThaiXacNhan == 1));
+                string b2Type = hasB2 ? (b2List.FirstOrDefault()?.Loai ?? "AND") : "AND";
+
+                bool isB2OrType = string.Equals(b2Type, "OR", StringComparison.OrdinalIgnoreCase) ||
+                                  string.Equals(b2Type, "ANY", StringComparison.OrdinalIgnoreCase);
+
+                bool isB2Approved = hasB2 && (isB2OrType ? b2List.Any(x => x.TrangThaiXacNhan == 1) : b2List.All(x => x.TrangThaiXacNhan == 1));
                 bool isB2Rejected = hasB2 && b2List.Any(x => x.TrangThaiXacNhan == 2);
 
                 bool hasGD = gdList.Any();
@@ -4412,6 +4446,9 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
                 var latestSupport = hoTroList.OrderByDescending(x => x.Stt).FirstOrDefault();
 
+                // Cắt bỏ chuỗi "[ĐÃ HỦY]" không phân biệt hoa thường an toàn bằng StringComparison
+                string responseTenForm = (item.TenForm ?? "").Replace("[ĐÃ HỦY]", "", StringComparison.OrdinalIgnoreCase).Trim();
+
                 return new
                 {
                     item.Id,
@@ -4419,7 +4456,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     TenNguoiNv = item.TenNguoiNv ?? "N/A",
                     BoPhan = item.BoPhan ?? "N/A",
                     SoNhanVien = item.SoNhanVien ?? "N/A",
-                    TenForm = (item.TenForm ?? "").Replace("[ĐÃ HỦY]", "").Trim(),
+                    TenForm = responseTenForm,
                     TimeNguoiTao = item.TimeNguoiTao?.ToString("dd/MM/yyyy") ?? "--",
                     HasB2 = hasB2,
                     B2DoneCount = b2List.Count(x => x.TrangThaiXacNhan == 1),
