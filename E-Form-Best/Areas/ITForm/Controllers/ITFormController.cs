@@ -4698,11 +4698,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 // DỌN DẸP THIẾT BỊ ĐÃ XÓA QUÁ 1 THÁNG (Dựa vào NgayXoa)
                 var oneMonthAgo = DateTime.Now.AddMonths(-1);
+
+                // Sử dụng EF.Functions.Like để so sánh không phân biệt hoa thường ở tầng Database (Tối ưu Index)
                 var itemsToDelete = _context.KkThietBis
-                    .Include(x => x.IdTrangThaiNavigation)
                     .Where(x => x.IdTrangThaiNavigation != null
                              && x.IdTrangThaiNavigation.TenTrangThai != null
-                             && x.IdTrangThaiNavigation.TenTrangThai.Equals("xóa", StringComparison.OrdinalIgnoreCase)
+                             && EF.Functions.Like(x.IdTrangThaiNavigation.TenTrangThai, "xóa")
                              && x.NgayXoa.HasValue
                              && x.NgayXoa.Value <= oneMonthAgo)
                     .ToList();
@@ -4747,6 +4748,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         x.ThoiGianCheck // Trả về thời gian check
                     })
                     .OrderByDescending(x => x.IdThietBi).ToList();
+
                 return Json(new { success = true, data = data });
             }
             catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }

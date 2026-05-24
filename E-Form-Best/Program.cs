@@ -36,7 +36,15 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         {
             OnValidatePrincipal = async context =>
             {
-                // 1. Lấy UserId và SecurityStamp từ Cookie hiện tại
+                // Kiểm tra an toàn xem Principal có tồn tại không
+                if (context.Principal == null)
+                {
+                    context.RejectPrincipal();
+                    await context.HttpContext.SignOutAsync();
+                    return;
+                }
+
+                // 1. Lấy UserId và SecurityStamp từ Cookie hiện tại (Dùng toán tử ?. để dập tắt cảnh báo null)
                 var userId = context.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var stampInCookie = context.Principal.FindFirst("SecurityStamp")?.Value;
 
@@ -57,7 +65,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                     .Select(u => u.SecurityStamp)
                     .FirstOrDefaultAsync();
 
-                // 4. So sánh: Nếu Stamp thay đổi (do Admin reset) -> Đuổi người dùng ra
+                // 4. So sánh: Nếu Stamp thay đổi (do Admin reset hoặc đổi mật khẩu) -> Đuổi người dùng ra
                 if (currentStampInDb == null || currentStampInDb != stampInCookie)
                 {
                     context.RejectPrincipal();
