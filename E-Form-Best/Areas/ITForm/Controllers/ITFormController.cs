@@ -4356,6 +4356,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
+        #region Quản lý kiểm kê: Danh mục & Cấu hình (Công Ty, Bộ Phận, Loại Thiết Bị, Trạng Thái, Lịch Sử)
         // HÀM HỖ TRỢ DÙNG CHUNG CHO CẢ 2 REGION
         // =================================================================================
         private void GhiLichSu(string hanhDong, string doiTuong, int idDoiTuong, string chiTiet)
@@ -4377,7 +4378,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch { /* Bỏ qua lỗi ghi log để không làm gián đoạn luồng chính */ }
         }
-
 
         #region 1. QL KIỂM KÊ: DANH MỤC & CẤU HÌNH (Công Ty, Bộ Phận, Loại Thiết Bị, Trạng Thái, Lịch Sử)
 
@@ -5001,6 +5001,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch (Exception ex) { return Json(new { success = false, msg = "Lỗi: Không thể xóa vì ràng buộc dữ liệu hoặc lỗi hệ thống. Chi tiết: " + ex.Message }); }
         }
+
+        #endregion
 
         #endregion
 
