@@ -1,6 +1,5 @@
-﻿@using Microsoft.AspNetCore.Http
-@using System.Security.Claims
-@using Microsoft.AspNetCore.Localization
+﻿@using Microsoft.AspNetCore.Localization
+
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
@@ -8,9 +7,9 @@
     // Kiểm tra trang đăng nhập để ẩn Sidebar/Header
     var isLoginPage = (currentController == "TaiKhoan" || currentController == "DonXetDuyet") && currentAction == "DangNhap";
 
-    // Lấy thông tin người dùng từ Claims
-    var currentUserName = User.Identity.IsAuthenticated ? User.Identity.Name : "Khách";
-    var currentUserRole = User.FindFirst("UserRole")?.Value ?? (User.FindFirst(ClaimTypes.Role)?.Value ?? "Guest");
+    // Lấy thông tin người dùng từ Claims (Đã xử lý check null an toàn)
+    var currentUserName = (User.Identity != null && User.Identity.IsAuthenticated) ? User.Identity.Name ?? "Khách" : "Khách";
+    var currentUserRole = User.FindFirst("UserRole")?.Value ?? (User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Guest");
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
 
     // Lấy thông tin ngôn ngữ hiện tại từ Cookie hệ thống
@@ -24,8 +23,8 @@
     // ==========================================
     // BỘ MÀU: LUXURY DEEP INDIGO & CYAN (Đồng bộ SHD 2026)
     // ==========================================
-    string primaryGradient = "linear-gradient(180deg, #1e1b4b 0%, #312e81 100%)"; 
-    string accentColor = "#22d3ee"; 
+    string primaryGradient = "linear-gradient(180deg, #1e1b4b 0%, #312e81 100%)";
+    string accentColor = "#22d3ee";
 }
 
 <!DOCTYPE html>
@@ -275,7 +274,7 @@
                 </a>
 
                 @* --- PHẦN PHÊ DUYỆT --- *@
-              @if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonSHD") || User.IsInRole("All")))
+              @if (User.Identity?.IsAuthenticated == true && (User.IsInRole("QuanLyDuyetDonSHD") || User.IsInRole("All")))
 {
     <div style="height:1px; background:rgba(255,255,255,0.08); margin:15px 10px;"></div>
     <div class="lang-text" data-key="approval_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 5px 0 10px 12px; font-weight: 800;">Phê duyệt</div>
@@ -285,7 +284,7 @@
     </a>
 }
 
-@if (User.Identity.IsAuthenticated && (User.IsInRole("QuanLyDuyetDonSHD_B2") || User.IsInRole("All")))
+@if (User.Identity?.IsAuthenticated == true && (User.IsInRole("QuanLyDuyetDonSHD_B2") || User.IsInRole("All")))
 {
     @* Thêm phần ghi chú B2 tại đây *@
     <div style="height:1px; background:rgba(255,255,255,0.08); margin:15px 10px;"></div>
@@ -297,7 +296,7 @@
 }
 
                 @* --- PHẦN QUẢN TRỊ --- *@
-                @if (User.Identity.IsAuthenticated && (User.IsInRole("AdminSHD") || User.IsInRole("All")))
+                @if (User.Identity?.IsAuthenticated == true && (User.IsInRole("AdminSHD") || User.IsInRole("All")))
                 {
                     <div style="height:1px; background:rgba(255,255,255,0.08); margin:15px 10px;"></div>
                     <div class="lang-text" data-key="admin_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 5px 0 10px 12px; font-weight: 800;">Quản trị SHD</div>
@@ -316,7 +315,7 @@
 
             @* --- USER WIDGET --- *@
             <div style="margin-top:20px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 20px; position:relative; border: 1px solid rgba(255,255,255,0.05);">
-                @if (User.Identity.IsAuthenticated)
+                @if (User.Identity?.IsAuthenticated == true)
                 {
                     <!-- KIỂM TRA MẬT KHẨU MẶC ĐỊNH -->
                     @if (User.HasClaim("IsDefaultPassword", "true"))

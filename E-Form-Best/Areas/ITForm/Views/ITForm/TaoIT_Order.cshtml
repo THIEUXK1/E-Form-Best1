@@ -6,7 +6,7 @@
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 
     // --- Lấy thông tin từ User.Claims ---
-    var tenNguoiNv = User.Identity.Name ?? "";
+    var tenNguoiNv = User.Identity?.Name ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
     // Lấy thông tin công ty từ Model (đã gán trong Controller) hoặc Claim

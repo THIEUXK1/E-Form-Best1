@@ -1,13 +1,11 @@
-﻿@using Microsoft.AspNetCore.Http
-@using System.Security.Claims
-@using Microsoft.AspNetCore.Localization
+﻿@using Microsoft.AspNetCore.Localization
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     var isLoginPage = currentController == "TaiKhoan" && currentAction == "DangNhap";
 
     // Lấy thông tin người dùng từ Claims
-    var currentUserName = User.Identity.IsAuthenticated ? User.Identity.Name : "";
+    var currentUserName = (User.Identity != null && User.Identity.IsAuthenticated) ? User.Identity.Name ?? "" : "";
     var currentUserRole = User.FindFirst("UserRole")?.Value ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
 
@@ -27,7 +25,6 @@
     string primaryGradient = isITSystem ? "linear-gradient(180deg, #0f172a 0%, #1e40af 100%)" : "linear-gradient(180deg, #1a365d 0%, #2d3748 100%)";
     string accentColor = isITSystem ? "#60a5fa" : "#34d399";
 }
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -324,7 +321,7 @@
             <nav id="main-sidebar-nav" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right: 5px;">
                 <div class="lang-text" data-key="main_function" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 700;">Cá nhân & Đăng ký</div>
 
-                @if (User.Identity.IsAuthenticated)
+                @if (User.Identity?.IsAuthenticated == true)
                 {
                     <div id="btnMainMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-radius: 14px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isITSubActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
                         <span style="display:flex; align-items:center;">
@@ -446,7 +443,7 @@
             </nav>
 
             <div style="margin-top:25px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 20px; position:relative; border: 1px solid rgba(255,255,255,0.05);">
-                @if (User.Identity.IsAuthenticated)
+                @if (User.Identity?.IsAuthenticated == true)
                 {
                     <!-- KIỂM TRA MẬT KHẨU MẶC ĐỊNH -->
                     @if (User.HasClaim("IsDefaultPassword", "true"))
