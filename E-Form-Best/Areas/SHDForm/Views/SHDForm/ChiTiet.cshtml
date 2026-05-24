@@ -9,7 +9,7 @@
     Layout = "~/Areas/SHDForm/Views/Shared/_Layout.cshtml";
 
     // ── 1. THÔNG TIN USER ──
-    var currentUserName = User.Identity.Name ?? "";
+    var currentUserName = User.Identity?.Name ?? "";
     var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value
                           ?? User.FindFirst("UserRole")?.Value ?? "";
     var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -44,19 +44,19 @@
         listFileDinhKem = Model.FileDinhKem.Split('|', StringSplitOptions.RemoveEmptyEntries).ToList();
     }
 
-    // ── 4. HELPERS ──
-    string RenderInfoRow(string icon, string label, string value, string bgColor, string textColor)
+    // ── 4. HELPERS (Thay đổi kiểu tham số thành string? value để chặn triệt để cảnh báo) ──
+    string RenderInfoRow(string icon, string label, string? value, string bgColor, string textColor)
     {
-        if (string.IsNullOrEmpty(value)) value = "---";
+        string displayValue = string.IsNullOrEmpty(value) ? "---" : value;
         return $@"<div class='mobile-info-row' style='margin-bottom:12px;display:flex;align-items:center;gap:12px;background:#fff;padding:14px;border-radius:16px;border:1.5px solid #e2e8f0;box-shadow:0 2px 4px rgba(0,0,0,0.02);'>
             <span style='background:{bgColor};width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:12px;font-size:20px;flex-shrink:0;'>{icon}</span>
             <div style='display:flex;flex-direction:column;word-break: break-word;'>
                 <strong style='color:{textColor};font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;'>{label}</strong>
-                <span style='font-size:15px;color:#1e293b;font-weight:700;'>{value}</span>
+                <span style='font-size:15px;color:#1e293b;font-weight:700;'>{displayValue}</span>
             </div></div>";
     }
 
-    void ProcessImage(string path)
+    void ProcessImage(string? path)
     {
         if (!string.IsNullOrEmpty(path))
             listImages.Add("/FormSHD/DownloadFile/" + System.IO.Path.GetFileName(path));

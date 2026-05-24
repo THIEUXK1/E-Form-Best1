@@ -8,7 +8,7 @@
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 
     // ── 1. THÔNG TIN USER ──
-    var currentUserName = User.Identity.Name ?? "";
+    var currentUserName = User.Identity?.Name ?? "";
     var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value
                           ?? User.FindFirst("UserRole")?.Value ?? "";
     var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -43,18 +43,18 @@
         listFileDinhKem = Model.FileDinhKem.Split('|', StringSplitOptions.RemoveEmptyEntries).ToList();
     }
 
-    // ── 4. HELPERS ──
-    string RenderInfoRow(string icon, string label, string value, string bgColor, string textColor)
+    // ── 4. HELPERS (Đã chỉnh sửa tham số string? value để an toàn tuyệt đối) ──
+    string RenderInfoRow(string icon, string label, string? value, string bgColor, string textColor)
     {
-        if (string.IsNullOrEmpty(value)) value = "---";
+        string displayValue = string.IsNullOrEmpty(value) ? "---" : value;
         return $@"<div class='mobile-info-row' style='margin-bottom:12px;display:flex;align-items:center;gap:12px;background:#fff;padding:14px;border-radius:16px;border:1.5px solid #e2e8f0;box-shadow:0 2px 4px rgba(0,0,0,0.02);'>
             <span style='background:{bgColor};width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:12px;font-size:20px;flex-shrink:0;'>{icon}</span>
             <div style='display:flex;flex-direction:column;word-break:break-word; width: 100%;'>
                 <strong style='color:{textColor};font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;'>{label}</strong>
-                <span style='font-size:15px;color:#1e293b;font-weight:700;'>{value}</span>
+                <span style='font-size:15px;color:#1e293b;font-weight:700;'>{displayValue}</span>
             </div></div>";
     }
-    string RenderSecurityBox(string bvTen, string tgThucTe, string note)
+    string RenderSecurityBox(string? bvTen, string? tgThucTe, string note)
     {
         string ten = string.IsNullOrEmpty(bvTen) ? "<span style='color:#94a3b8;'>Chưa xác nhận</span>" : $"<span style='color:#0f172a;font-weight:900;'>{bvTen}</span>";
         string tg = string.IsNullOrEmpty(tgThucTe) ? "<span style='color:#94a3b8;font-style:italic;'>Chưa ghi nhận</span>" : $"<span style='color:#059669;font-weight:900;'>{tgThucTe}</span>";
@@ -63,7 +63,7 @@
             <div style='font-size:14px;margin-bottom:5px;'><strong>Trực ban:</strong> {ten}</div>
             <div style='font-size:14px;'><strong>Xác nhận {note}:</strong> {tg}</div></div>";
     }
-    void ProcessImage(string path, byte[] rawData)
+    void ProcessImage(string? path, byte[]? rawData)
     {
         if (!string.IsNullOrEmpty(path))
             listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(path));
@@ -158,7 +158,7 @@
             chiTietNoiDung += RenderInfoRow("🚌", "Dịch vụ", "Đăng ký xe Daily", "#fff7ed", "#9a3412");
 
             string cleanLiDo = ct.LiDo ?? "";
-            string[] arrTime = null;
+            string[]? arrTime = null;
             string timeMarker = "[Chi tiết thời gian đón:";
 
             if (cleanLiDo.Contains(timeMarker))
@@ -384,7 +384,7 @@
     bool baoVeHoanTat = baoVeRecord?.TrangThai == 1;
     bool canBaoVeAction = User.IsInRole("All") || User.IsInRole("BaoVeHR");
     bool canDayBaoVe = User.IsInRole("All") || User.IsInRole("AdminHR")
-                            || User.IsInRole("BaoVeHR") || User.IsInRole("QuanLyDuyetDonHR");
+                       || User.IsInRole("BaoVeHR") || User.IsInRole("QuanLyDuyetDonHR");
 }
 
 @Html.AntiForgeryToken()
@@ -1132,10 +1132,10 @@
 </div>
 
 <script>
-    const formId        = @Model.Id;
-    const currentUserId = '@currentUserId';
-    const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                                                User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
+    // FIX TRIỆT ĐỂ: Viết gọn biểu thức C# trên một dòng để IDE không biên dịch nhầm thành cú pháp JS
+    const formId        = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.Id));
+    const currentUserId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(currentUserId));
+    const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
     const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
     function hasRole(r) { return userRoles.includes(r); }
@@ -1269,41 +1269,42 @@
     document.addEventListener('keydown', e => { if (e.key==='Escape') closeZoom(); });
 
     // ── DUYỆT BƯỚC 2 (B2) ──
-        async function duyetB2(idRecord, action) {
-            // Loại bỏ việc lấy ghi chú từ prompt vì phía Server đã tự gán mặc định
-            const actionText = action === 'Approve' ? 'DUYỆT' : 'TỪ CHỐI';
+    async function duyetB2(idRecord, action) {
+        // Loại bỏ việc lấy ghi chú từ prompt vì phía Server đã tự gán mặc định
+        const actionText = action === 'Approve' ? 'DUYỆT' : 'TỪ CHỐI';
 
-            if (!confirm('Bạn có chắc chắn muốn ' + actionText + ' bước này không?')) {
-                return;
-            }
-
-            try {
-                const res = await fetch('/FormHR/DuyetB2', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': TOKEN
-                    },
-                    // Đã bỏ trường ghiChu khỏi body gửi lên
-                    body: JSON.stringify({
-                        idB2: idRecord,
-                        idForm: formId,
-                        loaiHanhDong: action
-                    })
-                });
-
-                const data = await res.json();
-
-                if (data.success) {
-                    alert(data.message || 'Thành công');
-                    location.reload();
-                } else {
-                    alert(data.message || 'Thất bại');
-                }
-            } catch (err) {
-                alert('Lỗi kết nối: ' + err.message);
-            }
+        if (!confirm('Bạn có chắc chắn muốn ' + actionText + ' bước này không?')) {
+            return;
         }
+
+        try {
+            const res = await fetch('/FormHR/DuyetB2', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': TOKEN
+                },
+                // Đã bỏ trường ghiChu khỏi body gửi lên
+                body: JSON.stringify({
+                    idB2: idRecord,
+                    idForm: formId,
+                    loaiHanhDong: action
+                })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                alert(data.message || 'Thành công');
+                location.reload();
+            } else {
+                alert(data.message || 'Thất bại');
+            }
+        } catch (err) {
+            alert('Lỗi kết nối: ' + err.message);
+        }
+    }
+
     // ── GIÁM ĐỐC XÁC NHẬN ──
     async function giamDocXacNhan(idXacNhan, action) {
         const ghiChu = document.getElementById('txtGhiChuXacNhan')?.value?.trim() ?? '';
@@ -1482,7 +1483,6 @@
         fd.append('idForm', formId);
         fd.append('noiDung', noiDung);
         if (file) fd.append('file', file);
-        // Gửi token qua FormData để [ValidateAntiForgeryToken] đọc được
         fd.append('__RequestVerificationToken', TOKEN);
 
         const btn = document.getElementById('btnGuiBinhLuan');
@@ -1491,7 +1491,6 @@
         btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang gửi...';
 
         try {
-            // Khi dùng FormData, KHÔNG set Content-Type header.
             const res = await fetch('/FormHR/ThemBinhLuan', {
                 method: 'POST',
                 headers: {
@@ -1574,7 +1573,6 @@
     });
     document.getElementById('formBinhLuan')?.addEventListener('submit', guiBinhLuan);
 
-    // Tải bình luận lần đầu khi load trang
     window.addEventListener('DOMContentLoaded', () => {
         taiBinhLuan();
     });

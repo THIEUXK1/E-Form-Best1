@@ -1,12 +1,14 @@
-﻿@using System.Security.Claims
-@{
+﻿@{
     ViewData["Title"] = "MenuA";
-    
+
     // Logic lấy chữ cái đầu tiên của tên người dùng để làm ảnh đại diện thay thế (Fallback)
     string userInitial = "";
-    if (User.Identity.IsAuthenticated && !string.IsNullOrEmpty(User.Identity.Name))
+
+    // Sử dụng toán tử null-conditional ?. để kiểm tra an toàn
+    var identity = User?.Identity;
+    if (identity != null && identity.IsAuthenticated && !string.IsNullOrEmpty(identity.Name))
     {
-        userInitial = User.Identity.Name.Substring(0, 1).ToUpper();
+        userInitial = identity.Name.Substring(0, 1).ToUpper();
     }
 }
 <!DOCTYPE html>
@@ -109,24 +111,24 @@
 
         <!-- GÓC TRÊN BÊN TRÁI: ĐĂNG NHẬP / THÔNG TIN NGƯỜI DÙNG -->
         <div class="top-left-info" style="position: absolute; top: 30px; left: 30px; z-index: 1000; display: flex; align-items: center; gap: 10px;">
-            @if (User.Identity.IsAuthenticated)
+            @if (User?.Identity?.IsAuthenticated == true)
             {
                 @* CẬP NHẬT: Bọc toàn bộ khối thông tin vào thẻ <a> để mở tab mới *@
                 <a href="/ThongTinTaiKhoan" target="_blank" rel="noopener noreferrer" title="Thông tin & Bảo mật"
                    style="display: flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); padding: 5px 15px; border-radius: 50px; border: 1px solid rgba(0, 212, 255, 0.2); text-decoration: none; transition: 0.3s;"
                    onmouseover="this.style.background='rgba(0, 212, 255, 0.15)'; this.style.borderColor='rgba(0, 212, 255, 0.5)';"
                    onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(0, 212, 255, 0.2)';">
-                    
+
                     @* XỬ LÝ HIỂN THỊ ẢNH ĐẠI DIỆN - SỬA LẠI THEO LOGIC TRANG HỒ SƠ *@
                     @{
-                        // [FIX] Ưu tiên lấy từ ViewBag (ảnh mới nhất), sau đó mới lấy từ Claim
-                        var avatarPath = ViewBag.AnhDaiDien as string ?? User.FindFirst("AnhDaiDien")?.Value;
+                        // [FIX] Thêm null-conditional (User?.) để triệt tiêu hoàn toàn cảnh báo null reference
+                        var avatarPath = ViewBag.AnhDaiDien as string ?? User?.FindFirst("AnhDaiDien")?.Value;
                         if (!string.IsNullOrEmpty(avatarPath))
                         {
-                            <img src="/DonXetDuyet/GetAvatar?path=@Uri.EscapeDataString(avatarPath)" 
+                            <img src="/DonXetDuyet/GetAvatar?path=@Uri.EscapeDataString(avatarPath)"
                                  onerror="this.style.display='none'; document.getElementById('initial-avatar').style.display='flex';"
                                  style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid #00d4ff; object-fit: cover;" />
-                            
+
                             <div id="initial-avatar" style="display: none; width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #00d4ff, #004e92); border: 2px solid #00d4ff; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
                                 @userInitial
                             </div>
@@ -139,8 +141,9 @@
                         }
                     }
 
-                    <span class="user-name-text" style="color: white; font-weight: 600; font-size: 14px;">@User.Identity.Name</span>
-                    
+                    @* SỬA LỖI: Dạng null-safe cho User.Identity.Name *@
+                    <span class="user-name-text" style="color: white; font-weight: 600; font-size: 14px;">@(User?.Identity?.Name ?? "")</span>
+
                     @* Giữ lại icon shield làm điểm nhấn hình ảnh *@
                     <div style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: rgba(0, 212, 255, 0.2); border-radius: 50%; color: #00d4ff;">
                         <i class="fa fa-shield"></i>
@@ -149,10 +152,10 @@
             }
             else
             {
-                <a href="/DonXetDuyet/DangNhap" 
-                    style="display: flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 50px; background: rgba(0, 212, 255, 0.15); backdrop-filter: blur(10px); border: 1px solid rgba(0, 212, 255, 0.4); color: #00d4ff; text-decoration: none; font-size: 14px; font-weight: 700; transition: all 0.3s ease;"
-                    onmouseover="this.style.background='rgba(0, 212, 255, 0.3)'; this.style.transform='translateY(-2px)'"
-                    onmouseout="this.style.background='rgba(0, 212, 255, 0.15)'; this.style.transform='translateY(0)'">
+                <a href="/DonXetDuyet/DangNhap"
+                   style="display: flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 50px; background: rgba(0, 212, 255, 0.15); backdrop-filter: blur(10px); border: 1px solid rgba(0, 212, 255, 0.4); color: #00d4ff; text-decoration: none; font-size: 14px; font-weight: 700; transition: all 0.3s ease;"
+                   onmouseover="this.style.background='rgba(0, 212, 255, 0.3)'; this.style.transform='translateY(-2px)'"
+                   onmouseout="this.style.background='rgba(0, 212, 255, 0.15)'; this.style.transform='translateY(0)'">
                     <i class="fa fa-sign-in"></i> <span class="btn-text">Đăng nhập</span>
                 </a>
             }
