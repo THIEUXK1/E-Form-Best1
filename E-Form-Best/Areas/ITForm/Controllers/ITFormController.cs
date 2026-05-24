@@ -54,13 +54,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             bool isDomainAuth = false;
             bool isAuthenticated = false;
 
-            // A. Tìm kiếm User và thông tin liên kết Domain (Sửa đổi để EF Core có thể dịch sang SQL thành công)
+            // A. Tìm kiếm User và thông tin liên kết Domain
+            // LƯU Ý EF CORE: Tại tầng IQueryable này, ta bỏ .ToLower() trên DB field và giá trị truyền vào.
+            // SQL Server mặc định không phân biệt hoa thường (Case-Insensitive), giúp EF Core sinh mã SQL sạch và sử dụng Index hiệu quả.
             domainAuth = await _context.UserDomainAuths
                 .Include(a => a.IdNguoiDungNavigation)
                     .ThenInclude(u => u!.UserBoPhans).ThenInclude(ub => ub.IdBoPhanNavigation)
                 .Include(a => a.IdNguoiDungNavigation)
                     .ThenInclude(u => u!.UserQuyens).ThenInclude(uq => uq.IdQuyenNavigation)
-                .FirstOrDefaultAsync(a => a.DomainUsername != null && a.DomainUsername.ToLower() == email.ToLower());
+                .FirstOrDefaultAsync(a => a.DomainUsername != null && a.DomainUsername == email);
 
             if (domainAuth != null)
             {
@@ -68,6 +70,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             else
             {
+                // Bỏ biến đổi .ToLower() ngầm (nếu có) hoặc các biểu thức phức tạp, giữ so sánh nguyên bản để tối ưu SQL
                 user = await _context.Users
                     .Include(u => u.UserBoPhans).ThenInclude(ub => ub.IdBoPhanNavigation)
                     .Include(u => u.UserQuyens).ThenInclude(uq => uq.IdQuyenNavigation)
@@ -105,7 +108,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 // Nếu xác thực Domain chưa thành công VÀ Chế độ là 1 (DB Only) hoặc 2 (Hybrid) -> Thử xác thực qua DB
                 if (!isAuthenticated && (domainAuth.LoginMode == 1 || domainAuth.LoginMode == 2))
                 {
-                    if (user.MatKhau == matKhau)
+                    // So sánh mật khẩu phân biệt chữ hoa/thường bằng Ordinal (vì password bắt buộc phải khớp chính xác)
+                    if (string.Equals(user.MatKhau, matKhau, StringComparison.Ordinal))
                     {
                         isAuthenticated = true;
                         isDomainAuth = false; // Đánh dấu là đăng nhập bằng Database
@@ -115,7 +119,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             else
             {
                 // User chưa được liên kết Domain -> Chỉ xác thực qua Database
-                if (user.MatKhau == matKhau)
+                if (string.Equals(user.MatKhau, matKhau, StringComparison.Ordinal))
                 {
                     isAuthenticated = true;
                     isDomainAuth = false;
@@ -176,6 +180,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     {
                         var hostEntry = System.Net.Dns.GetHostEntry(remoteIpAddress);
                         resolvedComputerName = hostEntry.HostName;
+
+                        // Thay đổi phương thức kiểm tra và cắt chuỗi an toàn không tạo mảng char ngầm
                         if (resolvedComputerName.Contains('.', StringComparison.Ordinal))
                             resolvedComputerName = resolvedComputerName.Split('.', StringSplitOptions.None)[0];
                     }
@@ -183,7 +189,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 catch { resolvedComputerName = "Không thể xác định tên máy"; }
             }
 
-            var device = _context.UserDevices.FirstOrDefault(d => d.IdNguoiDung == user.IdNguoiDung && d.DeviceFingerprint == userAgent);
+            // So sánh DeviceFingerprint chạy trên RAM (LINQ to Objects) bằng StringComparison
+            var device = _context.UserDevices.AsEnumerable().FirstOrDefault(d => d.IdNguoiDung == user.IdNguoiDung && string.Equals(d.DeviceFingerprint, userAgent, StringComparison.Ordinal));
             if (device == null)
             {
                 _context.UserDevices.Add(new UserDevice { IdNguoiDung = user.IdNguoiDung, DeviceFingerprint = userAgent, DeviceName = resolvedComputerName, LastLogin = DateTime.Now, IsTrusted = true });
@@ -201,18 +208,18 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             // 4. Thiết lập Claims
             var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, user.IdNguoiDung.ToString()),
-        new Claim(ClaimTypes.Name, user.HoTen ?? ""),
-        new Claim(ClaimTypes.Email, user.Tk ?? ""),
-        new Claim("MaNv", user.Tk ?? ""),
-        new Claim("UserRole", user.VaiTro ?? ""),
-        new Claim("PhongBan", user.PhongBan ?? ""),
-        new Claim("TenCongTy", user.TenCongTy ?? ""),
-        new Claim("AnhDaiDien", user.AnhDaiDien ?? "/images/default-avatar.png"),
-        new Claim("SecurityStamp", user.SecurityStamp ?? ""),
-        new Claim("LoginMethod", isDomainAuth ? "Domain" : "Database")
-    };
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.IdNguoiDung.ToString()),
+                new Claim(ClaimTypes.Name, user.HoTen ?? ""),
+                new Claim(ClaimTypes.Email, user.Tk ?? ""),
+                new Claim("MaNv", user.Tk ?? ""),
+                new Claim("UserRole", user.VaiTro ?? ""),
+                new Claim("PhongBan", user.PhongBan ?? ""),
+                new Claim("TenCongTy", user.TenCongTy ?? ""),
+                new Claim("AnhDaiDien", user.AnhDaiDien ?? "/images/default-avatar.png"),
+                new Claim("SecurityStamp", user.SecurityStamp ?? ""),
+                new Claim("LoginMethod", isDomainAuth ? "Domain" : "Database")
+            };
 
             if (user.UserBoPhans != null && user.UserBoPhans.Any())
             {
