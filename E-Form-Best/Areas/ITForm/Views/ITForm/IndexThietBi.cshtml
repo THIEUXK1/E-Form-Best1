@@ -48,7 +48,6 @@
 
             <div class="card-body p-2 p-md-3">
                 <div class="row mb-3 pb-3 border-bottom align-items-end" id="filterBar" style="background: #f8fafc; padding: 15px; border-radius: 10px; margin: 0 5px;">
-                    <!-- ĐÃ THAY ĐỔI CỘT RESPONSIVE VÀ BỔ SUNG Ô TÌM KIẾM -->
                     <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-building"></i> Công ty</label>
                         <select id="filterCongTy" class="form-select select2-filter rounded-3 border-0 shadow-sm">
@@ -74,7 +73,6 @@
                         </select>
                     </div>
 
-                    <!-- Ô TÌM KIẾM BỔ SUNG Ở ĐÂY -->
                     <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6 mb-2">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-primary"></i> Tìm kiếm nhanh</label>
                         <input type="text" id="filterText" class="form-control rounded-3 border-0 shadow-sm" placeholder="S/N, Hostname, Account, Note..." style="height: 38px;">
@@ -341,14 +339,12 @@
         let savedLoai = localStorage.getItem('kk_filterLoai') || '';
         $('#filterLoai').val(savedLoai);
 
-        // Bổ sung load lại Text Search
         let savedText = localStorage.getItem('kk_filterText') || '';
         $('#filterText').val(savedText);
 
         $('#filterCongTy').on('change', function() { renderFilterBoPhan(); applyFilters(); });
         $('#filterBoPhan, #filterLimit, #filterLoai, #filterTrangThai').on('change', function() { applyFilters(); });
 
-        // GÁN SỰ KIỆN TÌM KIẾM THEO CHỮ (Chạy real-time khi gõ phím)
         $('#filterText').on('keyup input', function() { applyFilters(); });
 
         $('.modal').on('hidden.bs.modal', function () {
@@ -418,14 +414,14 @@
         localStorage.removeItem('kk_filterLoai');
         localStorage.removeItem('kk_filterTT');
         localStorage.setItem('kk_filterLimit', '50');
-        localStorage.removeItem('kk_filterText'); // Xóa text
+        localStorage.removeItem('kk_filterText');
 
         $('#filterCongTy').val('').trigger('change.select2');
         renderFilterBoPhan();
         $('#filterBoPhan').val('').trigger('change.select2');
         $('#filterLoai, #filterTrangThai').val('');
         $('#filterLimit').val('50');
-        $('#filterText').val(''); // Reset ô text
+        $('#filterText').val('');
 
         applyFilters();
         }
@@ -436,34 +432,24 @@
         localStorage.setItem('kk_filterLoai', $('#filterLoai').val() || '');
         localStorage.setItem('kk_filterTT', $('#filterTrangThai').val() || '');
         localStorage.setItem('kk_filterLimit', $('#filterLimit').val());
-        localStorage.setItem('kk_filterText', $('#filterText').val().trim()); // Lưu lại từ khóa tìm kiếm
+        localStorage.setItem('kk_filterText', $('#filterText').val().trim());
 
         renderUIThietBi();
         renderUIDaXoa();
         }
 
         // ==========================================
-        // FETCH DATA
+        // FETCH DATA - SỬA LỖI ĐỒNG BỘ PROMISE (Bỏ $.when cũ gây sập luồng)
         // ==========================================
         function loadMasterData() {
-        $.when(
-        $.get('/QLKiemKe/GetKkTrangThais'),
-        $.get('/QLKiemKe/GetKkLoaiThietBis'),
-        $.get('/QLKiemKe/GetKkCongTys'),
-        $.get('/QLKiemKe/GetKkBoPhans'),
-        $.get('/QLKiemKe/GetKkThietBis')
-        ).done(function (resTT, resLoai, resCT, resBP, resTB) {
-        if(resTT[0].success) { listTrangThaiCache = resTT[0].data; renderFilterTrangThai(); }
-        if(resLoai[0].success) { listLoaiThietBiCache = resLoai[0].data; renderFilterLoaiThietBi(); }
-        if(resCT[0].success) { listCongTyCache = resCT[0].data; renderFilterCongTy(); }
-        if(resBP[0].success) { listBoPhanCache = resBP[0].data; renderFilterBoPhan(); }
-        if(resTB[0].success) {
-        allThietBiCache = resTB[0].data;
-        renderThongKe();
-        renderUIThietBi();
-        renderUIDaXoa();
-        }
-        });
+        // Tải tuần tự hoặc song song nhưng xử lý độc lập để tránh lỗi 1 API làm hỏng cả trang
+        $.get('/QLKiemKe/GetKkTrangThais', function(res) { if(res.success) { listTrangThaiCache = res.data; renderFilterTrangThai(); } });
+        $.get('/QLKiemKe/GetKkLoaiThietBis', function(res) { if(res.success) { listLoaiThietBiCache = res.data; renderFilterLoaiThietBi(); } });
+        $.get('/QLKiemKe/GetKkCongTys', function(res) { if(res.success) { listCongTyCache = res.data; renderFilterCongTy(); } });
+        $.get('/QLKiemKe/GetKkBoPhans', function(res) { if(res.success) { listBoPhanCache = res.data; renderFilterBoPhan(); } });
+
+        // Luôn gọi danh sách Thiết bị chính độc lập
+        loadThietBi();
         }
 
         function loadThietBi() {
@@ -473,7 +459,11 @@
         renderThongKe();
         renderUIThietBi();
         renderUIDaXoa();
+        } else {
+        $('#tbodyThietBi').html(`<tr><td colspan="6" class="text-center text-danger py-4">Lỗi tải dữ liệu từ Server: ${res.msg || 'Chưa rõ nguyên nhân'}</td></tr>`);
         }
+        }).fail(function() {
+        $('#tbodyThietBi').html(`<tr><td colspan="6" class="text-center text-danger py-4">Không thể kết nối đến API /QLKiemKe/GetKkThietBis</td></tr>`);
         });
         }
 
@@ -594,7 +584,9 @@
         });
 
         if(chartLoai) chartLoai.destroy();
-        let ctxLoai = document.getElementById('chartLoaiThietBi').getContext('2d');
+        let chartElementLoai = document.getElementById('chartLoaiThietBi');
+        if(chartElementLoai) {
+        let ctxLoai = chartElementLoai.getContext('2d');
         chartLoai = new Chart(ctxLoai, {
         type: 'bar',
         data: {
@@ -603,6 +595,7 @@
         },
         options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
         });
+        }
 
         let countTT = {};
         activeDevices.forEach(d => {
@@ -611,7 +604,9 @@
         });
 
         if(chartTT) chartTT.destroy();
-        let ctxTT = document.getElementById('chartTrangThai').getContext('2d');
+        let chartElementTT = document.getElementById('chartTrangThai');
+        if(chartElementTT) {
+        let ctxTT = chartElementTT.getContext('2d');
         chartTT = new Chart(ctxTT, {
         type: 'doughnut',
         data: {
@@ -621,6 +616,7 @@
         options: { responsive: true, maintainAspectRatio: false }
         });
         }
+        }
 
         function renderUIThietBi() {
         let fCT = $('#filterCongTy').val();
@@ -628,7 +624,7 @@
         let fLoai = $('#filterLoai').val();
         let fTT = $('#filterTrangThai').val();
         let fLimit = $('#filterLimit').val();
-        let fText = $('#filterText').val().toLowerCase().trim(); // Lấy giá trị Text Search
+        let fText = $('#filterText').val() ? $('#filterText').val().toLowerCase().trim() : '';
 
         let filtered = allThietBiCache.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
 
@@ -637,7 +633,6 @@
         if (fLoai) filtered = filtered.filter(x => x.loaiThietBi === fLoai);
         if (fTT) filtered = filtered.filter(x => x.idTrangThai == fTT);
 
-        // XỬ LÝ TÌM KIẾM TEXT
         if (fText) {
         filtered = filtered.filter(x =>
         (x.tenMayTinh && x.tenMayTinh.toLowerCase().includes(fText)) ||
@@ -711,7 +706,7 @@
         });
 
         if (filtered.length === 0) {
-        html = `<tr><td colspan="6" class="text-center text-muted py-5"><i class="fas fa-search fs-2 mb-2 d-block opacity-50"></i> Không tìm thấy thiết bị nào khớp với từ khóa</td></tr>`;
+        html = `<tr><td colspan="6" class="text-center text-muted py-5"><i class="fas fa-search fs-2 mb-2 d-block opacity-50"></i> Không tìm thấy thiết bị nào khớp với tiêu chí lọc hoặc từ khóa</td></tr>`;
         }
 
         $('#tbodyThietBi').html(html);
@@ -722,7 +717,7 @@
         let fBP = $('#filterBoPhan').val();
         let fLoai = $('#filterLoai').val();
         let fLimit = $('#filterLimit').val();
-        let fText = $('#filterText').val().toLowerCase().trim(); // Lấy giá trị Text Search
+        let fText = $('#filterText').val() ? $('#filterText').val().toLowerCase().trim() : '';
 
         let filtered = allThietBiCache.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa'));
 
@@ -730,7 +725,6 @@
         if (fBP) filtered = filtered.filter(x => x.idboPhan == fBP);
         if (fLoai) filtered = filtered.filter(x => x.loaiThietBi === fLoai);
 
-        // XỬ LÝ TÌM KIẾM TEXT CHO TAB XÓA
         if (fText) {
         filtered = filtered.filter(x =>
         (x.tenMayTinh && x.tenMayTinh.toLowerCase().includes(fText)) ||
@@ -829,7 +823,7 @@
 
         canvas.toBlob(function(blob) {
         capturedPhotoBlob = blob;
-        $('#tb_Anh').val(''); // Clear input file if previously set
+        $('#tb_Anh').val('');
         }, 'image/jpeg', 0.8);
 
         closeCamera();
@@ -844,7 +838,7 @@
 
         function previewImage(input) {
         if (input.files && input.files[0]) {
-        capturedPhotoBlob = null; // Clear blob if new file chosen
+        capturedPhotoBlob = null;
         var reader = new FileReader();
         reader.onload = function(e) {
         $('#imgThietBi').attr('src', e.target.result);
@@ -873,9 +867,7 @@
         fillSelectBoPhan('#tb_IdBoPhan', item.idboPhan || '');
         }
 
-        // Fix lỗi dropdown Loại thiết bị không hiển thị select 2
         $('#tb_LoaiThietBi').val(item.loaiThietBi);
-
         $('#tb_TenThietBi').val(item.tenThietBi);
         $('#tb_TenMayTinh').val(item.tenMayTinh || '');
         $('#tb_TenDangNhap').val(item.tenDangNhap || '');
@@ -939,7 +931,6 @@
         });
         }
 
-        // HÀM GỌI API XÁC NHẬN CHECK
         function xacNhanCheckThietBi(id) {
         $.post('/QLKiemKe/XacNhanCheck', { idThietBi: id }, function(res) {
         if(res.success) {
@@ -996,9 +987,6 @@
         });
         }
 
-        // ==========================================
-        // HÀM PHÓNG TO ẢNH THIẾT BỊ (MỚI THÊM)
-        // ==========================================
         function phongToAnh(imgUrl, title) {
         Swal.fire({
         title: title ? `Mã TB: ${title}` : 'Ảnh Thiết Bị',
