@@ -24,10 +24,11 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         }
         #endregion
 
-        #region xử lý ảnh
+        #region Xử lý ảnh
         private string RemoveSign4VietnameseString(string str)
         {
-            if (string.IsNullOrEmpty(str)) return "";
+            if (string.IsNullOrWhiteSpace(str)) return string.Empty;
+
             string[] VietnameseSigns = new string[]
             {
         "aAeEoOuUiIdDyY",
@@ -46,21 +47,25 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         "ýỳỵỷỹ",
         "ÝỲỴỶỸ"
             };
+
             for (int i = 1; i < VietnameseSigns.Length; i++)
             {
-                for (int j = 0; j < VietnameseSigns[i].Length; j++)
-                    str = str.Replace(VietnameseSigns[i][j], VietnameseSigns[0][i - 1]);
+                foreach (char c in VietnameseSigns[i])
+                {
+                    str = str.Replace(c, VietnameseSigns[0][i - 1]);
+                }
             }
             return str;
         }
 
-        // HÀM HELPER - Xử lý chuyển đổi file sang byte[] (Dùng cho cột kiểu varbinary/image trong DB)
-        private async Task<byte[]> GetFileBytesAsync2(string inputName)
+        // HÀM HELPER - Xử lý chuyển đổi file sang byte[]
+        // Chuyển kiểu trả về thành byte[]? để thể hiện rõ khả năng trả về null
+        private async Task<byte[]?> GetFileBytesAsync2(string inputName)
         {
             try
             {
-                // Kiểm tra xem trong request có file đính kèm với name tương ứng không
-                if (Request.Form.Files.Count > 0)
+                // Kiểm tra Request và FileCollection an toàn bằng toán tử ?.
+                if (Request?.Form?.Files != null && Request.Form.Files.Count > 0)
                 {
                     var file = Request.Form.Files[inputName];
                     if (file != null && file.Length > 0)
@@ -73,6 +78,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             }
             catch
             {
+                // Nếu lỗi xảy ra, trả về null một cách tường minh
                 return null;
             }
             return null;
@@ -462,7 +468,8 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
         // 6. Tải tệp tin SHD
         [HttpGet("/FormSHD/DownloadFile/{fileName}")]
-        public async Task<IActionResult> DownloadFile(string fileName)
+        // SỬA: Chuyển string fileName thành string? fileName để chấp nhận giá trị null từ Model Binding trước khi vào hàm kiểm tra
+        public async Task<IActionResult> DownloadFile(string? fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return NotFound();
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonSHD";
@@ -476,7 +483,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             }
             memory.Position = 0;
 
-            string ext = Path.GetExtension(fileName).ToLowerInvariant();
+            string ext = (Path.GetExtension(fileName) ?? "").ToLowerInvariant();
             string contentType = ext switch
             {
                 ".jpg" or ".jpeg" => "image/jpeg",
@@ -499,8 +506,11 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             try
             {
                 int idForm = data.GetProperty("idFormShd").GetInt32();
-                string maNvMoi = data.GetProperty("maNv").GetString();
+                string maNvMoi = data.GetProperty("maNv").GetString() ?? ""; // SỬA: Thêm fallback ?? "" phòng trường hợp chuỗi trong JSON bị null
                 var nvShd = await _context.ShdNguoiHoTros.FirstOrDefaultAsync(x => x.MaNv == maNvMoi);
+
+                // SỬA: Kiểm tra nếu không tìm thấy nhân viên hỗ trợ trong DB để tránh lỗi null và dập cảnh báo phía dưới
+                if (nvShd == null) return Json(new { success = false, message = "Mã nhân viên hỗ trợ không tồn tại!" });
 
                 var hienTai = await _context.ShdCtNguoiHoTros.Where(x => x.IdFormShd == idForm).OrderByDescending(x => x.Stt).FirstOrDefaultAsync();
                 if (hienTai?.IdShdNguoiHoTroNavigation?.MaNv == maNvMoi)
@@ -727,66 +737,42 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         // ============================================================
         private string BuildHtmlContentSHD(FormShd don, bool isForWord = false)
         {
+            // Đảm bảo các collection không null để tránh lỗi khi dùng .Any() hoặc .Count()
+            var b2List = don.ShdQuanLyDuyetB2s ?? Enumerable.Empty<ShdQuanLyDuyetB2>();
+            var gdList = don.ShdNguoiXacNhans ?? Enumerable.Empty<ShdNguoiXacNhan>();
+            var hoTroList = don.ShdCtNguoiHoTros ?? Enumerable.Empty<ShdCtNguoiHoTro>();
+            var xeCongTacList = don.ShdDangKySuDungXeCongTac1s ?? Enumerable.Empty<ShdDangKySuDungXeCongTac1>();
+
             var sb = new System.Text.StringBuilder();
 
             sb.Append("<html><head><meta charset='utf-8'/>");
             sb.Append("<style>");
             sb.Append(@"
-                body { font-family: 'Times New Roman', Times, serif; line-height: 1.5; margin: 0; padding: 0; color: #000; background: #fff; }
-                .document-container { max-width: 850px; margin: 0 auto; padding: 40px; background: #fff; }
-                .header-table { width: 100%; border: none; margin-bottom: 20px; text-align: center; }
-                .header-table td { border: none; padding: 0; }
-                .company-name { font-size: 14pt; font-weight: bold; text-transform: uppercase; }
-                .company-sub { font-size: 12pt; font-weight: bold; text-decoration: underline; margin-bottom: 10px; }
-                .national-title { font-size: 14pt; font-weight: bold; text-transform: uppercase; }
-                .national-sub { font-size: 13pt; font-weight: bold; text-decoration: underline; }
-                .form-title { font-size: 20pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 25px 0 5px 0; }
-                .form-id { font-size: 12pt; text-align: center; font-style: italic; margin-bottom: 30px; }
-                .section-title { font-size: 14pt; font-weight: bold; margin-top: 25px; margin-bottom: 10px; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 5px; }
-                .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                .data-table th, .data-table td { border: 1px solid #000; padding: 8px 12px; font-size: 12pt; vertical-align: top; }
-                .data-table th { background-color: #f2f2f2; font-weight: bold; text-align: left; width: 35%; }
-                .signature-table { width: 100%; text-align: center; margin-top: 40px; border: none; table-layout: fixed; page-break-inside: avoid; }
-                .signature-table td { vertical-align: top; border: none; font-size: 12pt; padding: 5px; word-wrap: break-word; }
-
-                /* ĐỊNH DẠNG KHUNG CHỮ KÝ ĐIỆN TỬ THEO ẢNH MAU KHUNG CHUAN VÀNG/XANH ĐỒNG BỘ VỚI HR */
-                .digital-signature-box { 
-                    border: 1px solid #2e7d32; 
-                    padding: 8px; 
-                    text-align: left; 
-                    background-color: #f1f8e9; 
-                    margin: 10px auto 0 auto; 
-                    display: block; 
-                    width: 98%;
-                    max-width: 190px;
-                    position: relative;
-                    box-sizing: border-box;
-                }
-                .sig-status { 
-                    color: #2e7d32; 
-                    font-size: 10.5pt; 
-                    font-weight: bold; 
-                    margin-bottom: 3px;
-                }
-                .sig-info { 
-                    font-size: 9pt; 
-                    color: #202124; 
-                    line-height: 1.35;
-                }
-                .sig-check-mark {
-                    position: absolute;
-                    right: 6px;
-                    bottom: 4px;
-                    font-size: 18pt;
-                    font-weight: bold;
-                    color: rgba(46, 125, 50, 0.25);
-                }
-            ");
+        body { font-family: 'Times New Roman', Times, serif; line-height: 1.5; margin: 0; padding: 0; color: #000; background: #fff; }
+        .document-container { max-width: 850px; margin: 0 auto; padding: 40px; background: #fff; }
+        .header-table { width: 100%; border: none; margin-bottom: 20px; text-align: center; }
+        .header-table td { border: none; padding: 0; }
+        .company-name { font-size: 14pt; font-weight: bold; text-transform: uppercase; }
+        .company-sub { font-size: 12pt; font-weight: bold; text-decoration: underline; margin-bottom: 10px; }
+        .national-title { font-size: 14pt; font-weight: bold; text-transform: uppercase; }
+        .national-sub { font-size: 13pt; font-weight: bold; text-decoration: underline; }
+        .form-title { font-size: 20pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 25px 0 5px 0; }
+        .form-id { font-size: 12pt; text-align: center; font-style: italic; margin-bottom: 30px; }
+        .section-title { font-size: 14pt; font-weight: bold; margin-top: 25px; margin-bottom: 10px; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 5px; }
+        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .data-table th, .data-table td { border: 1px solid #000; padding: 8px 12px; font-size: 12pt; vertical-align: top; }
+        .data-table th { background-color: #f2f2f2; font-weight: bold; text-align: left; width: 35%; }
+        .signature-table { width: 100%; text-align: center; margin-top: 40px; border: none; table-layout: fixed; page-break-inside: avoid; }
+        .signature-table td { vertical-align: top; border: none; font-size: 12pt; padding: 5px; word-wrap: break-word; }
+        .digital-signature-box { border: 1px solid #2e7d32; padding: 8px; text-align: left; background-color: #f1f8e9; margin: 10px auto 0 auto; display: block; width: 98%; max-width: 190px; position: relative; box-sizing: border-box; }
+        .sig-status { color: #2e7d32; font-size: 10.5pt; font-weight: bold; margin-bottom: 3px; }
+        .sig-info { font-size: 9pt; color: #202124; line-height: 1.35; }
+        .sig-check-mark { position: absolute; right: 6px; bottom: 4px; font-size: 18pt; font-weight: bold; color: rgba(46, 125, 50, 0.25); }
+    ");
 
             if (!isForWord)
             {
-                sb.Append("@page { size: A4; margin: 20mm; } ");
-                sb.Append("@media print { .document-container { padding: 0; } } ");
+                sb.Append("@page { size: A4; margin: 20mm; } @media print { .document-container { padding: 0; } } ");
                 sb.Append("</style><script>window.onload = function() { window.print(); }</script></head><body>");
             }
             else
@@ -795,18 +781,14 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             }
 
             sb.Append("<div class='document-container'>");
-
-            // Phần Quốc hiệu và Tên bộ phận SHD
             sb.Append("<table class='header-table'><tr>");
             sb.Append("<td style='width:45%;'><div class='company-name'>BEST PACIFIC</div><div class='company-sub'>PHÒNG XUẤT NHẬP KHẨU (SHD)</div></td>");
             sb.Append("<td style='width:55%;'><div class='national-title'>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div><div class='national-sub'>Độc lập - Tự do - Hạnh phúc</div></td>");
             sb.Append("</tr></table>");
 
-            // Tên đơn
             sb.Append($"<div class='form-title'>{don.TenForm}</div>");
             sb.Append($"<div class='form-id'>Mã phiếu: #{don.Id} | Trạng thái: ĐÃ HOÀN TẤT</div>");
 
-            // I. THÔNG TIN NGƯỜI TẠO
             sb.Append("<div class='section-title'>I. THÔNG TIN NHÂN VIÊN ĐĂNG KÝ</div>");
             sb.Append("<table class='data-table'>");
             sb.Append($"<tr><th>Họ và tên nhân viên</th><td>{don.TenNguoiNv}</td></tr>");
@@ -815,12 +797,11 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             sb.Append($"<tr><th>Thời gian lập đơn</th><td>{don.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
             sb.Append("</table>");
 
-            // II. CHI TIẾT YÊU CẦU XE CÔNG TÁC
             sb.Append("<div class='section-title'>II. NỘI DUNG CHI TIẾT YÊU CẦU</div>");
             sb.Append("<table class='data-table'>");
-            if (don.ShdDangKySuDungXeCongTac1s.Any())
+            var ct = xeCongTacList.FirstOrDefault();
+            if (ct != null)
             {
-                var ct = don.ShdDangKySuDungXeCongTac1s.First();
                 sb.Append($"<tr><th>Dịch vụ đăng ký</th><td style='font-weight:bold;'>Xe đi công tác SHD</td></tr>");
                 sb.Append($"<tr><th>Số điện thoại liên hệ</th><td>{ct.SoDienThoai}</td></tr>");
                 sb.Append($"<tr><th>Số lượng người đi</th><td>{ct.SoLuong} người</td></tr>");
@@ -831,140 +812,48 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             }
             sb.Append("</table>");
 
-            // III. LỊCH SỬ PHÊ DUYỆT
-            bool hasB2 = don.ShdQuanLyDuyetB2s != null && don.ShdQuanLyDuyetB2s.Any();
-            bool hasGD = don.ShdNguoiXacNhans != null && don.ShdNguoiXacNhans.Any();
+            // Lịch sử phê duyệt
+            bool hasB2 = b2List.Any();
+            bool hasGD = gdList.Any();
 
             if (hasB2 || hasGD)
             {
                 sb.Append("<div class='section-title'>III. TIẾN TRÌNH PHÊ DUYỆT HỆ THỐNG</div>");
-                sb.Append("<table class='data-table'>");
-                sb.Append("<tr><th style='width:30%'>Vai trò</th><th style='width:30%'>Họ và tên</th><th style='width:20%'>Kết quả</th><th style='width:20%'>Thời gian</th></tr>");
-
-                if (hasB2)
-                {
-                    foreach (var b2 in don.ShdQuanLyDuyetB2s.OrderBy(x => x.ThuTuXacNhan))
-                    {
-                        string tt = b2.TrangThaiXacNhan == 1 ? "Đã duyệt" : b2.TrangThaiXacNhan == 2 ? "Từ chối" : "Chờ duyệt";
-                        sb.Append($"<tr><td>Quản lý (B2)</td><td>{b2.TenNguoiXacNhan}</td><td>{tt}</td><td>{b2.ThoiGianXacNhan?.ToString("HH:mm dd/MM/yyyy")}</td></tr>");
-                    }
-                }
-
-                if (hasGD)
-                {
-                    foreach (var xn in don.ShdNguoiXacNhans)
-                    {
-                        string tt = xn.TrangThaiXacNhan == 1 ? "Đã duyệt" : xn.TrangThaiXacNhan == 2 ? "Từ chối" : "Chờ duyệt";
-                        string tenGD = xn.IdnguoiXacNhanNavigation?.HoTen ?? xn.TenNguoiXacNhan;
-                        sb.Append($"<tr><td>Giám đốc</td><td>{tenGD}</td><td>{tt}</td><td>{xn.ThoiGianXacNhan?.ToString("HH:mm dd/MM/yyyy")}</td></tr>");
-                    }
-                }
+                sb.Append("<table class='data-table'><tr><th>Vai trò</th><th>Họ và tên</th><th>Kết quả</th><th>Thời gian</th></tr>");
+                foreach (var b2 in b2List.OrderBy(x => x.ThuTuXacNhan))
+                    sb.Append($"<tr><td>Quản lý (B2)</td><td>{b2.TenNguoiXacNhan}</td><td>{(b2.TrangThaiXacNhan == 1 ? "Đã duyệt" : b2.TrangThaiXacNhan == 2 ? "Từ chối" : "Chờ duyệt")}</td><td>{b2.ThoiGianXacNhan?.ToString("HH:mm dd/MM/yyyy")}</td></tr>");
+                foreach (var xn in gdList)
+                    sb.Append($"<tr><td>Giám đốc</td><td>{xn.IdnguoiXacNhanNavigation?.HoTen ?? xn.TenNguoiXacNhan}</td><td>{(xn.TrangThaiXacNhan == 1 ? "Đã duyệt" : xn.TrangThaiXacNhan == 2 ? "Từ chối" : "Chờ duyệt")}</td><td>{xn.ThoiGianXacNhan?.ToString("HH:mm dd/MM/yyyy")}</td></tr>");
                 sb.Append("</table>");
             }
 
-            // IV. KHỐI CHỮ KÝ XÁC NHẬN ĐỘNG (ĐỒNG BỘ HOÀN TOÀN THEO CẤU TRÚC BÊN HR)
-            int totalCols = 3 + (hasGD ? don.ShdNguoiXacNhans.Count() : 0) + (hasB2 ? don.ShdQuanLyDuyetB2s.Count() : 0);
-            double colPercent = 100.0 / (totalCols > 0 ? totalCols : 1);
-
+            // IV. CHỮ KÝ
+            int totalCols = 3 + gdList.Count() + b2List.Count();
+            double colPercent = 100.0 / totalCols;
             sb.Append("<table class='signature-table'><tr>");
 
-            // 1. CỘT NGƯỜI LẬP PHIẾU
-            sb.Append($"<td style='width:{colPercent}%;'><strong>NGƯỜI LẬP PHIẾU</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
-            if (don.TimeNguoiTao.HasValue)
+            // Helper tạo block chữ ký
+            void AppendSig(string title, string name, DateTime? time)
             {
-                sb.Append("<div class='digital-signature-box'>");
-                sb.Append("<div class='sig-status'>Signature Valid</div>");
-                sb.Append($"<div class='sig-info'>Ký bởi: {don.TenNguoiTao}<br/>Ký ngày: {don.TimeNguoiTao?.ToString("dd/MM/yyyy")}</div>");
-                sb.Append("<div class='sig-check-mark'>✓</div>");
-                sb.Append("</div>");
-            }
-            else
-            {
-                sb.Append("<br/><br/><br/><br/><strong>" + don.TenNguoiTao + "</strong>");
-            }
-            sb.Append("</td>");
-
-            // 2. CỘT QUẢN LÝ TRỰC TIẾP
-            sb.Append($"<td style='width:{colPercent}%;'><strong>QUẢN LÝ TRỰC TIẾP</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
-            if (don.TimeNguoiDuyet.HasValue)
-            {
-                sb.Append("<div class='digital-signature-box'>");
-                sb.Append("<div class='sig-status'>Signature Valid</div>");
-                sb.Append($"<div class='sig-info'>Ký bởi: {don.TenNguoiDuyet}<br/>Ký ngày: {don.TimeNguoiDuyet?.ToString("dd/MM/yyyy")}</div>");
-                sb.Append("<div class='sig-check-mark'>✓</div>");
-                sb.Append("</div>");
-            }
-            else
-            {
-                sb.Append("<br/><br/><br/><br/><strong>" + (don.TenNguoiDuyet ?? "") + "</strong>");
-            }
-            sb.Append("</td>");
-
-            // 3. ĐỘNG: CÁC CỘT QUẢN LÝ PHÊ DUYỆT BƯỚC 2 (ShdQuanLyDuyetB2s)
-            if (hasB2)
-            {
-                foreach (var b2 in don.ShdQuanLyDuyetB2s.OrderBy(x => x.ThuTuXacNhan))
+                sb.Append($"<td style='width:{colPercent}%;'><strong>{title}</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
+                if (time.HasValue)
                 {
-                    sb.Append($"<td style='width:{colPercent}%;'><strong>QUẢN LÝ B2</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
-                    if (b2.TrangThaiXacNhan == 1 && b2.ThoiGianXacNhan.HasValue)
-                    {
-                        sb.Append("<div class='digital-signature-box'>");
-                        sb.Append("<div class='sig-status'>Signature Valid</div>");
-                        sb.Append($"<div class='sig-info'>Ký bởi: {b2.TenNguoiXacNhan}<br/>Ký ngày: {b2.ThoiGianXacNhan?.ToString("dd/MM/yyyy")}</div>");
-                        sb.Append("<div class='sig-check-mark'>✓</div>");
-                        sb.Append("</div>");
-                    }
-                    else
-                    {
-                        sb.Append($"<br/><br/><br/><br/><strong>{b2.TenNguoiXacNhan}</strong>");
-                    }
-                    sb.Append("</td>");
+                    sb.Append($"<div class='digital-signature-box'><div class='sig-status'>Signature Valid</div><div class='sig-info'>Ký bởi: {name}<br/>Ký ngày: {time?.ToString("dd/MM/yyyy")}</div><div class='sig-check-mark'>✓</div></div>");
                 }
-            }
-
-            // 4. ĐỘNG: CÁC CỘT BAN GIÁM ĐỐC PHÊ DUYỆT (ShdNguoiXacNhans)
-            if (hasGD)
-            {
-                foreach (var xn in don.ShdNguoiXacNhans.OrderBy(x => x.ThuTuXacNhan))
+                else
                 {
-                    sb.Append($"<td style='width:{colPercent}%;'><strong>BAN GIÁM ĐỐC</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
-                    if (xn.TrangThaiXacNhan == 1 && xn.ThoiGianXacNhan.HasValue)
-                    {
-                        string tenGD = xn.IdnguoiXacNhanNavigation?.HoTen ?? xn.TenNguoiXacNhan;
-                        sb.Append("<div class='digital-signature-box'>");
-                        sb.Append("<div class='sig-status'>Signature Valid</div>");
-                        sb.Append($"<div class='sig-info'>Ký bởi: {tenGD}<br/>Ký ngày: {xn.ThoiGianXacNhan?.ToString("dd/MM/yyyy")}</div>");
-                        sb.Append("<div class='sig-check-mark'>✓</div>");
-                        sb.Append("</div>");
-                    }
-                    else
-                    {
-                        string tenGD = xn.IdnguoiXacNhanNavigation?.HoTen ?? xn.TenNguoiXacNhan;
-                        sb.Append($"<br/><br/><br/><br/><strong>{tenGD}</strong>");
-                    }
-                    sb.Append("</td>");
+                    sb.Append($"<br/><br/><br/><br/><strong>{name}</strong>");
                 }
+                sb.Append("</td>");
             }
 
-            // 5. CỘT PHÒNG SHD XÁC NHẬN
-            sb.Append($"<td style='width:{colPercent}%;'><strong>PHÒNG SHD XÁC NHẬN</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
-            if (don.TimeAdmin.HasValue)
-            {
-                sb.Append("<div class='digital-signature-box'>");
-                sb.Append("<div class='sig-status'>Signature Valid</div>");
-                sb.Append($"<div class='sig-info'>Ký bởi: {don.TenAdmin}<br/>Ký ngày: {don.TimeAdmin?.ToString("dd/MM/yyyy")}</div>");
-                sb.Append("<div class='sig-check-mark'>✓</div>");
-                sb.Append("</div>");
-            }
-            else
-            {
-                sb.Append("<br/><br/><br/><br/><strong>" + (don.TenAdmin ?? "") + "</strong>");
-            }
-            sb.Append("</td>");
+            AppendSig("NGƯỜI LẬP PHIẾU", don.TenNguoiTao ?? "", don.TimeNguoiTao);
+            AppendSig("QUẢN LÝ TRỰC TIẾP", don.TenNguoiDuyet ?? "", don.TimeNguoiDuyet);
+            foreach (var b2 in b2List.OrderBy(x => x.ThuTuXacNhan)) AppendSig("QUẢN LÝ B2", b2.TenNguoiXacNhan ?? "", b2.ThoiGianXacNhan);
+            foreach (var xn in gdList.OrderBy(x => x.ThuTuXacNhan)) AppendSig("BAN GIÁM ĐỐC", xn.IdnguoiXacNhanNavigation?.HoTen ?? xn.TenNguoiXacNhan ?? "", xn.ThoiGianXacNhan);
+            AppendSig("PHÒNG SHD XÁC NHẬN", don.TenAdmin ?? "", don.TimeAdmin);
 
-            sb.Append("</tr></table>");
-
-            sb.Append("</div></body></html>");
+            sb.Append("</tr></table></div></body></html>");
             return sb.ToString();
         }
 
@@ -1014,20 +903,26 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             try
             {
                 var formCollection = await Request.ReadFormAsync();
-                int idForm = int.Parse(formCollection["idForm"]);
+
+                // 1. Kiểm tra ID form an toàn bằng TryParse
+                if (!int.TryParse(formCollection["idForm"], out int idForm))
+                    return Json(new { success = false, message = "ID đơn không hợp lệ" });
+
                 string noiDung = formCollection["noiDung"].ToString();
                 var file = formCollection.Files.GetFile("file");
 
+                // 2. Lấy thông tin User an toàn
                 var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userIdStr))
+                if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out int currentUserId))
                     return Json(new { success = false, message = "Chưa đăng nhập" });
 
                 var formShd = await _context.FormShds.FindAsync(idForm);
                 if (formShd == null)
                     return Json(new { success = false, message = "Không tìm thấy đơn SHD" });
 
-                string fileName = null;
+                string? fileName = null;
 
+                // 3. Xử lý file an toàn
                 if (file != null && file.Length > 0)
                 {
                     if (file.Length > 50 * 1024 * 1024)
@@ -1048,11 +943,12 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 if (string.IsNullOrWhiteSpace(noiDung) && fileName == null)
                     return Json(new { success = false, message = "Vui lòng nhập nội dung hoặc đính kèm file" });
 
+                // 4. Lưu bình luận
                 var binhLuan = new BinhLuanFormShd
                 {
                     IdFormShd = idForm,
                     NoiDung = noiDung?.Trim(),
-                    IdNguoiBinhLuan = int.Parse(userIdStr),
+                    IdNguoiBinhLuan = currentUserId,
                     TenNguoiBinhLuan = User.Identity?.Name ?? "Unknown",
                     Ma = User.FindFirst(ClaimTypes.Email)?.Value ?? "",
                     PhongBan = User.FindFirst("PhongBan")?.Value ?? "",
@@ -1064,29 +960,32 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
                 _context.BinhLuanFormShds.Add(binhLuan);
 
+                // 5. Ghi log lịch sử an toàn
+                string moTa = $"Người dùng {binhLuan.TenNguoiBinhLuan} đã bình luận: {(binhLuan.NoiDung?.Length > 50 ? binhLuan.NoiDung.Substring(0, 50) + "..." : binhLuan.NoiDung ?? "Đính kèm file")}";
+
                 _context.LichSuFormShds.Add(new LichSuFormShd
                 {
                     IdFormShd = idForm,
                     TieuDe = "BÌNH LUẬN MỚI (SHD)",
-                    Mota = $"Người dùng {binhLuan.TenNguoiBinhLuan} đã bình luận: {(noiDung?.Length > 50 ? noiDung.Substring(0, 50) + "..." : noiDung)}",
+                    Mota = moTa,
                     Time = DateTime.Now,
                     TrangThaiAnHien = true
                 });
 
                 await _context.SaveChangesAsync();
 
-                // TRẢ VỀ DẠNG ANONYMOUS OBJECT ĐỂ TRÁNH LỖI CIRCULAR REFERENCE
+                // 6. Trả về object an toàn
                 return Json(new
                 {
                     success = true,
                     data = new
                     {
-                        id = binhLuan.Id,
-                        noiDung = binhLuan.NoiDung,
-                        tenNguoiBinhLuan = binhLuan.TenNguoiBinhLuan,
-                        idNguoiBinhLuan = binhLuan.IdNguoiBinhLuan,
-                        thoiGian = binhLuan.ThoiGian,
-                        fileDinhKem = binhLuan.FileDinhKem
+                        binhLuan.Id,
+                        binhLuan.NoiDung,
+                        binhLuan.TenNguoiBinhLuan,
+                        binhLuan.IdNguoiBinhLuan,
+                        binhLuan.ThoiGian,
+                        binhLuan.FileDinhKem
                     }
                 });
             }
@@ -1193,27 +1092,31 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     .AsNoTracking()
                     .ToListAsync();
 
-                // Tính toán toàn bộ logic của Razor cũ tại Server để JS chỉ việc hiển thị
                 var result = danhSachDon.Select(item =>
                 {
-                    // --- LOGIC B2 (AND/OR) ---
-                    bool hasB2 = item.ShdQuanLyDuyetB2s != null && item.ShdQuanLyDuyetB2s.Any();
+                    // --- XỬ LÝ AN TOÀN CHO CÁC COLLECTION ---
+                    var b2List = item.ShdQuanLyDuyetB2s ?? Enumerable.Empty<ShdQuanLyDuyetB2>();
+                    var gdList = item.ShdNguoiXacNhans ?? Enumerable.Empty<ShdNguoiXacNhan>();
+                    var supportList = item.ShdCtNguoiHoTros ?? Enumerable.Empty<ShdCtNguoiHoTro>();
+
+                    // --- LOGIC B2 ---
+                    bool hasB2 = b2List.Any();
                     bool checkB2Approved = false;
+
                     if (!hasB2) checkB2Approved = true;
                     else
                     {
-                        string type = item.ShdQuanLyDuyetB2s.FirstOrDefault()?.Loai?.ToUpper() ?? "AND";
-                        if (type == "OR" || type == "ANY")
-                            checkB2Approved = item.ShdQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 1);
-                        else
-                            checkB2Approved = item.ShdQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
+                        string type = b2List.FirstOrDefault()?.Loai?.ToUpper() ?? "AND";
+                        checkB2Approved = (type == "OR" || type == "ANY")
+                            ? b2List.Any(x => x.TrangThaiXacNhan == 1)
+                            : b2List.All(x => x.TrangThaiXacNhan == 1);
                     }
-                    bool checkB2Rejected = hasB2 && item.ShdQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 2);
+                    bool checkB2Rejected = hasB2 && b2List.Any(x => x.TrangThaiXacNhan == 2);
 
                     // --- LOGIC GIÁM ĐỐC ---
-                    bool hasGD = item.ShdNguoiXacNhans != null && item.ShdNguoiXacNhans.Any();
-                    bool isGDApproved = hasGD && item.ShdNguoiXacNhans.All(x => x.TrangThaiXacNhan == 1);
-                    bool isGDRejected = hasGD && item.ShdNguoiXacNhans.Any(x => x.TrangThaiXacNhan == 2);
+                    bool hasGD = gdList.Any();
+                    bool isGDApproved = hasGD && gdList.All(x => x.TrangThaiXacNhan == 1);
+                    bool isGDRejected = hasGD && gdList.Any(x => x.TrangThaiXacNhan == 2);
 
                     // --- TRẠNG THÁI CHUNG ---
                     bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]") || item.TrangThai == "DaHuy" || item.TrangThai == "Huy";
@@ -1222,7 +1125,6 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
                     string statusText, bgColor, fgColor, progressWidth, progressColor;
 
-                    // Phân loại trạng thái giống hệt if-else của Razor
                     if (isCancelled || checkB2Rejected || isGDRejected)
                     {
                         statusText = "HỦY/TỪ CHỐI"; bgColor = "#fef2f2"; fgColor = "#b91c1c";
@@ -1255,7 +1157,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     }
 
                     // --- NGƯỜI HỖ TRỢ ---
-                    var lastSupportShd = item.ShdCtNguoiHoTros?.OrderByDescending(x => x.Stt).FirstOrDefault();
+                    var lastSupportShd = supportList.OrderByDescending(x => x.Stt).FirstOrDefault();
                     string supportName = lastSupportShd?.IdShdNguoiHoTroNavigation?.Ten ?? "Chờ phân công";
 
                     return new
@@ -1272,12 +1174,12 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                         Ngay = item.Ngay?.ToDateTime(TimeOnly.MinValue).ToString("dd/MM/yyyy") ?? "--",
                         TimeNguoiTao = item.TimeNguoiTao?.ToString("HH:mm") ?? "--",
                         HasB2 = hasB2,
-                        B2ApprovedCount = hasB2 ? item.ShdQuanLyDuyetB2s.Count(x => x.TrangThaiXacNhan == 1) : 0,
-                        B2TotalCount = hasB2 ? item.ShdQuanLyDuyetB2s.Count() : 0,
+                        B2ApprovedCount = b2List.Count(x => x.TrangThaiXacNhan == 1),
+                        B2TotalCount = b2List.Count(),
                         HasGD = hasGD,
-                        GDApprovedCount = hasGD ? item.ShdNguoiXacNhans.Count(x => x.TrangThaiXacNhan == 1) : 0,
-                        GDTotalCount = hasGD ? item.ShdNguoiXacNhans.Count() : 0,
-                        HasBV = false, // SHD không dùng bảo vệ
+                        GDApprovedCount = gdList.Count(x => x.TrangThaiXacNhan == 1),
+                        GDTotalCount = gdList.Count(),
+                        HasBV = false,
                         BVStatusText = ""
                     };
                 });
@@ -1348,23 +1250,32 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
             var danhSachDon = await query.OrderByDescending(f => f.Id).AsNoTracking().ToListAsync();
 
-            // --- TÍNH TOÁN LOGIC B2, GĐ, TRẠNG THÁI TẠI SERVER (SHD VERSION) ---
+            // --- TÍNH TOÁN LOGIC TẠI SERVER (SHD VERSION) ---
             var result = danhSachDon.Select(item =>
             {
-                bool hasB2 = item.ShdQuanLyDuyetB2s != null && item.ShdQuanLyDuyetB2s.Any();
+                // 1. Khởi tạo biến trung gian an toàn (loại bỏ null reference)
+                var b2List = item.ShdQuanLyDuyetB2s ?? Enumerable.Empty<E_Form_Best.Models.ITForm.ShdQuanLyDuyetB2>();
+                var gdList = item.ShdNguoiXacNhans ?? Enumerable.Empty<E_Form_Best.Models.ITForm.ShdNguoiXacNhan>();
+                var supportList = item.ShdCtNguoiHoTros ?? Enumerable.Empty<E_Form_Best.Models.ITForm.ShdCtNguoiHoTro>();
+
+                // 2. Logic B2
+                bool hasB2 = b2List.Any();
                 bool checkB2Approved = true;
                 if (hasB2)
                 {
-                    string type = item.ShdQuanLyDuyetB2s.FirstOrDefault()?.Loai?.ToUpper() ?? "AND";
-                    if (type == "OR" || type == "ANY") checkB2Approved = item.ShdQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 1);
-                    else checkB2Approved = item.ShdQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
+                    string type = b2List.FirstOrDefault()?.Loai?.ToUpper() ?? "AND";
+                    checkB2Approved = (type == "OR" || type == "ANY")
+                        ? b2List.Any(x => x.TrangThaiXacNhan == 1)
+                        : b2List.All(x => x.TrangThaiXacNhan == 1);
                 }
-                bool checkB2Rejected = hasB2 && item.ShdQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 2);
+                bool checkB2Rejected = hasB2 && b2List.Any(x => x.TrangThaiXacNhan == 2);
 
-                bool hasGD = item.ShdNguoiXacNhans != null && item.ShdNguoiXacNhans.Any();
-                bool isGDApproved = hasGD && item.ShdNguoiXacNhans.All(x => x.TrangThaiXacNhan == 1);
-                bool isGDRejected = hasGD && item.ShdNguoiXacNhans.Any(x => x.TrangThaiXacNhan == 2);
+                // 3. Logic Giám Đốc
+                bool hasGD = gdList.Any();
+                bool isGDApproved = hasGD && gdList.All(x => x.TrangThaiXacNhan == 1);
+                bool isGDRejected = hasGD && gdList.Any(x => x.TrangThaiXacNhan == 2);
 
+                // 4. Trạng thái chung
                 bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]") || item.TrangThai == "DaHuy" || item.TrangThai == "Huy";
                 bool isFinished = item.IdAdmin != null || item.TrangThai == "HoanTat" || item.TrangThai == "DaXuLy";
                 bool isManagerApproved = item.IdNguoiDuyet != null;
@@ -1396,23 +1307,23 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     pWidth = "85%"; pColor = "#312e81"; pText = "CHỜ ADMIN"; bg = "#e0e7ff"; fg = "#312e81"; statusTag = "ADMIN";
                 }
 
-                var supportLog = item.ShdCtNguoiHoTros?.OrderByDescending(x => x.Stt).FirstOrDefault();
+                var supportLog = supportList.OrderByDescending(x => x.Stt).FirstOrDefault();
                 string supportName = supportLog?.IdShdNguoiHoTroNavigation?.Ten ?? "Chưa chỉ định";
 
                 return new
                 {
-                    Id = item.Id,
+                    item.Id,
                     TenNguoiNv = item.TenNguoiNv ?? "N/A",
                     BoPhan = item.BoPhan ?? "N/A",
                     SoNhanVien = item.SoNhanVien ?? "N/A",
                     TenForm = (item.TenForm ?? "").Replace("[ĐÃ HỦY]", "").Trim(),
                     TimeNguoiTao = item.TimeNguoiTao?.ToString("dd/MM/yyyy") ?? "--",
                     HasB2 = hasB2,
-                    B2ApprovedCount = hasB2 ? item.ShdQuanLyDuyetB2s.Count(x => x.TrangThaiXacNhan == 1) : 0,
-                    B2TotalCount = hasB2 ? item.ShdQuanLyDuyetB2s.Count() : 0,
+                    B2ApprovedCount = b2List.Count(x => x.TrangThaiXacNhan == 1),
+                    B2TotalCount = b2List.Count(),
                     HasGD = hasGD,
-                    GDApprovedCount = hasGD ? item.ShdNguoiXacNhans.Count(x => x.TrangThaiXacNhan == 1) : 0,
-                    GDTotalCount = hasGD ? item.ShdNguoiXacNhans.Count() : 0,
+                    GDApprovedCount = gdList.Count(x => x.TrangThaiXacNhan == 1),
+                    GDTotalCount = gdList.Count(),
                     SupportName = supportName,
                     PWidth = pWidth,
                     PColor = pColor,
@@ -1535,8 +1446,8 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         public class SHDApprovalRequest
         {
             public int Id { get; set; }
-            public string Action { get; set; } // Duyet, Huy, HoanTat
-            public string Reason { get; set; }
+            public string? Action { get; set; } // Duyet, Huy, HoanTat
+            public string? Reason { get; set; }
         }
 
         #endregion
@@ -1889,44 +1800,28 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                                                 .Where(s => !string.IsNullOrEmpty(s))
                                                 .ToList();
 
-            // Đánh dấu các quyền SHD độc lập
             bool isAll = userRoles.Contains("All");
             bool isAdminSHD = userRoles.Contains("AdminSHD");
             bool isQuanLyB2 = userRoles.Contains("QuanLyDuyetDonSHD_B2");
             bool isQuanLyDuyet = userRoles.Contains("QuanLyDuyetDonSHD");
             bool isGiamDocSHD = userRoles.Contains("GiamDocSHD");
 
-            // --- KHỞI TẠO QUERY SHD ---
             IQueryable<E_Form_Best.Models.ITForm.FormShd> query = _context.FormShds
                 .Include(f => f.ShdNguoiXacNhans).ThenInclude(xn => xn.IdnguoiXacNhanNavigation)
                 .Include(f => f.ShdQuanLyDuyetB2s)
                 .Include(f => f.ShdCtNguoiHoTros).ThenInclude(ct => ct.IdShdNguoiHoTroNavigation);
 
-            // --- ĐIỀU KIỆN CƠ BẢN: QUẢN LÝ TRỰC TIẾP ĐÃ DUYỆT BƯỚC 1 ---
             query = query.Where(f => f.IdNguoiDuyet != null && f.TenNguoiDuyet != null && f.TimeNguoiDuyet != null);
 
-            // --- LOGIC PHÂN QUYỀN TRUY CẬP DỮ LIỆU SHD ---
+            // Sử dụng Enumerable.Empty để tránh lỗi NullReference khi lọc LINQ
             query = query.Where(f =>
-                isAll || isAdminSHD || // Admin SHD thấy toàn bộ đơn đã qua bước 1
-
-                // Quyền B2 SHD: Thấy đơn có tên trong danh sách xác nhận B2
-                (isQuanLyB2 && f.ShdQuanLyDuyetB2s.Any(b2 => b2.IdnguoiXacNhan == userId || (b2.MaNguoiXacNhan != null && b2.MaNguoiXacNhan.ToLower() == userEmail))) ||
-
-                // Quyền Giám đốc SHD: Thấy đơn cần mình ký xác nhận
-                (isGiamDocSHD && f.ShdNguoiXacNhans.Any(xn => xn.IdnguoiXacNhan == userId || (xn.MaNguoiXacNhan != null && xn.MaNguoiXacNhan.ToLower() == userEmail))) ||
-
-                // Quyền Quản lý duyệt: Theo bộ phận hoặc đơn mình tạo
-                (isQuanLyDuyet && (
-                    f.IdNguoiTao == userId ||
-                    (listTenBoPhan.Any() && f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim().ToLower())) ||
-                    (!listTenBoPhan.Any() && !string.IsNullOrEmpty(phongBanSession) && f.BoPhan != null && f.BoPhan.Trim().ToLower() == phongBanSession.ToLower())
-                )) ||
-
-                // Nhân viên SHD hỗ trợ hoặc Người tạo
-                (f.IdNguoiTao == userId || f.ShdCtNguoiHoTros.Any(ct => ct.IdShdNguoiHoTroNavigation.MaNv.ToLower() == userEmail))
+                isAll || isAdminSHD ||
+                (isQuanLyB2 && (f.ShdQuanLyDuyetB2s ?? Enumerable.Empty<E_Form_Best.Models.ITForm.ShdQuanLyDuyetB2>()).Any(b2 => b2.IdnguoiXacNhan == userId || (b2.MaNguoiXacNhan != null && b2.MaNguoiXacNhan.ToLower() == userEmail))) ||
+                (isGiamDocSHD && (f.ShdNguoiXacNhans ?? Enumerable.Empty<E_Form_Best.Models.ITForm.ShdNguoiXacNhan>()).Any(xn => xn.IdnguoiXacNhan == userId || (xn.MaNguoiXacNhan != null && xn.MaNguoiXacNhan.ToLower() == userEmail))) ||
+                (isQuanLyDuyet && (f.IdNguoiTao == userId || (listTenBoPhan.Any() && f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan.Trim().ToLower())) || (!listTenBoPhan.Any() && !string.IsNullOrEmpty(phongBanSession) && f.BoPhan != null && f.BoPhan.Trim().ToLower() == phongBanSession.ToLower()))) ||
+                (f.IdNguoiTao == userId || (f.ShdCtNguoiHoTros ?? Enumerable.Empty<E_Form_Best.Models.ITForm.ShdCtNguoiHoTro>()).Any(ct => ct.IdShdNguoiHoTroNavigation != null && ct.IdShdNguoiHoTroNavigation.MaNv.ToLower() == userEmail))
             );
 
-            // Lọc theo công ty (BPVN/PFVN) nếu không phải quyền Global
             if (!isAll && !isAdminSHD && !string.IsNullOrEmpty(tenCongTy))
             {
                 query = query.Where(f => f.TenCongTy == tenCongTy);
@@ -1934,80 +1829,59 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
             var danhSachDon = await query.OrderByDescending(f => f.Id).AsNoTracking().ToListAsync();
 
-            // --- MAP SANG DỮ LIỆU JSON & TÍNH TOÁN TRẠNG THÁI TIẾN TRÌNH ---
             var result = danhSachDon.Select(item =>
             {
+                // Khởi tạo các biến trung gian để an toàn dữ liệu
+                var b2List = item.ShdQuanLyDuyetB2s ?? Enumerable.Empty<E_Form_Best.Models.ITForm.ShdQuanLyDuyetB2>();
+                var gdList = item.ShdNguoiXacNhans ?? Enumerable.Empty<E_Form_Best.Models.ITForm.ShdNguoiXacNhan>();
+                var supportList = item.ShdCtNguoiHoTros ?? Enumerable.Empty<E_Form_Best.Models.ITForm.ShdCtNguoiHoTro>();
+
                 bool isCancelled = (item.TenForm ?? "").Contains("[ĐÃ HỦY]") || item.TrangThai == "DaHuy" || item.TrangThai == "Huy";
                 bool isFinished = item.IdAdmin != null || item.TrangThai == "HoanTat" || item.TrangThai == "DaXuLy";
                 bool isManagerApproved = item.IdNguoiDuyet != null;
 
-                // Tính toán Bước 2
-                bool hasB2 = item.ShdQuanLyDuyetB2s != null && item.ShdQuanLyDuyetB2s.Any();
-                string b2Type = hasB2 ? (item.ShdQuanLyDuyetB2s.FirstOrDefault()?.Loai?.ToUpper() ?? "AND") : "AND";
-                bool isB2Approved = false;
-                if (hasB2)
-                {
-                    if (b2Type == "OR" || b2Type == "ANY") isB2Approved = item.ShdQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 1);
-                    else isB2Approved = item.ShdQuanLyDuyetB2s.All(x => x.TrangThaiXacNhan == 1);
-                }
-                bool isB2Rejected = hasB2 && item.ShdQuanLyDuyetB2s.Any(x => x.TrangThaiXacNhan == 2);
+                bool hasB2 = b2List.Any();
+                string b2Type = hasB2 ? (b2List.FirstOrDefault()?.Loai?.ToUpper() ?? "AND") : "AND";
+                bool isB2Approved = hasB2 && (b2Type == "OR" || b2Type == "ANY" ? b2List.Any(x => x.TrangThaiXacNhan == 1) : b2List.All(x => x.TrangThaiXacNhan == 1));
+                bool isB2Rejected = hasB2 && b2List.Any(x => x.TrangThaiXacNhan == 2);
 
-                // Tính toán Giám đốc
-                bool hasGD = item.ShdNguoiXacNhans != null && item.ShdNguoiXacNhans.Any();
-                bool isGDApproved = hasGD && item.ShdNguoiXacNhans.All(x => x.TrangThaiXacNhan == 1);
-                bool isGDRejected = hasGD && item.ShdNguoiXacNhans.Any(x => x.TrangThaiXacNhan == 2);
+                bool hasGD = gdList.Any();
+                bool isGDApproved = hasGD && gdList.All(x => x.TrangThaiXacNhan == 1);
+                bool isGDRejected = hasGD && gdList.Any(x => x.TrangThaiXacNhan == 2);
 
-                // Định dạng hiển thị Progress Bar và Badge
                 string pWidth, pColor, pText, bg, fg, statusTag;
-                if (isCancelled || isB2Rejected || isGDRejected)
-                {
-                    pWidth = "100%"; pColor = "#ef4444"; pText = "ĐÃ HỦY/TỪ CHỐI"; bg = "#fee2e2"; fg = "#b91c1c"; statusTag = "ĐÃ HỦY";
-                }
-                else if (isFinished)
-                {
-                    pWidth = "100%"; pColor = "#10b981"; pText = "HOÀN TẤT"; bg = "#ecfdf5"; fg = "#047857"; statusTag = "HOÀN TẤT";
-                }
-                else if (!isManagerApproved)
-                {
-                    pWidth = "25%"; pColor = "#f59e0b"; pText = "CHỜ QL DUYỆT"; bg = "#fef3c7"; fg = "#b45309"; statusTag = "CHỜ QL";
-                }
-                else if (hasB2 && !isB2Approved)
-                {
-                    pWidth = "45%"; pColor = "#0ea5e9"; pText = "BỘ PHẬN DUYỆT"; bg = "#e0f2fe"; fg = "#0369a1"; statusTag = "BƯỚC 2";
-                }
-                else if (hasGD && !isGDApproved)
-                {
-                    pWidth = "70%"; pColor = "#d946ef"; pText = "GIÁM ĐỐC"; bg = "#fdf4ff"; fg = "#86198f"; statusTag = "GIÁM ĐỐC";
-                }
-                else
-                {
-                    pWidth = "85%"; pColor = "#1e40af"; pText = "CHỜ SHD XỬ LÝ"; bg = "#dbeafe"; fg = "#1e40af"; statusTag = "CHỜ SHD";
-                }
+                // ... (Logic màu sắc giữ nguyên như bạn đã viết) ...
+                if (isCancelled || isB2Rejected || isGDRejected) { pWidth = "100%"; pColor = "#ef4444"; pText = "ĐÃ HỦY/TỪ CHỐI"; bg = "#fee2e2"; fg = "#b91c1c"; statusTag = "ĐÃ HỦY"; }
+                else if (isFinished) { pWidth = "100%"; pColor = "#10b981"; pText = "HOÀN TẤT"; bg = "#ecfdf5"; fg = "#047857"; statusTag = "HOÀN TẤT"; }
+                else if (!isManagerApproved) { pWidth = "25%"; pColor = "#f59e0b"; pText = "CHỜ QL DUYỆT"; bg = "#fef3c7"; fg = "#b45309"; statusTag = "CHỜ QL"; }
+                else if (hasB2 && !isB2Approved) { pWidth = "45%"; pColor = "#0ea5e9"; pText = "BỘ PHẬN DUYỆT"; bg = "#e0f2fe"; fg = "#0369a1"; statusTag = "BƯỚC 2"; }
+                else if (hasGD && !isGDApproved) { pWidth = "70%"; pColor = "#d946ef"; pText = "GIÁM ĐỐC"; bg = "#fdf4ff"; fg = "#86198f"; statusTag = "GIÁM ĐỐC"; }
+                else { pWidth = "85%"; pColor = "#1e40af"; pText = "CHỜ SHD XỬ LÝ"; bg = "#dbeafe"; fg = "#1e40af"; statusTag = "CHỜ SHD"; }
 
-                var latestSupport = item.ShdCtNguoiHoTros?.OrderByDescending(x => x.Stt).FirstOrDefault();
+                var latestSupport = supportList.OrderByDescending(x => x.Stt).FirstOrDefault();
 
                 return new
                 {
-                    Id = item.Id,
-                    IdForm = item.IdForm,
+                    item.Id,
+                    item.IdForm,
                     TenNguoiNv = item.TenNguoiNv ?? "N/A",
                     BoPhan = item.BoPhan ?? "N/A",
                     SoNhanVien = item.SoNhanVien ?? "N/A",
                     TenForm = (item.TenForm ?? "").Replace("[ĐÃ HỦY]", "").Trim(),
                     TimeNguoiTao = item.TimeNguoiTao?.ToString("dd/MM/yyyy") ?? "--",
                     HasB2 = hasB2,
-                    B2DoneCount = hasB2 ? item.ShdQuanLyDuyetB2s.Count(x => x.TrangThaiXacNhan == 1) : 0,
-                    B2TotalCount = hasB2 ? item.ShdQuanLyDuyetB2s.Count : 0,
+                    B2DoneCount = b2List.Count(x => x.TrangThaiXacNhan == 1),
+                    B2TotalCount = b2List.Count(),
                     HasGD = hasGD,
-                    GDDoneCount = hasGD ? item.ShdNguoiXacNhans.Count(x => x.TrangThaiXacNhan == 1) : 0,
-                    GDTotalCount = hasGD ? item.ShdNguoiXacNhans.Count : 0,
+                    GDDoneCount = gdList.Count(x => x.TrangThaiXacNhan == 1),
+                    GDTotalCount = gdList.Count(),
                     SupportName = latestSupport?.IdShdNguoiHoTroNavigation?.Ten,
                     PWidth = pWidth,
-                    PColor = pColor,
-                    PText = pText,
-                    Bg = bg,
-                    Fg = fg,
-                    StatusTag = statusTag
+                    pColor,
+                    pText,
+                    bg,
+                    fg,
+                    statusTag
                 };
             });
 
@@ -2124,9 +1998,8 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         public class SHDCompleteRequest
         {
             public int Id { get; set; }
-            public string SHDNote { get; set; }
+            public string? SHDNote { get; set; } // Thêm dấu ?
         }
-
         #endregion
 
         #region QUẢN TRỊ & XUẤT BÁO CÁO SHD (CHỈ ĐƠN ĐÃ HOÀN TẤT)

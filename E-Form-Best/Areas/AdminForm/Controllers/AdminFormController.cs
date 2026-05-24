@@ -65,22 +65,32 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         [Authorize]
         public async Task<IActionResult> CapNhatAnh(IFormFile fileAnh)
         {
+            // 1. Kiểm tra file hợp lệ và xác thực người dùng
             if (fileAnh == null || fileAnh.Length == 0)
                 return Json(new { success = false, message = "File không hợp lệ." });
 
+            if (User?.Identity == null || !User.Identity.IsAuthenticated)
+                return Json(new { success = false, message = "Người dùng chưa đăng nhập." });
+
             try
             {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim))
+                    return Json(new { success = false, message = "Không tìm thấy thông tin người dùng." });
+
+                int userId = int.Parse(userIdClaim);
                 var user = await _context.Users.FindAsync(userId);
 
-                // 1. Xóa ảnh cũ nếu có
+                if (user == null)
+                    return Json(new { success = false, message = "Người dùng không tồn tại." });
+
+                // 2. Xóa ảnh cũ nếu có
                 if (!string.IsNullOrEmpty(user.AnhDaiDien) && System.IO.File.Exists(user.AnhDaiDien))
                 {
                     try { System.IO.File.Delete(user.AnhDaiDien); } catch { /* Bỏ qua nếu ko xóa đc ảnh cũ */ }
                 }
 
-                // 2. Lưu ảnh mới vào File Server
-                // LƯU Ý: User chạy IIS AppPool phải có quyền Write vào thư mục mạng này
+                // 3. Lưu ảnh mới vào File Server
                 string folderPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\User";
 
                 if (!Directory.Exists(folderPath))
@@ -96,7 +106,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                     await fileAnh.CopyToAsync(stream);
                 }
 
-                // 3. Lưu đường dẫn mới vào DB
+                // 4. Lưu đường dẫn mới vào DB
                 user.AnhDaiDien = fullPath;
                 _context.Users.Update(user);
                 await _context.SaveChangesAsync();
@@ -114,16 +124,36 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         [Authorize]
         public async Task<IActionResult> XoaAnhDaiDien()
         {
+            // Kiểm tra xác thực người dùng
+            if (User?.Identity == null || !User.Identity.IsAuthenticated)
+                return Json(new { success = false, message = "Người dùng chưa đăng nhập." });
+
             try
             {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                    return Json(new { success = false, message = "Không tìm thấy thông tin định danh người dùng." });
+
                 var user = await _context.Users.FindAsync(userId);
 
+                // Kiểm tra user tồn tại trước khi thao tác
+                if (user == null)
+                    return Json(new { success = false, message = "Người dùng không tồn tại." });
+
+                // Xóa file ảnh vật lý nếu có đường dẫn hợp lệ và file thực sự tồn tại
                 if (!string.IsNullOrEmpty(user.AnhDaiDien) && System.IO.File.Exists(user.AnhDaiDien))
                 {
-                    System.IO.File.Delete(user.AnhDaiDien);
+                    try
+                    {
+                        System.IO.File.Delete(user.AnhDaiDien);
+                    }
+                    catch
+                    {
+                        // Bỏ qua nếu không xóa được ảnh cũ (ví dụ: file đang bị lock hoặc đã bị xóa thủ công)
+                    }
                 }
 
+                // Cập nhật Database
                 user.AnhDaiDien = null;
                 _context.Users.Update(user);
                 await _context.SaveChangesAsync();

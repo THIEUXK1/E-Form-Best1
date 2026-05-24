@@ -4,7 +4,7 @@
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 
     // Vẫn lấy Role từ Claim để hiển thị giao diện góc phải
-    var userRole = User.Identity.Name ?? "Guest";
+    var userRole = User.Identity?.Name ?? "Guest";
 }
 
 <style>

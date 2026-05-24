@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.DirectoryServices.AccountManagement;
+using System.Runtime.InteropServices;
 using System.Security.Claims;
 
 namespace E_Form_Best.Areas.ITForm.Controllers
@@ -55,10 +57,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // A. Tìm kiếm User và thông tin liên kết Domain
             domainAuth = await _context.UserDomainAuths
                 .Include(a => a.IdNguoiDungNavigation)
-                    .ThenInclude(u => u.UserBoPhans).ThenInclude(ub => ub.IdBoPhanNavigation)
+                    .ThenInclude(u => u!.UserBoPhans).ThenInclude(ub => ub.IdBoPhanNavigation)
                 .Include(a => a.IdNguoiDungNavigation)
-                    .ThenInclude(u => u.UserQuyens).ThenInclude(uq => uq.IdQuyenNavigation)
-                .FirstOrDefaultAsync(a => a.DomainUsername.ToLower() == email.ToLower());
+                    .ThenInclude(u => u!.UserQuyens).ThenInclude(uq => uq.IdQuyenNavigation)
+                .FirstOrDefaultAsync(a => a.DomainUsername != null && a.DomainUsername.ToLower() == email.ToLower());
 
             if (domainAuth != null)
             {
@@ -161,9 +163,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
 
             // 3. Xử lý định danh thiết bị
-            string userAgent = Request.Headers["User-Agent"].ToString();
+            string userAgent = Request.Headers["User-Agent"].ToString() ?? "";
             var remoteIpAddress = HttpContext.Connection.RemoteIpAddress;
-            string ipAddress = remoteIpAddress?.ToString();
+            string? ipAddress = remoteIpAddress?.ToString(); // Chuyển thành string? vì gán từ một giá trị có thể null
             string resolvedComputerName = deviceName;
 
             if (string.IsNullOrEmpty(resolvedComputerName) || resolvedComputerName == "Thiết bị không xác định")
@@ -192,8 +194,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 _context.UserDevices.Update(device);
             }
 
-            // Lưu lịch sử truy cập
-            _context.LichSuTruyCaps.Add(new LichSuTruyCap { IdNguoiDung = user.IdNguoiDung, ThoiGianDangNhap = DateTime.Now, TenMayTinh = resolvedComputerName, DiaChiIp = ipAddress, TrinhDuyet = userAgent, TrangThai = "Đang hoạt động" });
+            // Lưu lịch sử truy cập (Sử dụng toán tử ?? để gán chuỗi rỗng nếu ipAddress bị null)
+            _context.LichSuTruyCaps.Add(new LichSuTruyCap { IdNguoiDung = user.IdNguoiDung, ThoiGianDangNhap = DateTime.Now, TenMayTinh = resolvedComputerName, DiaChiIp = ipAddress ?? "", TrinhDuyet = userAgent, TrangThai = "Đang hoạt động" });
             await _context.SaveChangesAsync();
 
             // 4. Thiết lập Claims
@@ -213,13 +215,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             if (user.UserBoPhans != null && user.UserBoPhans.Any())
             {
-                claims.Add(new Claim("TenBoPhan", string.Join(", ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation.TenBoPhan))));
-                claims.Add(new Claim("MoTaBoPhan", string.Join(" | ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation.MoTa))));
+                // Đảm bảo lọc bỏ các phần tử điều hướng bị null trước khi Select dữ liệu
+                claims.Add(new Claim("TenBoPhan", string.Join(", ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation!.TenBoPhan))));
+                claims.Add(new Claim("MoTaBoPhan", string.Join(" | ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation!.MoTa))));
             }
 
-            foreach (var tenQuyen in user.UserQuyens.Where(uq => uq.IdQuyenNavigation != null).Select(uq => uq.IdQuyenNavigation.TenQuyen))
+            if (user.UserQuyens != null)
             {
-                if (!string.IsNullOrEmpty(tenQuyen)) claims.Add(new Claim(ClaimTypes.Role, tenQuyen));
+                foreach (var tenQuyen in user.UserQuyens.Where(uq => uq.IdQuyenNavigation != null).Select(uq => uq.IdQuyenNavigation!.TenQuyen))
+                {
+                    if (!string.IsNullOrEmpty(tenQuyen)) claims.Add(new Claim(ClaimTypes.Role, tenQuyen));
+                }
             }
 
             if (!isDomainAuth && matKhau == "abc12345") claims.Add(new Claim("IsDefaultPassword", "true"));
@@ -246,19 +252,37 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return Redirect("/menuA");
         }
 
+
+
         private bool AuthenticateWithDomain(string username, string password)
+        {
+            // Kiểm tra xem ứng dụng có đang chạy trên Windows không
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // Nếu chạy trên Linux/macOS, không thể dùng PrincipalContext
+                // Trả về false hoặc log lỗi tùy theo yêu cầu nghiệp vụ
+                return false;
+            }
+
+            return AuthenticateOnWindows(username, password);
+        }
+
+        // Tách riêng logic Windows để trình biên dịch không cảnh báo lỗi CA1416 tại nơi gọi chính
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        private bool AuthenticateOnWindows(string username, string password)
         {
             try
             {
-                using (var context = new System.DirectoryServices.AccountManagement.PrincipalContext(
-                    System.DirectoryServices.AccountManagement.ContextType.Domain, "bestpacific.com"))
+                using (var context = new PrincipalContext(ContextType.Domain, "bestpacific.com"))
                 {
                     return context.ValidateCredentials(username, password);
                 }
             }
-            catch { return false; }
+            catch
+            {
+                return false;
+            }
         }
-
         [HttpGet("/DonXetDuyet/DangXuat")]
         public async Task<IActionResult> DangXuat()
         {
@@ -336,7 +360,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #region xử lý ảnh
         private string RemoveSign4VietnameseString(string str)
         {
-            if (string.IsNullOrEmpty(str)) return "";
+            if (string.IsNullOrWhiteSpace(str)) return string.Empty;
+
             string[] VietnameseSigns = new string[]
             {
         "aAeEoOuUiIdDyY",
@@ -355,21 +380,25 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         "ýỳỵỷỹ",
         "ÝỲỴỶỸ"
             };
+
             for (int i = 1; i < VietnameseSigns.Length; i++)
             {
-                for (int j = 0; j < VietnameseSigns[i].Length; j++)
-                    str = str.Replace(VietnameseSigns[i][j], VietnameseSigns[0][i - 1]);
+                foreach (char c in VietnameseSigns[i])
+                {
+                    str = str.Replace(c, VietnameseSigns[0][i - 1]);
+                }
             }
             return str;
         }
 
-        // HÀM HELPER - Xử lý chuyển đổi file sang byte[] (Dùng cho cột kiểu varbinary/image trong DB)
-        private async Task<byte[]> GetFileBytesAsync2(string inputName)
+        // HÀM HELPER - Xử lý chuyển đổi file sang byte[]
+        // Chuyển kiểu trả về thành byte[]? để thể hiện rõ khả năng trả về null
+        private async Task<byte[]?> GetFileBytesAsync2(string inputName)
         {
             try
             {
-                // Kiểm tra xem trong request có file đính kèm với name tương ứng không
-                if (Request.Form.Files.Count > 0)
+                // Kiểm tra Request và FileCollection an toàn
+                if (Request?.Form?.Files != null && Request.Form.Files.Count > 0)
                 {
                     var file = Request.Form.Files[inputName];
                     if (file != null && file.Length > 0)
@@ -382,6 +411,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch
             {
+                // Nếu lỗi xảy ra, trả về null một cách tường minh
                 return null;
             }
             return null;
@@ -918,7 +948,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (string.IsNullOrEmpty(userIdClaim)) return Redirect("/DonXetDuyet/DangNhap");
 
             int userId = int.Parse(userIdClaim);
-            var userName = User.Identity.Name ?? "";
+            var userName = User.Identity?.Name ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
             var viTri = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
                         ?? User.FindFirst("UserRole")?.Value ?? "";
@@ -966,7 +996,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
-                        string extension = Path.GetExtension(uploadFile.FileName);
+                        string extension = Path.GetExtension(uploadFile.FileName) ?? "";
                         string fileName = $"DonWifi_ID{form.Id}_{safeName}_{timeStamp}{extension}";
                         string fullPath = Path.Combine(networkPath, fileName);
 
@@ -982,7 +1012,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     }
 
                     // --- 4. CHI TIẾT WIFI (List<ItDangKiSuDungWifi3>) & XỬ LÝ ẢNH ---
-                    string imgFileName = null;
+                    string? imgFileName = null; // Khai báo string? vì giá trị ban đầu là null
                     var anhFile = Request.Form.Files["Anh"];
                     if (anhFile != null && anhFile.Length > 0)
                     {
@@ -1032,7 +1062,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     {
                         IdFormIt = form.Id,
                         TieuDe = "Khởi tạo đơn Wifi",
-                        Mota = $"Người tạo: {userName} | Số lượng thiết bị: {itWifiList?.Count}. {supporterLog}. {fileLog}. {anhLog}",
+                        Mota = $"Người tạo: {userName} | Số lượng thiết bị: {itWifiList?.Count ?? 0}. {supporterLog}. {fileLog}. {anhLog}",
                         Time = DateTime.Now
                     };
                     _context.LichSuFormIts.Add(lichSu);
@@ -1292,7 +1322,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (string.IsNullOrEmpty(userIdClaim)) return Redirect("/DonXetDuyet/DangNhap");
 
             int userId = int.Parse(userIdClaim);
-            var userName = User.Identity.Name ?? "";
+            var userName = User.Identity?.Name ?? ""; // SỬA: Thêm toán tử điều kiện null ?. phòng trường hợp Identity null
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
             var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role) ?? User.FindFirst("UserRole");
             var roleName = userRole?.Value ?? "";
@@ -1340,7 +1370,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     if (uploadFile != null && uploadFile.Length > 0)
                     {
-                        string extension = Path.GetExtension(uploadFile.FileName);
+                        string extension = Path.GetExtension(uploadFile.FileName) ?? ""; // SỬA: Fallback về chuỗi rỗng nếu Extension null
                         string fileName = $"DonTKHT_ID{form.Id}_{safeName}_{timeStamp}{extension}";
                         string fullPath = Path.Combine(networkPath, fileName);
 
@@ -1356,13 +1386,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     }
 
                     // --- BƯỚC 3: LƯU CHI TIẾT (List<ItDangKiTaiKhoanHeThong5>) & XỬ LÝ ẢNH ---
-                    string imgFileName = null;
+                    string? imgFileName = null; // SỬA: Chuyển thành string? (nullable) vì ban đầu nó được gán bằng null
                     var anhFile = Request.Form.Files["Anh"];
 
                     // Xử lý lưu ảnh 1 lần nếu có
                     if (anhFile != null && anhFile.Length > 0)
                     {
-                        string imgExtension = Path.GetExtension(anhFile.FileName);
+                        string imgExtension = Path.GetExtension(anhFile.FileName) ?? ""; // SỬA: Fallback về chuỗi rỗng nếu Extension null
                         if (string.IsNullOrEmpty(imgExtension)) imgExtension = ".jpg";
 
                         imgFileName = $"AnhTKHT_ID{form.Id}_{safeName}_{timeStamp}{imgExtension}";
@@ -2081,7 +2111,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             try
             {
                 int idForm = data.GetProperty("idFormIt").GetInt32();
-                string maNvMoi = data.GetProperty("maNv").GetString();
+                string maNvMoi = data.GetProperty("maNv").GetString() ?? ""; // SỬA: Thêm fallback ?? "" phòng trường hợp chuỗi trong JSON bị null
 
                 var nvIt = await _context.ItNguoiHoTros.FirstOrDefaultAsync(x => x.MaNv == maNvMoi);
                 if (nvIt == null) return Json(new { success = false, message = "Mã nhân viên IT không tồn tại!" });
@@ -2109,7 +2139,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     IdFormIt = idForm,
                     TieuDe = "CHỈ ĐỊNH NGƯỜI HỖ TRỢ",
-                    Mota = $"{User.Identity.Name} đã thay đổi người hỗ trợ sang: {nvIt.Ten}.",
+                    Mota = $"{(User.Identity?.Name ?? "Hệ thống")} đã thay đổi người hỗ trợ sang: {nvIt.Ten}.", // SỬA: Thêm ?. và ?? phòng trường hợp Identity null hoặc Name null
                     Time = DateTime.Now
                 });
 
@@ -2601,69 +2631,53 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             try
             {
-                var idForm = int.Parse(Request.Form["idForm"]);
+                // 1. Kiểm tra ID form an toàn
+                if (!int.TryParse(Request.Form["idForm"], out int idForm))
+                    return Json(new { success = false, message = "ID đơn không hợp lệ" });
+
                 var noiDung = Request.Form["noiDung"].ToString();
                 var file = Request.Form.Files.GetFile("file");
 
-                // Lấy đầy đủ thông tin từ Claims
+                // 2. Lấy thông tin User an toàn
                 var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdStr))
+                    return Json(new { success = false, message = "Chưa đăng nhập" });
+
                 var userName = User.Identity?.Name ?? "Unknown";
                 var userMa = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
                 var userPhongBan = User.FindFirst("PhongBan")?.Value ?? "";
                 var userTenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
-
-                if (string.IsNullOrEmpty(userIdStr))
-                    return Json(new { success = false, message = "Chưa đăng nhập" });
 
                 // Kiểm tra đơn có tồn tại không
                 var formIt = await _context.FormIts.FindAsync(idForm);
                 if (formIt == null)
                     return Json(new { success = false, message = "Không tìm thấy đơn" });
 
-                string fileName = null;
+                string? fileName = null;
 
-                // Xử lý file đính kèm
+                // 3. Xử lý file đính kèm
                 if (file != null && file.Length > 0)
                 {
-                    // Kiểm tra kích thước file (max 50MB)
                     if (file.Length > 50 * 1024 * 1024)
                         return Json(new { success = false, message = "File không được vượt quá 50MB" });
 
                     string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonIT";
 
-                    try
-                    {
-                        if (!Directory.Exists(networkPath))
-                            Directory.CreateDirectory(networkPath);
-                    }
-                    catch (Exception ex)
-                    {
-                        return Json(new { success = false, message = "Không thể truy cập thư mục lưu trữ: " + ex.Message });
-                    }
+                    if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
 
-                    // Tạo tên file unique
-                    string safeFileName = Path.GetFileName(file.FileName);
-                    fileName = $"{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString().Substring(0, 8)}_{safeFileName}";
+                    fileName = $"{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString().Substring(0, 8)}_{Path.GetFileName(file.FileName)}";
                     string fullPath = Path.Combine(networkPath, fileName);
 
-                    try
+                    using (var stream = new FileStream(fullPath, FileMode.Create))
                     {
-                        using (var stream = new FileStream(fullPath, FileMode.Create))
-                        {
-                            await file.CopyToAsync(stream);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        return Json(new { success = false, message = "Không thể lưu file: " + ex.Message });
+                        await file.CopyToAsync(stream);
                     }
                 }
 
-                // Kiểm tra nội dung không được rỗng nếu không có file
-                if (string.IsNullOrWhiteSpace(noiDung) && file == null)
+                if (string.IsNullOrWhiteSpace(noiDung) && fileName == null)
                     return Json(new { success = false, message = "Vui lòng nhập nội dung hoặc đính kèm file" });
 
-                // Lưu bình luận
+                // 4. Lưu bình luận
                 var binhLuan = new BinhLuanFormIt
                 {
                     IdForm = idForm,
@@ -2679,20 +2693,20 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 };
 
                 _context.BinhLuanFormIts.Add(binhLuan);
-                await _context.SaveChangesAsync();
 
-                // Tạo lịch sử
+                // 5. Tạo lịch sử
+                string moTaPreview = string.IsNullOrWhiteSpace(noiDung) ? "[File đính kèm]" :
+                                     (noiDung.Length > 50 ? noiDung.Substring(0, 50) + "..." : noiDung);
+
                 var lichSu = new LichSuFormIt
                 {
                     IdFormIt = idForm,
                     TieuDe = "BÌNH LUẬN MỚI",
-                    Mota = $"👤 {userName} ({userMa})\n" +
-                           $"🏢 {userPhongBan} - {userTenCongTy}\n" +
-                           $"💬 {(string.IsNullOrWhiteSpace(noiDung) ? "[File đính kèm]" : (noiDung.Length > 50 ? noiDung.Substring(0, 50) + "..." : noiDung))}\n" +
-                           $"{(fileName != null ? "📎 Có đính kèm file" : "")}",
+                    Mota = $"👤 {userName} ({userMa})\n🏢 {userPhongBan} - {userTenCongTy}\n💬 {moTaPreview}\n{(fileName != null ? "📎 Có đính kèm file" : "")}",
                     Time = DateTime.Now
                 };
                 _context.LichSuFormIts.Add(lichSu);
+
                 await _context.SaveChangesAsync();
 
                 return Json(new
@@ -2700,16 +2714,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     success = true,
                     data = new
                     {
-                        id = binhLuan.Id,
-                        noiDung = binhLuan.NoiDung,
-                        tenNguoiBinhLuan = binhLuan.TenNguoiBinhLuan,
-                        idNguoiBinhLuan = binhLuan.IdNguoiBinhLuan,
-                        ma = binhLuan.Ma,
-                        phongBan = binhLuan.PhongBan,
-                        tenCongTy = binhLuan.TenCongTy,
-                        thoiGian = binhLuan.ThoiGian,
-                        fileDinhKem = binhLuan.FileDinhKem,
-                        trangThai = binhLuan.TrangThai
+                        binhLuan.Id,
+                        binhLuan.NoiDung,
+                        binhLuan.TenNguoiBinhLuan,
+                        binhLuan.IdNguoiBinhLuan,
+                        binhLuan.Ma,
+                        binhLuan.PhongBan,
+                        binhLuan.TenCongTy,
+                        binhLuan.ThoiGian,
+                        binhLuan.FileDinhKem,
+                        binhLuan.TrangThai
                     }
                 });
             }
@@ -2895,7 +2909,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 // TỐI ƯU 2: Loại bỏ .Include(). Khi dùng .Select(), EF Core sẽ tự động sinh câu lệnh JOIN 
                 // chính xác vào bảng cần lấy, giúp tránh lấy dư thừa các cột không dùng tới.
                 .OrderByDescending(f => f.Id)
-                .Select(item => new {
+                .Select(item => new
+                {
                     Id = item.Id,
                     TenForm = item.TenForm ?? "",
                     Danhmuc = item.Danhmuc ?? "N/A",
@@ -2995,7 +3010,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // --- 4. PROJECT DATA ---
             var danhSachDon = await query
                 .OrderByDescending(f => f.Id)
-                .Select(item => new {
+                .Select(item => new
+                {
                     Id = item.Id,
                     TenNguoiNv = item.TenNguoiNv ?? "",
                     SoNhanVien = item.SoNhanVien ?? "",
@@ -3132,7 +3148,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/GetHoanTatDonData")]
         public async Task<IActionResult> GetHoanTatDonData()
         {
-            // --- 1. LẤY THÔNG TIN TỪ CLAIMS (Giữ nguyên) ---
+            // --- 1. LẤY THÔNG TIN TỪ CLAIMS ---
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
@@ -3140,29 +3156,27 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
             var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
 
-            // Tối ưu: Chuẩn hóa dữ liệu so sánh ở bộ nhớ trước khi đưa vào Query
+            // Tối ưu: Khởi tạo danh sách an toàn để tránh lỗi NullReference khi gọi .Contains()
             var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
             var listTenBoPhan = listTenBoPhanStr.Split(',')
                                                 .Select(s => s.Trim())
                                                 .Where(s => !string.IsNullOrEmpty(s))
-                                                .ToList();
+                                                .ToList() ?? new List<string>();
 
-            // --- 2. KHỞI TẠO QUERY (Dùng AsNoTracking ngay từ đầu) ---
-            // Không dùng .Include() vì .Select() bên dưới sẽ tự thực hiện Join tối ưu hơn
+            // --- 2. KHỞI TẠO QUERY ---
             var query = _context.FormIts.AsNoTracking();
 
-            // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU (Tối ưu SARGable) ---
-
+            // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU ---
             if (userRoles.Any(r => r == "All" || r == "AdminIT"))
             {
                 query = query.Where(f => f.IdNguoiDuyet != null);
             }
             else if (userRoles.Contains("QuanLyDuyetDonIT"))
             {
-                if (listTenBoPhan.Any())
+                if (listTenBoPhan.Count > 0)
                 {
-                    // Tránh dùng .ToLower() trên f.BoPhan để tận dụng Index (Database SQL Server mặc định thường Case-Insensitive)
-                    query = query.Where(f => listTenBoPhan.Contains(f.BoPhan));
+                    // Sử dụng danh sách đã được khởi tạo an toàn
+                    query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan));
                 }
                 else if (!string.IsNullOrEmpty(phongBanSession))
                 {
@@ -3178,24 +3192,26 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 query = query.Where(f => f.IdNguoiTao == userId);
             }
 
-            // --- 4. THỰC THI TRUY VẤN VỚI PROJECTION (Tốc độ tối đa) ---
+            // --- 4. THỰC THI TRUY VẤN VỚI PROJECTION ---
             var danhSachDon = await query
                 .OrderByDescending(f => f.Id)
-                .Select(item => new {
+                .Select(item => new
+                {
                     Id = item.Id,
                     TenNguoiNv = item.TenNguoiNv ?? "",
                     SoNhanVien = item.SoNhanVien ?? "",
                     BoPhan = item.BoPhan ?? "",
-                    Danhmuc = (item.Danhmuc == null || item.Danhmuc == "") ? "Yêu cầu IT" : item.Danhmuc,
+                    Danhmuc = string.IsNullOrEmpty(item.Danhmuc) ? "Yêu cầu IT" : item.Danhmuc,
                     TenForm = item.TenForm ?? "",
-                    // Format ngày tháng ngay trên SQL nếu cần hoặc trả về DateTime để JS format (trả về string chậm hơn một chút)
                     TimeNguoiTao = item.TimeNguoiTao.HasValue ? item.TimeNguoiTao.Value.ToString("dd/MM/yyyy") : "",
                     IdNguoiDuyet = item.IdNguoiDuyet,
                     IdAdmin = item.IdAdmin,
-                    // Kiểm tra tồn tại nhanh hơn lấy cả list
                     DaDanhGia = item.DanhGiaFormIts.Any(),
-                    // Join thủ công trong Select giúp SQL tối ưu hóa cột cần lấy
-                    NguoiHoTros = item.ItCtNguoiHoTros.Select(ct => ct.IdItNguoiHoTroNavigation.Ten ?? "N/A").ToList()
+                    // Đảm bảo không bao giờ trả về null cho collection để JS dễ xử lý
+                    NguoiHoTros = item.ItCtNguoiHoTros
+                                      .Where(ct => ct.IdItNguoiHoTroNavigation != null)
+                                      .Select(ct => ct.IdItNguoiHoTroNavigation!.Ten ?? "N/A")
+                                      .ToList()
                 })
                 .ToListAsync();
 
@@ -3284,8 +3300,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         public class ITApprovalRequest
         {
             public int Id { get; set; }
-            public string Action { get; set; } // "Duyet" hoặc "Huy"
-            public string Reason { get; set; }
+
+            // Gán giá trị mặc định là string.Empty để tránh cảnh báo null
+            public string Action { get; set; } = string.Empty;
+
+            // Nếu lý do có thể để trống (không bắt buộc), bạn có thể dùng string?
+            public string Reason { get; set; } = string.Empty;
         }
 
         public class ITCompleteRequest
@@ -3410,9 +3430,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         public class ITNotCompleteRequest
         {
             public int Id { get; set; }
-            public string Reason { get; set; }
+            public string? Reason { get; set; }
         }
-
         #endregion
 
         #region Đánh giá đơn IT (Tích hợp TenCongTy & Lịch sử)
@@ -3530,7 +3549,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             public int Id { get; set; }
             public int MucDo { get; set; } // Giá trị từ 1-5
-            public string NhanXet { get; set; } // Nội dung phản hồi thêm
+            public string? NhanXet { get; set; } // Nội dung phản hồi thêm
         }
 
         #endregion
@@ -3566,7 +3585,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 // Sử dụng Select trực tiếp để EF Core sinh ra câu lệnh SQL tinh gọn nhất
                 var data = await query
-                    .Select(x => new {
+                    .Select(x => new
+                    {
                         x.Id,
                         x.IdForm,   // Mã Form (IT-01, IT-02...)
                         x.Danhmuc,  // Danh mục (Phần mềm, Phần cứng...)
@@ -3626,7 +3646,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 // Việc này đảm bảo LINQ không bị lỗi khi dịch sang SQL mà vẫn chạy rất nhanh
                 var filteredData = rawData
                     .GroupBy(x => x.IdFormIt)
-                    .Select(group => {
+                    .Select(group =>
+                    {
                         var top = group.OrderByDescending(x => x.Stt).First();
 
                         double? minutes = null;
@@ -4628,9 +4649,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (!string.IsNullOrWhiteSpace(model.TenMayTinh))
                 {
                     if (model.IdThietBi == 0)
-                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh.ToLower().Trim() == model.TenMayTinh.ToLower().Trim());
+                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh != null && x.TenMayTinh.ToLower().Trim() == model.TenMayTinh.ToLower().Trim()); // SỬA: Thêm kiểm tra x.TenMayTinh != null
                     else
-                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh.ToLower().Trim() == model.TenMayTinh.ToLower().Trim() && x.IdThietBi != model.IdThietBi);
+                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh != null && x.TenMayTinh.ToLower().Trim() == model.TenMayTinh.ToLower().Trim() && x.IdThietBi != model.IdThietBi); // SỬA: Thêm kiểm tra x.TenMayTinh != null
                 }
 
                 if (isDuplicate)
@@ -4642,10 +4663,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 int objId = model.IdThietBi;
 
                 var statusCheck = _context.KkTrangThais.Find(model.IdTrangThai);
-                string statusName = statusCheck != null ? statusCheck.TenTrangThai : "Chưa rõ";
+                string statusName = statusCheck != null ? (statusCheck.TenTrangThai ?? "Chưa rõ") : "Chưa rõ"; // SỬA: Thêm fallback phòng trường hợp thuộc tính TenTrangThai bị null trong DB
 
                 // --- XỬ LÝ UPLOAD VÀ LƯU ẢNH LÊN THƯ MỤC MẠNG ---
-                string newImageFileName = null;
+                string? newImageFileName = null; // SỬA: Khai báo dạng string? (nullable string) vì ban đầu được gán bằng null
                 if (AnhThietBi != null && AnhThietBi.Length > 0)
                 {
                     string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\AnhKiemKe";
@@ -4656,12 +4677,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         Directory.CreateDirectory(networkPath);
                     }
 
-                    string imgExtension = Path.GetExtension(AnhThietBi.FileName);
+                    string imgExtension = Path.GetExtension(AnhThietBi.FileName) ?? ""; // SỬA: Thêm fallback ?? "" phòng trường hợp Extension trả về null
                     if (string.IsNullOrEmpty(imgExtension)) imgExtension = ".jpg";
 
                     string timeStamp = DateTime.Now.ToString("yyyyMMddHHmmss");
                     // Xóa ký tự đặc biệt khỏi Tên thiết bị để làm tên file
-                    string safeName = string.Join("_", model.TenThietBi.Split(Path.GetInvalidFileNameChars()));
+                    string safeName = string.Join("_", (model.TenThietBi ?? "").Split(Path.GetInvalidFileNameChars())); // SỬA: Thêm (model.TenThietBi ?? "") phòng trường hợp thuộc tính này null
                     if (string.IsNullOrEmpty(safeName)) safeName = "TB";
 
                     newImageFileName = $"AnhTB_{safeName}_{timeStamp}{imgExtension}";
@@ -4687,11 +4708,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     var existing = _context.KkThietBis.Find(model.IdThietBi);
                     if (existing != null)
                     {
-                        existing.TenThietBi = model.TenThietBi;
-                        existing.TenMayTinh = model.TenMayTinh;
-                        existing.TenDangNhap = model.TenDangNhap;
-                        existing.LoaiThietBi = model.LoaiThietBi;
-                        existing.GhiChu = model.GhiChu;
+                        // SỬA: Thêm toán tử ?? "" cho các trường chuỗi nhận từ model để tránh gán giá trị null vào thực thể non-nullable
+                        existing.TenThietBi = model.TenThietBi ?? "";
+                        existing.TenMayTinh = model.TenMayTinh ?? "";
+                        existing.TenDangNhap = model.TenDangNhap ?? "";
+                        existing.LoaiThietBi = model.LoaiThietBi ?? "";
+                        existing.GhiChu = model.GhiChu ?? "";
                         existing.IdNguoiDung = model.IdNguoiDung;
                         existing.IdcongTy = model.IdcongTy;
                         existing.IdboPhan = model.IdboPhan;
@@ -4723,14 +4745,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (model.IdNguoiDung.HasValue)
                 {
                     var user = _context.Users.Find(model.IdNguoiDung.Value);
-                    if (user != null) tenNguoiDung = user.HoTen;
+                    if (user != null) tenNguoiDung = user.HoTen ?? "Chưa cấp phát"; // SỬA: Thêm fallback phòng trường hợp HoTen trong DB bị null
                 }
 
                 string tenBoPhan = "Chưa gắn";
                 if (model.IdboPhan.HasValue)
                 {
                     var bp = _context.KkBoPhans.Find(model.IdboPhan.Value);
-                    if (bp != null) tenBoPhan = bp.TenBoPhan;
+                    if (bp != null) tenBoPhan = bp.TenBoPhan ?? "Chưa gắn"; // SỬA: Thêm fallback phòng trường hợp TenBoPhan trong DB bị null
                 }
 
                 string chiTietLog = $"Máy tính: {model.TenMayTinh} | Trạng thái: {statusName} | Account: {model.TenDangNhap} | N.Dùng: {tenNguoiDung} | B.Phận: {tenBoPhan} | Loại: {model.LoaiThietBi}";
@@ -4864,6 +4886,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
-        
+
     }
 }
