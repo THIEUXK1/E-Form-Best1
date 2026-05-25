@@ -4763,12 +4763,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 bool isDuplicate = false;
                 if (!string.IsNullOrWhiteSpace(model.TenMayTinh))
                 {
-                    string trimmedTarget = model.TenMayTinh.Trim();
+                    string trimmedTarget = model.TenMayTinh.Trim().ToLower(); // Chuyển target về chữ thường để so sánh
 
                     if (model.IdThietBi == 0)
-                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh != null && x.TenMayTinh.Trim().Equals(trimmedTarget, StringComparison.OrdinalIgnoreCase));
+                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh != null && x.TenMayTinh.Trim().ToLower() == trimmedTarget);
                     else
-                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh != null && x.TenMayTinh.Trim().Equals(trimmedTarget, StringComparison.OrdinalIgnoreCase) && x.IdThietBi != model.IdThietBi);
+                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh != null && x.TenMayTinh.Trim().ToLower() == trimmedTarget && x.IdThietBi != model.IdThietBi);
                 }
 
                 if (isDuplicate)
