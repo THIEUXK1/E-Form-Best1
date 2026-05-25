@@ -1516,7 +1516,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros != null
                 ? _context.ItNguoiHoTros
                     .Include(x => x.CongViecIts)
-                    .Where(x => x.BoPhan == "IT")
+                    .Where(x => x.BoPhan == "IT" && x.CongViecIts.Any(cv => cv.Ten == "Đăng kí tài khoản máy tính"))
+                    .ToList() // Đưa về Client evaluation trước để tránh lỗi dịch LINQ dịch toán tử 3 ngôi phức tạp
                     .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
                     {
                         Id = x.Id,
@@ -1528,7 +1529,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             ? x.CongViecIts.Where(cv => cv.Ten == "Đăng kí tài khoản máy tính").ToList()
                             : new List<CongViecIt>()
                     })
-                    .Where(x => x.CongViecIts != null && x.CongViecIts.Any())
                     .ToList()
                 : new List<E_Form_Best.Models.ITForm.ItNguoiHoTro>();
 
@@ -1744,11 +1744,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     await transaction.RollbackAsync();
 
-                    // Load lại list hỗ trợ khi lỗi
+                    // Load lại list hỗ trợ khi lỗi (Sửa lỗi LINQ tương tự bên trên)
                     ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros != null
                         ? _context.ItNguoiHoTros
                             .Include(x => x.CongViecIts)
-                            .Where(x => x.BoPhan == "IT")
+                            .Where(x => x.BoPhan == "IT" && x.CongViecIts.Any(cv => cv.Ten == "Đăng kí tài khoản máy tính"))
+                            .ToList()
                             .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
                             {
                                 Id = x.Id,
@@ -1758,7 +1759,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                     ? x.CongViecIts.Where(cv => cv.Ten == "Đăng kí tài khoản máy tính").ToList()
                                     : new List<CongViecIt>()
                             })
-                            .Where(x => x.CongViecIts != null && x.CongViecIts.Any())
                             .ToList()
                         : new List<E_Form_Best.Models.ITForm.ItNguoiHoTro>();
 
@@ -1782,7 +1782,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros != null
                 ? _context.ItNguoiHoTros
                     .Include(x => x.CongViecIts)
-                    .Where(x => x.BoPhan == "IT")
+                    .Where(x => x.BoPhan == "IT" && x.CongViecIts.Any(cv => cv.Ten == "Lắp đặt thiết bị"))
+                    .ToList() // Chuyển về Client evaluation trước để tránh lỗi dịch toán tử 3 ngôi dưới database
                     .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
                     {
                         Id = x.Id,
@@ -1794,7 +1795,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             ? x.CongViecIts.Where(cv => cv.Ten == "Lắp đặt thiết bị").ToList()
                             : new List<CongViecIt>()
                     })
-                    .Where(x => x.CongViecIts != null && x.CongViecIts.Any())
                     .ToList()
                 : new List<E_Form_Best.Models.ITForm.ItNguoiHoTro>();
 
@@ -2014,11 +2014,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     await transaction.RollbackAsync();
 
-                    // Load lại list hỗ trợ khi xảy ra lỗi để trả về View
+                    // Load lại list hỗ trợ khi xảy ra lỗi để trả về View (Sửa lỗi dịch LINQ tương tự bên trên)
                     ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros != null
                         ? _context.ItNguoiHoTros
                             .Include(x => x.CongViecIts)
-                            .Where(x => x.BoPhan == "IT")
+                            .Where(x => x.BoPhan == "IT" && x.CongViecIts.Any(cv => cv.Ten == "Lắp đặt thiết bị"))
+                            .ToList()
                             .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
                             {
                                 Id = x.Id,
@@ -2030,7 +2031,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                     ? x.CongViecIts.Where(cv => cv.Ten == "Lắp đặt thiết bị").ToList()
                                     : new List<CongViecIt>()
                             })
-                            .Where(x => x.CongViecIts != null && x.CongViecIts.Any())
                             .ToList()
                         : new List<E_Form_Best.Models.ITForm.ItNguoiHoTro>();
 
@@ -2040,7 +2040,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
-        #endregion 
+        #endregion
 
         #region CHI TIẾT ĐƠN FORM IT (TẤT CẢ LOẠI ĐƠN)
 
