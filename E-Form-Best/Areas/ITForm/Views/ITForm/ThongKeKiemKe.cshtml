@@ -3,11 +3,9 @@
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 }
 
-<!-- FontAwesome, Select2, Chart.js, Datalabels & SheetJS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- THÊM THƯ VIỆN HIỂN THỊ SỐ TRÊN BIỂU ĐỒ -->
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -224,7 +222,6 @@
 <section class="content">
     <div class="container-fluid">
 
-        <!-- BỘ LỌC TÌM KIẾM (FILTERS) -->
         <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; background: #fff;">
             <div class="card-body p-3">
                 <div class="row g-3 align-items-end">
@@ -246,23 +243,32 @@
                             <option value="">-- Tất cả --</option>
                         </select>
                     </div>
-                    <div class="col-lg-4 col-md-8 col-sm-6">
+                    <div class="col-lg-3 col-md-5 col-sm-6">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-info"></i> Tìm Kiếm Nhanh</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
                             <input type="text" id="filterText" class="form-control border-start-0 ps-0" placeholder="S/N, Hostname, Account, Tên, Mã TK..." style="height: 38px;">
                         </div>
                     </div>
-                    <div class="col-lg-2 col-md-4 col-sm-12 text-end">
+                    <div class="col-lg-2 col-md-3 col-sm-6">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sort-alpha-down text-dark"></i> Sắp xếp danh sách</label>
+                        <select id="filterSort" class="form-select rounded-3 shadow-sm border" style="height: 38px; font-weight: 500;">
+                            <option value="">Mặc định (Theo ID)</option>
+                            <option value="host_asc">Tên máy Hostname (A-Z)</option>
+                            <option value="host_desc">Tên máy Hostname (Z-A)</option>
+                            <option value="name_asc">Mã Thiết bị (A-Z)</option>
+                            <option value="name_desc">Mã Thiết bị (Z-A)</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-1 col-md-4 col-sm-12 text-end">
                         <button class="btn btn-outline-secondary rounded-pill w-100" onclick="clearFilters()" style="height: 38px;">
-                            <i class="fas fa-sync-alt"></i> Xóa bộ lọc
+                            <i class="fas fa-sync-alt"></i> Xóa bộ
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- THẺ TỔNG QUAN (CLICK ĐỂ LỌC TRẠNG THÁI) -->
         <div class="row g-3 mb-4">
             <div class="col-xl-2 col-lg-4 col-6">
                 <div class="card text-white border-0 shadow-sm h-100 stat-card active" id="card-all" onclick="setCardFilter('', 'card-all')" style="border-radius:15px; background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
@@ -320,8 +326,6 @@
             </div>
         </div>
 
-        <!-- KHU VỰC BIỂU ĐỒ (CHARTS) ĐÃ ĐƯỢC CHIA LÀM 2 HÀNG ĐỂ BAR CHART RỘNG RÃI -->
-        <!-- Hàng 1 -->
         <div class="row g-4 mb-4">
             <div class="col-lg-4">
                 <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
@@ -346,7 +350,6 @@
                 </div>
             </div>
         </div>
-        <!-- Hàng 2 -->
         <div class="row g-4 mb-4">
             <div class="col-lg-8">
                 <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
@@ -355,7 +358,6 @@
                         <small class="text-muted" style="font-size: 11px;">(Nhấn vào từng cột bộ phận để lọc danh sách)</small>
                     </div>
                     <div class="card-body">
-                        <!-- Nơi hiển thị các biểu đồ bộ phận động -->
                         <div class="row" id="boPhanChartsContainer">
                             <div class="col-12 text-center text-muted"><div class="spinner-border text-primary spinner-border-sm" role="status"></div> Đang tải biểu đồ...</div>
                         </div>
@@ -374,18 +376,16 @@
             </div>
         </div>
 
-        <!-- DANH SÁCH BẢN GHI (DATA TABLE) -->
         <div class="card border-0 shadow-sm mb-4" id="tableSection" style="border-radius: 15px;">
             <div class="card-header bg-white border-bottom pt-3 pb-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2" style="border-radius: 15px 15px 0 0;">
                 <h6 class="fw-bold text-dark mb-0"><i class="fas fa-list-alt text-primary me-2"></i>Chi tiết danh sách (<span id="lblCountTable" class="text-danger">0</span> thiết bị)</h6>
 
-                <!-- BỘ CHỌN SỐ LƯỢNG HIỂN THỊ TRÊN MỖI TRANG -->
                 <div class="d-flex align-items-center">
                     <label class="me-2 small text-muted mb-0 fw-bold">Hiển thị:</label>
                     <select id="pageSizeSelect" class="form-select form-select-sm shadow-sm border-0 bg-light" style="width: 80px; font-weight: bold;" onchange="changePageSize()">
                         <option value="10">10</option>
                         <option value="20">20</option>
-                        <option value="30" selected>30</option> <!-- MẶC ĐỊNH LÀ 30 -->
+                        <option value="30" selected>30</option>
                         <option value="50">50</option>
                         <option value="100">100</option>
                     </select>
@@ -393,7 +393,6 @@
             </div>
 
             <div class="card-body p-0">
-                <!-- MAX-HEIGHT LÀ 1200px ĐỂ HIỂN THỊ DÀI HƠN -->
                 <div class="table-responsive" style="max-height: 1200px; overflow-y: auto;">
                     <table class="table table-hover align-middle mb-0" id="adminDataTable">
                         <thead class="table-light position-sticky top-0 shadow-sm" style="z-index: 10;">
@@ -406,22 +405,19 @@
                                 <th class="text-center">Trạng thái</th>
                                 <th class="text-center" width="160">Lần cuối Check</th>
                                 <th>Ghi chú</th>
-                                <th class="text-center" width="120">Thao tác</th> <!-- CỘT THAO TÁC MỚI BÊN PHẢI -->
+                                <th class="text-center" width="120">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody id="tbodyData">
-                            <!-- Đã thêm class empty-row để Mobile view không bị lỗi layout -->
                             <tr class="empty-row"><td colspan="9" class="text-center text-muted py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Đang tải dữ liệu...</div></td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- THANH PHÂN TRANG (PAGINATION) -->
             <div class="card-footer bg-white border-top d-flex flex-column flex-md-row justify-content-between align-items-center py-3" style="border-radius: 0 0 15px 15px;">
                 <div class="small text-muted mb-2 mb-md-0 fw-bold" id="paginationInfo">Đang tải...</div>
                 <ul class="pagination pagination-sm mb-0 shadow-sm" id="paginationControls">
-                    <!-- Nút phân trang sẽ được render bằng Javascript -->
                 </ul>
             </div>
         </div>
@@ -429,7 +425,6 @@
     </div>
 </section>
 
-<!-- MODAL LỊCH SỬ THAO TÁC -->
 <div class="modal fade" id="modalLichSu" tabindex="-1" aria-labelledby="modalLichSuLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content" style="border-radius: 15px;">
@@ -451,7 +446,6 @@
                             </tr>
                         </thead>
                         <tbody id="tbodyLichSu">
-                            <!-- Nội dung lịch sử được nạp qua AJAX -->
                         </tbody>
                     </table>
                 </div>
@@ -488,8 +482,8 @@
         // Khởi tạo Select2
         $('.select2-filter').select2({ width: '100%', minimumResultsForSearch: 0 });
 
-        // Gán sự kiện thay đổi của Dropdown hoặc Input Text
-        $('.select2-filter, #filterText').on('change keyup', function () {
+        // Gán sự kiện thay đổi của Dropdown hoặc Input Text và Dropdown Sắp Xếp mới
+        $('.select2-filter, #filterText, #filterSort').on('change keyup', function () {
         applyFiltersAndRender();
         });
 
@@ -525,6 +519,7 @@
         function clearFilters() {
         $('.select2-filter').val('').trigger('change.select2');
         $('#filterText').val('');
+        $('#filterSort').val('');
         setCardFilter('', 'card-all');
         }
 
@@ -547,6 +542,7 @@
         let fBP = $('#filterBoPhan').val();
         let fLoai = $('#filterLoai').val();
         let fText = $('#filterText').val().toLowerCase().trim();
+        let fSort = $('#filterSort').val();
 
         // Tính mốc thời gian cách đây 4 tháng
         let fourMonthsAgo = new Date();
@@ -618,11 +614,31 @@
         finalFiltered = finalFiltered.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
         }
 
-        // Gán dữ liệu lọc cuối cùng vào biến Toàn cục để Phân trang và Xuất Excel sử dụng
+        // XỬ LÝ SẮP XẾP THEO TÊN (HOSTNAME HOẶC MÃ THIẾT BỊ) CHUẨN TIẾNG VIỆT CÓ DẤU
+        if (fSort) {
+        finalFiltered.sort((a, b) => {
+        let valA = '', valB = '';
+        if (fSort.startsWith('host')) {
+        valA = (a.tenMayTinh || '').toLowerCase();
+        valB = (b.tenMayTinh || '').toLowerCase();
+        } else if (fSort.startsWith('name')) {
+        valA = (a.tenThietBi || '').toLowerCase();
+        valB = (b.tenThietBi || '').toLowerCase();
+        }
+
+        if (fSort.endsWith('asc')) {
+        return valA.localeCompare(valB, 'vi', { sensitivity: 'base' });
+        } else {
+        return valB.localeCompare(valA, 'vi', { sensitivity: 'base' });
+        }
+        });
+        }
+
+        // Gán dữ liệu lọc và sắp xếp cuối cùng vào biến Toàn cục để Phân trang và Xuất Excel sử dụng
         finalFilteredGlobal = finalFiltered;
         filteredExportData = finalFiltered;
 
-        // Reset lại trang 1 mỗi khi đổi bộ lọc
+        // Reset lại trang 1 mỗi khi đổi bộ lọc hoặc đổi sắp xếp
         currentPage = 1;
 
         // Cập nhật nhãn đếm tổng
@@ -828,8 +844,6 @@
         ? `<div class="small text-wrap text-muted" style="max-width: 150px;">${item.ghiChu}</div>`
         : `<span class="text-muted fst-italic small" style="opacity: 0.6;">Không</span>`;
 
-        // Gắn thêm 'data-label' và các thẻ Div bọc ngoài sử dụng class tiện ích của Bootstrap (text-end text-md-start)
-        // để nội dung trên Mobile tự động dạt về lề phải, trong khi PC giữ nguyên lề trái.
         htmlTable += `
         <tr>
         <td class="ps-4 fw-bold text-muted" data-label="Mã ID">
@@ -929,7 +943,6 @@
         },
         options: {
         responsive: true, maintainAspectRatio: false,
-        // SỰ KIỆN CLICK VÀ ĐỔI CHUỘT
         onClick: (e, activeElements) => {
         if (activeElements.length > 0 && onClickCallback) {
         const dataIndex = activeElements[0].index;
@@ -969,7 +982,6 @@
         },
         options: {
         responsive: true, maintainAspectRatio: false,
-        // SỰ KIỆN CLICK VÀ ĐỔI CHUỘT
         onClick: (e, activeElements) => {
         if (activeElements.length > 0 && onClickCallback) {
         const dataIndex = activeElements[0].index;
@@ -1042,11 +1054,9 @@
         $('#lsTenThietBi').text(tenThietBi);
         $('#tbodyLichSu').html('<tr><td colspan="4" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Đang tải dữ liệu...</div></td></tr>');
 
-        // Dùng code chuẩn của Bootstrap 5 để mở Modal
         let myModal = new bootstrap.Modal(document.getElementById('modalLichSu'));
         myModal.show();
 
-        // Gọi API
         $.get('/QLKiemKe/GetLichSuThietBi', { idThietBi: idThietBi }, function (res) {
         if (res.success) {
         let html = '';
@@ -1057,7 +1067,6 @@
         let time = item.thoiGian ? new Date(item.thoiGian).toLocaleString('vi-VN') : 'Không rõ thời gian';
         let badgeHanhDong = 'bg-primary';
 
-        // Tô màu thẻ theo hành động
         if (item.hanhDong && item.hanhDong.toLowerCase().includes('xóa')) badgeHanhDong = 'bg-danger';
         else if (item.hanhDong && item.hanhDong.toLowerCase().includes('sửa')) badgeHanhDong = 'bg-warning text-dark';
         else if (item.hanhDong && item.hanhDong.toLowerCase().includes('thêm')) badgeHanhDong = 'bg-success';

@@ -78,7 +78,18 @@
                         <input type="text" id="filterText" class="form-control rounded-3 border-0 shadow-sm" placeholder="S/N, Hostname, Account, Note..." style="height: 38px;">
                     </div>
 
-                    <div class="col-xl-1 col-lg-2 col-md-4 col-sm-6 mb-2">
+                    <div class="col-xl-1 col-lg-2 col-md-3 col-sm-6 mb-2">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sort-alpha-down"></i> Sắp xếp</label>
+                        <select id="filterSort" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
+                            <option value="">Mặc định</option>
+                            <option value="name_asc">Tên TB (A-Z)</option>
+                            <option value="name_desc">Tên TB (Z-A)</option>
+                            <option value="host_asc">Hostname (A-Z)</option>
+                            <option value="host_desc">Hostname (Z-A)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-xl-1 col-lg-2 col-md-3 col-sm-6 mb-2">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-list-ol"></i> Hiển thị</label>
                         <select id="filterLimit" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
                             <option value="10">10</option>
@@ -342,8 +353,11 @@
         let savedText = localStorage.getItem('kk_filterText') || '';
         $('#filterText').val(savedText);
 
+        let savedSort = localStorage.getItem('kk_filterSort') || '';
+        $('#filterSort').val(savedSort);
+
         $('#filterCongTy').on('change', function() { renderFilterBoPhan(); applyFilters(); });
-        $('#filterBoPhan, #filterLimit, #filterLoai, #filterTrangThai').on('change', function() { applyFilters(); });
+        $('#filterBoPhan, #filterLimit, #filterLoai, #filterTrangThai, #filterSort').on('change', function() { applyFilters(); });
 
         $('#filterText').on('keyup input', function() { applyFilters(); });
 
@@ -415,11 +429,12 @@
         localStorage.removeItem('kk_filterTT');
         localStorage.setItem('kk_filterLimit', '50');
         localStorage.removeItem('kk_filterText');
+        localStorage.removeItem('kk_filterSort');
 
         $('#filterCongTy').val('').trigger('change.select2');
         renderFilterBoPhan();
         $('#filterBoPhan').val('').trigger('change.select2');
-        $('#filterLoai, #filterTrangThai').val('');
+        $('#filterLoai, #filterTrangThai, #filterSort').val('');
         $('#filterLimit').val('50');
         $('#filterText').val('');
 
@@ -433,6 +448,7 @@
         localStorage.setItem('kk_filterTT', $('#filterTrangThai').val() || '');
         localStorage.setItem('kk_filterLimit', $('#filterLimit').val());
         localStorage.setItem('kk_filterText', $('#filterText').val().trim());
+        localStorage.setItem('kk_filterSort', $('#filterSort').val() || '');
 
         renderUIThietBi();
         renderUIDaXoa();
@@ -442,13 +458,11 @@
         // FETCH DATA - SỬA LỖI ĐỒNG BỘ PROMISE (Bỏ $.when cũ gây sập luồng)
         // ==========================================
         function loadMasterData() {
-        // Tải tuần tự hoặc song song nhưng xử lý độc lập để tránh lỗi 1 API làm hỏng cả trang
         $.get('/QLKiemKe/GetKkTrangThais', function(res) { if(res.success) { listTrangThaiCache = res.data; renderFilterTrangThai(); } });
         $.get('/QLKiemKe/GetKkLoaiThietBis', function(res) { if(res.success) { listLoaiThietBiCache = res.data; renderFilterLoaiThietBi(); } });
         $.get('/QLKiemKe/GetKkCongTys', function(res) { if(res.success) { listCongTyCache = res.data; renderFilterCongTy(); } });
         $.get('/QLKiemKe/GetKkBoPhans', function(res) { if(res.success) { listBoPhanCache = res.data; renderFilterBoPhan(); } });
 
-        // Luôn gọi danh sách Thiết bị chính độc lập
         loadThietBi();
         }
 
@@ -625,6 +639,7 @@
         let fTT = $('#filterTrangThai').val();
         let fLimit = $('#filterLimit').val();
         let fText = $('#filterText').val() ? $('#filterText').val().toLowerCase().trim() : '';
+        let fSort = $('#filterSort').val();
 
         let filtered = allThietBiCache.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
 
@@ -642,6 +657,24 @@
         (x.tk && x.tk.toLowerCase().includes(fText)) ||
         (x.ghiChu && x.ghiChu.toLowerCase().includes(fText))
         );
+        }
+
+        if (fSort) {
+        filtered.sort((a, b) => {
+        let valA = '', valB = '';
+        if (fSort.startsWith('name')) {
+        valA = (a.tenThietBi || '').toLowerCase();
+        valB = (b.tenThietBi || '').toLowerCase();
+        } else if (fSort.startsWith('host')) {
+        valA = (a.tenMayTinh || '').toLowerCase();
+        valB = (b.tenMayTinh || '').toLowerCase();
+        }
+        if (fSort.endsWith('asc')) {
+        return valA.localeCompare(valB, 'vi', { sensitivity: 'base' });
+        } else {
+        return valB.localeCompare(valA, 'vi', { sensitivity: 'base' });
+        }
+        });
         }
 
         if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
