@@ -73,6 +73,23 @@
                         </select>
                     </div>
 
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-calendar-alt"></i> Từ ngày check</label>
+                        <input type="date" id="filterTuNgay" class="form-control rounded-3 border-0 shadow-sm" style="height: 38px;">
+                    </div>
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-calendar-alt"></i> Đến ngày check</label>
+                        <input type="date" id="filterDenNgay" class="form-control rounded-3 border-0 shadow-sm" style="height: 38px;">
+                    </div>
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-tasks"></i> Tình trạng Check</label>
+                        <select id="filterTìnhTrangCheck" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
+                            <option value="">-- Tất cả --</option>
+                            <option value="da_check">Đã check trong khoảng này</option>
+                            <option value="chua_check">Chưa check trong khoảng này</option>
+                        </select>
+                    </div>
+
                     <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6 mb-2">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-primary"></i> Tìm kiếm nhanh</label>
                         <input type="text" id="filterText" class="form-control rounded-3 border-0 shadow-sm" placeholder="S/N, Hostname, Account, Note..." style="height: 38px;">
@@ -189,7 +206,8 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Tên thiết bị (Mã/Serial)</label>
-                        <input type="text" id="tb_TenThietBi" class="form-control rounded-3" placeholder="VD: LAPTOP DELL XPS..." style="border: 1px solid #e2e8f0; height: 45px; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()" />
+                        <input type="text" id="tb_TenThietBi" list="suggestTenThietBi" class="form-control rounded-3" placeholder="VD: LAPTOP DELL XPS..." style="border: 1px solid #e2e8f0; height: 45px; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()" />
+                        <datalist id="suggestTenThietBi"></datalist>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-bold" style="color: #8b5cf6;">Trạng thái <span class="text-danger">*</span></label>
@@ -356,8 +374,19 @@
         let savedSort = localStorage.getItem('kk_filterSort') || '';
         $('#filterSort').val(savedSort);
 
+        let savedTuNgay = localStorage.getItem('kk_filterTuNgay') || '';
+        $('#filterTuNgay').val(savedTuNgay);
+
+        let savedDenNgay = localStorage.getItem('kk_filterDenNgay') || '';
+        $('#filterDenNgay').val(savedDenNgay);
+
+        let savedTìnhTrangCheck = localStorage.getItem('kk_filterTìnhTrangCheck') || '';
+        $('#filterTìnhTrangCheck').val(savedTìnhTrangCheck);
+
         $('#filterCongTy').on('change', function() { renderFilterBoPhan(); applyFilters(); });
         $('#filterBoPhan, #filterLimit, #filterLoai, #filterTrangThai, #filterSort').on('change', function() { applyFilters(); });
+
+        $('#filterTuNgay, #filterDenNgay, #filterTìnhTrangCheck').on('change', function() { applyFilters(); });
 
         $('#filterText').on('keyup input', function() { applyFilters(); });
 
@@ -431,12 +460,20 @@
         localStorage.removeItem('kk_filterText');
         localStorage.removeItem('kk_filterSort');
 
+        localStorage.removeItem('kk_filterTuNgay');
+        localStorage.removeItem('kk_filterDenNgay');
+        localStorage.removeItem('kk_filterTìnhTrangCheck');
+
         $('#filterCongTy').val('').trigger('change.select2');
         renderFilterBoPhan();
         $('#filterBoPhan').val('').trigger('change.select2');
         $('#filterLoai, #filterTrangThai, #filterSort').val('');
         $('#filterLimit').val('50');
         $('#filterText').val('');
+
+        $('#filterTuNgay').val('');
+        $('#filterDenNgay').val('');
+        $('#filterTìnhTrangCheck').val('');
 
         applyFilters();
         }
@@ -449,6 +486,10 @@
         localStorage.setItem('kk_filterLimit', $('#filterLimit').val());
         localStorage.setItem('kk_filterText', $('#filterText').val().trim());
         localStorage.setItem('kk_filterSort', $('#filterSort').val() || '');
+
+        localStorage.setItem('kk_filterTuNgay', $('#filterTuNgay').val() || '');
+        localStorage.setItem('kk_filterDenNgay', $('#filterDenNgay').val() || '');
+        localStorage.setItem('kk_filterTìnhTrangCheck', $('#filterTìnhTrangCheck').val() || '');
 
         renderUIThietBi();
         renderUIDaXoa();
@@ -473,12 +514,44 @@
         renderThongKe();
         renderUIThietBi();
         renderUIDaXoa();
+
+        // GỌI HÀM ĐỔ DỮ LIỆU GỢI Ý NGAY SAU KHI TẢI THÀNH CÔNG DỮ LIỆU TỪ API
+        capNhatGoiYTenThietBi();
         } else {
         $('#tbodyThietBi').html(`<tr><td colspan="6" class="text-center text-danger py-4">Lỗi tải dữ liệu từ Server: ${res.msg || 'Chưa rõ nguyên nhân'}</td></tr>`);
         }
         }).fail(function() {
         $('#tbodyThietBi').html(`<tr><td colspan="6" class="text-center text-danger py-4">Không thể kết nối đến API /QLKiemKe/GetKkThietBis</td></tr>`);
         });
+        }
+
+        // ==========================================
+        // KHỞI TẠO BỘ LỌC TỰ ĐỘNG GỢI Ý (AUTOCOMPLETE DATA)
+        // ==========================================
+        function capNhatGoiYTenThietBi() {
+        if (!allThietBiCache || allThietBiCache.length === 0) return;
+
+        // Lọc ra danh sách các tên thiết bị không trùng lặp và không rỗng
+        let uniqueNames = [];
+        allThietBiCache.forEach(item => {
+        if (item.TenThietBi && item.TenThietBi.trim() !== "") {
+        let nameUpper = item.TenThietBi.trim().toUpperCase();
+        if (!uniqueNames.includes(nameUpper)) {
+        uniqueNames.push(nameUpper);
+        }
+        }
+        });
+
+        // Sắp xếp danh sách tên theo bảng chữ cái từ A-Z
+        uniqueNames.sort();
+
+        // Đổ dữ liệu các option vào thẻ datalist để input tự động nhận gợi ý
+        let htmlOptions = '';
+        uniqueNames.forEach(name => {
+        htmlOptions += `<option value="${name}"></option>`;
+        });
+
+        $('#suggestTenThietBi').html(htmlOptions);
         }
 
         // ==========================================
@@ -641,12 +714,47 @@
         let fText = $('#filterText').val() ? $('#filterText').val().toLowerCase().trim() : '';
         let fSort = $('#filterSort').val();
 
+        let fTuNgay = $('#filterTuNgay').val();
+        let fDenNgay = $('#filterDenNgay').val();
+        let fTìnhTrangCheck = $('#filterTìnhTrangCheck').val();
+
         let filtered = allThietBiCache.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
 
         if (fCT) filtered = filtered.filter(x => x.idcongTy == fCT);
         if (fBP) filtered = filtered.filter(x => x.idboPhan == fBP);
         if (fLoai) filtered = filtered.filter(x => x.loaiThietBi === fLoai);
         if (fTT) filtered = filtered.filter(x => x.idTrangThai == fTT);
+
+        if (fTuNgay || fDenNgay || fTìnhTrangCheck) {
+        filtered = filtered.filter(x => {
+        let hasChecked = !!x.thoiGianCheck;
+        let itemCheckDateChuỗi = "";
+
+        if (hasChecked) {
+        let d = new Date(x.thoiGianCheck);
+        let năm = d.getFullYear();
+        let tháng = String(d.getMonth() + 1).padStart(2, '0');
+        let ngày = String(d.getDate()).padStart(2, '0');
+        itemCheckDateChuỗi = `${năm}-${tháng}-${ngày}`;
+        }
+
+        if (fTìnhTrangCheck === 'chua_check') {
+        if (!hasChecked) return true;
+        if (fTuNgay && itemCheckDateChuỗi < fTuNgay) return true;
+        if (fDenNgay && itemCheckDateChuỗi > fDenNgay) return true;
+        return false;
+        }
+
+        if (fTìnhTrangCheck === 'da_check' || (!fTìnhTrangCheck && (fTuNgay || fDenNgay))) {
+        if (!hasChecked) return false;
+        if (fTuNgay && itemCheckDateChuỗi < fTuNgay) return false;
+        if (fDenNgay && itemCheckDateChuỗi > fDenNgay) return false;
+        return true;
+        }
+
+        return true;
+        });
+        }
 
         if (fText) {
         filtered = filtered.filter(x =>
@@ -917,6 +1025,7 @@
         $('#modalThietBi').modal('show');
         }
 
+        // SAU KHI LƯU DỮ LIỆU THÀNH CÔNG, CẬP NHẬT LẠI DANH SÁCH GỢI Ý ĐỂ CẬP NHẬT MÃ MỚI NẾU CÓ
         function saveThietBi() {
         let isAddMode = parseInt($('#tb_Id').val()) === 0;
         let loaiThietBi = $('#tb_LoaiThietBi').val();
