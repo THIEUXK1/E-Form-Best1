@@ -3181,9 +3181,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     }
                     else if (request.Action == "Huy")
                     {
-                        if (!userRoles.Any(r => r == "All" || r == "AdminIT" || r == "QuanLyDuyetDonIT"))
+                        // Xác định xem người đang thao tác có phải là người tạo ra đơn này hay không
+                        bool isCreator = form.IdNguoiTao == userId;
+
+                        // Xác định xem người đang thao tác có nắm giữ các role quản lý hay không
+                        bool hasApprovalRole = userRoles.Any(r => r == "All" || r == "AdminIT" || r == "QuanLyDuyetDonIT");
+
+                        // Nếu KHÔNG CÓ quyền quản lý VÀ CŨNG KHÔNG PHẢI là người tạo đơn thì mới bị chặn
+                        if (!hasApprovalRole && !isCreator)
                         {
-                            return Json(new { success = false, message = "Bạn không có quyền hủy." });
+                            return Json(new { success = false, message = "Bạn không có quyền hủy đơn này." });
                         }
 
                         form.TrangThai = "DaHuy";

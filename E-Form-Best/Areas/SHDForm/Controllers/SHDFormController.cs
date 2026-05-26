@@ -3,6 +3,7 @@ using E_Form_Best.Models.ITForm;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using static E_Form_Best.Areas.ITForm.Controllers.ITFormController;
 
 namespace E_Form_Best.Areas.SHDForm.Controllers
 {
@@ -468,7 +469,6 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
         // 6. Tải tệp tin SHD
         [HttpGet("/FormSHD/DownloadFile/{fileName}")]
-        // SỬA: Chuyển string fileName thành string? fileName để chấp nhận giá trị null từ Model Binding trước khi vào hàm kiểm tra
         public async Task<IActionResult> DownloadFile(string? fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return NotFound();
@@ -506,10 +506,9 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             try
             {
                 int idForm = data.GetProperty("idFormShd").GetInt32();
-                string maNvMoi = data.GetProperty("maNv").GetString() ?? ""; // SỬA: Thêm fallback ?? "" phòng trường hợp chuỗi trong JSON bị null
+                string maNvMoi = data.GetProperty("maNv").GetString() ?? "";
                 var nvShd = await _context.ShdNguoiHoTros.FirstOrDefaultAsync(x => x.MaNv == maNvMoi);
 
-                // SỬA: Kiểm tra nếu không tìm thấy nhân viên hỗ trợ trong DB để tránh lỗi null và dập cảnh báo phía dưới
                 if (nvShd == null) return Json(new { success = false, message = "Mã nhân viên hỗ trợ không tồn tại!" });
 
                 var hienTai = await _context.ShdCtNguoiHoTros.Where(x => x.IdFormShd == idForm).OrderByDescending(x => x.Stt).FirstOrDefaultAsync();
@@ -551,7 +550,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 var ls = await _context.LichSuFormShds.FindAsync(idLichSu);
                 if (ls == null) return Json(new { success = false, message = "Không tìm thấy bản ghi lịch sử này." });
 
-                ls.TrangThaiAnHien = !ls.TrangThaiAnHien; // Đảo ngược trạng thái
+                ls.TrangThaiAnHien = !ls.TrangThaiAnHien;
                 await _context.SaveChangesAsync();
 
                 return Json(new { success = true, newState = ls.TrangThaiAnHien });

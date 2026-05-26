@@ -70,7 +70,7 @@
             var ct = Model.ShdDangKySuDungXeCongTac1s.First();
             ProcessImage(ct.DuongDanAnh);
 
-            chiTietNoiDung += RenderInfoRow("🚗", "Dịch vụ", "Đăng ký xe công tác SHD", "#eef2ff", "#1e40af");
+            chiTietNoiDung += RenderInfoRow("🚗", "Dịch vụ", "ĐANG KÝ XE CÔNG TÁC SHD", "#eef2ff", "#1e40af");
             chiTietNoiDung += RenderInfoRow("📞", "Số điện thoại", ct.SoDienThoai, "#f0fdf4", "#166534");
             chiTietNoiDung += RenderInfoRow("👥", "Số lượng người", ct.SoLuong?.ToString() + " người", "#f0fdf4", "#166534");
 
@@ -327,9 +327,7 @@
                                 </select>
                                 <button onclick="changeSupporter()"
                                         class="mobile-btn-action"
-                                        style="background:#ea580c;color:white;border:none;padding:0 35px;border-radius:12px;font-weight:800;cursor:pointer;font-size:15px;min-height:48px;transition:all 0.2s;display: flex; align-items: center; justify-content: center;"
-                                        onmouseover="this.style.background='#c2410c';this.style.transform='translateY(-1px)'"
-                                        onmouseout="this.style.background='#ea580c';this.style.transform='none'">
+                                        style="background:#ea580c;color:white;border:none;padding:0 35px;border-radius:12px;font-weight:800;cursor:pointer;font-size:15px;min-height:48px;transition:all 0.2s;display: flex; align-items: center; justify-content: center;">
                                     XÁC NHẬN
                                 </button>
                             </div>
@@ -339,11 +337,11 @@
                         </div>
                     }
 
-                    <div class="mobile-history-toggle d-md-none" onclick="toggleHistoryMobile()" style="display: none;">
+                    <div class="mobile-history-toggle" onclick="toggleHistoryMobile()" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between;">
                         <h3 style="margin: 0; color: #1e293b; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
                             <i class="fa fa-history"></i> NHẬT KÝ THAO TÁC
                         </h3>
-                        <span id="historyToggleIconMobile" style="color: #1e40af; font-size: 18px; background: #eff6ff; padding: 8px 12px; border-radius: 12px;"><i class="fa fa-chevron-down"></i> XEM LỊCH SỬ</span>
+                        <span id="historyToggleIconMobile" style="display: none; color: #1e40af; font-size: 18px; background: #eff6ff; padding: 8px 12px; border-radius: 12px;"><i class="fa fa-chevron-down"></i> XEM LỊCH SỬ</span>
                     </div>
 
                     <div id="historyContainer" class="mobile-history-content">
@@ -354,10 +352,8 @@
                             <div style="margin-left:10px;border-left:2px dashed #e2e8f0;padding-left:30px;">
                                 @if (Model.LichSuFormShds?.Any() == true)
                                 {
-                                    // Chỉ "All" mới được thấy log ẩn và có quyền thao tác
                                     bool isUserAll = User.IsInRole("All");
 
-                                    // Nếu là All: thấy hết. Nếu không phải All: chỉ thấy log có TrangThaiAnHien == true
                                     var lichSuHienThi = Model.LichSuFormShds
                                                              .Where(x => x.TrangThaiAnHien == true || isUserAll)
                                                              .OrderByDescending(x => x.Time)
@@ -373,7 +369,6 @@
                                                     <div style="font-weight:800;color:#1e293b;font-size:15px;margin-bottom:4px;display:flex;align-items:center;flex-wrap:wrap;">
                                                         @ls.TieuDe
 
-                                                        @* NHÃN LOG ẨN CHỈ HIỂN THỊ VỚI QUYỀN ALL *@
                                                         <span id="badge-container-@ls.Id">
                                                             @if (isUserAll && ls.TrangThaiAnHien == false)
                                                             {
@@ -381,7 +376,6 @@
                                                             }
                                                         </span>
 
-                                                        @* NÚT TOGGLE ẨN/HIỆN CHỈ HIỂN THỊ VỚI QUYỀN ALL *@
                                                         @if (isUserAll)
                                                         {
                                                             <button onclick="toggleLichSuVisibility(@ls.Id)"
@@ -652,7 +646,9 @@
                                     <i class="fa fa-star" style="font-size:20px;"></i> XÁC NHẬN HOÀN TẤT (SHD)
                                 </button>
                             }
-                            @if (User.IsInRole("All") || User.IsInRole("AdminSHD") || User.IsInRole("QuanLyDuyetDonSHD"))
+
+                            @* --- CẬP NHẬT ĐIỀU KIỆN: Người tạo đơn (Model.IdNguoiTao == currentUserId) cũng có quyền thấy nút Hủy --- *@
+                            @if (User.IsInRole("All") || User.IsInRole("AdminSHD") || User.IsInRole("QuanLyDuyetDonSHD") || (currentUserId != 0 && Model.IdNguoiTao == currentUserId))
                             {
                                 <button id="btnHuy" onclick="handleAction('Huy')"
                                         style="background:white;color:#dc2626;border:2px solid #dc2626;padding:18px;border-radius:18px;font-weight:800;cursor:pointer;font-size:15px;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:10px;"
@@ -706,7 +702,6 @@
     </div>
 </div>
 
-@* --- OVERLAY ZOOM CÓ NÚT XOAY ẢNH --- *@
 <div id="imageOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(8px);">
     <div style="position:absolute;top:25px;right:35px;display:flex;gap:15px;z-index:10000;">
         <button onclick="rotateImage(-90, event)" style="background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.3);border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;transition:all 0.3s;backdrop-filter:blur(8px);" onmouseover="this.style.background='rgba(255,255,255,0.3)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.15)';this.style.transform='none'" title="Xoay trái">
@@ -727,9 +722,12 @@
 </div>
 
 <script>
-    const formId        = @Model.Id;
-    const currentUserId = '@currentUserId';
-    const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
+    // --- CẬP NHẬT: ĐỒNG BỘ CÁCH KHỞI TẠO BIẾN BẰNG JSON.PARSE ĐỂ SỬA LỖI EXPRESSION EXPECTED ---
+    const formId        = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.Id))');
+    const currentUserId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.CurrentUserId))');
+    const formCreatorId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.IdNguoiTao))');
+    const userRoles     = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList()))');
+
     const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
     function hasRole(r) { return userRoles.includes(r); }
@@ -787,7 +785,6 @@
             if (data.success) {
                 const isVisible = data.newState;
 
-                // Lấy các element cần đổi CSS
                 const itemDiv = document.getElementById(`log-item-${idLichSu}`);
                 const btn = document.getElementById(`btn-toggle-log-${idLichSu}`);
                 const badgeContainer = document.getElementById(`badge-container-${idLichSu}`);
@@ -796,7 +793,6 @@
                 const timeColor = document.getElementById(`log-time-${idLichSu}`);
 
                 if (isVisible) {
-                    // Chuyển sang dạng HIỂN THỊ
                     itemDiv.style.opacity = "1";
                     itemDiv.style.filter = "none";
 
@@ -811,7 +807,6 @@
                     innerBox.style.borderColor = "#f1f5f9";
                     timeColor.style.color = "#3b82f6";
                 } else {
-                    // Chuyển sang dạng ẨN
                     itemDiv.style.opacity = "0.75";
                     itemDiv.style.filter = "grayscale(90%)";
 
@@ -924,8 +919,12 @@
             reason = prompt('Vui lòng nhập lý do hủy đơn:');
             if (reason === null || reason.trim() === '') return;
         }
-        if (!hasRole('All') && !hasRole('AdminSHD') && !hasRole('QuanLyDuyetDonSHD'))
+
+        // So sánh chuỗi hoặc số một cách an toàn bằng cách ép kiểu chuỗi dữ liệu trong JS
+        const isCreator = String(currentUserId) === String(formCreatorId);
+        if (!hasRole('All') && !hasRole('AdminSHD') && !hasRole('QuanLyDuyetDonSHD') && !isCreator)
             return alert('Bạn không có quyền thực hiện thao tác này!');
+
         if (confirm('Xác nhận thao tác?'))
             apiPost('/FormSHD/XuLyDon', { id:formId, action:type, reason }, ['btnDuyet','btnHuy']);
     }
@@ -978,7 +977,7 @@
     }
 
     function renderComment(bl) {
-        const isOwn  = currentUserId === String(bl.idNguoiBinhLuan);
+        const isOwn  = String(currentUserId) === String(bl.idNguoiBinhLuan);
         const canDel = isOwn || hasRole('All') || hasRole('AdminSHD');
         const time   = new Date(bl.thoiGian).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});
         let fileHtml = '';
@@ -987,7 +986,7 @@
             const ext  = bl.fileDinhKem.split('.').pop().toLowerCase();
             const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext);
             fileHtml = isImg
-                ? `<div style="margin-top:8px;"><img src="/FormSHD/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" onclick="openZoom(this.src)" style="max-width:200px;border-radius:8px;cursor:zoom-in;border:1px solid #e2e8f0;"/></div>`
+                ? `<div style="margin-top:8px;"><img src="/FormSHD/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" onclick="openZoom(this.src)" style="max-width:200px;border-radius:8px;cursor:zoom-in;border:1px solid #e2e8f0"/></div>`
                 : `<div style="margin-top:10px;padding:10px;background:#f1f5f9;border-radius:8px;display:inline-flex;align-items:center;gap:8px;"><i class="fa fa-paperclip" style="color:#64748b;"></i><a href="/FormSHD/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color:#3b82f6;text-decoration:none;font-weight:600;font-size:13px;">${escapeHtml(name)}</a></div>`;
         }
         const initial = (bl.tenNguoiBinhLuan || 'U').substring(0,1).toUpperCase();
@@ -1032,7 +1031,6 @@
             fd.append('idForm', formId);
             fd.append('noiDung', noiDung);
             if (file) fd.append('file', file);
-            // Gửi token qua FormData để [ValidateAntiForgeryToken] đọc được
             fd.append('__RequestVerificationToken', TOKEN);
 
             const btn = document.getElementById('btnGuiBinhLuan');
@@ -1041,17 +1039,14 @@
             btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang gửi...';
 
             try {
-                // Khi dùng FormData, KHÔNG set Content-Type header.
-                // Trình duyệt sẽ tự động thêm "multipart/form-data" và boundary cần thiết.
                 const res = await fetch('/FormSHD/ThemBinhLuan', {
                     method: 'POST',
                     headers: {
-                        'RequestVerificationToken': TOKEN // Header bổ sung nếu Controller cần
+                        'RequestVerificationToken': TOKEN
                     },
                     body: fd
                 });
 
-                // Đọc response dưới dạng text trước để debug nếu lỗi xảy ra
                 const responseText = await res.text();
                 let data;
                 try {
@@ -1065,7 +1060,6 @@
                     const list = document.getElementById('commentList');
                     if (list.innerHTML.includes('Chưa có')) list.innerHTML = '';
 
-                    // Render bình luận mới
                     const bl = {
                         id: data.data.id,
                         noiDung: data.data.noiDung,
@@ -1078,7 +1072,6 @@
                     list.insertAdjacentHTML('beforeend', renderComment(bl));
                     setTimeout(() => { list.scrollTop = list.scrollHeight; }, 100);
 
-                    // Reset form
                     document.getElementById('formBinhLuan').reset();
                     document.getElementById('fileLabel').textContent = 'Đính kèm file (max 50MB)';
                     totalComments++;
@@ -1121,4 +1114,4 @@
     });
     document.getElementById('formBinhLuan')?.addEventListener('submit', guiBinhLuan);
     document.addEventListener('DOMContentLoaded', ()=>taiBinhLuan(false));
-</script>
+</script> 

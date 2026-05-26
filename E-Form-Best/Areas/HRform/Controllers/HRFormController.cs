@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
 using System.Security.Claims;
+using static E_Form_Best.Areas.ITForm.Controllers.ITFormController;
 
 namespace E_Form_Best.Areas.HRform.Controllers
 {
@@ -2621,7 +2622,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
             return View(don);
         }
 
-
         [HttpGet("/FormHR/DownloadFile/{fileName}")]
         public async Task<IActionResult> DownloadFile(string fileName)
         {
@@ -2658,29 +2658,25 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
             try
             {
-                // Sử dụng TryGetProperty để tránh văng lỗi nếu key không tồn tại trong JSON
                 if (!data.TryGetProperty("idFormHr", out var idFormProp) || !data.TryGetProperty("maNv", out var maNvProp))
                     return Json(new { success = false, message = "Dữ liệu không hợp lệ!" });
 
                 int idForm = idFormProp.GetInt32();
                 string maNvMoi = maNvProp.GetString() ?? "";
 
-                // Kiểm tra nvHr có tồn tại không trước khi truy cập nvHr.Id
                 var nvHr = await _context.HrNguoiHoTros.FirstOrDefaultAsync(x => x.MaNv == maNvMoi);
                 if (nvHr == null)
                     return Json(new { success = false, message = "Không tìm thấy nhân viên hỗ trợ!" });
 
                 var hienTai = await _context.HrCtNguoiHoTros
-                    .Include(x => x.IdHrNguoiHoTroNavigation) // Cần Include để check MaNv
+                    .Include(x => x.IdHrNguoiHoTroNavigation)
                     .Where(x => x.IdFormHr == idForm)
                     .OrderByDescending(x => x.Stt)
                     .FirstOrDefaultAsync();
 
-                // Kiểm tra an toàn hienTai?.IdHrNguoiHoTroNavigation
                 if (hienTai?.IdHrNguoiHoTroNavigation?.MaNv == maNvMoi)
                     return Json(new { success = false, message = "Nhân viên này đang xử lý rồi!" });
 
-                // Thêm mới an toàn
                 _context.HrCtNguoiHoTros.Add(new HrCtNguoiHoTro
                 {
                     IdFormHr = idForm,
@@ -2705,11 +2701,9 @@ namespace E_Form_Best.Areas.HRform.Controllers
             }
         }
 
-        // 8. API Toggle Ẩn Hiện Lịch sử (Chỉ dành cho quyền All hoặc AdminHR)
         [HttpPost("/FormHR/ToggleLichSuAnHien")]
         public async Task<IActionResult> ToggleLichSuAnHien([FromBody] System.Text.Json.JsonElement data)
         {
-            // Kiểm tra quyền: Chỉ cho phép Admin hoặc All
             if (!User.IsInRole("All") && !User.IsInRole("AdminHR"))
                 return Json(new { success = false, message = "Không có quyền thao tác!" });
 
@@ -2717,11 +2711,10 @@ namespace E_Form_Best.Areas.HRform.Controllers
             {
                 int idLichSu = data.GetProperty("idLichSu").GetInt32();
 
-                // Sử dụng _context.LichSuFormHrs cho HR
                 var ls = await _context.LichSuFormHrs.FindAsync(idLichSu);
                 if (ls == null) return Json(new { success = false, message = "Không tìm thấy bản ghi lịch sử này." });
 
-                ls.TrangThaiAnHien = !ls.TrangThaiAnHien; // Đảo ngược trạng thái
+                ls.TrangThaiAnHien = !ls.TrangThaiAnHien;
                 await _context.SaveChangesAsync();
 
                 return Json(new { success = true, newState = ls.TrangThaiAnHien });
