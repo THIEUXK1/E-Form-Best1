@@ -2760,236 +2760,320 @@ namespace E_Form_Best.Areas.HRform.Controllers
             {
                 var worksheet = workbook.Worksheets.Add("ChiTietDon");
 
-                // Header chung
-                worksheet.Cell(1, 1).Value = "HƯỚNG DẪN SỬ DỤNG HỆ THỐNG E-FORM HR - BEST PACIFIC";
-                worksheet.Range("A1:E1").Merge().Style.Font.SetBold().Font.FontSize = 14;
-                worksheet.Range("A1:E1").Style.Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
-
-                worksheet.Cell(3, 1).Value = "Mã Đơn:"; worksheet.Cell(3, 2).Value = don.Id;
-                worksheet.Cell(4, 1).Value = "Tên Form:"; worksheet.Cell(4, 2).Value = don.TenForm;
-                worksheet.Cell(5, 1).Value = "Mã NV:"; worksheet.Cell(5, 2).Value = don.SoNhanVien;
-                worksheet.Cell(6, 1).Value = "Họ Tên:"; worksheet.Cell(6, 2).Value = don.TenNguoiNv;
-                worksheet.Cell(7, 1).Value = "Bộ Phận:"; worksheet.Cell(7, 2).Value = don.BoPhan;
-                worksheet.Cell(8, 1).Value = "Ngày Tạo:"; worksheet.Cell(8, 2).Value = don.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm");
-                worksheet.Cell(9, 1).Value = "Trạng Thái:"; worksheet.Cell(9, 2).Value = "HOÀN TẤT";
-
-                var rangeChung = worksheet.Range("A3:B9");
-                rangeChung.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
-                rangeChung.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
-                worksheet.Range("A3:A9").Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
-
-                int currentRow = 11;
-
-                // Xử lý 12 loại đơn chi tiết (Gồm cả 3 loại mới)
-                if (don.HrXinRaNgoai1s.Any())
-                {
-                    var ct = don.HrXinRaNgoai1s.First();
-                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: XIN RA NGOÀI";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightBlue);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Lý do:"; worksheet.Cell(currentRow, 2).Value = ct.LiDo; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Địa điểm:"; worksheet.Cell(currentRow, 2).Value = ct.DiaDiem; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Thời gian ra:"; worksheet.Cell(currentRow, 2).Value = ct.ThoiGianRa?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Dự kiến về:"; worksheet.Cell(currentRow, 2).Value = ct.ThoiGianVeDuTinh?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
-                }
-                else if (don.HrMangHangHoaRaCong2s.Any())
-                {
-                    var ct = don.HrMangHangHoaRaCong2s.First();
-                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: MANG HÀNG HÓA RA CỔNG";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGreen);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Mô tả:"; worksheet.Cell(currentRow, 2).Value = ct.MoTa; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Thời gian dự tính:"; worksheet.Cell(currentRow, 2).Value = ct.TimeDuTinh?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
-                }
-                else if (don.HrDangKySuDungXeCongTac3s.Any())
-                {
-                    var ct = don.HrDangKySuDungXeCongTac3s.First();
-                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐĂNG KÝ XE CÔNG TÁC";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightYellow);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Số điện thoại:"; worksheet.Cell(currentRow, 2).Value = ct.SoDienThoai; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Số lượng người:"; worksheet.Cell(currentRow, 2).Value = ct.SoLuong; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Lý do / Lộ trình:"; worksheet.Cell(currentRow, 2).Value = ct.LiDo; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "TG Đi:"; worksheet.Cell(currentRow, 2).Value = ct.TimeDuTinh?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "TG Về:"; worksheet.Cell(currentRow, 2).Value = ct.ThoiGianVe?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Ghi chú:"; worksheet.Cell(currentRow, 2).Value = ct.GhiChu; currentRow++;
-                }
-                else if (don.HrDangKySuDungXeDaily4s.Any())
-                {
-                    var ct = don.HrDangKySuDungXeDaily4s.First();
-                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐĂNG KÝ XE DAILY";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Orange);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Điểm đón:"; worksheet.Cell(currentRow, 2).Value = ct.DiemDon; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Lý do:"; worksheet.Cell(currentRow, 2).Value = ct.LiDo; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Thời gian:"; worksheet.Cell(currentRow, 2).Value = ct.TimeDuTinh?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
-                }
-                else if (don.HrDonTiepKhac5s.Any())
-                {
-                    var ct = don.HrDonTiepKhac5s.First();
-                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐĂNG KÝ TIẾP KHÁCH";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Pink);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Công ty khách:"; worksheet.Cell(currentRow, 2).Value = ct.TenCongTyKhach; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Số lượng khách:"; worksheet.Cell(currentRow, 2).Value = ct.SoLuongKhach; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Người đặt:"; worksheet.Cell(currentRow, 2).Value = ct.NguoiBook; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Yêu cầu:"; worksheet.Cell(currentRow, 2).Value = ct.YeuCauTiepKhach; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Phòng họp:"; worksheet.Cell(currentRow, 2).Value = ct.TenPhongHop; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Loại suất ăn:"; worksheet.Cell(currentRow, 2).Value = ct.LoaiSuatAn; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Ghi chú suất ăn:"; worksheet.Cell(currentRow, 2).Value = ct.GhiChuSuatAn; currentRow++;
-                }
-                else if (don.HrNhaThauQuaCong6s.Any())
-                {
-                    var ct = don.HrNhaThauQuaCong6s.First();
-                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: NHÀ THẦU QUA CỔNG";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Tên nhà thầu:"; worksheet.Cell(currentRow, 2).Value = ct.TenNhaThau; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Số người:"; worksheet.Cell(currentRow, 2).Value = ct.SoNguoi; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Người đăng ký:"; worksheet.Cell(currentRow, 2).Value = ct.NguoiDangKy; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Mục đích:"; worksheet.Cell(currentRow, 2).Value = ct.MucDichCongViec; currentRow++;
-                }
-                else if (don.HrHoTroTienDienThoai7s.Any())
-                {
-                    var ct = don.HrHoTroTienDienThoai7s.First();
-                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: HỖ TRỢ TIỀN ĐIỆN THOẠI";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Gold);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Số điện thoại:"; worksheet.Cell(currentRow, 2).Value = ct.SoDienThoai; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Mức hỗ trợ:"; worksheet.Cell(currentRow, 2).Value = ct.MucHoTro; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Mục đích:"; worksheet.Cell(currentRow, 2).Value = ct.MucDich; currentRow++;
-                }
-                else if (don.HrDoiCaLam8s.Any())
-                {
-                    var ct = don.HrDoiCaLam8s.First();
-                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐỔI CA LÀM VIỆC";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Cyan);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Ngày cần đổi:"; worksheet.Cell(currentRow, 2).Value = ct.NgayCanDoi?.ToString("dd/MM/yyyy"); currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Ca gốc:"; worksheet.Cell(currentRow, 2).Value = ct.CaGoc; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Ca muốn đổi:"; worksheet.Cell(currentRow, 2).Value = ct.CaMuonDoi; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Lý do:"; worksheet.Cell(currentRow, 2).Value = ct.LyDoDoiCa; currentRow++;
-                }
-                else if (don.HrDonHoTroCongTac9s.Any())
-                {
-                    var ct = don.HrDonHoTroCongTac9s.First();
-                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: HỖ TRỢ CÔNG TÁC";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Purple);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Mã NV Công tác:"; worksheet.Cell(currentRow, 2).Value = ct.MaNhanVien; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Khách hàng:"; worksheet.Cell(currentRow, 2).Value = ct.TenKhachHang; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Đặt vé máy bay:"; worksheet.Cell(currentRow, 2).Value = ct.DatVeMayBay == true ? "Có" : "Không"; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Đặt chỗ ở:"; worksheet.Cell(currentRow, 2).Value = ct.DatChoO == true ? "Có" : "Không"; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Đặt bữa ăn:"; worksheet.Cell(currentRow, 2).Value = ct.DatBuaAn == true ? "Có" : "Không"; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Xe đưa đón:"; worksheet.Cell(currentRow, 2).Value = ct.BookXeCtyDuaDon == true ? "Có" : "Không"; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Chi tiết:"; worksheet.Cell(currentRow, 2).Value = ct.NoiDungYeuCauChiTiet; currentRow++;
-                }
-                else if (don.HrDonKiTucXa10s.Any())
-                {
-                    var ct = don.HrDonKiTucXa10s.First();
-                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐĂNG KÝ KÍ TÚC XÁ";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.CornflowerBlue);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Mã nhân viên:"; worksheet.Cell(currentRow, 2).Value = ct.MaNhanVien; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Họ và tên:"; worksheet.Cell(currentRow, 2).Value = ct.HoTen; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Phòng ban / Chức vụ:"; worksheet.Cell(currentRow, 2).Value = $"{ct.PhongBan} / {ct.ChucVu}"; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Thời gian nhận phòng:"; worksheet.Cell(currentRow, 2).Value = ct.ThoiGianNhanPhong?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Thời gian trả phòng:"; worksheet.Cell(currentRow, 2).Value = ct.ThoiGianTraPhong?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Loại phòng đăng ký:"; worksheet.Cell(currentRow, 2).Value = ct.LoaiPhong; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Ghi chú:"; worksheet.Cell(currentRow, 2).Value = ct.GhiChu; currentRow++;
-                }
-                else if (don.HrDonLamLaiThe11s.Any())
-                {
-                    var ct = don.HrDonLamLaiThe11s.First();
-                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐĂNG KÝ LÀM LẠI THẺ";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Rose);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Mã số thẻ:"; worksheet.Cell(currentRow, 2).Value = ct.MaSoThe; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Họ và tên:"; worksheet.Cell(currentRow, 2).Value = ct.HoTen; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Bộ phận / Cấp bậc:"; worksheet.Cell(currentRow, 2).Value = $"{ct.BoPhan} / {ct.CapBac}"; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Chức vụ:"; worksheet.Cell(currentRow, 2).Value = ct.ChucVu; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Lý do làm lại:"; worksheet.Cell(currentRow, 2).Value = ct.LyDoLamLaiThe; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Ghi chú:"; worksheet.Cell(currentRow, 2).Value = ct.GhiChu; currentRow++;
-                }
-                else if (don.HrDonSuDungDienThoai12s.Any())
+                // KIỂM TRA NẾU LÀ ĐƠN SỬ DỤNG ĐIỆN THOẠI (LOẠI 12)
+                if (don.HrDonSuDungDienThoai12s != null && don.HrDonSuDungDienThoai12s.Any())
                 {
                     var ct = don.HrDonSuDungDienThoai12s.First();
-                    worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐĂNG KÝ SỬ DỤNG ĐIỆN THOẠI";
-                    worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Khaki);
-                    currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Mã số thẻ / Họ tên:"; worksheet.Cell(currentRow, 2).Value = $"{ct.MaSoThe} - {ct.HoTen}"; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Bộ phận / Cấp bậc:"; worksheet.Cell(currentRow, 2).Value = $"{ct.BoPhan} / {ct.CapBac}"; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Chức vụ:"; worksheet.Cell(currentRow, 2).Value = ct.ChucVu; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Thời gian bắt đầu dùng:"; worksheet.Cell(currentRow, 2).Value = ct.ThoiGianBatDauSuDung?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Lý do sử dụng:"; worksheet.Cell(currentRow, 2).Value = ct.LyDoSuDung; currentRow++;
-                    worksheet.Cell(currentRow, 1).Value = "Ghi chú:"; worksheet.Cell(currentRow, 2).Value = ct.GhiChu; currentRow++;
+                    var ngayTao = don.TimeNguoiTao ?? DateTime.Now;
+
+                    // Tiêu đề công ty
+                    worksheet.Cell(1, 1).Value = "CÔNG TY TNHH BEST PACIFIC VIỆT NAM";
+                    worksheet.Cell(2, 1).Value = "超盈纺织（越南）有限公司";
+                    worksheet.Range("A1:H1").Merge().Style.Font.SetBold().Font.FontSize = 14;
+                    worksheet.Range("A2:H2").Merge().Style.Font.SetBold().Font.FontSize = 12;
+                    worksheet.Range("A1:H2").Style.Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+                    // Tiêu đề đơn
+                    worksheet.Cell(4, 1).Value = "ĐƠN XIN SỬ DỤNG ĐIỆN THOẠI TRONG CÔNG VIỆC";
+                    worksheet.Cell(5, 1).Value = "工作时间使用手机申请单";
+                    worksheet.Range("A4:H4").Merge().Style.Font.SetBold().Font.FontSize = 16;
+                    worksheet.Range("A5:H5").Merge().Style.Font.SetBold().Font.FontSize = 13;
+                    worksheet.Range("A4:H5").Style.Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+                    // Thời gian xin đơn
+                    worksheet.Cell(7, 1).Value = $"Thời gian(申请日期): Ngày( 日 ) {ngayTao.Day} Tháng( 月 ) {ngayTao.Month} Năm( 年 ) {ngayTao.Year}";
+                    worksheet.Range("A7:H7").Merge().Style.Font.SetItalic().Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Right);
+
+                    // --- BẢNG DỮ LIỆU CHÍNH ---
+                    // Hàng 1: Họ tên | Mã số thẻ | Cấp bậc | Chức vụ
+                    worksheet.Cell(9, 1).Value = "Họ tên\n姓名";
+                    worksheet.Cell(9, 2).Value = ct.HoTen;
+                    worksheet.Cell(9, 3).Value = "Mã số thẻ\n工号";
+                    worksheet.Cell(9, 4).Value = ct.MaSoThe;
+                    worksheet.Cell(9, 5).Value = "Cấp bậc\n级别";
+                    worksheet.Cell(9, 6).Value = ct.CapBac;
+                    worksheet.Cell(9, 7).Value = "Chức vụ\n职务/职称";
+                    worksheet.Cell(9, 8).Value = ct.ChucVu;
+
+                    // Hàng 2: Bộ phận | Thời gian bắt đầu sử dụng
+                    worksheet.Cell(10, 1).Value = "Bộ phận\n部门";
+                    worksheet.Cell(10, 2).Value = ct.BoPhan;
+                    worksheet.Cell(10, 3).Value = "Thời gian bắt đầu\nsử dụng\n使用开始日期";
+                    worksheet.Cell(10, 4).Value = ct.ThoiGianBatDauSuDung?.ToString("dd/MM/yyyy HH:mm");
+                    worksheet.Range("D10:H10").Merge();
+
+                    // Hàng 3: Lý do sử dụng
+                    worksheet.Cell(11, 1).Value = "Lý do sử dụng\n使用原因";
+                    worksheet.Cell(11, 2).Value = ct.LyDoSuDung + (string.IsNullOrEmpty(ct.GhiChu) ? "" : $" (Ghi chú: {ct.GhiChu})");
+                    worksheet.Range("B11:H11").Merge();
+
+                    // Định dạng borders & căn lề cho bảng thông tin
+                    var mainGrid = worksheet.Range("A9:H11");
+                    mainGrid.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                    mainGrid.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                    mainGrid.Style.Alignment.SetVertical(ClosedXML.Excel.XLAlignmentVerticalValues.Center);
+                    mainGrid.Style.Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+                    mainGrid.Style.Alignment.WrapText = true;
+
+                    // Định dạng màu nền tiêu đề cột trong bảng
+                    worksheet.Cell(9, 1).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                    worksheet.Cell(9, 3).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                    worksheet.Cell(9, 5).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                    worksheet.Cell(9, 7).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                    worksheet.Cell(10, 1).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                    worksheet.Cell(10, 3).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                    worksheet.Cell(11, 1).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+
+                    worksheet.Row(9).Height = 35;
+                    worksheet.Row(10).Height = 40;
+                    worksheet.Row(11).Height = 55;
+                    worksheet.Cell(11, 2).Style.Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Left);
+
+                    // --- KHỐI KÝ TÊN BIỂU MẪU ---
+                    int sigRow = 14;
+                    worksheet.Cell(sigRow, 1).Value = "Người xin\n申请人";
+                    worksheet.Cell(sigRow, 4).Value = "Quản lý bộ phận\n部门经理";
+                    worksheet.Cell(sigRow, 7).Value = "HCNS xác nhận\n人力资源部";
+
+                    worksheet.Range(sigRow, 1, sigRow, 2).Merge();
+                    worksheet.Range(sigRow, 4, sigRow, 5).Merge();
+                    worksheet.Range(sigRow, 7, sigRow, 8).Merge();
+
+                    var sigRange = worksheet.Range(sigRow, 1, sigRow, 8);
+                    sigRange.Style.Font.SetBold().Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+                    sigRange.Style.Alignment.WrapText = true;
+
+                    worksheet.Cell(sigRow + 2, 1).Value = don.TenNguoiTao;
+                    worksheet.Cell(sigRow + 2, 4).Value = don.TenNguoiDuyet;
+                    worksheet.Cell(sigRow + 2, 7).Value = don.TenAdmin;
+                    worksheet.Range(sigRow + 2, 1, sigRow + 2, 2).Merge();
+                    worksheet.Range(sigRow + 2, 4, sigRow + 2, 5).Merge();
+                    worksheet.Range(sigRow + 2, 7, sigRow + 2, 8).Merge();
+                    worksheet.Range(sigRow + 2, 1, sigRow + 2, 8).Style.Font.SetItalic().Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+                    // Footer Mã số biểu mẫu ở góc dưới phải
+                    worksheet.Cell(20, 7).Value = "BPVN-HR-PR-006 A/1";
+                    worksheet.Range("G20:H20").Merge().Style.Font.SetBold().Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Right);
                 }
-
-                if (currentRow > 11)
+                else
                 {
-                    var rangeChiTiet = worksheet.Range(11, 1, currentRow - 1, 2);
-                    rangeChiTiet.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
-                    rangeChiTiet.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
-                    worksheet.Range(12, 1, currentRow - 1, 1).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.WhiteSmoke);
-                }
+                    // HƯỚNG DẪN MẪU KHÁC CỦA HỆ THỐNG (GIỮ NGUYÊN HOÀN TOÀN KHÔNG SỬA ĐỔI)
+                    worksheet.Cell(1, 1).Value = "HƯỚNG DẪN SỬ DỤNG HỆ THỐNG E-FORM HR - BEST PACIFIC";
+                    worksheet.Range("A1:E1").Merge().Style.Font.SetBold().Font.FontSize = 14;
+                    worksheet.Range("A1:E1").Style.Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
 
-                currentRow++;
+                    worksheet.Cell(3, 1).Value = "Mã Đơn:"; worksheet.Cell(3, 2).Value = don.Id;
+                    worksheet.Cell(4, 1).Value = "Tên Form:"; worksheet.Cell(4, 2).Value = don.TenForm;
+                    worksheet.Cell(5, 1).Value = "Mã NV:"; worksheet.Cell(5, 2).Value = don.SoNhanVien;
+                    worksheet.Cell(6, 1).Value = "Họ Tên:"; worksheet.Cell(6, 2).Value = don.TenNguoiNv;
+                    worksheet.Cell(7, 1).Value = "Bộ Phận:"; worksheet.Cell(7, 2).Value = don.BoPhan;
+                    worksheet.Cell(8, 1).Value = "Ngày Tạo:"; worksheet.Cell(8, 2).Value = don.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm");
+                    worksheet.Cell(9, 1).Value = "Trạng Thái:"; worksheet.Cell(9, 2).Value = "HOÀN TẤT";
 
-                // BƯỚC 2: QUẢN LÝ DUYỆT B2
-                if (don.HrQuanLyDuyetB2s != null && don.HrQuanLyDuyetB2s.Any())
-                {
-                    worksheet.Cell(currentRow, 1).Value = "II. DANH SÁCH DUYỆT BƯỚC 2";
-                    worksheet.Range(currentRow, 1, currentRow, 4).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Lavender);
-                    currentRow++;
+                    var rangeChung = worksheet.Range("A3:B9");
+                    rangeChung.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                    rangeChung.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                    worksheet.Range("A3:A9").Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
 
-                    worksheet.Cell(currentRow, 1).Value = "Tên Người Duyệt";
-                    worksheet.Cell(currentRow, 2).Value = "Thời Gian";
-                    worksheet.Cell(currentRow, 3).Value = "Trạng Thái";
-                    worksheet.Cell(currentRow, 4).Value = "Ghi Chú";
-                    worksheet.Range(currentRow, 1, currentRow, 4).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                    int currentRow = 11;
 
-                    int startRow = currentRow;
-                    foreach (var b2 in don.HrQuanLyDuyetB2s.OrderBy(x => x.ThuTuXacNhan))
+                    if (don.HrXinRaNgoai1s.Any())
                     {
+                        var ct = don.HrXinRaNgoai1s.First();
+                        worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: XIN RA NGOÀI";
+                        worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightBlue);
                         currentRow++;
-                        string ttText = b2.TrangThaiXacNhan == 1 ? "Đã Duyệt" : b2.TrangThaiXacNhan == 2 ? "Từ Chối" : "Chờ Duyệt";
-                        worksheet.Cell(currentRow, 1).Value = b2.TenNguoiXacNhan;
-                        worksheet.Cell(currentRow, 2).Value = b2.ThoiGianXacNhan?.ToString("dd/MM/yyyy HH:mm");
-                        worksheet.Cell(currentRow, 3).Value = ttText;
-                        worksheet.Cell(currentRow, 4).Value = b2.GhiChu;
+                        worksheet.Cell(currentRow, 1).Value = "Lý do:"; worksheet.Cell(currentRow, 2).Value = ct.LiDo; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Địa điểm:"; worksheet.Cell(currentRow, 2).Value = ct.DiaDiem; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Thời gian ra:"; worksheet.Cell(currentRow, 2).Value = ct.ThoiGianRa?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Dự kiến về:"; worksheet.Cell(currentRow, 2).Value = ct.ThoiGianVeDuTinh?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
                     }
-                    var rangeB2 = worksheet.Range(startRow, 1, currentRow, 4);
-                    rangeB2.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
-                    rangeB2.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
-                    currentRow++;
-                }
-
-                // BƯỚC 3: GIÁM ĐỐC XÁC NHẬN
-                if (don.HrNguoiXacNhans != null && don.HrNguoiXacNhans.Any())
-                {
-                    worksheet.Cell(currentRow, 1).Value = "III. XÁC NHẬN GIÁM ĐỐC";
-                    worksheet.Range(currentRow, 1, currentRow, 4).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.MistyRose);
-                    currentRow++;
-
-                    worksheet.Cell(currentRow, 1).Value = "Tên Giám Đốc";
-                    worksheet.Cell(currentRow, 2).Value = "Thời Gian";
-                    worksheet.Cell(currentRow, 3).Value = "Trạng Thái";
-                    worksheet.Cell(currentRow, 4).Value = "Ghi Chú";
-                    worksheet.Range(currentRow, 1, currentRow, 4).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
-
-                    int startRow = currentRow;
-                    foreach (var xn in don.HrNguoiXacNhans)
+                    else if (don.HrMangHangHoaRaCong2s.Any())
                     {
+                        var ct = don.HrMangHangHoaRaCong2s.First();
+                        worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: MANG HÀNG HÓA RA CỔNG";
+                        worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGreen);
                         currentRow++;
-                        string ttText = xn.TrangThaiXacNhan == 1 ? "Đã Duyệt" : xn.TrangThaiXacNhan == 2 ? "Từ Chối" : "Chờ Duyệt";
-                        worksheet.Cell(currentRow, 1).Value = xn.IdnguoiXacNhanNavigation?.HoTen ?? xn.TenNguoiXacNhan;
-                        worksheet.Cell(currentRow, 2).Value = xn.ThoiGianXacNhan?.ToString("dd/MM/yyyy HH:mm");
-                        worksheet.Cell(currentRow, 3).Value = ttText;
-                        worksheet.Cell(currentRow, 4).Value = xn.GhiChu;
+                        worksheet.Cell(currentRow, 1).Value = "Mô tả:"; worksheet.Cell(currentRow, 2).Value = ct.MoTa; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Thời gian dự tính:"; worksheet.Cell(currentRow, 2).Value = ct.TimeDuTinh?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
                     }
-                    var rangeXN = worksheet.Range(startRow, 1, currentRow, 4);
-                    rangeXN.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
-                    rangeXN.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                    else if (don.HrDangKySuDungXeCongTac3s.Any())
+                    {
+                        var ct = don.HrDangKySuDungXeCongTac3s.First();
+                        worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐĂNG KÝ XE CÔNG TÁC";
+                        worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightYellow);
+                        currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Số điện thoại:"; worksheet.Cell(currentRow, 2).Value = ct.SoDienThoai; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Số lượng người:"; worksheet.Cell(currentRow, 2).Value = ct.SoLuong; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Lý do / Lộ trình:"; worksheet.Cell(currentRow, 2).Value = ct.LiDo; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "TG Đi:"; worksheet.Cell(currentRow, 2).Value = ct.TimeDuTinh?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "TG Về:"; worksheet.Cell(currentRow, 2).Value = ct.ThoiGianVe?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Ghi chú:"; worksheet.Cell(currentRow, 2).Value = ct.GhiChu; currentRow++;
+                    }
+                    else if (don.HrDangKySuDungXeDaily4s.Any())
+                    {
+                        var ct = don.HrDangKySuDungXeDaily4s.First();
+                        worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐĂNG KÝ XE DAILY";
+                        worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Orange);
+                        currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Điểm đón:"; worksheet.Cell(currentRow, 2).Value = ct.DiemDon; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Lý do:"; worksheet.Cell(currentRow, 2).Value = ct.LiDo; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Thời gian:"; worksheet.Cell(currentRow, 2).Value = ct.TimeDuTinh?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
+                    }
+                    else if (don.HrDonTiepKhac5s.Any())
+                    {
+                        var ct = don.HrDonTiepKhac5s.First();
+                        worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐĂNG KÝ TIẾP KHÁCH";
+                        worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Pink);
+                        currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Công ty khách:"; worksheet.Cell(currentRow, 2).Value = ct.TenCongTyKhach; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Số lượng khách:"; worksheet.Cell(currentRow, 2).Value = ct.SoLuongKhach; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Người đặt:"; worksheet.Cell(currentRow, 2).Value = ct.NguoiBook; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Yêu cầu:"; worksheet.Cell(currentRow, 2).Value = ct.YeuCauTiepKhach; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Phòng họp:"; worksheet.Cell(currentRow, 2).Value = ct.TenPhongHop; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Loại suất ăn:"; worksheet.Cell(currentRow, 2).Value = ct.LoaiSuatAn; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Ghi chú suất ăn:"; worksheet.Cell(currentRow, 2).Value = ct.GhiChuSuatAn; currentRow++;
+                    }
+                    else if (don.HrNhaThauQuaCong6s.Any())
+                    {
+                        var ct = don.HrNhaThauQuaCong6s.First();
+                        worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: NHÀ THẦU QUA CỔNG";
+                        worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                        currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Tên nhà thầu:"; worksheet.Cell(currentRow, 2).Value = ct.TenNhaThau; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Số người:"; worksheet.Cell(currentRow, 2).Value = ct.SoNguoi; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Người đăng ký:"; worksheet.Cell(currentRow, 2).Value = ct.NguoiDangKy; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Mục đích:"; worksheet.Cell(currentRow, 2).Value = ct.MucDichCongViec; currentRow++;
+                    }
+                    else if (don.HrHoTroTienDienThoai7s.Any())
+                    {
+                        var ct = don.HrHoTroTienDienThoai7s.First();
+                        worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: HỖ TRỢ TIỀN ĐIỆN THOẠI";
+                        worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Gold);
+                        currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Số điện thoại:"; worksheet.Cell(currentRow, 2).Value = ct.SoDienThoai; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Mức hỗ trợ:"; worksheet.Cell(currentRow, 2).Value = ct.MucHoTro; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Mục đích:"; worksheet.Cell(currentRow, 2).Value = ct.MucDich; currentRow++;
+                    }
+                    else if (don.HrDoiCaLam8s.Any())
+                    {
+                        var ct = don.HrDoiCaLam8s.First();
+                        worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐỔI CA LÀM VIỆC";
+                        worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Cyan);
+                        currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Ngày cần đổi:"; worksheet.Cell(currentRow, 2).Value = ct.NgayCanDoi?.ToString("dd/MM/yyyy"); currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Ca gốc:"; worksheet.Cell(currentRow, 2).Value = ct.CaGoc; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Ca muốn đổi:"; worksheet.Cell(currentRow, 2).Value = ct.CaMuonDoi; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Lý do:"; worksheet.Cell(currentRow, 2).Value = ct.LyDoDoiCa; currentRow++;
+                    }
+                    else if (don.HrDonHoTroCongTac9s.Any())
+                    {
+                        var ct = don.HrDonHoTroCongTac9s.First();
+                        worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: HỖ TRỢ CÔNG TÁC";
+                        worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Purple);
+                        currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Mã NV Công tác:"; worksheet.Cell(currentRow, 2).Value = ct.MaNhanVien; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Khách hàng:"; worksheet.Cell(currentRow, 2).Value = ct.TenKhachHang; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Đặt vé máy bay:"; worksheet.Cell(currentRow, 2).Value = ct.DatVeMayBay == true ? "Có" : "Không"; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Đặt chỗ ở:"; worksheet.Cell(currentRow, 2).Value = ct.DatChoO == true ? "Có" : "Không"; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Đặt bữa ăn:"; worksheet.Cell(currentRow, 2).Value = ct.DatBuaAn == true ? "Có" : "Không"; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Xe đưa đón:"; worksheet.Cell(currentRow, 2).Value = ct.BookXeCtyDuaDon == true ? "Có" : "Không"; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Chi tiết:"; worksheet.Cell(currentRow, 2).Value = ct.NoiDungYeuCauChiTiet; currentRow++;
+                    }
+                    else if (don.HrDonKiTucXa10s.Any())
+                    {
+                        var ct = don.HrDonKiTucXa10s.First();
+                        worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐĂNG KÝ KÍ TÚC XÁ";
+                        worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.CornflowerBlue);
+                        currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Mã nhân viên:"; worksheet.Cell(currentRow, 2).Value = ct.MaNhanVien; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Họ và tên:"; worksheet.Cell(currentRow, 2).Value = ct.HoTen; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Phòng ban / Chức vụ:"; worksheet.Cell(currentRow, 2).Value = $"{ct.PhongBan} / {ct.ChucVu}"; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Thời gian nhận phòng:"; worksheet.Cell(currentRow, 2).Value = ct.ThoiGianNhanPhong?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Thời gian trả phòng:"; worksheet.Cell(currentRow, 2).Value = ct.ThoiGianTraPhong?.ToString("dd/MM/yyyy HH:mm"); currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Loại phòng đăng ký:"; worksheet.Cell(currentRow, 2).Value = ct.LoaiPhong; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Ghi chú:"; worksheet.Cell(currentRow, 2).Value = ct.GhiChu; currentRow++;
+                    }
+                    else if (don.HrDonLamLaiThe11s.Any())
+                    {
+                        var ct = don.HrDonLamLaiThe11s.First();
+                        worksheet.Cell(currentRow, 1).Value = "I. CHI TIẾT ĐƠN: ĐĂNG KÝ LÀM LẠI THẺ";
+                        worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Rose);
+                        currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Mã số thẻ:"; worksheet.Cell(currentRow, 2).Value = ct.MaSoThe; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Họ và tên:"; worksheet.Cell(currentRow, 2).Value = ct.HoTen; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Bộ phận / Cấp bậc:"; worksheet.Cell(currentRow, 2).Value = $"{ct.BoPhan} / {ct.CapBac}"; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Chức vụ:"; worksheet.Cell(currentRow, 2).Value = ct.ChucVu; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Lý do làm lại:"; worksheet.Cell(currentRow, 2).Value = ct.LyDoLamLaiThe; currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = "Ghi chú:"; worksheet.Cell(currentRow, 2).Value = ct.GhiChu; currentRow++;
+                    }
+
+                    if (currentRow > 11)
+                    {
+                        var rangeChiTiet = worksheet.Range(11, 1, currentRow - 1, 2);
+                        rangeChiTiet.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                        rangeChiTiet.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                        worksheet.Range(12, 1, currentRow - 1, 1).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.WhiteSmoke);
+                    }
+
+                    currentRow++;
+
+                    // BƯỚC 2: QUẢN LÝ DUYỆT B2
+                    if (don.HrQuanLyDuyetB2s != null && don.HrQuanLyDuyetB2s.Any())
+                    {
+                        worksheet.Cell(currentRow, 1).Value = "II. DANH SÁCH DUYỆT BƯỚC 2";
+                        worksheet.Range(currentRow, 1, currentRow, 4).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.Lavender);
+                        currentRow++;
+
+                        worksheet.Cell(currentRow, 1).Value = "Tên Người Duyệt";
+                        worksheet.Cell(currentRow, 2).Value = "Thời Gian";
+                        worksheet.Cell(currentRow, 3).Value = "Trạng Thái";
+                        worksheet.Cell(currentRow, 4).Value = "Ghi Chú";
+                        worksheet.Range(currentRow, 1, currentRow, 4).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+
+                        int startRow = currentRow;
+                        foreach (var b2 in don.HrQuanLyDuyetB2s.OrderBy(x => x.ThuTuXacNhan))
+                        {
+                            currentRow++;
+                            string ttText = b2.TrangThaiXacNhan == 1 ? "Đã Duyệt" : b2.TrangThaiXacNhan == 2 ? "Từ Chối" : "Chờ Duyệt";
+                            worksheet.Cell(currentRow, 1).Value = b2.TenNguoiXacNhan;
+                            worksheet.Cell(currentRow, 2).Value = b2.ThoiGianXacNhan?.ToString("dd/MM/yyyy HH:mm");
+                            worksheet.Cell(currentRow, 3).Value = ttText;
+                            worksheet.Cell(currentRow, 4).Value = b2.GhiChu;
+                        }
+                        var rangeB2 = worksheet.Range(startRow, 1, currentRow, 4);
+                        rangeB2.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                        rangeB2.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                        currentRow++;
+                    }
+
+                    // BƯỚC 3: GIÁM ĐỐC XÁC NHẬN
+                    if (don.HrNguoiXacNhans != null && don.HrNguoiXacNhans.Any())
+                    {
+                        worksheet.Cell(currentRow, 1).Value = "III. XÁC NHẬN GIÁM ĐỐC";
+                        worksheet.Range(currentRow, 1, currentRow, 4).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.MistyRose);
+                        currentRow++;
+
+                        worksheet.Cell(currentRow, 1).Value = "Tên Giám Đốc";
+                        worksheet.Cell(currentRow, 2).Value = "Thời Gian";
+                        worksheet.Cell(currentRow, 3).Value = "Trạng Thái";
+                        worksheet.Cell(currentRow, 4).Value = "Ghi Chú";
+                        worksheet.Range(currentRow, 1, currentRow, 4).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+
+                        int startRow = currentRow;
+                        foreach (var xn in don.HrNguoiXacNhans)
+                        {
+                            currentRow++;
+                            string ttText = xn.TrangThaiXacNhan == 1 ? "Đã Duyệt" : xn.TrangThaiXacNhan == 2 ? "Từ Chối" : "Chờ Duyệt";
+                            worksheet.Cell(currentRow, 1).Value = xn.IdnguoiXacNhanNavigation?.HoTen ?? xn.TenNguoiXacNhan;
+                            worksheet.Cell(currentRow, 2).Value = xn.ThoiGianXacNhan?.ToString("dd/MM/yyyy HH:mm");
+                            worksheet.Cell(currentRow, 3).Value = ttText;
+                            worksheet.Cell(currentRow, 4).Value = xn.GhiChu;
+                        }
+                        var rangeXN = worksheet.Range(startRow, 1, currentRow, 4);
+                        rangeXN.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                        rangeXN.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                    }
                 }
 
                 worksheet.Columns().AdjustToContents();
@@ -3057,13 +3141,11 @@ namespace E_Form_Best.Areas.HRform.Controllers
             string htmlContent = BuildHtmlContent(don, isForWord: false);
             return Content(htmlContent, "text/html", System.Text.Encoding.UTF8);
         }
-
         // ============================================================
         // HÀM HỖ TRỢ BUILD HTML CHUYÊN NGHIỆP CHO WORD & PDF
         // ============================================================
         private string BuildHtmlContent(FormHr don, bool isForWord = false)
         {
-            // Đảm bảo các collection không bao giờ null
             var b2List = don.HrQuanLyDuyetB2s ?? Enumerable.Empty<HrQuanLyDuyetB2>();
             var gdList = don.HrNguoiXacNhans ?? Enumerable.Empty<HrNguoiXacNhan>();
 
@@ -3080,17 +3162,16 @@ namespace E_Form_Best.Areas.HRform.Controllers
         .company-sub { font-size: 12pt; font-weight: bold; text-decoration: underline; margin-bottom: 10px; }
         .national-title { font-size: 14pt; font-weight: bold; text-transform: uppercase; }
         .national-sub { font-size: 13pt; font-weight: bold; text-decoration: underline; }
-        .form-title { font-size: 20pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 25px 0 5px 0; }
+        .form-title { font-size: 18pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 25px 0 5px 0; }
         .form-id { font-size: 12pt; text-align: center; font-style: italic; margin-bottom: 30px; }
         .section-title { font-size: 14pt; font-weight: bold; margin-top: 25px; margin-bottom: 10px; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 5px; }
         .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         .data-table th, .data-table td { border: 1px solid #000; padding: 8px 12px; font-size: 12pt; vertical-align: top; }
         .data-table th { background-color: #f2f2f2; font-weight: bold; text-align: left; width: 35%; }
         
-        /* CSS chuyên biệt cho biểu mẫu làm lại thẻ nhân viên */
         .form-card-table { width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 20px; table-layout: fixed; }
         .form-card-table td { border: 1px solid #000; padding: 10px; font-size: 11pt; vertical-align: middle; word-wrap: break-word; }
-        .lang-zh { font-family: 'SimSun', 'STSong', sans-serif; display: block; font-weight: normal; color: #333; }
+        .lang-zh { font-family: 'SimSun', 'STSong', sans-serif; display: block; font-weight: normal; color: #333; margin-top: 2px; }
         .text-center { text-align: center; }
         .text-bold { font-weight: bold; }
 
@@ -3108,66 +3189,113 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
             sb.Append("<div class='document-container'>");
 
-            // KIỂM TRA NẾU LÀ ĐƠN LÀM LẠI THẺ (LOẠI 11) THÌ APPY MẪU SONG NGỮ THEO PDF GỐC
-            if (don.HrDonLamLaiThe11s != null && don.HrDonLamLaiThe11s.Any())
+            // KIỂM TRA NẾU LÀ ĐƠN SỬ DỤNG ĐIỆN THOẠI (LOẠI 12) THÌ APPLY MẪU SONG NGỮ THEO ẢNH
+            if (don.HrDonSuDungDienThoai12s != null && don.HrDonSuDungDienThoai12s.Any())
             {
-                var ct = don.HrDonLamLaiThe11s.First();
+                var ct = don.HrDonSuDungDienThoai12s.First();
 
-                // Header đúng chuẩn BEST PACIFIC VIỆT NAM
-                sb.Append("<table class='header-table' style='margin-bottom: 10px;'>");
+                // Header chuẩn BEST PACIFIC VIỆT NAM (Dòng 1: Logo, Dòng 2: Tên tiếng Việt, Dòng 3: Tên tiếng Trung căn giữa)
+                sb.Append("<table class='header-table' style='margin-bottom: 10px; width: 100%; border-collapse: collapse;'>");
+
+                // Dòng 1: Logo BEST PACIFIC ở góc phải
                 sb.Append("<tr>");
-                sb.Append("<td style='text-align: left; width: 50%; font-size: 13pt;'>");
-                sb.Append("<div class='company-name'>BEST PACIFIC</div>");
-                sb.Append("<div style='font-weight: bold; font-size: 11pt;'>CÔNG TY TNHH BEST PACIFIC VIỆT NAM</div>");
-                sb.Append("<div class='lang-zh' style='font-size: 11pt; font-weight: bold;'>超盈纺织(越南)有限公司</div>");
+                sb.Append("<td style='text-align: right; font-size: 14pt; font-weight: bold; color: #555; font-family: sans-serif; padding-bottom: 5px; border: none;'>");
+                sb.Append("BEST PACIFIC");
                 sb.Append("</td>");
-                sb.Append("<td style='text-align: right; width: 50%; vertical-align: top; font-size: 11pt; font-style: italic;'>");
-                sb.Append($"Mã phiếu: #{don.Id}<br/>Trạng thái: HOÀN TẤT");
+                sb.Append("</tr>");
+
+                // Dòng 2: Tên công ty tiếng Việt căn giữa tuyệt đối
+                sb.Append("<tr>");
+                sb.Append("<td style='text-align: center; width: 100%; border: none;'>");
+                sb.Append("<div class='company-name' style='font-size: 14pt; font-weight: bold; white-space: nowrap; display: inline-block;'>CÔNG TY TNHH BEST PACIFIC VIỆT NAM</div>");
+                sb.Append("</td>");
+                sb.Append("</tr>");
+
+                // Dòng 3: Tên tiếng Trung hạ xuống dòng 3 và căn giữa tuyệt đối
+                sb.Append("<tr>");
+                sb.Append("<td style='text-align: center; width: 100%; border: none;'>");
+                sb.Append("<div class='lang-zh' style='font-size: 13pt; font-weight: bold; white-space: nowrap; display: inline-block;'>超盈纺织 (越南) 有限公司</div>");
                 sb.Append("</td>");
                 sb.Append("</tr>");
                 sb.Append("</table>");
 
-                // Tiêu đề đơn song ngữ
-                sb.Append("<div class='form-title' style='margin: 15px 0 5px 0; font-size: 18pt;'>ĐƠN XIN LÀM LẠI THẺ NHÂN VIÊN</div>");
-                sb.Append("<div class='text-center text-bold' style='font-size: 14pt; margin-bottom: 15px;'>重新办理厂牌申请单</div>");
+                // Tiêu đề đơn song ngữ chính xác theo mẫu (Ép chữ nhỏ lại một chút và không xuống dòng)
+                sb.Append("<div class='form-title' style='margin: 20px 0 3px 0; font-size: 16pt; font-family: \"Times New Roman\", Times, serif; white-space: nowrap; text-align: center;'>ĐƠN XIN SỬ DỤNG ĐIỆN THOẠI TRONG CÔNG VIỆC</div>");
+                sb.Append("<div class='text-center text-bold' style='font-size: 14pt; margin-bottom: 20px; font-family: \"Times New Roman\", Times, serif; white-space: nowrap;'>工作时间使用手机申请单</div>");
 
-                // Ngày tháng áp dụng đơn
+                // Dòng thời gian xin đơn (Căn phải)
                 var ngayTao = don.TimeNguoiTao ?? DateTime.Now;
-                sb.Append($"<div class='text-center' style='font-size: 11pt; font-style: italic; margin-bottom: 20px;'>");
-                sb.Append($"Thời gian(申请日期): ngày(日) {ngayTao.Day} tháng(月) {ngayTao.Month} năm(年) {ngayTao.Year}");
+                sb.Append("<div style='text-align: right; font-size: 11pt; font-style: italic; margin-bottom: 8px; padding-right: 5px;'>");
+                sb.Append($"Thời gian(申请日期): Ngày( 日 ) {ngayTao.Day} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Tháng( 月 ) {ngayTao.Month} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Năm( 年 ) {ngayTao.Year}");
                 sb.Append("</div>");
 
-                // Bảng nội dung thông tin thẻ chi tiết theo đúng layout hình ảnh
+                // Bảng nội dung thông tin chi tiết cấu trúc chuẩn 100% theo ảnh
                 sb.Append("<table class='form-card-table'>");
                 sb.Append("<tr>");
-                sb.Append("<td style='width: 18%;' class='text-bold'>Họ tên<br/><span class='lang-zh'>姓名</span></td>");
-                sb.Append($"<td style='width: 27%;'>{ct.HoTen}</td>");
-                sb.Append("<td style='width: 15%;' class='text-bold'>Mã số thẻ<br/><span class='lang-zh'>工号</span></td>");
-                sb.Append($"<td style='width: 20%;'>{ct.MaSoThe}</td>");
-                sb.Append("<td style='width: 10%;' class='text-bold'>Cấp bậc<br/><span class='lang-zh'>级别</span></td>");
-                sb.Append($"<td style='width: 10%;'>{ct.CapBac}</td>");
+                sb.Append("<td style='width: 12%; text-align: center;' class='text-bold'>Họ tên<br/><span class='lang-zh'>姓名</span></td>");
+                sb.Append($"<td style='width: 22%; text-align: center;'>{ct.HoTen}</td>");
+                sb.Append("<td style='width: 13%; text-align: center;' class='text-bold'>Mã số thẻ<br/><span class='lang-zh'>工号</span></td>");
+                sb.Append($"<td style='width: 18%; text-align: center;'>{ct.MaSoThe}</td>");
+                sb.Append("<td style='width: 10%; text-align: center;' class='text-bold'>Cấp bậc<br/><span class='lang-zh'>级别</span></td>");
+                sb.Append($"<td style='width: 9%; text-align: center;'>{ct.CapBac}</td>");
+                sb.Append("<td style='width: 11%; text-align: center;' class='text-bold'>Chức vụ<br/><span class='lang-zh'>职务/职称</span></td>");
+                sb.Append($"<td style='width: 15%; text-align: center;'>{ct.ChucVu}</td>");
                 sb.Append("</tr>");
 
                 sb.Append("<tr>");
-                sb.Append("<td class='text-bold'>Bộ phận<br/><span class='lang-zh'>部门</span></td>");
-                sb.Append($"<td>{ct.BoPhan}</td>");
-                sb.Append("<td class='text-bold'>Chức vụ<br/><span class='lang-zh'>职务/职称</span></td>");
-                sb.Append($"<td colspan='3'>{ct.ChucVu}</td>");
+                sb.Append("<td style='text-align: center;' class='text-bold'>Bộ phận<br/><span class='lang-zh'>部门</span></td>");
+                sb.Append($"<td style='text-align: center;'>{ct.BoPhan}</td>");
+                sb.Append("<td style='text-align: center;' class='text-bold'>Thời gian bắt đầu<br/>sử dụng<br/><span class='lang-zh'>使用开始日期</span></td>");
+                sb.Append($"<td colspan='5' style='padding-left: 15px;'>{ct.ThoiGianBatDauSuDung?.ToString("dd/MM/yyyy HH:mm")}</td>");
                 sb.Append("</tr>");
 
                 sb.Append("<tr>");
-                sb.Append("<td class='text-bold'>Lý do làm lại thẻ<br/><span class='lang-zh'>重新办理原因</span></td>");
-                sb.Append($"<td colspan='5' style='height: 60px; vertical-align: top;'>{ct.LyDoLamLaiThe}{(string.IsNullOrEmpty(ct.GhiChu) ? "" : $" (Ghi chú: {ct.GhiChu})")}</td>");
+                sb.Append("<td style='text-align: center; height: 90px;' class='text-bold'>Lý do sử dụng<br/><span class='lang-zh'>使用原因</span></td>");
+                sb.Append($"<td colspan='7' style='vertical-align: top; padding: 12px; line-height: 1.6;'>{ct.LyDoSuDung}{(string.IsNullOrEmpty(ct.GhiChu) ? "" : $"<br/><i>(Ghi chú: {ct.GhiChu})</i>")}</td>");
                 sb.Append("</tr>");
                 sb.Append("</table>");
             }
+            else if (don.HrDonLamLaiThe11s != null && don.HrDonLamLaiThe11s.Any())
+            {
+                // ĐƠN LÀM LẠI THẺ NHÂN VIÊN (LOẠI 11) - PHẦN TRÊN ĐẦU ĐÃ ĐƯỢC ĐỒNG BỘ GIỐNG ĐƠN ĐIỆN THOẠI
+                var ct = don.HrDonLamLaiThe11s.First();
+
+                // Header chuẩn BEST PACIFIC VIỆT NAM (Dòng 1: Logo, Dòng 2: Tên tiếng Việt, Dòng 3: Tên tiếng Trung căn giữa)
+                sb.Append("<table class='header-table' style='margin-bottom: 10px; width: 100%; border-collapse: collapse;'>");
+                sb.Append("<tr>");
+                sb.Append("<td style='text-align: right; font-size: 14pt; font-weight: bold; color: #555; font-family: sans-serif; padding-bottom: 5px; border: none;'>");
+                sb.Append("BEST PACIFIC");
+                sb.Append("</td>");
+                sb.Append("</tr>");
+                sb.Append("<tr>");
+                sb.Append("<td style='text-align: center; width: 100%; border: none;'>");
+                sb.Append("<div class='company-name' style='font-size: 14pt; font-weight: bold; white-space: nowrap; display: inline-block;'>CÔNG TY TNHH BEST PACIFIC VIỆT NAM</div>");
+                sb.Append("</td>");
+                sb.Append("</tr>");
+                sb.Append("<tr>");
+                sb.Append("<td style='text-align: center; width: 100%; border: none;'>");
+                sb.Append("<div class='lang-zh' style='font-size: 13pt; font-weight: bold; white-space: nowrap; display: inline-block;'>超盈纺织 (越南) 有限公司</div>");
+                sb.Append("</td>");
+                sb.Append("</tr>");
+                sb.Append("</table>");
+
+                // Tiêu đề đơn song ngữ (Ép chữ nhỏ lại một chút và không xuống dòng giống đơn điện thoại)
+                sb.Append("<div class='form-title' style='margin: 20px 0 3px 0; font-size: 16pt; font-family: \"Times New Roman\", Times, serif; white-space: nowrap; text-align: center;'>ĐƠN XIN LÀM LẠI THẺ NHÂN VIÊN</div>");
+                sb.Append("<div class='text-center text-bold' style='font-size: 14pt; margin-bottom: 20px; font-family: \"Times New Roman\", Times, serif; white-space: nowrap;'>重新办理厂牌申请单</div>");
+
+                var ngayTao = don.TimeNguoiTao ?? DateTime.Now;
+                sb.Append("<div style='text-align: right; font-size: 11pt; font-style: italic; margin-bottom: 8px; padding-right: 5px;'>");
+                sb.Append($"Thời gian(申请日期): Ngày( 日 ) {ngayTao.Day} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Tháng( 月 ) {ngayTao.Month} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Năm( 年 ) {ngayTao.Year}");
+                sb.Append("</div>");
+
+                sb.Append("<table class='form-card-table'><tr><td style='width: 18%; text-align: center;' class='text-bold'>Họ tên<br/><span class='lang-zh'>姓名</span></td><td style='width: 27%; text-align: center;'>" + ct.HoTen + "</td><td style='width: 15%; text-align: center;' class='text-bold'>Mã số thẻ<br/><span class='lang-zh'>工号</span></td><td style='width: 20%; text-align: center;'>" + ct.MaSoThe + "</td><td style='width: 10%; text-align: center;' class='text-bold'>Cấp bậc<br/><span class='lang-zh'>级别</span></td><td style='width: 10%; text-align: center;'>" + ct.CapBac + "</td></tr><tr><td style='text-align: center;' class='text-bold'>Bộ phận<br/><span class='lang-zh'>部门</span></td><td style='text-align: center;'>" + ct.BoPhan + "</td><td style='text-align: center;' class='text-bold'>Chức vụ<br/><span class='lang-zh'>职务/职称</span></td><td colspan='3' style='text-align: center;'>" + ct.ChucVu + "</td></tr><tr><td style='text-align: center; height: 60px;' class='text-bold'>Lý do làm lại thẻ<br/><span class='lang-zh'>重新办理原因</span></td><td colspan='5' style='vertical-align: top; padding: 10px; line-height: 1.6;'>" + ct.LyDoLamLaiThe + (string.IsNullOrEmpty(ct.GhiChu) ? "" : " (Ghi chú: " + ct.GhiChu + ")") + "</td></tr></table>");
+            }
             else
             {
-                // TỰ ĐỘNG GIỮ NGUYÊN LAYOUT CŨ CHO 11 LOẠI ĐƠN KHÁC
+                // CÁC LOẠI ĐƠN KHÁC (LOẠI 1 ĐẾN LOẠI 10) - GIỮ NGUYÊN HOÀN TOÀN LAYOUT CŨ
                 sb.Append("<table class='header-table'><tr><td><div class='company-name'>BEST PACIFIC</div><div class='company-sub'>PHÒNG NHÂN SỰ (HR)</div></td><td><div class='national-title'>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div><div class='national-sub'>Độc lập - Tự do - Hạnh phúc</div></td></tr></table>");
                 sb.Append($"<div class='form-title'>{don.TenForm}</div><div class='form-id'>Mã phiếu: #{don.Id} | Trạng thái: HOÀN TẤT</div>");
 
-                // Khối thông tin chung của các đơn khác
                 sb.Append("<table class='data-table'>");
                 sb.Append($"<tr><th>Mã Đơn:</th><td>{don.Id}</td></tr>");
                 sb.Append($"<tr><th>Tên Form:</th><td>{don.TenForm}</td></tr>");
@@ -3268,79 +3396,87 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     sb.Append($"<tr><th>Loại phòng:</th><td>{ct.LoaiPhong}</td></tr>");
                     sb.Append($"<tr><th>Ghi chú:</th><td>{ct.GhiChu}</td></tr>");
                 }
-                else if (don.HrDonSuDungDienThoai12s.Any())
-                {
-                    var ct = don.HrDonSuDungDienThoai12s.First();
-                    sb.Append($"<tr><th>Mã số thẻ / Họ tên:</th><td>{ct.MaSoThe} - {ct.HoTen}</td></tr>");
-                    sb.Append($"<tr><th>Bộ phận / Cấp bậc:</th><td>{ct.BoPhan} / {ct.CapBac}</td></tr>");
-                    sb.Append($"<tr><th>Chức vụ:</th><td>{ct.ChucVu}</td></tr>");
-                    sb.Append($"<tr><th>Thời gian bắt đầu dùng:</th><td>{ct.ThoiGianBatDauSuDung?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
-                    sb.Append($"<tr><th>Lý do sử dụng:</th><td>{ct.LyDoSuDung}</td></tr>");
-                    sb.Append($"<tr><th>Ghi chú:</th><td>{ct.GhiChu}</td></tr>");
-                }
                 sb.Append("</table>");
             }
 
             // ============================================================
-            // PHẦN CHỮ KÝ ĐIỆN TỬ - THAY ĐỔI TIÊU ĐỀ SONG NGỮ KHI LÀ ĐƠN 11
+            // PHẦN CHỮ KÝ ĐIỆN TỬ - TỰ ĐỘNG ĐỔI TIÊU ĐỀ SONG NGỮ THEO LOẠI ĐƠN 11 & 12
             // ============================================================
-            bool isDonLamLaiThe = don.HrDonLamLaiThe11s != null && don.HrDonLamLaiThe11s.Any();
+            bool isMẫuThẻHoặcĐiệnThoại = (don.HrDonLamLaiThe11s != null && don.HrDonLamLaiThe11s.Any()) ||
+                                         (don.HrDonSuDungDienThoai12s != null && don.HrDonSuDungDienThoai12s.Any());
 
-            int totalCols = 3 + gdList.Count() + b2List.Count();
+            bool isDon12 = don.HrDonSuDungDienThoai12s != null && don.HrDonSuDungDienThoai12s.Any();
+
+            // Tính số lượng cột cho chữ ký để chia tỉ lệ phần trăm đều nhau
+            int totalCols = 3; // Mặc định có: Người xin, Quản lý bộ phận, HCNS xác nhận
+            if (!isDon12) // Đơn 12 cố định 3 vị trí ký như hình ảnh, mẫu khác load động B2/GD nếu có
+            {
+                totalCols += b2List.Count() + gdList.Count();
+            }
             double colPercent = 100.0 / (totalCols > 0 ? totalCols : 1);
 
             void AppendSig(string title, string titleZh, string name, DateTime? time)
             {
-                sb.Append($"<td style='width:{colPercent}%;'>");
-                sb.Append($"<strong>{title}</strong>");
-                if (isDonLamLaiThe && !string.IsNullOrEmpty(titleZh))
+                sb.Append($"<td style='width:{colPercent}%; text-align: center; vertical-align: top;'>");
+                sb.Append($"<strong style='font-size: 11.5pt;'>{title}</strong>");
+                if (isMẫuThẻHoặcĐiệnThoại && !string.IsNullOrEmpty(titleZh))
                 {
-                    sb.Append($"<br/><span class='lang-zh' style='font-size:10pt;'>{titleZh}</span>");
+                    sb.Append($"<br/><span class='lang-zh' style='font-size:10.5pt; font-weight: bold; margin-top: 0px;'>{titleZh}</span>");
                 }
-                sb.Append("<br/><span style='font-size:8.5pt; font-style:italic;'>(Chữ ký điện tử)</span><br/>");
+                sb.Append("<br/><span style='font-size:8.5pt; font-style:italic; color: #666;'>(Chữ ký điện tử)</span><br/>");
 
                 if (time.HasValue)
                     sb.Append($"<div class='digital-signature-box'><div class='sig-status'>Signature Valid</div><div class='sig-info'>Ký bởi: {name}<br/>Ký ngày: {time?.ToString("dd/MM/yyyy")}</div><div class='sig-check-mark'>✓</div></div>");
                 else
-                    sb.Append($"<br/><br/><br/><br/><strong>{name ?? ""}</strong>");
+                    sb.Append($"<br/><br/><br/><br/><strong style='font-size: 11pt;'>{name ?? ""}</strong>");
                 sb.Append("</td>");
             }
 
             sb.Append("<table class='signature-table'><tr>");
 
-            // 1. Người lập đơn
+            // Vị trí 1: Người xin / 申请人
             AppendSig("Người xin", "申请人", don.TenNguoiTao ?? "", don.TimeNguoiTao);
 
-            // 2. Quản lý trực tiếp
+            // Vị trí 2: Quản lý bộ phận / 部门经理
             AppendSig("Quản lý bộ phận", "部门经理", don.TenNguoiDuyet ?? "", don.TimeNguoiDuyet);
 
-            // 3. Danh sách quản lý bước 2 (nếu có)
-            foreach (var b2 in b2List.OrderBy(x => x.ThuTuXacNhan))
+            if (!isDon12)
             {
-                AppendSig("Quản lý B2", "部门经理 B2", b2.TenNguoiXacNhan ?? "", b2.ThoiGianXacNhan);
+                // Quản lý bước 2 (Chỉ hiển thị đối với các đơn khác đơn 12)
+                foreach (var b2 in b2List.OrderBy(x => x.ThuTuXacNhan))
+                {
+                    AppendSig("Quản lý B2", "部门经理 B2", b2.TenNguoiXacNhan ?? "", b2.ThoiGianXacNhan);
+                }
+
+                // Ban Giám đốc duyệt (Chỉ hiển thị đối với các đơn khác đơn 12)
+                foreach (var xn in gdList.OrderBy(x => x.ThuTuXacNhan))
+                {
+                    AppendSig("Ban Giám Đốc", "总经理", xn.IdnguoiXacNhanNavigation?.HoTen ?? xn.TenNguoiXacNhan ?? "", xn.ThoiGianXacNhan);
+                }
             }
 
-            // 4. Ban Giám đốc duyệt (nếu có)
-            foreach (var xn in gdList.OrderBy(x => x.ThuTuXacNhan))
-            {
-                AppendSig("Ban Giám Đốc", "总经理", xn.IdnguoiXacNhanNavigation?.HoTen ?? xn.TenNguoiXacNhan ?? "", xn.ThoiGianXacNhan);
-            }
-
-            // 5. Nhân sự xác nhận cuối cùng
+            // Vị trí cuối: HCNS xác nhận / 人力资源部
             AppendSig("HCNS xác nhận", "人力资源部", don.TenAdmin ?? "", don.TimeAdmin);
 
             sb.Append("</tr></table>");
 
-            // Mã số tài liệu biểu mẫu ở góc dưới cùng bên phải đơn làm lại thẻ
-            if (isDonLamLaiThe)
+            // Gán mã số biểu mẫu cố định ở góc dưới cùng bên phải
+            if (isDon12)
             {
-                sb.Append("<div class='doc-footer-id'>BPVN-HR-PR-017 A/1</div>");
+                sb.Append("<div class='doc-footer-id' style='margin-top: 50px; font-family: sans-serif; font-size: 10.5pt;'>BPVN-HR-PR-006 A/1</div>");
+            }
+            else if (don.HrDonLamLaiThe11s != null && don.HrDonLamLaiThe11s.Any())
+            {
+                sb.Append("<div class='doc-footer-id' style='margin-top: 40px; font-family: sans-serif; font-size: 10.5pt;'>BPVN-HR-PR-017 A/1</div>");
             }
 
             sb.Append("</div></body></html>");
 
             return sb.ToString();
         }
+
+
+
         #endregion
 
         #region BÌNH LUẬN ĐƠN HR
