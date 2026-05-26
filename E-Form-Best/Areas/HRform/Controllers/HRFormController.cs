@@ -3086,30 +3086,219 @@ namespace E_Form_Best.Areas.HRform.Controllers
         .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         .data-table th, .data-table td { border: 1px solid #000; padding: 8px 12px; font-size: 12pt; vertical-align: top; }
         .data-table th { background-color: #f2f2f2; font-weight: bold; text-align: left; width: 35%; }
+        
+        /* CSS chuyên biệt cho biểu mẫu làm lại thẻ nhân viên */
+        .form-card-table { width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 20px; table-layout: fixed; }
+        .form-card-table td { border: 1px solid #000; padding: 10px; font-size: 11pt; vertical-align: middle; word-wrap: break-word; }
+        .lang-zh { font-family: 'SimSun', 'STSong', sans-serif; display: block; font-weight: normal; color: #333; }
+        .text-center { text-align: center; }
+        .text-bold { font-weight: bold; }
+
         .signature-table { width: 100%; text-align: center; margin-top: 40px; border: none; table-layout: fixed; page-break-inside: avoid; }
-        .signature-table td { vertical-align: top; border: none; font-size: 12pt; padding: 5px; word-wrap: break-word; }
-        .digital-signature-box { border: 1px solid #2e7d32; padding: 8px; text-align: left; background-color: #f1f8e9; margin: 10px auto 0 auto; display: block; width: 98%; max-width: 190px; position: relative; box-sizing: border-box; }
-        .sig-status { color: #2e7d32; font-size: 10.5pt; font-weight: bold; margin-bottom: 3px; }
-        .sig-info { font-size: 9pt; color: #202124; line-height: 1.35; }
-        .sig-check-mark { position: absolute; right: 6px; bottom: 4px; font-size: 18pt; font-weight: bold; color: rgba(46, 125, 50, 0.25); }
+        .signature-table td { vertical-align: top; border: none; font-size: 11pt; padding: 5px; word-wrap: break-word; }
+        .digital-signature-box { border: 1px solid #2e7d32; padding: 6px; text-align: left; background-color: #f1f8e9; margin: 8px auto 0 auto; display: block; width: 98%; max-width: 180px; position: relative; box-sizing: border-box; }
+        .sig-status { color: #2e7d32; font-size: 10pt; font-weight: bold; margin-bottom: 3px; }
+        .sig-info { font-size: 8.5pt; color: #202124; line-height: 1.35; }
+        .sig-check-mark { position: absolute; right: 6px; bottom: 4px; font-size: 16pt; font-weight: bold; color: rgba(46, 125, 50, 0.25); }
+        .doc-footer-id { text-align: right; font-size: 10pt; font-weight: bold; margin-top: 20px; }
     ");
 
             if (!isForWord) sb.Append("@page { size: A4; margin: 20mm; } @media print { .document-container { padding: 0; } } </style><script>window.onload = function() { window.print(); }</script></head><body>");
             else sb.Append("</style></head><body>");
 
             sb.Append("<div class='document-container'>");
-            sb.Append("<table class='header-table'><tr><td><div class='company-name'>BEST PACIFIC</div><div class='company-sub'>PHÒNG NHÂN SỰ (HR)</div></td><td><div class='national-title'>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div><div class='national-sub'>Độc lập - Tự do - Hạnh phúc</div></td></tr></table>");
-            sb.Append($"<div class='form-title'>{don.TenForm}</div><div class='form-id'>Mã phiếu: #{don.Id} | Trạng thái: HOÀN TẤT</div>");
 
-            // Các phần nội dung I, II giữ nguyên... (sử dụng logic check collection tương tự)
+            // KIỂM TRA NẾU LÀ ĐƠN LÀM LẠI THẺ (LOẠI 11) THÌ APPY MẪU SONG NGỮ THEO PDF GỐC
+            if (don.HrDonLamLaiThe11s != null && don.HrDonLamLaiThe11s.Any())
+            {
+                var ct = don.HrDonLamLaiThe11s.First();
 
-            // Khối chữ ký điện tử
+                // Header đúng chuẩn BEST PACIFIC VIỆT NAM
+                sb.Append("<table class='header-table' style='margin-bottom: 10px;'>");
+                sb.Append("<tr>");
+                sb.Append("<td style='text-align: left; width: 50%; font-size: 13pt;'>");
+                sb.Append("<div class='company-name'>BEST PACIFIC</div>");
+                sb.Append("<div style='font-weight: bold; font-size: 11pt;'>CÔNG TY TNHH BEST PACIFIC VIỆT NAM</div>");
+                sb.Append("<div class='lang-zh' style='font-size: 11pt; font-weight: bold;'>超盈纺织(越南)有限公司</div>");
+                sb.Append("</td>");
+                sb.Append("<td style='text-align: right; width: 50%; vertical-align: top; font-size: 11pt; font-style: italic;'>");
+                sb.Append($"Mã phiếu: #{don.Id}<br/>Trạng thái: HOÀN TẤT");
+                sb.Append("</td>");
+                sb.Append("</tr>");
+                sb.Append("</table>");
+
+                // Tiêu đề đơn song ngữ
+                sb.Append("<div class='form-title' style='margin: 15px 0 5px 0; font-size: 18pt;'>ĐƠN XIN LÀM LẠI THẺ NHÂN VIÊN</div>");
+                sb.Append("<div class='text-center text-bold' style='font-size: 14pt; margin-bottom: 15px;'>重新办理厂牌申请单</div>");
+
+                // Ngày tháng áp dụng đơn
+                var ngayTao = don.TimeNguoiTao ?? DateTime.Now;
+                sb.Append($"<div class='text-center' style='font-size: 11pt; font-style: italic; margin-bottom: 20px;'>");
+                sb.Append($"Thời gian(申请日期): ngày(日) {ngayTao.Day} tháng(月) {ngayTao.Month} năm(年) {ngayTao.Year}");
+                sb.Append("</div>");
+
+                // Bảng nội dung thông tin thẻ chi tiết theo đúng layout hình ảnh
+                sb.Append("<table class='form-card-table'>");
+                sb.Append("<tr>");
+                sb.Append("<td style='width: 18%;' class='text-bold'>Họ tên<br/><span class='lang-zh'>姓名</span></td>");
+                sb.Append($"<td style='width: 27%;'>{ct.HoTen}</td>");
+                sb.Append("<td style='width: 15%;' class='text-bold'>Mã số thẻ<br/><span class='lang-zh'>工号</span></td>");
+                sb.Append($"<td style='width: 20%;'>{ct.MaSoThe}</td>");
+                sb.Append("<td style='width: 10%;' class='text-bold'>Cấp bậc<br/><span class='lang-zh'>级别</span></td>");
+                sb.Append($"<td style='width: 10%;'>{ct.CapBac}</td>");
+                sb.Append("</tr>");
+
+                sb.Append("<tr>");
+                sb.Append("<td class='text-bold'>Bộ phận<br/><span class='lang-zh'>部门</span></td>");
+                sb.Append($"<td>{ct.BoPhan}</td>");
+                sb.Append("<td class='text-bold'>Chức vụ<br/><span class='lang-zh'>职务/职称</span></td>");
+                sb.Append($"<td colspan='3'>{ct.ChucVu}</td>");
+                sb.Append("</tr>");
+
+                sb.Append("<tr>");
+                sb.Append("<td class='text-bold'>Lý do làm lại thẻ<br/><span class='lang-zh'>重新办理原因</span></td>");
+                sb.Append($"<td colspan='5' style='height: 60px; vertical-align: top;'>{ct.LyDoLamLaiThe}{(string.IsNullOrEmpty(ct.GhiChu) ? "" : $" (Ghi chú: {ct.GhiChu})")}</td>");
+                sb.Append("</tr>");
+                sb.Append("</table>");
+            }
+            else
+            {
+                // TỰ ĐỘNG GIỮ NGUYÊN LAYOUT CŨ CHO 11 LOẠI ĐƠN KHÁC
+                sb.Append("<table class='header-table'><tr><td><div class='company-name'>BEST PACIFIC</div><div class='company-sub'>PHÒNG NHÂN SỰ (HR)</div></td><td><div class='national-title'>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div><div class='national-sub'>Độc lập - Tự do - Hạnh phúc</div></td></tr></table>");
+                sb.Append($"<div class='form-title'>{don.TenForm}</div><div class='form-id'>Mã phiếu: #{don.Id} | Trạng thái: HOÀN TẤT</div>");
+
+                // Khối thông tin chung của các đơn khác
+                sb.Append("<table class='data-table'>");
+                sb.Append($"<tr><th>Mã Đơn:</th><td>{don.Id}</td></tr>");
+                sb.Append($"<tr><th>Tên Form:</th><td>{don.TenForm}</td></tr>");
+                sb.Append($"<tr><th>Mã NV:</th><td>{don.SoNhanVien}</td></tr>");
+                sb.Append($"<tr><th>Họ Tên:</th><td>{don.TenNguoiNv}</td></tr>");
+                sb.Append($"<tr><th>Bộ Phận:</th><td>{don.BoPhan}</td></tr>");
+                sb.Append($"<tr><th>Ngày Tạo:</th><td>{don.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
+                sb.Append($"<tr><th>Trạng Thái:</th><td><strong style='color: green;'>HOÀN TẤT</strong></td></tr>");
+                sb.Append("</table>");
+
+                sb.Append("<div class='section-title'>I. Chi tiết nội dung đơn</div>");
+                sb.Append("<table class='data-table'>");
+
+                if (don.HrXinRaNgoai1s.Any())
+                {
+                    var ct = don.HrXinRaNgoai1s.First();
+                    sb.Append($"<tr><th>Lý do:</th><td>{ct.LiDo}</td></tr>");
+                    sb.Append($"<tr><th>Địa điểm:</th><td>{ct.DiaDiem}</td></tr>");
+                    sb.Append($"<tr><th>Thời gian ra:</th><td>{ct.ThoiGianRa?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
+                    sb.Append($"<tr><th>Dự kiến về:</th><td>{ct.ThoiGianVeDuTinh?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
+                }
+                else if (don.HrMangHangHoaRaCong2s.Any())
+                {
+                    var ct = don.HrMangHangHoaRaCong2s.First();
+                    sb.Append($"<tr><th>Mô tả hàng hóa:</th><td>{ct.MoTa}</td></tr>");
+                    sb.Append($"<tr><th>Thời gian dự tính:</th><td>{ct.TimeDuTinh?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
+                }
+                else if (don.HrDangKySuDungXeCongTac3s.Any())
+                {
+                    var ct = don.HrDangKySuDungXeCongTac3s.First();
+                    sb.Append($"<tr><th>Số điện thoại:</th><td>{ct.SoDienThoai}</td></tr>");
+                    sb.Append($"<tr><th>Số lượng người:</th><td>{ct.SoLuong}</td></tr>");
+                    sb.Append($"<tr><th>Lý do / Lộ trình:</th><td>{ct.LiDo}</td></tr>");
+                    sb.Append($"<tr><th>Thời gian đi:</th><td>{ct.TimeDuTinh?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
+                    sb.Append($"<tr><th>Thời gian về:</th><td>{ct.ThoiGianVe?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
+                    sb.Append($"<tr><th>Ghi chú:</th><td>{ct.GhiChu}</td></tr>");
+                }
+                else if (don.HrDangKySuDungXeDaily4s.Any())
+                {
+                    var ct = don.HrDangKySuDungXeDaily4s.First();
+                    sb.Append($"<tr><th>Điểm đón:</th><td>{ct.DiemDon}</td></tr>");
+                    sb.Append($"<tr><th>Lý do:</th><td>{ct.LiDo}</td></tr>");
+                    sb.Append($"<tr><th>Thời gian:</th><td>{ct.TimeDuTinh?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
+                }
+                else if (don.HrDonTiepKhac5s.Any())
+                {
+                    var ct = don.HrDonTiepKhac5s.First();
+                    sb.Append($"<tr><th>Tên công ty khách:</th><td>{ct.TenCongTyKhach}</td></tr>");
+                    sb.Append($"<tr><th>Số lượng khách:</th><td>{ct.SoLuongKhach}</td></tr>");
+                    sb.Append($"<tr><th>Người đặt:</th><td>{ct.NguoiBook}</td></tr>");
+                    sb.Append($"<tr><th>Yêu cầu tiếp khách:</th><td>{ct.YeuCauTiepKhach}</td></tr>");
+                    sb.Append($"<tr><th>Phòng họp:</th><td>{ct.TenPhongHop}</td></tr>");
+                    sb.Append($"<tr><th>Loại suất ăn:</th><td>{ct.LoaiSuatAn}</td></tr>");
+                    sb.Append($"<tr><th>Ghi chú suất ăn:</th><td>{ct.GhiChuSuatAn}</td></tr>");
+                }
+                else if (don.HrNhaThauQuaCong6s.Any())
+                {
+                    var ct = don.HrNhaThauQuaCong6s.First();
+                    sb.Append($"<tr><th>Tên nhà thầu:</th><td>{ct.TenNhaThau}</td></tr>");
+                    sb.Append($"<tr><th>Số người:</th><td>{ct.SoNguoi}</td></tr>");
+                    sb.Append($"<tr><th>Người đăng ký:</th><td>{ct.NguoiDangKy}</td></tr>");
+                    sb.Append($"<tr><th>Mục đích công việc:</th><td>{ct.MucDichCongViec}</td></tr>");
+                }
+                else if (don.HrHoTroTienDienThoai7s.Any())
+                {
+                    var ct = don.HrHoTroTienDienThoai7s.First();
+                    sb.Append($"<tr><th>Số điện thoại:</th><td>{ct.SoDienThoai}</td></tr>");
+                    sb.Append($"<tr><th>Mức hỗ trợ:</th><td>{ct.MucHoTro}</td></tr>");
+                    sb.Append($"<tr><th>Mục đích:</th><td>{ct.MucDich}</td></tr>");
+                }
+                else if (don.HrDoiCaLam8s.Any())
+                {
+                    var ct = don.HrDoiCaLam8s.First();
+                    sb.Append($"<tr><th>Ngày cần đổi:</th><td>{ct.NgayCanDoi?.ToString("dd/MM/yyyy")}</td></tr>");
+                    sb.Append($"<tr><th>Ca gốc:</th><td>{ct.CaGoc}</td></tr>");
+                    sb.Append($"<tr><th>Ca muốn đổi:</th><td>{ct.CaMuonDoi}</td></tr>");
+                    sb.Append($"<tr><th>Lý do đổi ca:</th><td>{ct.LyDoDoiCa}</td></tr>");
+                }
+                else if (don.HrDonHoTroCongTac9s.Any())
+                {
+                    var ct = don.HrDonHoTroCongTac9s.First();
+                    sb.Append($"<tr><th>Mã NV Công tác:</th><td>{ct.MaNhanVien}</td></tr>");
+                    sb.Append($"<tr><th>Tên khách hàng:</th><td>{ct.TenKhachHang}</td></tr>");
+                    sb.Append($"<tr><th>Đặt vé máy bay:</th><td>{(ct.DatVeMayBay == true ? "Có" : "Không")}</td></tr>");
+                    sb.Append($"<tr><th>Đặt chỗ ở:</th><td>{(ct.DatChoO == true ? "Có" : "Không")}</td></tr>");
+                    sb.Append($"<tr><th>Đặt bữa ăn:</th><td>{(ct.DatBuaAn == true ? "Có" : "Không")}</td></tr>");
+                    sb.Append($"<tr><th>Xe đưa đón:</th><td>{(ct.BookXeCtyDuaDon == true ? "Có" : "Không")}</td></tr>");
+                    sb.Append($"<tr><th>Chi tiết yêu cầu:</th><td>{ct.NoiDungYeuCauChiTiet}</td></tr>");
+                }
+                else if (don.HrDonKiTucXa10s.Any())
+                {
+                    var ct = don.HrDonKiTucXa10s.First();
+                    sb.Append($"<tr><th>Mã nhân viên:</th><td>{ct.MaNhanVien}</td></tr>");
+                    sb.Append($"<tr><th>Họ và tên:</th><td>{ct.HoTen}</td></tr>");
+                    sb.Append($"<tr><th>Phòng ban / Chức vụ:</th><td>{ct.PhongBan} / {ct.ChucVu}</td></tr>");
+                    sb.Append($"<tr><th>Thời gian nhận phòng:</th><td>{ct.ThoiGianNhanPhong?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
+                    sb.Append($"<tr><th>Thời gian trả phòng:</th><td>{ct.ThoiGianTraPhong?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
+                    sb.Append($"<tr><th>Loại phòng:</th><td>{ct.LoaiPhong}</td></tr>");
+                    sb.Append($"<tr><th>Ghi chú:</th><td>{ct.GhiChu}</td></tr>");
+                }
+                else if (don.HrDonSuDungDienThoai12s.Any())
+                {
+                    var ct = don.HrDonSuDungDienThoai12s.First();
+                    sb.Append($"<tr><th>Mã số thẻ / Họ tên:</th><td>{ct.MaSoThe} - {ct.HoTen}</td></tr>");
+                    sb.Append($"<tr><th>Bộ phận / Cấp bậc:</th><td>{ct.BoPhan} / {ct.CapBac}</td></tr>");
+                    sb.Append($"<tr><th>Chức vụ:</th><td>{ct.ChucVu}</td></tr>");
+                    sb.Append($"<tr><th>Thời gian bắt đầu dùng:</th><td>{ct.ThoiGianBatDauSuDung?.ToString("dd/MM/yyyy HH:mm")}</td></tr>");
+                    sb.Append($"<tr><th>Lý do sử dụng:</th><td>{ct.LyDoSuDung}</td></tr>");
+                    sb.Append($"<tr><th>Ghi chú:</th><td>{ct.GhiChu}</td></tr>");
+                }
+                sb.Append("</table>");
+            }
+
+            // ============================================================
+            // PHẦN CHỮ KÝ ĐIỆN TỬ - THAY ĐỔI TIÊU ĐỀ SONG NGỮ KHI LÀ ĐƠN 11
+            // ============================================================
+            bool isDonLamLaiThe = don.HrDonLamLaiThe11s != null && don.HrDonLamLaiThe11s.Any();
+
             int totalCols = 3 + gdList.Count() + b2List.Count();
             double colPercent = 100.0 / (totalCols > 0 ? totalCols : 1);
 
-            void AppendSig(string title, string name, DateTime? time)
+            void AppendSig(string title, string titleZh, string name, DateTime? time)
             {
-                sb.Append($"<td style='width:{colPercent}%;'><strong>{title}</strong><br/><span style='font-size:9pt;'>(Chữ ký điện tử)</span><br/>");
+                sb.Append($"<td style='width:{colPercent}%;'>");
+                sb.Append($"<strong>{title}</strong>");
+                if (isDonLamLaiThe && !string.IsNullOrEmpty(titleZh))
+                {
+                    sb.Append($"<br/><span class='lang-zh' style='font-size:10pt;'>{titleZh}</span>");
+                }
+                sb.Append("<br/><span style='font-size:8.5pt; font-style:italic;'>(Chữ ký điện tử)</span><br/>");
+
                 if (time.HasValue)
                     sb.Append($"<div class='digital-signature-box'><div class='sig-status'>Signature Valid</div><div class='sig-info'>Ký bởi: {name}<br/>Ký ngày: {time?.ToString("dd/MM/yyyy")}</div><div class='sig-check-mark'>✓</div></div>");
                 else
@@ -3118,17 +3307,42 @@ namespace E_Form_Best.Areas.HRform.Controllers
             }
 
             sb.Append("<table class='signature-table'><tr>");
-            AppendSig("NGƯỜI LẬP ĐƠN", don.TenNguoiTao ?? "", don.TimeNguoiTao);
-            AppendSig("QUẢN LÝ TRỰC TIẾP", don.TenNguoiDuyet ?? "", don.TimeNguoiDuyet);
-            foreach (var b2 in b2List.OrderBy(x => x.ThuTuXacNhan)) AppendSig("QUẢN LÝ B2", b2.TenNguoiXacNhan ?? "", b2.ThoiGianXacNhan);
-            foreach (var xn in gdList.OrderBy(x => x.ThuTuXacNhan)) AppendSig("BAN GIÁM ĐỐC", xn.IdnguoiXacNhanNavigation?.HoTen ?? xn.TenNguoiXacNhan ?? "", xn.ThoiGianXacNhan);
-            AppendSig("XÁC NHẬN (HR)", don.TenAdmin ?? "", don.TimeAdmin);
-            sb.Append("</tr></table></div></body></html>");
+
+            // 1. Người lập đơn
+            AppendSig("Người xin", "申请人", don.TenNguoiTao ?? "", don.TimeNguoiTao);
+
+            // 2. Quản lý trực tiếp
+            AppendSig("Quản lý bộ phận", "部门经理", don.TenNguoiDuyet ?? "", don.TimeNguoiDuyet);
+
+            // 3. Danh sách quản lý bước 2 (nếu có)
+            foreach (var b2 in b2List.OrderBy(x => x.ThuTuXacNhan))
+            {
+                AppendSig("Quản lý B2", "部门经理 B2", b2.TenNguoiXacNhan ?? "", b2.ThoiGianXacNhan);
+            }
+
+            // 4. Ban Giám đốc duyệt (nếu có)
+            foreach (var xn in gdList.OrderBy(x => x.ThuTuXacNhan))
+            {
+                AppendSig("Ban Giám Đốc", "总经理", xn.IdnguoiXacNhanNavigation?.HoTen ?? xn.TenNguoiXacNhan ?? "", xn.ThoiGianXacNhan);
+            }
+
+            // 5. Nhân sự xác nhận cuối cùng
+            AppendSig("HCNS xác nhận", "人力资源部", don.TenAdmin ?? "", don.TimeAdmin);
+
+            sb.Append("</tr></table>");
+
+            // Mã số tài liệu biểu mẫu ở góc dưới cùng bên phải đơn làm lại thẻ
+            if (isDonLamLaiThe)
+            {
+                sb.Append("<div class='doc-footer-id'>BPVN-HR-PR-017 A/1</div>");
+            }
+
+            sb.Append("</div></body></html>");
 
             return sb.ToString();
         }
         #endregion
-        
+
         #region BÌNH LUẬN ĐƠN HR
 
         [HttpGet("/FormHR/LayBinhLuan/{idForm}")]

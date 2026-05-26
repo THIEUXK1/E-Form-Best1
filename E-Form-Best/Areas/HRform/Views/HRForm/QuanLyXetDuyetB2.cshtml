@@ -137,8 +137,8 @@
         }
 
     /* ==========================================
-           BỔ SUNG CSS CHO MOBILE RESPONSIVE
-           ========================================== */
+               BỔ SUNG CSS CHO MOBILE RESPONSIVE
+               ========================================== */
     @@media (max-width: 768px) {
         .mobile-top-bar {
             flex-direction: column !important;
@@ -566,11 +566,22 @@
             tbody.innerHTML = "";
 
             if (pageData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: #94a3b8; border:none; display:block;">Không tìm thấy dữ liệu.</td></tr>`;
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="padding: 50px 15px; text-align: center; color: #94a3b8; width: 100%; display: table-cell !important; border: none !important;">
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
+                                <i class="fa fa-folder-open-o" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5; color: #64748b;"></i>
+                                <span style="font-weight: 600; font-size: 14px; white-space: normal; text-align: center; color: #64748b;">
+                                    Không tìm thấy dữ liệu yêu cầu phù hợp với bộ lọc.
+                                </span>
+                            </div>
+                        </td>
+                    </tr>`;
                 return;
             }
 
             let html = "";
+            // ... (Giữ nguyên toàn bộ phần logic vòng lặp pageData.forEach phía dưới của bạn, không thay đổi)
             pageData.forEach(item => {
                 let badgesHtml = `<span>ID: #${item.id} • <i class="fa fa-clock-o"></i> ${item.timeNguoiTao}</span>`;
 
