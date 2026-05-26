@@ -554,7 +554,6 @@
                         <span><i class="fa fa-user"></i> @Model.TenNguoiTao</span>
                     </div>
 
-                    @* --- KIỂM TRA QUYỀN TRƯỚC KHI HIỂN THỊ CỤM NÚT XUẤT FILE --- *@
                     @if (User.IsInRole("All") || User.IsInRole("AdminHR"))
                     {
                         <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
@@ -629,7 +628,6 @@
                         }
                     </div>
 
-                    @* Chỉ All và AdminHR mới thấy block chỉ định người hỗ trợ *@
                     @if ((User.IsInRole("All") || User.IsInRole("AdminHR")) && !isCancelled && !isFinished)
                     {
                         <div style="background:#fff7ed;border:2px dashed #fb923c;padding:25px;border-radius:24px;margin-bottom:45px;">
@@ -651,9 +649,7 @@
                                     }
                                 </select>
                                 <button class="mobile-btn-action" onclick="changeSupporter()"
-                                        style="background:#ea580c;color:white;border:none;padding:0 35px;border-radius:12px;font-weight:800;cursor:pointer;font-size:15px;min-height:48px;transition:all 0.2s;"
-                                        onmouseover="this.style.background='#c2410c';this.style.transform='translateY(-1px)'"
-                                        onmouseout="this.style.background='#ea580c';this.style.transform='none'">
+                                        style="background:#ea580c;color:white;border:none;padding:0 35px;border-radius:12px;font-weight:800;cursor:pointer;font-size:15px;min-height:48px;transition:all 0.2s;">
                                     XÁC NHẬN
                                 </button>
                             </div>
@@ -670,13 +666,11 @@
                         <span id="historyToggleIcon" style="display:none; color:#1e40af; font-size:18px; background:#eff6ff; padding:8px 12px; border-radius:12px;"><i class="fa fa-chevron-down"></i> XEM LỊCH SỬ</span>
                     </div>
 
-                    <!-- Cập nhật đoạn code render Nhật ký trong FormHR -->
                     <div id="historyContent" class="mobile-history-content" style="background:#fff;border:1px solid #e2e8f0;border-radius:28px;padding:35px;">
                         <div style="margin-left:10px;border-left:2px dashed #e2e8f0;padding-left:30px;">
                             @if (Model.LichSuFormHrs?.Any() == true)
                             {
                                 bool isUserAll = User.IsInRole("All");
-                                // Quyền All thấy tất cả, người khác chỉ thấy log public (TrangThaiAnHien == true)
                                 var lichSuHienThi = Model.LichSuFormHrs
                                                  .Where(x => x.TrangThaiAnHien == true || isUserAll)
                                                  .OrderByDescending(x => x.Time)
@@ -692,7 +686,6 @@
                                                 <div style="font-weight:800;color:#1e293b;font-size:15px;margin-bottom:4px;display:flex;align-items:center;flex-wrap:wrap;">
                                                     @ls.TieuDe
 
-                                                    <!-- Chỉ hiển thị Badge "LOG ẨN" cho quyền All -->
                                                     <span id="badge-container-@ls.Id">
                                                         @if (isUserAll && ls.TrangThaiAnHien == false)
                                                         {
@@ -700,7 +693,6 @@
                                                         }
                                                     </span>
 
-                                                    <!-- Chỉ hiển thị nút Toggle cho quyền All -->
                                                     @if (isUserAll)
                                                     {
                                                         <button onclick="toggleLichSuVisibility(@ls.Id)"
@@ -805,7 +797,6 @@
                                     string statusTextB2 = tt == 1 ? "ĐÃ DUYỆT" : tt == 2 ? "TỪ CHỐI" : "CHỜ DUYỆT";
                                     string statusColorB2 = tt == 1 ? "#059669" : tt == 2 ? "#dc2626" : "#7c3aed";
 
-                                    // --- KIỂM TRA QUYỀN DUYỆT B2 (CẢ NGƯỜI DUYỆT CHÍNH VÀ NGƯỜI ỦY QUYỀN) ---
                                     bool isNguoiDuyetChinh = string.Equals(b2.MaNguoiXacNhan ?? "", userEmailView, StringComparison.OrdinalIgnoreCase) || b2.IdnguoiXacNhan == currentUserId;
                                     bool isNguoiDuyetUyQuyen = false;
 
@@ -815,7 +806,6 @@
                                     }
 
                                     bool isMyTurn = (isNguoiDuyetChinh || isNguoiDuyetUyQuyen) && (b2.TrangThaiXacNhan ?? 0) == 0 && !isCancelled && !isFinished && !isMissingNguoiDuyet;
-                                    // ------------------------------------------------------------------------
 
                                     <div class="mobile-b2-item" data-b2-id="@b2.Id" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:12px;border:1px solid #f1ecff;background:#fff;">
                                         <div>
@@ -933,12 +923,12 @@
                                                       style="width:100%;padding:10px 12px;border:1.5px solid #ddd6fe;border-radius:10px;font-size:13px;resize:vertical;min-height:60px;outline:none;font-family:'Segoe UI',sans-serif;box-sizing:border-box;margin-bottom:12px;transition:border 0.2s;"
                                                       onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#ddd6fe'"></textarea>
                                             <div style="display:flex;gap:10px;">
-                                                <button id="btnXnDuyet" onclick="giamDocXacNhan(@myXacNhan.Id, 'Approve')"
+                                                <button id="btnXnDuyet" onclick="giamDocXacNhan(@myXacNhan.Id, 'Approve')" class="mobile-btn-action"
                                                         style="flex:1;padding:13px;background:#059669;color:white;border:none;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;box-shadow:0 4px 10px rgba(5,150,105,0.3);transition:all 0.2s;"
                                                         onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
                                                     <i class="fa fa-check"></i> DUYỆT
                                                 </button>
-                                                <button id="btnXnTuChoi" onclick="giamDocXacNhan(@myXacNhan.Id, 'Reject')"
+                                                <button id="btnXnTuChoi" onclick="giamDocXacNhan(@myXacNhan.Id, 'Reject')" class="mobile-btn-action"
                                                         style="flex:1;padding:13px;background:white;color:#dc2626;border:2px solid #dc2626;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;transition:all 0.2s;"
                                                         onmouseover="this.style.background='#fef2f2';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='white';this.style.transform=''">
                                                     <i class="fa fa-times"></i> TỪ CHỐI
@@ -956,12 +946,11 @@
                         <div style="display:flex;flex-direction:column;gap:15px;margin-bottom:25px;">
                             @if (!isApprovedByManager && (User.IsInRole("All") || User.IsInRole("QuanLyDuyetDonHR")))
                             {
-
-                                    <button id="btnDuyet" onclick="handleAction('Duyet')"
-                                            style="background:#059669;color:white;border:none;padding:20px;border-radius:18px;font-weight:900;cursor:pointer;font-size:16px;box-shadow:0 10px 15px -3px rgba(5,150,105,0.3);transition:all 0.2s;"
-                                            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-                                        <i class="fa fa-check-circle"></i> DUYỆT ĐƠN (QUẢN LÝ)
-                                    </button>
+                                <button id="btnDuyet" onclick="handleAction('Duyet')"
+                                        style="background:#059669;color:white;border:none;padding:20px;border-radius:18px;font-weight:900;cursor:pointer;font-size:16px;box-shadow:0 10px 15px -3px rgba(5,150,105,0.3);transition:all 0.2s;"
+                                        onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+                                    <i class="fa fa-check-circle"></i> DUYỆT ĐƠN (QUẢN LÝ)
+                                </button>
                             }
                             @if (isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminHR")))
                             {
@@ -971,7 +960,7 @@
                                     <i class="fa fa-star"></i> XÁC NHẬN HOÀN TẤT (HR)
                                 </button>
                             }
-                            @if (User.IsInRole("All") || User.IsInRole("AdminHR") || User.IsInRole("QuanLyDuyetDonHR"))
+                            @if (User.IsInRole("All") || User.IsInRole("AdminHR") || User.IsInRole("QuanLyDuyetDonHR") || (currentUserId != 0 && Model.IdNguoiTao == currentUserId))
                             {
                                 <button id="btnHuy" onclick="handleAction('Huy')"
                                         style="background:white;color:#dc2626;border:2px solid #dc2626;padding:18px;border-radius:18px;font-weight:800;cursor:pointer;font-size:15px;transition:all 0.2s;"
@@ -1106,36 +1095,34 @@
             </div>
         </div>
     </div>
+</div>
 
-    @* --- OVERLAY ZOOM CÓ NÚT XOAY ẢNH SIÊU ĐẸP, 100% INLINE CSS --- *@
-    <div id="imageOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(8px);">
-        <!-- Thanh công cụ chứa các nút bấm -->
-        <div class="mobile-zoom-toolbar" style="position:absolute;top:25px;right:35px;display:flex;gap:15px;z-index:10000;">
-            <button onclick="rotateImage(-90, event)" style="background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.3);border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;transition:all 0.3s;backdrop-filter:blur(8px);" onmouseover="this.style.background='rgba(255,255,255,0.3)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.15)';this.style.transform='none'" title="Xoay trái">
-                <i class="fa fa-undo"></i>
-            </button>
-            <button onclick="rotateImage(90, event)" style="background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.3);border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;transition:all 0.3s;backdrop-filter:blur(8px);" onmouseover="this.style.background='rgba(255,255,255,0.3)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.15)';this.style.transform='none'" title="Xoay phải">
-                <i class="fa fa-rotate-right"></i>
-            </button>
-            <div style="width:2px;background:rgba(255,255,255,0.2);margin:10px 0;"></div>
-            <button onclick="closeZoom(event)" style="background:#ef4444;color:white;border:none;border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:26px;transition:all 0.3s;box-shadow:0 4px 15px rgba(239,68,68,0.4);" onmouseover="this.style.background='#dc2626';this.style.transform='translateY(-2px) scale(1.05)'" onmouseout="this.style.background='#ef4444';this.style.transform='none'" title="Đóng">
-                <i class="fa fa-times"></i>
-            </button>
-        </div>
-        <!-- Vùng nhấp chuột bên ngoài để đóng -->
-        <div style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:9998;" onclick="closeZoom()"></div>
-        <!-- Container chứa ảnh -->
-        <div style="position:relative;z-index:9999;width:95%;height:95%;display:flex;align-items:center;justify-content:center;pointer-events:none;">
-            <img id="fullImage" src="" style="max-width:100%;max-height:100%;border-radius:16px;transition:transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);object-fit:contain;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);pointer-events:auto;">
-        </div>
+<div id="imageOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(8px);">
+    <div class="mobile-zoom-toolbar" style="position:absolute;top:25px;right:35px;display:flex;gap:15px;z-index:10000;">
+        <button onclick="rotateImage(-90, event)" style="background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.3);border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;transition:all 0.3s;backdrop-filter:blur(8px);" onmouseover="this.style.background='rgba(255,255,255,0.3)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.15)';this.style.transform='none'" title="Xoay trái">
+            <i class="fa fa-undo"></i>
+        </button>
+        <button onclick="rotateImage(90, event)" style="background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.3);border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;transition:all 0.3s;backdrop-filter:blur(8px);" onmouseover="this.style.background='rgba(255,255,255,0.3)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.15)';this.style.transform='none'" title="Xoay phải">
+            <i class="fa fa-rotate-right"></i>
+        </button>
+        <div style="width:2px;background:rgba(255,255,255,0.2);margin:10px 0;"></div>
+        <button onclick="closeZoom(event)" style="background:#ef4444;color:white;border:none;border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:26px;transition:all 0.3s;box-shadow:0 4px 15px rgba(239,68,68,0.4);" onmouseover="this.style.background='#dc2626';this.style.transform='translateY(-2px) scale(1.05)'" onmouseout="this.style.background='#ef4444';this.style.transform='none'" title="Đóng">
+            <i class="fa fa-times"></i>
+        </button>
+    </div>
+    <div style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:9998;" onclick="closeZoom()"></div>
+    <div style="position:relative;z-index:9999;width:95%;height:95%;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+        <img id="fullImage" src="" style="max-width:100%;max-height:100%;border-radius:16px;transition:transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);object-fit:contain;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);pointer-events:auto;">
     </div>
 </div>
 
 <script>
-    // FIX TRIỆT ĐỂ: Viết gọn biểu thức C# trên một dòng để IDE không biên dịch nhầm thành cú pháp JS
-    const formId        = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.Id));
-    const currentUserId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(currentUserId));
-    const userRoles     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList()));
+    // --- KHỞI TẠO BIẾN DỮ LIỆU ĐỒNG BỘ BẰNG JSON.PARSE GIÚP SỬA LỖI EXPRESSION EXPECTED ---
+    const formId        = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.Id))');
+    const currentUserId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.CurrentUserId))');
+    const formCreatorId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.IdNguoiTao))');
+    const userRoles     = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList()))');
+
     const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
     function hasRole(r) { return userRoles.includes(r); }
@@ -1193,7 +1180,6 @@
             if (data.success) {
                 const isVisible = data.newState;
 
-                // Lấy các element cần đổi CSS
                 const itemDiv = document.getElementById(`log-item-${idLichSu}`);
                 const btn = document.getElementById(`btn-toggle-log-${idLichSu}`);
                 const badgeContainer = document.getElementById(`badge-container-${idLichSu}`);
@@ -1202,7 +1188,6 @@
                 const timeColor = document.getElementById(`log-time-${idLichSu}`);
 
                 if (isVisible) {
-                    // Chuyển sang dạng HIỂN THỊ
                     itemDiv.style.opacity = "1";
                     itemDiv.style.filter = "none";
 
@@ -1217,7 +1202,6 @@
                     innerBox.style.borderColor = "#f1f5f9";
                     timeColor.style.color = "#3b82f6";
                 } else {
-                    // Chuyển sang dạng ẨN
                     itemDiv.style.opacity = "0.75";
                     itemDiv.style.filter = "grayscale(90%)";
 
@@ -1246,7 +1230,7 @@
     function openZoom(src) {
         const imgEl = document.getElementById('fullImage');
         imgEl.src = src;
-        currentImageRotation = 0; // Reset góc xoay mỗi khi mở ảnh mới
+        currentImageRotation = 0;
         imgEl.style.transform = `rotate(${currentImageRotation}deg)`;
 
         document.getElementById('imageOverlay').style.display = 'flex';
@@ -1260,7 +1244,7 @@
     }
 
     function rotateImage(degree, event) {
-        if(event) event.stopPropagation(); // Ngăn sự kiện click đóng ảnh bên dưới
+        if(event) event.stopPropagation();
         currentImageRotation += degree;
         const imgEl = document.getElementById('fullImage');
         imgEl.style.transform = `rotate(${currentImageRotation}deg)`;
@@ -1270,7 +1254,6 @@
 
     // ── DUYỆT BƯỚC 2 (B2) ──
     async function duyetB2(idRecord, action) {
-        // Loại bỏ việc lấy ghi chú từ prompt vì phía Server đã tự gán mặc định
         const actionText = action === 'Approve' ? 'DUYỆT' : 'TỪ CHỐI';
 
         if (!confirm('Bạn có chắc chắn muốn ' + actionText + ' bước này không?')) {
@@ -1284,7 +1267,6 @@
                     'Content-Type': 'application/json',
                     'RequestVerificationToken': TOKEN
                 },
-                // Đã bỏ trường ghiChu khỏi body gửi lên
                 body: JSON.stringify({
                     idB2: idRecord,
                     idForm: formId,
@@ -1345,8 +1327,12 @@
             reason = prompt('Vui lòng nhập lý do hủy đơn:');
             if (reason === null || reason.trim() === '') return;
         }
-        if (!hasRole('All') && !hasRole('AdminHR') && !hasRole('QuanLyDuyetDonHR'))
+
+        // Sử dụng kiểu dữ liệu chuỗi an toàn để so sánh quyền hủy đơn trên Client-side
+        const isCreator = String(currentUserId) === String(formCreatorId);
+        if (!hasRole('All') && !hasRole('AdminHR') && !hasRole('QuanLyDuyetDonHR') && !isCreator)
             return alert('Bạn không có quyền thực hiện thao tác này!');
+
         if (confirm('Xác nhận thao tác?'))
             apiPost('/FormHR/XuLyDon', { id:formId, action:type, reason }, ['btnDuyet','btnHuy']);
     }
@@ -1429,7 +1415,7 @@
     }
 
     function renderComment(bl) {
-        const isOwn  = currentUserId === String(bl.idNguoiBinhLuan);
+        const isOwn  = String(currentUserId) === String(bl.idNguoiBinhLuan);
         const canDel = isOwn || hasRole('All') || hasRole('AdminHR');
         const time   = new Date(bl.thoiGian).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});
         let fileHtml = '';

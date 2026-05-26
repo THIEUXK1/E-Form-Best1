@@ -118,6 +118,7 @@
         // --- ĐÃ THÊM MỚI: Nhóm Email ---
         chiTietNoiDung += RenderInfoRow("👥", "Nhóm Email", ct.NhomEmail, "#fdf4ff", "#86198f");
 
+        // --- ĐÃ THÊM MỚI: Gửi nhận quốc tế & Mobile & Webmail ---
         chiTietNoiDung += RenderInfoRow("🌍", "Gửi nhận quốc tế", (ct.GuiRaNgoai == "Yes" ? "Có" : "Không"), "#fff7ed", "#c2410c");
         chiTietNoiDung += RenderInfoRow("📲", "Dùng trên Mobile", (ct.SuDungTrenDienThoai == "Yes" ? "Có" : "Không"), "#f0fdf4", "#166534");
         chiTietNoiDung += RenderInfoRow("🌐", "Truy cập Webmail", (ct.SuDungWebMail == "Yes" ? "Cho phép" : "Khóa"), "#f5f3ff", "#5b21b6");
@@ -211,8 +212,6 @@
             chiTietNoiDung += RenderInfoRow("🔑", "Hệ thống", ct.HeThongNao, "#fdf2f8", "#9d174d");
             chiTietNoiDung += RenderInfoRow("📝", "Loại đơn", ct.LoaiDon, "#fdf2f8", "#9d174d");
             chiTietNoiDung += RenderInfoRow("👤", "Đăng ký cho", danhSachNhanVien, "#f8fafc", "#0f172a");
-
-            // Đã xóa trường: Sử dụng tại máy tính/IP theo form yêu cầu mới
 
             chiTietNoiDung += RenderInfoRow("👥", "Quyền giống", ct.CapQuyenGiongAi, "#f8fafc", "#0f172a");
             chiTietNoiDung += RenderInfoRow("📄", "Mô tả chi tiết", ct.MoTaChiTiet, "#f8fafc", "#0f172a");
@@ -669,7 +668,7 @@
                                 </button>
                             }
 
-                            @if (User.IsInRole("All") || User.IsInRole("AdminIT") || User.IsInRole("QuanLyDuyetDonIT"))
+                            @if (User.IsInRole("All") || User.IsInRole("AdminIT") || User.IsInRole("QuanLyDuyetDonIT") || (ViewBag.CurrentUserId != null && (int)ViewBag.CurrentUserId == Model.IdNguoiTao))
                             {
                                 <button id="btnHuy"
                                         onclick="handleAction('Huy')"
@@ -719,7 +718,6 @@
                         }
                         else
                         {
-                            // Thay vì dùng .First() có nguy cơ null argument, dùng .FirstOrDefault() để bảo vệ an toàn
                             var dg = Model.DanhGiaFormIts != null ? Model.DanhGiaFormIts.FirstOrDefault() : null;
                             if (dg != null)
                             {
@@ -845,12 +843,11 @@
 </div>
 <script>
     // ==========================================
-      // ==========================================
     // 1. KHAI BÁO BIẾN CƠ BẢN & TRẠNG THÁI
     // ==========================================
-    // Biến code C# thành một chuỗi JSON thuần túy trong JS, IDE sẽ hiểu đây là chuỗi hợp lệ và tắt cảnh báo.
     const formId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.Id))');
     const currentUserId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.CurrentUserId))');
+    const formCreatorId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.IdNguoiTao))');
 
     // --- MỚI: Lấy danh sách Roles dưới dạng mảng ---
     const userRoles = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList()))');
@@ -975,7 +972,6 @@
     }
 
     function closeZoom(e) {
-        // Chỉ đóng nếu click vào nền đen (không phải ảnh hoặc nút bấm)
         if (e && e.target.id !== 'imageOverlay') return;
         closeZoomForce();
     }
@@ -1136,7 +1132,10 @@
         }
 
         const actionName = type === 'Duyet' ? "DUYỆT" : "HỦY";
-        if (!hasRole('All') && !hasRole('AdminIT') && !hasRole('QuanLyDuyetDonIT')) {
+
+        // --- CẬP NHẬT: Cho phép nếu là Người tạo đơn nữa ---
+        const isCreator = currentUserId === formCreatorId;
+        if (!hasRole('All') && !hasRole('AdminIT') && !hasRole('QuanLyDuyetDonIT') && !isCreator) {
             return alert("Bạn không có quyền thực hiện thao tác này!");
         }
 
