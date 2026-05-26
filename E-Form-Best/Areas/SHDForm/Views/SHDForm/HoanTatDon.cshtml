@@ -739,14 +739,26 @@
         }
 
         function renderTable(pageData) {
-            const tbody = document.getElementById("tableBody");
-            tbody.innerHTML = "";
-            if (pageData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="padding: 100px; text-align: center; color: #94a3b8; border:none; display: block;"><i class="fa fa-inbox" style="font-size: 50px; opacity: 0.2;"></i><p style="font-weight: 700; margin-top:10px;">Không có hồ sơ phù hợp bộ lọc.</p></td></tr>`;
-                return;
-            }
+                    const tbody = document.getElementById("tableBody");
+                    tbody.innerHTML = "";
 
-            let html = "";
+                    if (pageData.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="6" style="padding: 50px 15px; text-align: center; color: #94a3b8; width: 100%; display: table-cell !important; border: none !important;">
+                                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
+                                        <i class="fa fa-folder-open-o" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5; color: #64748b;"></i>
+                                        <span style="font-weight: 600; font-size: 14px; white-space: normal; text-align: center; color: #64748b;">
+                                            Không tìm thấy dữ liệu yêu cầu phù hợp với bộ lọc.
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>`;
+                        return;
+                    }
+
+                    let html = "";
+                    // ... (Giữ nguyên toàn bộ phần logic vòng lặp pageData.forEach phía dưới của bạn, không thay đổi)
             pageData.forEach(item => {
                 let badgesHtml = `<span>#${item.id} • ${item.timeNguoiTao}</span>`;
                 if (item.hasB2) badgesHtml += `<span class="sub-badge" style="color: #6b21a8; border-color: #ddd6fe; background: #f5f3ff; margin-left:8px;">B2 (${item.b2DoneCount}/${item.b2TotalCount})</span>`;
