@@ -15,8 +15,7 @@
 
     bool isITSystem = currentController.Contains("IT") || currentController == "Mail" || currentController.Contains("Order");
 
-    string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi" };
-    bool isITSubActive = itSubPages.Contains(currentAction);
+    string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi", "DonCapQuyenOChung" }; bool isITSubActive = itSubPages.Contains(currentAction);
 
     // Khai báo biến cho menu Thống kê
     string[] reportPages = { "BaoCaoThongKe" }; // Bạn có thể thêm các Action báo cáo khác vào đây sau này
@@ -356,9 +355,12 @@
                             <a href="/FormIT/DonLapDatThietBi" class="submenu-link @(currentAction == "DonLapDatThietBi" ? "active" : "")">
                                 <i class="fa fa-plus-square" style="margin-right:12px; width:15px; color: #65a30d;"></i> <span class="lang-text" data-key="reg_install_equip">7. Đơn lắp đặt TB</span>
                             </a>
+                            @* Mục số 8 với màu mới hoàn toàn #8b5cf6 (Màu Tím) *@
+                            <a href="/FormIT/DonCapQuyenOChung" class="submenu-link @(currentAction == "DonCapQuyenOChung" ? "active" : "")">
+                                <i class="fa fa-folder-open" style="margin-right:12px; width:15px; color: #8b5cf6;"></i> <span class="lang-text" data-key="reg_share_folder">8. Cấp quyền ổ chung</span>
+                            </a>
                         }
                     </div>
-
                     <a href="@(isITSystem ? "/FormIT/DonCho" : "/FormHR/DonCho")" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
                         <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text" data-key="my_forms">Đơn của tôi</span>
                     </a>

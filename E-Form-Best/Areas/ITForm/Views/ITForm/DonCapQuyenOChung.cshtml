@@ -1,0 +1,401 @@
+﻿@model E_Form_Best.Models.ITForm.FormIt
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Đăng ký Cấp quyền ổ chung";
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+
+    var tenNguoiNv = User.Identity?.Name ?? "";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+    var emailHienTai = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    var userRole = User.FindFirst("UserRole")?.Value ?? "";
+    var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+    var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
+
+    string colorPrimary = "#8b5cf6";
+    string colorDark = "#4c1d95";
+    string colorLight = "#f5f3ff";
+    string colorBorder = "#ddd6fe";
+
+    string inputBase = $"width: 100%; padding: 12px; border-radius: 12px; border: 1px solid {colorBorder}; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; color: {colorDark}; transition: all 0.3s;";
+    string labelBase = $"font-weight: 800; color: {colorDark}; font-size: 11px; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.8px;";
+    string boxDetail = $"background: #ffffff; padding: 25px; border-radius: 24px; border: 1px solid {colorLight}; margin-bottom: 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);";
+}
+
+<style>
+    .input-hover:focus {
+        border-color: @colorPrimary !important;
+        box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1) !important;
+    }
+
+    .btn-grad:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px -5px rgba(139, 92, 246, 0.5) !important;
+        opacity: 0.95;
+    }
+
+    #paste_AnhOChung:hover {
+        border-color: @colorPrimary !important;
+        background: #fbfbff !important;
+    }
+
+    .ho-tro-item:hover {
+        border-color: @colorPrimary !important;
+        background-color: #f8fafc;
+        transform: translateY(-2px);
+    }
+
+    .radio-group label {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 15px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        transition: 0.2s;
+        font-weight: 700;
+        color: @colorDark;
+    }
+
+    .radio-group input[type="radio"]:checked + span {
+        color: @colorPrimary;
+    }
+
+    @@media (max-width: 768px) {
+        .main-container {
+            padding: 20px 10px !important;
+        }
+
+        .form-card {
+            border-radius: 25px !important;
+        }
+
+        .header-section {
+            padding: 30px 15px !important;
+        }
+
+            .header-section h2 {
+                font-size: 20px !important;
+            }
+
+        .body-section {
+            padding: 20px !important;
+        }
+
+        .grid-employee, .grid-config, .grid-options, .grid-attachments {
+            grid-template-columns: 1fr !important;
+            gap: 15px !important;
+        }
+
+        .radio-group {
+            flex-direction: column;
+        }
+
+            .radio-group label {
+                width: 100%;
+            }
+
+        .box-detail-custom {
+            padding: 15px !important;
+            border-radius: 20px !important;
+        }
+
+        .btn-grad {
+            padding: 18px !important;
+            font-size: 16px !important;
+        }
+    }
+</style>
+
+<div class="main-container" style="background: linear-gradient(135deg, #f5f3ff 0%, #edd9ff 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif;">
+
+    <form id="itOChungForm" action="/FormIT/DonCapQuyenOChung" method="post" enctype="multipart/form-data" class="form-card"
+          style="max-width: 950px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(76, 29, 149, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
+
+        @Html.AntiForgeryToken()
+
+        <div class="header-section" style="background: linear-gradient(135deg, @colorPrimary 0%, #7c3aed 100%); padding: 45px 20px; color: #ffffff; text-align: center; position: relative;">
+            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">SHARE FOLDER V1.0</div>
+            <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Phiếu yêu cầu cấp quyền ổ chung</h2>
+            <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: rgba(255,255,255,0.25); border-radius: 50px; font-size: 13px; backdrop-filter: blur(4px);">
+                <span>📅 Ngày yêu cầu:</span>
+                <span style="font-weight: 800; color: #ffffff;">@ngayHienThi</span>
+            </div>
+        </div>
+
+        <div class="body-section" style="padding: 40px;">
+
+            @* BƯỚC 1: THÔNG TIN NHÂN VIÊN *@
+            <div style="margin-bottom: 40px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3);">1</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin nhân viên đơn vị</h3>
+                </div>
+
+                <div class="grid-employee" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                    <div style="background: #faf8ff; padding: 15px; border-radius: 15px; border: 1px solid #eee7ff;">
+                        <label style="@labelBase">Người làm đơn</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@tenNguoiNv</div>
+                    </div>
+                    <div style="background: #faf8ff; padding: 15px; border-radius: 15px; border: 1px solid #eee7ff;">
+                        <label style="@labelBase">Bộ phận</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@phongBan</div>
+                    </div>
+                    <div style="background: #faf8ff; padding: 15px; border-radius: 15px; border: 1px solid #eee7ff;">
+                        <label style="@labelBase">Công ty</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@tenCongTy</div>
+                    </div>
+                    <div style="background: #faf8ff; padding: 15px; border-radius: 15px; border: 1px solid #eee7ff;">
+                        <label style="@labelBase">Email hiện tại</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px; word-break: break-all;">@emailHienTai</div>
+                    </div>
+                </div>
+            </div>
+
+            @* BƯỚC 2: CẤU HÌNH YÊU CẦU CẤP QUYỀN *@
+            <div class="box-detail-custom" style="@boxDetail">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Cấu hình ổ chung cần cấp quyền</h3>
+                </div>
+
+                <div style="margin-bottom: 25px; padding: 18px; background: #faf8ff; border: 1px solid @colorBorder; border-radius: 20px;">
+                    <label style="@labelBase">Loại yêu cầu <span style="color:red">*</span></label>
+                    <div class="radio-group" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <label>
+                            <input type="radio" name="LoaiYeuCau" value="Thêm mới quyền" checked style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                            <span>Thêm mới quyền</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="LoaiYeuCau" value="Chỉnh sửa quyền cũ" style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                            <span>Chỉnh sửa quyền cũ</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="LoaiYeuCau" value="Hủy bỏ quyền" style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                            <span>Hủy bỏ quyền</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="grid-config" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <label style="@labelBase">Tên/Đường dẫn thư mục ổ chung <span style="color:red">*</span></label>
+                        <input type="text" name="TenThuMucOchung" id="TenThuMucOchung" placeholder="Ví dụ: \\10.0.60.30\Public\IT-Dept" required class="input-hover" style="@inputBase">
+                    </div>
+                    <div>
+                        <label style="@labelBase">Loại quyền yêu cầu <span style="color:red">*</span></label>
+                        <select name="LoaiQuyenYeuCau" class="input-hover" style="@inputBase">
+                            <option value="Read">Chỉ đọc (Read)</option>
+                            <option value="Read/Write">Đọc / Ghi (Read/Write)</option>
+                            <option value="Full Control">Toàn quyền (Full Control)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid-options" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px;">
+                    <div>
+                        <label style="@labelBase">Người sử dụng quyền <span style="color:red">*</span></label>
+                        <input type="text" name="NguoiSuDung" id="NguoiSuDung" placeholder="Ví dụ: Nguyễn Văn A - V12345" required class="input-hover" style="@inputBase">
+                    </div>
+                    <div>
+                        <label style="@labelBase">Tên máy tính cần cấp <span style="color:red">*</span></label>
+                        <input type="text" name="TenMayTinh" id="TenMayTinh" placeholder="Ví dụ: PC-IT-01" required class="input-hover" style="@inputBase">
+                    </div>
+                    <div>
+                        <label style="@labelBase">Bộ phận & Công ty xác nhận <span style="color:red">*</span></label>
+                        <select name="BoPhanDuocChon" id="BoPhanDuocChon" class="input-hover" style="@inputBase">
+                            <option value="">-- Chọn công ty - bộ phận --</option>
+                            @if (ViewBag.ListPhongBan != null)
+                            {
+                                foreach (var pb in (List<string>)ViewBag.ListPhongBan)
+                                {
+                                    <option value="@pb">@pb</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="@labelBase">Mục đích sử dụng / Lý do <span style="color:red">*</span></label>
+                    <textarea name="MucDich" id="MucDich" required
+                              placeholder="Vui lòng ghi rõ mục đích sử dụng thư mục chung này..."
+                              class="input-hover"
+                              style="@inputBase height: 100px; resize: none;"></textarea>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="@labelBase">Ghi chú thêm</label>
+                    <input type="text" name="GhiChu" placeholder="Ghi chú thêm (nếu có)..." class="input-hover" style="@inputBase">
+                </div>
+
+                <div class="grid-attachments" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label style="@labelBase">Ảnh minh họa (Dán từ Clipboard)</label>
+                        <div id="paste_AnhOChung" tabindex="0"
+                             style="width: 100%; border: 2px dashed @colorBorder; height: 160px; border-radius: 15px; display: flex; align-items: center; justify-content: center; background: #faf8ff; color: @colorDark; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 700; transition: 0.3s; position: relative; outline: none;">
+                            <div style="text-align:center;"><i style="font-size: 20px; margin-bottom:8px;" class="fa fa-picture-o"></i><br>Bấm vào đây rồi Ctrl+V</div>
+                        </div>
+                        <input type="file" id="input_Anh" name="Anh" hidden accept="image/*">
+                    </div>
+                    <div>
+                        <label style="@labelBase">File đính kèm (Nếu có)</label>
+                        <div style="border: 2px dashed #e2e8f0; height: 160px; border-radius: 15px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; background: #ffffff; transition: 0.3s;">
+                            <input type="file" name="UploadFile" style="font-size: 12px; width: 100%;">
+                            <p style="font-size: 11px; color: #4c1d95; margin-top: 15px; line-height: 1.5;">Hỗ trợ: PDF, Excel, Docx, Zip...<br>Tối đa 10MB</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* BƯỚC 3: CHỌN NHÂN SỰ HỖ TRỢ *@
+            <div class="box-detail-custom" style="@boxDetail">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">3</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Chọn nhân sự IT hỗ trợ</h3>
+                </div>
+
+                <div class="grid-employee" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+                    @if (ViewBag.ListNguoiHoTro != null && ((List<E_Form_Best.Models.ITForm.ItNguoiHoTro>)ViewBag.ListNguoiHoTro).Count > 0)
+                    {
+                        foreach (var item in (List<E_Form_Best.Models.ITForm.ItNguoiHoTro>)ViewBag.ListNguoiHoTro)
+                        {
+                            foreach (var cv in item.CongViecIts)
+                            {
+                                <label class="ho-tro-item" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; background: white; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                    <input type="checkbox" name="SelectedCongViecIds" value="@cv.Id" style="width: 20px; height: 20px; accent-color: @colorPrimary;" />
+                                    <span style="flex: 1;">
+                                        <span style="font-weight: 700; color: @colorDark; font-size: 14px;">@item.Ten</span>
+                                        <span style="font-size: 12px; color: #64748b;">Mã NV: @item.MaNv</span>
+                                        <span style="margin-top: 5px; display: inline-block; padding: 2px 8px; background: #f5f3ff; color: #7c3aed; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                                            @cv.Ten
+                                        </span>
+                                    </span>
+                                </label>
+                            }
+                        }
+                    }
+                    else
+                    {
+                        <div style="grid-column: 1/-1; color: #ef4444; font-style: italic;">
+                            Hiện không có nhân sự nào đang đảm nhận mục "Cấp quyền ổ chung".
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* CAM KẾT & GỬI *@
+            <div style="margin-bottom: 30px; background: #faf8ff; border: 1px dashed @colorBorder; border-radius: 24px; padding: 25px;">
+                <h3 style="margin: 0 0 20px 0; color: @colorDark; font-size: 15px; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 1px;">
+                    BẢN CAM KẾT SỬ DỤNG DỮ LIỆU CHUNG
+                </h3>
+
+                <div style="max-height: 200px; overflow-y: auto; padding-right: 10px; margin-bottom: 20px; font-size: 13px; line-height: 1.6; color: @colorDark;">
+                    <ol style="margin: 0; padding-left: 20px; display: grid; gap: 10px;">
+                        <li><strong>Bảo mật tài sản số:</strong> Tôi cam kết không sao chép, chia sẻ dữ liệu từ ổ chung ra ngoài phạm vi công ty.</li>
+                        <li><strong>Trách nhiệm dữ liệu:</strong> Chịu trách nhiệm hoàn toàn về các file chỉnh sửa, xóa hoặc thay đổi trong thư mục được phân quyền.</li>
+                        <li><strong>Tuân thủ:</strong> Thực hiện đúng quy trình an toàn thông tin theo chính sách bảo mật của Công ty.</li>
+                    </ol>
+                </div>
+
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 12px; background: #ffffff; padding: 18px; border-radius: 15px; border: 1px solid @colorBorder; transition: 0.3s;">
+                    <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; cursor: pointer; accent-color: @colorPrimary;">
+                    <span style="font-size: 14px; font-weight: 800; color: @colorDark;">
+                        Tôi đã đọc và cam kết tuân thủ các điều khoản trên.
+                    </span>
+                </label>
+            </div>
+
+            <button type="button" id="btnSubmit" onclick="xuLyLuuDonOChung()" class="btn-grad"
+                    style="width: 100%; padding: 22px; background: linear-gradient(to right, @colorPrimary, #7c3aed); color: #ffffff; border: none; border-radius: 20px; font-weight: 900; font-size: 18px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.4); transition: 0.3s;">
+                Gửi yêu cầu phê duyệt
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.getElementById("paste_AnhOChung").addEventListener('paste', function(e) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    this.innerHTML = `<img src="${event.target.result}" style="height:100%; width:100%; object-fit:contain; border-radius:12px;">`;
+
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(blob);
+                    document.getElementById("input_Anh").files = dataTransfer.files;
+                };
+                reader.readAsDataURL(blob);
+            }
+        }
+    });
+
+    function xuLyLuuDonOChung() {
+        const thuMuc = document.getElementById("TenThuMucOchung").value;
+        const nguoiDung = document.getElementById("NguoiSuDung").value;
+        const tenMay = document.getElementById("TenMayTinh").value;
+        const boPhanChon = document.getElementById("BoPhanDuocChon").value;
+        const mucDich = document.getElementById("MucDich").value;
+
+        const chk = document.getElementById('chkCamKet');
+        const btn = document.getElementById("btnSubmit");
+        const selectedCVs = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
+        const loaiYeuCau = document.querySelector('input[name="LoaiYeuCau"]:checked');
+
+        if (!loaiYeuCau) {
+            alert("⚠️ Vui lòng chọn Loại yêu cầu!");
+            return;
+        }
+
+        if (!thuMuc.trim()) {
+            alert("⚠️ Vui lòng nhập Tên/Đường dẫn thư mục ổ chung!");
+            document.getElementById("TenThuMucOchung").focus();
+            return;
+        }
+
+        if (!nguoiDung.trim()) {
+            alert("⚠️ Vui lòng nhập Tên nhân viên sử dụng quyền!");
+            document.getElementById("NguoiSuDung").focus();
+            return;
+        }
+
+        if (!tenMay.trim()) {
+            alert("⚠️ Vui lòng nhập Tên máy tính cần cấp quyền!");
+            document.getElementById("TenMayTinh").focus();
+            return;
+        }
+
+        if (!boPhanChon) {
+            alert("⚠️ Vui lòng chọn Bộ phận và Công ty xác nhận cho phép!");
+            document.getElementById("BoPhanDuocChon").focus();
+            return;
+        }
+
+        if (!mucDich.trim()) {
+            alert("⚠️ Vui lòng nhập Mục đích sử dụng / Lý do!");
+            document.getElementById("MucDich").focus();
+            return;
+        }
+
+        if (selectedCVs.length === 0) {
+            alert("⚠️ Vui lòng chọn ít nhất một nhân sự IT hỗ trợ!");
+            return;
+        }
+
+        if (!chk.checked) {
+            alert("⚠️ Bạn cần xác nhận vào ô cam kết trước khi gửi!");
+            return;
+        }
+
+        if (confirm("Xác nhận gửi đơn " + loaiYeuCau.value + " này?")) {
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG XỬ LÝ...';
+            btn.style.opacity = '0.6';
+            btn.style.pointerEvents = 'none';
+            document.getElementById("itOChungForm").submit();
+        }
+    }
+</script>

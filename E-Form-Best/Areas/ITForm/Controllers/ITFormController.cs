@@ -2042,6 +2042,273 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
+        #region Don Cap Quyen O Chung 8
+        [HttpGet("/FormIT/DonCapQuyenOChung")]
+        public IActionResult DonCapQuyenOChung()
+        {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+                return Redirect("/DonXetDuyet/DangNhap");
+
+            // Lọc danh sách nhân viên IT phụ trách công việc "Cấp quyền ổ chung"
+            ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros
+                .Include(x => x.CongViecIts)
+                .Where(x => x.BoPhan == "IT")
+                .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
+                {
+                    Id = x.Id,
+                    MaNv = x.MaNv,
+                    Ten = x.Ten,
+                    BoPhan = x.BoPhan,
+                    GhiChu = x.GhiChu,
+                    CongViecIts = x.CongViecIts.Where(cv => cv.Ten == "Cấp quyền ổ chung").ToList()
+                })
+                .Where(x => x.CongViecIts.Any())
+                .ToList();
+
+            // Lấy danh sách kết hợp Tên Công Ty và Phòng Ban duy nhất từ bảng User
+            ViewBag.ListPhongBan = _context.Users
+                .Where(u => !string.IsNullOrEmpty(u.PhongBan) && !string.IsNullOrEmpty(u.TenCongTy))
+                .Select(u => u.TenCongTy + " - " + u.PhongBan)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToList();
+
+            // Lấy thông tin User từ Claims
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            int? userId = !string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out var tmpId) ? tmpId : null;
+
+            string userName = User.Identity.Name ?? "";
+            string phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+            string userRole = User.FindFirst("UserRole")?.Value ?? "";
+            string userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+            string tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+
+            var model = new FormIt
+            {
+                TenNguoiNv = userName,
+                BoPhan = phongBan,
+                ViTri = userRole,
+                SoNhanVien = userEmail,
+                TenCongTy = tenCongTy,
+                Ngay = DateOnly.FromDateTime(DateTime.Now),
+                IdNguoiTao = userId,
+                TenNguoiTao = userName,
+                TimeNguoiTao = DateTime.Now,
+                TrangThai = "ChoDuyet"
+            };
+
+            return View(model);
+        }
+
+        [HttpPost("/FormIT/DonCapQuyenOChung")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DonCapQuyenOChung(FormIt form, [FromForm] ItCapQuyenOchung8 itOChung, string BoPhanDuocChon, int[] SelectedCongViecIds)
+        {
+            // 1. Kiểm tra đăng nhập
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+                return Redirect("/DonXetDuyet/DangNhap");
+
+            // 2. Lấy thông tin User từ Claims
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            int.TryParse(userIdStr, out int userId);
+
+            var userName = User.Identity.Name ?? "";
+            var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+            var viTri = User.FindFirst("UserRole")?.Value ?? "";
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    // --- BƯỚC 1: LƯU BẢNG CHÍNH (FORMIT) ---
+                    form.Ngay = DateOnly.FromDateTime(DateTime.Now);
+                    form.IdNguoiTao = userId;
+                    form.TenNguoiTao = userName;
+                    form.TimeNguoiTao = DateTime.Now;
+                    form.TenNguoiNv = userName;
+                    form.BoPhan = phongBan;
+                    form.ViTri = viTri;
+                    form.SoNhanVien = userEmail;
+                    form.TenCongTy = tenCongTy;
+                    form.TrangThai = "ChoDuyet";
+                    form.IdForm = "IT_CapQuyenOChung_8";
+                    form.TenForm = "Đơn cấp quyền ổ chung";
+                    form.Danhmuc = "Cấp quyền ổ chung";
+
+                    _context.FormIts.Add(form);
+                    await _context.SaveChangesAsync();
+
+                    // --- CẤU HÌNH ĐƯỜNG DẪN LƯU FILE ---
+                    string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
+                    if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
+
+                    string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
+                    string timeStamp = DateTime.Now.ToString("ddMMyy_HHmmss");
+
+                    // --- BƯỚC 2: XỬ LÝ FILE ĐÍNH KÈM (UploadFile) ---
+                    var uploadFile = Request.Form.Files["UploadFile"];
+                    if (uploadFile != null && uploadFile.Length > 0)
+                    {
+                        string extension = Path.GetExtension(uploadFile.FileName);
+                        string fileName = $"DonOChung_ID{form.Id}_{safeName}_{timeStamp}{extension}";
+                        string fullPath = Path.Combine(networkPath, fileName);
+
+                        using (var fileStream = new FileStream(fullPath, FileMode.Create))
+                        {
+                            await uploadFile.CopyToAsync(fileStream);
+                        }
+
+                        form.FileDinhKem = fileName;
+                        _context.Entry(form).Property(x => x.FileDinhKem).IsModified = true;
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // --- BƯỚC 3: CHI TIẾT CẤU HÌNH Ổ CHUNG & XỬ LÝ ẢNH ---
+                    if (itOChung != null)
+                    {
+                        itOChung.IdFormIt = form.Id;
+
+                        var anhFile = Request.Form.Files["Anh"];
+                        if (anhFile != null && anhFile.Length > 0)
+                        {
+                            string imgExtension = Path.GetExtension(anhFile.FileName);
+                            if (string.IsNullOrEmpty(imgExtension)) imgExtension = ".jpg";
+
+                            string imgFileName = $"AnhOChung_ID{form.Id}_{safeName}_{timeStamp}{imgExtension}";
+                            string imgFullPath = Path.Combine(networkPath, imgFileName);
+
+                            using (var imgStream = new FileStream(imgFullPath, FileMode.Create))
+                            {
+                                await anhFile.CopyToAsync(imgStream);
+                            }
+
+                            itOChung.DuongDanAnh = imgFileName;
+                        }
+
+                        _context.ItCapQuyenOchung8s.Add(itOChung);
+                        await _context.SaveChangesAsync();
+
+                        // --- BƯỚC MỚI: TẠO BẢN GHI CHO BẢNG XÁC NHẬN (Mọi thứ rỗng, chỉ lưu Bộ phận được chọn) ---
+                        var xacNhan = new ItXacNhanCapQuyen8
+                        {
+                            IdCapQuyenOchung8 = itOChung.Id,
+                            BoPhan = BoPhanDuocChon, // Lưu bộ phận người dùng chọn từ form
+                            TrangThai = null,
+                            IdNguoiXacNhan = null,
+                            TenNguoiXacNhan = null,
+                            TimeXacNhan = null,
+                            GhiChu = null
+                        };
+                        _context.ItXacNhanCapQuyen8s.Add(xacNhan);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // --- BƯỚC 4: LƯU NGƯỜI HỖ TRỢ ---
+                    string danhSachTenHoTro = "Chưa chọn";
+                    List<int> selectedItNguoiHoTroIds = new List<int>();
+
+                    if (SelectedCongViecIds != null && SelectedCongViecIds.Length > 0)
+                    {
+                        selectedItNguoiHoTroIds = await _context.CongViecIts
+                            .Where(cv => SelectedCongViecIds.Contains(cv.Id) && cv.IdItNguoiHoTro != null)
+                            .Select(cv => cv.IdItNguoiHoTro!.Value)
+                            .Distinct()
+                            .ToListAsync();
+                    }
+
+                    if (!selectedItNguoiHoTroIds.Any() && form.Danhmuc == "Cấp quyền ổ chung")
+                    {
+                        selectedItNguoiHoTroIds = await _context.CongViecIts
+                            .Where(cv => cv.Ten == "Cấp quyền ổ chung" && cv.IdItNguoiHoTro != null)
+                            .Select(cv => cv.IdItNguoiHoTro!.Value)
+                            .Distinct()
+                            .ToListAsync();
+                    }
+
+                    if (selectedItNguoiHoTroIds.Any())
+                    {
+                        var listHoTro = await _context.ItNguoiHoTros
+                            .Where(x => selectedItNguoiHoTroIds.Contains(x.Id))
+                            .Select(x => x.Ten)
+                            .ToListAsync();
+
+                        danhSachTenHoTro = string.Join(", ", listHoTro);
+
+                        int stt = 1;
+                        foreach (var idHoTro in selectedItNguoiHoTroIds)
+                        {
+                            var chiTietHoTro = new ItCtNguoiHoTro
+                            {
+                                IdFormIt = form.Id,
+                                IdItNguoiHoTro = idHoTro,
+                                Stt = stt++
+                            };
+                            _context.ItCtNguoiHoTros.Add(chiTietHoTro);
+                        }
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // --- BƯỚC 5: LƯU LỊCH SỬ THAY ĐỔI ---
+                    string moTaChiTiet = $"[Khởi tạo đơn] Người tạo: {userName} (ID: {userId}) | Bộ phận: {phongBan} | Công ty: {tenCongTy}\n" +
+                                         $"- Danh mục: {form.Danhmuc}\n" +
+                                         $"- Thư mục ổ chung: {itOChung?.TenThuMucOchung}\n" +
+                                         $"- Quyền đề xuất: {itOChung?.LoaiQuyenYeuCau}\n" +
+                                         $"- Bộ phận xác nhận được chỉ định: {BoPhanDuocChon}\n" +
+                                         $"- File đính kèm: {(string.IsNullOrEmpty(form.FileDinhKem) ? "Không có" : form.FileDinhKem)}\n" +
+                                         $"- Người hỗ trợ chỉ định: {danhSachTenHoTro}.";
+
+                    var lichSu = new LichSuFormIt
+                    {
+                        IdFormIt = form.Id,
+                        TieuDe = "Khởi tạo đơn",
+                        Mota = moTaChiTiet,
+                        Time = DateTime.Now
+                    };
+                    _context.LichSuFormIts.Add(lichSu);
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
+
+                    TempData["Success"] = "Gửi đơn đăng ký Cấp quyền ổ chung thành công!";
+                    return Redirect("/FormIT/DonCho");
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+
+                    // Load lại dữ liệu khi lỗi
+                    ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros
+                        .Include(x => x.CongViecIts)
+                        .Where(x => x.BoPhan == "IT")
+                        .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
+                        {
+                            Id = x.Id,
+                            MaNv = x.MaNv,
+                            Ten = x.Ten,
+                            BoPhan = x.BoPhan,
+                            GhiChu = x.GhiChu,
+                            CongViecIts = x.CongViecIts.Where(cv => cv.Ten == "Cấp quyền ổ chung").ToList()
+                        })
+                        .Where(x => x.CongViecIts.Any())
+                        .ToList();
+
+                    ViewBag.ListPhongBan = _context.Users
+                        .Where(u => !string.IsNullOrEmpty(u.PhongBan))
+                        .Select(u => u.PhongBan)
+                        .Distinct()
+                        .ToList();
+
+                    ModelState.AddModelError("", "Lỗi trong quá trình lưu: " + ex.Message);
+                    return View(form);
+                }
+            }
+        }
+        #endregion
+
+        #region CHI TIẾT ĐƠN FORM IT (TẤT CẢ LOẠI ĐƠN)
+
         #region CHI TIẾT ĐƠN FORM IT (TẤT CẢ LOẠI ĐƠN)
 
         [HttpGet("/FormIT/ChiTiet/{id}")]
@@ -2059,10 +2326,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // Lấy các thông tin từ Claims để check quyền
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
             var tenCongTyUser = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
-            var boPhanUser = User.FindFirst("TenBoPhan")?.Value ?? "";
-            // Lưu ý: TenBoPhan có thể chứa chuỗi gộp "IT, HR, Kế toán", ta sẽ check chứa chuỗi (contains)
+            var phongBanDon = User.FindFirst("PhongBan")?.Value ?? "";
+            var listBoPhan = User.FindFirst("TenBoPhan")?.Value ?? ""; // Chuỗi chứa nhiều bộ phận: "IT, HR, Kế toán"
 
-            // 2. Lấy dữ liệu đơn (Giữ nguyên toàn bộ các Include hiện có và THÊM FORM 7)
+            // 2. Lấy dữ liệu đơn
             var don = await _context.FormIts
                 .Include(f => f.ItMail1s)
                 .Include(f => f.ItOrderIt2s)
@@ -2070,7 +2337,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 .Include(f => f.ItDangKiSuDungDtban4s)
                 .Include(f => f.ItDangKiTaiKhoanHeThong5s)
                 .Include(f => f.ItDangkiTaiKhoanMayTinh6s)
-                .Include(f => f.ItDonLapDatThietBi7s) // <--- ĐÃ BỔ SUNG ĐỂ LẤY DỮ LIỆU FORM 7
+                .Include(f => f.ItDonLapDatThietBi7s)
+                .Include(f => f.ItCapQuyenOchung8s)
+                    .ThenInclude(c => c.ItXacNhanCapQuyen8s)
                 .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .Include(f => f.LichSuFormIts)
@@ -2098,27 +2367,24 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 isAllowed = true;
             }
             // Điều kiện 3: Có quyền Quản lý duyệt đơn (QuanLyDuyetDonIT)
-            // Phải thỏa mãn: Cùng Công ty AND Cùng Bộ phận
             else if (User.IsInRole("QuanLyDuyetDonIT"))
             {
+                // A. Check quyền duyệt của Quản lý trực tiếp người làm đơn
                 bool isSameCompany = string.Equals(don.TenCongTy?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
-
-                // 1. Lấy danh sách nhiều bộ phận và bộ phận đơn lẻ từ Claims
-                string listBoPhan = User.FindFirst("TenBoPhan")?.Value ?? "";
-                string phongBanDon = User.FindFirst("PhongBan")?.Value ?? "";
-
                 bool isSameDepartment = false;
 
                 if (!string.IsNullOrEmpty(don.BoPhan))
                 {
+                    // Lọc chính xác bằng mảng thay vì dùng Contains để tránh lỗi "IT" nằm trong "Kế toán IT"
                     if (!string.IsNullOrEmpty(listBoPhan))
                     {
-                        // Nếu có list bộ phận (nhiều bộ phận), check xem bộ phận của đơn có nằm trong list không
-                        isSameDepartment = listBoPhan.Contains(don.BoPhan);
+                        var arrBoPhan = listBoPhan.Split(',').Select(x => x.Trim());
+                        isSameDepartment = arrBoPhan.Contains(don.BoPhan.Trim(), StringComparer.OrdinalIgnoreCase);
                     }
-                    else
+
+                    // Nếu chưa khớp trong bảng UserBoPhan, check lại Phòng Ban chính trong bảng User
+                    if (!isSameDepartment)
                     {
-                        // Nếu list rỗng, check theo claim PhongBan đơn lẻ
                         isSameDepartment = string.Equals(don.BoPhan.Trim(), phongBanDon.Trim(), StringComparison.OrdinalIgnoreCase);
                     }
                 }
@@ -2127,14 +2393,46 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     isAllowed = true;
                 }
+
+                // B. Check quyền của Quản lý bộ phận liên đới được gán xác nhận (Dành riêng cho Đơn 8)
+                if (!isAllowed && don.IdForm == "IT_CapQuyenOChung_8" && don.ItCapQuyenOchung8s.Any())
+                {
+                    var xacNhanOChung = don.ItCapQuyenOchung8s.First().ItXacNhanCapQuyen8s.FirstOrDefault();
+                    if (xacNhanOChung != null && !string.IsNullOrEmpty(xacNhanOChung.BoPhan))
+                    {
+                        string targetBoPhan = xacNhanOChung.BoPhan.Trim(); // Dạng: "Công ty A - IT"
+                        string primaryBoPhanStr = (tenCongTyUser + " - " + phongBanDon).Trim();
+
+                        // 1. Kiểm tra với Phòng Ban chính
+                        bool isMatchXacNhan = string.Equals(targetBoPhan, primaryBoPhanStr, StringComparison.OrdinalIgnoreCase);
+
+                        // 2. Kiểm tra với danh sách Phòng Ban phụ (Bảng UserBoPhan)
+                        if (!isMatchXacNhan && !string.IsNullOrEmpty(listBoPhan))
+                        {
+                            var arrBoPhanPhu = listBoPhan.Split(',').Select(x => x.Trim());
+                            foreach (var bp in arrBoPhanPhu)
+                            {
+                                string phuBoPhanStr = (tenCongTyUser + " - " + bp).Trim();
+                                if (string.Equals(targetBoPhan, phuBoPhanStr, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    isMatchXacNhan = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (isMatchXacNhan)
+                        {
+                            isAllowed = true;
+                        }
+                    }
+                }
             }
 
-            // Nếu không thỏa mãn bất kỳ điều kiện nào ở trên
             if (!isAllowed)
             {
                 return Forbid();
             }
-
 
             // 4. Xử lý dữ liệu hiển thị
             if (don.LichSuFormIts != null)
@@ -2142,7 +2440,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 don.LichSuFormIts = don.LichSuFormIts.OrderByDescending(x => x.Time).ToList();
             }
 
-            // Gán danh sách hỗ trợ cho Admin để thực hiện điều phối
             if (User.IsInRole("AdminIT") || User.IsInRole("All"))
             {
                 ViewBag.ListNguoiHoTro = await _context.ItNguoiHoTros
@@ -2156,6 +2453,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             return View(don);
         }
+
+        #endregion
 
         // --- ACTION DOWNLOAD / XEM FILE (Giữ nguyên 100%) ---
         [HttpGet("/FormIT/DownloadFile/{fileName}")]
@@ -2193,11 +2492,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 : File(memory, contentType, fileName);
         }
 
-        // --- ACTION CHỈ ĐỊNH / THAY ĐỔI NGƯỜI HỖ TRỢ (Giữ nguyên logic nghiệp vụ) ---
+        // --- ACTION CHỈ ĐỊNH / THAY ĐỔI NGƯỜI HỖ TRỢ (Giữ nguyên 100%) ---
         [HttpPost("/FormIT/ThemNguoiHoTro")]
         public async Task<IActionResult> ThemNguoiHoTro([FromBody] System.Text.Json.JsonElement data)
         {
-            // Lưu ý: Mặc dù ai cũng xem được, nhưng thao tác thay đổi người hỗ trợ vẫn nên giữ phân quyền
             var roles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
             if (!roles.Any(r => r == "AdminIT" || r == "All"))
             {
@@ -2207,7 +2505,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             try
             {
                 int idForm = data.GetProperty("idFormIt").GetInt32();
-                string maNvMoi = data.GetProperty("maNv").GetString() ?? ""; // SỬA: Thêm fallback ?? "" phòng trường hợp chuỗi trong JSON bị null
+                string maNvMoi = data.GetProperty("maNv").GetString() ?? "";
 
                 var nvIt = await _context.ItNguoiHoTros.FirstOrDefaultAsync(x => x.MaNv == maNvMoi);
                 if (nvIt == null) return Json(new { success = false, message = "Mã nhân viên IT không tồn tại!" });
@@ -2235,7 +2533,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     IdFormIt = idForm,
                     TieuDe = "CHỈ ĐỊNH NGƯỜI HỖ TRỢ",
-                    Mota = $"{(User.Identity?.Name ?? "Hệ thống")} đã thay đổi người hỗ trợ sang: {nvIt.Ten}.", // SỬA: Thêm ?. và ?? phòng trường hợp Identity null hoặc Name null
+                    Mota = $"{(User.Identity?.Name ?? "Hệ thống")} đã thay đổi người hỗ trợ sang: {nvIt.Ten}.",
                     Time = DateTime.Now
                 });
 
@@ -3058,18 +3356,27 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
             var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
 
-            // Xử lý list bộ phận sẵn ở bộ nhớ để so sánh nhanh hơn
+            if (userRoles.Contains("BaoVe")) return Forbid();
+
+            // Xử lý mảng bộ phận từ Claim
             var listTenBoPhan = listTenBoPhanStr.Split(',')
                                                 .Select(s => s.Trim())
                                                 .Where(s => !string.IsNullOrEmpty(s))
                                                 .ToList();
 
-            if (userRoles.Contains("BaoVe")) return Forbid();
+            // TẠO DANH SÁCH MỤC TIÊU (CÔNG TY - BỘ PHẬN) ĐỂ CHECK CHO ĐƠN 8
+            var validTargetBoPhans = new List<string>();
+            if (!string.IsNullOrEmpty(tenCongTy))
+            {
+                if (!string.IsNullOrEmpty(phongBan)) validTargetBoPhans.Add($"{tenCongTy} - {phongBan}");
+                foreach (var bp in listTenBoPhan)
+                {
+                    var target = $"{tenCongTy} - {bp}";
+                    if (!validTargetBoPhans.Contains(target)) validTargetBoPhans.Add(target);
+                }
+            }
 
             // --- 2. TRUY VẤN DỮ LIỆU ---
-            // TỐI ƯU 1: Loại bỏ .Include() và .ThenInclude(). 
-            // Khi dùng .Select(), EF Core sẽ tự động JOIN những bảng cần thiết. 
-            // Việc Include dư thừa sẽ làm tăng tải cho SQL Server vì phải lấy toàn bộ các cột của bảng liên quan.
             IQueryable<FormIt> query = _context.FormIts.AsNoTracking();
 
             // --- 3. LOGIC PHÂN QUYỀN ---
@@ -3084,20 +3391,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             else if (userRoles.Contains("QuanLyDuyetDonIT"))
             {
-                // TỐI ƯU 2: Hạn chế dùng .Trim().ToLower() bên trong .Where() nếu Database đã không phân biệt hoa thường (Case-insensitive).
-                // Việc dùng hàm trên cột (f.BoPhan) sẽ làm SQL không sử dụng được Index (Non-SARGable).
-                if (listTenBoPhan.Any())
-                {
-                    query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan));
-                }
-                else if (!string.IsNullOrEmpty(phongBan))
-                {
-                    query = query.Where(f => f.BoPhan == phongBan);
-                }
-                else
-                {
-                    query = query.Where(f => f.IdNguoiTao == userId);
-                }
+                bool hasPhu = listTenBoPhan.Any();
+                query = query.Where(f =>
+                    // Duyệt đơn nội bộ phòng ban của quản lý
+                    (hasPhu && f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan)) ||
+                    (!hasPhu && f.BoPhan == phongBan) ||
+                    // Đơn do chính quản lý tạo
+                    (f.IdNguoiTao == userId) ||
+                    // MỚI: Hiển thị Đơn 8 nếu quản lý này thuộc Bộ phận liên đới cần xác nhận
+                    (f.IdForm == "IT_CapQuyenOChung_8" && f.ItCapQuyenOchung8s.Any(c => c.ItXacNhanCapQuyen8s.Any(x => x.BoPhan != null && validTargetBoPhans.Contains(x.BoPhan))))
+                );
             }
             else
             {
@@ -3115,14 +3418,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     BoPhan = item.BoPhan ?? "",
                     Danhmuc = string.IsNullOrEmpty(item.Danhmuc) ? "Phổ thông" : item.Danhmuc,
                     TenForm = item.TenForm ?? "",
-                    // TỐI ƯU 3: Việc định dạng ngày tháng nên để Client làm hoặc xử lý sau khi lấy dữ liệu 
-                    // để SQL Server chỉ tập trung lấy dữ liệu thô. Tuy nhiên tôi giữ nguyên theo yêu cầu của bạn.
                     TimeNguoiTao = item.TimeNguoiTao.HasValue ? item.TimeNguoiTao.Value.ToString("dd/MM/yyyy") : "",
                     IdNguoiDuyet = item.IdNguoiDuyet,
                     IdAdmin = item.IdAdmin,
                     DaDanhGia = item.DanhGiaFormIts.Any(),
-                    // TỐI ƯU 4: Subquery lấy người hỗ trợ mới nhất
-                    // ĐÃ SỬA: Kiểm tra IdItNguoiHoTroNavigation khác null trước khi chấm .Ten để triệt tiêu cảnh báo
                     TenNguoiHoTro = item.ItCtNguoiHoTros
                                         .OrderByDescending(x => x.Stt)
                                         .Select(x => x.IdItNguoiHoTroNavigation != null ? x.IdItNguoiHoTroNavigation.Ten : "Chưa gán IT")
@@ -3133,8 +3432,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return Json(danhSachDon);
         }
 
-
-        // 3. HÀM XỬ LÝ POST (Giữ nguyên 100% của bạn)
+        // 3. HÀM XỬ LÝ POST
         [HttpPost("/FormIT/XuLyDon")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> XuLyDon([FromBody] ITApprovalRequest request)
@@ -3165,7 +3463,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     if (request.Action == "Duyet")
                     {
-                        // Kiểm tra quyền duyệt dựa trên 3 Role của bạn
                         if (!userRoles.Any(r => r == "All" || r == "AdminIT" || r == "QuanLyDuyetDonIT"))
                         {
                             return Json(new { success = false, message = "Bạn không có quyền phê duyệt." });
@@ -3177,17 +3474,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         form.TrangThai = "DaDuyet";
 
                         tieuDeLichSu = "Phê duyệt đơn IT";
-                        moTaChiTiet = $"Người duyệt: {userName}({userEmail}). Bộ phận: {phongBan}.";
+                        moTaChiTiet = $"Người duyệt (Quản lý trực tiếp): {userName}({userEmail}). Bộ phận: {phongBan}.";
                     }
                     else if (request.Action == "Huy")
                     {
-                        // Xác định xem người đang thao tác có phải là người tạo ra đơn này hay không
                         bool isCreator = form.IdNguoiTao == userId;
-
-                        // Xác định xem người đang thao tác có nắm giữ các role quản lý hay không
                         bool hasApprovalRole = userRoles.Any(r => r == "All" || r == "AdminIT" || r == "QuanLyDuyetDonIT");
 
-                        // Nếu KHÔNG CÓ quyền quản lý VÀ CŨNG KHÔNG PHẢI là người tạo đơn thì mới bị chặn
                         if (!hasApprovalRole && !isCreator)
                         {
                             return Json(new { success = false, message = "Bạn không có quyền hủy đơn này." });
@@ -3202,7 +3495,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     }
                     else if (request.Action == "HoanTat")
                     {
-                        // Quyền hoàn tất đơn thường chỉ dành cho IT (AdminIT hoặc All)
                         if (!userRoles.Any(r => r == "All" || r == "AdminIT"))
                         {
                             return Json(new { success = false, message = "Chỉ IT mới có thể hoàn tất đơn này." });
@@ -3234,6 +3526,58 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
             }
         }
+
+        // ===================================================================
+        // 4. API MỚI: XỬ LÝ XÁC NHẬN CHO ĐƠN CẤP QUYỀN Ổ CHUNG (FORM 8)
+        // ===================================================================
+        [HttpPost("/FormIT/XacNhanDon8")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> XacNhanDon8(int idFormIt, string status, string ghiChu)
+        {
+            // 1. Kiểm tra đăng nhập
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Json(new { success = false, message = "Hết phiên đăng nhập!" });
+
+            // Lấy mã nhân viên từ Claim "MaNv" đã được thiết lập lúc đăng nhập
+            var maNv = User.FindFirst("MaNv")?.Value ?? "N/A";
+            var userName = User.Identity?.Name ?? "Quản lý bộ phận";
+
+            // 2. Lấy dữ liệu đơn và các bảng liên kết con
+            var don = await _context.FormIts
+                .Include(f => f.ItCapQuyenOchung8s)
+                    .ThenInclude(c => c.ItXacNhanCapQuyen8s)
+                .FirstOrDefaultAsync(f => f.Id == idFormIt);
+
+            if (don == null || !don.ItCapQuyenOchung8s.Any())
+                return Json(new { success = false, message = "Đơn không tồn tại!" });
+
+            var xacNhan = don.ItCapQuyenOchung8s.First().ItXacNhanCapQuyen8s.FirstOrDefault();
+            if (xacNhan == null)
+                return Json(new { success = false, message = "Không tìm thấy dữ liệu xác nhận bộ phận!" });
+
+            // 3. Cập nhật thông tin người thực hiện xác nhận vào bảng con 8
+            xacNhan.TrangThai = status == "Duyet" ? "Đã xác nhận" : "Từ chối";
+            xacNhan.IdNguoiXacNhan = userIdStr;
+            xacNhan.TenNguoiXacNhan = userName;
+            xacNhan.TimeXacNhan = DateTime.Now;
+            xacNhan.GhiChu = ghiChu;
+
+            // 4. Tạo nhật ký lịch sử đơn phiếu (Bao gồm đầy đủ: Tên, Mã nhân viên, Bộ phận, Ghi chú)
+            _context.LichSuFormIts.Add(new LichSuFormIt
+            {
+                IdFormIt = idFormIt,
+                TieuDe = status == "Duyet" ? "BỘ PHẬN LIÊN ĐỚI XÁC NHẬN" : "BỘ PHẬN LIÊN ĐỚI TỪ CHỐI",
+                Mota = $"Người xác nhận: {userName} (Mã NV: {maNv})\n" +
+                       $"Bộ phận liên đới: {xacNhan.BoPhan}\n" +
+                       $"Nội dung ghi chú: {(string.IsNullOrEmpty(ghiChu) ? "Không có" : ghiChu)}",
+                Time = DateTime.Now
+            });
+
+            // 5. Lưu thay đổi vào Database
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = "Xử lý phê duyệt bộ phận thành công!" });
+        }
+
         #endregion
 
         #region QUẢN LÝ XÉT DUYỆT IT (Admin IT, All, IT, Quản lý bộ phận) - PHÂN QUYỀN 2026
@@ -3253,22 +3597,32 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/GetHoanTatDonData")]
         public async Task<IActionResult> GetHoanTatDonData()
         {
-            // --- 1. LẤY THÔNG TIN TỪ CLAIMS ---
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
             int userId = int.Parse(userIdStr);
             var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
             var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
 
-            // Tối ưu: Khởi tạo danh sách an toàn để tránh lỗi NullReference khi gọi .Contains()
             var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
             var listTenBoPhan = listTenBoPhanStr.Split(',')
                                                 .Select(s => s.Trim())
                                                 .Where(s => !string.IsNullOrEmpty(s))
-                                                .ToList() ?? new List<string>();
+                                                .ToList();
 
-            // --- 2. KHỞI TẠO QUERY ---
+            // TẠO DANH SÁCH MỤC TIÊU CHO ĐƠN 8
+            var validTargetBoPhans = new List<string>();
+            if (!string.IsNullOrEmpty(tenCongTy))
+            {
+                if (!string.IsNullOrEmpty(phongBanSession)) validTargetBoPhans.Add($"{tenCongTy} - {phongBanSession}");
+                foreach (var bp in listTenBoPhan)
+                {
+                    var target = $"{tenCongTy} - {bp}";
+                    if (!validTargetBoPhans.Contains(target)) validTargetBoPhans.Add(target);
+                }
+            }
+
             var query = _context.FormIts.AsNoTracking();
 
             // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU ---
@@ -3278,19 +3632,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             else if (userRoles.Contains("QuanLyDuyetDonIT"))
             {
-                if (listTenBoPhan.Count > 0)
-                {
-                    // Sử dụng danh sách đã được khởi tạo an toàn
-                    query = query.Where(f => f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan));
-                }
-                else if (!string.IsNullOrEmpty(phongBanSession))
-                {
-                    query = query.Where(f => f.BoPhan == phongBanSession);
-                }
-                else
-                {
-                    query = query.Where(f => f.IdNguoiTao == userId);
-                }
+                bool hasPhu = listTenBoPhan.Any();
+                query = query.Where(f =>
+                    (hasPhu && f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan)) ||
+                    (!hasPhu && f.BoPhan == phongBanSession) ||
+                    (f.IdNguoiTao == userId) ||
+                    // MỚI: Hiển thị Đơn 8 nếu quản lý này thuộc Bộ phận liên đới cần xác nhận
+                    (f.IdForm == "IT_CapQuyenOChung_8" && f.ItCapQuyenOchung8s.Any(c => c.ItXacNhanCapQuyen8s.Any(x => x.BoPhan != null && validTargetBoPhans.Contains(x.BoPhan))))
+                );
             }
             else
             {
@@ -3312,7 +3661,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     IdNguoiDuyet = item.IdNguoiDuyet,
                     IdAdmin = item.IdAdmin,
                     DaDanhGia = item.DanhGiaFormIts.Any(),
-                    // Đảm bảo không bao giờ trả về null cho collection để JS dễ xử lý
                     NguoiHoTros = item.ItCtNguoiHoTros
                                       .Where(ct => ct.IdItNguoiHoTroNavigation != null)
                                       .Select(ct => ct.IdItNguoiHoTroNavigation!.Ten ?? "N/A")
@@ -3323,16 +3671,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return Json(danhSachDon);
         }
 
-        // Nút bấm dành cho Đội IT - Xác nhận đã sửa xong/cấp xong thiết bị (GIỮ NGUYÊN 100%)
+        // Nút bấm dành cho Đội IT - Xác nhận đã sửa xong/cấp xong thiết bị
         [HttpPost("/FormIT/XacNhanHoanThanh")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> XacNhanHoanThanh([FromBody] ITCompleteRequest request)
         {
-            // 1. Kiểm tra đầu vào
             if (request == null || request.Id <= 0)
                 return Json(new { success = false, message = "Dữ liệu không hợp lệ." });
 
-            // 2. Thông tin người thao tác
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr))
                 return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn." });
@@ -3342,38 +3688,46 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "N/A";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "N/A";
 
-            // 3. Kiểm tra quyền (Chỉ IT Admin hoặc Role "All")
             if (!userRoles.Any(r => r == "All" || r == "AdminIT"))
             {
                 return Json(new { success = false, message = "Bạn không có quyền xác nhận hoàn tất đơn này." });
             }
 
-            // 4. Tìm đơn IT
-            var form = await _context.FormIts.FindAsync(request.Id);
+            // SỬA: Bổ sung Include để lấy thông tin liên quan đến Đơn 8 kiểm tra ràng buộc
+            var form = await _context.FormIts
+                .Include(f => f.ItCapQuyenOchung8s)
+                    .ThenInclude(c => c.ItXacNhanCapQuyen8s)
+                .FirstOrDefaultAsync(f => f.Id == request.Id);
+
             if (form == null)
                 return Json(new { success = false, message = "Không tìm thấy đơn IT." });
 
-            // Kiểm tra trạng thái đơn
             bool isCancelled = (form.TenForm != null && form.TenForm.Contains("[ĐÃ HỦY]"));
             if (form.TrangThai == "HoanTat" || isCancelled)
             {
                 return Json(new { success = false, message = "Đơn này đã kết thúc hoặc đã hủy." });
             }
 
-            // 5. Bắt đầu Transaction
+            // MỚI: KIỂM TRA RÀNG BUỘC ĐƠN 8 - PHẢI ĐƯỢC BỘ PHẬN XÁC NHẬN CHO PHÉP
+            if (form.IdForm == "IT_CapQuyenOChung_8" && form.ItCapQuyenOchung8s.Any())
+            {
+                var xacNhan = form.ItCapQuyenOchung8s.First().ItXacNhanCapQuyen8s.FirstOrDefault();
+                if (xacNhan == null || xacNhan.TrangThai != "Đã xác nhận")
+                {
+                    return Json(new { success = false, message = "Đơn cấp quyền ổ chung yêu cầu phải được Quản lý của bộ phận liên đới XÁC NHẬN CHO PHÉP trước khi IT có thể hoàn tất!" });
+                }
+            }
+
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
                     DateTime now = DateTime.Now;
-
-                    // 6. Cập nhật thông tin IT xử lý
                     form.IdAdmin = int.Parse(userIdStr);
                     form.TenAdmin = userName;
                     form.TimeAdmin = now;
                     form.TrangThai = "HoanTat";
 
-                    // 7. Lưu Lịch sử thao tác
                     var lichSu = new LichSuFormIt
                     {
                         IdFormIt = form.Id,
@@ -3385,9 +3739,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     };
 
                     _context.LichSuFormIts.Add(lichSu);
-                    _context.FormIts.Update(form); // Đảm bảo EF theo dõi sự thay đổi
+                    _context.FormIts.Update(form);
 
-                    // 8. Lưu DB
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
@@ -3401,15 +3754,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
-        // --- CLASS REQUEST (Giữ nguyên cấu trúc của bạn) ---
+        // --- CLASS REQUEST ---
         public class ITApprovalRequest
         {
             public int Id { get; set; }
-
-            // Gán giá trị mặc định là string.Empty để tránh cảnh báo null
             public string Action { get; set; } = string.Empty;
-
-            // Nếu lý do có thể để trống (không bắt buộc), bạn có thể dùng string?
             public string Reason { get; set; } = string.Empty;
         }
 
@@ -4024,6 +4373,25 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             int userId = int.Parse(userIdStr);
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+            var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
+
+            var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
+            var listTenBoPhan = listTenBoPhanStr.Split(',')
+                                                .Select(s => s.Trim())
+                                                .Where(s => !string.IsNullOrEmpty(s))
+                                                .ToList();
+
+            // TẠO DANH SÁCH MỤC TIÊU (CÔNG TY - BỘ PHẬN) ĐỂ CHECK CHO ĐƠN 8
+            var validTargetBoPhans = new List<string>();
+            if (!string.IsNullOrEmpty(tenCongTy))
+            {
+                if (!string.IsNullOrEmpty(phongBanSession)) validTargetBoPhans.Add($"{tenCongTy} - {phongBanSession}");
+                foreach (var bp in listTenBoPhan)
+                {
+                    var target = $"{tenCongTy} - {bp}";
+                    if (!validTargetBoPhans.Contains(target)) validTargetBoPhans.Add(target);
+                }
+            }
 
             // Khởi tạo query không lọc sẵn công ty
             var query = _context.LichSuFormIts.AsNoTracking();
@@ -4050,7 +4418,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 if (User.IsInRole("QuanLyDuyetDonIT"))
                 {
-                    query = query.Where(l => l.IdFormItNavigation != null && (l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.IdNguoiDuyet == userId));
+                    query = query.Where(l =>
+                        l.IdFormItNavigation != null &&
+                        (
+                            l.IdFormItNavigation.IdNguoiTao == userId ||
+                            l.IdFormItNavigation.IdNguoiDuyet == userId ||
+                            // MỚI: Nhìn thấy lịch sử Đơn 8 NẾU Quản lý trực tiếp ĐÃ DUYỆT (IdNguoiDuyet != null) và Quản lý này thuộc Bộ phận liên đới
+                            (l.IdFormItNavigation.IdNguoiDuyet != null && l.IdFormItNavigation.IdForm == "IT_CapQuyenOChung_8" &&
+                             l.IdFormItNavigation.ItCapQuyenOchung8s.Any(c => c.ItXacNhanCapQuyen8s.Any(x => x.BoPhan != null && validTargetBoPhans.Contains(x.BoPhan))))
+                        )
+                    );
                 }
                 else
                 {
@@ -4160,6 +4537,25 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             int userId = int.Parse(userIdStr);
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+            var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
+
+            var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
+            var listTenBoPhan = listTenBoPhanStr.Split(',')
+                                                .Select(s => s.Trim())
+                                                .Where(s => !string.IsNullOrEmpty(s))
+                                                .ToList();
+
+            // TẠO DANH SÁCH MỤC TIÊU CHO ĐƠN 8
+            var validTargetBoPhans = new List<string>();
+            if (!string.IsNullOrEmpty(tenCongTy))
+            {
+                if (!string.IsNullOrEmpty(phongBanSession)) validTargetBoPhans.Add($"{tenCongTy} - {phongBanSession}");
+                foreach (var bp in listTenBoPhan)
+                {
+                    var target = $"{tenCongTy} - {bp}";
+                    if (!validTargetBoPhans.Contains(target)) validTargetBoPhans.Add(target);
+                }
+            }
 
             var query = _context.LichSuFormIts.AsNoTracking();
 
@@ -4179,7 +4575,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 if (User.IsInRole("QuanLyDuyetDonIT"))
                 {
-                    query = query.Where(l => l.IdFormItNavigation != null && (l.IdFormItNavigation.IdNguoiTao == userId || l.IdFormItNavigation.IdNguoiDuyet == userId));
+                    query = query.Where(l =>
+                        l.IdFormItNavigation != null &&
+                        (
+                            l.IdFormItNavigation.IdNguoiTao == userId ||
+                            l.IdFormItNavigation.IdNguoiDuyet == userId ||
+                            // MỚI: Nhận thông báo Đơn 8 NẾU Quản lý trực tiếp ĐÃ DUYỆT (IdNguoiDuyet != null) và Quản lý này thuộc Bộ phận liên đới
+                            (l.IdFormItNavigation.IdNguoiDuyet != null && l.IdFormItNavigation.IdForm == "IT_CapQuyenOChung_8" &&
+                             l.IdFormItNavigation.ItCapQuyenOchung8s.Any(c => c.ItXacNhanCapQuyen8s.Any(x => x.BoPhan != null && validTargetBoPhans.Contains(x.BoPhan))))
+                        )
+                    );
                 }
                 else
                 {
