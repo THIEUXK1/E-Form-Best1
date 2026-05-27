@@ -92,6 +92,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<HrXinRaNgoai1> HrXinRaNgoai1s { get; set; }
 
+    public virtual DbSet<ItCapQuyenOchung8> ItCapQuyenOchung8s { get; set; }
+
     public virtual DbSet<ItCtNguoiHoTro> ItCtNguoiHoTros { get; set; }
 
     public virtual DbSet<ItDangKiSuDungDtban4> ItDangKiSuDungDtban4s { get; set; }
@@ -109,6 +111,8 @@ public partial class ITFormContext : DbContext
     public virtual DbSet<ItNguoiHoTro> ItNguoiHoTros { get; set; }
 
     public virtual DbSet<ItOrderIt2> ItOrderIt2s { get; set; }
+
+    public virtual DbSet<ItXacNhanCapQuyen8> ItXacNhanCapQuyen8s { get; set; }
 
     public virtual DbSet<KkBoPhan> KkBoPhans { get; set; }
 
@@ -159,9 +163,8 @@ public partial class ITFormContext : DbContext
     public virtual DbSet<UserQuyen> UserQuyens { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder.UseSqlServer("Data Source=10.0.60.33;Initial Catalog=ITForm;Persist Security Info=True;User ID=sa;Password=BestP@cific;Encrypt=True;Trust Server Certificate=True");
-    }
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Data Source=10.0.60.33;Initial Catalog=ITForm;Persist Security Info=True;User ID=sa;Password=BestP@cific;Encrypt=True;Trust Server Certificate=True");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -452,6 +455,11 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.HrXinRaNgoai1s).HasConstraintName("FK_CT_XinRaNgoai_FormHR");
         });
 
+        modelBuilder.Entity<ItCapQuyenOchung8>(entity =>
+        {
+            entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.ItCapQuyenOchung8s).HasConstraintName("FK_IT_CapQuyenOChung_8_FormIT");
+        });
+
         modelBuilder.Entity<ItCtNguoiHoTro>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__IT_CT_Ng__3213E83F994EF380");
@@ -517,6 +525,11 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.ItOrderIt2s)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_ITOrder_FormIT");
+        });
+
+        modelBuilder.Entity<ItXacNhanCapQuyen8>(entity =>
+        {
+            entity.HasOne(d => d.IdCapQuyenOchung8Navigation).WithMany(p => p.ItXacNhanCapQuyen8s).HasConstraintName("FK_IT_XacNhanCapQuyen_8_IT_CapQuyenOChung_8");
         });
 
         modelBuilder.Entity<KkBoPhan>(entity =>
