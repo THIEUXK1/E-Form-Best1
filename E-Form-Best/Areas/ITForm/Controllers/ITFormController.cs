@@ -3530,6 +3530,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // ===================================================================
         // 4. API MỚI: XỬ LÝ XÁC NHẬN CHO ĐƠN CẤP QUYỀN Ổ CHUNG (FORM 8)
         // ===================================================================
+
         [HttpPost("/FormIT/XacNhanDon8")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> XacNhanDon8(int idFormIt, string status, string ghiChu)
@@ -3550,6 +3551,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             if (don == null || !don.ItCapQuyenOchung8s.Any())
                 return Json(new { success = false, message = "Đơn không tồn tại!" });
+
+            // RÀNG BUỘC ĐÃ SỬA: Kiểm tra thông tin phê duyệt của Quản lý trực tiếp trong FormIT
+            if (don.IdNguoiDuyet == null || string.IsNullOrEmpty(don.TenNguoiDuyet) || don.TimeNguoiDuyet == null)
+            {
+                return Json(new { success = false, message = "⚠️ Bạn chưa thể xác nhận đơn này do Quản lý trực tiếp của người làm đơn chưa phê duyệt!" });
+            }
 
             var xacNhan = don.ItCapQuyenOchung8s.First().ItXacNhanCapQuyen8s.FirstOrDefault();
             if (xacNhan == null)
@@ -3576,8 +3583,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // 5. Lưu thay đổi vào Database
             await _context.SaveChangesAsync();
             return Json(new { success = true, message = "Xử lý phê duyệt bộ phận thành công!" });
-        }
-
+        }     
+        
         #endregion
 
         #region QUẢN LÝ XÉT DUYỆT IT (Admin IT, All, IT, Quản lý bộ phận) - PHÂN QUYỀN 2026
