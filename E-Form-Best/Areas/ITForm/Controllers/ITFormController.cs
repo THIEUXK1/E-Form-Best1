@@ -3895,7 +3895,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
         #endregion
 
-        #region Đánh giá đơn IT (Tích hợp TenCongTy & Lịch sử)
+        #region Đánh giá đơn IT (Tích hợp Sửa lỗi không tồn tại thuộc tính NhanXet)
 
         [HttpPost("/FormIT/DanhGiaFormItsDon")]
         [ValidateAntiForgeryToken]
@@ -3920,14 +3920,20 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             int userId = int.Parse(userIdStr);
 
-            // 3. Tìm đơn kèm các bảng liên quan và kiểm tra TenCongTy
+            // 3. Tìm đơn kèm các bảng liên quan
             var form = await _context.FormIts
                 .Include(f => f.DanhGiaFormIts)
-                .FirstOrDefaultAsync(x => x.Id == request.Id && x.TenCongTy == tenCongTy);
+                .FirstOrDefaultAsync(x => x.Id == request.Id);
 
             if (form == null)
             {
-                return Json(new { success = false, message = "Không tìm thấy đơn yêu cầu hoặc bạn không có quyền truy cập đơn này." });
+                return Json(new { success = false, message = "Không tìm thấy đơn yêu cầu hệ thống." });
+            }
+
+            // Kiểm tra an toàn chuỗi Tên Công Ty không phân biệt hoa thường và khoảng trắng thừa
+            if (!string.IsNullOrEmpty(form.TenCongTy) && !string.Equals(form.TenCongTy.Trim(), tenCongTy, StringComparison.OrdinalIgnoreCase))
+            {
+                return Json(new { success = false, message = "Bạn không có quyền truy cập hoặc đánh giá đơn thuộc công ty khác." });
             }
 
             // 4. KIỂM TRA QUYỀN: Chỉ người tạo đơn mới được đánh giá
@@ -3955,21 +3961,19 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     DateTime now = DateTime.Now;
 
-                    // 8. TẠO BẢN GHI ĐÁNH GIÁ CHI TIẾT
+                    // 8. TẠO BẢN GHI ĐÁNH GIÁ CHI TIẾT (Đã loại bỏ cột NhanXet để đúng 100% với Model thực thể của bạn)
                     var danhGiaMoi = new DanhGiaFormIt
                     {
                         IdFormIt = form.Id,
                         IdNguoiDanhGia = userId,
                         TenNguoiDanhGia = userName,
                         TimeNguoiDanhGia = now,
-                        MucDo = request.MucDo,
-                        // Nếu DB của bạn có cột NhanXet, hãy bỏ comment dòng dưới:
-                        // NhanXet = request.NhanXet?.Trim() 
+                        MucDo = request.MucDo
                     };
 
                     _context.DanhGiaFormIts.Add(danhGiaMoi);
 
-                    // 9. LƯU VÀO LỊCH SỬ FORM (Để hiện thị trong phần Trao đổi/Log)
+                    // 9. LƯU VÀO LỊCH SỬ FORM (Nơi lưu giữ text nhận xét thực tế để hiển thị ra Log trao đổi)
                     string stars = new string('⭐', request.MucDo);
                     var lichSu = new LichSuFormIt
                     {
@@ -3977,16 +3981,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         TieuDe = "NGƯỜI DÙNG ĐÁNH GIÁ DỊCH VỤ",
                         Mota = $"Mức độ: {stars} ({request.MucDo}/5 sao)\n" +
                                $"Người đánh giá: {userName}\n" +
-                               $"Nội dung: {(string.IsNullOrWhiteSpace(request.NhanXet) ? "(Không có nhận xét)" : request.NhanXet.Trim())}",
+                               $"Nội dung nhận xét: {(string.IsNullOrWhiteSpace(request.NhanXet) ? "(Không có nhận xét)" : request.NhanXet.Trim())}",
                         Time = now,
-                        IsRead = false // Để IT nhận được thông báo về đánh giá mới
+                        IsRead = false // Để hệ thống hoặc luồng thông báo nhận diện log mới
                     };
 
                     _context.LichSuFormIts.Add(lichSu);
-
-                    // 10. Cập nhật lại một số thông tin trên Form (nếu cần)
-                    // Ví dụ: Đánh dấu đơn đã đóng hoàn toàn không cho phản hồi thêm nữa
-                    // form.GhiChu += $"\n[Đã đánh giá {request.MucDo} sao vào {now:dd/MM/yyyy}]";
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
@@ -4000,7 +4000,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    return Json(new { success = false, message = "Đã xảy ra lỗi khi lưu đánh giá: " + ex.Message });
+                    return Json(new { success = false, message = "Đã xảy ra lỗi khi lưu dữ liệu đánh giá: " + ex.Message });
                 }
             }
         }

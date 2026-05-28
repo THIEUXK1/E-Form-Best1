@@ -101,8 +101,6 @@
     int soNguoiB2DaDuyet = danhSachB2.Count(x => x.TrangThaiXacNhan == 1);
 }
 
-@Html.AntiForgeryToken()
-
 <style>
     /* CSS TỐI ƯU MOBILE RESPONSIVE */
     .mobile-history-content {
@@ -198,6 +196,33 @@
             }
     }
 
+    @@media (max-width: 768px) {
+        .mobile-zoom-toolbar {
+            right: 10px !important;
+            top: 10px !important;
+            gap: 10px !important;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+            .mobile-zoom-toolbar button {
+                width: 40px !important;
+                height: 40px !important;
+                font-size: 16px !important;
+            }
+
+        .mobile-b2-item {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px;
+        }
+
+        .mobile-b2-actions {
+            width: 100%;
+            text-align: left !important;
+        }
+    }
+
     @@keyframes slideDown {
         from {
             opacity: 0;
@@ -257,22 +282,37 @@
         <div class="mobile-body" style="padding:40px;">
             <div class="mobile-grid-main" style="display:grid;grid-template-columns:1.8fr 1.2fr;gap:40px;">
 
+                @* --- CỘT TRÁI: THÔNG TIN CHI TIẾT ĐƠN --- *@
                 <div>
                     <h3 style="margin:0 0 25px 0;color:#1e293b;font-size:22px;font-weight:800;display:flex;align-items:center;gap:12px;">
                         <span style="width:6px;height:28px;background:#1e40af;border-radius:10px;"></span> THÔNG TIN CHI TIẾT
                     </h3>
                     <div class="mobile-grid-info" style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:15px;">
-                        <div style="background:#fff;padding:22px;border-radius:20px;border:1px solid #e2e8f0;">
+                        <div style="background:#fff;padding:22px;border-radius:20px;border:1px solid #e2e8f0;box-shadow:0 2px 4px rgba(0,0,0,0.02);">
                             <small style="color:#64748b;font-weight:800;text-transform:uppercase;font-size:11px;display:block;margin-bottom:8px;">Mã nhân viên</small>
                             <div style="font-weight:700;color:#1e293b;font-size:16px;">@Model.SoNhanVien</div>
                         </div>
-                        <div style="background:#fff;padding:22px;border-radius:20px;border:1px solid #e2e8f0;">
+                        <div style="background:#fff;padding:22px;border-radius:20px;border:1px solid #e2e8f0;box-shadow:0 2px 4px rgba(0,0,0,0.02);">
                             <small style="color:#64748b;font-weight:800;text-transform:uppercase;font-size:11px;display:block;margin-bottom:8px;">Bộ phận</small>
                             <div style="font-weight:700;color:#1e40af;font-size:16px;">@Model.BoPhan</div>
                         </div>
-                        <div style="background:#fff;padding:22px;border-radius:20px;border:1px solid #e2e8f0;">
+                        <div style="background:#fff;padding:22px;border-radius:20px;border:1px solid #e2e8f0;box-shadow:0 2px 4px rgba(0,0,0,0.02);">
                             <small style="color:#64748b;font-weight:800;text-transform:uppercase;font-size:11px;display:block;margin-bottom:8px;">Họ tên</small>
                             <div style="font-weight:700;color:#1e40af;font-size:16px;">@Model.TenNguoiNv</div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:30px;">
+                        <div style="background:#ffffff;padding:18px;border-radius:14px;border:1px solid #e6edf6;box-shadow:0 2px 4px rgba(0,0,0,0.02);display:flex;align-items:center;gap:12px;">
+                            <i class="fa fa-tags" style="color:#0369a1;font-size:18px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:#f0f9ff;border-radius:8px;"></i>
+                            <div style="flex:1;">
+                                <small style="display:block;font-weight:800;color:#64748b;font-size:12px;text-transform:uppercase;">Danh mục</small>
+                                <div style="font-weight:700;color:#0f172a;font-size:15px;">@(string.IsNullOrEmpty(Model.Danhmuc) ? "---" : Model.Danhmuc)</div>
+                                @if (!string.IsNullOrEmpty(Model.TenCongTy))
+                                {
+                                    <small style="display:block;margin-top:8px;font-weight:800;color:#64748b;font-size:12px;text-transform:uppercase;">Tên công ty</small>
+                                    <div style="font-weight:700;color:#0f172a;font-size:14px;">@Model.TenCongTy</div>
+                                }
+                            </div>
                         </div>
                     </div>
                     <div style="background:#f8fafc;padding:30px;border-radius:24px;margin-bottom:40px;border:1px solid #f1f5f9;">
@@ -355,9 +395,9 @@
                                     bool isUserAll = User.IsInRole("All");
 
                                     var lichSuHienThi = Model.LichSuFormShds
-                                                             .Where(x => x.TrangThaiAnHien == true || isUserAll)
-                                                             .OrderByDescending(x => x.Time)
-                                                             .ToList();
+                                                     .Where(x => x.TrangThaiAnHien == true || isUserAll)
+                                                     .OrderByDescending(x => x.Time)
+                                                     .ToList();
 
                                     foreach (var ls in lichSuHienThi)
                                     {
@@ -405,6 +445,7 @@
                     </div>
                 </div>
 
+                @* --- CỘT PHẢI: TIẾN TRÌNH XỬ LÝ & ĐÍNH KÈM & DANH SÁCH B2 & XÁC NHẬN GIÁM ĐỐC --- *@
                 <div>
                     @if (listImages.Any())
                     {
@@ -413,7 +454,7 @@
                         </h3>
                         foreach (var img in listImages)
                         {
-                            <div style="border:2px solid #f1f5f9;border-radius:24px;overflow:hidden;margin-bottom:20px;">
+                            <div style="border:2px solid #f1f5f9;border-radius:24px;overflow:hidden;margin-bottom:20px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);background:#f8fafc;">
                                 <img src="@img" style="width:100%;cursor:zoom-in;display:block;object-fit:cover;max-height:300px;" onclick="openZoom(this.src)" />
                             </div>
                         }
@@ -426,34 +467,77 @@
                             {
                                 string fName = System.IO.Path.GetFileName(fileItem);
                                 string fUrl = "/FormSHD/DownloadFile/" + Uri.EscapeDataString(fName);
-                                <div style="background:#f0f9ff;border:2px solid #bae6fd;padding:22px;border-radius:24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:12px;">
+                                <div style="background:#f0f9ff;border:2px solid #bae6fd;padding:22px;border-radius:24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:12px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);">
                                     <div style="display:flex;align-items:center;gap:12px;overflow:hidden;flex:1;">
                                         <i class="fa fa-file-download" style="font-size:24px;color:#0369a1;flex-shrink:0;"></i>
                                         <span style="font-size:14px;font-weight:800;color:#0369a1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@fName</span>
                                     </div>
                                     <div style="display:flex;gap:8px;flex-shrink:0;width:100%;justify-content:flex-end;">
-                                        <a href="@fUrl" download style="background:#0369a1;color:white;padding:12px 24px;border-radius:14px;font-weight:800;text-decoration:none;font-size:13px;text-align:center;width:100%;">TẢI VỀ</a>
+                                        <a href="@fUrl" download style="background:#0369a1;color:white;padding:12px 24px;border-radius:14px;font-weight:800;text-decoration:none;font-size:13px;text-align:center;width:100%;box-shadow:0 4px 10px rgba(3,105,161,0.3);">TẢI VỀ</a>
                                     </div>
                                 </div>
                             }
                         </div>
                     }
 
-                    <div style="background:#fff;padding:30px;border-radius:28px;border:1px solid #e2e8f0;margin-bottom:25px;">
+                    @* TIẾN TRÌNH XỬ LÝ CHUNG VỚI ĐẦY ĐỦ CÁC BƯỚC DUYỆT ĐỘNG (B2 VÀ GIÁM ĐỐC) *@
+                    <div style="background:#fff;padding:30px;border-radius:28px;border:1px solid #e2e8f0;margin-bottom:25px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.04);">
                         <h4 style="margin:0 0 25px 0;font-size:15px;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:8px;">
                             <i class="fa fa-tasks"></i> TIẾN TRÌNH XỬ LÝ
                         </h4>
-                        <div style="position:relative;padding-left:30px;border-left:2px solid #f1f5f9;">
+                        <div class="mobile-timeline" style="position:relative;padding-left:30px;border-left:2px solid #f1f5f9;">
+
+                            @* 1. Khởi tạo đơn *@
                             <div style="margin-bottom:25px;position:relative;">
                                 <div style="position:absolute;left:-37px;top:0;width:14px;height:14px;border-radius:50%;background:#059669;border:3px solid white;box-shadow:0 0 0 2px #059669;"></div>
                                 <div style="font-weight:800;font-size:15px;color:#1e293b;">Người tạo: @Model.TenNguoiTao</div>
                                 <div style="font-size:13px;color:#64748b;margin-top:4px;">@Model.TimeNguoiTao?.ToString("HH:mm dd/MM/yyyy")</div>
                             </div>
+
+                            @* 2. Quản lý trực tiếp duyệt *@
                             <div style="margin-bottom:25px;position:relative;">
                                 <div style="position:absolute;left:-37px;top:0;width:14px;height:14px;border-radius:50%;background:@(isApprovedByManager ? "#d97706" : "#cbd5e1");border:3px solid white;box-shadow:0 0 0 2px @(isApprovedByManager ? "#d97706" : "#cbd5e1");"></div>
                                 <div style="font-weight:800;font-size:15px;color:#1e293b;">Quản lý: @(Model.TenNguoiDuyet ?? "---")</div>
                                 <div style="font-size:13px;color:#64748b;margin-top:4px;">@(Model.TimeNguoiDuyet?.ToString("HH:mm dd/MM/yyyy") ?? "Đang chờ duyệt...")</div>
                             </div>
+
+                            @* 3. Hiển thị động các Quản lý Bước 2 (B2) *@
+                            @if (danhSachB2.Any())
+                            {
+                                foreach (var b2 in danhSachB2)
+                                {
+                                    int b2Status = b2.TrangThaiXacNhan ?? 0;
+                                    string b2Color = b2Status == 1 ? "#10b981" : b2Status == 2 ? "#ef4444" : "#cbd5e1";
+                                    string b2Txt = b2Status == 1 ? "Đã duyệt" : b2Status == 2 ? "Từ chối" : "Đang chờ...";
+
+                                    <div style="margin-bottom:25px;position:relative; padding:10px 14px; background:#fbfbfe; border-radius:12px; border:1px dashed #c084fc;">
+                                        <div style="position:absolute;left:-49px;top:14px;width:14px;height:14px;border-radius:50%;background:@b2Color;border:3px solid white;box-shadow:0 0 0 2px @b2Color;"></div>
+                                        <div style="font-weight:800;font-size:14px;color:#6b21a8;"><i class="fa fa-users"></i> Bước B2: @b2.TenNguoiXacNhan</div>
+                                        <div style="font-size:13px;color:#1e293b;margin-top:2px;">Trạng thái: <b>@b2Txt</b></div>
+                                        <div style="font-size:12px;color:#64748b;margin-top:2px;">@(b2.ThoiGianXacNhan?.ToString("HH:mm dd/MM/yyyy") ?? "Chờ phê duyệt...")</div>
+                                    </div>
+                                }
+                            }
+
+                            @* 4. Hiển thị động các Giám đốc xác nhận *@
+                            @if (danhSachXacNhan.Any())
+                            {
+                                foreach (var xn in danhSachXacNhan)
+                                {
+                                    int xnStatus = xn.TrangThaiXacNhan ?? 0;
+                                    string xnColor = xnStatus == 1 ? "#10b981" : xnStatus == 2 ? "#ef4444" : "#cbd5e1";
+                                    string xnTxt = xnStatus == 1 ? "Đã duyệt" : xnStatus == 2 ? "Từ chối" : "Đang chờ...";
+
+                                    <div style="margin-bottom:25px;position:relative; padding:10px 14px; background:#fffbf5; border-radius:12px; border:1px dashed #fcd34d;">
+                                        <div style="position:absolute;left:-49px;top:14px;width:14px;height:14px;border-radius:50%;background:@xnColor;border:3px solid white;box-shadow:0 0 0 2px @xnColor;"></div>
+                                        <div style="font-weight:800;font-size:14px;color:#b45309;"><i class="fa fa-user-tie"></i> Giám đốc: @xn.TenNguoiXacNhan</div>
+                                        <div style="font-size:13px;color:#1e293b;margin-top:2px;">Trạng thái: <b>@xnTxt</b></div>
+                                        <div style="font-size:12px;color:#64748b;margin-top:2px;">@(xn.ThoiGianXacNhan?.ToString("HH:mm dd/MM/yyyy") ?? "Chờ phê duyệt...")</div>
+                                    </div>
+                                }
+                            }
+
+                            @* 5. Đơn vị xử lý hoàn tất đơn (SHD) *@
                             <div style="position:relative;">
                                 <div style="position:absolute;left:-37px;top:0;width:14px;height:14px;border-radius:50%;background:@(isFinished ? "#1e40af" : "#cbd5e1");border:3px solid white;box-shadow:0 0 0 2px @(isFinished ? "#1e40af" : "#cbd5e1");"></div>
                                 <div style="font-weight:800;font-size:15px;color:#1e293b;">SHD Xử lý: @(Model.TenAdmin ?? "---")</div>
@@ -462,19 +546,20 @@
                         </div>
                     </div>
 
+                    @* KHỐI ACTION DANH SÁCH DUYỆT B2 *@
                     @if (danhSachB2.Any())
                     {
                         <div style="background:#fff;border-radius:28px;border:1px solid #e9d5ff;overflow:hidden;margin-bottom:25px;box-shadow:0 8px 12px rgba(124,58,237,0.04);">
-                            <div style="background:linear-gradient(135deg,#faf5ff,#f3e8ff);padding:14px 18px;border-bottom:2px solid #e9d5ff;">
+                            <div style="background:linear-gradient(135deg,#faf5ff,#f3e8ff);padding:14px 18px;border-bottom:2px solid #e9d5ff;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
                                 <h4 style="margin:0;font-size:15px;font-weight:900;color:#6b21a8;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                                    <i class="fa fa-users"></i> BƯỚC 2 — DANH SÁCH DUYỆT
+                                    <i class="fa fa-users"></i> BƯỚ exploitation — DANH SÁCH DUYỆT
                                     <span style="background:#f3e8ff; color:#9333ea; padding:2px 8px; border-radius:8px; font-size:11px; border:1px solid #d8b4fe;">
                                         @(hinhThucDuyetB2 == "OR" || hinhThucDuyetB2 == "ANY" ? "CHỈ CẦN 1 NGƯỜI DUYỆT" : "YÊU CẦU TẤT CẢ DUYỆT")
                                     </span>
-                                    <span style="margin-left:auto;background:#7c3aed;color:white;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:800;">
-                                        @soNguoiB2DaDuyet / @danhSachB2.Count đã duyệt
-                                    </span>
                                 </h4>
+                                <span style="margin-left:auto;background:#7c3aed;color:white;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:800;">
+                                    @soNguoiB2DaDuyet / @danhSachB2.Count đã duyệt
+                                </span>
                             </div>
                             <div style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;">
                                 @foreach (var b2 in danhSachB2)
@@ -493,8 +578,8 @@
 
                                     bool isMyTurn = (isNguoiDuyetChinh || isNguoiDuyetUyQuyen) && (b2.TrangThaiXacNhan ?? 0) == 0 && !isCancelled && !isFinished && !isMissingNguoiDuyet;
 
-                                    <div data-b2-id="@b2.Id" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;padding:12px;border-radius:12px;border:1px solid #f1ecff;background:#fff;">
-                                        <div style="flex:1;">
+                                    <div class="mobile-b2-item" data-b2-id="@b2.Id" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:12px;border:1px solid #f1ecff;background:#fff;">
+                                        <div>
                                             <div style="font-weight:800;color:#1f2937;">@b2.TenNguoiXacNhan</div>
                                             <div style="font-size:12px;color:#6b7280;margin-top:4px;">Thứ tự: @b2.ThuTuXacNhan &nbsp;·&nbsp; @b2.MaNguoiXacNhan</div>
                                             @if (b2.ThoiGianXacNhan.HasValue)
@@ -506,7 +591,7 @@
                                                 <div style="margin-top:6px;font-size:13px;color:#374151;"><i class="fa fa-comment"></i> @b2.GhiChu</div>
                                             }
                                         </div>
-                                        <div style="text-align:right;min-width:120px;">
+                                        <div class="mobile-b2-actions" style="text-align:right;min-width:160px;">
                                             <div style="display:inline-block;background:@statusColorB2;color:white;padding:6px 10px;border-radius:10px;font-weight:800;font-size:12px;margin-bottom:8px;">@statusTextB2</div>
                                             @if (isMyTurn)
                                             {
@@ -528,6 +613,7 @@
                         </div>
                     }
 
+                    @* KHỐI ACTION DANH SÁCH XÁC NHẬN GIÁM ĐỐC (ĐÃ THÊM ĐIỀU KIỆN isApprovedByManager) *@
                     @if (danhSachXacNhan.Any())
                     {
                         <div style="background:#fff;border-radius:28px;border:1px solid #e9d5ff;overflow:hidden;margin-bottom:25px;box-shadow:0 10px 15px -3px rgba(124,58,237,0.06);">
@@ -590,7 +676,9 @@
                                     </div>
                                 }
                             </div>
-                            @if (myXacNhan != null && !isCancelled)
+
+                            @* NÚT BẤM CHO GIÁM ĐỐC DUYỆT CHỈ HIỂN THỊ KHI QUẢN LÝ TRỰC TIẾP ĐÃ PHÊ DUYỆT (isApprovedByManager) *@
+                            @if (isApprovedByManager && myXacNhan != null && !isCancelled)
                             {
                                 <div style="padding:0 20px 20px 20px;">
                                     @if (isMissingNguoiDuyet)
@@ -627,6 +715,7 @@
                         </div>
                     }
 
+                    @* KHỐI CÁC NÚT THAO TÁC CƠ BẢN ĐƠN HÀNG *@
                     @if (!isCancelled && !isFinished)
                     {
                         <div style="display:flex;flex-direction:column;gap:15px;margin-bottom:25px;">
@@ -646,8 +735,6 @@
                                     <i class="fa fa-star" style="font-size:20px;"></i> XÁC NHẬN HOÀN TẤT (SHD)
                                 </button>
                             }
-
-                            @* --- CẬP NHẬT ĐIỀU KIỆN: Người tạo đơn (Model.IdNguoiTao == currentUserId) cũng có quyền thấy nút Hủy --- *@
                             @if (User.IsInRole("All") || User.IsInRole("AdminSHD") || User.IsInRole("QuanLyDuyetDonSHD") || (currentUserId != 0 && Model.IdNguoiTao == currentUserId))
                             {
                                 <button id="btnHuy" onclick="handleAction('Huy')"
@@ -659,6 +746,7 @@
                         </div>
                     }
 
+                    @* KHỐI BÌNH LUẬN *@
                     <div style="background:#fff;border-radius:28px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 10px 15px -3px rgba(0,0,0,0.04);margin-bottom:25px;">
                         <div style="background:linear-gradient(135deg,#f8fafc,#fff);padding:20px 25px;border-bottom:2px solid #e2e8f0;">
                             <h4 style="margin:0;font-size:16px;font-weight:900;color:#1e293b;display:flex;align-items:center;gap:10px;">
@@ -678,7 +766,7 @@
                                 <textarea id="txtBinhLuan" name="noiDung" placeholder="Nhập bình luận..."
                                           style="width:100%;padding:12px;border:2px solid #e2e8f0;border-radius:12px;font-size:14px;resize:vertical;min-height:80px;outline:none;font-family:'Segoe UI',sans-serif;box-sizing:border-box;margin-bottom:12px;"
                                           onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
-                                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                                <div class="mobile-comment-action" style="display:flex;align-items:center;gap:12px; flex-wrap:wrap;">
                                     <label for="fileBinhLuan" class="mobile-btn-action"
                                            style="flex:1;min-width:200px;padding:12px;background:#f8fafc;border:2px dashed #cbd5e1;border-radius:12px;cursor:pointer;text-align:center;font-size:14px;color:#64748b;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;"
                                            onmouseover="this.style.borderColor='#3b82f6';this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#cbd5e1';this.style.background='#f8fafc'">
@@ -695,34 +783,33 @@
                             </form>
                         </div>
                     </div>
-
                 </div>
+
             </div>
         </div>
     </div>
 </div>
 
 <div id="imageOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(8px);">
-    <div style="position:absolute;top:25px;right:35px;display:flex;gap:15px;z-index:10000;">
-        <button onclick="rotateImage(-90, event)" style="background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.3);border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;transition:all 0.3s;backdrop-filter:blur(8px);" onmouseover="this.style.background='rgba(255,255,255,0.3)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.15)';this.style.transform='none'" title="Xoay trái">
+    <div class="mobile-zoom-toolbar" style="position:absolute;top:25px;right:35px;display:flex;gap:15px;z-index:10000;">
+        <button onclick="rotateImage(-90, event)" style="background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.3);border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;transition:all 0.3s;backdrop-filter:blur(4px);" onmouseover="this.style.background='rgba(255,255,255,0.3)';" onmouseout="this.style.background='rgba(255,255,255,0.15)';" title="Xoay trái">
             <i class="fa fa-undo"></i>
         </button>
-        <button onclick="rotateImage(90, event)" style="background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.3);border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;transition:all 0.3s;backdrop-filter:blur(8px);" onmouseover="this.style.background='rgba(255,255,255,0.3)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.15)';this.style.transform='none'" title="Xoay phải">
+        <button onclick="rotateImage(90, event)" style="background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.3);border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;transition:all 0.3s;backdrop-filter:blur(4px);" onmouseover="this.style.background='rgba(255,255,255,0.3)';" onmouseout="this.style.background='rgba(255,255,255,0.15)';" title="Xoay phải">
             <i class="fa fa-rotate-right"></i>
         </button>
         <div style="width:2px;background:rgba(255,255,255,0.2);margin:10px 0;"></div>
-        <button onclick="closeZoom(event)" style="background:#ef4444;color:white;border:none;border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:26px;transition:all 0.3s;box-shadow:0 4px 15px rgba(239,68,68,0.4);" onmouseover="this.style.background='#dc2626';this.style.transform='translateY(-2px) scale(1.05)'" onmouseout="this.style.background='#ef4444';this.style.transform='none'" title="Đóng">
+        <button onclick="closeZoom(event)" style="background:#ef4444;color:white;border:none;border-radius:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:26px;transition:all 0.3s;box-shadow:0 4px 15px rgba(239,68,68,0.4);" onmouseover="this.style.background='#dc2626';">
             <i class="fa fa-times"></i>
         </button>
     </div>
-    <div style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:9998;" onclick="closeZoom()"></div>
+    <div style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:9998;" onclick="closeZoom(event)"></div>
     <div style="position:relative;z-index:9999;width:80%;height:80%;display:flex;align-items:center;justify-content:center;pointer-events:none;">
         <img id="fullImage" src="" style="max-width:100%;max-height:100%;border-radius:16px;transition:transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);object-fit:contain;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);pointer-events:auto;">
     </div>
 </div>
 
 <script>
-    // --- CẬP NHẬT: ĐỒNG BỘ CÁCH KHỞI TẠO BIẾN BẰNG JSON.PARSE ĐỂ SỬA LỖI EXPRESSION EXPECTED ---
     const formId        = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.Id))');
     const currentUserId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.CurrentUserId))');
     const formCreatorId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.IdNguoiTao))');
@@ -733,8 +820,7 @@
     function hasRole(r) { return userRoles.includes(r); }
     function escapeHtml(str) {
         if (!str) return '';
-        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-                          .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
 
     async function apiPost(url, body, btnIds) {
@@ -753,7 +839,6 @@
         }
     }
 
-    // --- XỬ LÝ ĐÓNG MỞ LỊCH SỬ THAO TÁC TRÊN MOBILE ---
     function toggleHistoryMobile() {
         if (window.innerWidth <= 768) {
             const content = document.getElementById('historyContainer');
@@ -761,18 +846,13 @@
             if (content.classList.contains('show')) {
                 content.classList.remove('show');
                 iconSpan.innerHTML = '<i class="fa fa-chevron-down"></i> XEM LỊCH SỬ';
-                iconSpan.style.background = '#eff6ff';
-                iconSpan.style.color = '#1e40af';
             } else {
                 content.classList.add('show');
                 iconSpan.innerHTML = '<i class="fa fa-chevron-up"></i> ĐÓNG LẠI';
-                iconSpan.style.background = '#fef2f2';
-                iconSpan.style.color = '#dc2626';
             }
         }
     }
 
-    // --- XỬ LÝ CÔNG TẮC BẬT/TẮT TRẠNG THÁI LỊCH SỬ BẰNG JS (CHỈ ALL MỚI DÙNG) ---
     async function toggleLichSuVisibility(idLichSu) {
         try {
             const res = await fetch('/FormSHD/ToggleLichSuAnHien', {
@@ -793,71 +873,36 @@
                 const timeColor = document.getElementById(`log-time-${idLichSu}`);
 
                 if (isVisible) {
-                    itemDiv.style.opacity = "1";
-                    itemDiv.style.filter = "none";
-
-                    btn.style.color = "#10b981";
-                    btn.innerHTML = '<i class="fa fa-eye"></i>';
-                    btn.title = "Đang hiển thị - Nhấn để ẩn";
-
+                    itemDiv.style.opacity = "1"; itemDiv.style.filter = "none";
+                    btn.style.color = "#10b981"; btn.innerHTML = '<i class="fa fa-eye"></i>'; btn.title = "Đang hiển thị - Nhấn để ẩn";
                     badgeContainer.innerHTML = "";
-
                     dot.style.borderColor = "#3b82f6";
-                    innerBox.style.background = "#f8fafc";
-                    innerBox.style.borderColor = "#f1f5f9";
+                    innerBox.style.background = "#f8fafc"; innerBox.style.borderColor = "#f1f5f9";
                     timeColor.style.color = "#3b82f6";
                 } else {
-                    itemDiv.style.opacity = "0.75";
-                    itemDiv.style.filter = "grayscale(90%)";
-
-                    btn.style.color = "#94a3b8";
-                    btn.innerHTML = '<i class="fa fa-eye-slash"></i>';
-                    btn.title = "Đang ẩn - Nhấn để hiển thị";
-
+                    itemDiv.style.opacity = "0.75"; itemDiv.style.filter = "grayscale(90%)";
+                    btn.style.color = "#94a3b8"; btn.innerHTML = '<i class="fa fa-eye-slash"></i>'; btn.title = "Đang ẩn - Nhấn để hiển thị";
                     badgeContainer.innerHTML = '<span style="background:#ef4444; color:white; font-size:10px; padding:2px 8px; border-radius:8px; margin-left: 8px;">LOG ẨN</span>';
-
                     dot.style.borderColor = "#ef4444";
-                    innerBox.style.background = "#fef2f2";
-                    innerBox.style.borderColor = "#fecaca";
+                    innerBox.style.background = "#fef2f2"; innerBox.style.borderColor = "#fecaca";
                     timeColor.style.color = "#ef4444";
                 }
-            } else {
-                alert(data.message || 'Lỗi hệ thống thao tác!');
-            }
-        } catch (err) {
-            alert('Lỗi kết nối: ' + err.message);
-        }
+            } else { alert(data.message || 'Lỗi thao tác!'); }
+        } catch (err) { alert('Lỗi kết nối: ' + err.message); }
     }
 
-    // ── ZOOM & XOAY ẢNH ──
     let currentImageRotation = 0;
-
     function openZoom(src) {
-        const imgEl = document.getElementById('fullImage');
-        imgEl.src = src;
-        currentImageRotation = 0;
+        const imgEl = document.getElementById('fullImage'); imgEl.src = src; currentImageRotation = 0;
         imgEl.style.transform = `rotate(${currentImageRotation}deg)`;
-
         document.getElementById('imageOverlay').style.display = 'flex';
         document.body.style.overflow = 'hidden';
     }
 
-    function closeZoom(event) {
-        if(event) event.stopPropagation();
-        document.getElementById('imageOverlay').style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
+    function closeZoom(event) { if(event) event.stopPropagation(); document.getElementById('imageOverlay').style.display = 'none'; document.body.style.overflow = 'auto'; }
+    function rotateImage(degree, event) { if(event) event.stopPropagation(); currentImageRotation += degree; document.getElementById('fullImage').style.transform = `rotate(${currentImageRotation}deg)`; }
+    document.addEventListener('keydown', e => { if (e.key==='Escape') closeZoom(event); });
 
-    function rotateImage(degree, event) {
-        if(event) event.stopPropagation();
-        currentImageRotation += degree;
-        const imgEl = document.getElementById('fullImage');
-        imgEl.style.transform = `rotate(${currentImageRotation}deg)`;
-    }
-
-    document.addEventListener('keydown', e => { if (e.key==='Escape') closeZoom(); });
-
-    // ── DUYỆT BƯỚC 2 (B2) LƯỢC BỎ GHI CHÚ ──
     async function duyetB2(idRecord, action) {
         const msg = action === 'Approve' ? 'Bạn có xác nhận DUYỆT bước này?' : 'Bạn có xác nhận TỪ CHỐI bước này?';
         if (!confirm(msg)) return;
@@ -868,65 +913,25 @@
                 body: JSON.stringify({ idB2: idRecord, idForm: formId, loaiHanhDong: action })
             });
             const data = await res.json();
-            if (data.success) {
-                alert(data.message || 'Thành công');
-                location.reload();
-            } else {
-                alert(data.message || 'Thất bại');
-            }
-        } catch (err) {
-            alert('Lỗi kết nối: ' + err.message);
-        }
+            if (data.success) { alert(data.message || 'Thành công'); location.reload(); } else alert(data.message || 'Thất bại');
+        } catch (err) { alert('Lỗi kết nối: ' + err.message); }
     }
 
-    // ── GIÁM ĐỐC XÁC NHẬN ──
     async function giamDocXacNhan(idXacNhan, action) {
         const ghiChu = document.getElementById('txtGhiChuXacNhan')?.value?.trim() ?? '';
-        const label  = action === 'Approve' ? 'DUYỆT' : 'TỪ CHỐI';
-        if (!confirm(`Xác nhận ${label} đơn này?`)) return;
-        const btnD = document.getElementById('btnXnDuyet');
-        const btnR = document.getElementById('btnXnTuChoi');
-        if (btnD) btnD.disabled = true;
-        if (btnR) btnR.disabled = true;
+        if (!confirm(`Xác nhận thao tác?`)) return;
         try {
             const res  = await fetch('/FormSHD/GiamDocPheDuyet', { method:'POST', headers:{'Content-Type':'application/json','RequestVerificationToken':TOKEN}, body:JSON.stringify({ idForm:formId, idNguoiXacNhan:idXacNhan, loaiHanhDong:action, lyDo:ghiChu }) });
             const data = await res.json();
-            if (data.success) {
-                const isApprove = data.trangThai === 1;
-                const cardEl   = document.getElementById(`xnCard-${idXacNhan}`);
-                const badgeEl  = document.getElementById(`xnBadge-${idXacNhan}`);
-                const timeEl   = document.getElementById(`xnTime-${idXacNhan}`);
-                const ghiChuEl = document.getElementById(`xnGhiChu-${idXacNhan}`);
-                if (cardEl)  { cardEl.style.background=isApprove?'#f0fdf4':'#fff1f2'; cardEl.style.borderColor=isApprove?'#bbf7d0':'#fecaca'; }
-                if (badgeEl) { badgeEl.style.background=isApprove?'#059669':'#dc2626'; badgeEl.innerHTML=isApprove?'<i class="fa fa-check-circle"></i> ĐÃ DUYỆT':'<i class="fa fa-times-circle"></i> TỪ CHỐI'; }
-                if (timeEl && data.thoiGian) timeEl.innerHTML=`<div style="font-size:11px;color:#94a3b8;margin-top:3px;"><i class="fa fa-clock-o"></i> ${data.thoiGian}</div>`;
-                if (ghiChuEl && ghiChu) { const bc=isApprove?'#059669':'#dc2626'; ghiChuEl.style.cssText=`margin-top:6px;padding:5px 10px;background:rgba(255,255,255,0.7);border-radius:8px;font-size:11px;color:#475569;border-left:3px solid ${bc};font-style:italic;`; ghiChuEl.innerHTML=`<i class="fa fa-comment"></i> ${escapeHtml(ghiChu)}`; }
-                const actionBox = document.getElementById('btnXnDuyet')?.closest('div[style*="dashed"]');
-                if (actionBox) actionBox.parentElement.style.display='none';
-                alert(data.message);
-            } else {
-                alert(data.message||'Thất bại');
-                if (btnD) btnD.disabled=false;
-                if (btnR) btnR.disabled=false;
-            }
-        } catch(err) { alert('Lỗi kết nối: '+err.message); if(btnD) btnD.disabled=false; if(btnR) btnR.disabled=false; }
+            if (data.success) { alert(data.message); location.reload(); } else alert(data.message||'Thất bại');
+        } catch(err) { alert('Lỗi kết nối: '+err.message); }
     }
 
-    // ── NGHIỆP VỤ ĐƠN ──
     function handleAction(type) {
-        let reason = null;
-        if (type === 'Huy') {
-            reason = prompt('Vui lòng nhập lý do hủy đơn:');
-            if (reason === null || reason.trim() === '') return;
-        }
-
-        // So sánh chuỗi hoặc số một cách an toàn bằng cách ép kiểu chuỗi dữ liệu trong JS
+        let reason = null; if (type === 'Huy') { reason = prompt('Vui lòng nhập lý do hủy đơn:'); if (reason === null || reason.trim() === '') return; }
         const isCreator = String(currentUserId) === String(formCreatorId);
-        if (!hasRole('All') && !hasRole('AdminSHD') && !hasRole('QuanLyDuyetDonSHD') && !isCreator)
-            return alert('Bạn không có quyền thực hiện thao tác này!');
-
-        if (confirm('Xác nhận thao tác?'))
-            apiPost('/FormSHD/XuLyDon', { id:formId, action:type, reason }, ['btnDuyet','btnHuy']);
+        if (!hasRole('All') && !hasRole('AdminSHD') && !hasRole('QuanLyDuyetDonSHD') && !isCreator) return alert('Bạn không có quyền thực hiện thao tác này!');
+        if (confirm('Xác nhận thao tác?')) apiPost('/FormSHD/XuLyDon', { id:formId, action:type, reason }, ['btnDuyet','btnHuy']);
     }
 
     function handleXacNhanHoanThanh() {
@@ -935,25 +940,18 @@
             apiPost('/FormSHD/XacNhanHoanThanh', { id:formId }, ['btnHoanThanh']);
     }
 
-    // change supporter
     function changeSupporter() {
-        const select = document.getElementById('selectSHD');
-        const maNv   = select?.value;
-        const tenNv  = select?.options[select.selectedIndex]?.text;
+        const select = document.getElementById('selectSHD'); const maNv = select?.value; const tenNv = select?.options[select.selectedIndex]?.text;
         if (!maNv) return alert('Vui lòng chọn một nhân viên SHD!');
-        if (!hasRole('All') && !hasRole('AdminSHD'))
-            return alert('Bạn không có quyền gán người hỗ trợ!');
-        if (confirm(`Xác nhận chỉ định [${tenNv}] hỗ trợ đơn này?`))
-            apiPost('/FormSHD/ThemNguoiHoTro', { idFormShd:formId, maNv });
+        if (!hasRole('All') && !hasRole('AdminSHD')) return alert('Bạn không có quyền gán người hỗ trợ!');
+        if (confirm(`Xác nhận chỉ định [${tenNv}] hỗ trợ đơn này?`)) apiPost('/FormIT/ThemNguoiHoTro', { idFormShd:formId, maNv });
     }
 
-    // BÌNH LUẬN
     let currentSkipComment=0, hasMoreComments=true, isLoadingComments=false, totalComments=0, isSubmitting=false;
     const takeComment = 20;
 
     async function taiBinhLuan(isLoadMore=false) {
-        if (isLoadingComments) return;
-        isLoadingComments = true;
+        if (isLoadingComments) return; isLoadingComments = true;
         try {
             const res  = await fetch(`/FormSHD/LayBinhLuan/${formId}?skip=${currentSkipComment}&take=${takeComment}`);
             const data = await res.json();
@@ -971,38 +969,31 @@
                 }
                 updateCommentCount();
             }
-        } catch(err) {
-            document.getElementById('commentList').innerHTML=`<div style="text-align:center;color:#ef4444;padding:40px;">Lỗi tải bình luận.</div>`;
-        } finally { isLoadingComments = false; }
+        } catch(err) { console.error(err); } finally { isLoadingComments = false; }
     }
 
     function renderComment(bl) {
         const isOwn  = String(currentUserId) === String(bl.idNguoiBinhLuan);
         const canDel = isOwn || hasRole('All') || hasRole('AdminSHD');
-        const time   = new Date(bl.thoiGian).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});
         let fileHtml = '';
         if (bl.fileDinhKem) {
             const name = bl.fileDinhKem.split('_').slice(2).join('_');
             const ext  = bl.fileDinhKem.split('.').pop().toLowerCase();
-            const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext);
-            fileHtml = isImg
+            fileHtml = ['jpg','jpeg','png','gif','webp'].includes(ext)
                 ? `<div style="margin-top:8px;"><img src="/FormSHD/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" onclick="openZoom(this.src)" style="max-width:200px;border-radius:8px;cursor:zoom-in;border:1px solid #e2e8f0"/></div>`
-                : `<div style="margin-top:10px;padding:10px;background:#f1f5f9;border-radius:8px;display:inline-flex;align-items:center;gap:8px;"><i class="fa fa-paperclip" style="color:#64748b;"></i><a href="/FormSHD/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color:#3b82f6;text-decoration:none;font-weight:600;font-size:13px;">${escapeHtml(name)}</a></div>`;
+                : `<div style="margin-top:10px;padding:10px;background:#f1f5f9;border-radius:8px;display:inline-flex;align-items:center;gap:8px;"><i class="fa fa-paperclip"></i><a href="/FormSHD/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color:#3b82f6;text-decoration:none;font-weight:600;font-size:13px;">${escapeHtml(name)}</a></div>`;
         }
-        const initial = (bl.tenNguoiBinhLuan || 'U').substring(0,1).toUpperCase();
         return `<div style="margin-bottom:15px;display:flex;gap:12px;${isOwn?'flex-direction:row-reverse;':''}" data-comment-id="${bl.id}">
-            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,${isOwn?'#3b82f6':'#94a3b8'},${isOwn?'#1e40af':'#64748b'});display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0;">${initial}</div>
+            <div style="width:40px;height:40px;border-radius:50%;background:${isOwn?'#3b82f6':'#94a3b8'};display:flex;align-items:center;justify-content:center;color:white;font-weight:800;">${(bl.tenNguoiBinhLuan || 'U').substring(0,1).toUpperCase()}</div>
             <div style="flex:1;${isOwn?'text-align:right;':''}">
                 <div style="display:inline-block;max-width:85%;">
-                    <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;${isOwn?'justify-content:flex-end;flex-direction:row-reverse;':''}">
-                        <span style="font-weight:800;color:#1e293b;font-size:14px;">${escapeHtml(bl.tenNguoiBinhLuan||'Unknown')}</span>
-                        <div style="display:flex;align-items:center;gap:6px;">
-                            <span style="font-size:11px;color:#94a3b8;">${time}</span>
-                            ${canDel?`<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" style="color:#ef4444;cursor:pointer;font-size:12px;" title="Xóa"></i>`:''}
-                        </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;${isOwn?'justify-content:flex-end;flex-direction:row-reverse;':''}">
+                        <span style="font-weight:800;color:#1e293b;font-size:14px;">${escapeHtml(bl.tenNguoiBinhLuan)}</span>
+                        <span style="font-size:11px;color:#94a3b8;">${new Date(bl.thoiGian).toLocaleString('vi-VN')}</span>
+                        ${canDel?`<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" style="color:#ef4444;cursor:pointer;font-size:12px;"></i>`:''}
                     </div>
                     <div style="background:${isOwn?'#dbeafe':'white'};padding:12px 16px;border-radius:16px;border:1px solid #e2e8f0;text-align:left;">
-                        ${bl.noiDung?`<div style="color:#1e293b;font-size:14px;line-height:1.6;word-wrap:break-word;white-space:pre-wrap;">${escapeHtml(bl.noiDung)}</div>`:''}
+                        ${bl.noiDung?`<div style="color:#1e293b;font-size:14px;white-space:pre-wrap;">${escapeHtml(bl.noiDung)}</div>`:''}
                         ${fileHtml}
                     </div>
                 </div>
@@ -1010,108 +1001,46 @@
     }
 
     async function guiBinhLuan(e) {
-            e.preventDefault();
-            if (isSubmitting) return;
+        e.preventDefault(); if (isSubmitting) return;
+        const txtBinhLuan = document.getElementById('txtBinhLuan'); const fileInput = document.getElementById('fileBinhLuan');
+        const noiDung = txtBinhLuan.value.trim(); const file = fileInput.files[0];
+        if (!noiDung && !file) return alert('Vui lòng nhập nội dung!');
 
-            const txtBinhLuan = document.getElementById('txtBinhLuan');
-            const fileInput = document.getElementById('fileBinhLuan');
-            const noiDung = txtBinhLuan.value.trim();
-            const file = fileInput.files[0];
-
-            if (!noiDung && !file) {
-                alert('Vui lòng nhập nội dung hoặc đính kèm file!');
-                return;
-            }
-            if (file && file.size > 50 * 1024 * 1024) {
-                alert('File không được vượt quá 50MB!');
-                return;
-            }
-
-            const fd = new FormData();
-            fd.append('idForm', formId);
-            fd.append('noiDung', noiDung);
-            if (file) fd.append('file', file);
-            fd.append('__RequestVerificationToken', TOKEN);
-
-            const btn = document.getElementById('btnGuiBinhLuan');
-            isSubmitting = true;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang gửi...';
-
-            try {
-                const res = await fetch('/FormSHD/ThemBinhLuan', {
-                    method: 'POST',
-                    headers: {
-                        'RequestVerificationToken': TOKEN
-                    },
-                    body: fd
-                });
-
-                const responseText = await res.text();
-                let data;
-                try {
-                    data = JSON.parse(responseText);
-                } catch (e) {
-                    console.error("Server trả về HTML lỗi (thường là 500):", responseText);
-                    throw new Error("Lỗi định dạng phản hồi từ server. Hãy kiểm tra F12 > Network tab.");
-                }
-
-                if (data.success) {
-                    const list = document.getElementById('commentList');
-                    if (list.innerHTML.includes('Chưa có')) list.innerHTML = '';
-
-                    const bl = {
-                        id: data.data.id,
-                        noiDung: data.data.noiDung,
-                        tenNguoiBinhLuan: data.data.tenNguoiBinhLuan,
-                        idNguoiBinhLuan: data.data.idNguoiBinhLuan,
-                        thoiGian: data.data.thoiGian,
-                        fileDinhKem: data.data.fileDinhKem
-                    };
-
-                    list.insertAdjacentHTML('beforeend', renderComment(bl));
-                    setTimeout(() => { list.scrollTop = list.scrollHeight; }, 100);
-
-                    document.getElementById('formBinhLuan').reset();
-                    document.getElementById('fileLabel').textContent = 'Đính kèm file (max 50MB)';
-                    totalComments++;
-                    updateCommentCount();
-                } else {
-                    alert(data.message || 'Lỗi gửi bình luận');
-                }
-            } catch (err) {
-                alert('Lỗi: ' + err.message);
-            } finally {
-                isSubmitting = false;
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa fa-paper-plane"></i> Gửi';
-            }
-        }
+        const fd = new FormData(); fd.append('idForm', formId); fd.append('noiDung', noiDung); if (file) fd.append('file', file);
+        const btn = document.getElementById('btnGuiBinhLuan'); isSubmitting = true; btn.disabled = true;
+        try {
+            const res = await fetch('/FormSHD/ThemBinhLuan', { method: 'POST', headers: { 'RequestVerificationToken': TOKEN }, body: fd });
+            const data = await res.json();
+            if (data.success) {
+                const list = document.getElementById('commentList'); if (list.innerHTML.includes('Chưa có')) list.innerHTML = '';
+                list.insertAdjacentHTML('beforeend', renderComment(data.data));
+                document.getElementById('formBinhLuan').reset();
+                document.getElementById('fileLabel').textContent = 'Đính kèm file (max 50MB)';
+                totalComments++; updateCommentCount();
+                setTimeout(() => { list.scrollTop = list.scrollHeight; }, 100);
+            } else alert(data.message);
+        } catch (err) { alert('Lỗi hệ thống'); } finally { isSubmitting = false; btn.disabled = false; }
+    }
 
     async function xoaBinhLuan(id) {
         if (!confirm('Xóa bình luận này?')) return;
-        const res  = await fetch('/FormSHD/XoaBinhLuan',{method:'POST',headers:{'Content-Type':'application/json','RequestVerificationToken':TOKEN},body:JSON.stringify({id})});
+        const res = await fetch('/FormSHD/XoaBinhLuan',{ method:'POST', headers:{'Content-Type':'application/json','RequestVerificationToken': TOKEN}, body:JSON.stringify({id}) });
         const data = await res.json();
         if (data.success) {
             document.querySelector(`[data-comment-id="${id}"]`)?.remove();
             totalComments--; updateCommentCount();
-            if (!document.getElementById('commentList').children.length)
-                document.getElementById('commentList').innerHTML=`<div style="text-align:center;color:#94a3b8;padding:40px;">Chưa có bình luận nào.</div>`;
+            if (!document.getElementById('commentList').children.length) document.getElementById('commentList').innerHTML=`<div style="text-align:center;color:#94a3b8;padding:40px;">Chưa có bình luận nào.</div>`;
         } else alert(data.message);
     }
 
-    function updateFileLabel(input) {
-        const f = input.files[0];
-        document.getElementById('fileLabel').textContent = f ? `${f.name} (${(f.size/1024/1024).toFixed(2)}MB)` : 'Đính kèm file (max 50MB)';
-    }
+    function updateFileLabel(input) { const f = input.files[0]; document.getElementById('fileLabel').textContent = f ? `${f.name} (${(f.size/1024/1024).toFixed(2)}MB)` : 'Đính kèm file (max 50MB)'; }
     function updateCommentCount() { const e=document.getElementById('commentCount'); if(e) e.textContent=totalComments; }
 
     document.getElementById('commentList')?.addEventListener('scroll', function() {
         if (this.scrollTop===0 && hasMoreComments && !isLoadingComments) {
-            const h = this.scrollHeight;
-            taiBinhLuan(true).then(()=>{ this.scrollTop=this.scrollHeight-h; });
+            const h = this.scrollHeight; taiBinhLuan(true).then(()=>{ this.scrollTop=this.scrollHeight-h; });
         }
     });
     document.getElementById('formBinhLuan')?.addEventListener('submit', guiBinhLuan);
     document.addEventListener('DOMContentLoaded', ()=>taiBinhLuan(false));
-</script> 
+</script>
