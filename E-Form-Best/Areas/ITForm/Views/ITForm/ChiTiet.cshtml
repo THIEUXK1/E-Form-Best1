@@ -622,24 +622,24 @@
                     </div>
 
                     <style>
-                        .history-zoom-active {
-                            position: fixed !important;
-                            top: 50% !important;
-                            left: 50% !important;
-                            transform: translate(-50%, -50%) !important;
-                            width: 75vw !important;
-                            height: 80vh !important;
-                            z-index: 9999 !important;
-                            margin: 0 !important;
-                            border-radius: 28px !important;
-                            display: flex !important;
-                            flex-direction: column !important;
-                        }
+                                            .history-zoom-active {
+                                                position: fixed !important;
+                                                top: 50% !important;
+                                                left: 50% !important;
+                                                transform: translate(-50%, -50%) !important;
+                                                width: 75vw !important;
+                                                height: 80vh !important;
+                                                z-index: 9999 !important;
+                                                margin: 0 !important;
+                                                border-radius: 28px !important;
+                                                display: flex !important;
+                                                flex-direction: column !important;
+                                            }
 
-                        .history-zoom-active #historyScrollList {
-                            max-height: none !important;
-                            flex: 1 !important;
-                        }
+                                                .history-zoom-active #historyScrollList {
+                                                    max-height: none !important;
+                                                    flex: 1 !important;
+                                                }
                     </style>
                 </div>
 
@@ -726,12 +726,12 @@
                                 </button>
                             }
 
-                            @* ĐÃ THAY ĐỔI: Thêm điều kiện check isApprovedByManager (Quản lý trực tiếp duyệt xong) mới hiển thị block dưới đây *@
+                            @* BLOCK GIAO DIỆN PHÊ DUYỆT CHO QUẢN LÝ BỘ PHẬN ĐƯỢC GẮN XÁC NHẬN ĐƠN 8 *@
                             @if (isApprovedByManager && Model.IdForm == "IT_CapQuyenOChung_8" && isTargetManagerDon8 && xacNhanDon8 != null && string.IsNullOrEmpty(xacNhanDon8.TrangThai))
                             {
                                 <div style="background: #fdf4ff; border: 2px solid #f0abfc; padding: 20px; border-radius: 22px; box-shadow: 0 4px 12px rgba(217, 70, 239, 0.05);">
                                     <h5 style="margin:0 0 12px 0; color:#86198f; font-weight:900; font-size:14px; text-transform:uppercase;"><i class="fa fa-shield"></i> PHÊ DUYỆT BỘ PHẬN LIÊN ĐỚI</h5>
-                                    <textarea id="txtGhiChuDon8" placeholder="Nhập ghi chủ phản hồi hoặc lý do từ chối tại đây..." style="width: 100%; padding: 10px; border: 1px solid #e9d5ff; border-radius: 10px; font-size: 13px; min-height:60px; outline:none; margin-bottom:12px; box-sizing:border-box;"></textarea>
+                                    <textarea id="txtGhiChuDon8" placeholder="Nhập ghi chủ phản hồi hoặc lý do từ chối tại đây..." style="width: 100%; padding: 10px; border: 1px solid #e9d5ff; border-radius: 10px; font-size: 13px; min-height:60px; outline:none; margin-bottom:12px; box-sizing:border-box;"></textarea>
                                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                                         <button onclick="xuLyXacNhanDon8('Duyet')" style="background:#a855f7; color:white; border:none; padding:12px; border-radius:10px; font-weight:800; font-size:13px; cursor:pointer;"><i class="fa fa-check"></i> XÁC NHẬN CHO PHÉP</button>
                                         <button onclick="xuLyXacNhanDon8('TuChoi')" style="background:white; color:#c084fc; border:1.5px solid #c084fc; padding:12px; border-radius:10px; font-weight:800; font-size:13px; cursor:pointer;"><i class="fa fa-times"></i> TỪ CHỐI</button>
@@ -884,24 +884,24 @@
                     </div>
 
                     <style>
-                        .comment-zoom-active {
-                            position: fixed !important;
-                            top: 50% !important;
-                            left: 50% !important;
-                            transform: translate(-50%, -50%) !important;
-                            width: 75vw !important;
-                            height: 85vh !important;
-                            z-index: 9999 !important;
-                            margin: 0 !important;
-                            border-radius: 20px !important;
-                            display: flex !important;
-                            flex-direction: column !important;
-                        }
+                                            .comment-zoom-active {
+                                                position: fixed !important;
+                                                top: 50% !important;
+                                                left: 50% !important;
+                                                transform: translate(-50%, -50%) !important;
+                                                width: 75vw !important;
+                                                height: 85vh !important;
+                                                z-index: 9999 !important;
+                                                margin: 0 !important;
+                                                border-radius: 20px !important;
+                                                display: flex !important;
+                                                flex-direction: column !important;
+                                            }
 
-                        .comment-zoom-active #commentList {
-                            max-height: none !important;
-                            flex: 1 !important;
-                        }
+                                                .comment-zoom-active #commentList {
+                                                    max-height: none !important;
+                                                    flex: 1 !important;
+                                                }
                     </style>
                 </div>
             </div>
@@ -925,11 +925,14 @@
 </div>
 
 <script>
+    // ==========================================
+    // 1. KHAI BÁO BIẾN CƠ BẢN & TRẠNG THÁI
+    // ==========================================
     const formId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.Id))');
     const currentUserId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.CurrentUserId))');
     const formCreatorId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.IdNguoiTao))');
     const userRoles = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList()))');
-    
+
     let currentSkipComment = 0; const takeComment = 20; let hasMoreComments = true; let isLoadingComments = false; let totalComments = 0; let soSaoChon = 0; let isSubmitting = false;
 
     function hasRole(roleName) { return userRoles.includes(roleName); }
@@ -1076,13 +1079,51 @@
 
     function changeSupporter() { const select = document.getElementById('selectIT'); const maNv = select?.value; if (!maNv) return alert("Chọn người hỗ trợ!"); if (confirm("Xác nhận chỉ định?")) apiPost('/FormIT/ThemNguoiHoTro', { idFormIt: formId, maNv: maNv }); }
 
-    function chonSao(sao) { soSaoChon = sao; capNhatGiaoDienSao(); document.getElementById('btnGuiDanhGia').disabled = false; document.getElementById('btnGuiDanhGia').style.opacity = '1'; document.getElementById('btnGuiDanhGia').style.cursor = 'pointer'; }
+    // --- MỚI/SỬA ĐỔI: LOGIC ĐÁNH GIÁ SAO VÀ HÀM PHẢN HỒI GIAO DIỆN ---
+    function chonSao(sao) {
+        soSaoChon = sao;
+        capNhatGiaoDienSao();
+        const btnGui = document.getElementById('btnGuiDanhGia');
+        if (btnGui) { btnGui.disabled = false; btnGui.style.opacity = '1'; btnGui.style.cursor = 'pointer'; }
+    }
 
-    function hoverSao(sao) { for (let i = 1; i <= 5; i++) { const star = document.getElementById('star' + i); if (star) { star.style.color = i <= sao ? '#f59e0b' : '#9ca3af'; star.style.transform = i <= sao ? 'scale(1.15)' : ''; } } }
+    function hoverSao(sao) {
+        for (let i = 1; i <= 5; i++) {
+            const star = document.getElementById('star' + i);
+            if (star) {
+                star.style.color = i <= sao ? '#f59e0b' : '#9ca3af';
+                star.style.transform = i <= sao ? 'scale(1.15)' : '';
+            }
+        }
+    }
 
     function resetHover() { capNhatGiaoDienSao(); }
 
-    function capNhatGiaoDienSao() { for (let i = 1; i <= 5; i++) { const star = document.getElementById('star' + i); if (!star) continue; star.style.background = i <= soSaoChon ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' : 'white'; star.style.color = i <= soSaoChon ? '#f59e0b' : '#9ca3af'; star.style.borderColor = i <= soSaoChon ? '#f59e0b' : '#d1d5db'; } }
+    function capNhatGiaoDienSao() {
+        for (let i = 1; i <= 5; i++) {
+            const star = document.getElementById('star' + i);
+            if (!star) continue;
+            star.style.background = i <= soSaoChon ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' : 'white';
+            star.style.color = i <= soSaoChon ? '#f59e0b' : '#9ca3af';
+            star.style.borderColor = i <= soSaoChon ? '#f59e0b' : '#d1d5db';
+        }
+    }
+
+    // ĐÃ BỔ SUNG: Khai báo lại hàm xử lý gửi dữ liệu đánh giá lên Controller bằng Ajax
+    function handleDanhGia() {
+        if (soSaoChon === 0) {
+            alert("Vui lòng chọn mức độ hài lòng bằng số sao!");
+            return;
+        }
+        const nhanXet = document.getElementById('txtNhanXet')?.value.trim() || '';
+        if (confirm(`Xác nhận gửi đánh giá mức độ ${soSaoChon} sao?`)) {
+            apiPost('/FormIT/DanhGiaFormItsDon', {
+                id: formId,
+                mucDo: soSaoChon,
+                nhanXet: nhanXet
+            }, ['btnGuiDanhGia']);
+        }
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('formBinhLuan')?.addEventListener('submit', guiBinhLuan);
