@@ -373,7 +373,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             var tenCongTyUser = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
             var boPhanUser = User.FindFirst("TenBoPhan")?.Value ?? "";
 
-            // 2. Lấy dữ liệu đơn (Include các bảng liên quan của SHD)
+            // 2. Lấy dữ liệu đơn (Include đầy đủ các bảng liên quan của SHD bao gồm B2 và Xác nhận)
             var don = await _context.FormShds
                 .Include(f => f.ShdDangKySuDungXeCongTac1s)
                 .Include(f => f.ShdDangKySuDungXeDaily2s)
@@ -431,7 +431,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     isAllowed = true;
                 }
             }
-            // Quyền 4: Thay đổi check theo Role QuanLyDuyetDonSHD_B2 và GiamDocSHD
+            // Quyền 4: Check theo Role QuanLyDuyetDonSHD_B2 và GiamDocSHD
             else if (User.IsInRole("QuanLyDuyetDonSHD_B2") || User.IsInRole("GiamDocSHD"))
             {
                 isAllowed = true;
