@@ -1347,7 +1347,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         public async Task<IActionResult> XuLyDon([FromBody] SHDApprovalRequest request)
         {
             if (request == null || request.Id <= 0)
-                return Json(new { success = false, message = "Dữ liệu không hợp lệ." });
+                return Json(new { success = false, message = "Dữ liệu không hợp lệ hoặc rỗng." });
 
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr))
@@ -1378,7 +1378,9 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                     string tieuDeLichSu = "";
                     string moTaChiTiet = "";
 
-                    if (request.Action == "Duyet")
+                    string actionUpper = request.Action?.Trim().ToUpper() ?? "";
+
+                    if (actionUpper == "DUYET")
                     {
                         if (!User.IsInRole("All") && !User.IsInRole("AdminSHD") && !User.IsInRole("QuanLyDuyetDonSHD"))
                             return Json(new { success = false, message = "Bạn không có quyền phê duyệt đơn này." });
@@ -1391,7 +1393,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                         tieuDeLichSu = "Phê duyệt đơn SHD";
                         moTaChiTiet = $"Người duyệt: {userName}({userEmail}). Bộ phận xử lý: {phongBanUser}.";
                     }
-                    else if (request.Action == "Huy")
+                    else if (actionUpper == "HUY")
                     {
                         bool isOwner = form.IdNguoiTao == userId;
                         bool canApprove = User.IsInRole("All") || User.IsInRole("AdminSHD") || User.IsInRole("QuanLyDuyetDonSHD");
@@ -1406,7 +1408,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                         tieuDeLichSu = "Hủy đơn SHD";
                         moTaChiTiet = $"Người hủy: {userName}({userEmail}). Lý do: {request.Reason}.";
                     }
-                    else if (request.Action == "HoanTat")
+                    else if (actionUpper == "HOANTAT")
                     {
                         bool isAdmin = User.IsInRole("All") || User.IsInRole("AdminSHD");
                         bool isSupporter = form.ShdCtNguoiHoTros.Any(ct => ct.IdShdNguoiHoTroNavigation?.MaNv == userEmail);
@@ -1422,6 +1424,10 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                         tieuDeLichSu = "Hoàn tất đơn SHD";
                         moTaChiTiet = $"Đơn đã được xử lý xong bởi: {userName}({userEmail}).";
                     }
+                    else
+                    {
+                        return Json(new { success = false, message = "Hành động (Action) không được hỗ trợ hệ thống." });
+                    }
 
                     _context.LichSuFormShds.Add(new LichSuFormShd
                     {
@@ -1429,7 +1435,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                         TieuDe = tieuDeLichSu,
                         Mota = moTaChiTiet,
                         Time = now,
-                        TrangThaiAnHien = true // Luôn hiển thị log thao tác mới
+                        TrangThaiAnHien = true
                     });
 
                     _context.FormShds.Update(form);
@@ -1446,10 +1452,16 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             }
         }
 
+        // FIX LỖI 400: Cấu hình ánh xạ tường minh bằng JsonPropertyName để hứng trọn vẹn dữ liệu JSON đầu vào
         public class SHDApprovalRequest
         {
+            [System.Text.Json.Serialization.JsonPropertyName("id")]
             public int Id { get; set; }
-            public string? Action { get; set; } // Duyet, Huy, HoanTat
+
+            [System.Text.Json.Serialization.JsonPropertyName("action")]
+            public string? Action { get; set; }
+
+            [System.Text.Json.Serialization.JsonPropertyName("reason")]
             public string? Reason { get; set; }
         }
 

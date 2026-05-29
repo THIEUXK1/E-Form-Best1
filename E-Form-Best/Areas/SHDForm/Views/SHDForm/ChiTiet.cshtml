@@ -101,6 +101,9 @@
     int soNguoiB2DaDuyet = danhSachB2.Count(x => x.TrangThaiXacNhan == 1);
 }
 
+<!-- ĐẢM BẢO CHỐNG GIẢ MẠO: Sinh thẻ input chứa token bảo mật cho API script đọc dữ liệu -->
+@Html.AntiForgeryToken()
+
 <style>
     /* CSS TỐI ƯU MOBILE RESPONSIVE */
     .mobile-history-content {
@@ -429,7 +432,7 @@
                                                     <div style="color:#64748b;font-size:14px;line-height:1.6;white-space:pre-line;">@ls.Mota</div>
                                                 </div>
                                                 <div style="text-align:right;min-width:100px;margin-left:15px;flex-shrink:0;">
-                                                    <div id="log-time-@ls.Id" style="font-weight:800;color:@(ls.TrangThaiAnHien == false ? "#ef4444" : "#3b82f6");font-size:14px; transition:color 0.3s;">@ls.Time?.ToString("HH:mm")</div>
+                                                    <div id="log-time-@ls.Id" style="font-weight:800;color:@(ls.TrangThaiAnHien == false ? "#ef4444" : "#3b82f6");font-size:14px; transition:all 0.3s;">@ls.Time?.ToString("HH:mm")</div>
                                                     <div style="color:#94a3b8;font-size:12px;margin-top:2px;">@ls.Time?.ToString("dd/MM/yyyy")</div>
                                                 </div>
                                             </div>
@@ -775,8 +778,7 @@
                                         <input type="file" id="fileBinhLuan" name="file" style="display:none;" onchange="updateFileLabel(this)">
                                     </label>
                                     <button type="submit" id="btnGuiBinhLuan" class="mobile-btn-action"
-                                            style="padding:12px 30px;background:linear-gradient(135deg,#3b82f6,#1e40af);color:white;border:none;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;white-space:nowrap;"
-                                            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+                                            style="padding:12px 30px;background:linear-gradient(135deg,#3b82f6,#1e40af);color:white;border:none;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;white-space:nowrap;">
                                         <i class="fa fa-paper-plane"></i> Gửi
                                     </button>
                                 </div>
@@ -823,10 +825,19 @@
         return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
 
+    // CHUẨN HÓA ĐỘC LẬP: apiPost truyền JSON thô kèm 2 Header token chuẩn xác để không bị chặn lỗi 400
     async function apiPost(url, body, btnIds) {
         if (btnIds) btnIds.forEach(id => { const b=document.getElementById(id); if(b) b.disabled=true; });
         try {
-            const res  = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json','RequestVerificationToken':TOKEN}, body:JSON.stringify(body) });
+            const res  = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': TOKEN, // Hỗ trợ Header tùy biến
+                    'X-XSRF-TOKEN': TOKEN              // Hỗ trợ Header tiêu chuẩn .NET Core mặc định
+                },
+                body: JSON.stringify(body)
+            });
             const data = await res.json();
             if (data.success) { alert(data.message||'Thành công!'); location.reload(); }
             else {
@@ -928,16 +939,24 @@
     }
 
     function handleAction(type) {
-        let reason = null; if (type === 'Huy') { reason = prompt('Vui lòng nhập lý do hủy đơn:'); if (reason === null || reason.trim() === '') return; }
+        let reason = null;
+        if (type === 'Huy') {
+            reason = prompt('Vui lòng nhập lý do hủy đơn:');
+            if (reason === null || reason.trim() === '') return;
+        }
         const isCreator = String(currentUserId) === String(formCreatorId);
         if (!hasRole('All') && !hasRole('AdminSHD') && !hasRole('QuanLyDuyetDonSHD') && !isCreator) return alert('Bạn không có quyền thực hiện thao tác này!');
-        if (confirm('Xác nhận thao tác?')) apiPost('/FormSHD/XuLyDon', { id:formId, action:type, reason }, ['btnDuyet','btnHuy']);
+        if (confirm('Xác nhận thao tác?')) {
+            // ĐỒNG BỘ JSON: Gửi chính xác định dạng camelCase tự nhiên để tương thích tuyệt đối hệ thống
+            apiPost('/FormSHD/XuLyDon', { id: formId, action: type, reason: reason }, ['btnDuyet','btnHuy']);
+        }
     }
 
     function handleXacNhanHoanThanh() {
         if (!hasRole('All') && !hasRole('AdminSHD')) return alert('Chỉ SHD Admin mới có quyền xác nhận hoàn tất!');
-        if (confirm('Xác nhận đã hoàn thành?'))
-            apiPost('/FormSHD/XacNhanHoanThanh', { id:formId }, ['btnHoanThanh']);
+        if (confirm('Xác nhận đã hoàn thành?')) {
+            apiPost('/FormSHD/XuLyDon', { id: formId, action: 'HoanTat', reason: '' }, ['btnHoanThanh']);
+        }
     }
 
     function changeSupporter() {
@@ -950,6 +969,7 @@
     let currentSkipComment=0, hasMoreComments=true, isLoadingComments=false, totalComments=0, isSubmitting=false;
     const takeComment = 20;
 
+    // FIX LỖI TƯƠNG ĐỐI: Thay đổi sang đường dẫn tương đối để không bị lệch HTTP/HTTPS cổng localhost:7120 như trong image_0f73ea.png
     async function taiBinhLuan(isLoadMore=false) {
         if (isLoadingComments) return; isLoadingComments = true;
         try {
