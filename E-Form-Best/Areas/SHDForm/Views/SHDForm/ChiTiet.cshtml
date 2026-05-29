@@ -101,7 +101,6 @@
     int soNguoiB2DaDuyet = danhSachB2.Count(x => x.TrangThaiXacNhan == 1);
 }
 
-<!-- ĐẢM BẢO CHỐNG GIẢ MẠO: Sinh thẻ input chứa token bảo mật cho API script đọc dữ liệu -->
 @Html.AntiForgeryToken()
 
 <style>
@@ -404,6 +403,9 @@
 
                                     foreach (var ls in lichSuHienThi)
                                     {
+                                        // ÁP DỤNG CÁCH 2: Khai báo biến tạm xử lý màu sắc để triệt tiêu cảnh báo Unexpected character sequence
+                                        string logTimeColor = (ls.TrangThaiAnHien == false) ? "#ef4444" : "#3b82f6";
+
                                         <div id="log-item-@ls.Id" style="position:relative;margin-bottom:30px; transition:all 0.3s; @(ls.TrangThaiAnHien == false ? "opacity:0.75; filter:grayscale(90%);" : "opacity:1; filter:none;")">
                                             <div id="log-dot-@ls.Id" style="position:absolute;left:-41px;top:0;width:20px;height:20px;background:white;border:4px solid @(ls.TrangThaiAnHien == false ? "#ef4444" : "#3b82f6");border-radius:50%;z-index:1; transition:all 0.3s;"></div>
 
@@ -432,7 +434,7 @@
                                                     <div style="color:#64748b;font-size:14px;line-height:1.6;white-space:pre-line;">@ls.Mota</div>
                                                 </div>
                                                 <div style="text-align:right;min-width:100px;margin-left:15px;flex-shrink:0;">
-                                                    <div id="log-time-@ls.Id" style="font-weight:800;color:@(ls.TrangThaiAnHien == false ? "#ef4444" : "#3b82f6");font-size:14px; transition:all 0.3s;">@ls.Time?.ToString("HH:mm")</div>
+                                                    <div id="log-time-@ls.Id" style="font-weight:800;color:@logTimeColor;font-size:14px; transition:all 0.3s;">@ls.Time?.ToString("HH:mm")</div>
                                                     <div style="color:#94a3b8;font-size:12px;margin-top:2px;">@ls.Time?.ToString("dd/MM/yyyy")</div>
                                                 </div>
                                             </div>
@@ -825,7 +827,6 @@
         return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
 
-    // CHUẨN HÓA ĐỘC LẬP: apiPost truyền JSON thô kèm 2 Header token chuẩn xác để không bị chặn lỗi 400
     async function apiPost(url, body, btnIds) {
         if (btnIds) btnIds.forEach(id => { const b=document.getElementById(id); if(b) b.disabled=true; });
         try {
@@ -833,8 +834,8 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': TOKEN, // Hỗ trợ Header tùy biến
-                    'X-XSRF-TOKEN': TOKEN              // Hỗ trợ Header tiêu chuẩn .NET Core mặc định
+                    'RequestVerificationToken': TOKEN,
+                    'X-XSRF-TOKEN': TOKEN
                 },
                 body: JSON.stringify(body)
             });
@@ -947,7 +948,6 @@
         const isCreator = String(currentUserId) === String(formCreatorId);
         if (!hasRole('All') && !hasRole('AdminSHD') && !hasRole('QuanLyDuyetDonSHD') && !isCreator) return alert('Bạn không có quyền thực hiện thao tác này!');
         if (confirm('Xác nhận thao tác?')) {
-            // ĐỒNG BỘ JSON: Gửi chính xác định dạng camelCase tự nhiên để tương thích tuyệt đối hệ thống
             apiPost('/FormSHD/XuLyDon', { id: formId, action: type, reason: reason }, ['btnDuyet','btnHuy']);
         }
     }
@@ -969,7 +969,6 @@
     let currentSkipComment=0, hasMoreComments=true, isLoadingComments=false, totalComments=0, isSubmitting=false;
     const takeComment = 20;
 
-    // FIX LỖI TƯƠNG ĐỐI: Thay đổi sang đường dẫn tương đối để không bị lệch HTTP/HTTPS cổng localhost:7120 như trong image_0f73ea.png
     async function taiBinhLuan(isLoadMore=false) {
         if (isLoadingComments) return; isLoadingComments = true;
         try {
