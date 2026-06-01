@@ -1115,6 +1115,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
+
         #region Đơn Đăng ký Điện thoại bàn (Form IT 4) - SỬ DỤNG CK
 
         [HttpGet("/FormIT/DonDienThoaiBan")]
@@ -4163,6 +4164,22 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #region THỐNG KÊ MAC WIFI THIẾT BỊ
 
+        // Định nghĩa Class DTO tường minh để tránh lỗi "Expression tree may not contain a dynamic operation"
+        public class MacWifiThongKeDto
+        {
+            public int FormId { get; set; }
+            public string IdForm { get; set; } = "";
+            public string TenNguoiNv { get; set; } = "";
+            public string BoPhan { get; set; } = "";
+            public string LoaiThietBi { get; set; } = "";
+            public string MaThietBi { get; set; } = "";
+            public string MacTb { get; set; } = "";
+            public DateTime? ThoiGianBatDau { get; set; }
+            public DateTime? ThoiGianKetThuc { get; set; }
+            public string TenAdmin { get; set; } = "";
+            public DateTime? TimeAdmin { get; set; }
+        }
+
         // 1. Action này trả về giao diện View mới
         [HttpGet("/FormIT/ThongKeMacWifi")]
         public IActionResult ThongKeMacWifi()
@@ -4176,17 +4193,40 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             try
             {
-                var data = await _context.ItDangKiSuDungWifi3s
+                var rawData = await _context.ItDangKiSuDungWifi3s
                     .AsNoTracking()
                     .Where(x => !string.IsNullOrEmpty(x.MacTb))
-                    .GroupBy(x => x.LoaiThietBi ?? "Khác")
+                    .Select(x => new
+                    {
+                        x.LoaiThietBi,
+                        x.MacTb
+                    })
+                    .ToListAsync();
+
+                // Tách chuỗi '|' an toàn trên Bộ nhớ (In-Memory)
+                var flatData = new List<MacWifiThongKeDto>();
+                foreach (var item in rawData)
+                {
+                    var arrMac = item.MacTb!.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var mac in arrMac)
+                    {
+                        flatData.Add(new MacWifiThongKeDto
+                        {
+                            LoaiThietBi = item.LoaiThietBi ?? "Khác",
+                            MacTb = mac.Trim()
+                        });
+                    }
+                }
+
+                var data = flatData
+                    .GroupBy(x => x.LoaiThietBi)
                     .Select(g => new
                     {
                         LoaiThietBi = g.Key,
                         SoLuongMacTong = g.Count(),
                         SoLuongMacDuyNhat = g.Select(x => x.MacTb).Distinct().Count()
                     })
-                    .ToListAsync();
+                    .ToList();
 
                 return Json(data);
             }
@@ -4203,71 +4243,92 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             string? idForm = null, string? tenNguoiNv = null, string? boPhan = null,
             string? loaiThietBi = null, string? macTb = null, string? maThietBi = null,
             DateTime? fromDate = null, DateTime? toDate = null,
-            string sortColumn = "TimeAdmin", string sortDir = "desc") // Thêm tham số sắp xếp
+            string sortColumn = "TimeAdmin", string sortDir = "desc")
         {
             try
             {
-                var query = _context.ItDangKiSuDungWifi3s
+                // Bước 1: Lấy dữ liệu thô từ Database về Client Memory trước để tránh lỗi Linq Expression không dịch được lệnh Split
+                var queryRaw = await _context.ItDangKiSuDungWifi3s
                     .Include(x => x.IdFormItNavigation)
                     .AsNoTracking()
                     .Where(x => !string.IsNullOrEmpty(x.MacTb) &&
                                 x.IdFormItNavigation != null &&
                                 x.IdFormItNavigation.IdAdmin != null &&
                                 x.IdFormItNavigation.TenAdmin != null &&
-                                x.IdFormItNavigation.TimeAdmin != null);
+                                x.IdFormItNavigation.TimeAdmin != null)
+                    .ToListAsync();
 
-                // Áp dụng các bộ lọc
-                if (!string.IsNullOrEmpty(idForm)) query = query.Where(x => x.IdFormItNavigation!.IdForm!.Contains(idForm));
-                if (!string.IsNullOrEmpty(tenNguoiNv)) query = query.Where(x => x.IdFormItNavigation!.TenNguoiNv!.Contains(tenNguoiNv));
-                if (!string.IsNullOrEmpty(boPhan)) query = query.Where(x => x.IdFormItNavigation!.BoPhan!.Contains(boPhan));
-                if (!string.IsNullOrEmpty(loaiThietBi)) query = query.Where(x => x.LoaiThietBi!.Contains(loaiThietBi));
-                if (!string.IsNullOrEmpty(macTb)) query = query.Where(x => x.MacTb!.Contains(macTb));
-                if (!string.IsNullOrEmpty(maThietBi)) query = query.Where(x => x.MaThietBi!.Contains(maThietBi));
+                // Bước 2: Duyệt bóc tách chuỗi gộp ngăn cách bởi dấu '|' thành danh sách DTO tường minh
+                var flatList = new List<MacWifiThongKeDto>();
+                foreach (var x in queryRaw)
+                {
+                    var arrMa = (x.MaThietBi ?? "").Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    var arrMac = (x.MacTb ?? "").Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    int maxCount = Math.Max(arrMa.Length, arrMac.Length);
 
-                if (fromDate.HasValue) query = query.Where(x => x.IdFormItNavigation!.TimeAdmin >= fromDate.Value);
+                    for (int i = 0; i < maxCount; i++)
+                    {
+                        string subMa = i < arrMa.Length ? arrMa[i].Trim() : "";
+                        string subMac = i < arrMac.Length ? arrMac[i].Trim() : "";
+
+                        flatList.Add(new MacWifiThongKeDto
+                        {
+                            FormId = x.IdFormItNavigation!.Id,
+                            IdForm = x.IdFormItNavigation.IdForm ?? "",
+                            TenNguoiNv = x.IdFormItNavigation.TenNguoiNv ?? "",
+                            BoPhan = x.IdFormItNavigation.BoPhan ?? "",
+                            LoaiThietBi = x.LoaiThietBi ?? "",
+                            MaThietBi = subMa,
+                            MacTb = subMac,
+                            ThoiGianBatDau = x.ThoiGianBatDau,
+                            ThoiGianKetThuc = x.ThoiGianKetThuc,
+                            TenAdmin = x.IdFormItNavigation.TenAdmin ?? "",
+                            TimeAdmin = x.IdFormItNavigation.TimeAdmin
+                        });
+                    }
+                }
+
+                // Bước 3: Áp dụng các bộ lọc tìm kiếm (Chạy mượt mà trên IQueryable của Class DTO)
+                var filteredQuery = flatList.AsQueryable();
+
+                if (!string.IsNullOrEmpty(idForm)) filteredQuery = filteredQuery.Where(x => x.IdForm.Contains(idForm, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(tenNguoiNv)) filteredQuery = filteredQuery.Where(x => x.TenNguoiNv.Contains(tenNguoiNv, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(boPhan)) filteredQuery = filteredQuery.Where(x => x.BoPhan.Contains(boPhan, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(loaiThietBi)) filteredQuery = filteredQuery.Where(x => x.LoaiThietBi.Contains(loaiThietBi, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(macTb)) filteredQuery = filteredQuery.Where(x => x.MacTb.Contains(macTb, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(maThietBi)) filteredQuery = filteredQuery.Where(x => x.MaThietBi.Contains(maThietBi, StringComparison.OrdinalIgnoreCase));
+
+                if (fromDate.HasValue) filteredQuery = filteredQuery.Where(x => x.TimeAdmin >= fromDate.Value);
                 if (toDate.HasValue)
                 {
                     var toDateEnd = toDate.Value.AddDays(1).AddTicks(-1);
-                    query = query.Where(x => x.IdFormItNavigation!.TimeAdmin <= toDateEnd);
+                    filteredQuery = filteredQuery.Where(x => x.TimeAdmin <= toDateEnd);
                 }
 
-                // Áp dụng Sắp Xếp Động
+                // Bước 4: Áp dụng Sắp Xếp Động tương thích hoàn toàn với cấu trúc bảng
+                bool isAsc = sortDir == "asc";
                 switch (sortColumn)
                 {
-                    case "IdForm": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.IdForm) : query.OrderByDescending(x => x.IdFormItNavigation!.IdForm); break;
-                    case "TenNguoiNv": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.TenNguoiNv) : query.OrderByDescending(x => x.IdFormItNavigation!.TenNguoiNv); break;
-                    case "BoPhan": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.BoPhan) : query.OrderByDescending(x => x.IdFormItNavigation!.BoPhan); break;
-                    case "MaThietBi": query = sortDir == "asc" ? query.OrderBy(x => x.MaThietBi) : query.OrderByDescending(x => x.MaThietBi); break;
-                    case "LoaiThietBi": query = sortDir == "asc" ? query.OrderBy(x => x.LoaiThietBi) : query.OrderByDescending(x => x.LoaiThietBi); break;
-                    case "MacTb": query = sortDir == "asc" ? query.OrderBy(x => x.MacTb) : query.OrderByDescending(x => x.MacTb); break;
-                    case "ThoiGianBatDau": query = sortDir == "asc" ? query.OrderBy(x => x.ThoiGianBatDau) : query.OrderByDescending(x => x.ThoiGianBatDau); break;
-                    case "ThoiGianKetThuc": query = sortDir == "asc" ? query.OrderBy(x => x.ThoiGianKetThuc) : query.OrderByDescending(x => x.ThoiGianKetThuc); break;
-                    case "TenAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.TenAdmin) : query.OrderByDescending(x => x.IdFormItNavigation!.TenAdmin); break;
-                    case "TimeAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.TimeAdmin) : query.OrderByDescending(x => x.IdFormItNavigation!.TimeAdmin); break;
-                    default: query = query.OrderByDescending(x => x.IdFormItNavigation!.TimeAdmin); break;
+                    case "IdForm": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.IdForm) : filteredQuery.OrderByDescending(x => x.IdForm); break;
+                    case "TenNguoiNv": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.TenNguoiNv) : filteredQuery.OrderByDescending(x => x.TenNguoiNv); break;
+                    case "BoPhan": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.BoPhan) : filteredQuery.OrderByDescending(x => x.BoPhan); break;
+                    case "MaThietBi": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.MaThietBi) : filteredQuery.OrderByDescending(x => x.MaThietBi); break;
+                    case "LoaiThietBi": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.LoaiThietBi) : filteredQuery.OrderByDescending(x => x.LoaiThietBi); break;
+                    case "MacTb": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.MacTb) : filteredQuery.OrderByDescending(x => x.MacTb); break;
+                    case "ThoiGianBatDau": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.ThoiGianBatDau) : filteredQuery.OrderByDescending(x => x.ThoiGianBatDau); break;
+                    case "ThoiGianKetThuc": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.ThoiGianKetThuc) : filteredQuery.OrderByDescending(x => x.ThoiGianKetThuc); break;
+                    case "TenAdmin": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.TenAdmin) : filteredQuery.OrderByDescending(x => x.TenAdmin); break;
+                    case "TimeAdmin": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.TimeAdmin) : filteredQuery.OrderByDescending(x => x.TimeAdmin); break;
+                    default: filteredQuery = filteredQuery.OrderByDescending(x => x.TimeAdmin); break;
                 }
 
-                var totalRecords = await query.CountAsync();
+                var totalRecords = filteredQuery.Count();
                 var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
 
-                var data = await query
+                var data = filteredQuery
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
-                    .Select(x => new
-                    {
-                        FormId = x.IdFormItNavigation!.Id,
-                        IdForm = x.IdFormItNavigation.IdForm,
-                        TenNguoiNv = x.IdFormItNavigation.TenNguoiNv,
-                        BoPhan = x.IdFormItNavigation.BoPhan,
-                        LoaiThietBi = x.LoaiThietBi,
-                        MaThietBi = x.MaThietBi,
-                        MacTb = x.MacTb,
-                        ThoiGianBatDau = x.ThoiGianBatDau,
-                        ThoiGianKetThuc = x.ThoiGianKetThuc,
-                        TenAdmin = x.IdFormItNavigation.TenAdmin,
-                        TimeAdmin = x.IdFormItNavigation.TimeAdmin
-                    })
-                    .ToListAsync();
+                    .ToList();
 
                 return Json(new { data, totalRecords, totalPages, currentPage = page, pageSize });
             }
@@ -4283,66 +4344,80 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             string? idForm = null, string? tenNguoiNv = null, string? boPhan = null,
             string? loaiThietBi = null, string? macTb = null, string? maThietBi = null,
             DateTime? fromDate = null, DateTime? toDate = null,
-            string sortColumn = "TimeAdmin", string sortDir = "desc") // Áp dụng sắp xếp cho xuất Excel
+            string sortColumn = "TimeAdmin", string sortDir = "desc")
         {
             try
             {
-                var query = _context.ItDangKiSuDungWifi3s
+                var queryRaw = await _context.ItDangKiSuDungWifi3s
                     .Include(x => x.IdFormItNavigation)
                     .AsNoTracking()
                     .Where(x => !string.IsNullOrEmpty(x.MacTb) &&
                                 x.IdFormItNavigation != null &&
-                                x.IdFormItNavigation.IdAdmin != null);
+                                x.IdFormItNavigation.IdAdmin != null)
+                    .ToListAsync();
 
-                if (!string.IsNullOrEmpty(idForm))
-                    query = query.Where(x => x.IdFormItNavigation != null && x.IdFormItNavigation.IdForm != null && x.IdFormItNavigation.IdForm.Contains(idForm));
+                // Giải nén mảng chuỗi thành cấu trúc danh sách phẳng phục vụ xuất file báo cáo Excel
+                var flatList = new List<MacWifiThongKeDto>();
+                foreach (var x in queryRaw)
+                {
+                    var arrMa = (x.MaThietBi ?? "").Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    var arrMac = (x.MacTb ?? "").Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    int maxCount = Math.Max(arrMa.Length, arrMac.Length);
 
-                if (!string.IsNullOrEmpty(tenNguoiNv))
-                    query = query.Where(x => x.IdFormItNavigation != null && x.IdFormItNavigation.TenNguoiNv != null && x.IdFormItNavigation.TenNguoiNv.Contains(tenNguoiNv));
+                    for (int i = 0; i < maxCount; i++)
+                    {
+                        string subMa = i < arrMa.Length ? arrMa[i].Trim() : "";
+                        string subMac = i < arrMac.Length ? arrMac[i].Trim() : "";
 
-                if (!string.IsNullOrEmpty(boPhan))
-                    query = query.Where(x => x.IdFormItNavigation != null && x.IdFormItNavigation.BoPhan != null && x.IdFormItNavigation.BoPhan.Contains(boPhan));
-                if (!string.IsNullOrEmpty(loaiThietBi)) query = query.Where(x => x.LoaiThietBi!.Contains(loaiThietBi));
-                if (!string.IsNullOrEmpty(macTb)) query = query.Where(x => x.MacTb!.Contains(macTb));
-                if (!string.IsNullOrEmpty(maThietBi)) query = query.Where(x => x.MaThietBi!.Contains(maThietBi));
-                if (fromDate.HasValue) query = query.Where(x => x.IdFormItNavigation!.TimeAdmin >= fromDate.Value);
+                        flatList.Add(new MacWifiThongKeDto
+                        {
+                            IdForm = x.IdFormItNavigation!.IdForm ?? "",
+                            TenNguoiNv = x.IdFormItNavigation.TenNguoiNv ?? "",
+                            BoPhan = x.IdFormItNavigation.BoPhan ?? "",
+                            MaThietBi = subMa,
+                            LoaiThietBi = x.LoaiThietBi ?? "",
+                            MacTb = subMac,
+                            ThoiGianBatDau = x.ThoiGianBatDau,
+                            ThoiGianKetThuc = x.ThoiGianKetThuc,
+                            TenAdmin = x.IdFormItNavigation.TenAdmin ?? "",
+                            TimeAdmin = x.IdFormItNavigation.TimeAdmin
+                        });
+                    }
+                }
+
+                var filteredQuery = flatList.AsQueryable();
+
+                if (!string.IsNullOrEmpty(idForm)) filteredQuery = filteredQuery.Where(x => x.IdForm.Contains(idForm, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(tenNguoiNv)) filteredQuery = filteredQuery.Where(x => x.TenNguoiNv.Contains(tenNguoiNv, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(boPhan)) filteredQuery = filteredQuery.Where(x => x.BoPhan.Contains(boPhan, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(loaiThietBi)) filteredQuery = filteredQuery.Where(x => x.LoaiThietBi.Contains(loaiThietBi, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(macTb)) filteredQuery = filteredQuery.Where(x => x.MacTb.Contains(macTb, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(maThietBi)) filteredQuery = filteredQuery.Where(x => x.MaThietBi.Contains(maThietBi, StringComparison.OrdinalIgnoreCase));
+
+                if (fromDate.HasValue) filteredQuery = filteredQuery.Where(x => x.TimeAdmin >= fromDate.Value);
                 if (toDate.HasValue)
                 {
                     var toDateEnd = toDate.Value.AddDays(1).AddTicks(-1);
-                    query = query.Where(x => x.IdFormItNavigation!.TimeAdmin <= toDateEnd);
+                    filteredQuery = filteredQuery.Where(x => x.TimeAdmin <= toDateEnd);
                 }
 
-                // Áp dụng Sắp Xếp Động cho Excel
+                bool isAsc = sortDir == "asc";
                 switch (sortColumn)
                 {
-                    case "IdForm": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.IdForm) : query.OrderByDescending(x => x.IdFormItNavigation!.IdForm); break;
-                    case "TenNguoiNv": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.TenNguoiNv) : query.OrderByDescending(x => x.IdFormItNavigation!.TenNguoiNv); break;
-                    case "BoPhan": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.BoPhan) : query.OrderByDescending(x => x.IdFormItNavigation!.BoPhan); break;
-                    case "MaThietBi": query = sortDir == "asc" ? query.OrderBy(x => x.MaThietBi) : query.OrderByDescending(x => x.MaThietBi); break;
-                    case "LoaiThietBi": query = sortDir == "asc" ? query.OrderBy(x => x.LoaiThietBi) : query.OrderByDescending(x => x.LoaiThietBi); break;
-                    case "MacTb": query = sortDir == "asc" ? query.OrderBy(x => x.MacTb) : query.OrderByDescending(x => x.MacTb); break;
-                    case "ThoiGianBatDau": query = sortDir == "asc" ? query.OrderBy(x => x.ThoiGianBatDau) : query.OrderByDescending(x => x.ThoiGianBatDau); break;
-                    case "ThoiGianKetThuc": query = sortDir == "asc" ? query.OrderBy(x => x.ThoiGianKetThuc) : query.OrderByDescending(x => x.ThoiGianKetThuc); break;
-                    case "TenAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.TenAdmin) : query.OrderByDescending(x => x.IdFormItNavigation!.TenAdmin); break;
-                    case "TimeAdmin": query = sortDir == "asc" ? query.OrderBy(x => x.IdFormItNavigation!.TimeAdmin) : query.OrderByDescending(x => x.IdFormItNavigation!.TimeAdmin); break;
-                    default: query = query.OrderByDescending(x => x.IdFormItNavigation!.TimeAdmin); break;
+                    case "IdForm": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.IdForm) : filteredQuery.OrderByDescending(x => x.IdForm); break;
+                    case "TenNguoiNv": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.TenNguoiNv) : filteredQuery.OrderByDescending(x => x.TenNguoiNv); break;
+                    case "BoPhan": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.BoPhan) : filteredQuery.OrderByDescending(x => x.BoPhan); break;
+                    case "MaThietBi": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.MaThietBi) : filteredQuery.OrderByDescending(x => x.MaThietBi); break;
+                    case "LoaiThietBi": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.LoaiThietBi) : filteredQuery.OrderByDescending(x => x.LoaiThietBi); break;
+                    case "MacTb": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.MacTb) : filteredQuery.OrderByDescending(x => x.MacTb); break;
+                    case "ThoiGianBatDau": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.ThoiGianBatDau) : filteredQuery.OrderByDescending(x => x.ThoiGianBatDau); break;
+                    case "ThoiGianKetThuc": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.ThoiGianKetThuc) : filteredQuery.OrderByDescending(x => x.ThoiGianKetThuc); break;
+                    case "TenAdmin": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.TenAdmin) : filteredQuery.OrderByDescending(x => x.TenAdmin); break;
+                    case "TimeAdmin": filteredQuery = isAsc ? filteredQuery.OrderBy(x => x.TimeAdmin) : filteredQuery.OrderByDescending(x => x.TimeAdmin); break;
+                    default: filteredQuery = filteredQuery.OrderByDescending(x => x.TimeAdmin); break;
                 }
 
-                var data = await query
-                    .Select(x => new
-                    {
-                        IdForm = x.IdFormItNavigation!.IdForm,
-                        TenNguoiNv = x.IdFormItNavigation.TenNguoiNv,
-                        BoPhan = x.IdFormItNavigation.BoPhan,
-                        MaThietBi = x.MaThietBi,
-                        LoaiThietBi = x.LoaiThietBi,
-                        MacTb = x.MacTb,
-                        ThoiGianBatDau = x.ThoiGianBatDau,
-                        ThoiGianKetThuc = x.ThoiGianKetThuc,
-                        TenAdmin = x.IdFormItNavigation.TenAdmin,
-                        TimeAdmin = x.IdFormItNavigation.TimeAdmin
-                    })
-                    .ToListAsync();
+                var data = filteredQuery.ToList();
 
                 var builder = new System.Text.StringBuilder();
                 builder.AppendLine("Mã Form,Người Yêu Cầu,Bộ Phận,Mã Thiết Bị,Loại Thiết Bị,Địa Chỉ MAC,Bắt Đầu,Kết Thúc,IT Xử Lý,Thời Gian Xử Lý");
@@ -4372,9 +4447,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
-
-        #endregion
-
+        #endregion\
         #endregion
 
         #region LỊCH SỬ VÀ THÔNG BÁO FORM IT (Tối ưu truy vấn - Đầy đủ logic)
