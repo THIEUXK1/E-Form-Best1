@@ -954,7 +954,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         [HttpPost("/FormIT/TaoIT_Wifi")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> TaoIT_Wifi(FormIt form, [FromForm] List<ItDangKiSuDungWifi3> itWifiList, int selectedCongViecId)
+        public async Task<IActionResult> TaoIT_Wifi(FormIt form, [FromForm] ItDangKiSuDungWifi3 chiTiet, int selectedCongViecId, List<string> arrMaThietBi, List<string> arrMacTb)
         {
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim)) return Redirect("/DonXetDuyet/DangNhap");
@@ -1023,7 +1023,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    // --- 4. CHI TIẾT WIFI (List<ItDangKiSuDungWifi3>) & XỬ LÝ ẢNH ---
+                    // --- 4. CHI TIẾT WIFI & XỬ LÝ ẢNH ---
                     string? imgFileName = null; // Khai báo string? vì giá trị ban đầu là null
                     var anhFile = Request.Form.Files["Anh"];
                     if (anhFile != null && anhFile.Length > 0)
@@ -1039,20 +1039,39 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         }
                     }
 
-                    if (itWifiList != null && itWifiList.Any())
+                    // --- BƯỚC GHÉP MẢNG ĐỊNH DANH THIẾT BỊ & ĐỊA CHỈ MAC QUA DẤU NGĂN CÁCH | ---
+                    int thietBiCount = 0;
+                    if (chiTiet == null) chiTiet = new ItDangKiSuDungWifi3();
+
+                    if (arrMaThietBi != null && arrMaThietBi.Count > 0)
                     {
-                        foreach (var itWifi in itWifiList)
+                        var dsMaThietBi = new List<string>();
+                        var dsMacTb = new List<string>();
+
+                        for (int i = 0; i < arrMaThietBi.Count; i++)
                         {
-                            itWifi.IdFormIt = form.Id;
-                            if (!string.IsNullOrEmpty(imgFileName))
+                            if (!string.IsNullOrWhiteSpace(arrMaThietBi[i]))
                             {
-                                itWifi.DuongDanAnh = imgFileName;
-                                itWifi.Anh = null;
+                                dsMaThietBi.Add(arrMaThietBi[i].Trim());
+                                string macVal = (arrMacTb != null && i < arrMacTb.Count) ? arrMacTb[i].Trim() : "";
+                                dsMacTb.Add(macVal);
+                                thietBiCount++;
                             }
                         }
-                        _context.ItDangKiSuDungWifi3s.AddRange(itWifiList);
-                        await _context.SaveChangesAsync();
+
+                        chiTiet.MaThietBi = string.Join(" | ", dsMaThietBi);
+                        chiTiet.MacTb = string.Join(" | ", dsMacTb);
                     }
+
+                    chiTiet.IdFormIt = form.Id;
+                    if (!string.IsNullOrEmpty(imgFileName))
+                    {
+                        chiTiet.DuongDanAnh = imgFileName;
+                        chiTiet.Anh = null;
+                    }
+
+                    _context.ItDangKiSuDungWifi3s.Add(chiTiet);
+                    await _context.SaveChangesAsync();
 
                     // --- 5. LƯU NGƯỜI HỖ TRỢ ---
                     string supporterLog = "Chưa gán người hỗ trợ";
@@ -1074,7 +1093,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     {
                         IdFormIt = form.Id,
                         TieuDe = "Khởi tạo đơn Wifi",
-                        Mota = $"Người tạo: {userName} | Số lượng thiết bị: {itWifiList?.Count ?? 0}. {supporterLog}. {fileLog}. {anhLog}",
+                        Mota = $"Người tạo: {userName} | Số lượng thiết bị: {thietBiCount}. {supporterLog}. {fileLog}. {anhLog}",
                         Time = DateTime.Now
                     };
                     _context.LichSuFormIts.Add(lichSu);
@@ -1096,7 +1115,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
-
         #region Đơn Đăng ký Điện thoại bàn (Form IT 4) - SỬ DỤNG CK
 
         [HttpGet("/FormIT/DonDienThoaiBan")]

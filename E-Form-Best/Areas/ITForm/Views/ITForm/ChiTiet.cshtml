@@ -175,8 +175,52 @@
 
             chiTietNoiDung += RenderInfoRow("📌", "Loại đơn", badgeHtml, loaiDonBg, loaiDonColor);
             chiTietNoiDung += RenderInfoRow("📶", "Loại thiết bị", ct.LoaiThietBi, "#f0f9ff", "#0369a1");
-            chiTietNoiDung += RenderInfoRow("🆔", "Mã thiết bị", ct.MaThietBi, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("🌐", "Địa chỉ MAC", ct.MacTb, "#f8fafc", "#0f172a");
+
+            // --- XỬ LÝ BÓC TÁCH CHUỖI ĐỂ HIỂN THỊ BẢNG DANH SÁCH THIẾT BỊ ĐỒNG BỘ THEO DÒNG ---
+            string bangThietBi = "";
+            if (!string.IsNullOrEmpty(ct.MaThietBi) && !string.IsNullOrEmpty(ct.MacTb))
+            {
+                var arrMa = ct.MaThietBi.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                var arrMac = ct.MacTb.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                int count = Math.Min(arrMa.Length, arrMac.Length);
+
+                if (count > 0)
+                {
+                    bangThietBi += "<div style='margin-top:10px; border:1px solid #cbd5e1; border-radius:12px; overflow:hidden;'>";
+                    bangThietBi += "<table style='width:100%; border-collapse:collapse; text-align:left; font-size:14px; background:#fff; table-layout: auto;'>";
+
+                    bangThietBi += "<thead style='background:#f8fafc;'>";
+                    bangThietBi += "<tr style='border-bottom:2px solid #cbd5e1;'>";
+                    bangThietBi += "<th style='padding:12px 10px; color:#475569; width:1%; white-space:nowrap; text-align:center; font-weight:700;'>STT</th>";
+                    bangThietBi += "<th style='padding:12px 15px; color:#475569; font-weight:700;'>Mã thiết bị / Định danh</th>";
+                    bangThietBi += "<th style='padding:12px 15px; color:#475569; text-align:center; font-weight:700;'>Địa chỉ MAC</th>";
+                    bangThietBi += "</tr>";
+                    bangThietBi += "</thead>";
+
+                    bangThietBi += "<tbody>";
+                    for (int i = 0; i < count; i++)
+                    {
+                        string bgRow = (i % 2 == 0) ? "#ffffff" : "#fbfcfd";
+                        bangThietBi += $"<tr style='background:{bgRow}; border-bottom:1px solid #f1f5f9;'>";
+                        bangThietBi += $"<td style='padding:12px 10px; text-align:center; font-weight:700; color:#94a3b8; width:1%; white-space:nowrap;'>{i + 1}</td>";
+                        bangThietBi += $"<td style='padding:12px 15px; color:#1e293b; font-weight:600;'>{arrMa[i].Trim()}</td>";
+                        bangThietBi += $"<td style='padding:12px 15px; text-align:center; font-weight:800; color:#10b981;'>{arrMac[i].Trim()}</td>";
+                        bangThietBi += "</tr>";
+                    }
+                    bangThietBi += "</tbody></table></div>";
+                }
+            }
+            else
+            {
+                // Trường hợp dữ liệu cũ hoặc trống, hiển thị text thô để không mất thông tin cũ
+                bangThietBi = $"<div style='padding:5px; color:#1e293b;'>Mã: {ct.MaThietBi} <br> MAC: {ct.MacTb}</div>";
+            }
+
+            // Gộp hiển thị các ô nhập liệu động lên thành 1 bảng thông số duy nhất
+            chiTietNoiDung += RenderInfoRow("💻", "Thông số cấu hình thiết bị", bangThietBi, "#f8fafc", "#0f172a");
+
+            // ĐÃ XÓA: Hai dòng hiển thị thô cũ (Mã thiết bị và Địa chỉ MAC) theo yêu cầu của bạn để tránh trùng lặp dữ liệu
+
             chiTietNoiDung += RenderInfoRow("⏱️", "Loại thời gian", ct.LoaiThoiGian, "#f0fdf4", "#166534");
             chiTietNoiDung += RenderInfoRow("📅", "Thời gian bắt đầu", ct.ThoiGianBatDau?.ToString("dd/MM/yyyy HH:mm"), "#f8fafc", "#0f172a");
             chiTietNoiDung += RenderInfoRow("📅", "Thời gian kết thúc", ct.ThoiGianKetThuc?.ToString("dd/MM/yyyy HH:mm"), "#f8fafc", "#0f172a");
