@@ -98,7 +98,7 @@
         font-weight: bold;
     }
 
-    /* Style cho Sắp xếp cột */
+    /* Style cấu hình cột sắp xếp dữ liệu */
     .sortable {
         cursor: pointer;
         user-select: none;
@@ -120,7 +120,7 @@
             color: #0284c7;
         }
 
-    /* Style cho phân trang */
+    /* Style kiến trúc phân trang */
     .page-btn {
         padding: 6px 12px;
         border: 1px solid #e2e8f0;
@@ -148,7 +148,7 @@
             cursor: not-allowed;
         }
 
-    /* Style cho Form Lọc và Nút Bấm */
+    /* Style cho lưới bộ lọc */
     .filter-panel {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -240,7 +240,6 @@
             color: white;
         }
 
-    /* Animation cho việc mở đóng khung tổng hợp */
     #summaryChartsContainer {
         transition: all 0.3s ease-in-out;
     }
@@ -268,7 +267,7 @@
         .canvas-wrapper-mobile {
             height: 300px !important;
         }
-        /* Mở rộng các nút thao tác thành full-width trên mobile để dễ ấn */
+
         .filter-action-group {
             flex-direction: column !important;
             width: 100%;
@@ -279,7 +278,7 @@
                 justify-content: center;
                 margin-bottom: 5px;
             }
-        /* Căn chỉnh lại thanh toolbar số dòng hiển thị */
+
         .chart-header-toolbar {
             flex-direction: column;
             align-items: flex-start !important;
@@ -291,8 +290,6 @@
                 display: flex;
                 justify-content: space-between;
             }
-        /* Chú ý: Đã loại bỏ "#summaryChartsContainer { display: flex !important; }" ở đây để tránh lỗi
-               tự động hiện trên mobile. Việc ẩn/hiện sẽ được điều khiển hoàn toàn thông qua JS. */
     }
 </style>
 
@@ -353,7 +350,6 @@
         <div class="chart-header" style="justify-content: space-between; flex-wrap: wrap; gap: 10px;">
             <div><i class="fa fa-filter"></i> Bộ Lọc & Danh Sách MAC</div>
 
-            @* Thêm class chart-header-toolbar cho mobile *@
             <div class="chart-header-toolbar" style="display: flex; align-items: center; gap: 15px;">
                 <div style="font-size: 13px; font-weight: normal; color: #475569;">
                     Hiển thị:
@@ -401,7 +397,6 @@
             </div>
         </div>
 
-        @* Thêm class filter-action-group cho mobile *@
         <div class="filter-action-group" style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
             <button class="btn-action btn-clear" onclick="clearFilters()">
                 <i class="fa fa-refresh"></i> Bỏ lọc & Sắp xếp
@@ -457,8 +452,8 @@
 
     let currentPageList = 1;
     let pageSizeList = 50;
-    let currentSortColumn = "TimeAdmin"; // Mặc định sắp xếp theo Thời gian IT xử lý
-    let currentSortDir = "desc"; // Mặc định là mới nhất lên đầu
+    let currentSortColumn = "TimeAdmin";
+    let currentSortDir = "desc";
     let myChartInstance = null;
 
     async function initMacStats() {
@@ -483,7 +478,7 @@
     if (container.style.display === 'none' || container.style.display === '') {
     if(window.innerWidth <= 768) {
     container.style.display = 'flex';
-    container.style.flexDirection = 'column'; // Đảm bảo xếp dọc trên mobile
+    container.style.flexDirection = 'column';
     }
     else {
     container.style.display = 'grid';
@@ -550,7 +545,6 @@
     </tr>`).join('');
     }
 
-    // --- HÀM THAY ĐỔI CỘT SẮP XẾP ---
     function sortData(col) {
     if (currentSortColumn === col) {
     currentSortDir = currentSortDir === "asc" ? "desc" : "asc";
@@ -562,7 +556,6 @@
     loadDanhSachMac(1);
     }
 
-    // Cập nhật giao diện mũi tên sắp xếp
     function updateSortIcons() {
     document.querySelectorAll('.sort-icon').forEach(icon => {
     icon.className = 'fa fa-sort sort-icon';
@@ -595,9 +588,7 @@
     loadDanhSachMac(1);
     }
 
-    // --- HÀM BỎ LỌC VÀ SẮP XẾP ---
     function clearFilters() {
-    // Xóa trắng các ô nhập
     document.getElementById('txtTenNguoiNv').value = '';
     document.getElementById('txtBoPhan').value = '';
     document.getElementById('txtMaThietBi').value = '';
@@ -606,12 +597,10 @@
     document.getElementById('txtFromDate').value = '';
     document.getElementById('txtToDate').value = '';
 
-    // Đặt lại sắp xếp về mặc định
     currentSortColumn = "TimeAdmin";
     currentSortDir = "desc";
     updateSortIcons();
 
-    // Tải lại dữ liệu trang 1
     loadDanhSachMac(1);
     }
 
@@ -641,6 +630,12 @@
     const queryParams = getFilterParams();
     window.location.href = `/FormIT/ExportExcelMacWifi?${queryParams.toString()}`;
     }
+
+    document.addEventListener("click", function (e) {
+    if (e.target && e.target.classList.contains("btn-detail")) {
+    // Log hành vi nếu cần
+    }
+    });
 
     function renderTableDanhSach(data) {
     const tbody = document.getElementById('tblDanhSachMacBody');
@@ -736,7 +731,7 @@
     if(container.style.display !== 'none' && container.style.display !== '') {
     if(window.innerWidth <= 768) {
     container.style.display = 'flex';
-    container.style.flexDirection = 'column'; // Cập nhật lại thuộc tính flex-direction khi resize
+    container.style.flexDirection = 'column';
     }
     else {
     container.style.display = 'grid';

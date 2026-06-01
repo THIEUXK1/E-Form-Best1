@@ -182,15 +182,14 @@
                                        title="Phụ trách bởi: @item.Ten">
                                     
                                     <input type="checkbox" name="SelectedCongViecIds" value="@cv.Id" style="width: 20px; height: 20px; accent-color: @primaryColor;">
-                                    
-                                    <div style="flex: 1;">
-                                        <div style="font-weight: 700; color: @darkGreen; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                                        <span style="flex: 1; display: block;">
+                                        <span style="font-weight: 700; color: @darkGreen; font-size: 14px; display: flex; align-items: center; gap: 8px;">
                                             <span style="font-size: 16px;">📦</span> @cv.Ten
-                                        </div>
-                                        <div style="font-size: 11px; color: #718096; margin-top: 2px; padding-left: 24px;">
+                                        </span>
+                                        <span style="font-size: 11px; color: #718096; margin-top: 2px; padding-left: 24px; display: block;">
                                             Tiếp nhận: @item.Ten
-                                        </div>
-                                    </div>
+                                        </span>
+                                    </span>
                                 </label>
                             }
                         }
