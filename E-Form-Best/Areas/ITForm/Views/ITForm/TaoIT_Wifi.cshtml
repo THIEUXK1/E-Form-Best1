@@ -11,11 +11,11 @@
     var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
     var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
 
-    // Tông màu: Xanh lá (Emerald) - An toàn & Hệ thống
-    string colorPrimary = "#10b981";
-    string colorDark = "#064e3b";
-    string colorLight = "#ecfdf5";
-    string colorBorder = "#6ee7b7";
+    // --- CẤU HÌNH TÔNG MÀU XANH LÁ TƯƠI VÀ RỰC RỠ HƠN ---
+    string colorPrimary = "#22c55e"; // Xanh lá tươi rực rỡ (Green 500)
+    string colorDark = "#14532d";    // Xanh lá đậm quý phái (Green 900)
+    string colorLight = "#f0fdf4";   // Xanh lá nền dịu nhẹ (Green 50)
+    string colorBorder = "#86efac";  // Xanh lá viền sáng (Green 300)
 
     string inputBase = $"width: 100%; padding: 12px; border-radius: 12px; border: 1px solid {colorBorder}; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; color: {colorDark}; transition: all 0.3s;";
     string labelBase = $"font-weight: 800; color: {colorDark}; font-size: 11px; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.8px;";
@@ -26,7 +26,7 @@
     /* HIỆU ỨNG DESKTOP HIỆN CÓ */
     .input-hover:focus {
         border-color: @colorPrimary !important;
-        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1) !important;
+        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15) !important;
     }
 
     #paste_AnhWifi:hover, #paste_AnhWifi:focus {
@@ -73,7 +73,7 @@
         position: relative;
     }
 
-    /* CSS RADIO GROUP GIỐNG ĐƠN MAIL - ĐỔI THÀNH MÀU XANH WIFI */
+    /* CSS RADIO GROUP GIỐNG ĐƠN MAIL - MÀU XANH LÁ TƯƠI */
     .radio-group label {
         cursor: pointer;
         display: flex;
@@ -97,9 +97,18 @@
         color: @colorPrimary;
     }
 
+    /* ĐỊNH DẠNG HÀNG ĐỘNG 2 Ô TRÊN CÙNG 1 DÒNG THẲNG HÀNG VỚI NÚT */
+    .dynamic-wifi-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 45px;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
     /* ==========================================
-                       CSS RESPONSIVE CHO MOBILE (2026 STYLE)
-                       ========================================== */
+                           CSS RESPONSIVE CHO MOBILE (2026 STYLE)
+                           ========================================== */
     @@media (max-width: 768px) {
         .main-page-container {
             padding: 20px 10px !important;
@@ -125,6 +134,16 @@
             grid-template-columns: 1fr !important;
             gap: 12px !important;
         }
+        /* Khung nhập liệu động chuyển đổi linh hoạt trên mobile */
+        .dynamic-wifi-row {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+        }
+
+            .dynamic-wifi-row button {
+                height: 42px !important;
+                width: 100% !important;
+            }
         /* Chuyển phần tiêu đề có nút bấm thành hàng dọc */
         .flex-header-mobile {
             flex-direction: column !important;
@@ -169,20 +188,20 @@
     }
 </style>
 
-<div class="main-page-container" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', sans-serif;">
+<div class="main-page-container" style="background: linear-gradient(135deg, #f0fdf4 0%, #bbf7d0 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', sans-serif;">
 
     <form id="itWifiForm" method="post" enctype="multipart/form-data" asp-action="TaoIT_Wifi" asp-controller="FormIT" asp-area="ITForm" class="form-card"
-          style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(6, 78, 59, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
+          style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(20, 83, 45, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
 
         @Html.AntiForgeryToken()
 
         @* --- HEADER --- *@
         <div class="form-header" style="background: linear-gradient(135deg, @colorPrimary 0%, @colorDark 100%); padding: 45px 20px; color: #ffffff; text-align: center; position: relative;">
-            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.7; font-weight: 700; letter-spacing: 2px;">NETWORK ACCESS V3.0</div>
-            <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">Phiếu đăng ký sử dụng Wifi</h2>
-            <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: rgba(255,255,255,0.2); border-radius: 50px; font-size: 13px; backdrop-filter: blur(4px);">
-                <span>📅 Ngày yêu cầu:</span>
-                <span style="font-weight: 800; color: #ccfbf1;">@ngayHienThi</span>
+            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">NETWORK ACCESS V3.0</div>
+            <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.15);">Phiếu đăng ký sử dụng Wifi</h2>
+            <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: rgba(255,255,255,0.25); border-radius: 50px; font-size: 13px; backdrop-filter: blur(4px);">
+                <span style="color: #ffffff;">📅 Ngày yêu cầu:</span>
+                <span style="font-weight: 800; color: #ffffff;">@ngayHienThi</span>
             </div>
         </div>
 
@@ -191,22 +210,22 @@
             @* --- PHẦN 1: THÔNG TIN NHÂN VIÊN --- *@
             <div style="margin-bottom: 40px;">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
-                    <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);">1</span>
+                    <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3);">1</span>
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin chủ sở hữu</h3>
                 </div>
 
                 <div class="grid-responsive" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
                     <div style="background: #f0fdf4; padding: 15px; border-radius: 15px; border: 1px solid #dcfce7;">
                         <label style="@labelBase">Mã nhân viên</label>
-                        <div style="font-weight: 700; color: #065f46; font-size: 14px;">@soNhanVien</div>
+                        <div style="font-weight: 700; color: #14532d; font-size: 14px;">@soNhanVien</div>
                     </div>
                     <div style="background: #f0fdf4; padding: 15px; border-radius: 15px; border: 1px solid #dcfce7;">
                         <label style="@labelBase">Họ tên</label>
-                        <div style="font-weight: 700; color: #065f46; font-size: 14px;">@tenNguoiNv</div>
+                        <div style="font-weight: 700; color: #14532d; font-size: 14px;">@tenNguoiNv</div>
                     </div>
                     <div style="background: #f0fdf4; padding: 15px; border-radius: 15px; border: 1px solid #dcfce7;">
                         <label style="@labelBase">Bộ phận</label>
-                        <div style="font-weight: 700; color: #065f46; font-size: 14px;">@phongBan</div>
+                        <div style="font-weight: 700; color: #14532d; font-size: 14px;">@phongBan</div>
                     </div>
                     <div style="background: #ecfdf5; padding: 15px; border-radius: 15px; border: 1px solid @colorBorder;">
                         <label style="@labelBase">Công ty</label>
@@ -222,71 +241,66 @@
                         <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
                         <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông số thiết bị & Thời gian</h3>
                     </div>
-                    <div class="text-right">
+                    <div class="text-right" style="display: none;">
                         <button type="button" class="btn-add-item" onclick="themThietBi()">
                             <i class="fa fa-plus"></i> Thêm người/thiết bị
                         </button>
-                        <p style="margin: 8px 0 0 0; font-size: 11px; font-weight: 700; color: @colorPrimary; font-style: italic;">
-                            * Đăng ký cho nhiều người trong 1 đơn
-                        </p>
                     </div>
                 </div>
 
                 <div id="danhSachWifi">
-                    <div class="wifi-item" data-index="0">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-                            <span style="font-weight: bold; color: @colorPrimary;">THIẾT BỊ #1</span>
-                            <button type="button" class="btn-remove-item" onclick="xoaThietBi(this)" style="display: none;">Xóa</button>
-                        </div>
+                    <div class="wifi-item" style="padding: 0; background: transparent; border: none; margin: 0;">
 
-                        <!-- KHỐI LOẠI ĐƠN VỚI RADIO GROUP GIỐNG ĐƠN MAIL BẠN YÊU CẦU -->
                         <div class="grid-responsive" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                            <div>
-                                <label style="@labelBase">Mã thiết bị / Định danh <span style="color:red">*</span></label>
-                                <input type="text" name="itWifiList[0].MaThietBi" required class="input-hover"
-                                       placeholder="Định dạng: Bộ phận_Mã NV_Họ tên"
-                                       style="@inputBase">
-                            </div>
                             <div>
                                 <label style="@labelBase">Loại đơn <span style="color:red">*</span></label>
                                 <div class="radio-group" style="display: flex; gap: 15px; flex-wrap: wrap;">
                                     <label>
-                                        <input type="radio" name="itWifiList[0].LoaiDon" value="Đăng ký mới" checked required style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                                        <input type="radio" name="chiTiet.LoaiDon" value="Đăng ký mới" checked required style="width: 18px; height: 18px; accent-color: @colorPrimary;">
                                         <span>Đăng ký mới</span>
                                     </label>
                                     <label>
-                                        <input type="radio" name="itWifiList[0].LoaiDon" value="Hủy đăng ký của thiết bị" required style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                                        <input type="radio" name="chiTiet.LoaiDon" value="Hủy đăng ký của thiết bị" required style="width: 18px; height: 18px; accent-color: @colorPrimary;">
                                         <span>Hủy đăng ký</span>
                                     </label>
+                                </div>
+                            </div>
+                            <div>
+                                <label style="@labelBase">Loại thiết bị <span style="color:red">*</span></label>
+                                <input type="text" name="chiTiet.LoaiThietBi" placeholder="Ví dụ: Laptop, Phone..." required class="input-hover" style="@inputBase">
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 20px; padding: 20px; border-radius: 16px; background: #fdfefd; border: 1px dashed @colorPrimary;">
+                            <div class="grid-responsive" style="display: grid; grid-template-columns: 1fr 1fr 45px; gap: 12px; margin-bottom: 8px;">
+                                <label style="@labelBase; margin-bottom: 0;">Mã thiết bị / Định danh <span style="color:red">*</span></label>
+                                <label style="@labelBase; margin-bottom: 0;">Địa chỉ MAC <span style="color:red">*</span></label>
+                                <div></div>
+                            </div>
+
+                            <div id="dynamicWifiWrapper">
+                                <div class="dynamic-wifi-row">
+                                    <input type="text" name="arrMaThietBi" placeholder="BoPhan_MaNV_HoTen (viết liền không dấu)" required class="input-hover" style="@inputBase">
+                                    <input type="text" name="arrMacTb" maxlength="17" placeholder="00:00:00:00:00:00" required class="input-hover mac-input" style="@inputBase">
+                                    <button type="button" onclick="addWifiRow()" style="background: @colorPrimary; color: white; border: none; border-radius: 10px; height: 42px; font-size: 20px; font-weight: 900; cursor: pointer; transition: 0.2s; width: 100%; display: flex; align-items: center; justify-content: center;">+</button>
                                 </div>
                             </div>
                         </div>
 
                         <div class="grid-responsive" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                             <div>
-                                <label style="@labelBase">Loại thiết bị <span style="color:red">*</span></label>
-                                <input type="text" name="itWifiList[0].LoaiThietBi" placeholder="Ví dụ: Laptop, Phone..." required class="input-hover" style="@inputBase">
-                            </div>
-                            <div>
-                                <label style="@labelBase">Địa chỉ MAC <span style="color:red">*</span></label>
-                                <input type="text" name="itWifiList[0].MacTb" maxlength="17" placeholder="00:00:00:00:00:00" required class="input-hover mac-input" style="@inputBase">
-                            </div>
-                        </div>
-
-                        <div class="grid-responsive" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                            <div>
                                 <label style="@labelBase">Từ ngày</label>
-                                <input type="datetime-local" name="itWifiList[0].ThoiGianBatDau" class="input-hover" style="@inputBase">
+                                <input type="datetime-local" name="chiTiet.ThoiGianBatDau" class="input-hover" style="@inputBase">
                             </div>
                             <div>
                                 <label style="@labelBase">Đến ngày</label>
-                                <input type="datetime-local" name="itWifiList[0].ThoiGianKetThuc" class="input-hover" style="@inputBase">
+                                <input type="datetime-local" name="chiTiet.ThoiGianKetThuc" class="input-hover" style="@inputBase">
                             </div>
                         </div>
 
-                        <div>
+                        <div style="margin-bottom: 20px;">
                             <label style="@labelBase">Lý do sử dụng</label>
-                            <textarea name="itWifiList[0].LyDo" placeholder="Nhập mục đích truy cập..." class="input-hover" style="@inputBase height: 60px; resize: none;"></textarea>
+                            <textarea name="chiTiet.LyDo" placeholder="Nhập mục đích truy cập..." class="input-hover" style="@inputBase height: 60px; resize: none;"></textarea>
                         </div>
                     </div>
                 </div>
@@ -347,7 +361,7 @@
             </div>
 
             <button type="button" id="btnSubmit" onclick="xuLyLuuWifi()" class="btn-grad"
-                    style="width: 100%; padding: 22px; background: linear-gradient(to right, @colorPrimary, @colorDark); color: #ffffff; border: none; border-radius: 20px; font-weight: 900; font-size: 18px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4); transition: 0.3s;">
+                    style="width: 100%; padding: 22px; background: linear-gradient(to right, @colorPrimary, @colorDark); color: #ffffff; border: none; border-radius: 20px; font-weight: 900; font-size: 18px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.4); transition: 0.3s;">
                 Xác nhận gửi đơn
             </button>
         </div>
@@ -389,83 +403,51 @@
         }
     });
 
-    let wifiIndex = 1;
-
-    function themThietBi() {
-        const container = document.getElementById("danhSachWifi");
-        const firstItem = container.querySelector(".wifi-item");
-        const newItem = firstItem.cloneNode(true);
-
-        newItem.setAttribute("data-index", wifiIndex);
-        newItem.querySelector("span").innerText = "THIẾT BỊ #" + (wifiIndex + 1);
-        newItem.querySelector(".btn-remove-item").style.display = "block";
-
-        const inputs = newItem.querySelectorAll("input, textarea, select");
-        inputs.forEach(input => {
-            const oldName = input.getAttribute("name");
-            if (oldName) {
-                input.setAttribute("name", oldName.replace(/\[\d+\]/, `[${wifiIndex}]`));
-            }
-
-            // Tinh chỉnh JS dựa trên value="Đăng ký"
-            if (input.type === 'radio') {
-                if (input.value === "Đăng ký") input.checked = true; // Mặc định chọn Đăng ký mới cho thẻ mới
-                else input.checked = false;
-            } else if (input.tagName === 'SELECT') {
-                input.selectedIndex = 0;
-            } else {
-                input.value = "";
-            }
-        });
-
-        applyMacFormat(newItem.querySelector(".mac-input"));
-
-        container.appendChild(newItem);
-        wifiIndex++;
-        capNhatNutXoa();
+    // --- HÀM THÊM Ô ĐIỀN MÃ THIẾT BỊ VÀ ĐỊA CHỈ MAC TRÊN CÙNG 1 DÒNG CHUẨN ĐẸP Y HỆT Ô ĐẦU ---
+    function addWifiRow() {
+        const wrapper = document.getElementById('dynamicWifiWrapper');
+        const row = document.createElement('div');
+        row.className = 'dynamic-wifi-row';
+        row.innerHTML = `
+            <input type="text" name="arrMaThietBi" placeholder="BoPhan_MaNV_HoTen (viết liền không dấu)" required class="input-hover" style="@inputBase">
+            <input type="text" name="arrMacTb" maxlength="17" placeholder="00:00:00:00:00:00" required class="input-hover mac-input" style="@inputBase">
+            <button type="button" onclick="this.parentElement.remove()" style="background: #ef4444; color: white; border: none; border-radius: 10px; height: 42px; font-size: 20px; font-weight: 900; cursor: pointer; transition: 0.2s; width: 100%; display: flex; align-items: center; justify-content: center;">-</button>
+        `;
+        // Áp dụng định dạng MAC cho ô nhập liệu vừa được sinh ra để giữ tính đồng bộ mượt mà
+        applyMacFormat(row.querySelector(".mac-input"));
+        wrapper.appendChild(row);
     }
 
-    function xoaThietBi(btn) {
-        btn.closest(".wifi-item").remove();
-        const items = document.querySelectorAll(".wifi-item");
-        items.forEach((item, idx) => {
-            item.setAttribute("data-index", idx);
-            item.querySelector("span").innerText = "THIẾT BỊ #" + (idx + 1);
+    // Giữ lại định nghĩa hàm trống để tránh lỗi kịch bản nếu layout có gọi
+    function themThietBi() {}
+    function xoaThietBi(btn) {}
+    function capNhatNutXoa() {}
 
-            item.querySelectorAll("input, textarea, select").forEach(input => {
-                const oldName = input.getAttribute("name");
-                if (oldName) {
-                    input.setAttribute("name", oldName.replace(/\[\d+\]/, `[${idx}]`));
-                }
-            });
-        });
-        wifiIndex = items.length;
-        capNhatNutXoa();
-    }
-
-    function capNhatNutXoa() {
-        const items = document.querySelectorAll(".wifi-item");
-        if(items.length > 0) {
-            items[0].querySelector(".btn-remove-item").style.display = (items.length === 1) ? "none" : "block";
-        }
-    }
-
+    // --- LOGIC KIỂM TRA VÀ GỬI DỮ LIỆU ĐƠN ---
     function xuLyLuuWifi() {
-        const items = document.querySelectorAll(".wifi-item");
+        const arrMa = document.getElementsByName('arrMaThietBi');
+        const arrMac = document.getElementsByName('arrMacTb');
         const congViec = document.getElementById("selectedCongViecId").value;
         const chk = document.getElementById("chkCamKet");
 
-        for (let i = 0; i < items.length; i++) {
-            const ma = items[i].querySelector(`[name="itWifiList[${i}].MaThietBi"]`);
-            const mac = items[i].querySelector(`[name="itWifiList[${i}].MacTb"]`);
-            if (!ma.value.trim()) { alert(`⚠️ Dòng #${i+1}: Vui lòng nhập Mã thiết bị!`); ma.focus(); return; }
-            if (mac.value.length < 17) { alert(`⚠️ Dòng #${i+1}: Địa chỉ MAC không hợp lệ!`); mac.focus(); return; }
+        // Kiểm tra vòng lặp toàn bộ các dòng động được tạo ra
+        for (let i = 0; i < arrMa.length; i++) {
+            if (!arrMa[i].value.trim()) {
+                alert(`⚠️ Dòng số ${i + 1}: Vui lòng nhập Mã thiết bị / Định danh!`);
+                arrMa[i].focus();
+                return;
+            }
+            if (arrMac[i].value.length < 17) {
+                alert(`⚠️ Dòng số ${i + 1}: Địa chỉ MAC Address không hợp lệ hoặc không đủ 17 ký tự!`);
+                arrMac[i].focus();
+                return;
+            }
         }
 
         if (!congViec) { alert("⚠️ Vui lòng chọn loại công việc!"); return; }
         if (!chk.checked) { alert("⚠️ Bạn phải xác nhận cam kết!"); return; }
 
-        if (confirm(`Xác nhận gửi đơn đăng ký cho ${items.length} thiết bị?`)) {
+        if (confirm(`Xác nhận gửi đơn đăng ký sử dụng mạng Wifi công ty?`)) {
             const btn = document.getElementById("btnSubmit");
             btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG XỬ LÝ...';
             btn.style.pointerEvents = 'none';
