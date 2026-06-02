@@ -4,7 +4,6 @@
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -84,6 +83,77 @@
     }
 
     /* ========================================================
+    CSS CHO HỆ THỐNG DROPDOWN CHECKBOX (COMBOBOX KIỂU MỚI)
+    ======================================================== */
+    .dropdown-combo-btn {
+    width: 100%;
+    text-align: left;
+    background-color: #fff;
+    border: 1px solid #cbd5e1;
+    padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 0.375rem;
+    color: #334155;
+    position: relative;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+    .dropdown-combo-btn:after {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    }
+
+    .dropdown-combo-btn:focus {
+    border-color: #a5b4fc;
+    box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25);
+    outline: 0;
+    }
+
+    .dropdown-combo-menu {
+    width: 100%;
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 8px 0;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    z-index: 1050;
+    }
+
+    .dropdown-combo-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 16px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    color: #334155;
+    transition: background-color 0.15s ease;
+    }
+
+    .dropdown-combo-item:hover {
+    background-color: #f1f5f9;
+    }
+
+    .dropdown-combo-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin-right: 10px;
+    cursor: pointer;
+    accent-color: #4f46e5;
+    flex-shrink: 0;
+    }
+
+    .dropdown-combo-item span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    }
+
+    /* ========================================================
     CSS RESPONSIVE CHO MOBILE (CHỈ TÁC ĐỘNG KHI MÀN HÌNH NHỎ)
     ======================================================== */
     @@media (max-width: 768px) {
@@ -99,15 +169,15 @@
     }
 
     .stat-card h2 {
-    font-size: 1.5rem; /* Thu nhỏ chữ số trên mobile */
+    font-size: 1.5rem;
     }
 
     .card-icon-bg {
-    font-size: 3.5rem; /* Thu nhỏ icon chìm */
+    font-size: 3.5rem;
     }
 
     .pagination {
-    flex-wrap: wrap; /* Cho phép số trang rớt dòng nếu quá dài */
+    flex-wrap: wrap;
     justify-content: center;
     margin-top: 10px;
     }
@@ -117,11 +187,9 @@
     width: 100%;
     margin-bottom: 10px !important;
     }
-    /* ----------------------------------------------------
-    BIẾN ĐỔI BẢNG (TABLE) THÀNH DẠNG DANH SÁCH THẺ (CARDS)
-    ----------------------------------------------------- */
+
     #adminDataTable thead {
-    display: none; /* Ẩn thẻ tiêu đề bảng */
+    display: none;
     }
 
     #adminDataTable tbody, #adminDataTable tr, #adminDataTable td {
@@ -141,7 +209,7 @@
     #adminDataTable td {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start; /* Để nhãn nằm cùng hàng trên cùng khi text dài */
+    align-items: flex-start;
     padding: 10px 0 !important;
     border-bottom: 1px dashed #e2e8f0;
     }
@@ -152,7 +220,7 @@
     padding-top: 15px !important;
     justify-content: center;
     }
-    /* Hiển thị Nhãn giả (Pseudo Label) dựa trên data-label attribute */
+
     #adminDataTable td::before {
     content: attr(data-label);
     font-weight: 700;
@@ -164,15 +232,15 @@
     flex-shrink: 0;
     max-width: 45%;
     }
-    /* Ẩn nhãn ở cột Thao tác vì nút đã quá rõ ràng */
+
     #adminDataTable td:last-child::before {
     display: none;
     }
-    /* Bỏ class canh lề dành riêng cho PC trên Mobile */
+
     #adminDataTable td.ps-4 {
     padding-left: 0 !important;
     }
-    /* Cấu hình nút Thao tác Full Width trên Mobile */
+
     .btn-action-mobile {
     width: 100%;
     padding: 12px !important;
@@ -181,7 +249,7 @@
     display: flex;
     align-items: center;
     }
-    /* Chỉnh sửa lại row trống (Loading / No data) để không bị viền như Card */
+
     #adminDataTable tr.empty-row {
     display: block;
     text-align: center;
@@ -225,24 +293,40 @@
         <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; background: #fff;">
             <div class="card-body p-3">
                 <div class="row g-3 align-items-end">
+
                     <div class="col-lg-2 col-md-4 col-sm-6">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-building text-primary"></i> Công ty</label>
-                        <select id="filterCongTy" class="form-select select2-filter">
-                            <option value="">-- Tất cả --</option>
-                        </select>
+                        <div class="dropdown">
+                            <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropCongTy" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                -- Tất cả --
+                            </button>
+                            <div class="dropdown-menu dropdown-combo-menu" id="menuCongTy" aria-labelledby="btnDropCongTy">
+                            </div>
+                        </div>
                     </div>
+
                     <div class="col-lg-2 col-md-4 col-sm-6">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sitemap text-success"></i> Bộ phận</label>
-                        <select id="filterBoPhan" class="form-select select2-filter">
-                            <option value="">-- Tất cả --</option>
-                        </select>
+                        <div class="dropdown">
+                            <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropBoPhan" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                -- Tất cả --
+                            </button>
+                            <div class="dropdown-menu dropdown-combo-menu" id="menuBoPhan" aria-labelledby="btnDropBoPhan">
+                            </div>
+                        </div>
                     </div>
+
                     <div class="col-lg-2 col-md-4 col-sm-6">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-tags text-warning"></i> Loại thiết bị</label>
-                        <select id="filterLoai" class="form-select select2-filter">
-                            <option value="">-- Tất cả --</option>
-                        </select>
+                        <div class="dropdown">
+                            <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropLoai" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                -- Tất cả --
+                            </button>
+                            <div class="dropdown-menu dropdown-combo-menu" id="menuLoai" aria-labelledby="btnDropLoai">
+                            </div>
+                        </div>
                     </div>
+
                     <div class="col-lg-3 col-md-5 col-sm-6">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-info"></i> Tìm Kiếm Nhanh</label>
                         <div class="input-group">
@@ -250,6 +334,7 @@
                             <input type="text" id="filterText" class="form-control border-start-0 ps-0" placeholder="S/N, Hostname, Account, Tên, Mã TK..." style="height: 38px;">
                         </div>
                     </div>
+
                     <div class="col-lg-2 col-md-3 col-sm-6">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sort-alpha-down text-dark"></i> Sắp xếp danh sách</label>
                         <select id="filterSort" class="form-select rounded-3 shadow-sm border" style="height: 38px; font-weight: 500;">
@@ -260,11 +345,13 @@
                             <option value="name_desc">Mã Thiết bị (Z-A)</option>
                         </select>
                     </div>
+
                     <div class="col-lg-1 col-md-4 col-sm-12 text-end">
                         <button class="btn btn-outline-secondary rounded-pill w-100" onclick="clearFilters()" style="height: 38px;">
                             <i class="fas fa-sync-alt"></i> Xóa bộ
                         </button>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -350,6 +437,7 @@
                 </div>
             </div>
         </div>
+
         <div class="row g-4 mb-4">
             <div class="col-lg-8">
                 <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
@@ -458,32 +546,34 @@
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         // Các biến lưu trữ dữ liệu
         let allDataCache = [];
-        let finalFilteredGlobal = []; // Biến giữ dữ liệu cuối cùng sau khi lọc (Để dùng cho phân trang)
-        let filteredExportData = [];  // Biến lưu data xuất Excel
+        let finalFilteredGlobal = [];
+        let filteredExportData = [];
 
         // Các biến phục vụ Phân trang (Pagination)
         let currentPage = 1;
-        let pageSize = 30; // MẶC ĐỊNH LÀ 30
+        let pageSize = 30;
 
         // Các biểu đồ
         let chartCongTy = null;
         let chartLoai = null;
         let chartTienDo = null;
-        let chartBoPhanInstances = []; // Mảng chứa các biểu đồ bộ phận động
+        let chartBoPhanInstances = [];
 
         // Trạng thái thẻ Card đang được chọn
         let activeCardFilter = '';
 
         $(document).ready(function () {
-        // Khởi tạo Select2
-        $('.select2-filter').select2({ width: '100%', minimumResultsForSearch: 0 });
+        // Sự kiện tìm kiếm nhanh & thay đổi sắp xếp
+        $('#filterText, #filterSort').on('keyup change', function () {
+        applyFiltersAndRender();
+        });
 
-        // Gán sự kiện thay đổi của Dropdown hoặc Input Text và Dropdown Sắp Xếp mới
-        $('.select2-filter, #filterText, #filterSort').on('change keyup', function () {
+        // Lắng nghe sự kiện thay đổi của Checkbox lồng trong Dropdown Menu
+        $(document).on('change', '.dropdown-combo-menu input[type="checkbox"]', function () {
+        updateDropdownButtonLabel($(this).closest('.dropdown-combo-menu'));
         applyFiltersAndRender();
         });
 
@@ -492,7 +582,6 @@
         });
 
         function loadData() {
-        // Sử dụng API lấy toàn bộ danh sách thiết bị
         $.get('/QLKiemKe/GetKkThietBiss', function (res) {
         if (res.success) {
         allDataCache = res.data || [];
@@ -504,56 +593,99 @@
         }).fail(function() { Swal.fire("Lỗi", "Lỗi kết nối máy chủ!", "error"); });
         }
 
-        // Đổ dữ liệu vào các thẻ Select2
+        // Đổ dữ liệu vào Dropdown Checkbox Menu
         function populateFilters(data) {
         let companies = [...new Set(data.map(x => x.tenCongTy).filter(Boolean))].sort();
         let depts = [...new Set(data.map(x => x.tenBoPhan).filter(Boolean))].sort();
         let types = [...new Set(data.map(x => x.loaiThietBi).filter(Boolean))].sort();
 
-        companies.forEach(x => $('#filterCongTy').append(new Option(x, x)));
-        depts.forEach(x => $('#filterBoPhan').append(new Option(x, x)));
-        types.forEach(x => $('#filterLoai').append(new Option(x, x)));
+        $('#menuCongTy').empty();
+        $('#menuBoPhan').empty();
+        $('#menuLoai').empty();
+
+        // Sinh Checkbox Công ty
+        companies.forEach(x => {
+        $('#menuCongTy').append(`
+        <label class="dropdown-combo-item">
+        <input type="checkbox" class="chk-company" value="${x}">
+        <span>${x}</span>
+        </label>
+        `);
+        });
+
+        // Sinh Checkbox Bộ phận
+        depts.forEach(x => {
+        $('#menuBoPhan').append(`
+        <label class="dropdown-combo-item">
+        <input type="checkbox" class="chk-dept" value="${x}">
+        <span>${x}</span>
+        </label>
+        `);
+        });
+
+        // Sinh Checkbox Loại thiết bị
+        types.forEach(x => {
+        $('#menuLoai').append(`
+        <label class="dropdown-combo-item">
+        <input type="checkbox" class="chk-loai" value="${x}">
+        <span>${x}</span>
+        </label>
+        `);
+        });
         }
 
-        // Nút Xóa bộ lọc
+        // Hàm cập nhật nhãn hiển thị lên nút Dropdown (Ví dụ: "Đã chọn (2)")
+        function updateDropdownButtonLabel($menu) {
+        let totalChecked = $menu.find('input[type="checkbox"]:checked').length;
+        let $btn = $menu.siblings('.dropdown-combo-btn');
+
+        if (totalChecked === 0) {
+        $btn.text('-- Tất cả --');
+        } else if (totalChecked === 1) {
+        $btn.text($menu.find('input[type="checkbox"]:checked').first().val());
+        } else {
+        $btn.text(`Đã chọn (${totalChecked})`);
+        }
+        }
+
+        // Nút Xóa tất cả bộ lọc
         function clearFilters() {
-        $('.select2-filter').val('').trigger('change.select2');
+        $('.dropdown-combo-menu input[type="checkbox"]').prop('checked', false);
+        $('.dropdown-combo-menu').each(function() {
+        updateDropdownButtonLabel($(this));
+        });
         $('#filterText').val('');
         $('#filterSort').val('');
         setCardFilter('', 'card-all');
         }
 
-        // Sự kiện khi bấm vào các Card Thống kê
         function setCardFilter(status, cardId) {
         activeCardFilter = status.toLowerCase();
-
-        // Xóa class active của tất cả thẻ & Thêm cho thẻ được chọn
         $('.stat-card').removeClass('active');
         $('#' + cardId).addClass('active');
-
         applyFiltersAndRender();
         }
 
         // ====================================================
-        // HÀM LỌC CHÍNH (XỬ LÝ DỮ LIỆU & VẼ BIỂU ĐỒ)
+        // HÀM LỌC CHÍNH (XỬ LÝ DỮ LIỆU ĐA TÍCH CHỌN TRÊN DROPDOWN)
         // ====================================================
         function applyFiltersAndRender() {
-        let fCT = $('#filterCongTy').val();
-        let fBP = $('#filterBoPhan').val();
-        let fLoai = $('#filterLoai').val();
+        let selectedCompanies = $('.chk-company:checked').map(function() { return $(this).val(); }).get();
+        let selectedDepts = $('.chk-dept:checked').map(function() { return $(this).val(); }).get();
+        let selectedLoais = $('.chk-loai:checked').map(function() { return $(this).val(); }).get();
+
         let fText = $('#filterText').val().toLowerCase().trim();
         let fSort = $('#filterSort').val();
 
-        // Tính mốc thời gian cách đây 4 tháng
         let fourMonthsAgo = new Date();
         fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
 
-        // 1. Lọc theo Dropdown và Text (Lọc Base)
         let baseFiltered = allDataCache;
 
-        if (fCT) baseFiltered = baseFiltered.filter(x => x.tenCongTy === fCT);
-        if (fBP) baseFiltered = baseFiltered.filter(x => x.tenBoPhan === fBP);
-        if (fLoai) baseFiltered = baseFiltered.filter(x => x.loaiThietBi === fLoai);
+        // Xử lý lọc mảng Multi-select từ Dropdown Checkbox
+        if (selectedCompanies.length > 0) baseFiltered = baseFiltered.filter(x => selectedCompanies.includes(x.tenCongTy));
+        if (selectedDepts.length > 0) baseFiltered = baseFiltered.filter(x => selectedDepts.includes(x.tenBoPhan));
+        if (selectedLoais.length > 0) baseFiltered = baseFiltered.filter(x => selectedLoais.includes(x.loaiThietBi));
 
         if (fText) {
         baseFiltered = baseFiltered.filter(x =>
@@ -565,12 +697,11 @@
         );
         }
 
-        // Tính số lượng cho các Thẻ Card Thống kê
+        // Đếm số lượng Card Thống kê
         let countTotal = 0, countHD = 0, countBaoTri = 0, countHong = 0, countXoa = 0, countChuaCheck = 0;
 
         baseFiltered.forEach(x => {
         let t = (x.tenTrangThai || '').toLowerCase();
-
         if (t.includes('xóa') || x.ngayXoa != null) {
         countXoa++;
         } else {
@@ -579,14 +710,10 @@
         else if (t.includes('bảo trì')) countBaoTri++;
         else if (t.includes('hỏng')) countHong++;
 
-        // Logic Chưa Check: Là null HOẶC đã quá 4 tháng
         if (!x.thoiGianCheck) {
         countChuaCheck++;
         } else {
-        let checkDate = new Date(x.thoiGianCheck);
-        if (checkDate < fourMonthsAgo) {
-        countChuaCheck++; // Quá 4 tháng -> Tính là chưa check
-        }
+        if (new Date(x.thoiGianCheck) < fourMonthsAgo) countChuaCheck++;
         }
         }
         });
@@ -598,7 +725,6 @@
         $('#cardXoa').text(countXoa);
         $('#cardChuaCheck').text(countChuaCheck);
 
-        // 2. Lọc tiếp tục theo Card đang click
         let finalFiltered = baseFiltered;
         if (activeCardFilter === 'chuacheck') {
         finalFiltered = finalFiltered.filter(x => {
@@ -614,18 +740,15 @@
         finalFiltered = finalFiltered.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
         }
 
-        // XỬ LÝ SẮP XẾP THEO TÊN (HOSTNAME HOẶC MÃ THIẾT BỊ) CHUẨN TIẾNG VIỆT CÓ DẤU
+        // Sắp xếp tiếng Việt có dấu
         if (fSort) {
         finalFiltered.sort((a, b) => {
         let valA = '', valB = '';
         if (fSort.startsWith('host')) {
-        valA = (a.tenMayTinh || '').toLowerCase();
-        valB = (b.tenMayTinh || '').toLowerCase();
+        valA = (a.tenMayTinh || '').toLowerCase(); valB = (b.tenMayTinh || '').toLowerCase();
         } else if (fSort.startsWith('name')) {
-        valA = (a.tenThietBi || '').toLowerCase();
-        valB = (b.tenThietBi || '').toLowerCase();
+        valA = (a.tenThietBi || '').toLowerCase(); valB = (b.tenThietBi || '').toLowerCase();
         }
-
         if (fSort.endsWith('asc')) {
         return valA.localeCompare(valB, 'vi', { sensitivity: 'base' });
         } else {
@@ -634,25 +757,16 @@
         });
         }
 
-        // Gán dữ liệu lọc và sắp xếp cuối cùng vào biến Toàn cục để Phân trang và Xuất Excel sử dụng
         finalFilteredGlobal = finalFiltered;
         filteredExportData = finalFiltered;
-
-        // Reset lại trang 1 mỗi khi đổi bộ lọc hoặc đổi sắp xếp
         currentPage = 1;
 
-        // Cập nhật nhãn đếm tổng
         $('#lblCountTable').text(finalFilteredGlobal.length);
-
-        // Gọi hàm render riêng cho bảng (đã có phân trang)
         renderTablePage();
 
-        // 3. Vẽ lại Biểu đồ
-        let mapCongTy = {};
-        let mapLoai = {};
-        let countDaCheck = 0;
-        let countChuaCheckChart = 0;
-
+        // Vẽ lại các biểu đồ động
+        let mapCongTy = {}; let mapLoai = {};
+        let countDaCheck = 0; let countChuaCheckChart = 0;
         let companyDeptsMap = {};
 
         finalFiltered.forEach(x => {
@@ -660,7 +774,6 @@
         mapCongTy[ct] = (mapCongTy[ct] || 0) + 1;
 
         let bp = x.tenBoPhan || 'Chưa gắn BP';
-
         if (!companyDeptsMap[ct]) companyDeptsMap[ct] = {};
         companyDeptsMap[ct][bp] = (companyDeptsMap[ct][bp] || 0) + 1;
 
@@ -674,14 +787,12 @@
         }
         });
 
-        // ==========================================
-        // VẼ CÁC BIỂU ĐỒ (KÈM SỰ KIỆN CLICK ĐỂ LỌC)
-        // ==========================================
         let sortedCT = Object.entries(mapCongTy).sort((a,b) => b[1]-a[1]);
         chartCongTy = drawPieChart(chartCongTy, 'chartCongTy', sortedCT.map(i=>i[0]), sortedCT.map(i=>i[1]), function(label) {
         setTimeout(() => {
-        $('#filterCongTy').val(label);
-        $('.select2-filter').trigger('change.select2');
+        $('.chk-company').prop('checked', false);
+        $(`.chk-company[value="${label}"]`).prop('checked', true);
+        updateDropdownButtonLabel($('#menuCongTy'));
         applyFiltersAndRender();
         document.getElementById('tableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 50);
@@ -690,8 +801,9 @@
         let sortedLoai = Object.entries(mapLoai).sort((a,b) => b[1]-a[1]);
         chartLoai = drawBarChart(chartLoai, 'chartLoai', sortedLoai.map(i=>i[0]), sortedLoai.map(i=>i[1]), 'Số lượng', '#06b6d4', function(label) {
         setTimeout(() => {
-        $('#filterLoai').val(label);
-        $('.select2-filter').trigger('change.select2');
+        $('.chk-loai').prop('checked', false);
+        $(`.chk-loai[value="${label}"]`).prop('checked', true);
+        updateDropdownButtonLabel($('#menuLoai'));
         applyFiltersAndRender();
         document.getElementById('tableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 50);
@@ -699,7 +811,6 @@
 
         chartTienDo = drawTienDoChart(chartTienDo, 'chartTienDo', countDaCheck, countChuaCheckChart);
 
-        // Xóa biểu đồ bộ phận cũ
         chartBoPhanInstances.forEach(c => c.destroy());
         chartBoPhanInstances = [];
         $('#boPhanChartsContainer').empty();
@@ -715,7 +826,6 @@
 
         for (let cty in companyDeptsMap) {
         let sortedBP = Object.entries(companyDeptsMap[cty]).sort((a,b) => b[1]-a[1]).slice(0, 15);
-
         let canvasId = 'chartBP_' + chartIndex;
         let currentColor = bpColors[colorIdx % bpColors.length];
 
@@ -725,29 +835,26 @@
         <div style="position: relative; height: 250px; width: 100%;">
         <canvas id="${canvasId}"></canvas>
         </div>
-        </div>
-        `;
+        </div>`;
         $('#boPhanChartsContainer').append(htmlCol);
 
-        // Gọi hàm vẽ và truyền callback khi Click
         let newChart = drawBarChart(null, canvasId, sortedBP.map(i=>i[0]), sortedBP.map(i=>i[1]), 'Số thiết bị', currentColor, function(label) {
         setTimeout(() => {
-        // Gán giá trị vào dropdown tương ứng
-        $('#filterCongTy').val(cty);
-        $('#filterBoPhan').val(label);
-        $('.select2-filter').trigger('change.select2');
+        $('.chk-company').prop('checked', false);
+        $(`.chk-company[value="${cty}"]`).prop('checked', true);
+        updateDropdownButtonLabel($('#menuCongTy'));
 
-        // Kích hoạt render lại
+        $('.chk-dept').prop('checked', false);
+        $(`.chk-dept[value="${label}"]`).prop('checked', true);
+        updateDropdownButtonLabel($('#menuBoPhan'));
+
         applyFiltersAndRender();
-
-        // Tự động cuộn trang xuống bảng danh sách mượt mà
         document.getElementById('tableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 50);
         });
 
         chartBoPhanInstances.push(newChart);
-        chartIndex++;
-        colorIdx++;
+        chartIndex++; colorIdx++;
         }
         }
         }
@@ -755,7 +862,6 @@
         // ====================================================
         // HÀM VẼ BẢNG DỮ LIỆU & PHÂN TRANG (PAGINATION)
         // ====================================================
-
         function changePageSize() {
         pageSize = parseInt($('#pageSizeSelect').val());
         currentPage = 1;
@@ -770,7 +876,6 @@
         function renderTablePage() {
         let totalItems = finalFilteredGlobal.length;
         let totalPages = Math.ceil(totalItems / pageSize);
-
         let fourMonthsAgo = new Date();
         fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
 
@@ -783,7 +888,6 @@
         } else {
         let startIndex = (currentPage - 1) * pageSize;
         let endIndex = Math.min(startIndex + pageSize, totalItems);
-
         let pageData = finalFilteredGlobal.slice(startIndex, endIndex);
 
         $('#paginationInfo').html(`Đang hiển thị <b>${startIndex + 1}</b> đến <b>${endIndex}</b> trong tổng số <b class="text-primary">${totalItems}</b> thiết bị`);
@@ -793,12 +897,8 @@
         ? `<span class="text-primary">${item.tenNguoiDung}</span> <span class="text-danger fw-normal">(${item.tk || 'N/A'})</span>`
         : `<span class="text-muted fst-italic">Chưa có người dùng</span>`;
 
-        let accPart = item.tenDangNhap
-        ? item.tenDangNhap
-        : `<span class="fst-italic">Chưa có tài khoản</span>`;
-
+        let accPart = item.tenDangNhap ? item.tenDangNhap : `<span class="fst-italic">Chưa có tài khoản</span>`;
         let userStr = `<div class="fw-bold">${namePart}</div><div class="small text-muted mt-1"><i class="fas fa-user-circle me-1"></i> ${accPart}</div>`;
-
         let locStr = [item.tenCongTy, item.tenBoPhan].filter(Boolean).join(' - ') || 'Chưa gắn';
 
         let t = (item.tenTrangThai || '').toLowerCase();
@@ -830,14 +930,12 @@
         style="width: 50px; height: 50px; object-fit: cover; cursor: pointer; border-radius: 8px;"
         onclick="viewFullImage('${imgUrl}', '${item.tenMayTinh || item.tenThietBi || 'Thiết bị'}')"
         title="Nhấn để xem ảnh lớn" />
-        </div>
-        `;
+        </div>`;
         } else {
         htmlImg = `
         <div class="mt-2 text-muted small fst-italic text-md-start text-end" style="font-size: 11px;">
         <i class="fas fa-image" style="opacity: 0.4;"></i> Không có ảnh
-        </div>
-        `;
+        </div>`;
         }
 
         let htmlGhiChu = item.ghiChu
@@ -846,9 +944,7 @@
 
         htmlTable += `
         <tr>
-        <td class="ps-4 fw-bold text-muted" data-label="Mã ID">
-        #${item.idThietBi}
-        </td>
+        <td class="ps-4 fw-bold text-muted" data-label="Mã ID">#${item.idThietBi}</td>
         <td data-label="Thông tin TB & Hostname">
         <div class="text-end text-md-start">
         <div class="fw-bold text-dark fs-6">${item.tenMayTinh || '<i class="text-muted fw-normal">No Hostname</i>'}</div>
@@ -879,10 +975,9 @@
         <td class="text-center" data-label="Thao tác hệ thống">
         <button class="btn btn-sm text-white rounded-pill shadow-sm px-3 py-1 btn-action-mobile"
         style="background: linear-gradient(135deg, #8b5cf6, #6366f1); border: none; font-weight: 600; font-size: 0.8rem; transition: all 0.3s ease;"
-        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(99, 102, 241, 0.4)';"
-        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.05)';"
-        onclick="xemLichSuThietBi(${item.idThietBi}, '${item.tenMayTinh || item.tenThietBi || 'Thiết bị'}')"
-        title="Xem chi tiết lịch sử">
+        onmouseover="this.style.transform='translateY(-2px)';"
+        onmouseout="this.style.transform='translateY(0)';"
+        onclick="xemLichSuThietBi(${item.idThietBi}, '${item.tenMayTinh || item.tenThietBi || 'Thiết bị'}')">
         <i class="fas fa-history me-1"></i> Lịch sử
         </button>
         </td>
@@ -891,17 +986,12 @@
 
         renderPaginationControls(totalPages);
         }
-
         $('#tbodyData').html(htmlTable);
         }
 
         function renderPaginationControls(totalPages) {
         let html = '';
-
-        if (totalPages <= 1) {
-        $('#paginationControls').html('');
-        return;
-        }
+        if (totalPages <= 1) { $('#paginationControls').html(''); return; }
 
         let prevDisabled = currentPage === 1 ? 'disabled' : '';
         html += `<li class="page-item ${prevDisabled}"><a class="page-link" onclick="changePage(${currentPage - 1})"><i class="fas fa-chevron-left"></i></a></li>`;
@@ -931,7 +1021,7 @@
         }
 
         // ==========================================
-        // CÁC HÀM VẼ CHART.JS ĐÃ UPDATE HỖ TRỢ CLICK
+        // CÁC HÀM VẼ CHART.JS ĐỘNG
         // ==========================================
         function drawBarChart(chartInstance, canvasId, labels, data, labelTitle, colorCode, onClickCallback = null) {
         if (chartInstance) chartInstance.destroy();
@@ -955,9 +1045,7 @@
         plugins: {
         legend: { display: false },
         datalabels: {
-        anchor: 'end',
-        align: 'top',
-        color: '#475569',
+        anchor: 'end', align: 'top', color: '#475569',
         font: { weight: 'bold', size: 12 },
         formatter: function(value) { return value > 0 ? value : ''; }
         }
@@ -994,8 +1082,7 @@
         plugins: {
         legend: { position: 'right', labels: { boxWidth: 12 } },
         datalabels: {
-        color: '#fff',
-        font: { weight: 'bold', size: 14 },
+        color: '#fff', font: { weight: 'bold', size: 14 },
         formatter: function(value) { return value > 0 ? value : ''; }
         }
         },
@@ -1018,8 +1105,7 @@
         plugins: {
         legend: { position: 'bottom', labels: { boxWidth: 15 } },
         datalabels: {
-        color: '#fff',
-        font: { weight: 'bold', size: 14 },
+        color: '#fff', font: { weight: 'bold', size: 14 },
         formatter: function(value) { return value > 0 ? value : ''; }
         }
         }
@@ -1028,28 +1114,14 @@
         });
         }
 
-        // ==========================================
-        // XEM ẢNH FULL BẰNG SWEETALERT2
-        // ==========================================
         function viewFullImage(url, title) {
         Swal.fire({
-        title: title,
-        imageUrl: url,
-        imageAlt: 'Ảnh thiết bị',
-        showCloseButton: true,
-        showConfirmButton: false,
-        width: 'auto',
-        padding: '1em',
-        customClass: {
-        image: 'rounded-3 shadow',
-        popup: 'rounded-4'
-        }
+        title: title, imageUrl: url, imageAlt: 'Ảnh thiết bị',
+        showCloseButton: true, showConfirmButton: false, width: 'auto', padding: '1em',
+        customClass: { image: 'rounded-3 shadow', popup: 'rounded-4' }
         });
         }
 
-        // ==========================================
-        // HÀM GỌI API LẤY LỊCH SỬ THIẾT BỊ VÀ HIỂN THỊ MODAL
-        // ==========================================
         function xemLichSuThietBi(idThietBi, tenThietBi) {
         $('#lsTenThietBi').text(tenThietBi);
         $('#tbodyLichSu').html('<tr><td colspan="4" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Đang tải dữ liệu...</div></td></tr>');
@@ -1077,8 +1149,7 @@
         <td><span class="badge ${badgeHanhDong} rounded-pill px-3 py-1 shadow-sm">${item.hanhDong || 'Không rõ'}</span></td>
         <td class="fw-bold text-dark"><i class="fas fa-user-circle text-muted me-1"></i>${item.nguoiThaoTac || 'N/A'}</td>
         <td class="small text-wrap" style="max-width: 350px;">${item.chiTiet || ''}</td>
-        </tr>
-        `;
+        </tr>`;
         });
         }
         $('#tbodyLichSu').html(html);
@@ -1130,23 +1201,12 @@
         const ws = XLSX.utils.json_to_sheet(excelData);
 
         ws['!cols'] = [
-        { wch: 8 },
-        { wch: 25 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 20 },
-        { wch: 35 },
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 30 },
-        { wch: 15 },
-        { wch: 20 },
-        { wch: 35 }
+        { wch: 8 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 20 },
+        { wch: 35 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 30 },
+        { wch: 15 }, { wch: 20 }, { wch: 35 }
         ];
 
         XLSX.utils.book_append_sheet(wb, ws, "BaoCaoKiemKe");
-
         let dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
         XLSX.writeFile(wb, `BaoCao_TaiSanIT_${dateStr}.xlsx`);
         }
