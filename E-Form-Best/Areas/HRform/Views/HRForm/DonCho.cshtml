@@ -1,11 +1,20 @@
-﻿@{
+﻿@model IEnumerable<E_Form_Best.Models.ITForm.FormIt>
+@using System.Security.Claims
+
+@{
     ViewData["Title"] = "Lịch sử yêu cầu HR";
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 
+    // Style chung cho các thẻ thống kê
     string statBox = "display: flex; flex-direction: column; padding: 12px 10px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); text-align: center;";
 }
 
 <style>
+    body {
+        background-color: #f8fafc;
+    }
+
+    /* Hiệu ứng Glassmorphism & Hover */
     .stat-card:hover {
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(0,0,0,0.1) !important;
@@ -59,7 +68,7 @@
             border-color: #cbd5e1;
         }
 
-    /* Style Bộ lọc nâng cao mới thêm */
+    /* Style Bộ lọc nâng cao */
     .advanced-filter {
         background: white;
         padding: 15px 20px;
@@ -96,6 +105,7 @@
         outline: none;
         transition: 0.3s;
         min-width: 140px;
+        height: 38px;
     }
 
         .filter-input:focus {
@@ -116,6 +126,7 @@
         display: flex;
         align-items: center;
         gap: 6px;
+        height: 38px;
     }
 
         .btn-clear-filter:hover {
@@ -123,9 +134,81 @@
             color: #0f172a;
         }
 
-    /* ==========================================
-                       CSS CHO MOBILE RESPONSIVE
-                       ========================================== */
+    /* ========================================================
+        CSS MỚI: HỆ THỐNG DROPDOWN CHECKBOX (MULTI-SELECT)
+        ======================================================== */
+    .dropdown-combo-btn {
+        text-align: left;
+        background-color: #fff;
+        border: 1px solid #cbd5e1;
+        padding: 8px 28px 8px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 8px;
+        color: #1e293b;
+        position: relative;
+        min-width: 160px;
+        height: 38px;
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+        .dropdown-combo-btn:after {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .dropdown-combo-btn:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+            outline: 0;
+        }
+
+    .dropdown-combo-menu {
+        min-width: 220px;
+        max-height: 280px;
+        overflow-y: auto;
+        padding: 8px 0;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        z-index: 1050;
+    }
+
+    .dropdown-combo-item {
+        display: flex;
+        align-items: center;
+        padding: 6px 16px;
+        cursor: pointer;
+        user-select: none;
+        font-size: 13px;
+        color: #334155;
+        transition: background-color 0.15s ease;
+    }
+
+        .dropdown-combo-item:hover {
+            background-color: #f1f5f9;
+        }
+
+        .dropdown-combo-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            cursor: pointer;
+            accent-color: #2563eb;
+            flex-shrink: 0;
+        }
+
+        .dropdown-combo-item span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+    /* ========================================================
+        CSS CHO MOBILE RESPONSIVE
+        ======================================================== */
     @@media (max-width: 768px) {
         .mobile-header-container {
             flex-direction: column !important;
@@ -160,7 +243,7 @@
             font-size: 14px !important;
             box-sizing: border-box !important;
         }
-        /* Mobile Bộ Lọc Nâng Cao */
+
         .advanced-filter {
             flex-direction: column;
             align-items: stretch;
@@ -170,10 +253,18 @@
             width: 100%;
         }
 
+        .dropdown-combo-btn {
+            width: 100%;
+        }
+
         .filter-input {
             width: 100%;
         }
-        /* Chuyển Bảng thành dạng Thẻ (Cards) */
+
+        .stats-grid-mobile {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+
         #myTable thead {
             display: none;
         }
@@ -202,7 +293,7 @@
                 justify-content: center !important;
                 padding-top: 15px !important;
             }
-            /* Tạo Nhãn (Label) cho dạng Thẻ */
+
             #myTable tbody td::before {
                 content: attr(data-label);
                 font-weight: 800;
@@ -228,7 +319,7 @@
         .mobile-progress {
             margin: 8px 0 0 auto !important;
         }
-        /* Phân trang */
+
         .pagination-container {
             flex-direction: column !important;
             gap: 20px !important;
@@ -253,7 +344,6 @@
             <i class="fa fa-history" style="color: #2563eb;"></i> LỊCH SỬ YÊU CẦU HR
         </h2>
         <div class="mobile-controls" style="display: flex; gap: 15px; align-items: center;">
-            @* Khối chọn dòng hiển thị mới *@
             <div class="mobile-controls-row" style="display: flex; align-items: center; gap: 10px; background: white; padding: 8px 15px; border-radius: 10px; border: 1px solid #cbd5e1;">
                 <span style="font-size: 12px; font-weight: 700; color: #64748b;">Hiển thị:</span>
                 <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: #2563eb; cursor: pointer; background: transparent; font-size: 14px;">
@@ -276,7 +366,7 @@
         </div>
     </div>
 
-    @* --- BỘ LỌC NÂNG CAO --- *@
+    @* --- BỘ LỌC NÂNG CAO DROPDOWN MULTI-CHECKBOX MỚI --- *@
     <div class="advanced-filter">
         <div class="filter-group">
             <label>Từ ngày</label>
@@ -286,18 +376,29 @@
             <label>Đến ngày</label>
             <input type="date" id="txtToDate" class="filter-input" onchange="handleFilterAndPaginate()" />
         </div>
+
         <div class="filter-group">
             <label>Danh mục</label>
-            <select id="selDanhmuc" class="filter-input" onchange="handleFilterAndPaginate()">
-                <option value="">-- Tất cả --</option>
-            </select>
+            <div class="dropdown">
+                <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropDanhmuc" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    -- Tất cả --
+                </button>
+                <div class="dropdown-menu dropdown-combo-menu" id="menuDanhmuc" aria-labelledby="btnDropDanhmuc">
+                </div>
+            </div>
         </div>
+
         <div class="filter-group">
             <label>Người hỗ trợ</label>
-            <select id="selStaff" class="filter-input" onchange="handleFilterAndPaginate()">
-                <option value="">-- Tất cả --</option>
-            </select>
+            <div class="dropdown">
+                <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropStaff" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    -- Tất cả --
+                </button>
+                <div class="dropdown-menu dropdown-combo-menu" id="menuStaff" aria-labelledby="btnDropStaff">
+                </div>
+            </div>
         </div>
+
         <div class="filter-group" style="flex-direction: row; align-items: flex-end; gap: 10px; margin-left: auto;">
             <button class="btn-clear-filter" onclick="clearAllFilters()">
                 <i class="fa fa-refresh"></i> Làm mới
@@ -305,8 +406,8 @@
         </div>
     </div>
 
-    @* --- THỐNG KÊ (Bổ sung data-status để dễ đổi màu viền) --- *@
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 25px;">
+    @* --- THỐNG KÊ --- *@
+    <div class="stats-grid-mobile" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 25px;">
         <div data-status="" onclick="filterByStatus('')" class="stat-card" style="@statBox border-left: 5px solid #64748b;">
             <span style="font-size: 10px; color: #64748b; font-weight: 800;">TỔNG ĐƠN</span>
             <span id="stat-total" style="font-size: 20px; font-weight: 900;">0</span>
@@ -376,15 +477,14 @@
 </div>
 
 <script>
-    let masterData = [];     // Toàn bộ Data
-    let filteredData = [];   // Data sau khi search
+    let masterData = [];
+    let filteredData = [];
     let currentPage = 1;
     let rowsPerPage = 20;
 
-    // Lưu trạng thái Thẻ Màu
     let currentActiveStatusFilter = "";
 
-    document.addEventListener("DOMContentLoaded", async () => {
+    document.addEventListener("DOMContentLoaded", () => {
         // --- 1. PHỤC HỒI TEXT SEARCH ---
         const savedText = sessionStorage.getItem("savedHrDonChoText");
         if (savedText) document.getElementById("myInput").value = savedText;
@@ -402,51 +502,99 @@
             currentActiveStatusFilter = savedStatus;
         }
 
+        // Lắng nghe sự kiện thay đổi trên các ô Checkbox thuộc menu thả xuống mới
+        $(document).on('change', '.dropdown-combo-menu input[type="checkbox"]', function () {
+            const $menu = $(this).closest('.dropdown-combo-menu');
+            updateDropdownButtonLabel($menu);
+            handleFilterAndPaginate();
+        });
+
+        loadDataFromAPI();
+    });
+
+    async function loadDataFromAPI() {
         try {
             const response = await fetch('/FormHR/GetDonChoData');
             masterData = await response.json();
 
-            // Đổ dữ liệu Combobox
+            // Đổ các cấu trúc Checkbox động vào giao diện thả xuống
             populateDropdowns(masterData);
 
-            // --- 4. PHỤC HỒI COMBOBOX SAU KHI ĐỔ DỮ LIỆU ---
-            const savedCat = sessionStorage.getItem("savedDanhmucHrDC");
-            if (savedCat) document.getElementById("selDanhmuc").value = savedCat;
+            // --- 4. PHỤC HỒI CACHE TRẠNG THÁI TÍCH CHỌN MULTI-SELECT ---
+            const savedCatStr = sessionStorage.getItem("savedDanhmucHrDC");
+            if (savedCatStr) {
+                try {
+                    let arrCat = JSON.parse(savedCatStr) || [];
+                    if (!Array.isArray(arrCat) && savedCatStr) arrCat = [savedCatStr];
+                    arrCat.forEach(c => { $(`.chk-cat[value="${c}"]`).prop('checked', true); });
+                    updateDropdownButtonLabel($('#menuDanhmuc'));
+                } catch(e){}
+            }
 
-            const savedStaff = sessionStorage.getItem("savedStaffHrDC");
-            if (savedStaff) document.getElementById("selStaff").value = savedStaff;
+            const savedStaffStr = sessionStorage.getItem("savedStaffHrDC");
+            if (savedStaffStr) {
+                try {
+                    let arrStaff = JSON.parse(savedStaffStr) || [];
+                    if (!Array.isArray(arrStaff) && savedStaffStr) arrStaff = [savedStaffStr];
+                    arrStaff.forEach(s => { $(`.chk-staff[value="${s}"]`).prop('checked', true); });
+                    updateDropdownButtonLabel($('#menuStaff'));
+                } catch(e){}
+            }
 
-            // Cập nhật thẻ thống kê
             updateStatistics(masterData);
-
-            // Highlight Thẻ đang chọn
             updateVisualStatusCard(currentActiveStatusFilter);
 
-            // Lọc và Render
+            // Thực thi bộ lọc đa vùng kết hợp
             handleFilterAndPaginate();
         } catch (error) {
             document.getElementById('tableBody').innerHTML = `<tr><td colspan="6" style="padding: 50px; text-align: center; color: red;">Lỗi tải dữ liệu. Vui lòng thử lại.</td></tr>`;
         }
-    });
+    }
 
+    // Sinh cấu trúc ô Checkbox lồng bên trong Dropdown lơ lửng
     function populateDropdowns(data) {
-        const selDanhmuc = document.getElementById("selDanhmuc");
-        const selStaff = document.getElementById("selStaff");
+        const menuDanhmuc = document.getElementById("menuDanhmuc");
+        const menuStaff = document.getElementById("menuStaff");
 
         // Lấy danh sách Danh mục duy nhất
         const categories = [...new Set(data.map(x => x.danhmuc).filter(Boolean))].sort();
+        menuDanhmuc.innerHTML = '';
         categories.forEach(c => {
-            selDanhmuc.innerHTML += `<option value="${c}">${c}</option>`;
+            menuDanhmuc.insertAdjacentHTML('beforeend', `
+                <label class="dropdown-combo-item">
+                    <input type="checkbox" class="chk-cat" value="${c}">
+                    <span>${c}</span>
+                </label>
+            `);
         });
 
         // Lấy danh sách Người hỗ trợ duy nhất
         const staffSet = [...new Set(data.map(x => x.supportName).filter(n => n && n !== "Chờ phân công"))].sort();
+        menuStaff.innerHTML = '';
         staffSet.forEach(s => {
-            selStaff.innerHTML += `<option value="${s}">${s}</option>`;
+            menuStaff.insertAdjacentHTML('beforeend', `
+                <label class="dropdown-combo-item">
+                    <input type="checkbox" class="chk-staff" value="${s}">
+                    <span>${s}</span>
+                </label>
+            `);
         });
     }
 
-    // Cập nhật con số trên Stat Cards
+    // Cập nhật nhãn hiển thị đầu khối nút Dropdown dựa trên số lượng được tích
+    function updateDropdownButtonLabel($menu) {
+        let totalChecked = $menu.find('input[type="checkbox"]:checked').length;
+        let $btn = $menu.siblings('.dropdown-combo-btn');
+
+        if (totalChecked === 0) {
+            $btn.text('-- Tất cả --');
+        } else if (totalChecked === 1) {
+            $btn.text($menu.find('input[type="checkbox"]:checked').first().val());
+        } else {
+            $btn.text(`Đã chọn (${totalChecked})`);
+        }
+    }
+
     function updateStatistics(data) {
         document.getElementById("stat-total").innerText = data.length;
         document.getElementById("stat-ql").innerText = data.filter(x => x.statusText === "QUẢN LÝ").length;
@@ -463,10 +611,8 @@
         handleFilterAndPaginate();
     }
 
-    // Hàm cập nhật CSS nổi bật cho Thẻ Trạng thái
     function updateVisualStatusCard(status) {
         document.querySelectorAll('.stat-card').forEach(el => {
-            // Giữ lại border-left màu đặc trưng
             const borderLeft = el.getAttribute('style').match(/border-left:[^;]+;/)[0];
             el.style.cssText = `display: flex; flex-direction: column; padding: 12px 10px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; ${borderLeft} cursor: pointer; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); text-align: center;`;
         });
@@ -480,7 +626,6 @@
         }
     }
 
-    // Click vào Stat Card để lọc
     function filterByStatus(status) {
         if(currentActiveStatusFilter === status) {
             currentActiveStatusFilter = "";
@@ -489,13 +634,11 @@
         }
 
         sessionStorage.setItem("savedHrDonChoStatus", currentActiveStatusFilter);
-
         updateVisualStatusCard(currentActiveStatusFilter);
 
         currentPage = 1;
         handleFilterAndPaginate();
 
-        // Hiệu ứng nháy mờ bảng
         let table = document.getElementById("myTable");
         table.style.opacity = "0.6";
         setTimeout(() => { table.style.opacity = "1"; }, 150);
@@ -505,10 +648,11 @@
         document.getElementById("myInput").value = "";
         document.getElementById("txtFromDate").value = "";
         document.getElementById("txtToDate").value = "";
-        document.getElementById("selDanhmuc").value = "";
-        document.getElementById("selStaff").value = "";
 
-        // Xóa sạch Session Storage
+        // Bỏ chọn toàn bộ ô tích trên các Dropdown
+        $('.dropdown-combo-menu input[type="checkbox"]').prop('checked', false);
+        $('.dropdown-combo-menu').each(function() { updateDropdownButtonLabel($(this)); });
+
         sessionStorage.removeItem("savedHrDonChoText");
         sessionStorage.removeItem("savedFromDateHrDC");
         sessionStorage.removeItem("savedToDateHrDC");
@@ -523,36 +667,37 @@
         handleFilterAndPaginate();
     }
 
-    // Lọc Search và Phân trang chung
+    // ====================================================
+    // HÀM LỌC TỔNG HỢP MỚI (XỬ LÝ MẢNG MULTI-CHECKBOX ARRAY INCLUDES)
+    // ====================================================
     function handleFilterAndPaginate() {
         const searchText = document.getElementById("myInput").value.toUpperCase().trim();
         const fromDateStr = document.getElementById("txtFromDate").value;
         const toDateStr = document.getElementById("txtToDate").value;
-        const catFilter = document.getElementById("selDanhmuc").value;
-        const staffFilter = document.getElementById("selStaff").value;
 
-        // Ghi lại thay đổi
+        // Trích thu thập danh sách mảng các ô đang được chọn từ Checkbox
+        const selectedCats = $('.chk-cat:checked').map(function() { return $(this).val(); }).get();
+        const selectedStaffs = $('.chk-staff:checked').map(function() { return $(this).val(); }).get();
+
+        // Đồng bộ lưu thông số vào Session Storage chống mất bộ lọc khi Refresh (F5)
         sessionStorage.setItem("savedHrDonChoText", searchText);
         sessionStorage.setItem("savedFromDateHrDC", fromDateStr);
         sessionStorage.setItem("savedToDateHrDC", toDateStr);
-        sessionStorage.setItem("savedDanhmucHrDC", catFilter);
-        sessionStorage.setItem("savedStaffHrDC", staffFilter);
+        sessionStorage.setItem("savedDanhmucHrDC", JSON.stringify(selectedCats));
+        sessionStorage.setItem("savedStaffHrDC", JSON.stringify(selectedStaffs));
 
-        // 1. Lọc data
+        // 1. Thực thi giải thuật lọc mảng dữ liệu
         filteredData = masterData.filter(item => {
-            // Check Trạng thái Card
             if (currentActiveStatusFilter && item.statusText !== currentActiveStatusFilter) return false;
 
-            // Check Danh mục
-            if (catFilter && item.danhmuc !== catFilter) return false;
+            // Kiểm tra bộ lọc đa Danh mục
+            if (selectedCats.length > 0 && !selectedCats.includes(item.danhmuc)) return false;
 
-            // Check Hỗ trợ
-            if (staffFilter && item.supportName !== staffFilter) return false;
+            // Kiểm tra bộ lọc đa Người hỗ trợ
+            if (selectedStaffs.length > 0 && !selectedStaffs.includes(item.supportName)) return false;
 
-            // Check Thời gian (định dạng từ API là dd/MM/yyyy)
             if (fromDateStr || toDateStr) {
                 if (!item.ngay || item.ngay === "--") return false;
-
                 const parts = item.ngay.split('/');
                 if (parts.length === 3) {
                     const itemDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
@@ -567,7 +712,6 @@
                 }
             }
 
-            // Check Text tự do
             if (searchText) {
                 const rowString = `${item.id} ${item.tenForm} ${item.danhmuc} ${item.statusText} ${item.supportName}`.toUpperCase();
                 if (!rowString.includes(searchText)) return false;
@@ -576,7 +720,6 @@
             return true;
         });
 
-        // 2. Tính số trang
         const totalItems = filteredData.length;
         const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
         if (currentPage > totalPages) currentPage = totalPages;
@@ -585,38 +728,34 @@
         document.getElementById("currentPageNum").innerText = currentPage;
         document.getElementById("totalPagesNum").innerText = totalPages;
 
-        // 3. Cắt data trang hiện tại và Render
         const startIndex = (currentPage - 1) * rowsPerPage;
-        const endIndex = startIndex + rowsPerPage;
-        const pageData = filteredData.slice(startIndex, endIndex);
+        const pageData = filteredData.slice(startIndex, startIndex + rowsPerPage);
 
         renderTable(pageData);
         renderPaginationButtons(totalPages);
     }
 
-    // Render HTML Bảng
-        function renderTable(pageData) {
-            const tbody = document.getElementById("tableBody");
-            tbody.innerHTML = "";
+    function renderTable(pageData) {
+        const tbody = document.getElementById("tableBody");
+        tbody.innerHTML = "";
 
-            if (pageData.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" style="padding: 50px 15px; text-align: center; color: #94a3b8; width: 100%; display: table-cell !important; border: none !important;">
-                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
-                                <i class="fa fa-folder-open-o" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5; color: #64748b;"></i>
-                                <span style="font-weight: 600; font-size: 14px; white-space: normal; text-align: center; color: #64748b;">
-                                    Không tìm thấy yêu cầu nào phù hợp với bộ lọc.
-                                </span>
-                            </div>
-                        </td>
-                    </tr>`;
-                return;
-            }
+        if (pageData.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="padding: 50px 15px; text-align: center; color: #94a3b8; width: 100%; display: table-cell !important; border: none !important;">
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
+                            <i class="fa fa-folder-open-o" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5; color: #64748b;"></i>
+                            <span style="font-weight: 600; font-size: 14px; white-space: normal; text-align: center; color: #64748b;">
+                                Không tìm thấy yêu cầu nào phù hợp với bộ lọc.
+                            </span>
+                        </div>
+                    </td>
+                </tr>`;
+            return;
+        }
 
-            let html = "";
+        let html = "";
         pageData.forEach(item => {
-            // Render Badges (B2, GĐ, BV)
             let badgesHtml = `<span><i class="fa fa-tag"></i> ${item.danhmuc}</span>`;
             if (item.hasB2) {
                 badgesHtml += `<span class="sub-status-badge" style="background: #f0f9ff; color: #0369a1; border-color: #bae6fd; margin-left: 8px;">
@@ -634,11 +773,10 @@
                                </span>`;
             }
 
-            // Chữ cái đầu Avatar Support
             let avatarChar = item.supportName.length > 0 && item.supportName !== "Chờ phân công" ? item.supportName.charAt(0).toUpperCase() : "?";
 
             html += `
-                <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#fcfdfe'" onmouseout="this.style.background='transparent'">
+                <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative">
                     <td data-label="ID" style="padding: 15px; font-weight: 700; color: #2563eb;">#${item.id}</td>
                     <td data-label="NỘI DUNG" style="padding: 15px;">
                         <div class="mobile-td-content">
@@ -681,39 +819,29 @@
                             <i class="fa fa-arrow-circle-right"></i>
                         </a>
                     </td>
-                </tr>
-            `;
+                </tr>`;
         });
         tbody.innerHTML = html;
     }
 
-    // Render Nút Phân Trang
     function renderPaginationButtons(totalPages) {
         const container = document.getElementById("paginationButtons");
-        container.innerHTML = "";
-
-        if (totalPages <= 1) return;
+        container.innerHTML = ""; if (totalPages <= 1) return;
 
         for (let i = 1; i <= totalPages; i++) {
             if (totalPages > 7 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
                 if (i === 3 || i === totalPages - 2) {
                     const dot = document.createElement("span");
-                    dot.innerText = "...";
-                    dot.style.padding = "8px";
-                    dot.style.color = "#64748b";
-                    dot.style.fontWeight = "700";
+                    dot.innerText = "..."; dot.style.padding = "8px"; dot.style.color = "#64748b"; dot.style.fontWeight = "700";
                     container.appendChild(dot);
                 }
                 continue;
             }
 
             const btn = document.createElement("button");
-            btn.innerText = i;
-            btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+            btn.innerText = i; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
             btn.onclick = () => {
-                currentPage = i;
-                handleFilterAndPaginate();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                currentPage = i; handleFilterAndPaginate(); window.scrollTo({ top: 0, behavior: 'smooth' });
             };
             container.appendChild(btn);
         }

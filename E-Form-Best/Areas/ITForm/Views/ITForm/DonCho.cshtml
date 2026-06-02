@@ -10,6 +10,10 @@
 }
 
 <style>
+    body {
+        background-color: #f8fafc;
+    }
+
     /* Hiệu ứng Glassmorphism & Hover */
     .stat-card:hover {
         transform: translateY(-4px);
@@ -102,6 +106,7 @@
         outline: none;
         transition: 0.3s;
         min-width: 140px;
+        height: 38px;
     }
 
         .filter-input:focus {
@@ -122,6 +127,7 @@
         display: flex;
         align-items: center;
         gap: 6px;
+        height: 38px;
     }
 
         .btn-clear-filter:hover {
@@ -129,9 +135,81 @@
             color: #0f172a;
         }
 
-    /* ==========================================
-               CSS RESPONSIVE CHO MOBILE (2026 STYLE)
-               ========================================== */
+    /* ========================================================
+        CSS MỚI: HỆ THỐNG DROPDOWN CHECKBOX (MULTI-SELECT)
+        ======================================================== */
+    .dropdown-combo-btn {
+        text-align: left;
+        background-color: #fff;
+        border: 1px solid #cbd5e1;
+        padding: 8px 28px 8px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 8px;
+        color: #1e293b;
+        position: relative;
+        min-width: 160px;
+        height: 38px;
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+        .dropdown-combo-btn:after {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .dropdown-combo-btn:focus {
+            border-color: #0284c7;
+            box-shadow: 0 0 0 2px rgba(2,132,199,0.1);
+            outline: 0;
+        }
+
+    .dropdown-combo-menu {
+        min-width: 220px;
+        max-height: 280px;
+        overflow-y: auto;
+        padding: 8px 0;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        z-index: 1050;
+    }
+
+    .dropdown-combo-item {
+        display: flex;
+        align-items: center;
+        padding: 6px 16px;
+        cursor: pointer;
+        user-select: none;
+        font-size: 13px;
+        color: #334155;
+        transition: background-color 0.15s ease;
+    }
+
+        .dropdown-combo-item:hover {
+            background-color: #f1f5f9;
+        }
+
+        .dropdown-combo-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            cursor: pointer;
+            accent-color: #0284c7;
+            flex-shrink: 0;
+        }
+
+        .dropdown-combo-item span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+    /* ========================================================
+        CSS RESPONSIVE CHO MOBILE (2026 STYLE)
+        ======================================================== */
     @@media (max-width: 768px) {
         .header-mobile {
             flex-direction: column !important;
@@ -170,6 +248,10 @@
             width: 100%;
         }
 
+        .dropdown-combo-btn {
+            width: 100%;
+        }
+
         .filter-input {
             width: 100%;
         }
@@ -177,7 +259,7 @@
         .stats-grid-mobile {
             grid-template-columns: repeat(2, 1fr) !important;
         }
-        /* Chuyển Bảng thành dạng Thẻ (Cards) */
+
         #myTable thead {
             display: none;
         }
@@ -207,7 +289,7 @@
                 justify-content: center !important;
                 padding-top: 15px !important;
             }
-            /* Label cho mobile */
+
             #myTable tbody td::before {
                 content: attr(data-label);
                 font-weight: 800;
@@ -241,7 +323,6 @@
         </h2>
 
         <div class="search-box-mobile" style="display: flex; gap: 12px; align-items: center;">
-            @* Chọn số dòng *@
             <div style="display: flex; align-items: center; gap: 8px; background: white; padding: 8px 15px; border-radius: 12px; border: 1px solid #cbd5e1;">
                 <span style="font-size: 12px; font-weight: 700; color: #64748b;">Hiển thị:</span>
                 <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: #0284c7; cursor: pointer; background: transparent; font-size: 14px;">
@@ -264,7 +345,7 @@
         </div>
     </div>
 
-    @* --- BỘ LỌC NÂNG CAO --- *@
+    @* --- BỘ LỌC NÂNG CAO DROPDOWN MULTI-CHECKBOX MỚI --- *@
     <div class="advanced-filter">
         <div class="filter-group">
             <label>Từ ngày</label>
@@ -274,18 +355,29 @@
             <label>Đến ngày</label>
             <input type="date" id="txtToDate" class="filter-input" onchange="handleSearch()" />
         </div>
+
         <div class="filter-group">
             <label>Danh mục</label>
-            <select id="selDanhmuc" class="filter-input" onchange="handleSearch()">
-                <option value="">-- Tất cả --</option>
-            </select>
+            <div class="dropdown">
+                <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropDanhmuc" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    -- Tất cả --
+                </button>
+                <div class="dropdown-menu dropdown-combo-menu" id="menuDanhmuc" aria-labelledby="btnDropDanhmuc">
+                </div>
+            </div>
         </div>
+
         <div class="filter-group">
             <label>Phụ trách</label>
-            <select id="selStaff" class="filter-input" onchange="handleSearch()">
-                <option value="">-- Tất cả --</option>
-            </select>
+            <div class="dropdown">
+                <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropStaff" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    -- Tất cả --
+                </button>
+                <div class="dropdown-menu dropdown-combo-menu" id="menuStaff" aria-labelledby="btnDropStaff">
+                </div>
+            </div>
         </div>
+
         <div class="filter-group" style="flex-direction: row; align-items: flex-end; gap: 10px; margin-left: auto;">
             <button class="btn-clear-filter" onclick="clearAllFilters()">
                 <i class="fa fa-refresh"></i> Làm mới
@@ -293,7 +385,7 @@
         </div>
     </div>
 
-    @* --- THỐNG KÊ (Bổ sung data-status) --- *@
+    @* --- THỐNG KÊ MỐC TRẠNG THÁI --- *@
     <div class="stats-grid-mobile" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 25px;">
         <div data-status="" onclick="filterByStatus('')" class="stat-card" style="@statBox border-left: 5px solid #64748b;">
             <span style="font-size: 10px; color: #64748b; font-weight: 800; text-transform: uppercase;">Tổng đơn</span>
@@ -329,7 +421,7 @@
                     <tr>
                         <th style="padding: 18px 15px; text-align: left; color: #475569; font-weight: 800; width: 90px;">ID</th>
                         <th style="padding: 18px 15px; text-align: left; color: #475569; font-weight: 800;">NỘI DUNG YÊU CẦU IT</th>
-                        <th style="padding: 18px 15px; text-align: left; color: #475569; font-weight: 800; width: 200px;">PHỤ TRÁCH</th>
+                        <th style="padding: 18px 15px; text-align: left; color: #475569; font-weight: 800; width: 200px;">PHU TRÁCH</th>
                         <th style="padding: 18px 15px; text-align: center; color: #475569; font-weight: 800; width: 180px;">TRẠNG THÁI</th>
                         <th style="padding: 18px 15px; text-align: center; width: 80px;"></th>
                     </tr>
@@ -366,26 +458,32 @@
     let currentPage = 1;
     let rowsPerPage = 30;
 
-    // Lưu lại trạng thái từ các thẻ màu phía trên
     let currentActiveStatusFilter = "";
 
     document.addEventListener("DOMContentLoaded", () => {
-        // --- 1. PHỤC HỒI TEXT SEARCH ---
+        // Khôi phục bộ lọc văn bản từ Session
         const savedText = sessionStorage.getItem("savedDonChoText");
         if (savedText) document.getElementById("myInput").value = savedText;
 
-        // --- 2. PHỤC HỒI NGÀY THÁNG LỌC NÂNG CAO ---
+        // Khôi phục mốc thời gian lọc nâng cao
         const savedFrom = sessionStorage.getItem("savedFromDateDC");
         if (savedFrom) document.getElementById("txtFromDate").value = savedFrom;
 
         const savedTo = sessionStorage.getItem("savedToDateDC");
         if (savedTo) document.getElementById("txtToDate").value = savedTo;
 
-        // --- 3. PHỤC HỒI TRẠNG THÁI THẺ CARD ---
+        // Khôi phục trạng thái bộ lọc thẻ Card màu
         const savedStatus = sessionStorage.getItem("savedDonChoStatus");
         if (savedStatus !== null) {
             currentActiveStatusFilter = savedStatus;
         }
+
+        // Lắng nghe sự kiện click Checkbox động trong các Menu ô lọc mới
+        $(document).on('change', '.dropdown-combo-menu input[type="checkbox"]', function () {
+            const $menu = $(this).closest('.dropdown-combo-menu');
+            updateDropdownButtonLabel($menu);
+            handleSearch();
+        });
 
         loadDataFromAPI();
     });
@@ -398,23 +496,34 @@
             masterData = await response.json();
             filteredData = masterData;
 
-            // Đổ vào Combobox
+            // Đổ danh sách Checkbox vào Dropdown Menu lơ lửng
             populateDropdowns(masterData);
 
-            // --- 4. PHỤC HỒI COMBOBOX SAU KHI ĐỔ DỮ LIỆU ---
-            const savedCat = sessionStorage.getItem("savedDanhmucDC");
-            if (savedCat) document.getElementById("selDanhmuc").value = savedCat;
+            // PHỤC HỒI CACHE TRẠNG THÁI TÍCH CHỌN MULTI-SELECT SAU KHI BUILD XONG MENU CHECKBOX
+            const savedCatStr = sessionStorage.getItem("savedDanhmucDC");
+            if (savedCatStr) {
+                try {
+                    let arrCat = JSON.parse(savedCatStr) || [];
+                    if (!Array.isArray(arrCat) && savedCatStr) arrCat = [savedCatStr];
+                    arrCat.forEach(c => { $(`.chk-cat[value="${c}"]`).prop('checked', true); });
+                    updateDropdownButtonLabel($('#menuDanhmuc'));
+                } catch(e){}
+            }
 
-            const savedStaff = sessionStorage.getItem("savedStaffDC");
-            if (savedStaff) document.getElementById("selStaff").value = savedStaff;
+            const savedStaffStr = sessionStorage.getItem("savedStaffDC");
+            if (savedStaffStr) {
+                try {
+                    let arrStaff = JSON.parse(savedStaffStr) || [];
+                    if (!Array.isArray(arrStaff) && savedStaffStr) arrStaff = [savedStaffStr];
+                    arrStaff.forEach(s => { $(`.chk-staff[value="${s}"]`).prop('checked', true); });
+                    updateDropdownButtonLabel($('#menuStaff'));
+                } catch(e){}
+            }
 
-            // Tính toán tổng số trên thẻ
             updateStats(masterData);
-
-            // Bật hiệu ứng CSS thẻ Trạng Thái đã lưu
             updateVisualStatusCard(currentActiveStatusFilter);
 
-            // Chạy lọc dữ liệu tổng hợp
+            // Thực thi hàm lọc dữ liệu tổng hợp đa thuộc tính
             handleSearch();
         } catch (error) {
             console.error("Error:", error);
@@ -422,21 +531,48 @@
         }
     }
 
+    // Nạp dữ liệu checkbox động vào Menu thả xuống
     function populateDropdowns(data) {
-        const selDanhmuc = document.getElementById("selDanhmuc");
-        const selStaff = document.getElementById("selStaff");
+        const menuDanhmuc = document.getElementById("menuDanhmuc");
+        const menuStaff = document.getElementById("menuStaff");
 
-        // Lấy danh sách Danh mục duy nhất
+        // Trích xuất danh sách Danh mục không trùng lặp
         const categories = [...new Set(data.map(x => x.danhmuc).filter(Boolean))].sort();
+        menuDanhmuc.innerHTML = '';
         categories.forEach(c => {
-            selDanhmuc.innerHTML += `<option value="${c}">${c}</option>`;
+            menuDanhmuc.insertAdjacentHTML('beforeend', `
+                <label class="dropdown-combo-item">
+                    <input type="checkbox" class="chk-cat" value="${c}">
+                    <span>${c}</span>
+                </label>
+            `);
         });
 
-        // Lấy danh sách Người hỗ trợ duy nhất
+        // Trích xuất danh sách Nhân viên phụ trách không trùng lặp
         const staffSet = [...new Set(data.map(x => x.tenNguoiHoTro).filter(n => n && n !== "Chưa có"))].sort();
+        menuStaff.innerHTML = '';
         staffSet.forEach(s => {
-            selStaff.innerHTML += `<option value="${s}">${s}</option>`;
+            menuStaff.insertAdjacentHTML('beforeend', `
+                <label class="dropdown-combo-item">
+                    <input type="checkbox" class="chk-staff" value="${s}">
+                    <span>${s}</span>
+                </label>
+            `);
         });
+    }
+
+    // Hàm cập nhật nhãn hiển thị nút bấm Dropdown Checkbox
+    function updateDropdownButtonLabel($menu) {
+        let totalChecked = $menu.find('input[type="checkbox"]:checked').length;
+        let $btn = $menu.siblings('.dropdown-combo-btn');
+
+        if (totalChecked === 0) {
+            $btn.text('-- Tất cả --');
+        } else if (totalChecked === 1) {
+            $btn.text($menu.find('input[type="checkbox"]:checked').first().val());
+        } else {
+            $btn.text(`Đã chọn (${totalChecked})`);
+        }
     }
 
     function updateStats(data) {
@@ -487,7 +623,6 @@
         return res;
     }
 
-    // Hàm cập nhật CSS giao diện cho Thẻ Trạng thái
     function updateVisualStatusCard(status) {
         document.querySelectorAll('.stat-card').forEach(el => {
             el.style.borderRight = "1px solid #e2e8f0";
@@ -501,15 +636,12 @@
             if (targetCard) {
                 targetCard.style.border = "1px solid #0284c7";
                 targetCard.style.boxShadow = "0 0 0 3px rgba(2, 132, 199, 0.2)";
-                // Giữ lại border-left đặc trưng của thẻ
                 targetCard.style.borderLeft = targetCard.getAttribute('style').match(/border-left:[^;]+;/)[0];
             }
         }
     }
 
-    // Nút bấm trên thẻ Thống kê
     function filterByStatus(status) {
-        // Nếu click lại chính nó thì bỏ lọc
         if(currentActiveStatusFilter === status) {
             currentActiveStatusFilter = "";
         } else {
@@ -517,11 +649,9 @@
         }
 
         sessionStorage.setItem("savedDonChoStatus", currentActiveStatusFilter);
-
         updateVisualStatusCard(currentActiveStatusFilter);
         handleSearch();
 
-        // Hiệu ứng feedback người dùng
         const table = document.getElementById("myTable");
         table.style.opacity = "0.5";
         setTimeout(() => table.style.opacity = "1", 200);
@@ -531,10 +661,11 @@
         document.getElementById("myInput").value = "";
         document.getElementById("txtFromDate").value = "";
         document.getElementById("txtToDate").value = "";
-        document.getElementById("selDanhmuc").value = "";
-        document.getElementById("selStaff").value = "";
 
-        // Xóa sạch Session Storage
+        // Gỡ tích chọn toàn bộ hệ thống ô Checkbox bộ lọc nâng cao
+        $('.dropdown-combo-menu input[type="checkbox"]').prop('checked', false);
+        $('.dropdown-combo-menu').each(function() { updateDropdownButtonLabel($(this)); });
+
         sessionStorage.removeItem("savedDonChoText");
         sessionStorage.removeItem("savedFromDateDC");
         sessionStorage.removeItem("savedToDateDC");
@@ -547,41 +678,44 @@
         handleSearch();
     }
 
+    // ====================================================
+    // HÀM LỌC TỔNG HỢP MỚI (HỖ TRỢ MẢNG ARRAY INCLUDES)
+    // ====================================================
     function handleSearch() {
         const textFilter = document.getElementById("myInput").value.toUpperCase();
         const fromDateStr = document.getElementById("txtFromDate").value;
         const toDateStr = document.getElementById("txtToDate").value;
-        const catFilter = document.getElementById("selDanhmuc").value;
-        const staffFilter = document.getElementById("selStaff").value;
 
-        // Lưu thông số vào Session Storage
-        sessionStorage.setItem("savedDonChoText", textFilter);
+        // Thu thập mảng các giá trị đang tích chọn từ Checkbox lơ lửng
+        const selectedCats = $('.chk-cat:checked').map(function() { return $(this).val(); }).get();
+        const selectedStaffs = $('.chk-staff:checked').map(function() { return $(this).val(); }).get();
+
+        // Đồng bộ lưu thông số vào Session Storage chống mất trạng thái chọn nhiều mục khi Refresh
+        sessionStorage.setItem("savedDonChoText", document.getElementById("myInput").value);
         sessionStorage.setItem("savedFromDateDC", fromDateStr);
         sessionStorage.setItem("savedToDateDC", toDateStr);
-        sessionStorage.setItem("savedDanhmucDC", catFilter);
-        sessionStorage.setItem("savedStaffDC", staffFilter);
+        sessionStorage.setItem("savedDanhmucDC", JSON.stringify(selectedCats));
+        sessionStorage.setItem("savedStaffDC", JSON.stringify(selectedStaffs));
 
         filteredData = masterData.filter(item => {
             const stInfo = determineStatus(item);
             const stName = stInfo.text;
 
-            // 1. Kiểm tra trạng thái từ Thẻ Card phía trên
+            // 1. Kiểm tra trạng thái đơn từ Thẻ Card màu phía trên
             if (currentActiveStatusFilter && stName !== currentActiveStatusFilter) return false;
 
-            // 2. Kiểm tra Danh mục
-            if (catFilter && item.danhmuc !== catFilter) return false;
+            // 2. Kiểm tra lọc mảng Đa Danh Mục (Tích chọn nhiều mục)
+            if (selectedCats.length > 0 && !selectedCats.includes(item.danhmuc)) return false;
 
-            // 3. Kiểm tra Người Hỗ Trợ
-            if (staffFilter && item.tenNguoiHoTro !== staffFilter) return false;
+            // 3. Kiểm tra lọc mảng Đa Người Phụ Trách (Tích chọn nhiều IT phụ trách)
+            if (selectedStaffs.length > 0 && !selectedStaffs.includes(item.tenNguoiHoTro)) return false;
 
-            // 4. Kiểm tra Khoảng Thời Gian (định dạng từ C# là dd/MM/yyyy)
+            // 4. Kiểm tra Khoảng Thời Gian
             if (fromDateStr || toDateStr) {
                 if (!item.ngay) return false;
-
                 const parts = item.ngay.split('/');
                 if (parts.length === 3) {
                     const itemDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
-
                     if (fromDateStr) {
                         const fromD = new Date(fromDateStr + "T00:00:00");
                         if (itemDate < fromD) return false;
@@ -593,7 +727,7 @@
                 }
             }
 
-            // 5. Kiểm tra Chuỗi Text tìm kiếm tự do
+            // 5. Kiểm tra Chuỗi văn bản tìm kiếm tự do toàn diện
             if (textFilter) {
                 const searchString = `${item.id} ${item.tenForm} ${item.danhmuc} ${item.tenNguoiHoTro} ${stName}`.toUpperCase();
                 if (!searchString.includes(textFilter)) return false;
@@ -628,9 +762,7 @@
                 const avatar = item.tenNguoiHoTro && item.tenNguoiHoTro !== "Chưa có" ? item.tenNguoiHoTro.charAt(0).toUpperCase() : "?";
 
                 const tr = document.createElement("tr");
-                tr.style.transition = "0.2s";
-                tr.onmouseover = () => tr.style.background = "#f8fafc";
-                tr.onmouseout = () => tr.style.background = "transparent";
+                tr.className = "d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative";
 
                 tr.innerHTML = `
                     <td data-label="ID" style="padding: 15px; font-weight: 800; color: #0284c7;">#${item.id}</td>
@@ -657,7 +789,7 @@
                             </div>
                         </div>
                     </td>
-                    <td data-label="CHI TIẾT" style="padding: 15px; text-align: center;" class="action-cell">
+                    <td data-label="CHI TIẾT" style="padding: 15px; text-align: center;">
                         <a href="/FormIT/ChiTiet/${item.id}" title="Xem chi tiết" style="color: #94a3b8; font-size: 20px; transition: 0.2s;" onmouseover="this.style.color='#0284c7'" onmouseout="this.style.color='#94a3b8'">
                             <i class="fa fa-arrow-circle-right"></i>
                         </a>
@@ -681,25 +813,19 @@
         if (totalPages <= 1) return;
 
         for (let i = 1; i <= totalPages; i++) {
-            // Logic hiển thị dấu ... nếu quá nhiều trang
             if (totalPages > 6 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
                 if (i === 3 || i === totalPages - 2) {
                     const span = document.createElement("span");
-                    span.innerText = "...";
-                    span.style.padding = "8px";
-                    span.style.color = "#94a3b8";
+                    span.innerText = "..."; span.style.padding = "8px"; span.style.color = "#94a3b8";
                     container.appendChild(span);
                 }
                 continue;
             }
 
             const btn = document.createElement("button");
-            btn.innerText = i;
-            btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+            btn.innerText = i; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
             btn.onclick = () => {
-                currentPage = i;
-                renderTable();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                currentPage = i; renderTable(); window.scrollTo({ top: 0, behavior: 'smooth' });
             };
             container.appendChild(btn);
         }

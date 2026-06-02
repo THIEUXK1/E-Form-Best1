@@ -6,6 +6,10 @@
 }
 
 <style>
+    body {
+        background-color: #f1f5f9;
+    }
+
     .security-row {
         transition: all 0.2s ease;
         border-bottom: 1px solid #f1f5f9;
@@ -131,6 +135,7 @@
         outline: none;
         transition: 0.3s;
         min-width: 140px;
+        height: 38px;
     }
 
         .filter-input:focus {
@@ -151,6 +156,7 @@
         display: flex;
         align-items: center;
         gap: 6px;
+        height: 38px;
     }
 
         .btn-clear-filter:hover {
@@ -158,9 +164,81 @@
             color: #0f172a;
         }
 
-    /* ==========================================
-           BỔ SUNG CSS CHO MOBILE RESPONSIVE (2026 STYLE)
-           ========================================== */
+    /* ========================================================
+        CSS MỚI: HỆ THỐNG DROPDOWN CHECKBOX (MULTI-SELECT)
+        ======================================================== */
+    .dropdown-combo-btn {
+        text-align: left;
+        background-color: #fff;
+        border: 1px solid #cbd5e1;
+        padding: 8px 28px 8px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 8px;
+        color: #1e293b;
+        position: relative;
+        min-width: 160px;
+        height: 38px;
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+        .dropdown-combo-btn:after {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .dropdown-combo-btn:focus {
+            border-color: #0f172a;
+            box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.1);
+            outline: 0;
+        }
+
+    .dropdown-combo-menu {
+        min-width: 220px;
+        max-height: 280px;
+        overflow-y: auto;
+        padding: 8px 0;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        z-index: 1050;
+    }
+
+    .dropdown-combo-item {
+        display: flex;
+        align-items: center;
+        padding: 6px 16px;
+        cursor: pointer;
+        user-select: none;
+        font-size: 13px;
+        color: #334155;
+        transition: background-color 0.15s ease;
+    }
+
+        .dropdown-combo-item:hover {
+            background-color: #f1f5f9;
+        }
+
+        .dropdown-combo-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            cursor: pointer;
+            accent-color: #0f172a;
+            flex-shrink: 0;
+        }
+
+        .dropdown-combo-item span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+    /* ========================================================
+        CSS RESPONSIVE CHO MOBILE (2026 STYLE)
+        ======================================================== */
     @@media (max-width: 768px) {
         .mobile-top-bar {
             flex-direction: column !important;
@@ -186,15 +264,19 @@
             width: 100%;
         }
 
+        .dropdown-combo-btn {
+            width: 100%;
+        }
+
         .filter-input {
             width: 100%;
         }
 
         .mobile-stat-grid {
-            grid-template-columns: 1fr !important; /* Stack stats on mobile */
+            grid-template-columns: 1fr !important;
             gap: 10px !important;
         }
-        /* Biến bảng thành dạng Card */
+
         #mainDataTable thead {
             display: none;
         }
@@ -227,7 +309,7 @@
                     background: #f8fafc;
                     justify-content: center;
                 }
-                /* Nhãn giả cho cột */
+
                 #mainDataTable td::before {
                     content: attr(data-label);
                     float: left;
@@ -293,7 +375,7 @@
             </div>
         </div>
 
-        @* --- BỘ LỌC NÂNG CAO --- *@
+        @* --- BỘ LỌC NÂNG CAO DROPDOWN MULTI-CHECKBOX MỚI --- *@
         <div class="advanced-filter">
             <div class="filter-group">
                 <label>Từ ngày</label>
@@ -303,12 +385,18 @@
                 <label>Đến ngày</label>
                 <input type="date" id="txtToDate" class="filter-input" onchange="handleFilterAndPaginate()" />
             </div>
+
             <div class="filter-group">
                 <label>Bộ phận</label>
-                <select id="selBoPhan" class="filter-input" onchange="handleFilterAndPaginate()">
-                    <option value="">-- Tất cả --</option>
-                </select>
+                <div class="dropdown">
+                    <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropBoPhan" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                        -- Tất cả --
+                    </button>
+                    <div class="dropdown-menu dropdown-combo-menu" id="menuBoPhan" aria-labelledby="btnDropBoPhan">
+                    </div>
+                </div>
             </div>
+
             <div class="filter-group" style="flex-direction: row; align-items: flex-end; gap: 10px; margin-left: auto;">
                 <button class="btn-clear-filter" onclick="clearAllFilters()">
                     <i class="fa fa-refresh"></i> Làm mới
@@ -318,21 +406,21 @@
 
         @* --- STATS CARDS --- *@
         <div class="mobile-stat-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
-            <div onclick="filterByStatus('ALL')" class="stat-card" data-status="ALL" style="background: white; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: 0.2s;">
+            <div onclick="filterByStatus('ALL')" class="card stat-card" data-status="ALL" style="background: white; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: 0.2s;">
                 <div style="background: #f8fafc; color: #475569; width: 55px; height: 55px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 20px;"><i class="fa fa-list-alt"></i></div>
                 <div>
                     <div style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Tổng đơn</div>
                     <div id="stat-total" style="font-size: 28px; font-weight: 1000; color: #0f172a;">0</div>
                 </div>
             </div>
-            <div onclick="filterByStatus('PENDING')" class="stat-card" data-status="PENDING" style="background: #fffbeb; padding: 22px; border-radius: 20px; border: 1px solid #fde68a; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: 0.2s;">
+            <div onclick="filterByStatus('PENDING')" class="card stat-card" data-status="PENDING" style="background: #fffbeb; padding: 22px; border-radius: 20px; border: 1px solid #fde68a; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: 0.2s;">
                 <div style="background: #fef3c7; color: #d97706; width: 55px; height: 55px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 20px;"><i class="fa fa-hourglass-half"></i></div>
                 <div>
                     <div style="font-size: 11px; font-weight: 800; color: #b45309; text-transform: uppercase;">Đang chờ</div>
                     <div id="stat-pending" style="font-size: 28px; font-weight: 1000; color: #d97706;">0</div>
                 </div>
             </div>
-            <div onclick="filterByStatus('DONE')" class="stat-card" data-status="DONE" style="background: #ecfdf5; padding: 22px; border-radius: 20px; border: 1px solid #bbf7d0; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: 0.2s;">
+            <div onclick="filterByStatus('DONE')" class="card stat-card" data-status="DONE" style="background: #ecfdf5; padding: 22px; border-radius: 20px; border: 1px solid #bbf7d0; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: 0.2s;">
                 <div style="background: #d1fae5; color: #059669; width: 55px; height: 55px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 20px;"><i class="fa fa-check-circle"></i></div>
                 <div>
                     <div style="font-size: 11px; font-weight: 800; color: #065f46; text-transform: uppercase;">Hoàn tất cổng</div>
@@ -355,7 +443,7 @@
                 </thead>
                 <tbody id="tableBody">
                     <tr>
-                        <td colspan="5" style="padding: 50px; text-align: center; color: #94a3b8; border: none;">
+                        <td colspan="5" id="loadingRow" style="padding: 50px; text-align: center; color: #94a3b8; border: none;">
                             <i class="fa fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 15px;"></i>
                             <p style="font-weight: 600;">Đang tải dữ liệu trực cổng...</p>
                         </td>
@@ -387,7 +475,6 @@
         let currentPage = 1;
         let rowsPerPage = 20;
 
-        // Trạng thái thẻ Card (ALL, PENDING, DONE)
         let currentStatusFilter = "ALL";
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -406,9 +493,16 @@
                 currentStatusFilter = savedStatus;
             }
 
+            // Lắng nghe hành vi thay đổi trạng thái Checkbox lồng trong Dropdown Menu nâng cao mới
+            $(document).on('change', '.dropdown-combo-menu input[type="checkbox"]', function () {
+                const $menu = $(this).closest('.dropdown-combo-menu');
+                updateDropdownButtonLabel($menu);
+                handleFilterAndPaginate();
+            });
+
             fetchData();
 
-            // SetInterval load ngầm
+            // Duy trì Interval tải dữ liệu tự động ngầm không thay đổi
             setInterval(fetchDataSilent, 180000);
         });
 
@@ -417,10 +511,19 @@
                 const response = await fetch('/FormHR/GetBaoVeData');
                 masterData = await response.json();
 
+                // Nạp danh sách Checkbox Đa bộ phận động
                 populateDropdowns(masterData);
 
-                const savedDept = sessionStorage.getItem("savedBoPhanBV");
-                if (savedDept) document.getElementById("selBoPhan").value = savedDept;
+                // PHỤC HỒI CACHE TRẠNG THÁI TÍCH CHỌN MULTI-SELECT
+                const savedDeptStr = sessionStorage.getItem("savedBoPhanBV");
+                if (savedDeptStr) {
+                    try {
+                        let arrDept = JSON.parse(savedDeptStr) || [];
+                        if (!Array.isArray(arrDept) && savedDeptStr) arrDept = [savedDeptStr];
+                        arrDept.forEach(d => { $(`.chk-dept[value="${d}"]`).prop('checked', true); });
+                        updateDropdownButtonLabel($('#menuBoPhan'));
+                    } catch(e){}
+                }
 
                 updateStatistics();
                 updateVisualStatusCard(currentStatusFilter);
@@ -431,8 +534,6 @@
         }
 
         async function fetchDataSilent() {
-            // Ngay cả khi có text search cũng vẫn load ngầm để cập nhật dữ liệu,
-            // sau đó sẽ applyFilter lại.
             try {
                 const response = await fetch('/FormHR/GetBaoVeData');
                 masterData = await response.json();
@@ -441,18 +542,33 @@
             } catch(e) {}
         }
 
+        // Sinh cấu trúc ô Checkbox động lồng bên trong Dropdown
         function populateDropdowns(data) {
-            const selBoPhan = document.getElementById("selBoPhan");
+            const menuBoPhan = document.getElementById("menuBoPhan");
             const depts = [...new Set(data.map(x => x.boPhan).filter(Boolean))].sort();
 
-            // Giữ lại option cũ trước khi xóa
-            const curVal = selBoPhan.value;
-            selBoPhan.innerHTML = '<option value="">-- Tất cả --</option>';
+            menuBoPhan.innerHTML = '';
             depts.forEach(d => {
-                selBoPhan.innerHTML += `<option value="${d}">${d}</option>`;
+                menuBoPhan.insertAdjacentHTML('beforeend', `
+                    <label class="dropdown-combo-item">
+                        <input type="checkbox" class="chk-dept" value="${d}">
+                        <span>${d}</span>
+                    </label>
+                `);
             });
-            if (curVal && depts.includes(curVal)) {
-                selBoPhan.value = curVal;
+        }
+
+        // Hàm cập nhật nhãn hiển thị nút bấm Dropdown Checkbox dựa trên tổng số ô tích
+        function updateDropdownButtonLabel($menu) {
+            let totalChecked = $menu.find('input[type="checkbox"]:checked').length;
+            let $btn = $menu.siblings('.dropdown-combo-btn');
+
+            if (totalChecked === 0) {
+                $btn.text('-- Tất cả --');
+            } else if (totalChecked === 1) {
+                $btn.text($menu.find('input[type="checkbox"]:checked').first().val());
+            } else {
+                $btn.text(`Đã chọn (${totalChecked})`);
             }
         }
 
@@ -501,7 +617,10 @@
             document.getElementById("securitySearch").value = "";
             document.getElementById("txtFromDate").value = "";
             document.getElementById("txtToDate").value = "";
-            document.getElementById("selBoPhan").value = "";
+
+            // Bỏ chọn toàn bộ ô tích trên hệ thống Dropdown Checkbox mới
+            $('.dropdown-combo-menu input[type="checkbox"]').prop('checked', false);
+            $('.dropdown-combo-menu').each(function() { updateDropdownButtonLabel($(this)); });
 
             sessionStorage.removeItem("savedBaoVeText");
             sessionStorage.removeItem("savedFromDateBV");
@@ -522,25 +641,30 @@
             handleFilterAndPaginate();
         }
 
+        // ====================================================
+        // HÀM LỌC TỔNG HỢP MỚI (XỬ LÝ MẢNG MULTI-CHECKBOX ARRAY INCLUDES)
+        // ====================================================
         function handleFilterAndPaginate() {
             const searchText = document.getElementById("securitySearch").value.toUpperCase().trim();
             const fromDateStr = document.getElementById("txtFromDate").value;
             const toDateStr = document.getElementById("txtToDate").value;
-            const deptFilter = document.getElementById("selBoPhan").value;
 
-            // Ghi thay đổi vào session
-            sessionStorage.setItem("savedBaoVeText", searchText);
+            // Thu thập mảng các giá trị đang tích chọn từ Checkbox lơ lửng bộ phận
+            const selectedDepts = $('.chk-dept:checked').map(function() { return $(this).val(); }).get();
+
+            // Đồng bộ lưu thông số vào Session Storage chống mất bộ lọc khi Refresh (F5)
+            sessionStorage.setItem("savedBaoVeText", document.getElementById("securitySearch").value);
             sessionStorage.setItem("savedFromDateBV", fromDateStr);
             sessionStorage.setItem("savedToDateBV", toDateStr);
-            sessionStorage.setItem("savedBoPhanBV", deptFilter);
+            sessionStorage.setItem("savedBoPhanBV", JSON.stringify(selectedDepts));
 
             filteredData = masterData.filter(item => {
-                // 1. Thẻ Trạng thái
+                // 1. Thẻ Trạng thái Card
                 if (currentStatusFilter === "DONE" && !item.isDone) return false;
                 if (currentStatusFilter === "PENDING" && item.isDone) return false;
 
-                // 2. Bộ phận
-                if (deptFilter && item.boPhan !== deptFilter) return false;
+                // 2. Lọc mảng nhiều Bộ phận (Tích chọn nhiều ô Checkbox)
+                if (selectedDepts.length > 0 && !selectedDepts.includes(item.boPhan)) return false;
 
                 // 3. Khoảng thời gian
                 if (fromDateStr || toDateStr) {
@@ -559,7 +683,7 @@
                     }
                 }
 
-                // 4. Text tự do
+                // 4. Text tìm kiếm tự do toàn diện
                 if (searchText) {
                     const rowString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.tenForm} ${item.id}`.toUpperCase();
                     if (!rowString.includes(searchText)) return false;
@@ -584,26 +708,25 @@
         }
 
         function renderTable(pageData) {
-                    const tbody = document.getElementById("tableBody");
-                    tbody.innerHTML = "";
+            const tbody = document.getElementById("tableBody");
+            tbody.innerHTML = "";
 
-                    if (pageData.length === 0) {
-                        tbody.innerHTML = `
-                            <tr>
-                                <td colspan="6" style="padding: 50px 15px; text-align: center; color: #94a3b8; width: 100%; display: table-cell !important; border: none !important;">
-                                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
-                                        <i class="fa fa-folder-open-o" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5; color: #64748b;"></i>
-                                        <span style="font-weight: 600; font-size: 14px; white-space: normal; text-align: center; color: #64748b;">
-                                            Không tìm thấy dữ liệu yêu cầu phù hợp với bộ lọc.
-                                        </span>
-                                    </div>
-                                </td>
-                            </tr>`;
-                        return;
-                    }
+            if (pageData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="padding: 50px 15px; text-align: center; color: #94a3b8; width: 100%; display: table-cell !important; border: none !important;">
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
+                                <i class="fa fa-folder-open-o" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5; color: #64748b;"></i>
+                                <span style="font-weight: 600; font-size: 14px; white-space: normal; text-align: center; color: #64748b;">
+                                    Không tìm thấy dữ liệu yêu cầu phù hợp với bộ lọc.
+                                </span>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
 
-                    let html = "";
-                    // ... (Giữ nguyên toàn bộ phần logic vòng lặp pageData.forEach phía dưới của bạn, không thay đổi)
+            let html = "";
             pageData.forEach(item => {
                 let badgeStr = `<span>ID: #${item.id} • <i class="fa fa-clock-o"></i> ${item.timeNguoiTao}</span>`;
                 if (item.hasB2) {
@@ -660,34 +783,28 @@
                                 ${item.isDone ? "Xem lại" : "Xử lý cổng"}
                             </a>
                         </td>
-                    </tr>
-                `;
+                    </tr>`;
             });
             tbody.innerHTML = html;
         }
 
         function renderPaginationButtons(totalPages) {
             const container = document.getElementById("paginationButtons");
-            container.innerHTML = "";
-            if (totalPages <= 1) return;
+            container.innerHTML = ""; if (totalPages <= 1) return;
 
             for (let i = 1; i <= totalPages; i++) {
                 if (totalPages > 7 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
                     if (i === 3 || i === totalPages - 2) {
                         const dot = document.createElement("span");
-                        dot.innerText = "...";
-                        dot.style.padding = "8px"; dot.style.color = "#64748b";
+                        dot.innerText = "..."; dot.style.padding = "8px"; dot.style.color = "#64748b";
                         container.appendChild(dot);
                     }
                     continue;
                 }
                 const btn = document.createElement("button");
-                btn.innerText = i;
-                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                btn.innerText = i; btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
                 btn.onclick = () => {
-                    currentPage = i;
-                    handleFilterAndPaginate();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    currentPage = i; handleFilterAndPaginate(); window.scrollTo({ top: 0, behavior: 'smooth' });
                 };
                 container.appendChild(btn);
             }
