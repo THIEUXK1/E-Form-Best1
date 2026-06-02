@@ -5255,7 +5255,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         NgayXoa = x.NgayXoa,
                         LyDoXoa = x.LyDoXoa,
                         x.DuongDanAnh, // Trả về đường dẫn ảnh
-                        x.ThoiGianCheck // Trả về thời gian check
+                        x.ThoiGianCheck, // Trả về thời gian check
+                        x.QuyCach // BỔ SUNG: Trả về trường QuyCach ra View
                     })
                     .OrderByDescending(x => x.IdThietBi).ToList();
 
@@ -5328,6 +5329,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     model.NgayCapNhat = DateTime.Now;
                     model.ThoiGianCheck = DateTime.Now; // Làm mới thời gian check khi thêm mới
                     model.DuongDanAnh = newImageFileName; // Gán tên ảnh mới tạo
+                    model.QuyCach = model.QuyCach?.Trim(); // Gán Quy cách khi thêm mới
                     _context.KkThietBis.Add(model);
                 }
                 else
@@ -5346,6 +5348,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         existing.IdTrangThai = model.IdTrangThai;
                         existing.NgayCapNhat = DateTime.Now;
                         existing.ThoiGianCheck = DateTime.Now; // Làm mới thời gian check khi cập nhật
+                        existing.QuyCach = model.QuyCach?.Trim(); // BỔ SUNG: Cập nhật trường QuyCach vào cơ sở dữ liệu
 
                         // Chỉ cập nhật DuongDanAnh nếu có ảnh mới upload lên
                         if (newImageFileName != null)
@@ -5381,7 +5384,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     if (bp != null) tenBoPhan = bp.TenBoPhan ?? "Chưa gắn";
                 }
 
-                string chiTietLog = $"Máy tính: {model.TenMayTinh} | Trạng thái: {statusName} | Account: {model.TenDangNhap} | N.Dùng: {tenNguoiDung} | B.Phận: {tenBoPhan} | Loại: {model.LoaiThietBi}";
+                string chiTietLog = $"Máy tính: {model.TenMayTinh} | Trạng thái: {statusName} | Account: {model.TenDangNhap} | N.Dùng: {tenNguoiDung} | B.Phận: {tenBoPhan} | Loại: {model.LoaiThietBi} | Quy cách: {model.QuyCach}";
                 GhiLichSu(action, "Thiết Bị", objId, chiTietLog);
 
                 return Json(new { success = true, msg = "Lưu thiết bị thành công!" });
@@ -5432,6 +5435,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // NÚT XÓA: Chuyển vào thùng rác
+        // NÚT XÓA: Chuyển vào thùng rác
         [HttpPost("/QLKiemKe/DeleteKkThietBi")]
         public IActionResult DeleteKkThietBi(int id, string lyDo)
         {
@@ -5440,8 +5444,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var item = _context.KkThietBis.Find(id);
                 if (item != null)
                 {
-                    // Sử dụng Equals kết hợp StringComparison.OrdinalIgnoreCase để dứt điểm cảnh báo
-                    var statusXoa = _context.KkTrangThais.FirstOrDefault(x => x.TenTrangThai != null && x.TenTrangThai.Equals("xóa", StringComparison.OrdinalIgnoreCase));
+                    // SỬA LỖI LINQ: Sử dụng .ToLower() thay cho .Equals(..., StringComparison.OrdinalIgnoreCase)
+                    // để EF Core có thể dịch sang SQL thành công.
+                    var statusXoa = _context.KkTrangThais.FirstOrDefault(x => x.TenTrangThai != null && x.TenTrangThai.ToLower() == "xóa");
+
                     if (statusXoa == null)
                     {
                         statusXoa = new KkTrangThai { TenTrangThai = "Xóa", MoTa = "Đã xóa (Chờ hủy 30 ngày)" };

@@ -63,6 +63,9 @@ public partial class KkThietBi
     [Column("thoi_gian_check", TypeName = "datetime")]
     public DateTime? ThoiGianCheck { get; set; }
 
+    [Column("quy_cach")]
+    public string? QuyCach { get; set; }
+
     [ForeignKey("IdNguoiDung")]
     [InverseProperty("KkThietBis")]
     public virtual User? IdNguoiDungNavigation { get; set; }
