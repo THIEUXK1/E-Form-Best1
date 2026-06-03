@@ -1,14 +1,20 @@
-﻿@model IEnumerable<E_Form_Best.Models.ITForm.FormShd>
+﻿@using System.Security.Claims
+@model IEnumerable<E_Form_Best.Models.ITForm.FormShd>
 
 @{
     ViewData["Title"] = "Trung Tâm Phân Tích SHD";
     Layout = "~/Areas/SHDForm/Views/Shared/_Layout.cshtml";
+
+    // Toolkit màu sắc SHD Luxury
+    string primaryIndigo = "#312e81";
+    string accentCyan = "#22d3ee";
+    var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("UserRole")?.Value ?? "Guest";
 }
 
 <style>
     body {
         font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-        background-color: #f8fafc;
+        background-color: #f1f5f9;
         color: #1e293b;
     }
 
@@ -32,6 +38,7 @@
         flex-direction: column;
         justify-content: center;
         min-width: 0;
+        border-left: 5px solid #64748b;
     }
 
         .stat-card:hover {
@@ -92,7 +99,7 @@
             background-color: #f8fafc;
             color: #475569;
             text-align: left;
-            padding: 16px;
+            padding: 14px;
             border-bottom: 2px solid #e2e8f0;
             font-weight: 900;
             text-transform: uppercase;
@@ -100,7 +107,7 @@
         }
 
         .custom-table td {
-            padding: 14px;
+            padding: 12px 14px;
             border-bottom: 1px solid #f1f5f9;
             color: #1e293b;
             font-weight: 600;
@@ -126,14 +133,14 @@
         border-radius: 15px;
     }
 
-    /* CSS cho bộ lọc nâng cao giống bên IT */
+    /* Style cho các thành phần bộ lọc */
     .filter-wrapper {
         display: flex;
         gap: 10px;
-        align-items: center;
+        align-items: flex-end;
         flex-wrap: wrap;
         background: white;
-        padding: 12px 20px;
+        padding: 15px 20px;
         border-radius: 20px;
         border: 1px solid #e2e8f0;
         margin-bottom: 20px;
@@ -148,6 +155,8 @@
         color: #334155;
         outline: none;
         font-weight: 600;
+        height: 38px;
+        box-sizing: border-box;
     }
 
         .filter-input:focus {
@@ -163,6 +172,7 @@
         font-size: 13px;
         font-weight: 800;
         cursor: pointer;
+        height: 38px;
         transition: background 0.2s;
     }
 
@@ -174,7 +184,7 @@
         font-size: 13px;
         color: #0891b2;
         font-weight: 800;
-        margin-left: auto;
+        margin-bottom: 10px;
         display: none;
     }
 
@@ -230,10 +240,88 @@
         gap: 10px;
     }
 
-    /* ==========================================
-           BỔ SUNG CSS CHO MOBILE (DƯỚI 768PX)
-           PC GIỮ NGUYÊN 100%
-           ========================================== */
+    /* ========================================================
+        CSS DROPDOWN CHECKBOX (MULTI-SELECT LUXURY CHUẨN ĐỒNG BỘ)
+        ======================================================== */
+    .dropdown-combo-btn {
+        text-align: left;
+        background-color: #fff;
+        border: 1px solid #cbd5e1;
+        padding: 6px 28px 6px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 10px;
+        color: #334155;
+        position: relative;
+        min-width: 160px;
+        height: 38px;
+        transition: border-color 0.3s;
+    }
+
+        .dropdown-combo-btn:after {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .dropdown-combo-btn:focus {
+            border-color: @primaryIndigo;
+            outline: 0;
+        }
+
+    .dropdown-combo-menu {
+        min-width: 220px;
+        max-height: 280px;
+        overflow-y: auto;
+        padding: 8px 0;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        z-index: 1050;
+    }
+
+    .dropdown-combo-item {
+        display: flex;
+        align-items: center;
+        padding: 6px 16px;
+        cursor: pointer;
+        user-select: none;
+        font-size: 13px;
+        color: #334155;
+        transition: background-color 0.15s ease;
+    }
+
+        .dropdown-combo-item:hover {
+            background-color: #f1f5f9;
+        }
+
+        .dropdown-combo-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            cursor: pointer;
+            accent-color: @primaryIndigo;
+            flex-shrink: 0;
+        }
+
+        .dropdown-combo-item span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+    #myTable tbody td.shd-empty-cell {
+        display: table-cell !important;
+        width: auto !important;
+        text-align: center !important;
+        padding: 50px !important;
+        color: #94a3b8 !important;
+    }
+
+    /* ========================================================
+        CSS RESPONSIVE MOBILE
+        ======================================================== */
     @@media (max-width: 768px) {
         .page-header {
             flex-direction: column !important;
@@ -288,7 +376,11 @@
         .filter-wrapper {
             flex-direction: column;
             align-items: stretch;
-            gap: 8px;
+            gap: 10px;
+        }
+
+        .dropdown-combo-btn {
+            width: 100% !important;
         }
 
         .loading-text {
@@ -336,6 +428,17 @@
                     border-bottom: none;
                     background: #f8fafc;
                 }
+
+        #myTable tbody td.shd-empty-cell {
+            display: block !important;
+            width: 100% !important;
+            text-align: center !important;
+            border-bottom: none !important;
+        }
+
+            #myTable tbody td.shd-empty-cell::before {
+                display: none !important;
+            }
     }
 </style>
 
@@ -365,27 +468,31 @@
         <span id="lblErrorText">Không thể kết nối đến hệ thống máy chủ SHD. Vui lòng thử lại sau!</span>
     </div>
 
-    @* --- BỘ LỌC THỜI GIAN VÀ NGƯỜI HỖ TRỢ (Đồng bộ nâng cấp từ IT) --- *@
+    @* --- BỘ LỌC THỜI GIAN VÀ DROPDOWN MULTI-CHECKBOX NGƯỜI PHỤ TRÁCH MỚI --- *@
     <div class="filter-wrapper">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <label style="font-size: 13px; font-weight: 700; color: #475569;">Từ ngày:</label>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 12px; font-weight: 700; color: #475569;">Từ ngày:</label>
             <input type="date" id="txtFromDate" class="filter-input" />
         </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <label style="font-size: 13px; font-weight: 700; color: #475569;">Đến ngày:</label>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 12px; font-weight: 700; color: #475569;">Đến ngày:</label>
             <input type="date" id="txtToDate" class="filter-input" />
         </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <label style="font-size: 13px; font-weight: 700; color: #475569;">Người phụ trách:</label>
-            <select id="selStaffFilter" class="filter-input" style="min-width: 160px;">
-                <option value="">-- Tất cả --</option>
-            </select>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 12px; font-weight: 700; color: #475569;">Người phụ trách:</label>
+            <div class="dropdown">
+                <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropStaff" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    -- Tất cả --
+                </button>
+                <div class="dropdown-menu dropdown-combo-menu" id="menuStaff" aria-labelledby="btnDropStaff">
+                </div>
+            </div>
         </div>
         <button type="button" class="btn-filter" onclick="initStats()"><i class="fa fa-filter"></i> Lọc dữ liệu</button>
         <span id="lblLoading" class="loading-text"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu mới...</span>
     </div>
 
-    @* --- 7 THÈ THỐNG KÊ CHI TIẾT --- *@
+    @* --- 7 THẺ THỐNG KÊ CHI TIẾT --- *@
     <div class="stats-row">
         <div class="stat-card" style="border-top: 5px solid #1e293b;"><span class="card-title">Tổng đơn nhận</span><span class="card-value" id="lblTotal">0</span></div>
         <div class="stat-card" style="border-top: 5px solid #f59e0b;"><span class="card-title">Chờ QL Duyệt</span><span class="card-value" id="lblWaitQL" style="color: #b45309;">0</span></div>
@@ -467,7 +574,9 @@
     // Cache dữ liệu phục vụ bộ lọc nâng cao và drill-down
     let cachedDataChung = [];
     let cachedDataStaff = [];
-    let selectedStaffFilter = null;
+
+    // Đã nâng cấp thành Mảng lưu danh sách nhân viên phụ trách nghiệp vụ được tích chọn đa ô
+    let selectedStaffFilter = [];
 
     const statusColors = {
     'HỦY': '#ef4444',
@@ -509,6 +618,7 @@
     function handleEmptyState(hasData, wrapperId, emptyId) {
     const wrapper = document.getElementById(wrapperId);
     const emptyElement = document.getElementById(emptyId);
+    if (wrapper && emptyElement) {
     if (hasData) {
     wrapper.style.display = 'block';
     emptyElement.style.display = 'none';
@@ -517,34 +627,54 @@
     emptyElement.style.display = 'flex';
     }
     }
+    }
 
+    // Sinh cấu trúc ô Checkbox lồng bên trong Dropdown Menu lơ lửng mới
     function populateStaffDropdown(dataStaff) {
-    const selStaff = document.getElementById('selStaffFilter');
+    const menuStaff = document.getElementById('menuStaff');
     const staffs = [...new Set(dataStaff.map(item => item.tenNguoiHoTro).filter(n => n && n !== "Chưa xác định"))].sort();
 
-    const currentVal = selStaff.value;
-    selStaff.innerHTML = '<option value="">-- Tất cả --</option>';
+    menuStaff.innerHTML = '';
 
     staffs.forEach(staff => {
-    const opt = document.createElement('option');
-    opt.value = staff;
-    opt.textContent = staff;
-    selStaff.appendChild(opt);
+    const isChecked = selectedStaffFilter.includes(staff) ? 'checked' : '';
+    const labelItem = `
+    <label class="dropdown-combo-item">
+    <input type="checkbox" class="chk-staff" value="${staff}" ${isChecked}>
+    <span>${staff}</span>
+    </label>
+    `;
+    menuStaff.insertAdjacentHTML('beforeend', labelItem);
     });
 
-    if (currentVal && staffs.includes(currentVal)) {
-    selStaff.value = currentVal;
-    selectedStaffFilter = currentVal;
+    updateDropdownButtonLabel();
+    }
+
+    // Hàm cập nhật nhãn đầu nút Dropdown dựa trên số lượng ô tích chọn
+    function updateDropdownButtonLabel() {
+    const totalChecked = $('.chk-staff:checked').length;
+    const $btn = $('#btnDropStaff');
+
+    if (totalChecked === 0) {
+    $btn.text('-- Tất cả --');
+    } else if (totalChecked === 1) {
+    $btn.text($('.chk-staff:checked').first().val());
+    } else {
+    $btn.text(`Đã chọn (${totalChecked})`);
     }
     }
 
+    // Hàm xử lý lọc đồng bộ TOÀN BỘ Dashboard theo mảng nhiều nhân viên được chọn cùng lúc
     function applyStaffFilter() {
     let displayDataStaff = cachedDataStaff;
     let displayDataChung = cachedDataChung;
 
-    if (selectedStaffFilter) {
-    displayDataStaff = cachedDataStaff.filter(x => x.tenNguoiHoTro === selectedStaffFilter);
+    if (selectedStaffFilter.length > 0) {
+    // Lọc dữ liệu mảng nhân viên phụ trách nghiệp vụ theo danh sách mảng tích chọn
+    displayDataStaff = cachedDataStaff.filter(x => selectedStaffFilter.includes(x.tenNguoiHoTro));
     const validFormIds = displayDataStaff.map(x => x.idFormShd);
+
+    // Đồng bộ lọc chéo cục dữ liệu chung tổng quan
     displayDataChung = cachedDataChung.filter(x => validFormIds.includes(x.id));
     }
 
@@ -571,7 +701,7 @@
     const hasDataStaff = displayDataStaff && displayDataStaff.length > 0;
     handleEmptyState(hasDataStaff, 'wrapStaff', 'emptyStaff');
     if (hasDataStaff) {
-    drawStaffChart(displayDataStaff);
+    drawStaffChart(cachedDataStaff); // Giữ biểu đồ cột gốc để nhìn tổng quan lưu lượng trực quan
     }
 
     renderTable(cachedDataStaff);
@@ -610,7 +740,7 @@
     } catch (e) {
     console.error("Lỗi tải báo cáo SHD:", e);
     lblError.style.display = 'flex';
-    } finally { // <--- ĐÃ SỬA: Thay "file" bằng "finally"
+    } finally {
     lblLoading.style.display = 'none';
     }
     }
@@ -676,7 +806,7 @@
     function drawStaffChart(dataStaff) {
     if (chartStaffInstance) { chartStaffInstance.destroy(); }
 
-    const staffs = [...new Set(dataStaff.map(item => item.tenNguoiHoTro))];
+    const staffs = [...new Set(dataStaff.map(item => item.tenNguoiHoTro))].sort();
     const statusList = ["HOÀN TẤT", "SHD ĐANG XỬ LÝ"];
 
     const datasets = statusList.map(status => ({
@@ -698,8 +828,13 @@
     onClick: (event, elements, chart) => {
     if (elements && elements.length > 0) {
     const clickedStaffName = chart.data.labels[elements[0].index];
-    selectedStaffFilter = clickedStaffName;
-    document.getElementById('selStaffFilter').value = clickedStaffName;
+
+    // Click đồ thị tự động tích chọn checkbox tương ứng trên Dropdown
+    $('.chk-staff').prop('checked', false);
+    $(`.chk-staff[value="${clickedStaffName}"]`).prop('checked', true);
+
+    selectedStaffFilter = [clickedStaffName];
+    updateDropdownButtonLabel();
     applyStaffFilter();
     }
     },
@@ -760,9 +895,9 @@
     let displayData = data;
     const badge = document.getElementById('tableFilterBadge');
 
-    if (selectedStaffFilter) {
-    displayData = data.filter(x => x.tenNguoiHoTro === selectedStaffFilter);
-    badge.innerHTML = `<i class="fa fa-filter"></i> Đang lọc theo nhân viên: <b>${selectedStaffFilter}</b> <span style="margin-left:8px; color:#dc2626; cursor:pointer; font-weight:bold;" onclick="clearTableFilter()">[Xóa bộ lọc]</span>`;
+    if (selectedStaffFilter.length > 0) {
+    displayData = data.filter(x => selectedStaffFilter.includes(x.tenNguoiHoTro));
+    badge.innerHTML = `<i class="fa fa-filter"></i> Đang lọc theo nhóm (<b class="text-danger">${selectedStaffFilter.length}</b>) nhân viên <span style="margin-left:8px; color:#dc2626; cursor:pointer; font-weight:bold;" onclick="clearTableFilter()">[Xóa bộ lọc]</span>`;
     badge.style.display = 'flex';
     } else {
     badge.style.display = 'none';
@@ -802,16 +937,18 @@
     }
 
     function clearTableFilter() {
-    selectedStaffFilter = null;
-    document.getElementById('selStaffFilter').value = "";
+    selectedStaffFilter = [];
+    $('.chk-staff').prop('checked', false);
+    updateDropdownButtonLabel();
     applyStaffFilter();
     }
 
     function clearAllFilters() {
     document.getElementById('txtFromDate').value = "";
     document.getElementById('txtToDate').value = "";
-    document.getElementById('selStaffFilter').value = "";
-    selectedStaffFilter = null;
+    $('.chk-staff').prop('checked', false);
+    updateDropdownButtonLabel();
+    selectedStaffFilter = [];
     initStats();
     }
 
@@ -824,10 +961,13 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('selStaffFilter').addEventListener('change', function() {
-    selectedStaffFilter = this.value || null;
+    // Lắng nghe hành vi thay đổi checkbox trong cụm menu lơ lửng mới
+    $(document).on('change', '#menuStaff input[type="checkbox"]', function() {
+    selectedStaffFilter = $('.chk-staff:checked').map(function() { return $(this).val(); }).get();
+    updateDropdownButtonLabel();
     applyStaffFilter();
     });
+
     initStats();
     });
 </script>
