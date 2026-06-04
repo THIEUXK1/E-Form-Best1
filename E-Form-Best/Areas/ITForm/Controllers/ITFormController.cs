@@ -2540,6 +2540,18 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     return Json(new { success = false, message = $"Nhân viên {nvIt.Ten} đã được chỉ định trước đó!" });
                 }
 
+                // =========================================================================
+                // MỚI: KIỂM TRA VÀ XÓA BẢN GHI CŨ CỦA NGƯỜI NÀY TRONG ĐƠN ĐỂ TRÁNH LẶP TÊN
+                // =========================================================================
+                var banGhiCu = await _context.ItCtNguoiHoTros
+                    .FirstOrDefaultAsync(x => x.IdFormIt == idForm && x.IdItNguoiHoTro == nvIt.Id);
+
+                if (banGhiCu != null)
+                {
+                    _context.ItCtNguoiHoTros.Remove(banGhiCu);
+                }
+                // =========================================================================
+
                 var ctMoi = new ItCtNguoiHoTro
                 {
                     IdFormIt = idForm,
@@ -2564,6 +2576,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
             }
         }
+
 
         #endregion
 
@@ -3602,8 +3615,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // 5. Lưu thay đổi vào Database
             await _context.SaveChangesAsync();
             return Json(new { success = true, message = "Xử lý phê duyệt bộ phận thành công!" });
-        }     
-        
+        }
+
         #endregion
 
         #region QUẢN LÝ XÉT DUYỆT IT (Admin IT, All, IT, Quản lý bộ phận) - PHÂN QUYỀN 2026
@@ -3723,6 +3736,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var form = await _context.FormIts
                 .Include(f => f.ItCapQuyenOchung8s)
                     .ThenInclude(c => c.ItXacNhanCapQuyen8s)
+                .Include(f => f.ItCtNguoiHoTros) // Thêm chi tiết người hỗ trợ
+                    .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .FirstOrDefaultAsync(f => f.Id == request.Id);
 
             if (form == null)
@@ -3744,11 +3759,61 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
             }
 
+            // BẮT ĐẦU TRANSACTION: Đảm bảo đổi người hỗ trợ và xác nhận hoàn tất chạy chung 1 lần, nếu 1 trong 2 lỗi sẽ rollback lại hết
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
                     DateTime now = DateTime.Now;
+
+                    // =========================================================================
+                    // 1. LUỒNG ĐỔI NGƯỜI HỖ TRỢ (TỰ ĐỘNG CHẠY KHI ẤN XÁC NHẬN)
+                    // =========================================================================
+                    // Tìm nhân sự IT dựa vào Ghi chú (Email) hoặc Tên đồng bộ với tài khoản xác nhận
+                    var nvItHienTai = await _context.ItNguoiHoTros.FirstOrDefaultAsync(x => x.GhiChu == userEmail || x.Ten == userName);
+
+                    if (nvItHienTai != null)
+                    {
+                        // Lấy người hỗ trợ hiện tại có số thứ tự Stt cao nhất (mới nhất) của đơn
+                        var nguoiHoTroMoiNhat = form.ItCtNguoiHoTros
+                            .OrderByDescending(x => x.Stt ?? 0)
+                            .FirstOrDefault();
+
+                        // Nếu chưa từng có ai hỗ trợ đơn này HOẶC người hỗ trợ mới nhất không phải là người đang bấm nút xác nhận
+                        if (nguoiHoTroMoiNhat == null || nguoiHoTroMoiNhat.IdItNguoiHoTro != nvItHienTai.Id)
+                        {
+                            // Tìm và xóa tất cả các bản ghi hỗ trợ cũ của người này trong đơn (nếu có) để tránh lặp tên dữ liệu
+                            var cácBảnGhiCũ = form.ItCtNguoiHoTros.Where(x => x.IdItNguoiHoTro == nvItHienTai.Id).ToList();
+                            if (cácBảnGhiCũ.Any())
+                            {
+                                _context.ItCtNguoiHoTros.RemoveRange(cácBảnGhiCũ);
+                            }
+
+                            // Tính lại maxStt sau khi đã lọc bỏ bản ghi cũ (nếu danh sách trống thì mặc định là 0)
+                            int maxStt = form.ItCtNguoiHoTros.Any() ? form.ItCtNguoiHoTros.Max(x => x.Stt ?? 0) : 0;
+
+                            var ctMoi = new ItCtNguoiHoTro
+                            {
+                                IdFormIt = form.Id,
+                                IdItNguoiHoTro = nvItHienTai.Id,
+                                Stt = maxStt + 1
+                            };
+                            _context.ItCtNguoiHoTros.Add(ctMoi);
+
+                            // Ghi nhận lịch sử hệ thống tự động cập nhật người hỗ trợ
+                            _context.LichSuFormIts.Add(new LichSuFormIt
+                            {
+                                IdFormIt = form.Id,
+                                TieuDe = "CẬP NHẬT NGƯỜI HỖ TRỢ MỚI NHẤT",
+                                Mota = $"Hệ thống chỉ định {nvItHienTai.Ten} làm người hỗ trợ mới nhất do thực hiện đóng đơn (Xóa bỏ lịch sử phân công cũ của người này).",
+                                Time = now
+                            });
+                        }
+                    }
+
+                    // =========================================================================
+                    // 2. LUỒNG XÁC NHẬN HOÀN TẤT ĐƠN (CHẠY ĐỒNG THỜI)
+                    // =========================================================================
                     form.IdAdmin = int.Parse(userIdStr);
                     form.TenAdmin = userName;
                     form.TimeAdmin = now;
@@ -3767,6 +3832,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     _context.LichSuFormIts.Add(lichSu);
                     _context.FormIts.Update(form);
 
+                    // Lưu toàn bộ thay đổi (Cả người hỗ trợ mới + trạng thái đóng đơn) xuống DB trong 1 lần duy nhất
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
@@ -3779,6 +3845,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
             }
         }
+
 
         // --- CLASS REQUEST ---
         public class ITApprovalRequest
@@ -4035,7 +4102,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #endregion
 
         #region Thống kê
-
         #region BÁO CÁO THỐNG KÊ FORM IT
 
         // 1. Action này chỉ trả về giao diện (View)
@@ -4447,9 +4513,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
-        #endregion\
-
-        // Chèn vào ngay dưới #endregion THỐNG KÊ MAC WIFI THIẾT BỊ
+        #endregion
 
         #region THỐNG KÊ TIẾN TRÌNH ĐƠN (TIMELINE V6)
 
