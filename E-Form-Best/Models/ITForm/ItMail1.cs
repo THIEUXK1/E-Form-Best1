@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace E_Form_Best.Models.ITForm;
 
 [Table("IT_Mail_1")]
+[Index("IdFormIt", Name = "IX_IT_Mail_1_idFormIT")]
 public partial class ItMail1
 {
     [Key]

@@ -5359,7 +5359,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             ViewBag.Users = _context.Users.OrderBy(u => u.HoTen).ToList();
             return View("IndexThietBi"); // Bạn cần tạo file IndexThietBi.cshtml trong thư mục Views
         }
-
         [HttpGet("/QLKiemKe/GetKkThietBis")]
         public IActionResult GetKkThietBis()
         {
@@ -5417,36 +5416,62 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         x.ThoiGianCheck, // Trả về thời gian check
                         x.QuyCach // BỔ SUNG: Trả về trường QuyCach ra View
                     })
-                    .OrderByDescending(x => x.IdThietBi).ToList();
+                    .ToList(); // Tải dữ liệu về bộ nhớ trước để xử lý chuẩn hóa chuỗi tiếng Việt chuẩn xác nhất
 
-                return Json(new { success = true, data = data });
+                // THỰC HIỆN SẮP XẾP TRÊN MEMORY (Chuẩn hóa loại bỏ khoảng trắng thừa và không phân biệt hoa thường)
+                var sortedData = data
+                    .OrderBy(x => (x.TenMayTinh ?? "").Trim().ToLower(), StringComparer.Ordinal)
+                    .ThenByDescending(x => x.IdThietBi)
+                    .ToList();
+
+                return Json(new { success = true, data = sortedData });
             }
             catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
         }
 
-        // HÀM LƯU THIẾT BỊ (BỔ SUNG UPLOAD ẢNH BẤT ĐỒNG BỘ VÀ LÀM MỚI TIME CHECK)
+
+        // HÀM LƯU THIẾT BỊ (CẬP NHẬT: CHECK TRÙNG THEO LOẠI & THAM SỐ LƯU NHÂN BẢN SAVE AS NEW)
         [HttpPost("/QLKiemKe/SaveKkThietBi")]
-        public async Task<IActionResult> SaveKkThietBi([FromForm] KkThietBi model, IFormFile? AnhThietBi)
+        public async Task<IActionResult> SaveKkThietBi([FromForm] KkThietBi model, IFormFile? AnhThietBi, bool saveAsNew = false)
         {
             try
             {
+                // Nếu người dùng chọn lưu thành bản sao mới, reset Id về 0 để sinh khóa tự động
+                if (saveAsNew)
+                {
+                    model.IdThietBi = 0;
+                }
+
                 bool isDuplicate = false;
                 if (!string.IsNullOrWhiteSpace(model.TenMayTinh))
                 {
                     string trimmedTarget = model.TenMayTinh.Trim().ToLower(); // Chuyển target về chữ thường để so sánh
+                    string currentLoai = (model.LoaiThietBi ?? "").Trim().ToLower();
 
+                    // THAY ĐỔI: So sánh đồng thời cả tên máy tính VÀ loại thiết bị giống nhau thì mới tính là trùng
                     if (model.IdThietBi == 0)
-                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh != null && x.TenMayTinh.Trim().ToLower() == trimmedTarget);
+                    {
+                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh != null
+                            && x.TenMayTinh.Trim().ToLower() == trimmedTarget
+                            && x.LoaiThietBi != null
+                            && x.LoaiThietBi.Trim().ToLower() == currentLoai);
+                    }
                     else
-                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh != null && x.TenMayTinh.Trim().ToLower() == trimmedTarget && x.IdThietBi != model.IdThietBi);
+                    {
+                        isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh != null
+                            && x.TenMayTinh.Trim().ToLower() == trimmedTarget
+                            && x.LoaiThietBi != null
+                            && x.LoaiThietBi.Trim().ToLower() == currentLoai
+                            && x.IdThietBi != model.IdThietBi);
+                    }
                 }
 
                 if (isDuplicate)
-                    return Json(new { success = false, msg = $"Tên máy tính (Hostname) '{model.TenMayTinh}' đã tồn tại trong hệ thống. Vui lòng kiểm tra lại!" });
+                    return Json(new { success = false, msg = $"Tên máy tính (Hostname) '{model.TenMayTinh}' kèm Loại thiết bị '{model.LoaiThietBi}' đã tồn tại trong hệ thống. Vui lòng kiểm tra lại!" });
 
                 if (string.IsNullOrWhiteSpace(model.TenThietBi)) model.TenThietBi = "";
 
-                string action = model.IdThietBi == 0 ? "Thêm mới" : "Cập nhật";
+                string action = model.IdThietBi == 0 ? (saveAsNew ? "Nhân bản mới" : "Thêm mới") : "Cập nhật";
                 int objId = model.IdThietBi;
 
                 var statusCheck = _context.KkTrangThais.Find(model.IdTrangThai);
@@ -5572,20 +5597,63 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return PhysicalFile(filePath, mimeType);
         }
 
-        // HÀM XÁC NHẬN CHECK THIẾT BỊ
+        // HÀM XÁC NHẬN CHECK THIẾT BỊ (MỚI: LƯU LỊCH SỬ BẰNG CHỨNG KIỂM KÊ VÀO BẢNG RIÊNG & THƯ MỤC MẠNG RIÊNG)
         [HttpPost("/QLKiemKe/XacNhanCheck")]
-        public async Task<IActionResult> XacNhanCheck(int idThietBi)
+        public async Task<IActionResult> XacNhanCheck([FromForm] int idThietBi, [FromForm] IFormFile? AnhBangChung, [FromForm] string? ghiChuCheck)
         {
             try
             {
                 var thietBi = await _context.KkThietBis.FindAsync(idThietBi);
                 if (thietBi == null) return Json(new { success = false, msg = "Không tìm thấy thiết bị trong hệ thống." });
 
-                thietBi.ThoiGianCheck = DateTime.Now;
+                DateTime currentCheckTime = DateTime.Now;
+
+                // 1. Cập nhật thời gian kiểm tra cuối cùng ở bảng thiết bị chính
+                thietBi.ThoiGianCheck = currentCheckTime;
                 _context.Update(thietBi);
+
+                // 2. Xử lý lưu tệp ảnh bằng chứng vào thư mục mạng BangChungKiemKe
+                string? evidenceFileName = null;
+                if (AnhBangChung != null && AnhBangChung.Length > 0)
+                {
+                    string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BangChungKiemKe";
+
+                    if (!Directory.Exists(networkPath))
+                    {
+                        Directory.CreateDirectory(networkPath);
+                    }
+
+                    string imgExtension = Path.GetExtension(AnhBangChung.FileName) ?? "";
+                    if (string.IsNullOrEmpty(imgExtension)) imgExtension = ".jpg";
+
+                    string timeStamp = currentCheckTime.ToString("yyyyMMddHHmmss");
+                    string safeName = string.Join("_", (thietBi.TenThietBi ?? "").Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+                    if (string.IsNullOrEmpty(safeName)) safeName = "TB";
+
+                    evidenceFileName = $"BC_{safeName}_{idThietBi}_{timeStamp}{imgExtension}";
+                    string imgFullPath = Path.Combine(networkPath, evidenceFileName);
+
+                    using (var imgStream = new FileStream(imgFullPath, FileMode.Create))
+                    {
+                        await AnhBangChung.CopyToAsync(imgStream);
+                    }
+                }
+
+                // 3. Ghi dữ liệu vào bảng lịch sử bằng chứng kiểm kê mới
+                var bangChung = new KkBangChungCheck
+                {
+                    IdThietBi = idThietBi,
+                    ThoiGianCheck = currentCheckTime,
+                    DuongDanAnh = evidenceFileName,
+                    GhiChu = string.IsNullOrWhiteSpace(ghiChuCheck) ? "Xác nhận kiểm kê" : ghiChuCheck.Trim()
+                };
+                _context.Add(bangChung);
+
                 await _context.SaveChangesAsync();
 
-                return Json(new { success = true, msg = "Cập nhật thời gian kiểm tra thành công." });
+                GhiLichSu("Xác nhận Check", "Thiết Bị", idThietBi, $"Cập nhật thời gian check và lưu bằng chứng kiểm kê. Có tệp đính kèm: {(evidenceFileName != null ? "Có" : "Không")}");
+
+                return Json(new { success = true, msg = "Cập nhật thời gian kiểm tra và lưu bằng chứng thành công!" });
             }
             catch (Exception ex)
             {
@@ -5593,7 +5661,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
-        // NÚT XÓA: Chuyển vào thùng rác
         // NÚT XÓA: Chuyển vào thùng rác
         [HttpPost("/QLKiemKe/DeleteKkThietBi")]
         public IActionResult DeleteKkThietBi(int id, string lyDo)

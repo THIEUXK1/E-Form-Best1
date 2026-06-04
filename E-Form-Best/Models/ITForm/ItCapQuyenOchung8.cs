@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace E_Form_Best.Models.ITForm;
 
 [Table("IT_CapQuyenOChung_8")]
+[Index("IdFormIt", Name = "IX_IT_CapQuyenOChung_8_idFormIT")]
 public partial class ItCapQuyenOchung8
 {
     [Key]

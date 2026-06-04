@@ -72,6 +72,20 @@ public partial class User
     [Column(TypeName = "datetime")]
     public DateTime? LockoutEnd { get; set; }
 
+    [Column("ten_tieng_trung")]
+    [StringLength(250)]
+    public string? TenTiengTrung { get; set; }
+
+    [Column("ma_nhan_vien")]
+    [StringLength(50)]
+    [Unicode(false)]
+    public string? MaNhanVien { get; set; }
+
+    [Column("ma_phong_ban")]
+    [StringLength(50)]
+    [Unicode(false)]
+    public string? MaPhongBan { get; set; }
+
     [InverseProperty("IdNguoiDungNavigation")]
     public virtual ICollection<KkThietBi> KkThietBis { get; set; } = new List<KkThietBi>();
 
