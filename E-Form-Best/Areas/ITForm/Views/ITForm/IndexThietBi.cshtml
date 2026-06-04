@@ -1384,6 +1384,7 @@
         $('#tbodyDaXoa').html(html);
         }
 
+        // ĐÃ NÂNG CẤP: Ép cấu hình Camera nhận độ phân giải gốc siêu nét (2K/4K)
         function openCamera() {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({
@@ -1431,51 +1432,6 @@
         }, 'image/jpeg', 1.0);
 
         closeCamera();
-        }
-
-        /* Sửa lỗi hiển thị và tích hợp phóng to full ảnh bằng chứng kiểm kê */
-        function openLichSuCheckThietBi(idThietBi, tenMayTinh, tenThietBi) {
-        $('#lblInfoThietBiLichSu').html(`<i class="fas fa-laptop me-1"></i> Máy tính: ${tenMayTinh || 'N/A'} | Mã: ${tenThietBi || 'N/A'}`);
-        $('#boxTimelineCheckResult').html(`<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i> Đang tải nhật ký...</div>`);
-        $('#modalLichSuCheckThietBi').modal('show');
-
-        $.get('/QLKiemKe/GetKkBangChungChecks', { idThietBi: idThietBi }, function (res) {
-        if (res && res.success) {
-        let logs = res.data || [];
-        if (logs.length === 0) {
-        $('#boxTimelineCheckResult').html(`<div class="text-center text-muted py-4 small"><i class="fas fa-info-circle opacity-50 mb-1 d-block fs-4"></i> Thiết bị này chưa có lịch sử xác nhận kiểm kê kèm bằng chứng.</div>`);
-        return;
-        }
-
-        let timelineHtml = '';
-        logs.forEach(log => {
-        let dateStr = new Date(log.thoiGianCheck).toLocaleString('vi-VN');
-        let imgHtml = '';
-
-        if (log.duongDanAnh) {
-        let fullImgUrl = `/QLKiemKe/GetEvidenceImage?fileName=${encodeURIComponent(log.duongDanAnh)}`;
-        imgHtml = `
-        <div class="mt-2">
-        <img src="${fullImgUrl}" class="rounded shadow-sm border border-light" style="width: 100px; height: 75px; object-fit: cover; cursor: pointer;" onclick="phongToAnh('${fullImgUrl}', '${tenThietBi}')" title="Bấm để xem ảnh lớn bằng chứng" />
-        </div>`;
-        }
-
-        timelineHtml += `
-        <div class="timeline-check-item">
-        <div class="fw-bold text-dark small mb-1"><i class="fas fa-clock me-1 text-secondary"></i> ${dateStr}</div>
-        <div class="text-secondary small bg-light p-2 rounded border border-light shadow-none" style="font-size:12.5px;">
-        <b>Ghi chú:</b> ${log.ghiChu || 'Xác nhận kiểm kê'}
-        ${imgHtml}
-        </div>
-        </div>`;
-        });
-        $('#boxTimelineCheckResult').html(timelineHtml);
-        } else {
-        $('#boxTimelineCheckResult').html(`<div class="text-danger small">Lỗi tải nhật ký: ${res.msg}</div>`);
-        }
-        }).fail(function () {
-        $('#boxTimelineCheckResult').html(`<div class="text-danger small">Không thể kết nối tới máy chủ.</div>`);
-        });
         }
 
         function clearImage() {
@@ -1663,6 +1619,69 @@
         });
         }
 
+        // SỬA LỖI KHÔNG CHẠY KHỐI XÁC NHẬN CHECK: Loại bỏ hoàn toàn clearEvidenceImage và closeEvidenceCamera bị lỗi gọi trước khi khởi tạo
+        function xacNhanCheckThietBi(id) {
+        $('#evidence_IdThietBi').val(id);
+        $('#evidence_GhiChu').val('');
+
+        // Xóa ảnh và biến cũ trực tiếp thay vì gọi hàm chưa khởi tạo an toàn
+        $('#evidence_AnhFile').val('');
+        evidencePhotoBlob = null;
+        $('#imgEvidencePreview').attr('src', '');
+        $('#boxPreviewEvidenceImg').hide();
+        $('#boxEvidenceCamera').hide();
+        if (evidenceCamStream) {
+        evidenceCamStream.getTracks().forEach(t => t.stop());
+        evidenceCamStream = null;
+        }
+
+        $('#modalXacNhanCheckEvidence').modal('show');
+
+        setTimeout(() => {
+        initEvidenceZoneEvents();
+        }, 250);
+        }
+
+        function initEvidenceZoneEvents() {
+        let zone = document.getElementById('dropZoneEvidence');
+        if(!zone) return;
+
+        zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.background = "#d1fae5"; });
+        zone.addEventListener('dragleave', () => { zone.style.background = "#f0fdf4"; });
+        zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.style.background = "#f0fdf4";
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        let file = e.dataTransfer.files[0];
+        if (file.type.startsWith('image/')) {
+        evidencePhotoBlob = null;
+        $('#evidence_AnhFile')[0].files = e.dataTransfer.files;
+        let r = new FileReader();
+        r.onload = (evt) => { $('#imgEvidencePreview').attr('src', evt.target.result); $('#boxPreviewEvidenceImg').show(); };
+        r.readAsDataURL(file);
+        }
+        }
+        });
+
+        let modalEv = document.getElementById('modalXacNhanCheckEvidence');
+        modalEv.addEventListener('paste', (e) => {
+        if (e.clipboardData && e.clipboardData.items) {
+        for (let i = 0; i < e.clipboardData.items.length; i++) {
+        let item = e.clipboardData.items[i];
+        if (item.type.indexOf('image') !== -1) {
+        let blob = item.getAsFile();
+        evidencePhotoBlob = blob;
+        $('#evidence_AnhFile').val('');
+        let r = new FileReader();
+        r.onload = (evt) => { $('#imgEvidencePreview').attr('src', evt.target.result); $('#boxPreviewEvidenceImg').show(); };
+        r.readAsDataURL(blob);
+        break;
+        }
+        }
+        }
+        });
+        }
+
         function openEvidenceCamera() {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({
@@ -1698,12 +1717,108 @@
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        let dataUrl = canvas.toDataURL('image/jpeg', 1.0);
+        let dataUrl = canvas.toDataURL('image/jpeg', 1.0); // Nét căng 100% chất lượng giống ảnh gốc
         $('#imgEvidencePreview').attr('src', dataUrl);
         $('#boxPreviewEvidenceImg').show();
 
         canvas.toBlob(function(b) { evidencePhotoBlob = b; $('#evidence_AnhFile').val(''); }, 'image/jpeg', 1.0);
         closeEvidenceCamera();
+        }
+
+        function clearEvidenceImage() {
+        $('#evidence_AnhFile').val('');
+        evidencePhotoBlob = null;
+        $('#imgEvidencePreview').attr('src', '');
+        $('#boxPreviewEvidenceImg').hide();
+        }
+
+        function previewEvidenceImage(input) {
+        if (input.files && input.files[0]) {
+        evidencePhotoBlob = null;
+        var reader = new FileReader();
+        reader.onload = function(e) { $('#imgEvidencePreview').attr('src', e.target.result); $('#boxPreviewEvidenceImg').show(); }
+        reader.readAsDataURL(input.files[0]);
+        } else { clearEvidenceImage(); }
+        }
+
+        // ĐỒNG BỘ: Sửa đổi hiển thị ảnh bằng chứng kiểm kê lớn, tìm đúng API GetEvidenceImage
+        function openLichSuCheckThietBi(idThietBi, tenMayTinh, tenThietBi) {
+        $('#lblInfoThietBiLichSu').html(`<i class="fas fa-laptop me-1"></i> Máy tính: ${tenMayTinh || 'N/A'} | Mã: ${tenThietBi || 'N/A'}`);
+        $('#boxTimelineCheckResult').html(`<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i> Đang tải nhật ký...</div>`);
+        $('#modalLichSuCheckThietBi').modal('show');
+
+        $.get('/QLKiemKe/GetKkBangChungChecks', { idThietBi: idThietBi }, function (res) {
+        if (res && res.success) {
+        let logs = res.data || [];
+        if (logs.length === 0) {
+        $('#boxTimelineCheckResult').html(`<div class="text-center text-muted py-4 small"><i class="fas fa-info-circle opacity-50 mb-1 d-block fs-4"></i> Thiết bị này chưa có lịch sử xác nhận kiểm kê kèm bằng chứng.</div>`);
+        return;
+        }
+
+        let timelineHtml = '';
+        logs.forEach(log => {
+        let dateStr = new Date(log.thoiGianCheck).toLocaleString('vi-VN');
+        let imgHtml = '';
+
+        if (log.duongDanAnh) {
+        let fullImgUrl = `/QLKiemKe/GetEvidenceImage?fileName=${encodeURIComponent(log.duongDanAnh)}`;
+        imgHtml = `
+        <div class="mt-2">
+        <img src="${fullImgUrl}" class="rounded shadow-sm border border-light" style="width: 100px; height: 75px; object-fit: cover; cursor: pointer;" onclick="phongToAnh('${fullImgUrl}', '${tenThietBi}')" title="Bấm để xem ảnh lớn bằng chứng" />
+        </div>`;
+        }
+
+        timelineHtml += `
+        <div class="timeline-check-item">
+        <div class="fw-bold text-dark small mb-1"><i class="fas fa-clock me-1 text-secondary"></i> ${dateStr}</div>
+        <div class="text-secondary small bg-light p-2 rounded border border-light shadow-none" style="font-size:12.5px;">
+        <b>Ghi chú:</b> ${log.ghiChu || 'Xác nhận kiểm kê'}
+        ${imgHtml}
+        </div>
+        </div>`;
+        });
+        $('#boxTimelineCheckResult').html(timelineHtml);
+        } else {
+        $('#boxTimelineCheckResult').html(`<div class="text-danger small">Lỗi tải nhật ký: ${res.msg}</div>`);
+        }
+        }).fail(function () {
+        $('#boxTimelineCheckResult').html(`<div class="text-danger small">Không thể kết nối tới máy chủ.</div>`);
+        });
+        }
+
+        function executeSubmitXacNhanCheck(isQuickMode) {
+        let id = $('#evidence_IdThietBi').val();
+        let note = $('#evidence_GhiChu').val();
+
+        var formData = new FormData();
+        formData.append("idThietBi", parseInt(id));
+        formData.append("ghiChuCheck", note);
+
+        if (!isQuickMode) {
+        if (evidencePhotoBlob) {
+        formData.append("AnhBangChung", evidencePhotoBlob, "evidence_photo.jpg");
+        } else {
+        let files = $('#evidence_AnhFile')[0].files;
+        if (files.length > 0) { formData.append("AnhBangChung", files[0]); }
+        }
+        }
+
+        $('#modalXacNhanCheckEvidence').modal('hide');
+        closeEvidenceCamera();
+
+        Swal.fire({ title: 'Đang xác nhận kiểm kê...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
+        $.ajax({
+        url: '/QLKiemKe/XacNhanCheck', type: 'POST', data: formData, processData: false, contentType: false,
+        success: function(res) {
+        Swal.close();
+        if(res.success) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã hoàn tất lưu bằng chứng kiểm tra!', showConfirmButton: false, timer: 2000 });
+        loadThietBi();
+        } else Swal.fire("Thất bại", res.msg, "error");
+        },
+        error: function() { Swal.close(); Swal.fire("Lỗi kết nối", "Không thể liên lạc với máy chủ!", "error"); }
+        });
         }
 
         function deleteThietBi(id) {
