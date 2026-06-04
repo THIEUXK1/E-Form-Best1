@@ -398,7 +398,6 @@
                             <i class="fa fa-angle-down menu-arrow"></i>
                         </a>
 
-                        <!-- Menu con của Thống kê báo cáo -->
                         <div class="collapse @(isReportActive ? "show" : "")" id="collapseThongKe">
                             <div style="display: flex; flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
                                 <a href="/FormIT/BaoCaoThongKe" class="submenu-link @(currentAction == "BaoCaoThongKe" ? "active" : "")">
@@ -406,10 +405,14 @@
                                     <span class="lang-text" data-key="order_statistics">Thống kê đơn</span>
                                 </a>
 
-                                <!-- Link Thống kê MAC Wi-Fi mới thêm -->
                                 <a href="/FormIT/ThongKeMacWifi" class="submenu-link @(currentAction == "ThongKeMacWifi" ? "active" : "")">
                                     <i class="fa fa-wifi" style="margin-right:12px; width:15px; color: #14b8a6;"></i>
                                     <span class="lang-text" data-key="mac_statistics">Thống kê MAC Wi-Fi</span>
+                                </a>
+
+                                <a href="/FormIT/BaoCaoGanttTimeline" target="_blank" class="submenu-link @(currentAction == "BaoCaoGanttTimeline" ? "active" : "")">
+                                    <i class="fa fa-sliders" style="margin-right:12px; width:15px; color: #0284c7;"></i>
+                                    <span class="lang-text" data-key="gantt_timeline_statistics">Báo cáo tiến độ Gantt</span>
                                 </a>
                             </div>
                         </div>

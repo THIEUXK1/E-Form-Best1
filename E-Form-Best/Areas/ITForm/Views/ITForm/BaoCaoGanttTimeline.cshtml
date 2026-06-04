@@ -1,0 +1,592 @@
+﻿@model IEnumerable<E_Form_Best.Models.ITForm.FormIt>
+
+@{
+    ViewData["Title"] = "Báo cáo Tiến độ Gantt IT";
+    Layout = null; // Chạy độc lập hoàn toàn theo yêu cầu của bạn
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-timeline/7.7.3/vis-timeline-graph2d.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-timeline/7.7.3/vis-timeline-graph2d.min.js"></script>
+
+    <style>
+        body {
+        font-family: 'Inter', sans-serif;
+        background-color: #0f172a;
+        color: #f1f5f9;
+        margin: 0;
+        padding: 20px;
+        }
+
+        .gantt-container {
+        background: #1e293b;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #334155;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        margin-bottom: 20px;
+        position: relative;
+        }
+
+        .gantt-header-title {
+        font-weight: 900;
+        color: #38bdf8;
+        margin-bottom: 15px;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        }
+
+        .filter-wrapper {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        background: #1e293b;
+        padding: 15px 20px;
+        border-radius: 12px;
+        border: 1px solid #334155;
+        margin-bottom: 20px;
+        }
+
+        .filter-wrapper label {
+        color: #94a3b8;
+        }
+
+        .filter-input {
+        background-color: #0f172a;
+        border: 1px solid #475569;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #f1f5f9;
+        outline: none;
+        height: 38px;
+        cursor: pointer;
+        }
+
+        .filter-input:focus {
+        border-color: #38bdf8;
+        }
+
+        .filter-input::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+        cursor: pointer;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+        }
+
+        .filter-input::-webkit-calendar-picker-indicator:hover {
+        opacity: 1;
+        }
+
+        .btn-filter {
+        background: #0284c7;
+        color: white;
+        border: none;
+        padding: 7px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        height: 38px;
+        transition: background 0.2s;
+        }
+
+        .btn-filter:hover {
+        background: #0369a1;
+        }
+
+        .btn-today {
+        background: #059669;
+        color: white;
+        border: none;
+        padding: 7px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        height: 38px;
+        transition: background 0.2s;
+        }
+
+        .btn-today:hover {
+        background: #047857;
+        }
+
+        /* Thêm style nút tải lại dữ liệu giữ nguyên khung nhìn */
+        .btn-refresh {
+        background: #475569;
+        color: white;
+        border: none;
+        padding: 7px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        height: 38px;
+        transition: background 0.2s;
+        }
+
+        .btn-refresh:hover {
+        background: #64748b;
+        }
+
+        .vis-timeline {
+        border: 1px solid #334155 !important;
+        border-radius: 8px;
+        overflow: visible !important;
+        background-color: #1e293b;
+        }
+
+        .vis-panel.vis-background.vis-vertical {
+        background-color: #0f172a;
+        }
+
+        .vis-label {
+        border-bottom: 1px solid #334155 !important;
+        padding: 0px !important;
+        background-color: #1e293b !important;
+        color: #f1f5f9 !important;
+        overflow: visible !important;
+        white-space: nowrap !important;
+        }
+
+        .vis-labelset .vis-label .vis-inner {
+        padding: 0px !important;
+        overflow: visible !important;
+        white-space: nowrap !important;
+        display: block !important;
+        }
+
+        .vis-time-axis .vis-grid.vis-major {
+        border-left: 1px solid #475569 !important;
+        }
+
+        .vis-time-axis .vis-grid.vis-minor {
+        border-left: 1px solid #334155 !important;
+        }
+
+        .vis-panel.vis-top, .vis-panel.vis-bottom {
+        background-color: #334155 !important;
+        border-bottom: 1px solid #475569 !important;
+        }
+
+        .vis-time-axis .vis-text {
+        color: #e2e8f0 !important;
+        font-weight: bold;
+        }
+
+        .vis-item {
+        border-radius: 6px !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.4) !important;
+        border: 1px solid rgba(255,255,255,0.15) !important;
+        cursor: pointer;
+        min-width: 55px !important;
+        }
+
+        /* ------------------------------------------------------------- */
+        /* HIỆU ỨNG CHỚP NHÁY NHANH, SÁNG TỐI LIÊN TỤC (FAST FLASH)     */
+        /* ------------------------------------------------------------- */
+        .gantt-item-uncompleted {
+        animation: ganttFastFlash 0.3s infinite alternate linear !important;
+        border: 2px solid #ef4444 !important; /* Viền đỏ tươi nổi bật */
+        }
+
+        @@keyframes ganttFastFlash {
+        0% {
+        box-shadow: 0 0 2px rgba(239, 68, 68, 0.2);
+        filter: brightness(0.4); /* Trạng thái tối hẳn */
+        opacity: 0.6;
+        }
+
+        100% {
+        box-shadow: 0 0 20px rgba(239, 68, 68, 1), 0 0 30px rgba(239, 68, 68, 0.6);
+        filter: brightness(1.6); /* Trạng thái rực sáng phát quang */
+        opacity: 1;
+        }
+        }
+
+        /* Hiệu ứng nháy phụ cho dòng text mô tả trạng thái bên trong hộp Tooltip */
+        .gantt-blink-text {
+        animation: textBlink 0.6s infinite alternate steps(2);
+        color: #f43f5e;
+        font-weight: bold;
+        }
+
+        @@keyframes textBlink {
+        from {
+        opacity: 1;
+        }
+
+        to {
+        opacity: 0;
+        }
+        }
+        /* ------------------------------------------------------------- */
+
+        .gantt-item-box {
+        padding: 4px 5px;
+        font-weight: 900;
+        text-align: center;
+        display: block;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+        text-overflow: clip;
+        white-space: nowrap;
+        }
+
+        .gantt-left-idform {
+        padding: 14px 10px;
+        font-weight: 900;
+        color: #38bdf8;
+        font-size: 13px;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        display: block !important;
+        width: 100%;
+        box-sizing: border-box;
+        }
+
+        .vis-tooltip {
+        background-color: #1e293b !important;
+        border: 1px solid #475569 !important;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5) !important;
+        padding: 12px !important;
+        border-radius: 8px !important;
+        color: #f1f5f9 !important;
+        font-size: 12px !important;
+        line-height: 1.8 !important;
+        max-width: 360px !important;
+        z-index: 999999 !important;
+        pointer-events: none !important;
+        }
+
+        .badge-status {
+        font-size: 11px;
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-weight: bold;
+        display: inline-block;
+        }
+
+        .excel-pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 15px;
+        background: #334155;
+        padding: 8px 15px;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #cbd5e1;
+        }
+
+        .gantt-center-needle {
+        position: absolute;
+        top: 20px;
+        bottom: 55px;
+        left: calc(160px + (100% - 160px) / 2);
+        width: 2px;
+        background-color: #f43f5e;
+        z-index: 999;
+        pointer-events: none;
+        box-shadow: 0 0 6px #f43f5e;
+        }
+
+        .gantt-center-needle::before {
+        content: attr(data-time);
+        position: absolute;
+        top: -18px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #f43f5e;
+        color: white;
+        font-size: 10px;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-weight: bold;
+        white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container-fluid" style="max-width: 100%; margin: 0 auto;">
+
+        <div class="gantt-header-title">
+            <i class="fa fa-sliders" style="color: #38bdf8;"></i> BÁO CÁO TIẾN ĐỘ THEO MÃ FORM (ĐƠN CHƯA HOÀN THÀNH CHỚP NHÁY NHANH)
+        </div>
+
+        <div class="filter-wrapper">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 12px; font-weight: 700;">Từ ngày (Ngày tạo):</label>
+                <input type="date" id="txtGanttFromDate" class="filter-input" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 12px; font-weight: 700;">Đến ngày:</label>
+                <input type="date" id="txtGanttToDate" class="filter-input" />
+            </div>
+            <button type="button" class="btn-filter" onclick="searchGanttTimeline()"><i class="fa fa-filter"></i> Lọc dữ liệu</button>
+            <button type="button" class="btn-refresh" onclick="refreshGanttDataOnly()"><i class="fa fa-refresh"></i> Tải lại</button>
+            <button type="button" class="btn-today" onclick="moveTimelineToCurrent()"><i class="fa fa-clock-o"></i> Về hiện tại</button>
+            <span id="lblGanttLoading" style="display:none; font-size:13px; color:#38bdf8; font-weight:600;"><i class="fa fa-spinner fa-spin"></i> Đang dựng biểu đồ...</span>
+        </div>
+
+        <div class="gantt-container">
+            <div id="ganttCenterNeedle" class="gantt-center-needle" data-time="Trục giữa"></div>
+
+            <div id="ganttTimelineVisualization" style="width: 100%; min-height: 500px;"></div>
+
+            <div class="excel-pagination">
+                <div id="lblGanttInfo" style="font-weight: 600;">Đang tải dữ liệu...</div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span style="font-weight: bold; color: #f43f5e;"><i class="fa fa-flash"></i> Thanh bar chớp tắt liên tục báo hiệu đơn đang xử lý</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let timelineInstance = null;
+        let groupsDataSet = new vis.DataSet();
+        let itemsDataSet = new vis.DataSet();
+
+        document.addEventListener('DOMContentLoaded', () => {
+        const today = new Date();
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(today.getMonth() - 1);
+
+        const todayStr = today.toISOString().split('T')[0];
+        const oneMonthAgoStr = oneMonthAgo.toISOString().split('T')[0];
+
+        document.getElementById('txtGanttFromDate').value = oneMonthAgoStr;
+        document.getElementById('txtGanttToDate').value = todayStr;
+
+        searchGanttTimeline();
+        });
+
+        function searchGanttTimeline() {
+        // Khi nhấn Lọc dữ liệu mới khởi tạo dựng lại timeline từ đầu
+        loadGanttData(false);
+        }
+
+        // HÀM CHỈ TẢI LẠI DỮ LIỆU ĐẾN THỜI GIAN HIỆN TẠI - GIỮ NGUYÊN KHUNG NHÌN ĐANG XEM
+        async function refreshGanttDataOnly() {
+        if (!timelineInstance) {
+        searchGanttTimeline();
+        return;
+        }
+        await loadGanttData(true); // Gửi cờ true để chỉ cập nhật data
+        }
+
+        function generateVibrantHslColorById(id) {
+        let hash = 0;
+        const idStr = String(id);
+        for (let i = 0; i < idStr.length; i++) {
+        hash = idStr.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const hue = Math.abs(hash) % 360;
+        return `hsl(${hue}, 85%, 45%)`;
+        }
+
+        async function loadGanttData(isRefreshOnly = false) {
+        const fromDate = document.getElementById('txtGanttFromDate').value;
+        const toDate = document.getElementById('txtGanttToDate').value;
+        const lblLoading = document.getElementById('lblGanttLoading');
+        const container = document.getElementById('ganttTimelineVisualization');
+
+        try {
+        lblLoading.style.display = 'inline-block';
+
+        const url = `/FormIT/GetTimelineData?fromDate=${fromDate}&toDate=${toDate}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Không thể tải thông tin.");
+
+        const resJson = await res.json();
+        const listData = resJson.data || [];
+
+        document.getElementById('lblGanttInfo').innerText = `Tổng số đơn thỏa mãn điều kiện duyệt: ${resJson.totalRecords} bản ghi`;
+
+        if (listData.length === 0) {
+        container.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:50px;"><i class="fa fa-folder-open-o" style="font-size:30px; display:block; margin-bottom:10px;"></i> Không có dữ liệu đơn nào phù hợp</div>`;
+        document.getElementById('ganttCenterNeedle').style.display = 'none';
+        timelineInstance = null;
+        return;
+        }
+
+        document.getElementById('ganttCenterNeedle').style.display = 'block';
+
+        // Tạo mảng tạm thời để xử lý dữ liệu mới
+        const localGroups = [];
+        const localItems = [];
+        let minDate = null;
+        let maxDate = null;
+        const uniqueFormIds = new Set();
+
+        listData.forEach(item => {
+        if (!uniqueFormIds.has(item.idForm)) {
+        uniqueFormIds.add(item.idForm);
+        localGroups.push({
+        id: item.idForm,
+        content: `<div class="gantt-left-idform" title="${item.idForm}"><i class="fa fa-file-code-o"></i> ${item.idForm}</div>`
+        });
+        }
+
+        let statusStyle = "background-color: #78350f; color: #fef3c7;";
+        if (item.trangThai.includes("HOÀN TẤT") || item.trangThai.includes("ĐỒNG Ý")) statusStyle = "background-color: #064e3b; color: #a7f3d0;";
+        else if (item.trangThai.includes("XỬ LÝ")) statusStyle = "background-color: #0c4a6e; color: #bae6fd;";
+
+        const dStart = item.timeNguoiTao ? new Date(item.timeNguoiTao) : null;
+        const isUncompleted = (item.timeAdmin === null);
+        const dEnd = isUncompleted ? new Date() : new Date(item.timeAdmin);
+
+        if (dStart) {
+        if (!minDate || dStart < minDate) minDate = dStart;
+        if (!maxDate || dEnd > maxDate) maxDate = dEnd;
+
+        const hslColor = generateVibrantHslColorById(item.id);
+
+        const rawTooltipHtml = `
+        <strong style="color:#38bdf8; display:block; margin-bottom: 6px; font-size:13px; border-bottom:1px solid #475569; padding-bottom:4px;">Chi Tiết Tiến Trình Yêu Cầu (#${item.id})</strong>
+        <div style="font-size:12px; line-height: 1.8; color:#e2e8f0;">
+        <b>Mã Form:</b> ${item.idForm}<br/>
+        <b>Nội dung đơn:</b> ${item.tenForm}<br/>
+        <b>Danh mục gốc:</b> ${item.danhmuc}<br/>
+        <b>Nhân viên yêu cầu:</b> ${item.tenNguoiNv} (${item.boPhan})<br/>
+        <b>Người khởi tạo:</b> ${item.tenNguoiTao} (${parseGanttDate(item.timeNguoiTao)})<br/>
+        <b>Quản lý duyệt:</b> ${item.tenNguoiDuyet} (${parseGanttDate(item.timeNguoiDuyet)})<br/>
+        <b>IT hoàn thành:</b> ${item.tenAdmin} ${item.timeAdmin ? `(${parseGanttDate(item.timeAdmin)})` : '<span class="gantt-blink-text">Chưa hoàn thành (IT Đang xử lý...)</span>'}<br/>
+        <b>Trạng thái đơn:</b> <span class="badge-status" style="${statusStyle}">${item.trangThai}</span>
+        </div>
+        `;
+
+        const extraClassName = isUncompleted ? 'gantt-item-uncompleted' : '';
+
+        localItems.push({
+        id: item.id,
+        group: item.idForm,
+        start: dStart,
+        end: dEnd,
+        style: `background-color: ${hslColor} !important; color: #ffffff !important; border-left: 4px solid rgba(0,0,0,0.4) !important; text-shadow: 0 1px 2px rgba(0,0,0,0.8);`,
+        className: extraClassName,
+        content: `<div class="gantt-item-box">ID: ${item.id}</div>`,
+        title: rawTooltipHtml
+        });
+        }
+        });
+
+        // NẾU LÀ CHẾ ĐỘ TẢI LẠI GIỮ NGUYÊN KHUNG NHÌN VÀ THỜI GIAN ĐANG XEM GỐC
+        if (isRefreshOnly && timelineInstance) {
+        // Xóa và cập nhật lại tập dữ liệu một cách im lặng không vẽ lại trục thời gian
+        groupsDataSet.clear();
+        groupsDataSet.add(localGroups);
+
+        itemsDataSet.clear();
+        itemsDataSet.add(localItems);
+
+        calculateNeedleTime();
+        return;
+        }
+
+        // KHỞI TẠO MỚI HOÀN TOÀN (Khi chạy lần đầu hoặc khi nhấn nút Lọc dữ liệu)
+        groupsDataSet = new vis.DataSet(localGroups);
+        itemsDataSet = new vis.DataSet(localItems);
+
+        container.innerHTML = "";
+        const options = {
+        stack: true,
+        groupOrder: 'id',
+        orientation: 'top',
+        verticalScroll: false,
+        zoomKey: 'ctrlKey',
+        width: '100%',
+        showCurrentTime: true,
+        groupTemplate: function(group) {
+        return group.content;
+        },
+        locales: {
+        vi: { current: 'Hiện tại', time: 'Thời gian' }
+        },
+        locale: 'vi',
+        start: minDate ? new Date(minDate.getTime() - 2 * 60 * 60 * 1000) : new Date(),
+        end: maxDate ? new Date(maxDate.getTime() + 4 * 60 * 60 * 1000) : new Date(),
+        tooltip: {
+        followMouse: true,
+        overflow: 'flip'
+        }
+        };
+
+        timelineInstance = new vis.Timeline(container, itemsDataSet, groupsDataSet, options);
+
+        timelineInstance.on('rangechange', () => {
+        calculateNeedleTime();
+        });
+
+        setTimeout(() => {
+        const labelSet = document.querySelector('.vis-labelset');
+        if (labelSet) {
+        labelSet.style.setProperty('width', '160px', 'important');
+        labelSet.style.setProperty('min-width', '160px', 'important');
+        labelSet.style.setProperty('max-width', '160px', 'important');
+
+        const needle = document.getElementById('ganttCenterNeedle');
+        needle.style.left = `calc(160px + (100% - 160px) / 2)`;
+        }
+        calculateNeedleTime();
+        }, 250);
+
+        } catch (err) {
+        console.error(err);
+        container.innerHTML = `<div style="text-align:center; color:#ef4444; font-weight:bold; padding:20px;">Lỗi tải dữ liệu tiến độ Gantt Chart.</div>`;
+        } finally {
+        lblLoading.style.display = 'none';
+        }
+        }
+
+        function calculateNeedleTime() {
+        if (!timelineInstance) return;
+        const range = timelineInstance.getWindow();
+        const startMs = range.start.getTime();
+        const endMs = range.end.getTime();
+        const centerMs = startMs + (endMs - startMs) / 2;
+
+        const needle = document.getElementById('ganttCenterNeedle');
+        if (needle) {
+        needle.setAttribute('data-time', parseGanttDate(new Date(centerMs)));
+        }
+        }
+
+        function moveTimelineToCurrent() {
+        if (timelineInstance) {
+        timelineInstance.moveTo(new Date(), { animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+        }
+        }
+
+        function parseGanttDate(dateStr) {
+        if (!dateStr) return "";
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return "";
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        const hr = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `${day}/${month}/${year} ${hr}:${min}`;
+        }
+    </script>
+</body>
+</html>
