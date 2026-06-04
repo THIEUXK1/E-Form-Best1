@@ -28,8 +28,8 @@
     }
 
     /* ========================================================
-                CSS CHO HỆ THỐNG DROPDOWN CHECKBOX (COMBOBOX NHIỀU MỤC) MỚI
-                ======================================================== */
+                    CSS CHO HỆ THỐNG DROPDOWN CHECKBOX (COMBOBOX NHIỀU MỤC) MỚI
+                    ======================================================== */
     .dropdown-combo-btn {
         width: 100%;
         text-align: left;
@@ -112,6 +112,32 @@
         .drag-drop-zone.dragover {
             border-color: #4f46e5;
             background: #e0e7ff;
+        }
+
+    /* CSS CHO TIMELINE LỊCH SỬ KIỂM KÊ MỚI */
+    .timeline-check {
+        position: relative;
+        border-left: 3px solid #e2e8f0;
+        padding-left: 20px;
+        margin-left: 10px;
+    }
+
+    .timeline-check-item {
+        position: relative;
+        margin-bottom: 25px;
+    }
+
+        .timeline-check-item::before {
+            content: "";
+            position: absolute;
+            left: -27px;
+            top: 4px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #10b981;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 3px #d1fae5;
         }
 
     @@media (min-width: 768px) {
@@ -429,13 +455,13 @@
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Gán Công ty</label>
                         <select id="tb_IdCongTy" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
-                            <option value="">-- Chưa rõ --</option>
+                            <option value="">-- Chọn công ty --</option>
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Gán Bộ phận</label>
                         <select id="tb_IdBoPhan" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
-                            <option value="">-- Chưa rõ --</option>
+                            <option value="">-- Chọn bộ phận --</option>
                         </select>
                     </div>
 
@@ -593,6 +619,24 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalLichSuCheckThietBi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header bg-info text-white border-0" style="border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title fw-bold"><i class="fas fa-history me-2"></i> Nhật ký kiểm kê thiết bị</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="lblInfoThietBiLichSu" class="mb-3 p-2 bg-light rounded border fw-bold small text-secondary"></div>
+                <div class="timeline-check" id="boxTimelineCheckResult"></div>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -694,7 +738,7 @@
         });
 
         $('.modal').on('hidden.bs.modal', function () {
-        if (this.id === 'modalQuickCamMobile' || this.id === 'modalXacNhanCheckEvidence') return;
+        if (this.id === 'modalQuickCamMobile' || this.id === 'modalXacNhanCheckEvidence' || this.id === 'modalLichSuCheckThietBi') return;
         $(this).find('input[type="text"], textarea').val('');
         $(this).find('input[type="hidden"]').val('0');
         $(this).find('select').val('').trigger('change');
@@ -1178,11 +1222,22 @@
         filtered.sort((a, b) => {
         let valA = '', valB = '';
         if (fSort.startsWith('name')) {
-        valA = (a.tenThietBi || '').toLowerCase(); valB = (b.tenThietBi || '').toLowerCase();
+        valA = (a.tenThietBi || '').toLowerCase().trim(); valB = (b.tenThietBi || '').toLowerCase().trim();
         } else if (fSort.startsWith('host')) {
-        valA = (a.tenMayTinh || '').toLowerCase(); valB = (b.tenMayTinh || '').toLowerCase();
+        valA = (a.tenMayTinh || '').toLowerCase().trim(); valB = (b.tenMayTinh || '').toLowerCase().trim();
         }
         return fSort.endsWith('asc') ? valA.localeCompare(valB, 'vi') : valB.localeCompare(valA, 'vi');
+        });
+        } else {
+        filtered.sort((a, b) => {
+        let nameA = (a.tenThietBi || '').toLowerCase().trim();
+        let nameB = (b.tenThietBi || '').toLowerCase().trim();
+
+        let compareName = nameA.localeCompare(nameB, 'vi');
+        if (compareName !== 0) {
+        return compareName;
+        }
+        return b.idThietBi - a.idThietBi;
         });
         }
 
@@ -1213,7 +1268,6 @@
         let accountName = item.tenDangNhap ? item.tenDangNhap : '<i class="text-muted">Chưa có Account</i>';
         let quyCachLine = item.quyCach ? `<div class="small text-dark text-truncate" style="max-width:200px" title="${item.quyCach}"><b>Quy cách:</b> ${item.quyCach}</div>` : '';
 
-        // CẬP NHẬT: THÊM CỘT HIỂN THỊ LOẠI THIẾT BỊ VÀO TRONG MỖI DÒNG TRÊN GIAO DIỆN
         html += `
         <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative">
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2 align-middle">
@@ -1249,8 +1303,9 @@
         <div class="d-flex flex-column gap-1">
         <button class="btn btn-sm btn-success w-100 shadow-sm" onclick="xacNhanCheckThietBi(${item.idThietBi})"><i class="fas fa-check-circle"></i> Xác nhận Check</button>
         <div class="btn-group w-100 shadow-sm">
+        <button class="btn btn-sm btn-outline-info text-info" onclick="openLichSuCheckThietBi(${item.idThietBi}, '${item.tenMayTinh || ''}', '${item.tenThietBi || ''}')" title="Xem lịch sử & bằng chứng check"><i class="fas fa-history"></i></button>
         <button class="btn btn-sm btn-outline-dark flex-fill" onclick='editThietBi(${JSON.stringify(item).replace(/'/g, "&#39;")})'><i class="fas fa-edit"></i> Sửa</button>
-        <button class="btn btn-sm btn-outline-danger flex-fill" onclick="deleteThietBi(${item.idThietBi})"><i class="fas fa-trash"></i></button>
+        <button class="btn btn-sm btn-outline-danger" onclick="deleteThietBi(${item.idThietBi})"><i class="fas fa-trash"></i></button>
         </div>
         </div>
         </td>
@@ -1331,7 +1386,13 @@
 
         function openCamera() {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        navigator.mediaDevices.getUserMedia({
+        video: {
+        facingMode: 'environment',
+        width: { ideal: 4096 },
+        height: { ideal: 2160 }
+        }
+        })
         .then(function(stream) {
         currentStream = stream;
         let video = document.getElementById('videoCamera');
@@ -1360,16 +1421,61 @@
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        let dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        let dataUrl = canvas.toDataURL('image/jpeg', 1.0);
         $('#imgThietBi').attr('src', dataUrl);
         $('#boxPreviewImg').show();
 
         canvas.toBlob(function(blob) {
         capturedPhotoBlob = blob;
         $('#tb_Anh').val('');
-        }, 'image/jpeg', 0.8);
+        }, 'image/jpeg', 1.0);
 
         closeCamera();
+        }
+
+        /* Sửa lỗi hiển thị và tích hợp phóng to full ảnh bằng chứng kiểm kê */
+        function openLichSuCheckThietBi(idThietBi, tenMayTinh, tenThietBi) {
+        $('#lblInfoThietBiLichSu').html(`<i class="fas fa-laptop me-1"></i> Máy tính: ${tenMayTinh || 'N/A'} | Mã: ${tenThietBi || 'N/A'}`);
+        $('#boxTimelineCheckResult').html(`<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i> Đang tải nhật ký...</div>`);
+        $('#modalLichSuCheckThietBi').modal('show');
+
+        $.get('/QLKiemKe/GetKkBangChungChecks', { idThietBi: idThietBi }, function (res) {
+        if (res && res.success) {
+        let logs = res.data || [];
+        if (logs.length === 0) {
+        $('#boxTimelineCheckResult').html(`<div class="text-center text-muted py-4 small"><i class="fas fa-info-circle opacity-50 mb-1 d-block fs-4"></i> Thiết bị này chưa có lịch sử xác nhận kiểm kê kèm bằng chứng.</div>`);
+        return;
+        }
+
+        let timelineHtml = '';
+        logs.forEach(log => {
+        let dateStr = new Date(log.thoiGianCheck).toLocaleString('vi-VN');
+        let imgHtml = '';
+
+        if (log.duongDanAnh) {
+        let fullImgUrl = `/QLKiemKe/GetEvidenceImage?fileName=${encodeURIComponent(log.duongDanAnh)}`;
+        imgHtml = `
+        <div class="mt-2">
+        <img src="${fullImgUrl}" class="rounded shadow-sm border border-light" style="width: 100px; height: 75px; object-fit: cover; cursor: pointer;" onclick="phongToAnh('${fullImgUrl}', '${tenThietBi}')" title="Bấm để xem ảnh lớn bằng chứng" />
+        </div>`;
+        }
+
+        timelineHtml += `
+        <div class="timeline-check-item">
+        <div class="fw-bold text-dark small mb-1"><i class="fas fa-clock me-1 text-secondary"></i> ${dateStr}</div>
+        <div class="text-secondary small bg-light p-2 rounded border border-light shadow-none" style="font-size:12.5px;">
+        <b>Ghi chú:</b> ${log.ghiChu || 'Xác nhận kiểm kê'}
+        ${imgHtml}
+        </div>
+        </div>`;
+        });
+        $('#boxTimelineCheckResult').html(timelineHtml);
+        } else {
+        $('#boxTimelineCheckResult').html(`<div class="text-danger small">Lỗi tải nhật ký: ${res.msg}</div>`);
+        }
+        }).fail(function () {
+        $('#boxTimelineCheckResult').html(`<div class="text-danger small">Không thể kết nối tới máy chủ.</div>`);
+        });
         }
 
         function clearImage() {
@@ -1398,7 +1504,13 @@
         $('#quickCam_IdThietBi').val(idThietBi);
 
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        navigator.mediaDevices.getUserMedia({
+        video: {
+        facingMode: 'environment',
+        width: { ideal: 4096 },
+        height: { ideal: 2160 }
+        }
+        })
         .then(function(stream) {
         quickCamStream = stream;
         let video = document.getElementById('videoQuickCamera');
@@ -1464,7 +1576,7 @@
         },
         error: function() { Swal.close(); Swal.fire("Lỗi", "Không thể kết nối đến máy chủ!", "error"); }
         });
-        }, 'image/jpeg', 0.8);
+        }, 'image/jpeg', 1.0);
         }
 
         function editThietBi(item) {
@@ -1551,61 +1663,15 @@
         });
         }
 
-        function xacNhanCheckThietBi(id) {
-        $('#evidence_IdThietBi').val(id);
-        $('#evidence_GhiChu').val('');
-        clearEvidenceImage();
-        closeEvidenceCamera();
-        $('#modalXacNhanCheckEvidence').modal('show');
-
-        setTimeout(() => {
-        initEvidenceZoneEvents();
-        }, 250);
-        }
-
-        function initEvidenceZoneEvents() {
-        let zone = document.getElementById('dropZoneEvidence');
-        if(!zone) return;
-
-        zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.background = "#d1fae5"; });
-        zone.addEventListener('dragleave', () => { zone.style.background = "#f0fdf4"; });
-        zone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        zone.style.background = "#f0fdf4";
-        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        let file = e.dataTransfer.files[0];
-        if (file.type.startsWith('image/')) {
-        evidencePhotoBlob = null;
-        $('#evidence_AnhFile')[0].files = e.dataTransfer.files;
-        let r = new FileReader();
-        r.onload = (evt) => { $('#imgEvidencePreview').attr('src', evt.target.result); $('#boxPreviewEvidenceImg').show(); };
-        r.readAsDataURL(file);
-        }
-        }
-        });
-
-        let modalEv = document.getElementById('modalXacNhanCheckEvidence');
-        modalEv.addEventListener('paste', (e) => {
-        if (e.clipboardData && e.clipboardData.items) {
-        for (let i = 0; i < e.clipboardData.items.length; i++) {
-        let item = e.clipboardData.items[i];
-        if (item.type.indexOf('image') !== -1) {
-        let blob = item.getAsFile();
-        evidencePhotoBlob = blob;
-        $('#evidence_AnhFile').val('');
-        let r = new FileReader();
-        r.onload = (evt) => { $('#imgEvidencePreview').attr('src', evt.target.result); $('#boxPreviewEvidenceImg').show(); };
-        r.readAsDataURL(blob);
-        break;
-        }
-        }
-        }
-        });
-        }
-
         function openEvidenceCamera() {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        navigator.mediaDevices.getUserMedia({
+        video: {
+        facingMode: 'environment',
+        width: { ideal: 4096 },
+        height: { ideal: 2160 }
+        }
+        })
         .then(function(stream) {
         evidenceCamStream = stream;
         let video = document.getElementById('videoEvidenceCamera');
@@ -1627,67 +1693,17 @@
         let video = document.getElementById('videoEvidenceCamera');
         let canvas = document.getElementById('canvasEvidenceCamera');
         let ctx = canvas.getContext('2d');
+
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        let dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        let dataUrl = canvas.toDataURL('image/jpeg', 1.0);
         $('#imgEvidencePreview').attr('src', dataUrl);
         $('#boxPreviewEvidenceImg').show();
 
-        canvas.toBlob(function(b) { evidencePhotoBlob = b; $('#evidence_AnhFile').val(''); }, 'image/jpeg', 0.8);
+        canvas.toBlob(function(b) { evidencePhotoBlob = b; $('#evidence_AnhFile').val(''); }, 'image/jpeg', 1.0);
         closeEvidenceCamera();
-        }
-
-        function clearEvidenceImage() {
-        $('#evidence_AnhFile').val('');
-        evidencePhotoBlob = null;
-        $('#imgEvidencePreview').attr('src', '');
-        $('#boxPreviewEvidenceImg').hide();
-        }
-
-        function previewEvidenceImage(input) {
-        if (input.files && input.files[0]) {
-        evidencePhotoBlob = null;
-        var reader = new FileReader();
-        reader.onload = function(e) { $('#imgEvidencePreview').attr('src', e.target.result); $('#boxPreviewEvidenceImg').show(); }
-        reader.readAsDataURL(input.files[0]);
-        } else { clearEvidenceImage(); }
-        }
-
-        function executeSubmitXacNhanCheck(isQuickMode) {
-        let id = $('#evidence_IdThietBi').val();
-        let note = $('#evidence_GhiChu').val();
-
-        var formData = new FormData();
-        formData.append("idThietBi", parseInt(id));
-        formData.append("ghiChuCheck", note);
-
-        if (!isQuickMode) {
-        if (evidencePhotoBlob) {
-        formData.append("AnhBangChung", evidencePhotoBlob, "evidence_photo.jpg");
-        } else {
-        let files = $('#evidence_AnhFile')[0].files;
-        if (files.length > 0) { formData.append("AnhBangChung", files[0]); }
-        }
-        }
-
-        $('#modalXacNhanCheckEvidence').modal('hide');
-        closeEvidenceCamera();
-
-        Swal.fire({ title: 'Đang xác nhận kiểm kê...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-
-        $.ajax({
-        url: '/QLKiemKe/XacNhanCheck', type: 'POST', data: formData, processData: false, contentType: false,
-        success: function(res) {
-        Swal.close();
-        if(res.success) {
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã hoàn tất lưu bằng chứng kiểm tra!', showConfirmButton: false, timer: 2000 });
-        loadThietBi();
-        } else Swal.fire("Thất bại", res.msg, "error");
-        },
-        error: function() { Swal.close(); Swal.fire("Lỗi kết nối", "Không thể liên lạc với máy chủ!", "error"); }
-        });
         }
 
         function deleteThietBi(id) {
