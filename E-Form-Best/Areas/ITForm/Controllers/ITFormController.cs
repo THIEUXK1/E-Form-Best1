@@ -4448,6 +4448,101 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion\
+
+        // Chèn vào ngay dưới #endregion THỐNG KÊ MAC WIFI THIẾT BỊ
+
+        #region THỐNG KÊ TIẾN TRÌNH ĐƠN (TIMELINE V6)
+
+        // Class DTO giữ nguyên toàn bộ thuộc tính hiện có của bạn để không ảnh hưởng logic ánh xạ dữ liệu
+        public class FormItTimelineDto
+        {
+            public int Id { get; set; }
+            public string IdForm { get; set; } = "";
+            public string TenForm { get; set; } = "";
+            public string TenNguoiNv { get; set; } = "";
+            public string BoPhan { get; set; } = "";
+            public string TrangThai { get; set; } = "";
+            // Giai đoạn 1: Tạo đơn
+            public string TenNguoiTao { get; set; } = "";
+            public DateTime? TimeNguoiTao { get; set; }
+            // Giai đoạn 2: Quản lý duyệt
+            public string TenNguoiDuyet { get; set; } = "";
+            public DateTime? TimeNguoiDuyet { get; set; }
+            // Giai đoạn 3: IT Hoàn thành
+            public string TenAdmin { get; set; } = "";
+            public DateTime? TimeAdmin { get; set; }
+            // Thuộc tính Danh mục giữ nguyên gốc của model
+            public string Danhmuc { get; set; } = "";
+        }
+
+        [HttpGet("/FormIT/BaoCaoGanttTimeline")]
+        public IActionResult BaoCaoGanttTimeline()
+        {
+            return View();
+        }
+
+        // API lấy dữ liệu tiến trình - Chỉ lấy đơn đã duyệt, loại bỏ hoàn toàn đơn HỦY
+        // Đặc biệt: Đơn chưa hoàn thành (TimeAdmin == null) luôn luôn hiển thị lơ lửng bất kể bộ lọc ngày tháng
+        [HttpGet("/FormIT/GetTimelineData")]
+        public async Task<IActionResult> GetTimelineData(DateTime? fromDate, DateTime? toDate)
+        {
+            try
+            {
+                // Loại bỏ các đơn có TrangThai chứa từ "HỦY" hoặc hành động hủy "DaHuy" để khớp logic hệ thống của bạn
+                var query = _context.FormIts.AsNoTracking()
+                    .Where(x => x.IdNguoiDuyet != null && x.TenNguoiDuyet != null && x.TimeNguoiDuyet != null)
+                    .Where(x => x.TrangThai == null || (!x.TrangThai.ToUpper().Contains("HỦY") && !x.TrangThai.ToUpper().Contains("DAHUY")));
+
+                // Mặc định lùi 1 tháng nếu giao diện chưa kịp truyền tham số lên ban đầu
+                var startFilter = fromDate ?? DateTime.Today.AddMonths(-1);
+                var endFilter = toDate ?? DateTime.Today.AddDays(1).AddTicks(-1);
+
+                if (fromDate.HasValue)
+                {
+                    startFilter = fromDate.Value.Date;
+                }
+                if (toDate.HasValue)
+                {
+                    endFilter = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                }
+
+                // CẬP NHẬT LOGIC ĐẶC BIỆT: Nằm trong khoảng lọc ngày HOẶC đơn đó chưa hoàn thành (TimeAdmin == null)
+                // Giúp đơn chưa hoàn thành không liên quan đến bộ lọc và luôn luôn hiển thị lơ lửng trên biểu đồ
+                query = query.Where(x => (x.TimeNguoiTao >= startFilter && x.TimeNguoiTao <= endFilter) || x.TimeAdmin == null);
+
+                // Sắp xếp đơn theo TimeNguoiTao hoặc Id
+                query = query.OrderByDescending(x => x.TimeNguoiTao ?? DateTime.MinValue).ThenByDescending(x => x.Id);
+
+                var totalRecords = await query.CountAsync();
+
+                var rawData = await query
+                    .Select(x => new FormItTimelineDto
+                    {
+                        Id = x.Id,
+                        IdForm = x.IdForm ?? "N/A",
+                        TenForm = x.TenForm ?? "Đơn không tên",
+                        TenNguoiNv = x.TenNguoiNv ?? "Ẩn danh",
+                        BoPhan = x.BoPhan ?? "N/A",
+                        TrangThai = x.TrangThai ?? "CHỜ DUYỆT",
+                        TenNguoiTao = x.TenNguoiTao ?? "Chưa rõ",
+                        TimeNguoiTao = x.TimeNguoiTao,
+                        TenNguoiDuyet = x.TenNguoiDuyet ?? "Chưa duyệt",
+                        TimeNguoiDuyet = x.TimeNguoiDuyet,
+                        TenAdmin = x.TenAdmin ?? "Chưa xử lý",
+                        TimeAdmin = x.TimeAdmin,
+                        Danhmuc = x.Danhmuc ?? "Chưa phân loại"
+                    })
+                    .ToListAsync();
+
+                return Json(new { data = rawData, totalRecords });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        #endregion
         #endregion
 
         #region LỊCH SỬ VÀ THÔNG BÁO FORM IT (Tối ưu truy vấn - Đầy đủ logic)
