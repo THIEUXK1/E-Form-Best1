@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace E_Form_Best.Models.ITForm;
 
 [Table("LichSuFormIT")]
+[Index("IdFormIt", Name = "IX_LichSuFormIT_idFormIT")]
 public partial class LichSuFormIt
 {
     [Key]

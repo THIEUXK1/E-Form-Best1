@@ -114,6 +114,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<ItXacNhanCapQuyen8> ItXacNhanCapQuyen8s { get; set; }
 
+    public virtual DbSet<KkBangChungCheck> KkBangChungChecks { get; set; }
+
     public virtual DbSet<KkBoPhan> KkBoPhans { get; set; }
 
     public virtual DbSet<KkCongTy> KkCongTies { get; set; }
@@ -530,6 +532,15 @@ public partial class ITFormContext : DbContext
         modelBuilder.Entity<ItXacNhanCapQuyen8>(entity =>
         {
             entity.HasOne(d => d.IdCapQuyenOchung8Navigation).WithMany(p => p.ItXacNhanCapQuyen8s).HasConstraintName("FK_IT_XacNhanCapQuyen_8_IT_CapQuyenOChung_8");
+        });
+
+        modelBuilder.Entity<KkBangChungCheck>(entity =>
+        {
+            entity.HasKey(e => e.IdBangChung).HasName("PK__KK_BangC__BE1C75A93526C6CE");
+
+            entity.Property(e => e.ThoiGianCheck).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.IdThietBiNavigation).WithMany(p => p.KkBangChungChecks).HasConstraintName("FK_BangChungCheck_ThietBi");
         });
 
         modelBuilder.Entity<KkBoPhan>(entity =>

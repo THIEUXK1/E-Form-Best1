@@ -81,4 +81,7 @@ public partial class KkThietBi
     [ForeignKey("IdcongTy")]
     [InverseProperty("KkThietBis")]
     public virtual KkCongTy? IdcongTyNavigation { get; set; }
+
+    [InverseProperty("IdThietBiNavigation")]
+    public virtual ICollection<KkBangChungCheck> KkBangChungChecks { get; set; } = new List<KkBangChungCheck>();
 }
