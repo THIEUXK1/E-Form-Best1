@@ -5359,6 +5359,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             ViewBag.Users = _context.Users.OrderBy(u => u.HoTen).ToList();
             return View("IndexThietBi"); // Bạn cần tạo file IndexThietBi.cshtml trong thư mục Views
         }
+
         [HttpGet("/QLKiemKe/GetKkThietBis")]
         public IActionResult GetKkThietBis()
         {
@@ -5429,6 +5430,32 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
         }
 
+        // HÀM LẤY LỊCH SỬ CÁC LẦN CHECK VÀ BẰNG CHỨNG ẢNH CỦA THIẾT BỊ
+        [HttpGet("/QLKiemKe/GetKkBangChungChecks")]
+        public IActionResult GetKkBangChungChecks(int idThietBi)
+        {
+            try
+            {
+                var data = _context.KkBangChungChecks
+                    .Where(x => x.IdThietBi == idThietBi)
+                    .Select(x => new
+                    {
+                        x.IdBangChung,
+                        x.IdThietBi,
+                        x.ThoiGianCheck,
+                        x.DuongDanAnh,
+                        x.GhiChu
+                    })
+                    .OrderByDescending(x => x.ThoiGianCheck) // Mới nhất xếp lên đầu
+                    .ToList();
+
+                return Json(new { success = true, data = data });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, msg = ex.Message });
+            }
+        }
 
         // HÀM LƯU THIẾT BỊ (CẬP NHẬT: CHECK TRÙNG THEO LOẠI & THAM SỐ LƯU NHÂN BẢN SAVE AS NEW)
         [HttpPost("/QLKiemKe/SaveKkThietBi")]
@@ -5576,7 +5603,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
         }
 
-        // HÀM XUẤT ẢNH TỪ FILE SERVER RA TRÌNH DUYỆT
+        // HÀM XUẤT ẢNH TỪ FILE SERVER RA TRÌNH DUYỆT (THƯ MỤC THIẾT BỊ CHÍNH)
         [HttpGet("/QLKiemKe/GetImage")]
         public IActionResult GetImage(string fileName)
         {
@@ -5589,6 +5616,27 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             var ext = Path.GetExtension(filePath).ToLowerInvariant();
             string mimeType = "image/jpeg"; // Mặc định
+
+            if (ext == ".png") mimeType = "image/png";
+            else if (ext == ".gif") mimeType = "image/gif";
+            else if (ext == ".webp") mimeType = "image/webp";
+
+            return PhysicalFile(filePath, mimeType);
+        }
+
+        // BỔ SUNG SỬA LỖI: HÀM XUẤT ẢNH BẰNG CHỨNG TỪ THƯ MỤC RIÊNG "BangChungKiemKe" RA VIEW
+        [HttpGet("/QLKiemKe/GetEvidenceImage")]
+        public IActionResult GetEvidenceImage(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) return NotFound();
+
+            string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BangChungKiemKe";
+            string filePath = Path.Combine(networkPath, fileName);
+
+            if (!System.IO.File.Exists(filePath)) return NotFound();
+
+            var ext = Path.GetExtension(filePath).ToLowerInvariant();
+            string mimeType = "image/jpeg";
 
             if (ext == ".png") mimeType = "image/png";
             else if (ext == ".gif") mimeType = "image/gif";
