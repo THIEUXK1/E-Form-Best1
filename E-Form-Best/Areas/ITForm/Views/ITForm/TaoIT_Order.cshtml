@@ -9,7 +9,6 @@
     var tenNguoiNv = User.Identity?.Name ?? "";
     var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
     var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
-    // Lấy thông tin công ty từ Model (đã gán trong Controller) hoặc Claim
     var tenCongTy = Model.TenCongTy ?? User.FindFirst("TenCongTy")?.Value ?? "Chưa xác định";
 
     // Tông màu: Cam (Orange)
@@ -45,7 +44,7 @@
         .body-content {
             padding: 20px !important;
         }
-        /* Chuyển grid từ 4 cột hoặc 2 cột về 1 cột */
+
         .grid-responsive-4, .grid-responsive-2 {
             grid-template-columns: 1fr !important;
             gap: 12px !important;
@@ -71,6 +70,68 @@
         border-color: @colorPrimary !important;
         box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.1) !important;
     }
+
+    /* CSS CHO MULTI-CHECKBOX DROPDOWN */
+    .multiselect-container {
+        position: relative;
+        width: 100%;
+    }
+
+    .select-box {
+        position: relative;
+        cursor: pointer;
+    }
+
+    .overSelect {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+    }
+
+    .checkboxes-dropdown {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: #ffffff;
+        border: 1px solid @colorBorder;
+        border-radius: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        margin-top: 4px;
+        padding: 5px;
+    }
+
+        .checkboxes-dropdown label {
+            display: flex !important;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin: 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-transform: none !important;
+            letter-spacing: normal !important;
+            font-weight: 600 !important;
+            color: @colorDark !important;
+        }
+
+            .checkboxes-dropdown label:hover {
+                background-color: @colorLight;
+            }
+
+        .checkboxes-dropdown input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: @colorPrimary;
+            cursor: pointer;
+        }
 </style>
 
 <div class="main-container" style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', sans-serif;">
@@ -127,7 +188,6 @@
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Phương thức hỗ trợ</h3>
                 </div>
 
-                <!-- Lựa chọn Chế độ -->
                 <div style="margin-bottom: 20px; display: flex; gap: 20px; flex-wrap: wrap;">
                     <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 700; color: @colorDark;">
                         <input type="radio" name="modeHoTro" value="Mode1" checked onchange="toggleMode()" style="accent-color: @colorPrimary; width: 18px; height: 18px;">
@@ -139,7 +199,6 @@
                     </label>
                 </div>
 
-                <!-- DIV Chế độ 1 -->
                 <div id="divMode1">
                     <label style="@labelBase">Vui lòng chọn vấn đề bạn đang gặp <span style="color:red">*</span></label>
                     <select name="selectedCongViecId" id="selectedCongViecId" class="input-hover" style="@inputBase cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237c2d12%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
@@ -154,19 +213,47 @@
                     </select>
                 </div>
 
-                <!-- DIV Chế độ 2 -->
                 <div id="divMode2" style="display: none;">
-                    <label style="@labelBase">Chỉ định người hỗ trợ trực tiếp <span style="color:red">*</span></label>
-                    <select name="selectedNguoiHoTroId" id="selectedNguoiHoTroId" class="input-hover" style="@inputBase cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237c2d12%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
-                        <option value="">-- Click để chọn người hỗ trợ --</option>
-                        @if (ViewBag.NguoiHoTroList != null)
-                        {
-                            foreach (var it in (IEnumerable<dynamic>)ViewBag.NguoiHoTroList)
-                            {
-                                <option value="@it.Id">@it.Ten</option>
-                            }
-                        }
-                    </select>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                        <div>
+                            <label style="@labelBase">Chỉ định nhóm người hỗ trợ trực tiếp <span style="color:red">*</span></label>
+                            <div class="multiselect-container">
+                                <div class="select-box" onclick="showCheckboxes()">
+                                    <select class="input-hover" style="@inputBase appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237c2d12%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
+                                        <option id="dropdownSelectedText">-- Chọn người hỗ trợ (Có thể chọn nhiều) --</option>
+                                    </select>
+                                    <div class="overSelect"></div>
+                                </div>
+                                <div class="checkboxes-dropdown" id="checkboxesArea">
+                                    @if (ViewBag.NguoiHoTroList != null)
+                                    {
+                                        foreach (var it in (IEnumerable<dynamic>)ViewBag.NguoiHoTroList)
+                                        {
+                                            <label for="it_@it.Id">
+                                                <input type="checkbox" name="selectedNguoiHoTroIds" id="it_@it.Id" value="@it.Id" onchange="updateDropdownText()" />
+                                                <span>@it.Ten</span>
+                                            </label>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style="@labelBase">Mức độ ưu tiên <span style="color:red">*</span></label>
+                            <select name="itOrder.MucDoUuTien" id="MucDoUuTien" class="input-hover" style="@inputBase cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237c2d12%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
+                                <option value="Thấp">Thấp</option>
+                                <option value="Trung bình" selected>Trung bình</option>
+                                <option value="Cao">Cao</option>
+                                <option value="Khẩn cấp">Khẩn cấp</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style="@labelBase">Thời hạn hoàn thành (Không bắt buộc)</label>
+                            <input type="datetime-local" name="itOrder.ThoiHanHoanThanh" id="ThoiHanHoanThanh" class="input-hover" style="@inputBase" />
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -244,6 +331,39 @@
 </div>
 
 <script>
+    // --- Logic đóng/mở Multi-Checkbox Dropdown ---
+    let expanded = false;
+    function showCheckboxes() {
+        const checkboxes = document.getElementById("checkboxesArea");
+        if (!expanded) {
+            checkboxes.style.display = "block";
+            expanded = true;
+        } else {
+            checkboxes.style.display = "none";
+            expanded = false;
+        }
+    }
+
+    // Đóng dropdown khi click ra ngoài
+    document.addEventListener("click", function(event) {
+        const container = document.querySelector(".multiselect-container");
+        if (container && !container.contains(event.target)) {
+            document.getElementById("checkboxesArea").style.display = "none";
+            expanded = false;
+        }
+    });
+
+    // Cập nhật text hiển thị trên Dropdown dựa theo số lượng Checkbox được chọn
+    function updateDropdownText() {
+        const checkedBoxes = document.querySelectorAll('input[name="selectedNguoiHoTroIds"]:checked');
+        const textElement = document.getElementById("dropdownSelectedText");
+        if (checkedBoxes.length === 0) {
+            textElement.text = "-- Chọn người hỗ trợ (Có thể chọn nhiều) --";
+        } else {
+            textElement.text = `Đã chọn (${checkedBoxes.length}) người hỗ trợ`;
+        }
+    }
+
     // Logic ẩn/hiện chế độ hỗ trợ
     function toggleMode() {
         const mode = document.querySelector('input[name="modeHoTro"]:checked').value;
@@ -274,10 +394,13 @@
         }
     });
 
+    // Xử lý sự kiện lưu
     function xuLyLuu() {
         const mode = document.querySelector('input[name="modeHoTro"]:checked').value;
         const congViecId = document.getElementById("selectedCongViecId").value;
-        const nguoiHoTroId = document.getElementById("selectedNguoiHoTroId").value;
+        const checkedBoxes = document.querySelectorAll('input[name="selectedNguoiHoTroIds"]:checked');
+        const mucDoUuTien = document.getElementById("MucDoUuTien").value;
+
         const tieuDe = document.getElementById("TieuDe").value;
         const ghiChu = document.getElementById("GhiChu").value;
         const chk = document.getElementById("chkCamKet");
@@ -288,8 +411,12 @@
             alert("⚠️ Vui lòng chọn loại công việc cần hỗ trợ!");
             return;
         }
-        if (mode === "Mode2" && !nguoiHoTroId) {
-            alert("⚠️ Vui lòng chỉ định người hỗ trợ!");
+        if (mode === "Mode2" && checkedBoxes.length === 0) {
+            alert("⚠️ Vui lòng chỉ định ít nhất một người hỗ trợ!");
+            return;
+        }
+        if (mode === "Mode2" && !mucDoUuTien) {
+            alert("⚠️ Vui lòng chọn mức độ ưu tiên cho yêu cầu!");
             return;
         }
 
@@ -307,10 +434,46 @@
         }
 
         if (confirm("Xác nhận gửi đơn yêu cầu hỗ trợ đến bộ phận IT?")) {
+            const originalBtnHtml = btn.innerHTML;
             btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG KHỞI TẠO...';
             btn.style.opacity = '0.7';
             btn.style.pointerEvents = 'none';
-            document.getElementById("itOrderForm").submit();
+
+            if (mode === "Mode1") {
+                document.getElementById("itOrderForm").submit();
+            } else {
+                // Chế độ 2: Gửi bằng AJAX (không chuyển trang)
+                const formElement = document.getElementById("itOrderForm");
+                const formData = new FormData(formElement);
+
+                fetch(formElement.action, {
+                    method: "POST",
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    btn.innerHTML = originalBtnHtml;
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'auto';
+
+                    if (data.success) {
+                        alert("🎉 " + data.message);
+
+                        formElement.reset();
+                        document.getElementById("paste_area").innerHTML = '<div style="text-align:center;"><i style="font-size: 24px; margin-bottom:8px;" class="fa fa-wrench"></i><br>Dán ảnh chụp lỗi tại đây</div>';
+                        updateDropdownText();
+                        toggleMode();
+                    } else {
+                        alert("❌ Thất bại: " + data.message);
+                    }
+                })
+                .catch(error => {
+                    btn.innerHTML = originalBtnHtml;
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'auto';
+                    alert("❌ Đã xảy ra lỗi kết nối: " + error);
+                });
+            }
         }
     }
 </script>

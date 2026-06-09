@@ -693,7 +693,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                             .OrderBy(x => x.Ten)
                                             .ToListAsync();
 
-            // Lấy danh sách người hỗ trợ IT (Chế độ 2) - BẠN THAY TÊN BẢNG NẾU KHÁC NHÉ
+            // Lấy danh sách người hỗ trợ IT (Chế độ 2)
             ViewBag.NguoiHoTroList = await _context.ItNguoiHoTros
                                             .OrderBy(x => x.Ten)
                                             .ToListAsync();
@@ -723,11 +723,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         [HttpPost("/FormIT/TaoIT_Order")]
         [ValidateAntiForgeryToken]
-        // Bổ sung thêm tham số modeHoTro và selectedNguoiHoTroId, đổi selectedCongViecId thành int? để linh hoạt
-        public async Task<IActionResult> TaoIT_Order(FormIt form, [FromForm] ItOrderIt2 itOrder, string modeHoTro, int? selectedCongViecId, int? selectedNguoiHoTroId)
+        public async Task<IActionResult> TaoIT_Order(FormIt form, [FromForm] ItOrderIt2 itOrder, string modeHoTro, int? selectedCongViecId, List<int> selectedNguoiHoTroIds)
         {
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim)) return Redirect("/DonXetDuyet/DangNhap");
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                if (modeHoTro == "Mode2") return Json(new { success = false, message = "Hết phiên đăng nhập." });
+                return Redirect("/DonXetDuyet/DangNhap");
+            }
 
             int userId = int.Parse(userIdClaim);
             var userName = User.Identity?.Name ?? "";
@@ -743,7 +746,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     // --- 1. TRUY VẤN CÔNG VIỆC & NGƯỜI HỖ TRỢ THEO CHẾ ĐỘ ---
                     CongViecIt? congViec = null;
-                    dynamic? nguoiHoTro = null;
+                    List<ItNguoiHoTro> danhSachNguoiHoTro = new List<ItNguoiHoTro>();
 
                     if (modeHoTro == "Mode1" && selectedCongViecId.HasValue)
                     {
@@ -751,10 +754,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             .Include(c => c.IdItNguoiHoTroNavigation)
                             .FirstOrDefaultAsync(c => c.Id == selectedCongViecId.Value);
                     }
-                    else if (modeHoTro == "Mode2" && selectedNguoiHoTroId.HasValue)
+                    else if (modeHoTro == "Mode2" && selectedNguoiHoTroIds != null && selectedNguoiHoTroIds.Any())
                     {
-                        // Truy vấn để lấy tên người hỗ trợ ghi vào log
-                        nguoiHoTro = await _context.ItNguoiHoTros.FindAsync(selectedNguoiHoTroId.Value);
+                        danhSachNguoiHoTro = await _context.ItNguoiHoTros
+                            .Where(x => selectedNguoiHoTroIds.Contains(x.Id))
+                            .ToListAsync();
                     }
 
                     // --- 2. LƯU BẢNG CHÍNH (FormIt) ---
@@ -771,12 +775,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.IdForm = "IT_OrderIT_2";
                     form.TenForm = "Yêu cầu sửa chữa/Hỗ trợ kỹ thuật";
 
-                    // THÊM MẶC ĐỊNH NGƯỜI DUYỆT
                     form.IdNguoiDuyet = 8;
                     form.TenNguoiDuyet = "Hệ thống E-form";
                     form.TimeNguoiDuyet = DateTime.Now;
 
-                    // Xử lý lưu Danhmuc theo chế độ
                     if (modeHoTro == "Mode1" && congViec != null)
                     {
                         form.Danhmuc = congViec.Ten;
@@ -803,13 +805,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         if (string.IsNullOrEmpty(itOrder.Ten) && congViec != null && modeHoTro == "Mode1")
                         {
                             itOrder.Ten = congViec.Ten;
+                            itOrder.ThoiHanHoanThanh = null; // Chế độ 1 mặc định không dùng thời hạn chọn tay
                         }
                         else if (string.IsNullOrEmpty(itOrder.Ten) && modeHoTro == "Mode2")
                         {
                             itOrder.Ten = "Chỉ định người hỗ trợ trực tiếp";
+                            // Thuộc tính itOrder.ThoiHanHoanThanh đã được gán tự động từ view nếu người dùng chọn ngày
                         }
 
-                        // Xử lý lưu ảnh vật lý thay vì GetFileBytesAsync2
                         var anhFile = Request.Form.Files["Anh"];
                         if (anhFile != null && anhFile.Length > 0)
                         {
@@ -824,7 +827,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                 await anhFile.CopyToAsync(imgStream);
                             }
 
-                            // Lưu đường dẫn và set byte[] null
                             itOrder.DuongDanAnh = imgFileName;
                             itOrder.Anh = null;
                         }
@@ -867,31 +869,46 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         _context.ItCtNguoiHoTros.Add(ctNguoiHoTro);
                         supporterLog = $"Đã tự động gán: {congViec.IdItNguoiHoTroNavigation?.Ten ?? "Nhân viên IT"} (Loại CV: {congViec.Ten})";
                     }
-                    else if (modeHoTro == "Mode2" && selectedNguoiHoTroId.HasValue)
+                    else if (modeHoTro == "Mode2" && selectedNguoiHoTroIds != null && selectedNguoiHoTroIds.Any())
                     {
-                        var ctNguoiHoTro = new ItCtNguoiHoTro
+                        int indexStt = 1;
+                        foreach (var idNguoi in selectedNguoiHoTroIds)
                         {
-                            IdFormIt = form.Id,
-                            IdItNguoiHoTro = selectedNguoiHoTroId.Value,
-                            Stt = 1
-                        };
-                        _context.ItCtNguoiHoTros.Add(ctNguoiHoTro);
-                        supporterLog = $"Đã chỉ định trực tiếp: {nguoiHoTro?.Ten ?? "Nhân viên IT"}";
+                            var ctNguoiHoTro = new ItCtNguoiHoTro
+                            {
+                                IdFormIt = form.Id,
+                                IdItNguoiHoTro = idNguoi,
+                                Stt = indexStt++
+                            };
+                            _context.ItCtNguoiHoTros.Add(ctNguoiHoTro);
+                        }
+
+                        var names = string.Join(", ", danhSachNguoiHoTro.Select(x => x.Ten));
+                        supporterLog = $"Đã chỉ định trực tiếp nhóm: {(!string.IsNullOrEmpty(names) ? names : "Nhân viên IT")}";
                     }
 
                     // --- 6. LƯU LỊCH SỬ ---
+                    string deadlineLog = itOrder?.ThoiHanHoanThanh.HasValue == true
+                        ? $"Thời hạn hoàn thành: {itOrder.ThoiHanHoanThanh.Value:dd/MM/yyyy HH:mm}"
+                        : "Thời hạn: Không chỉ định";
                     string anhLog = string.IsNullOrEmpty(itOrder?.DuongDanAnh) ? "Không có ảnh" : $"Ảnh: {itOrder.DuongDanAnh}";
+
                     var lichSu = new LichSuFormIt
                     {
                         IdFormIt = form.Id,
                         TieuDe = "Khởi tạo yêu cầu",
-                        Mota = $"[Cty: {tenCongTy}] Người tạo: {userName}. {supporterLog}. {fileLog}. {anhLog}",
+                        Mota = $"[Cty: {tenCongTy}] Người tạo: {userName}. {supporterLog}. {deadlineLog}. {fileLog}. {anhLog}",
                         Time = DateTime.Now
                     };
                     _context.LichSuFormIts.Add(lichSu);
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
+
+                    if (modeHoTro == "Mode2")
+                    {
+                        return Json(new { success = true, message = "Gửi yêu cầu hỗ trợ đến các nhân viên IT thành công!" });
+                    }
 
                     TempData["Success"] = "Gửi yêu cầu hỗ trợ IT thành công!";
                     return Redirect("/FormIT/DonCho");
@@ -900,7 +917,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     await transaction.RollbackAsync();
                     ViewBag.CongViecList = await _context.CongViecIts.OrderBy(x => x.Ten).ToListAsync();
-                    ViewBag.NguoiHoTroList = await _context.ItNguoiHoTros.OrderBy(x => x.Ten).ToListAsync(); // Nạp lại đề phòng lỗi
+                    ViewBag.NguoiHoTroList = await _context.ItNguoiHoTros.OrderBy(x => x.Ten).ToListAsync();
+
+                    if (modeHoTro == "Mode2")
+                    {
+                        return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+                    }
+
                     ModelState.AddModelError("", "Lỗi: " + ex.Message);
                     return View(form);
                 }
@@ -3621,7 +3644,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #region QUẢN LÝ XÉT DUYỆT IT (Admin IT, All, IT, Quản lý bộ phận) - PHÂN QUYỀN 2026
 
-        // 1. CHỈ TRẢ VỀ VIEW (Giao diện)
+        // 1. CHỈ TRẢ VỀ VIEW (Giao diện cũ - Không bao gồm đơn chỉ định)
         [HttpGet("/FormIT/HoanTatDon")]
         public IActionResult HoanTatDon()
         {
@@ -3632,7 +3655,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return View();
         }
 
-        // 2. API TRẢ VỀ DỮ LIỆU JSON CHO JAVASCRIPT
+        // 2. API TRẢ VỀ DỮ LIỆU JSON CHO JAVASCRIPT (Đã loại trừ đơn Chỉ định người hỗ trợ)
         [HttpGet("/FormIT/GetHoanTatDonData")]
         public async Task<IActionResult> GetHoanTatDonData()
         {
@@ -3662,7 +3685,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
             }
 
-            var query = _context.FormIts.AsNoTracking();
+            // LỌC: Loại trừ các đơn có Danh mục là "Chỉ định người hỗ trợ"
+            var query = _context.FormIts.AsNoTracking()
+                                .Where(f => f.Danhmuc != "Chỉ định người hỗ trợ");
 
             // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU ---
             if (userRoles.Any(r => r == "All" || r == "AdminIT"))
@@ -3710,7 +3735,97 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return Json(danhSachDon);
         }
 
-        // Nút bấm dành cho Đội IT - Xác nhận đã sửa xong/cấp xong thiết bị
+        #endregion
+
+        #region QUẢN LÝ XÉT DUYỆT IT - RIÊNG BIỆT ĐƠN CHỈ ĐỊNH NGƯỜI HỖ TRỢ
+
+        // 1. CHỈ TRẢ VỀ VIEW RIÊNG BIỆT CHO ĐƠN CHỈ ĐỊNH
+        [HttpGet("/FormIT/HoanTatDonChiDinh")]
+        public IActionResult HoanTatDonChiDinh()
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr))
+                return Redirect("/DonXetDuyet/DangNhap");
+
+            return View(); // Tạo file View đặt tên là HoanTatDonChiDinh.cshtml
+        }
+
+        // 2. API TRẢ VỀ DỮ LIỆU JSON CHO JAVASCRIPT (Chỉ bao gồm đơn Chỉ định người hỗ trợ)
+        [HttpGet("/FormIT/GetHoanTatDonChiDinhData")]
+        public async Task<IActionResult> GetHoanTatDonChiDinhData()
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+
+            int userId = int.Parse(userIdStr);
+            var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
+            var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+
+            var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
+            var listTenBoPhan = listTenBoPhanStr.Split(',')
+                                                .Select(s => s.Trim())
+                                                .Where(s => !string.IsNullOrEmpty(s))
+                                                .ToList();
+
+            // LỌC: CHỈ LẤY các đơn có Danh mục là "Chỉ định người hỗ trợ"
+            var query = _context.FormIts.AsNoTracking()
+                                .Where(f => f.Danhmuc == "Chỉ định người hỗ trợ");
+
+            // --- PHÂN QUYỀN LỌC DỮ LIỆU (Giữ nguyên cấu trúc phân quyền hệ thống của bạn) ---
+            if (userRoles.Any(r => r == "All" || r == "AdminIT"))
+            {
+                query = query.Where(f => f.IdNguoiDuyet != null);
+            }
+            else if (userRoles.Contains("QuanLyDuyetDonIT"))
+            {
+                bool hasPhu = listTenBoPhan.Any();
+                query = query.Where(f =>
+                    (hasPhu && f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan)) ||
+                    (!hasPhu && f.BoPhan == phongBanSession) ||
+                    (f.IdNguoiTao == userId)
+                );
+            }
+            else
+            {
+                query = query.Where(f => f.IdNguoiTao == userId);
+            }
+
+            // --- THỰC THI TRUY VẤN VỚI PROJECTION ---
+            var danhSachDon = await query
+                .OrderByDescending(f => f.Id)
+                .Select(item => new
+                {
+                    Id = item.Id,
+                    TenNguoiNv = item.TenNguoiNv ?? "",
+                    SoNhanVien = item.SoNhanVien ?? "",
+                    BoPhan = item.BoPhan ?? "",
+                    Danhmuc = "Chỉ định người hỗ trợ",
+                    TenForm = item.TenForm ?? "",
+                    TimeNguoiTao = item.TimeNguoiTao.HasValue ? item.TimeNguoiTao.Value.ToString("dd/MM/yyyy") : "",
+                    IdNguoiDuyet = item.IdNguoiDuyet,
+                    IdAdmin = item.IdAdmin,
+                    DaDanhGia = item.DanhGiaFormIts.Any(),
+                    NguoiHoTros = item.ItCtNguoiHoTros
+                                      .Where(ct => ct.IdItNguoiHoTroNavigation != null)
+                                      .Select(ct => ct.IdItNguoiHoTroNavigation!.Ten ?? "N/A")
+                                      .ToList(),
+
+                    // --- ĐÃ HIỆN THỰC HOÁ: TRUY VẤN BỔ SUNG 2 TRƯỜNG THỜI HẠN HOÀN THÀNH & MỨC ĐỘ ƯU TIÊN ---
+                    // item.ItOrderIt2s đại diện cho tập hợp ICollection<ItOrderIt2> liên kết từ thực thể chính FormIt
+                    ThoiHanHoanThanh = item.ItOrderIt2s.Select(o => o.ThoiHanHoanThanh).FirstOrDefault(),
+                    MucDoUuTien = item.ItOrderIt2s.Select(o => o.MucDoUuTien).FirstOrDefault() ?? ""
+                })
+                .ToListAsync();
+
+            return Json(danhSachDon);
+        }
+
+        #endregion
+
+        #region DÙNG CHUNG - LOGIC XÁC NHẬN HOÀN THÀNH & CLASS REQUEST
+
+        // Nút bấm dành cho Đội IT - Xác nhận đã sửa xong/cấp xong thiết bị (Cả 2 view đều gọi chung đến API POST này)
         [HttpPost("/FormIT/XacNhanHoanThanh")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> XacNhanHoanThanh([FromBody] ITCompleteRequest request)
@@ -3732,11 +3847,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Json(new { success = false, message = "Bạn không có quyền xác nhận hoàn tất đơn này." });
             }
 
-            // SỬA: Bổ sung Include để lấy thông tin liên quan đến Đơn 8 kiểm tra ràng buộc
             var form = await _context.FormIts
                 .Include(f => f.ItCapQuyenOchung8s)
                     .ThenInclude(c => c.ItXacNhanCapQuyen8s)
-                .Include(f => f.ItCtNguoiHoTros) // Thêm chi tiết người hỗ trợ
+                .Include(f => f.ItCtNguoiHoTros)
                     .ThenInclude(ct => ct.IdItNguoiHoTroNavigation)
                 .FirstOrDefaultAsync(f => f.Id == request.Id);
 
@@ -3749,7 +3863,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Json(new { success = false, message = "Đơn này đã kết thúc hoặc đã hủy." });
             }
 
-            // MỚI: KIỂM TRA RÀNG BUỘC ĐƠN 8 - PHẢI ĐƯỢC BỘ PHẬN XÁC NHẬN CHO PHÉP
+            // KIỂM TRA RÀNG BUỘC ĐƠN 8
             if (form.IdForm == "IT_CapQuyenOChung_8" && form.ItCapQuyenOchung8s.Any())
             {
                 var xacNhan = form.ItCapQuyenOchung8s.First().ItXacNhanCapQuyen8s.FirstOrDefault();
@@ -3759,37 +3873,29 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
             }
 
-            // BẮT ĐẦU TRANSACTION: Đảm bảo đổi người hỗ trợ và xác nhận hoàn tất chạy chung 1 lần, nếu 1 trong 2 lỗi sẽ rollback lại hết
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
                     DateTime now = DateTime.Now;
 
-                    // =========================================================================
                     // 1. LUỒNG ĐỔI NGƯỜI HỖ TRỢ (TỰ ĐỘNG CHẠY KHI ẤN XÁC NHẬN)
-                    // =========================================================================
-                    // Tìm nhân sự IT dựa vào Ghi chú (Email) hoặc Tên đồng bộ với tài khoản xác nhận
                     var nvItHienTai = await _context.ItNguoiHoTros.FirstOrDefaultAsync(x => x.GhiChu == userEmail || x.Ten == userName);
 
                     if (nvItHienTai != null)
                     {
-                        // Lấy người hỗ trợ hiện tại có số thứ tự Stt cao nhất (mới nhất) của đơn
                         var nguoiHoTroMoiNhat = form.ItCtNguoiHoTros
                             .OrderByDescending(x => x.Stt ?? 0)
                             .FirstOrDefault();
 
-                        // Nếu chưa từng có ai hỗ trợ đơn này HOẶC người hỗ trợ mới nhất không phải là người đang bấm nút xác nhận
                         if (nguoiHoTroMoiNhat == null || nguoiHoTroMoiNhat.IdItNguoiHoTro != nvItHienTai.Id)
                         {
-                            // Tìm và xóa tất cả các bản ghi hỗ trợ cũ của người này trong đơn (nếu có) để tránh lặp tên dữ liệu
                             var cácBảnGhiCũ = form.ItCtNguoiHoTros.Where(x => x.IdItNguoiHoTro == nvItHienTai.Id).ToList();
                             if (cácBảnGhiCũ.Any())
                             {
                                 _context.ItCtNguoiHoTros.RemoveRange(cácBảnGhiCũ);
                             }
 
-                            // Tính lại maxStt sau khi đã lọc bỏ bản ghi cũ (nếu danh sách trống thì mặc định là 0)
                             int maxStt = form.ItCtNguoiHoTros.Any() ? form.ItCtNguoiHoTros.Max(x => x.Stt ?? 0) : 0;
 
                             var ctMoi = new ItCtNguoiHoTro
@@ -3800,7 +3906,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             };
                             _context.ItCtNguoiHoTros.Add(ctMoi);
 
-                            // Ghi nhận lịch sử hệ thống tự động cập nhật người hỗ trợ
                             _context.LichSuFormIts.Add(new LichSuFormIt
                             {
                                 IdFormIt = form.Id,
@@ -3811,9 +3916,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         }
                     }
 
-                    // =========================================================================
-                    // 2. LUỒNG XÁC NHẬN HOÀN TẤT ĐƠN (CHẠY ĐỒNG THỜI)
-                    // =========================================================================
+                    // 2. LUỒNG XÁC NHẬN HOÀN TẤT ĐƠN
                     form.IdAdmin = int.Parse(userIdStr);
                     form.TenAdmin = userName;
                     form.TimeAdmin = now;
@@ -3823,16 +3926,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     {
                         IdFormIt = form.Id,
                         TieuDe = "IT Xác nhận Hoàn tất",
-                        Mota = $"Kỹ thuật thực hiện: {userName} ({userEmail}). " +
-                               $"Bộ phận: {phongBan}. " +
-                               $"Nội dung: Đã xử lý hoàn tất yêu cầu.",
+                        Mota = $"Kỹ thuật thực hiện: {userName} ({userEmail}). Bộ phận: {phongBan}. Nội dung: Đã xử lý hoàn tất yêu cầu.",
                         Time = now
                     };
 
                     _context.LichSuFormIts.Add(lichSu);
                     _context.FormIts.Update(form);
 
-                    // Lưu toàn bộ thay đổi (Cả người hỗ trợ mới + trạng thái đóng đơn) xuống DB trong 1 lần duy nhất
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
@@ -3845,7 +3945,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
             }
         }
-
 
         // --- CLASS REQUEST ---
         public class ITApprovalRequest
