@@ -388,6 +388,13 @@
                         </a>
 
                         <!-- ======================================================== -->
+                        <!-- MỤC MỚI BỔ SUNG: QUẢN LÝ CÔNG VIỆC CHỈ ĐỊNH NGƯỜI HỖ TRỢ -->
+                        <!-- ======================================================== -->
+                        <a href="/FormIT/HoanTatDonChiDinh" class="nav-link-item @(currentAction == "HoanTatDonChiDinh" ? "active" : "")">
+                            <i class="fa fa-user-plus" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f97316;"></i> <span class="lang-text" data-key="assigned_tasks">Công việc chỉ định</span>
+                        </a>
+
+                        <!-- ======================================================== -->
                         <!-- MỤC ĐÃ ĐƯỢC THAY ĐỔI: THỐNG KÊ BÁO CÁO (DẠNG MỞ RỘNG)   -->
                         <!-- ======================================================== -->
                         <a data-bs-toggle="collapse" href="#collapseThongKe" role="button" aria-expanded="@(isReportActive ? "true" : "false")" class="nav-link-item" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: @(isReportActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">

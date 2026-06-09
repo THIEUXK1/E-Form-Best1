@@ -25,6 +25,12 @@ public partial class ItOrderIt2
 
     public string? DuongDanAnh { get; set; }
 
+    [Column(TypeName = "datetime")]
+    public DateTime? ThoiHanHoanThanh { get; set; }
+
+    [StringLength(50)]
+    public string? MucDoUuTien { get; set; }
+
     [ForeignKey("IdFormIt")]
     [InverseProperty("ItOrderIt2s")]
     public virtual FormIt? IdFormItNavigation { get; set; }
