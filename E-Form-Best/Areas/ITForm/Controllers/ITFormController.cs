@@ -5938,7 +5938,63 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex) { return Json(new { success = false, msg = "Lỗi: Không thể xóa vì ràng buộc dữ liệu hoặc lỗi hệ thống. Chi tiết: " + ex.Message }); }
         }
 
-        // BỔ SUNG: Hàm điều hướng trang chi tiết thiết bị theo đúng yêu cầu
+        // HÀM 1: Lấy cục bộ dữ liệu JSON chi tiết đầy đủ phục vụ hiển thị nhanh qua Modal/API AJAX
+        [HttpGet("/QLKiemKe/GetChiTietThietBi")]
+        public IActionResult GetChiTietThietBi(int idThietBi)
+        {
+            try
+            {
+                var item = _context.KkThietBis
+                    .Include(x => x.IdNguoiDungNavigation)
+                    .Include(x => x.IdcongTyNavigation)
+                    .Include(x => x.IdboPhanNavigation)
+                    .Include(x => x.IdTrangThaiNavigation)
+                    .FirstOrDefault(x => x.IdThietBi == idThietBi);
+
+                if (item == null)
+                {
+                    return Json(new { success = false, msg = "Không tìm thấy thiết bị hoặc thông tin vị trí này trong hệ thống." });
+                }
+
+                var detailData = new
+                {
+                    item.IdThietBi,
+                    item.TenViTri,
+                    item.TenMayTinh,
+                    item.TenDangNhap,
+                    item.LoaiThietBi,
+                    item.GhiChu,
+                    item.QuyCach,
+                    item.Seribacode,
+                    HanBaoHanh = item.HanBaoHanh.HasValue ? item.HanBaoHanh.Value.ToString("yyyy-MM-dd") : "",
+                    item.WinLicense,
+                    item.OfficeLicense,
+                    item.DuongDanAnh,
+                    NgayTao = item.NgayTao.HasValue ? item.NgayTao.Value.ToString("dd/MM/yyyy HH:mm:ss") : "",
+                    NgayCapNhat = item.NgayCapNhat.HasValue ? item.NgayCapNhat.Value.ToString("dd/MM/yyyy HH:mm:ss") : "",
+                    ThoiGianCheck = item.ThoiGianCheck.HasValue ? item.ThoiGianCheck.Value.ToString("dd/MM/yyyy HH:mm:ss") : "Chưa Check",
+                    NgayXoa = item.NgayXoa.HasValue ? item.NgayXoa.Value.ToString("dd/MM/yyyy HH:mm:ss") : "",
+                    item.LyDoXoa,
+                    item.IdNguoiDung,
+                    item.IdcongTy,
+                    item.IdboPhan,
+                    item.IdTrangThai,
+                    TenNguoiDung = item.IdNguoiDungNavigation != null ? item.IdNguoiDungNavigation.HoTen : "Chưa cấp phát",
+                    TkNguoiDung = item.IdNguoiDungNavigation != null ? item.IdNguoiDungNavigation.Tk : "N/A",
+                    TenCongTy = item.IdcongTyNavigation != null ? item.IdcongTyNavigation.TenCongTy : "Chưa gắn",
+                    TenBoPhan = item.IdboPhanNavigation != null ? item.IdboPhanNavigation.TenBoPhan : "Chưa gắn",
+                    TenTrangThai = item.IdTrangThaiNavigation != null ? item.IdTrangThaiNavigation.TenTrangThai : "Chưa rõ"
+                };
+
+                return Json(new { success = true, data = detailData });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, msg = "Lỗi hệ thống khi tải chi tiết: " + ex.Message });
+            }
+        }
+
+        // HÀM 2: Điều hướng trang độc lập sang View (ChiTietThietBi.cshtml) hiển thị đầy đủ thông tin thực thể dữ liệu
         [HttpGet("/QLKiemKe/ChiTietThietBi/{id}")]
         public IActionResult ChiTietThietBi(int id)
         {

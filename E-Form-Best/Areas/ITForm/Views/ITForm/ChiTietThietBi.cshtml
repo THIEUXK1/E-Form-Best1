@@ -1,0 +1,248 @@
+﻿@model E_Form_Best.Models.ITForm.KkThietBi
+@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Chi Tiết Thiết Bị - Vị Trí";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    body {
+        background-color: #f8fafc;
+    }
+
+    .card-detail {
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    }
+
+    .detail-label {
+        font-size: 13px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+        display: block;
+    }
+
+    .detail-value {
+        font-size: 15px;
+        font-weight: 600;
+        color: #1e293b;
+        word-break: break-word;
+    }
+
+    .info-group-box {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 15px;
+        height: 100%;
+        transition: all 0.2s ease;
+    }
+
+        .info-group-box:hover {
+            border-color: #cbd5e1;
+            background-color: #fff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+    .badge-lg {
+        padding: 8px 16px;
+        font-size: 13px;
+        border-radius: 30px;
+        font-weight: 700;
+    }
+</style>
+
+<div class="content-header py-3">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-md-6 col-12 mb-2 mb-md-0">
+                <h4 class="m-0 fw-bold" style="color: #1e293b; letter-spacing: -0.5px;">
+                    <a href="/QLKiemKe/ThietBi" class="text-decoration-none text-muted me-2"><i class="fas fa-arrow-left"></i></a>
+                    <i class="fas fa-info-circle me-2" style="color: #4f46e5;"></i> Chi Tiết Thiết Bị / Vị Trí
+                </h4>
+            </div>
+            <div class="col-md-6 col-12 text-md-end text-start">
+                <a href="/QLKiemKe/ThietBi" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm me-2">
+                    <i class="fas fa-list me-1"></i> Quay lại danh sách
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card card-detail bg-white p-3 p-md-4">
+
+            <div class="row border-bottom pb-4 mb-4 align-items-center">
+                <div class="col-md-auto text-center mb-3 mb-md-0">
+                    @if (!string.IsNullOrEmpty(Model.DuongDanAnh))
+                    {
+                        <img src="/QLKiemKe/GetImage?fileName=@Uri.EscapeDataString(Model.DuongDanAnh)" class="shadow-sm border img-fluid" style="width: 120px; height: 120px; object-fit: cover; border-radius: 15px;" alt="Ảnh Thiết Bị" />
+                    }
+                    else
+                    {
+                        <div class="bg-light d-flex align-items-center justify-content-center text-muted shadow-sm border mx-auto" style="width: 120px; height: 120px; border-radius: 15px;">
+                            <i class="fas fa-laptop fa-3x text-secondary"></i>
+                        </div>
+                    }
+                </div>
+                <div class="col-md text-center text-md-start">
+                    <span class="badge bg-secondary mb-2 px-3 py-1 fw-bold">ID Thiết bị: #@Model.IdThietBi</span>
+                    <h2 class="fw-bold mb-1" style="color: #0f172a;">
+                        <i class="fas fa-desktop text-primary me-2"></i>@(string.IsNullOrEmpty(Model.TenMayTinh) ? "CHƯA CÓ HOSTNAME" : Model.TenMayTinh.ToUpper())
+                    </h2>
+                    <p class="text-muted mb-2 fw-semibold" style="font-size: 15px;">
+                        <i class="fas fa-map-marker-alt text-danger me-1"></i>Vị trí: <span class="text-dark fw-bold">@(string.IsNullOrEmpty(Model.TenViTri) ? "Chưa xác định" : Model.TenViTri.ToUpper())</span>
+                    </p>
+                    <div class="d-flex flex-wrap justify-content-center justify-content-md-start gap-2 mt-2">
+                        @{
+                            string statusName = Model.IdTrangThaiNavigation != null ? Model.IdTrangThaiNavigation.TenTrangThai : "Chưa gắn";
+                            string badgeClass = statusName.ToLower().Contains("hoạt động") ? "success" : (statusName.ToLower().Contains("xóa") ? "danger" : "warning text-dark");
+                        }
+                        <span class="badge bg-@badgeClass badge-lg"><i class="fas fa-info-circle me-1"></i>@statusName</span>
+                        <span class="badge bg-info badge-lg"><i class="fas fa-tags me-1"></i>@(Model.LoaiThietBi ?? "Chưa rõ")</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+
+                <div class="col-xl-4 col-md-6">
+                    <div class="info-group-box">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3 text-primary"><i class="fas fa-desktop me-2"></i>Thông số hệ thống</h5>
+                        <div class="mb-3">
+                            <span class="detail-label">Tên máy tính (Hostname)</span>
+                            <div class="detail-value text-primary text-uppercase">@(Model.TenMayTinh ?? "N/A")</div>
+                        </div>
+                        <div class="mb-3">
+                            <span class="detail-label">Tên đăng nhập (Account)</span>
+                            <div class="detail-value text-uppercase">@(Model.TenDangNhap ?? "N/A")</div>
+                        </div>
+                        <div class="mb-0">
+                            <span class="detail-label">Quy cách (Cấu hình chi tiết)</span>
+                            <div class="detail-value text-indigo" style="color: #2563eb;">@(string.IsNullOrEmpty(Model.QuyCach) ? "Chưa cập nhật cấu hình" : Model.QuyCach)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-4 col-md-6">
+                    <div class="info-group-box">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3 text-success"><i class="fas fa-shield-alt me-2"></i>Quản lý & Bản quyền</h5>
+                        <div class="mb-3">
+                            <span class="detail-label">Số Serial (Seribacode)</span>
+                            <div class="detail-value text-success text-uppercase font-monospace">@(string.IsNullOrEmpty(Model.Seribacode) ? "Trống" : Model.Seribacode)</div>
+                        </div>
+                        <div class="mb-3">
+                            <span class="detail-label">Hạn bảo hành</span>
+                            <div class="detail-value text-danger">
+                                @if (Model.HanBaoHanh.HasValue)
+                                {
+                                    <i class="fas fa-calendar-alt me-1"></i>
+                                    @Model.HanBaoHanh.Value.ToString("dd/MM/yyyy")
+                                }
+                                else
+                                {
+                                    <span>Chưa cập nhật ngày bảo hành</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <span class="detail-label">Bản quyền Windows</span>
+                            <div class="detail-value" style="color: #0284c7;"><i class="fab fa-windows me-1"></i>@(Model.WinLicense ?? "Chưa rõ / Chưa khai báo")</div>
+                        </div>
+                        <div class="mb-0">
+                            <span class="detail-label">Bản quyền Office</span>
+                            <div class="detail-value" style="color: #d97706;"><i class="fas fa-file-invoice me-1"></i>@(Model.OfficeLicense ?? "Chưa rõ / Chưa khai báo")</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-4 col-md-6">
+                    <div class="info-group-box">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3 text-indigo" style="color: #4f46e5;"><i class="fas fa-sitemap me-2"></i>Sử dụng & Vị trí công tác</h5>
+                        <div class="mb-3">
+                            <span class="detail-label">Người sử dụng hiện tại</span>
+                            <div class="detail-value text-success">
+                                @if (Model.IdNguoiDungNavigation != null)
+                                {
+                                    <i class="fas fa-user me-1"></i>
+                                    @Model.IdNguoiDungNavigation.HoTen
+                                    <span class="text-danger fw-normal">(@Model.IdNguoiDungNavigation.Tk)</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted fst-italic">Chưa cấp phát cho nhân sự</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <span class="detail-label">Thuộc Công ty</span>
+                            <div class="detail-value">@(Model.IdcongTyNavigation != null ? Model.IdcongTyNavigation.TenCongTy : "Chưa cấu hình")</div>
+                        </div>
+                        <div class="mb-0">
+                            <span class="detail-label">Thuộc Bộ phận / Phòng ban</span>
+                            <div class="detail-value">@(Model.IdboPhanNavigation != null ? Model.IdboPhanNavigation.TenBoPhan : "Chưa cấu hình")</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="info-group-box">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3 text-secondary"><i class="fas fa-clock me-2"></i>Dấu mốc thời gian hệ thống</h5>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <span class="detail-label">Ngày khởi tạo</span>
+                                <div class="detail-value small">@(Model.NgayTao.HasValue ? Model.NgayTao.Value.ToString("dd/MM/yyyy HH:mm:ss") : "N/A")</div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <span class="detail-label">Cập nhật cuối</span>
+                                <div class="detail-value small">@(Model.NgayCapNhat.HasValue ? Model.NgayCapNhat.Value.ToString("dd/MM/yyyy HH:mm:ss") : "N/A")</div>
+                            </div>
+                            <div class="col-12 mb-0">
+                                <span class="detail-label">Lần cuối kiểm kê (Check-in)</span>
+                                <div class="detail-value text-primary">
+                                    <i class="fas fa-clock-rotate-left me-1"></i>
+                                    <b>@(Model.ThoiGianCheck.HasValue ? Model.ThoiGianCheck.Value.ToString("dd/MM/yyyy HH:mm:ss") : "Thiết bị này chưa từng được xác nhận check")</b>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    @if (statusName.ToLower().Contains("xóa") || Model.NgayXoa.HasValue)
+                    {
+                        <div class="info-group-box" style="border-color: #fecaca; background-color: #fef2f2;">
+                            <h5 class="fw-bold border-bottom pb-2 mb-3 text-danger"><i class="fas fa-trash-alt me-2"></i>Thông tin thu hồi / Xóa bỏ</h5>
+                            <div class="mb-3">
+                                <span class="detail-label">Thời gian xóa tạm</span>
+                                <div class="detail-value text-danger">@(Model.NgayXoa.HasValue ? Model.NgayXoa.Value.ToString("dd/MM/yyyy HH:mm:ss") : "N/A")</div>
+                            </div>
+                            <div class="mb-0">
+                                <span class="detail-label">Lý do thu hồi / Xóa bỏ</span>
+                                <div class="detail-value text-danger fw-bold">@(Model.LyDoXoa ?? "Không rõ lý do")</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="info-group-box">
+                            <h5 class="fw-bold border-bottom pb-2 mb-3 text-warning text-dark"><i class="fas fa-comment-alt me-2"></i>Ghi chú bổ sung</h5>
+                            <div class="mb-0">
+                                <span class="detail-label">Nội dung ghi chú</span>
+                                <div class="detail-value text-secondary fst-italic" style="font-size: 14.5px;">
+                                    @(string.IsNullOrEmpty(Model.GhiChu) ? "Không có ghi chú lưu ý nào cho thiết bị này." : Model.GhiChu)
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+            </div>        </div>
+        </div>
+    </section>
