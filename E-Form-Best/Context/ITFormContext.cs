@@ -18,6 +18,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<BaoVeHr> BaoVeHrs { get; set; }
 
+    public virtual DbSet<BinhLuanFormCongViec> BinhLuanFormCongViecs { get; set; }
+
     public virtual DbSet<BinhLuanFormHr> BinhLuanFormHrs { get; set; }
 
     public virtual DbSet<BinhLuanFormIt> BinhLuanFormIts { get; set; }
@@ -26,13 +28,21 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<BoPhan> BoPhans { get; set; }
 
+    public virtual DbSet<BoPhanQuyenTrungGian> BoPhanQuyenTrungGians { get; set; }
+
     public virtual DbSet<CongViecHr> CongViecHrs { get; set; }
 
     public virtual DbSet<CongViecIt> CongViecIts { get; set; }
 
+    public virtual DbSet<CongViecOrder1> CongViecOrder1s { get; set; }
+
     public virtual DbSet<CongViecShd> CongViecShds { get; set; }
 
+    public virtual DbSet<DanhGiaFormCongViec> DanhGiaFormCongViecs { get; set; }
+
     public virtual DbSet<DanhGiaFormIt> DanhGiaFormIts { get; set; }
+
+    public virtual DbSet<DanhMucQuyenBoPhan> DanhMucQuyenBoPhans { get; set; }
 
     public virtual DbSet<DmBoPhan> DmBoPhans { get; set; }
 
@@ -49,6 +59,10 @@ public partial class ITFormContext : DbContext
     public virtual DbSet<DmNguoiXacNhan> DmNguoiXacNhans { get; set; }
 
     public virtual DbSet<DmNguoiXacNhanLoaiDon> DmNguoiXacNhanLoaiDons { get; set; }
+
+    public virtual DbSet<FormCongViec> FormCongViecs { get; set; }
+
+    public virtual DbSet<FormCongViecNguoiLienQuan> FormCongViecNguoiLienQuans { get; set; }
 
     public virtual DbSet<FormHr> FormHrs { get; set; }
 
@@ -128,6 +142,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<KkTrangThai> KkTrangThais { get; set; }
 
+    public virtual DbSet<LichSuFormCongViec> LichSuFormCongViecs { get; set; }
+
     public virtual DbSet<LichSuFormHr> LichSuFormHrs { get; set; }
 
     public virtual DbSet<LichSuFormIt> LichSuFormIts { get; set; }
@@ -180,6 +196,11 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdFormHrNavigation).WithMany(p => p.BaoVeHrs).HasConstraintName("FK_BaoVeHr_FormHR");
         });
 
+        modelBuilder.Entity<BinhLuanFormCongViec>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__BinhLuan__3213E83F5EC9014F");
+        });
+
         modelBuilder.Entity<BinhLuanFormHr>(entity =>
         {
             entity.Property(e => e.ThoiGian).HasDefaultValueSql("(getdate())");
@@ -206,6 +227,18 @@ public partial class ITFormContext : DbContext
             entity.HasKey(e => e.IdBoPhan).HasName("PK__BoPhan__E66DCED5E953B918");
         });
 
+        modelBuilder.Entity<BoPhanQuyenTrungGian>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__BoPhan_Q__3213E83F41006A03");
+
+            entity.Property(e => e.ChoPhep).HasDefaultValue(true);
+            entity.Property(e => e.NgayGan).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.IdBoPhanNavigation).WithMany(p => p.BoPhanQuyenTrungGians).HasConstraintName("FK_TrungGian_BoPhan");
+
+            entity.HasOne(d => d.IdQuyenNavigation).WithMany(p => p.BoPhanQuyenTrungGians).HasConstraintName("FK_TrungGian_QuyenBoPhan");
+        });
+
         modelBuilder.Entity<CongViecHr>(entity =>
         {
             entity.HasOne(d => d.IdHrNguoiHoTroNavigation).WithMany(p => p.CongViecHrs).HasConstraintName("FK_CongViecHR_HR_NguoiHoTro");
@@ -218,11 +251,28 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdItNguoiHoTroNavigation).WithMany(p => p.CongViecIts).HasConstraintName("FK_CongViec_NguoiHoTro");
         });
 
+        modelBuilder.Entity<CongViecOrder1>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__CongViec__3213E83FAEF11AEC");
+        });
+
+        modelBuilder.Entity<DanhGiaFormCongViec>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__DanhGiaF__3213E83F62D9E74A");
+        });
+
         modelBuilder.Entity<DanhGiaFormIt>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__DanhGia__3213E83F747EAFE3");
 
             entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.DanhGiaFormIts).HasConstraintName("FK_DanhGia_FormIT");
+        });
+
+        modelBuilder.Entity<DanhMucQuyenBoPhan>(entity =>
+        {
+            entity.HasKey(e => e.IdQuyen).HasName("PK__DanhMucQ__AE8CD30FCA670FDF");
+
+            entity.Property(e => e.NgayTao).HasDefaultValueSql("(getdate())");
         });
 
         modelBuilder.Entity<DmBoPhan>(entity =>
@@ -297,6 +347,22 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdloaiDonNavigation).WithMany(p => p.DmNguoiXacNhanLoaiDons).HasConstraintName("FK_Rel_LoaiDon");
 
             entity.HasOne(d => d.IdnguoiXacNhanNavigation).WithMany(p => p.DmNguoiXacNhanLoaiDons).HasConstraintName("FK_Rel_NguoiXacNhan");
+        });
+
+        modelBuilder.Entity<FormCongViec>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__FormCong__3213E83F921E2CBE");
+        });
+
+        modelBuilder.Entity<FormCongViecNguoiLienQuan>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__FormCong__3213E83F2DD38C95");
+
+            entity.Property(e => e.NgayGan).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.IdFormCongViecNavigation).WithMany(p => p.FormCongViecNguoiLienQuans).HasConstraintName("FK_NguoiLienQuan_Form");
+
+            entity.HasOne(d => d.IdNguoiDungNavigation).WithMany(p => p.FormCongViecNguoiLienQuans).HasConstraintName("FK_NguoiLienQuan_User");
         });
 
         modelBuilder.Entity<FormHr>(entity =>
@@ -601,6 +667,11 @@ public partial class ITFormContext : DbContext
         modelBuilder.Entity<KkTrangThai>(entity =>
         {
             entity.HasKey(e => e.IdTrangThai).HasName("PK__KK_Trang__D82677B0116A98B3");
+        });
+
+        modelBuilder.Entity<LichSuFormCongViec>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__LichSuFo__3213E83FB7F6EAE4");
         });
 
         modelBuilder.Entity<LichSuFormHr>(entity =>

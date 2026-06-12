@@ -87,6 +87,9 @@ public partial class User
     public string? MaPhongBan { get; set; }
 
     [InverseProperty("IdNguoiDungNavigation")]
+    public virtual ICollection<FormCongViecNguoiLienQuan> FormCongViecNguoiLienQuans { get; set; } = new List<FormCongViecNguoiLienQuan>();
+
+    [InverseProperty("IdNguoiDungNavigation")]
     public virtual ICollection<KkThietBi> KkThietBis { get; set; } = new List<KkThietBi>();
 
     [InverseProperty("IdNguoiDungNavigation")]

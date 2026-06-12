@@ -109,20 +109,23 @@ app.MapGet("/", context => {
     return Task.CompletedTask;
 });
 
+// ƯU TIÊN 2: Khai báo Route của Area (Phải đặt lên trước các route thông thường)
 app.MapControllerRoute(
     name: "area",
     pattern: "{area:exists}/{controller=DangNhap}/{action=Index}/{id?}"
 );
 
+// ƯU TIÊN 3: Route mặc định của ứng dụng
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}"
+);
+
+// ƯU TIÊN KÈM THEO: Route tùy chỉnh của bạn (đặt xuống dưới cùng để tránh bắt nhầm các route chuẩn của Area)
 app.MapControllerRoute(
     name: "homeActions",
     pattern: "{action}/{id?}",
     defaults: new { controller = "Home", action = "Index" }
-);
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}"
 );
 
 app.Run();

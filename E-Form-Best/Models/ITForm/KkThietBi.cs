@@ -13,9 +13,9 @@ public partial class KkThietBi
     [Column("id_thiet_bi")]
     public int IdThietBi { get; set; }
 
-    [Column("ten_thiet_bi")]
+    [Column("ten_vi_tri")]
     [StringLength(255)]
-    public string TenThietBi { get; set; } = null!;
+    public string TenViTri { get; set; } = null!;
 
     [Column("ten_may_tinh")]
     [StringLength(100)]
@@ -65,6 +65,21 @@ public partial class KkThietBi
 
     [Column("quy_cach")]
     public string? QuyCach { get; set; }
+
+    [Column("seribacode")]
+    [StringLength(100)]
+    public string? Seribacode { get; set; }
+
+    [Column("han_bao_hanh")]
+    public DateOnly? HanBaoHanh { get; set; }
+
+    [Column("win_license")]
+    [StringLength(150)]
+    public string? WinLicense { get; set; }
+
+    [Column("office_license")]
+    [StringLength(150)]
+    public string? OfficeLicense { get; set; }
 
     [ForeignKey("IdNguoiDung")]
     [InverseProperty("KkThietBis")]
