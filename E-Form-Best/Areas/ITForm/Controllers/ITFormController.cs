@@ -5994,7 +5994,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
-        // HÀM 2: Điều hướng trang độc lập sang View (ChiTietThietBi.cshtml) hiển thị đầy đủ thông tin thực thể dữ liệu
+        // HÀM ĐIỀU HƯỚNG: Trang độc lập sang View (ChiTietThietBi.cshtml) hiển thị đầy đủ thông tin thực thể dữ liệu
         [HttpGet("/QLKiemKe/ChiTietThietBi/{id}")]
         public IActionResult ChiTietThietBi(int id)
         {
@@ -6007,7 +6007,21 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             if (item == null) return NotFound();
 
-            return View("ChiTietThietBi", item); // Bạn cần tạo file ChiTietThietBi.cshtml trong thư mục Views
+            // 1. LẤY NHẬT KÝ LỊCH SỬ THAO TÁC CỦA THIẾT BỊ NÀY
+            // Map theo quy tắc: DoiTuong = "Thiết Bị" và IdDoiTuong = id của thiết bị, xếp mới nhất lên đầu
+            ViewBag.LichSuThaoTac = _context.KkLichSuThaoTacs
+                .Where(x => x.DoiTuong == "Thiết Bị" && x.IdDoiTuong == id)
+                .OrderByDescending(x => x.ThoiGian)
+                .ToList();
+
+            // 2. LẤY DANH SÁCH BẰNG CHỨNG KIỂM KÊ KÈM ẢNH CHECK
+            // Lấy từ bảng KK_BangChungCheck liên kết trực tiếp, xếp mới nhất lên đầu
+            ViewBag.BangChungCheck = _context.KkBangChungChecks
+                .Where(x => x.IdThietBi == id)
+                .OrderByDescending(x => x.ThoiGianCheck)
+                .ToList();
+
+            return View("ChiTietThietBi", item); // Trả dữ liệu sang giao diện Razor View
         }
 
         #endregion
