@@ -206,7 +206,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             _context.LichSuTruyCaps.Add(new LichSuTruyCap { IdNguoiDung = user.IdNguoiDung, ThoiGianDangNhap = DateTime.Now, TenMayTinh = resolvedComputerName, DiaChiIp = ipAddress ?? "", TrinhDuyet = userAgent, TrangThai = "Đang hoạt động" });
             await _context.SaveChangesAsync();
 
-            // 4. Thiết lập Claims
+            // 4. Thiết lập Claims chính để lưu vào Cookie Authentication
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.IdNguoiDung.ToString()),
@@ -214,20 +214,52 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 new Claim(ClaimTypes.Email, user.Tk ?? ""),
                 new Claim("MaNv", user.Tk ?? ""),
                 new Claim("UserRole", user.VaiTro ?? ""),
-                new Claim("PhongBan", user.PhongBan ?? ""),
                 new Claim("TenCongTy", user.TenCongTy ?? ""),
                 new Claim("AnhDaiDien", user.AnhDaiDien ?? "/images/default-avatar.png"),
                 new Claim("SecurityStamp", user.SecurityStamp ?? ""),
                 new Claim("LoginMethod", isDomainAuth ? "Domain" : "Database")
             };
 
-            if (user.UserBoPhans != null && user.UserBoPhans.Any())
+            // LOGIC ƯU TIÊN KIỂM TRA BỘ PHẬN ĐÚNG THEO YÊU CẦU CỦA BẠN
+            if (user.UserBoPhans != null && user.UserBoPhans.Any(ub => ub.IdBoPhanNavigation != null))
             {
-                // Đảm bảo lọc bỏ các phần tử điều hướng bị null trước khi Select dữ liệu
-                claims.Add(new Claim("TenBoPhan", string.Join(", ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation!.TenBoPhan))));
-                claims.Add(new Claim("MoTaBoPhan", string.Join(" | ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation!.MoTa))));
+                // Nếu có bộ phận chính thức: gộp danh sách tên gán vào Claim "PhongBan" và "TenBoPhan"
+                string danhSachTenBP = string.Join(", ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation!.TenBoPhan));
+                string danhSachMoTaBP = string.Join(" | ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation!.MoTa));
+
+                claims.Add(new Claim("PhongBan", danhSachTenBP));
+                claims.Add(new Claim("TenBoPhan", danhSachTenBP));
+                claims.Add(new Claim("MoTaBoPhan", danhSachMoTaBP));
+
+                // --- TRUY VẤN QUYỀN CỦA BỘ PHẬN TỪ MODEL CHUẨN (BoPhanQuyenTrungGian -> DanhMucQuyenBoPhan) ---
+                var listIdBoPhan = user.UserBoPhans
+                                       .Where(ub => ub.IdBoPhanNavigation != null)
+                                       .Select(ub => ub.IdBoPhan)
+                                       .ToList();
+
+                // Lấy danh sách MaQuyen từ thực thể DanhMucQuyenBoPhan (IdQuyenNavigation) dựa trên ID các bộ phận liên kết
+                var quyenBoPhan = await _context.BoPhanQuyenTrungGians
+                    .Where(x => listIdBoPhan.Contains(x.IdBoPhan) && x.ChoPhep == true && x.IdQuyenNavigation != null)
+                    .Select(x => x.IdQuyenNavigation!.MaQuyen)
+                    .Distinct()
+                    .ToListAsync();
+
+                // Nạp tất cả quyền hợp lệ của bộ phận vào Cookie (ClaimsPrincipal) dưới dạng Role để dùng [Authorize(Roles="...")]
+                foreach (var maQuyen in quyenBoPhan)
+                {
+                    if (!string.IsNullOrEmpty(maQuyen))
+                    {
+                        claims.Add(new Claim(ClaimTypes.Role, maQuyen));
+                    }
+                }
+            }
+            else
+            {
+                // BỘ LỌC DỰ PHÒNG: Nếu bảng trung gian nhân sự rỗng -> Quay lại lấy giá trị cột văn bản thô trên bảng User
+                claims.Add(new Claim("PhongBan", user.PhongBan ?? ""));
             }
 
+            // Quyền riêng lẻ gán trực tiếp của User (Cũ)
             if (user.UserQuyens != null)
             {
                 foreach (var tenQuyen in user.UserQuyens.Where(uq => uq.IdQuyenNavigation != null).Select(uq => uq.IdQuyenNavigation!.TenQuyen))
@@ -246,6 +278,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 AllowRefresh = true
             };
 
+            // Mã hóa toàn bộ thông tin Claims thành Token và ghi đè xuống Cookie (ck) Trình duyệt của Client
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 new ClaimsPrincipal(claimsIdentity),
@@ -261,21 +294,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
 
-
         private bool AuthenticateWithDomain(string username, string password)
         {
             // Kiểm tra xem ứng dụng có đang chạy trên Windows không
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                // Nếu chạy trên Linux/macOS, không thể dùng PrincipalContext
-                // Trả về false hoặc log lỗi tùy theo yêu cầu nghiệp vụ
                 return false;
             }
 
             return AuthenticateOnWindows(username, password);
         }
 
-        // Tách riêng logic Windows để trình biên dịch không cảnh báo lỗi CA1416 tại nơi gọi chính
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         private bool AuthenticateOnWindows(string username, string password)
         {
@@ -291,6 +320,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return false;
             }
         }
+
         [HttpGet("/DonXetDuyet/DangXuat")]
         public async Task<IActionResult> DangXuat()
         {
@@ -5050,7 +5080,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
-        // 2. HÀM NÀY DÙNG ĐỂ ĐỔ DỮ LIỆU VÀO BẢNG & XUẤT EXCEL (Đã bổ sung trường TK)
+        // 2. HÀM NÀY DÙNG ĐỂ ĐỔ DỮ LIỆU VÀO BẢNG & XUẤT EXCEL (Đã cập nhật đổi tenThietBi sang tenViTri)
         [HttpGet("/QLKiemKe/GetKkThietBiss")]
         public IActionResult GetKkThietBiss()
         {
@@ -5065,7 +5095,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .Select(x => new
                     {
                         idThietBi = x.IdThietBi,
-                        tenThietBi = x.TenThietBi,
+                        tenViTri = x.TenViTri, // ĐÃ ĐỒNG BỘ: Đổi sang cấu trúc thuộc tính mới từ dữ liệu
                         tenMayTinh = x.TenMayTinh,
                         loaiThietBi = x.LoaiThietBi,
                         tenDangNhap = x.TenDangNhap,
@@ -5491,7 +5521,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .Select(x => new
                     {
                         x.IdThietBi,
-                        x.TenThietBi,
+                        x.TenViTri, // ĐÃ ĐỒNG BỘ: Thay thế trường TenThietBi thành TenViTri
                         x.TenMayTinh,
                         x.TenDangNhap,
                         x.LoaiThietBi,
@@ -5514,7 +5544,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         LyDoXoa = x.LyDoXoa,
                         x.DuongDanAnh, // Trả về đường dẫn ảnh
                         x.ThoiGianCheck, // Trả về thời gian check
-                        x.QuyCach // BỔ SUNG: Trả về trường QuyCach ra View
+                        x.QuyCach, // BỔ SUNG: Trả về trường QuyCach ra View
+                        x.Seribacode, // ĐẢM BẢO ĐẦY ĐỦ: Lấy dữ liệu các trường mới ra View
+                        x.HanBaoHanh,
+                        x.WinLicense,
+                        x.OfficeLicense
                     })
                     .ToList(); // Tải dữ liệu về bộ nhớ trước để xử lý chuẩn hóa chuỗi tiếng Việt chuẩn xác nhất
 
@@ -5595,7 +5629,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (isDuplicate)
                     return Json(new { success = false, msg = $"Tên máy tính (Hostname) '{model.TenMayTinh}' kèm Loại thiết bị '{model.LoaiThietBi}' đã tồn tại trong hệ thống. Vui lòng kiểm tra lại!" });
 
-                if (string.IsNullOrWhiteSpace(model.TenThietBi)) model.TenThietBi = "";
+                if (string.IsNullOrWhiteSpace(model.TenViTri)) model.TenViTri = "";
 
                 string action = model.IdThietBi == 0 ? (saveAsNew ? "Nhân bản mới" : "Thêm mới") : "Cập nhật";
                 int objId = model.IdThietBi;
@@ -5619,8 +5653,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     if (string.IsNullOrEmpty(imgExtension)) imgExtension = ".jpg";
 
                     string timeStamp = DateTime.Now.ToString("yyyyMMddHHmmss");
-                    // Xóa ký tự đặc biệt khỏi Tên thiết bị để làm tên file (Sử dụng StringSplitOptions để tối ưu hóa)
-                    string safeName = string.Join("_", (model.TenThietBi ?? "").Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+                    // Xóa ký tự đặc biệt khỏi Tên vị trí để làm tên file (Sử dụng StringSplitOptions để tối ưu hóa)
+                    string safeName = string.Join("_", (model.TenViTri ?? "").Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
                     if (string.IsNullOrEmpty(safeName)) safeName = "TB";
 
                     newImageFileName = $"AnhTB_{safeName}_{timeStamp}{imgExtension}";
@@ -5640,6 +5674,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     model.ThoiGianCheck = DateTime.Now; // Làm mới thời gian check khi thêm mới
                     model.DuongDanAnh = newImageFileName; // Gán tên ảnh mới tạo
                     model.QuyCach = model.QuyCach?.Trim(); // Gán Quy cách khi thêm mới
+
+                    // Gán các trường mới khi thêm mới dữ liệu
+                    model.Seribacode = model.Seribacode?.Trim();
+                    model.HanBaoHanh = model.HanBaoHanh;
+                    model.WinLicense = model.WinLicense;
+                    model.OfficeLicense = model.OfficeLicense;
+
                     _context.KkThietBis.Add(model);
                 }
                 else
@@ -5647,7 +5688,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     var existing = _context.KkThietBis.Find(model.IdThietBi);
                     if (existing != null)
                     {
-                        existing.TenThietBi = model.TenThietBi ?? "";
+                        existing.TenViTri = model.TenViTri ?? "";
                         existing.TenMayTinh = model.TenMayTinh ?? "";
                         existing.TenDangNhap = model.TenDangNhap ?? "";
                         existing.LoaiThietBi = model.LoaiThietBi ?? "";
@@ -5659,6 +5700,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         existing.NgayCapNhat = DateTime.Now;
                         existing.ThoiGianCheck = DateTime.Now; // Làm mới thời gian check khi cập nhật
                         existing.QuyCach = model.QuyCach?.Trim(); // BỔ SUNG: Cập nhật trường QuyCach vào cơ sở dữ liệu
+
+                        // CẬP NHẬT ĐẦY ĐỦ CÁC TRƯỜNG DỮ LIỆU MỚI VÀO CƠ SỞ DỮ LIỆU
+                        existing.Seribacode = model.Seribacode?.Trim();
+                        existing.HanBaoHanh = model.HanBaoHanh;
+                        existing.WinLicense = model.WinLicense;
+                        existing.OfficeLicense = model.OfficeLicense;
 
                         // Chỉ cập nhật DuongDanAnh nếu có ảnh mới upload lên
                         if (newImageFileName != null)
@@ -5694,7 +5741,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     if (bp != null) tenBoPhan = bp.TenBoPhan ?? "Chưa gắn";
                 }
 
-                string chiTietLog = $"Máy tính: {model.TenMayTinh} | Trạng thái: {statusName} | Account: {model.TenDangNhap} | N.Dùng: {tenNguoiDung} | B.Phận: {tenBoPhan} | Loại: {model.LoaiThietBi} | Quy cách: {model.QuyCach}";
+                string chiTietLog = $"Vị trí: {model.TenViTri} | Máy tính: {model.TenMayTinh} | Trạng thái: {statusName} | Account: {model.TenDangNhap} | N.Dùng: {tenNguoiDung} | B.Phận: {tenBoPhan} | Loại: {model.LoaiThietBi} | Quy cách: {model.QuyCach}";
                 GhiLichSu(action, "Thiết Bị", objId, chiTietLog);
 
                 return Json(new { success = true, msg = "Lưu thiết bị thành công!" });
@@ -5774,7 +5821,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     if (string.IsNullOrEmpty(imgExtension)) imgExtension = ".jpg";
 
                     string timeStamp = currentCheckTime.ToString("yyyyMMddHHmmss");
-                    string safeName = string.Join("_", (thietBi.TenThietBi ?? "").Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+                    string safeName = string.Join("_", (thietBi.TenViTri ?? "").Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
                     if (string.IsNullOrEmpty(safeName)) safeName = "TB";
 
                     evidenceFileName = $"BC_{safeName}_{idThietBi}_{timeStamp}{imgExtension}";
@@ -5880,7 +5927,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var item = _context.KkThietBis.Find(id);
                 if (item != null)
                 {
-                    string tenMay = item.TenMayTinh ?? item.TenThietBi ?? "Không rõ";
+                    string tenMay = item.TenMayTinh ?? item.TenViTri ?? "Không rõ";
                     _context.KkThietBis.Remove(item);
                     _context.SaveChanges();
 
@@ -5889,6 +5936,22 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Json(new { success = true, msg = "Đã xóa vĩnh viễn thiết bị khỏi hệ thống!" });
             }
             catch (Exception ex) { return Json(new { success = false, msg = "Lỗi: Không thể xóa vì ràng buộc dữ liệu hoặc lỗi hệ thống. Chi tiết: " + ex.Message }); }
+        }
+
+        // BỔ SUNG: Hàm điều hướng trang chi tiết thiết bị theo đúng yêu cầu
+        [HttpGet("/QLKiemKe/ChiTietThietBi/{id}")]
+        public IActionResult ChiTietThietBi(int id)
+        {
+            var item = _context.KkThietBis
+                .Include(x => x.IdNguoiDungNavigation)
+                .Include(x => x.IdTrangThaiNavigation)
+                .Include(x => x.IdboPhanNavigation)
+                .Include(x => x.IdcongTyNavigation)
+                .FirstOrDefault(x => x.IdThietBi == id);
+
+            if (item == null) return NotFound();
+
+            return View("ChiTietThietBi", item); // Bạn cần tạo file ChiTietThietBi.cshtml trong thư mục Views
         }
 
         #endregion

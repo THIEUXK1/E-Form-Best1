@@ -1,0 +1,31 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
+
+namespace E_Form_Best.Models.ITForm;
+
+[Table("LichSuFormCongViec")]
+public partial class LichSuFormCongViec
+{
+    [Key]
+    [Column("id")]
+    public int Id { get; set; }
+
+    [Column("idFormCongViec")]
+    public int? IdFormCongViec { get; set; }
+
+    [StringLength(255)]
+    public string? TieuDe { get; set; }
+
+    [Column("mota")]
+    public string? Mota { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? Time { get; set; }
+
+    public bool? IsRead { get; set; }
+
+    public int? TrangThaiAnHien { get; set; }
+}

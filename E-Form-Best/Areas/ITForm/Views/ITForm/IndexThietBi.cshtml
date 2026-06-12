@@ -28,8 +28,8 @@
     }
 
     /* ========================================================
-                    CSS CHO HỆ THỐNG DROPDOWN CHECKBOX (COMBOBOX NHIỀU MỤC) MỚI
-                    ======================================================== */
+                        CSS CHO HỆ THỐNG DROPDOWN CHECKBOX (COMBOBOX NHIỀU MỤC) MỚI
+                        ======================================================== */
     .dropdown-combo-btn {
         width: 100%;
         text-align: left;
@@ -301,8 +301,8 @@
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sort-alpha-down"></i> Sắp xếp</label>
                         <select id="filterSort" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
                             <option value="">Mặc định</option>
-                            <option value="name_asc">Tên TB (A-Z)</option>
-                            <option value="name_desc">Tên TB (Z-A)</option>
+                            <option value="name_asc">Tên Vị Trí (A-Z)</option>
+                            <option value="name_desc">Tên Vị Trí (Z-A)</option>
                             <option value="host_asc">Hostname (A-Z)</option>
                             <option value="host_desc">Hostname (Z-A)</option>
                         </select>
@@ -356,7 +356,7 @@
                                         <th width="100" class="text-center">Hình ảnh</th>
                                         <th width="120">Loại thiết bị</th>
                                         <th>Thông tin máy tính</th>
-                                        <th>Người dùng, Vị trí & Mã TB</th>
+                                        <th>Người dùng & Vị trí</th>
                                         <th>Trạng thái & Kiểm tra</th>
                                         <th width="140" class="text-center">Thao tác</th>
                                     </tr>
@@ -407,9 +407,9 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Tên thiết bị (Mã/Serial)</label>
-                        <input type="text" id="tb_TenThietBi" list="suggestTenThietBi" class="form-control rounded-3" placeholder="VD: LAPTOP DELL XPS..." style="border: 1px solid #e2e8f0; height: 45px; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()" />
-                        <datalist id="suggestTenThietBi"></datalist>
+                        <label class="form-label fw-bold">Tên Vị Trí <span class="text-danger">*</span></label>
+                        <input type="text" id="tb_TenViTri" list="suggestTenViTri" class="form-control rounded-3" placeholder="VD: PHÒNG IT, SẢN XUẤT..." style="border: 1px solid #e2e8f0; height: 45px; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()" />
+                        <datalist id="suggestTenViTri"></datalist>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-bold" style="color: #8b5cf6;">Trạng thái <span class="text-danger">*</span></label>
@@ -418,23 +418,48 @@
                         </select>
                     </div>
 
-                    <div class="col-md-12">
+                    <div class="col-md-8">
                         <label class="form-label fw-bold" style="color: #2563eb;">Quy cách (Cấu hình chi tiết)</label>
-                        <input type="text" id="tb_QuyCach" class="form-control rounded-3" placeholder="VD: Core i7 13700H, RAM 16GB, SSD 512GB, RTX 4060..." style="border: 1px solid #2563eb; height: 45px;" />
+                        <input type="text" id="tb_QuyCach" class="form-control rounded-3" placeholder="VD: Core i7 13700H, RAM 16GB, SSD 512GB..." style="border: 1px solid #2563eb; height: 45px;" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Số Serial / Barcode</label>
+                        <input type="text" id="tb_Seribacode" class="form-control rounded-3" placeholder="Nhập Serial hoặc Barcode..." style="border: 1px solid #e2e8f0; height: 45px;" />
                     </div>
 
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label fw-bold">Tên máy tính (Hostname)</label>
                         <input type="text" id="tb_TenMayTinh" class="form-control rounded-3" placeholder="VD: DESKTOP-123" style="border: 1px solid #e2e8f0; height: 45px; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()" />
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label fw-bold">Tên đăng nhập (Account)</label>
                         <input type="text" id="tb_TenDangNhap" class="form-control rounded-3" placeholder="VD: ADMIN_LOCAL" style="border: 1px solid #e2e8f0; height: 45px; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Hạn bảo hành</label>
+                        <input type="date" id="tb_HanBaoHanh" class="form-control rounded-3" style="border: 1px solid #e2e8f0; height: 45px;" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold"><i class="fab fa-windows text-primary me-1"></i> Bản quyền Windows</label>
+                        <select id="tb_WinLicense" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
+                            <option value="">Trống</option>
+                            <option value="Có">Có</option>
+                            <option value="Chưa có">Chưa có</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold"><i class="fas fa-file-word text-success me-1"></i> Bản quyền Office</label>
+                        <select id="tb_OfficeLicense" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
+                            <option value="">Trống</option>
+                            <option value="Có">Có</option>
+                            <option value="Chưa có">Chưa có</option>
+                        </select>
                     </div>
 
                     <div class="col-md-12">
                         <label class="form-label fw-bold">Ghi chú (Cấu hình, thông tin...)</label>
-                        <input type="text" id="tb_GhiChu" class="form-control rounded-3" placeholder="Thông tự thêm..." style="border: 1px solid #e2e8f0; height: 45px;" />
+                        <input type="text" id="tb_GhiChu" class="form-control rounded-3" placeholder="Thông tin tự thêm..." style="border: 1px solid #e2e8f0; height: 45px;" />
                     </div>
 
                     <div class="col-12 mt-4 mb-2"><div style="border-top: 1px dashed #cbd5e1;"></div></div>
@@ -718,10 +743,10 @@
         applyFilters();
         });
 
-        $('#tb_LoaiThietBi, #tb_IdTrangThai, #tb_IdCongTy, #tb_IdBoPhan, #tb_IdNguoiDung').on('change', function() {
+        $('#tb_LoaiThietBi, #tb_IdTrangThai, #tb_IdCongTy, #tb_IdBoPhan, #tb_IdNguoiDung, #tb_WinLicense, #tb_OfficeLicense').on('change', function() {
         if (parseInt($('#tb_Id').val()) === 0) { localStorage.setItem('add_form_' + this.id, $(this).val() || ''); }
         });
-        $('#tb_TenThietBi, #tb_QuyCach, #tb_TenMayTinh, #tb_TenDangNhap, #tb_GhiChu').on('keyup input', function() {
+        $('#tb_TenViTri, #tb_QuyCach, #tb_TenMayTinh, #tb_TenDangNhap, #tb_GhiChu, #tb_Seribacode, #tb_HanBaoHanh').on('keyup input change', function() {
         if (parseInt($('#tb_Id').val()) === 0) { localStorage.setItem('add_form_' + this.id, $(this).val().trim()); }
         });
 
@@ -739,7 +764,7 @@
 
         $('.modal').on('hidden.bs.modal', function () {
         if (this.id === 'modalQuickCamMobile' || this.id === 'modalXacNhanCheckEvidence' || this.id === 'modalLichSuCheckThietBi') return;
-        $(this).find('input[type="text"], textarea').val('');
+        $(this).find('input[type="text"], input[type="date"], textarea').val('');
         $(this).find('input[type="hidden"]').val('0');
         $(this).find('select').val('').trigger('change');
         closeCamera();
@@ -838,11 +863,15 @@
         if (parseInt($('#tb_Id').val()) !== 0) return;
         $('#tb_LoaiThietBi').val(localStorage.getItem('add_form_tb_LoaiThietBi') || '');
         $('#tb_IdTrangThai').val(localStorage.getItem('add_form_tb_IdTrangThai') || '');
-        $('#tb_TenThietBi').val(localStorage.getItem('add_form_tb_TenThietBi') || '');
+        $('#tb_TenViTri').val(localStorage.getItem('add_form_tb_TenViTri') || '');
         $('#tb_QuyCach').val(localStorage.getItem('add_form_tb_QuyCach') || '');
         $('#tb_TenMayTinh').val(localStorage.getItem('add_form_tb_TenMayTinh') || '');
         $('#tb_TenDangNhap').val(localStorage.getItem('add_form_tb_TenDangNhap') || '');
         $('#tb_GhiChu').val(localStorage.getItem('add_form_tb_GhiChu') || '');
+        $('#tb_Seribacode').val(localStorage.getItem('add_form_tb_Seribacode') || '');
+        $('#tb_HanBaoHanh').val(localStorage.getItem('add_form_tb_HanBaoHanh') || '');
+        $('#tb_WinLicense').val(localStorage.getItem('add_form_tb_WinLicense') || '');
+        $('#tb_OfficeLicense').val(localStorage.getItem('add_form_tb_OfficeLicense') || '');
 
         let savedCT = localStorage.getItem('add_form_tb_IdCongTy') || '';
         $('#tb_IdCongTy').val(savedCT).trigger('change');
@@ -857,7 +886,7 @@
         function xoaCacheFormAdd() {
         localStorage.removeItem('add_form_tb_LoaiThietBi');
         localStorage.removeItem('add_form_tb_IdTrangThai');
-        localStorage.removeItem('add_form_tb_TenThietBi');
+        localStorage.removeItem('add_form_tb_TenViTri');
         localStorage.removeItem('add_form_tb_QuyCach');
         localStorage.removeItem('add_form_tb_TenMayTinh');
         localStorage.removeItem('add_form_tb_TenDangNhap');
@@ -865,6 +894,10 @@
         localStorage.removeItem('add_form_tb_IdCongTy');
         localStorage.removeItem('add_form_tb_IdBoPhan');
         localStorage.removeItem('add_form_tb_IdNguoiDung');
+        localStorage.removeItem('add_form_tb_Seribacode');
+        localStorage.removeItem('add_form_tb_HanBaoHanh');
+        localStorage.removeItem('add_form_tb_WinLicense');
+        localStorage.removeItem('add_form_tb_OfficeLicense');
         }
 
         function changeTab(tabName, element) {
@@ -961,7 +994,7 @@
         renderThongKe();
         renderUIThietBi();
         renderUIDaXoa();
-        capNhatGoiYTenThietBi();
+        capNhatGoiYTenViTri();
         } else {
         $('#tbodyThietBi').html(`<tr><td colspan="7" class="text-center text-danger py-4">Lỗi tải dữ liệu từ Server: ${res.msg}</td></tr>`);
         }
@@ -970,19 +1003,19 @@
         });
         }
 
-        function capNhatGoiYTenThietBi() {
+        function capNhatGoiYTenViTri() {
         if (!allThietBiCache || allThietBiCache.length === 0) return;
         let uniqueNames = [];
         allThietBiCache.forEach(item => {
-        if (item.TenThietBi && item.TenThietBi.trim() !== "") {
-        let nameUpper = item.TenThietBi.trim().toUpperCase();
+        if (item.tenViTri && item.tenViTri.trim() !== "") {
+        let nameUpper = item.tenViTri.trim().toUpperCase();
         if (!uniqueNames.includes(nameUpper)) { uniqueNames.push(nameUpper); }
         }
         });
         uniqueNames.sort();
         let htmlOptions = '';
         uniqueNames.forEach(name => { htmlOptions += `<option value="${name}"></option>`; });
-        $('#suggestTenThietBi').html(htmlOptions);
+        $('#suggestTenViTri').html(htmlOptions);
         }
 
         function renderFilterTrangThai() {
@@ -1209,11 +1242,12 @@
         if (fText) {
         filtered = filtered.filter(x =>
         (x.tenMayTinh && x.tenMayTinh.toLowerCase().includes(fText)) ||
-        (x.tenThietBi && x.tenThietBi.toLowerCase().includes(fText)) ||
+        (x.tenViTri && x.tenViTri.toLowerCase().includes(fText)) ||
         (x.tenDangNhap && x.tenDangNhap.toLowerCase().includes(fText)) ||
         (x.tenNguoiDung && x.tenNguoiDung.toLowerCase().includes(fText)) ||
         (x.tk && x.tk.toLowerCase().includes(fText)) ||
         (x.quyCach && x.quyCach.toLowerCase().includes(fText)) ||
+        (x.seribacode && x.seribacode.toLowerCase().includes(fText)) ||
         (x.ghiChu && x.ghiChu.toLowerCase().includes(fText))
         );
         }
@@ -1222,7 +1256,7 @@
         filtered.sort((a, b) => {
         let valA = '', valB = '';
         if (fSort.startsWith('name')) {
-        valA = (a.tenThietBi || '').toLowerCase().trim(); valB = (b.tenThietBi || '').toLowerCase().trim();
+        valA = (a.tenViTri || '').toLowerCase().trim(); valB = (b.tenViTri || '').toLowerCase().trim();
         } else if (fSort.startsWith('host')) {
         valA = (a.tenMayTinh || '').toLowerCase().trim(); valB = (b.tenMayTinh || '').toLowerCase().trim();
         }
@@ -1230,8 +1264,8 @@
         });
         } else {
         filtered.sort((a, b) => {
-        let nameA = (a.tenThietBi || '').toLowerCase().trim();
-        let nameB = (b.tenThietBi || '').toLowerCase().trim();
+        let nameA = (a.tenViTri || '').toLowerCase().trim();
+        let nameB = (b.tenViTri || '').toLowerCase().trim();
 
         let compareName = nameA.localeCompare(nameB, 'vi');
         if (compareName !== 0) {
@@ -1255,7 +1289,7 @@
 
         let imgHtml = item.duongDanAnh
         ? `<div class="position-relative d-inline-block">
-        <img src="/QLKiemKe/GetImage?fileName=${encodeURIComponent(item.duongDanAnh)}" class="shadow-sm img-thumbnail-hover" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;" alt="Ảnh TB" onclick="phongToAnh('/QLKiemKe/GetImage?fileName=${encodeURIComponent(item.duongDanAnh)}', '${item.tenThietBi || 'Thiết bị'}')" title="Nhấn để phóng to ảnh" />
+        <img src="/QLKiemKe/GetImage?fileName=${encodeURIComponent(item.duongDanAnh)}" class="shadow-sm img-thumbnail-hover" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;" alt="Ảnh TB" onclick="phongToAnh('/QLKiemKe/GetImage?fileName=${encodeURIComponent(item.duongDanAnh)}', '${item.tenViTri || 'Vị trí'}')" title="Nhấn để phóng to ảnh" />
         <div class="mobile-quick-cam-wrap"><button class="btn btn-sm btn-success btn-quick-cam" onclick="openQuickCameraMobile(${item.idThietBi}, event)"><i class="fas fa-camera" style="font-size:11px;"></i></button></div>
         </div>`
         : `<div class="position-relative d-inline-block">
@@ -1264,9 +1298,15 @@
         </div>`;
 
         let checkTimeStr = item.thoiGianCheck ? new Date(item.thoiGianCheck).toLocaleString('vi-VN') : '<span class="text-danger fst-italic">Chưa Check</span>';
-        let hostName = item.tenMayTinh ? item.tenMayTinh : '<i class="text-muted">Chưa có Hostname</i>';
+
+        // ĐÃ CẬP NHẬT: Click vào tên máy tính để nhảy vào trang chi tiết thiết bị
+        let hostName = item.tenMayTinh
+        ? `<a href="/QLKiemKe/ChiTietThietBi/${item.idThietBi}" class="fw-bold text-decoration-none text-primary mb-1 d-block" style="font-size:16px;" target="_blank"><i class="fas fa-desktop me-1"></i> ${item.tenMayTinh}</a>`
+        : '<i class="text-muted d-block mb-1">Chưa có Hostname</i>';
+
         let accountName = item.tenDangNhap ? item.tenDangNhap : '<i class="text-muted">Chưa có Account</i>';
         let quyCachLine = item.quyCach ? `<div class="small text-dark text-truncate" style="max-width:200px" title="${item.quyCach}"><b>Quy cách:</b> ${item.quyCach}</div>` : '';
+        let serialLine = item.seribacode ? `<div class="small text-secondary text-truncate" style="max-width:200px"><b>S/N:</b> ${item.seribacode}</div>` : '';
 
         html += `
         <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative">
@@ -1283,16 +1323,17 @@
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2 align-middle">
         <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px;">Thông tin máy:</span>
-        <div class="fw-bold text-primary mb-1" style="font-size:16px;"><i class="fas fa-desktop me-1"></i> ${hostName}</div>
-        <div class="fw-semibold text-dark"><i class="fas fa-user-circle me-1"></i> ${accountName}</div>
+        ${hostName}
+        <div class="fw-semibold text-dark mb-1"><i class="fas fa-user-circle me-1"></i> ${accountName}</div>
         ${quyCachLine}
+        ${serialLine}
         <div class="small text-muted mt-1 text-truncate d-inline-block" style="max-width:200px"><b>Note:</b> ${item.ghiChu || ''}</div>
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2 align-middle">
         <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px;">Người dùng & Vị trí:</span>
         ${userStr}<br/>
         <span class="small text-muted"><i class="fas fa-map-marker-alt mt-1"></i> ${locStr}</span><br/>
-        <span class="badge bg-secondary mt-1"><i class="fas fa-barcode"></i> Mã: ${item.tenThietBi}</span>
+        <span class="badge bg-dark mt-1 text-white"><i class="fas fa-map-pin"></i> Vị trí: ${item.tenViTri}</span>
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2 align-middle">
         <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px;">Trạng thái:</span>
@@ -1303,7 +1344,7 @@
         <div class="d-flex flex-column gap-1">
         <button class="btn btn-sm btn-success w-100 shadow-sm" onclick="xacNhanCheckThietBi(${item.idThietBi})"><i class="fas fa-check-circle"></i> Xác nhận Check</button>
         <div class="btn-group w-100 shadow-sm">
-        <button class="btn btn-sm btn-outline-info text-info" onclick="openLichSuCheckThietBi(${item.idThietBi}, '${item.tenMayTinh || ''}', '${item.tenThietBi || ''}')" title="Xem lịch sử & bằng chứng check"><i class="fas fa-history"></i></button>
+        <button class="btn btn-sm btn-outline-info text-info" onclick="openLichSuCheckThietBi(${item.idThietBi}, '${item.tenMayTinh || ''}', '${item.tenViTri || ''}')" title="Xem lịch sử & bằng chứng check"><i class="fas fa-history"></i></button>
         <button class="btn btn-sm btn-outline-dark flex-fill" onclick='editThietBi(${JSON.stringify(item).replace(/'/g, "&#39;")})'><i class="fas fa-edit"></i> Sửa</button>
         <button class="btn btn-sm btn-outline-danger" onclick="deleteThietBi(${item.idThietBi})"><i class="fas fa-trash"></i></button>
         </div>
@@ -1335,7 +1376,7 @@
         if (fText) {
         filtered = filtered.filter(x =>
         (x.tenMayTinh && x.tenMayTinh.toLowerCase().includes(fText)) ||
-        (x.tenThietBi && x.tenThietBi.toLowerCase().includes(fText)) ||
+        (x.tenViTri && x.tenViTri.toLowerCase().includes(fText)) ||
         (x.lyDoXoa && x.lyDoXoa.toLowerCase().includes(fText))
         );
         }
@@ -1355,7 +1396,7 @@
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2">
         <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px;">Thông tin:</span>
         <div class="fw-bold text-dark" style="font-size:15px;">${item.tenMayTinh || 'N/A'}</div>
-        <div class="small text-muted mt-1">Mã: ${item.tenThietBi}</div>
+        <div class="small text-muted mt-1">Vị trí: ${item.tenViTri}</div>
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2">
         <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px;">Vị trí cũ:</span>
@@ -1384,15 +1425,10 @@
         $('#tbodyDaXoa').html(html);
         }
 
-        // ĐÃ NÂNG CẤP: Ép cấu hình Camera nhận độ phân giải gốc siêu nét (2K/4K)
         function openCamera() {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({
-        video: {
-        facingMode: 'environment',
-        width: { ideal: 4096 },
-        height: { ideal: 2160 }
-        }
+        video: { facingMode: 'environment', width: { ideal: 4096 }, height: { ideal: 2160 } }
         })
         .then(function(stream) {
         currentStream = stream;
@@ -1404,7 +1440,7 @@
         })
         .catch(function(err) { Swal.fire("Lỗi Camera", "Không thể truy cập camera: " + err.message, "error"); });
         } else {
-        Swal.fire("Không hỗ trợ", "Trình duyệt của thiết bị không hỗ trợ tính năng chụp trực tiếp.", "warning");
+        Swal.fire("Không hỗ trợ", "Trình duyệt không hỗ trợ tính năng chụp trực tiếp.", "warning");
         }
         }
 
@@ -1461,11 +1497,7 @@
 
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({
-        video: {
-        facingMode: 'environment',
-        width: { ideal: 4096 },
-        height: { ideal: 2160 }
-        }
+        video: { facingMode: 'environment', width: { ideal: 4096 }, height: { ideal: 2160 } }
         })
         .then(function(stream) {
         quickCamStream = stream;
@@ -1511,11 +1543,15 @@
         if(currentItem) {
         formData.append("LoaiThietBi", currentItem.loaiThietBi || "");
         formData.append("IdTrangThai", currentItem.idTrangThai || 0);
-        formData.append("TenThietBi", currentItem.tenThietBi || "");
+        formData.append("TenViTri", currentItem.tenViTri || "");
         formData.append("TenMayTinh", currentItem.tenMayTinh || "");
         formData.append("TenDangNhap", currentItem.tenDangNhap || "");
         formData.append("GhiChu", currentItem.ghiChu || "");
         formData.append("QuyCach", currentItem.quyCach || "");
+        formData.append("Seribacode", currentItem.seribacode || "");
+        formData.append("HanBaoHanh", currentItem.hanBaoHanh || "");
+        formData.append("WinLicense", currentItem.winLicense || "");
+        formData.append("OfficeLicense", currentItem.officeLicense || "");
         if(currentItem.idNguoiDung) formData.append("IdNguoiDung", currentItem.idNguoiDung);
         if(currentItem.idcongTy) formData.append("IdcongTy", currentItem.idcongTy);
         if(currentItem.idboPhan) formData.append("IdboPhan", currentItem.idboPhan);
@@ -1552,10 +1588,22 @@
 
         $('#tb_LoaiThietBi').val(item.loaiThietBi);
         $('#tb_QuyCach').val(item.quyCach || '');
-        $('#tb_TenThietBi').val(item.tenThietBi);
+        $('#tb_TenViTri').val(item.tenViTri);
         $('#tb_TenMayTinh').val(item.tenMayTinh || '');
         $('#tb_TenDangNhap').val(item.tenDangNhap || '');
         $('#tb_GhiChu').val(item.ghiChu || '');
+
+        // Gán dữ liệu của các trường mới vào Form khi sửa
+        $('#tb_Seribacode').val(item.seribacode || '');
+        $('#tb_WinLicense').val(item.winLicense || '');
+        $('#tb_OfficeLicense').val(item.officeLicense || '');
+
+        if (item.hanBaoHanh) {
+        // Định dạng chuẩn DateOnly từ server trả về yyyy-MM-dd
+        $('#tb_HanBaoHanh').val(item.hanBaoHanh);
+        } else {
+        $('#tb_HanBaoHanh').val('');
+        }
 
         clearImage();
         if (item.duongDanAnh) {
@@ -1572,19 +1620,26 @@
         let isAddMode = parseInt($('#tb_Id').val()) === 0 || saveAsNew;
         let loaiThietBi = $('#tb_LoaiThietBi').val();
         let idTrangThai = $('#tb_IdTrangThai').val();
+        let tenViTri = $('#tb_TenViTri').val().trim();
 
-        if(!loaiThietBi || !idTrangThai) return Swal.fire("Lỗi", "Vui lòng chọn loại thiết bị và Trạng thái!", "warning");
+        if(!loaiThietBi || !idTrangThai || !tenViTri) return Swal.fire("Lỗi", "Vui lòng chọn loại thiết bị, trạng thái và điền tên vị trí!", "warning");
 
         var formData = new FormData();
         formData.append("IdThietBi", parseInt($('#tb_Id').val()));
         formData.append("LoaiThietBi", loaiThietBi);
         formData.append("QuyCach", $('#tb_QuyCach').val().trim());
         formData.append("IdTrangThai", parseInt(idTrangThai));
-        formData.append("TenThietBi", $('#tb_TenThietBi').val().trim().toUpperCase());
+        formData.append("TenViTri", tenViTri.toUpperCase());
         formData.append("TenMayTinh", $('#tb_TenMayTinh').val().trim().toUpperCase());
         formData.append("TenDangNhap", $('#tb_TenDangNhap').val().trim().toUpperCase());
         formData.append("GhiChu", $('#tb_GhiChu').val().trim());
         formData.append("saveAsNew", saveAsNew);
+
+        // Đóng gói các trường mới vào AJAX Form
+        formData.append("Seribacode", $('#tb_Seribacode').val().trim());
+        formData.append("HanBaoHanh", $('#tb_HanBaoHanh').val());
+        formData.append("WinLicense", $('#tb_WinLicense').val());
+        formData.append("OfficeLicense", $('#tb_OfficeLicense').val());
 
         if($('#tb_IdNguoiDung').val()) formData.append("IdNguoiDung", parseInt($('#tb_IdNguoiDung').val()));
         if($('#tb_IdCongTy').val()) formData.append("IdcongTy", parseInt($('#tb_IdCongTy').val()));
@@ -1607,7 +1662,7 @@
         Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: saveAsNew ? 'Nhân bản sao thiết bị thành công!' : 'Thêm thiết bị thành công!', showConfirmButton: false, timer: 2000 });
         $('#tb_Id').val('0');
         clearImage();
-        $('#tb_TenThietBi').select().focus();
+        $('#tb_TenViTri').select().focus();
         $('#btnSaveAsNew').hide();
         } else {
         $('#modalThietBi').modal('hide');
@@ -1619,12 +1674,10 @@
         });
         }
 
-        // SỬA LỖI KHÔNG CHẠY KHỐI XÁC NHẬN CHECK: Loại bỏ hoàn toàn clearEvidenceImage và closeEvidenceCamera bị lỗi gọi trước khi khởi tạo
         function xacNhanCheckThietBi(id) {
         $('#evidence_IdThietBi').val(id);
         $('#evidence_GhiChu').val('');
 
-        // Xóa ảnh và biến cũ trực tiếp thay vì gọi hàm chưa khởi tạo an toàn
         $('#evidence_AnhFile').val('');
         evidencePhotoBlob = null;
         $('#imgEvidencePreview').attr('src', '');
@@ -1685,11 +1738,7 @@
         function openEvidenceCamera() {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({
-        video: {
-        facingMode: 'environment',
-        width: { ideal: 4096 },
-        height: { ideal: 2160 }
-        }
+        video: { facingMode: 'environment', width: { ideal: 4096 }, height: { ideal: 2160 } }
         })
         .then(function(stream) {
         evidenceCamStream = stream;
@@ -1717,7 +1766,7 @@
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        let dataUrl = canvas.toDataURL('image/jpeg', 1.0); // Nét căng 100% chất lượng giống ảnh gốc
+        let dataUrl = canvas.toDataURL('image/jpeg', 1.0);
         $('#imgEvidencePreview').attr('src', dataUrl);
         $('#boxPreviewEvidenceImg').show();
 
@@ -1741,9 +1790,8 @@
         } else { clearEvidenceImage(); }
         }
 
-        // ĐỒNG BỘ: Sửa đổi hiển thị ảnh bằng chứng kiểm kê lớn, tìm đúng API GetEvidenceImage
-        function openLichSuCheckThietBi(idThietBi, tenMayTinh, tenThietBi) {
-        $('#lblInfoThietBiLichSu').html(`<i class="fas fa-laptop me-1"></i> Máy tính: ${tenMayTinh || 'N/A'} | Mã: ${tenThietBi || 'N/A'}`);
+        function openLichSuCheckThietBi(idThietBi, tenMayTinh, tenViTri) {
+        $('#lblInfoThietBiLichSu').html(`<i class="fas fa-laptop me-1"></i> Máy tính: ${tenMayTinh || 'N/A'} | Vị trí: ${tenViTri || 'N/A'}`);
         $('#boxTimelineCheckResult').html(`<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i> Đang tải nhật ký...</div>`);
         $('#modalLichSuCheckThietBi').modal('show');
 
@@ -1764,7 +1812,7 @@
         let fullImgUrl = `/QLKiemKe/GetEvidenceImage?fileName=${encodeURIComponent(log.duongDanAnh)}`;
         imgHtml = `
         <div class="mt-2">
-        <img src="${fullImgUrl}" class="rounded shadow-sm border border-light" style="width: 100px; height: 75px; object-fit: cover; cursor: pointer;" onclick="phongToAnh('${fullImgUrl}', '${tenThietBi}')" title="Bấm để xem ảnh lớn bằng chứng" />
+        <img src="${fullImgUrl}" class="rounded shadow-sm border border-light" style="width: 100px; height: 75px; object-fit: cover; cursor: pointer;" onclick="phongToAnh('${fullImgUrl}', '${tenViTri}')" title="Bấm để xem ảnh lớn bằng chứng" />
         </div>`;
         }
 
@@ -1866,7 +1914,7 @@
 
         function phongToAnh(imgUrl, title) {
         Swal.fire({
-        title: title ? `Mã TB: ${title}` : 'Ảnh Thiết Bị', imageUrl: imgUrl, imageAlt: 'Ảnh thiết bị chi tiết',
+        title: title ? `Vị trí: ${title}` : 'Ảnh Thiết Bị', imageUrl: imgUrl, imageAlt: 'Ảnh thiết bị chi tiết',
         showCloseButton: true, showConfirmButton: false, width: 'auto', padding: '1em', backdrop: `rgba(0,0,0,0.85)`,
         customClass: { image: 'img-fluid rounded shadow-lg', popup: 'bg-white rounded-4' }
         });

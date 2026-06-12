@@ -6,27 +6,28 @@ using Microsoft.EntityFrameworkCore;
 
 namespace E_Form_Best.Models.ITForm;
 
-[Table("BoPhan")]
-public partial class BoPhan
+[Table("DanhMucQuyenBoPhan")]
+[Index("MaQuyen", Name = "UQ__DanhMucQ__B9A4290ED67093A0", IsUnique = true)]
+public partial class DanhMucQuyenBoPhan
 {
     [Key]
-    [Column("id_bo_phan")]
-    public int IdBoPhan { get; set; }
+    [Column("id_quyen")]
+    public int IdQuyen { get; set; }
 
-    [Column("ten_bo_phan")]
+    [Column("ma_quyen")]
+    [StringLength(100)]
+    public string MaQuyen { get; set; } = null!;
+
+    [Column("ten_quyen")]
     [StringLength(255)]
-    public string? TenBoPhan { get; set; }
+    public string TenQuyen { get; set; } = null!;
 
     [Column("mo_ta")]
-    [StringLength(500)]
     public string? MoTa { get; set; }
 
     [Column("ngay_tao", TypeName = "datetime")]
     public DateTime? NgayTao { get; set; }
 
-    [InverseProperty("IdBoPhanNavigation")]
+    [InverseProperty("IdQuyenNavigation")]
     public virtual ICollection<BoPhanQuyenTrungGian> BoPhanQuyenTrungGians { get; set; } = new List<BoPhanQuyenTrungGian>();
-
-    [InverseProperty("IdBoPhanNavigation")]
-    public virtual ICollection<UserBoPhan> UserBoPhans { get; set; } = new List<UserBoPhan>();
 }

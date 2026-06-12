@@ -331,7 +331,7 @@
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-info"></i> Tìm Kiếm Nhanh</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-                            <input type="text" id="filterText" class="form-control border-start-0 ps-0" placeholder="S/N, Hostname, Account, Tên, Mã TK..." style="height: 38px;">
+                            <input type="text" id="filterText" class="form-control border-start-0 ps-0" placeholder="S/N, Hostname, Account, Tên Vị Trí, Mã TK..." style="height: 38px;">
                         </div>
                     </div>
 
@@ -341,8 +341,8 @@
                             <option value="">Mặc định (Theo ID)</option>
                             <option value="host_asc">Tên máy Hostname (A-Z)</option>
                             <option value="host_desc">Tên máy Hostname (Z-A)</option>
-                            <option value="name_asc">Mã Thiết bị (A-Z)</option>
-                            <option value="name_desc">Mã Thiết bị (Z-A)</option>
+                            <option value="name_asc">Tên Vị Trí (A-Z)</option>
+                            <option value="name_desc">Tên Vị Trí (Z-A)</option>
                         </select>
                     </div>
 
@@ -486,13 +486,13 @@
                         <thead class="table-light position-sticky top-0 shadow-sm" style="z-index: 10;">
                             <tr>
                                 <th class="ps-4" width="70">ID</th>
-                                <th>Thông tin TB & Hostname</th>
+                                <th>Thông tin máy tính & Vị trí</th>
                                 <th>Loại & Ảnh đính kèm</th>
                                 <th>Tài khoản & Người dùng</th>
-                                <th>Vị trí (CT - BP)</th>
+                                <th>Sơ đồ Vị trí (CT - BP)</th>
                                 <th class="text-center">Trạng thái</th>
                                 <th class="text-center" width="160">Lần cuối Check</th>
-                                <th>Ghi chú</th>
+                                <th>Ghi chú</th>
                                 <th class="text-center" width="120">Thao tác</th>
                             </tr>
                         </thead>
@@ -690,7 +690,7 @@
         if (fText) {
         baseFiltered = baseFiltered.filter(x =>
         (x.tenMayTinh && x.tenMayTinh.toLowerCase().includes(fText)) ||
-        (x.tenThietBi && x.tenThietBi.toLowerCase().includes(fText)) ||
+        (x.tenViTri && x.tenViTri.toLowerCase().includes(fText)) ||
         (x.tenNguoiDung && x.tenNguoiDung.toLowerCase().includes(fText)) ||
         (x.tenDangNhap && x.tenDangNhap.toLowerCase().includes(fText)) ||
         (x.tk && x.tk.toLowerCase().includes(fText))
@@ -747,7 +747,7 @@
         if (fSort.startsWith('host')) {
         valA = (a.tenMayTinh || '').toLowerCase(); valB = (b.tenMayTinh || '').toLowerCase();
         } else if (fSort.startsWith('name')) {
-        valA = (a.tenThietBi || '').toLowerCase(); valB = (b.tenThietBi || '').toLowerCase();
+        valA = (a.tenViTri || '').toLowerCase(); valB = (b.tenViTri || '').toLowerCase();
         }
         if (fSort.endsWith('asc')) {
         return valA.localeCompare(valB, 'vi', { sensitivity: 'base' });
@@ -818,7 +818,7 @@
         let bpColors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b'];
         let colorIdx = 0;
 
-        if (Object.keys(companyDeptsMap).length === 0) {
+        if (typeof companyDeptsMap === 'object' && Object.keys(companyDeptsMap).length === 0) {
         $('#boPhanChartsContainer').html('<div class="col-12 text-center text-muted py-5"><i class="fas fa-folder-open fa-2x mb-2 d-block opacity-50"></i>Không có dữ liệu bộ phận</div>');
         } else {
         let colClass = Object.keys(companyDeptsMap).length > 1 ? 'col-md-6' : 'col-12';
@@ -868,7 +868,8 @@
         renderTablePage();
         }
 
-        function changePage(pageNumber) {
+        // Đã gán hàm toàn cục để phân trang chạy chuẩn
+        window.changePage = function(pageNumber) {
         currentPage = pageNumber;
         renderTablePage();
         }
@@ -928,7 +929,7 @@
         alt="Ảnh thiết bị"
         class="img-thumbnail shadow-sm"
         style="width: 50px; height: 50px; object-fit: cover; cursor: pointer; border-radius: 8px;"
-        onclick="viewFullImage('${imgUrl}', '${item.tenMayTinh || item.tenThietBi || 'Thiết bị'}')"
+        onclick="viewFullImage('${imgUrl}', '${item.tenMayTinh || item.tenViTri || 'Vị trí'}')"
         title="Nhấn để xem ảnh lớn" />
         </div>`;
         } else {
@@ -948,7 +949,7 @@
         <td data-label="Thông tin TB & Hostname">
         <div class="text-end text-md-start">
         <div class="fw-bold text-dark fs-6">${item.tenMayTinh || '<i class="text-muted fw-normal">No Hostname</i>'}</div>
-        <div class="small text-muted"><i class="fas fa-barcode"></i> ${item.tenThietBi}</div>
+        <div class="small text-muted"><i class="fas fa-map-pin"></i> Vị trí: ${item.tenViTri}</div>
         </div>
         </td>
         <td data-label="Loại & Ảnh đính kèm">
@@ -977,7 +978,7 @@
         style="background: linear-gradient(135deg, #8b5cf6, #6366f1); border: none; font-weight: 600; font-size: 0.8rem; transition: all 0.3s ease;"
         onmouseover="this.style.transform='translateY(-2px)';"
         onmouseout="this.style.transform='translateY(0)';"
-        onclick="xemLichSuThietBi(${item.idThietBi}, '${item.tenMayTinh || item.tenThietBi || 'Thiết bị'}')">
+        onclick="xemLichSuThietBi(${item.idThietBi}, '${item.tenMayTinh || item.tenViTri || 'Vị trí'}')">
         <i class="fas fa-history me-1"></i> Lịch sử
         </button>
         </td>
@@ -994,28 +995,28 @@
         if (totalPages <= 1) { $('#paginationControls').html(''); return; }
 
         let prevDisabled = currentPage === 1 ? 'disabled' : '';
-        html += `<li class="page-item ${prevDisabled}"><a class="page-link" onclick="changePage(${currentPage - 1})"><i class="fas fa-chevron-left"></i></a></li>`;
+        html += `<li class="page-item ${prevDisabled}"><a class="page-link" onclick="window.changePage(${currentPage - 1})"><i class="fas fa-chevron-left"></i></a></li>`;
 
         let startPage = Math.max(1, currentPage - 2);
         let endPage = Math.min(totalPages, currentPage + 2);
 
         if (startPage > 1) {
-        html += `<li class="page-item"><a class="page-link" onclick="changePage(1)">1</a></li>`;
+        html += `<li class="page-item"><a class="page-link" onclick="window.changePage(1)">1</a></li>`;
         if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link border-0">...</span></li>`;
         }
 
         for (let i = startPage; i <= endPage; i++) {
         let activeClass = i === currentPage ? 'active' : '';
-        html += `<li class="page-item ${activeClass}"><a class="page-link" onclick="changePage(${i})">${i}</a></li>`;
+        html += `<li class="page-item ${activeClass}"><a class="page-link" onclick="window.changePage(${i})">${i}</a></li>`;
         }
 
         if (endPage < totalPages) {
         if (endPage < totalPages - 1) html += `<li class="page-item disabled"><span class="page-link border-0">...</span></li>`;
-        html += `<li class="page-item"><a class="page-link" onclick="changePage(${totalPages})">${totalPages}</a></li>`;
+        html += `<li class="page-item"><a class="page-link" onclick="window.changePage(${totalPages})">${totalPages}</a></li>`;
         }
 
         let nextDisabled = currentPage === totalPages ? 'disabled' : '';
-        html += `<li class="page-item ${nextDisabled}"><a class="page-link" onclick="changePage(${currentPage + 1})"><i class="fas fa-chevron-right"></i></a></li>`;
+        html += `<li class="page-item ${nextDisabled}"><a class="page-link" onclick="window.changePage(${currentPage + 1})"><i class="fas fa-chevron-right"></i></a></li>`;
 
         $('#paginationControls').html(html);
         }
@@ -1164,7 +1165,7 @@
         // ==========================================
         // HÀM XUẤT EXCEL SỬ DỤNG SHEETJS
         // ==========================================
-        function exportToExcel() {
+        window.exportToExcel = function() {
         if (filteredExportData.length === 0) {
         Swal.fire("Thông báo", "Không có dữ liệu để xuất Excel!", "info");
         return;
@@ -1182,7 +1183,7 @@
 
         return {
         "ID": item.idThietBi,
-        "Mã/Serial (S/N)": item.tenThietBi || '',
+        "Tên Vị Trí": item.tenViTri || '', // ĐÃ ĐỒNG BỘ: Chuyển đổi tên sang cột Excel tương ứng
         "Tên Máy (Hostname)": item.tenMayTinh || '',
         "Loại Thiết Bị": item.loaiThietBi || '',
         "Tên Đăng Nhập (Account)": item.tenDangNhap || 'Chưa có',
