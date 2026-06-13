@@ -140,13 +140,13 @@
             box-shadow: 0 0 0 3px #d1fae5;
         }
 
-    @@media (min-width: 768px) {
+    @media (min-width: 768px) {
         .mobile-quick-cam-wrap {
             display: none !important;
         }
     }
 
-    @@media (max-width: 768px) {
+    @media (max-width: 768px) {
         .content-header .row > div {
             text-align: center !important;
             margin-bottom: 15px;
@@ -620,10 +620,10 @@
                 <div id="boxEvidenceCamera" style="display: none;" class="mt-2 text-center border rounded p-2 bg-light shadow-sm">
                     <video id="videoEvidenceCamera" autoplay playsinline style="width: 100%; max-height: 240px; border-radius: 10px; background: #000; object-fit: cover;"></video>
                     <div class="mt-2 mb-1">
-                        <button type="button" class="btn btn-sm btn-danger rounded-pill px-3" onclick="takeEvidenceSnapshot()">
+                        <button type="button" class="btn btn-danger rounded-pill px-3" onclick="takeEvidenceSnapshot()">
                             <i class="fas fa-dot-circle me-1"></i> Chụp hình bằng chứng
                         </button>
-                        <button type="button" class="btn btn-sm btn-secondary rounded-pill px-2 ms-2" onclick="closeEvidenceCamera()">
+                        <button type="button" class="btn btn-secondary rounded-pill px-2 ms-2" onclick="closeEvidenceCamera()">
                             <i class="fas fa-times"></i> Đóng cam
                         </button>
                     </div>
@@ -1438,7 +1438,7 @@
         function openCamera() {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 4096 }, height: { ideal: 2160 } }
+        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
         })
         .then(function(stream) {
         currentStream = stream;
@@ -1464,18 +1464,33 @@
         let canvas = document.getElementById('canvasCamera');
         let context = canvas.getContext('2d');
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        // Tính toán downscale độ phân giải tối đa 1280px để lưu nhanh hơn
+        let maxDim = 1280;
+        let w = video.videoWidth;
+        let h = video.videoHeight;
+        if (w > maxDim || h > maxDim) {
+            if (w > h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+            } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+            }
+        }
+
+        canvas.width = w;
+        canvas.height = h;
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        let dataUrl = canvas.toDataURL('image/jpeg', 1.0);
+        // Nén chất lượng xuống 0.8 (80%) để giảm dung lượng file đáng kể
+        let dataUrl = canvas.toDataURL('image/jpeg', 0.8);
         $('#imgThietBi').attr('src', dataUrl);
         $('#boxPreviewImg').show();
 
         canvas.toBlob(function(blob) {
         capturedPhotoBlob = blob;
         $('#tb_Anh').val('');
-        }, 'image/jpeg', 1.0);
+        }, 'image/jpeg', 0.8);
 
         closeCamera();
         }
@@ -1507,7 +1522,7 @@
 
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 4096 }, height: { ideal: 2160 } }
+        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
         })
         .then(function(stream) {
         quickCamStream = stream;
@@ -1532,10 +1547,25 @@
         let context = canvas.getContext('2d');
         let idThietBi = $('#quickCam_IdThietBi').val();
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        // Tính toán downscale độ phân giải tối đa 1280px cho chụp nhanh mobile
+        let maxDim = 1280;
+        let w = video.videoWidth;
+        let h = video.videoHeight;
+        if (w > maxDim || h > maxDim) {
+            if (w > h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+            } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+            }
+        }
+
+        canvas.width = w;
+        canvas.height = h;
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+        // Giảm mức nén xuống 0.75 giúp gửi dữ liệu qua mạng di động cực nhanh
         canvas.toBlob(function(blob) {
         if(!blob) return;
 
@@ -1578,7 +1608,7 @@
         },
         error: function() { Swal.close(); Swal.fire("Lỗi", "Không thể kết nối đến máy chủ!", "error"); }
         });
-        }, 'image/jpeg', 1.0);
+        }, 'image/jpeg', 0.75);
         }
 
         function editThietBi(item) {
@@ -1629,16 +1659,16 @@
         let isAddMode = parseInt($('#tb_Id').val()) === 0 || saveAsNew;
         let loaiThietBi = $('#tb_LoaiThietBi').val();
         let idTrangThai = $('#tb_IdTrangThai').val();
-        let tenViTri = $('#tb_TenViTri').val().trim();
+        let textTenViTri = $('#tb_TenViTri').val().trim();
 
-        if(!loaiThietBi || !idTrangThai || !tenViTri) return Swal.fire("Lỗi", "Vui lòng chọn loại thiết bị, trạng thái và điền tên vị trí!", "warning");
+        if(!loaiThietBi || !idTrangThai || !textTenViTri) return Swal.fire("Lỗi", "Vui lòng chọn loại thiết bị, trạng thái và điền tên vị trí!", "warning");
 
         var formData = new FormData();
         formData.append("IdThietBi", parseInt($('#tb_Id').val()));
         formData.append("LoaiThietBi", loaiThietBi);
         formData.append("QuyCach", $('#tb_QuyCach').val().trim());
         formData.append("IdTrangThai", parseInt(idTrangThai));
-        formData.append("TenViTri", tenViTri.toUpperCase());
+        formData.append("TenViTri", textTenViTri.toUpperCase());
         formData.append("TenMayTinh", $('#tb_TenMayTinh').val().trim().toUpperCase());
         formData.append("TenDangNhap", $('#tb_TenDangNhap').val().trim().toUpperCase());
         formData.append("GhiChu", $('#tb_GhiChu').val().trim());
@@ -1746,7 +1776,7 @@
         function openEvidenceCamera() {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 4096 }, height: { ideal: 2160 } }
+        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
         })
         .then(function(stream) {
         evidenceCamStream = stream;
@@ -1770,15 +1800,29 @@
         let canvas = document.getElementById('canvasEvidenceCamera');
         let ctx = canvas.getContext('2d');
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        // Tính toán downscale ảnh bằng chứng kiểm kê tối đa 1024px để lưu cực nhẹ
+        let maxDim = 1024;
+        let w = video.videoWidth;
+        let h = video.videoHeight;
+        if (w > maxDim || h > maxDim) {
+            if (w > h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+            } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+            }
+        }
+
+        canvas.width = w;
+        canvas.height = h;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        let dataUrl = canvas.toDataURL('image/jpeg', 1.0);
+        let dataUrl = canvas.toDataURL('image/jpeg', 0.8);
         $('#imgEvidencePreview').attr('src', dataUrl);
         $('#boxPreviewEvidenceImg').show();
 
-        canvas.toBlob(function(b) { evidencePhotoBlob = b; $('#evidence_AnhFile').val(''); }, 'image/jpeg', 1.0);
+        canvas.toBlob(function(b) { evidencePhotoBlob = b; $('#evidence_AnhFile').val(''); }, 'image/jpeg', 0.8);
         closeEvidenceCamera();
         }
 
@@ -1909,7 +1953,7 @@
         function hardDeleteThietBi(id) {
         Swal.fire({
         title: 'Xóa vĩnh viễn?', text: "Hành động xóa vĩnh viễn khỏi cơ sở dữ liệu sẽ không thể khôi phục lại!",
-        icon: 'error', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Xóa vĩnh viễn', cancelButtonText: 'Hủy'
+        icon: 'error', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Xóa vĩnh vễn', cancelButtonText: 'Hủy'
         }).then((r) => {
         if (r.isConfirmed) {
         $.post('/QLKiemKe/HardDeleteKkThietBi', { id: id }, function(res) {
