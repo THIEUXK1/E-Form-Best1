@@ -156,8 +156,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
 
-            // --- TIẾP TỤC CÁC LOGIC CŨ BÊN DƯỚI ---
-
             // 2. Đảm bảo có Security Stamp
             if (string.IsNullOrEmpty(user.SecurityStamp))
             {
@@ -206,7 +204,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             _context.LichSuTruyCaps.Add(new LichSuTruyCap { IdNguoiDung = user.IdNguoiDung, ThoiGianDangNhap = DateTime.Now, TenMayTinh = resolvedComputerName, DiaChiIp = ipAddress ?? "", TrinhDuyet = userAgent, TrangThai = "Đang hoạt động" });
             await _context.SaveChangesAsync();
 
-            // 4. Thiết lập Claims
+            // 4. Thiết lập Claims chính để lưu vào Cookie Authentication
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.IdNguoiDung.ToString()),
@@ -221,18 +219,88 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 new Claim("LoginMethod", isDomainAuth ? "Domain" : "Database")
             };
 
-            if (user.UserBoPhans != null && user.UserBoPhans.Any())
+            // Mảng gom toàn bộ chuỗi quyền thu được từ cả 2 phân hệ trước khi nạp vào cookie Role
+            var danhSachMaQuyenDeGhanRole = new List<string>();
+
+            // =====================================================================================
+            // CƠ CHẾ 1: QUYỀN BỘ PHẬN PHÒNG BAN (MÔ HÌNH MỚI - DANHMUCQUYENBOPHAN)
+            // =====================================================================================
+            if (user.UserBoPhans != null && user.UserBoPhans.Any(ub => ub.IdBoPhanNavigation != null))
             {
                 // Đảm bảo lọc bỏ các phần tử điều hướng bị null trước khi Select dữ liệu
-                claims.Add(new Claim("TenBoPhan", string.Join(", ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation!.TenBoPhan))));
-                claims.Add(new Claim("MoTaBoPhan", string.Join(" | ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation!.MoTa))));
+                string danhSachTenBP = string.Join(", ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation!.TenBoPhan));
+                string danhSachMoTaBP = string.Join(" | ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation!.MoTa));
+
+                // Ghi đè/Cập nhật dữ liệu tên bộ phận chính thức vào danh mục Claim lưu trú
+                var existingPhongBan = claims.FirstOrDefault(c => c.Type == "PhongBan");
+                if (existingPhongBan != null) claims.Remove(existingPhongBan);
+                claims.Add(new Claim("PhongBan", danhSachTenBP));
+
+                claims.Add(new Claim("TenBoPhan", danhSachTenBP));
+                claims.Add(new Claim("MoTaBoPhan", danhSachMoTaBP));
+
+                var listIdBoPhan = user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhan).ToList();
+
+                // Lấy các mã quyền MaQuyen tiếng Anh viết liền từ mô hình bộ phận mới
+                var quyenBoPhan = await _context.BoPhanQuyenTrungGians
+                    .Where(x => listIdBoPhan.Contains(x.IdBoPhan) && x.ChoPhep == true && x.IdQuyenNavigation != null)
+                    .Select(x => x.IdQuyenNavigation!.MaQuyen)
+                    .Distinct()
+                    .ToListAsync();
+
+                danhSachMaQuyenDeGhanRole.AddRange(quyenBoPhan);
+            }
+            else
+            {
+                // BỘ LỌC DỰ PHÒNG CHUỖI THÔ: Nếu bảng trung gian trống -> Quét chuỗi văn bản phong_ban từ bảng User sang danh mục bộ phận tương ứng
+                string phongBanTho = user.PhongBan?.Trim() ?? "";
+                if (!string.IsNullOrEmpty(phongBanTho))
+                {
+                    var boPhanTuongUng = await _context.BoPhans
+                        .FirstOrDefaultAsync(bp => bp.TenBoPhan != null && bp.TenBoPhan == phongBanTho);
+
+                    if (boPhanTuongUng != null)
+                    {
+                        var quyenBoPhanDuPhong = await _context.BoPhanQuyenTrungGians
+                            .Where(x => x.IdBoPhan == boPhanTuongUng.IdBoPhan && x.ChoPhep == true && x.IdQuyenNavigation != null)
+                            .Select(x => x.IdQuyenNavigation!.MaQuyen)
+                            .Distinct()
+                            .ToListAsync();
+
+                        danhSachMaQuyenDeGhanRole.AddRange(quyenBoPhanDuPhong);
+                    }
+                }
             }
 
+            // =====================================================================================
+            // CƠ CHẾ 2: QUYỀN CÁ NHÂN RIÊNG LẺ (MÔ HÌNH CŨ - BẢNG QUYEN & USER_QUYEN)
+            // TỰ ĐỘNG CHUYỂN ĐỔI CHUỖI TIẾNG VIỆT CÓ DẤU SANG CHUỖI VIẾT LIỀN KHÔNG DẤU ĐỂ KHỚP VIEW
+            // =====================================================================================
             if (user.UserQuyens != null)
             {
-                foreach (var tenQuyen in user.UserQuyens.Where(uq => uq.IdQuyenNavigation != null).Select(uq => uq.IdQuyenNavigation!.TenQuyen))
+                var quyenRiengLeUser = user.UserQuyens
+                    .Where(uq => uq.IdQuyenNavigation != null && !string.IsNullOrEmpty(uq.IdQuyenNavigation.TenQuyen))
+                    .Select(uq => uq.IdQuyenNavigation!.TenQuyen!)
+                    .ToList();
+
+                foreach (var tenQuyenGoc in quyenRiengLeUser)
                 {
-                    if (!string.IsNullOrEmpty(tenQuyen)) claims.Add(new Claim(ClaimTypes.Role, tenQuyen));
+                    // Chuyển hóa tự động: "Giám đốc HR" -> "GiamDocHR", "Bảo vệ HR" -> "BaoVeHR"
+                    string quyenChuyenDoi = ConvertVietnameseToEnglishCode(tenQuyenGoc);
+                    if (!string.IsNullOrEmpty(quyenChuyenDoi))
+                    {
+                        danhSachMaQuyenDeGhanRole.Add(quyenChuyenDoi);
+                    }
+                }
+            }
+
+            // Khử trùng lặp toàn bộ dải quyền hợp lệ thu được từ cả 2 mô hình độc lập và đẩy vào Cookie Role hệ thống
+            foreach (var maQuyen in danhSachMaQuyenDeGhanRole.Distinct())
+            {
+                if (!string.IsNullOrEmpty(maQuyen))
+                {
+                    // Lưu định dạng chuỗi gốc hoặc không dấu viết liền để User.IsInRole("GiamDocHR") ngoài View chạy chính xác
+                    claims.Add(new Claim(ClaimTypes.Role, maQuyen.Trim()));
                 }
             }
 
@@ -246,6 +314,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 AllowRefresh = true
             };
 
+            // Mã hóa toàn bộ thông tin Claims thành Token và ghi đè xuống Cookie (ck) Trình duyệt của Client
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 new ClaimsPrincipal(claimsIdentity),
@@ -259,8 +328,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             TempData["ShowPushPrompt"] = true;
             return Redirect("/menuA");
         }
-
-
 
         private bool AuthenticateWithDomain(string username, string password)
         {
@@ -291,6 +358,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return false;
             }
         }
+
         [HttpGet("/DonXetDuyet/DangXuat")]
         public async Task<IActionResult> DangXuat()
         {
@@ -315,6 +383,58 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             HttpContext.Session.Clear();
             TempData["Success"] = "Bạn đã đăng xuất thành công.";
             return Redirect("/DonXetDuyet/DangNhap");
+        }
+
+        // --- HÀM KHỬ DẤU VÀ KHOẢNG TRẮNG ĐỂ ĐỒNG BỘ QUYỀN RIÊNG LẺ CÁ NHÂN CŨ VÀO HỆ THỐNG MỚI ---
+        private static string ConvertVietnameseToEnglishCode(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+
+            // Bắt chính xác từ khóa phân hệ HR đặc thù để ép chuỗi khớp tuyệt đối với câu lệnh kiểm tra cứng trên View
+            string textCheck = text.Trim().Replace(" ", "").ToLower();
+            if (textCheck == "giámđốchr" || textCheck == "giamdochr") return "GiamDocHR";
+            if (textCheck == "bảovệhr" || textCheck == "baovehr") return "BaoVeHR";
+            if (textCheck == "adminhr") return "AdminHR";
+            if (textCheck == "quảnlýduyệtđơnhrb2" || textCheck == "quanlyduyetdonhrb2") return "QuanLyDuyetDonHR_B2";
+            if (textCheck == "all" || textCheck == "admin") return "All";
+
+            // Bộ lọc font xử lý chuyển đổi chữ có dấu tự động làm phương án dự phòng
+            string[] arr1 = new string[] { "á", "à", "ả", "ã", "ạ", "â", "ấ", "ầ", "ẩ", "ẫ", "ậ", "ă", "ắ", "ằ", "ẳ", "ẵ", "ặ",
+                                            "đ",
+                                            "é","è","ẻ","ẽ","ẹ","ê","ế","ề","ể","ễ","ệ",
+                                            "í","ì","ỉ","ĩ","ị",
+                                            "ó","ò","ỏ","õ","ọ","ô","ố","ồ","ổ","ỗ","ộ","ơ","ớ","ờ","ở","ỡ","ợ",
+                                            "ú","ù","ủ","ũ","ụ","ư","ứ","ừ","ử","ữ","ự",
+                                            "ý","ỳ","ỷ","ỹ","ỵ",
+                                            "Á", "À", "Ả", "Ã", "Ạ", "Â", "Ấ", "Ầ", "Ẩ", "Ẫ", "Ậ", "Ă", "Ắ", "ằ", "Ẳ", "Ẵ", "Ặ",
+                                            "Đ",
+                                            "É","È","Ẻ","Ẽ","Ẹ","Ê","Ế","Ề","Ể","Ễ","Ệ",
+                                            "Í","Ì","Ỉ","Ĩ","Ị",
+                                            "Ó","Ò","Ỏ","Õ","Ọ","Ô","Ố","Ồ","Ổ","Ỗ","Ộ","Ơ","Ớ","Ờ","Ở","Ỡ","Ợ",
+                                            "Ú","Ù","Ủ","Ũ","Ụ","Ư","Ứ","Ừ","Ử","Ữ","Ự",
+                                            "Ý","Ỳ","Ỷ","Ỹ","Ỵ" };
+
+            string[] arr2 = new string[] { "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a",
+                                            "d",
+                                            "e","e","e","e","e","e","e","e","e","e","e",
+                                            "i","i","i","i","i",
+                                            "o","o","o","o","o","o","o","o","o","o","o","o","o","o","o","o","o",
+                                            "u","u","u","u","u","u","u","u","u","u","u",
+                                            "y","y","y","y","y",
+                                            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "a", "A", "A", "A",
+                                            "D",
+                                            "E","E","E","E","E","E","E","E","E","E","E",
+                                            "I","I","I","I","I",
+                                            "O","O","O","O","O","O","O","O","O","O","O","O","O","O","O","O","O",
+                                            "U","U","U","U","U","U","U","U","U","U","U",
+                                            "Y","Y","Y","Y","Y" };
+
+            for (int i = 0; i < arr1.Length; i++)
+            {
+                text = text.Replace(arr1[i], arr2[i]);
+            }
+
+            return text.Replace(" ", "").Trim();
         }
 
         #endregion
