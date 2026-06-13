@@ -156,6 +156,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
 
+            // --- TIẾP TỤC CÁC LOGIC CŨ BÊN DƯỚI ---
+
             // 2. Đảm bảo có Security Stamp
             if (string.IsNullOrEmpty(user.SecurityStamp))
             {
@@ -204,7 +206,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             _context.LichSuTruyCaps.Add(new LichSuTruyCap { IdNguoiDung = user.IdNguoiDung, ThoiGianDangNhap = DateTime.Now, TenMayTinh = resolvedComputerName, DiaChiIp = ipAddress ?? "", TrinhDuyet = userAgent, TrangThai = "Đang hoạt động" });
             await _context.SaveChangesAsync();
 
-            // 4. Thiết lập Claims chính để lưu vào Cookie Authentication
+            // 4. Thiết lập Claims
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.IdNguoiDung.ToString()),
@@ -212,82 +214,25 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 new Claim(ClaimTypes.Email, user.Tk ?? ""),
                 new Claim("MaNv", user.Tk ?? ""),
                 new Claim("UserRole", user.VaiTro ?? ""),
+                new Claim("PhongBan", user.PhongBan ?? ""),
                 new Claim("TenCongTy", user.TenCongTy ?? ""),
                 new Claim("AnhDaiDien", user.AnhDaiDien ?? "/images/default-avatar.png"),
                 new Claim("SecurityStamp", user.SecurityStamp ?? ""),
                 new Claim("LoginMethod", isDomainAuth ? "Domain" : "Database")
             };
 
-            // Danh sách tạm thời dùng chung để gom toàn bộ mã quyền hợp lệ trước khi Distinct loại trùng
-            var danhSachMaQuyenDeGhanRole = new List<string>();
-
-            // =====================================================================================
-            // THỰC HIỆN LOGIC KIỂM TRA PHÂN PHỐI QUYỀN THEO BỘ PHẬN (CÓ DỰ PHÒNG TỪ STRING PHONG_BAN)
-            // =====================================================================================
-            if (user.UserBoPhans != null && user.UserBoPhans.Any(ub => ub.IdBoPhanNavigation != null))
+            if (user.UserBoPhans != null && user.UserBoPhans.Any())
             {
-                // TRƯỜNG HỢP 1: Nhân viên có gán bộ phận chính thức ở bảng trung gian
-                string danhSachTenBP = string.Join(", ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation!.TenBoPhan));
-                string danhSachMoTaBP = string.Join(" | ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation!.MoTa));
-
-                claims.Add(new Claim("PhongBan", danhSachTenBP));
-                claims.Add(new Claim("TenBoPhan", danhSachTenBP));
-                claims.Add(new Claim("MoTaBoPhan", danhSachMoTaBP));
-
-                var listIdBoPhan = user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhan).ToList();
-
-                // Lấy các mã quyền MaQuyen của bộ phận từ bảng trung gian phân quyền
-                var quyenBoPhan = await _context.BoPhanQuyenTrungGians
-                    .Where(x => listIdBoPhan.Contains(x.IdBoPhan) && x.ChoPhep == true && x.IdQuyenNavigation != null)
-                    .Select(x => x.IdQuyenNavigation!.MaQuyen)
-                    .Distinct()
-                    .ToListAsync();
-
-                danhSachMaQuyenDeGhanRole.AddRange(quyenBoPhan);
-            }
-            else
-            {
-                // TRƯỜNG HỢP 2 (DỰ PHÒNG): Bảng trung gian rỗng -> Kiểm tra chuỗi thô ở trường user.PhongBan
-                string phongBanTho = user.PhongBan?.Trim() ?? "";
-                claims.Add(new Claim("PhongBan", phongBanTho));
-
-                if (!string.IsNullOrEmpty(phongBanTho))
-                {
-                    // Tìm xem trong bảng danh mục bộ phận có bộ phận nào trùng tên với chuỗi thô này không
-                    var boPhanTuongUng = await _context.BoPhans
-                        .FirstOrDefaultAsync(bp => bp.TenBoPhan != null && bp.TenBoPhan == phongBanTho);
-
-                    if (boPhanTuongUng != null)
-                    {
-                        // Nếu khớp tên bộ phận, quét toàn bộ danh mục quyền đang kích hoạt của bộ phận đó
-                        var quyenBoPhanDuPhong = await _context.BoPhanQuyenTrungGians
-                            .Where(x => x.IdBoPhan == boPhanTuongUng.IdBoPhan && x.ChoPhep == true && x.IdQuyenNavigation != null)
-                            .Select(x => x.IdQuyenNavigation!.MaQuyen)
-                            .Distinct()
-                            .ToListAsync();
-
-                        danhSachMaQuyenDeGhanRole.AddRange(quyenBoPhanDuPhong);
-                    }
-                }
+                // Đảm bảo lọc bỏ các phần tử điều hướng bị null trước khi Select dữ liệu
+                claims.Add(new Claim("TenBoPhan", string.Join(", ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation!.TenBoPhan))));
+                claims.Add(new Claim("MoTaBoPhan", string.Join(" | ", user.UserBoPhans.Where(ub => ub.IdBoPhanNavigation != null).Select(ub => ub.IdBoPhanNavigation!.MoTa))));
             }
 
-            // Lấy thêm quyền riêng lẻ gán trực tiếp của User (Bảng Quyen thông qua TenQuyen gốc)
             if (user.UserQuyens != null)
             {
-                var quyenRiengLeUser = user.UserQuyens
-                    .Where(uq => uq.IdQuyenNavigation != null && !string.IsNullOrEmpty(uq.IdQuyenNavigation.TenQuyen))
-                    .Select(uq => uq.IdQuyenNavigation!.TenQuyen!)
-                    .ToList();
-
-                danhSachMaQuyenDeGhanRole.AddRange(quyenRiengLeUser);
-            }
-
-            // Khử trùng toàn bộ dải quyền hợp lệ thu được, chuẩn hóa UpperCase và đẩy vào Cookie Role
-            foreach (var maQuyen in danhSachMaQuyenDeGhanRole.Distinct())
-            {
-                if (!string.IsNullOrEmpty(maQuyen))
+                foreach (var tenQuyen in user.UserQuyens.Where(uq => uq.IdQuyenNavigation != null).Select(uq => uq.IdQuyenNavigation!.TenQuyen))
                 {
-                    claims.Add(new Claim(ClaimTypes.Role, maQuyen.Trim().ToUpper()));
+                    if (!string.IsNullOrEmpty(tenQuyen)) claims.Add(new Claim(ClaimTypes.Role, tenQuyen));
                 }
             }
 
@@ -316,16 +261,21 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
 
+
         private bool AuthenticateWithDomain(string username, string password)
         {
+            // Kiểm tra xem ứng dụng có đang chạy trên Windows không
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
+                // Nếu chạy trên Linux/macOS, không thể dùng PrincipalContext
+                // Trả về false hoặc log lỗi tùy theo yêu cầu nghiệp vụ
                 return false;
             }
 
             return AuthenticateOnWindows(username, password);
         }
 
+        // Tách riêng logic Windows để trình biên dịch không cảnh báo lỗi CA1416 tại nơi gọi chính
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         private bool AuthenticateOnWindows(string username, string password)
         {
@@ -341,7 +291,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return false;
             }
         }
-
         [HttpGet("/DonXetDuyet/DangXuat")]
         public async Task<IActionResult> DangXuat()
         {
@@ -369,7 +318,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
-
         #region PHÂN QUYỀN TRUY CẬP (Custom Access Control)
 
         /// <summary>
