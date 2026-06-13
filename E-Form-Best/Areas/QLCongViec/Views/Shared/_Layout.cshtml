@@ -1,0 +1,900 @@
+﻿@using Microsoft.AspNetCore.Localization
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var isLoginPage = currentController == "TaiKhoan" && currentAction == "DangNhap";
+
+    // Lấy thông tin người dùng từ Claims
+    var currentUserName = (User.Identity != null && User.Identity.IsAuthenticated) ? User.Identity.Name ?? "" : "";
+    var currentUserRole = User.FindFirst("UserRole")?.Value ?? "";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+
+    // Lấy thông tin ngôn ngữ hiện tại từ Cookie hệ thống
+    var requestCulture = Context.Features.Get<IRequestCultureFeature>();
+    var cultureCode = requestCulture?.RequestCulture.Culture.Name ?? "vi-VN";
+
+    // Đánh dấu nhận diện hệ thống Công việc
+    bool isWorkSystem = true;
+
+    // Các trang thuộc phân hệ Đăng ký đơn công việc
+    string[] workSubPages = { "FormCongViec", "CongViec_Order_1", "TaoCongViec" };
+    bool isWorkSubActive = workSubPages.Contains(currentAction) || currentController.Contains("CongViec");
+
+    // Các trang thuộc phân hệ Thống kê báo cáo công việc
+    string[] reportPages = { "BaoCaoThongKeCongViec", "ThongKeTienDo" };
+    bool isReportActive = reportPages.Contains(currentAction);
+
+    // CẬP NHẬT MÀU SẮC 2026: Gần giống IT nhưng mang bản sắc riêng (Deep Ocean Blue phối Teal)
+    string primaryGradient = "linear-gradient(180deg, #071e3d 0%, #0b3c5d 100%)"; // Tone xanh biển sâu tinh tế, khác biệt với Navy của IT
+    string accentColor = "#00b4d8"; // Màu Xanh Cyan/Teal sáng làm điểm nhấn cho luồng Task & Operation
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>E-WorkPortal - @ViewData["Title"]</title>
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <style>
+            body {
+                font-family: 'Inter', sans-serif;
+                margin: 0;
+                background: #f8fafc;
+                color: #1e293b;
+                display: flex;
+                min-height: 100vh;
+                overflow-x: hidden;
+            }
+
+            /* Tối ưu Scrollbar */
+            ::-webkit-scrollbar {
+                width: 5px;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: rgba(255,255,255,0.2);
+                border-radius: 10px;
+            }
+
+            #notiList::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+            }
+
+            /* Sidebar Nav Item */
+            .nav-link-item {
+                display: flex;
+                align-items: center;
+                padding: 14px 18px;
+                border-radius: 14px;
+                color: rgba(255,255,255,0.8);
+                text-decoration: none;
+                font-weight: 600;
+                transition: all 0.3s;
+                margin-bottom: 2px;
+            }
+
+                .nav-link-item:hover {
+                    background: rgba(255,255,255,0.1);
+                    color: #fff;
+                    transform: translateX(4px);
+                }
+
+                .nav-link-item.active {
+                    background: rgba(255,255,255,0.2);
+                    color: #fff;
+                }
+
+            .submenu-link {
+                text-decoration: none;
+                display: flex;
+                align-items: center;
+                font-size: 0.88rem;
+                padding: 12px 18px;
+                color: #cbd5e1;
+                border-radius: 10px;
+                transition: 0.2s;
+            }
+
+                .submenu-link:hover {
+                    background: rgba(255,255,255,0.08);
+                    color: #fff;
+                }
+
+                .submenu-link.active {
+                    background: rgba(255,255,255,0.15);
+                    color: #fff;
+                    font-weight: 700;
+                }
+
+            /* Hiệu ứng xoay mũi tên cho menu Collapse */
+            [data-bs-toggle="collapse"] .menu-arrow {
+                transition: transform 0.3s ease;
+            }
+
+            [data-bs-toggle="collapse"][aria-expanded="true"] .menu-arrow {
+                transform: rotate(180deg);
+            }
+
+            .user-dropdown-item:hover {
+                background-color: #f1f5f9 !important;
+                color: #0b3c5d !important;
+            }
+
+            /* Language Switcher Styles */
+            .lang-btn {
+                background: #fff;
+                border: 1px solid #e2e8f0;
+                padding: 8px 15px;
+                border-radius: 12px;
+                font-size: 0.85rem;
+                font-weight: 700;
+                color: #1e293b;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: 0.2s;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            }
+
+                .lang-btn:hover {
+                    background: #f1f5f9;
+                    transform: translateY(-1px);
+                    border-color: #00b4d8;
+                }
+
+            #langDropdown, #zoomDropdown {
+                display: none;
+                position: absolute;
+                top: 55px;
+                left: 0;
+                background: #fff;
+                border-radius: 16px;
+                box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+                border: 1px solid #e2e8f0;
+                min-width: 180px;
+                overflow: hidden;
+                z-index: 1001;
+                animation: slideDown 0.2s ease-out;
+            }
+
+            #zoomDropdown {
+                min-width: 130px;
+                max-height: 250px;
+                overflow-y: auto;
+            }
+
+                #zoomDropdown::-webkit-scrollbar {
+                    width: 4px;
+                }
+
+                #zoomDropdown::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 10px;
+                }
+
+            @@keyframes slideDown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .lang-item {
+                padding: 12px 18px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                color: #334155;
+                text-decoration: none;
+                font-size: 0.88rem;
+                font-weight: 600;
+                transition: 0.2s;
+                border-bottom: 1px solid #f1f5f9;
+            }
+
+                .lang-item:last-child {
+                    border-bottom: none;
+                }
+
+                .lang-item:hover {
+                    background: #e6f7ff;
+                    color: #00b4d8;
+                }
+
+                .lang-item.active {
+                    color: #00b4d8;
+                    background: #e6f7ff;
+                }
+
+            /* --- CSS ẨN WIDGET GOOGLE TRANSLATE MẶC ĐỊNH --- */
+            .VIpgJd-ZVi9od-ORHb-OEVmcd {
+                display: none !important;
+            }
+
+            .goog-te-banner-frame {
+                display: none !important;
+            }
+
+            body {
+                top: 0px !important;
+            }
+
+            #goog-gt-tt {
+                display: none !important;
+            }
+
+            /* ==========================================
+                                           CSS CHO MOBILE RESPONSIVE
+                                           ========================================== */
+            .sidebar-backdrop {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                z-index: 995;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+
+            @@media (max-width: 768px) {
+                #sidebar {
+                    transform: translateX(-100%);
+                }
+
+                    #sidebar.open {
+                        transform: translateX(0);
+                    }
+
+                .sidebar-backdrop.show {
+                    display: block;
+                    opacity: 1;
+                }
+
+                main {
+                    margin-left: 0 !important;
+                    width: 100% !important;
+                }
+
+                header {
+                    padding: 15px 20px !important;
+                }
+
+                #mobile-menu-btn {
+                    display: block !important;
+                }
+
+                #notificationDropdown {
+                    width: 300px !important;
+                    right: -20px !important;
+                }
+
+                .main-content-wrapper {
+                    padding: 15px 0 !important;
+                }
+
+                .main-card {
+                    padding: 20px 0 !important;
+                    border-radius: 0 !important;
+                    border-left: none !important;
+                    border-right: none !important;
+                    min-height: auto !important;
+                }
+            }
+    </style>
+</head>
+
+<body>
+
+    @if (!isLoginPage)
+    {
+        <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+        <aside id="sidebar" style="width:280px; background:@primaryGradient; color:#fff; padding:25px 15px; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; box-shadow:10px 0 40px rgba(0,0,0,0.15); z-index:1000; transition: all 0.3s ease;">
+
+            <a href="/menuA" style="text-decoration:none; display:flex; align-items:center; gap:12px; margin-bottom:35px; padding: 15px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(10px);">
+                <div style="width:48px; height:48px; background:#fff; border-radius:14px; display:flex; justify-content:center; align-items:center; font-weight:900; font-size:1.3rem; color:#0b3c5d; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    WORK
+                </div>
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-size:1.35rem; font-weight:800; letter-spacing:1px; color:#fff; line-height:1;">E-PORTAL</span>
+                    <span class="lang-text" data-key="digital_portal" style="font-size:0.7rem; color:rgba(255,255,255,0.6); text-transform:uppercase; margin-top:4px; font-weight:600; letter-spacing: 0.5px;">Task Management</span>
+                </div>
+            </a>
+
+            <nav id="main-sidebar-nav" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right: 5px;">
+                <div class="lang-text" data-key="main_function" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 700;">Nghiệp vụ phòng ban</div>
+
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div id="btnMainMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-radius: 14px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isWorkSubActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
+                        <span style="display:flex; align-items:center;">
+                            <i class="fa fa-tasks" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i>
+                            <span class="lang-text" data-key="reg_form">Phiếu công việc</span>
+                        </span>
+                        <i class="fa fa-angle-down" id="menuArrow" style="transition: 0.3s; transform: @(isWorkSubActive ? "rotate(180deg)" : "rotate(0deg)");"></i>
+                    </div>
+
+                    <div id="mainSubmenu" style="display: @(isWorkSubActive ? "flex" : "none"); flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
+                        <a href="/FormCongViec" class="submenu-link @(currentController == "FormCongViec" ? "active" : "")">
+                            <i class="fa fa-pencil-square-o" style="margin-right:12px; width:15px; color: #fbbf24;"></i> <span class="lang-text">1. Xử lý Đơn công việc</span>
+                        </a>
+                        <a href="/CongViec_Order_1" class="submenu-link @(currentController == "CongViec_Order_1" ? "active" : "")">
+                            <i class="fa fa-list-ol" style="margin-right:12px; width:15px; color: #06b6d4;"></i> <span class="lang-text">2. Chi tiết hạng mục</span>
+                        </a>
+                    </div>
+
+                    <a href="/FormCongViec/DonCho" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
+                        <i class="fa fa-align-left" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text">Đơn liên quan</span>
+                    </a>
+
+                    <a href="/FormCongViec/LichSuCongViec" class="nav-link-item @(currentAction == "LichSuCongViec" ? "active" : "")">
+                        <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text">Nhật ký tiến trình</span>
+                    </a>
+
+                    @if (User.IsInRole("QuanLyDuyetDonIT") || User.IsInRole("All"))
+                    {
+                        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
+                        <div class="lang-text" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Xét duyệt</div>
+                        <a href="/FormCongViec/QuanLyXetDuyet" class="nav-link-item @(currentAction == "QuanLyXetDuyet" ? "active" : "")">
+                            <i class="fa fa-check-circle-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> <span class="lang-text">Duyệt phiếu bộ phận</span>
+                        </a>
+                    }
+
+                    @if (User.Claims.Any(c => c.Type == System.Security.Claims.ClaimTypes.Role) || User.IsInRole("All"))
+                    {
+                        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
+                        <div class="lang-text" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị & Báo cáo</div>
+
+                        <a href="/QLBoPhanAamin" class="nav-link-item @(currentController == "QLBoPhanAamin" ? "active" : "")">
+                            <i class="fa fa-sitemap" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f97316;"></i> <span class="lang-text">Cấu hình Bộ phận</span>
+                        </a>
+
+                        <a data-bs-toggle="collapse" href="#collapseThongKe" role="button" aria-expanded="@(isReportActive ? "true" : "false")" class="nav-link-item" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: @(isReportActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
+                            <span style="display:flex; align-items:center;">
+                                <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i>
+                                <span class="lang-text">Thống kê & KPI</span>
+                            </span>
+                            <i class="fa fa-angle-down menu-arrow"></i>
+                        </a>
+
+                        <div class="collapse @(isReportActive ? "show" : "")" id="collapseThongKe">
+                            <div style="display: flex; flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
+                                <a href="/FormCongViec/BaoCaoThongKeCongViec" class="submenu-link @(currentAction == "BaoCaoThongKeCongViec" ? "active" : "")">
+                                    <i class="fa fa-file-text-o" style="margin-right:12px; width:15px; color: #10b981;"></i>
+                                    <span class="lang-text">Báo cáo hiệu suất</span>
+                                </a>
+                                <a href="/FormCongViec/ThongKeTienDo" class="submenu-link @(currentAction == "ThongKeTienDo" ? "active" : "")">
+                                    <i class="fa fa-sliders" style="margin-right:12px; width:15px; color: #0284c7;"></i>
+                                    <span class="lang-text">Tiến độ Gantt Chart</span>
+                                </a>
+                            </div>
+                        </div>
+                    }
+                }
+            </nav>
+
+            <div style="margin-top:25px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 20px; position:relative; border: 1px solid rgba(255,255,255,0.05);">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    @if (User.HasClaim("IsDefaultPassword", "true"))
+                    {
+                        <div style="background: rgba(239, 68, 68, 0.2); border: 1px dashed #ef4444; border-radius: 12px; padding: 10px; margin-bottom: 15px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                            <div style="color: #fca5a5; font-size: 0.75rem; font-weight: 700; margin-bottom: 6px;">
+                                <i class="fa fa-exclamation-triangle" style="color: #ef4444;"></i> Bạn đang dùng mật khẩu mặc định!
+                            </div>
+                            <a href="/ThongTinTaiKhoan" target="_blank" style="display: inline-block; background: #ef4444; color: #fff; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 5px 12px; border-radius: 8px; transition: 0.2s;">
+                                Đổi mật khẩu ngay
+                            </a>
+                        </div>
+                    }
+
+                    <div id="userMenuButton" style="display:flex; align-items:center; gap:12px; cursor:pointer;">
+                        <div style="width:42px; height:42px; border-radius:14px; background:linear-gradient(135deg, #00b4d8, #0b3c5d); display:flex; justify-content:center; align-items:center; font-weight:bold; border:2px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                            @(string.IsNullOrEmpty(currentUserName) ? "?" : currentUserName.Substring(0, 1).ToUpper())
+                        </div>
+                        <div style="flex:1; overflow:hidden;">
+                            <div style="font-weight:700; font-size:0.92rem; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; color: #fff;">@currentUserName</div>
+                            <div style="font-size:0.75rem; color:rgba(255,255,255,0.5); font-weight: 500;">@phongBan</div>
+                        </div>
+                        <i class="fa fa-angle-up" id="arrowIcon" style="transition: 0.3s; color: rgba(255,255,255,0.5);"></i>
+                    </div>
+
+                    <div id="userDropdown" style="position:absolute; bottom:90px; left:0; right:0; background:#fff; border-radius:16px; box-shadow:0 -15px 35px rgba(0,0,0,0.25); display:none; flex-direction:column; overflow:hidden; border: 1px solid #edf2f7; z-index: 1001;">
+                        <a href="/ThongTinTaiKhoan" target="_blank" rel="noopener noreferrer" class="user-dropdown-item" style="padding:15px 20px; color:#334155; text-decoration:none; font-size:0.92rem; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; font-weight: 500;">
+                            <i class="fa fa-user-circle" style="margin-right:12px; color:#64748b; font-size: 1.1rem;"></i> <span class="lang-text">Hồ sơ cá nhân</span>
+                        </a>
+                        <a href="/DonXetDuyet/DangXuat" class="user-dropdown-item" style="padding:15px 20px; color:#ef4444; text-decoration:none; font-size:0.92rem; font-weight:700; display:flex; align-items:center;">
+                            <i class="fa fa-sign-out" style="margin-right:12px; font-size: 1.1rem;"></i> <span class="lang-text">Đăng xuất</span>
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <a href="/DonXetDuyet/DangNhap" style="display:flex; align-items:center; gap:12px; text-decoration:none; cursor:pointer;">
+                        <div style="width:42px; height:42px; border-radius:14px; background:rgba(255,255,255,0.1); display:flex; justify-content:center; align-items:center; border:2px dashed rgba(255,255,255,0.3);">
+                            <i class="fa fa-sign-in" style="color: #fff;"></i>
+                        </div>
+                        <div style="flex:1;">
+                            <div class="lang-text" style="font-weight:700; font-size:0.92rem; color: #fff;">Đăng nhập</div>
+                            <div class="lang-text" style="font-size:0.75rem; color:rgba(255,255,255,0.5);">Truy cập hệ thống</div>
+                        </div>
+                    </a>
+                }
+            </div>
+        </aside>
+
+        <main style="margin-left:280px; width:calc(100% - 280px); box-sizing: border-box; min-height:100vh; position:relative; display: flex; flex-direction: column; transition: all 0.3s ease;">
+
+            <header style="padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 999; font-family: 'Inter', system-ui, -apple-system, sans-serif; border-bottom: 1px solid rgba(226, 232, 240, 0.6); transition: all 0.3s ease;">
+
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <button id="mobile-menu-btn" style="display: none; background: none; border: none; font-size: 1.5rem; color: #1e293b; cursor: pointer; padding: 0;">
+                        <i class="fa fa-bars"></i>
+                    </button>
+
+                    <div style="position: relative;">
+                        <button id="btnLanguage" class="lang-btn">
+                            <i class="fa fa-globe" style="color: #00b4d8;"></i>
+                            <span id="currentLangText">Tiếng Việt</span>
+                            <i class="fa fa-angle-down" style="font-size: 0.8rem; color: #94a3b8;"></i>
+                        </button>
+                        <div id="langDropdown">
+                            <a href="javascript:void(0)" onclick="changeLanguageGTranslate('vi', 'Tiếng Việt')" class="lang-item" id="lang-vi">
+                                <span>Tiếng Việt</span> <i class="fa fa-check"></i>
+                            </a>
+                            <a href="javascript:void(0)" onclick="changeLanguageGTranslate('en', 'English')" class="lang-item" id="lang-en">
+                                <span>English</span> <i class="fa fa-check" style="display:none;"></i>
+                            </a>
+                            <a href="javascript:void(0)" onclick="changeLanguageGTranslate('zh-CN', '中文')" class="lang-item" id="lang-zh-CN">
+                                <span>中文</span> <i class="fa fa-check" style="display:none;"></i>
+                            </a>
+                        </div>
+                        <div id="google_translate_element" style="display:none;"></div>
+                    </div>
+
+                    <div style="position: relative;">
+                        <button id="btnZoom" class="lang-btn">
+                            <i class="fa fa-search-plus" style="color: #00b4d8;"></i>
+                            <span id="currentZoomText">100%</span>
+                            <i class="fa fa-angle-down" style="font-size: 0.8rem; color: #94a3b8;"></i>
+                        </button>
+                        <div id="zoomDropdown">
+                            <a href="javascript:void(0)" onclick="changeZoom(50)" class="lang-item"><span>50%</span> <i class="fa fa-check" style="display:none;"></i></a>
+                            <a href="javascript:void(0)" onclick="changeZoom(60)" class="lang-item"><span>60%</span> <i class="fa fa-check" style="display:none;"></i></a>
+                            <a href="javascript:void(0)" onclick="changeZoom(70)" class="lang-item"><span>70%</span> <i class="fa fa-check" style="display:none;"></i></a>
+                            <a href="javascript:void(0)" onclick="changeZoom(80)" class="lang-item"><span>80%</span> <i class="fa fa-check" style="display:none;"></i></a>
+                            <a href="javascript:void(0)" onclick="changeZoom(90)" class="lang-item"><span>90%</span> <i class="fa fa-check" style="display:none;"></i></a>
+                            <a href="javascript:void(0)" onclick="changeZoom(100)" class="lang-item"><span>100%</span> <i class="fa fa-check" style="display:none;"></i></a>
+                            <a href="javascript:void(0)" onclick="changeZoom(110)" class="lang-item"><span>110%</span> <i class="fa fa-check" style="display:none;"></i></a>
+                            <a href="javascript:void(0)" onclick="changeZoom(120)" class="lang-item"><span>120%</span> <i class="fa fa-check" style="display:none;"></i></a>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="position: relative; display: flex; align-items: center; gap: 15px;">
+                    <div id="latestNotiTag" style="display: none; position: absolute; right: 65px; white-space: nowrap; background: linear-gradient(135deg, #071e3d 0%, #0b3c5d 100%); color: white; padding: 10px 16px; border-radius: 12px; font-size: 0.85rem; box-shadow: 0 10px 20px rgba(11, 60, 93, 0.2); z-index: 1001; border-left: 4px solid #fff; align-items: center; gap: 10px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa fa-info-circle"></i>
+                            <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                                <span style="font-size: 0.65rem; text-transform: uppercase; font-weight: 800; opacity: 0.8;">Vừa xong</span>
+                                <span id="latestNotiText" style="font-weight: 600;">Có thông báo mới!</span>
+                            </div>
+                            <i class="fa fa-times" onclick="this.parentElement.parentElement.style.display='none'" style="cursor: pointer; margin-left: 8px; opacity: 0.7;"></i>
+                        </div>
+                    </div>
+
+                    <div id="notiBell" style="width: 48px; height: 48px; background: #fff; border-radius: 15px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; color: #64748b; position: relative; transition: 0.2s;">
+                        <i class="fa fa-bell-o" style="font-size: 1.3rem;"></i>
+                        <span id="notiBadge" style="position: absolute; top: -2px; right: -2px; min-width: 20px; height: 20px; background: #ef4444; border-radius: 50%; border: 2px solid #fff; display: none; color: white; font-size: 10px; font-weight: 800; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);">0</span>
+                    </div>
+
+                    <div id="notificationDropdown" style="display: none; flex-direction: column; width: 380px; position: absolute; right: 0; top: 60px; background: white; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); overflow: hidden; z-index: 1000; border: 1px solid #f1f5f9;">
+                        <div style="padding: 15px 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fff;">
+                            <span style="font-weight: 800; color: #1e293b; font-size: 1rem; letter-spacing: -0.5px;">Thông báo</span>
+                            <button onclick="markAllAsRead(event)" style="background: #e6f7ff; border: none; color: #00b4d8; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: 0.2s;">Đọc tất cả</button>
+                        </div>
+                        <div id="notiList" style="max-height: 450px; overflow-y: auto;"></div>
+                        <div style="padding: 12px; text-align: center; border-top: 1px solid #f1f5f9; background: #f8fafc;">
+                            <a href="/FormCongViec/LichSuCongViec" style="text-decoration: none; color: #94a3b8; font-size: 0.75rem; font-weight: 600;">Xem tất cả</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="main-content-wrapper" style="padding: 10px 50px 50px 50px; flex: 1;">
+                <div class="main-card" style="background:#fff; border-radius:35px; box-shadow: 0 20px 60px rgba(0,0,0,0.04); padding:45px; min-height:82vh; border:1px solid rgba(226, 232, 240, 0.8);">
+                    @RenderBody()
+                </div>
+            </div>
+
+            <footer style="text-align:center; color:#94a3b8; font-size:0.85rem; padding-bottom: 20px;">
+                &copy; @DateTime.Now.Year - <strong>Work Management Portal</strong> - Professional Solution
+            </footer>
+        </main>
+    }
+    else
+    {
+        <div style="width:100%;">@RenderBody()</div>
+    }
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+        new google.translate.TranslateElement({ pageLanguage: 'vi', autoDisplay: false }, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+    <script>
+        // ==========================================
+        // XỬ LÝ GIAO DIỆN MENU MOBILE
+        // ==========================================
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const sidebarApp = document.getElementById('sidebar');
+        const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+        if (mobileMenuBtn && sidebarApp && sidebarBackdrop) {
+        mobileMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sidebarApp.classList.toggle('open');
+        sidebarBackdrop.classList.toggle('show');
+        });
+
+        sidebarBackdrop.addEventListener('click', () => {
+        sidebarApp.classList.remove('open');
+        sidebarBackdrop.classList.remove('show');
+        });
+        }
+
+        // ==========================================
+        // ĐA NGÔN NGỮ GOOGLE TRANSLATE
+        // ==========================================
+        function clearGoogTransCookie() {
+        let domain = window.location.hostname;
+        let paths = ['/', window.location.pathname];
+        let domainParts = domain.split('.');
+        let domainsToClear = [domain, '.' + domain, ''];
+
+        if (domainParts.length >= 2) {
+        domainsToClear.push('.' + domainParts.slice(-2).join('.'));
+        domainsToClear.push(domainParts.slice(-2).join('.'));
+        }
+
+        paths.forEach(p => {
+        domainsToClear.forEach(d => {
+        let dStr = d ? `; domain=${d}` : '';
+        document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}${dStr};`;
+        });
+        });
+        window.localStorage.removeItem('googtrans');
+        }
+
+        function setGoogTransCookie(lang) {
+        let domain = window.location.hostname;
+        let domainParts = domain.split('.');
+        let rootDomain = domainParts.length >= 2 ? '.' + domainParts.slice(-2).join('.') : domain;
+
+        document.cookie = `googtrans=/vi/${lang}; path=/; domain=${rootDomain};`;
+        document.cookie = `googtrans=/vi/${lang}; path=/;`;
+        }
+
+        function initLanguageGTranslate() {
+        let currentLang = localStorage.getItem('siteLangGlobal') || 'vi';
+        const labels = { 'vi': 'Tiếng Việt', 'en': 'English', 'zh-CN': '中文' };
+        const currentLangText = document.getElementById('currentLangText');
+        if(currentLangText) currentLangText.innerText = labels[currentLang] || 'Tiếng Việt';
+
+        document.querySelectorAll('#langDropdown .lang-item i').forEach(i => i.style.display = 'none');
+        const activeCheck = document.querySelector(`#lang-${currentLang} i`);
+        if(activeCheck) activeCheck.style.display = 'inline-block';
+
+        let match = document.cookie.match(/(^| )googtrans=([^;]+)/);
+        let currentCookie = match ? match[2] : null;
+        let expectedCookie = currentLang === 'vi' ? null : `/vi/${currentLang}`;
+
+        if (currentCookie !== expectedCookie) {
+        clearGoogTransCookie();
+        if (currentLang !== 'vi') setGoogTransCookie(currentLang);
+        }
+        }
+
+        function changeLanguageGTranslate(lang, label) {
+        localStorage.setItem('siteLangGlobal', lang);
+        clearGoogTransCookie();
+        setTimeout(() => {
+        if (lang !== 'vi') setGoogTransCookie(lang);
+        window.location.href = window.location.pathname + window.location.search;
+        }, 50);
+        }
+
+        // ==========================================
+        // THU PHÓNG ZOOM WEB
+        // ==========================================
+        const btnZoom = document.getElementById('btnZoom');
+        const zoomDrop = document.getElementById('zoomDropdown');
+        const currentZoomText = document.getElementById('currentZoomText');
+
+        if (btnZoom) {
+        btnZoom.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const langDrop = document.getElementById('langDropdown');
+        if(langDrop) langDrop.style.display = 'none';
+        zoomDrop.style.display = (zoomDrop.style.display === 'none' || zoomDrop.style.display === '') ? 'block' : 'none';
+        });
+        }
+
+        function initZoom() {
+        let currentZoom = getCookieCV('siteZoomGlobal') || '100';
+        applyZoom(currentZoom);
+        }
+
+        function changeZoom(percent) {
+        setCookieCV('siteZoomGlobal', percent, 365);
+        applyZoom(percent);
+        if (zoomDrop) zoomDrop.style.display = 'none';
+        }
+
+        function applyZoom(percent) {
+        document.body.style.zoom = percent + '%';
+        if (currentZoomText) currentZoomText.innerText = percent + '%';
+
+        if (zoomDrop) {
+        zoomDrop.querySelectorAll('.lang-item').forEach(item => {
+        const text = item.querySelector('span').innerText;
+        const check = item.querySelector('i');
+        if (text === percent + '%') {
+        if(check) check.style.display = 'inline-block';
+        item.classList.add('active');
+        } else {
+        if(check) check.style.display = 'none';
+        item.classList.remove('active');
+        }
+        });
+        }
+        }
+
+        function setCookieCV(cname, cvalue, exdays) {
+        const d = new Date();
+        d.setTime(d.getTime() + (exdays*24*60*60*1000));
+        document.cookie = cname + "=" + cvalue + ";expires="+ d.toUTCString() +";path=/";
+        }
+
+        function getCookieCV(cname) {
+        let name = cname + "=";
+        let ca = decodeURIComponent(document.cookie).split(';');
+        for(let i = 0; i <ca.length; i++) {
+        let c = ca[i].trim();
+        if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
+        }
+        return "";
+        }
+
+        // ==========================================
+        // SIDEBAR COLLAPSE LOGIC
+        // ==========================================
+        const btnMenu = document.getElementById('btnMainMenu');
+        const submenu = document.getElementById('mainSubmenu');
+        const arrow = document.getElementById('menuArrow');
+        const sidebarNav = document.getElementById('main-sidebar-nav');
+        const btnLang = document.getElementById('btnLanguage');
+        const langDrop = document.getElementById('langDropdown');
+
+        if (btnLang) {
+        btnLang.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if(zoomDrop) zoomDrop.style.display = 'none';
+        langDrop.style.display = langDrop.style.display === 'block' ? 'none' : 'block';
+        });
+        }
+
+        if (btnMenu && submenu) {
+        btnMenu.addEventListener('click', () => {
+        const isHidden = submenu.style.display === 'none' || submenu.style.display === '';
+        submenu.style.display = isHidden ? 'flex' : 'none';
+        if (arrow) arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        btnMenu.style.background = isHidden ? 'rgba(255, 255, 255, 0.15)' : 'transparent';
+        localStorage.setItem('cvMenuState', isHidden ? 'open' : 'closed');
+        });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+        initLanguageGTranslate();
+        initZoom();
+
+        const savedScrollPos = sessionStorage.getItem('sidebarScrollPosCV');
+        if (sidebarNav && savedScrollPos) sidebarNav.scrollTop = parseInt(savedScrollPos);
+
+        if (sidebarNav) {
+        sidebarNav.addEventListener('scroll', function() {
+        sessionStorage.setItem('sidebarScrollPosCV', this.scrollTop);
+        });
+        }
+
+        const isSubActiveServer = '@isWorkSubActive'.toLowerCase() === 'true';
+        const savedMenuState = localStorage.getItem('cvMenuState');
+        if ((isSubActiveServer || savedMenuState === 'open') && submenu) {
+        submenu.style.display = 'flex';
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+        if (btnMenu) btnMenu.style.background = 'rgba(255, 255, 255, 0.15)';
+        }
+        });
+
+        // ==========================================
+        // REAL-TIME NOTIFICATION LOGIC (AJAX)
+        // ==========================================
+        const notiSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        notiSound.volume = 0.6;
+
+        let lastTopId = localStorage.getItem('lastNotifiedIdCV') || null;
+        let currentSkip = 0;
+        const take = 20;
+        let isLoading = false;
+        let hasMoreData = true;
+        let allFetchedIds = [];
+
+        const notiBell = document.getElementById('notiBell');
+        const notiDrop = document.getElementById('notificationDropdown');
+        const notiList = document.getElementById('notiList');
+        const notiBadge = document.getElementById('notiBadge');
+        const userBtn = document.getElementById('userMenuButton');
+        const userDrop = document.getElementById('userDropdown');
+        const userArrow = document.getElementById('arrowIcon');
+
+        if (notiBell) {
+        notiBell.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = notiDrop.style.display === 'none' || notiDrop.style.display === '';
+        notiDrop.style.display = isHidden ? 'flex' : 'none';
+        if (isHidden) loadNotifications(true, false);
+        });
+        }
+
+        if (userBtn && userDrop) {
+        userBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = userDrop.style.display === 'none' || userDrop.style.display === '';
+        userDrop.style.display = isHidden ? 'flex' : 'none';
+        if (userArrow) userArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        });
+        }
+
+        document.addEventListener('click', () => {
+        if (userDrop) userDrop.style.display = 'none';
+        if (userArrow) userArrow.style.transform = 'rotate(0deg)';
+        if (notiDrop) notiDrop.style.display = 'none';
+        if (langDrop) langDrop.style.display = 'none';
+        if (zoomDrop) zoomDrop.style.display = 'none';
+        });
+
+        async function loadNotifications(isOpen = false, isLoadMore = false) {
+        if (isLoading) return;
+        const readIdsFromCookie = getReadIds();
+        if (!isLoadMore) { currentSkip = 0; hasMoreData = true; }
+        try {
+        isLoading = true;
+        const res = await fetch(`/FormCongViec/GetNotifications?skip=${currentSkip}&take=${take}`);
+        const data = await res.json();
+        const listItems = data.dataList || [];
+
+        if (listItems.length > 0) {
+        const currentTopId = listItems[0].id.toString();
+        if (lastTopId !== null && currentTopId !== lastTopId && !readIdsFromCookie.includes(currentTopId)) {
+        triggerNewNotificationEffect(listItems[0]);
+        }
+        lastTopId = currentTopId;
+        localStorage.setItem('lastNotifiedIdCV', currentTopId);
+        }
+
+        const unreadCount = listItems.filter(item => !readIdsFromCookie.includes(item.id.toString())).length;
+        if (notiBadge) {
+        if (unreadCount > 0) {
+        notiBadge.innerText = unreadCount > 99 ? "99+" : unreadCount;
+        notiBadge.style.display = 'flex';
+        } else { notiBadge.style.display = 'none'; }
+        }
+
+        const html = listItems.map(item => {
+        const isRead = readIdsFromCookie.includes(item.id.toString());
+        if(!allFetchedIds.includes(item.id.toString())) allFetchedIds.push(item.id.toString());
+        return `<a href="/FormCongViec/ChiTiet/${item.idFormCongViec}" onclick="markAsRead('${item.id}')" style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit; background: ${isRead ? '#ffffff' : 'rgba(11, 60, 93, 0.05)'};">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: #e6f7ff; color: #00b4d8; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fa ${item.icon || 'fa-bell'}"></i></div>
+        <div style="flex:1;"><div style="font-size: 0.88rem; font-weight: ${isRead ? '600' : '800'}; color: #1e293b;">${item.tieuDe}</div>
+        <div style="font-size: 0.8rem; color: #64748b;">${item.mota || ''}</div>
+        <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 6px;"><i class="fa fa-clock-o"></i> ${item.time}</div></div></a>`;
+        }).join('');
+
+        if (isOpen && notiList) {
+        if (isLoadMore) notiList.insertAdjacentHTML('beforeend', html);
+        else notiList.innerHTML = html;
+        }
+        currentSkip += listItems.length;
+        if (listItems.length < take) hasMoreData = false;
+        } catch (err) { } finally { isLoading = false; }
+        }
+
+        function getReadIds() {
+        const name = "read_cv_notifications=";
+        const ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+        let c = ca[i].trim();
+        if (c.indexOf(name) === 0) return c.substring(name.length).split(',').filter(id => id !== "");
+        }
+        return [];
+        }
+
+        function triggerNewNotificationEffect(item) {
+        const latestTag = document.getElementById('latestNotiTag');
+        const latestText = document.getElementById('latestNotiText');
+        if (latestText) latestText.innerText = item.tieuDe;
+        if (latestTag) latestTag.style.display = 'flex';
+        notiSound.play().catch(() => {});
+        setTimeout(() => { if (latestTag) latestTag.style.display = 'none'; }, 8000);
+        }
+
+        document.getElementById('notificationDropdown').addEventListener('scroll', function() {
+        if (this.scrollTop + this.clientHeight >= this.scrollHeight - 20 && hasMoreData) {
+        loadNotifications(true, true);
+        }
+        });
+
+        function setReadCookie(ids) {
+        const d = new Date();
+        d.setTime(d.getTime() + (30 * 24 * 60 * 60 * 1000));
+        document.cookie = "read_cv_notifications=" + ids.join(',') + ";expires=" + d.toUTCString() + ";path=/";
+        }
+
+        function markAsRead(id) {
+        let readIds = getReadIds();
+        if (!readIds.includes(id.toString())) {
+        readIds.push(id.toString());
+        setReadCookie(readIds);
+        setTimeout(() => loadNotifications(false, false), 300);
+        }
+        }
+
+        function markAllAsRead(e) {
+        if(e) e.stopPropagation();
+        let readIds = getReadIds();
+        let hasChanges = false;
+        allFetchedIds.forEach(id => {
+        if (!readIds.includes(id)) {
+        readIds.push(id);
+        hasChanges = true;
+        }
+        });
+        if (hasChanges) {
+        setReadCookie(readIds);
+        loadNotifications(true, false);
+        }
+        }
+
+        setInterval(() => loadNotifications(false, false), 30000);
+        loadNotifications(false, false);
+    </script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

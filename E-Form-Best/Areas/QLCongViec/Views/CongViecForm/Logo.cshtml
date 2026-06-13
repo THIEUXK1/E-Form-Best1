@@ -1,6 +1,10 @@
-﻿@{
+﻿@model E_Form_Best.Models.ITForm.FormHr
+@using System
+
+@{
     ViewData["Title"] = "Công Việc Dashboard";
-    Layout = "~/Areas/AdminForm/Views/Shared/_Layout.cshtml";
+    // Cập nhật chính xác đường dẫn Layout dùng chung của phân hệ quản lý công việc
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
 
     // Khai báo biến màu sắc để tối ưu hóa việc quản lý mã nguồn
     string accentCyan = "#06b6d4";
@@ -108,7 +112,7 @@
 
         </div>
 
-        <!-- FOOTER: Giữ nguyên cấu trúc phân tách và mốc thời gian tự động -->
+        <!-- FOOTER: Giữ nguyên cấu trúc phân tách và mốc thời gian tự động năm 2026 -->
         <div class="mobile-footer" style="margin-top: 60px; padding-top: 20px; border-top: 1px solid #f1f5f9; font-size: 11px; color: #9ca3af; font-weight: 600; letter-spacing: 1px; position: relative; z-index: 1;">
             &copy; @DateTime.Now.Year OPERATION DEPARTMENT - SECURE & RELIABLE SYSTEM
         </div>
