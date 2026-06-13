@@ -28,8 +28,8 @@
     }
 
     /* ========================================================
-                        CSS CHO HỆ THỐNG DROPDOWN CHECKBOX (COMBOBOX NHIỀU MỤC) MỚI
-                        ======================================================== */
+                            CSS CHO HỆ THỐNG DROPDOWN CHECKBOX (COMBOBOX NHIỀU MỤC) MỚI
+                            ======================================================== */
     .dropdown-combo-btn {
         width: 100%;
         text-align: left;
@@ -443,17 +443,27 @@
                     <div class="col-md-6">
                         <label class="form-label fw-bold"><i class="fab fa-windows text-primary me-1"></i> Bản quyền Windows</label>
                         <select id="tb_WinLicense" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
-                            <option value="">Trống</option>
-                            <option value="Có">Có</option>
-                            <option value="Chưa có">Chưa có</option>
+                            <option value="">Trống / Chưa rõ</option>
+                            <option value="Windows Pro">Windows Pro</option>
+                            <option value="Windows Home">Windows Home</option>
+                            <option value="Windows Enterprise">Windows Enterprise</option>
+                            <option value="Windows Education">Windows Education</option>
+                            <option value="Windows Server">Windows Server</option>
+                            <option value="Có (Chưa rõ phiên bản)">Có (Chưa rõ bản nào)</option>
+                            <option value="Chưa có">Không có bản quyền</option>
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-bold"><i class="fas fa-file-word text-success me-1"></i> Bản quyền Office</label>
                         <select id="tb_OfficeLicense" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
-                            <option value="">Trống</option>
-                            <option value="Có">Có</option>
-                            <option value="Chưa có">Chưa có</option>
+                            <option value="">Trống / Chưa rõ</option>
+                            <option value="Office Professional Plus">Office Professional Plus</option>
+                            <option value="Office Standard">Office Standard</option>
+                            <option value="Office Home & Business">Office Home & Business</option>
+                            <option value="Office Home & Student">Office Home & Student</option>
+                            <option value="Microsoft 365 Apps">Microsoft 365 Apps</option>
+                            <option value="Có (Chưa rõ phiên bản)">Có (Chưa rõ bản nào)</option>
+                            <option value="Chưa có">Không có bản quyền</option>
                         </select>
                     </div>
 
@@ -767,6 +777,7 @@
         $(this).find('input[type="text"], input[type="date"], textarea').val('');
         $(this).find('input[type="hidden"]').val('0');
         $(this).find('select').val('').trigger('change');
+        closeCamera();
         closeCamera();
         clearImage();
         khoiPhucDuLieuFormAdd();
@@ -1299,7 +1310,6 @@
 
         let checkTimeStr = item.thoiGianCheck ? new Date(item.thoiGianCheck).toLocaleString('vi-VN') : '<span class="text-danger fst-italic">Chưa Check</span>';
 
-        // ĐÃ CẬP NHẬT: Click vào tên máy tính để nhảy vào trang chi tiết thiết bị
         let hostName = item.tenMayTinh
         ? `<a href="/QLKiemKe/ChiTietThietBi/${item.idThietBi}" class="fw-bold text-decoration-none text-primary mb-1 d-block" style="font-size:16px;" target="_blank"><i class="fas fa-desktop me-1"></i> ${item.tenMayTinh}</a>`
         : '<i class="text-muted d-block mb-1">Chưa có Hostname</i>';
@@ -1599,7 +1609,6 @@
         $('#tb_OfficeLicense').val(item.officeLicense || '');
 
         if (item.hanBaoHanh) {
-        // Định dạng chuẩn DateOnly từ server trả về yyyy-MM-dd
         $('#tb_HanBaoHanh').val(item.hanBaoHanh);
         } else {
         $('#tb_HanBaoHanh').val('');
@@ -1635,7 +1644,6 @@
         formData.append("GhiChu", $('#tb_GhiChu').val().trim());
         formData.append("saveAsNew", saveAsNew);
 
-        // Đóng gói các trường mới vào AJAX Form
         formData.append("Seribacode", $('#tb_Seribacode').val().trim());
         formData.append("HanBaoHanh", $('#tb_HanBaoHanh').val());
         formData.append("WinLicense", $('#tb_WinLicense').val());
