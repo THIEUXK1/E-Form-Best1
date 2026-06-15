@@ -294,7 +294,7 @@
             <div class="card-body p-3">
                 <div class="row g-3 align-items-end">
 
-                    <div class="col-lg-5 col-md-7 col-sm-12">
+                    <div class="col-lg-4 col-md-6 col-sm-12">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-info"></i> Tìm Kiếm Nhanh</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
@@ -302,7 +302,7 @@
                         </div>
                     </div>
 
-                    <div class="col-lg-3 col-md-5 col-sm-6">
+                    <div class="col-lg-3 col-md-3 col-sm-6">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sort-alpha-down text-dark"></i> Sắp xếp danh sách</label>
                         <select id="filterSort" class="form-select rounded-3 shadow-sm border" style="height: 38px; font-weight: 500;">
                             <option value="">Mặc định (Theo ID)</option>
@@ -313,7 +313,18 @@
                         </select>
                     </div>
 
-                    <div class="col-lg-4 col-md-12 col-sm-6 text-md-end text-start">
+                    <div class="col-lg-2 col-md-3 col-sm-6">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-list-ol text-secondary"></i> Hiển thị / Trang</label>
+                        <select id="pageSizeSelect" class="form-select rounded-3 shadow-sm border" style="height: 38px; font-weight: 600;" onchange="changePageSize()">
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="30" selected>30</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-3 col-md-12 col-sm-12 text-md-end text-start">
                         <button type="button" id="btnToggleFilters" class="btn btn-outline-primary rounded-3 px-3 fw-bold" style="height: 38px;" onclick="toggleAdvancedFilters()">
                             <i class="fas fa-sliders-h me-1"></i> <span id="lblToggleText">Bộ lọc nâng cao</span>
                         </button>
@@ -496,17 +507,6 @@
         <div class="card border-0 shadow-sm mb-4" id="tableSection" style="border-radius: 15px;">
             <div class="card-header bg-white border-bottom pt-3 pb-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2" style="border-radius: 15px 15px 0 0;">
                 <h6 class="fw-bold text-dark mb-0"><i class="fas fa-list-alt text-primary me-2"></i>Chi tiết danh sách (<span id="lblCountTable" class="text-danger">0</span> thiết bị)</h6>
-
-                <div class="d-flex align-items-center">
-                    <label class="me-2 small text-muted mb-0 fw-bold">Hiển thị:</label>
-                    <select id="pageSizeSelect" class="form-select form-select-sm shadow-sm border-0 bg-light" style="width: 80px; font-weight: bold;" onchange="changePageSize()">
-                        <option value="10">10</option>
-                        <option value="20">20</option>
-                        <option value="30" selected>30</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                    </select>
-                </div>
             </div>
 
             <div class="card-body p-0">
@@ -653,9 +653,9 @@
         let depts = [...new Set(data.map(x => x.tenBoPhan).filter(Boolean))].sort();
         let types = [...new Set(data.map(x => x.loaiThietBi).filter(Boolean))].sort();
 
-        // Danh sách cố định cho bản quyền dựa theo form nhập liệu
-        let winLicenses = ["Windows Pro", "Windows Home", "Windows Enterprise", "Windows Education", "Windows Server", "Có (Chưa rõ phiên bản)", "Chưa có"];
-        let officeLicenses = ["Office Professional Plus", "Office Standard", "Office Home & Business", "Office Home & Student", "Microsoft 365 Apps", "Có (Chưa rõ phiên bản)", "Chưa có"];
+        // Cấu hình danh sách bản quyền chuẩn hóa kèm ô dữ liệu Null
+        let winLicenses = ["Windows Pro", "Windows Home", "Windows Enterprise", "Windows Education", "Windows Server", "Có (Chưa rõ phiên bản)", "Chưa có", "Trống / Chưa rõ (Dữ liệu Null)"];
+        let officeLicenses = ["Office Professional Plus", "Office Standard", "Office Home & Business", "Office Home & Student", "Microsoft 365 Apps", "Có (Chưa rõ phiên bản)", "Chưa có", "Trống / Chưa rõ (Dữ liệu Null)"];
 
         $('#menuCongTy').empty();
         $('#menuBoPhan').empty();
@@ -715,7 +715,7 @@
         }
 
         // ====================================================
-        // HÀM LỌC CHÍNH (XỬ LÝ DỮ LIỆU + KIỂM TRA MẢNG BẢN QUYỀN MỚI THÊM)
+        // HÀM LỌC CHÍNH (XỬ LÝ DỮ LIỆU + PHÂN BIỆT RÕ RÀNG NULL VÀ TỪNG KEY BẢN QUYỀN)
         // ====================================================
         function applyFiltersAndRender() {
         let selectedCompanies = $('.chk-company:checked').map(function() { return $(this).val(); }).get();
@@ -737,9 +737,21 @@
         if (selectedDepts.length > 0) baseFiltered = baseFiltered.filter(x => selectedDepts.includes(x.tenBoPhan));
         if (selectedLoais.length > 0) baseFiltered = baseFiltered.filter(x => selectedLoais.includes(x.loaiThietBi));
 
-        // Logic lọc bản quyền đặc thù (Xử lý trường hợp chuỗi trống hoặc null)
-        if (selectedWins.length > 0) baseFiltered = baseFiltered.filter(x => selectedWins.includes(x.winLicense) || (selectedWins.includes("Chưa có") && (!x.winLicense || x.winLicense.trim() === "")));
-        if (selectedOffices.length > 0) baseFiltered = baseFiltered.filter(x => selectedOffices.includes(x.officeLicense) || (selectedOffices.includes("Chưa có") && (!x.officeLicense || x.officeLicense.trim() === "")));
+        // Logic lọc bản quyền đặc thù trên Dashboard (Phân biệt chuẩn xác giữa Null và từng ô cụ thể)
+        if (selectedWins.length > 0) {
+        baseFiltered = baseFiltered.filter(x => {
+        let checkNull = selectedWins.includes("Trống / Chưa rõ (Dữ liệu Null)");
+        if (checkNull && (!x.winLicense || x.winLicense.trim() === "")) return true;
+        return selectedWins.includes(x.winLicense);
+        });
+        }
+        if (selectedOffices.length > 0) {
+        baseFiltered = baseFiltered.filter(x => {
+        let checkNull = selectedOffices.includes("Trống / Chưa rõ (Dữ liệu Null)");
+        if (checkNull && (!x.officeLicense || x.officeLicense.trim() === "")) return true;
+        return selectedOffices.includes(x.officeLicense);
+        });
+        }
 
         if (fText) {
         baseFiltered = baseFiltered.filter(x =>
@@ -1247,7 +1259,7 @@
         "Công Ty": item.tenCongTy || 'Chưa gắn',
         "Bộ Phận": item.tenBoPhan || 'Chưa gắn',
         "Trạng Thái": item.tenTrangThai || 'Chưa rõ',
-        "Ghi Chú": item.ghiChu || '',
+        "Ghi Chú": item.ghiChu || '',
         "Ảnh Đính Kèm": item.duongDanAnh ? "Có ảnh" : "Không",
         "Lần Cập Nhật Cuối": item.ngayCapNhat ? new Date(item.ngayCapNhat).toLocaleString('vi-VN') : '',
         "Ngày Kiểm Kê Lần Cuối": trangThaiCheckExcel

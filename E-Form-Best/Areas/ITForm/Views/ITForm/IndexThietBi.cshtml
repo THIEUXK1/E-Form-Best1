@@ -28,8 +28,8 @@
     }
 
     /* ========================================================
-                                    CSS CHO HỆ THỐNG DROPDOWN CHECKBOX (COMBOBOX NHIỀU MỤC) MỚI
-                                    ======================================================== */
+                                            CSS CHO HỆ THỐNG DROPDOWN CHECKBOX (COMBOBOX NHIỀU MỤC) MỚI
+                                            ======================================================== */
     .dropdown-combo-btn {
         width: 100%;
         text-align: left;
@@ -231,14 +231,15 @@
 
                     <div class="col-12 mb-2">
                         <div class="row align-items-end g-2">
-                            <div class="col-md-9 col-12">
+                            <div class="col-md-7 col-12">
                                 <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-primary"></i> Tìm kiếm nhanh</label>
                                 <input type="text" id="filterText" class="form-control rounded-3 border-0 shadow-sm" placeholder="S/N, Hostname, Account, Note..." style="height: 38px;">
                             </div>
-                            <div class="col-md-3 col-12 text-md-end">
-                                <button type="button" id="btnToggleAdvancedFilter" class="btn btn-primary shadow-sm rounded-3 w-100 fw-semibold" style="height: 38px; background-color: #4f46e5; border-color: #4f46e5;" onclick="toggleAdvancedFilter()">
+                            <div class="col-md-5 col-12 text-md-end d-flex gap-2 justify-content-md-end justify-content-start">
+                                <button type="button" id="btnToggleAdvancedFilter" class="btn btn-primary shadow-sm rounded-3 fw-semibold flex-fill flex-md-grow-0" style="height: 38px; min-width: 150px; background-color: #4f46e5; border-color: #4f46e5;" onclick="toggleAdvancedFilter()">
                                     <i class="fas fa-sliders-h me-1"></i> <span id="textToggleFilter">Bộ lọc nâng cao</span>
                                 </button>
+                                <button class="btn btn-outline-secondary rounded-pill px-3 shadow-sm fw-semibold" onclick="clearFilters()" style="height: 38px; min-width: 100px;"><i class="fas fa-sync-alt"></i> Bỏ lọc</button>
                             </div>
                         </div>
                     </div>
@@ -341,7 +342,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-xl-1 col-lg-2 col-md-3 col-sm-6 mb-2">
+                            <div class="col-xl-2 col-lg-2 col-md-3 col-sm-6 mb-2">
                                 <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-list-ol"></i> Hiển thị</label>
                                 <select id="filterLimit" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
                                     <option value="10">10</option>
@@ -350,10 +351,6 @@
                                     <option value="100">100</option>
                                     <option value="all">Tất cả</option>
                                 </select>
-                            </div>
-
-                            <div class="col-xl-1 col-lg-2 col-md-9 col-sm-6 mb-2 d-flex justify-content-end">
-                                <button class="btn btn-outline-secondary rounded-pill px-3 shadow-sm w-100" onclick="clearFilters()" style="height: 38px;"><i class="fas fa-sync-alt"></i> Bỏ lọc</button>
                             </div>
                         </div>
                     </div>
@@ -478,7 +475,7 @@
                     <div class="col-md-6">
                         <label class="form-label fw-bold"><i class="fab fa-windows text-primary me-1"></i> Bản quyền Windows</label>
                         <select id="tb_WinLicense" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
-                            <option value="">Trống / Chưa rõ</option>
+                            <option value="">Trống / Chưa rõ (Dữ liệu Null)</option>
                             <option value="Windows Pro">Windows Pro</option>
                             <option value="Windows Home">Windows Home</option>
                             <option value="Windows Enterprise">Windows Enterprise</option>
@@ -491,7 +488,7 @@
                     <div class="col-md-6">
                         <label class="form-label fw-bold"><i class="fas fa-file-word text-success me-1"></i> Bản quyền Office</label>
                         <select id="tb_OfficeLicense" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
-                            <option value="">Trống / Chưa rõ</option>
+                            <option value="">Trống / Chưa rõ (Dữ liệu Null)</option>
                             <option value="Office Professional Plus">Office Professional Plus</option>
                             <option value="Office Standard">Office Standard</option>
                             <option value="Office Home & Business">Office Home & Business</option>
@@ -653,7 +650,7 @@
                 <input type="file" id="evidence_AnhFile" accept="image/*" class="d-none" onchange="previewEvidenceImage(this)" />
 
                 <div id="boxEvidenceCamera" style="display: none;" class="mt-2 text-center border rounded p-2 bg-light shadow-sm">
-                    <video id="videoEvidenceCamera" autoplay playsinline style="width: 100%; max-height: 240px; border-radius: 10px; background: #000; object-fit: cover;"></video>
+                    <video id="videoEvidenceCamera" autoplay playsinline style="width: 100%; max-height: 240px; border-radius: 10px; background: #000; object-fit: cover("></video>
                     <div class="mt-2 mb-1">
                         <button type="button" class="btn btn-danger rounded-pill px-3" onclick="takeEvidenceSnapshot()">
                             <i class="fas fa-dot-circle me-1"></i> Chụp hình bằng chứng
@@ -922,8 +919,8 @@
 
         // HÀM KHỞI TẠO VÀ RENDER DROPDOWN CHECKBOX CHO WINDOWS LICENSE & OFFICE LICENSE MỚI THÊM
         function renderFilterLicenses() {
-        let winList = ["Windows Pro", "Windows Home", "Windows Enterprise", "Windows Education", "Windows Server", "Có (Chưa rõ phiên bản)", "Chưa có"];
-        let officeList = ["Office Professional Plus", "Office Standard", "Office Home & Business", "Office Home & Student", "Microsoft 365 Apps", "Có (Chưa rõ phiên bản)", "Chưa có"];
+        let winList = ["Windows Pro", "Windows Home", "Windows Enterprise", "Windows Education", "Windows Server", "Có (Chưa rõ phiên bản)", "Chưa có", "Trống / Chưa rõ (Dữ liệu Null)"];
+        let officeList = ["Office Professional Plus", "Office Standard", "Office Home & Business", "Office Home & Student", "Microsoft 365 Apps", "Có (Chưa rõ phiên bản)", "Chưa có", "Trống / Chưa rõ (Dữ liệu Null)"];
 
         let savedWin = [];
         let savedOffice = [];
@@ -1315,7 +1312,6 @@
         let selectedLoais = $('.chk-loai:checked').map(function() { return $(this).val(); }).get();
         let selectedTrangThais = $('.chk-status:checked').map(function() { return $(this).val(); }).get();
 
-        // Lấy thêm mảng giá trị của bộ lọc Windows và Office
         let selectedWins = $('.chk-win:checked').map(function() { return $(this).val(); }).get();
         let selectedOffices = $('.chk-office:checked').map(function() { return $(this).val(); }).get();
 
@@ -1333,9 +1329,20 @@
         if (selectedLoais.length > 0) filtered = filtered.filter(x => selectedLoais.includes(x.loaiThietBi));
         if (selectedTrangThais.length > 0) filtered = filtered.filter(x => selectedTrangThais.includes(x.tenTrangThai));
 
-        // Xử lý Logic lọc dữ liệu Windows License và Office License
-        if (selectedWins.length > 0) filtered = filtered.filter(x => selectedWins.includes(x.winLicense) || (selectedWins.includes("Trống / Chưa rõ") && (!x.winLicense || x.winLicense.trim() === "")));
-        if (selectedOffices.length > 0) filtered = filtered.filter(x => selectedOffices.includes(x.officeLicense) || (selectedOffices.includes("Trống / Chưa rõ") && (!x.officeLicense || x.officeLicense.trim() === "")));
+        if (selectedWins.length > 0) {
+        filtered = filtered.filter(x => {
+        let checkNull = selectedWins.includes("Trống / Chưa rõ (Dữ liệu Null)");
+        if (checkNull && (!x.winLicense || x.winLicense.trim() === "")) return true;
+        return selectedWins.includes(x.winLicense);
+        });
+        }
+        if (selectedOffices.length > 0) {
+        filtered = filtered.filter(x => {
+        let checkNull = selectedOffices.includes("Trống / Chưa rõ (Dữ liệu Null)");
+        if (checkNull && (!x.officeLicense || x.officeLicense.trim() === "")) return true;
+        return selectedOffices.includes(x.officeLicense);
+        });
+        }
 
         if (fTuNgay || fDenNgay || fTìnhTrangCheck) {
         filtered = filtered.filter(x => {
@@ -1549,6 +1556,7 @@
         $('#tbodyDaXoa').html(html);
         }
 
+        // Toàn bộ phần mã JS phía dưới giữ nguyên 100% không đổi...
         function openCamera() {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({
