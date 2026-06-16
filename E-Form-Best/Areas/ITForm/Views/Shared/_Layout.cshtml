@@ -15,7 +15,8 @@
 
     bool isITSystem = currentController.Contains("IT") || currentController == "Mail" || currentController.Contains("Order");
 
-    string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi", "DonCapQuyenOChung" }; bool isITSubActive = itSubPages.Contains(currentAction);
+    string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi", "DonCapQuyenOChung" };
+    bool isITSubActive = itSubPages.Contains(currentAction);
 
     // Khai báo biến cho menu Thống kê
     string[] reportPages = { "BaoCaoThongKe" }; // Bạn có thể thêm các Action báo cáo khác vào đây sau này
@@ -33,276 +34,275 @@
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💻</text></svg>">
 
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-
-    <!-- THÊM THƯ VIỆN SELECT2 (CSS) BỊ THIẾU -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
     <style>
-            body {
-                font-family: 'Inter', sans-serif;
-                margin: 0;
-                background: #f8fafc;
-                color: #1e293b;
-                display: flex;
-                min-height: 100vh;
-                overflow-x: hidden;
-            }
+        body {
+        font-family: 'Inter', sans-serif;
+        margin: 0;
+        background: #f8fafc;
+        color: #1e293b;
+        display: flex;
+        min-height: 100vh;
+        overflow-x: hidden;
+        }
 
-            /* Tối ưu Scrollbar */
-            ::-webkit-scrollbar {
-                width: 5px;
-            }
+        /* Tối ưu Scrollbar */
+        ::-webkit-scrollbar {
+        width: 5px;
+        }
 
-            ::-webkit-scrollbar-thumb {
-                background: rgba(255,255,255,0.2);
-                border-radius: 10px;
-            }
+        ::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.2);
+        border-radius: 10px;
+        }
 
-            #notiList::-webkit-scrollbar-thumb {
-                background: #cbd5e1;
-            }
+        #notiList::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        }
 
-            /* Sidebar Nav Item */
-            .nav-link-item {
-                display: flex;
-                align-items: center;
-                padding: 14px 18px;
-                border-radius: 14px;
-                color: rgba(255,255,255,0.8);
-                text-decoration: none;
-                font-weight: 600;
-                transition: all 0.3s;
-                margin-bottom: 2px;
-            }
+        /* Sidebar Nav Item */
+        .nav-link-item {
+        display: flex;
+        align-items: center;
+        padding: 14px 18px;
+        border-radius: 14px;
+        color: rgba(255,255,255,0.8);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s;
+        margin-bottom: 2px;
+        }
 
-                .nav-link-item:hover {
-                    background: rgba(255,255,255,0.1);
-                    color: #fff;
-                    transform: translateX(4px);
-                }
+        .nav-link-item:hover {
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+        transform: translateX(4px);
+        }
 
-                .nav-link-item.active {
-                    background: rgba(255,255,255,0.2);
-                    color: #fff;
-                }
+        .nav-link-item.active {
+        background: rgba(255,255,255,0.2);
+        color: #fff;
+        }
 
-            .submenu-link {
-                text-decoration: none;
-                display: flex;
-                align-items: center;
-                font-size: 0.88rem;
-                padding: 12px 18px;
-                color: #cbd5e1;
-                border-radius: 10px;
-                transition: 0.2s;
-            }
+        .submenu-link {
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        font-size: 0.88rem;
+        padding: 12px 18px;
+        color: #cbd5e1;
+        border-radius: 10px;
+        transition: 0.2s;
+        }
 
-                .submenu-link:hover {
-                    background: rgba(255,255,255,0.08);
-                    color: #fff;
-                }
+        .submenu-link:hover {
+        background: rgba(255,255,255,0.08);
+        color: #fff;
+        }
 
-                .submenu-link.active {
-                    background: rgba(255,255,255,0.15);
-                    color: #fff;
-                    font-weight: 700;
-                }
+        .submenu-link.active {
+        background: rgba(255,255,255,0.15);
+        color: #fff;
+        font-weight: 700;
+        }
 
-            /* Hiệu ứng xoay mũi tên cho menu Collapse */
-            [data-bs-toggle="collapse"] .menu-arrow {
-                transition: transform 0.3s ease;
-            }
+        /* Hiệu ứng xoay mũi tên cho menu Collapse */
+        [data-bs-toggle="collapse"] .menu-arrow {
+        transition: transform 0.3s ease;
+        }
 
-            [data-bs-toggle="collapse"][aria-expanded="true"] .menu-arrow {
-                transform: rotate(180deg);
-            }
+        [data-bs-toggle="collapse"][aria-expanded="true"] .menu-arrow {
+        transform: rotate(180deg);
+        }
 
-            .user-dropdown-item:hover {
-                background-color: #f1f5f9 !important;
-                color: #1d4ed8 !important;
-            }
+        .user-dropdown-item:hover {
+        background-color: #f1f5f9 !important;
+        color: #1d4ed8 !important;
+        }
 
-            /* Language Switcher Styles */
-            .lang-btn {
-                background: #fff;
-                border: 1px solid #e2e8f0;
-                padding: 8px 15px;
-                border-radius: 12px;
-                font-size: 0.85rem;
-                font-weight: 700;
-                color: #1e293b;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                transition: 0.2s;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.06);
-            }
+        /* Language Switcher Styles */
+        .lang-btn {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        padding: 8px 15px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #1e293b;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: 0.2s;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+        }
 
-                .lang-btn:hover {
-                    background: #f1f5f9;
-                    transform: translateY(-1px);
-                    border-color: #3b82f6;
-                }
+        .lang-btn:hover {
+        background: #f1f5f9;
+        transform: translateY(-1px);
+        border-color: #3b82f6;
+        }
 
-            #langDropdown, #zoomDropdown {
-                display: none;
-                position: absolute;
-                top: 55px;
-                left: 0;
-                background: #fff;
-                border-radius: 16px;
-                box-shadow: 0 15px 35px rgba(0,0,0,0.12);
-                border: 1px solid #e2e8f0;
-                min-width: 180px;
-                overflow: hidden;
-                z-index: 1001;
-                animation: slideDown 0.2s ease-out;
-            }
+        #langDropdown, #zoomDropdown {
+        display: none;
+        position: absolute;
+        top: 55px;
+        left: 0;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+        border: 1px solid #e2e8f0;
+        min-width: 180px;
+        overflow: hidden;
+        z-index: 1001;
+        animation: slideDown 0.2s ease-out;
+        }
 
-            #zoomDropdown {
-                min-width: 130px;
-                max-height: 250px;
-                overflow-y: auto;
-            }
+        #zoomDropdown {
+        min-width: 130px;
+        max-height: 250px;
+        overflow-y: auto;
+        }
 
-                #zoomDropdown::-webkit-scrollbar {
-                    width: 4px;
-                }
+        #zoomDropdown::-webkit-scrollbar {
+        width: 4px;
+        }
 
-                #zoomDropdown::-webkit-scrollbar-thumb {
-                    background: #cbd5e1;
-                    border-radius: 10px;
-                }
+        #zoomDropdown::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+        }
 
-            @@keyframes slideDown {
-                from {
-                    opacity: 0;
-                    transform: translateY(-10px);
-                }
+        @@keyframes slideDown {
+        from {
+        opacity: 0;
+        transform: translateY(-10px);
+        }
 
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
+        to {
+        opacity: 1;
+        transform: translateY(0);
+        }
+        }
 
-            .lang-item {
-                padding: 12px 18px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                color: #334155;
-                text-decoration: none;
-                font-size: 0.88rem;
-                font-weight: 600;
-                transition: 0.2s;
-                border-bottom: 1px solid #f1f5f9;
-            }
+        .lang-item {
+        padding: 12px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: #334155;
+        text-decoration: none;
+        font-size: 0.88rem;
+        font-weight: 600;
+        transition: 0.2s;
+        border-bottom: 1px solid #f1f5f9;
+        }
 
-                .lang-item:last-child {
-                    border-bottom: none;
-                }
+        .lang-item:last-child {
+        border-bottom: none;
+        }
 
-                .lang-item:hover {
-                    background: #eff6ff;
-                    color: #2563eb;
-                }
+        .lang-item:hover {
+        background: #eff6ff;
+        color: #2563eb;
+        }
 
-                .lang-item.active {
-                    color: #2563eb;
-                    background: #f0f9ff;
-                }
+        .lang-item.active {
+        color: #2563eb;
+        background: #f0f9ff;
+        }
 
-            /* --- CSS ẨN WIDGET GOOGLE TRANSLATE MẶC ĐỊNH --- */
-            .VIpgJd-ZVi9od-ORHb-OEVmcd {
-                display: none !important;
-            }
+        /* --- CSS ẨN WIDGET GOOGLE TRANSLATE MẶC ĐỊNH --- */
+        .VIpgJd-ZVi9od-ORHb-OEVmcd {
+        display: none !important;
+        }
 
-            .goog-te-banner-frame {
-                display: none !important;
-            }
+        .goog-te-banner-frame {
+        display: none !important;
+        }
 
-            body {
-                top: 0px !important;
-            }
+        body {
+        top: 0px !important;
+        }
 
-            #goog-gt-tt {
-                display: none !important;
-            }
+        #goog-gt-tt {
+        display: none !important;
+        }
 
-            /* ==========================================
-                                                   THÊM MỚI: CSS CHO MOBILE RESPONSIVE
-                                                   ========================================== */
-            .sidebar-backdrop {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.5);
-                z-index: 995;
-                opacity: 0;
-                transition: opacity 0.3s ease;
-            }
+        /* ================================================================== */
+        /* CSS CHO MOBILE RESPONSIVE                                          */
+        /* ================================================================== */
+        .sidebar-backdrop {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 995;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        }
 
-            @@media (max-width: 768px) {
-                #sidebar {
-                    transform: translateX(-100%);
-                }
+        @@media (max-width: 768px) {
+        #sidebar {
+        transform: translateX(-100%);
+        }
 
-                    #sidebar.open {
-                        transform: translateX(0);
-                    }
+        #sidebar.open {
+        transform: translateX(0);
+        }
 
-                .sidebar-backdrop.show {
-                    display: block;
-                    opacity: 1;
-                }
+        .sidebar-backdrop.show {
+        display: block;
+        opacity: 1;
+        }
 
-                main {
-                    margin-left: 0 !important;
-                    width: 100% !important;
-                }
+        main {
+        margin-left: 0 !important;
+        width: 100% !important;
+        }
 
-                header {
-                    padding: 15px 20px !important;
-                }
+        header {
+        padding: 15px 20px !important;
+        }
 
-                #mobile-menu-btn {
-                    display: block !important;
-                }
+        #mobile-menu-btn {
+        display: block !important;
+        }
 
-                #notificationDropdown {
-                    width: 300px !important;
-                    right: -20px !important;
-                }
-                /* SỬA LẠI ĐỂ RENDERBODY() SÁT LỀ TRÊN MOBILE HOÀN TOÀN */
-                .main-content-wrapper {
-                    padding: 15px 0 !important; /* Đảm bảo padding trái phải bằng 0 */
-                }
+        #notificationDropdown {
+        width: 300px !important;
+        right: -20px !important;
+        }
 
-                .main-card {
-                    padding: 20px 0 !important; /* THAY ĐỔI TẠI ĐÂY: từ 10px thành 0 để ép sát lề 100% */
-                    border-radius: 0 !important;
-                    border-left: none !important;
-                    border-right: none !important;
-                    min-height: auto !important;
-                }
-            }
+        .main-content-wrapper {
+        padding: 15px 0 !important;
+        }
+
+        .main-card {
+        padding: 20px 0 !important;
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+        min-height: auto !important;
+        }
+        }
     </style>
 </head>
-
 <body>
 
     @if (!isLoginPage)
     {
-        <!-- Backdrop cho mobile -->
         <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
         <aside id="sidebar" style="width:280px; background:@primaryGradient; color:#fff; padding:25px 15px; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; box-shadow:10px 0 40px rgba(0,0,0,0.15); z-index:1000; transition: all 0.3s ease;">
@@ -343,7 +343,7 @@
                                 <i class="fa fa-wifi" style="margin-right:12px; width:15px; color: #22c55e;"></i> <span class="lang-text" data-key="reg_wifi">3. Đăng ký Wifi</span>
                             </a>
                             <a href="/FormIT/DonDienThoaiBan" class="submenu-link @(currentAction == "DonDienThoaiBan" ? "active" : "")">
-                                <i class="fa fa-phone" style="margin-right:12px; width:15px; color: #4f46e5;"></i> <span class="lang-text" data-key="reg_phone">4. Đăng ký ĐT bàn</span>
+                                <i class="fa fa-phone" style="margin-right:12px; width:15px; color: #6366f1;"></i> <span class="lang-text" data-key="reg_phone">4. Đăng ký ĐT bàn</span>
                             </a>
                             <a href="/FormIT/DonTaiKhoanHeThong" class="submenu-link @(currentAction == "DonTaiKhoanHeThong" ? "active" : "")">
                                 <i class="fa fa-user-circle-o" style="margin-right:12px; width:15px; color: #db2777;"></i> <span class="lang-text" data-key="reg_system_acc">5. Đăng ký TK Hệ thống</span>
@@ -351,11 +351,9 @@
                             <a href="/FormIT/DonTaiKhoanMayTinh" class="submenu-link @(currentAction == "DonTaiKhoanMayTinh" ? "active" : "")">
                                 <i class="fa fa-desktop" style="margin-right:12px; width:15px; color: #06b6d4;"></i> <span class="lang-text" data-key="reg_pc_acc">6. Đăng ký TK Máy tính</span>
                             </a>
-                            @* Mục số 7 với màu mới #65a30d *@
                             <a href="/FormIT/DonLapDatThietBi" class="submenu-link @(currentAction == "DonLapDatThietBi" ? "active" : "")">
                                 <i class="fa fa-plus-square" style="margin-right:12px; width:15px; color: #65a30d;"></i> <span class="lang-text" data-key="reg_install_equip">7. Đơn lắp đặt TB</span>
                             </a>
-                            @* Mục số 8 với màu mới hoàn toàn #8b5cf6 (Màu Tím) *@
                             <a href="/FormIT/DonCapQuyenOChung" class="submenu-link @(currentAction == "DonCapQuyenOChung" ? "active" : "")">
                                 <i class="fa fa-folder-open" style="margin-right:12px; width:15px; color: #8b5cf6;"></i> <span class="lang-text" data-key="reg_share_folder">8. Cấp quyền ổ chung</span>
                             </a>
@@ -387,16 +385,10 @@
                             <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text" data-key="archive_form">Lưu trữ đơn</span>
                         </a>
 
-                        <!-- ======================================================== -->
-                        <!-- MỤC MỚI BỔ SUNG: QUẢN LÝ CÔNG VIỆC CHỈ ĐỊNH NGƯỜI HỖ TRỢ -->
-                        <!-- ======================================================== -->
                         <a href="/FormIT/HoanTatDonChiDinh" class="nav-link-item @(currentAction == "HoanTatDonChiDinh" ? "active" : "")">
                             <i class="fa fa-user-plus" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f97316;"></i> <span class="lang-text" data-key="assigned_tasks">Công việc chỉ định</span>
                         </a>
 
-                        <!-- ======================================================== -->
-                        <!-- MỤC ĐÃ ĐƯỢC THAY ĐỔI: THỐNG KÊ BÁO CÁO (DẠNG MỞ RỘNG)   -->
-                        <!-- ======================================================== -->
                         <a data-bs-toggle="collapse" href="#collapseThongKe" role="button" aria-expanded="@(isReportActive ? "true" : "false")" class="nav-link-item" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: @(isReportActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
                             <span style="display:flex; align-items:center;">
                                 <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i>
@@ -423,30 +415,25 @@
                                 </a>
                             </div>
                         </div>
-                        <!-- ======================================================== -->
-                        <!-- MỤC QUẢN LÝ KIỂM KÊ & THỐNG KÊ TÀI SẢN -->
                         <a href="/QLKiemKe/ThongKe" class="nav-link-item @(currentController == "QLKiemKe" && (currentAction == "ThongKeKiemKe" || currentAction == "ThongKe") ? "active" : "")">
                             <i class="fa fa-pie-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#3b82f6;"></i>
                             <span class="lang-text" data-key="inventory_stats">Kiểm kê tài sản</span>
                         </a>
-
                     }
+
                     @if (User.IsInRole("KKTS-PFVN") || User.IsInRole("All"))
                     {
                         bool isKiemKeGroupActive = currentController == "QLKiemKe";
 
                         <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-                        <!-- Tiêu đề sẽ sáng lên (có màu xanh và thêm dấu chấm) nếu đang ở mục Kiểm Kê -->
                         <div class="lang-text" data-key="inventory_sec" style="font-size: 0.72rem; color: @(isKiemKeGroupActive ? "#60a5fa" : "rgba(255, 255, 255, 0.45)"); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700; transition: color 0.3s;">
                             Kiểm Kê Thiết Bị @(isKiemKeGroupActive ? "•" : "")
                         </div>
 
-                        <!-- Menu 1: Quản lý Thiết bị (Đã sửa lại Action kiểm tra) -->
                         <a href="/QLKiemKe/ThietBi" class="nav-link-item @(currentController == "QLKiemKe" && (currentAction == "IndexThietBi" || currentAction == "ThietBi") ? "active" : "")">
                             <i class="fa fa-laptop" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text" data-key="device_manage">Quản lý Thiết bị</span>
                         </a>
 
-                        <!-- Menu 2: Danh mục (Đã sửa lại Action kiểm tra) -->
                         <a href="/QLKiemKe" class="nav-link-item @(currentController == "QLKiemKe" && (currentAction == "IndexKiemKe" || currentAction == "Index") ? "active" : "")">
                             <i class="fa fa-cubes" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f472b6;"></i> <span class="lang-text" data-key="inventory">Cấu hình Danh mục</span>
                         </a>
@@ -457,7 +444,6 @@
             <div style="margin-top:25px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 20px; position:relative; border: 1px solid rgba(255,255,255,0.05);">
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <!-- KIỂM TRA MẬT KHẨU MẶC ĐỊNH -->
                     @if (User.HasClaim("IsDefaultPassword", "true"))
                     {
                         <div style="background: rgba(239, 68, 68, 0.2); border: 1px dashed #ef4444; border-radius: 12px; padding: 10px; margin-bottom: 15px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
@@ -509,15 +495,12 @@
 
             <header style="padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 999; font-family: 'Inter', system-ui, -apple-system, sans-serif; border-bottom: 1px solid rgba(226, 232, 240, 0.6); transition: all 0.3s ease;">
 
-                <!-- Nhóm trái: Mobile Button + Language Switcher + Zoom -->
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <!-- Nút mở Menu Mobile (Chỉ hiện trên điện thoại) -->
                     <button id="mobile-menu-btn" style="display: none; background: none; border: none; font-size: 1.5rem; color: #1e293b; cursor: pointer; padding: 0;">
                         <i class="fa fa-bars"></i>
                     </button>
 
-                    <!-- Language Switcher - ĐÃ ĐỒNG BỘ GOOGLE TRANSLATE -->
-                    <div style="position: relative;">
+                    <div style="position: relative;" class="dropdown-wrapper">
                         <button id="btnLanguage" class="lang-btn">
                             <i class="fa fa-globe" style="color: #2563eb;"></i>
                             <span id="currentLangText">Tiếng Việt</span>
@@ -534,12 +517,10 @@
                                 <span>中文</span> <i class="fa fa-check" style="display:none;"></i>
                             </a>
                         </div>
-                        <!-- Div ảo chứa widget Google Translate -->
                         <div id="google_translate_element" style="display:none;"></div>
                     </div>
 
-                    <!-- Zoom Switcher -->
-                    <div style="position: relative;">
+                    <div style="position: relative;" class="dropdown-wrapper">
                         <button id="btnZoom" class="lang-btn">
                             <i class="fa fa-search-plus" style="color: #3b82f6;"></i>
                             <span id="currentZoomText">100%</span>
@@ -558,8 +539,7 @@
                     </div>
                 </div>
 
-                <!-- Notifications (Right Side) -->
-                <div style="position: relative; display: flex; align-items: center; gap: 15px;">
+                <div style="position: relative; display: flex; align-items: center; gap: 15px;" class="dropdown-wrapper">
 
                     <div id="latestNotiTag" style="display: none; position: absolute; right: 65px; white-space: nowrap; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 10px 16px; border-radius: 12px; font-size: 0.85rem; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2); z-index: 1001; border-left: 4px solid #fff; align-items: center; gap: 10px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
@@ -606,14 +586,10 @@
         <div style="width:100%;">@RenderBody()</div>
     }
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <!-- THÊM THƯ VIỆN SELECT2 (JS) BỊ THIẾU -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-    <!-- SCRIPT GOOGLE TRANSLATE -->
     <script type="text/javascript">
         function googleTranslateElementInit() {
         new google.translate.TranslateElement({ pageLanguage: 'vi', autoDisplay: false }, 'google_translate_element');
@@ -622,6 +598,71 @@
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
     <script>
+        // ===================================================================================
+        // GIẢI QUYẾT TRIỆT ĐỂ LỖI KẸT CLICK: ỦY QUYỀN SỰ KIỆN TOÀN CỤC CHỐNG ĐÈ BIẾN JQUERY KHỎI MEMORY
+        // ===================================================================================
+
+        // 1. Click mở menu Ngôn ngữ
+        $(document).on('click', '#btnLanguage', function (e) {
+        e.stopPropagation();
+        $('#zoomDropdown').hide();
+        $('#notificationDropdown').hide();
+        $('#userDropdown').hide();
+        $('#langDropdown').toggle();
+        });
+
+        // 2. Click mở menu Zoom kích thước
+        $(document).on('click', '#btnZoom', function (e) {
+        e.stopPropagation();
+        $('#langDropdown').hide();
+        $('#notificationDropdown').hide();
+        $('#userDropdown').hide();
+        $('#zoomDropdown').toggle();
+        });
+
+        // 3. Click mở menu Thông báo Chuông quả lắc
+        $(document).on('click', '#notiBell', function (e) {
+        e.stopPropagation();
+        $('#langDropdown').hide();
+        $('#zoomDropdown').hide();
+        $('#userDropdown').hide();
+        let isHidden = $('#notificationDropdown').is(':hidden');
+        $('#notificationDropdown').toggle();
+        if (isHidden) loadNotifications(true, false);
+        });
+
+        // 4. Click mở menu Tài khoản User ở góc dưới Sidebar
+        $(document).on('click', '#userMenuButton', function (e) {
+        e.stopPropagation();
+        $('#langDropdown').hide();
+        $('#zoomDropdown').hide();
+        $('#notificationDropdown').hide();
+        let isHidden = $('#userDropdown').is(':hidden');
+        $('#userDropdown').toggle();
+        $('#arrowIcon').style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        });
+
+        // 5. CLICK VÀO BẤT KỲ ĐÂU TRÊN MÀN HÌNH THÌ ĐÓNG TOÀN BỘ MENU ĐANG THẢ (Kể cả Dropdown Multi-Checkbox của View con)
+        $(document).on('click', function (e) {
+        if (!$(e.target).closest('.dropdown-wrapper, #btnLanguage, #btnZoom, #notiBell, #userMenuButton, .dropdown').length) {
+        $('#userDropdown').hide();
+        $('#arrowIcon').css('transform', 'rotate(0deg)');
+        $('#notificationDropdown').hide();
+        $('#langDropdown').hide();
+        $('#zoomDropdown').hide();
+        $('.dropdown-combo-menu').hide(); // Ép menu lọc checkbox của View con đóng lại
+        }
+        });
+
+        // 6. ĐẶC BIỆT: Xử lý click cho bộ lọc Multi-Checkbox ở View con nếu có xuất hiện động
+        $(document).on('click', '.dropdown-combo-btn', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        let $menu = $(this).siblings('.dropdown-combo-menu');
+        $('.dropdown-combo-menu').not($menu).hide();
+        $menu.toggle();
+        });
+
         // ==========================================
         // XỬ LÝ GIAO DIỆN MENU MOBILE
         // ==========================================
@@ -643,7 +684,7 @@
         }
 
         // ==========================================
-        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE (NUCLEAR OPTION CHỐNG KẸT)
+        // HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE
         // ==========================================
         function clearGoogTransCookie() {
         let domain = window.location.hostname;
@@ -704,17 +745,13 @@
 
         function changeLanguageGTranslate(lang, label) {
         localStorage.setItem('siteLangGlobal', lang);
-
-        // BƯỚC 1: PHÁ HỦY DOM CỦA GOOGLE TRANSLATE
         const gtEl = document.getElementById('google_translate_element');
         if (gtEl) gtEl.innerHTML = '';
         const iframes = document.querySelectorAll('iframe.goog-te-menu-frame, iframe.goog-te-banner-frame');
         iframes.forEach(f => f.remove());
 
-        // BƯỚC 2: DỌN RÁC COOKIE
         clearGoogTransCookie();
 
-        // BƯỚC 3: GÁN COOKIE MỚI & ĐIỀU HƯỚNG
         setTimeout(() => {
         if (lang !== 'vi') {
         setGoogTransCookie(lang);
@@ -726,20 +763,6 @@
         // ==========================================
         // HỆ THỐNG ZOOM KÍCH THƯỚC WEB
         // ==========================================
-        const btnZoom = document.getElementById('btnZoom');
-        const zoomDrop = document.getElementById('zoomDropdown');
-        const currentZoomText = document.getElementById('currentZoomText');
-
-        if (btnZoom) {
-        btnZoom.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const langDrop = document.getElementById('langDropdown');
-        if(langDrop) langDrop.style.display = 'none';
-        const isHidden = zoomDrop.style.display === 'none' || zoomDrop.style.display === '';
-        zoomDrop.style.display = isHidden ? 'block' : 'none';
-        });
-        }
-
         function initZoom() {
         let currentZoom = getCookieIT('siteZoomGlobal') || '100';
         applyZoom(currentZoom);
@@ -748,7 +771,7 @@
         function changeZoom(percent) {
         setCookieIT('siteZoomGlobal', percent, 365);
         applyZoom(percent);
-        if (zoomDrop) zoomDrop.style.display = 'none';
+        $('#zoomDropdown').hide();
         }
 
         function applyZoom(percent) {
@@ -791,23 +814,8 @@
         }
 
         // ==========================================
-        // 1. Quản lý Sidebar & User Dropdown
+        // Quản lý Sidebar Toggle
         // ==========================================
-        const btnMenu = document.getElementById('btnMainMenu');
-        const submenu = document.getElementById('mainSubmenu');
-        const arrow = document.getElementById('menuArrow');
-        const sidebarNav = document.getElementById('main-sidebar-nav');
-        const btnLang = document.getElementById('btnLanguage');
-        const langDrop = document.getElementById('langDropdown');
-
-        if (btnLang) {
-        btnLang.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if(zoomDrop) zoomDrop.style.display = 'none';
-        langDrop.style.display = langDrop.style.display === 'block' ? 'none' : 'block';
-        });
-        }
-
         if (btnMenu && submenu) {
         btnMenu.addEventListener('click', () => {
         const isHidden = submenu.style.display === 'none' || submenu.style.display === '';
@@ -825,7 +833,6 @@
         const savedScrollPos = sessionStorage.getItem('sidebarScrollPosIT');
         if (sidebarNav && savedScrollPos) sidebarNav.scrollTop = parseInt(savedScrollPos);
 
-        // THÊM ĐOẠN NÀY ĐỂ LƯU VỊ TRÍ CUỘN CỦA SIDEBAR
         if (sidebarNav) {
         sidebarNav.addEventListener('scroll', function() {
         sessionStorage.setItem('sidebarScrollPosIT', this.scrollTop);
@@ -851,40 +858,6 @@
         let isLoading = false;
         let hasMoreData = true;
         let allFetchedIds = [];
-
-        const notiBell = document.getElementById('notiBell');
-        const notiDrop = document.getElementById('notificationDropdown');
-        const notiList = document.getElementById('notiList');
-        const notiBadge = document.getElementById('notiBadge');
-        const userBtn = document.getElementById('userMenuButton');
-        const userDrop = document.getElementById('userDropdown');
-        const userArrow = document.getElementById('arrowIcon');
-
-        if (notiBell) {
-        notiBell.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isHidden = notiDrop.style.display === 'none' || notiDrop.style.display === '';
-        notiDrop.style.display = isHidden ? 'flex' : 'none';
-        if (isHidden) loadNotifications(true, false);
-        });
-        }
-
-        if (userBtn && userDrop) {
-        userBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isHidden = userDrop.style.display === 'none' || userDrop.style.display === '';
-        userDrop.style.display = isHidden ? 'flex' : 'none';
-        if (userArrow) userArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
-        });
-        }
-
-        document.addEventListener('click', () => {
-        if (userDrop) userDrop.style.display = 'none';
-        if (userArrow) userArrow.style.transform = 'rotate(0deg)';
-        if (notiDrop) notiDrop.style.display = 'none';
-        if (langDrop) langDrop.style.display = 'none';
-        if (zoomDrop) zoomDrop.style.display = 'none';
-        });
 
         async function loadNotifications(isOpen = false, isLoadMore = false) {
         if (isLoading) return;
@@ -916,7 +889,7 @@
         const html = listItems.map(item => {
         const isRead = readIdsFromCookie.includes(item.id.toString());
         if(!allFetchedIds.includes(item.id.toString())) allFetchedIds.push(item.id.toString());
-        return `<a href="/FormIT/ChiTiet/${item.idFormIt}" onclick="markAsRead('${item.id}')" style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit; background: ${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.05)'};">
+        return `<a href="/FormIT/ChiTiet/${item.idFormIt}" onclick="markAsRead(event, '${item.id}')" style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit; background: ${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.05)'};">
         <div style="width: 44px; height: 44px; border-radius: 12px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fa ${item.icon || 'fa-bell'}"></i></div>
         <div style="flex:1;"><div style="font-size: 0.88rem; font-weight: ${isRead ? '600' : '800'}; color: #1e293b;">${item.tieuDe}</div>
         <div style="font-size: 0.8rem; color: #64748b;">${item.mota || ''}</div>
@@ -957,12 +930,18 @@
         setTimeout(() => { if (latestTag) latestTag.style.display = 'none'; }, 8000);
         }
 
-        function markAsRead(id) {
+        function markAsRead(e, id) {
+        if (e) e.preventDefault();
+        const currentTargetHref = e.currentTarget.getAttribute('href');
+
         let readIds = getReadIds();
         if (!readIds.includes(id.toString())) {
         readIds.push(id.toString());
         setReadCookie(readIds);
-        setTimeout(() => loadNotifications(false, false), 300);
+        }
+
+        if (currentTargetHref) {
+        window.location.href = currentTargetHref;
         }
         }
 
