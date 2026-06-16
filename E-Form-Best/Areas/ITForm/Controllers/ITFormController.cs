@@ -5111,9 +5111,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 // Lấy toàn bộ thiết bị đang hoạt động (Bỏ qua các thiết bị nằm trong thùng rác/có NgayXoa)
                 // Đã chuyển đổi phép so sánh chuỗi sang Equals kèm StringComparison để dứt điểm cảnh báo
                 var thietBis = _context.KkThietBis
+                    .Include(x => x.IdTrangThaiNavigation)
                     .Include(x => x.IdcongTyNavigation)
                     .Include(x => x.IdboPhanNavigation)
-                    .Include(x => x.IdTrangThaiNavigation)
                     .Where(x => x.NgayXoa == null && (x.IdTrangThaiNavigation == null || !x.IdTrangThaiNavigation.TenTrangThai.Equals("xóa", StringComparison.OrdinalIgnoreCase)))
                     .ToList();
 
@@ -5175,7 +5175,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
+<<<<<<< HEAD
         // 2. HÀM NÀY DÙNG ĐỂ ĐỔ DỮ LIỆU VÀO BẢNG & XUẤT EXCEL (Đã cập nhật đổi tenThietBi sang tenViTri và lấy đủ Win/Office License)
+=======
+        // 2. HÀM NÀY DÙNG ĐỂ ĐỔ DỮ LIỆU VÀO BẢNG & XUẤT EXCEL (Đã thêm WinLicense và OfficeLicense)
+>>>>>>> parent of 6bb86e5 (Revert "t")
         [HttpGet("/QLKiemKe/GetKkThietBiss")]
         public IActionResult GetKkThietBiss()
         {
@@ -5208,9 +5212,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         ngayCapNhat = x.NgayCapNhat,
                         ngayXoa = x.NgayXoa,
 
+<<<<<<< HEAD
                         // ĐẢM BẢO ĐẦY ĐỦ: Lấy dữ liệu cấu hình và bản quyền ra View
                         quyCach = x.QuyCach,
                         seribacode = x.Seribacode,
+=======
+                        // Thêm trường bản quyền để đồng bộ hiển thị và lọc nâng cao
+>>>>>>> parent of 6bb86e5 (Revert "t")
                         winLicense = x.WinLicense,
                         officeLicense = x.OfficeLicense
                     })
@@ -5230,7 +5238,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             try
             {
-                // Giả định DoiTuong là "Thiết bị" hoặc bạn quản lý thẳng bằng IdDoiTuong
                 var lichSuData = _context.KkLichSuThaoTacs
                     .Where(x => x.IdDoiTuong == idThietBi)
                     .OrderByDescending(x => x.ThoiGian)

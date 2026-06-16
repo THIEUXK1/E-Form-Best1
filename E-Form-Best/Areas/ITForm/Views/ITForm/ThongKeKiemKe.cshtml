@@ -325,6 +325,7 @@
                     </div>
                 </div>
 
+<<<<<<< HEAD
                 <div class="collapse row g-3 pt-2 mt-1 border-top border-light" id="collapseAdvancedFilter">
                     <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-building text-primary"></i> Công ty</label>
@@ -398,6 +399,17 @@
                     </div>
 
                     <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+=======
+                    <div class="col-lg-5 col-md-7 col-sm-12">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-info"></i> Tìm Kiếm Nhanh</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" id="filterText" class="form-control border-start-0 ps-0" placeholder="S/N, Hostname, Account, Tên Vị Trí, Mã TK..." style="height: 38px;">
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-md-5 col-sm-6">
+>>>>>>> parent of 6bb86e5 (Revert "t")
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sort-alpha-down text-dark"></i> Sắp xếp danh sách</label>
                         <select id="filterSort" class="form-select rounded-3 shadow-sm border" style="height: 38px; font-weight: 500;">
                             <option value="">Mặc định (Theo ID)</option>
@@ -407,6 +419,78 @@
                             <option value="name_desc">Tên Vị Trí (Z-A)</option>
                         </select>
                     </div>
+<<<<<<< HEAD
+=======
+
+                    <div class="col-lg-4 col-md-12 col-sm-6 text-md-end text-start">
+                        <button type="button" id="btnToggleFilters" class="btn btn-outline-primary rounded-3 px-3 fw-bold" style="height: 38px;" onclick="toggleAdvancedFilters()">
+                            <i class="fas fa-sliders-h me-1"></i> <span id="lblToggleText">Bộ lọc nâng cao</span>
+                        </button>
+                        <button class="btn btn-outline-secondary rounded-pill px-3 ms-1" onclick="clearFilters()" style="height: 38px;">
+                            <i class="fas fa-sync-alt"></i> Xóa bộ lọc
+                        </button>
+                    </div>
+
+                    <div class="col-12 p-0" id="boxAdvancedFiltersArea" style="display: none;">
+                        <div class="row m-0 g-3 align-items-end w-100 pt-2">
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-building text-primary"></i> Công ty</label>
+                                <div class="dropdown">
+                                    <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropCongTy" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        -- Tất cả --
+                                    </button>
+                                    <div class="dropdown-menu dropdown-combo-menu" id="menuCongTy" aria-labelledby="btnDropCongTy">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sitemap text-success"></i> Bộ phận</label>
+                                <div class="dropdown">
+                                    <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropBoPhan" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        -- Tất cả --
+                                    </button>
+                                    <div class="dropdown-menu dropdown-combo-menu" id="menuBoPhan" aria-labelledby="btnDropBoPhan">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-tags text-warning"></i> Loại thiết bị</label>
+                                <div class="dropdown">
+                                    <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropLoai" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        -- Tất cả --
+                                    </button>
+                                    <div class="dropdown-menu dropdown-combo-menu" id="menuLoai" aria-labelledby="btnDropLoai">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fab fa-windows text-primary"></i> Bản quyền Windows</label>
+                                <div class="dropdown">
+                                    <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropWin" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        -- Tất cả --
+                                    </button>
+                                    <div class="dropdown-menu dropdown-combo-menu" id="menuWin" aria-labelledby="btnDropWin">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-file-word text-success"></i> Bản quyền Office</label>
+                                <div class="dropdown">
+                                    <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropOffice" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        -- Tất cả --
+                                    </button>
+                                    <div class="dropdown-menu dropdown-combo-menu" id="menuOffice" aria-labelledby="btnDropOffice">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+>>>>>>> parent of 6bb86e5 (Revert "t")
                 </div>
             </div>
         </div>
@@ -533,16 +617,21 @@
                                 <th class="ps-4" width="70">ID</th>
                                 <th>Thông tin máy tính & Vị trí</th>
                                 <th>Loại & Ảnh đính kèm</th>
+                                <th>Hệ điều hành / Bản quyền</th>
                                 <th>Tài khoản & Người dùng</th>
                                 <th>Sơ đồ Vị trí (CT - BP)</th>
                                 <th class="text-center">Trạng thái</th>
                                 <th class="text-center" width="160">Lần cuối Check</th>
                                 <th>Ghi chú</th>
+<<<<<<< HEAD
                                 <th class="text-center" width="120">Thao tác</th>
+=======
+                                <th class="text-center" width="190">Thao tác hệ thống</th>
+>>>>>>> parent of 6bb86e5 (Revert "t")
                             </tr>
                         </thead>
                         <tbody id="tbodyData">
-                            <tr class="empty-row"><td colspan="9" class="text-center text-muted py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Đang tải dữ liệu...</div></td></tr>
+                            <tr class="empty-row"><td colspan="10" class="text-center text-muted py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Đang tải dữ liệu...</div></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -627,12 +716,29 @@
         let activeCardFilter = '';
 
         $(document).ready(function () {
+<<<<<<< HEAD
             // Sự kiện đồng bộ icon đóng/mở vùng lọc nâng cao
             $('#collapseAdvancedFilter').on('show.bs.collapse', function () {
                 $('#iconToggleAdvanced').removeClass('fa-chevron-down').addClass('fa-chevron-up');
             }).on('hide.bs.collapse', function () {
                 $('#iconToggleAdvanced').removeClass('fa-chevron-up').addClass('fa-chevron-down');
             });
+=======
+        // Đọc trạng thái ẩn hiện bộ lọc nâng cao từ localStorage
+        let savedState = localStorage.getItem('dash_toggleAdvancedFilters') || 'hide';
+        if (savedState === 'show') {
+        $('#boxAdvancedFiltersArea').show();
+        $('#lblToggleText').text('Thu gọn bộ lọc');
+        } else {
+        $('#boxAdvancedFiltersArea').hide();
+        $('#lblToggleText').text('Bộ lọc nâng cao');
+        }
+
+        // Sự kiện tìm kiếm nhanh & thay đổi sắp xếp
+        $('#filterText, #filterSort').on('keyup change', function () {
+        applyFiltersAndRender();
+        });
+>>>>>>> parent of 6bb86e5 (Revert "t")
 
             // Khôi phục cấu hình số lượng hiển thị (pageSize) từ localStorage nếu có sẵn
             let savedLimit = localStorage.getItem('kk_dashboard_pageSize') || '30';
@@ -654,6 +760,20 @@
             loadData();
         });
 
+        // Hàm trượt ẩn hiện nâng cao và lưu trạng thái
+        function toggleAdvancedFilters() {
+        let $area = $('#boxAdvancedFiltersArea');
+        if ($area.is(':visible')) {
+        $area.slideUp(200);
+        $('#lblToggleText').text('Bộ lọc nâng cao');
+        localStorage.setItem('dash_toggleAdvancedFilters', 'hide');
+        } else {
+        $area.slideDown(200);
+        $('#lblToggleText').text('Thu gọn bộ lọc');
+        localStorage.setItem('dash_toggleAdvancedFilters', 'show');
+        }
+        }
+
         function loadData() {
             $.get('/QLKiemKe/GetKkThietBiss', function (res) {
                 if (res.success) {
@@ -666,12 +786,13 @@
             }).fail(function() { Swal.fire("Lỗi", "Lỗi kết nối máy chủ!", "error"); });
         }
 
-        // Đổ dữ liệu vào Dropdown Checkbox Menu
+        // Đổ dữ liệu động vào hệ thống các Checkbox
         function populateFilters(data) {
             let companies = [...new Set(data.map(x => x.tenCongTy).filter(Boolean))].sort();
             let depts = [...new Set(data.map(x => x.tenBoPhan).filter(Boolean))].sort();
             let types = [...new Set(data.map(x => x.loaiThietBi).filter(Boolean))].sort();
 
+<<<<<<< HEAD
             $('#menuCongTy').empty();
             $('#menuBoPhan').empty();
             $('#menuLoai').empty();
@@ -705,9 +826,39 @@
                 </label>
                 `);
             });
+=======
+        // Danh sách cố định cho bản quyền dựa theo form nhập liệu
+        let winLicenses = ["Windows Pro", "Windows Home", "Windows Enterprise", "Windows Education", "Windows Server", "Có (Chưa rõ phiên bản)", "Chưa có"];
+        let officeLicenses = ["Office Professional Plus", "Office Standard", "Office Home & Business", "Office Home & Student", "Microsoft 365 Apps", "Có (Chưa rõ phiên bản)", "Chưa có"];
+
+        $('#menuCongTy').empty();
+        $('#menuBoPhan').empty();
+        $('#menuLoai').empty();
+        $('#menuWin').empty();
+        $('#menuOffice').empty();
+
+        companies.forEach(x => {
+        $('#menuCongTy').append(`<label class="dropdown-combo-item"><input type="checkbox" class="chk-company" value="${x}"><span>${x}</span></label>`);
+        });
+
+        depts.forEach(x => {
+        $('#menuBoPhan').append(`<label class="dropdown-combo-item"><input type="checkbox" class="chk-dept" value="${x}"><span>${x}</span></label>`);
+        });
+
+        types.forEach(x => {
+        $('#menuLoai').append(`<label class="dropdown-combo-item"><input type="checkbox" class="chk-loai" value="${x}"><span>${x}</span></label>`);
+        });
+
+        winLicenses.forEach(x => {
+        $('#menuWin').append(`<label class="dropdown-combo-item"><input type="checkbox" class="chk-win" value="${x}"><span>${x}</span></label>`);
+        });
+
+        officeLicenses.forEach(x => {
+        $('#menuOffice').append(`<label class="dropdown-combo-item"><input type="checkbox" class="chk-office" value="${x}"><span>${x}</span></label>`);
+        });
+>>>>>>> parent of 6bb86e5 (Revert "t")
         }
 
-        // Hàm cập nhật nhãn hiển thị lên nút Dropdown (Ví dụ: "Đã chọn (2)")
         function updateDropdownButtonLabel($menu) {
             let totalChecked = $menu.find('input[type="checkbox"]:checked').length;
             let $btn = $menu.siblings('.dropdown-combo-btn');
@@ -721,7 +872,6 @@
             }
         }
 
-        // Nút Xóa tất cả bộ lọc
         function clearFilters() {
             $('.dropdown-combo-menu input[type="checkbox"]').prop('checked', false);
             $('.dropdown-combo-menu').each(function() {
@@ -743,9 +893,10 @@
         }
 
         // ====================================================
-        // HÀM LỌC CHÍNH (XỬ LÝ DỮ LIỆU ĐA TÍCH CHỌN TRÊN DROPDOWN)
+        // HÀM LỌC CHÍNH (XỬ LÝ DỮ LIỆU + KIỂM TRA MẢNG BẢN QUYỀN MỚI THÊM)
         // ====================================================
         function applyFiltersAndRender() {
+<<<<<<< HEAD
             let selectedCompanies = $('.chk-company:checked').map(function() { return $(this).val(); }).get();
             let selectedDepts = $('.chk-dept:checked').map(function() { return $(this).val(); }).get();
             let selectedLoais = $('.chk-loai:checked').map(function() { return $(this).val(); }).get();
@@ -753,6 +904,13 @@
             // Đọc mảng lọc đa tích chọn bản quyền mới bổ sung
             let selectedWins = $('.chk-win:checked').map(function() { return $(this).val(); }).get();
             let selectedOffices = $('.chk-office:checked').map(function() { return $(this).val(); }).get();
+=======
+        let selectedCompanies = $('.chk-company:checked').map(function() { return $(this).val(); }).get();
+        let selectedDepts = $('.chk-dept:checked').map(function() { return $(this).val(); }).get();
+        let selectedLoais = $('.chk-loai:checked').map(function() { return $(this).val(); }).get();
+        let selectedWins = $('.chk-win:checked').map(function() { return $(this).val(); }).get();
+        let selectedOffices = $('.chk-office:checked').map(function() { return $(this).val(); }).get();
+>>>>>>> parent of 6bb86e5 (Revert "t")
 
             let fText = $('#filterText').val().toLowerCase().trim();
             let fSort = $('#filterSort').val();
@@ -767,6 +925,7 @@
             if (selectedDepts.length > 0) baseFiltered = baseFiltered.filter(x => selectedDepts.includes(x.tenBoPhan));
             if (selectedLoais.length > 0) baseFiltered = baseFiltered.filter(x => selectedLoais.includes(x.loaiThietBi));
 
+<<<<<<< HEAD
             // CRITICAL LOGIC: LỌC BẢN QUYỀN WINDOWS (PHÂN BIỆT RÕ RÀNG NULL VÀ "CHƯA CÓ")
             if (selectedWins.length > 0) {
                 baseFiltered = baseFiltered.filter(x => {
@@ -794,6 +953,26 @@
                     return false;
                 });
             }
+=======
+        // Logic lọc bản quyền đặc thù (Xử lý trường hợp chuỗi trống hoặc null)
+        if (selectedWins.length > 0) baseFiltered = baseFiltered.filter(x => selectedWins.includes(x.winLicense) || (selectedWins.includes("Chưa có") && (!x.winLicense || x.winLicense.trim() === "")));
+        if (selectedOffices.length > 0) baseFiltered = baseFiltered.filter(x => selectedOffices.includes(x.officeLicense) || (selectedOffices.includes("Chưa có") && (!x.officeLicense || x.officeLicense.trim() === "")));
+
+        if (fText) {
+        baseFiltered = baseFiltered.filter(x =>
+        (x.tenMayTinh && x.tenMayTinh.toLowerCase().includes(fText)) ||
+        (x.tenViTri && x.tenViTri.toLowerCase().includes(fText)) ||
+        (x.tenNguoiDung && x.tenNguoiDung.toLowerCase().includes(fText)) ||
+        (x.tenDangNhap && x.tenDangNhap.toLowerCase().includes(fText)) ||
+        (x.tk && x.tk.toLowerCase().includes(fText)) ||
+        (x.winLicense && x.winLicense.toLowerCase().includes(fText)) ||
+        (x.officeLicense && x.officeLicense.toLowerCase().includes(fText))
+        );
+        }
+
+        // Đếm số lượng hiển thị lên hệ thống Card Thống kê
+        let countTotal = 0, countHD = 0, countBaoTri = 0, countHong = 0, countXoa = 0, countChuaCheck = 0;
+>>>>>>> parent of 6bb86e5 (Revert "t")
 
             if (fText) {
                 baseFiltered = baseFiltered.filter(x =>
@@ -830,12 +1009,31 @@
                 }
             });
 
+<<<<<<< HEAD
             $('#cardTong').text(countTotal);
             $('#cardHoatDong').text(countHD);
             $('#cardBaoTri').text(countBaoTri);
             $('#cardHong').text(countHong);
             $('#cardXoa').text(countXoa);
             $('#cardChuaCheck').text(countChuaCheck);
+=======
+        // Sắp xếp tiếng Việt
+        if (fSort) {
+        finalFiltered.sort((a, b) => {
+        let valA = '', valB = '';
+        if (fSort.startsWith('host')) {
+        valA = (a.tenMayTinh || '').toLowerCase(); valB = (b.tenMayTinh || '').toLowerCase();
+        } else if (fSort.startsWith('name')) {
+        valA = (a.tenViTri || '').toLowerCase(); valB = (b.tenViTri || '').toLowerCase();
+        }
+        if (fSort.endsWith('asc')) {
+        return valA.localeCompare(valB, 'vi', { sensitivity: 'base' });
+        } else {
+        return valB.localeCompare(valA, 'vi', { sensitivity: 'base' });
+        }
+        });
+        }
+>>>>>>> parent of 6bb86e5 (Revert "t")
 
             let finalFiltered = baseFiltered;
             if (activeCardFilter === 'chuacheck') {
@@ -869,9 +1067,16 @@
                 });
             }
 
+<<<<<<< HEAD
             finalFilteredGlobal = finalFiltered;
             filteredExportData = finalFiltered;
             currentPage = 1;
+=======
+        // Vẽ lại các biểu đồ động Chart.js
+        let mapCongTy = {}; let mapLoai = {};
+        let countDaCheck = 0; let countChuaCheckChart = 0;
+        let companyDeptsMap = {};
+>>>>>>> parent of 6bb86e5 (Revert "t")
 
             $('#lblCountTable').text(finalFilteredGlobal.length);
             renderTablePage();
@@ -994,6 +1199,7 @@
 
             let htmlTable = '';
 
+<<<<<<< HEAD
             if (totalItems === 0) {
                 htmlTable = `<tr class="empty-row"><td colspan="9" class="text-center text-muted py-5"><i class="fas fa-box-open fa-3x mb-3 d-block opacity-50"></i> Không có dữ liệu phù hợp</td></tr>`;
                 $('#paginationInfo, #paginationInfoTop').text("Không có mục nào để hiển thị");
@@ -1002,11 +1208,22 @@
                 let startIndex = (currentPage - 1) * pageSize;
                 let endIndex = Math.min(startIndex + pageSize, totalItems);
                 let pageData = finalFilteredGlobal.slice(startIndex, endIndex);
+=======
+        if (totalItems === 0) {
+        htmlTable = `<tr class="empty-row"><td colspan="10" class="text-center text-muted py-5"><i class="fas fa-box-open fa-3x mb-3 d-block opacity-50"></i> Không có dữ liệu phù hợp</td></tr>`;
+        $('#paginationInfo').text("Không có mục nào để hiển thị");
+        $('#paginationControls').html('');
+        } else {
+        let startIndex = (currentPage - 1) * pageSize;
+        let endIndex = Math.min(startIndex + pageSize, totalItems);
+        let pageData = finalFilteredGlobal.slice(startIndex, endIndex);
+>>>>>>> parent of 6bb86e5 (Revert "t")
 
                 let infoString = `Đang hiển thị <b>${startIndex + 1}</b> - <b>${endIndex}</b> / <b class="text-primary">${totalItems}</b> thiết bị`;
                 $('#paginationInfo').html(infoString);
                 $('#paginationInfoTop').html(infoString);
 
+<<<<<<< HEAD
                 pageData.forEach(item => {
                     let namePart = item.tenNguoiDung
                     ? `<span class="text-primary fw-bold">${item.tenNguoiDung}</span> <span class="text-danger">(${item.tk || 'N/A'})</span>`
@@ -1021,6 +1238,27 @@
                     if (t.includes("hoạt động")) badgeClass = "bg-success";
                     else if (t.includes("bảo trì")) badgeClass = "bg-warning text-dark";
                     else if (t.includes("hỏng") || t.includes("xóa")) badgeClass = "bg-danger";
+=======
+        pageData.forEach(item => {
+        let namePart = item.tenNguoiDung
+        ? `<span class="text-primary fw-bold">${item.tenNguoiDung}</span> <span class="text-danger fw-normal">(${item.tk || 'N/A'})</span>`
+        : `<span class="text-muted fst-italic">Chưa cấp phát</span>`;
+
+        let accPart = item.tenDangNhap ? item.tenDangNhap : `<span class="text-muted fst-italic">Trống</span>`;
+        let userStr = `<div>${namePart}</div><div class="small text-muted mt-1"><i class="fas fa-user-circle me-1"></i> Account: <b>${accPart}</b></div>`;
+        let locStr = [item.tenCongTy, item.tenBoPhan].filter(Boolean).join(' - ') || 'Chưa gắn';
+
+        // Chuỗi hiển thị bản quyền Windows và Office trên bảng
+        let winStr = item.winLicense ? `<div class="text-primary small mb-1"><i class="fab fa-windows me-1"></i> ${item.winLicense}</div>` : '<div class="text-muted small mb-1"><i>Win: Trống / Chưa rõ</i></div>';
+        let officeStr = item.officeLicense ? `<div class="text-success small"><i class="fas fa-file-word me-1"></i> ${item.officeLicense}</div>` : '<div class="text-muted small"><i>Office: Trống / Chưa rõ</i></div>';
+        let licenseColumnHtml = `<div>${winStr}${officeStr}</div>`;
+
+        let t = (item.tenTrangThai || '').toLowerCase();
+        let badgeClass = "bg-secondary";
+        if (t.includes("hoạt động")) badgeClass = "bg-success";
+        else if (t.includes("bảo trì")) badgeClass = "bg-warning text-dark";
+        else if (t.includes("hỏng") || t.includes("xóa")) badgeClass = "bg-danger";
+>>>>>>> parent of 6bb86e5 (Revert "t")
 
                     let checkHtml = '';
                     if (!item.thoiGianCheck) {
@@ -1034,6 +1272,7 @@
                         }
                     }
 
+<<<<<<< HEAD
                     let htmlImg = '';
                     if (item.duongDanAnh) {
                         let imgUrl = `/QLKiemKe/GetImage?fileName=${encodeURIComponent(item.duongDanAnh)}`;
@@ -1063,6 +1302,66 @@
                             (item.officeLicense ? `<span class="badge bg-outline-success border border-success text-success" style="font-size: 10px; padding: 2px 5px;"><i class="fas fa-file-word"></i> ${item.officeLicense}</span>` : '') +
                             `</div>`;
                     }
+=======
+        let htmlImg = '';
+        if (item.duongDanAnh) {
+        let imgUrl = `/QLKiemKe/GetImage?fileName=${encodeURIComponent(item.duongDanAnh)}`;
+        htmlImg = `
+        <div class="mt-2 text-md-start text-end">
+        <img src="${imgUrl}" alt="Ảnh thiết bị" class="img-thumbnail shadow-sm" style="width: 50px; height: 50px; object-fit: cover; cursor: pointer; border-radius: 8px;" onclick="viewFullImage('${imgUrl}', '${item.tenMayTinh || item.tenViTri || 'Vị trí'}')" title="Nhấn để xem ảnh lớn" />
+        </div>`;
+        } else {
+        htmlImg = `<div class="mt-2 text-muted small fst-italic text-md-start text-end" style="font-size: 11px;"><i class="fas fa-image" style="opacity: 0.4;"></i> Không có ảnh</div>`;
+        }
+
+        let htmlGhiChu = item.ghiChu ? `<div class="small text-wrap text-muted" style="max-width: 140px;">${item.ghiChu}</div>` : `<span class="text-muted fst-italic small" style="opacity: 0.5;">Trống</span>`;
+
+        htmlTable += `
+        <tr>
+        <td class="ps-4 fw-bold text-muted" data-label="Mã ID">#${item.idThietBi}</td>
+        <td data-label="Thông tin TB & Hostname">
+        <div class="text-end text-md-start">
+        <div class="fw-bold text-dark fs-6">${item.tenMayTinh || '<i class="text-muted fw-normal">No Hostname</i>'}</div>
+        <div class="small text-muted"><i class="fas fa-map-pin"></i> Vị trí: <b>${item.tenViTri}</b></div>
+        </div>
+        </td>
+        <td data-label="Loại & Ảnh đính kèm">
+        <div class="text-end text-md-start">
+        <span class="badge border border-secondary text-secondary bg-light px-2 py-1 mb-1 d-inline-block">${item.loaiThietBi || 'Khác'}</span>
+        ${htmlImg}
+        </div>
+        </td>
+        <td data-label="Hệ điều hành / Bản quyền">
+        <div class="text-end text-md-start">${licenseColumnHtml}</div>
+        </td>
+        <td data-label="Tài khoản & Người dùng">
+        <div class="text-end text-md-start">${userStr}</div>
+        </td>
+        <td class="small" data-label="Vị trí (Công ty - Bộ phận)">
+        <div class="text-end text-md-start"><i class="fas fa-map-marker-alt text-muted me-1"></i>${locStr}</div>
+        </td>
+        <td class="text-center" data-label="Trạng thái kiểm kê">
+        <div class="text-end text-md-center"><span class="badge ${badgeClass} w-100 py-2 shadow-sm">${item.tenTrangThai || 'Chưa rõ'}</span></div>
+        </td>
+        <td class="text-center" data-label="Lần cuối Check">
+        <div class="text-end text-md-center">${checkHtml}</div>
+        </td>
+        <td data-label="Ghi chú">
+        <div class="d-flex justify-content-end justify-content-md-start">${htmlGhiChu}</div>
+        </td>
+        <td class="text-center" data-label="Thao tác">
+        <div class="d-flex gap-1 justify-content-center flex-md-row flex-column">
+        <a href="/QLKiemKe/ChiTietThietBi/${item.idThietBi}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1 btn-action-mobile" style="font-size: 0.75rem; font-weight: 600;">
+        <i class="fas fa-eye me-1"></i> Chi tiết
+        </a>
+        <button class="btn btn-sm text-white rounded-pill shadow-sm px-2 py-1 btn-action-mobile" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); border: none; font-weight: 600; font-size: 0.75rem;" onclick="xemLichSuThietBi(${item.idThietBi}, '${item.tenMayTinh || item.tenViTri || 'Vị trí'}')">
+        <i class="fas fa-history me-1"></i> Lịch sử
+        </button>
+        </div>
+        </td>
+        </tr>`;
+        });
+>>>>>>> parent of 6bb86e5 (Revert "t")
 
                     let htmlGhiChu = item.ghiChu
                     ? `<div class="small text-wrap text-muted" style="max-width: 150px;">${item.ghiChu}</div>`
@@ -1370,6 +1669,7 @@
                     trangThaiCheckExcel = d < fourMonthsAgo ? `Quá hạn (${d.toLocaleDateString('vi-VN')})` : d.toLocaleDateString('vi-VN');
                 }
 
+<<<<<<< HEAD
                 return {
                     "ID": item.idThietBi,
                     "Tên Vị Trí": item.tenViTri || '', 
@@ -1390,10 +1690,31 @@
                     "Ngày Kiểm Kê Lần Cuối": trangThaiCheckExcel
                 };
             });
+=======
+        return {
+        "ID": item.idThietBi,
+        "Tên Vị Trí": item.tenViTri || '',
+        "Tên Máy (Hostname)": item.tenMayTinh || '',
+        "Loại Thiết Bị": item.loaiThietBi || '',
+        "Bản quyền Windows": item.winLicense || 'Trống / Chưa rõ',
+        "Bản quyền Office": item.officeLicense || 'Trống / Chưa rõ',
+        "Tên Đăng Nhập (Account)": item.tenDangNhap || 'Chưa có',
+        "Người Sử Dụng": item.tenNguoiDung ? `${item.tenNguoiDung} (${item.tk || 'N/A'})` : 'Chưa có người dùng',
+        "Công Ty": item.tenCongTy || 'Chưa gắn',
+        "Bộ Phận": item.tenBoPhan || 'Chưa gắn',
+        "Trạng Thái": item.tenTrangThai || 'Chưa rõ',
+        "Ghi Chú": item.ghiChu || '',
+        "Ảnh Đính Kèm": item.duongDanAnh ? "Có ảnh" : "Không",
+        "Lần Cập Nhật Cuối": item.ngayCapNhat ? new Date(item.ngayCapNhat).toLocaleString('vi-VN') : '',
+        "Ngày Kiểm Kê Lần Cuối": trangThaiCheckExcel
+        };
+        });
+>>>>>>> parent of 6bb86e5 (Revert "t")
 
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.json_to_sheet(excelData);
 
+<<<<<<< HEAD
             ws['!cols'] = [
                 { wch: 8 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 30 },
                 { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 35 }, 
@@ -1404,6 +1725,17 @@
             XLSX.utils.book_append_sheet(wb, ws, "BaoCaoKiemKe");
             let dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
             XLSX.writeFile(wb, `BaoCao_TongQuan_IT_${dateStr}.xlsx`);
+=======
+        ws['!cols'] = [
+        { wch: 8 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 22 },
+        { wch: 25 }, { wch: 20 }, { wch: 35 }, { wch: 20 }, { wch: 20 },
+        { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 20 }, { wch: 35 }
+        ];
+
+        XLSX.utils.book_append_sheet(wb, ws, "BaoCaoKiemKe");
+        let dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
+        XLSX.writeFile(wb, `BaoCao_TổngQuan_IT_${dateStr}.xlsx`);
+>>>>>>> parent of 6bb86e5 (Revert "t")
         }
     </script>
 }
