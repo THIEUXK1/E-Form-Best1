@@ -4772,9 +4772,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             try
             {
                 // Loại bỏ các đơn có TrangThai chứa từ "HỦY" hoặc hành động hủy "DaHuy" để khớp logic hệ thống của bạn
+                // Sử dụng .Contains với StringComparison.OrdinalIgnoreCase để tối ưu so sánh chuỗi
                 var query = _context.FormIts.AsNoTracking()
                     .Where(x => x.IdNguoiDuyet != null && x.TenNguoiDuyet != null && x.TimeNguoiDuyet != null)
-                    .Where(x => x.TrangThai == null || (!x.TrangThai.ToUpper().Contains("HỦY") && !x.TrangThai.ToUpper().Contains("DAHUY")));
+                    .Where(x => x.TrangThai == null ||
+                               (!x.TrangThai.Contains("HỦY", StringComparison.OrdinalIgnoreCase) &&
+                                !x.TrangThai.Contains("DAHUY", StringComparison.OrdinalIgnoreCase)));
 
                 // Mặc định lùi 1 tháng nếu giao diện chưa kịp truyền tham số lên ban đầu
                 var startFilter = fromDate ?? DateTime.Today.AddMonths(-1);
@@ -5957,9 +5960,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var item = _context.KkThietBis.Find(id);
                 if (item != null)
                 {
-                    // SỬA LỖI LINQ: Sử dụng .ToLower() thay cho .Equals(..., StringComparison.OrdinalIgnoreCase)
-                    // để EF Core có thể dịch sang SQL thành công.
-                    var statusXoa = _context.KkTrangThais.FirstOrDefault(x => x.TenTrangThai != null && x.TenTrangThai.ToLower() == "xóa");
+                    // SỬA LỖI LINQ: Sử dụng EF.Functions.Like hoặc string.Equals chuẩn hóa
+                    // để EF Core có thể dịch sang SQL thành công với Case-Insensitive.
+                    var statusXoa = _context.KkTrangThais
+                        .FirstOrDefault(x => x.TenTrangThai != null && string.Equals(x.TenTrangThai, "xóa", StringComparison.OrdinalIgnoreCase));
 
                     if (statusXoa == null)
                     {
@@ -5984,6 +5988,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
         }
+
 
         // NÚT KHÔI PHỤC: Lấy lại từ thùng rác
         [HttpPost("/QLKiemKe/RestoreKkThietBi")]
