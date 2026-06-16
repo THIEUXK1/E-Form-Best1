@@ -28,8 +28,8 @@
     }
 
     /* ========================================================
-                                CSS CHO HỆ THỐNG DROPDOWN CHECKBOX (COMBOBOX NHIỀU MỤC) MỚI
-                                ======================================================== */
+                                    CSS CHO HỆ THỐNG DROPDOWN CHECKBOX (COMBOBOX NHIỀU MỤC) MỚI
+                                    ======================================================== */
     .dropdown-combo-btn {
         width: 100%;
         text-align: left;
@@ -229,98 +229,133 @@
             <div class="card-body p-2 p-md-3">
                 <div class="row mb-3 pb-3 border-bottom align-items-end" id="filterBar" style="background: #f8fafc; padding: 15px; border-radius: 10px; margin: 0 5px;">
 
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-building"></i> Công ty</label>
-                        <div class="dropdown">
-                            <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropCongTy" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                -- Tất cả --
-                            </button>
-                            <div class="dropdown-menu dropdown-combo-menu" id="menuCongTy" aria-labelledby="btnDropCongTy">
+                    <div class="col-12 mb-2">
+                        <div class="row align-items-end g-2">
+                            <div class="col-md-9 col-12">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-primary"></i> Tìm kiếm nhanh</label>
+                                <input type="text" id="filterText" class="form-control rounded-3 border-0 shadow-sm" placeholder="S/N, Hostname, Account, Note..." style="height: 38px;">
+                            </div>
+                            <div class="col-md-3 col-12 text-md-end">
+                                <button type="button" id="btnToggleAdvancedFilter" class="btn btn-primary shadow-sm rounded-3 w-100 fw-semibold" style="height: 38px; background-color: #4f46e5; border-color: #4f46e5;" onclick="toggleAdvancedFilter()">
+                                    <i class="fas fa-sliders-h me-1"></i> <span id="textToggleFilter">Bộ lọc nâng cao</span>
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sitemap"></i> Bộ phận</label>
-                        <div class="dropdown">
-                            <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropBoPhan" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                -- Tất cả --
-                            </button>
-                            <div class="dropdown-menu dropdown-combo-menu" id="menuBoPhan" aria-labelledby="btnDropBoPhan">
+                    <div class="col-12 p-0" id="advancedFilterArea" style="display: none;">
+                        <div class="row m-0 align-items-end w-100">
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-building"></i> Công ty</label>
+                                <div class="dropdown">
+                                    <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropCongTy" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        -- Tất cả --
+                                    </button>
+                                    <div class="dropdown-menu dropdown-combo-menu" id="menuCongTy" aria-labelledby="btnDropCongTy">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sitemap"></i> Bộ phận</label>
+                                <div class="dropdown">
+                                    <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropBoPhan" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        -- Tất cả --
+                                    </button>
+                                    <div class="dropdown-menu dropdown-combo-menu" id="menuBoPhan" aria-labelledby="btnDropBoPhan">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-tags"></i> Loại thiết bị</label>
+                                <div class="dropdown">
+                                    <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropLoai" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        -- Tất cả --
+                                    </button>
+                                    <div class="dropdown-menu dropdown-combo-menu" id="menuLoai" aria-labelledby="btnDropLoai">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2" id="boxFilterTrangThai">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-info-circle"></i> Trạng thái</label>
+                                <div class="dropdown">
+                                    <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropTrangThai" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        -- Tất cả --
+                                    </button>
+                                    <div class="dropdown-menu dropdown-combo-menu" id="menuTrangThai" aria-labelledby="btnDropTrangThai">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2" id="boxFilterWinLicense">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fab fa-windows"></i> Bản quyền Windows</label>
+                                <div class="dropdown">
+                                    <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropWinLicense" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        -- Tất cả --
+                                    </button>
+                                    <div class="dropdown-menu dropdown-combo-menu" id="menuWinLicense" aria-labelledby="btnDropWinLicense">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2" id="boxFilterOfficeLicense">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-file-word"></i> Bản quyền Office</label>
+                                <div class="dropdown">
+                                    <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropOfficeLicense" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        -- Tất cả --
+                                    </button>
+                                    <div class="dropdown-menu dropdown-combo-menu" id="menuOfficeLicense" aria-labelledby="btnDropOfficeLicense">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-calendar-alt"></i> Từ ngày check</label>
+                                <input type="date" id="filterTuNgay" class="form-control rounded-3 border-0 shadow-sm" style="height: 38px;">
+                            </div>
+
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-calendar-alt"></i> Đến ngày check</label>
+                                <input type="date" id="filterDenNgay" class="form-control rounded-3 border-0 shadow-sm" style="height: 38px;">
+                            </div>
+
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-tasks"></i> Tình trạng Check</label>
+                                <select id="filterTìnhTrangCheck" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
+                                    <option value="">-- Tất cả --</option>
+                                    <option value="da_check">Đã check trong khoảng này</option>
+                                    <option value="chua_check">Chưa check trong khoảng này</option>
+                                </select>
+                            </div>
+
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sort-alpha-down"></i> Sắp xếp</label>
+                                <select id="filterSort" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
+                                    <option value="">Mặc định</option>
+                                    <option value="name_asc">Tên Vị Trí (A-Z)</option>
+                                    <option value="name_desc">Tên Vị Trí (Z-A)</option>
+                                    <option value="host_asc">Hostname (A-Z)</option>
+                                    <option value="host_desc">Hostname (Z-A)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-xl-1 col-lg-2 col-md-3 col-sm-6 mb-2">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-list-ol"></i> Hiển thị</label>
+                                <select id="filterLimit" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                    <option value="all">Tất cả</option>
+                                </select>
+                            </div>
+
+                            <div class="col-xl-1 col-lg-2 col-md-9 col-sm-6 mb-2 d-flex justify-content-end">
+                                <button class="btn btn-outline-secondary rounded-pill px-3 shadow-sm w-100" onclick="clearFilters()" style="height: 38px;"><i class="fas fa-sync-alt"></i> Bỏ lọc</button>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-tags"></i> Loại thiết bị</label>
-                        <div class="dropdown">
-                            <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropLoai" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                -- Tất cả --
-                            </button>
-                            <div class="dropdown-menu dropdown-combo-menu" id="menuLoai" aria-labelledby="btnDropLoai">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2" id="boxFilterTrangThai">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-info-circle"></i> Trạng thái</label>
-                        <div class="dropdown">
-                            <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropTrangThai" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                -- Tất cả --
-                            </button>
-                            <div class="dropdown-menu dropdown-combo-menu" id="menuTrangThai" aria-labelledby="btnDropTrangThai">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-calendar-alt"></i> Từ ngày check</label>
-                        <input type="date" id="filterTuNgay" class="form-control rounded-3 border-0 shadow-sm" style="height: 38px;">
-                    </div>
-
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-calendar-alt"></i> Đến ngày check</label>
-                        <input type="date" id="filterDenNgay" class="form-control rounded-3 border-0 shadow-sm" style="height: 38px;">
-                    </div>
-
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-tasks"></i> Tình trạng Check</label>
-                        <select id="filterTìnhTrangCheck" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
-                            <option value="">-- Tất cả --</option>
-                            <option value="da_check">Đã check trong khoảng này</option>
-                            <option value="chua_check">Chưa check trong khoảng này</option>
-                        </select>
-                    </div>
-
-                    <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-primary"></i> Tìm kiếm nhanh</label>
-                        <input type="text" id="filterText" class="form-control rounded-3 border-0 shadow-sm" placeholder="S/N, Hostname, Account, Note..." style="height: 38px;">
-                    </div>
-
-                    <div class="col-xl-1 col-lg-2 col-md-3 col-sm-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sort-alpha-down"></i> Sắp xếp</label>
-                        <select id="filterSort" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
-                            <option value="">Mặc định</option>
-                            <option value="name_asc">Tên Vị Trí (A-Z)</option>
-                            <option value="name_desc">Tên Vị Trí (Z-A)</option>
-                            <option value="host_asc">Hostname (A-Z)</option>
-                            <option value="host_desc">Hostname (Z-A)</option>
-                        </select>
-                    </div>
-
-                    <div class="col-xl-1 col-lg-2 col-md-3 col-sm-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-list-ol"></i> Hiển thị</label>
-                        <select id="filterLimit" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
-                            <option value="10">10</option>
-                            <option value="20">20</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                            <option value="all">Tất cả</option>
-                        </select>
-                    </div>
-
-                    <div class="col-xl-1 col-lg-2 col-md-12 mb-2 d-flex justify-content-end">
-                        <button class="btn btn-outline-secondary rounded-pill px-3 shadow-sm w-100" onclick="clearFilters()" style="height: 38px;"><i class="fas fa-sync-alt"></i> Bỏ lọc</button>
                     </div>
                 </div>
 
@@ -740,6 +775,18 @@
         let savedTìnhTrangCheck = localStorage.getItem('kk_filterTìnhTrangCheck') || '';
         $('#filterTìnhTrangCheck').val(savedTìnhTrangCheck);
 
+        // PHẦN LOGIC GHI NHỚ TRẠNG THÁI ẨN / HIỆN BỘ LỌC NÂNG CAO KHI LOAD LẠI TRANG
+        let savedFilterState = localStorage.getItem('kk_toggleAdvancedFilter') || 'hide';
+        if(savedFilterState === 'show') {
+        $('#advancedFilterArea').show();
+        $('#textToggleFilter').text('Thu gọn bộ lọc');
+        $('#btnToggleAdvancedFilter').removeClass('btn-primary').addClass('btn-secondary').css({'background-color': '#64748b', 'border-color': '#64748b'});
+        } else {
+        $('#advancedFilterArea').hide();
+        $('#textToggleFilter').text('Bộ lọc nâng cao');
+        $('#btnToggleAdvancedFilter').removeClass('btn-secondary').addClass('btn-primary').css({'background-color': '#4f46e5', 'border-color': '#4f46e5'});
+        }
+
         $('#filterLimit, #filterSort, #filterTuNgay, #filterDenNgay, #filterTìnhTrangCheck').on('change', function() { applyFilters(); });
         $('#filterText').on('keyup input', function() { applyFilters(); });
 
@@ -857,6 +904,57 @@
         loadMasterData();
         });
 
+        // HÀM XỬ LÝ ĐÓNG MỞ EVENT CHO NÚT BỘ LỌC NÂNG CAO
+        function toggleAdvancedFilter() {
+        let $filterArea = $('#advancedFilterArea');
+        if($filterArea.is(':visible')) {
+        $filterArea.slideUp(200);
+        $('#textToggleFilter').text('Bộ lọc nâng cao');
+        $('#btnToggleAdvancedFilter').removeClass('btn-secondary').addClass('btn-primary').css({'background-color': '#4f46e5', 'border-color': '#4f46e5'});
+        localStorage.setItem('kk_toggleAdvancedFilter', 'hide');
+        } else {
+        $filterArea.slideDown(200);
+        $('#textToggleFilter').text('Thu gọn bộ lọc');
+        $('#btnToggleAdvancedFilter').removeClass('btn-primary').addClass('btn-secondary').css({'background-color': '#64748b', 'border-color': '#64748b'});
+        localStorage.setItem('kk_toggleAdvancedFilter', 'show');
+        }
+        }
+
+        // HÀM KHỞI TẠO VÀ RENDER DROPDOWN CHECKBOX CHO WINDOWS LICENSE & OFFICE LICENSE MỚI THÊM
+        function renderFilterLicenses() {
+        let winList = ["Windows Pro", "Windows Home", "Windows Enterprise", "Windows Education", "Windows Server", "Có (Chưa rõ phiên bản)", "Chưa có"];
+        let officeList = ["Office Professional Plus", "Office Standard", "Office Home & Business", "Office Home & Student", "Microsoft 365 Apps", "Có (Chưa rõ phiên bản)", "Chưa có"];
+
+        let savedWin = [];
+        let savedOffice = [];
+        try { savedWin = JSON.parse(localStorage.getItem('kk_filterWinLicense')) || []; } catch(e){}
+        try { savedOffice = JSON.parse(localStorage.getItem('kk_filterOfficeLicense')) || []; } catch(e){}
+
+        $('#menuWinLicense').empty();
+        winList.forEach(w => {
+        let isChecked = savedWin.includes(w) ? 'checked' : '';
+        $('#menuWinLicense').append(`
+        <label class="dropdown-combo-item">
+        <input type="checkbox" class="chk-win" value="${w}" ${isChecked}>
+        <span>${w}</span>
+        </label>
+        `);
+        });
+        updateDropdownButtonLabel($('#menuWinLicense'));
+
+        $('#menuOfficeLicense').empty();
+        officeList.forEach(o => {
+        let isChecked = savedOffice.includes(o) ? 'checked' : '';
+        $('#menuOfficeLicense').append(`
+        <label class="dropdown-combo-item">
+        <input type="checkbox" class="chk-office" value="${o}" ${isChecked}>
+        <span>${o}</span>
+        </label>
+        `);
+        });
+        updateDropdownButtonLabel($('#menuOfficeLicense'));
+        }
+
         function updateDropdownButtonLabel($menu) {
         let totalChecked = $menu.find('input[type="checkbox"]:checked').length;
         let $btn = $menu.siblings('.dropdown-combo-btn');
@@ -950,6 +1048,8 @@
         localStorage.removeItem('kk_filterBP');
         localStorage.removeItem('kk_filterLoai');
         localStorage.removeItem('kk_filterTT');
+        localStorage.removeItem('kk_filterWinLicense');
+        localStorage.removeItem('kk_filterOfficeLicense');
         localStorage.setItem('kk_filterLimit', '50');
         localStorage.removeItem('kk_filterText');
         localStorage.removeItem('kk_filterSort');
@@ -961,6 +1061,7 @@
         $('.dropdown-combo-menu').each(function() { updateDropdownButtonLabel($(this)); });
 
         renderFilterBoPhan();
+        renderFilterLicenses();
         $('#filterSort, #filterTuNgay, #filterDenNgay, #filterTìnhTrangCheck').val('');
         $('#filterLimit').val('50');
         $('#filterText').val('');
@@ -973,11 +1074,15 @@
         let selectedBP = $('.chk-dept:checked').map(function() { return $(this).val(); }).get();
         let selectedLoai = $('.chk-loai:checked').map(function() { return $(this).val(); }).get();
         let selectedTT = $('.chk-status:checked').map(function() { return $(this).data('id'); }).get();
+        let selectedWin = $('.chk-win:checked').map(function() { return $(this).val(); }).get();
+        let selectedOffice = $('.chk-office:checked').map(function() { return $(this).val(); }).get();
 
         localStorage.setItem('kk_filterCT', JSON.stringify(selectedCT));
         localStorage.setItem('kk_filterBP', JSON.stringify(selectedBP));
         localStorage.setItem('kk_filterLoai', JSON.stringify(selectedLoai));
         localStorage.setItem('kk_filterTT', JSON.stringify(selectedTT));
+        localStorage.setItem('kk_filterWinLicense', JSON.stringify(selectedWin));
+        localStorage.setItem('kk_filterOfficeLicense', JSON.stringify(selectedOffice));
 
         localStorage.setItem('kk_filterLimit', $('#filterLimit').val());
         localStorage.setItem('kk_filterText', $('#filterText').val().trim());
@@ -995,6 +1100,7 @@
         $.get('/QLKiemKe/GetKkLoaiThietBis', function(res) { if(res.success) { listLoaiThietBiCache = res.data; renderFilterLoaiThietBi(); } });
         $.get('/QLKiemKe/GetKkCongTys', function(res) { if(res.success) { listCongTyCache = res.data; renderFilterCongTy(); } });
         $.get('/QLKiemKe/GetKkBoPhans', function(res) { if(res.success) { listBoPhanCache = res.data; renderFilterBoPhan(); } });
+        renderFilterLicenses();
         loadThietBi();
         }
 
@@ -1061,7 +1167,7 @@
         <span>${c.tenLoai}</span>
         </label>
         `);
-        htmlForm += `<option value="${c.tenLoai}">${c.tenLoai}</option>`;
+        htmlForm += `<option value="${c.tenLoai}">${c.tenLoai}</option>';`;
         });
         updateDropdownButtonLabel($('#menuLoai'));
         $('#tb_LoaiThietBi').html(htmlForm);
@@ -1209,6 +1315,10 @@
         let selectedLoais = $('.chk-loai:checked').map(function() { return $(this).val(); }).get();
         let selectedTrangThais = $('.chk-status:checked').map(function() { return $(this).val(); }).get();
 
+        // Lấy thêm mảng giá trị của bộ lọc Windows và Office
+        let selectedWins = $('.chk-win:checked').map(function() { return $(this).val(); }).get();
+        let selectedOffices = $('.chk-office:checked').map(function() { return $(this).val(); }).get();
+
         let fLimit = $('#filterLimit').val();
         let fText = $('#filterText').val() ? $('#filterText').val().toLowerCase().trim() : '';
         let fSort = $('#filterSort').val();
@@ -1222,6 +1332,10 @@
         if (selectedDepts.length > 0) filtered = filtered.filter(x => selectedDepts.includes(x.tenBoPhan));
         if (selectedLoais.length > 0) filtered = filtered.filter(x => selectedLoais.includes(x.loaiThietBi));
         if (selectedTrangThais.length > 0) filtered = filtered.filter(x => selectedTrangThais.includes(x.tenTrangThai));
+
+        // Xử lý Logic lọc dữ liệu Windows License và Office License
+        if (selectedWins.length > 0) filtered = filtered.filter(x => selectedWins.includes(x.winLicense) || (selectedWins.includes("Trống / Chưa rõ") && (!x.winLicense || x.winLicense.trim() === "")));
+        if (selectedOffices.length > 0) filtered = filtered.filter(x => selectedOffices.includes(x.officeLicense) || (selectedOffices.includes("Trống / Chưa rõ") && (!x.officeLicense || x.officeLicense.trim() === "")));
 
         if (fTuNgay || fDenNgay || fTìnhTrangCheck) {
         filtered = filtered.filter(x => {
@@ -1464,7 +1578,6 @@
         let canvas = document.getElementById('canvasCamera');
         let context = canvas.getContext('2d');
 
-        // Tính toán downscale độ phân giải tối đa 1280px để lưu nhanh hơn
         let maxDim = 1280;
         let w = video.videoWidth;
         let h = video.videoHeight;
@@ -1482,7 +1595,6 @@
         canvas.height = h;
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Nén chất lượng xuống 0.8 (80%) để giảm dung lượng file đáng kể
         let dataUrl = canvas.toDataURL('image/jpeg', 0.8);
         $('#imgThietBi').attr('src', dataUrl);
         $('#boxPreviewImg').show();
@@ -1547,7 +1659,6 @@
         let context = canvas.getContext('2d');
         let idThietBi = $('#quickCam_IdThietBi').val();
 
-        // Tính toán downscale độ phân giải tối đa 1280px cho chụp nhanh mobile
         let maxDim = 1280;
         let w = video.videoWidth;
         let h = video.videoHeight;
@@ -1565,7 +1676,6 @@
         canvas.height = h;
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Giảm mức nén xuống 0.75 giúp gửi dữ liệu qua mạng di động cực nhanh
         canvas.toBlob(function(blob) {
         if(!blob) return;
 
@@ -1633,7 +1743,6 @@
         $('#tb_TenDangNhap').val(item.tenDangNhap || '');
         $('#tb_GhiChu').val(item.ghiChu || '');
 
-        // Gán dữ liệu của các trường mới vào Form khi sửa
         $('#tb_Seribacode').val(item.seribacode || '');
         $('#tb_WinLicense').val(item.winLicense || '');
         $('#tb_OfficeLicense').val(item.officeLicense || '');
@@ -1800,7 +1909,6 @@
         let canvas = document.getElementById('canvasEvidenceCamera');
         let ctx = canvas.getContext('2d');
 
-        // Tính toán downscale ảnh bằng chứng kiểm kê tối đa 1024px để lưu cực nhẹ
         let maxDim = 1024;
         let w = video.videoWidth;
         let h = video.videoHeight;
