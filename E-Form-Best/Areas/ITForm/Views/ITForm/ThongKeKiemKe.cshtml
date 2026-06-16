@@ -294,7 +294,7 @@
             <div class="card-body p-3">
                 <div class="row g-3 align-items-end">
 
-                    <div class="col-lg-5 col-md-7 col-sm-12">
+                    <div class="col-lg-4 col-md-6 col-sm-12">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-info"></i> Tìm Kiếm Nhanh</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
@@ -302,7 +302,7 @@
                         </div>
                     </div>
 
-                    <div class="col-lg-3 col-md-5 col-sm-6">
+                    <div class="col-lg-3 col-md-3 col-sm-6">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sort-alpha-down text-dark"></i> Sắp xếp danh sách</label>
                         <select id="filterSort" class="form-select rounded-3 shadow-sm border" style="height: 38px; font-weight: 500;">
                             <option value="">Mặc định (Theo ID)</option>
@@ -313,7 +313,18 @@
                         </select>
                     </div>
 
-                    <div class="col-lg-4 col-md-12 col-sm-6 text-md-end text-start">
+                    <div class="col-lg-2 col-md-3 col-sm-6">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-list-ol text-secondary"></i> Hiển thị / Trang</label>
+                        <select id="filterLimit" class="form-select rounded-3 shadow-sm border" style="height: 38px; font-weight: bold;">
+                            <option value="10">10 dòng</option>
+                            <option value="20">20 dòng</option>
+                            <option value="30" selected>30 dòng</option>
+                            <option value="50">50 dòng</option>
+                            <option value="100">100 dòng</option>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-3 col-md-12 col-sm-12 text-md-end text-start">
                         <button type="button" id="btnToggleFilters" class="btn btn-outline-primary rounded-3 px-3 fw-bold" style="height: 38px;" onclick="toggleAdvancedFilters()">
                             <i class="fas fa-sliders-h me-1"></i> <span id="lblToggleText">Bộ lọc nâng cao</span>
                         </button>
@@ -498,14 +509,8 @@
                 <h6 class="fw-bold text-dark mb-0"><i class="fas fa-list-alt text-primary me-2"></i>Chi tiết danh sách (<span id="lblCountTable" class="text-danger">0</span> thiết bị)</h6>
 
                 <div class="d-flex align-items-center">
-                    <label class="me-2 small text-muted mb-0 fw-bold">Hiển thị:</label>
-                    <select id="pageSizeSelect" class="form-select form-select-sm shadow-sm border-0 bg-light" style="width: 80px; font-weight: bold;" onchange="changePageSize()">
-                        <option value="10">10</option>
-                        <option value="20">20</option>
-                        <option value="30" selected>30</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                    </select>
+                    <label class="me-2 small text-muted mb-0 fw-bold">Trạng thái đồng bộ phân trang:</label>
+                    <span class="badge bg-light text-dark border font-weight-bold" id="lblSyncPageSize">30 dòng</span>
                 </div>
             </div>
 
@@ -606,9 +611,16 @@
         $('#lblToggleText').text('Bộ lọc nâng cao');
         }
 
-        // Sự kiện tìm kiếm nhanh & thay đổi sắp xếp
+        // Sự kiện tìm kiếm nhanh & thay đổi sắp xếp & Thay đổi Số dòng hiển thị từ thanh bộ lọc chính
         $('#filterText, #filterSort').on('keyup change', function () {
         applyFiltersAndRender();
+        });
+
+        $('#filterLimit').on('change', function () {
+        pageSize = parseInt($(this).val());
+        currentPage = 1;
+        $('#lblSyncPageSize').text(pageSize + ' dòng');
+        renderTablePage();
         });
 
         // Lắng nghe sự kiện thay đổi của Checkbox lồng trong Dropdown Menu
@@ -653,9 +665,9 @@
         let depts = [...new Set(data.map(x => x.tenBoPhan).filter(Boolean))].sort();
         let types = [...new Set(data.map(x => x.loaiThietBi).filter(Boolean))].sort();
 
-        // Danh sách cố định cho bản quyền dựa theo form nhập liệu
-        let winLicenses = ["Windows Pro", "Windows Home", "Windows Enterprise", "Windows Education", "Windows Server", "Có (Chưa rõ phiên bản)", "Chưa có"];
-        let officeLicenses = ["Office Professional Plus", "Office Standard", "Office Home & Business", "Office Home & Student", "Microsoft 365 Apps", "Có (Chưa rõ phiên bản)", "Chưa có"];
+        // Danh sách có thêm cấu hình "Trống / Chưa rõ" để lọc null/rỗng theo nghiệp vụ mới
+        let winLicenses = ["Windows Pro", "Windows Home", "Windows Enterprise", "Windows Education", "Windows Server", "Có (Chưa rõ phiên bản)", "Chưa có", "Trống / Chưa rõ"];
+        let officeLicenses = ["Office Professional Plus", "Office Standard", "Office Home & Business", "Office Home & Student", "Microsoft 365 Apps", "Có (Chưa rõ phiên bản)", "Chưa có", "Trống / Chưa rõ"];
 
         $('#menuCongTy').empty();
         $('#menuBoPhan').empty();
@@ -704,6 +716,9 @@
         });
         $('#filterText').val('');
         $('#filterSort').val('');
+        $('#filterLimit').val('30');
+        pageSize = 30;
+        $('#lblSyncPageSize').text('30 dòng');
         setCardFilter('', 'card-all');
         }
 
@@ -737,9 +752,21 @@
         if (selectedDepts.length > 0) baseFiltered = baseFiltered.filter(x => selectedDepts.includes(x.tenBoPhan));
         if (selectedLoais.length > 0) baseFiltered = baseFiltered.filter(x => selectedLoais.includes(x.loaiThietBi));
 
-        // Logic lọc bản quyền đặc thù (Xử lý trường hợp chuỗi trống hoặc null)
-        if (selectedWins.length > 0) baseFiltered = baseFiltered.filter(x => selectedWins.includes(x.winLicense) || (selectedWins.includes("Chưa có") && (!x.winLicense || x.winLicense.trim() === "")));
-        if (selectedOffices.length > 0) baseFiltered = baseFiltered.filter(x => selectedOffices.includes(x.officeLicense) || (selectedOffices.includes("Chưa có") && (!x.officeLicense || x.officeLicense.trim() === "")));
+        // Logic lọc bản quyền đặc thù nâng cao (Xử lý chuỗi trống, null hoặc text "Trống / Chưa rõ")
+        if (selectedWins.length > 0) {
+        baseFiltered = baseFiltered.filter(x =>
+        selectedWins.includes(x.winLicense) ||
+        (selectedWins.includes("Chưa có") && x.winLicense === "Chưa có") ||
+        (selectedWins.includes("Trống / Chưa rõ") && (!x.winLicense || x.winLicense.trim() === ""))
+        );
+        }
+        if (selectedOffices.length > 0) {
+        baseFiltered = baseFiltered.filter(x =>
+        selectedOffices.includes(x.officeLicense) ||
+        (selectedOffices.includes("Chưa có") && x.officeLicense === "Chưa có") ||
+        (selectedOffices.includes("Trống / Chưa rõ") && (!x.officeLicense || x.officeLicense.trim() === ""))
+        );
+        }
 
         if (fText) {
         baseFiltered = baseFiltered.filter(x =>
@@ -843,7 +870,7 @@
         }
         });
 
-        let sortedCT = Object.entries(mapCongTy).sort((a,b) => b[1]-a[1]);
+        sortedCT = Object.entries(mapCongTy).sort((a,b) => b[1]-a[1]);
         chartCongTy = drawPieChart(chartCongTy, 'chartCongTy', sortedCT.map(i=>i[0]), sortedCT.map(i=>i[1]), function(label) {
         setTimeout(() => {
         $('.chk-company').prop('checked', false);
@@ -918,12 +945,6 @@
         // ====================================================
         // HÀM VẼ BẢNG DỮ LIỆU & PHÂN TRANG (PAGINATION)
         // ====================================================
-        function changePageSize() {
-        pageSize = parseInt($('#pageSizeSelect').val());
-        currentPage = 1;
-        renderTablePage();
-        }
-
         window.changePage = function(pageNumber) {
         currentPage = pageNumber;
         renderTablePage();
@@ -1003,6 +1024,7 @@
         </div>
         </td>
         <td data-label="Loại & Ảnh đính kèm">
+        <div class="text-end text-md-start">
         <div class="text-end text-md-start">
         <span class="badge border border-secondary text-secondary bg-light px-2 py-1 mb-1 d-inline-block">${item.loaiThietBi || 'Khác'}</span>
         ${htmlImg}
@@ -1247,7 +1269,7 @@
         "Công Ty": item.tenCongTy || 'Chưa gắn',
         "Bộ Phận": item.tenBoPhan || 'Chưa gắn',
         "Trạng Thái": item.tenTrangThai || 'Chưa rõ',
-        "Ghi Chú": item.ghiChu || '',
+        "Ghi Chú": item.ghiChu || '',
         "Ảnh Đính Kèm": item.duongDanAnh ? "Có ảnh" : "Không",
         "Lần Cập Nhật Cuối": item.ngayCapNhat ? new Date(item.ngayCapNhat).toLocaleString('vi-VN') : '',
         "Ngày Kiểm Kê Lần Cuối": trangThaiCheckExcel
