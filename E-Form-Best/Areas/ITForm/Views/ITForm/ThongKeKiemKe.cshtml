@@ -11,263 +11,262 @@
 
 <style>
     body {
-        background-color: #f8fafc;
+    background-color: #f8fafc;
     }
     /* CSS cho các thẻ thống kê khi Hover và Click */
     .stat-card {
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 2px solid transparent !important;
-        position: relative;
-        overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent !important;
+    position: relative;
+    overflow: hidden;
     }
 
     .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
     }
 
     .stat-card.active {
-        border-color: #1e293b !important;
-        transform: scale(1.03);
-        box-shadow: 0 20px 35px rgba(0,0,0,0.15) !important;
-        z-index: 10;
+    border-color: #1e293b !important;
+    transform: scale(1.03);
+    box-shadow: 0 20px 35px rgba(0,0,0,0.15) !important;
+    z-index: 10;
     }
 
     .stat-card.active::after {
-        content: '\f058'; /* Icon check-circle */
-        font-family: 'Font Awesome 6 Free';
-        font-weight: 900;
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        color: #fff;
-        font-size: 1.8rem;
-        opacity: 0.9;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    content: '\f058'; /* Icon check-circle */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    color: #fff;
+    font-size: 1.8rem;
+    opacity: 0.9;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
 
     .card-icon-bg {
-        position: absolute;
-        right: -10px;
-        bottom: -15px;
-        font-size: 6rem;
-        opacity: 0.15;
-        transform: rotate(-15deg);
-        transition: all 0.3s ease;
+    position: absolute;
+    right: -10px;
+    bottom: -15px;
+    font-size: 6rem;
+    opacity: 0.15;
+    transform: rotate(-15deg);
+    transition: all 0.3s ease;
     }
 
     .stat-card:hover .card-icon-bg {
-        transform: rotate(0deg) scale(1.1);
-        opacity: 0.25;
+    transform: rotate(0deg) scale(1.1);
+    opacity: 0.25;
     }
 
     .table-hover tbody tr:hover {
-        background-color: #f1f5f9;
+    background-color: #f1f5f9;
     }
 
     /* Tùy chỉnh thanh phân trang */
     .pagination .page-item.active .page-link {
-        background-color: #4f46e5;
-        border-color: #4f46e5;
+    background-color: #4f46e5;
+    border-color: #4f46e5;
     }
 
     .pagination .page-link {
-        color: #4f46e5;
-        cursor: pointer;
+    color: #4f46e5;
+    cursor: pointer;
     }
 
     .pagination .page-item.disabled .page-link {
-        color: #6c757d;
-        cursor: not-allowed;
+    color: #6c757d;
+    cursor: not-allowed;
     }
 
     /* ========================================================
     CSS CHO HỆ THỐNG DROPDOWN CHECKBOX (COMBOBOX KIỂU MỚI)
     ======================================================== */
     .dropdown-combo-btn {
-        width: 100%;
-        text-align: left;
-        background-color: #fff;
-        border: 1px solid #cbd5e1;
-        padding: 0.375rem 2.25rem 0.375rem 0.75rem;
-        font-size: 14px;
-        font-weight: 500;
-        border-radius: 0.375rem;
-        color: #334155;
-        position: relative;
-        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    width: 100%;
+    text-align: left;
+    background-color: #fff;
+    border: 1px solid #cbd5e1;
+    padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 0.375rem;
+    color: #334155;
+    position: relative;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     }
 
     .dropdown-combo-btn:after {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
     }
 
     .dropdown-combo-btn:focus {
-        border-color: #a5b4fc;
-        box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25);
-        outline: 0;
+    border-color: #a5b4fc;
+    box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25);
+    outline: 0;
     }
 
     .dropdown-combo-menu {
-        width: 100%;
-        max-height: 280px;
-        overflow-y: auto;
-        padding: 8px 0;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e2e8f0;
-        border-radius: 0.5rem;
-        z-index: 1050;
+    width: 100%;
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 8px 0;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    z-index: 1050;
     }
 
     .dropdown-combo-item {
-        display: flex;
-        align-items: center;
-        padding: 6px 16px;
-        cursor: pointer;
-        user-select: none;
-        font-size: 13px;
-        color: #334155;
-        transition: background-color 0.15s ease;
+    display: flex;
+    align-items: center;
+    padding: 6px 16px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    color: #334155;
+    transition: background-color 0.15s ease;
     }
 
     .dropdown-combo-item:hover {
-        background-color: #f1f5f9;
+    background-color: #f1f5f9;
     }
 
     .dropdown-combo-item input[type="checkbox"] {
-        width: 16px;
-        height: 16px;
-        margin-right: 10px;
-        cursor: pointer;
-        accent-color: #4f46e5;
-        flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin-right: 10px;
+    cursor: pointer;
+    accent-color: #4f46e5;
+    flex-shrink: 0;
     }
 
     .dropdown-combo-item span {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     }
 
     /* ========================================================
     CSS RESPONSIVE CHO MOBILE (CHỈ TÁC ĐỘNG KHI MÀN HÌNH NHỎ)
     ======================================================== */
     @@media (max-width: 768px) {
-        .content-header .row > div {
-            text-align: center !important;
-            margin-bottom: 15px;
-        }
+    .content-header .row > div {
+    text-align: center !important;
+    margin-bottom: 15px;
+    }
 
-        .content-header button {
-            width: 100%;
-            padding: 10px;
-            font-size: 1.1rem;
-        }
+    .content-header button {
+    width: 100%;
+    padding: 10px;
+    font-size: 1.1rem;
+    }
 
-        .stat-card h2 {
-            font-size: 1.5rem;
-        }
+    .stat-card h2 {
+    font-size: 1.5rem;
+    }
 
-        .card-icon-bg {
-            font-size: 3.5rem;
-        }
+    .card-icon-bg {
+    font-size: 3.5rem;
+    }
 
-        .pagination {
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-top: 10px;
-        }
+    .pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 10px;
+    }
 
-        #paginationInfo {
-            text-align: center;
-            width: 100%;
-            margin-bottom: 10px !important;
-        }
+    #paginationInfo {
+    text-align: center;
+    width: 100%;
+    margin-bottom: 10px !important;
+    }
 
-        #adminDataTable thead {
-            display: none;
-        }
+    #adminDataTable thead {
+    display: none;
+    }
 
-        #adminDataTable tbody, #adminDataTable tr, #adminDataTable td {
-            display: block;
-            width: 100%;
-        }
+    #adminDataTable tbody, #adminDataTable tr, #adminDataTable td {
+    display: block;
+    width: 100%;
+    }
 
-        #adminDataTable tr {
-            margin-bottom: 1rem;
-            background-color: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            padding: 10px 15px;
-        }
+    #adminDataTable tr {
+    margin-bottom: 1rem;
+    background-color: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    padding: 10px 15px;
+    }
 
-        #adminDataTable td {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            padding: 10px 0 !important;
-            border-bottom: 1px dashed #e2e8f0;
-            text-align: right !important;
-        }
+    #adminDataTable td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 0 !important;
+    border-bottom: 1px dashed #e2e8f0;
+    }
 
-        #adminDataTable td:last-child {
-            border-bottom: 0;
-            padding-bottom: 0 !important;
-            padding-top: 15px !important;
-            justify-content: center;
-        }
+    #adminDataTable td:last-child {
+    border-bottom: 0;
+    padding-bottom: 0 !important;
+    padding-top: 15px !important;
+    justify-content: center;
+    }
 
-        #adminDataTable td::before {
-            content: attr(data-label);
-            font-weight: 700;
-            color: #64748b;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            padding-right: 15px;
-            text-align: left;
-            flex-shrink: 0;
-            max-width: 45%;
-        }
+    #adminDataTable td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    padding-right: 15px;
+    text-align: left;
+    flex-shrink: 0;
+    max-width: 45%;
+    }
 
-        #adminDataTable td:last-child::before {
-            display: none;
-        }
+    #adminDataTable td:last-child::before {
+    display: none;
+    }
 
-        #adminDataTable td.ps-4 {
-            padding-left: 0 !important;
-        }
+    #adminDataTable td.ps-4 {
+    padding-left: 0 !important;
+    }
 
-        .btn-action-mobile {
-            width: 100%;
-            padding: 12px !important;
-            font-size: 1rem !important;
-            justify-content: center;
-            display: flex;
-            align-items: center;
-        }
+    .btn-action-mobile {
+    width: 100%;
+    padding: 12px !important;
+    font-size: 1rem !important;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+    }
 
-        #adminDataTable tr.empty-row {
-            display: block;
-            text-align: center;
-            border: none;
-            box-shadow: none;
-            background: transparent;
-            padding: 0;
-        }
+    #adminDataTable tr.empty-row {
+    display: block;
+    text-align: center;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    padding: 0;
+    }
 
-        #adminDataTable tr.empty-row td {
-            justify-content: center;
-            border: none;
-        }
+    #adminDataTable tr.empty-row td {
+    justify-content: center;
+    border: none;
+    }
 
-        #adminDataTable tr.empty-row td::before {
-            display: none;
-        }
+    #adminDataTable tr.empty-row td::before {
+    display: none;
+    }
     }
 </style>
 
@@ -293,113 +292,8 @@
 
         <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; background: #fff;">
             <div class="card-body p-3">
-                <div class="row mb-1 align-items-end">
-                    <div class="col-md-5 col-12 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-info"></i> Tìm Kiếm Nhanh</label>
-                        <div class="input-group shadow-sm rounded-3">
-                            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-                            <input type="text" id="filterText" class="form-control border-start-0 ps-0" placeholder="S/N, Hostname, Account, Tên Vị Trí, Cấu hình, Ghi chú, Mã TK..." style="height: 38px;">
-                        </div>
-                    </div>
-                    <div class="col-md-2 col-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-list-ol"></i> Hiển thị</label>
-                        <select id="pageSizeSelect" class="form-select rounded-3 shadow-sm border" style="height: 38px; font-weight: 500;" onchange="changePageSize()">
-                            <option value="10">10 dòng</option>
-                            <option value="20">20 dòng</option>
-                            <option value="30" selected>30 dòng</option>
-                            <option value="50">50 dòng</option>
-                            <option value="100">100 dòng</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3 col-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1">&nbsp;</label>
-                        <button class="btn btn-primary rounded-3 px-3 shadow-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdvancedFilter" aria-expanded="false" aria-controls="collapseAdvancedFilter" style="height: 38px;" id="btnToggleAdvanced">
-                            <i class="fas fa-sliders-h me-1"></i> Lọc nâng cao <i class="fas fa-chevron-down small ms-1" id="iconToggleAdvanced"></i>
-                        </button>
-                    </div>
-                    <div class="col-md-2 col-12 mb-2 text-end">
-                        <label class="form-label fw-bold small text-muted mb-1 d-none d-md-block">&nbsp;</label>
-                        <button class="btn btn-outline-secondary rounded-3 w-100 shadow-sm" onclick="clearFilters()" style="height: 38px;">
-                            <i class="fas fa-sync-alt"></i> Xóa bộ
-                        </button>
-                    </div>
-                </div>
+                <div class="row g-3 align-items-end">
 
-<<<<<<< HEAD
-                <div class="collapse row g-3 pt-2 mt-1 border-top border-light" id="collapseAdvancedFilter">
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-building text-primary"></i> Công ty</label>
-                        <div class="dropdown">
-                            <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropCongTy" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                -- Tất cả --
-                            </button>
-                            <div class="dropdown-menu dropdown-combo-menu" id="menuCongTy" aria-labelledby="btnDropCongTy">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sitemap text-success"></i> Bộ phận</label>
-                        <div class="dropdown">
-                            <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropBoPhan" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                -- Tất cả --
-                            </button>
-                            <div class="dropdown-menu dropdown-combo-menu" id="menuBoPhan" aria-labelledby="btnDropBoPhan">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-tags text-warning"></i> Loại thiết bị</label>
-                        <div class="dropdown">
-                            <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropLoai" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                -- Tất cả --
-                            </button>
-                            <div class="dropdown-menu dropdown-combo-menu" id="menuLoai" aria-labelledby="btnDropLoai">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fab fa-windows text-primary"></i> Bản quyền Windows</label>
-                        <div class="dropdown">
-                            <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropWinLicense" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                -- Tất cả --
-                            </button>
-                            <div class="dropdown-menu dropdown-combo-menu" id="menuWinLicense" aria-labelledby="btnDropWinLicense">
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-win" value="null"><span>Trống / Chưa rõ</span></label>
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-win" value="Windows Pro"><span>Windows Pro</span></label>
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-win" value="Windows Home"><span>Windows Home</span></label>
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-win" value="Windows Enterprise"><span>Windows Enterprise</span></label>
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-win" value="Windows Education"><span>Windows Education</span></label>
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-win" value="Windows Server"><span>Windows Server</span></label>
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-win" value="Có (Chưa rõ phiên bản)"><span>Có (Chưa rõ bản nào)</span></label>
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-win" value="Chưa có"><span>Không có bản quyền</span></label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-file-word text-success"></i> Bản quyền Office</label>
-                        <div class="dropdown">
-                            <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropOfficeLicense" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                -- Tất cả --
-                            </button>
-                            <div class="dropdown-menu dropdown-combo-menu" id="menuOfficeLicense" aria-labelledby="btnDropOfficeLicense">
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-office" value="null"><span>Trống / Chưa rõ</span></label>
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-office" value="Office Professional Plus"><span>Office Professional Plus</span></label>
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-office" value="Office Standard"><span>Office Standard</span></label>
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-office" value="Office Home & Business"><span>Office Home & Business</span></label>
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-office" value="Office Home & Student"><span>Office Home & Student</span></label>
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-office" value="Microsoft 365 Apps"><span>Microsoft 365 Apps</span></label>
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-office" value="Có (Chưa rõ phiên bản)"><span>Có (Chưa rõ bản nào)</span></label>
-                                <label class="dropdown-combo-item"><input type="checkbox" class="chk-office" value="Chưa có"><span>Không có bản quyền</span></label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
-=======
                     <div class="col-lg-5 col-md-7 col-sm-12">
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-info"></i> Tìm Kiếm Nhanh</label>
                         <div class="input-group">
@@ -409,7 +303,6 @@
                     </div>
 
                     <div class="col-lg-3 col-md-5 col-sm-6">
->>>>>>> parent of 6bb86e5 (Revert "t")
                         <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sort-alpha-down text-dark"></i> Sắp xếp danh sách</label>
                         <select id="filterSort" class="form-select rounded-3 shadow-sm border" style="height: 38px; font-weight: 500;">
                             <option value="">Mặc định (Theo ID)</option>
@@ -419,8 +312,6 @@
                             <option value="name_desc">Tên Vị Trí (Z-A)</option>
                         </select>
                     </div>
-<<<<<<< HEAD
-=======
 
                     <div class="col-lg-4 col-md-12 col-sm-6 text-md-end text-start">
                         <button type="button" id="btnToggleFilters" class="btn btn-outline-primary rounded-3 px-3 fw-bold" style="height: 38px;" onclick="toggleAdvancedFilters()">
@@ -490,7 +381,6 @@
                         </div>
                     </div>
 
->>>>>>> parent of 6bb86e5 (Revert "t")
                 </div>
             </div>
         </div>
@@ -519,7 +409,7 @@
                     <div class="card-body p-3 text-start">
                         <div class="small fw-bold text-uppercase opacity-75 mb-1">Hỏng / Mất</div>
                         <h2 class="fw-bold mb-0" id="cardHong">0</h2>
-                        <i class="fas fa-exclamation-circle card-icon-bg"></i>
+                        <i class="fas fa-car-crash card-icon-bg"></i>
                     </div>
                 </div>
             </div>
@@ -606,7 +496,17 @@
         <div class="card border-0 shadow-sm mb-4" id="tableSection" style="border-radius: 15px;">
             <div class="card-header bg-white border-bottom pt-3 pb-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2" style="border-radius: 15px 15px 0 0;">
                 <h6 class="fw-bold text-dark mb-0"><i class="fas fa-list-alt text-primary me-2"></i>Chi tiết danh sách (<span id="lblCountTable" class="text-danger">0</span> thiết bị)</h6>
-                <div class="small text-muted fw-bold" id="paginationInfoTop">Đang tính toán...</div>
+
+                <div class="d-flex align-items-center">
+                    <label class="me-2 small text-muted mb-0 fw-bold">Hiển thị:</label>
+                    <select id="pageSizeSelect" class="form-select form-select-sm shadow-sm border-0 bg-light" style="width: 80px; font-weight: bold;" onchange="changePageSize()">
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="30" selected>30</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
             </div>
 
             <div class="card-body p-0">
@@ -623,11 +523,7 @@
                                 <th class="text-center">Trạng thái</th>
                                 <th class="text-center" width="160">Lần cuối Check</th>
                                 <th>Ghi chú</th>
-<<<<<<< HEAD
-                                <th class="text-center" width="120">Thao tác</th>
-=======
                                 <th class="text-center" width="190">Thao tác hệ thống</th>
->>>>>>> parent of 6bb86e5 (Revert "t")
                             </tr>
                         </thead>
                         <tbody id="tbodyData">
@@ -652,7 +548,7 @@
         <div class="modal-content" style="border-radius: 15px;">
             <div class="modal-header bg-light" style="border-radius: 15px 15px 0 0;">
                 <h5 class="modal-title fw-bold" id="modalLichSuLabel">
-                    <i class="fas fa-history text-primary me-2"></i>Lịch sử hệ thống: <span id="lsTenThietBi" class="text-danger"></span>
+                    <i class="fas fa-history text-primary me-2"></i>Lịch sử thiết bị: <span id="lsTenThietBi" class="text-danger"></span>
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -664,7 +560,7 @@
                                 <th class="ps-4">Thời gian</th>
                                 <th>Hành động</th>
                                 <th>Người thao tác</th>
-                                <th>Chi tiết lịch sử</th>
+                                <th>Chi tiết</th>
                             </tr>
                         </thead>
                         <tbody id="tbodyLichSu">
@@ -674,22 +570,6 @@
             </div>
             <div class="modal-footer bg-light" style="border-radius: 0 0 15px 15px;">
                 <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="modalChiTietThietBi" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-md modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-            <div class="modal-header bg-dark text-white border-0" style="border-radius: 20px 20px 0 0;">
-                <h5 class="modal-title fw-bold"><i class="fas fa-info-circle me-1"></i> Thông tin chi tiết tài sản</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-3 small" id="boxChiTietBody">
-            </div>
-            <div class="modal-footer border-0 bg-light">
-                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng cửa sổ</button>
             </div>
         </div>
     </div>
@@ -716,14 +596,6 @@
         let activeCardFilter = '';
 
         $(document).ready(function () {
-<<<<<<< HEAD
-            // Sự kiện đồng bộ icon đóng/mở vùng lọc nâng cao
-            $('#collapseAdvancedFilter').on('show.bs.collapse', function () {
-                $('#iconToggleAdvanced').removeClass('fa-chevron-down').addClass('fa-chevron-up');
-            }).on('hide.bs.collapse', function () {
-                $('#iconToggleAdvanced').removeClass('fa-chevron-up').addClass('fa-chevron-down');
-            });
-=======
         // Đọc trạng thái ẩn hiện bộ lọc nâng cao từ localStorage
         let savedState = localStorage.getItem('dash_toggleAdvancedFilters') || 'hide';
         if (savedState === 'show') {
@@ -738,26 +610,15 @@
         $('#filterText, #filterSort').on('keyup change', function () {
         applyFiltersAndRender();
         });
->>>>>>> parent of 6bb86e5 (Revert "t")
 
-            // Khôi phục cấu hình số lượng hiển thị (pageSize) từ localStorage nếu có sẵn
-            let savedLimit = localStorage.getItem('kk_dashboard_pageSize') || '30';
-            pageSize = parseInt(savedLimit);
-            $('#pageSizeSelect').val(savedLimit);
+        // Lắng nghe sự kiện thay đổi của Checkbox lồng trong Dropdown Menu
+        $(document).on('change', '.dropdown-combo-menu input[type="checkbox"]', function () {
+        updateDropdownButtonLabel($(this).closest('.dropdown-combo-menu'));
+        applyFiltersAndRender();
+        });
 
-            // Sự kiện tìm kiếm nhanh & thay đổi sắp xếp
-            $('#filterText, #filterSort').on('keyup change', function () {
-                applyFiltersAndRender();
-            });
-
-            // Lắng nghe sự kiện thay đổi của Checkbox lồng trong Dropdown Menu
-            $(document).on('change', '.dropdown-combo-menu input[type="checkbox"]', function () {
-                updateDropdownButtonLabel($(this).closest('.dropdown-combo-menu'));
-                applyFiltersAndRender();
-            });
-
-            // Tải dữ liệu lần đầu
-            loadData();
+        // Tải dữ liệu lần đầu
+        loadData();
         });
 
         // Hàm trượt ẩn hiện nâng cao và lưu trạng thái
@@ -775,58 +636,23 @@
         }
 
         function loadData() {
-            $.get('/QLKiemKe/GetKkThietBiss', function (res) {
-                if (res.success) {
-                    allDataCache = res.data || [];
-                    populateFilters(allDataCache);
-                    applyFiltersAndRender();
-                } else {
-                    Swal.fire("Lỗi tải dữ liệu", res.msg, "error");
-                }
-            }).fail(function() { Swal.fire("Lỗi", "Lỗi kết nối máy chủ!", "error"); });
+        $.get('/QLKiemKe/GetKkThietBiss', function (res) {
+        if (res.success) {
+        allDataCache = res.data || [];
+        populateFilters(allDataCache);
+        applyFiltersAndRender();
+        } else {
+        Swal.fire("Lỗi tải dữ liệu", res.msg, "error");
+        }
+        }).fail(function() { Swal.fire("Lỗi", "Lỗi kết nối máy chủ!", "error"); });
         }
 
         // Đổ dữ liệu động vào hệ thống các Checkbox
         function populateFilters(data) {
-            let companies = [...new Set(data.map(x => x.tenCongTy).filter(Boolean))].sort();
-            let depts = [...new Set(data.map(x => x.tenBoPhan).filter(Boolean))].sort();
-            let types = [...new Set(data.map(x => x.loaiThietBi).filter(Boolean))].sort();
+        let companies = [...new Set(data.map(x => x.tenCongTy).filter(Boolean))].sort();
+        let depts = [...new Set(data.map(x => x.tenBoPhan).filter(Boolean))].sort();
+        let types = [...new Set(data.map(x => x.loaiThietBi).filter(Boolean))].sort();
 
-<<<<<<< HEAD
-            $('#menuCongTy').empty();
-            $('#menuBoPhan').empty();
-            $('#menuLoai').empty();
-
-            // Sinh Checkbox Công ty
-            companies.forEach(x => {
-                $('#menuCongTy').append(`
-                <label class="dropdown-combo-item">
-                <input type="checkbox" class="chk-company" value="${x}">
-                <span>${x}</span>
-                </label>
-                `);
-            });
-
-            // Sinh Checkbox Bộ phận
-            depts.forEach(x => {
-                $('#menuBoPhan').append(`
-                <label class="dropdown-combo-item">
-                <input type="checkbox" class="chk-dept" value="${x}">
-                <span>${x}</span>
-                </label>
-                `);
-            });
-
-            // Sinh Checkbox Loại thiết bị
-            types.forEach(x => {
-                $('#menuLoai').append(`
-                <label class="dropdown-combo-item">
-                <input type="checkbox" class="chk-loai" value="${x}">
-                <span>${x}</span>
-                </label>
-                `);
-            });
-=======
         // Danh sách cố định cho bản quyền dựa theo form nhập liệu
         let winLicenses = ["Windows Pro", "Windows Home", "Windows Enterprise", "Windows Education", "Windows Server", "Có (Chưa rõ phiên bản)", "Chưa có"];
         let officeLicenses = ["Office Professional Plus", "Office Standard", "Office Home & Business", "Office Home & Student", "Microsoft 365 Apps", "Có (Chưa rõ phiên bản)", "Chưa có"];
@@ -856,104 +682,61 @@
         officeLicenses.forEach(x => {
         $('#menuOffice').append(`<label class="dropdown-combo-item"><input type="checkbox" class="chk-office" value="${x}"><span>${x}</span></label>`);
         });
->>>>>>> parent of 6bb86e5 (Revert "t")
         }
 
         function updateDropdownButtonLabel($menu) {
-            let totalChecked = $menu.find('input[type="checkbox"]:checked').length;
-            let $btn = $menu.siblings('.dropdown-combo-btn');
+        let totalChecked = $menu.find('input[type="checkbox"]:checked').length;
+        let $btn = $menu.siblings('.dropdown-combo-btn');
 
-            if (totalChecked === 0) {
-                $btn.text('-- Tất cả --');
-            } else if (totalChecked === 1) {
-                $btn.text($menu.find('input[type="checkbox"]:checked').first().parent().find('span').text());
-            } else {
-                $btn.text(`Đã chọn (${totalChecked})`);
-            }
+        if (totalChecked === 0) {
+        $btn.text('-- Tất cả --');
+        } else if (totalChecked === 1) {
+        $btn.text($menu.find('input[type="checkbox"]:checked').first().val());
+        } else {
+        $btn.text(`Đã chọn (${totalChecked})`);
+        }
         }
 
         function clearFilters() {
-            $('.dropdown-combo-menu input[type="checkbox"]').prop('checked', false);
-            $('.dropdown-combo-menu').each(function() {
-                updateDropdownButtonLabel($(this));
-            });
-            $('#filterText').val('');
-            $('#filterSort').val('');
-            $('#pageSizeSelect').val('30');
-            pageSize = 30;
-            localStorage.setItem('kk_dashboard_pageSize', '30');
-            setCardFilter('', 'card-all');
+        $('.dropdown-combo-menu input[type="checkbox"]').prop('checked', false);
+        $('.dropdown-combo-menu').each(function() {
+        updateDropdownButtonLabel($(this));
+        });
+        $('#filterText').val('');
+        $('#filterSort').val('');
+        setCardFilter('', 'card-all');
         }
 
         function setCardFilter(status, cardId) {
-            activeCardFilter = status.toLowerCase();
-            $('.stat-card').removeClass('active');
-            $('#' + cardId).addClass('active');
-            applyFiltersAndRender();
+        activeCardFilter = status.toLowerCase();
+        $('.stat-card').removeClass('active');
+        $('#' + cardId).addClass('active');
+        applyFiltersAndRender();
         }
 
         // ====================================================
         // HÀM LỌC CHÍNH (XỬ LÝ DỮ LIỆU + KIỂM TRA MẢNG BẢN QUYỀN MỚI THÊM)
         // ====================================================
         function applyFiltersAndRender() {
-<<<<<<< HEAD
-            let selectedCompanies = $('.chk-company:checked').map(function() { return $(this).val(); }).get();
-            let selectedDepts = $('.chk-dept:checked').map(function() { return $(this).val(); }).get();
-            let selectedLoais = $('.chk-loai:checked').map(function() { return $(this).val(); }).get();
-            
-            // Đọc mảng lọc đa tích chọn bản quyền mới bổ sung
-            let selectedWins = $('.chk-win:checked').map(function() { return $(this).val(); }).get();
-            let selectedOffices = $('.chk-office:checked').map(function() { return $(this).val(); }).get();
-=======
         let selectedCompanies = $('.chk-company:checked').map(function() { return $(this).val(); }).get();
         let selectedDepts = $('.chk-dept:checked').map(function() { return $(this).val(); }).get();
         let selectedLoais = $('.chk-loai:checked').map(function() { return $(this).val(); }).get();
         let selectedWins = $('.chk-win:checked').map(function() { return $(this).val(); }).get();
         let selectedOffices = $('.chk-office:checked').map(function() { return $(this).val(); }).get();
->>>>>>> parent of 6bb86e5 (Revert "t")
 
-            let fText = $('#filterText').val().toLowerCase().trim();
-            let fSort = $('#filterSort').val();
+        let fText = $('#filterText').val().toLowerCase().trim();
+        let fSort = $('#filterSort').val();
 
-            let fourMonthsAgo = new Date();
-            fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
+        let fourMonthsAgo = new Date();
+        fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
 
-            let baseFiltered = allDataCache;
+        let baseFiltered = allDataCache;
 
-            // Xử lý lọc mảng Multi-select từ Dropdown Checkbox
-            if (selectedCompanies.length > 0) baseFiltered = baseFiltered.filter(x => selectedCompanies.includes(x.tenCongTy));
-            if (selectedDepts.length > 0) baseFiltered = baseFiltered.filter(x => selectedDepts.includes(x.tenBoPhan));
-            if (selectedLoais.length > 0) baseFiltered = baseFiltered.filter(x => selectedLoais.includes(x.loaiThietBi));
+        // Xử lý lọc mảng Multi-select từ Dropdown Checkbox
+        if (selectedCompanies.length > 0) baseFiltered = baseFiltered.filter(x => selectedCompanies.includes(x.tenCongTy));
+        if (selectedDepts.length > 0) baseFiltered = baseFiltered.filter(x => selectedDepts.includes(x.tenBoPhan));
+        if (selectedLoais.length > 0) baseFiltered = baseFiltered.filter(x => selectedLoais.includes(x.loaiThietBi));
 
-<<<<<<< HEAD
-            // CRITICAL LOGIC: LỌC BẢN QUYỀN WINDOWS (PHÂN BIỆT RÕ RÀNG NULL VÀ "CHƯA CÓ")
-            if (selectedWins.length > 0) {
-                baseFiltered = baseFiltered.filter(x => {
-                    let winVal = x.winLicense;
-                    if (selectedWins.includes('null') && (winVal === null || winVal === undefined || winVal.trim() === '')) {
-                        return true;
-                    }
-                    if (winVal && selectedWins.includes(winVal.trim())) {
-                        return true;
-                    }
-                    return false;
-                });
-            }
-
-            // CRITICAL LOGIC: LỌC BẢN QUYỀN OFFICE (PHÂN BIỆT RÕ RÀNG NULL VÀ "CHƯA CÓ")
-            if (selectedOffices.length > 0) {
-                baseFiltered = baseFiltered.filter(x => {
-                    let officeVal = x.officeLicense;
-                    if (selectedOffices.includes('null') && (officeVal === null || officeVal === undefined || officeVal.trim() === '')) {
-                        return true;
-                    }
-                    if (officeVal && selectedOffices.includes(officeVal.trim())) {
-                        return true;
-                    }
-                    return false;
-                });
-            }
-=======
         // Logic lọc bản quyền đặc thù (Xử lý trường hợp chuỗi trống hoặc null)
         if (selectedWins.length > 0) baseFiltered = baseFiltered.filter(x => selectedWins.includes(x.winLicense) || (selectedWins.includes("Chưa có") && (!x.winLicense || x.winLicense.trim() === "")));
         if (selectedOffices.length > 0) baseFiltered = baseFiltered.filter(x => selectedOffices.includes(x.officeLicense) || (selectedOffices.includes("Chưa có") && (!x.officeLicense || x.officeLicense.trim() === "")));
@@ -972,51 +755,47 @@
 
         // Đếm số lượng hiển thị lên hệ thống Card Thống kê
         let countTotal = 0, countHD = 0, countBaoTri = 0, countHong = 0, countXoa = 0, countChuaCheck = 0;
->>>>>>> parent of 6bb86e5 (Revert "t")
 
-            if (fText) {
-                baseFiltered = baseFiltered.filter(x =>
-                    (x.idThietBi && String(x.idThietBi).includes(fText)) ||
-                    (x.tenMayTinh && x.tenMayTinh.toLowerCase().includes(fText)) ||
-                    (x.tenViTri && x.tenViTri.toLowerCase().includes(fText)) ||
-                    (x.tenNguoiDung && x.tenNguoiDung.toLowerCase().includes(fText)) ||
-                    (x.tenDangNhap && x.tenDangNhap.toLowerCase().includes(fText)) ||
-                    (x.tk && x.tk.toLowerCase().includes(fText)) ||
-                    (x.quyCach && x.quyCach.toLowerCase().includes(fText)) ||
-                    (x.seribacode && x.seribacode.toLowerCase().includes(fText)) ||
-                    (x.ghiChu && x.ghiChu.toLowerCase().includes(fText))
-                );
-            }
+        baseFiltered.forEach(x => {
+        let t = (x.tenTrangThai || '').toLowerCase();
+        if (t.includes('xóa') || x.ngayXoa != null) {
+        countXoa++;
+        } else {
+        countTotal++;
+        if (t.includes('hoạt động')) countHD++;
+        else if (t.includes('bảo trì')) countBaoTri++;
+        else if (t.includes('hỏng')) countHong++;
 
-            // Đếm số lượng Card Thống kê
-            let countTotal = 0, countHD = 0, countBaoTri = 0, countHong = 0, countXoa = 0, countChuaCheck = 0;
+        if (!x.thoiGianCheck) {
+        countChuaCheck++;
+        } else {
+        if (new Date(x.thoiGianCheck) < fourMonthsAgo) countChuaCheck++;
+        }
+        }
+        });
 
-            baseFiltered.forEach(x => {
-                let t = (x.tenTrangThai || '').toLowerCase();
-                if (t.includes('xóa') || x.ngayXoa != null) {
-                    countXoa++;
-                } else {
-                    countTotal++;
-                    if (t.includes('hoạt động')) countHD++;
-                    else if (t.includes('bảo trì')) countBaoTri++;
-                    else if (t.includes('hỏng')) countHong++;
+        $('#cardTong').text(countTotal);
+        $('#cardHoatDong').text(countHD);
+        $('#cardBaoTri').text(countBaoTri);
+        $('#cardHong').text(countHong);
+        $('#cardXoa').text(countXoa);
+        $('#cardChuaCheck').text(countChuaCheck);
 
-                    if (!x.thoiGianCheck) {
-                        countChuaCheck++;
-                    } else {
-                        if (new Date(x.thoiGianCheck) < fourMonthsAgo) countChuaCheck++;
-                    }
-                }
-            });
+        let finalFiltered = baseFiltered;
+        if (activeCardFilter === 'chuacheck') {
+        finalFiltered = finalFiltered.filter(x => {
+        if (x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')) return false;
+        if (!x.thoiGianCheck) return true;
+        return new Date(x.thoiGianCheck) < fourMonthsAgo;
+        });
+        } else if (activeCardFilter === 'xóa') {
+        finalFiltered = finalFiltered.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa'));
+        } else if (activeCardFilter !== '') {
+        finalFiltered = finalFiltered.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes(activeCardFilter) && !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
+        } else {
+        finalFiltered = finalFiltered.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
+        }
 
-<<<<<<< HEAD
-            $('#cardTong').text(countTotal);
-            $('#cardHoatDong').text(countHD);
-            $('#cardBaoTri').text(countBaoTri);
-            $('#cardHong').text(countHong);
-            $('#cardXoa').text(countXoa);
-            $('#cardChuaCheck').text(countChuaCheck);
-=======
         // Sắp xếp tiếng Việt
         if (fSort) {
         finalFiltered.sort((a, b) => {
@@ -1033,182 +812,131 @@
         }
         });
         }
->>>>>>> parent of 6bb86e5 (Revert "t")
 
-            let finalFiltered = baseFiltered;
-            if (activeCardFilter === 'chuacheck') {
-                finalFiltered = finalFiltered.filter(x => {
-                    if (x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')) return false;
-                    if (!x.thoiGianCheck) return true;
-                    return new Date(x.thoiGianCheck) < fourMonthsAgo;
-                });
-            } else if (activeCardFilter === 'xóa') {
-                finalFiltered = finalFiltered.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa'));
-            } else if (activeCardFilter !== '') {
-                finalFiltered = finalFiltered.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes(activeCardFilter) && !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
-            } else {
-                finalFiltered = finalFiltered.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
-            }
+        finalFilteredGlobal = finalFiltered;
+        filteredExportData = finalFiltered;
+        currentPage = 1;
 
-            // Sắp xếp tiếng Việt có dấu
-            if (fSort) {
-                finalFiltered.sort((a, b) => {
-                    let valA = '', valB = '';
-                    if (fSort.startsWith('host')) {
-                        valA = (a.tenMayTinh || '').toLowerCase(); valB = (b.tenMayTinh || '').toLowerCase();
-                    } else if (fSort.startsWith('name')) {
-                        valA = (a.tenViTri || '').toLowerCase(); valB = (b.tenViTri || '').toLowerCase();
-                    }
-                    if (fSort.endsWith('asc')) {
-                        return valA.localeCompare(valB, 'vi', { sensitivity: 'base' });
-                    } else {
-                        return valB.localeCompare(valA, 'vi', { sensitivity: 'base' });
-                    }
-                });
-            }
+        $('#lblCountTable').text(finalFilteredGlobal.length);
+        renderTablePage();
 
-<<<<<<< HEAD
-            finalFilteredGlobal = finalFiltered;
-            filteredExportData = finalFiltered;
-            currentPage = 1;
-=======
         // Vẽ lại các biểu đồ động Chart.js
         let mapCongTy = {}; let mapLoai = {};
         let countDaCheck = 0; let countChuaCheckChart = 0;
         let companyDeptsMap = {};
->>>>>>> parent of 6bb86e5 (Revert "t")
 
-            $('#lblCountTable').text(finalFilteredGlobal.length);
-            renderTablePage();
+        finalFiltered.forEach(x => {
+        let ct = x.tenCongTy || 'Chưa gắn CT';
+        mapCongTy[ct] = (mapCongTy[ct] || 0) + 1;
 
-            // Vẽ lại các biểu đồ động
-            let mapCongTy = {}; let mapLoai = {};
-            let countDaCheck = 0; let countChuaCheckChart = 0;
-            let companyDeptsMap = {};
+        let bp = x.tenBoPhan || 'Chưa gắn BP';
+        if (!companyDeptsMap[ct]) companyDeptsMap[ct] = {};
+        companyDeptsMap[ct][bp] = (companyDeptsMap[ct][bp] || 0) + 1;
 
-            finalFiltered.forEach(x => {
-                let ct = x.tenCongTy || 'Chưa gắn CT';
-                mapCongTy[ct] = (mapCongTy[ct] || 0) + 1;
+        let type = x.loaiThietBi || 'Khác';
+        mapLoai[type] = (mapLoai[type] || 0) + 1;
 
-                let bp = x.tenBoPhan || 'Chưa gắn BP';
-                if (!companyDeptsMap[ct]) companyDeptsMap[ct] = {};
-                companyDeptsMap[ct][bp] = (companyDeptsMap[ct][bp] || 0) + 1;
+        if (!x.thoiGianCheck || new Date(x.thoiGianCheck) < fourMonthsAgo) {
+        countChuaCheckChart++;
+        } else {
+        countDaCheck++;
+        }
+        });
 
-                let type = x.loaiThietBi || 'Khác';
-                mapLoai[type] = (mapLoai[type] || 0) + 1;
+        let sortedCT = Object.entries(mapCongTy).sort((a,b) => b[1]-a[1]);
+        chartCongTy = drawPieChart(chartCongTy, 'chartCongTy', sortedCT.map(i=>i[0]), sortedCT.map(i=>i[1]), function(label) {
+        setTimeout(() => {
+        $('.chk-company').prop('checked', false);
+        $(`.chk-company[value="${label}"]`).prop('checked', true);
+        updateDropdownButtonLabel($('#menuCongTy'));
+        applyFiltersAndRender();
+        document.getElementById('tableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+        });
 
-                if (!x.thoiGianCheck || new Date(x.thoiGianCheck) < fourMonthsAgo) {
-                    countChuaCheckChart++;
-                } else {
-                    countDaCheck++;
-                }
-            });
+        let sortedLoai = Object.entries(mapLoai).sort((a,b) => b[1]-a[1]);
+        chartLoai = drawBarChart(chartLoai, 'chartLoai', sortedLoai.map(i=>i[0]), sortedLoai.map(i=>i[1]), 'Số lượng', '#06b6d4', function(label) {
+        setTimeout(() => {
+        $('.chk-loai').prop('checked', false);
+        $(`.chk-loai[value="${label}"]`).prop('checked', true);
+        updateDropdownButtonLabel($('#menuLoai'));
+        applyFiltersAndRender();
+        document.getElementById('tableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+        });
 
-            let sortedCT = Object.entries(mapCongTy).sort((a,b) => b[1]-a[1]);
-            chartCongTy = drawPieChart(chartCongTy, 'chartCongTy', sortedCT.map(i=>i[0]), sortedCT.map(i=>i[1]), function(label) {
-                setTimeout(() => {
-                    $('.chk-company').prop('checked', false);
-                    $(`.chk-company[value="${label}"]`).prop('checked', true);
-                    updateDropdownButtonLabel($('#menuCongTy'));
-                    applyFiltersAndRender();
-                    document.getElementById('tableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 50);
-            });
+        chartTienDo = drawTienDoChart(chartTienDo, 'chartTienDo', countDaCheck, countChuaCheckChart);
 
-            let sortedLoai = Object.entries(mapLoai).sort((a,b) => b[1]-a[1]);
-            chartLoai = drawBarChart(chartLoai, 'chartLoai', sortedLoai.map(i=>i[0]), sortedLoai.map(i=>i[1]), 'Số lượng', '#06b6d4', function(label) {
-                setTimeout(() => {
-                    $('.chk-loai').prop('checked', false);
-                    $(`.chk-loai[value="${label}"]`).prop('checked', true);
-                    updateDropdownButtonLabel($('#menuLoai'));
-                    applyFiltersAndRender();
-                    document.getElementById('tableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 50);
-            });
+        chartBoPhanInstances.forEach(c => c.destroy());
+        chartBoPhanInstances = [];
+        $('#boPhanChartsContainer').empty();
 
-            chartTienDo = drawTienDoChart(chartTienDo, 'chartTienDo', countDaCheck, countChuaCheckChart);
+        let bpColors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b'];
+        let colorIdx = 0;
 
-            chartBoPhanInstances.forEach(c => c.destroy());
-            chartBoPhanInstances = [];
-            $('#boPhanChartsContainer').empty();
+        if (typeof companyDeptsMap === 'object' && Object.keys(companyDeptsMap).length === 0) {
+        $('#boPhanChartsContainer').html('<div class="col-12 text-center text-muted py-5"><i class="fas fa-folder-open fa-2x mb-2 d-block opacity-50"></i>Không có dữ liệu bộ phận</div>');
+        } else {
+        let colClass = Object.keys(companyDeptsMap).length > 1 ? 'col-md-6' : 'col-12';
+        let chartIndex = 0;
 
-            let bpColors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b'];
-            let colorIdx = 0;
+        for (let cty in companyDeptsMap) {
+        let sortedBP = Object.entries(companyDeptsMap[cty]).sort((a,b) => b[1]-a[1]).slice(0, 15);
+        let canvasId = 'chartBP_' + chartIndex;
+        let currentColor = bpColors[colorIdx % bpColors.length];
 
-            if (typeof companyDeptsMap === 'object' && Object.keys(companyDeptsMap).length === 0) {
-                $('#boPhanChartsContainer').html('<div class="col-12 text-center text-muted py-5"><i class="fas fa-folder-open fa-2x mb-2 d-block opacity-50"></i>Không có dữ liệu bộ phận</div>');
-            } else {
-                let colClass = Object.keys(companyDeptsMap).length > 1 ? 'col-md-6' : 'col-12';
-                let chartIndex = 0;
+        let htmlCol = `
+        <div class="${colClass} mb-4">
+        <h6 class="text-center fw-bold" style="color: ${currentColor}; font-size: 0.95rem;"><i class="fas fa-building me-1"></i>${cty}</h6>
+        <div style="position: relative; height: 250px; width: 100%;">
+        <canvas id="${canvasId}"></canvas>
+        </div>
+        </div>`;
+        $('#boPhanChartsContainer').append(htmlCol);
 
-                for (let cty in companyDeptsMap) {
-                    let sortedBP = Object.entries(companyDeptsMap[cty]).sort((a,b) => b[1]-a[1]).slice(0, 15);
-                    let canvasId = 'chartBP_' + chartIndex;
-                    let currentColor = bpColors[colorIdx % bpColors.length];
+        let newChart = drawBarChart(null, canvasId, sortedBP.map(i=>i[0]), sortedBP.map(i=>i[1]), 'Số thiết bị', currentColor, function(label) {
+        setTimeout(() => {
+        $('.chk-company').prop('checked', false);
+        $(`.chk-company[value="${cty}"]`).prop('checked', true);
+        updateDropdownButtonLabel($('#menuCongTy'));
 
-                    let htmlCol = `
-                    <div class="${colClass} mb-4">
-                    <h6 class="text-center fw-bold" style="color: ${currentColor}; font-size: 0.95rem;"><i class="fas fa-building me-1"></i>${cty}</h6>
-                    <div style="position: relative; height: 250px; width: 100%;">
-                    <canvas id="${canvasId}"></canvas>
-                    </div>
-                    </div>`;
-                    $('#boPhanChartsContainer').append(htmlCol);
+        $('.chk-dept').prop('checked', false);
+        $(`.chk-dept[value="${label}"]`).prop('checked', true);
+        updateDropdownButtonLabel($('#menuBoPhan'));
 
-                    let newChart = drawBarChart(null, canvasId, sortedBP.map(i=>i[0]), sortedBP.map(i=>i[1]), 'Số thiết bị', currentColor, function(label) {
-                        setTimeout(() => {
-                            $('.chk-company').prop('checked', false);
-                            $(`.chk-company[value="${cty}"]`).prop('checked', true);
-                            updateDropdownButtonLabel($('#menuCongTy'));
+        applyFiltersAndRender();
+        document.getElementById('tableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+        });
 
-                            $('.chk-dept').prop('checked', false);
-                            $(`.chk-dept[value="${label}"]`).prop('checked', true);
-                            updateDropdownButtonLabel($('#menuBoPhan'));
-
-                            applyFiltersAndRender();
-                            document.getElementById('tableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }, 50);
-                    });
-
-                    chartBoPhanInstances.push(newChart);
-                    chartIndex++; colorIdx++;
-                }
-            }
+        chartBoPhanInstances.push(newChart);
+        chartIndex++; colorIdx++;
+        }
+        }
         }
 
         // ====================================================
         // HÀM VẼ BẢNG DỮ LIỆU & PHÂN TRANG (PAGINATION)
         // ====================================================
         function changePageSize() {
-            pageSize = parseInt($('#pageSizeSelect').val());
-            localStorage.setItem('kk_dashboard_pageSize', $('#pageSizeSelect').val());
-            currentPage = 1;
-            renderTablePage();
+        pageSize = parseInt($('#pageSizeSelect').val());
+        currentPage = 1;
+        renderTablePage();
         }
 
         window.changePage = function(pageNumber) {
-            currentPage = pageNumber;
-            renderTablePage();
+        currentPage = pageNumber;
+        renderTablePage();
         }
 
         function renderTablePage() {
-            let totalItems = finalFilteredGlobal.length;
-            let totalPages = Math.ceil(totalItems / pageSize);
-            let fourMonthsAgo = new Date();
-            fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
+        let totalItems = finalFilteredGlobal.length;
+        let totalPages = Math.ceil(totalItems / pageSize);
+        let fourMonthsAgo = new Date();
+        fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
 
-            let htmlTable = '';
+        let htmlTable = '';
 
-<<<<<<< HEAD
-            if (totalItems === 0) {
-                htmlTable = `<tr class="empty-row"><td colspan="9" class="text-center text-muted py-5"><i class="fas fa-box-open fa-3x mb-3 d-block opacity-50"></i> Không có dữ liệu phù hợp</td></tr>`;
-                $('#paginationInfo, #paginationInfoTop').text("Không có mục nào để hiển thị");
-                $('#paginationControls').html('');
-            } else {
-                let startIndex = (currentPage - 1) * pageSize;
-                let endIndex = Math.min(startIndex + pageSize, totalItems);
-                let pageData = finalFilteredGlobal.slice(startIndex, endIndex);
-=======
         if (totalItems === 0) {
         htmlTable = `<tr class="empty-row"><td colspan="10" class="text-center text-muted py-5"><i class="fas fa-box-open fa-3x mb-3 d-block opacity-50"></i> Không có dữ liệu phù hợp</td></tr>`;
         $('#paginationInfo').text("Không có mục nào để hiển thị");
@@ -1217,28 +945,9 @@
         let startIndex = (currentPage - 1) * pageSize;
         let endIndex = Math.min(startIndex + pageSize, totalItems);
         let pageData = finalFilteredGlobal.slice(startIndex, endIndex);
->>>>>>> parent of 6bb86e5 (Revert "t")
 
-                let infoString = `Đang hiển thị <b>${startIndex + 1}</b> - <b>${endIndex}</b> / <b class="text-primary">${totalItems}</b> thiết bị`;
-                $('#paginationInfo').html(infoString);
-                $('#paginationInfoTop').html(infoString);
+        $('#paginationInfo').html(`Đang hiển thị <b>${startIndex + 1}</b> đến <b>${endIndex}</b> trong tổng số <b class="text-primary">${totalItems}</b> thiết bị`);
 
-<<<<<<< HEAD
-                pageData.forEach(item => {
-                    let namePart = item.tenNguoiDung
-                    ? `<span class="text-primary fw-bold">${item.tenNguoiDung}</span> <span class="text-danger">(${item.tk || 'N/A'})</span>`
-                    : `<span class="text-muted fst-italic">Chưa cấp phát</span>`;
-
-                    let accPart = item.tenDangNhap ? item.tenDangNhap : `<span class="fst-italic text-muted">Chưa có Account</span>`;
-                    let userStr = `<div>${namePart}</div><div class="small text-muted mt-1"><i class="fas fa-user-circle me-1"></i> ${accPart}</div>`;
-                    let locStr = [item.tenCongTy, item.tenBoPhan].filter(Boolean).join(' - ') || 'Chưa gắn';
-
-                    let t = (item.tenTrangThai || '').toLowerCase();
-                    let badgeClass = "bg-secondary";
-                    if (t.includes("hoạt động")) badgeClass = "bg-success";
-                    else if (t.includes("bảo trì")) badgeClass = "bg-warning text-dark";
-                    else if (t.includes("hỏng") || t.includes("xóa")) badgeClass = "bg-danger";
-=======
         pageData.forEach(item => {
         let namePart = item.tenNguoiDung
         ? `<span class="text-primary fw-bold">${item.tenNguoiDung}</span> <span class="text-danger fw-normal">(${item.tk || 'N/A'})</span>`
@@ -1258,51 +967,19 @@
         if (t.includes("hoạt động")) badgeClass = "bg-success";
         else if (t.includes("bảo trì")) badgeClass = "bg-warning text-dark";
         else if (t.includes("hỏng") || t.includes("xóa")) badgeClass = "bg-danger";
->>>>>>> parent of 6bb86e5 (Revert "t")
 
-                    let checkHtml = '';
-                    if (!item.thoiGianCheck) {
-                        checkHtml = `<span class="badge bg-danger rounded-pill px-3 py-2"><i class="fas fa-exclamation-triangle me-1"></i> Chưa Check</span>`;
-                    } else {
-                        let checkDate = new Date(item.thoiGianCheck);
-                        if (checkDate < fourMonthsAgo) {
-                            checkHtml = `<span class="badge bg-warning text-dark rounded-pill px-2 py-2" title="Đã quá 4 tháng"><i class="fas fa-clock me-1"></i> Quá hạn (${checkDate.toLocaleDateString('vi-VN')})</span>`;
-                        } else {
-                            checkHtml = `<span class="badge bg-success rounded-pill px-3 py-2"><i class="fas fa-check me-1"></i> ${checkDate.toLocaleDateString('vi-VN')}</span>`;
-                        }
-                    }
+        let checkHtml = '';
+        if (!item.thoiGianCheck) {
+        checkHtml = `<span class="badge bg-danger rounded-pill px-3 py-2"><i class="fas fa-exclamation-triangle me-1"></i> Chưa Check</span>`;
+        } else {
+        let checkDate = new Date(item.thoiGianCheck);
+        if (checkDate < fourMonthsAgo) {
+        checkHtml = `<span class="badge bg-warning text-dark rounded-pill px-2 py-2" title="Đã quá 4 tháng"><i class="fas fa-clock me-1"></i> Quá hạn (${checkDate.toLocaleDateString('vi-VN')})</span>`;
+        } else {
+        checkHtml = `<span class="badge bg-success rounded-pill px-3 py-2"><i class="fas fa-check me-1"></i> ${checkDate.toLocaleDateString('vi-VN')}</span>`;
+        }
+        }
 
-<<<<<<< HEAD
-                    let htmlImg = '';
-                    if (item.duongDanAnh) {
-                        let imgUrl = `/QLKiemKe/GetImage?fileName=${encodeURIComponent(item.duongDanAnh)}`;
-                        htmlImg = `
-                        <div class="mt-2 text-md-start text-end">
-                        <img src="${imgUrl}"
-                        alt="Ảnh thiết bị"
-                        class="img-thumbnail shadow-sm"
-                        style="width: 50px; height: 50px; object-fit: cover; cursor: pointer; border-radius: 8px;"
-                        onclick="viewFullImage('${imgUrl}', '${item.tenMayTinh || item.tenViTri || 'Vị trí'}')"
-                        title="Nhấn để xem ảnh lớn" />
-                        </div>`;
-                    } else {
-                        htmlImg = `
-                        <div class="mt-2 text-muted small fst-italic text-md-start text-end" style="font-size: 11px;">
-                        <i class="fas fa-image" style="opacity: 0.4;"></i> Không có ảnh
-                        </div>`;
-                    }
-
-                    let quyCachLine = item.quyCach ? `<div class="small text-dark text-truncate" style="max-width:200px" title="${item.quyCach}"><b>Quy cách:</b> ${item.quyCach}</div>` : '';
-                    let serialLine = item.seribacode ? `<div class="small text-secondary text-truncate" style="max-width:200px"><b>S/N:</b> ${item.seribacode}</div>` : '';
-
-                    let licenseStr = '';
-                    if(item.winLicense || item.officeLicense) {
-                        licenseStr = `<div class="small text-nowrap mt-1">` +
-                            (item.winLicense ? `<span class="badge bg-outline-primary border border-primary text-primary me-1" style="font-size: 10px; padding: 2px 5px;"><i class="fab fa-windows"></i> ${item.winLicense}</span>` : '') +
-                            (item.officeLicense ? `<span class="badge bg-outline-success border border-success text-success" style="font-size: 10px; padding: 2px 5px;"><i class="fas fa-file-word"></i> ${item.officeLicense}</span>` : '') +
-                            `</div>`;
-                    }
-=======
         let htmlImg = '';
         if (item.duongDanAnh) {
         let imgUrl = `/QLKiemKe/GetImage?fileName=${encodeURIComponent(item.duongDanAnh)}`;
@@ -1361,336 +1038,203 @@
         </td>
         </tr>`;
         });
->>>>>>> parent of 6bb86e5 (Revert "t")
 
-                    let htmlGhiChu = item.ghiChu
-                    ? `<div class="small text-wrap text-muted" style="max-width: 150px;">${item.ghiChu}</div>`
-                    : `<span class="text-muted fst-italic small" style="opacity: 0.6;">Không</span>`;
-
-                    htmlTable += `
-                    <tr>
-                    <td class="ps-4 fw-bold text-muted" data-label="Mã ID">#${item.idThietBi}</td>
-                    <td data-label="Thông tin TB & Hostname">
-                    <div class="text-end text-md-start">
-                    <div class="fw-bold text-dark fs-6">${item.tenMayTinh || '<i class="text-muted fw-normal">No Hostname</i>'}</div>
-                    <div class="small text-muted"><i class="fas fa-map-pin"></i> Vị trí: ${item.tenViTri}</div>
-                    ${quyCachLine}
-                    ${serialLine}
-                    ${licenseStr}
-                    </div>
-                    </td>
-                    <td data-label="Loại & Ảnh đính kèm">
-                    <div class="text-end text-md-start">
-                    <span class="badge border border-secondary text-secondary bg-light px-2 py-1 mb-1 d-inline-block">${item.loaiThietBi || 'Khác'}</span>
-                    ${htmlImg}
-                    </div>
-                    </td>
-                    <td data-label="Tài khoản & Người dùng">
-                    <div class="text-end text-md-start">${userStr}</div>
-                    </td>
-                    <td class="small" data-label="Vị trí (Công ty - Bộ phận)">
-                    <div class="text-end text-md-start"><i class="fas fa-map-marker-alt text-muted me-1"></i>${locStr}</div>
-                    </td>
-                    <td class="text-center" data-label="Trạng thái kiểm kê">
-                    <div class="text-end text-md-center"><span class="badge ${badgeClass} w-100 py-2 shadow-sm">${item.tenTrangThai || 'Chưa rõ'}</span></div>
-                    </td>
-                    <td class="text-center" data-label="Lần cuối Check">
-                    <div class="text-end text-md-center">${checkHtml}</div>
-                    </td>
-                    <td data-label="Ghi chú">
-                    <div class="d-flex justify-content-end justify-content-md-start">${htmlGhiChu}</div>
-                    </td>
-                    <td class="text-center" data-label="Thao tác hệ thống">
-                    <div class="d-flex justify-content-end justify-content-md-center gap-1">
-                        <button class="btn btn-xs btn-outline-dark" title="Xem chi tiết" onclick="xemChiTietThietBiDocLap(${item.idThietBi})">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-xs btn-outline-info" title="Xem bằng chứng kiểm kê" onclick="xemBangChungKiemKeMoi(${item.idThietBi}, '${item.tenMayTinh || ''}')">
-                            <i class="fas fa-camera-retro"></i>
-                        </button>
-                        <button class="btn btn-xs btn-outline-secondary" title="Xem lịch sử" onclick="xemLichSuThietBi(${item.idThietBi}, '${item.tenMayTinh || item.tenViTri || 'Vị trí'}')">
-                            <i class="fas fa-history"></i>
-                        </button>
-                    </div>
-                    </td>
-                    </tr>`;
-                });
-
-                renderPaginationControls(totalPages);
-            }
-            $('#tbodyData').html(htmlTable);
+        renderPaginationControls(totalPages);
+        }
+        $('#tbodyData').html(htmlTable);
         }
 
         function renderPaginationControls(totalPages) {
-            let html = '';
-            if (totalPages <= 1) { $('#paginationControls').html(''); return; }
+        let html = '';
+        if (totalPages <= 1) { $('#paginationControls').html(''); return; }
 
-            let prevDisabled = currentPage === 1 ? 'disabled' : '';
-            html += `<li class="page-item ${prevDisabled}"><a class="page-link" onclick="window.changePage(${currentPage - 1})"><i class="fas fa-chevron-left"></i></a></li>`;
+        let prevDisabled = currentPage === 1 ? 'disabled' : '';
+        html += `<li class="page-item ${prevDisabled}"><a class="page-link" onclick="window.changePage(${currentPage - 1})"><i class="fas fa-chevron-left"></i></a></li>`;
 
-            let startPage = Math.max(1, currentPage - 2);
-            let endPage = Math.min(totalPages, currentPage + 2);
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, currentPage + 2);
 
-            if (startPage > 1) {
-                html += `<li class="page-item"><a class="page-link" onclick="window.changePage(1)">1</a></li>`;
-                if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link border-0">...</span></li>`;
-            }
-
-            for (let i = startPage; i <= endPage; i++) {
-                let activeClass = i === currentPage ? 'active' : '';
-                html += `<li class="page-item ${activeClass}"><a class="page-link" onclick="window.changePage(${i})">${i}</a></li>`;
-            }
-
-            if (endPage < totalPages) {
-                if (endPage < totalPages - 1) html += `<li class="page-item disabled"><span class="page-link border-0">...</span></li>`;
-                html += `<li class="page-item"><a class="page-link" onclick="window.changePage(${totalPages})">${totalPages}</a></li>`;
-            }
-
-            let nextDisabled = currentPage === totalPages ? 'disabled' : '';
-            html += `<li class="page-item ${nextDisabled}"><a class="page-link" onclick="window.changePage(${currentPage + 1})"><i class="fas fa-chevron-right"></i></a></li>`;
-
-            $('#paginationControls').html(html);
+        if (startPage > 1) {
+        html += `<li class="page-item"><a class="page-link" onclick="window.changePage(1)">1</a></li>`;
+        if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link border-0">...</span></li>`;
         }
 
+        for (let i = startPage; i <= endPage; i++) {
+        let activeClass = i === currentPage ? 'active' : '';
+        html += `<li class="page-item ${activeClass}"><a class="page-link" onclick="window.changePage(${i})">${i}</a></li>`;
+        }
+
+        if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += `<li class="page-item disabled"><span class="page-link border-0">...</span></li>`;
+        html += `<li class="page-item"><a class="page-link" onclick="window.changePage(${totalPages})">${totalPages}</a></li>`;
+        }
+
+        let nextDisabled = currentPage === totalPages ? 'disabled' : '';
+        html += `<li class="page-item ${nextDisabled}"><a class="page-link" onclick="window.changePage(${currentPage + 1})"><i class="fas fa-chevron-right"></i></a></li>`;
+
+        $('#paginationControls').html(html);
+        }
+
+        // ==========================================
+        // CÁC HÀM VẼ CHART.JS ĐỘNG
+        // ==========================================
         function drawBarChart(chartInstance, canvasId, labels, data, labelTitle, colorCode, onClickCallback = null) {
-            if (chartInstance) chartInstance.destroy();
-            return new Chart(document.getElementById(canvasId).getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{ label: labelTitle, data: data, backgroundColor: colorCode, borderRadius: 6 }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    onClick: (e, activeElements) => {
-                        if (activeElements.length > 0 && onClickCallback) {
-                            const dataIndex = activeElements[0].index;
-                            onClickCallback(labels[dataIndex]);
-                        }
-                    },
-                    onHover: (event, chartElement) => {
-                        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        datalabels: {
-                            anchor: 'end', align: 'top', color: '#475569',
-                            font: { weight: 'bold', size: 12 },
-                            formatter: function(value) { return value > 0 ? value : ''; }
-                        }
-                    },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1 }, grace: '10%' },
-                        x: { ticks: { autoSkip: false, maxRotation: 25, minRotation: 0 } }
-                    }
-                },
-                plugins: [ChartDataLabels]
-            });
+        if (chartInstance) chartInstance.destroy();
+        return new Chart(document.getElementById(canvasId).getContext('2d'), {
+        type: 'bar',
+        data: {
+        labels: labels,
+        datasets: [{ label: labelTitle, data: data, backgroundColor: colorCode, borderRadius: 6 }]
+        },
+        options: {
+        responsive: true, maintainAspectRatio: false,
+        onClick: (e, activeElements) => {
+        if (activeElements.length > 0 && onClickCallback) {
+        const dataIndex = activeElements[0].index;
+        onClickCallback(labels[dataIndex]);
+        }
+        },
+        onHover: (event, chartElement) => {
+        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+        },
+        plugins: {
+        legend: { display: false },
+        datalabels: {
+        anchor: 'end', align: 'top', color: '#475569',
+        font: { weight: 'bold', size: 12 },
+        formatter: function(value) { return value > 0 ? value : ''; }
+        }
+        },
+        scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 }, grace: '10%' },
+        x: { ticks: { autoSkip: false, maxRotation: 25, minRotation: 0 } }
+        }
+        },
+        plugins: [ChartDataLabels]
+        });
         }
 
         function drawPieChart(chartInstance, canvasId, labels, data, onClickCallback = null) {
-            if (chartInstance) chartInstance.destroy();
-            let colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#64748b', '#ec4899'];
-            return new Chart(document.getElementById(canvasId).getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{ data: data, backgroundColor: colors, borderWidth: 2, hoverOffset: 4 }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    onClick: (e, activeElements) => {
-                        if (activeElements.length > 0 && onClickCallback) {
-                            const dataIndex = activeElements[0].index;
-                            onClickCallback(labels[dataIndex]);
-                        }
-                    },
-                    onHover: (event, chartElement) => {
-                        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
-                    },
-                    plugins: {
-                        legend: { position: 'right', labels: { boxWidth: 12 } },
-                        datalabels: {
-                            color: '#fff', font: { weight: 'bold', size: 14 },
-                            formatter: function(value) { return value > 0 ? value : ''; }
-                        }
-                    },
-                    cutout: '60%'
-                },
-                plugins: [ChartDataLabels]
-            });
+        if (chartInstance) chartInstance.destroy();
+        let colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#64748b', '#ec4899'];
+        return new Chart(document.getElementById(canvasId).getContext('2d'), {
+        type: 'doughnut',
+        data: {
+        labels: labels,
+        datasets: [{ data: data, backgroundColor: colors, borderWidth: 2, hoverOffset: 4 }]
+        },
+        options: {
+        responsive: true, maintainAspectRatio: false,
+        onClick: (e, activeElements) => {
+        if (activeElements.length > 0 && onClickCallback) {
+        const dataIndex = activeElements[0].index;
+        onClickCallback(labels[dataIndex]);
+        }
+        },
+        onHover: (event, chartElement) => {
+        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+        },
+        plugins: {
+        legend: { position: 'right', labels: { boxWidth: 12 } },
+        datalabels: {
+        color: '#fff', font: { weight: 'bold', size: 14 },
+        formatter: function(value) { return value > 0 ? value : ''; }
+        }
+        },
+        cutout: '60%'
+        },
+        plugins: [ChartDataLabels]
+        });
         }
 
         function drawTienDoChart(chartInstance, canvasId, valDaCheck, valChuaCheck) {
-            if (chartInstance) chartInstance.destroy();
-            return new Chart(document.getElementById(canvasId).getContext('2d'), {
-                type: 'pie',
-                data: {
-                    labels: ['Đã Kiểm Kê (Gần đây)', 'Chưa / Quá hạn'],
-                    datasets: [{ data: [valDaCheck, valChuaCheck], backgroundColor: ['#10b981', '#fcd34d'], borderWidth: 1, hoverOffset: 4 }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 15 } },
-                        datalabels: {
-                            color: '#fff', font: { weight: 'bold', size: 14 },
-                            formatter: function(value) { return value > 0 ? value : ''; }
-                        }
-                    }
-                },
-                plugins: [ChartDataLabels]
-            });
+        if (chartInstance) chartInstance.destroy();
+        return new Chart(document.getElementById(canvasId).getContext('2d'), {
+        type: 'pie',
+        data: {
+        labels: ['Đã Kiểm Kê (Gần đây)', 'Chưa / Quá hạn'],
+        datasets: [{ data: [valDaCheck, valChuaCheck], backgroundColor: ['#10b981', '#fcd34d'], borderWidth: 1, hoverOffset: 4 }]
+        },
+        options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 15 } },
+        datalabels: {
+        color: '#fff', font: { weight: 'bold', size: 14 },
+        formatter: function(value) { return value > 0 ? value : ''; }
+        }
+        }
+        },
+        plugins: [ChartDataLabels]
+        });
         }
 
         function viewFullImage(url, title) {
-            Swal.fire({
-                title: title, imageUrl: url, imageAlt: 'Ảnh thiết bị chi tiết',
-                showCloseButton: true, showConfirmButton: false, width: 'auto', padding: '1em',
-                customClass: { image: 'rounded-3 shadow', popup: 'rounded-4' }
-            });
-        }
-
-        function xemChiTietThietBiDocLap(id) {
-            $.get('/QLKiemKe/GetChiTietThietBi', { idThietBi: id }, function(res) {
-                if(res.success) {
-                    let d = res.data;
-                    let htmlBody = `
-                    <table class="table table-bordered table-striped m-0">
-                        <tr><th width="130">ID Thiết bị</th><td><b>#${d.idThietBi}</b></td></tr>
-                        <tr><th>Hostname</th><td class="text-primary fw-bold">${d.tenMayTinh || 'N/A'}</td></tr>
-                        <tr><th>Tên Vị trí</th><td><span class="badge bg-dark">${d.tenViTri || 'N/A'}</span></td></tr>
-                        <tr><th>Loại tài sản</th><td>${d.loaiThietBi || 'N/A'}</td></tr>
-                        <tr><th>Cấu hình</th><td>${d.quyCach || 'N/A'}</td></tr>
-                        <tr><th>Serial/Barcode</th><td>${d.seribacode || 'N/A'}</td></tr>
-                        <tr><th>Win License</th><td><span class="text-primary fw-bold">${d.winLicense || 'Trống / Chưa rõ'}</span></td></tr>
-                        <tr><th>Office License</th><td><span class="text-success fw-bold">${d.officeLicense || 'Trống / Chưa rõ'}</span></td></tr>
-                        <tr><th>Account</th><td>${d.tenDangNhap || 'N/A'}</td></tr>
-                        <tr><th>Người sử dụng</th><td>${d.tenNguoiDung} (${d.tkNguoiDung})</td></tr>
-                        <tr><th>Sơ đồ phòng ban</th><td>${d.tenCongTy} - ${d.tenBoPhan}</td></tr>
-                        <tr><th>Trạng thái</th><td>${d.tenTrangThai}</td></tr>
-                        <tr><th>Ngày cập nhật</th><td>${d.ngayCapNhat}</td></tr>
-                        <tr><th>Thời gian check</th><td><span class="text-success fw-bold">${d.thoiGianCheck}</span></td></tr>
-                        <tr><th>Ghi chú</th><td>${d.ghiChu || 'Không'}</td></tr>
-                    </table>`;
-                    $('#boxChiTietBody').html(htmlBody);
-                    $('#modalChiTietThietBi').modal('show');
-                } else {
-                    Swal.fire("Lỗi", res.msg, "error");
-                }
-            });
-        }
-
-        function xemBangChungKiemKeMoi(idThietBi, tenMayTinh) {
-            Swal.fire({ title: 'Đang tải tệp bằng chứng...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-            $.get('/QLKiemKe/GetKkBangChungChecks', { idThietBi: idThietBi }, function(res) {
-                Swal.close();
-                if(res.success && res.data) {
-                    let items = res.data;
-                    if(items.length === 0) {
-                        return Swal.fire("Thông báo", "Thiết bị này chưa có tệp ảnh bằng chứng kiểm kê thực tế nào đính kèm!", "info");
-                    }
-                    let htmlList = `<div class="list-group text-start" style="max-height: 400px; overflow-y:auto;">`;
-                    items.forEach(x => {
-                        let imgHtml = x.duongDanAnh ? `<div class="mt-2"><img src="/QLKiemKe/GetEvidenceImage?fileName=${encodeURIComponent(x.duongDanAnh)}" style="max-width:100%; max-height:120px; border-radius:6px; cursor:pointer;" onclick="viewFullImage('/QLKiemKe/GetEvidenceImage?fileName=${encodeURIComponent(x.duongDanAnh)}', 'Ảnh bằng chứng')" /></div>` : '';
-                        htmlList += `
-                        <div class="list-group-item small">
-                            <div class="fw-bold text-primary"><i class="fas fa-clock"></i> ${new Date(x.thoiGianCheck).toLocaleString('vi-VN')}</div>
-                            <div class="text-muted mt-1"><b>Ghi chú check:</b> ${x.ghiChu || 'Xác nhận kiểm kê'}</div>
-                            ${imgHtml}
-                        </div>`;
-                    });
-                    htmlList += `</div>`;
-                    
-                    Swal.fire({
-                        title: `Bằng chứng kiểm kê: ${tenMayTinh || 'TB'}`,
-                        html: htmlList,
-                        showConfirmButton: true,
-                        confirmButtonText: 'Đóng lại'
-                    });
-                } else {
-                    Swal.fire("Lỗi", "Không thể lấy danh sách ảnh bằng chứng!", "error");
-                }
-            });
+        Swal.fire({
+        title: title, imageUrl: url, imageAlt: 'Ảnh thiết bị',
+        showCloseButton: true, showConfirmButton: false, width: 'auto', padding: '1em',
+        customClass: { image: 'rounded-3 shadow', popup: 'rounded-4' }
+        });
         }
 
         function xemLichSuThietBi(idThietBi, tenThietBi) {
-            $('#lsTenThietBi').text(tenThietBi);
-            $('#tbodyLichSu').html('<tr><td colspan="4" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Đang tải dữ liệu...</div></td></tr>');
+        $('#lsTenThietBi').text(tenThietBi);
+        $('#tbodyLichSu').html('<tr><td colspan="4" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Đang tải dữ liệu...</div></td></tr>');
 
-            let myModal = new bootstrap.Modal(document.getElementById('modalLichSu'));
-            myModal.show();
+        let myModal = new bootstrap.Modal(document.getElementById('modalLichSu'));
+        myModal.show();
 
-            $.get('/QLKiemKe/GetLichSuThietBi', { idThietBi: idThietBi }, function (res) {
-                if (res.success) {
-                    let html = '';
-                    if (res.data.length === 0) {
-                        html = '<tr><td colspan="4" class="text-center text-muted py-4"><i class="fas fa-history fa-2x mb-2 d-block opacity-50"></i>Chưa ghi nhận lịch sử thao tác nào</td></tr>';
-                    } else {
-                        res.data.forEach(item => {
-                            let time = item.thoiGian ? new Date(item.thoiGian).toLocaleString('vi-VN') : 'Không rõ thời gian';
-                            let badgeHanhDong = 'bg-primary';
+        $.get('/QLKiemKe/GetLichSuThietBi', { idThietBi: idThietBi }, function (res) {
+        if (res.success) {
+        let html = '';
+        if (res.data.length === 0) {
+        html = '<tr><td colspan="4" class="text-center text-muted py-4"><i class="fas fa-history fa-2x mb-2 d-block opacity-50"></i>Chưa ghi nhận lịch sử thao tác nào</td></tr>';
+        } else {
+        res.data.forEach(item => {
+        let time = item.thoiGian ? new Date(item.thoiGian).toLocaleString('vi-VN') : 'Không rõ thời gian';
+        let badgeHanhDong = 'bg-primary';
 
-                            if (item.hanhDong && item.hanhDong.toLowerCase().includes('xóa')) badgeHanhDong = 'bg-danger';
-                            else if (item.hanhDong && item.hanhDong.toLowerCase().includes('sửa')) badgeHanhDong = 'bg-warning text-dark';
-                            else if (item.hanhDong && item.hanhDong.toLowerCase().includes('thêm')) badgeHanhDong = 'bg-success';
+        if (item.hanhDong && item.hanhDong.toLowerCase().includes('xóa')) badgeHanhDong = 'bg-danger';
+        else if (item.hanhDong && item.hanhDong.toLowerCase().includes('sửa')) badgeHanhDong = 'bg-warning text-dark';
+        else if (item.hanhDong && item.hanhDong.toLowerCase().includes('thêm')) badgeHanhDong = 'bg-success';
 
-                            html += `
-                            <tr>
-                            <td class="ps-4 small fw-bold text-muted">${time}</td>
-                            <td><span class="badge ${badgeHanhDong} rounded-pill px-3 py-1 shadow-sm">${item.hanhDong || 'Không rõ'}</span></td>
-                            <td class="fw-bold text-dark"><i class="fas fa-user-circle text-muted me-1"></i>${item.nguoiThaoTac || 'N/A'}</td>
-                            <td class="small text-wrap" style="max-width: 350px;">${item.chiTiet || ''}</td>
-                            </tr>`;
-                        });
-                    }
-                    $('#tbodyLichSu').html(html);
-                } else {
-                    $('#tbodyLichSu').html(`<tr><td colspan="4" class="text-center text-danger py-4"><i class="fas fa-exclamation-circle me-1"></i> Lỗi: ${res.msg}</td></tr>`);
-                }
-            }).fail(function () {
-                $('#tbodyLichSu').html('<tr><td colspan="4" class="text-center text-danger py-4"><i class="fas fa-exclamation-circle me-1"></i> Không thể kết nối tới máy chủ!</td></tr>');
-            });
+        html += `
+        <tr>
+        <td class="ps-4 small fw-bold text-muted">${time}</td>
+        <td><span class="badge ${badgeHanhDong} rounded-pill px-3 py-1 shadow-sm">${item.hanhDong || 'Không rõ'}</span></td>
+        <td class="fw-bold text-dark"><i class="fas fa-user-circle text-muted me-1"></i>${item.nguoiThaoTac || 'N/A'}</td>
+        <td class="small text-wrap" style="max-width: 350px;">${item.chiTiet || ''}</td>
+        </tr>`;
+        });
+        }
+        $('#tbodyLichSu').html(html);
+        } else {
+        $('#tbodyLichSu').html(`<tr><td colspan="4" class="text-center text-danger py-4"><i class="fas fa-exclamation-circle me-1"></i> Lỗi: ${res.msg}</td></tr>`);
+        }
+        }).fail(function () {
+        $('#tbodyLichSu').html('<tr><td colspan="4" class="text-center text-danger py-4"><i class="fas fa-exclamation-circle me-1"></i> Không thể kết nối tới máy chủ!</td></tr>');
+        });
         }
 
+        // ==========================================
+        // HÀM XUẤT EXCEL SỬ DỤNG SHEETJS
+        // ==========================================
         window.exportToExcel = function() {
-            if (filteredExportData.length === 0) {
-                Swal.fire("Thông báo", "Không có dữ liệu để xuất Excel!", "info");
-                return;
-            }
+        if (filteredExportData.length === 0) {
+        Swal.fire("Thông báo", "Không có dữ liệu để xuất Excel!", "info");
+        return;
+        }
 
-            let fourMonthsAgo = new Date();
-            fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
+        let fourMonthsAgo = new Date();
+        fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
 
-            const excelData = filteredExportData.map(item => {
-                let trangThaiCheckExcel = "CHƯA KIỂM KÊ";
-                if (item.thoiGianCheck) {
-                    let d = new Date(item.thoiGianCheck);
-                    trangThaiCheckExcel = d < fourMonthsAgo ? `Quá hạn (${d.toLocaleDateString('vi-VN')})` : d.toLocaleDateString('vi-VN');
-                }
+        const excelData = filteredExportData.map(item => {
+        let trangThaiCheckExcel = "CHƯA KIỂM KÊ";
+        if (item.thoiGianCheck) {
+        let d = new Date(item.thoiGianCheck);
+        trangThaiCheckExcel = d < fourMonthsAgo ? `Quá hạn (${d.toLocaleDateString('vi-VN')})` : d.toLocaleDateString('vi-VN');
+        }
 
-<<<<<<< HEAD
-                return {
-                    "ID": item.idThietBi,
-                    "Tên Vị Trí": item.tenViTri || '', 
-                    "Tên Máy (Hostname)": item.tenMayTinh || '',
-                    "Loại Thiết Bị": item.loaiThietBi || '',
-                    "Cấu Hình Chi Tiết": item.quyCach || '',
-                    "Số Serial/Barcode": item.seribacode || '',
-                    "Bản Quyền Windows": item.winLicense || 'Trống / Chưa rõ',
-                    "Bản Quyền Office": item.officeLicense || 'Trống / Chưa rõ',
-                    "Tên Đăng Nhập (Account)": item.tenNhap || item.tenDangNhap || 'Chưa có',
-                    "Người Sử Dụng": item.tenNguoiDung ? `${item.tenNguoiDung} (${item.tk || 'N/A'})` : 'Chưa có người dùng',
-                    "Công Ty": item.tenCongTy || 'Chưa gắn',
-                    "Bộ Phận": item.tenBoPhan || 'Chưa gắn',
-                    "Trạng Thái": item.tenTrangThai || 'Chưa rõ',
-                    "Ghi Chú": item.ghiChu || '',
-                    "Ảnh Đính Kèm": item.duongDanAnh ? "Có ảnh" : "Không",
-                    "Lần Cập Nhật Cuối": item.ngayCapNhat ? new Date(item.ngayCapNhat).toLocaleString('vi-VN') : '',
-                    "Ngày Kiểm Kê Lần Cuối": trangThaiCheckExcel
-                };
-            });
-=======
         return {
         "ID": item.idThietBi,
         "Tên Vị Trí": item.tenViTri || '',
@@ -1709,23 +1253,10 @@
         "Ngày Kiểm Kê Lần Cuối": trangThaiCheckExcel
         };
         });
->>>>>>> parent of 6bb86e5 (Revert "t")
 
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.json_to_sheet(excelData);
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(excelData);
 
-<<<<<<< HEAD
-            ws['!cols'] = [
-                { wch: 8 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 30 },
-                { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 35 }, 
-                { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, 
-                { wch: 20 }, { wch: 35 }
-            ];
-
-            XLSX.utils.book_append_sheet(wb, ws, "BaoCaoKiemKe");
-            let dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
-            XLSX.writeFile(wb, `BaoCao_TongQuan_IT_${dateStr}.xlsx`);
-=======
         ws['!cols'] = [
         { wch: 8 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 22 },
         { wch: 25 }, { wch: 20 }, { wch: 35 }, { wch: 20 }, { wch: 20 },
@@ -1735,7 +1266,6 @@
         XLSX.utils.book_append_sheet(wb, ws, "BaoCaoKiemKe");
         let dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
         XLSX.writeFile(wb, `BaoCao_TổngQuan_IT_${dateStr}.xlsx`);
->>>>>>> parent of 6bb86e5 (Revert "t")
         }
     </script>
 }
