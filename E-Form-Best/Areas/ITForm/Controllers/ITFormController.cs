@@ -20,6 +20,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             _context = new ITFormContext();
         }
+        #region Quản Lý đơn IT
 
         #region logo
         [HttpGet("/Logo")]
@@ -5089,6 +5090,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
+        #endregion
+
+        #region kiển kê tài sản
+
         #region THỐNG KÊ TỔNG QUAN KIỂM KÊ VÀ LẤY DANH SÁCH
 
         [HttpGet("/QLKiemKe/ThongKe")]
@@ -5140,7 +5145,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .OrderByDescending(x => x.Value)
                     .ToList();
 
-                // 5. Thống kê Tiến độ kiểm kê (CẬP NHẬT LOGIC 4 THÁNG)
+                // 5. Thống kê Thống kê Tiến độ kiểm kê (CẬP NHẬT LOGIC 4 THÁNG)
                 var fourMonthsAgo = DateTime.Now.AddMonths(-4);
 
                 // Đã check: Phải có thời gian check VÀ thời gian đó phải lớn hơn hoặc bằng 4 tháng trước
@@ -5170,7 +5175,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
-        // 2. HÀM NÀY DÙNG ĐỂ ĐỔ DỮ LIỆU VÀO BẢNG & XUẤT EXCEL (Đã cập nhật đổi tenThietBi sang tenViTri)
+        // 2. HÀM NÀY DÙNG ĐỂ ĐỔ DỮ LIỆU VÀO BẢNG & XUẤT EXCEL (Đã cập nhật đổi tenThietBi sang tenViTri và lấy đủ Win/Office License)
         [HttpGet("/QLKiemKe/GetKkThietBiss")]
         public IActionResult GetKkThietBiss()
         {
@@ -5201,7 +5206,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         duongDanAnh = x.DuongDanAnh,
                         thoiGianCheck = x.ThoiGianCheck,
                         ngayCapNhat = x.NgayCapNhat,
-                        ngayXoa = x.NgayXoa
+                        ngayXoa = x.NgayXoa,
+
+                        // ĐẢM BẢO ĐẦY ĐỦ: Lấy dữ liệu cấu hình và bản quyền ra View
+                        quyCach = x.QuyCach,
+                        seribacode = x.Seribacode,
+                        winLicense = x.WinLicense,
+                        officeLicense = x.OfficeLicense
                     })
                     .ToList();
 
@@ -5768,8 +5779,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     // Gán các trường mới khi thêm mới dữ liệu
                     model.Seribacode = model.Seribacode?.Trim();
                     model.HanBaoHanh = model.HanBaoHanh;
-                    model.WinLicense = model.WinLicense;
-                    model.OfficeLicense = model.OfficeLicense;
+                    model.WinLicense = string.IsNullOrWhiteSpace(model.WinLicense) ? null : model.WinLicense.Trim();
+                    model.OfficeLicense = string.IsNullOrWhiteSpace(model.OfficeLicense) ? null : model.OfficeLicense.Trim();
 
                     _context.KkThietBis.Add(model);
                 }
@@ -5794,8 +5805,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         // CẬP NHẬT ĐẦY ĐỦ CÁC TRƯỜNG DỮ LIỆU MỚI VÀO CƠ SỞ DỮ LIỆU
                         existing.Seribacode = model.Seribacode?.Trim();
                         existing.HanBaoHanh = model.HanBaoHanh;
-                        existing.WinLicense = model.WinLicense;
-                        existing.OfficeLicense = model.OfficeLicense;
+                        existing.WinLicense = string.IsNullOrWhiteSpace(model.WinLicense) ? null : model.WinLicense.Trim();
+                        existing.OfficeLicense = string.IsNullOrWhiteSpace(model.OfficeLicense) ? null : model.OfficeLicense.Trim();
 
                         // Chỉ cập nhật DuongDanAnh nếu có ảnh mới upload lên
                         if (newImageFileName != null)
@@ -6113,6 +6124,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             return View("ChiTietThietBi", item); // Trả dữ liệu sang giao diện Razor View
         }
+
+        #endregion
 
         #endregion
 
