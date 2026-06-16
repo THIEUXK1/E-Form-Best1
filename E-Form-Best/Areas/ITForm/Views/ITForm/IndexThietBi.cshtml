@@ -29,8 +29,8 @@
 
 
     /* ========================================================
-                                    CSS CHO HỆ THỐNG DROPDOWN CHECKBOX (COMBOBOX NHIỀU MỤC) MỚI
-                                    ======================================================== */
+                                        CSS CHO HỆ THỐNG DROPDOWN CHECKBOX (COMBOBOX NHIỀU MỤC) MỚI
+                                        ======================================================== */
     .dropdown-combo-btn {
         width: 100%;
         text-align: left;
@@ -923,8 +923,8 @@
 
         // HÀM KHỞI TẠO VÀ RENDER DROPDOWN CHECKBOX CHO WINDOWS LICENSE & OFFICE LICENSE MỚI THÊM
         function renderFilterLicenses() {
-        let winList = ["Windows Pro", "Windows Home", "Windows Enterprise", "Windows Education", "Windows Server", "Có (Chưa rõ phiên bản)", "Chưa có"];
-        let officeList = ["Office Professional Plus", "Office Standard", "Office Home & Business", "Office Home & Student", "Microsoft 365 Apps", "Có (Chưa rõ phiên bản)", "Chưa có"];
+        let winList = ["Windows Pro", "Windows Home", "Windows Enterprise", "Windows Education", "Windows Server", "Có (Chưa rõ phiên bản)", "Chưa có", "Trống / Chưa rõ"];
+        let officeList = ["Office Professional Plus", "Office Standard", "Office Home & Business", "Office Home & Student", "Microsoft 365 Apps", "Có (Chưa rõ phiên bản)", "Chưa có", "Trống / Chưa rõ"];
 
         let savedWin = [];
         let savedOffice = [];
@@ -1016,7 +1016,6 @@
         $('#btnMasterThemMoi').parent().hide();
         } else {
         $('#btnMasterThemMoi').parent().show();
-        $('#txtBtnThemMoi').text(tabName);
         }
 
         if(tabName === 'Tổng quan') {
@@ -1096,6 +1095,7 @@
         renderUIDaXoa();
         }
 
+        // Tải cấu hình Master Data và danh sách thiết bị ban đầu từ api server của bạn
         function loadMasterData() {
         $.get('/QLKiemKe/GetKkTrangThais', function(res) { if(res.success) { listTrangThaiCache = res.data; renderFilterTrangThai(); } });
         $.get('/QLKiemKe/GetKkLoaiThietBis', function(res) { if(res.success) { listLoaiThietBiCache = res.data; renderFilterLoaiThietBi(); } });
@@ -1820,6 +1820,23 @@
         },
         error: function() { Swal.fire("Lỗi", "Không thể kết nối đến máy chủ!", "error"); }
         });
+        }
+
+        function xoaCacheFormAdd() {
+        localStorage.removeItem('add_form_tb_LoaiThietBi');
+        localStorage.removeItem('add_form_tb_IdTrangThai');
+        localStorage.removeItem('add_form_tb_TenViTri');
+        localStorage.removeItem('add_form_tb_QuyCach');
+        localStorage.removeItem('add_form_tb_TenMayTinh');
+        localStorage.removeItem('add_form_tb_TenDangNhap');
+        localStorage.removeItem('add_form_tb_GhiChu');
+        localStorage.removeItem('add_form_tb_IdCongTy');
+        localStorage.removeItem('add_form_tb_IdBoPhan');
+        localStorage.removeItem('add_form_tb_IdNguoiDung');
+        localStorage.removeItem('add_form_tb_Seribacode');
+        localStorage.removeItem('add_form_tb_HanBaoHanh');
+        localStorage.removeItem('add_form_tb_WinLicense');
+        localStorage.removeItem('add_form_tb_OfficeLicense');
         }
 
         function xacNhanCheckThietBi(id) {
