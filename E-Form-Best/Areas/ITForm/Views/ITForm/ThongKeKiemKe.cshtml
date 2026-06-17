@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
@@ -611,6 +611,25 @@
         $('#lblToggleText').text('Bộ lọc nâng cao');
         }
 
+        // --- KHÔI PHỤC CÁC BỘ LỌC CƠ BẢN TỪ LOCALSTORAGE ---
+        if (localStorage.getItem('dash_filterText')) {
+        $('#filterText').val(localStorage.getItem('dash_filterText'));
+        }
+        if (localStorage.getItem('dash_filterSort')) {
+        $('#filterSort').val(localStorage.getItem('dash_filterSort'));
+        }
+        if (localStorage.getItem('dash_pageSize')) {
+        pageSize = parseInt(localStorage.getItem('dash_pageSize'));
+        $('#filterLimit').val(pageSize);
+        $('#lblSyncPageSize').text(pageSize + ' dòng');
+        }
+        if (localStorage.getItem('dash_activeCardFilter') !== null) {
+        activeCardFilter = localStorage.getItem('dash_activeCardFilter');
+        let activeCardId = localStorage.getItem('dash_activeCardId') || 'card-all';
+        $('.stat-card').removeClass('active');
+        $('#' + activeCardId).addClass('active');
+        }
+
         // Sự kiện tìm kiếm nhanh & thay đổi sắp xếp & Thay đổi Số dòng hiển thị từ thanh bộ lọc chính
         $('#filterText, #filterSort').on('keyup change', function () {
         applyFiltersAndRender();
@@ -694,8 +713,36 @@
         officeLicenses.forEach(x => {
         $('#menuOffice').append(`<label class="dropdown-combo-item"><input type="checkbox" class="chk-office" value="${x}"><span>${x}</span></label>`);
         });
+
+        // --- KHÔI PHỤC TRẠNG THÁI CÁC DROPDOWN MULTI-CHECKBOX TỪ LOCALSTORAGE ---
+        try {
+        let savedCompanies = JSON.parse(localStorage.getItem('dash_selectedCompanies') || '[]');
+        savedCompanies.forEach(val => { $(`.chk-company[value="${val}"]`).prop('checked', true); });
+
+        let savedDepts = JSON.parse(localStorage.getItem('dash_selectedDepts') || '[]');
+        savedDepts.forEach(val => { $(`.chk-dept[value="${val}"]`).prop('checked', true); });
+
+        let savedLoais = JSON.parse(localStorage.getItem('dash_selectedLoais') || '[]');
+        savedLoais.forEach(val => { $(`.chk-loai[value="${val}"]`).prop('checked', true); });
+
+        let savedWins = JSON.parse(localStorage.getItem('dash_selectedWins') || '[]');
+        savedWins.forEach(val => { $(`.chk-win[value="${val}"]`).prop('checked', true); });
+
+        let savedOffices = JSON.parse(localStorage.getItem('dash_selectedOffices') || '[]');
+        savedOffices.forEach(val => { $(`.chk-office[value="${val}"]`).prop('checked', true); });
+        } catch (e) {
+        console.error("Lỗi khôi phục bộ lọc nâng cao từ localStorage", e);
         }
 
+        // Cập nhật nhãn đại diện trên nút Dropdown
+        $('.dropdown-combo-menu').each(function() {
+        updateDropdownButtonLabel($(this));
+        });
+        }
+
+        // ==========================================
+        // CÁC HÀM CẬP NHẬT LABEL DROPDOWN & XÓA BỘ LỌC
+        // ==========================================
         function updateDropdownButtonLabel($menu) {
         let totalChecked = $menu.find('input[type="checkbox"]:checked').length;
         let $btn = $menu.siblings('.dropdown-combo-btn');
@@ -741,6 +788,18 @@
 
         let fText = $('#filterText').val().toLowerCase().trim();
         let fSort = $('#filterSort').val();
+
+        // --- TIẾN HÀNH LƯU TRẠNG THÁI HIỆN TẠI VÀO LOCALSTORAGE KHI CÓ THAY ĐỔI ---
+        localStorage.setItem('dash_filterText', $('#filterText').val());
+        localStorage.setItem('dash_filterSort', fSort);
+        localStorage.setItem('dash_pageSize', pageSize);
+        localStorage.setItem('dash_activeCardFilter', activeCardFilter);
+        localStorage.setItem('dash_activeCardId', $('.stat-card.active').attr('id') || 'card-all');
+        localStorage.setItem('dash_selectedCompanies', JSON.stringify(selectedCompanies));
+        localStorage.setItem('dash_selectedDepts', JSON.stringify(selectedDepts));
+        localStorage.setItem('dash_selectedLoais', JSON.stringify(selectedLoais));
+        localStorage.setItem('dash_selectedWins', JSON.stringify(selectedWins));
+        localStorage.setItem('dash_selectedOffices', JSON.stringify(selectedOffices));
 
         let fourMonthsAgo = new Date();
         fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
@@ -1120,6 +1179,7 @@
         event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
         },
         plugins: {
+        network: { display: false },
         legend: { display: false },
         datalabels: {
         anchor: 'end', align: 'top', color: '#475569',
@@ -1239,7 +1299,178 @@
         }
 
         // ==========================================
-        // HÀM XUẤT EXCEL SỬ DỤNG SHEETJS
+        // HÀM HELPER TỰ ĐỘNG ĐỔ MÀU SIÊU ĐẸP & KẺ VIỀN CELL
+        // ==========================================
+        function styleWorksheetUniversal(ws) {
+        if (!ws || !ws['!ref']) return;
+        const range = XLSX.utils.decode_range(ws['!ref']);
+
+        // Định nghĩa khung viền mỏng màu xám mịn thanh lịch
+        const thinBorder = {
+        top: { style: "thin", color: { rgb: "CBD5E1" } },
+        bottom: { style: "thin", color: { rgb: "CBD5E1" } },
+        left: { style: "thin", color: { rgb: "CBD5E1" } },
+        right: { style: "thin", color: { rgb: "CBD5E1" } }
+        };
+
+        // Tạo khoảng trống chiều cao hàng chuyên nghiệp (Title: 32pt, Header: 21pt)
+        let rowsMeta = [];
+        for (let i = 0; i <= range.e.r; i++) {
+        rowsMeta.push({ hpt: i === 0 ? 32 : 21 });
+        }
+        ws['!rows'] = rowsMeta;
+
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+        // Kiểm tra loại hàng dựa vào nội dung và vị trí để áp style
+        let isMainTitle = (R === 0);
+        let isSectionHeading = false;
+        let isTableHeader = false;
+        let isSummaryRow = false;
+        let isMetadata = (R === 1 || R === 2);
+        let isKpiLabelRow = false;
+        let isKpiValueRow = false;
+
+        // Kiểm tra xem sheet này có chứa khối KPI ở dòng 4 và 5 hay không
+        if (ws['A4'] && String(ws['A4'].v).includes("KPI CỐT LÕI")) {
+        if (R === 4) { isKpiLabelRow = true; isMetadata = false; }
+        if (R === 5) { isKpiValueRow = true; isMetadata = false; }
+        }
+
+        let firstCellRef = XLSX.utils.encode_cell({ r: R, c: range.s.c });
+        let firstCellVal = ws[firstCellRef] ? String(ws[firstCellRef].v) : "";
+
+        if (firstCellVal.startsWith("I. ") || firstCellVal.startsWith("II. ") || firstCellVal.startsWith("III. ") || firstCellVal.startsWith("THÔNG SỐ KPI")) {
+        isSectionHeading = true;
+        isMetadata = false;
+        }
+        if (firstCellVal === "STT") {
+        isTableHeader = true;
+        isMetadata = false;
+        }
+
+        // Quét tìm từ khóa "Tổng cộng" hoặc "Tổng số" để nhận diện hàng tổng kết bảng
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+        let cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+        if (ws[cellRef]) {
+        let valStr = String(ws[cellRef].v);
+        if (valStr.includes("Tổng cộng") || valStr.includes("Tổng số")) {
+        isSummaryRow = true;
+        break;
+        }
+        }
+        }
+
+        // Đổ phong cách mỹ thuật (Styling) cho từng Cell trong dòng
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+        let cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+        if (!ws[cellRef]) continue;
+
+        let cell = ws[cellRef];
+        cell.s = {
+        font: { name: "Segoe UI", size: 10, color: { rgb: "334155" } },
+        alignment: { vertical: "center" }
+        };
+
+        // 1. Dòng Tiêu đề chính lớn đầu sheet
+        if (isMainTitle) {
+        cell.s.font = { name: "Segoe UI", size: 16, bold: true, color: { rgb: "1E293B" } };
+        cell.s.alignment = { horizontal: "left", vertical: "center" };
+        }
+        // 2. Dòng thông tin phụ đính kèm (Ngày giờ xuất, số lượng tổng...)
+        else if (isMetadata) {
+        cell.s.font = { name: "Segoe UI", size: 10, italic: true, color: { rgb: "64748B" } };
+        }
+        // 3. Dòng tiêu đề từng phân mục lớn (I, II, III)
+        else if (isSectionHeading) {
+        cell.s.font = { name: "Segoe UI", size: 12, bold: true, color: { rgb: "4F46E5" } };
+        cell.s.alignment = { horizontal: "left", vertical: "center" };
+        }
+        // 4. Thẻ KPI - Dòng Nhãn tiêu đề card
+        else if (isKpiLabelRow) {
+        let colors = ["3B82F6", "10B981", "8B5CF6", "F59E0B"]; // Xanh lam, Xanh lá, Tím, Cam
+        let cIdx = C % colors.length;
+        cell.s.fill = { fgColor: { rgb: colors[cIdx] } };
+        cell.s.font = { name: "Segoe UI", size: 10, bold: true, color: { rgb: "FFFFFF" } };
+        cell.s.alignment = { horizontal: "center", vertical: "center" };
+        cell.s.border = thinBorder;
+        }
+        // 5. Thẻ KPI - Dòng hiển thị Con Số Lớn
+        else if (isKpiValueRow) {
+        let bgColors = ["EFF6FF", "ECFDF5", "F5F3FF", "FFFBEB"];
+        let textColors = ["1D4ED8", "065F46", "5B21B6", "92400E"];
+        let cIdx = C % bgColors.length;
+        cell.s.fill = { fgColor: { rgb: bgColors[cIdx] } };
+        cell.s.font = { name: "Segoe UI", size: 14, bold: true, color: { rgb: textColors[cIdx] } };
+        cell.s.alignment = { horizontal: "center", vertical: "center" };
+        cell.s.border = thinBorder;
+        rowsMeta[R] = { hpt: 30 }; // Tăng chiều cao riêng cho hàng chứa số KPI
+        }
+        // 6. Hàng Header chính của các bảng (Màu Indigo cao cấp đồng bộ hệ thống)
+        else if (isTableHeader) {
+        cell.s.fill = { fgColor: { rgb: "4F46E5" } };
+        cell.s.font = { name: "Segoe UI", size: 11, bold: true, color: { rgb: "FFFFFF" } };
+        cell.s.alignment = { horizontal: "center", vertical: "center", wrapText: true };
+        cell.s.border = {
+        top: { style: "medium", color: { rgb: "1E293B" } },
+        bottom: { style: "medium", color: { rgb: "1E293B" } },
+        left: { style: "thin", color: { rgb: "CBD5E1" } },
+        right: { style: "thin", color: { rgb: "CBD5E1" } }
+        };
+        }
+        // 7. Hàng Tổng cộng kết số toán học cuối bảng (Kẻ viền đôi chuẩn kế toán)
+        else if (isSummaryRow) {
+        cell.s.fill = { fgColor: { rgb: "F1F5F9" } };
+        cell.s.font = { name: "Segoe UI", size: 10, bold: true, color: { rgb: "0F172A" } };
+        cell.s.border = {
+        top: { style: "thin", color: { rgb: "CBD5E1" } },
+        bottom: { style: "double", color: { rgb: "1E293B" } },
+        left: { style: "thin", color: { rgb: "CBD5E1" } },
+        right: { style: "thin", color: { rgb: "CBD5E1" } }
+        };
+        if (C === 0) cell.s.alignment = { horizontal: "center" };
+        }
+        // 8. Các ô chứa dữ liệu thông thường
+        else {
+        cell.s.border = thinBorder;
+
+        // Căn giữa cố định cho các cột STT, Mã ID, Trạng thái kiểm kê
+        if (C === 0 || C === 1 || cell.v === "Có ảnh" || cell.v === "Không") {
+        cell.s.alignment.horizontal = "center";
+        }
+
+        // Tự động nhận diện text trạng thái để nhuộm màu soft-color tương ứng
+        if (typeof cell.v === "string") {
+        let valLower = cell.v.toLowerCase().trim();
+        if (valLower === "hoạt động") {
+        cell.s.fill = { fgColor: { rgb: "E8F5E9" } }; // Soft Green
+        cell.s.font.color = { rgb: "2E7D32" };
+        cell.s.font.bold = true;
+        cell.s.alignment.horizontal = "center";
+        } else if (valLower === "hỏng" || valLower === "chưa kiểm kê" || valLower.includes("chưa check")) {
+        cell.s.fill = { fgColor: { rgb: "FFEBEE" } }; // Soft Red
+        cell.s.font.color = { rgb: "C62828" };
+        cell.s.font.bold = true;
+        cell.s.alignment.horizontal = "center";
+        } else if (valLower.includes("bảo trì") || valLower.includes("quá hạn")) {
+        cell.s.fill = { fgColor: { rgb: "FFF8E1" } }; // Soft Yellow
+        cell.s.font.color = { rgb: "F57F17" };
+        cell.s.font.bold = true;
+        cell.s.alignment.horizontal = "center";
+        } else if (valLower === "xóa") {
+        cell.s.fill = { fgColor: { rgb: "ECEFF1" } }; // Soft Gray
+        cell.s.font.color = { rgb: "455A64" };
+        cell.s.font.bold = true;
+        cell.s.alignment.horizontal = "center";
+        }
+        }
+        }
+        }
+        }
+        if (ws['!rows']) ws['!rows'] = rowsMeta;
+        }
+
+        // ==========================================
+        // HÀM XUẤT EXCEL CHUYÊN NGHIỆP (MULTI-SHEET)
         // ==========================================
         window.exportToExcel = function() {
         if (filteredExportData.length === 0) {
@@ -1249,45 +1480,184 @@
 
         let fourMonthsAgo = new Date();
         fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
+        let dateNowStr = new Date().toLocaleString('vi-VN');
 
-        const excelData = filteredExportData.map(item => {
+        const wb = XLSX.utils.book_new();
+
+        // ----------------------------------------------------
+        // TAB 1: DANH SÁCH CHI TIẾT
+        // ----------------------------------------------------
+        let sheet1Rows = [
+        ["DANH SÁCH CHI TIẾT TÀI SẢN IT SYSTEM"],
+        ["Ngày xuất báo cáo: " + dateNowStr],
+        ["Tổng số lượng thiết bị đang hiển thị: " + filteredExportData.length + " thiết bị"],
+        [],
+        [
+        "STT", "ID", "Tên Vị Trí", "Tên Máy (Hostname)", "Loại Thiết Bị",
+        "Bản quyền Windows", "Bản quyền Office", "Tên Đăng Nhập (Account)",
+        "Người Sử Dụng", "Công Ty", "Bộ Phận", "Trạng Thái", "Ghi Chú", "Ngày Kiểm Kê Lần Cuối"
+        ]
+        ];
+
+        filteredExportData.forEach((item, index) => {
         let trangThaiCheckExcel = "CHƯA KIỂM KÊ";
         if (item.thoiGianCheck) {
         let d = new Date(item.thoiGianCheck);
         trangThaiCheckExcel = d < fourMonthsAgo ? `Quá hạn (${d.toLocaleDateString('vi-VN')})` : d.toLocaleDateString('vi-VN');
         }
-
-        return {
-        "ID": item.idThietBi,
-        "Tên Vị Trí": item.tenViTri || '',
-        "Tên Máy (Hostname)": item.tenMayTinh || '',
-        "Loại Thiết Bị": item.loaiThietBi || '',
-        "Bản quyền Windows": item.winLicense || 'Trống / Chưa rõ',
-        "Bản quyền Office": item.officeLicense || 'Trống / Chưa rõ',
-        "Tên Đăng Nhập (Account)": item.tenDangNhap || 'Chưa có',
-        "Người Sử Dụng": item.tenNguoiDung ? `${item.tenNguoiDung} (${item.tk || 'N/A'})` : 'Chưa có người dùng',
-        "Công Ty": item.tenCongTy || 'Chưa gắn',
-        "Bộ Phận": item.tenBoPhan || 'Chưa gắn',
-        "Trạng Thái": item.tenTrangThai || 'Chưa rõ',
-        "Ghi Chú": item.ghiChu || '',
-        "Ảnh Đính Kèm": item.duongDanAnh ? "Có ảnh" : "Không",
-        "Lần Cập Nhật Cuối": item.ngayCapNhat ? new Date(item.ngayCapNhat).toLocaleString('vi-VN') : '',
-        "Ngày Kiểm Kê Lần Cuối": trangThaiCheckExcel
-        };
+        sheet1Rows.push([
+        index + 1,
+        item.idThietBi,
+        item.tenViTri || '',
+        item.tenMayTinh || '',
+        item.loaiThietBi || '',
+        item.winLicense || 'Trống / Chưa rõ',
+        item.officeLicense || 'Trống / Chưa rõ',
+        item.tenDangNhap || 'Chưa có',
+        item.tenNguoiDung ? `${item.tenNguoiDung} (${item.tk || 'N/A'})` : 'Chưa có người dùng',
+        item.tenCongTy || 'Chưa gắn',
+        item.tenBoPhan || 'Chưa gắn',
+        item.tenTrangThai || 'Chưa rõ',
+        item.ghiChu || '',
+        trangThaiCheckExcel
+        ]);
         });
 
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(excelData);
-
-        ws['!cols'] = [
-        { wch: 8 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 22 },
-        { wch: 25 }, { wch: 20 }, { wch: 35 }, { wch: 20 }, { wch: 20 },
-        { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 20 }, { wch: 35 }
+        const ws1 = XLSX.utils.aoa_to_sheet(sheet1Rows);
+        ws1['!cols'] = [
+        { wch: 6 }, { wch: 10 }, { wch: 25 }, { wch: 20 }, { wch: 15 },
+        { wch: 25 }, { wch: 25 }, { wch: 20 }, { wch: 35 }, { wch: 20 },
+        { wch: 20 }, { wch: 15 }, { wch: 35 }, { wch: 25 }
         ];
 
-        XLSX.utils.book_append_sheet(wb, ws, "BaoCaoKiemKe");
+        // Thực hiện Đóng băng hàng (Freeze Panes) từ dòng tiêu đề số 5 trở lên
+        ws1['!views'] = [{ state: 'frozen', ySplit: 5 }];
+
+        styleWorksheetUniversal(ws1);
+        XLSX.utils.book_append_sheet(wb, ws1, "1. Chi Tiết Thiết Bị");
+
+        // ----------------------------------------------------
+        // PHÂN TÍCH, GOM NHÓM & TÍNH TOÁN SỐ LIỆU KPI CHO TAB 2
+        // ----------------------------------------------------
+        let kpTotal = 0, kpHD = 0, kpBaoTri = 0, kpChuaCheck = 0;
+        let frequenciesCompany = {};
+        let frequenciesLoai = {};
+        let frequenciesDeptComposite = {};
+
+        filteredExportData.forEach(x => {
+        let t = (x.tenTrangThai || '').toLowerCase();
+        // Không tính các máy đã xóa vào số liệu tổng hợp chung của Tab 2
+        if (!(t.includes('xóa') || x.ngayXoa != null)) {
+        kpTotal++;
+        if (t.includes('hoạt động')) kpHD++;
+        else if (t.includes('bảo trì')) kpBaoTri++;
+
+        if (!x.thoiGianCheck || new Date(x.thoiGianCheck) < fourMonthsAgo) {
+        kpChuaCheck++;
+        }
+
+        // Gom nhóm Công ty
+        let cKey = x.tenCongTy ? x.tenCongTy.trim() : "Chưa gắn công ty";
+        frequenciesCompany[cKey] = (frequenciesCompany[cKey] || 0) + 1;
+
+        // Gom nhóm Loại TB
+        let lKey = x.loaiThietBi ? x.loaiThietBi.trim() : "Khác";
+        frequenciesLoai[lKey] = (frequenciesLoai[lKey] || 0) + 1;
+
+        // Gom nhóm liên hợp kết hợp cả [Công ty] và [Bộ phận] tránh trùng lặp
+        let dKey = cKey + " ||| " + (x.tenBoPhan ? x.tenBoPhan.trim() : "Chưa gắn bộ phận");
+        frequenciesDeptComposite[dKey] = (frequenciesDeptComposite[dKey] || 0) + 1;
+        }
+        });
+
+        let statsCongTy = Object.entries(frequenciesCompany).sort((a, b) => b[1] - a[1]);
+        let statsLoaiTB = Object.entries(frequenciesLoai).sort((a, b) => b[1] - a[1]);
+        let statsBoPhan = Object.entries(frequenciesDeptComposite).map(([key, val]) => {
+        let parts = key.split(" ||| ");
+        return { cty: parts[0], bp: parts[1], count: val };
+        }).sort((a, b) => b.count - a.count);
+
+        // ----------------------------------------------------
+        // TAB 2: THỐNG KÊ ĐƠN VỊ & LOẠI TB (CÓ THẺ KPI & CỘT CÔNG TY)
+        // ----------------------------------------------------
+        let sheet2Rows = [
+        ["BÁO CÁO THỐNG KÊ PHÂN BỔ THIẾT BỊ THEO ĐƠN VỊ"],
+        ["Thời điểm tổng hợp dữ liệu: " + dateNowStr],
+        [],
+        ["THÔNG SỐ KPI CỐT LÕI (TOÀN HỆ THỐNG)"],
+        ["Tổng Tài Sản Hệ Thống", "Thiết Bị Hoạt Động", "Thiết Bị Đang Bảo Trì", "Chưa / Quá Hạn Kiểm Kê"],
+        [kpTotal, kpHD, kpBaoTri, kpChuaCheck], // Hàng giá trị KPI số lớn
+        [],
+        ["I. SỐ LƯỢNG THIẾT BỊ PHÂN BỔ THEO CÔNG TY"],
+        ["STT", "Tên Doanh Nghiệp / Công Ty", "Số Lượng Thiết Bị", "Tỷ Lệ % Đóng Góp"]
+        ];
+
+        statsCongTy.forEach((item, idx) => {
+        let pct = kpTotal > 0 ? ((item[1] / kpTotal) * 100).toFixed(2) + "%" : "0.00%";
+        sheet2Rows.push([idx + 1, item[0], item[1], pct]);
+        });
+        sheet2Rows.push(["", "Tổng cộng toàn hệ thống", kpTotal, "100.00%"]);
+
+        sheet2Rows.push([], [], ["II. THỐNG KÊ PHÂN BỔ THEO LOẠI THIẾT BỊ PHẦN CỨNG"], ["STT", "Chủng Loại Thiết Bị", "Số Lượng Hệ Máy"]);
+        statsLoaiTB.forEach((item, idx) => {
+        sheet2Rows.push([idx + 1, item[0], item[1]]);
+        });
+
+        sheet2Rows.push([], [], ["III. BẢNG CHI TIẾT SỐ LƯỢNG MÁY THEO CÁC BỘ PHẬN (CHI TIẾT THEO CÔNG TY)"], ["STT", "Thuộc Công Ty", "Tên Phòng Ban / Bộ Phận", "Tổng Số Máy"]);
+        statsBoPhan.forEach((item, idx) => {
+        sheet2Rows.push([idx + 1, item.cty, item.bp, item.count]);
+        });
+
+        const ws2 = XLSX.utils.aoa_to_sheet(sheet2Rows);
+        ws2['!cols'] = [{ wch: 8 }, { wch: 35 }, { wch: 35 }, { wch: 20 }, { wch: 20 }];
+        styleWorksheetUniversal(ws2);
+        XLSX.utils.book_append_sheet(wb, ws2, "2. Thống Kê Đơn Vị - Loại TB");
+
+        // ----------------------------------------------------
+        // TAB 3: THỐNG KÊ BẢN QUYỀN PHẦN MỀM
+        // ----------------------------------------------------
+        function generateGroupingLicenses(arrayData, propertyName, fallbackName = "Trống / Chưa rõ") {
+        let freq = {};
+        arrayData.forEach(x => {
+        let t = (x.tenTrangThai || '').toLowerCase();
+        if (!(t.includes('xóa') || x.ngayXoa != null)) {
+        let key = x[propertyName] ? x[propertyName].trim() : "";
+        if (!key || key === "") key = fallbackName;
+        freq[key] = (freq[key] || 0) + 1;
+        }
+        });
+        return Object.entries(freq).sort((a, b) => b[1] - a[1]);
+        }
+
+        let statsWinOS = generateGroupingLicenses(filteredExportData, 'winLicense', 'Trống / Chưa rõ');
+        let statsOffice = generateGroupingLicenses(filteredExportData, 'officeLicense', 'Trống / Chưa rõ');
+
+        let sheet3Rows = [
+        ["BÁO CÁO THỐNG KÊ TRẠNG THÁI BẢN QUYỀN PHẦN MỀM"],
+        ["Thời điểm tổng hợp dữ liệu: " + dateNowStr],
+        [],
+        ["I. THỐNG KÊ TRẠNG THÁI BẢN QUYỀN WINDOWS OPERATING SYSTEM"],
+        ["STT", "Phiên Bản Hệ Điều Hành (Windows License Status)", "Số Lượng Máy Cài Đặt"]
+        ];
+        statsWinOS.forEach((item, idx) => {
+        sheet3Rows.push([idx + 1, item[0], item[1]]);
+        });
+        sheet3Rows.push(["", "Tổng cộng số lượng máy", kpTotal]);
+
+        sheet3Rows.push([], [], ["II. THỐNG KÊ TRẠNG THÁI BẢN QUYỀN MICROSOFT OFFICE APPLICATIONS"], ["STT", "Phiên Bản Ứng Dụng (Office License Status)", "Số Lượng Máy Cài Đặt"]);
+        statsOffice.forEach((item, idx) => {
+        sheet3Rows.push([idx + 1, item[0], item[1]]);
+        });
+        sheet3Rows.push(["", "Tổng cộng số lượng máy", kpTotal]);
+
+        const ws3 = XLSX.utils.aoa_to_sheet(sheet3Rows);
+        ws3['!cols'] = [{ wch: 6 }, { wch: 45 }, { wch: 25 }];
+        styleWorksheetUniversal(ws3);
+        XLSX.utils.book_append_sheet(wb, ws3, "3. Thống Kê Bản Quyền PM");
+
+        // Ghi dữ liệu workbook thành tệp và tiến hành tải xuống máy
         let dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
-        XLSX.writeFile(wb, `BaoCao_TổngQuan_IT_${dateStr}.xlsx`);
+        XLSX.writeFile(wb, `BaoCao_TongQuan_IT_Premium_${dateStr}.xlsx`);
         }
     </script>
 }
