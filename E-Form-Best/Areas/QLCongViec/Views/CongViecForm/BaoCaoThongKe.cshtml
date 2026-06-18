@@ -1,0 +1,787 @@
+﻿@model IEnumerable<E_Form_Best.Models.ITForm.FormCongViec>
+
+@{
+    ViewData["Title"] = "Thống kê & Báo cáo Công việc";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+
+    // Khai báo hệ màu chủ đạo xanh lá cỏ non đồng bộ hệ thống 2026
+    string colorPrimary = "#65a30d";
+    string colorDark = "#2d4201";
+    string colorLight = "#f7fee7";
+    string colorBorder = "#bef264";
+}
+
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+    .card-title {
+        font-size: 11px;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .card-value {
+        font-size: 24px;
+        font-weight: 900;
+        margin-top: 5px;
+        display: block;
+    }
+
+    .chart-container {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .chart-header {
+        font-weight: 800;
+        color: @colorDark;
+        margin-bottom: 15px;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 13px;
+    }
+
+        .custom-table th {
+            background-color: @colorLight;
+            color: @colorDark;
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid @colorBorder;
+        }
+
+        .custom-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+        }
+
+        .custom-table tr:hover {
+            background-color: @colorLight;
+        }
+
+    .badge-count {
+        background: @colorLight;
+        color: @colorPrimary;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-weight: bold;
+        border: 1px solid @colorBorder;
+    }
+
+    .badge-time {
+        color: #0f172a;
+        font-weight: 700;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .filter-wrapper {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        background: white;
+        padding: 15px 20px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 20px;
+    }
+
+    .filter-input {
+        border: 1px solid #cbd5e1;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #334155;
+        outline: none;
+        height: 38px;
+    }
+
+        .filter-input:focus {
+            border-color: @colorPrimary;
+            box-shadow: 0 0 0 3px rgba(101, 163, 13, 0.15);
+        }
+
+    .btn-filter {
+        background: @colorPrimary;
+        color: white;
+        border: none;
+        padding: 7px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        height: 38px;
+        transition: background 0.2s;
+    }
+
+        .btn-filter:hover {
+            background: @colorDark;
+        }
+
+    .loading-text {
+        font-size: 13px;
+        color: @colorPrimary;
+        font-weight: 600;
+        margin-bottom: 10px;
+        display: none;
+    }
+
+    .chart-empty-state {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        font-size: 13px;
+        font-weight: 500;
+        text-align: center;
+        width: 100%;
+        padding: 20px;
+    }
+
+        .chart-empty-state i {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+        }
+
+    .filter-badge {
+        display: none;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        color: #166534;
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        width: fit-content;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .error-banner {
+        display: none;
+        background: #fef2f2;
+        border: 1px solid #fca5a5;
+        color: #b91c1c;
+        padding: 12px 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* DROPDOWN CHECKBOX (MULTI-SELECT) STYLE */
+    .dropdown-combo-btn {
+        width: 180px;
+        text-align: left;
+        background-color: #fff;
+        border: 1px solid #cbd5e1;
+        padding: 6px 24px 6px 12px;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: 6px;
+        color: #334155;
+        position: relative;
+        height: 38px;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+        .dropdown-combo-btn:after {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .dropdown-combo-btn:focus {
+            border-color: @colorPrimary;
+            outline: 0;
+            box-shadow: 0 0 0 3px rgba(101, 163, 13, 0.15);
+        }
+
+    .dropdown-combo-menu {
+        min-width: 240px;
+        max-height: 280px;
+        overflow-y: auto;
+        padding: 8px 0;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        z-index: 1050;
+    }
+
+    .dropdown-combo-item {
+        display: flex;
+        align-items: center;
+        padding: 6px 16px;
+        cursor: pointer;
+        user-select: none;
+        font-size: 13px;
+        color: #334155;
+        transition: background-color 0.15s ease;
+    }
+
+        .dropdown-combo-item:hover {
+            background-color: #f1f5f9;
+        }
+
+        .dropdown-combo-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            cursor: pointer;
+            accent-color: @colorPrimary;
+            flex-shrink: 0;
+        }
+
+        .dropdown-combo-item span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+    @@media (max-width: 768px) {
+        .dashboard-container {
+            padding: 0 10px !important;
+            margin-top: 10px !important;
+        }
+
+        .header-section h2 {
+            font-size: 18px !important;
+        }
+
+        .stat-grid-mobile {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+        }
+
+        .chart-row-mobile {
+            grid-template-columns: 1fr !important;
+            gap: 15px !important;
+        }
+
+        .chart-container {
+            padding: 15px !important;
+        }
+
+        .canvas-wrapper-mobile {
+            height: 250px !important;
+        }
+
+        .staff-chart-wrapper {
+            height: 350px !important;
+        }
+
+        .filter-wrapper {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        .dropdown-combo-btn {
+            width: 100%;
+        }
+
+        .loading-text {
+            margin-left: 0;
+            text-align: center;
+        }
+    }
+</style>
+
+<div class="dashboard-container" style="max-width: 1400px; margin: 20px auto; padding: 0 20px;">
+
+    @* --- HEADER --- *@
+    <div class="header-section" style="margin-bottom: 20px;">
+        <h2 style="font-weight: 900; color: @colorDark; margin: 0;">
+            <i class="fa fa-dashboard" style="color: @colorPrimary;"></i> HỆ THỐNG QUẢN TRỊ BÁO CÁO CÔNG VIỆC
+        </h2>
+    </div>
+
+    @* --- BANNER HIỂN THỊ LỖI --- *@
+    <div id="lblError" class="error-banner">
+        <i class="fa fa-exclamation-triangle" style="font-size: 16px;"></i>
+        <span id="lblErrorText">Không thể kết nối đến hệ thống máy chủ dữ liệu. Vui lòng kiểm tra lại đường truyền hoặc thử lại sau!</span>
+    </div>
+
+    @* --- BỘ LỌC THỜI GIAN VÀ DROPDOWN CHECKBOX NHÂN SỰ THỰC HIỆN --- *@
+    <div class="filter-wrapper">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 12px; font-weight: 700; color: #475569;">Từ ngày:</label>
+            <input type="date" id="txtFromDate" class="filter-input" />
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 12px; font-weight: 700; color: #475569;">Đến ngày:</label>
+            <input type="date" id="txtToDate" class="filter-input" />
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 12px; font-weight: 700; color: #475569;">Nhân sự xử lý:</label>
+            <div class="dropdown">
+                <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropStaff" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    -- Tất cả --
+                </button>
+                <div class="dropdown-menu dropdown-combo-menu" id="menuStaff" aria-labelledby="btnDropStaff">
+                </div>
+            </div>
+        </div>
+
+        <button type="button" class="btn-filter" onclick="initStats()"><i class="fa fa-filter"></i> Lọc dữ liệu</button>
+        <span id="lblLoading" class="loading-text"><i class="fa fa-spinner fa-spin"></i> Đang kết xuất dữ liệu mới...</span>
+    </div>
+
+    @* --- HÀNG CON SỐ TỔNG QUAN --- *@
+    <div class="stat-grid-mobile" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
+        <div class="stat-card" style="border-top: 4px solid #64748b;"><span class="card-title">Tổng số đơn</span><span class="card-value" id="lblTotal" style="color: #64748b;">0</span></div>
+        <div class="stat-card" style="border-top: 4px solid #f59e0b;"><span class="card-title">Chờ QL duyệt</span><span class="card-value" id="lblWaitQL" style="color: #f59e0b;">0</span></div>
+        <div class="stat-card" style="border-top: 4px solid #3b82f6;"><span class="card-title">Đang xử lý</span><span class="card-value" id="lblProcessing" style="color: #3b82f6;">0</span></div>
+        <div class="stat-card" style="border-top: 4px solid #8b5cf6;"><span class="card-title">Chờ đánh giá</span><span class="card-value" id="lblWaitRate" style="color: #8b5cf6;">0</span></div>
+        <div class="stat-card" style="border-top: 4px solid @colorPrimary;"><span class="card-title">Đã hoàn tất</span><span class="card-value" id="lblDone" style="color: @colorPrimary;">0</span></div>
+    </div>
+
+    @* --- HÀNG BIỂU ĐỒ 1 --- *@
+    <div class="chart-row-mobile" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 20px;">
+        <div class="chart-container">
+            <div class="chart-header"><i class="fa fa-tasks"></i> Tỉ lệ Trạng thái phiếu</div>
+            <div class="canvas-wrapper-mobile" id="wrapStatus" style="height: 300px;"><canvas id="chartStatus"></canvas></div>
+            <div class="chart-empty-state" id="emptyStatus"><i class="fa fa-pie-chart"></i>Không có dữ liệu trạng thái</div>
+        </div>
+        <div class="chart-container">
+            <div class="chart-header"><i class="fa fa-building"></i> Đơn yêu cầu theo Bộ phận phòng ban</div>
+            <div class="canvas-wrapper-mobile" id="wrapDept" style="height: 300px;"><canvas id="chartDept"></canvas></div>
+            <div class="chart-empty-state" id="emptyDept"><i class="fa fa-bar-chart"></i>Không có dữ liệu bộ phận</div>
+        </div>
+    </div>
+
+    @* --- HÀNG BIỂU ĐỒ 2 --- *@
+    <div class="chart-container">
+        <div class="chart-header"><i class="fa fa-users"></i> Hiệu suất theo Nhân sự thực hiện (Chi tiết trạng thái đơn) <span style="font-size:11px; color:#64748b; font-weight:normal;">(Bấm vào cột để lọc bảng chi tiết bên dưới)</span></div>
+        <div class="staff-chart-wrapper" id="wrapStaff" style="height: 400px;"><canvas id="chartStaff"></canvas></div>
+        <div class="chart-empty-state" id="emptyStaff"><i class="fa fa-user-times"></i>Không có dữ liệu nhân sự xử lý</div>
+    </div>
+
+    @* --- HÀNG BIỂU ĐỒ 3 --- *@
+    <div class="chart-row-mobile" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+        <div class="chart-container">
+            <div class="chart-header"><i class="fa fa-tags"></i> Phân tích theo Danh mục công việc</div>
+            <div class="canvas-wrapper-mobile" id="wrapCategory" style="height: 350px;"><canvas id="chartCategory"></canvas></div>
+            <div class="chart-empty-state" id="emptyCategory"><i class="fa fa-tags"></i>Không có dữ liệu danh mục</div>
+        </div>
+        <div class="chart-container">
+            <div class="chart-header"><i class="fa fa-file-code-o"></i> Phân tích theo Mã phân hệ Form (IdForm)</div>
+            <div class="canvas-wrapper-mobile" id="wrapIdForm" style="height: 350px;"><canvas id="chartIdForm"></canvas></div>
+            <div class="chart-empty-state" id="emptyIdForm"><i class="fa fa-code"></i>Không có dữ liệu mã form</div>
+        </div>
+    </div>
+
+    @* --- HÀNG CUỐI: BẢNG CHI TIẾT --- *@
+    <div class="chart-container">
+        <div class="chart-header"><i class="fa fa-list-alt"></i> Báo cáo tổng hợp chi tiết theo Nhân sự & Danh mục</div>
+        <div id="tableFilterBadge" class="filter-badge"></div>
+        <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Nhân Sự Thực Hiện</th>
+                        <th>Danh Mục Nghiệp Vụ</th>
+                        <th style="text-align: center;">Số Đơn Nhận</th>
+                        <th style="text-align: center;">TG Xử Lý Trung Bình</th>
+                    </tr>
+                </thead>
+                <tbody id="tblStaffBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
+<script>
+    Chart.register(ChartDataLabels);
+
+    let chartStatusInstance = null;
+    let chartDeptInstance = null;
+    let chartStaffInstance = null;
+    let chartCategoryInstance = null;
+    let chartIdFormInstance = null;
+
+    let cachedDataChung = [];
+    let cachedDataStaff = [];
+    let selectedStaffFilter = [];
+
+    const commonLabelOptions = {
+    color: '#fff',
+    font: { weight: 'bold', family: 'Inter', size: 11 },
+    formatter: (value) => value > 0 ? value : '',
+    anchor: 'center',
+    align: 'center'
+    };
+
+    function formatDuration(totalMinutes) {
+    if (!totalMinutes || totalMinutes <= 0) return "-";
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const mins = Math.round(totalMinutes % 60);
+
+    let result = "";
+    if (days > 0) {
+    result += days + " ngày ";
+    if (hours > 0) result += hours + " giờ";
+    }
+    else if (hours > 0) {
+    result += hours + " giờ ";
+    if (mins > 0) result += mins + " phút";
+    }
+    else {
+    result += mins + " phút";
+    }
+    return result.trim();
+    }
+
+    function handleEmptyState(hasData, wrapperId, emptyId) {
+    const wrapper = document.getElementById(wrapperId);
+    const emptyElement = document.getElementById(emptyId);
+    if (wrapper && emptyElement) {
+    wrapper.style.display = hasData ? 'block' : 'none';
+    emptyElement.style.display = hasData ? 'none' : 'flex';
+    }
+    }
+
+    function populateStaffDropdown(dataStaff) {
+    const menuStaff = document.getElementById('menuStaff');
+    const staffs = [...new Set(dataStaff.map(item => item.tenNguoiHoTro).filter(n => n && n !== "Chưa xác định"))].sort();
+
+    menuStaff.innerHTML = '';
+    staffs.forEach(staff => {
+    const isChecked = selectedStaffFilter.includes(staff) ? 'checked' : '';
+    const labelItem = `
+    <label class="dropdown-combo-item">
+    <input type="checkbox" class="chk-staff" value="${staff}" ${isChecked}>
+    <span>${staff}</span>
+    </label>
+    `;
+    menuStaff.insertAdjacentHTML('beforeend', labelItem);
+    });
+
+    updateDropdownButtonLabel();
+    }
+
+    function updateDropdownButtonLabel() {
+    const totalChecked = $('.chk-staff:checked').length;
+    const $btn = $('#btnDropStaff');
+
+    if (totalChecked === 0) {
+    $btn.text('-- Tất cả --');
+    } else if (totalChecked === 1) {
+    $btn.text($('.chk-staff:checked').first().val());
+    } else {
+    $btn.text(`Đã chọn (${totalChecked})`);
+    }
+    }
+
+    function applyStaffFilter() {
+    let displayDataStaff = cachedDataStaff;
+    let displayDataChung = cachedDataChung;
+
+    if (selectedStaffFilter.length > 0) {
+    displayDataStaff = cachedDataStaff.filter(x => selectedStaffFilter.includes(x.tenNguoiHoTro));
+    const validFormIds = displayDataStaff.map(x => x.idFormIt);
+    displayDataChung = cachedDataChung.filter(x => validFormIds.includes(x.id));
+    }
+
+    const statusResults = processStatusLogic(displayDataChung);
+    updateCounters(statusResults);
+
+    const hasDataChung = displayDataChung && displayDataChung.length > 0;
+    handleEmptyState(hasDataChung, 'wrapStatus', 'emptyStatus');
+    handleEmptyState(hasDataChung, 'wrapDept', 'emptyDept');
+    handleEmptyState(hasDataChung, 'wrapCategory', 'emptyCategory');
+    handleEmptyState(hasDataChung, 'wrapIdForm', 'emptyIdForm');
+
+    if (hasDataChung) {
+    drawStatusChart(statusResults);
+    drawDeptChart(displayDataChung);
+    drawCategoryChart(displayDataChung);
+    drawIdFormChart(displayDataChung);
+    }
+
+    const hasDataStaff = displayDataStaff && displayDataStaff.length > 0;
+    handleEmptyState(hasDataStaff, 'wrapStaff', 'emptyStaff');
+    if (hasDataStaff) {
+    drawStaffChart(cachedDataStaff);
+    }
+
+    renderTable(cachedDataStaff);
+    }
+
+    async function initStats() {
+    const fromDate = document.getElementById('txtFromDate').value;
+    const toDate = document.getElementById('txtToDate').value;
+    const lblLoading = document.getElementById('lblLoading');
+    const lblError = document.getElementById('lblError');
+
+    try {
+    lblError.style.display = 'none';
+    lblLoading.style.display = 'inline-block';
+
+    const urlParams = `?fromDate=${fromDate}&toDate=${toDate}`;
+
+    // Đồng bộ bộ định tuyến API kéo dữ liệu báo cáo sang phân hệ Công việc mới
+    const [resChung, resStaff] = await Promise.all([
+    fetch('/FormCongViec/GetDataThongKe' + urlParams),
+    fetch('/FormCongViec/GetDataNguoiHoTro' + urlParams)
+    ]);
+
+    if (!resChung.ok || !resStaff.ok) throw new Error("API Failure");
+
+    cachedDataChung = await resChung.json();
+    cachedDataStaff = await resStaff.json();
+
+    populateStaffDropdown(cachedDataStaff);
+    applyStaffFilter();
+
+    } catch (e) {
+    console.error(e);
+    lblError.style.display = 'flex';
+    } finally {
+    lblLoading.style.display = 'none';
+    }
+    }
+
+    function renderTable(data) {
+    let displayData = data;
+    const badge = document.getElementById('tableFilterBadge');
+
+    if (selectedStaffFilter.length > 0) {
+    displayData = data.filter(x => selectedStaffFilter.includes(x.tenNguoiHoTro));
+    badge.innerHTML = `<i class="fa fa-filter"></i> Đang lọc theo nhóm (<b class="text-danger">${selectedStaffFilter.length}</b>) nhân sự <span style="margin-left:8px; color:#dc2626; cursor:pointer; font-weight:bold;" onclick="clearTableFilter()">[Xóa bộ lọc]</span>`;
+    badge.style.display = 'flex';
+    } else {
+    badge.style.display = 'none';
+    }
+
+    const summary = displayData.reduce((acc, curr) => {
+    const key = `${curr.tenNguoiHoTro}|${curr.danhMuc}`;
+    if (!acc[key]) {
+    acc[key] = { name: curr.tenNguoiHoTro, cat: curr.danhMuc, count: 0, totalMin: 0, timeCount: 0 };
+    }
+    acc[key].count++;
+    if (curr.phutXuLy !== null) {
+    acc[key].totalMin += curr.phutXuLy;
+    acc[key].timeCount++;
+    }
+    return acc;
+    }, {});
+
+    const tbody = document.getElementById('tblStaffBody');
+    if (Object.keys(summary).length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:20px;">Không có dữ liệu hiển thị báo cáo</td></tr>`;
+    return;
+    }
+
+    tbody.innerHTML = Object.values(summary)
+    .sort((a, b) => b.count - a.count)
+    .map(item => `
+    <tr>
+    <td style="font-weight: 600;">${item.name}</td>
+    <td style="color: #64748b;">${item.cat}</td>
+    <td style="text-align: center;"><span class="badge-count">${item.count}</span></td>
+    <td style="text-align: center;" class="badge-time">
+    ${item.timeCount > 0 ? formatDuration(item.totalMin / item.timeCount) : '-'}
+    </td>
+    </tr>
+    `).join('');
+    }
+
+    function clearTableFilter() {
+    selectedStaffFilter = [];
+    $('.chk-staff').prop('checked', false);
+    updateDropdownButtonLabel();
+    applyStaffFilter();
+    }
+
+    function processStatusLogic(data) {
+    let stats = { "HỦY": 0, "CHỜ QL": 0, "ĐANG XỬ LÝ": 0, "ĐÁNH GIÁ": 0, "HOÀN TẤT": 0 };
+    data.forEach(item => {
+    const isCancelled = (item.tenForm || "").includes("[ĐÃ HỦY]");
+    if (isCancelled) stats["HỦY"]++;
+    else if (item.idAdmin && item.isRated) stats["HOÀN TẤT"]++;
+    else if (item.idAdmin && !item.isRated) stats["ĐÁNH GIÁ"]++;
+    else if (item.idNguoiDuyet) stats["ĐANG XỬ LÝ"]++;
+    else stats["CHỜ QL"]++;
+    });
+    return stats;
+    }
+
+    function updateCounters(s) {
+    document.getElementById('lblTotal').innerText = Object.values(s).reduce((a, b) => a + b, 0);
+    document.getElementById('lblWaitQL').innerText = s["CHỜ QL"];
+    document.getElementById('lblProcessing').innerText = s["ĐANG XỬ LÝ"];
+    document.getElementById('lblWaitRate').innerText = s["ĐÁNH GIÁ"];
+    document.getElementById('lblDone').innerText = s["HOÀN TẤT"];
+    }
+
+    function drawStatusChart(s) {
+    if (chartStatusInstance) chartStatusInstance.destroy();
+    chartStatusInstance = new Chart(document.getElementById('chartStatus'), {
+    type: 'doughnut',
+    data: {
+    labels: Object.keys(s),
+    dropdownSelectedText: Object.values(s),
+    datasets: [{
+    data: Object.values(s),
+    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '@colorPrimary']
+    }]
+    },
+    options: {
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }, datalabels: commonLabelOptions }
+    }
+    });
+    }
+
+    function drawDeptChart(data) {
+    if (chartDeptInstance) chartDeptInstance.destroy();
+    const group = groupData(data, 'boPhan');
+    chartDeptInstance = new Chart(document.getElementById('chartDept'), {
+    type: 'bar',
+    data: {
+    labels: Object.keys(group),
+    datasets: [{ label: 'Đơn vị', data: Object.values(group), backgroundColor: '#3b82f6', borderRadius: 5 }]
+    },
+    options: {
+    maintainAspectRatio: false,
+    plugins: { datalabels: { ...commonLabelOptions, anchor: 'end', align: 'top', color: '#444' } },
+    scales: { y: { beginAtZero: true } }
+    }
+    });
+    }
+
+    function drawStaffChart(dataStaff) {
+    if (chartStaffInstance) chartStaffInstance.destroy();
+
+    const staffs = [...new Set(dataStaff.map(item => item.tenNguoiHoTro))].sort();
+    const statuses = ["CHỜ QL", "ĐANG XỬ LÝ", "ĐÁNH GIÁ", "HOÀN TẤT"];
+    const colors = ['#f59e0b', '#3b82f6', '#8b5cf6', '@colorPrimary'];
+
+    const datasets = statuses.map((status, i) => ({
+    label: status,
+    data: staffs.map(staff => dataStaff.filter(x => x.tenNguoiHoTro === staff && x.trangThai === status).length),
+    backgroundColor: colors[i],
+    stack: 'Stack 0'
+    }));
+
+    chartStaffInstance = new Chart(document.getElementById('chartStaff'), {
+    type: 'bar',
+    data: { labels: staffs, datasets: datasets },
+    options: {
+    maintainAspectRatio: false,
+    onHover: (event, chartElement) => {
+    event.native.target.style.cursor = chartElement.length ? 'pointer' : 'default';
+    },
+    onClick: (event, elements, chart) => {
+    if (elements && elements.length > 0) {
+    const clickedStaffName = chart.data.labels[elements[0].index];
+    $('.chk-staff').prop('checked', false);
+    $(`.chk-staff[value="${clickedStaffName}"]`).prop('checked', true);
+
+    selectedStaffFilter = [clickedStaffName];
+    updateDropdownButtonLabel();
+    applyStaffFilter();
+    }
+    },
+    plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } }, datalabels: commonLabelOptions },
+    scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
+    }
+    });
+    }
+
+    function drawCategoryChart(data) {
+    if (chartCategoryInstance) chartCategoryInstance.destroy();
+    const group = groupData(data, 'danhmuc');
+    chartCategoryInstance = new Chart(document.getElementById('chartCategory'), {
+    type: 'bar',
+    data: {
+    labels: Object.keys(group),
+    datasets: [{ label: 'Số lượng', data: Object.values(group), backgroundColor: '#84cc16', borderRadius: 5 }]
+    },
+    options: {
+    maintainAspectRatio: false,
+    plugins: { datalabels: { ...commonLabelOptions, anchor: 'end', align: 'top', color: '#444' } }
+    }
+    });
+    }
+
+    function drawIdFormChart(data) {
+    if (chartIdFormInstance) chartIdFormInstance.destroy();
+    const group = groupData(data, 'idForm');
+    chartIdFormInstance = new Chart(document.getElementById('chartIdForm'), {
+    type: 'bar',
+    data: {
+    labels: Object.keys(group),
+    datasets: [{ label: 'Số lượng', data: Object.values(group), backgroundColor: '#a3e635', borderRadius: 5 }]
+    },
+    options: {
+    indexAxis: 'y',
+    maintainAspectRatio: false,
+    plugins: { datalabels: { ...commonLabelOptions, anchor: 'end', align: 'right', color: '#444' } }
+    }
+    });
+    }
+
+    function groupData(data, key) {
+    return data.reduce((acc, x) => {
+    let val = x[key] || "N/A";
+    acc[val] = (acc[val] || 0) + 1;
+    return acc;
+    }, {});
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+    $(document).on('change', '#menuStaff input[type="checkbox"]', function() {
+    selectedStaffFilter = $('.chk-staff:checked').map(function() { return $(this).val(); }).get();
+    updateDropdownButtonLabel();
+    applyStaffFilter();
+    });
+    initStats();
+    });
+</script>

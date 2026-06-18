@@ -1,0 +1,781 @@
+﻿@model E_Form_Best.Models.ITForm.FormCongViec
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Chi tiết phiếu công việc";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+
+    // --- 1. THÔNG TIN NGƯỜI DÙNG HIỆN TẠI ---
+    var currentUserName = User.Identity?.Name ?? "";
+    var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("UserRole")?.Value ?? "";
+    var tenCongTyUser = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+    var phongBanDonUser = User.FindFirst("PhongBan")?.Value ?? "";
+    var listBoPhanUser = User.FindFirst("TenBoPhan")?.Value ?? "";
+
+    var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    int currentUserId = 0;
+    if (!string.IsNullOrEmpty(userIdStr))
+    {
+        int.TryParse(userIdStr, out currentUserId);
+    }
+
+    // --- 2. LOGIC TRẠNG THÁI TIẾN TRÌNH ĐƠN ---
+    bool isCancelled = (Model.TenForm != null && Model.TenForm.Contains("[ĐÃ HỦY]")) || Model.TrangThai == "Huy";
+    bool isFinished = Model.IdAdmin != null || Model.TrangThai == "HoanTat" || Model.TrangThai == "DaXuLy";
+    bool isApprovedByManager = Model.IdNguoiDuyet != null || Model.TrangThai == "DaDuyet";
+
+    // Đọc trạng thái đánh giá sao từ danh sách độc lập gửi từ Controller
+    var danhGiaList = (List<E_Form_Best.Models.ITForm.DanhGiaFormCongViec>)ViewBag.DanhGiaList;
+    bool daDanhGia = danhGiaList != null && danhGiaList.Any();
+
+    // Đồng bộ hệ màu sắc cỏ non rực rỡ và tươi sáng cho phân hệ Công việc
+    string colorPrimary = "#65a30d";
+    string colorDark = "#2d4201";
+    string colorLight = "#f7fee7";
+    string colorBorder = "#a3e635";
+
+    string statusColor = "#3b82f6";
+    string statusText = "CHỜ DUYỆT PHÒNG BAN";
+
+    if (isCancelled)
+    {
+        statusColor = "#dc2626";
+        statusText = "ĐÃ HỦY ĐƠN PHIẾU";
+    }
+    else if (isFinished)
+    {
+        statusColor = "#16a34a";
+        statusText = "CÔNG VIỆC HOÀN TẤT";
+    }
+    else if (isApprovedByManager)
+    {
+        statusColor = "#ea580c";
+        statusText = "ĐANG TRIỂN KHAI XỬ LÝ";
+    }
+
+    string headerGradient = "linear-gradient(135deg, #2d4201 0%, #65a30d 100%)";
+    if (isCancelled) headerGradient = "linear-gradient(135deg, #991b1b 0%, #dc2626 100%)";
+    if (isFinished) headerGradient = "linear-gradient(135deg, #14532d 0%, #16a34a 100%)";
+
+    // --- MỚI: Logic kiểm tra Quản lý trực tiếp phê duyệt bộ phận tạo đơn ---
+    bool isDirectDepartmentManager = false;
+    if (User.IsInRole("All"))
+    {
+        isDirectDepartmentManager = true;
+    }
+    else if (User.IsInRole("QuanLyDuyetDonCV") || User.IsInRole("QuanLyDuyetDonIT"))
+    {
+        bool isSameCompany = string.Equals(Model.TenCongTy?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
+        if (isSameCompany && !string.IsNullOrEmpty(Model.BoPhan))
+        {
+            if (!string.IsNullOrEmpty(listBoPhanUser))
+            {
+                var arrBoPhan = listBoPhanUser.Split(',').Select(x => x.Trim());
+                isDirectDepartmentManager = arrBoPhan.Contains(Model.BoPhan.Trim(), StringComparer.OrdinalIgnoreCase);
+            }
+            if (!isDirectDepartmentManager)
+            {
+                isDirectDepartmentManager = string.Equals(Model.BoPhan.Trim(), phongBanDonUser.Trim(), StringComparison.OrdinalIgnoreCase);
+            }
+        }
+    }
+
+    // --- 3. XỬ LÝ ĐỌC FILE ĐÍNH KÈM VÀ HÌNH ẢNH MINH HỌA HẠNG MỤC ---
+    List<string> listImages = new List<string>();
+    string chiTietNoiDung = "";
+    string fileName = "";
+    string fileUrl = "";
+
+    if (!string.IsNullOrEmpty(Model.FileDinhKem))
+    {
+        fileName = System.IO.Path.GetFileName(Model.FileDinhKem);
+        fileUrl = "/FormCongViec/DownloadFile/" + Uri.EscapeDataString(fileName);
+    }
+
+    // --- 4. HÀM HELPER KHỞI TẠO DÒNG THÔNG TIN ---
+    string RenderInfoRow(string icon, string label, string? value, string bgColor, string textColor)
+    {
+        string displayValue = string.IsNullOrEmpty(value) ? "Không có dữ liệu ghi chú" : value;
+        return $@"
+            <div class='mobile-info-row' style='margin-bottom:12px; display:flex; align-items:center; gap:12px; background:#fff; padding:14px; border-radius:16px; border:1.5px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <span style='background:{bgColor}; width:42px; height:42px; display:flex; align-items:center; justify-content:center; border-radius:12px; font-size:20px; flex-shrink:0;'>{icon}</span>
+                <div style='display:flex; flex-direction:column; word-break: break-word;'>
+                    <strong style='color:{textColor}; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px;'>{label}</strong>
+                    <span style='font-size:15px; color:#1e293b; font-weight:700;'>{displayValue}</span>
+                </div>
+            </div>";
+    }
+
+    // --- 5. NẠP NỘI DUNG TỪ THỰC THỂ LƯU TRỮ CHÍNH CV_CONGVIEC_ORDER_1 ---
+    if (Model.CvCongViecOrder1s != null && Model.CvCongViecOrder1s.Any())
+    {
+        var ct = Model.CvCongViecOrder1s.First();
+        if (!string.IsNullOrEmpty(ct.DuongDanAnh))
+        {
+            listImages.Add("/FormCongViec/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
+        }
+        else if (ct.Anh != null && ct.Anh.Length > 0)
+        {
+            listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
+        }
+
+        chiTietNoiDung += RenderInfoRow("📌", "Hạng mục công việc", ct.Ten, "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("💬", "Mô tả nội dung xử lý cụ thể", ct.GhiChu, "#f8fafc", "#0f172a");
+    }
+}
+
+@Html.AntiForgeryToken()
+
+<style>
+    .mobile-history-content {
+        display: block;
+    }
+
+    .input-hover-star:focus {
+        border-color: @colorPrimary !important;
+        box-shadow: 0 0 0 4px rgba(101, 163, 13, 0.15) !important;
+    }
+
+    @@media (max-width: 768px) {
+        .mobile-wrapper {
+            padding: 10px !important;
+        }
+
+        .mobile-header {
+            padding: 25px 15px !important;
+        }
+
+            .mobile-header h1 {
+                font-size: 24px !important;
+                margin: 15px 0 !important;
+            }
+
+        .mobile-status-box {
+            padding: 15px !important;
+            margin-top: 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .mobile-body {
+            padding: 15px !important;
+        }
+
+        .mobile-grid-main {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+        }
+
+        .mobile-grid-info {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+        }
+
+        .mobile-btn-export {
+            width: 100%;
+            justify-content: center;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .mobile-btn-action {
+            width: 100% !important;
+            margin-bottom: 10px;
+        }
+
+        .mobile-info-row {
+            flex-wrap: wrap !important;
+        }
+
+        .mobile-history-toggle {
+            cursor: pointer;
+            background: #fff;
+            padding: 15px 20px;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+            .mobile-history-toggle h3 {
+                font-size: 16px !important;
+                margin-bottom: 0 !important;
+            }
+
+        #historyToggleIconMobile {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 6px;
+            font-weight: 800;
+            font-size: 12px !important;
+        }
+
+        .mobile-history-content {
+            display: none;
+            margin-top: 15px;
+            margin-bottom: 25px;
+        }
+
+            .mobile-history-content.show {
+                display: block;
+                animation: slideDown 0.3s ease;
+            }
+    }
+
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<div class="mobile-wrapper" style="max-width: 1200px; margin: 0 auto; padding: 25px; font-family: 'Segoe UI', system-ui, sans-serif; background-color: #f8fafc;">
+
+    <div style="margin-bottom: 25px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+        <a href="/FormCongViec/DonCho" class="mobile-btn-export" style="display: inline-flex; align-items: center; gap: 10px; padding: 12px 24px; background: #ffffff; color: @colorDark; text-decoration: none; border-radius: 12px; font-weight: 800; border: 2px solid #cbd5e1; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='';">
+            <i class="fa fa-arrow-left"></i> QUAY LẠI QUẢN LÝ ĐƠN
+        </a>
+    </div>
+
+    <div style="background: white; border-radius: 30px; box-shadow: 0 25px 50px -12px rgba(45,66,1,0.08); overflow: hidden; border: 1px solid #f1f5f9;">
+
+        @* --- TOP PANEL HEADER GRADIENT CỎ NON MƯỢT MÀ --- *@
+        <div class="mobile-header" style="background: @headerGradient; padding: 50px 40px; color: white; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; position: relative; z-index: 1;">
+                <div style="flex: 1; min-width: 280px;">
+                    <span style="background: rgba(255,255,255,0.25); padding: 8px 20px; border-radius: 50px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; backdrop-filter: blur(4px);">Mã số: #@Model.Id</span>
+                    <h1 style="margin: 20px 0 10px 0; font-size: 36px; font-weight: 900; letter-spacing: -0.025em; line-height: 1.2;">@Model.TenForm</h1>
+                    <div style="display: flex; align-items: center; gap: 15px; opacity: 0.95; font-weight: 500; font-size: 15px; flex-wrap:wrap;">
+                        <span><i class="fa fa-calendar"></i> @Model.TimeNguoiTao?.ToString("dd/MM/yyyy HH:mm")</span>
+                        <span style="width: 4px; height: 4px; background: white; border-radius: 50%;"></span>
+                        <span><i class="fa fa-user"></i> Người lập phiếu: @Model.TenNguoiTao</span>
+                        @if (!string.IsNullOrEmpty(Model.Danhmuc))
+                        {
+                            <span style="width: 4px; height: 4px; background: white; border-radius: 50%;"></span>
+                            <span style="background: rgba(255,255,255,0.15); padding:6px 12px; border-radius:12px; font-weight:800; font-size:13px;"><i class="fa fa-tags"></i> @Model.Danhmuc</span>
+                        }
+                    </div>
+                </div>
+                <div class="mobile-status-box" style="background: white; padding: 20px 35px; border-radius: 24px; text-align: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
+                    <div style="font-size: 12px; font-weight: 900; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px;">Quy trình hiện tại</div>
+                    <div style="font-size: 22px; font-weight: 900; color: @statusColor">@statusText</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mobile-body" style="padding: 40px;">
+            <div class="mobile-grid-main" style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 40px;">
+
+                @* --- CỘT TRÁI: KHỐI THÔNG TIN HÀNH CHÍNH & NỘI DUNG TÁC VỤ --- *@
+                <div>
+                    <h3 style="margin: 0 0 25px 0; color: #1e293b; font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 12px;">
+                        <span style="width: 6px; height: 28px; background: @colorPrimary; border-radius: 10px;"></span> BẢN PHÂN TÍCH THÔNG TIN KHỞI TẠO
+                    </h3>
+                    <div class="mobile-grid-info" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                        <div style="background: #ffffff; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px;">Tài khoản</small>
+                            <div style="font-weight: 700; color: #1e293b; font-size: 16px;">@Model.SoNhanVien</div>
+                        </div>
+                        <div style="background: #ffffff; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px;">Bộ phận nghiệp vụ</small>
+                            <div style="font-weight: 700; color: @colorDark; font-size: 16px;">@Model.BoPhan</div>
+                        </div>
+                        <div style="background: #ffffff; padding: 22px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <small style="color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px;">Họ tên nhân viên</small>
+                            <div style="font-weight: 700; color: @colorDark; font-size: 16px;">@Model.TenNguoiNv</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 30px;">
+                        <div style="background: #ffffff; padding: 18px; border-radius: 14px; border: 1px solid #e6edf6; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display:flex; align-items:center; gap:12px;">
+                            <i class="fa fa-building" style="color: @colorPrimary; font-size:18px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:@colorLight; border-radius:8px;"></i>
+                            <div style="flex:1;">
+                                <small style="display:block; font-weight:800; color:#64748b; font-size:12px; text-transform:uppercase;">Pháp nhân công ty</small>
+                                <div style="font-weight:700; color:#0f172a; font-size:15px;">@(string.IsNullOrEmpty(Model.TenCongTy) ? "Chưa cấu hình công ty" : Model.TenCongTy)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background: @colorLight; padding: 30px; border-radius: 24px; margin-bottom: 40px; border: 1px solid #f1f5f9; line-height: 1.6; color: #334155; font-size: 16px;">
+                        @Html.Raw(chiTietNoiDung)
+                    </div>
+
+                    @* --- HIỂN THỊ ĐỘNG DANH SÁCH NHÂN SỰ XỬ LÝ (FORMCONGVIECNGUOILIENQUAN) --- *@
+                    <h3 style="margin-bottom: 20px; color: @colorPrimary; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+                        <i class="fa fa-users"></i> NHÂN SỰ THỰC THI NHIỆM VỤ
+                    </h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; margin-bottom: 35px;">
+                        @if (Model.FormCongViecNguoiLienQuans != null && Model.FormCongViecNguoiLienQuans.Any())
+                        {
+                            foreach (var hoTro in Model.FormCongViecNguoiLienQuans.OrderBy(x => x.Id))
+                            {
+                                <div style="background: white; border: 2px solid @colorBorder; padding: 20px; border-radius: 22px; display: flex; align-items: center; gap: 15px; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);">
+                                    <div style="background: @colorLight; color: @colorDark; width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px;">
+                                        @(hoTro.IdNguoiDungNavigation?.HoTen?.Substring(0, 1).ToUpper() ?? "W")
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 800; color: @colorDark; font-size: 16px;">@hoTro.IdNguoiDungNavigation?.HoTen</div>
+                                        <div style="font-size: 13px; color: #4d7c0f; margin-top: 2px;">Mã số: @hoTro.IdNguoiDungNavigation?.MaNhanVien</div>
+                                    </div>
+                                    <span style="position:absolute; top:-12px; right:15px; background: @colorPrimary; color:white; font-size:10px; padding:4px 12px; border-radius:12px; font-weight:800;"><i class="fa fa-check"></i> ĐANG THỰC HIỆN</span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div style="color:#94a3b8; font-style:italic;">Chưa có nhân sự liên đới xử lý.</div>
+                        }
+                    </div>
+
+                    @* --- BAN QUẢN TRỊ ĐIỀU PHỐI GÁN THÊM NHÂN SỰ XỬ LÝ --- *@
+                    @if ((User.IsInRole("All") || User.IsInRole("AdminCV") || User.IsInRole("AdminIT")) && !isCancelled && !isFinished)
+                    {
+                        <div id="assignSection" style="background: @colorLight; border: 2px dashed @colorPrimary; padding: 25px; border-radius: 24px; margin-bottom: 45px;">
+                            <p style="margin:0 0 15px 0; font-size:13px; font-weight:800; color:@colorDark; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                <i class="fa fa-user-plus" style="font-size: 16px;"></i> ĐIỀU PHỐI BỔ SUNG NHÂN SỰ VÀO PHIẾU CÔNG VIỆC:
+                            </p>
+                            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                <select id="selectIT" style="素 flex: 1; min-width: 200px; padding: 14px; border-radius: 12px; border: 1.5px solid @colorBorder; font-weight: 600; outline: none; background: white; font-size: 15px; color: #1e293b;">
+                                    <option value="">-- Click chọn nhân sự bàn giao việc --</option>
+                                    @if (ViewBag.ListNguoiDungHeThong != null)
+                                    {
+                                        foreach (var user in (List<E_Form_Best.Models.ITForm.User>)ViewBag.ListNguoiDungHeThong)
+                                        {
+                                            <option value="@user.IdNguoiDung">[@(user.MaNhanVien ?? "N/A")] @user.HoTen (@user.PhongBan)</option>
+                                        }
+                                    }
+                                </select>
+                                <button id="btnConfirmSupport" class="mobile-btn-action" onclick="changeSupporter()" style="background: @colorDark; color: white; border: none; padding: 0 35px; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; min-height: 48px;">
+                                    <span id="textBtn">GÁN VIỆC</span>
+                                    <i id="loadingIcon" class="fa fa-spinner fa-spin" style="display: none; margin-left: 8px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    <div id="historyOverlay" onclick="toggleZoomHistory()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; backdrop-filter: blur(3px);"></div>
+
+                    <div class="mobile-history-toggle" onclick="toggleHistoryMobile()" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between;">
+                        <h3 style="margin: 0; color: #1e293b; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+                            <i class="fa fa-history"></i> NHẬT KÝ TIẾN TRÌNH HỆ THỐNG
+                        </h3>
+                        <span id="historyToggleIconMobile" style="display: none; color: @colorDark; font-weight:800; font-size: 12px !important; background: @colorLight; padding: 8px 12px; border-radius: 12px;"><i class="fa fa-chevron-down"></i> BUNG LỊCH SỬ</span>
+                    </div>
+
+                    @* --- BOX HIỂN THỊ DÒNG LỊCH SỬ FORM TIẾN TRÌNH --- *@
+                    <div id="historyContainer" class="mobile-history-content" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 28px; padding: 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); position: relative; z-index: 1; overflow: hidden;">
+                        <div style="padding: 15px 25px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: flex-end; background: #fafafa;">
+                            <button type="button" onclick="toggleZoomHistory()" id="btnZoomHistory" style="background: #ffffff; border: 1px solid #e2e8f0; width: 35px; height: 35px; border-radius: 10px; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-expand" id="historyZoomIcon"></i>
+                            </button>
+                        </div>
+                        <div id="historyScrollList" style="max-height: 400px; overflow-y: auto; padding: 30px; background: #ffffff;">
+                            <div style="margin-left: 10px; border-left: 2px dashed #cbd5e1; padding-left: 30px;">
+                                @if (Model.LichSuFormCongViecs != null && Model.LichSuFormCongViecs.Any())
+                                {
+                                    foreach (var ls in Model.LichSuFormCongViecs.OrderByDescending(x => x.Time))
+                                    {
+                                        <div style="position: relative; margin-bottom: 30px;">
+                                            <div style="position: absolute; left: -41px; top: 0; width: 20px; height: 20px; background: white; border: 4px solid @colorPrimary; border-radius: 50%; z-index: 1;"></div>
+                                            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9;">
+                                                <div style="flex: 1; min-width: 200px;">
+                                                    <div style="font-weight: 800; color: #1e293b; font-size: 15px; margin-bottom: 4px;">@ls.TieuDe</div>
+                                                    <div style="color: #64748b; font-size: 14px; line-height: 1.6; white-space: pre-line;">@ls.Mota</div>
+                                                </div>
+                                                <div style="text-align: right; min-width: 100px; margin-left: 15px; flex-shrink: 0;">
+                                                    <div style="font-weight: 800; color: @colorPrimary; font-size: 14px;">@ls.Time?.ToString("HH:mm")</div>
+                                                    <div style="color: #94a3b8; font-size: 12px; margin-top: 2px;">@ls.Time?.ToString("dd/MM/yyyy")</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div style="text-align: center; color: #94a3b8; padding: 20px;">Chưa lưu vết tiến trình tác vụ nào.</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* --- CỘT PHẢI: ĐỌC FILE VĂN BẢN VÀ ĐIỀU PHỐI PHÊ DUYỆT ĐƠN PHIẾU --- *@
+                <div>
+                    @if (!string.IsNullOrEmpty(fileUrl))
+                    {
+                        <h3 style="margin-bottom: 20px; color: #0f172a; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa fa-paperclip"></i> HỒ SƠ TÀI LIỆU PHỤ TRỢ
+                        </h3>
+                        <div style="background: @colorLight; border: 2px solid @colorBorder; padding: 16px 20px; border-radius: 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; gap: 12px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
+                                <i class="fa fa-file-text-o" style="font-size: 22px; color: @colorDark; flex-shrink: 0;"></i>
+                                <span style="font-size: 14px; font-weight: 800; color: @colorDark; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">@fileName</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; width: 100%; justify-content: flex-end;">
+                                <a href="@fileUrl" target="_blank" style="background: white; color: @colorDark; border: 1.5px solid @colorPrimary; padding: 9px 18px; border-radius: 12px; font-weight: 800; text-decoration: none; font-size: 13px;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='white'">XEM FILE</a>
+                                <a href="@fileUrl" download style="background: @colorDark; color: white; padding: 10px 22px; border-radius: 12px; font-weight: 800; text-decoration: none; font-size: 13px; box-shadow: 0 4px 10px rgba(45,66,1,0.2);">TẢI XUỐNG</a>
+                            </div>
+                        </div>
+                    }
+
+                    @* --- KHỐI TIẾN TRÌNH DUYỆT TRẠNG THÁI CHUẨN --- *@
+                    <div style="background: #ffffff; padding: 30px; border-radius: 28px; border: 1px solid #e2e8f0; margin-bottom: 35px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);">
+                        <h4 style="margin: 0 0 25px 0; font-size: 15px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa fa-spinner"></i> MỐC SƠ ĐỒ CHUYỂN BƯỚC
+                        </h4>
+                        <div style="position: relative; padding-left: 30px; border-left: 2px solid #f1f5f9;">
+                            <div style="margin-bottom: 25px; position: relative;">
+                                <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: #16a34a; border: 3px solid white; box-shadow: 0 0 0 2px #16a34a;"></div>
+                                <div style="font-weight: 800; font-size: 15px; color: #1e293b;">Người lập phiếu: @Model.TenNguoiTao</div>
+                                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@Model.TimeNguoiTao?.ToString("HH:mm dd/MM/yyyy")</div>
+                            </div>
+                            <div style="margin-bottom: 25px; position: relative;">
+                                <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: @(isApprovedByManager ? "#ca8a04" : "#cbd5e1"); border: 3px solid white; box-shadow: 0 0 0 2px @(isApprovedByManager ? "#ca8a04" : "#cbd5e1");"></div>
+                                <div style="font-weight: 800; font-size: 15px; color: #1e293b;">Quản lý phê duyệt: @(Model.TenNguoiDuyet ?? "---")</div>
+                                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@(Model.TimeNguoiDuyet?.ToString("HH:mm dd/MM/yyyy") ?? "Đang đợi quản lý trực tiếp duyệt đơn...")</div>
+                            </div>
+                            <div style="position: relative;">
+                                <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: @(isFinished ? "#65a30d" : "#cbd5e1"); border: 3px solid white; box-shadow: 0 0 0 2px @(isFinished ? "#65a30d" : "#cbd5e1");"></div>
+                                <div style="font-weight: 800; font-size: 15px; color: #1e293b;">Bàn giao kết quả: @(Model.TenAdmin ?? "---")</div>
+                                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@(Model.TimeAdmin?.ToString("HH:mm dd/MM/yyyy") ?? "Đang theo dõi triển khai...")</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* --- KHỐI ĐIỀU KHIỂN HÀNH ĐỘNG DUYỆT PHIẾU THEO PHÂN QUYỀN --- *@
+                    @if (!isCancelled && !isFinished)
+                    {
+                        <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 25px;">
+                            @if (!isApprovedByManager && (User.IsInRole("All") || isDirectDepartmentManager))
+                            {
+                                <button id="btnDuyet" onclick="handleAction('Duyet')" style="background: #16a34a; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(22, 163, 74, 0.3); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                    <i class="fa fa-check-circle" style="font-size: 20px;"></i> PHÊ DUYỆT ĐƠN CÔNG VIỆC
+                                </button>
+                            }
+
+
+                            
+                                <button id="btnHoanThanh" onclick="handleXacNhanHoanThanh()" style="background: #65a30d; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 16px; box-shadow: 0 10px 25px -5px rgba(101, 163, 13, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                    <i class="fa fa-flag" style="font-size: 20px;"></i> ĐÓNG PHIẾU HOÀN TẤT
+                                </button>
+                            
+
+  
+                                <button id="btnHuy" onclick="handleAction('Huy')" style="background: white; color: #dc2626; border: 2px solid #dc2626; padding: 18px; border-radius: 18px; font-weight: 800; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                    <i class="fa fa-times-circle" style="font-size: 18px;"></i> HỦY PHIẾU CÔNG VIỆC
+                                </button>
+                            
+                        </div>
+                    }
+
+                    @* --- KHỐI ĐÁNH GIÁ VÀ PHẢN HỒI KHI HOÀN THÀNH PHIẾU --- *@
+                    @if (Model.TrangThai == "HoanTat" && currentUserId != 0 && currentUserId == Model.IdNguoiTao)
+                    {
+                        if (!daDanhGia)
+                        {
+                            <div style="margin-top: 15px;">
+                                <div style="background: linear-gradient(135deg, #f7fee7 0%, #ecfccb 100%); padding: 25px; border-radius: 20px; border: 2px solid #65a30d; margin-bottom: 15px;">
+                                    <h4 style="margin: 0 0 15px 0; color: #2d4201; font-size: 16px; font-weight: 900; display: flex; align-items: center; gap: 8px;">
+                                        <i class="fa fa-star"></i> KHẢO SÁT CHẤT LƯỢNG THỰC HIỆN
+                                    </h4>
+                                    <p style="color: #3f6212; font-size: 14px; margin-bottom: 15px;">Vui lòng xếp hạng sao mức độ hài lòng của đơn (1-5 sao):</p>
+                                    <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                                        <button onclick="chonSao(1)" id="star1" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(1)" onmouseout="resetHover()">★</button>
+                                        <button onclick="chonSao(2)" id="star2" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(2)" onmouseout="resetHover()">★</button>
+                                        <button onclick="chonSao(3)" id="star3" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(3)" onmouseout="resetHover()">★</button>
+                                        <button onclick="chonSao(4)" id="star4" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(4)" onmouseout="resetHover()">★</button>
+                                        <button onclick="chonSao(5)" id="star5" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(5)" onmouseout="resetHover()">★</button>
+                                    </div>
+                                    <textarea id="txtNhanXet" placeholder="Ý kiến phản hồi thêm (Không bắt buộc)..." class="input-hover-star" style="width: 100%; padding: 12px; border: 2px solid #bef264; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; box-sizing: border-box; margin-bottom: 12px;"></textarea>
+                                    <button id="btnGuiDanhGia" onclick="handleDanhGia()" disabled style="width: 100%; background: linear-gradient(135deg, #65a30d 0%, #4d7c0f 100%); color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 900; cursor: not-allowed; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(101, 163, 13, 0.3); opacity: 0.5;">
+                                        <i class="fa fa-paper-plane"></i> GỬI KHẢO SÁT
+                                    </button>
+                                </div>
+
+                                <div style="background: #fff7ed; padding: 20px; border-radius: 20px; border: 2px solid #fb923c;">
+                                    <button id="btnChuaHoanThanh" onclick="handleChuaHoanThanh()" style="width: 100%; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 900; font-size: 15px; box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='';">
+                                        <i class="fa fa-undo"></i> CÔNG VIỆC CHƯA HOÀN THÀNH KHỚP / LÀM LẠI
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            var dg = danhGiaList.FirstOrDefault();
+                            if (dg != null)
+                            {
+                                string starDisplay = new string('⭐', dg.MucDo ?? 0);
+                                <div style="margin-top: 15px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 30px; border-radius: 20px; border: 2px solid #16a34a; box-shadow: 0 10px 25px -5px rgba(22, 163, 74, 0.2);">
+                                    <div style="text-align: center;">
+                                        <div style="background: white; width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px -5px rgba(22, 163, 74, 0.2);">
+                                            <i class="fa fa-check-circle" style="font-size: 48px; color: #16a34a;"></i>
+                                        </div>
+                                        <h4 style="margin: 0 0 10px 0; color: #14532d; font-size: 18px; font-weight: 900; text-transform: uppercase;">PHIẾU ĐÃ KHÓA HOÀN TOÀN</h4>
+                                        <div style="font-size: 36px; margin: 15px 0;">@starDisplay</div>
+                                        <div style="background: white; padding: 15px; border-radius: 16px; border: 1px solid #bbf7d0;">
+                                            <span style="color: #14532d; font-size: 24px; font-weight: 900;">Đã chấm: @(dg.MucDo ?? 0) / 5 SAO</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    }
+
+                    <div id="commentOverlay" onclick="toggleZoom()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; backdrop-filter: blur(3px);"></div>
+
+                    @* --- KHỐI BOX KHÔNG GIAN THẢO LUẬN / BÌNH LUẬN BIÊN BẢN CÔNG VIỆC --- *@
+                    <div id="commentContainer" style="margin-top: 30px; background: #ffffff; border-radius: 28px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04); position: relative; z-index: 1;">
+                        <div style="background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); padding: 20px 25px; border-bottom: 2px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                            <h4 style="margin: 0; font-size: 16px; font-weight: 900; color: #1e293b; display: flex; align-items: center; gap: 10px;">
+                                <i class="fa fa-comments"></i> <span>TRAO ĐỔI THẢO LUẬN</span>
+                                <span id="commentCount" style="background: @colorPrimary; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;">0</span>
+                            </h4>
+                            <button type="button" onclick="toggleZoom()" id="btnZoom" style="background: #f1f5f9; border: none; width: 35px; height: 35px; border-radius: 10px; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-expand" id="zoomIcon"></i>
+                            </button>
+                        </div>
+
+                        <div id="commentList" style="max-height: 500px; overflow-y: auto; padding: 20px; background: #f8fafc; scrollbar-width: thin; display: flex; flex-direction: column; gap: 15px;">
+                            <div id="loadingComments" style="text-align: center; color: #94a3b8; padding: 20px;">
+                                <i class="fa fa-spinner fa-spin" style="font-size: 24px;"></i>
+                            </div>
+                        </div>
+
+                        <div style="padding: 20px; background: white; border-top: 2px solid #e2e8f0;">
+                            <form id="formBinhLuan" enctype="multipart/form-data">
+                                <textarea id="txtBinhLuan" name="noiDung" placeholder="Gõ nội dung trao đổi tiến độ... (Hỗ trợ Ctrl+V chụp dán hình ảnh cực nhanh)" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; box-sizing: border-box; margin-bottom: 12px;"></textarea>
+                                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <label for="fileBinhLuan" style="flex: 1; min-width: 200px; padding: 12px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; cursor: pointer; text-align: center; font-size: 14px; color: #64748b; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                        <i class="fa fa-paperclip"></i> <span id="fileLabel">Đính kèm tài liệu chứng từ (max 50MB)</span>
+                                        <input type="file" id="fileBinhLuan" name="file" style="display: none;" onchange="updateFileLabel(this)">
+                                    </label>
+                                    <button type="submit" id="btnGuiBinhLuan" style="padding: 12px 30px; background: linear-gradient(135deg, @colorPrimary 0%, @colorDark 100%); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 14px; white-space: nowrap; width: 100%;">
+                                        <i class="fa fa-paper-plane"></i> GỬI PHẢN HỒI
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    @* --- LIGHTBOX OVERLAY PHÓNG TO HÌNH ẢNH XOAY LẬT HIỆN ĐẠI --- *@
+    <div id="imageOverlay" onclick="closeZoom(event)" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.95); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(8px);">
+        <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 15px; z-index: 10000; flex-wrap: wrap;" onclick="event.stopPropagation()">
+            <button onclick="rotateImage(-90)" style="background: rgba(255,255,255,0.2); color: white; border: none; width: 45px; height: 45px; border-radius: 12px; cursor: pointer; font-size: 18px; backdrop-filter: blur(4px);"><i class="fa fa-undo"></i></button>
+            <button onclick="rotateImage(90)" style="background: rgba(255,255,255,0.2); color: white; border: none; width: 45px; height: 45px; border-radius: 12px; cursor: pointer; font-size: 18px; backdrop-filter: blur(4px);"><i class="fa fa-repeat"></i></button>
+            <button onclick="closeZoomForce()" style="background: rgba(239, 68, 68, 0.8); color: white; border: none; width: 45px; height: 45px; border-radius: 12px; cursor: pointer; font-size: 20px; backdrop-filter: blur(4px);"><i class="fa fa-times"></i></button>
+        </div>
+        <img id="fullImage" src="" style="max-width:95%; max-height:95%; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.1); transition: transform 0.3s ease; object-fit: contain;">
+    </div>
+</div>
+
+<script>
+    // =========================================================================
+    // 1. ANCHOR BINDING THÔNG TIN TÀI KHOẢN & PHÂN QUYỀN TRÊN RAM CHẠY CLIENT
+    // =========================================================================
+    const formId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.Id))');
+    const currentUserId = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.CurrentUserId))');
+    const userRoles = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList()))');
+
+    let currentSkipComment = 0; const takeComment = 20; let hasMoreComments = true; let isLoadingComments = false; let totalComments = 0; let soSaoChon = 0; let isSubmitting = false;
+
+    function hasRole(roleName) { return userRoles.includes(roleName); }
+    function escapeHtml(str) { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+    // HÀM CHUYỂN ĐỔI TIẾNG VIỆT CHUẨN NFD KHỬ DẤU TRIỆT ĐỂ CHỐNG LỆCH PHÔNG KHI TÌM KIẾM BÌNH LUẬN
+    function removeVietnameseTonesJS(str) {
+        if (!str) return "";
+        return str.normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .replace(/đ/g, "d")
+                  .replace(/Đ/g, "D");
+    }
+
+    async function apiPost(url, body, btnIds) {
+        if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = true; });
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value },
+                body: JSON.stringify(body)
+            });
+            const data = await response.json();
+            if (data.success) { alert(data.message || "Xử lý nghiệp vụ phân hệ thành công!"); location.reload(); }
+            else { alert(data.message || "Thao tác thất bại"); if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; }); }
+        } catch (err) { alert("Mất kết nối máy chủ file."); if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; }); }
+    }
+
+    function toggleHistoryMobile() {
+        if (window.innerWidth <= 768) {
+            const content = document.getElementById('historyContainer'); const iconSpan = document.getElementById('historyToggleIconMobile');
+            if (content.classList.contains('show')) { content.classList.remove('show'); iconSpan.innerHTML = '<i class="fa fa-chevron-down"></i> BUNG LỊCH SỬ'; }
+            else { content.classList.add('show'); iconSpan.innerHTML = '<i class="fa fa-chevron-up"></i> THU GỌN'; }
+        }
+    }
+
+    function toggleZoom() {
+        const container = document.getElementById('commentContainer'); const overlay = document.getElementById('commentOverlay'); const icon = document.getElementById('zoomIcon');
+        const isFull = container.classList.toggle('comment-zoom-active');
+        if (overlay) overlay.style.display = isFull ? 'block' : 'none';
+        if (icon) { if (isFull) icon.classList.replace('fa-expand', 'fa-compress'); else icon.classList.replace('fa-compress', 'fa-expand'); }
+    }
+
+    function toggleZoomHistory() {
+        const container = document.getElementById('historyContainer'); const overlay = document.getElementById('historyOverlay'); const icon = document.getElementById('historyZoomIcon');
+        const isFull = container.classList.toggle('history-zoom-active');
+        if (overlay) overlay.style.display = isFull ? 'block' : 'none';
+        if (icon) { if (isFull) icon.classList.replace('fa-expand', 'fa-compress'); else icon.classList.replace('fa-compress', 'fa-expand'); }
+    }
+
+    let currentImgRotation = 0;
+    function openZoom(src) { currentImgRotation = 0; const fullImg = document.getElementById('fullImage'); const overlay = document.getElementById('imageOverlay'); if (fullImg && overlay) { fullImg.src = src; fullImg.style.transform = `scale(1) rotate(0deg)`; overlay.style.display = 'flex'; } }
+    function closeZoom(e) { if (e && e.target.id !== 'imageOverlay') return; closeZoomForce(); }
+    function closeZoomForce() { const overlay = document.getElementById('imageOverlay'); if (overlay) overlay.style.display = 'none'; }
+    function rotateImage(deg) { currentImgRotation += deg; const fullImg = document.getElementById('fullImage'); if (fullImg) fullImg.style.transform = `scale(1) rotate(${currentImgRotation}deg)`; }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === "Escape") {
+            if (document.getElementById('imageOverlay')?.style.display === 'flex') closeZoomForce();
+            else if (document.getElementById('commentContainer')?.classList.contains('comment-zoom-active')) toggleZoom();
+            else if (document.getElementById('historyContainer')?.classList.contains('history-zoom-active')) toggleZoomHistory();
+        }
+    });
+
+    // =========================================================================
+    // 2. AJAX ENGINE: TẢI, THÊM VÀ RENDER PHÂN ĐOẠN BOX TRAO ĐỔI BÌNH LUẬN
+    // =========================================================================
+    async function taiBinhLuan(isLoadMore = false) {
+        if (isLoadingComments) return; isLoadingComments = true;
+        try {
+            const res = await fetch(`/FormCongViec/LayBinhLuan/${formId}?skip=${currentSkipComment}&take=${takeComment}`);
+            const data = await res.json();
+            if (data.success) {
+                const commentList = document.getElementById('commentList'); if (!commentList) return;
+                if (!isLoadMore) { commentList.innerHTML = ''; currentSkipComment = 0; totalComments = 0; }
+                if (!data.data || data.data.length === 0) {
+                    if (!isLoadMore) commentList.innerHTML = '<div id="noCommentMsg" style="text-align: center; color: #94a3b8; padding: 40px;"><p>Chưa có thảo luận phản hồi nào trên phiếu này.</p></div>';
+                    hasMoreComments = false;
+                } else {
+                    document.getElementById('noCommentMsg')?.remove();
+                    data.data.forEach(bl => {
+                        const temp = document.createElement('div'); temp.innerHTML = renderComment(bl);
+                        if (isLoadMore) commentList.prepend(temp.firstElementChild); else commentList.appendChild(temp.firstElementChild);
+                        totalComments++;
+                    });
+                    currentSkipComment += data.data.length;
+                    if (data.data.length < takeComment) hasMoreComments = false;
+                    if (!isLoadMore) setTimeout(() => { commentList.scrollTop = commentList.scrollHeight; }, 100);
+                }
+                updateCommentCount();
+            }
+        } catch (err) { console.error(err); } finally { isLoadingComments = false; }
+    }
+
+    function renderComment(bl) {
+        const isOwn = String(currentUserId) === String(bl.idNguoiBinhLuan); const commentTime = new Date(bl.thoiGian).getTime(); const now = new Date().getTime(); const isExpired = (now - commentTime) > (2 * 60 * 60 * 1000);
+        const canDelete = (isOwn && !isExpired) || hasRole('All') || hasRole('AdminCV') || hasRole('AdminIT');
+        let fileHtml = '';
+        if (bl.fileDinhKem) {
+            const originalName = bl.fileDinhKem.split('_').slice(2).join('_') || bl.fileDinhKem;
+            const ext = bl.fileDinhKem.split('.').pop().toLowerCase();
+            if(['jpg','jpeg','png','gif','webp'].includes(ext)) { fileHtml = `<div style="margin-top:8px;"><img src="/FormCongViec/DownloadFile/${encodeURIComponent(bl.fileDinhKem)}" onclick="openZoom(this.src)" style="max-width:200px; border-radius:8px; cursor:zoom-in;"/></div>`; }
+            else { fileHtml = `<div style="margin-top: 10px; padding: 10px; background: #f1f5f9; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;"><i class="fa fa-paperclip"></i><a href="/FormCongViec/DownloadFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color: #65a30d; font-weight: 600; text-decoration: none;">${escapeHtml(originalName)}</a></div>`; }
+        }
+        return `<div class="comment-item" style="margin-bottom: 20px; display: flex; gap: 12px; ${isOwn ? 'flex-direction: row-reverse;' : ''}" data-comment-id="${bl.id}"><div style="width: 40px; height: 40px; border-radius: 50%; background: ${isOwn ? '#65a30d' : '#64748b'}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; flex-shrink: 0;">${(bl.tenNguoiBinhLuan || 'U').charAt(0).toUpperCase()}</div><div style="flex: 1; ${isOwn ? 'text-align: right;' : ''}"><div style="display: inline-block; text-align: left; max-width: 85%;"><div style="display: flex; flex-direction: column; margin-bottom: 4px; ${isOwn ? 'align-items: flex-end;' : 'align-items: flex-start;'}"><div style="display: flex; align-items: center; gap: 8px; ${isOwn ? 'flex-direction: row-reverse;' : ''}"><span style="font-weight: 700; font-size: 13px;">${escapeHtml(bl.tenNguoiBinhLuan)}</span><span style="font-size: 11px; color: #94a3b8;">${new Date(bl.thoiGian).toLocaleString('vi-VN')}</span>${canDelete ? `<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" style="color: #ef4444; cursor: pointer; margin: 0 5px;"></i>` : ''}</div></div><div style="background: ${isOwn ? '#f7fee7' : '#f8fafc'}; padding: 12px; border-radius: ${isOwn ? '16px 2px 16px 16px' : '2px 16px 16px 16px'}; border: 1px solid #cbd5e1;"><div style="font-size: 14px; white-space: pre-wrap;">${escapeHtml(bl.noiDung)}</div>${fileHtml}</div></div></div></div>`;
+    }
+
+    async function guiBinhLuan(e) {
+        if(e) e.preventDefault(); if (isSubmitting) return;
+        const noiDung = document.getElementById('txtBinhLuan').value.trim(); const fileInp = document.getElementById('fileBinhLuan');
+        if (!noiDung && !fileInp.files[0]) return alert('Bạn chưa điền nội dung văn bản thảo luận!');
+        const formData = new FormData(); formData.append('idForm', formId); formData.append('noiDung', noiDung); if (fileInp.files[0]) formData.append('file', fileInp.files[0]);
+        isSubmitting = true; document.getElementById('btnGuiBinhLuan').disabled = true;
+        try {
+            const res = await fetch('/FormCongViec/ThemBinhLuan', { method: 'POST', body: formData }); const data = await res.json();
+            if (data.success) { document.getElementById('commentList').insertAdjacentHTML('beforeend', renderComment(data.data)); document.getElementById('formBinhLuan').reset(); document.getElementById('fileLabel').textContent = 'Đính kèm tài liệu chứng từ (max 50MB)'; totalComments++; updateCommentCount(); const commentList = document.getElementById('commentList'); commentList.scrollTop = commentList.scrollHeight; }
+        } catch (err) { alert('Lỗi gửi không gian mạng.'); } finally { isSubmitting = false; document.getElementById('btnGuiBinhLuan').disabled = false; }
+    }
+
+    async function xoaBinhLuan(id) { if (!confirm('Bạn có chắc chắn muốn xóa dòng thảo luận này?')) return; try { const res = await fetch('/FormCongViec/XoaBinhLuan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) }); const data = await res.json(); if (data.success) { document.querySelector(`[data-comment-id="${id}"]`)?.remove(); totalComments--; updateCommentCount(); } } catch (err) { alert('Lỗi hệ thống'); } }
+
+    function updateFileLabel(input) { const label = document.getElementById('fileLabel'); if (input.files[0]) { const sizeMB = (input.files[0].size / 1048576).toFixed(2); if(sizeMB > 50) { alert("Tệp đính kèm vượt quá dung lượng cho phép 50MB!"); input.value = ""; return; } label.textContent = input.files[0].name; } }
+    function updateCommentCount() { const el = document.getElementById('commentCount'); if (el) el.textContent = totalComments; }
+
+    // =========================================================================
+    // 3. EVENT ACTION CALL BACK END ENDPOINTS
+    // =========================================================================
+    function handleAction(type) {
+        let reason = null; if (type === 'Huy') { reason = prompt("Vui lòng ghi rõ lý do hủy phiếu công việc này:"); if (!reason) return; }
+        if (confirm(`Xác nhận xử lý hành động này trên phiếu?`)) apiPost('/FormCongViec/XuLyDon', { id: formId, action: type, reason: reason }, ['btnDuyet', 'btnHuy']);
+    }
+
+    function handleXacNhanHoanThanh() { if (confirm("Xác nhận toàn bộ công việc chỉ định đã hoàn tất 100%?")) apiPost('/FormCongViec/XacNhanHoanThanh', { id: formId }, ['btnHoanThanh']); }
+    function handleChuaHoanThanh() { let reason = prompt("Lý do chưa hài lòng / Yêu cầu làm lại:"); if (!reason) return; apiPost('/FormCongViec/XacNhanChuaHoanThanh', { id: formId, reason: reason }, ['btnChuaHoanThanh']); }
+    function changeSupporter() { const select = document.getElementById('selectIT'); const maNv = select?.value; if (!maNv) return alert("Vui lòng chọn một nhân sự!"); if (confirm("Xác nhận bàn giao gán bổ sung công việc cho người này?")) apiPost('/FormCongViec/ThemNguoiHoTro', { idFormIt: formId, maNv: maNv }); }
+
+    // =========================================================================
+    // 4. LOGIC EVENT HOVER RATING STAR ĐÁNH GIÁ KHẢO SÁT CHẤT LƯỢNG
+    // =========================================================================
+    function chonSao(sao) {
+        soSaoChon = sao; capNhatGiaoDienSao();
+        const btnGui = document.getElementById('btnGuiDanhGia');
+        if (btnGui) { btnGui.disabled = false; btnGui.style.opacity = '1'; btnGui.style.cursor = 'pointer'; }
+    }
+
+    function hoverSao(sao) {
+        for (let i = 1; i <= 5; i++) {
+            const star = document.getElementById('star' + i);
+            if (star) { star.style.color = i <= sao ? '#65a30d' : '#9ca3af'; star.style.transform = i <= sao ? 'scale(1.15)' : ''; }
+        }
+    }
+
+    function resetHover() { capNhatGiaoDienSao(); }
+
+    function capNhatGiaoDienSao() {
+        for (let i = 1; i <= 5; i++) {
+            const star = document.getElementById('star' + i); if (!star) continue;
+            star.style.background = i <= soSaoChon ? 'linear-gradient(135deg, #f7fee7 0%, #bef264 100%)' : 'white';
+            star.style.color = i <= soSaoChon ? '#65a30d' : '#9ca3af';
+            star.style.borderColor = i <= soSaoChon ? '#65a30d' : '#d1d5db';
+        }
+    }
+
+    function handleDanhGia() {
+        if (soSaoChon === 0) { alert("Vui lòng chấm điểm sao hài lòng trước khi gửi!"); return; }
+        const nhanXet = document.getElementById('txtNhanXet')?.value.trim() || '';
+        if (confirm(`Xác nhận gửi đánh giá chất lượng công việc ${soSaoChon} sao?`)) {
+            apiPost('/FormCongViec/DanhGiaFormItsDon', { id: formId, mucDo: soSaoChon, nhanXet: nhanXet }, ['btnGuiDanhGia']);
+        }
+    }
+
+    // =========================================================================
+    // 5. ATTACHMENT PASTE CLIPBOARD BINDING (CTRL + V IMAGE SUBMISSION)
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('formBinhLuan')?.addEventListener('submit', guiBinhLuan);
+        document.getElementById('txtBinhLuan')?.addEventListener('paste', function (e) {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].kind === 'file' && items[i].type.startsWith('image/')) {
+                    const blob = items[i].getAsFile(); const dataTransfer = new DataTransfer(); dataTransfer.items.add(blob);
+                    const fileBinhLuan = document.getElementById('fileBinhLuan'); if (fileBinhLuan) { fileBinhLuan.files = dataTransfer.files; updateFileLabel(fileBinhLuan); }
+                }
+            }
+        });
+        taiBinhLuan(false);
+        document.getElementById('commentList')?.addEventListener('scroll', function() {
+            if (this.scrollTop <= 5 && hasMoreComments && !isLoadingComments) {
+                const oldHeight = this.scrollHeight; taiBinhLuan(true).then(() => { this.scrollTop = this.scrollHeight - oldHeight; });
+            }
+        });
+    });
+</script>

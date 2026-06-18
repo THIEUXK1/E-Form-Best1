@@ -11,7 +11,7 @@
     var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
     var tenCongTy = Model.TenCongTy ?? User.FindFirst("TenCongTy")?.Value ?? "Chưa xác định";
 
-    // ĐÃ CHUẨN HÓA TOÀN DIỆN: Hệ màu sắc chủ đề xanh lá cây tươi sáng (#65a30d)
+    // CHUẨN HÓA SẮC XANH CỎ NON MẠ NON CHỦ ĐẠO THỜI THƯỢNG (#65a30d)
     string colorPrimary = "#65a30d";
     string colorDark = "#2d4201";
     string colorLight = "#f7fee7";
@@ -55,13 +55,17 @@
             border-radius: 20px !important;
         }
 
+        #paste_area, .file-upload-box {
+            height: 150px !important;
+        }
+
         #btnSubmit {
             padding: 18px !important;
             font-size: 16px !important;
         }
     }
 
-    /* ĐỔI MÀU: Vòng bo sáng rực khi click chuột vào ô nhập liệu (Focus) */
+    /* Vòng bo sáng rực khi click chuột vào ô nhập liệu (Focus) */
     .input-hover:focus {
         border-color: @colorPrimary !important;
         box-shadow: 0 0 0 4px rgba(101, 163, 13, 0.15) !important;
@@ -148,10 +152,9 @@
     }
 </style>
 
-@* ĐỔI MÀU: Nền trang chính chuyển sang dải màu xanh mạ tươi tắn từ nhạt đến ấm áp *@
-<div class="main-container" style="background: linear-gradient(135deg, #f7fee7 0%, #ecfccb 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', sans-serif;">
+@* Nền trang chính chuyển sang dải màu xanh mạ tươi tắn mượt mà thiên hướng cỏ non *@
+<div class="main-container" style="background: linear-gradient(135deg, #f7fee7 0%, #d9f99d 40%, #a3e635 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', sans-serif;">
 
-    @* ĐỔI MÀU: Hiệu ứng bóng đổ khối form sang tông xanh thẫm *@
     <form id="workOrderSingleForm" method="post" enctype="multipart/form-data" action="/FormCongViec/DonCvCongViecOrder" class="form-wrapper"
           style="max-width: 950px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(45, 66, 1, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
 
@@ -215,7 +218,6 @@
                                 <div class="overSelect"></div>
                             </div>
                             <div class="checkboxes-dropdown" id="checkboxesArea">
-                                @* FIX THỜI GIAN THỰC: Sử dụng oninput bắt trọn vẹn sự kiện thay đổi *@
                                 <input type="text" id="searchStaffInput" oninput="filterStaffFunction(event)" onclick="event.stopPropagation()" placeholder="🔍 Nhập Tên, Mã NV, Phòng ban..." class="search-input-box" />
 
                                 @if (ViewBag.NguoiNhanViecList != null)
@@ -249,7 +251,7 @@
                 </div>
             </div>
 
-            @* --- PHẦN 3: NỘI DUNG YÊU CẦU CHI TIẾT --- *@
+            @* --- PHẦN 3: NỘI DUNG YÊU CẦU CHI TIẾT & FILE ĐÍNH KÈM SƠ ĐỒ --- *@
             <div class="box-detail-mobile" style="@boxDetail">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                     <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">3</span>
@@ -261,15 +263,34 @@
                     <input type="text" name="cvOrder.Ten" id="TieuDe" required placeholder="Nhập tiêu đề hoặc tên hạng mục công việc chỉ định..." class="input-hover" style="@inputBase" />
                 </div>
 
-                <div style="margin-bottom: 5px;">
+                <div style="margin-bottom: 25px;">
                     <label style="@labelBase">Nội dung yêu cầu cụ thể <span style="color:red">*</span></label>
                     <textarea name="cvOrder.GhiChu" id="GhiChu" required placeholder="Mô tả chi tiết yêu cầu, các mốc tiến độ hoặc kết quả đầu ra cần đạt được..."
                               class="input-hover"
-                              style="@inputBase height: 150px; resize: none;"></textarea>
+                              style="@inputBase height: 120px; resize: none;"></textarea>
+                </div>
+
+                @* TÍCH HỢP LẠI: Vùng kéo thả file, đính kèm tài liệu và dán ảnh chụp màn hình thông minh gửi lên DonCongViec *@
+                <div class="grid-responsive-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label style="@labelBase">Hình ảnh mô tả / Sơ đồ kế hoạch (Ctrl+V)</label>
+                        <div id="paste_area" tabindex="0"
+                             style="width: 100%; border: 2px dashed @colorBorder; height: 160px; border-radius: 15px; display: flex; align-items: center; justify-content: center; background: @colorLight; color: @colorPrimary; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 700; transition: 0.3s; position: relative; outline: none;">
+                            <div style="text-align:center;"><i style="font-size: 24px; margin-bottom:8px;" class="fa fa-image"></i><br>Dán hình ảnh minh họa tại đây</div>
+                        </div>
+                        <input type="file" id="file_Anh" name="Anh" hidden accept="image/*">
+                    </div>
+                    <div>
+                        <label style="@labelBase">Tài liệu phương án đính kèm (File)</label>
+                        <div class="file-upload-box" style="border: 2px dashed #cbd5e1; height: 160px; border-radius: 15px; padding: 20px; box-sizing: border-box; background: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                            <input type="file" id="file_TaiLieu" name="UploadFile" style="font-size: 12px; width: 100%;">
+                            <p style="font-size: 11px; color: @colorDark; margin-top: 15px; text-align: center; font-weight: 600;">Đính kèm tài liệu liên quan (.doc, .xls, .pdf) nếu có.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            @* --- NÚT SUBMIT BIỂU MẪU CHỦ ĐẠO XANH TƯƠI SÁNG VÀ ĐỔ BÓNG LIME --- *@
+            @* --- NÚT SUBMIT BIỂU MẪU VIA AJAX --- *@
             <div style="display: flex; justify-content: center;">
                 <button type="button" id="btnSubmit" onclick="xuLyLuuDonCV()"
                         style="width: 100%; padding: 22px; background: linear-gradient(to right, @colorDark, #4d7c0f); color: #ffffff; border: none; border-radius: 20px; font-weight: 900; font-size: 18px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 25px -5px rgba(101, 163, 13, 0.4); transition: 0.3s;">
@@ -343,6 +364,24 @@
         }
     }
 
+    // Cơ chế dán ảnh thông minh bằng tổ hợp phím (Ctrl + V)
+    document.getElementById("paste_area").addEventListener('paste', function(e) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    this.innerHTML = `<img src="${event.target.result}" style="height:100%; width:100%; object-fit:contain; border-radius:12px;">`;
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(blob);
+                    document.getElementById("file_Anh").files = dataTransfer.files;
+                };
+                reader.readAsDataURL(blob);
+            }
+        }
+    });
+
     // Gửi dữ liệu bằng AJAX đồng bộ không tải lại trang chuyên nghiệp
     function xuLyLuuDonCV() {
         const checkedBoxes = document.querySelectorAll('input[name="selectedNguoiLienQuanIds"]:checked');
@@ -384,13 +423,38 @@
                 btn.style.pointerEvents = 'auto';
 
                 if (data.success) {
-                    alert("🎉 " + data.message);
-                    formElement.reset();
-                    document.getElementById("searchStaffInput").value = "";
-                    filterStaffFunction({ stopPropagation: function(){} });
-                    updateDropdownText();
+                    // Hiển thị thông báo thành công đẹp mắt bằng SweetAlert2 có sẵn từ Layout
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Thành công!',
+                            text: data.message,
+                            confirmButtonColor: '#65a30d'
+                        });
+                    } else {
+                        alert("🎉 " + data.message);
+                    }
+
+                    // ĐÃ CẬP NHẬT THEO YÊU CẦU: Chỉ xóa duy nhất trường nội dung chi tiết (GhiChu) và làm sạch bộ nhớ tạm của tệp tin vừa tải lên
+                    document.getElementById("GhiChu").value = "";
+                    document.getElementById("paste_area").innerHTML = '<div style="text-align:center;"><i style="font-size: 24px; margin-bottom:8px;" class="fa fa-image"></i><br>Dán hình ảnh minh họa tại đây</div>';
+
+                    // Giải phóng vùng lưu trữ Input File để tránh việc gửi lại file cũ ở đơn sau
+                    document.getElementById("file_Anh").value = "";
+                    document.getElementById("file_TaiLieu").value = "";
+
+                    // GIỮ NGUYÊN: Không dùng formElement.reset(), giữ nguyên Tiêu đề (TieuDe) và danh sách Người thực hiện đã tích chọn
                 } else {
-                    alert("❌ Thất bại: " + data.message);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Thất bại',
+                            text: data.message,
+                            confirmButtonColor: '#dc2626'
+                        });
+                    } else {
+                        alert("❌ Thất bại: " + data.message);
+                    }
                 }
             })
             .catch(error => {
