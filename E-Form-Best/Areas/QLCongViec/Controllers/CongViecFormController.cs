@@ -47,7 +47,6 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
             // --- XỬ LÝ LỌC DANH SÁCH NHÂN SỰ CÙNG BỘ PHẬN THEO LOGIC ĐĂNG NHẬP ---
-            // Bước A: Truy vấn chi tiết thông tin phòng ban của User hiện tại bao gồm cả mô hình mới
             var currentUser = await _context.Users
                 .Include(u => u.UserBoPhans)
                     .ThenInclude(ub => ub.IdBoPhanNavigation)
@@ -66,13 +65,26 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                         .Select(ub => ub.IdBoPhan)
                         .ToList();
 
-                    // Tìm kiếm tất cả nhân sự đang làm việc có chung bất kỳ ID bộ phận nào với User này
-                    danhSachNguoiCungBoPhan = await _context.Users
-                        .Include(u => u.UserBoPhans)
-                        .Where(u => (u.TrangThai == "Đang làm" || u.TrangThai == "HoatDong" || u.TrangThai == null) &&
-                                    u.UserBoPhans.Any(ub => listIdBoPhanCuaToi.Contains(ub.IdBoPhan)))
-                        .OrderBy(u => u.HoTen)
-                        .ToListAsync();
+                    if (listIdBoPhanCuaToi.Any())
+                    {
+                        // Tìm kiếm tất cả nhân sự đang làm việc có chung bất kỳ ID bộ phận nào với User này
+                        danhSachNguoiCungBoPhan = await _context.Users
+                            .Include(u => u.UserBoPhans)
+                            .Where(u => (u.TrangThai == "Đang làm" || u.TrangThai == "HoatDong" || u.TrangThai == null) &&
+                                        u.UserBoPhans.Any(ub => listIdBoPhanCuaToi.Contains(ub.IdBoPhan)))
+                            .OrderBy(u => u.HoTen)
+                            .ToListAsync();
+                    }
+                    else
+                    {
+                        // Fallback nếu có dòng bộ phận mới nhưng dải ID trống -> Quay về lọc theo chuỗi văn bản phong_ban gốc
+                        string phongBanThoCuaToi = currentUser.PhongBan?.Trim() ?? "";
+                        danhSachNguoiCungBoPhan = await _context.Users
+                            .Where(u => (u.TrangThai == "Đang làm" || u.TrangThai == "HoatDong" || u.TrangThai == null) &&
+                                        u.PhongBan != null && u.PhongBan == phongBanThoCuaToi)
+                            .OrderBy(u => u.HoTen)
+                            .ToListAsync();
+                    }
                 }
                 else
                 {
@@ -103,12 +115,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                 TimeNguoiTao = DateTime.Now,
                 TrangThai = "ChoDuyet",
                 IdForm = "CV_CongViec_Order_1",
-                TenForm = "Đơn giao việc chỉ định nhân sự",
-
-                // Cấu hình mặc định hệ thống phê duyệt ban đầu
-                IdNguoiDuyet = 8,
-                TenNguoiDuyet = "Hệ thống E-form",
-                TimeNguoiDuyet = DateTime.Now
+                TenForm = "Đơn giao việc chỉ định nhân sự"
             };
 
             return View(model);
@@ -131,7 +138,6 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             var viTri = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? User.FindFirst("UserRole")?.Value ?? "";
             var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
 
-            // Đảm bảo phải chọn ít nhất một người thực hiện
             if (selectedNguoiLienQuanIds == null || !selectedNguoiLienQuanIds.Any())
             {
                 return Json(new { success = false, message = "Vui lòng chọn ít nhất một nhân sự để chỉ định thực hiện công việc này!" });
@@ -141,7 +147,6 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             {
                 try
                 {
-                    // Lấy danh sách thông tin người dùng được chọn để phục vụ ghi Log nhật ký tiến trình
                     var danhSachUserNhanViec = await _context.Users
                                                                 .Where(u => selectedNguoiLienQuanIds.Contains(u.IdNguoiDung))
                                                                 .ToListAsync();
@@ -236,7 +241,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                         _context.FormCongViecNguoiLienQuans.Add(nguoiLienQuan);
                     }
 
-                    // --- 5. GÌN GIỮ NHẬT KÝ TIẾN TRÌNH (Đã đồng bộ chuẩn theo Model LichSuFormCongViec) ---
+                    // --- 5. GÌN GIỮ NHẬT KÝ TIẾN TRÌNH ---
                     string chuoiTenNhanVien = string.Join(", ", danhSachUserNhanViec.Select(x => x.HoTen));
                     string staffLog = $"Đã chỉ định xử lý: {(!string.IsNullOrEmpty(chuoiTenNhanVien) ? chuoiTenNhanVien : "N/A")}";
                     string deadlineLog = cvOrder?.ThoiHanHoanThanh.HasValue == true
@@ -249,9 +254,9 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                         IdFormCongViec = form.Id,
                         TieuDe = "Khởi tạo đơn công việc chỉ định",
                         Mota = $"[Cty: {tenCongTy}] Người giao: {userName}. {staffLog}. {deadlineLog}. {fileLog}. {statusAnhLog}",
-                        Time = DateTime.Now,        // Đồng bộ chính xác theo Model mới cung cấp
-                        IsRead = false,             // Mặc định trạng thái chưa đọc
-                        TrangThaiAnHien = 1         // Hiển thị lịch sử công khai
+                        Time = DateTime.Now,
+                        IsRead = false,
+                        TrangThaiAnHien = 1
                     };
                     _context.LichSuFormCongViecs.Add(lichSu);
 
@@ -281,7 +286,6 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         }
 
         #endregion
-
 
         #region QUẢN LÝ XÉT DUYỆT CÔNG VIỆC - RIÊNG BIỆT ĐƠN CÔNG VIỆC CHỈ ĐỊNH
 
