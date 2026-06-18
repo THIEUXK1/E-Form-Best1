@@ -75,6 +75,15 @@ public partial class FormCongViec
     [StringLength(255)]
     public string? TenCongTy { get; set; }
 
+    [InverseProperty("IdFormNavigation")]
+    public virtual ICollection<BinhLuanFormCongViec> BinhLuanFormCongViecs { get; set; } = new List<BinhLuanFormCongViec>();
+
+    [InverseProperty("IdFormCongViecNavigation")]
+    public virtual ICollection<CvCongViecOrder1> CvCongViecOrder1s { get; set; } = new List<CvCongViecOrder1>();
+
     [InverseProperty("IdFormCongViecNavigation")]
     public virtual ICollection<FormCongViecNguoiLienQuan> FormCongViecNguoiLienQuans { get; set; } = new List<FormCongViecNguoiLienQuan>();
+
+    [InverseProperty("IdFormCongViecNavigation")]
+    public virtual ICollection<LichSuFormCongViec> LichSuFormCongViecs { get; set; } = new List<LichSuFormCongViec>();
 }
