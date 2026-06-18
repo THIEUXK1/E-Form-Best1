@@ -3,15 +3,17 @@
 
 @{
     ViewData["Title"] = "Công Việc Dashboard";
-    // Cập nhật chính xác đường dẫn Layout dùng chung của phân hệ quản lý công việc
     Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
 
-    // Khai báo biến màu sắc để tối ưu hóa việc quản lý mã nguồn
-    string accentCyan = "#06b6d4";
-    string gradientPurple = "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)";
+    // Khai báo biến màu sắc theo tông xanh lá cỏ non (Cùng hệ màu Form Công việc chỉ định)
+    string colorPrimary = "#65a30d";
+    string colorDark = "#2d4201";
+    string colorLight = "#f7fee7";
+    string colorBorder = "#bef264";
+    string gradientGreen = "linear-gradient(135deg, #65a30d 0%, #4d7c0f 100%)";
 }
 
-<!-- Thêm khối style xử lý responsive cho thiết bị di động -->
+<!-- Style xử lý responsive -->
 <style>
     @@media (max-width: 480px) {
         .mobile-container {
@@ -73,33 +75,33 @@
     }
 </style>
 
-<div class="mobile-container" style="display: flex; justify-content: center; align-items: center; min-height: 80vh; background-color: #f1f5f9; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 20px;">
+<div class="mobile-container" style="display: flex; justify-content: center; align-items: center; min-height: 80vh; background-color: #f8fafc; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 20px;">
 
-    <div class="mobile-card" style="background: #ffffff; padding: 70px 50px; border-radius: 40px; box-shadow: 0 25px 50px -12px rgba(79, 70, 229, 0.15); text-align: center; max-width: 550px; width: 100%; border: 1px solid #e2e8f0; position: relative; overflow: hidden;">
+    <div class="mobile-card" style="background: #ffffff; padding: 70px 50px; border-radius: 40px; box-shadow: 0 25px 50px -12px rgba(101, 163, 13, 0.15); text-align: center; max-width: 550px; width: 100%; border: 1px solid #e2e8f0; position: relative; overflow: hidden;">
 
-        <!-- Khối hình học trang trí chuyển đổi tone màu hài hòa với chủ đề quản lý công việc -->
-        <div class="mobile-circle-1" style="position: absolute; top: -50px; right: -50px; width: 160px; height: 160px; background: #e0f2fe; border-radius: 50%; z-index: 0; opacity: 0.6;"></div>
-        <div class="mobile-circle-2" style="position: absolute; bottom: -30px; left: -30px; width: 100px; height: 100px; background: #f5f3ff; border-radius: 50%; z-index: 0;"></div>
+        <!-- Khối hình học trang trí: Đổi sang tông xanh lá nhạt -->
+        <div class="mobile-circle-1" style="position: absolute; top: -50px; right: -50px; width: 160px; height: 160px; background: @colorLight; border-radius: 50%; z-index: 0; opacity: 0.8;"></div>
+        <div class="mobile-circle-2" style="position: absolute; bottom: -30px; left: -30px; width: 100px; height: 100px; background: @colorLight; border-radius: 50%; z-index: 0;"></div>
 
         <div style="position: relative; z-index: 1;">
 
-            <!-- LOGO BIỂU TƯỢNG: Đổi sang chữ CV (Công Việc) góc nghiêng 3D đổ bóng sang trọng -->
-            <div class="mobile-icon-box" style="width: 110px; height: 110px; margin: 0 auto 30px; border-radius: 28px; background: @gradientPurple; display: flex; justify-content: center; align-items: center; box-shadow: 0 15px 30px rgba(79, 70, 229, 0.3); transform: perspective(800px) rotateY(-15deg);">
-                <div class="mobile-icon-text" style="color: #ffffff; font-size: 45px; font-weight: 800; letter-spacing: -1px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+            <!-- LOGO BIỂU TƯỢNG: Đổi sang màu Gradient Xanh Cỏ Non -->
+            <div class="mobile-icon-box" style="width: 110px; height: 110px; margin: 0 auto 30px; border-radius: 28px; background: @gradientGreen; display: flex; justify-content: center; align-items: center; box-shadow: 0 15px 30px rgba(101, 163, 13, 0.3); transform: perspective(800px) rotateY(-15deg);">
+                <div class="mobile-icon-text" style="color: #ffffff; font-size: 45px; font-weight: 800; letter-spacing: -1px; text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">
                     CV
                 </div>
             </div>
 
-            <div class="mobile-badge" style="display: inline-block; padding: 6px 18px; background: #4f46e5; color: #ffffff; border-radius: 10px; font-size: 11px; font-weight: 700; letter-spacing: 2px; margin-bottom: 30px; text-transform: uppercase; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.1);">
+            <div class="mobile-badge" style="display: inline-block; padding: 6px 18px; background: @colorPrimary; color: #ffffff; border-radius: 10px; font-size: 11px; font-weight: 700; letter-spacing: 2px; margin-bottom: 30px; text-transform: uppercase; box-shadow: 0 4px 6px rgba(101, 163, 13, 0.15);">
                 Task Management System
             </div>
 
-            <!-- TIÊU ĐỀ: Khớp chuẩn cấu trúc cũ nhưng thay đổi nội dung sang FORM CÔNG VIỆC -->
-            <h1 class="mobile-title" style="margin: 0; font-size: 3.5rem; color: #4f46e5; font-weight: 900; letter-spacing: -2.5px; line-height: 0.9;">
-                FORM <span style="color: @accentCyan; font-weight: 300;">CONG VIEC</span>
+            <!-- TIÊU ĐỀ: Thay màu sang tông Xanh Lá Chủ Đạo -->
+            <h1 class="mobile-title" style="margin: 0; font-size: 3.5rem; color: @colorDark; font-weight: 900; letter-spacing: -2.5px; line-height: 0.9;">
+                FORM <span style="color: @colorPrimary; font-weight: 300;">CONG VIEC</span>
             </h1>
 
-            <div style="width: 60px; height: 6px; background: @accentCyan; margin: 30px auto; border-radius: 20px; opacity: 0.8;"></div>
+            <div style="width: 60px; height: 6px; background: @colorPrimary; margin: 30px auto; border-radius: 20px; opacity: 0.8;"></div>
 
             <p class="mobile-subtitle" style="margin: 0 0 15px; font-size: 1.4rem; color: #111827; font-weight: 700; letter-spacing: -0.5px;">
                 Hệ Thống Giao Việc & Điều Phối Nội Bộ
@@ -107,12 +109,12 @@
 
             <p class="mobile-text" style="font-size: 1.05rem; color: #4b5563; line-height: 1.8; margin-bottom: 10px; padding: 0 15px;">
                 Giải pháp tối ưu để khởi tạo, phê duyệt, theo dõi tiến độ và đánh giá kết quả thực hiện mục tiêu giữa các thành viên trong bộ phận một cách
-                <span style="color: #4f46e5; font-weight: 700; display: block; margin-top: 5px;">Trực quan – Đồng bộ – Xuyên suốt.</span>
+                <span style="color: @colorDark; font-weight: 700; display: block; margin-top: 5px;">Trực quan – Đồng bộ – Xuyên suốt.</span>
             </p>
 
         </div>
 
-        <!-- FOOTER: Giữ nguyên cấu trúc phân tách và mốc thời gian tự động năm 2026 -->
+        <!-- FOOTER -->
         <div class="mobile-footer" style="margin-top: 60px; padding-top: 20px; border-top: 1px solid #f1f5f9; font-size: 11px; color: #9ca3af; font-weight: 600; letter-spacing: 1px; position: relative; z-index: 1;">
             &copy; @DateTime.Now.Year OPERATION DEPARTMENT - SECURE & RELIABLE SYSTEM
         </div>

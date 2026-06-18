@@ -24,6 +24,5 @@ public partial class DanhGiaFormCongViec
     [Column(TypeName = "datetime")]
     public DateTime? TimeNguoiDanhGia { get; set; }
 
-    [StringLength(50)]
-    public string? MucDo { get; set; }
+    public int? MucDo { get; set; }
 }
