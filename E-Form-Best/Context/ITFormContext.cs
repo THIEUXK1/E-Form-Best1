@@ -34,9 +34,9 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<CongViecIt> CongViecIts { get; set; }
 
-    public virtual DbSet<CongViecOrder1> CongViecOrder1s { get; set; }
-
     public virtual DbSet<CongViecShd> CongViecShds { get; set; }
+
+    public virtual DbSet<CvCongViecOrder1> CvCongViecOrder1s { get; set; }
 
     public virtual DbSet<DanhGiaFormCongViec> DanhGiaFormCongViecs { get; set; }
 
@@ -181,6 +181,7 @@ public partial class ITFormContext : DbContext
     public virtual DbSet<UserQuyen> UserQuyens { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Data Source=10.0.60.33;Initial Catalog=ITForm;Persist Security Info=True;User ID=sa;Password=BestP@cific;Encrypt=True;Trust Server Certificate=True");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -198,6 +199,10 @@ public partial class ITFormContext : DbContext
         modelBuilder.Entity<BinhLuanFormCongViec>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__BinhLuan__3213E83F5EC9014F");
+
+            entity.HasOne(d => d.IdFormNavigation).WithMany(p => p.BinhLuanFormCongViecs)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_BinhLuanFormCongViec_Form");
         });
 
         modelBuilder.Entity<BinhLuanFormHr>(entity =>
@@ -250,9 +255,13 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdItNguoiHoTroNavigation).WithMany(p => p.CongViecIts).HasConstraintName("FK_CongViec_NguoiHoTro");
         });
 
-        modelBuilder.Entity<CongViecOrder1>(entity =>
+        modelBuilder.Entity<CvCongViecOrder1>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__CongViec__3213E83FAEF11AEC");
+
+            entity.HasOne(d => d.IdFormCongViecNavigation).WithMany(p => p.CvCongViecOrder1s)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_CongViecOrder1_Form");
         });
 
         modelBuilder.Entity<DanhGiaFormCongViec>(entity =>
@@ -671,6 +680,10 @@ public partial class ITFormContext : DbContext
         modelBuilder.Entity<LichSuFormCongViec>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__LichSuFo__3213E83FB7F6EAE4");
+
+            entity.HasOne(d => d.IdFormCongViecNavigation).WithMany(p => p.LichSuFormCongViecs)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_LichSuForm_Form");
         });
 
         modelBuilder.Entity<LichSuFormHr>(entity =>

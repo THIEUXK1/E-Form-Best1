@@ -16,13 +16,12 @@
     // Đánh dấu nhận diện hệ thống Công việc
     bool isWorkSystem = true;
 
-    // Các trang thuộc phân hệ Đăng ký đơn công việc
-    string[] workSubPages = { "FormCongViec", "CongViec_Order_1", "TaoCongViec" };
-    bool isWorkSubActive = workSubPages.Contains(currentAction) || currentController.Contains("CongViec");
-
-    // Các trang thuộc phân hệ Thống kê báo cáo công việc
-    string[] reportPages = { "BaoCaoThongKeCongViec", "ThongKeTienDo" };
-    bool isReportActive = reportPages.Contains(currentAction);
+    // Tối ưu kích hoạt menu con: Chỉ active khi ở trang tạo đơn công việc, loại trừ các trang quản trị và nhật ký
+    bool isWorkSubActive = currentController == "FormCongViec" &&
+                           currentAction != "DonCho" &&
+                           currentAction != "LichSuCongViec" &&
+                           currentAction != "HoanTatDonChiDinh" &&
+                           currentAction != "BaoCaoThongKeCongViec";
 
     // CẬP NHẬT MÀU SẮC 2026: Gần giống IT nhưng mang bản sắc riêng (Deep Ocean Blue phối Teal)
     string primaryGradient = "linear-gradient(180deg, #071e3d 0%, #0b3c5d 100%)"; // Tone xanh biển sâu tinh tế, khác biệt với Navy của IT
@@ -239,8 +238,8 @@
             }
 
             /* ==========================================
-                                           CSS CHO MOBILE RESPONSIVE
-                                           ========================================== */
+                                                                                   CSS CHO MOBILE RESPONSIVE
+                                                                                   ========================================== */
             .sidebar-backdrop {
                 display: none;
                 position: fixed;
@@ -320,73 +319,45 @@
             </a>
 
             <nav id="main-sidebar-nav" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right: 5px;">
-                <div class="lang-text" data-key="main_function" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 700;">Nghiệp vụ phòng ban</div>
+                <div class="lang-text" data-key="main_function" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 700;">Cá nhân & Đăng ký</div>
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
                     <div id="btnMainMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-radius: 14px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isWorkSubActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
                         <span style="display:flex; align-items:center;">
                             <i class="fa fa-tasks" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i>
-                            <span class="lang-text" data-key="reg_form">Phiếu công việc</span>
+                            <span class="lang-text" data-key="reg_form">Đăng ký đơn</span>
                         </span>
                         <i class="fa fa-angle-down" id="menuArrow" style="transition: 0.3s; transform: @(isWorkSubActive ? "rotate(180deg)" : "rotate(0deg)");"></i>
                     </div>
 
                     <div id="mainSubmenu" style="display: @(isWorkSubActive ? "flex" : "none"); flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
-                        <a href="/FormCongViec" class="submenu-link @(currentController == "FormCongViec" ? "active" : "")">
-                            <i class="fa fa-pencil-square-o" style="margin-right:12px; width:15px; color: #fbbf24;"></i> <span class="lang-text">1. Xử lý Đơn công việc</span>
-                        </a>
-                        <a href="/CongViec_Order_1" class="submenu-link @(currentController == "CongViec_Order_1" ? "active" : "")">
-                            <i class="fa fa-list-ol" style="margin-right:12px; width:15px; color: #06b6d4;"></i> <span class="lang-text">2. Chi tiết hạng mục</span>
+                        <a href="/FormCongViec/DonCvCongViecOrder" class="submenu-link @(currentController == "FormCongViec" && currentAction == "DonCvCongViecOrder" ? "active" : "")">
+                            @* CẬP NHẬT: ĐỔI SANG ICON TỜ ĐƠN MÀU XANH LÁ CÂY TƯƠI #65a30d VÀ ĐỔI CHỮ THÀNH "Công việc chỉ định" *@
+                            <i class="fa fa-file-text-o" style="margin-right:12px; width:15px; color: #65a30d;"></i> <span class="lang-text">Công việc chỉ định</span>
                         </a>
                     </div>
 
                     <a href="/FormCongViec/DonCho" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
-                        <i class="fa fa-align-left" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text">Đơn liên quan</span>
+                        <i class="fa fa-align-left" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text">Đơn của tôi</span>
                     </a>
 
                     <a href="/FormCongViec/LichSuCongViec" class="nav-link-item @(currentAction == "LichSuCongViec" ? "active" : "")">
-                        <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text">Nhật ký tiến trình</span>
+                        <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text">Nhật ký hệ thống</span>
                     </a>
-
-                    @if (User.IsInRole("QuanLyDuyetDonIT") || User.IsInRole("All"))
-                    {
-                        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-                        <div class="lang-text" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Xét duyệt</div>
-                        <a href="/FormCongViec/QuanLyXetDuyet" class="nav-link-item @(currentAction == "QuanLyXetDuyet" ? "active" : "")">
-                            <i class="fa fa-check-circle-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> <span class="lang-text">Duyệt phiếu bộ phận</span>
-                        </a>
-                    }
 
                     @if (User.Claims.Any(c => c.Type == System.Security.Claims.ClaimTypes.Role) || User.IsInRole("All"))
                     {
                         <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-                        <div class="lang-text" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị & Báo cáo</div>
+                        <div class="lang-text" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị</div>
 
-                        <a href="/QLBoPhanAamin" class="nav-link-item @(currentController == "QLBoPhanAamin" ? "active" : "")">
-                            <i class="fa fa-sitemap" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f97316;"></i> <span class="lang-text">Cấu hình Bộ phận</span>
+                        <a href="/FormCongViec/HoanTatDonChiDinh" class="nav-link-item @(currentAction == "HoanTatDonChiDinh" ? "active" : "")">
+                            <i class="fa fa-user-plus" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f97316;"></i> <span class="lang-text">Công việc chỉ định</span>
                         </a>
 
-                        <a data-bs-toggle="collapse" href="#collapseThongKe" role="button" aria-expanded="@(isReportActive ? "true" : "false")" class="nav-link-item" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: @(isReportActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
-                            <span style="display:flex; align-items:center;">
-                                <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i>
-                                <span class="lang-text">Thống kê & KPI</span>
-                            </span>
-                            <i class="fa fa-angle-down menu-arrow"></i>
+                        <a href="/FormCongViec/BaoCaoThongKeCongViec" class="nav-link-item @(currentAction == "BaoCaoThongKeCongViec" ? "active" : "")">
+                            <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> <span class="lang-text">Thống kê đơn</span>
                         </a>
-
-                        <div class="collapse @(isReportActive ? "show" : "")" id="collapseThongKe">
-                            <div style="display: flex; flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
-                                <a href="/FormCongViec/BaoCaoThongKeCongViec" class="submenu-link @(currentAction == "BaoCaoThongKeCongViec" ? "active" : "")">
-                                    <i class="fa fa-file-text-o" style="margin-right:12px; width:15px; color: #10b981;"></i>
-                                    <span class="lang-text">Báo cáo hiệu suất</span>
-                                </a>
-                                <a href="/FormCongViec/ThongKeTienDo" class="submenu-link @(currentAction == "ThongKeTienDo" ? "active" : "")">
-                                    <i class="fa fa-sliders" style="margin-right:12px; width:15px; color: #0284c7;"></i>
-                                    <span class="lang-text">Tiến độ Gantt Chart</span>
-                                </a>
-                            </div>
-                        </div>
                     }
                 }
             </nav>

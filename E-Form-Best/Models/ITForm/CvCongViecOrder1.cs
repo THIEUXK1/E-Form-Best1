@@ -6,8 +6,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace E_Form_Best.Models.ITForm;
 
-[Table("LichSuFormCongViec")]
-public partial class LichSuFormCongViec
+[Table("CV_CongViec_Order_1")]
+public partial class CvCongViecOrder1
 {
     [Key]
     [Column("id")]
@@ -16,20 +16,21 @@ public partial class LichSuFormCongViec
     [Column("idFormCongViec")]
     public int? IdFormCongViec { get; set; }
 
-    [StringLength(255)]
-    public string? TieuDe { get; set; }
+    public string? GhiChu { get; set; }
 
-    [Column("mota")]
-    public string? Mota { get; set; }
+    public byte[]? Anh { get; set; }
+
+    public string? Ten { get; set; }
+
+    public string? DuongDanAnh { get; set; }
 
     [Column(TypeName = "datetime")]
-    public DateTime? Time { get; set; }
+    public DateTime? ThoiHanHoanThanh { get; set; }
 
-    public bool? IsRead { get; set; }
-
-    public int? TrangThaiAnHien { get; set; }
+    [StringLength(50)]
+    public string? MucDoUuTien { get; set; }
 
     [ForeignKey("IdFormCongViec")]
-    [InverseProperty("LichSuFormCongViecs")]
+    [InverseProperty("CvCongViecOrder1s")]
     public virtual FormCongViec? IdFormCongViecNavigation { get; set; }
 }

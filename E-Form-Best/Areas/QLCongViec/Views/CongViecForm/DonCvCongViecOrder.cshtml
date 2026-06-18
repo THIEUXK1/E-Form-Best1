@@ -1,0 +1,421 @@
+﻿@model E_Form_Best.Models.ITForm.FormCongViec
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Tạo đơn công việc chỉ định";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+
+    // --- Lấy thông tin từ User.Claims ---
+    var tenNguoiNv = User.Identity?.Name ?? "";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+    var soNhanVien = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    var tenCongTy = Model.TenCongTy ?? User.FindFirst("TenCongTy")?.Value ?? "Chưa xác định";
+
+    // ĐÃ CHUẨN HÓA TOÀN DIỆN: Hệ màu sắc chủ đề xanh lá cây tươi sáng (#65a30d)
+    string colorPrimary = "#65a30d";
+    string colorDark = "#2d4201";
+    string colorLight = "#f7fee7";
+    string colorBorder = "#bef264";
+
+    string inputBase = $"width: 100%; padding: 12px; border-radius: 12px; border: 1px solid {colorBorder}; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; color: {colorDark}; transition: all 0.3s;";
+    string labelBase = $"font-weight: 800; color: {colorDark}; font-size: 11px; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.8px;";
+    string boxDetail = $"background: #ffffff; padding: 25px; border-radius: 24px; border: 1px solid {colorLight}; margin-bottom: 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);";
+}
+
+<style>
+    /* CSS RESPONSIVE TRÊN MOBILE HOÀN TOÀN */
+    @@media (max-width: 768px) {
+        .main-container {
+            padding: 20px 10px !important;
+        }
+
+        .form-wrapper {
+            border-radius: 25px !important;
+        }
+
+        .header-section {
+            padding: 35px 15px !important;
+        }
+
+            .header-section h2 {
+                font-size: 20px !important;
+            }
+
+        .body-content {
+            padding: 20px !important;
+        }
+
+        .grid-responsive-4, .grid-responsive-2 {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+        }
+
+        .box-detail-mobile {
+            padding: 15px !important;
+            border-radius: 20px !important;
+        }
+
+        #btnSubmit {
+            padding: 18px !important;
+            font-size: 16px !important;
+        }
+    }
+
+    /* ĐỔI MÀU: Vòng bo sáng rực khi click chuột vào ô nhập liệu (Focus) */
+    .input-hover:focus {
+        border-color: @colorPrimary !important;
+        box-shadow: 0 0 0 4px rgba(101, 163, 13, 0.15) !important;
+    }
+
+    /* ĐA CHỌN NHÂN SỰ MULTI-CHECKBOX DROPDOWN STYLE */
+    .multiselect-container {
+        position: relative;
+        width: 100%;
+    }
+
+    .select-box {
+        position: relative;
+        cursor: pointer;
+    }
+
+    .overSelect {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+    }
+
+    .checkboxes-dropdown {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: #ffffff;
+        border: 1px solid @colorBorder;
+        border-radius: 12px;
+        max-height: 260px;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        margin-top: 4px;
+        padding: 5px;
+    }
+
+        .checkboxes-dropdown label {
+            display: flex !important;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin: 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-transform: none !important;
+            letter-spacing: normal !important;
+            font-weight: 600 !important;
+            color: @colorDark !important;
+        }
+
+            .checkboxes-dropdown label:hover {
+                background-color: @colorLight;
+            }
+
+        .checkboxes-dropdown input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: @colorPrimary;
+            cursor: pointer;
+        }
+
+    /* THANH TÌM KIẾM TRONG DROPDOWN */
+    .search-input-box {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid @colorBorder;
+        margin-bottom: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        outline: none;
+        color: @colorDark;
+        position: sticky;
+        top: 0;
+        background: #ffffff;
+        z-index: 10;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+</style>
+
+@* ĐÃ CẬP NHẬT: Phía bên trái nhạt và tươi mát hơn hẳn (#f7fee7 sang #d9f99d), sau đó chuyển dần thành tone màu cỏ non rực rỡ ở bên phải (#a3e635) *@
+<div class="main-container" style="background: linear-gradient(135deg, #f7fee7 0%, #d9f99d 40%, #a3e635 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', sans-serif;">
+
+    @* ĐỔI MÀU: Hiệu ứng bóng đổ khối form sang tông xanh thẫm *@
+    <form id="workOrderSingleForm" method="post" enctype="multipart/form-data" action="/FormCongViec/DonCvCongViecOrder" class="form-wrapper"
+          style="max-width: 950px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(45, 66, 1, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
+
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary(true, "", new { @class = "text-danger", style = "margin:10px 0;" })
+
+        @* --- HEADER MÀU XANH TƯƠI SÁNG CHỦ ĐẠO --- *@
+        <div class="header-section" style="background: linear-gradient(135deg, @colorDark 0%, #4d7c0f 100%); padding: 45px 20px; color: #ffffff; text-align: center; position: relative;">
+            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">TASK FLOW V2.0</div>
+            <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">Phiếu giao việc công việc chỉ định</h2>
+            <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: rgba(255,255,255,0.15); border-radius: 50px; font-size: 13px; backdrop-filter: blur(4px);">
+                <span>📋 Trạng thái:</span>
+                <span style="font-weight: 800; color: #bef264;">CHỈ ĐỊNH ĐIỀU PHỐI TRỰC TIẾP</span>
+            </div>
+        </div>
+
+        <div class="body-content" style="padding: 40px;">
+
+            @* --- PHẦN 1: THÔNG TIN HÀNH CHÍNH --- *@
+            <div style="margin-bottom: 40px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 10px rgba(45, 66, 1, 0.3);">1</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin hành chính</h3>
+                </div>
+
+                <div class="grid-responsive-4" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                    <div style="background: #f7fee7; padding: 15px; border-radius: 15px; border: 1px solid #d9f99d;">
+                        <label style="@labelBase">Tài khoản/Email</label>
+                        <div style="font-weight: 700; color: #1a2e05; font-size: 14px;">@soNhanVien</div>
+                    </div>
+                    <div style="background: #f7fee7; padding: 15px; border-radius: 15px; border: 1px solid #d9f99d;">
+                        <label style="@labelBase">Người lập phiếu</label>
+                        <div style="font-weight: 700; color: #1a2e05; font-size: 14px;">@tenNguoiNv</div>
+                    </div>
+                    <div style="background: #f7fee7; padding: 15px; border-radius: 15px; border: 1px solid #d9f99d;">
+                        <label style="@labelBase">Bộ phận</label>
+                        <div style="font-weight: 700; color: #1a2e05; font-size: 14px;">@phongBan</div>
+                    </div>
+                    <div style="background: #f7fee7; padding: 15px; border-radius: 15px; border: 1px solid #d9f99d;">
+                        <label style="@labelBase">Công ty</label>
+                        <div style="font-weight: 700; color: @colorPrimary; font-size: 14px;">@tenCongTy</div>
+                    </div>
+                </div>
+            </div>
+
+            @* --- PHẦN 2: CHỈ ĐỊNH NHÂN SỰ VÀ TIẾN ĐỘ --- *@
+            <div class="box-detail-mobile" style="@boxDetail">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Nhân sự chịu trách nhiệm &amp; Tiến độ</h3>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                    <div>
+                        <label style="@labelBase">Chọn người thực hiện công việc <span style="color:red">*</span></label>
+                        <div class="multiselect-container">
+                            <div class="select-box" onclick="showCheckboxes()">
+                                @* ĐỔI MÀU: Icon mũi tên select box chuyển sang mã màu thẫm xanh lá (%232d4201) *@
+                                <select class="input-hover" style="@inputBase appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%232d4201%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
+                                    <option id="dropdownSelectedText">-- Chọn nhân sự (Có thể chọn nhiều) --</option>
+                                </select>
+                                <div class="overSelect"></div>
+                            </div>
+                            <div class="checkboxes-dropdown" id="checkboxesArea">
+                                @* Bắt sự kiện oninput lọc dữ liệu nhảy tức thì thời gian thực *@
+                                <input type="text" id="searchStaffInput" oninput="filterStaffFunction(event)" onclick="event.stopPropagation()" placeholder="🔍 Nhập Tên, Mã NV, Phòng ban..." class="search-input-box" />
+
+                                @if (ViewBag.NguoiNhanViecList != null)
+                                {
+                                    foreach (var user in (IEnumerable<E_Form_Best.Models.ITForm.User>)ViewBag.NguoiNhanViecList)
+                                    {
+                                        <label for="user_@user.IdNguoiDung">
+                                            <input type="checkbox" name="selectedNguoiLienQuanIds" id="user_@user.IdNguoiDung" value="@user.IdNguoiDung" onchange="updateDropdownText()" />
+                                            <span>[@(user.MaNhanVien ?? "N/A")] @user.HoTen (@user.PhongBan)</span>
+                                        </label>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="@labelBase">Mức độ ưu tiên <span style="color:red">*</span></label>
+                        <select name="cvOrder.MucDoUuTien" id="MucDoUuTien" class="input-hover" style="@inputBase cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%232d4201%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
+                            <option value="Thấp">Thấp</option>
+                            <option value="Trung bình" selected>Trung bình</option>
+                            <option value="Cao">Cao</option>
+                            <option value="Khẩn cấp">Khẩn cấp</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="@labelBase">Thời hạn hoàn thành (Deadline)</label>
+                        <input type="datetime-local" name="cvOrder.ThoiHanHoanThanh" id="ThoiHanHoanThanh" class="input-hover" style="@inputBase" />
+                    </div>
+                </div>
+            </div>
+
+            @* --- PHẦN 3: NỘI DUNG YÊU CẦU CHI TIẾT --- *@
+            <div class="box-detail-mobile" style="@boxDetail">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">3</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Nội dung chi tiết hạng mục</h3>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="@labelBase">Tiêu đề công việc <span style="color:red">*</span></label>
+                    <input type="text" name="cvOrder.Ten" id="TieuDe" required placeholder="Nhập tiêu đề hoặc tên hạng mục công việc chỉ định..." class="input-hover" style="@inputBase" />
+                </div>
+
+                <div style="margin-bottom: 5px;">
+                    <label style="@labelBase">Nội dung yêu cầu cụ thể <span style="color:red">*</span></label>
+                    <textarea name="cvOrder.GhiChu" id="GhiChu" required placeholder="Mô tả chi tiết yêu cầu, các mốc tiến độ hoặc kết quả đầu ra cần đạt được..."
+                              class="input-hover"
+                              style="@inputBase height: 150px; resize: none;"></textarea>
+                </div>
+            </div>
+
+            @* --- NÚT SUBMIT BIỂU MẪU CHỦ ĐẠO XANH TƯƠI MẠ NON --- *@
+            <div style="display: flex; justify-content: center;">
+                <button type="button" id="btnSubmit" onclick="xuLyLuuDonCV()"
+                        style="width: 100%; padding: 22px; background: linear-gradient(to right, @colorDark, #4d7c0f); color: #ffffff; border: none; border-radius: 20px; font-weight: 900; font-size: 18px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 25px -5px rgba(132, 204, 22, 0.4); transition: 0.3s;">
+                    PHÁT HÀNH VÀ BÀN GIAO CÔNG VIỆC
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Xử lý đóng/mở giao diện Multi-Checkbox Dropdown nhân viên
+    let expanded = false;
+    function showCheckboxes() {
+        const checkboxes = document.getElementById("checkboxesArea");
+        if (!expanded) {
+            checkboxes.style.display = "block";
+            expanded = true;
+        } else {
+            checkboxes.style.display = "none";
+            expanded = false;
+        }
+    }
+
+    // Đóng danh sách nhân sự khi click chuột ra vùng ngoài
+    document.addEventListener("click", function(event) {
+        const container = document.querySelector(".multiselect-container");
+        if (container && !container.contains(event.target)) {
+            document.getElementById("checkboxesArea").style.display = "none";
+            expanded = false;
+        }
+    });
+
+    // HÀM CHUYỂN ĐỔI TIẾNG VIỆT CÓ DẤU THÀNH KHÔNG DẤU TRÊN TRÌNH DUYỆT ĐỂ FILTER CHÍNH XÁC
+    function removeVietnameseTonesJS(str) {
+        if (!str) return "";
+        str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+        str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+        str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+        str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+        str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+        str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+        str = str.replace(/đ/g, "d");
+        str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
+        str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
+        str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
+        str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
+        str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
+        str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
+        str = str.replace(/Đ/g, "D");
+        // Loại bỏ các ký tự dấu tổ hợp thừa ngầm
+        str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, "");
+        str = str.replace(/\u02C6|\u0306|\u031B/g, "");
+        return str;
+    }
+
+    // Hàm lọc nhân sự tức thì khi có bất kỳ thay đổi nào từ ô Input (Gõ thêm chữ, Xóa chữ, Backspace...)
+    function filterStaffFunction(e) {
+        e.stopPropagation();
+        const input = document.getElementById("searchStaffInput");
+        // Khử dấu từ khóa người dùng nhập vào ô tìm kiếm
+        const filter = removeVietnameseTonesJS(input.value).toUpperCase();
+        const div = document.getElementById("checkboxesArea");
+        const labels = div.getElementsByTagName("label");
+
+        for (let i = 0; i < labels.length; i++) {
+            const txtValue = labels[i].textContent || labels[i].innerText;
+            // Khử dấu của dòng text chứa thông tin nhân viên trong danh sách
+            const txtValueNormalized = removeVietnameseTonesJS(txtValue).toUpperCase();
+
+            if (txtValueNormalized.indexOf(filter) > -1) {
+                labels[i].style.display = "flex";
+            } else {
+                labels[i].style.display = "none";
+            }
+        }
+    }
+
+    // Tính toán số lượng nhân viên được chọn để hiển thị text thông báo ra ngoài ô Dropdown
+    function updateDropdownText() {
+        const checkedBoxes = document.querySelectorAll('input[name="selectedNguoiLienQuanIds"]:checked');
+        const textElement = document.getElementById("dropdownSelectedText");
+        if (checkedBoxes.length === 0) {
+            textElement.text = "-- Chọn nhân sự (Có thể chọn nhiều) --";
+        } else {
+            textElement.text = `Đã chọn (${checkedBoxes.length}) nhân sự thực hiện`;
+        }
+    }
+
+    // Gửi dữ liệu bằng AJAX đồng bộ không tải lại trang chuyên nghiệp
+    function xuLyLuuDonCV() {
+        const checkedBoxes = document.querySelectorAll('input[name="selectedNguoiLienQuanIds"]:checked');
+        const mucDoUuTien = document.getElementById("MucDoUuTien").value;
+        const tieuDe = document.getElementById("TieuDe").value;
+        const ghiChu = document.getElementById("GhiChu").value;
+        const btn = document.getElementById("btnSubmit");
+
+        if (checkedBoxes.length === 0) {
+            alert("⚠️ Vui lòng chọn ít nhất một nhân sự chịu trách nhiệm xử lý công việc!");
+            return;
+        }
+        if (!tieuDe.trim()) {
+            alert("⚠️ Vui lòng nhập tiêu đề cho công việc này!");
+            return;
+        }
+        if (!ghiChu.trim()) {
+            alert("⚠️ Bạn chưa điền nội dung mô tả công việc chi tiết!");
+            return;
+        }
+
+        if (confirm("Xác nhận phát hành phiếu công việc chỉ định nhân sự này?")) {
+            const originalBtnHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG THIẾT LẬP TIẾN TRÌNH...';
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
+
+            const formElement = document.getElementById("workOrderSingleForm");
+            const formData = new FormData(formElement);
+
+            fetch(formElement.action, {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.innerHTML = originalBtnHtml;
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+
+                if (data.success) {
+                    alert("🎉 " + data.message);
+                    formElement.reset();
+                    document.getElementById("searchStaffInput").value = "";
+                    filterStaffFunction({ stopPropagation: function(){} });
+                    updateDropdownText();
+                } else {
+                    alert("❌ Thất bại: " + data.message);
+                }
+            })
+            .catch(error => {
+                btn.innerHTML = originalBtnHtml;
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+                alert("❌ Đã xảy ra lỗi kết nối: " + error);
+            });
+        }
+    }
+</script>

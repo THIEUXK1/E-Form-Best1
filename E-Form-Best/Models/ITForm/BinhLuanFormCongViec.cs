@@ -14,8 +14,7 @@ public partial class BinhLuanFormCongViec
     public int Id { get; set; }
 
     [Column("idForm")]
-    [StringLength(50)]
-    public string? IdForm { get; set; }
+    public int? IdForm { get; set; }
 
     public string? NoiDung { get; set; }
 
@@ -41,4 +40,8 @@ public partial class BinhLuanFormCongViec
 
     [StringLength(50)]
     public string? Ma { get; set; }
+
+    [ForeignKey("IdForm")]
+    [InverseProperty("BinhLuanFormCongViecs")]
+    public virtual FormCongViec? IdFormNavigation { get; set; }
 }
