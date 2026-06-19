@@ -443,7 +443,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             return View(don);
         }
 
-        // --- ACTION DOWNLOAD / XEM FILE ĐÍNH KÈM ĐƠN CÔNG VIỆC ---
+        // --- ACTION DOWNLOAD / XEM FILE ĐÍNH KÈM ĐƠN CÔNG VIỆC CHÍNH ---
         [HttpGet("/FormCongViec/DownloadFile/{fileName}")]
         public async Task<IActionResult> DownloadFile(string fileName)
         {
@@ -454,6 +454,44 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
             if (!System.IO.File.Exists(fullPath))
                 return NotFound("Tệp tin tài liệu công việc không tồn tại.");
+
+            var memory = new MemoryStream();
+            using (var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
+            {
+                await stream.CopyToAsync(memory);
+            }
+            memory.Position = 0;
+
+            string ext = Path.GetExtension(fileName).ToLowerInvariant();
+            string contentType = ext switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                ".pdf" => "application/pdf",
+                ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                _ => "application/octet-stream"
+            };
+
+            return contentType.StartsWith("image/")
+                ? File(memory, contentType)
+                : File(memory, contentType, fileName);
+        }
+
+        // =========================================================================
+        // MỚI BỔ SUNG: ACTION ĐỌC VÀ KẾT XUẤT FILE ĐÍNH KÈM KHÔNG GIAN BÌNH LUẬN THẢO LUẬN
+        // =========================================================================
+        [HttpGet("/FormCongViec/DownloadBinhLuanFile/{fileName}")]
+        public async Task<IActionResult> DownloadBinhLuanFile(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) return NotFound();
+
+            string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonCongViec";
+            string fullPath = Path.Combine(networkPath, fileName);
+
+            if (!System.IO.File.Exists(fullPath))
+                return NotFound("Tệp tin đính kèm thảo luận không tồn tại.");
 
             var memory = new MemoryStream();
             using (var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
@@ -726,7 +764,10 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                     if (file.Length > 50 * 1024 * 1024)
                         return Json(new { success = false, message = "Tài liệu đính kèm thảo luận tối đa 50MB." });
 
-                    string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonCongViec";
+                    // ĐÃ CẬP NHẬT CHÍNH XÁC: Chuyển dịch phân vùng lưu trữ sang thư mục mạng BinhLuanDonCongViec theo yêu cầu
+                    string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonCongViec";
+                    if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
+
                     fileName = $"{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString().Substring(0, 8)}_{Path.GetFileName(file.FileName)}";
                     string fullPath = Path.Combine(networkPath, fileName);
 
@@ -828,7 +869,8 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
                 if (!string.IsNullOrEmpty(binhLuan.FileDinhKem))
                 {
-                    string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonCongViec";
+                    // ĐÃ CẬP NHẬT CHÍNH XÁC: Định danh phân vùng xóa tệp tại thư mục BinhLuanDonCongViec đồng bộ
+                    string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonCongViec";
                     string fullPath = Path.Combine(networkPath, binhLuan.FileDinhKem);
 
                     try

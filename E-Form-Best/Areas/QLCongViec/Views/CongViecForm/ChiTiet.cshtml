@@ -136,6 +136,85 @@
         box-shadow: 0 0 0 4px rgba(101, 163, 13, 0.15) !important;
     }
 
+    /* ĐA CHỌN DROPDOWN MULTI-CHECKBOX ĐIỀU PHỐI BỔ SUNG */
+    .multiselect-container {
+        position: relative;
+        width: 100%;
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .select-box {
+        position: relative;
+        cursor: pointer;
+    }
+
+    .overSelect {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+    }
+
+    .checkboxes-dropdown {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: #ffffff;
+        border: 1.5px solid @colorBorder;
+        border-radius: 12px;
+        max-height: 250px;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        margin-top: 4px;
+        padding: 5px;
+    }
+
+        .checkboxes-dropdown label {
+            display: flex !important;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin: 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-weight: 600 !important;
+            color: @colorDark !important;
+        }
+
+            .checkboxes-dropdown label:hover {
+                background-color: @colorLight;
+            }
+
+        .checkboxes-dropdown input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: @colorPrimary;
+            cursor: pointer;
+        }
+
+    .search-input-box {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid @colorBorder;
+        margin-bottom: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        outline: none;
+        color: @colorDark;
+        position: sticky;
+        top: 0;
+        background: #ffffff;
+        z-index: 10;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
     @@media (max-width: 768px) {
         .mobile-wrapper {
             padding: 10px !important;
@@ -332,24 +411,37 @@
                         }
                     </div>
 
-                    @* --- BAN QUẢN TRỊ ĐIỀU PHỐI GÁN THÊM NHÂN SỰ XỬ LÝ --- *@
+                    @* --- NÂNG CẤP MỚI: BAN QUẢN TRỊ ĐIỀU PHỐI GÁN THÊM NHÂN SỰ XỬ LÝ SỬ DỤNG MULTI-CHECKBOX DROPDOWN --- *@
                     @if ((User.IsInRole("All") || User.IsInRole("AdminCV") || User.IsInRole("AdminIT")) && !isCancelled && !isFinished)
                     {
                         <div id="assignSection" style="background: @colorLight; border: 2px dashed @colorPrimary; padding: 25px; border-radius: 24px; margin-bottom: 45px;">
                             <p style="margin:0 0 15px 0; font-size:13px; font-weight:800; color:@colorDark; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
                                 <i class="fa fa-user-plus" style="font-size: 16px;"></i> ĐIỀU PHỐI BỔ SUNG NHÂN SỰ VÀO PHIẾU CÔNG VIỆC:
                             </p>
-                            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                                <select id="selectIT" style="flex: 1; min-width: 200px; padding: 14px; border-radius: 12px; border: 1.5px solid @colorBorder; font-weight: 600; outline: none; background: white; font-size: 15px; color: #1e293b;">
-                                    <option value="">-- Click chọn nhân sự bàn giao việc --</option>
-                                    @if (ViewBag.ListNguoiDungHeThong != null)
-                                    {
-                                        foreach (var user in (List<E_Form_Best.Models.ITForm.User>)ViewBag.ListNguoiDungHeThong)
+                            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+
+                                <div class="multiselect-container">
+                                    <div class="select-box" onclick="showAssignCheckboxes()">
+                                        <select id="selectITFake" style="width: 100%; padding: 14px; border-radius: 12px; border: 1.5px solid @colorBorder; font-weight: 600; outline: none; background: white; font-size: 15px; color: #1e293b; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%232d4201%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
+                                            <option id="dropdownAssignSelectedText">-- Chọn nhân sự điều phối (Chọn nhiều) --</option>
+                                        </select>
+                                        <div class="overSelect"></div>
+                                    </div>
+                                    <div class="checkboxes-dropdown" id="assignCheckboxesArea">
+                                        <input type="text" id="searchAssignStaffInput" oninput="filterAssignStaffFunction(event)" onclick="event.stopPropagation()" placeholder="🔍 Nhập Tên, Mã NV, Phòng ban..." class="search-input-box" />
+                                        @if (ViewBag.ListNguoiDungHeThong != null)
                                         {
-                                            <option value="@user.IdNguoiDung">[@(user.MaNhanVien ?? "N/A")] @user.HoTen (@user.PhongBan)</option>
+                                            foreach (var user in (List<E_Form_Best.Models.ITForm.User>)ViewBag.ListNguoiDungHeThong)
+                                            {
+                                                <label for="assign_user_@user.IdNguoiDung">
+                                                    <input type="checkbox" name="selectedAssignStaffIds" id="assign_user_@user.IdNguoiDung" value="@user.IdNguoiDung" onchange="updateAssignDropdownText()" onclick="event.stopPropagation()" />
+                                                    <span>[@(user.MaNhanVien ?? "N/A")] @user.HoTen (@user.PhongBan)</span>
+                                                </label>
+                                            }
                                         }
-                                    }
-                                </select>
+                                    </div>
+                                </div>
+
                                 <button id="btnConfirmSupport" class="mobile-btn-action" onclick="changeSupporter()" style="background: @colorDark; color: white; border: none; padding: 0 35px; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; min-height: 48px;">
                                     <span id="textBtn">GÁN VIỆC</span>
                                     <i id="loadingIcon" class="fa fa-spinner fa-spin" style="display: none; margin-left: 8px;"></i>
@@ -404,7 +496,7 @@
                     </div>
                 </div>
 
-                @* --- CỘT PHẢI: ĐỌC FILE VĂN BẢN VÀ ĐIỀU PHỐI PHÊ DUYỆT ĐƠN PHIẾU --- *@
+                @* --- CỘT PHẢI: HÌNH ẢNH, FILE ĐÍNH KÈM VÀ SƠ ĐỒ CHUYỂN BƯỚC --- *@
                 <div>
                     @if (listImages.Count > 0)
                     {
@@ -562,11 +654,8 @@
 
                         <div style="padding: 20px; background: white; border-top: 2px solid #e2e8f0;">
                             <form id="formBinhLuan" enctype="multipart/form-data">
-                                <textarea id="txtBinhLuan"
-                                          name="noiDung"
-                                          placeholder="Gõ nội dung trao đổi tiến độ... (Hỗ trợ Ctrl+V chụp dán hình ảnh cực nhanh)"
-                                          style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; box-sizing: border-box; margin-bottom: 12px;">
-</textarea>                                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                <textarea id="txtBinhLuan" name="noiDung" placeholder="Gõ nội dung trao đổi tiến độ... (Hỗ trợ Ctrl+V chụp dán hình ảnh cực nhanh)" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; box-sizing: border-box; margin-bottom: 12px;"></textarea>
+                                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                                     <label for="fileBinhLuan" style="flex: 1; min-width: 200px; padding: 12px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; cursor: pointer; text-align: center; font-size: 14px; color: #64748b; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
                                         <i class="fa fa-paperclip"></i> <span id="fileLabel">Đính kèm tài liệu chứng từ (max 50MB)</span>
                                         <input type="file" id="fileBinhLuan" name="file" style="display: none;" onchange="updateFileLabel(this)">
@@ -737,7 +826,99 @@
 
     function handleXacNhanHoanThanh() { if (confirm("Xác nhận toàn bộ công việc chỉ định đã hoàn tất 100%?")) apiPost('/FormCongViec/XacNhanHoanThanh', { id: formId }, ['btnHoanThanh']); }
     function handleChuaHoanThanh() { let reason = prompt("Lý do chưa hài lòng / Yêu cầu làm lại:"); if (!reason) return; apiPost('/FormCongViec/XacNhanChuaHoanThanh', { id: formId, reason: reason }, ['btnChuaHoanThanh']); }
-    function changeSupporter() { const select = document.getElementById('selectIT'); const maNv = select?.value; if (!maNv) return alert("Vui lòng chọn một nhân sự!"); if (confirm("Xác nhận bàn giao gán bổ sung công việc cho người này?")) apiPost('/FormCongViec/ThemNguoiHoTro', { idFormIt: formId, maNv: maNv }); }
+
+    // ĐÃ SỬA ĐỔI NÂNG CAO THÀNH CÔNG: Xử lý gán đa chọn nhân sự tuần tự chuyên nghiệp chống mất mát dữ liệu
+    async function changeSupporter() {
+        const checkedBoxes = document.querySelectorAll('input[name="selectedAssignStaffIds"]:checked');
+        if (checkedBoxes.length === 0) return alert("Vui lòng tích chọn ít nhất một nhân sự!");
+
+        if (confirm("Xác nhận bàn giao điều phối gán bổ sung công việc cho các nhân sự đã chọn?")) {
+            const btn = document.getElementById("btnConfirmSupport");
+            const originalBtnHtml = document.getElementById("textBtn").innerText;
+
+            document.getElementById("textBtn").innerText = "ĐANG GÁN...";
+            document.getElementById("loadingIcon").style.display = "inline-block";
+            btn.disabled = true;
+
+            try {
+                for (let i = 0; i < checkedBoxes.length; i++) {
+                    const maNv = checkedBoxes[i].value;
+                    const response = await fetch('/FormCongViec/ThemNguoiHoTro', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                        },
+                        body: JSON.stringify({ idFormIt: formId, maNv: maNv })
+                    });
+                    const data = await response.json();
+                    if (!data.success) {
+                        console.warn("Thao tác trùng lặp hoặc lỗi ở một số nhân sự: " + data.message);
+                    }
+                }
+                alert("Bổ sung gán nhóm nhân sự điều phối vào phiếu công việc hoàn tất!");
+                location.reload();
+            } catch (err) {
+                alert("Lỗi kết nối phân vùng mạng tệp tin.");
+            } finally {
+                document.getElementById("textBtn").innerText = originalBtnHtml;
+                document.getElementById("loadingIcon").style.display = "none";
+                btn.disabled = false;
+            }
+        }
+    }
+
+    // Logic Đóng mở, tìm kiếm và bóc tách Dropdown Multi-Checkbox nhân sự gán việc
+    let assignExpanded = false;
+    function showAssignCheckboxes() {
+        const checkboxes = document.getElementById("assignCheckboxesArea");
+        if (!assignExpanded) {
+            checkboxes.style.display = "block";
+            assignExpanded = true;
+        } else {
+            checkboxes.style.display = "none";
+            assignExpanded = false;
+        }
+    }
+
+    function filterAssignStaffFunction(e) {
+        e.stopPropagation();
+        const input = document.getElementById("searchAssignStaffInput");
+        const filter = removeVietnameseTonesJS(input.value).toUpperCase();
+        const div = document.getElementById("assignCheckboxesArea");
+        const labels = div.getElementsByTagName("label");
+
+        for (let i = 0; i < labels.length; i++) {
+            const txtValue = labels[i].textContent || labels[i].innerText;
+            const txtValueNormalized = removeVietnameseTonesJS(txtValue).toUpperCase();
+
+            if (txtValueNormalized.indexOf(filter) > -1) {
+                labels[i].style.setProperty('display', 'flex', 'important');
+            } else {
+                labels[i].style.setProperty('display', 'none', 'important');
+            }
+        }
+    }
+
+    function updateAssignDropdownText() {
+        const checkedBoxes = document.querySelectorAll('input[name="selectedAssignStaffIds"]:checked');
+        const textElement = document.getElementById("dropdownAssignSelectedText");
+        if (checkedBoxes.length === 0) {
+            textElement.text = "-- Chọn nhân sự điều phối (Chọn nhiều) --";
+        } else {
+            textElement.text = `Đã chọn (${checkedBoxes.length}) nhân sự điều phối`;
+        }
+    }
+
+    // Đóng danh sách nhân sự điều phối gán việc khi click chuột ra vùng ngoài
+    document.addEventListener("click", function(event) {
+        const container = document.querySelector(".multiselect-container");
+        if (container && !container.contains(event.target)) {
+            const area = document.getElementById("assignCheckboxesArea");
+            if(area) area.style.display = "none";
+            assignExpanded = false;
+        }
+    });
 
     // =========================================================================
     // 4. LOGIC EVENT HOVER RATING STAR ĐÁNH GIÁ KHẢO SÁT CHẤT LƯỢNG
@@ -748,6 +929,7 @@
         if (btnGui) { btnGui.disabled = false; btnGui.style.opacity = '1'; btnGui.style.cursor = 'pointer'; }
     }
 
+    // Giữ nguyên hệ màu sắc cỏ non rực rỡ gán sao hài lòng
     function hoverSao(sao) {
         for (let i = 1; i <= 5; i++) {
             const star = document.getElementById('star' + i);
