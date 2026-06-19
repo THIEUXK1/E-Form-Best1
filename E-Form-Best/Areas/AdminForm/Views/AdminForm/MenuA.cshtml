@@ -1,5 +1,6 @@
 ﻿@model E_Form_Best.Models.ITForm.FormHr
 @using System
+@using System.Security.Claims
 
 @{
     ViewData["Title"] = "MenuA";
@@ -36,8 +37,8 @@
 
     <style>
             /* ==========================================
-                                           MOBILE RESPONSIVE
-                                           ========================================== */
+                                                       MOBILE RESPONSIVE
+                                                       ========================================== */
             @@media (max-width: 768px) {
                 .top-left-info {
                     top: 15px !important;
@@ -249,13 +250,14 @@
                 <small style="font-size: 11px; opacity: 0.7; margin-top: 5px; text-transform: uppercase;">Import Export</small>
             </a>
 
-            @* --- KHỐI THỨ 4: QUẢN LÝ CÔNG VIỆC (ĐÃ FIX: KIỂM TRA ĐÍCH DANH QUYỀN FORM_CV_VIEW) --- *@
+            @* --- KHỐI THỨ 4: QUẢN LÝ CÔNG VIỆC (BỔ SUNG BADGE CHẤM ĐỎ BÁO HIỆU PHIẾU CHƯA ĐỌC) --- *@
             @if (hasWorkViewRole)
             {
                 <a href="/QLCongViec/Logo" class="menu-card"
                    style="width: 220px; height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px); border-radius: 30px; border: 1px solid rgba(0, 212, 255, 0.2); color: white; text-decoration: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative;"
                    onmouseover="this.style.transform='translateY(-15px)'; this.style.boxShadow='0 20px 40px rgba(124, 58, 237, 0.4)'; this.style.background='rgba(124, 58, 237, 0.15)'; this.style.borderColor='rgba(124, 58, 237, 0.4)';"
                    onmouseout="this.style.transform='translateY(0)'; this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(0, 212, 255, 0.2)';">
+                    <div id="badge-work" style="display: none; position: absolute; top: 15px; right: 15px; width: 16px; height: 16px; background-color: #ef4444; border-radius: 50%; box-shadow: 0 0 8px rgba(239,68,68,0.8); animation: pulseDot 1.5s infinite;"></div>
                     <div class="icon-emoji" style="font-size: 50px; margin-bottom: 10px;">🎯</div>
                     <span style="font-size: 28px; font-weight: 800; letter-spacing: 2px;">WORK</span>
                     <small style="font-size: 11px; opacity: 0.7; margin-top: 5px; text-transform: uppercase;">Task Assign</small>
@@ -337,6 +339,17 @@
                         let readIds = getReadIds('read_notifications_shd');
                         if (items.filter(i => !readIds.includes(i.id.toString())).length > 0) {
                             document.getElementById('badge-shd').style.display = 'block';
+                        }
+                    }).catch(err => console.log(err));
+
+                // BỔ SUNG THÀNH CÔNG CHẠY QUÉT: Kiểm tra thông báo chưa đọc phân hệ Công việc gán ngoài MenuA
+                fetch('/FormCongViec/GetNotifications?skip=0&take=15')
+                    .then(res => res.json())
+                    .then(data => {
+                        let items = data.dataList || [];
+                        let readIds = getReadIds('read_cv_notifications');
+                        if (items.filter(i => !readIds.includes(i.id.toString())).length > 0) {
+                            document.getElementById('badge-work').style.display = 'block';
                         }
                     }).catch(err => console.log(err));
             }
