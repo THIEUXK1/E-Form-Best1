@@ -1147,6 +1147,59 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
         #endregion
 
+        #region ĐƠN CHỜ XÉT DUYỆT (cho nhân viên tạo form)
+
+        // 1. Chỉ trả về View giao diện Đơn của tôi
+        [HttpGet("/FormCongViec/DonCho")]
+        public IActionResult DonCho()
+        {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                return Redirect("/DonXetDuyet/DangNhap");
+            }
+            return View();
+        }
+
+        // 2. API kết xuất dữ liệu JSON tối ưu hóa câu lệnh JOIN tự động tại SQL Server
+        [HttpGet("/FormCongViec/GetDonChoData")]
+        public async Task<IActionResult> GetDonChoData()
+        {
+            // 1. LẤY THÔNG TIN TỪ CLAIMS NGƯỜI DÙNG HIỆN TẠI
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+
+            int userId = int.Parse(userIdStr);
+
+            // 2. TRUY VẤN DỮ LIỆU CÔNG VIỆC CHỈ ĐỊNH CỦA TÔI KHÔNG THEO DÕI TRẠNG THÁI (AsNoTracking)
+            var danhSachDon = await _context.FormCongViecs
+                .AsNoTracking()
+                .Where(f => f.IdNguoiTao == userId && f.Danhmuc == "Công việc chỉ định")
+                .OrderByDescending(f => f.Id)
+                .Select(item => new
+                {
+                    Id = item.Id,
+                    TenForm = item.TenForm ?? "",
+                    Danhmuc = item.Danhmuc ?? "N/A",
+                    Ngay = item.Ngay.HasValue ? item.Ngay.Value.ToString("dd/MM/yyyy") : "",
+                    IdNguoiDuyet = item.IdNguoiDuyet,
+                    IdAdmin = item.IdAdmin,
+
+                    // Kiểm tra đánh giá thông qua liên kết thực thể Any()
+                    DaDanhGia = _context.DanhGiaFormCongViecs.Any(dg => dg.IdFormCongViec == item.Id),
+
+                    // Truy vấn sâu xuống danh sách người liên quan để lấy họ tên nhân sự chịu trách nhiệm chính cuối cùng
+                    TenNguoiHoTro = item.FormCongViecNguoiLienQuans
+                                        .OrderByDescending(x => x.Id)
+                                        .Select(x => x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : "Chưa có")
+                                        .FirstOrDefault() ?? "Chưa có"
+                })
+                .ToListAsync();
+
+            return Json(danhSachDon);
+        }
+
+        #endregion
+
         #region QUẢN LÝ XÉT DUYỆT CÔNG VIỆC - RIÊNG BIỆT ĐƠN CÔNG VIỆC CHỈ ĐỊNH
 
         // 1. CHỈ TRẢ VỀ VIEW RIÊNG BIỆT CHO ĐƠN CHỈ ĐỊNH CÔNG VIỆC
@@ -1226,14 +1279,15 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                                       .Select(ct => ct.IdNguoiDungNavigation!.HoTen ?? "N/A")
                                       .ToList(),
 
+                    // --- TRUY VẤN CƠ CẤU TRƯỜNG THỜI HẠN HOÀN THÀNH, MỨC ĐỘ ƯU TIÊN & TIÊU ĐỀ TÊN CÔNG VIỆC CỤ THỂ ---
                     ThoiHanHoanThanh = item.CvCongViecOrder1s.Select(o => o.ThoiHanHoanThanh).FirstOrDefault(),
-                    MucDoUuTien = item.CvCongViecOrder1s.Select(o => o.MucDoUuTien).FirstOrDefault() ?? ""
+                    MucDoUuTien = item.CvCongViecOrder1s.Select(o => o.MucDoUuTien).FirstOrDefault() ?? "",
+                    Ten = item.CvCongViecOrder1s.Select(o => o.Ten).FirstOrDefault() ?? "" // ĐÃ THÊM: Đồng bộ dữ liệu tên hạng mục đẩy ra View
                 })
                 .ToListAsync();
 
             return Json(danhSachDon);
         }
-
 
         #endregion
 

@@ -340,7 +340,7 @@
                                 <i class="fa fa-user-plus" style="font-size: 16px;"></i> ĐIỀU PHỐI BỔ SUNG NHÂN SỰ VÀO PHIẾU CÔNG VIỆC:
                             </p>
                             <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                                <select id="selectIT" style="素 flex: 1; min-width: 200px; padding: 14px; border-radius: 12px; border: 1.5px solid @colorBorder; font-weight: 600; outline: none; background: white; font-size: 15px; color: #1e293b;">
+                                <select id="selectIT" style="flex: 1; min-width: 200px; padding: 14px; border-radius: 12px; border: 1.5px solid @colorBorder; font-weight: 600; outline: none; background: white; font-size: 15px; color: #1e293b;">
                                     <option value="">-- Click chọn nhân sự bàn giao việc --</option>
                                     @if (ViewBag.ListNguoiDungHeThong != null)
                                     {
@@ -406,6 +406,19 @@
 
                 @* --- CỘT PHẢI: ĐỌC FILE VĂN BẢN VÀ ĐIỀU PHỐI PHÊ DUYỆT ĐƠN PHIẾU --- *@
                 <div>
+                    @if (listImages.Count > 0)
+                    {
+                        <h3 style="margin-bottom: 20px; color: #0f172a; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa fa-image"></i> HÌNH ẢNH MINH HỌA HẠNG MỤC
+                        </h3>
+                        foreach (var img in listImages)
+                        {
+                            <div style="border: 2px solid #f1f5f9; border-radius: 24px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: #f8fafc; transition: all 0.3s ease;">
+                                <img src="@img" style="width: 100%; cursor: zoom-in; display: block; object-fit: cover; max-height: 300px;" onclick="openZoom(this.src)" />
+                            </div>
+                        }
+                    }
+
                     @if (!string.IsNullOrEmpty(fileUrl))
                     {
                         <h3 style="margin-bottom: 20px; color: #0f172a; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
@@ -458,18 +471,19 @@
                                 </button>
                             }
 
-
-                            
+                            @if (isApprovedByManager && (User.IsInRole("All") || User.IsInRole("AdminCV") || User.IsInRole("AdminIT")))
+                            {
                                 <button id="btnHoanThanh" onclick="handleXacNhanHoanThanh()" style="background: #65a30d; color: white; border: none; padding: 20px; border-radius: 18px; font-weight: 900; cursor: pointer; font-size: 16px; box-shadow: 0 10px 25px -5px rgba(101, 163, 13, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px;">
                                     <i class="fa fa-flag" style="font-size: 20px;"></i> ĐÓNG PHIẾU HOÀN TẤT
                                 </button>
-                            
+                            }
 
-  
+                            @if (User.IsInRole("All") || User.IsInRole("AdminCV") || User.IsInRole("AdminIT") || isDirectDepartmentManager || (currentUserId != 0 && currentUserId == Model.IdNguoiTao))
+                            {
                                 <button id="btnHuy" onclick="handleAction('Huy')" style="background: white; color: #dc2626; border: 2px solid #dc2626; padding: 18px; border-radius: 18px; font-weight: 800; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px;">
                                     <i class="fa fa-times-circle" style="font-size: 18px;"></i> HỦY PHIẾU CÔNG VIỆC
                                 </button>
-                            
+                            }
                         </div>
                     }
 
@@ -548,7 +562,7 @@
 
                         <div style="padding: 20px; background: white; border-top: 2px solid #e2e8f0;">
                             <form id="formBinhLuan" enctype="multipart/form-data">
-                                <textarea id="txtBinhLuan" name="noiDung" placeholder="Gõ nội dung trao đổi tiến độ... (Hỗ trợ Ctrl+V chụp dán hình ảnh cực nhanh)" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; box-sizing: border-box; margin-bottom: 12px;"></textarea>
+                                <textarea id="txtBinhLuan" name="noiDung" placeholder="Gõ nội dung trao đổi tiến độ... (Hỗ trợ Ctrl+V chụp dán hình ảnh cực nhanh)" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; box-sizing: border-box; margin-bottom: 12pxTrigger;"></textarea>
                                 <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                                     <label for="fileBinhLuan" style="flex: 1; min-width: 200px; padding: 12px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; cursor: pointer; text-align: center; font-size: 14px; color: #64748b; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
                                         <i class="fa fa-paperclip"></i> <span id="fileLabel">Đính kèm tài liệu chứng từ (max 50MB)</span>
@@ -687,8 +701,8 @@
         if (bl.fileDinhKem) {
             const originalName = bl.fileDinhKem.split('_').slice(2).join('_') || bl.fileDinhKem;
             const ext = bl.fileDinhKem.split('.').pop().toLowerCase();
-            if(['jpg','jpeg','png','gif','webp'].includes(ext)) { fileHtml = `<div style="margin-top:8px;"><img src="/FormCongViec/DownloadFile/${encodeURIComponent(bl.fileDinhKem)}" onclick="openZoom(this.src)" style="max-width:200px; border-radius:8px; cursor:zoom-in;"/></div>`; }
-            else { fileHtml = `<div style="margin-top: 10px; padding: 10px; background: #f1f5f9; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;"><i class="fa fa-paperclip"></i><a href="/FormCongViec/DownloadFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color: #65a30d; font-weight: 600; text-decoration: none;">${escapeHtml(originalName)}</a></div>`; }
+            if(['jpg','jpeg','png','gif','webp'].includes(ext)) { fileHtml = `<div style="margin-top:8px;"><img src="/FormCongViec/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" onclick="openZoom(this.src)" style="max-width:200px; border-radius:8px; cursor:zoom-in;"/></div>`; }
+            else { fileHtml = `<div style="margin-top: 10px; padding: 10px; background: #f1f5f9; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;"><i class="fa fa-paperclip"></i><a href="/FormCongViec/DownloadBinhLuanFile/${encodeURIComponent(bl.fileDinhKem)}" download style="color: #65a30d; font-weight: 600; text-decoration: none;">${escapeHtml(originalName)}</a></div>`; }
         }
         return `<div class="comment-item" style="margin-bottom: 20px; display: flex; gap: 12px; ${isOwn ? 'flex-direction: row-reverse;' : ''}" data-comment-id="${bl.id}"><div style="width: 40px; height: 40px; border-radius: 50%; background: ${isOwn ? '#65a30d' : '#64748b'}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; flex-shrink: 0;">${(bl.tenNguoiBinhLuan || 'U').charAt(0).toUpperCase()}</div><div style="flex: 1; ${isOwn ? 'text-align: right;' : ''}"><div style="display: inline-block; text-align: left; max-width: 85%;"><div style="display: flex; flex-direction: column; margin-bottom: 4px; ${isOwn ? 'align-items: flex-end;' : 'align-items: flex-start;'}"><div style="display: flex; align-items: center; gap: 8px; ${isOwn ? 'flex-direction: row-reverse;' : ''}"><span style="font-weight: 700; font-size: 13px;">${escapeHtml(bl.tenNguoiBinhLuan)}</span><span style="font-size: 11px; color: #94a3b8;">${new Date(bl.thoiGian).toLocaleString('vi-VN')}</span>${canDelete ? `<i class="fa fa-trash" onclick="xoaBinhLuan(${bl.id})" style="color: #ef4444; cursor: pointer; margin: 0 5px;"></i>` : ''}</div></div><div style="background: ${isOwn ? '#f7fee7' : '#f8fafc'}; padding: 12px; border-radius: ${isOwn ? '16px 2px 16px 16px' : '2px 16px 16px 16px'}; border: 1px solid #cbd5e1;"><div style="font-size: 14px; white-space: pre-wrap;">${escapeHtml(bl.noiDung)}</div>${fileHtml}</div></div></div></div>`;
     }

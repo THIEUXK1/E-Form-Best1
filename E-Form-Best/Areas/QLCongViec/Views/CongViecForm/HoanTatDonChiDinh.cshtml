@@ -7,6 +7,8 @@
     // Lấy Role để hiển thị tag thông tin người dùng
     var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value
                         ?? User.FindFirst("UserRole")?.Value ?? "User";
+
+    string statBox = "display: flex; flex-direction: column; padding: 15px; background: white; border-radius: 20px; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 4px rgba(0,0,0,0.02);";
 }
 
 <style>
@@ -252,7 +254,7 @@
                 justify-content: space-between;
                 align-items: center;
                 padding: 10px 5px !important;
-                border-bottom: 1px dashed #f1f5f9 !important;
+                border-bottom: 1px solid #f1f5f9 !important;
                 text-align: right !important;
             }
 
@@ -432,7 +434,7 @@
                         <th style="padding: 20px; text-align: left; font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase;">Nhân viên yêu cầu</th>
                         <th style="padding: 20px; text-align: left; font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase;">Người thực hiện</th>
                         <th style="padding: 20px; text-align: left; font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase; width: 130px;">Danh mục</th>
-                        <th style="padding: 20px; text-align: left; font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase;">Nhiệm vụ & Tiến trình</th>
+                        <th style="padding: 20px; text-align: left; font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase;">Nhiệm vụ &amp; Tiến trình</th>
                         <th style="padding: 20px; text-align: center; font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase; width: 140px;">Mức ưu tiên</th>
                         <th style="padding: 20px; text-align: center; font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase; width: 170px;">Hạn xử lý</th>
                         <th style="padding: 20px; text-align: center; font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase; width: 140px;">Trạng thái</th>
@@ -741,7 +743,7 @@
 
             if (textFilter) {
                 const supportNames = (item.nguoiHoTros || []).join(" ").toUpperCase();
-                const searchString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.danhmuc} ${item.tenForm} ${item.id} ${supportNames} ${stName} ${item.mucDoUuTien || ''}`.toUpperCase();
+                const searchString = `${item.tenNguoiNv} ${item.boPhan} ${item.soNhanVien} ${item.danhmuc} ${item.tenForm} ${item.id} ${supportNames} ${stName} ${item.mucDoUuTien || ''} ${item.ten || ''}`.toUpperCase();
                 if (!searchString.includes(textFilter)) return false;
             }
 
@@ -769,6 +771,7 @@
             pageData.forEach(item => {
                 const s = determineStatus(item);
                 const cleanTenForm = (item.tenForm || "").replace("[ĐÃ HỦY]", "").trim();
+                const cleanTenTask = (item.ten || "").replace("[ĐÃ HỦY]", "").trim() || "Công việc không tiêu đề";
 
                 let supportHtml = "";
                 if (item.nguoiHoTros && item.nguoiHoTros.length > 0) {
@@ -830,8 +833,11 @@
                     </td>
                     <td data-label="Dịch vụ" style="padding: 15px 20px;">
                         <div class="mobile-td-content">
-                            <div style="font-weight: 800; color: #1e293b; font-size: 13px; margin-bottom: 6px;">
-                                ${cleanTenForm}
+                            <div style="font-weight: 800; color: #1e293b; font-size: 14px; margin-bottom: 4px;">
+                                ${cleanTenTask}
+                            </div>
+                            <div style="font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 6px;">
+                                Form: ${cleanTenForm}
                             </div>
                             <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
                                 <div style="flex-grow: 1; height: 5px; background: #e2e8f0; border-radius: 10px; overflow: hidden; max-width: 120px;">
@@ -869,6 +875,7 @@
         document.getElementById("totalPagesNum").innerText = totalPages;
     }
 
+    // Phân trang chuẩn hóa, bảo lưu logic render dấu chấm lửng (...) thông minh
     function renderPaginationButtons(totalPages) {
         const container = document.getElementById("paginationButtons");
         container.innerHTML = ""; if (totalPages <= 1) return;
