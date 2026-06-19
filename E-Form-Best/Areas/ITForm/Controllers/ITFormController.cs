@@ -3806,8 +3806,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
 
             // LỌC: Loại trừ các đơn có Danh mục là "Chỉ định người hỗ trợ"
-            var query = _context.FormIts.AsNoTracking()
-                                .Where(f => f.Danhmuc != "Chỉ định người hỗ trợ");
+            var query = _context.FormIts.AsNoTracking();
 
             // --- 3. PHÂN QUYỀN LỌC DỮ LIỆU ---
             if (userRoles.Any(r => r == "All" || r == "AdminIT"))
@@ -3849,92 +3848,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                       .Where(ct => ct.IdItNguoiHoTroNavigation != null)
                                       .Select(ct => ct.IdItNguoiHoTroNavigation!.Ten ?? "N/A")
                                       .ToList()
-                })
-                .ToListAsync();
-
-            return Json(danhSachDon);
-        }
-
-        #endregion
-
-        #region QUẢN LÝ XÉT DUYỆT IT - RIÊNG BIỆT ĐƠN CHỈ ĐỊNH NGƯỜI HỖ TRỢ
-
-        // 1. CHỈ TRẢ VỀ VIEW RIÊNG BIỆT CHO ĐƠN CHỈ ĐỊNH
-        [HttpGet("/FormIT/HoanTatDonChiDinh")]
-        public IActionResult HoanTatDonChiDinh()
-        {
-            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdStr))
-                return Redirect("/DonXetDuyet/DangNhap");
-
-            return View(); // Tạo file View đặt tên là HoanTatDonChiDinh.cshtml
-        }
-
-        // 2. API TRẢ VỀ DỮ LIỆU JSON CHO JAVASCRIPT (Chỉ bao gồm đơn Chỉ định người hỗ trợ)
-        [HttpGet("/FormIT/GetHoanTatDonChiDinhData")]
-        public async Task<IActionResult> GetHoanTatDonChiDinhData()
-        {
-            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
-
-            int userId = int.Parse(userIdStr);
-            var userRoles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
-            var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
-            var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
-
-            var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
-            var listTenBoPhan = listTenBoPhanStr.Split(',')
-                                                .Select(s => s.Trim())
-                                                .Where(s => !string.IsNullOrEmpty(s))
-                                                .ToList();
-
-            // LỌC: CHỈ LẤY các đơn có Danh mục là "Chỉ định người hỗ trợ"
-            var query = _context.FormIts.AsNoTracking()
-                                .Where(f => f.Danhmuc == "Chỉ định người hỗ trợ");
-
-            // --- PHÂN QUYỀN LỌC DỮ LIỆU (Giữ nguyên cấu trúc phân quyền hệ thống của bạn) ---
-            if (userRoles.Any(r => r == "All" || r == "AdminIT"))
-            {
-                query = query.Where(f => f.IdNguoiDuyet != null);
-            }
-            else if (userRoles.Contains("QuanLyDuyetDonIT"))
-            {
-                bool hasPhu = listTenBoPhan.Any();
-                query = query.Where(f =>
-                    (hasPhu && f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan)) ||
-                    (!hasPhu && f.BoPhan == phongBanSession) ||
-                    (f.IdNguoiTao == userId)
-                );
-            }
-            else
-            {
-                query = query.Where(f => f.IdNguoiTao == userId);
-            }
-
-            // --- THỰC THI TRUY VẤN VỚI PROJECTION ---
-            var danhSachDon = await query
-                .OrderByDescending(f => f.Id)
-                .Select(item => new
-                {
-                    Id = item.Id,
-                    TenNguoiNv = item.TenNguoiNv ?? "",
-                    SoNhanVien = item.SoNhanVien ?? "",
-                    BoPhan = item.BoPhan ?? "",
-                    Danhmuc = "Chỉ định người hỗ trợ",
-                    TenForm = item.TenForm ?? "",
-                    TimeNguoiTao = item.TimeNguoiTao.HasValue ? item.TimeNguoiTao.Value.ToString("dd/MM/yyyy") : "",
-                    IdNguoiDuyet = item.IdNguoiDuyet,
-                    IdAdmin = item.IdAdmin,
-                    DaDanhGia = item.DanhGiaFormIts.Any(),
-                    NguoiHoTros = item.ItCtNguoiHoTros
-                                      .Where(ct => ct.IdItNguoiHoTroNavigation != null)
-                                      .Select(ct => ct.IdItNguoiHoTroNavigation!.Ten ?? "N/A")
-                                      .ToList(),
-
-                    // --- ĐÃ HIỆN THỰC HOÁ: TRUY VẤN BỔ SUNG 2 TRƯỜNG THỜI HẠN HOÀN THÀNH & MỨC ĐỘ ƯU TIÊN ---
-                    // item.ItOrderIt2s đại diện cho tập hợp ICollection<ItOrderIt2> liên kết từ thực thể chính FormIt
-                    ThoiHanHoanThanh = item.ItOrderIt2s.Select(o => o.ThoiHanHoanThanh).FirstOrDefault(),
-                    MucDoUuTien = item.ItOrderIt2s.Select(o => o.MucDoUuTien).FirstOrDefault() ?? ""
                 })
                 .ToListAsync();
 

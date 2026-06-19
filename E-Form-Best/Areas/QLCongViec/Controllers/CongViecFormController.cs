@@ -479,9 +479,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                 : File(memory, contentType, fileName);
         }
 
-        // =========================================================================
-        // MỚI BỔ SUNG: ACTION ĐỌC VÀ KẾT XUẤT FILE ĐÍNH KÈM KHÔNG GIAN BÌNH LUẬN THẢO LUẬN
-        // =========================================================================
+        // --- ACTION ĐỌC VÀ KẾT XUẤT FILE ĐÍNH KÈM KHÔNG GIAN BÌNH LUẬN THẢO LUẬN ---
         [HttpGet("/FormCongViec/DownloadBinhLuanFile/{fileName}")]
         public async Task<IActionResult> DownloadBinhLuanFile(string fileName)
         {
@@ -515,6 +513,72 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             return contentType.StartsWith("image/")
                 ? File(memory, contentType)
                 : File(memory, contentType, fileName);
+        }
+
+        // =========================================================================
+        // MỚI BỔ SUNG: API CẬP NHẬT MỨC ƯU TIÊN VÀ HẠN XỬ LÝ ( deadline ) GHI VÀO LỊCH SỬ
+        // =========================================================================
+        [HttpPost("/FormCongViec/CapNhatHanMucUuTien")]
+        public async Task<IActionResult> CapNhatHanMucUuTien([FromBody] System.Text.Json.JsonElement body)
+        {
+            try
+            {
+                int idForm = body.GetProperty("idForm").GetInt32();
+                string mucDoMoi = body.GetProperty("mucDoUuTien").GetString() ?? "";
+                string thoiHanStr = body.GetProperty("thoiHanHoanThanh").GetString() ?? "";
+                string lyDo = body.GetProperty("lyDo").GetString() ?? "";
+
+                if (string.IsNullOrWhiteSpace(lyDo))
+                    return Json(new { success = false, message = "Vui lòng nhập rõ lý do điều chỉnh thông tin!" });
+
+                var cvOrder = await _context.CvCongViecOrder1s.FirstOrDefaultAsync(x => x.IdFormCongViec == idForm);
+                if (cvOrder == null)
+                    return Json(new { success = false, message = "Không tìm thấy chi tiết hạng mục công việc chỉ định!" });
+
+                string moTaLog = "";
+
+                // 1. Kiểm tra thay đổi mức độ ưu tiên
+                if (cvOrder.MucDoUuTien != mucDoMoi)
+                {
+                    moTaLog += $"Mức ưu tiên: từ '{cvOrder.MucDoUuTien ?? "Chưa gán"}' sang '{mucDoMoi}'. ";
+                    cvOrder.MucDoUuTien = mucDoMoi;
+                }
+
+                // 2. Kiểm tra thay đổi thời hạn hoàn thành
+                DateTime? thoiHanMoi = null;
+                if (!string.IsNullOrEmpty(thoiHanStr)) thoiHanMoi = DateTime.Parse(thoiHanStr);
+
+                if (cvOrder.ThoiHanHoanThanh != thoiHanMoi)
+                {
+                    string oldDate = cvOrder.ThoiHanHoanThanh?.ToString("dd/MM/yyyy HH:mm") ?? "Không chỉ định";
+                    string newDate = thoiHanMoi?.ToString("dd/MM/yyyy HH:mm") ?? "Không chỉ định";
+                    moTaLog += $"Hạn hoàn thành: từ '{oldDate}' sang '{newDate}'. ";
+                    cvOrder.ThoiHanHoanThanh = thoiHanMoi;
+                }
+
+                if (string.IsNullOrEmpty(moTaLog))
+                {
+                    return Json(new { success = false, message = "Hệ thống ghi nhận bạn chưa thay đổi thông số nào mới!" });
+                }
+
+                // 3. Ghi vết vào bảng tiến trình lịch sử hệ thống
+                _context.LichSuFormCongViecs.Add(new LichSuFormCongViec
+                {
+                    IdFormCongViec = idForm,
+                    TieuDe = "ĐIỀU CHỈNH TIẾN ĐỘ & HẠN MỨC",
+                    Mota = $"{(User.Identity?.Name ?? "Quản lý")} đã cập nhật: {moTaLog}\n[Lý do điều chỉnh]: {lyDo}",
+                    Time = DateTime.Now,
+                    IsRead = false,
+                    TrangThaiAnHien = 1
+                });
+
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = "Điều chỉnh mức độ ưu tiên và hạn xử lý thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống cập nhật: " + ex.Message });
+            }
         }
 
         // --- ACTION CHỈ ĐỊNH / THAY ĐỔI / GÁN THÊM NHÂN SỰ XỬ LÝ ĐƠN CÔNG VIỆC ---
@@ -764,7 +828,6 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                     if (file.Length > 50 * 1024 * 1024)
                         return Json(new { success = false, message = "Tài liệu đính kèm thảo luận tối đa 50MB." });
 
-                    // ĐÃ CẬP NHẬT CHÍNH XÁC: Chuyển dịch phân vùng lưu trữ sang thư mục mạng BinhLuanDonCongViec theo yêu cầu
                     string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonCongViec";
                     if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
 
@@ -869,7 +932,6 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
                 if (!string.IsNullOrEmpty(binhLuan.FileDinhKem))
                 {
-                    // ĐÃ CẬP NHẬT CHÍNH XÁC: Định danh phân vùng xóa tệp tại thư mục BinhLuanDonCongViec đồng bộ
                     string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonCongViec";
                     string fullPath = Path.Combine(networkPath, binhLuan.FileDinhKem);
 
@@ -912,7 +974,6 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             }
         }
 
-        // Request DTO cho việc xóa bình luận
         public class XoaBinhLuanRequest
         {
             public int id { get; set; }

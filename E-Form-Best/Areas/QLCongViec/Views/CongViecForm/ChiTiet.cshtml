@@ -86,13 +86,18 @@
     string fileName = "";
     string fileUrl = "";
 
+    // Đọc sẵn thông số hạn mức và độ ưu tiên từ thực thể gốc để binding lên giao diện sửa đổi
+    string mucDoUuTienHienTai = "Trung bình";
+    string thoiHanHoanThanhHienTai = "";
+    string thoiHanHienThiChuoi = "Không giới hạn (Không chỉ định)";
+
     if (!string.IsNullOrEmpty(Model.FileDinhKem))
     {
         fileName = System.IO.Path.GetFileName(Model.FileDinhKem);
         fileUrl = "/FormCongViec/DownloadFile/" + Uri.EscapeDataString(fileName);
     }
 
-    // --- 4. HÀM HELPER KHỞI TẠO DÒNG THÔNG TIN ---
+    // --- 4. HÀM HELPER KHỔI TẠO DÒNG THÔNG TIN ---
     string RenderInfoRow(string icon, string label, string? value, string bgColor, string textColor)
     {
         string displayValue = string.IsNullOrEmpty(value) ? "Không có dữ liệu ghi chú" : value;
@@ -119,8 +124,18 @@
             listImages.Add("data:image/png;base64," + Convert.ToBase64String(ct.Anh));
         }
 
+        if (!string.IsNullOrEmpty(ct.MucDoUuTien)) mucDoUuTienHienTai = ct.MucDoUuTien;
+        if (ct.ThoiHanHoanThanh.HasValue)
+        {
+            thoiHanHoanThanhHienTai = ct.ThoiHanHoanThanh.Value.ToString("yyyy-MM-ddTHH:mm");
+            thoiHanHienThiChuoi = ct.ThoiHanHoanThanh.Value.ToString("dd/MM/yyyy HH:mm");
+        }
+
         chiTietNoiDung += RenderInfoRow("📌", "Hạng mục công việc", ct.Ten, "#f0fdf4", "#166534");
         chiTietNoiDung += RenderInfoRow("💬", "Mô tả nội dung xử lý cụ thể", ct.GhiChu, "#f8fafc", "#0f172a");
+        // Bổ sung hiển thị Mức độ ưu tiên và Hạn xử lý
+        chiTietNoiDung += RenderInfoRow("⚡", "Mức độ ưu tiên đơn", mucDoUuTienHienTai, "#fff7ed", "#c2410c");
+        chiTietNoiDung += RenderInfoRow("📅", "Thời hạn hoàn thành (Deadline)", thoiHanHienThiChuoi, "#fff1f2", "#be123c");
     }
 }
 
@@ -552,6 +567,40 @@
                         </div>
                     </div>
 
+                    @* ========================================================================= *@
+                    @* BỔ SUNG KHỐI GIAO DIỆN: ĐIỀU CHỈNH HẠN MỨC (DEADLINE) & ĐỘ ƯU TIÊN PHIẾU CÔNG VIỆC *@
+                    @* ========================================================================= *@
+                    @if (!isCancelled && !isFinished && (User.IsInRole("All") || User.IsInRole("AdminCV") || User.IsInRole("AdminIT") || isDirectDepartmentManager || (currentUserId != 0 && currentUserId == Model.IdNguoiTao)))
+                    {
+                        <div style="background: #ffffff; padding: 25px; border-radius: 28px; border: 1px solid #e2e8f0; margin-bottom: 35px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);">
+                            <h4 style="margin: 0 0 20px 0; font-size: 15px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa fa-pencil-square-o" style="color: @colorPrimary;"></i> THAY ĐỔI HẠN MỨC & ƯU TIÊN
+                            </h4>
+                            <div style="display: flex; flex-direction: column; gap: 14px;">
+                                <div>
+                                    <label style="font-weight: 800; font-size: 11px; color: #475569; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Mức độ ưu tiên mới:</label>
+                                    <select id="editMucDoUuTien" style="width: 100%; padding: 11px 15px; border-radius: 10px; border: 1.5px solid @colorBorder; font-weight: 600; outline: none; font-size: 14px; color: @colorDark;">
+                                        <option value="Thấp">Thấp</option>
+                                        <option value="Trung bình">Trung bình</option>
+                                        <option value="Cao">Cao</option>
+                                        <option value="Khẩn cấp">Khẩn cấp</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-weight: 800; font-size: 11px; color: #475569; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Hạn hoàn thành mới (Deadline):</label>
+                                    <input type="datetime-local" id="editThoiHanHoanThanh" value="@thoiHanHoanThanhHienTai" style="width: 100%; padding: 11px 15px; border-radius: 10px; border: 1.5px solid @colorBorder; font-weight: 600; outline: none; font-size: 14px; color: @colorDark;" />
+                                </div>
+                                <div>
+                                    <label style="font-weight: 800; font-size: 11px; color: #dc2626; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Lý do điều chỉnh hạn mức <span style="color:red">*</span>:</label>
+                                    <textarea id="txtLyDoThayDoiHanMuc" placeholder="Vui lòng ghi rõ nguyên nhân thay đổi mốc thời gian hoặc mức ưu tiên này..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1.5px solid @colorBorder; font-size: 13px; min-height: 70px; outline: none; resize: none; box-sizing: border-box; font-family:'Segoe UI', sans-serif;" onfocus="this.style.borderColor='#ea580c'"></textarea>
+                                </div>
+                                <button onclick="capNhatHanMucUuTien()" style="background: linear-gradient(135deg, @colorPrimary 0%, @colorDark 100%); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 900; font-size: 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(101,163,13,0.25);">
+                                    <i class="fa fa-save"></i> CẬP NHẬT TIẾN ĐỘ
+                                </button>
+                            </div>
+                        </div>
+                    }
+
                     @* --- KHỐI ĐIỀU KHIỂN HÀNH ĐỘNG DUYỆT PHIẾU THEO PHÂN QUYỀN --- *@
                     @if (!isCancelled && !isFinished)
                     {
@@ -592,7 +641,7 @@
                                     <p style="color: #3f6212; font-size: 14px; margin-bottom: 15px;">Vui lòng xếp hạng sao mức độ hài lòng của đơn (1-5 sao):</p>
                                     <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
                                         <button onclick="chonSao(1)" id="star1" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(1)" onmouseout="resetHover()">★</button>
-                                        <button onclick="chonSao(2)" id="star2" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(2)" onmouseout="resetHover()">★</button>
+                                        <button onclick="zoomSao(2)" id="star2" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(2)" onmouseout="resetHover()">★</button>
                                         <button onclick="chonSao(3)" id="star3" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(3)" onmouseout="resetHover()">★</button>
                                         <button onclick="chonSao(4)" id="star4" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(4)" onmouseout="resetHover()">★</button>
                                         <button onclick="chonSao(5)" id="star5" style="background: white; border: 2px solid #d1d5db; color: #9ca3af; font-size: 32px; width: 55px; height: 55px; border-radius: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="hoverSao(5)" onmouseout="resetHover()">★</button>
@@ -697,7 +746,6 @@
     function hasRole(roleName) { return userRoles.includes(roleName); }
     function escapeHtml(str) { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
-    // HÀM CHUYỂN ĐỔI TIẾNG VIỆT CHUẨN NFD KHỬ DẤU TRIỆT ĐỂ CHỐNG LỆCH PHÔNG KHI TÌM KIẾM BÌNH LUẬN
     function removeVietnameseTonesJS(str) {
         if (!str) return "";
         return str.normalize("NFD")
@@ -718,6 +766,29 @@
             if (data.success) { alert(data.message || "Xử lý nghiệp vụ phân hệ thành công!"); location.reload(); }
             else { alert(data.message || "Thao tác thất bại"); if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; }); }
         } catch (err) { alert("Mất kết nối máy chủ file."); if (btnIds) btnIds.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; }); }
+    }
+
+    // =========================================================================
+    // MỚI BỔ SUNG: KHAI BÁO HÀM XỬ LÝ AJAX GỬI DỮ LIỆU CẬP NHẬT DEADLINE & ĐỘ ƯU TIÊN
+    // =========================================================================
+    async function capNhatHanMucUuTien() {
+        const mucDo = document.getElementById("editMucDoUuTien").value;
+        const thoiHan = document.getElementById("editThoiHanHoanThanh").value;
+        const lyDo = document.getElementById("txtLyDoThayDoiHanMuc").value.trim();
+
+        if (!lyDo) {
+            alert("⚠️ Bạn bắt buộc phải điền rõ lý do điều chỉnh hạn mức xử lý hoặc độ ưu tiên trước khi lưu!");
+            return;
+        }
+
+        if (confirm("Xác nhận cập nhật thông số tiến độ và ghi nhận lý do vào nhật ký lịch sử?")) {
+            await apiPost('/FormCongViec/CapNhatHanMucUuTien', {
+                idForm: formId,
+                mucDoUuTien: mucDo,
+                thoiHanHoanThanh: thoiHan,
+                lyDo: lyDo
+            });
+        }
     }
 
     function toggleHistoryMobile() {
@@ -827,7 +898,6 @@
     function handleXacNhanHoanThanh() { if (confirm("Xác nhận toàn bộ công việc chỉ định đã hoàn tất 100%?")) apiPost('/FormCongViec/XacNhanHoanThanh', { id: formId }, ['btnHoanThanh']); }
     function handleChuaHoanThanh() { let reason = prompt("Lý do chưa hài lòng / Yêu cầu làm lại:"); if (!reason) return; apiPost('/FormCongViec/XacNhanChuaHoanThanh', { id: formId, reason: reason }, ['btnChuaHoanThanh']); }
 
-    // ĐÃ SỬA ĐỔI NÂNG CAO THÀNH CÔNG: Xử lý gán đa chọn nhân sự tuần tự chuyên nghiệp chống mất mát dữ liệu
     async function changeSupporter() {
         const checkedBoxes = document.querySelectorAll('input[name="selectedAssignStaffIds"]:checked');
         if (checkedBoxes.length === 0) return alert("Vui lòng tích chọn ít nhất một nhân sự!");
@@ -868,7 +938,6 @@
         }
     }
 
-    // Logic Đóng mở, tìm kiếm và bóc tách Dropdown Multi-Checkbox nhân sự gán việc
     let assignExpanded = false;
     function showAssignCheckboxes() {
         const checkboxes = document.getElementById("assignCheckboxesArea");
@@ -910,7 +979,6 @@
         }
     }
 
-    // Đóng danh sách nhân sự điều phối gán việc khi click chuột ra vùng ngoài
     document.addEventListener("click", function(event) {
         const container = document.querySelector(".multiselect-container");
         if (container && !container.contains(event.target)) {
@@ -929,7 +997,6 @@
         if (btnGui) { btnGui.disabled = false; btnGui.style.opacity = '1'; btnGui.style.cursor = 'pointer'; }
     }
 
-    // Giữ nguyên hệ màu sắc cỏ non rực rỡ gán sao hài lòng
     function hoverSao(sao) {
         for (let i = 1; i <= 5; i++) {
             const star = document.getElementById('star' + i);
@@ -960,6 +1027,11 @@
     // 5. ATTACHMENT PASTE CLIPBOARD BINDING (CTRL + V IMAGE SUBMISSION)
     // =========================================================================
     document.addEventListener('DOMContentLoaded', function() {
+        // Đặt giá trị mặc định cho ô select mức ưu tiên khớp với dữ liệu lúc load trang
+        const currentPriorityVal = '@mucDoUuTienHienTai';
+        const selectPriorityEl = document.getElementById("editMucDoUuTien");
+        if(selectPriorityEl) selectPriorityEl.value = currentPriorityVal;
+
         document.getElementById('formBinhLuan')?.addEventListener('submit', guiBinhLuan);
         document.getElementById('txtBinhLuan')?.addEventListener('paste', function (e) {
             const items = (e.clipboardData || e.originalEvent.clipboardData).items;
