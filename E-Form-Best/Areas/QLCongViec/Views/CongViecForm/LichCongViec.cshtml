@@ -20,6 +20,7 @@
     box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
     border: 1px solid #f1f5f9;
     }
+
     /* Chỉnh màu cho các nút bấm lịch sang màu xanh lá chủ đạo */
     .fc .fc-button-primary {
     background-color: #65a30d !important;
@@ -28,6 +29,16 @@
 
     .fc .fc-button-primary:hover {
     background-color: #4d7c0f !important;
+    }
+
+    /* Cho phép chữ hiển thị tự động bẻ dòng khi tiêu đề tên hạng mục công việc quá dài */
+    .fc-event-title {
+    white-space: normal !important;
+    word-wrap: break-word;
+    }
+
+    .fc-daygrid-event {
+    white-space: normal !important;
     }
 </style>
 
@@ -51,17 +62,19 @@
     center: 'title',
     right: 'dayGridMonth,timeGridWeek'
     },
-    // Gọi đến API bạn đã viết trong region
+    // Gọi đến API bạn đã viết trong bộ sinh JSON dữ liệu tổng
     events: '/FormCongViec/GetLichCongViecData',
     eventClick: function(info) {
-    // Ngăn chặn mở link mặc định nếu muốn xử lý khác
     if (info.event.url) {
     window.location.href = info.event.url;
     return false;
     }
     },
     eventContent: function(arg) {
-    return { html: `<div style="font-size:12px; font-weight:700; white-space:nowrap; overflow:hidden;">${arg.event.title}</div>` };
+    // Render tự động xuống hàng theo thuộc tính white-space giúp text hiển thị đầy đủ tên công việc cụ thể
+    return {
+    html: `<div style="font-size:12px; font-weight:700; white-space:normal; word-break:break-word; padding: 2px 0;">${arg.event.title}</div>`
+    };
     }
     });
     calendar.render();

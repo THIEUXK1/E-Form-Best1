@@ -1679,11 +1679,11 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
             int userId = int.Parse(userIdStr);
 
-            // Lấy danh sách đơn từ database
+            // Truy vấn lấy danh sách đơn kèm theo thực thể liên kết CvCongViecOrder1s để bóc tách trường Ten
             var danhSachDon = await _context.FormCongViecs
                 .AsNoTracking()
+                .Include(f => f.CvCongViecOrder1s)
                 .Where(f => f.TimeNguoiTao >= start && f.TimeNguoiTao <= end)
-                .Where(f => f.IdNguoiTao == userId || f.FormCongViecNguoiLienQuans.Any(ct => ct.IdNguoiDung == userId))
                 .ToListAsync();
 
             var result = danhSachDon.Select(f => {
@@ -1698,10 +1698,16 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                 else if (f.TrangThai == "DaDuyet")
                     color = "#3b82f6"; // Xanh dương
 
+                // Bóc tách tên công việc cụ thể từ thực thể con CvCongViecOrder1
+                var tenCongViecCuThe = f.CvCongViecOrder1s.Select(o => o.Ten).FirstOrDefault();
+
+                // Nếu có tên công việc cụ thể thì hiển thị, nếu không sẽ dự phòng bằng tên nhóm Form chung
+                string tieuDeHienThi = !string.IsNullOrEmpty(tenCongViecCuThe) ? tenCongViecCuThe : (f.TenForm ?? "Công việc không tiêu đề");
+
                 return new
                 {
                     id = f.Id,
-                    title = f.TenForm ?? "Công việc không tiêu đề",
+                    title = tieuDeHienThi,
                     start = f.TimeNguoiTao?.ToString("yyyy-MM-dd"),
                     backgroundColor = color,
                     borderColor = color,
@@ -1721,4 +1727,4 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
         #endregion
     }
-}
+    }
