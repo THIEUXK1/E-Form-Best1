@@ -16,11 +16,12 @@
     // Đánh dấu nhận diện hệ thống Công việc
     bool isWorkSystem = true;
 
-    // Tối ưu kích hoạt menu con: Chỉ active khi ở trang tạo đơn công việc, loại trừ các trang quản trị và nhật ký
+    // CẬP NHẬT: Tối ưu kích hoạt menu con, thêm điều kiện loại trừ "LichCongViec" để tránh lỗi tự bung menu Đăng ký đơn
     bool isWorkSubActive = currentController == "FormCongViec" &&
                            currentAction != "DonCho" &&
                            currentAction != "LichSuCongViec" &&
                            currentAction != "HoanTatDonChiDinh" &&
+                           currentAction != "LichCongViec" &&
                            currentAction != "BaoCaoThongKeCongViec";
 
     // CẬP NHẬT MÀU SẮC 2026: Gần giống IT nhưng mang bản sắc riêng (Deep Ocean Blue phối Teal)
@@ -333,7 +334,6 @@
 
                     <div id="mainSubmenu" style="display: @(isWorkSubActive ? "flex" : "none"); flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
                         <a href="/FormCongViec/DonCvCongViecOrder" class="submenu-link @(currentController == "FormCongViec" && currentAction == "DonCvCongViecOrder" ? "active" : "")">
-                            @* CẬP NHẬT: ĐỔI SANG ICON TỜ ĐƠN MÀU XANH LÁ CÂY TƯƠI #65a30d VÀ ĐỔI CHỮ THÀNH "Công việc chỉ định" *@
                             <i class="fa fa-file-text-o" style="margin-right:12px; width:15px; color: #65a30d;"></i> <span class="lang-text">Công việc chỉ định</span>
                         </a>
                     </div>
@@ -353,6 +353,11 @@
 
                         <a href="/FormCongViec/HoanTatDonChiDinh" class="nav-link-item @(currentAction == "HoanTatDonChiDinh" ? "active" : "")">
                             <i class="fa fa-user-plus" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f97316;"></i> <span class="lang-text">Công việc chỉ định</span>
+                        </a>
+
+                        @* CẬP NHẬT CHÍNH XÁC: THÊM LỊCH CÔNG VIỆC Ở PHÍA TRÊN PHẦN THỐNG KÊ THEO YÊU CẦU CỦA BẠN (MÀU XANH CỎ NON TƯƠI SÁNG) *@
+                        <a href="/FormCongViec/LichCongViec" class="nav-link-item @(currentAction == "LichCongViec" ? "active" : "")">
+                            <i class="fa fa-calendar" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#84cc16;"></i> <span class="lang-text">Lịch công việc</span>
                         </a>
 
                         <a href="/FormCongViec/BaoCaoThongKeCongViec" class="nav-link-item @(currentAction == "BaoCaoThongKeCongViec" ? "active" : "")">
@@ -868,4 +873,4 @@
 
     @RenderSection("Scripts", required: false)
 </body>
-</html>
+</html> 

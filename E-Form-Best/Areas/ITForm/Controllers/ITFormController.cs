@@ -4327,6 +4327,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/BaoCaoThongKe")]
         public IActionResult BaoCaoThongKe()
         {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                return Redirect("/DonXetDuyet/DangNhap");
+            }
             return View();
         }
 
@@ -4469,6 +4473,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/ThongKeMacWifi")]
         public IActionResult ThongKeMacWifi()
         {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                return Redirect("/DonXetDuyet/DangNhap");
+            }
             return View();
         }
 
@@ -4761,6 +4769,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/BaoCaoGanttTimeline")]
         public IActionResult BaoCaoGanttTimeline()
         {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                return Redirect("/DonXetDuyet/DangNhap");
+            }
             return View();
         }
 
@@ -5097,6 +5109,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLKiemKe/ThongKe")]
         public IActionResult ThongKeKiemKe()
         {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                return Redirect("/DonXetDuyet/DangNhap");
+            }
             return View("ThongKeKiemKe");
         }
 
@@ -5279,6 +5295,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLKiemKe")]
         public IActionResult IndexKiemKe()
         {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                return Redirect("/DonXetDuyet/DangNhap");
+            }
             return View("IndexKiemKe");
         }
 
@@ -5580,6 +5600,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLKiemKe/ThietBi")]
         public IActionResult IndexThietBi()
         {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                return Redirect("/DonXetDuyet/DangNhap");
+            }
             // Truyền User list sang View để đổ vào Dropdown Người Dùng
             ViewBag.Users = _context.Users.OrderBy(u => u.HoTen).ToList();
             return View("IndexThietBi"); // Bạn cần tạo file IndexThietBi.cshtml trong thư mục Views
