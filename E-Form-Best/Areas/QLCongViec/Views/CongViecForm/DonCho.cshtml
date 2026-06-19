@@ -1,4 +1,5 @@
 ﻿@model IEnumerable<E_Form_Best.Models.ITForm.FormCongViec>
+@using System.Security.Claims
 
 @{
     ViewData["Title"] = "Lịch sử đơn công việc của tôi";
@@ -319,7 +320,7 @@
 
     @* --- HEADER --- *@
     <div class="header-mobile" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-        <h2 style="margin: 0; font-size: 24px; font-weight: 900; color: @colorDark; letter-spacing: -0.5px;">
+        <h2 style="margin: 0; font-size: 24px; font-weight: 900; color: #2d4201; letter-spacing: -0.5px;">
             <i class="fa fa-align-left" style="color: @colorPrimary;"></i> ĐƠN PHÁT HÀNH CỦA TÔI
         </h2>
 
@@ -682,7 +683,8 @@
             }
 
             if (textFilter) {
-                const searchString = `${item.id} ${item.tenForm} ${item.danhmuc} ${item.tenNguoiHoTro} ${stName}`.toUpperCase();
+                // ĐÃ BỔ SUNG: Cho phép thanh tìm kiếm tự do quét trúng cả trường tên công việc cụ thể (item.ten)
+                const searchString = `${item.id} ${item.tenForm} ${item.danhmuc} ${item.tenNguoiHoTro} ${stName} ${item.ten || ''}`.toUpperCase();
                 if (!searchString.includes(textFilter)) return false;
             }
 
@@ -712,18 +714,22 @@
             pageData.forEach(item => {
                 const s = determineStatus(item);
                 const cleanName = (item.tenForm || "").replace("[ĐÃ HỦY]", "").trim();
+
+                // ĐÃ ĐIỀU CHỈNH: Trích xuất tên công việc cụ thể làm tiêu đề in đậm, đẩy tên nhóm form chung lót ở dưới
+                const cleanTaskName = (item.ten || "").replace("[ĐÃ HỦY]", "").trim() || "Công việc không tiêu đề";
                 const avatar = item.tenNguoiHoTro && item.tenNguoiHoTro !== "Chưa có" ? item.tenNguoiHoTro.charAt(0).toUpperCase() : "?";
 
                 const tr = document.createElement("tr");
                 tr.className = "d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative";
 
-                // CHUẨN HÓA HƯỚNG ĐIỀU HƯỚNG LINK: Chuyển sang module Chi tiết /FormCongViec/
                 tr.innerHTML = `
                     <td data-label="MÃ ĐƠN" style="padding: 15px; font-weight: 800; color: @colorPrimary;">#${item.id}</td>
                     <td data-label="CHI TIẾT HẠNG MỤC" style="padding: 15px;">
                         <div class="mobile-td-content">
-                            <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${cleanName}</div>
-                            <div style="font-size: 11px; color: #64748b; margin-top: 6px; display: flex; gap: 10px; flex-wrap: wrap;">
+                            @* Hiển thị Tên công việc cụ thể từ CongViec_Order_1 làm tiêu đề nổi bật *@
+                            <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${cleanTaskName}</div>
+                            <div style="font-size: 11px; color: #64748b; margin-top: 4px; font-weight: 600;">Form: ${cleanName}</div>
+                            <div style="font-size: 11px; color: #64748b; margin-top: 4px; display: flex; gap: 10px; flex-wrap: wrap;">
                                 <span><i class="fa fa-tag"></i> ${item.danhmuc}</span>
                                 <span><i class="fa fa-calendar"></i> Lập đơn: ${item.ngay}</span>
                             </div>
