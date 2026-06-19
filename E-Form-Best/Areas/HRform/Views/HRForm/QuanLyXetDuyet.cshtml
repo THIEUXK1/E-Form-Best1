@@ -1,11 +1,9 @@
-﻿@using System.Security.Claims
-@{
+﻿@{
     ViewData["Title"] = "Quản Lý Xét Duyệt HR";
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 
     // Vẫn lấy Role từ Claim để JS và HTML Header xài
     var userRole = User.Identity?.Name ?? "Guest";
-    string hrPrimary = "#1e40af";
 }
 
 <style>

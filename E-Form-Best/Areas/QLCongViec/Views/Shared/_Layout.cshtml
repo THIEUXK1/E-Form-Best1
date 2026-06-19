@@ -14,8 +14,6 @@
     var cultureCode = requestCulture?.RequestCulture.Culture.Name ?? "vi-VN";
 
     // Đánh dấu nhận diện hệ thống Công việc
-    bool isWorkSystem = true;
-
     // CẬP NHẬT: Tối ưu kích hoạt menu con, thêm điều kiện loại trừ "LichCongViec" để tránh lỗi tự bung menu Đăng ký đơn
     bool isWorkSubActive = currentController == "FormCongViec" &&
                            currentAction != "DonCho" &&
