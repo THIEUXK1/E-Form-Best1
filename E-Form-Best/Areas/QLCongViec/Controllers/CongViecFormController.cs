@@ -1324,11 +1324,11 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             var query = _context.LichSuFormCongViecs.AsNoTracking();
 
             // --- HỆ THỐNG PHÂN QUYỀN TRUY VẤN LOG CHẶT CHẼ ---
-            if (User.IsInRole("All"))
+            if (User.IsInRole("AdminCV") || User.IsInRole("All"))
             {
                 /* Quyền tối cao: Xem toàn bộ lịch sử hệ thống, không lọc theo công ty */
             }
-            else if (User.IsInRole("AdminCV") || User.IsInRole("AdminIT"))
+            else if ( User.IsInRole("AdminIT"))
             {
                 /* Ban quản trị phân hệ Công việc: Xem các đơn đã được duyệt qua cấp Quản lý */
                 query = query.Where(l =>
@@ -1487,8 +1487,8 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             var query = _context.LichSuFormCongViecs.AsNoTracking();
 
             // Phân quyền kéo thông báo thời gian thực đồng bộ logic xem lịch sử
-            if (User.IsInRole("All")) { /* Ban quản trị tối cao */ }
-            else if (User.IsInRole("AdminCV") || User.IsInRole("AdminIT"))
+            if (User.IsInRole("AdminCV") || User.IsInRole("All")) { /* Ban quản trị tối cao */ }
+            else if (User.IsInRole("AdminIT"))
             {
                 query = query.Where(l =>
                     l.IdFormCongViecNavigation != null &&
