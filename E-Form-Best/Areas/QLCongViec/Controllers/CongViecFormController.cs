@@ -1191,7 +1191,12 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                     TenNguoiHoTro = item.FormCongViecNguoiLienQuans
                                         .OrderByDescending(x => x.Id)
                                         .Select(x => x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : "Chưa có")
-                                        .FirstOrDefault() ?? "Chưa có"
+                                        .FirstOrDefault() ?? "Chưa có",
+
+                    Ten = _context.CvCongViecOrder1s
+                                .Where(o => o.IdFormCongViec == item.Id)
+                                .Select(o => o.Ten)
+                                .FirstOrDefault() ?? ""
                 })
                 .ToListAsync();
 
