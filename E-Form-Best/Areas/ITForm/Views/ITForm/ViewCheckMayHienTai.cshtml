@@ -37,6 +37,10 @@
                             <td id="lblDongMay" class="fw-bold text-primary"></td>
                         </tr>
                         <tr class="table-warning">
+                            <td><strong><i class="fa fa-wifi text-danger" style="margin-right: 8px; width: 16px;"></i>Địa chỉ MAC Không Dây (Wi-Fi):</strong></td>
+                            <td id="lblMacWifi" class="fw-bold"></td>
+                        </tr>
+                        <tr class="table-warning">
                             <td><strong><i class="fa fa-laptop text-primary" style="margin-right: 8px; width: 16px;"></i>Tên máy (Machine Name):</strong></td>
                             <td id="lblTenMay" class="fw-bold"></td>
                         </tr>
@@ -45,8 +49,12 @@
                             <td id="lblTenNguoiDungHeThong" class="fw-bold"></td>
                         </tr>
                         <tr class="table-warning">
-                            <td><strong><i class="fa fa-video-camera text-warning" style="margin-right: 8px; width: 16px;"></i>Màn hình ngoài kết nối (External):</strong></td>
+                            <td><strong><i class="fa fa-video-camera text-warning" style="margin-right: 8px; width: 16px;"></i>Trạng thái kết nối thêm:</strong></td>
                             <td id="lblThongTinManHinhNgoai" class="fw-bold text-success"></td>
+                        </tr>
+                        <tr class="table-warning">
+                            <td><strong><i class="fa fa-television text-success" style="margin-right: 8px; width: 16px;"></i>Danh sách tất cả Màn hình phát hiện:</strong></td>
+                            <td id="lblThongTinManHinh" class="fw-bold text-dark"></td>
                         </tr>
 
                         <tr>
@@ -80,10 +88,6 @@
                         <tr>
                             <td><strong><i class="fa fa-hdd-o text-info" style="margin-right: 8px; width: 16px;"></i>Thông tin ổ cứng (Storage):</strong></td>
                             <td id="lblThongTinOCung"></td>
-                        </tr>
-                        <tr>
-                            <td><strong><i class="fa fa-television text-success" style="margin-right: 8px; width: 16px;"></i>Tất cả thiết bị Màn hình:</strong></td>
-                            <td id="lblThongTinManHinh"></td>
                         </tr>
                         <tr>
                             <td><strong><i class="fa fa-file-word-o text-info" style="margin-right: 8px; width: 16px;"></i>Phiên bản Microsoft Office:</strong></td>
@@ -149,10 +153,15 @@
 
         // Gán các trường dữ liệu phần cứng bổ sung đầy đủ
         $("#lblSeriMay").text(machine.seriMay || "N/A");
-        $("#lblLoaiRam").text(machine.loaiRam || "N/A");
         $("#lblThongTinOCung").text(machine.thongTinOCung || "N/A");
-        $("#lblThongTinManHinh").text(machine.thongTinManHinh || "N/A");
+
+        // Đã đổi sang .html() để nhận dạng chuỗi bẻ dòng danh sách chi tiết thanh RAM nhận về
+        $("#lblLoaiRam").html(machine.loaiRam || "N/A");
+
+        // Sử dụng .html() thay vì .text() để render các thẻ ngắt dòng <br/> của danh sách màn hình
+        $("#lblThongTinManHinh").html(machine.thongTinManHinh || "N/A");
         $("#lblThongTinManHinhNgoai").text(machine.thongTinManHinhNgoai || "N/A");
+
         $("#lblThongTinOffice").text(machine.thongTinOffice || "N/A");
 
         // Gán các trường dữ liệu kiểm tra bản quyền mới bổ sung
@@ -161,6 +170,9 @@
 
         // GÁN THÀNH PHẦN MỚI THÊM: dòng máy từ Controller trả về
         $("#lblDongMay").text(machine.dongMay || "N/A");
+
+        // GÁN THÀNH PHẦN MỚI THÊM: Đưa chuỗi dữ liệu MAC Wifi (đã lọc trùng) lên view bằng .html()
+        $("#lblMacWifi").html(machine.macWifi || "N/A");
 
         // Hiển thị bảng kết quả
         $("#infoTableContainer").fadeIn(300);
