@@ -1,0 +1,190 @@
+﻿@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Thông tin máy hiện tại";
+}
+
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fa fa-desktop" style="margin-right: 8px;"></i>Thông Tin Cấu Hình Máy Hiện Tại</h5>
+            <button id="btnRefresh" class="btn btn-sm btn-light text-primary">
+                <i class="fa fa-refresh" style="margin-right: 4px;"></i> Làm mới
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="loadingStatus" class="text-center my-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Đang quét cấu hình hệ thống, vui lòng đợi...</p>
+            </div>
+
+            <div id="infoTableContainer" style="display: none;">
+                <table class="table table-bordered table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width: 35%;">Thông số hệ thống</th>
+                            <th style="width: 65%;">Giá trị chi tiết</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="table-warning">
+                            <td><strong><i class="fa fa-barcode text-danger" style="margin-right: 8px; width: 16px;"></i>Số Serial Máy (Serial Number):</strong></td>
+                            <td id="lblSeriMay" class="fw-bold text-danger"></td>
+                        </tr>
+                        <tr class="table-warning">
+                            <td><strong><i class="fa fa-info-circle text-primary" style="margin-right: 8px; width: 16px;"></i>Dòng máy (Hãng sản xuất):</strong></td>
+                            <td id="lblDongMay" class="fw-bold text-primary"></td>
+                        </tr>
+                        <tr class="table-warning">
+                            <td><strong><i class="fa fa-laptop text-primary" style="margin-right: 8px; width: 16px;"></i>Tên máy (Machine Name):</strong></td>
+                            <td id="lblTenMay" class="fw-bold"></td>
+                        </tr>
+                        <tr class="table-warning">
+                            <td><strong><i class="fa fa-user text-secondary" style="margin-right: 8px; width: 16px;"></i>Tên người dùng hệ thống:</strong></td>
+                            <td id="lblTenNguoiDungHeThong" class="fw-bold"></td>
+                        </tr>
+                        <tr class="table-warning">
+                            <td><strong><i class="fa fa-video-camera text-warning" style="margin-right: 8px; width: 16px;"></i>Màn hình ngoài kết nối (External):</strong></td>
+                            <td id="lblThongTinManHinhNgoai" class="fw-bold text-success"></td>
+                        </tr>
+
+                        <tr>
+                            <td><strong><i class="fa fa-windows text-info" style="margin-right: 8px; width: 16px;"></i>Hệ điều hành:</strong></td>
+                            <td id="lblHeDieuHanh"></td>
+                        </tr>
+                        <tr>
+                            <td><strong><i class="fa fa-shield text-info" style="margin-right: 8px; width: 16px;"></i>Trạng thái bản quyền Windows:</strong></td>
+                            <td id="lblBanQuyenWin" class="fw-bold text-info"></td>
+                        </tr>
+                        <tr>
+                            <td><strong><i class="fa fa-microchip text-success" style="margin-right: 8px; width: 16px;"></i>Kiến trúc OS:</strong></td>
+                            <td id="lblKienTruc"></td>
+                        </tr>
+                        <tr>
+                            <td><strong><i class="fa fa-code text-danger" style="margin-right: 8px; width: 16px;"></i>Phiên bản .NET Framework:</strong></td>
+                            <td id="lblPhienBanNet"></td>
+                        </tr>
+                        <tr>
+                            <td><strong><i class="fa fa-server text-warning" style="margin-right: 8px; width: 16px;"></i>Số lõi CPU (Processor Count):</strong></td>
+                            <td id="lblSoLoiCPU"></td>
+                        </tr>
+                        <tr>
+                            <td><strong><i class="fa fa-database text-primary" style="margin-right: 8px; width: 16px;"></i>Chuẩn Loại RAM (Memory Type):</strong></td>
+                            <td id="lblLoaiRam"></td>
+                        </tr>
+                        <tr>
+                            <td><strong><i class="fa fa-tasks text-primary" style="margin-right: 8px; width: 16px;"></i>RAM khả dụng:</strong></td>
+                            <td id="lblRamKhaDung"></td>
+                        </tr>
+                        <tr>
+                            <td><strong><i class="fa fa-hdd-o text-info" style="margin-right: 8px; width: 16px;"></i>Thông tin ổ cứng (Storage):</strong></td>
+                            <td id="lblThongTinOCung"></td>
+                        </tr>
+                        <tr>
+                            <td><strong><i class="fa fa-television text-success" style="margin-right: 8px; width: 16px;"></i>Tất cả thiết bị Màn hình:</strong></td>
+                            <td id="lblThongTinManHinh"></td>
+                        </tr>
+                        <tr>
+                            <td><strong><i class="fa fa-file-word-o text-info" style="margin-right: 8px; width: 16px;"></i>Phiên bản Microsoft Office:</strong></td>
+                            <td id="lblThongTinOffice" class="fw-bold text-info"></td>
+                        </tr>
+                        <tr>
+                            <td><strong><i class="fa fa-key text-danger" style="margin-right: 8px; width: 16px;"></i>Trạng thái bản quyền Office:</strong></td>
+                            <td id="lblBanQuyenOffice" class="fw-bold text-danger"></td>
+                        </tr>
+                        <tr>
+                            <td><strong><i class="fa fa-folder-open text-warning" style="margin-right: 8px; width: 16px;"></i>Thư mục hệ thống:</strong></td>
+                            <td id="lblThuMucHeThong"></td>
+                        </tr>
+                        <tr>
+                            <td><strong><i class="fa fa-clock-o text-info" style="margin-right: 8px; width: 16px;"></i>Thời gian hoạt động (Uptime):</strong></td>
+                            <td id="lblThoiGianHoatDong"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="errorAlert" class="alert alert-danger" style="display: none;" role="alert">
+                <i class="fa fa-exclamation-triangle" style="margin-right: 8px;"></i> <span id="errorMsg">Đã xảy ra lỗi khi lấy thông tin cấu hình máy.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+        // Hàm gọi AJAX tải thông tin cấu hình máy từ Controller
+        function taiThongTinMay() {
+        // Hiển thị trạng thái loading, ẩn bảng dữ liệu và ẩn lỗi cũ
+        $("#loadingStatus").show();
+        $("#infoTableContainer").hide();
+        $("#errorAlert").hide();
+
+        $.ajax({
+        url: '/QLKiemKe/CheckMayHienTai',
+        type: 'GET',
+        dataType: 'json',
+        headers: {
+        "X-Requested-With": "XMLHttpRequest" // Đảm bảo vượt qua điều kiện kiểm tra Request của bạn
+        },
+        success: function (response) {
+        $("#loadingStatus").hide();
+
+        if (response.success && response.data) {
+        var machine = response.data;
+
+        // Gán dữ liệu nhận từ JSON vào các ô tương ứng
+        $("#lblTenMay").text(machine.tenMay || "N/A");
+        $("#lblHeDieuHanh").text(machine.heDieuHanh || "N/A");
+        $("#lblKienTruc").text(machine.kienTruc || "N/A");
+        $("#lblPhienBanNet").text(machine.phienBanNet || "N/A");
+        $("#lblSoLoiCPU").text(machine.soLoiCPU || "0");
+        $("#lblTenNguoiDungHeThong").text(machine.tenNguoiDungHeThong || "N/A");
+        $("#lblThuMucHeThong").text(machine.thuMucHeThong || "N/A");
+        $("#lblThoiGianHoatDong").text(machine.thoiGianHoatDong || "N/A");
+        $("#lblRamKhaDung").text(machine.ramKhaDung || "N/A");
+
+        // Gán các trường dữ liệu phần cứng bổ sung đầy đủ
+        $("#lblSeriMay").text(machine.seriMay || "N/A");
+        $("#lblLoaiRam").text(machine.loaiRam || "N/A");
+        $("#lblThongTinOCung").text(machine.thongTinOCung || "N/A");
+        $("#lblThongTinManHinh").text(machine.thongTinManHinh || "N/A");
+        $("#lblThongTinManHinhNgoai").text(machine.thongTinManHinhNgoai || "N/A");
+        $("#lblThongTinOffice").text(machine.thongTinOffice || "N/A");
+
+        // Gán các trường dữ liệu kiểm tra bản quyền mới bổ sung
+        $("#lblBanQuyenWin").text(machine.banQuyenWin || "N/A");
+        $("#lblBanQuyenOffice").text(machine.banQuyenOffice || "N/A");
+
+        // GÁN THÀNH PHẦN MỚI THÊM: dòng máy từ Controller trả về
+        $("#lblDongMay").text(machine.dongMay || "N/A");
+
+        // Hiển thị bảng kết quả
+        $("#infoTableContainer").fadeIn(300);
+        } else {
+        // Hiển thị lỗi từ server trả về
+        $("#errorMsg").text(response.msg || "Không thể tải dữ liệu cấu hình máy.");
+        $("#errorAlert").show();
+        }
+        },
+        error: function (xhr, status, error) {
+        $("#loadingStatus").hide();
+        $("#errorMsg").text("Lỗi kết nối hệ thống: " + error);
+        $("#errorAlert").show();
+        }
+        });
+        }
+
+        // Tự động tải dữ liệu khi trang web tải xong
+        taiThongTinMay();
+
+        // Xử lý sự kiện khi nhấn nút Làm mới
+        $("#btnRefresh").click(function () {
+        taiThongTinMay();
+        });
+        });
+    </script>
+}
