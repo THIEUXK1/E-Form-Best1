@@ -6101,6 +6101,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 string thongTinOffice = "Không tìm thấy Microsoft Office";
                 string banQuyenWin = "Không xác định";
                 string banQuyenOffice = "Không xác định";
+                string macWifiInfo = "Không phát hiện card mạng không dây"; // THÀNH PHẦN MỚI THÊM: Lưu danh sách địa chỉ MAC mạng không dây
 
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
@@ -6184,12 +6185,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         seriMay = $"Không lấy được Serial (Lỗi: {ex.Message})";
                     }
 
-                    // 2. Lấy Loại RAM và Tốc độ
+                    // 2. LẤY CHI TIẾT TỪNG THANH RAM (ĐÃ ĐƯỢC CẢI TIẾN ĐỂ THỂ HIỆN SỐ THANH, LOẠI, DUNG LƯỢNG)
                     try
                     {
                         using (var searcher = new System.Management.ManagementObjectSearcher("SELECT * FROM Win32_PhysicalMemory"))
                         {
                             List<string> ramList = new List<string>();
+                            int ramIndex = 1;
+                            double tongDungLuongGb = 0;
+
                             foreach (var obj in searcher.Get())
                             {
                                 string type = "Unknown";
@@ -6209,14 +6213,34 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                     case 30: type = "DDR5"; break;
                                     default: type = $"DDR/Tùy biến ({memType})"; break;
                                 }
+
                                 string speed = "";
                                 try { speed = obj["Speed"] != null ? $"{obj["Speed"]} MHz" : ""; } catch { }
 
-                                ramList.Add($"{type} {speed}".Trim());
+                                // Tính dung lượng của thanh RAM hiện tại (Bytes sang GB)
+                                double capacityGb = 0;
+                                try
+                                {
+                                    if (obj["Capacity"] != null)
+                                    {
+                                        capacityGb = Math.Round(Convert.ToDouble(obj["Capacity"]) / (1024 * 1024 * 1024), 0);
+                                        tongDungLuongGb += capacityGb;
+                                    }
+                                }
+                                catch { }
+
+                                ramList.Add($"[Thanh {ramIndex}]: {capacityGb} GB {type} {speed}".Trim());
+                                ramIndex++;
                             }
+
                             if (ramList.Count > 0)
                             {
-                                loaiRam = string.Join(", ", ramList.Distinct());
+                                // Chuỗi hiển thị: Tổng dung lượng kèm danh sách phân tách xuống hàng
+                                loaiRam = $"<b>Tổng: {tongDungLuongGb} GB</b> (Phát hiện: {ramList.Count} thanh RAM) <br/> " + string.Join(" <br/> ", ramList);
+                            }
+                            else
+                            {
+                                loaiRam = "Không lấy được thông tin chi tiết RAM";
                             }
                         }
                     }
@@ -6258,38 +6282,28 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         thongTinOCung = $"Không thể quét ổ cứng ({ex.Message})";
                     }
 
-                    // 4. Lấy Thông tin Màn hình nói chung & Lọc Màn hình ngoài (Root\WMI)
+                    // 4. LẤY THÔNG TIN TẤT CẢ MÀN HÌNH ĐANG KẾT NỐI (ĐÃ CẢI TIẾN)
                     List<string> tatCaManHinh = new List<string>();
-                    List<string> dsManHinhNgoai = new List<string>();
 
                     try
                     {
                         using (var wmiSearcher = new System.Management.ManagementObjectSearcher(@"Root\WMI", "SELECT InstanceName, UserFriendlyName, SerialNumberID FROM WmiMonitorID"))
                         {
+                            int index = 1;
                             foreach (var obj in wmiSearcher.Get())
                             {
-                                string instanceName = obj["InstanceName"]?.ToString() ?? "";
                                 ushort[] nameCodes = (ushort[])obj["UserFriendlyName"];
                                 ushort[] serialCodes = (ushort[])obj["SerialNumberID"];
 
-                                string name = nameCodes != null ? System.Text.Encoding.ASCII.GetString(Array.ConvertAll(nameCodes, x => (byte)x)).Trim('\0').Trim() : "Unknown Monitor";
+                                string name = nameCodes != null ? System.Text.Encoding.ASCII.GetString(Array.ConvertAll(nameCodes, x => (byte)x)).Trim('\0').Trim() : "Màn hình tiêu chuẩn";
                                 string serial = serialCodes != null ? System.Text.Encoding.ASCII.GetString(Array.ConvertAll(serialCodes, x => (byte)x)).Trim('\0').Trim() : "N/A";
 
                                 if (string.IsNullOrEmpty(name)) name = "Màn hình tiêu chuẩn";
 
-                                string infoFormat = $"{name} (S/N: {serial})";
+                                // Gom thông tin định dạng rõ ràng kèm số thứ tự màn hình phát hiện được
+                                string infoFormat = $"[Màn hình {index}]: {name} (S/N: {serial})";
                                 tatCaManHinh.Add(infoFormat);
-
-                                // Nhận diện màn hình ngoài: Thông thường chuỗi InstanceName của màn hình Laptop tích hợp sẽ chứa ký tự đặc biệt "4&1a" hoặc "DISPLAY\LEN", "DISPLAY\SEC" (Samsung), "DISPLAY\AUO"
-                                if (!instanceName.ToUpper().Contains("INTERNAL") && !instanceName.ToUpper().Contains("INTEGRATED") && !instanceName.ToUpper().Contains("LGD") && tatCaManHinh.Count > 1)
-                                {
-                                    dsManHinhNgoai.Add(infoFormat);
-                                }
-                                else if (!instanceName.ToUpper().Contains("DISPLAY#") && tatCaManHinh.Count > 1)
-                                {
-                                    // Dự phòng nếu có từ màn hình thứ 2 trở đi xuất hiện
-                                    dsManHinhNgoai.Add(infoFormat);
-                                }
+                                index++;
                             }
                         }
                     }
@@ -6298,22 +6312,22 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     // Cấu hình hiển thị chuỗi Màn hình nói chung
                     if (tatCaManHinh.Count > 0)
                     {
-                        thongTinManHinh = string.Join(" | ", tatCaManHinh);
+                        thongTinManHinh = string.Join(" <br/> ", tatCaManHinh);
+
+                        // Nếu tổng số màn hình > 1 thì hiển thị số lượng màn hình ngoài kết nối thêm
+                        if (tatCaManHinh.Count > 1)
+                        {
+                            thongTinManHinhNgoai = $"Phát hiện thêm {tatCaManHinh.Count - 1} màn hình kết nối ngoài phụ trợ.";
+                        }
+                        else
+                        {
+                            thongTinManHinhNgoai = "Chỉ phát hiện 1 màn hình chính (Không có màn hình ngoài)";
+                        }
                     }
                     else
                     {
                         thongTinManHinh = "Màn hình tiêu chuẩn (Không lấy được số Serial sâu)";
-                    }
-
-                    // Cấu hình hiển thị chuỗi Màn hình ngoài
-                    if (dsManHinhNgoai.Count > 0)
-                    {
-                        thongTinManHinhNgoai = string.Join(" | ", dsManHinhNgoai.Distinct());
-                    }
-                    else if (tatCaManHinh.Count > 1)
-                    {
-                        // Nếu đếm thấy có nhiều hơn 1 màn hình nhưng bộ lọc tên chưa bắt được, lấy luôn màn hình thứ 2 làm màn hình ngoài
-                        thongTinManHinhNgoai = string.Join(" | ", tatCaManHinh.Skip(1));
+                        thongTinManHinhNgoai = "Không xác định";
                     }
 
                     // --- 5. Lấy Thông tin phiên bản Microsoft Office từ Registry Windows ---
@@ -6490,6 +6504,49 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         }
                     }
                     catch { banQuyenOffice = "Không thể xác minh bản quyền Office"; }
+
+                    // --- 8. THÀNH PHẦN MỚI THÊM: KIỂM TRA ĐỊA CHỈ MAC KHÔNG DÂY (WI-FI ADAPTERS - LỌC BỎ TRÙNG LẶP) ---
+                    try
+                    {
+                        // Truy vấn các card mạng đang hoạt động, lọc theo tên/loại chứa các cụm từ không dây phổ biến
+                        using (var searcher = new System.Management.ManagementObjectSearcher(
+                            "SELECT Name, MACAddress FROM Win32_NetworkAdapter WHERE MACAddress IS NOT NULL AND (AdapterType LIKE '%Wireless%' OR Name LIKE '%Wireless%' OR Name LIKE '%Wi-Fi%' OR Name LIKE '%802.11%')"))
+                        {
+                            List<string> wifiMacList = new List<string>();
+                            HashSet<string> daQuetMac = new HashSet<string>(); // Lưu trữ tạm thời để loại bỏ các địa chỉ trùng lặp
+                            int wifiIndex = 1;
+
+                            foreach (var obj in searcher.Get())
+                            {
+                                string name = obj["Name"]?.ToString()?.Trim() ?? "Unknown Wireless Adapter";
+                                string mac = obj["MACAddress"]?.ToString()?.Trim() ?? "N/A";
+
+                                string macUpper = mac.ToUpper(); // Chuẩn hóa chuỗi MAC về chữ in hoa để so sánh chính xác
+
+                                // Nếu địa chỉ MAC này chưa từng xuất hiện, chỉ lấy cái đầu tiên
+                                if (!daQuetMac.Contains(macUpper))
+                                {
+                                    daQuetMac.Add(macUpper); // Ghi nhận địa chỉ MAC vào bộ lọc
+
+                                    wifiMacList.Add($"[Card {wifiIndex}]: {name} <br/> &rarr; MAC: <b class='text-danger'>{mac}</b>");
+                                    wifiIndex++;
+                                }
+                            }
+
+                            if (wifiMacList.Count > 0)
+                            {
+                                macWifiInfo = string.Join("<br/><div class='my-1 border-bottom'></div>", wifiMacList);
+                            }
+                            else
+                            {
+                                macWifiInfo = "Không tìm thấy địa chỉ MAC của card mạng không dây nào đang hoạt động.";
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        macWifiInfo = $"Lỗi khi quét MAC Không dây ({ex.Message})";
+                    }
                 }
 
                 var thongTinMay = new
@@ -6511,7 +6568,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     ThongTinManHinhNgoai = thongTinManHinhNgoai,
                     ThongTinOffice = thongTinOffice,
                     BanQuyenWin = banQuyenWin,
-                    BanQuyenOffice = banQuyenOffice
+                    BanQuyenOffice = banQuyenOffice,
+                    MacWifi = macWifiInfo // ĐƯA THÀNH PHẦN MỚI RA JSON: Trả chuỗi thông tin MAC Wi-Fi đã lọc trùng về client
                 };
 
                 return Json(new { success = true, data = thongTinMay });
@@ -6522,7 +6580,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
-        #endregion
+        #endregion 
         
     }
 }
