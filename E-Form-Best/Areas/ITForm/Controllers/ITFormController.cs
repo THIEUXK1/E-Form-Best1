@@ -6063,7 +6063,467 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
+        #region check máy hiện tại 
 
+
+        // 1. Action này chỉ trả về giao diện (View)
+        [HttpGet("/QLKiemKe/ViewCheckMayHienTai")]
+        public IActionResult ViewCheckMayHienTai()
+        {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                return Redirect("/DonXetDuyet/DangNhap");
+            }
+            return View();
+        }
+
+        [HttpGet("/QLKiemKe/CheckMayHienTai")]
+        public IActionResult CheckMayHienTai()
+        {
+            // 1. KIỂM TRA REQUEST: Nếu KHÔNG PHẢI là yêu cầu AJAX (người dùng gõ trực tiếp URL hoặc click link) thì trả về View giao diện
+            if (Request.Headers["X-Requested-With"] != "XMLHttpRequest")
+            {
+                // Trả về file View cấu hình (Bạn cần tạo file CheckMayHienTai.cshtml trong thư mục Views)
+                return View("CheckMayHienTai");
+            }
+
+            // 2. XỬ LÝ LOGIC LẤY DỮ LIỆU: Nếu là request AJAX, tiến hành quét cấu hình hệ thống và trả về JSON
+            try
+            {
+                // Lấy thông tin dung lượng RAM (chỉ hoạt động trên Windows)
+                string ramInfo = "N/A";
+                string loaiRam = "N/A";
+                string thongTinOCung = "N/A";
+                string seriMay = "N/A";
+                string dongMay = "N/A"; // THÀNH PHẦN MỚI THÊM: Lưu thông tin hãng và model thiết bị
+                string thongTinManHinh = "N/A";
+                string thongTinManHinhNgoai = "Không phát hiện màn hình ngoài";
+                string thongTinOffice = "Không tìm thấy Microsoft Office";
+                string banQuyenWin = "Không xác định";
+                string banQuyenOffice = "Không xác định";
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    // --- 0. Lấy RAM khả dụng (Performance Counter) ---
+                    try
+                    {
+                        using (var pc = new System.Diagnostics.PerformanceCounter("Memory", "Available MBytes"))
+                        {
+                            ramInfo = $"{pc.NextValue()} MB available";
+                        }
+                    }
+                    catch
+                    {
+                        ramInfo = "Không thể truy cập Performance Counter";
+                    }
+
+                    // --- TRUY VẤN WMI ĐỂ LẤY CHI TIẾT PHẦN CỨNG SÂU (BỌC RIÊNG BIỆT TRÁNH INVALID QUERY) ---
+
+                    // 0. THÀNH PHẦN CẢI TIẾN: Lấy hãng sản xuất và tên thương mại thân thiện (ThinkPad, Latitude, EliteBook...)
+                    try
+                    {
+                        string hangSanXuat = "N/A";
+                        string modelMay = "N/A";
+
+                        // Bước A: Lấy Hãng sản xuất từ Win32_ComputerSystem
+                        using (var searcherSystem = new System.Management.ManagementObjectSearcher("SELECT Manufacturer FROM Win32_ComputerSystem"))
+                        {
+                            foreach (var obj in searcherSystem.Get())
+                            {
+                                hangSanXuat = obj["Manufacturer"]?.ToString()?.Trim() ?? "N/A";
+                                break;
+                            }
+                        }
+
+                        // Bước B: Lấy tên dòng máy thương mại trực tiếp từ Product Version/Name
+                        using (var searcherProduct = new System.Management.ManagementObjectSearcher("SELECT Name, Version FROM Win32_ComputerSystemProduct"))
+                        {
+                            foreach (var obj in searcherProduct.Get())
+                            {
+                                string name = obj["Name"]?.ToString()?.Trim() ?? "";
+                                string version = obj["Version"]?.ToString()?.Trim() ?? "";
+
+                                // Đối với Lenovo, tên chữ như "ThinkPad..." được lưu ở trường Version thay vì Name kỹ thuật
+                                if (hangSanXuat.ToUpper().Contains("LENOVO"))
+                                {
+                                    modelMay = (!string.IsNullOrEmpty(version) && !version.ToUpper().Contains("VERSION")) ? version : name;
+                                }
+                                else
+                                {
+                                    // Đối với Dell, HP, ASUS... lấy trường Name thông thường
+                                    modelMay = !string.IsNullOrEmpty(name) ? name : version;
+                                }
+                                break;
+                            }
+                        }
+
+                        if (hangSanXuat != "N/A" || modelMay != "N/A")
+                        {
+                            dongMay = $"{hangSanXuat} - {modelMay}".Trim(' ', '-');
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        dongMay = $"Không lấy được tên thiết bị (Lỗi: {ex.Message})";
+                    }
+
+                    // 1. Lấy Serial Number của máy (BIOS hoặc System Enclosure)
+                    try
+                    {
+                        using (var searcher = new System.Management.ManagementObjectSearcher("SELECT SerialNumber FROM Win32_BIOS"))
+                        {
+                            foreach (var obj in searcher.Get())
+                            {
+                                seriMay = obj["SerialNumber"]?.ToString()?.Trim() ?? "N/A";
+                                break;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        seriMay = $"Không lấy được Serial (Lỗi: {ex.Message})";
+                    }
+
+                    // 2. Lấy Loại RAM và Tốc độ
+                    try
+                    {
+                        using (var searcher = new System.Management.ManagementObjectSearcher("SELECT * FROM Win32_PhysicalMemory"))
+                        {
+                            List<string> ramList = new List<string>();
+                            foreach (var obj in searcher.Get())
+                            {
+                                string type = "Unknown";
+                                uint memType = 0;
+
+                                // Thử lấy qua SMBIOSMemoryType trước
+                                try { memType = obj["SMBIOSMemoryType"] != null ? Convert.ToUInt32(obj["SMBIOSMemoryType"]) : 0; } catch { }
+                                // Nếu bằng 0, thử lấy qua MemoryType cũ
+                                if (memType == 0) { try { memType = obj["MemoryType"] != null ? Convert.ToUInt32(obj["MemoryType"]) : 0; } catch { } }
+
+                                switch (memType)
+                                {
+                                    case 20: type = "DDR"; break;
+                                    case 21: type = "DDR2"; break;
+                                    case 24: type = "DDR3"; break;
+                                    case 26: type = "DDR4"; break;
+                                    case 30: type = "DDR5"; break;
+                                    default: type = $"DDR/Tùy biến ({memType})"; break;
+                                }
+                                string speed = "";
+                                try { speed = obj["Speed"] != null ? $"{obj["Speed"]} MHz" : ""; } catch { }
+
+                                ramList.Add($"{type} {speed}".Trim());
+                            }
+                            if (ramList.Count > 0)
+                            {
+                                loaiRam = string.Join(", ", ramList.Distinct());
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        loaiRam = $"Không xác định được loại RAM ({ex.Message})";
+                    }
+
+                    // 3. Lấy Thông tin ổ cứng (Loại ổ, dung lượng, model)
+                    try
+                    {
+                        using (var searcher = new System.Management.ManagementObjectSearcher("SELECT Model, Size, MediaType FROM Win32_DiskDrive"))
+                        {
+                            List<string> diskList = new List<string>();
+                            foreach (var obj in searcher.Get())
+                            {
+                                string model = obj["Model"]?.ToString()?.Trim() ?? "N/A";
+                                string mediaType = obj["MediaType"]?.ToString() ?? "";
+                                double sizeGb = 0;
+                                try { sizeGb = obj["Size"] != null ? Math.Round(Convert.ToDouble(obj["Size"]) / (1024 * 1024 * 1024), 1) : 0; } catch { }
+
+                                // Nhận diện SSD/HDD sơ bộ qua tên MediaType hoặc Model
+                                string driveType = "HDD/SSD";
+                                if (mediaType.ToLower().Contains("fixed") || model.ToLower().Contains("ssd") || model.ToLower().Contains("nvme"))
+                                {
+                                    driveType = model.ToLower().Contains("nvme") || model.ToLower().Contains("ssd") ? "SSD" : "HDD";
+                                }
+
+                                diskList.Add($"{model} ({driveType} - {sizeGb} GB)");
+                            }
+                            if (diskList.Count > 0)
+                            {
+                                thongTinOCung = string.Join(" | ", diskList);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        thongTinOCung = $"Không thể quét ổ cứng ({ex.Message})";
+                    }
+
+                    // 4. Lấy Thông tin Màn hình nói chung & Lọc Màn hình ngoài (Root\WMI)
+                    List<string> tatCaManHinh = new List<string>();
+                    List<string> dsManHinhNgoai = new List<string>();
+
+                    try
+                    {
+                        using (var wmiSearcher = new System.Management.ManagementObjectSearcher(@"Root\WMI", "SELECT InstanceName, UserFriendlyName, SerialNumberID FROM WmiMonitorID"))
+                        {
+                            foreach (var obj in wmiSearcher.Get())
+                            {
+                                string instanceName = obj["InstanceName"]?.ToString() ?? "";
+                                ushort[] nameCodes = (ushort[])obj["UserFriendlyName"];
+                                ushort[] serialCodes = (ushort[])obj["SerialNumberID"];
+
+                                string name = nameCodes != null ? System.Text.Encoding.ASCII.GetString(Array.ConvertAll(nameCodes, x => (byte)x)).Trim('\0').Trim() : "Unknown Monitor";
+                                string serial = serialCodes != null ? System.Text.Encoding.ASCII.GetString(Array.ConvertAll(serialCodes, x => (byte)x)).Trim('\0').Trim() : "N/A";
+
+                                if (string.IsNullOrEmpty(name)) name = "Màn hình tiêu chuẩn";
+
+                                string infoFormat = $"{name} (S/N: {serial})";
+                                tatCaManHinh.Add(infoFormat);
+
+                                // Nhận diện màn hình ngoài: Thông thường chuỗi InstanceName của màn hình Laptop tích hợp sẽ chứa ký tự đặc biệt "4&1a" hoặc "DISPLAY\LEN", "DISPLAY\SEC" (Samsung), "DISPLAY\AUO"
+                                if (!instanceName.ToUpper().Contains("INTERNAL") && !instanceName.ToUpper().Contains("INTEGRATED") && !instanceName.ToUpper().Contains("LGD") && tatCaManHinh.Count > 1)
+                                {
+                                    dsManHinhNgoai.Add(infoFormat);
+                                }
+                                else if (!instanceName.ToUpper().Contains("DISPLAY#") && tatCaManHinh.Count > 1)
+                                {
+                                    // Dự phòng nếu có từ màn hình thứ 2 trở đi xuất hiện
+                                    dsManHinhNgoai.Add(infoFormat);
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+
+                    // Cấu hình hiển thị chuỗi Màn hình nói chung
+                    if (tatCaManHinh.Count > 0)
+                    {
+                        thongTinManHinh = string.Join(" | ", tatCaManHinh);
+                    }
+                    else
+                    {
+                        thongTinManHinh = "Màn hình tiêu chuẩn (Không lấy được số Serial sâu)";
+                    }
+
+                    // Cấu hình hiển thị chuỗi Màn hình ngoài
+                    if (dsManHinhNgoai.Count > 0)
+                    {
+                        thongTinManHinhNgoai = string.Join(" | ", dsManHinhNgoai.Distinct());
+                    }
+                    else if (tatCaManHinh.Count > 1)
+                    {
+                        // Nếu đếm thấy có nhiều hơn 1 màn hình nhưng bộ lọc tên chưa bắt được, lấy luôn màn hình thứ 2 làm màn hình ngoài
+                        thongTinManHinhNgoai = string.Join(" | ", tatCaManHinh.Skip(1));
+                    }
+
+                    // --- 5. Lấy Thông tin phiên bản Microsoft Office từ Registry Windows ---
+                    string officeFolderVersion = ""; // Biến phụ trợ lưu thư mục phiên bản phục vụ check bản quyền phần sau
+                    try
+                    {
+                        List<string> officeVersions = new List<string>();
+                        string[] registryPaths = new string[]
+                        {
+                            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+                            @"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+                        };
+
+                        foreach (var path in registryPaths)
+                        {
+                            using (var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(path))
+                            {
+                                if (key != null)
+                                {
+                                    foreach (var subkeyName in key.GetSubKeyNames())
+                                    {
+                                        using (var subkey = key.OpenSubKey(subkeyName))
+                                        {
+                                            string displayName = subkey?.GetValue("DisplayName")?.ToString() ?? "";
+                                            if (displayName.Contains("Microsoft Office") &&
+                                                (displayName.Contains("Professional") || displayName.Contains("Standard") || displayName.Contains("Home") || displayName.Contains("365") || displayName.Contains("Mondo")))
+                                            {
+                                                string displayVersion = subkey?.GetValue("DisplayVersion")?.ToString() ?? "";
+                                                officeVersions.Add($"{displayName} (v{displayVersion})");
+
+                                                // Thử đoán mã thư mục Office16, Office15 dựa trên phiên bản
+                                                if (displayVersion.StartsWith("16.")) officeFolderVersion = "Office16";
+                                                else if (displayVersion.StartsWith("15.")) officeFolderVersion = "Office15";
+                                                else if (displayVersion.StartsWith("14.")) officeFolderVersion = "Office14";
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Nếu không quét được trong LocalMachine (Uninstall), kiểm tra ClickToRun Registry phổ biến của Office đời mới
+                        if (officeVersions.Count == 0)
+                        {
+                            using (var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Office\ClickToRun\Configuration"))
+                            {
+                                if (key != null)
+                                {
+                                    string productReleaseIds = key.GetValue("ProductReleaseIds")?.ToString() ?? "";
+                                    string versionToReport = key.GetValue("VersionToReport")?.ToString() ?? "";
+                                    if (!string.IsNullOrEmpty(productReleaseIds))
+                                    {
+                                        officeVersions.Add($"Microsoft Office [{productReleaseIds}] (v{versionToReport})");
+                                        officeFolderVersion = "Office16"; // Các bản ClickToRun hầu hết dùng chung đường dẫn core Office16
+                                    }
+                                }
+                            }
+                        }
+
+                        if (officeVersions.Count > 0)
+                        {
+                            thongTinOffice = string.Join(" | ", officeVersions.Distinct());
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        thongTinOffice = $"Lỗi khi quét Office: {ex.Message}";
+                    }
+
+                    // --- 6. KIỂM TRA TRẠNG THÁI BẢN QUYỀN WINDOWS (Sửa lỗi Timeout) ---
+                    try
+                    {
+                        var procStartInfo = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = "cscript.exe",
+                            Arguments = $"\"{Path.Combine(Environment.SystemDirectory, "slmgr.vbs")}\" /dli",
+                            RedirectStandardOutput = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+
+                        using (var process = System.Diagnostics.Process.Start(procStartInfo))
+                        {
+                            if (process != null)
+                            {
+                                string output = process.StandardOutput.ReadToEnd();
+                                process.WaitForExit(5000); // Đặt Timeout chờ xử lý 5 giây ở đây chuẩn cấu trúc C#
+
+                                if (output.ToUpper().Contains("LICENSED") || output.Contains("đã được cấp phép"))
+                                {
+                                    banQuyenWin = "Đã kích hoạt bản quyền (Licensed)";
+                                    if (output.ToUpper().Contains("VOLUME")) banQuyenWin += " [KMS/Volume]";
+                                    else if (output.ToUpper().Contains("OEM")) banQuyenWin += " [OEM]";
+                                    else if (output.ToUpper().Contains("RETAIL")) banQuyenWin += " [Retail]";
+                                }
+                                else if (output.ToUpper().Contains("INITIAL GRACE") || output.ToUpper().Contains("NOTIFICATION"))
+                                {
+                                    banQuyenWin = "Chưa kích hoạt / Hết hạn dùng thử (Unlicensed)";
+                                }
+                                else
+                                {
+                                    banQuyenWin = "Chưa kích hoạt hoặc dùng công cụ bẻ khóa";
+                                }
+                            }
+                        }
+                    }
+                    catch { banQuyenWin = "Không thể chạy tập lệnh kiểm tra Windows"; }
+
+                    // --- 7. KIỂM TRA TRẠNG THÁI BẢN QUYỀN OFFICE ---
+                    try
+                    {
+                        if (string.IsNullOrEmpty(officeFolderVersion)) officeFolderVersion = "Office16";
+
+                        string[] possibleOsppPaths = new string[]
+                        {
+                            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft Office", officeFolderVersion, "OSPP.VBS"),
+                            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft Office", officeFolderVersion, "OSPP.VBS"),
+                            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft Office", "root", "Office16", "OSPP.VBS")
+                        };
+
+                        string validOsppPath = "";
+                        foreach (var path in possibleOsppPaths)
+                        {
+                            if (System.IO.File.Exists(path)) { validOsppPath = path; break; }
+                        }
+
+                        if (!string.IsNullOrEmpty(validOsppPath))
+                        {
+                            var officeProcInfo = new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = "cscript.exe",
+                                Arguments = $"\"{validOsppPath}\" /dstatus",
+                                RedirectStandardOutput = true,
+                                UseShellExecute = false,
+                                CreateNoWindow = true
+                            };
+
+                            using (var process = System.Diagnostics.Process.Start(officeProcInfo))
+                            {
+                                if (process != null)
+                                {
+                                    string output = process.StandardOutput.ReadToEnd();
+                                    process.WaitForExit(5000); // Đặt Timeout chờ xử lý 5 giây ở đây
+
+                                    if (output.ToUpper().Contains("LICENSE STATUS: ---LICENSED---"))
+                                    {
+                                        banQuyenOffice = "Đã kích hoạt bản quyền (Licensed)";
+                                    }
+                                    else if (output.ToUpper().Contains("GRACE PERIOD EXPIRED") || output.ToUpper().Contains("---NOTIFICATIONS---"))
+                                    {
+                                        banQuyenOffice = "Hết hạn bản quyền / Chưa kích hoạt";
+                                    }
+                                    else if (output.ToUpper().Contains("LICENSE STATUS:"))
+                                    {
+                                        banQuyenOffice = "Đã nhận diện cấu hình (Cần kiểm tra sâu)";
+                                    }
+                                    else
+                                    {
+                                        banQuyenOffice = "Chưa được kích hoạt chính thức";
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (thongTinOffice.Contains("365") || thongTinOffice.Contains("O365"))
+                            {
+                                banQuyenOffice = "Kích hoạt theo tài khoản đám mây (Office 365 Account)";
+                            }
+                            else
+                            {
+                                banQuyenOffice = "Không tìm thấy công cụ OSPP.VBS để xác minh";
+                            }
+                        }
+                    }
+                    catch { banQuyenOffice = "Không thể xác minh bản quyền Office"; }
+                }
+
+                var thongTinMay = new
+                {
+                    TenMay = Environment.MachineName,
+                    HeDieuHanh = RuntimeInformation.OSDescription,
+                    KienTruc = RuntimeInformation.OSArchitecture.ToString(),
+                    PhienBanNet = RuntimeInformation.FrameworkDescription,
+                    SoLoiCPU = Environment.ProcessorCount,
+                    TenNguoiDungHeThong = Environment.UserName,
+                    ThuMucHeThong = Environment.SystemDirectory,
+                    ThoiGianHoatDong = $"{TimeSpan.FromMilliseconds(Environment.TickCount64).TotalHours:F2} giờ",
+                    RamKhaDung = ramInfo,
+                    SeriMay = seriMay,
+                    DongMay = dongMay, // TRUYỀN DỮ LIỆU MỚI: Trả thông tin hãng và model về phía View client nhận qua JSON
+                    LoaiRam = loaiRam,
+                    ThongTinOCung = thongTinOCung,
+                    ThongTinManHinh = thongTinManHinh,
+                    ThongTinManHinhNgoai = thongTinManHinhNgoai,
+                    ThongTinOffice = thongTinOffice,
+                    BanQuyenWin = banQuyenWin,
+                    BanQuyenOffice = banQuyenOffice
+                };
+
+                return Json(new { success = true, data = thongTinMay });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, msg = ex.Message });
+            }
+        }
+
+        #endregion
+        
     }
 }
  
