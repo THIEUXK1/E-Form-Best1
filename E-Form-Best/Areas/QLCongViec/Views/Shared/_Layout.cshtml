@@ -237,8 +237,8 @@
             }
 
             /* ==========================================
-                                                                                   CSS CHO MOBILE RESPONSIVE
-                                                                                   ========================================== */
+                                                                                                           CSS CHO MOBILE RESPONSIVE
+                                                                                                           ========================================== */
             .sidebar-backdrop {
                 display: none;
                 position: fixed;
@@ -322,45 +322,49 @@
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <div id="btnMainMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-radius: 14px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isWorkSubActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
-                        <span style="display:flex; align-items:center;">
-                            <i class="fa fa-tasks" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i>
-                            <span class="lang-text" data-key="reg_form">Đăng ký đơn</span>
-                        </span>
-                        <i class="fa fa-angle-down" id="menuArrow" style="transition: 0.3s; transform: @(isWorkSubActive ? "rotate(180deg)" : "rotate(0deg)");"></i>
-                    </div>
-
-                    <div id="mainSubmenu" style="display: @(isWorkSubActive ? "flex" : "none"); flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
-                        <a href="/FormCongViec/DonCvCongViecOrder" class="submenu-link @(currentController == "FormCongViec" && currentAction == "DonCvCongViecOrder" ? "active" : "")">
-                            <i class="fa fa-file-text-o" style="margin-right:12px; width:15px; color: #65a30d;"></i> <span class="lang-text">Công việc chỉ định</span>
-                        </a>
-                    </div>
-
-                    <a href="/FormCongViec/DonCho" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
-                        <i class="fa fa-align-left" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text">Đơn của tôi</span>
-                    </a>
-
-                    <a href="/FormCongViec/LichSuCongViec" class="nav-link-item @(currentAction == "LichSuCongViec" ? "active" : "")">
-                        <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text">Nhật ký hệ thống</span>
-                    </a>
-
-                    @if (User.Claims.Any(c => c.Type == System.Security.Claims.ClaimTypes.Role) || User.IsInRole("All"))
+                    @* CẬP NHẬT: THÊM KIỂM TRA QUYỀN "FORM_CV_VIEW" HOẶC "All" CHO TOÀN BỘ MENU *@
+                    @if (User.IsInRole("FORM_CV_VIEW") || User.IsInRole("All"))
                     {
-                        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-                        <div class="lang-text" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị</div>
+                        <div id="btnMainMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-radius: 14px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isWorkSubActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
+                            <span style="display:flex; align-items:center;">
+                                <i class="fa fa-tasks" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i>
+                                <span class="lang-text" data-key="reg_form">Đăng ký đơn</span>
+                            </span>
+                            <i class="fa fa-angle-down" id="menuArrow" style="transition: 0.3s; transform: @(isWorkSubActive ? "rotate(180deg)" : "rotate(0deg)");"></i>
+                        </div>
 
-                        <a href="/FormCongViec/HoanTatDonChiDinh" class="nav-link-item @(currentAction == "HoanTatDonChiDinh" ? "active" : "")">
-                            <i class="fa fa-user-plus" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f97316;"></i> <span class="lang-text">Công việc chỉ định</span>
+                        <div id="mainSubmenu" style="display: @(isWorkSubActive ? "flex" : "none"); flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
+                            <a href="/FormCongViec/DonCvCongViecOrder" class="submenu-link @(currentController == "FormCongViec" && currentAction == "DonCvCongViecOrder" ? "active" : "")">
+                                <i class="fa fa-file-text-o" style="margin-right:12px; width:15px; color: #65a30d;"></i> <span class="lang-text">Công việc chỉ định</span>
+                            </a>
+                        </div>
+
+                        <a href="/FormCongViec/DonCho" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
+                            <i class="fa fa-align-left" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text">Đơn của tôi</span>
                         </a>
 
-                        @* CẬP NHẬT CHÍNH XÁC: THÊM LỊCH CÔNG VIỆC Ở PHÍA TRÊN PHẦN THỐNG KÊ THEO YÊU CẦU CỦA BẠN (MÀU XANH CỎ NON TƯƠI SÁNG) *@
-                        <a href="/FormCongViec/LichCongViec" class="nav-link-item @(currentAction == "LichCongViec" ? "active" : "")">
-                            <i class="fa fa-calendar" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#84cc16;"></i> <span class="lang-text">Lịch công việc</span>
+                        <a href="/FormCongViec/LichSuCongViec" class="nav-link-item @(currentAction == "LichSuCongViec" ? "active" : "")">
+                            <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text">Nhật ký hệ thống</span>
                         </a>
 
-                        <a href="/FormCongViec/BaoCaoThongKeCongViec" class="nav-link-item @(currentAction == "BaoCaoThongKeCongViec" ? "active" : "")">
-                            <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> <span class="lang-text">Thống kê đơn</span>
-                        </a>
+                        @if (User.Claims.Any(c => c.Type == System.Security.Claims.ClaimTypes.Role) || User.IsInRole("All"))
+                        {
+                            <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
+                            <div class="lang-text" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị</div>
+
+                            <a href="/FormCongViec/HoanTatDonChiDinh" class="nav-link-item @(currentAction == "HoanTatDonChiDinh" ? "active" : "")">
+                                <i class="fa fa-user-plus" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f97316;"></i> <span class="lang-text">Công việc chỉ định</span>
+                            </a>
+
+                            @* CẬP NHẬT CHÍNH XÁC: THÊM LỊCH CÔNG VIỆC Ở PHÍA TRÊN PHẦN THỐNG KÊ THEO YÊU CẦU CỦA BẠN (MÀU XANH CỎ NON TƯƠI SÁNG) *@
+                            <a href="/FormCongViec/LichCongViec" class="nav-link-item @(currentAction == "LichCongViec" ? "active" : "")">
+                                <i class="fa fa-calendar" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#84cc16;"></i> <span class="lang-text">Lịch công việc</span>
+                            </a>
+
+                            <a href="/FormCongViec/BaoCaoThongKeCongViec" class="nav-link-item @(currentAction == "BaoCaoThongKeCongViec" ? "active" : "")">
+                                <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> <span class="lang-text">Thống kê đơn</span>
+                            </a>
+                        }
                     }
                 }
             </nav>
@@ -871,4 +875,4 @@
 
     @RenderSection("Scripts", required: false)
 </body>
-</html> 
+</html>
