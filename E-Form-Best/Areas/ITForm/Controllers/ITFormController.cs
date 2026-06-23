@@ -6063,6 +6063,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
+        // Giả định bạn đã inject DbContext vào Controller qua Constructor, ví dụ: _context
+        // private readonly YourDbContext _context;
+
+        // Giả định bạn đã inject DbContext vào Controller qua Constructor, ví dụ: _context
+        // private readonly YourDbContext _context;
+
         #region check máy hiện tại 
 
         // 1. Action này chỉ trả về giao diện (View)
@@ -6074,6 +6080,44 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Redirect("/DonXetDuyet/DangNhap");
             }
             return View();
+        }
+
+        // ACTION MỚI THÊM: Xác thực tài khoản mật khẩu và check quyền AdminIT trong DB
+        [HttpPost("/QLKiemKe/XacThucAdmin")]
+        public IActionResult XacThucAdmin(string taikhoan, string matkhau)
+        {
+            if (string.IsNullOrEmpty(taikhoan) || string.IsNullOrEmpty(matkhau))
+            {
+                return Json(new { success = false, msg = "Vui lòng nhập đầy đủ tài khoản và mật khẩu." });
+            }
+
+            try
+            {
+                // 1. Tìm user theo tài khoản (TK) và kiểm tra mật khẩu trực tiếp trong DB
+                // Nếu hệ thống của bạn có sử dụng mã hóa mật khẩu (MD5, SHA256, BCrypt...), bạn cần băm biến `matkhau` trước khi so sánh.
+                var user = _context.Users
+                    .FirstOrDefault(u => u.Tk == taikhoan && u.MatKhau == matkhau);
+
+                if (user == null)
+                {
+                    return Json(new { success = false, msg = "Tài khoản hoặc mật khẩu không chính xác." });
+                }
+
+                // 2. Check xem tài khoản đó có TenQuyen là AdminIT không dựa vào mối quan hệ nhiều-nhiều qua bảng trung gian UserQuyen và Quyen
+                bool isAdminIT = _context.UserQuyens
+                    .Any(uq => uq.IdNguoiDung == user.IdNguoiDung && uq.IdQuyenNavigation.TenQuyen == "AdminIT");
+
+                if (!isAdminIT)
+                {
+                    return Json(new { success = false, msg = "Tài khoản hợp lệ nhưng bạn không có quyền AdminIT." });
+                }
+
+                return Json(new { success = true, msg = "Xác thực thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, msg = $"Lỗi hệ thống xác thực: {ex.Message}" });
+            }
         }
 
         [HttpGet("/QLKiemKe/CheckMayHienTai")]
@@ -6123,7 +6167,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         ramInfo = "Không thể truy cập Performance Counter";
                     }
 
-                    // --- TRUY VẤN WMI ĐỂ LẤY CHI TIẾT PHẦN CỨNG SÂU (BỌC RIÊNG BIỆT TRÁNH INVALID QUERY) ---
+                    // --- TRUY VẤN WMI ĐỂ LẤY CHI TIẾT PHẦF CỨNG SÂU (BỌC RIÊNG BIỆT TRÁNH INVALID QUERY) ---
 
                     // 0. THÀNH PHẦN CẢI TIẾN: Lấy hãng sản xuất và tên thương mại thân thiện (ThinkPad, Latitude, EliteBook...)
                     try
@@ -6149,7 +6193,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                 string name = obj["Name"]?.ToString()?.Trim() ?? "";
                                 string version = obj["Version"]?.ToString()?.Trim() ?? "";
 
-                                // Đối với Lenovo, tên chữ như "ThinkPad..." được lưu ở trường Version thay vì Name kỹ thuật
+                                // Đối với Lenovo, tên chữ như "ThinkPad..." được lưu ở trường Version thay vi Name kỹ thuật
                                 if (hangSanXuat.ToUpper().Contains("LENOVO"))
                                 {
                                     modelMay = (!string.IsNullOrEmpty(version) && !version.ToUpper().Contains("VERSION")) ? version : name;
