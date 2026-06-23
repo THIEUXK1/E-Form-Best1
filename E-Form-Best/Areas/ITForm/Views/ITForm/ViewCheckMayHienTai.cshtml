@@ -9,20 +9,14 @@
         <div class="card shadow">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fa fa-desktop" style="margin-right: 8px;"></i>Thông Tin Cấu Hình Máy Hiện Tại</h5>
-                <button id="btnRefresh" class="btn btn-sm btn-light text-primary">
+                <button id="btnRefresh" class="btn btn-sm btn-light text-primary" style="display: none;">
                     <i class="fa fa-refresh" style="margin-right: 4px;"></i> Làm mới
                 </button>
             </div>
             <div class="card-body">
-                <div id="loadingStatus" class="text-center my-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2 text-muted">Đang quét cấu hình hệ thống, vui lòng đợi...</p>
-                </div>
 
-                <div id="infoTableContainer" style="display: none;">
-                    <table class="table table-bordered table-striped table-hover">
+                <div id="alwaysShowTableContainer">
+                    <table class="table table-bordered table-striped table-hover mb-0">
                         <thead class="table-dark">
                             <tr>
                                 <th style="width: 35%;">Thông số hệ thống</th>
@@ -32,29 +26,57 @@
                         <tbody>
                             <tr class="table-warning">
                                 <td><strong><i class="fa fa-barcode text-danger" style="margin-right: 8px; width: 16px;"></i>Số Serial Máy (Serial Number):</strong></td>
-                                <td id="lblSeriMay" class="fw-bold text-danger"></td>
+                                <td id="lblSeriMay" class="fw-bold text-danger">Đang tải...</td>
                             </tr>
                             <tr class="table-warning">
                                 <td><strong><i class="fa fa-info-circle text-primary" style="margin-right: 8px; width: 16px;"></i>Dòng máy (Hãng sản xuất):</strong></td>
-                                <td id="lblDongMay" class="fw-bold text-primary"></td>
+                                <td id="lblDongMay" class="fw-bold text-primary">Đang tải...</td>
                             </tr>
                             <tr class="table-warning">
                                 <td><strong><i class="fa fa-laptop text-primary" style="margin-right: 8px; width: 16px;"></i>Tên máy (Machine Name):</strong></td>
-                                <td id="lblTenMay" class="fw-bold"></td>
+                                <td id="lblTenMay" class="fw-bold">Đang tải...</td>
                             </tr>
                             <tr class="table-warning">
                                 <td><strong><i class="fa fa-user text-secondary" style="margin-right: 8px; width: 16px;"></i>Tên người dùng hệ thống:</strong></td>
-                                <td id="lblTenNguoiDungHeThong" class="fw-bold"></td>
+                                <td id="lblTenNguoiDungHeThong" class="fw-bold">Đang tải...</td>
                             </tr>
                             <tr class="table-warning">
                                 <td><strong><i class="fa fa-video-camera text-warning" style="margin-right: 8px; width: 16px;"></i>Trạng thái kết nối thêm:</strong></td>
-                                <td id="lblThongTinManHinhNgoai" class="fw-bold text-success"></td>
+                                <td id="lblThongTinManHinhNgoai" class="fw-bold text-success">Đang tải...</td>
                             </tr>
                             <tr class="table-warning">
                                 <td><strong><i class="fa fa-television text-success" style="margin-right: 8px; width: 16px;"></i>Danh sách tất cả Màn hình phát hiện:</strong></td>
-                                <td id="lblThongTinManHinh" class="fw-bold text-dark"></td>
+                                <td id="lblThongTinManHinh" class="fw-bold text-dark">Đang tải...</td>
                             </tr>
+                        </tbody>
+                    </table>
+                </div>
 
+                <div id="authGateContainer" class="text-center my-4 p-4 border rounded bg-light">
+                    <i class="fa fa-lock text-warning" style="font-size: 32px; margin-bottom: 10px;"></i>
+                    <h5 class="fw-bold text-dark">Thông tin cấu hình nâng cao đang được ẩn</h5>
+                    <p class="text-muted small">Vui lòng nhập tài khoản xác minh để mở khóa xem các thông số chi tiết hệ điều hành, RAM, ổ cứng và bản quyền.</p>
+                    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalXacThuc">
+                        <i class="fa fa-eye" style="margin-right: 8px;"></i> Nhập mật khẩu để xem chi tiết
+                    </button>
+                </div>
+
+                <div id="loadingStatus" class="text-center my-4" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Đang quét cấu hình hệ thống nâng cao, vui lòng đợi...</p>
+                </div>
+
+                <div id="infoTableContainer" style="display: none;">
+                    <table class="table table-bordered table-striped table-hover mt-3">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 35%;">Thông số hệ thống nâng cao</th>
+                                <th style="width: 65%;">Giá trị chi tiết</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                             <tr>
                                 <td><strong><i class="fa fa-windows text-info" style="margin-right: 8px; width: 16px;"></i>Hệ điều hành:</strong></td>
                                 <td id="lblHeDieuHanh"></td>
@@ -116,6 +138,36 @@
                 </div>
             </div>
         </div>
+
+        <div class="modal fade" id="modalXacThuc" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalXacThucLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="modalXacThucLabel"><i class="fa fa-shield" style="margin-right: 8px;"></i>Xác minh tài khoản quản trị</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="modalAlertError" class="alert alert-danger p-2" style="display: none; font-size: 14px;"></div>
+                        <form id="formCheckAdminIT">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Tài khoản (TK)</label>
+                                <input type="text" id="txtAuthUser" class="form-control" placeholder="Nhập tài khoản quản trị..." required />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Mật khẩu</label>
+                                <input type="password" id="txtAuthPassword" class="form-control" placeholder="Nhập mật khẩu..." required />
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                        <button type="button" id="btnSubmitXacThuc" class="btn btn-danger">
+                            <i class="fa fa-unlock-alt" style="margin-right: 4px;"></i> Xác nhận & Quét cấu hình
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     }
     else
     {
@@ -139,11 +191,90 @@
     @if (User.Identity != null && User.Identity.IsAuthenticated && User.IsInRole("AdminIT"))
     {
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bundle.min.js"></script>
         <script>
             $(document).ready(function () {
-            // Hàm gọi AJAX tải thông tin cấu hình máy từ Controller
-            function taiThongTinMay() {
-            // Hiển thị trạng thái loading, ẩn bảng dữ liệu và ẩn lỗi cũ
+
+            // ĐỐI VỚI 6 CÁI ĐẦU TIÊN: Tự động chạy tải dữ liệu ngay khi vừa load trang
+            taiSauThongSoCoBan();
+
+            function taiSauThongSoCoBan() {
+            $.ajax({
+            url: '/QLKiemKe/CheckMayHienTai',
+            type: 'GET',
+            dataType: 'json',
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+            success: function (response) {
+            if (response.success && response.data) {
+            var machine = response.data;
+            // Chỉ gán dữ liệu cho 6 thông số màu vàng hiển thị công khai
+            $("#lblSeriMay").text(machine.seriMay || "N/A");
+            $("#lblDongMay").text(machine.dongMay || "N/A");
+            $("#lblTenMay").text(machine.tenMay || "N/A");
+            $("#lblTenNguoiDungHeThong").text(machine.tenNguoiDungHeThong || "N/A");
+            $("#lblThongTinManHinhNgoai").text(machine.thongTinManHinhNgoai || "N/A");
+            $("#lblThongTinManHinh").html(machine.thongTinManHinh || "N/A");
+            } else {
+            thongBaoLoiCoBan(response.msg);
+            }
+            },
+            error: function (xhr, status, error) {
+            thongBaoLoiCoBan(error);
+            }
+            });
+            }
+
+            function thongBaoLoiCoBan(msg) {
+            var textLoi = "Lỗi tải: " + (msg || "Không thể lấy dữ liệu");
+            $("#lblSeriMay, #lblDongMay, #lblTenMay, #lblTenNguoiDungHeThong, #lblThongTinManHinhNgoai").text(textLoi);
+            $("#lblThongTinManHinh").html(textLoi);
+            }
+
+            // XỬ LÝ SỰ KIỆN ĐĂNG NHẬP TRÊN MODAL ĐỂ MỞ KHÓA BẢNG 2
+            $("#btnSubmitXacThuc").click(function () {
+            var taikhoanInput = $("#txtAuthUser").val().trim();
+            var matkhauInput = $("#txtAuthPassword").val().trim();
+            $("#modalAlertError").hide();
+
+            if (taikhoanInput === "" || matkhauInput === "") {
+            $("#modalAlertError").text("Vui lòng không để trống tài khoản hoặc mật khẩu.").fadeIn();
+            return;
+            }
+
+            $.ajax({
+            url: '/QLKiemKe/XacThucAdmin',
+            type: 'POST',
+            data: { taikhoan: taikhoanInput, matkhau: matkhauInput },
+            success: function (res) {
+            if (res.success) {
+            // Đóng Modal
+            var modalElement = document.getElementById('modalXacThuc');
+            var modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) modalInstance.hide();
+
+            // Ẩn nút bấm đòi mật khẩu và hiện nút làm mới
+            $("#authGateContainer").hide();
+            $("#btnRefresh").show();
+
+            // Tiến hành tải toàn bộ cấu hình chi tiết (Bảng 2)
+            taiToanBoThongTinChiTiet();
+            } else {
+            $("#modalAlertError").text(res.msg).fadeIn();
+            }
+            },
+            error: function () {
+            $("#modalAlertError").text("Đã xảy ra lỗi kết nối đường truyền xác thực.").fadeIn();
+            }
+            });
+            });
+
+            $("#formCheckAdminIT").on('submit', function (e) {
+            e.preventDefault();
+            $("#btnSubmitXacThuc").click();
+            });
+
+            // Hàm tải toàn bộ thông tin chi tiết (Cập nhật lại cả 2 bảng và mở khóa bảng 2)
+            function taiToanBoThongTinChiTiet() {
             $("#loadingStatus").show();
             $("#infoTableContainer").hide();
             $("#errorAlert").hide();
@@ -152,53 +283,39 @@
             url: '/QLKiemKe/CheckMayHienTai',
             type: 'GET',
             dataType: 'json',
-            headers: {
-            "X-Requested-With": "XMLHttpRequest" // Đảm bảo vượt qua điều kiện kiểm tra Request của bạn
-            },
+            headers: { "X-Requested-With": "XMLHttpRequest" },
             success: function (response) {
             $("#loadingStatus").hide();
 
             if (response.success && response.data) {
             var machine = response.data;
 
-            // Gán dữ liệu nhận từ JSON vào các ô tương ứng
+            // Cập nhật lại bảng 1 để đảm bảo dữ liệu đồng bộ mới nhất
+            $("#lblSeriMay").text(machine.seriMay || "N/A");
+            $("#lblDongMay").text(machine.dongMay || "N/A");
             $("#lblTenMay").text(machine.tenMay || "N/A");
+            $("#lblTenNguoiDungHeThong").text(machine.tenNguoiDungHeThong || "N/A");
+            $("#lblThongTinManHinhNgoai").text(machine.thongTinManHinhNgoai || "N/A");
+            $("#lblThongTinManHinh").html(machine.thongTinManHinh || "N/A");
+
+            // Gán dữ liệu cho bảng nâng cao thứ 2
             $("#lblHeDieuHanh").text(machine.heDieuHanh || "N/A");
             $("#lblKienTruc").text(machine.kienTruc || "N/A");
             $("#lblPhienBanNet").text(machine.phienBanNet || "N/A");
             $("#lblSoLoiCPU").text(machine.soLoiCPU || "0");
-            $("#lblTenNguoiDungHeThong").text(machine.tenNguoiDungHeThong || "N/A");
-            $("#lblThuMucHeThong").text(machine.thuMucHeThong || "N/A");
-            $("#lblThoiGianHoatDong").text(machine.thoiGianHoatDong || "N/A");
             $("#lblRamKhaDung").text(machine.ramKhaDung || "N/A");
-
-            // Gán các trường dữ liệu phần cứng bổ sung đầy đủ
-            $("#lblSeriMay").text(machine.seriMay || "N/A");
             $("#lblThongTinOCung").text(machine.thongTinOCung || "N/A");
-
-            // Đã đổi sang .html() để nhận dạng chuỗi bẻ dòng danh sách chi tiết thanh RAM nhận về
             $("#lblLoaiRam").html(machine.loaiRam || "N/A");
-
-            // Sử dụng .html() thay vì .text() để render các thẻ ngắt dòng <br/> của danh sách màn hình
-            $("#lblThongTinManHinh").html(machine.thongTinManHinh || "N/A");
-            $("#lblThongTinManHinhNgoai").text(machine.thongTinManHinhNgoai || "N/A");
-
             $("#lblThongTinOffice").text(machine.thongTinOffice || "N/A");
-
-            // Gán các trường dữ liệu kiểm tra bản quyền mới bổ sung
             $("#lblBanQuyenWin").text(machine.banQuyenWin || "N/A");
             $("#lblBanQuyenOffice").text(machine.banQuyenOffice || "N/A");
-
-            // GÁN THÀNH PHẦN MỚI THÊM: dòng máy từ Controller trả về
-            $("#lblDongMay").text(machine.dongMay || "N/A");
-
-            // GÁN THÀNH PHẦN MỚI THÊM: Đưa chuỗi dữ liệu MAC Wifi (đã lọc trùng) lên view bằng .html()
+            $("#lblThuMucHeThong").text(machine.thuMucHeThong || "N/A");
+            $("#lblThoiGianHoatDong").text(machine.thoiGianHoatDong || "N/A");
             $("#lblMacWifi").html(machine.macWifi || "N/A");
 
-            // Hiển thị bảng kết quả
+            // Hiện bảng chi tiết nâng cao lên
             $("#infoTableContainer").fadeIn(300);
             } else {
-            // Hiển thị lỗi từ server trả về
             $("#errorMsg").text(response.msg || "Không thể tải dữ liệu cấu hình máy.");
             $("#errorAlert").show();
             }
@@ -211,12 +328,9 @@
             });
             }
 
-            // Tự động tải dữ liệu khi trang web tải xong
-            taiThongTinMay();
-
-            // Xử lý sự kiện khi nhấn nút Làm mới
+            // Xử lý sự kiện làm mới sau khi đã mở khóa cấu hình chi tiết
             $("#btnRefresh").click(function () {
-            taiThongTinMay();
+            taiToanBoThongTinChiTiet();
             });
             });
         </script>
