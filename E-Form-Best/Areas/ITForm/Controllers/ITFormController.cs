@@ -6065,7 +6065,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #region check máy hiện tại 
 
-
         // 1. Action này chỉ trả về giao diện (View)
         [HttpGet("/QLKiemKe/ViewCheckMayHienTai")]
         public IActionResult ViewCheckMayHienTai()
@@ -6085,6 +6084,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 // Trả về file View cấu hình (Bạn cần tạo file CheckMayHienTai.cshtml trong thư mục Views)
                 return View("CheckMayHienTai");
+            }
+
+            // KIỂM TRA QUYỀN TRÊN SERVER: Từ chối nếu không phải AdminIT
+            if (User == null || !User.IsInRole("AdminIT"))
+            {
+                return Json(new { success = false, msg = "Truy cập bị từ chối: Chỉ tài khoản AdminIT mới có quyền quét thông tin phần cứng." });
             }
 
             // 2. XỬ LÝ LOGIC LẤY DỮ LIỆU: Nếu là request AJAX, tiến hành quét cấu hình hệ thống và trả về JSON
