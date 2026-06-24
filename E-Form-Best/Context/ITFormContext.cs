@@ -170,6 +170,18 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<ShdQuanLyDuyetB2UyQuyen> ShdQuanLyDuyetB2UyQuyens { get; set; }
 
+    public virtual DbSet<TscnChiTietMacWifi> TscnChiTietMacWifis { get; set; }
+
+    public virtual DbSet<TscnChiTietManHinh> TscnChiTietManHinhs { get; set; }
+
+    public virtual DbSet<TscnChiTietOcung> TscnChiTietOcungs { get; set; }
+
+    public virtual DbSet<TscnChiTietRam> TscnChiTietRams { get; set; }
+
+    public virtual DbSet<TscnLichSuXacThucAdmin> TscnLichSuXacThucAdmins { get; set; }
+
+    public virtual DbSet<TscnThongTinMay> TscnThongTinMays { get; set; }
+
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UserBoPhan> UserBoPhans { get; set; }
@@ -181,6 +193,7 @@ public partial class ITFormContext : DbContext
     public virtual DbSet<UserQuyen> UserQuyens { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Data Source=10.0.60.33;Initial Catalog=ITForm;Persist Security Info=True;User ID=sa;Password=BestP@cific;Encrypt=True;Trust Server Certificate=True");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -779,6 +792,60 @@ public partial class ITFormContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__SHD_Quan__3213E83F9A1D16BE");
 
             entity.HasOne(d => d.IdShdQuanLyDuyetB2Navigation).WithMany(p => p.ShdQuanLyDuyetB2UyQuyens).HasConstraintName("FK_SHD_DuyetB2_NguoiUyQuyen");
+        });
+
+        modelBuilder.Entity<TscnChiTietMacWifi>(entity =>
+        {
+            entity.HasKey(e => e.IdMacWifi).HasName("PK__TSCN_Chi__2C086FBB20A85692");
+
+            entity.HasOne(d => d.IdMayNavigation).WithMany(p => p.TscnChiTietMacWifis)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK__TSCN_ChiT__IdMay__1D4655FB");
+        });
+
+        modelBuilder.Entity<TscnChiTietManHinh>(entity =>
+        {
+            entity.HasKey(e => e.IdManHinh).HasName("PK__TSCN_Chi__A1FB5E394DB5A60B");
+
+            entity.HasOne(d => d.IdMayNavigation).WithMany(p => p.TscnChiTietManHinhs)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK__TSCN_ChiT__IdMay__1A69E950");
+        });
+
+        modelBuilder.Entity<TscnChiTietOcung>(entity =>
+        {
+            entity.HasKey(e => e.IdOcung).HasName("PK__TSCN_Chi__611D073D98CC3B04");
+
+            entity.HasOne(d => d.IdMayNavigation).WithMany(p => p.TscnChiTietOcungs)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK__TSCN_ChiT__IdMay__178D7CA5");
+        });
+
+        modelBuilder.Entity<TscnChiTietRam>(entity =>
+        {
+            entity.HasKey(e => e.IdRam).HasName("PK__TSCN_Chi__2A4A2E83DCEDEF8C");
+
+            entity.HasOne(d => d.IdMayNavigation).WithMany(p => p.TscnChiTietRams)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK__TSCN_ChiT__IdMay__14B10FFA");
+        });
+
+        modelBuilder.Entity<TscnLichSuXacThucAdmin>(entity =>
+        {
+            entity.HasKey(e => e.IdLog).HasName("PK__TSCN_Lic__0C54DBC6E8DFB420");
+
+            entity.Property(e => e.ThoiGianXacThuc).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.IdMayNavigation).WithMany(p => p.TscnLichSuXacThucAdmins)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK__TSCN_Lich__IdMay__2022C2A6");
+        });
+
+        modelBuilder.Entity<TscnThongTinMay>(entity =>
+        {
+            entity.HasKey(e => e.IdMay).HasName("PK__TSCN_Tho__0D13B75918C6D82F");
+
+            entity.Property(e => e.NgayCapNhat).HasDefaultValueSql("(getdate())");
         });
 
         modelBuilder.Entity<User>(entity =>
