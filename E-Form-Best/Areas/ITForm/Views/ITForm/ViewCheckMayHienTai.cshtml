@@ -194,32 +194,37 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bundle.min.js"></script>
         <script>
             $(document).ready(function () {
+            // Biến lưu cache cục bộ dữ liệu từ Tool Exe đổ lên nhằm hiển thị ngay khi gõ pass chuẩn
+            var duLieuQuetMayKhachCache = null;
 
-            // ĐỐI VỚI 6 CÁI ĐẦU TIÊN: Tự động chạy tải dữ liệu ngay khi vừa load trang
+            // Tự động kéo tải dữ liệu ngay từ local helper khi vừa load trang
             taiSauThongSoCoBan();
 
             function taiSauThongSoCoBan() {
+            $("#errorAlert").hide();
             $.ajax({
-            url: '/QLKiemKe/CheckMayHienTai',
+            url: 'http://localhost:8888/get-hardware',
             type: 'GET',
             dataType: 'json',
-            headers: { "X-Requested-With": "XMLHttpRequest" },
+            timeout: 5000,
             success: function (response) {
             if (response.success && response.data) {
-            var machine = response.data;
-            // Chỉ gán dữ liệu cho 6 thông số màu vàng hiển thị công khai
-            $("#lblSeriMay").text(machine.seriMay || "N/A");
-            $("#lblDongMay").text(machine.dongMay || "N/A");
-            $("#lblTenMay").text(machine.tenMay || "N/A");
-            $("#lblTenNguoiDungHeThong").text(machine.tenNguoiDungHeThong || "N/A");
-            $("#lblThongTinManHinhNgoai").text(machine.thongTinManHinhNgoai || "N/A");
-            $("#lblThongTinManHinh").html(machine.thongTinManHinh || "N/A");
+            // Lưu trữ dữ liệu vào cache bộ nhớ tạm trên trình duyệt
+            duLieuQuetMayKhachCache = response.data;
+
+            // Gán dữ liệu cho 6 thông số màu vàng hiển thị công khai ở bảng 1
+            $("#lblSeriMay").text(duLieuQuetMayKhachCache.seriMay || "N/A");
+            $("#lblDongMay").text(duLieuQuetMayKhachCache.dongMay || "N/A");
+            $("#lblTenMay").text(duLieuQuetMayKhachCache.tenMay || "N/A");
+            $("#lblTenNguoiDungHeThong").text(duLieuQuetMayKhachCache.tenNguoiDungHeThong || "N/A");
+            $("#lblThongTinManHinhNgoai").text(duLieuQuetMayKhachCache.thongTinManHinhNgoai || "N/A");
+            $("#lblThongTinManHinh").html(duLieuQuetMayKhachCache.thongTinManHinh || "N/A");
             } else {
-            thongBaoLoiCoBan(response.msg);
+            thongBaoLoiCoBan("Dữ liệu từ Tool local trả về bị rỗng.");
             }
             },
             error: function (xhr, status, error) {
-            thongBaoLoiCoBan(error);
+            thongBaoLoiCoBan("Không tìm thấy kết nối với ứng dụng HardwareHelper.exe ngầm. Vui lòng khởi động tool dưới máy.");
             }
             });
             }
@@ -247,7 +252,7 @@
             data: { taikhoan: taikhoanInput, matkhau: matkhauInput },
             success: function (res) {
             if (res.success) {
-            // Đóng Modal
+            // Đóng Modal gỡ rào cản kiểm tra
             var modalElement = document.getElementById('modalXacThuc');
             var modalInstance = bootstrap.Modal.getInstance(modalElement);
             if (modalInstance) modalInstance.hide();
@@ -256,14 +261,14 @@
             $("#authGateContainer").hide();
             $("#btnRefresh").show();
 
-            // Tiến hành tải toàn bộ cấu hình chi tiết (Bảng 2)
+            // Tiến hành bung dữ liệu đã lấy từ Tool lên bảng chi tiết (Bảng 2)
             taiToanBoThongTinChiTiet();
             } else {
             $("#modalAlertError").text(res.msg).fadeIn();
             }
             },
             error: function () {
-            $("#modalAlertError").text("Đã xảy ra lỗi kết nối đường truyền xác thực.").fadeIn();
+            $("#modalAlertError").text("Đã xảy ra lỗi kết nối đường truyền xác thực với máy chủ website.").fadeIn();
             }
             });
             });
@@ -273,64 +278,68 @@
             $("#btnSubmitXacThuc").click();
             });
 
-            // Hàm tải toàn bộ thông tin chi tiết (Cập nhật lại cả 2 bảng và mở khóa bảng 2)
+            // Hàm cập nhật gán dữ liệu chi tiết nâng cao từ Cache bộ nhớ
             function taiToanBoThongTinChiTiet() {
             $("#loadingStatus").show();
             $("#infoTableContainer").hide();
             $("#errorAlert").hide();
 
-            $.ajax({
-            url: '/QLKiemKe/CheckMayHienTai',
-            type: 'GET',
-            dataType: 'json',
-            headers: { "X-Requested-With": "XMLHttpRequest" },
-            success: function (response) {
+            if (duLieuQuetMayKhachCache != null) {
             $("#loadingStatus").hide();
 
-            if (response.success && response.data) {
-            var machine = response.data;
+            // Cập nhật lại đồng bộ bảng 1
+            $("#lblSeriMay").text(duLieuQuetMayKhachCache.seriMay || "N/A");
+            $("#lblDongMay").text(duLieuQuetMayKhachCache.dongMay || "N/A");
+            $("#lblTenMay").text(duLieuQuetMayKhachCache.tenMay || "N/A");
+            $("#lblTenNguoiDungHeThong").text(duLieuQuetMayKhachCache.tenNguoiDungHeThong || "N/A");
+            $("#lblThongTinManHinhNgoai").text(duLieuQuetMayKhachCache.thongTinManHinhNgoai || "N/A");
+            $("#lblThongTinManHinh").html(duLieuQuetMayKhachCache.thongTinManHinh || "N/A");
 
-            // Cập nhật lại bảng 1 để đảm bảo dữ liệu đồng bộ mới nhất
-            $("#lblSeriMay").text(machine.seriMay || "N/A");
-            $("#lblDongMay").text(machine.dongMay || "N/A");
-            $("#lblTenMay").text(machine.tenMay || "N/A");
-            $("#lblTenNguoiDungHeThong").text(machine.tenNguoiDungHeThong || "N/A");
-            $("#lblThongTinManHinhNgoai").text(machine.thongTinManHinhNgoai || "N/A");
-            $("#lblThongTinManHinh").html(machine.thongTinManHinh || "N/A");
+            // Gán dữ liệu cho bảng nâng cao thứ 2 từ Tool cục bộ
+            $("#lblHeDieuHanh").text(duLieuQuetMayKhachCache.heDieuHanh || "N/A");
+            $("#lblKienTruc").text(duLieuQuetMayKhachCache.kienTruc || "N/A");
+            $("#lblPhienBanNet").text(duLieuQuetMayKhachCache.phienBanNet || "N/A");
+            $("#lblSoLoiCPU").text(duLieuQuetMayKhachCache.soLoiCPU || "0");
+            $("#lblRamKhaDung").text(duLieuQuetMayKhachCache.ramKhaDung || "N/A");
 
-            // Gán dữ liệu cho bảng nâng cao thứ 2
-            $("#lblHeDieuHanh").text(machine.heDieuHanh || "N/A");
-            $("#lblKienTruc").text(machine.kienTruc || "N/A");
-            $("#lblPhienBanNet").text(machine.phienBanNet || "N/A");
-            $("#lblSoLoiCPU").text(machine.soLoiCPU || "0");
-            $("#lblRamKhaDung").text(machine.ramKhaDung || "N/A");
-            $("#lblThongTinOCung").text(machine.thongTinOCung || "N/A");
-            $("#lblLoaiRam").html(machine.loaiRam || "N/A");
-            $("#lblThongTinOffice").text(machine.thongTinOffice || "N/A");
-            $("#lblBanQuyenWin").text(machine.banQuyenWin || "N/A");
-            $("#lblBanQuyenOffice").text(machine.banQuyenOffice || "N/A");
-            $("#lblThuMucHeThong").text(machine.thuMucHeThong || "N/A");
-            $("#lblThoiGianHoatDong").text(machine.thoiGianHoatDong || "N/A");
-            $("#lblMacWifi").html(machine.macWifi || "N/A");
+            // ĐÃ SỬA THÀNH .html(): Render đúng text format dạng <b class='text-success'>SSD</b>
+            $("#lblThongTinOCung").html(duLieuQuetMayKhachCache.thongTinOCung || "N/A");
 
-            // Hiện bảng chi tiết nâng cao lên
+            $("#lblLoaiRam").html(duLieuQuetMayKhachCache.loaiRam || "N/A");
+            $("#lblThongTinOffice").text(duLieuQuetMayKhachCache.thongTinOffice || "N/A");
+            $("#lblBanQuyenWin").text(duLieuQuetMayKhachCache.banQuyenWin || "N/A");
+            $("#lblBanQuyenOffice").text(duLieuQuetMayKhachCache.banQuyenOffice || "N/A");
+            $("#lblThuMucHeThong").text(duLieuQuetMayKhachCache.thuMucHeThong || "N/A");
+            $("#lblThoiGianHoatDong").text(duLieuQuetMayKhachCache.thoiGianHoatDong || "N/A");
+            $("#lblMacWifi").html(duLieuQuetMayKhachCache.macWifi || "N/A");
+
+            // Hiện bảng chi tiết nâng cao lên công khai
             $("#infoTableContainer").fadeIn(300);
             } else {
-            $("#errorMsg").text(response.msg || "Không thể tải dữ liệu cấu hình máy.");
+            $("#loadingStatus").hide();
+            $("#errorMsg").text("Chưa nạp được gói tin phần cứng từ Tool local. Vui lòng kiểm tra ứng dụng chạy ngầm.");
             $("#errorAlert").show();
             }
+            }
+
+            // Xử lý sự kiện khi bấm nút làm mới cấu hình
+            $("#btnRefresh").click(function () {
+            // Gọi lại hàm quét fresh trực tiếp từ tool local rồi nạp lại vào bảng
+            $.ajax({
+            url: 'http://localhost:8888/get-hardware',
+            type: 'GET',
+            dataType: 'json',
+            success: function(res) {
+            if(res.success && res.data) {
+            duLieuQuetMayKhachCache = res.data;
+            taiToanBoThongTinChiTiet();
+            }
             },
-            error: function (xhr, status, error) {
-            $("#loadingStatus").hide();
-            $("#errorMsg").text("Lỗi kết nối hệ thống: " + error);
+            error: function() {
+            $("#errorMsg").text("Mất kết nối với Tool local khi cố gắng làm mới cấu hình.");
             $("#errorAlert").show();
             }
             });
-            }
-
-            // Xử lý sự kiện làm mới sau khi đã mở khóa cấu hình chi tiết
-            $("#btnRefresh").click(function () {
-            taiToanBoThongTinChiTiet();
             });
             });
         </script>
