@@ -178,7 +178,11 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<TscnChiTietRam> TscnChiTietRams { get; set; }
 
+    public virtual DbSet<TscnLichSuThayDoi> TscnLichSuThayDois { get; set; }
+
     public virtual DbSet<TscnLichSuXacThucAdmin> TscnLichSuXacThucAdmins { get; set; }
+
+    public virtual DbSet<TscnLichSuXacThucNguoiDung> TscnLichSuXacThucNguoiDungs { get; set; }
 
     public virtual DbSet<TscnThongTinMay> TscnThongTinMays { get; set; }
 
@@ -830,6 +834,15 @@ public partial class ITFormContext : DbContext
                 .HasConstraintName("FK__TSCN_ChiT__IdMay__14B10FFA");
         });
 
+        modelBuilder.Entity<TscnLichSuThayDoi>(entity =>
+        {
+            entity.HasKey(e => e.IdLog).HasName("PK__TSCN_Lic__0C54DBC6460C4AC8");
+
+            entity.Property(e => e.ThoiGianThayDoi).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.IdMayNavigation).WithMany(p => p.TscnLichSuThayDois).HasConstraintName("FK_TSCN_LichSuThayDoi_TSCN_ThongTinMay");
+        });
+
         modelBuilder.Entity<TscnLichSuXacThucAdmin>(entity =>
         {
             entity.HasKey(e => e.IdLog).HasName("PK__TSCN_Lic__0C54DBC6E8DFB420");
@@ -841,11 +854,30 @@ public partial class ITFormContext : DbContext
                 .HasConstraintName("FK__TSCN_Lich__IdMay__2022C2A6");
         });
 
+        modelBuilder.Entity<TscnLichSuXacThucNguoiDung>(entity =>
+        {
+            entity.HasKey(e => e.IdLichSu).HasName("PK__TSCN_Lic__823B1772A0B132B8");
+
+            entity.Property(e => e.NgayXacThuc).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.IdMayNavigation).WithMany(p => p.TscnLichSuXacThucNguoiDungs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__TSCN_Lich__IdMay__2AA05119");
+
+            entity.HasOne(d => d.IdNguoiDungNavigation).WithMany(p => p.TscnLichSuXacThucNguoiDungs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__TSCN_Lich__IdNgu__2B947552");
+        });
+
         modelBuilder.Entity<TscnThongTinMay>(entity =>
         {
             entity.HasKey(e => e.IdMay).HasName("PK__TSCN_Tho__0D13B75918C6D82F");
 
             entity.Property(e => e.NgayCapNhat).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.IdNguoiDungNavigation).WithMany(p => p.TscnThongTinMays)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_TSCN_ThongTinMay_User");
         });
 
         modelBuilder.Entity<User>(entity =>

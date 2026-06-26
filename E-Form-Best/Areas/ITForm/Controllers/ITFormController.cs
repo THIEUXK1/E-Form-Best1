@@ -5098,7 +5098,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, msg = ex.Message });
+                return Json(new { success = false, message = ex.Message });
             }
         }
 
@@ -5145,7 +5145,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, msg = ex.Message });
+                return Json(new { success = false, message = ex.Message });
             }
         }
 
@@ -5173,7 +5173,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, msg = ex.Message });
+                return Json(new { success = false, message = ex.Message });
             }
         }
 
@@ -5227,7 +5227,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .ToList();
                 return Json(new { success = true, data = data });
             }
-            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         // ==================== TRẠNG THÁI ====================
@@ -5239,7 +5239,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var data = _context.KkTrangThais.OrderByDescending(x => x.IdTrangThai).ToList();
                 return Json(new { success = true, data = data });
             }
-            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         [HttpPost("/QLKiemKe/SaveKkTrangThai")]
@@ -5268,9 +5268,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (objId == 0) objId = model.IdTrangThai;
                 GhiLichSu(action, "Trạng Thái", objId, $"Tên trạng thái: {model.TenTrangThai}");
 
-                return Json(new { success = true, msg = "Lưu trạng thái thành công!" });
+                return Json(new { success = true, message = "Lưu trạng thái thành công!" });
             }
-            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         [HttpPost("/QLKiemKe/DeleteKkTrangThai")]
@@ -5283,7 +5283,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     // Sử dụng Equals kết hợp StringComparison.OrdinalIgnoreCase để dứt điểm cảnh báo
                     if (item.TenTrangThai != null && item.TenTrangThai.Equals("xóa", StringComparison.OrdinalIgnoreCase))
-                        return Json(new { success = false, msg = "Không thể xóa trạng thái mặc định của hệ thống!" });
+                        return Json(new { success = false, message = "Không thể xóa trạng thái mặc định của hệ thống!" });
 
                     string tenTT = item.TenTrangThai ?? "";
                     _context.KkTrangThais.Remove(item);
@@ -5291,9 +5291,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     GhiLichSu("Xóa", "Trạng Thái", id, $"Đã xóa trạng thái: {tenTT}");
                 }
-                return Json(new { success = true, msg = "Đã xóa trạng thái!" });
+                return Json(new { success = true, message = "Đã xóa trạng thái!" });
             }
-            catch (Exception) { return Json(new { success = false, msg = "Không thể xóa vì trạng thái này đang được gán cho thiết bị." }); }
+            catch (Exception) { return Json(new { success = false, message = "Không thể xóa vì trạng thái này đang được gán cho thiết bị." }); }
         }
 
         // ==================== CÔNG TY ====================
@@ -5305,7 +5305,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var data = _context.KkCongTies.OrderByDescending(x => x.IdcongTy).ToList();
                 return Json(new { success = true, data = data });
             }
-            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         [HttpPost("/QLKiemKe/SaveKkCongTy")]
@@ -5338,9 +5338,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (objId == 0) objId = model.IdcongTy;
                 GhiLichSu(action, "Công Ty", objId, $"Tên công ty: {model.TenCongTy}");
 
-                return Json(new { success = true, msg = "Lưu công ty thành công!" });
+                return Json(new { success = true, message = "Lưu công ty thành công!" });
             }
-            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         [HttpPost("/QLKiemKe/DeleteKkCongTy")]
@@ -5357,9 +5357,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     GhiLichSu("Xóa", "Công Ty", id, $"Đã xóa công ty: {tenCT}");
                 }
-                return Json(new { success = true, msg = "Đã xóa công ty!" });
+                return Json(new { success = true, message = "Đã xóa công ty!" });
             }
-            catch (Exception) { return Json(new { success = false, msg = "Không thể xóa vì công ty này đang được sử dụng." }); }
+            catch (Exception) { return Json(new { success = false, message = "Không thể xóa vì công ty này đang được sử dụng." }); }
         }
 
         // ==================== BỘ PHẬN ====================
@@ -5382,7 +5382,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .OrderByDescending(x => x.IdboPhan).ToList();
                 return Json(new { success = true, data = data });
             }
-            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         [HttpPost("/QLKiemKe/SaveKkBoPhan")]
@@ -5416,9 +5416,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (objId == 0) objId = model.IdboPhan;
                 GhiLichSu(action, "Bộ Phận", objId, $"Tên bộ phận: {model.TenBoPhan}");
 
-                return Json(new { success = true, msg = "Lưu bộ phận thành công!" });
+                return Json(new { success = true, message = "Lưu bộ phận thành công!" });
             }
-            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         [HttpPost("/QLKiemKe/DeleteKkBoPhan")]
@@ -5435,9 +5435,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     GhiLichSu("Xóa", "Bộ Phận", id, $"Đã xóa bộ phận: {tenBP}");
                 }
-                return Json(new { success = true, msg = "Đã xóa bộ phận!" });
+                return Json(new { success = true, message = "Đã xóa bộ phận!" });
             }
-            catch (Exception) { return Json(new { success = false, msg = "Không thể xóa vì bộ phận này đang được sử dụng." }); }
+            catch (Exception) { return Json(new { success = false, message = "Không thể xóa vì bộ phận này đang được sử dụng." }); }
         }
 
         // ==================== LOẠI THIẾT BỊ ====================
@@ -5449,7 +5449,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var data = _context.KkLoaiThietBis.OrderByDescending(x => x.IdLoai).ToList();
                 return Json(new { success = true, data = data });
             }
-            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         [HttpPost("/QLKiemKe/SaveKkLoaiThietBi")]
@@ -5480,9 +5480,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (objId == 0) objId = model.IdLoai;
                 GhiLichSu(action, "Loại Thiết Bị", objId, $"Tên loại: {model.TenLoai}");
 
-                return Json(new { success = true, msg = "Lưu loại thiết bị thành công!" });
+                return Json(new { success = true, message = "Lưu loại thiết bị thành công!" });
             }
-            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         [HttpPost("/QLKiemKe/DeleteKkLoaiThietBi")]
@@ -5499,9 +5499,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     GhiLichSu("Xóa", "Loại Thiết Bị", id, $"Đã xóa loại: {tenLoai}");
                 }
-                return Json(new { success = true, msg = "Đã xóa loại thiết bị!" });
+                return Json(new { success = true, message = "Đã xóa loại thiết bị!" });
             }
-            catch (Exception) { return Json(new { success = false, msg = "Không thể xóa vì loại thiết bị này đang được gán cho thiết bị." }); }
+            catch (Exception) { return Json(new { success = false, message = "Không thể xóa vì loại thiết bị này đang được gán cho thiết bị." }); }
         }
 
         #endregion
@@ -5593,7 +5593,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 return Json(new { success = true, data = sortedData });
             }
-            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         // HÀM LẤY LỊCH SỬ CÁC LẦN CHECK VÀ BẰNG CHỨNG ẢNH CỦA THIẾT BỊ
@@ -5619,7 +5619,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, msg = ex.Message });
+                return Json(new { success = false, message = ex.Message });
             }
         }
 
@@ -5660,7 +5660,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
 
                 if (isDuplicate)
-                    return Json(new { success = false, msg = $"Tên máy tính (Hostname) '{model.TenMayTinh}' kèm Loại thiết bị '{model.LoaiThietBi}' đã tồn tại trong hệ thống. Vui lòng kiểm tra lại!" });
+                    return Json(new { success = false, message = $"Tên máy tính (Hostname) '{model.TenMayTinh}' kèm Loại thiết bị '{model.LoaiThietBi}' đã tồn tại trong hệ thống. Vui lòng kiểm tra lại!" });
 
                 if (string.IsNullOrWhiteSpace(model.TenViTri)) model.TenViTri = "";
 
@@ -5777,9 +5777,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 string chiTietLog = $"Vị trí: {model.TenViTri} | Máy tính: {model.TenMayTinh} | Trạng thái: {statusName} | Account: {model.TenDangNhap} | N.Dùng: {tenNguoiDung} | B.Phận: {tenBoPhan} | Loại: {model.LoaiThietBi} | Quy cách: {model.QuyCach}";
                 GhiLichSu(action, "Thiết Bị", objId, chiTietLog);
 
-                return Json(new { success = true, msg = "Lưu thiết bị thành công!" });
+                return Json(new { success = true, message = "Lưu thiết bị thành công!" });
             }
-            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         // HÀM XUẤT ẢNH TỪ FILE SERVER RA TRÌNH DUYỆT (THƯ MỤC THIẾT BỊ CHÍNH)
@@ -5831,7 +5831,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             try
             {
                 var thietBi = await _context.KkThietBis.FindAsync(idThietBi);
-                if (thietBi == null) return Json(new { success = false, msg = "Không tìm thấy thiết bị trong hệ thống." });
+                if (thietBi == null) return Json(new { success = false, message = "Không tìm thấy thiết bị trong hệ thống." });
 
                 DateTime currentCheckTime = DateTime.Now;
 
@@ -5880,11 +5880,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 GhiLichSu("Xác nhận Check", "Thiết Bị", idThietBi, $"Cập nhật thời gian check và lưu bằng chứng kiểm kê. Có tệp đính kèm: {(evidenceFileName != null ? "Có" : "Không")}");
 
-                return Json(new { success = true, msg = "Cập nhật thời gian kiểm tra và lưu bằng chứng thành công!" });
+                return Json(new { success = true, message = "Cập nhật thời gian kiểm tra và lưu bằng chứng thành công!" });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, msg = ex.Message });
+                return Json(new { success = false, message = ex.Message });
             }
         }
 
@@ -5921,9 +5921,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     string chiTietLog = $"Chuyển vào thùng rác. Tên máy tính: {item.TenMayTinh} | Lý do: {lyDo} | Chờ hủy sau 1 tháng.";
                     GhiLichSu("Xóa (Tạm)", "Thiết Bị", id, chiTietLog);
                 }
-                return Json(new { success = true, msg = "Đã chuyển thiết bị vào Thùng Rác!" });
+                return Json(new { success = true, message = "Đã chuyển thiết bị vào Thùng Rác!" });
             }
-            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
 
@@ -5948,9 +5948,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     GhiLichSu("Khôi phục", "Thiết Bị", id, $"Đã khôi phục thiết bị: {item.TenMayTinh}");
                 }
-                return Json(new { success = true, msg = "Khôi phục thiết bị thành công!" });
+                return Json(new { success = true, message = "Khôi phục thiết bị thành công!" });
             }
-            catch (Exception ex) { return Json(new { success = false, msg = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         // NÚT XÓA VĨNH VIỄN: Hủy hoàn toàn khỏi CSDL
@@ -5968,9 +5968,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     GhiLichSu("Xóa vĩnh viễn", "Thiết Bị", id, $"Đã xóa vĩnh viễn thiết bị (Hostname/Mã: {tenMay}) khỏi thùng rác.");
                 }
-                return Json(new { success = true, msg = "Đã xóa vĩnh viễn thiết bị khỏi hệ thống!" });
+                return Json(new { success = true, message = "Đã xóa vĩnh viễn thiết bị khỏi hệ thống!" });
             }
-            catch (Exception ex) { return Json(new { success = false, msg = "Lỗi: Không thể xóa vì ràng buộc dữ liệu hoặc lỗi hệ thống. Chi tiết: " + ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "Lỗi: Không thể xóa vì ràng buộc dữ liệu hoặc lỗi hệ thống. Chi tiết: " + ex.Message }); }
         }
 
         // HÀM 1: Lấy cục bộ dữ liệu JSON chi tiết đầy đủ phục vụ hiển thị nhanh qua Modal/API AJAX
@@ -5988,7 +5988,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 if (item == null)
                 {
-                    return Json(new { success = false, msg = "Không tìm thấy thiết bị hoặc thông tin vị trí này trong hệ thống." });
+                    return Json(new { success = false, message = "Không tìm thấy thiết bị hoặc thông tin vị trí này trong hệ thống." });
                 }
 
                 var detailData = new
@@ -6025,7 +6025,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, msg = "Lỗi hệ thống khi tải chi tiết: " + ex.Message });
+                return Json(new { success = false, message = "Lỗi hệ thống khi tải chi tiết: " + ex.Message });
             }
         }
 
@@ -6061,14 +6061,73 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
+        #region hiển thị danh sách tất cả thiết bị máy tính
+
+        // 1. Action trả về giao diện trang xem danh sách toàn bộ thiết bị máy tính
+        [HttpGet("/QLKiemKe/ViewDanhSachTatCaMayTinh")]
+        public IActionResult ViewDanhSachTatCaMayTinh()
+        {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                return Redirect("/DonXetDuyet/DangNhap");
+            }
+            return View();
+        }
+
+        // 2. API lấy toàn bộ danh sách máy tính từ hệ thống để hiển thị lên View dữ liệu
+        [HttpGet("/QLKiemKe/DanhSachTatCaMayTinh")]
+        public IActionResult DanhSachTatCaMayTinh()
+        {
+            try
+            {
+                // Sử dụng Include để kéo theo thông tin thực thể User sở hữu thiết bị nếu có
+                var danhSachMay = _context.TscnThongTinMays
+                    .Include(m => m.IdNguoiDungNavigation)
+                    .OrderByDescending(m => m.NgayCapNhat)
+                    .Select(m => new
+                    {
+                        idMay = m.IdMay,
+                        tenMay = m.TenMay,
+                        seriMay = m.SeriMay,
+                        dongMay = m.DongMay,
+                        heDieuHanh = m.HeDieuHanh,
+                        kienTruc = m.KienTruc,
+                        phienBanNet = m.PhienBanNet,
+                        soLoiCpu = m.SoLoiCpu,
+                        tenNguoiDungHeThong = m.TenNguoiDungHeThong,
+                        thuMucHeThong = m.ThuMucHeThong,
+                        thoiGianHoatDong = m.ThoiGianHoatDong,
+                        ramKhaDung = m.RamKhaDung,
+                        thongTinManHinhNgoai = m.ThongTinManHinhNgoai,
+                        thongTinOffice = m.ThongTinOffice,
+                        banQuyenWin = m.BanQuyenWin,
+                        banQuyenOffice = m.BanQuyenOffice,
+                        ngayCapNhat = m.NgayCapNhat.HasValue ? m.NgayCapNhat.Value.ToString("yyyy-MM-dd HH:mm:ss") : "N/A",
+                        idNguoiDung = m.IdNguoiDung,
+
+                        // Thông tin liên kết từ bảng người dùng sở hữu tài sản
+                        taiKhoanSoHuu = m.IdNguoiDungNavigation != null ? m.IdNguoiDungNavigation.Tk : "Chưa bàn giao",
+                        hoTenNguoiSoHuu = m.IdNguoiDungNavigation != null ? m.IdNguoiDungNavigation.HoTen : "Chưa bàn giao",
+                        phongBanSoHuu = m.IdNguoiDungNavigation != null ? m.IdNguoiDungNavigation.PhongBan : "N/A"
+                    })
+                    .ToList();
+
+                return Json(new { success = true, data = danhSachMay });
+            }
+            catch (Exception ex)
+            {
+                // Trả về thông tin InnerException chi tiết nhất nếu gặp sự cố hệ thống
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = $"Lỗi hệ thống khi tải danh sách thiết bị máy tính: {chiTietLoi}" });
+            }
+        }
+
+        #endregion
+
         #endregion
 
         // Giả định bạn đã inject DbContext vào Controller qua Constructor, ví dụ: _context
         // private readonly YourDbContext _context;
-
-        // Giả định bạn đã inject DbContext vào Controller qua Constructor, ví dụ: _context
-        // private readonly YourDbContext _context;
-
         #region check máy hiện tại 
 
         // 1. Action này chỉ trả về giao diện (View)
@@ -6089,7 +6148,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             if (string.IsNullOrEmpty(taikhoan) || string.IsNullOrEmpty(matkhau))
             {
-                return Json(new { success = false, msg = "Vui lòng nhập đầy đủ tài khoản và mật khẩu." });
+                return Json(new { success = false, message = "Vui lòng nhập đầy đủ tài khoản và mật khẩu." });
             }
 
             try
@@ -6100,7 +6159,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 if (user == null)
                 {
-                    return Json(new { success = false, msg = "Tài khoản hoặc mật khẩu không chính xác." });
+                    return Json(new { success = false, message = "Tài khoản hoặc mật khẩu không chính xác." });
                 }
 
                 // 2. Check xem tài khoản đó có TenQuyen là AdminIT không dựa vào mối quan hệ nhiều-nhiều qua bảng trung gian UserQuyen và Quyen
@@ -6109,14 +6168,114 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 if (!isAdminIT)
                 {
-                    return Json(new { success = false, msg = "Tài khoản hợp lệ nhưng bạn không có quyền AdminIT." });
+                    return Json(new { success = false, message = "Tài khoản hợp lệ nhưng bạn không có quyền AdminIT." });
                 }
 
-                return Json(new { success = true, msg = "Xác thực thành công!" });
+                return Json(new { success = true, message = "Xác thực thành công!" });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, msg = $"Lỗi hệ thống xác thực: {ex.Message}" });
+                return Json(new { success = false, message = $"Lỗi hệ thống xác thực: {ex.Message}" });
+            }
+        }
+
+        // ACTION MỚI: Xử lý khi ấn xác nhận tài sản, nhận toàn bộ dữ liệu phần cứng từ Client
+        [IgnoreAntiforgeryToken]
+        [HttpPost("/QLKiemKe/XacNhanTaiSanMaMay")]
+        public IActionResult XacNhanTaiSanMaMay(string taikhoan, string matkhau, string seriMay, string tenMay, string dongMay, string heDieuHanh, string kienTruc, string phienBanNet, int? soLoiCPU, string tenNguoiDungHeThong, string thuMucHeThong, string thoiGianHoatDong, string ramKhaDung, string thongTinManHinhNgoai, string thongTinOffice, string banQuyenWin, string banQuyenOffice)
+        {
+            if (string.IsNullOrEmpty(taikhoan) || string.IsNullOrEmpty(matkhau))
+            {
+                return Json(new { success = false, message = "Vui lòng nhập đầy đủ tài khoản và mật khẩu." });
+            }
+
+            // ĐÃ BỔ SUNG CHẶN RỖNG: Kiểm tra Số Serial Máy quét lên không được rỗng, null hoặc mặc định
+            if (string.IsNullOrEmpty(seriMay) || seriMay.Trim() == "N/A" || seriMay.Trim() == "Đang tải...")
+            {
+                return Json(new { success = false, message = "Không tìm thấy Số Serial Máy (Serial Number). Vui lòng liên hệ với IT để check lỗi." });
+            }
+
+            try
+            {
+                // 1. Xác thực thông tin đăng nhập của AdminIT
+                var user = _context.Users
+                    .FirstOrDefault(u => u.Tk == taikhoan && u.MatKhau == matkhau);
+
+                if (user == null)
+                {
+                    return Json(new { success = false, message = "Tài khoản hoặc mật khẩu xác nhận không chính xác." });
+                }
+
+                bool isAdminIT = _context.UserQuyens
+                    .Any(uq => uq.IdNguoiDung == user.IdNguoiDung && uq.IdQuyenNavigation.TenQuyen == "AdminIT");
+
+                if (!isAdminIT)
+                {
+                    return Json(new { success = false, message = "Tài khoản hợp lệ nhưng bạn không có quyền AdminIT để thực hiện gán tài sản." });
+                }
+
+                // 2. Kiểm tra điều kiện: Số Serial Máy quét được phải trùng khớp với máy đã tồn tại trong DB
+                var mayTonTai = _context.TscnThongTinMays
+                    .FirstOrDefault(m => m.SeriMay == seriMay.Trim());
+
+                // ĐÃ SỬA ĐỔI THEO YÊU CẦU: Nếu máy CHƯA TỒN TẠI -> THÊM MỚI với toàn bộ thông số lấy từ Tool local
+                if (mayTonTai == null)
+                {
+                    mayTonTai = new TscnThongTinMay
+                    {
+                        SeriMay = seriMay.Trim(),
+                        TenMay = string.IsNullOrEmpty(tenMay) ? "Máy mới chưa xác định" : tenMay.Trim(),
+                        DongMay = dongMay,
+                        HeDieuHanh = heDieuHanh,
+                        KienTruc = kienTruc,
+                        PhienBanNet = phienBanNet,
+                        SoLoiCpu = soLoiCPU,
+                        TenNguoiDungHeThong = tenNguoiDungHeThong,
+                        ThuMucHeThong = thuMucHeThong,
+                        ThoiGianHoatDong = thoiGianHoatDong,
+                        RamKhaDung = ramKhaDung,
+                        ThongTinManHinhNgoai = thongTinManHinhNgoai,
+                        ThongTinOffice = thongTinOffice,
+                        BanQuyenWin = banQuyenWin,
+                        BanQuyenOffice = banQuyenOffice,
+                        IdNguoiDung = user.IdNguoiDung, // Gán trực tiếp chủ sở hữu
+                        NgayCapNhat = DateTime.Now
+                    };
+
+                    _context.TscnThongTinMays.Add(mayTonTai);
+                    _context.SaveChanges(); // Lưu tạo mới ID
+                }
+                else
+                {
+                    // CHẶN BỔ SUNG THEO YÊU CẦU: Tên máy trong cơ sở dữ liệu hoặc quét được không được phép rỗng hoặc null
+                    if (string.IsNullOrEmpty(mayTonTai.TenMay) || mayTonTai.TenMay.Trim() == "N/A")
+                    {
+                        return Json(new { success = false, message = "Tên máy (Machine Name) của thiết bị này trống hoặc không hợp lệ. Vui lòng liên hệ với IT để check lỗi." });
+                    }
+
+                    // ĐỒNG BỘ: Nếu máy ĐÃ CÓ, chỉ cập nhật trực tiếp chủ sở hữu hiện tại trên bảng TSCN_ThongTinMay
+                    mayTonTai.IdNguoiDung = user.IdNguoiDung;
+                    mayTonTai.NgayCapNhat = DateTime.Now;
+                }
+
+                // 3. Logic xử lý gắn kết máy với tài khoản qua bảng lịch sử xác thực trung gian thực tế của bạn
+                var lichSu = new TscnLichSuXacThucNguoiDung
+                {
+                    IdMay = mayTonTai.IdMay,
+                    IdNguoiDung = user.IdNguoiDung,
+                    NgayXacThuc = DateTime.Now,
+                    GhiChu = $"Tài khoản {taikhoan} xác nhận sở hữu thiết bị này."
+                };
+
+                _context.TscnLichSuXacThucNguoiDungs.Add(lichSu);
+                _context.SaveChanges();
+
+                return Json(new { success = true, message = $"Xác nhận tài sản thành công! Máy '{mayTonTai.TenMay}' (Serial: {seriMay}) đã được liên kết với tài khoản {taikhoan} vào lúc {lichSu.NgayXacThuc:HH:mm:ss dd/MM/yyyy}." });
+            }
+            catch (Exception ex)
+            {
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = $"Lỗi hệ thống khi gắn kết tài sản: {chiTietLoi}" });
             }
         }
 
@@ -6132,13 +6291,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // Từ chối nếu không phải AdminIT
             if (User == null || !User.IsInRole("AdminIT"))
             {
-                return Json(new { success = false, msg = "Truy cập bị từ chối: Chỉ tài khoản AdminIT mới có quyền quét thông tin phần cứng." });
+                return Json(new { success = false, message = "Truy cập bị từ chối: Chỉ tài khoản AdminIT mới có quyền quét thông tin phần cứng." });
             }
 
-            return Json(new { success = false, msg = "Vui lòng kết nối qua ứng dụng Helper local để lấy thông tin máy khách hiện tại." });
+            return Json(new { success = false, message = "Vui lòng kết nối qua ứng dụng Helper local để lấy thông tin máy khách hiện tại." });
         }
 
         #endregion
+
 
 
     }
