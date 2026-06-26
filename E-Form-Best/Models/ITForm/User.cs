@@ -96,6 +96,12 @@ public partial class User
     public virtual ICollection<LichSuTruyCap> LichSuTruyCaps { get; set; } = new List<LichSuTruyCap>();
 
     [InverseProperty("IdNguoiDungNavigation")]
+    public virtual ICollection<TscnLichSuXacThucNguoiDung> TscnLichSuXacThucNguoiDungs { get; set; } = new List<TscnLichSuXacThucNguoiDung>();
+
+    [InverseProperty("IdNguoiDungNavigation")]
+    public virtual ICollection<TscnThongTinMay> TscnThongTinMays { get; set; } = new List<TscnThongTinMay>();
+
+    [InverseProperty("IdNguoiDungNavigation")]
     public virtual ICollection<UserBoPhan> UserBoPhans { get; set; } = new List<UserBoPhan>();
 
     [InverseProperty("IdNguoiDungNavigation")]

@@ -60,6 +60,12 @@ public partial class TscnThongTinMay
     [Column(TypeName = "datetime")]
     public DateTime? NgayCapNhat { get; set; }
 
+    public int? IdNguoiDung { get; set; }
+
+    [ForeignKey("IdNguoiDung")]
+    [InverseProperty("TscnThongTinMays")]
+    public virtual User? IdNguoiDungNavigation { get; set; }
+
     [InverseProperty("IdMayNavigation")]
     public virtual ICollection<TscnChiTietMacWifi> TscnChiTietMacWifis { get; set; } = new List<TscnChiTietMacWifi>();
 
@@ -73,5 +79,11 @@ public partial class TscnThongTinMay
     public virtual ICollection<TscnChiTietRam> TscnChiTietRams { get; set; } = new List<TscnChiTietRam>();
 
     [InverseProperty("IdMayNavigation")]
+    public virtual ICollection<TscnLichSuThayDoi> TscnLichSuThayDois { get; set; } = new List<TscnLichSuThayDoi>();
+
+    [InverseProperty("IdMayNavigation")]
     public virtual ICollection<TscnLichSuXacThucAdmin> TscnLichSuXacThucAdmins { get; set; } = new List<TscnLichSuXacThucAdmin>();
+
+    [InverseProperty("IdMayNavigation")]
+    public virtual ICollection<TscnLichSuXacThucNguoiDung> TscnLichSuXacThucNguoiDungs { get; set; } = new List<TscnLichSuXacThucNguoiDung>();
 }

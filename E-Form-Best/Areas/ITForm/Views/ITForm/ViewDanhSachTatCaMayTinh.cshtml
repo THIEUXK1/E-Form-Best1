@@ -1,0 +1,167 @@
+﻿@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Danh sách tất cả thiết bị máy tính";
+}
+
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0">
+                <i class="fa fa-server" style="margin-right: 8px;"></i>Danh Sách Quản Lý Tất Cả Thiết Bị Máy Tính
+            </h5>
+            <div class="d-flex style=" width: 350px;"">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-secondary text-white"><i class="fa fa-search"></i></span>
+                    <input type="text" id="txtTimKiemMay" class="form-control" placeholder="Tìm kiếm nhanh thiết bị, serial, người sở hữu..." />
+                </div>
+                <button id="btnTaiLaiDanhSach" class="btn btn-sm btn-primary ms-2" style="white-space: nowrap;">
+                    <i class="fa fa-refresh"></i> Tải lại
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div id="alertTinNhan" class="alert alert-danger m-3" style="display: none;" role="alert"></div>
+
+            <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+                <table class="table table-bordered table-striped table-hover mb-0" id="tblTatCaMayTinh" style="font-size: 13px;">
+                    <thead class="table-secondary sticky-top" style="z-index: 10;">
+                        <tr>
+                            <th style="white-space: nowrap;">Mã máy</th>
+                            <th style="white-space: nowrap;">Tên máy (Machine Name)</th>
+                            <th style="white-space: nowrap;">Số Serial Máy</th>
+                            <th style="white-space: nowrap;">Người sở hữu</th>
+                            <th style="white-space: nowrap;">Tài khoản</th>
+                            <th style="white-space: nowrap;">Phòng ban</th>
+                            <th style="white-space: nowrap;">Dòng máy</th>
+                            <th style="white-space: nowrap;">Hệ điều hành</th>
+                            <th style="white-space: nowrap;">Kiến trúc OS</th>
+                            <th style="white-space: nowrap;">Mốc cập nhật</th>
+                            <th style="white-space: nowrap;">RAM Khả dụng</th>
+                            <th style="white-space: nowrap;">Số lõi CPU</th>
+                            <th style="white-space: nowrap;">Màn hình ngoài</th>
+                            <th style="white-space: nowrap;">Bản quyền Win</th>
+                            <th style="white-space: nowrap;">Phiên bản Office</th>
+                            <th style="white-space: nowrap;">Bản quyền Office</th>
+                            <th style="white-space: nowrap;">User hệ thống</th>
+                            <th style="white-space: nowrap;">Thư mục OS</th>
+                            <th style="white-space: nowrap;">Uptime</th>
+                            <th style="white-space: nowrap;">.NET Framework</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="20" class="text-center py-4 text-muted">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                <span class="ms-2">Đang nạp toàn bộ danh sách dữ liệu máy tính từ server...</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-light py-2 text-end">
+            <span class="text-dark small fw-bold" id="lblTongSoMay">Tổng số thiết bị: 0</span>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bundle.min.js"></script>
+    <script>
+        $(document).ready(function () {
+        // Mảng lưu trữ gốc dữ liệu trả về phục vụ tìm kiếm local client
+        var danhSachGocCache = [];
+
+        // Gọi hàm thực thi lấy danh sách khi vừa tải trang
+        loadGoiTinTatCaMayTinh();
+
+        $("#btnTaiLaiDanhSach").click(function () {
+        loadGoiTinTatCaMayTinh();
+        });
+
+        function loadGoiTinTatCaMayTinh() {
+        $("#alertTinNhan").hide();
+        $.ajax({
+        url: '/QLKiemKe/DanhSachTatCaMayTinh',
+        type: 'GET',
+        dataType: 'json',
+        success: function (res) {
+        if (res.success && res.data) {
+        danhSachGocCache = res.data;
+        renderDuLieuRaBang(danhSachGocCache);
+        } else {
+        hienThiLoiHeThong(res.message || "Dữ liệu trả về bị rỗng.");
+        }
+        },
+        error: function (xhr, status, error) {
+        hienThiLoiHeThong("Không thể kết nối đến máy chủ Web API để lấy danh sách máy.");
+        }
+        });
+        }
+
+        function renderDuLieuRaBang(dataList) {
+        var html = "";
+        if (dataList.length === 0) {
+        html = '<tr><td colspan="20" class="text-center text-muted py-4">Không tìm thấy bản ghi thiết bị máy tính nào hợp lệ.</td></tr>';
+        } else {
+        $.each(dataList, function (index, item) {
+        // Định dạng màu sắc nổi bật cho phần tài sản chưa bàn giao
+        var clsUser = item.taiKhoanSoHuu === "Chưa bàn giao" ? "text-danger fw-bold" : "text-primary fw-bold";
+
+        html += '<tr>' +
+        '<td>' + item.idMay + '</td>' +
+        '<td class="fw-bold text-dark" style="white-space: nowrap;">' + (item.tenMay || "N/A") + '</td>' +
+        '<td class="text-danger fw-bold" style="white-space: nowrap;">' + (item.seriMay || "N/A") + '</td>' +
+        '<td style="white-space: nowrap;">' + (item.hoTenNguoiSoHuu || "N/A") + '</td>' +
+        '<td class="' + clsUser + '">' + (item.taiKhoanSoHuu || "N/A") + '</td>' +
+        '<td style="white-space: nowrap;">' + (item.phongBanSoHuu || "N/A") + '</td>' +
+        '<td style="white-space: nowrap;">' + (item.dongMay || "N/A") + '</td>' +
+        '<td style="white-space: nowrap;"><small>' + (item.heDieuHanh || "N/A") + '</small></td>' +
+        '<td>' + (item.kienTruc || "N/A") + '</td>' +
+        '<td style="white-space: nowrap;"><span class="badge bg-secondary">' + item.ngayCapNhat + '</span></td>' +
+        '<td style="white-space: nowrap;">' + (item.ramKhaDung || "N/A") + '</td>' +
+        '<td>' + (item.soLoiCpu != null ? item.soLoiCpu : "N/A") + '</td>' +
+        '<td style="white-space: nowrap;">' + (item.thongTinManHinhNgoai || "N/A") + '</td>' +
+        '<td style="white-space: nowrap;">' + (item.banQuyenWin || "N/A") + '</td>' +
+        '<td style="white-space: nowrap;"><small>' + (item.thongTinOffice || "N/A") + '</small></td>' +
+        '<td style="white-space: nowrap;">' + (item.banQuyenOffice || "N/A") + '</td>' +
+        '<td style="white-space: nowrap;">' + (item.tenNguoiDungHeThong || "N/A") + '</td>' +
+        '<td style="white-space: nowrap;"><small>' + (item.thuMucHeThong || "N/A") + '</small></td>' +
+        '<td style="white-space: nowrap;">' + (item.thoiGianHoatDong || "N/A") + '</td>' +
+        '<td style="white-space: nowrap;"><small>' + (item.phienBanNet || "N/A") + '</small></td>' +
+        '</tr>';
+        });
+        }
+        $("#tblTatCaMayTinh tbody").html(html);
+        $("#lblTongSoMay").text("Tổng số thiết bị: " + dataList.length);
+        }
+
+        function hienThiLoiHeThong(msg) {
+        $("#tblTatCaMayTinh tbody").html('<tr><td colspan="20" class="text-center text-danger">Lỗi: ' + msg + '</td></tr>');
+        $("#alertTinNhan").text(msg).fadeIn();
+        $("#lblTongSoMay").text("Tổng số thiết bị: 0");
+        }
+
+        // Xử lý bộ lọc tìm kiếm nhanh trực tiếp trên Client không cần Reload trang
+        $("#txtTimKiemMay").on("keyup", function () {
+        var tuKhoa = $(this).val().toLowerCase().trim();
+        if (tuKhoa === "") {
+        renderDuLieuRaBang(danhSachGocCache);
+        return;
+        }
+
+        var danhSachLoc = $.grep(danhSachGocCache, function (item) {
+        return (item.tenMay && item.tenMay.toLowerCase().indexOf(tuKhoa) !== -1) ||
+        (item.seriMay && item.seriMay.toLowerCase().indexOf(tuKhoa) !== -1) ||
+        (item.dongMay && item.dongMay.toLowerCase().indexOf(tuKhoa) !== -1) ||
+        (item.taiKhoanSoHuu && item.taiKhoanSoHuu.toLowerCase().indexOf(tuKhoa) !== -1) ||
+        (item.hoTenNguoiSoHuu && item.hoTenNguoiSoHuu.toLowerCase().indexOf(tuKhoa) !== -1) ||
+        (item.phongBanSoHuu && item.phongBanSoHuu.toLowerCase().indexOf(tuKhoa) !== -1);
+        });
+
+        renderDuLieuRaBang(danhSachLoc);
+        });
+        });
+    </script>
+}

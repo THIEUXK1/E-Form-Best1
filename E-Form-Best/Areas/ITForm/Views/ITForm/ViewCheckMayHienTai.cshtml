@@ -1,4 +1,4 @@
-﻿@{
+@{
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "Thông tin máy hiện tại";
 }
@@ -9,9 +9,14 @@
         <div class="card shadow">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fa fa-desktop" style="margin-right: 8px;"></i>Thông Tin Cấu Hình Máy Hiện Tại</h5>
-                <button id="btnRefresh" class="btn btn-sm btn-light text-primary" style="display: none;">
-                    <i class="fa fa-refresh" style="margin-right: 4px;"></i> Làm mới
-                </button>
+                <div>
+                    <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#modalXacNhanTaiSan">
+                        <i class="fa fa-check-square-o" style="margin-right: 4px;"></i> Xác nhận tài sản
+                    </button>
+                    <button id="btnRefresh" class="btn btn-sm btn-light text-primary" style="display: none;">
+                        <i class="fa fa-refresh" style="margin-right: 4px;"></i> Làm mới
+                    </button>
+                </div>
             </div>
             <div class="card-body">
 
@@ -168,6 +173,36 @@
                 </div>
             </div>
         </div>
+
+        <div class="modal fade" id="modalXacNhanTaiSan" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalXacNhanTaiSanLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="modalXacNhanTaiSanLabel"><i class="fa fa-check-square-o" style="margin-right: 8px;"></i>Xác nhận tài sản</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="modalTaiSanAlertError" class="alert alert-danger p-2" style="display: none; font-size: 14px;"></div>
+                        <form id="formXacNhanTaiSan" onsubmit="return false;">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Tài khoản</label>
+                                <input type="text" id="txtTaiSanUser" class="form-control" placeholder="Nhập tài khoản..." required />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Mật khẩu</label>
+                                <input type="password" id="txtTaiSanPassword" class="form-control" placeholder="Nhập mật khẩu..." required />
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                        <button type="button" id="btnSubmitXacNhanTaiSan" class="btn btn-success">
+                            <i class="fa fa-paper-plane" style="margin-right: 4px;"></i> Gửi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     }
     else
     {
@@ -224,7 +259,8 @@
             }
             },
             error: function (xhr, status, error) {
-            thongBaoLoiCoBan("Không tìm thấy kết nối với ứng dụng HardwareHelper.exe ngầm. Vui lòng khởi động tool dưới máy.");
+            // ĐÃ SỬA THÔNG BÁO LỖI THEO YÊU CẦU CỦA BẠN:
+            thongBaoLoiCoBan("Đã gặp sự cố thiếu MSI hãy liên hệ với IT để được hỗ trợ.");
             }
             });
             }
@@ -264,7 +300,7 @@
             // Tiến hành bung dữ liệu đã lấy từ Tool lên bảng chi tiết (Bảng 2)
             taiToanBoThongTinChiTiet();
             } else {
-            $("#modalAlertError").text(res.msg).fadeIn();
+            $("#modalAlertError").text(res.message).fadeIn();
             }
             },
             error: function () {
@@ -276,6 +312,88 @@
             $("#formCheckAdminIT").on('submit', function (e) {
             e.preventDefault();
             $("#btnSubmitXacThuc").click();
+            });
+
+            // ĐÃ ĐƯỢC SỬA: Gom tất cả thuộc tính phần cứng (ẩn/hiện) truyền lên Server
+            $("#btnSubmitXacNhanTaiSan").click(function () {
+            var taikhoanInput = $("#txtTaiSanUser").val().trim();
+            var matkhauInput = $("#txtTaiSanPassword").val().trim();
+
+            // Lấy mã Serial Number và Machine Name hiện tại từ cache hoặc từ giao diện trực quan
+            var seriMayInput = duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.seriMay : $("#lblSeriMay").text().trim();
+            var tenMayInput = duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.tenMay : $("#lblTenMay").text().trim();
+
+            $("#modalTaiSanAlertError").hide();
+
+            // SỬA ĐỔI CHẶN LỖI: Nếu 2 trường này null, rỗng, lỗi tải hoặc chưa load xong thì không cho xác nhận
+            if (!seriMayInput || seriMayInput === "" || seriMayInput === "N/A" || seriMayInput === "Đang tải..." || seriMayInput.indexOf("Lỗi tải") !== -1 ||
+            !tenMayInput || tenMayInput === "" || tenMayInput === "N/A" || tenMayInput === "Đang tải..." || tenMayInput.indexOf("Lỗi tải") !== -1) {
+            $("#modalTaiSanAlertError").text("Số Serial Máy hoặc Tên máy hiện tại chưa hợp lệ hoặc trống. Cần liên hệ với IT để check lỗi.").fadeIn();
+            return;
+            }
+
+            if (taikhoanInput === "" || matkhauInput === "") {
+            $("#modalTaiSanAlertError").text("Vui lòng không để trống tài khoản hoặc mật khẩu.").fadeIn();
+            return;
+            }
+
+            // Chuẩn bị toàn bộ dữ liệu phần cứng cần thiết để có thể INSERT khi thiết bị chưa tồn tại
+            var postData = {
+            taikhoan: taikhoanInput,
+            matkhau: matkhauInput,
+            seriMay: seriMayInput,
+            tenMay: tenMayInput,
+            dongMay: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.dongMay : null,
+            heDieuHanh: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.heDieuHanh : null,
+            kienTruc: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.kienTruc : null,
+            phienBanNet: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.phienBanNet : null,
+            soLoiCPU: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.soLoiCPU : null,
+            tenNguoiDungHeThong: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.tenNguoiDungHeThong : null,
+            thuMucHeThong: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.thuMucHeThong : null,
+            thoiGianHoatDong: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.thoiGianHoatDong : null,
+            ramKhaDung: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.ramKhaDung : null,
+            thongTinManHinhNgoai: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.thongTinManHinhNgoai : null,
+            thongTinOffice: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.thongTinOffice : null,
+            banQuyenWin: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.banQuyenWin : null,
+            banQuyenOffice: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.banQuyenOffice : null
+            };
+
+            $.ajax({
+            url: '/QLKiemKe/XacNhanTaiSanMaMay',
+            type: 'POST',
+            data: postData,
+            success: function (res) {
+            if (res.success) {
+            // Đóng modal xác nhận tài sản khi hoàn tất thành công
+            var modalElement = document.getElementById('modalXacNhanTaiSan');
+            var modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) modalInstance.hide();
+
+            // Khởi tạo lại trạng thái form nhập liệu trống
+            $("#txtTaiSanUser").val('');
+            $("#txtTaiSanPassword").val('');
+
+            // ĐÃ CẬP NHẬT: Hiển thị đúng thông báo yêu cầu của bạn khi thành công
+            var successAlert = $('<div class="alert alert-success alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">' +
+            '<strong>Thành công!</strong> Bạn đã xác nhận tài sản cá nhân thành công.' +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+            '</div>');
+            $('body').append(successAlert);
+            setTimeout(function() { successAlert.alert('close'); }, 5000); // Tự giải phóng thông báo sau 5 giây
+
+            } else {
+            $("#modalTaiSanAlertError").text(res.message).fadeIn();
+            }
+            },
+            error: function () {
+            $("#modalTaiSanAlertError").text("Đã xảy ra lỗi kết nối đường truyền xác thực với máy chủ website.").fadeIn();
+            }
+            });
+            });
+
+            $("#formXacNhanTaiSan").on('submit', function (e) {
+            e.preventDefault();
+            $("#btnSubmitXacNhanTaiSan").click();
             });
 
             // Hàm cập nhật gán dữ liệu chi tiết nâng cao từ Cache bộ nhớ
@@ -310,6 +428,7 @@
             $("#lblBanQuyenWin").text(duLieuQuetMayKhachCache.banQuyenWin || "N/A");
             $("#lblBanQuyenOffice").text(duLieuQuetMayKhachCache.banQuyenOffice || "N/A");
             $("#lblThuMucHeThong").text(duLieuQuetMayKhachCache.thuMucHeThong || "N/A");
+
             $("#lblThoiGianHoatDong").text(duLieuQuetMayKhachCache.thoiGianHoatDong || "N/A");
             $("#lblMacWifi").html(duLieuQuetMayKhachCache.macWifi || "N/A");
 
@@ -336,7 +455,7 @@
             }
             },
             error: function() {
-            $("#errorMsg").text("Mất kết nối với Tool local khi cố gắng làm mới cấu hình.");
+            $("#errorMsg").text("Đã gặp sự cố thiếu MSI hãy liên hệ với IT để được hỗ trợ.");
             $("#errorAlert").show();
             }
             });
