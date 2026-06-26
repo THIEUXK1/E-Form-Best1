@@ -427,8 +427,8 @@
                             Kiểm Kê Thiết Bị @(isKiemKeGroupActive ? "•" : "")
                         </div>
 
-                        <a href="/QLKiemKe/ViewCheckMayHienTai" class="nav-link-item @(currentController == "QLKiemKe" && currentAction == "ViewCheckMayHienTai" ? "active" : "")">
-                            <i class="fa fa-desktop" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#fbbf24;"></i> <span class="lang-text" data-key="personal_asset">Tài sản cá nhân</span>
+                        <a href="/QLKiemKe/ThietBi" class="nav-link-item @(currentController == "QLKiemKe" && (currentAction == "IndexThietBi" || currentAction == "ThietBi") ? "active" : "")">
+                            <i class="fa fa-laptop" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text" data-key="device_manage">Quản lý Thiết bị</span>
                         </a>
 
                         <a href="/QLKiemKe/ViewDanhSachTatCaMayTinh" class="nav-link-item @(currentController == "QLKiemKe" && currentAction == "ViewDanhSachTatCaMayTinh" ? "active" : "")">
