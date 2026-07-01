@@ -6350,15 +6350,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // 2. API lấy toàn bộ danh sách máy tính từ hệ thống để hiển thị lên View dữ liệu
+        // API lấy toàn bộ danh sách máy tính từ hệ thống để hiển thị lên View dữ liệu
         [HttpGet("/QLKiemKe/DanhSachTatCaMayTinh")]
         public IActionResult DanhSachTatCaMayTinh()
         {
             try
             {
-                // Sử dụng Include để kéo theo thông tin thực thể User sở hữu thiết bị nếu có
                 var danhSachMay = _context.TscnThongTinMays
                     .Include(m => m.IdNguoiDungNavigation)
-                    .Include(m => m.TscnChiTietManHinhs) // Kéo kèm bảng màn hình để hiển thị ở view rút gọn
+                    .Include(m => m.TscnChiTietManHinhs)
                     .OrderByDescending(m => m.NgayCapNhat)
                     .Select(m => new
                     {
@@ -6366,9 +6366,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         tenMay = m.TenMay,
                         seriMay = m.SeriMay,
                         dongMay = m.DongMay,
-                        tenNguoiDungHeThong = m.TenNguoiDungHeThong,
+                        thongTinOffice = m.ThongTinOffice, // Lấy phiên bản Office truyền xuống Client
                         thongTinManHinhNgoai = m.ThongTinManHinhNgoai,
-                        // Gom danh sách màn hình chi tiết thành chuỗi text hiển thị phẳng
                         thongTinManHinh = m.TscnChiTietManHinhs.Any()
                             ? string.Join("<br/>", m.TscnChiTietManHinhs.Select(x => x.ThongTinManHinh))
                             : "N/A",
@@ -6377,10 +6376,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         ngayCapNhat = m.NgayCapNhat.HasValue ? m.NgayCapNhat.Value.ToString("yyyy-MM-dd HH:mm:ss") : "N/A",
                         idNguoiDung = m.IdNguoiDung,
 
-                        // Thông tin liên kết từ bảng người dùng sở hữu tài sản
+                        // Lấy thông tin liên kết từ thực thể User
                         taiKhoanSoHuu = m.IdNguoiDungNavigation != null ? m.IdNguoiDungNavigation.Tk : "Chưa bàn giao",
                         hoTenNguoiSoHuu = m.IdNguoiDungNavigation != null ? m.IdNguoiDungNavigation.HoTen : "Chưa bàn giao",
-                        phongBanSoHuu = m.IdNguoiDungNavigation != null ? m.IdNguoiDungNavigation.PhongBan : "N/A"
+                        maNhanVienSoHuu = m.IdNguoiDungNavigation != null ? m.IdNguoiDungNavigation.MaNhanVien : "" // Trả thêm Mã nhân viên về Client
                     })
                     .ToList();
 
@@ -6388,11 +6387,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch (Exception ex)
             {
-                // Trả về thông tin InnerException chi tiết nhất nếu gặp sự cố hệ thống
                 var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
                 return Json(new { success = false, message = $"Lỗi hệ thống khi tải danh sách thiết bị máy tính: {chiTietLoi}" });
             }
         }
+
 
         // 3. Giao diện trang xem cấu hình chi tiết mở rộng
         [HttpGet("/QLKiemKe/ViewChiTietMayTinh")]
@@ -6458,6 +6457,33 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
                 return Json(new { success = false, message = $"Lỗi hệ thống khi tải cấu hình phụ: {chiTietLoi}" });
+            }
+        }
+
+        // 5. API LẤY DANH SÁCH NHẬT KÝ LỊCH SỬ THAY ĐỔI CẤU HÌNH THEO ID MÁY (BỔ SUNG MỚI CHO COLLAPSE)
+        [HttpGet("/QLKiemKe/LichSuThayDoiMayTinh")]
+        public IActionResult LichSuThayDoiMayTinh(int idMay)
+        {
+            try
+            {
+                var logs = _context.TscnLichSuThayDois
+                    .Where(l => l.IdMay == idMay)
+                    .OrderByDescending(l => l.ThoiGianThayDoi)
+                    .Select(l => new {
+                        thoiGianThayDoi = l.ThoiGianThayDoi.HasValue ? l.ThoiGianThayDoi.Value.ToString("yyyy-MM-dd HH:mm:ss") : "N/A",
+                        tenTruongThayDoi = l.TenTruongThayDoi,
+                        giaTriCu = l.GiaTriCu,
+                        giaTriMoi = l.GiaTriMoi,
+                        ghiChu = l.GhiChu
+                    })
+                    .ToList();
+
+                return Json(new { success = true, data = logs });
+            }
+            catch (Exception ex)
+            {
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = $"Lỗi hệ thống khi tải lịch sử thay đổi cấu hình: {chiTietLoi}" });
             }
         }
 
