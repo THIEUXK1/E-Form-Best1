@@ -3,7 +3,6 @@
     ViewData["Title"] = "Danh sách tất cả thiết bị máy tính";
 }
 
-<!-- CSS bổ sung tùy biến cho kiểu hiển thị hình hộp (Grid View) và Dropdown Multi-Checkbox -->
 <style>
     .grid-item-card {
         transition: transform 0.2s, box-shadow 0.2s;
@@ -28,11 +27,9 @@
 </style>
 
 <div class="container-fluid mt-4 text-dark">
-    <!-- THANH CÔNG CỤ VÀ BỘ LỌC TÌM KIẾM NÂNG CAO -->
     <div class="card shadow mb-3">
         <div class="card-body bg-light py-3">
             <div class="row g-3 align-items-center">
-                <!-- Tìm kiếm nhanh -->
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-secondary">Tìm kiếm nhanh</label>
                     <div class="input-group input-group-sm">
@@ -41,7 +38,6 @@
                     </div>
                 </div>
 
-                <!-- Lọc Bản quyền Win (Multi-Checkbox) -->
                 <div class="col-md-2">
                     <label class="form-label small fw-bold text-secondary">Bản quyền Win</label>
                     <div class="dropdown w-100">
@@ -49,12 +45,10 @@
                             <span class="text-truncate" id="lblFilterWinText">Tất cả bản quyền Win</span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-checkbox shadow" aria-labelledby="dropFilterWin" id="divFilterWinOptions">
-                            <!-- Render Checkbox động qua JavaScript -->
                         </div>
                     </div>
                 </div>
 
-                <!-- Lọc Bản quyền Office (Multi-Checkbox) -->
                 <div class="col-md-2">
                     <label class="form-label small fw-bold text-secondary">Bản quyền Office</label>
                     <div class="dropdown w-100">
@@ -62,12 +56,10 @@
                             <span class="text-truncate" id="lblFilterOfficeText">Tất cả bản quyền Office</span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-checkbox shadow" aria-labelledby="dropFilterOffice" id="divFilterOfficeOptions">
-                            <!-- Render Checkbox động qua JavaScript -->
                         </div>
                     </div>
                 </div>
 
-                <!-- Số lượng dòng hiển thị trên trang -->
                 <div class="col-md-2 col-6">
                     <label class="form-label small fw-bold text-secondary">Số dòng / trang</label>
                     <select id="ddlKichThuocTrang" class="form-select form-select-sm">
@@ -79,7 +71,6 @@
                     </select>
                 </div>
 
-                <!-- Chuyển kiểu hiển thị & Tải lại -->
                 <div class="col-md-3 col-6 text-end align-self-end">
                     <div class="btn-group btn-group-sm me-2" role="group">
                         <button type="button" id="btnKieuList" class="btn btn-primary" title="Hiển thị dạng bảng danh sách">
@@ -89,15 +80,17 @@
                             <i class="fa fa-th-large"></i> Hình hộp
                         </button>
                     </div>
-                    <button id="btnTaiLaiDanhSach" class="btn btn-sm btn-primary" style="white-space: nowrap;">
+                    <button id="btnTaiLaiDanhSach" class="btn btn-sm btn-primary me-1" style="white-space: nowrap;">
                         <i class="fa fa-refresh"></i> Tải lại
+                    </button>
+                    <button id="btnBoLoc" class="btn btn-sm btn-danger" title="Xóa sạch bộ lọc quay về mặc định">
+                        <i class="fa fa-filter"></i> Bỏ lọc
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- KHU VỰC HIỂN THỊ DANH SÁCH CHÍNH -->
     <div class="card shadow">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
             <h5 class="mb-0">
@@ -107,7 +100,6 @@
         <div class="card-body p-0">
             <div id="alertTinNhan" class="alert alert-danger m-3" style="display: none;" role="alert"></div>
 
-            <!-- KIỂU HIỂN THỊ 1: DANH SÁCH BẢNG TRUYỀN THỐNG -->
             <div id="vungKieuList" class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
                 <table class="table table-bordered table-striped table-hover mb-0" id="tblTatCaMayTinh" style="font-size: 13px;">
                     <thead class="table-secondary sticky-top" style="z-index: 10;">
@@ -116,7 +108,8 @@
                             <th style="white-space: nowrap;">Số Serial Máy</th>
                             <th style="white-space: nowrap;">Dòng máy (Hãng sản xuất)</th>
                             <th style="white-space: nowrap;">Tên máy (Machine Name)</th>
-                            <th style="white-space: nowrap;">Tên người dùng hệ thống</th>
+                            <th style="white-space: nowrap;">Người dùng liên kết</th>
+                            <th style="white-space: nowrap;">Phiên bản Office đang dùng</th>
                             <th style="white-space: nowrap;">Trạng thái kết nối thêm</th>
                             <th style="white-space: nowrap;">Danh sách Màn hình</th>
                             <th style="white-space: nowrap;">Bản quyền Win</th>
@@ -126,7 +119,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td colspan="10" class="text-center py-4 text-muted">
+                            <td colspan="11" class="text-center py-4 text-muted">
                                 <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
                                 <span class="ms-2">Đang nạp toàn bộ danh sách dữ liệu máy tính từ server...</span>
                             </td>
@@ -135,20 +128,16 @@
                 </table>
             </div>
 
-            <!-- KIỂU HIỂN THỊ 2: HÌNH HỘP LƯỚI CARD Ô CỜ -->
             <div id="vungKieuGrid" class="p-3" style="display: none; max-height: 70vh; overflow-y: auto;">
                 <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3" id="divContainerGrid">
-                    <!-- Sinh nội dung hình hộp động qua JS -->
                 </div>
             </div>
         </div>
 
-        <!-- THANH PHÂN TRANG VÀ THÔNG BÁO SỐ LƯỢNG -->
         <div class="card-footer bg-light py-2 d-flex justify-content-between align-items-center">
             <span class="text-dark small fw-bold" id="lblTongSoMay">Tổng số thiết bị: 0</span>
             <nav id="navPhanTrang" aria-label="Page navigation">
                 <ul class="pagination pagination-sm mb-0">
-                    <!-- Các nút bấm chuyển số trang tự động dựng -->
                 </ul>
             </nav>
         </div>
@@ -168,10 +157,27 @@
         var kichThuocTrang = 10;
         var kieuHienThi = "list"; // list hoặc grid
 
+        // ĐỌC TRẠNG THÁI BỘ LỌC ĐÃ LƯU TỪ LOCALSTORAGE KHI LOAD TRANG
+        docTrangThaiBoLocTuLocalStorage();
+
         loadGoiTinTatCaMayTinh();
 
         $("#btnTaiLaiDanhSach").click(function () {
         loadGoiTinTatCaMayTinh();
+        });
+
+        // Sự kiện khi nhấn nút Bỏ lọc để khôi phục cấu hình mặc định
+        $("#btnBoLoc").click(function () {
+        localStorage.removeItem("Tscn_BoLocGiaoDien");
+        $("#txtTimKiemMay").val("");
+        $("#ddlKichThuocTrang").val("10");
+        kichThuocTrang = 10;
+        trangHienTai = 1;
+        kieuHienThi = "list";
+
+        capNhatGiaoDienNutBamView();
+        $(".chk-filter-win, .chk-filter-office").prop("checked", true);
+        thucThiBoLocDuLieu();
         });
 
         // Thay đổi số lượng phần tử trên một trang
@@ -179,28 +185,36 @@
         var val = $(this).val();
         kichThuocTrang = val === "all" ? danhSachDaLoc.length : parseInt(val);
         trangHienTai = 1;
-        thucThiRenderTheoTrang();
+        thucThiBoLocDuLieu();
         });
 
         // Chuyển sang hiển thị giao diện dạng Bảng Danh Sách
         $("#btnKieuList").click(function () {
         kieuHienThi = "list";
-        $(this).removeClass("btn-outline-primary").addClass("btn-primary");
-        $("#btnKieuGrid").removeClass("btn-primary").addClass("btn-outline-primary");
-        $("#vungKieuList").show();
-        $("#vungKieuGrid").hide();
-        thucThiRenderTheoTrang();
+        capNhatGiaoDienNutBamView();
+        thucThiBoLocDuLieu();
         });
 
         // Chuyển sang hiển thị giao diện dạng Khối Hình Hộp
         $("#btnKieuGrid").click(function () {
         kieuHienThi = "grid";
-        $(this).removeClass("btn-outline-primary").addClass("btn-primary");
+        capNhatGiaoDienNutBamView();
+        thucThiBoLocDuLieu();
+        });
+
+        function capNhatGiaoDienNutBamView() {
+        if (kieuHienThi === "list") {
+        $("#btnKieuList").removeClass("btn-outline-primary").addClass("btn-primary");
+        $("#btnKieuGrid").removeClass("btn-primary").addClass("btn-outline-primary");
+        $("#vungKieuList").show();
+        $("#vungKieuGrid").hide();
+        } else {
+        $("#btnKieuGrid").removeClass("btn-outline-primary").addClass("btn-primary");
         $("#btnKieuList").removeClass("btn-primary").addClass("btn-outline-primary");
         $("#vungKieuGrid").show();
         $("#vungKieuList").hide();
-        thucThiRenderTheoTrang();
-        });
+        }
+        }
 
         function loadGoiTinTatCaMayTinh() {
         $("#alertTinNhan").hide();
@@ -244,11 +258,18 @@
         if ($.inArray(o, mangOffice) === -1) mangOffice.push(o);
         });
 
+        // Đọc lại cache cấu hình cũ nếu có để gán trạng thái checked chính xác
+        var cacheBoLoc = JSON.parse(localStorage.getItem("Tscn_BoLocGiaoDien"));
+
         // Chèn danh sách Checkbox Windows
         var htmlWin = "";
         $.each(mangWin, function (i, v) {
+        var isChecked = "checked";
+        if (cacheBoLoc && cacheBoLoc.selectedWins) {
+        isChecked = $.inArray(v, cacheBoLoc.selectedWins) !== -1 ? "checked" : "";
+        }
         htmlWin += '<div class="form-check">' +
-        '<input class="form-check-input chk-filter-win" type="checkbox" value="' + v + '" id="chkWin_' + i + '" checked>' +
+        '<input class="form-check-input chk-filter-win" type="checkbox" value="' + v + '" id="chkWin_' + i + '" ' + isChecked + '>' +
         '<label class="form-check-label small text-dark" for="chkWin_' + i + '">' + v + '</label>' +
         '</div>';
         });
@@ -257,8 +278,12 @@
         // Chèn danh sách Checkbox Office
         var htmlOffice = "";
         $.each(mangOffice, function (i, v) {
+        var isChecked = "checked";
+        if (cacheBoLoc && cacheBoLoc.selectedOffices) {
+        isChecked = $.inArray(v, cacheBoLoc.selectedOffices) !== -1 ? "checked" : "";
+        }
         htmlOffice += '<div class="form-check">' +
-        '<input class="form-check-input chk-filter-office" type="checkbox" value="' + v + '" id="chkOffice_' + i + '" checked>' +
+        '<input class="form-check-input chk-filter-office" type="checkbox" value="' + v + '" id="chkOffice_' + i + '" ' + isChecked + '>' +
         '<label class="form-check-label small text-dark" for="chkOffice_' + i + '">' + v + '</label>' +
         '</div>';
         });
@@ -283,14 +308,18 @@
 
         // Thay đổi text tiêu đề hiển thị trên nút Dropdown linh hoạt
         var totalWinOpts = $(".chk-filter-win").length;
+        if (totalWinOpts > 0) {
         if (selectedWins.length === totalWinOpts) $("#lblFilterWinText").text("Tất cả bản quyền Win");
         else if (selectedWins.length === 0) $("#lblFilterWinText").text("Đang ẩn tất cả Win");
         else $("#lblFilterWinText").text("Đã chọn Win (" + selectedWins.length + ")");
+        }
 
         var totalOfficeOpts = $(".chk-filter-office").length;
+        if (totalOfficeOpts > 0) {
         if (selectedOffices.length === totalOfficeOpts) $("#lblFilterOfficeText").text("Tất cả bản quyền Office");
         else if (selectedOffices.length === 0) $("#lblFilterOfficeText").text("Đang ẩn tất cả Office");
         else $("#lblFilterOfficeText").text("Đã chọn Office (" + selectedOffices.length + ")");
+        }
 
         // Lọc dữ liệu mảng thông qua hàm grep mở rộng
         danhSachDaLoc = $.grep(danhSachGocCache, function (item) {
@@ -298,14 +327,16 @@
         if (tuKhoa !== "") {
         matchText = (item.tenMay && item.tenMay.toLowerCase().indexOf(tuKhoa) !== -1) ||
         (item.seriMay && item.seriMay.toLowerCase().indexOf(tuKhoa) !== -1) ||
-        (item.dongMay && item.dongMay.toLowerCase().indexOf(tuKhoa) !== -1);
+        (item.dongMay && item.dongMay.toLowerCase().indexOf(tuKhoa) !== -1) ||
+        (item.hoTenNguoiSoHuu && item.hoTenNguoiSoHuu.toLowerCase().indexOf(tuKhoa) !== -1) ||
+        (item.maNhanVienSoHuu && item.maNhanVienSoHuu.toLowerCase().indexOf(tuKhoa) !== -1);
         }
 
         var vWin = item.banQuyenWin || "N/A";
         var vOffice = item.banQuyenOffice || "N/A";
 
-        var matchWin = $.inArray(vWin, selectedWins) !== -1;
-        var matchOffice = $.inArray(vOffice, selectedOffices) !== -1;
+        var matchWin = $(".chk-filter-win").length === 0 ? true : $.inArray(vWin, selectedWins) !== -1;
+        var matchOffice = $(".chk-filter-office").length === 0 ? true : $.inArray(vOffice, selectedOffices) !== -1;
 
         return matchText && matchWin && matchOffice;
         });
@@ -315,7 +346,36 @@
         kichThuocTrang = danhSachDaLoc.length > 0 ? danhSachDaLoc.length : 10;
         }
 
+        // TIẾN HÀNH ĐỒNG BỘ LƯU TRẠNG THÁI BỘ LỌC VÀO LOCALSTORAGE
+        var configBoLoc = {
+        tuKhoa: $("#txtTimKiemMay").val(),
+        selectedWins: selectedWins,
+        selectedOffices: selectedOffices,
+        kichThuocTrang: $("#ddlKichThuocTrang").val(),
+        kieuHienThi: kieuHienThi,
+        trangHienTai: trangHienTai
+        };
+        localStorage.setItem("Tscn_BoLocGiaoDien", JSON.stringify(configBoLoc));
+
         thucThiRenderTheoTrang();
+        }
+
+        // Hàm khôi phục lại cấu hình bộ lọc từ localStorage khi vừa load trang
+        function docTrangThaiBoLocTuLocalStorage() {
+        var cache = localStorage.getItem("Tscn_BoLocGiaoDien");
+        if (cache) {
+        var obj = JSON.parse(cache);
+        $("#txtTimKiemMay").val(obj.tuKhoa || "");
+        $("#ddlKichThuocTrang").val(obj.kichThuocTrang || "10");
+
+        kieuHienThi = obj.kieuHienThi || "list";
+        trangHienTai = obj.trangHienTai || 1;
+
+        var valTrang = $("#ddlKichThuocTrang").val();
+        kichThuocTrang = valTrang === "all" ? 999999 : parseInt(valTrang);
+
+        capNhatGiaoDienNutBamView();
+        }
         }
 
         // Lắng nghe sự kiện bàn phím tại ô nhập thông tin tìm kiếm
@@ -328,8 +388,14 @@
         function thucThiRenderTheoTrang() {
         $("#lblTongSoMay").text("Tổng số thiết bị: " + danhSachDaLoc.length);
 
+        // Đảm bảo trang hiện tại an toàn sau khi mảng thay đổi độ dài do bộ lọc thay đổi
+        var maxTrang = Math.ceil(danhSachDaLoc.length / kichThuocTrang) || 1;
+        if (trangHienTai > maxTrang) {
+        trangHienTai = maxTrang;
+        }
+
         if (danhSachDaLoc.length === 0) {
-        $("#tblTatCaMayTinh tbody").html('<tr><td colspan="10" class="text-center text-muted py-4">Không tìm thấy bản ghi thiết bị máy tính nào hợp lệ.</td></tr>');
+        $("#tblTatCaMayTinh tbody").html('<tr><td colspan="11" class="text-center text-muted py-4">Không tìm thấy bản ghi thiết bị máy tính nào hợp lệ.</td></tr>');
         $("#divContainerGrid").html('<div class="col-12 text-center text-muted py-4">Không tìm thấy bản ghi thiết bị máy tính nào hợp lệ.</div>');
         $("#navPhanTrang .pagination").empty();
         return;
@@ -353,12 +419,19 @@
         function renderKieuBangDanhSach(dataList) {
         var html = "";
         $.each(dataList, function (index, item) {
+        // Định dạng chuỗi hiển thị thông tin người dùng liên kết kèm mã nhân viên
+        var userInfo = "Chưa liên kết";
+        if (item.hoTenNguoiSoHuu && item.hoTenNguoiSoHuu !== "Chưa bàn giao") {
+        userInfo = item.hoTenNguoiSoHuu + " (" + (item.maNhanVienSoHuu || "Không có mã") + ")";
+        }
+
         html += '<tr>' +
         '<td>' + item.idMay + '</td>' +
         '<td class="text-danger fw-bold" style="white-space: nowrap;">' + (item.seriMay || "N/A") + '</td>' +
         '<td style="white-space: nowrap;">' + (item.dongMay || "N/A") + '</td>' +
         '<td class="fw-bold text-dark" style="white-space: nowrap;">' + (item.tenMay || "N/A") + '</td>' +
-        '<td>' + (item.tenNguoiDungHeThong || "N/A") + '</td>' +
+        '<td class="fw-bold text-primary">' + userInfo + '</td>' +
+        '<td>' + (item.thongTinOffice || "N/A") + '</td>' +
         '<td class="text-success small">' + (item.thongTinManHinhNgoai || "N/A") + '</td>' +
         '<td>' + (item.thongTinManHinh || "N/A") + '</td>' +
         '<td class="text-info fw-bold">' + (item.banQuyenWin || "N/A") + '</td>' +
@@ -377,6 +450,11 @@
         function renderKieuHinhHopGrid(dataList) {
         var html = "";
         $.each(dataList, function (index, item) {
+        var userInfo = "Chưa liên kết";
+        if (item.hoTenNguoiSoHuu && item.hoTenNguoiSoHuu !== "Chưa bàn giao") {
+        userInfo = item.hoTenNguoiSoHuu + " (" + (item.maNhanVienSoHuu || "N/A") + ")";
+        }
+
         html += '<div class="col">' +
         '   <div class="card h-100 shadow-sm border grid-item-card bg-white">' +
         '       <div class="card-header bg-secondary text-white py-2 d-flex justify-content-between align-items-center">' +
@@ -386,7 +464,8 @@
         '       <div class="card-body p-3 text-dark" style="font-size: 12px;">' +
         '           <h6 class="text-primary fw-bold mb-2 text-truncate" title="' + item.tenMay + '"><i class="fa fa-desktop me-1"></i>' + (item.tenMay || "N/A") + '</h6>' +
         '           <p class="mb-1"><b>Serial:</b> <span class="text-danger fw-bold">' + (item.seriMay || "N/A") + '</span></p>' +
-        '           <p class="mb-1 text-muted text-truncate"><b>User hệ thống:</b> ' + (item.tenNguoiDungHeThong || "N/A") + '</p>' +
+        '           <p class="mb-1 text-truncate text-primary"><b>Nhân sự:</b> ' + userInfo + '</p>' +
+        '           <p class="mb-1 text-muted text-truncate"><b>Bản Office:</b> ' + (item.thongTinOffice || "N/A") + '</p>' +
         '           <div class="border-top my-2 pt-2" style="font-size: 11px;">' +
         '               <div class="d-flex justify-content-between mb-1"><span><i class="fa fa-windows text-info me-1"></i>Win:</span><span class="fw-bold text-info text-truncate" style="max-width:110px;">' + (item.banQuyenWin || "N/A") + '</span></div>' +
         '               <div class="d-flex justify-content-between"><span><i class="fa fa-key text-warning me-1"></i>Office:</span><span class="fw-bold text-warning text-truncate" style="max-width:110px;">' + (item.banQuyenOffice || "N/A") + '</span></div>' +
@@ -430,18 +509,24 @@
         $("#navPhanTrang .pagination").html(htmlPhanTrang);
 
         // Đăng ký bắt sự kiện click cho các thẻ phân trang vừa dựng xong
-        $(".link-phan-trang").on("click", function (e) {
+        $(".link-phan-trang").off("click").on("click", function (e) {
         e.preventDefault();
         var mucTieuTrang = parseInt($(this).data("page"));
         if (mucTieuTrang >= 1 && mucTieuTrang <= tongSoTrang) {
         trangHienTai = mucTieuTrang;
+
+        // Cập nhật lại chỉ số số trang hiện tại vào bộ nhớ cache local
+        var cacheBoLoc = JSON.parse(localStorage.getItem("Tscn_BoLocGiaoDien")) || {};
+        cacheBoLoc.trangHienTai = trangHienTai;
+        localStorage.setItem("Tscn_BoLocGiaoDien", JSON.stringify(cacheBoLoc));
+
         thucThiRenderTheoTrang();
         }
         });
         }
 
         function hienThiLoiHeThong(msg) {
-        $("#tblTatCaMayTinh tbody").html('<tr><td colspan="10" class="text-center text-danger">Lỗi: ' + msg + '</td></tr>');
+        $("#tblTatCaMayTinh tbody").html('<tr><td colspan="11" class="text-center text-danger">Lỗi: ' + msg + '</td></tr>');
         $("#divContainerGrid").html('<div class="col-12 text-center text-danger">Lỗi: ' + msg + '</div>');
         $("#alertTinNhan").text(msg).fadeIn();
         $("#lblTongSoMay").text("Tổng số thiết bị: 0");

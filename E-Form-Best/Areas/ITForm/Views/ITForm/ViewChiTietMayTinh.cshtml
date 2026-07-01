@@ -11,7 +11,7 @@
         </a>
     </div>
 
-    <div class="card shadow">
+    <div class="card shadow text-dark">
         <div class="card-header bg-primary text-white">
             <h5 class="mb-0" id="headerTenMay">Đang tải tên máy...</h5>
         </div>
@@ -65,7 +65,7 @@
                 </div>
 
                 <h5 class="text-success border-bottom pb-2 fw-bold"><i class="fa fa-cubes me-2"></i>Thông tin cấu trúc mảng phân rã (Bảng con)</h5>
-                <div class="row">
+                <div class="row mb-4">
                     <div class="col-md-6 mb-3">
                         <div class="border rounded p-2 bg-light">
                             <h6 class="fw-bold text-dark"><i class="fa fa-database me-2 text-primary"></i>Danh sách thanh RAM cắm trên máy:</h6>
@@ -92,14 +92,48 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
+                <div class="mt-3 border-top pt-3">
+                    <button class="btn btn-outline-danger w-100 fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLichSuThayDoi" aria-expanded="false" aria-controls="collapseLichSuThayDoi">
+                        <i class="fa fa-history me-2"></i> Xem lịch sử thay đổi cấu hình phần cứng thiết bị
+                    </button>
+
+                    <div class="collapse" id="collapseLichSuThayDoi">
+                        <div class="card card-body mt-3 bg-white p-0 shadow-sm border-danger">
+                            <div class="p-2 bg-danger text-white fw-bold d-flex align-items-center justify-content-between" style="font-size: 14px;">
+                                <span><i class="fa fa-list-alt me-2"></i>Nhật ký Log ghi nhận thay đổi (TSCN_LichSuThayDoi)</span>
+                                <span id="lblCountLog" class="badge bg-light text-danger">0 bản ghi</span>
+                            </div>
+                            <div class="table-responsive" style="max-height: 40vh; overflow-y: auto;">
+                                <table class="table table-sm table-bordered table-striped mb-0 text-dark" id="tblLichSuThayDoi" style="font-size: 12px; table-layout: fixed; width: 100%;">
+                                    <thead class="table-secondary sticky-top">
+                                        <tr>
+                                            <th style="width: 15%; white-space: nowrap;">Thời gian</th>
+                                            <th style="width: 20%; white-space: nowrap;">Tên trường thay đổi</th>
+                                            <th style="width: 25%;">Giá trị cũ</th>
+                                            <th style="width: 25%;">Giá trị mới</th>
+                                            <th style="width: 15%;">Ghi chú</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="5" class="text-center py-3 text-muted">Đang tải danh sách nhật ký thay đổi...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bundle.min.js"></script>
     <script>
         $(document).ready(function () {
         var urlParams = new URLSearchParams(window.location.search);
@@ -111,6 +145,7 @@
         return;
         }
 
+        // Tải cấu hình chi tiết tổng thể của thiết bị
         $.ajax({
         url: '/QLKiemKe/ChiTietMayTinhTheoId?idMay=' + idMayParam,
         type: 'GET',
@@ -125,7 +160,21 @@
         $("#detDongMay").text(m.dongMay || "N/A");
         $("#detUserHeThong").text(m.tenNguoiDungHeThong || "N/A");
         $("#detMhNgoai").text(m.thongTinManHinhNgoai || "N/A");
+
+        // XỬ LÝ HIỂN THỊ DANH SÁCH TẤT CẢ MÀN HÌNH TỪ BẢNG PHỤ CÓ ĐÁNH SỐ THỨ TỰ
+        if (m.listManHinh && m.listManHinh.length > 0) {
+        var htmlManHinh = "";
+        $.each(m.listManHinh, function (index, value) {
+        if (index > 0) {
+        htmlManHinh += "<br/>";
+        }
+        htmlManHinh += "[Màn hình " + (index + 1) + "]: " + value;
+        });
+        $("#detDsMh").html(htmlManHinh);
+        } else {
+        // Phòng trường hợp danh sách bảng phụ rỗng thì đọc từ trường text phẳng cũ hoặc để N/A
         $("#detDsMh").html(m.thongTinManHinh || "N/A");
+        }
 
         $("#detOs").text(m.heDieuHanh || "N/A");
         $("#detKienTruc").text(m.kienTruc || "N/A");
@@ -142,19 +191,22 @@
 
         // Đổ dữ liệu các bảng phụ mở rộng
         $("#ulListRam, #ulListOcung, #ulListMac").empty();
-        if(m.listRams && m.listRams.length > 0){
-        $.each(m.listRams, function(i,v){ $("#ulListRam").append("<li>" + v + "</li>"); });
-        }else{ $("#ulListRam").append("<li>Không tìm thấy bản ghi RAM riêng lẻ</li>"); }
+        if (m.listRams && m.listRams.length > 0) {
+        $.each(m.listRams, function (i, v) { $("#ulListRam").append("<li>" + v + "</li>"); });
+        } else { $("#ulListRam").append("<li>Không tìm thấy bản ghi RAM riêng lẻ</li>"); }
 
-        if(m.listOcungs && m.listOcungs.length > 0){
-        $.each(m.listOcungs, function(i,v){ $("#ulListOcung").append("<li>" + v + "</li>"); });
-        }else{ $("#ulListOcung").append("<li>Không tìm thấy dữ liệu cấu trúc ổ cứng riêng lẻ</li>"); }
+        if (m.listOcungs && m.listOcungs.length > 0) {
+        $.each(m.listOcungs, function (i, v) { $("#ulListOcung").append("<li>" + v + "</li>"); });
+        } else { $("#ulListOcung").append("<li>Không tìm thấy dữ liệu cấu trúc ổ cứng riêng lẻ</li>"); }
 
-        if(m.listMacWifis && m.listMacWifis.length > 0){
-        $.each(m.listMacWifis, function(i,v){ $("#ulListMac").append("<li>" + v.tenCard + " - <b>" + v.diaChiMac + "</b></li>"); });
-        }else{ $("#ulListMac").append("<li>Không có dữ liệu Mac Card vô tuyến</li>"); }
+        if (m.listMacWifis && m.listMacWifis.length > 0) {
+        $.each(m.listMacWifis, function (i, v) { $("#ulListMac").append("<li>" + v.tenCard + " - <b>" + v.diaChiMac + "</b></li>"); });
+        } else { $("#ulListMac").append("<li>Không có dữ liệu Mac Card vô tuyến</li>"); }
 
         $("#contentChiTiet").fadeIn(300);
+
+        // Gọi kéo nạp nhật ký lịch sử thay đổi cấu hình phụ thuộc
+        loadLichSuThayDoiCauHinh(idMayParam);
         } else {
         $("#errorDetailAlert").text(res.message || "Không thể tìm thấy cấu hình của thiết bị này.").show();
         }
@@ -164,6 +216,37 @@
         $("#errorDetailAlert").text("Sự cố kết nối máy chủ khi truy vấn cấu hình con.").show();
         }
         });
+
+        // Hàm gọi AJAX lấy danh sách lịch sử log từ Server đổ vào Table ẩn
+        function loadLichSuThayDoiCauHinh(idMay) {
+        $.ajax({
+        url: '/QLKiemKe/LichSuThayDoiMayTinh?idMay=' + idMay,
+        type: 'GET',
+        dataType: 'json',
+        success: function (res) {
+        var html = "";
+        if (res.success && res.data && res.data.length > 0) {
+        $("#lblCountLog").text(res.data.length + " bản ghi");
+        $.each(res.data, function (index, log) {
+        html += '<tr>' +
+        '<td style="word-break: break-all;"><span class="badge bg-secondary">' + log.thoiGianThayDoi + '</span></td>' +
+        '<td class="fw-bold text-dark" style="word-break: break-all;">' + log.tenTruongThayDoi + '</td>' +
+        '<td style="word-wrap: break-word; white-space: normal;"><span class="text-muted">' + (log.giaTriCu || "<i>(Trống)</i>") + '</span></td>' +
+        '<td style="word-wrap: break-word; white-space: normal;"><span class="text-danger fw-bold">' + (log.giaTriMoi || "<i>(Trống)</i>") + '</span></td>' +
+        '<td style="word-wrap: break-word; white-space: normal;">' + (log.ghiChu || "-") + '</td>' +
+        '</tr>';
+        });
+        } else {
+        $("#lblCountLog").text("0 bản ghi");
+        html = '<tr><td colspan="5" class="text-center text-muted py-3">Thiết bị này chưa ghi nhận bất kỳ biến động hay thay đổi cấu hình phần cứng nào.</td></tr>';
+        }
+        $("#tblLichSuThayDoi tbody").html(html);
+        },
+        error: function () {
+        $("#tblLichSuThayDoi tbody").html('<tr><td colspan="5" class="text-center text-danger py-3">Lỗi tải dữ liệu lịch sử thay đổi cấu hình.</td></tr>');
+        }
+        });
+        }
         });
     </script>
 }
