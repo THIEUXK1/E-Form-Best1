@@ -3,54 +3,130 @@
     ViewData["Title"] = "Danh sách tất cả thiết bị máy tính";
 }
 
-<div class="container-fluid mt-4">
+<!-- CSS bổ sung tùy biến cho kiểu hiển thị hình hộp (Grid View) và Dropdown Multi-Checkbox -->
+<style>
+    .grid-item-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+        .grid-item-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.15) !important;
+        }
+
+    .dropdown-menu-checkbox {
+        max-height: 250px;
+        overflow-y: auto;
+        min-width: 240px;
+        padding: 8px;
+    }
+
+        .dropdown-menu-checkbox .form-check {
+            padding-top: 4px;
+            padding-bottom: 4px;
+        }
+</style>
+
+<div class="container-fluid mt-4 text-dark">
+    <!-- THANH CÔNG CỤ VÀ BỘ LỌC TÌM KIẾM NÂNG CAO -->
+    <div class="card shadow mb-3">
+        <div class="card-body bg-light py-3">
+            <div class="row g-3 align-items-center">
+                <!-- Tìm kiếm nhanh -->
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary">Tìm kiếm nhanh</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-secondary text-white"><i class="fa fa-search"></i></span>
+                        <input type="text" id="txtTimKiemMay" class="form-control" placeholder="Tìm kiếm nhanh thiết bị, serial..." />
+                    </div>
+                </div>
+
+                <!-- Lọc Bản quyền Win (Multi-Checkbox) -->
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-secondary">Bản quyền Win</label>
+                    <div class="dropdown w-100">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" id="dropFilterWin" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                            <span class="text-truncate" id="lblFilterWinText">Tất cả bản quyền Win</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-checkbox shadow" aria-labelledby="dropFilterWin" id="divFilterWinOptions">
+                            <!-- Render Checkbox động qua JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lọc Bản quyền Office (Multi-Checkbox) -->
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-secondary">Bản quyền Office</label>
+                    <div class="dropdown w-100">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" id="dropFilterOffice" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                            <span class="text-truncate" id="lblFilterOfficeText">Tất cả bản quyền Office</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-checkbox shadow" aria-labelledby="dropFilterOffice" id="divFilterOfficeOptions">
+                            <!-- Render Checkbox động qua JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Số lượng dòng hiển thị trên trang -->
+                <div class="col-md-2 col-6">
+                    <label class="form-label small fw-bold text-secondary">Số dòng / trang</label>
+                    <select id="ddlKichThuocTrang" class="form-select form-select-sm">
+                        <option value="10">10 thiết bị</option>
+                        <option value="25">25 thiết bị</option>
+                        <option value="50">50 thiết bị</option>
+                        <option value="100">100 thiết bị</option>
+                        <option value="all">Hiển thị tất cả</option>
+                    </select>
+                </div>
+
+                <!-- Chuyển kiểu hiển thị & Tải lại -->
+                <div class="col-md-3 col-6 text-end align-self-end">
+                    <div class="btn-group btn-group-sm me-2" role="group">
+                        <button type="button" id="btnKieuList" class="btn btn-primary" title="Hiển thị dạng bảng danh sách">
+                            <i class="fa fa-list"></i> Danh sách
+                        </button>
+                        <button type="button" id="btnKieuGrid" class="btn btn-outline-primary" title="Hiển thị dạng khối hình hộp">
+                            <i class="fa fa-th-large"></i> Hình hộp
+                        </button>
+                    </div>
+                    <button id="btnTaiLaiDanhSach" class="btn btn-sm btn-primary" style="white-space: nowrap;">
+                        <i class="fa fa-refresh"></i> Tải lại
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KHU VỰC HIỂN THỊ DANH SÁCH CHÍNH -->
     <div class="card shadow">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
             <h5 class="mb-0">
                 <i class="fa fa-server" style="margin-right: 8px;"></i>Danh Sách Quản Lý Tất Cả Thiết Bị Máy Tính
             </h5>
-            <div class="d-flex style=" width: 350px;"">
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-secondary text-white"><i class="fa fa-search"></i></span>
-                    <input type="text" id="txtTimKiemMay" class="form-control" placeholder="Tìm kiếm nhanh thiết bị, serial, người sở hữu..." />
-                </div>
-                <button id="btnTaiLaiDanhSach" class="btn btn-sm btn-primary ms-2" style="white-space: nowrap;">
-                    <i class="fa fa-refresh"></i> Tải lại
-                </button>
-            </div>
         </div>
         <div class="card-body p-0">
             <div id="alertTinNhan" class="alert alert-danger m-3" style="display: none;" role="alert"></div>
 
-            <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+            <!-- KIỂU HIỂN THỊ 1: DANH SÁCH BẢNG TRUYỀN THỐNG -->
+            <div id="vungKieuList" class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
                 <table class="table table-bordered table-striped table-hover mb-0" id="tblTatCaMayTinh" style="font-size: 13px;">
                     <thead class="table-secondary sticky-top" style="z-index: 10;">
                         <tr>
-                            <th style="white-space: nowrap;">Mã máy</th>
-                            <th style="white-space: nowrap;">Tên máy (Machine Name)</th>
+                            <th style="white-space: nowrap; width: 5%;">Mã máy</th>
                             <th style="white-space: nowrap;">Số Serial Máy</th>
-                            <th style="white-space: nowrap;">Người sở hữu</th>
-                            <th style="white-space: nowrap;">Tài khoản</th>
-                            <th style="white-space: nowrap;">Phòng ban</th>
-                            <th style="white-space: nowrap;">Dòng máy</th>
-                            <th style="white-space: nowrap;">Hệ điều hành</th>
-                            <th style="white-space: nowrap;">Kiến trúc OS</th>
-                            <th style="white-space: nowrap;">Mốc cập nhật</th>
-                            <th style="white-space: nowrap;">RAM Khả dụng</th>
-                            <th style="white-space: nowrap;">Số lõi CPU</th>
-                            <th style="white-space: nowrap;">Màn hình ngoài</th>
+                            <th style="white-space: nowrap;">Dòng máy (Hãng sản xuất)</th>
+                            <th style="white-space: nowrap;">Tên máy (Machine Name)</th>
+                            <th style="white-space: nowrap;">Tên người dùng hệ thống</th>
+                            <th style="white-space: nowrap;">Trạng thái kết nối thêm</th>
+                            <th style="white-space: nowrap;">Danh sách Màn hình</th>
                             <th style="white-space: nowrap;">Bản quyền Win</th>
-                            <th style="white-space: nowrap;">Phiên bản Office</th>
                             <th style="white-space: nowrap;">Bản quyền Office</th>
-                            <th style="white-space: nowrap;">User hệ thống</th>
-                            <th style="white-space: nowrap;">Thư mục OS</th>
-                            <th style="white-space: nowrap;">Uptime</th>
-                            <th style="white-space: nowrap;">.NET Framework</th>
+                            <th style="white-space: nowrap; width: 8%;" class="text-center">Hành động</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td colspan="20" class="text-center py-4 text-muted">
+                            <td colspan="10" class="text-center py-4 text-muted">
                                 <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
                                 <span class="ms-2">Đang nạp toàn bộ danh sách dữ liệu máy tính từ server...</span>
                             </td>
@@ -58,9 +134,23 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- KIỂU HIỂN THỊ 2: HÌNH HỘP LƯỚI CARD Ô CỜ -->
+            <div id="vungKieuGrid" class="p-3" style="display: none; max-height: 70vh; overflow-y: auto;">
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3" id="divContainerGrid">
+                    <!-- Sinh nội dung hình hộp động qua JS -->
+                </div>
+            </div>
         </div>
-        <div class="card-footer bg-light py-2 text-end">
+
+        <!-- THANH PHÂN TRANG VÀ THÔNG BÁO SỐ LƯỢNG -->
+        <div class="card-footer bg-light py-2 d-flex justify-content-between align-items-center">
             <span class="text-dark small fw-bold" id="lblTongSoMay">Tổng số thiết bị: 0</span>
+            <nav id="navPhanTrang" aria-label="Page navigation">
+                <ul class="pagination pagination-sm mb-0">
+                    <!-- Các nút bấm chuyển số trang tự động dựng -->
+                </ul>
+            </nav>
         </div>
     </div>
 </div>
@@ -70,14 +160,46 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bundle.min.js"></script>
     <script>
         $(document).ready(function () {
-        // Mảng lưu trữ gốc dữ liệu trả về phục vụ tìm kiếm local client
         var danhSachGocCache = [];
+        var danhSachDaLoc = [];
 
-        // Gọi hàm thực thi lấy danh sách khi vừa tải trang
+        // Các biến thiết lập trạng thái phân trang và view
+        var trangHienTai = 1;
+        var kichThuocTrang = 10;
+        var kieuHienThi = "list"; // list hoặc grid
+
         loadGoiTinTatCaMayTinh();
 
         $("#btnTaiLaiDanhSach").click(function () {
         loadGoiTinTatCaMayTinh();
+        });
+
+        // Thay đổi số lượng phần tử trên một trang
+        $("#ddlKichThuocTrang").change(function () {
+        var val = $(this).val();
+        kichThuocTrang = val === "all" ? danhSachDaLoc.length : parseInt(val);
+        trangHienTai = 1;
+        thucThiRenderTheoTrang();
+        });
+
+        // Chuyển sang hiển thị giao diện dạng Bảng Danh Sách
+        $("#btnKieuList").click(function () {
+        kieuHienThi = "list";
+        $(this).removeClass("btn-outline-primary").addClass("btn-primary");
+        $("#btnKieuGrid").removeClass("btn-primary").addClass("btn-outline-primary");
+        $("#vungKieuList").show();
+        $("#vungKieuGrid").hide();
+        thucThiRenderTheoTrang();
+        });
+
+        // Chuyển sang hiển thị giao diện dạng Khối Hình Hộp
+        $("#btnKieuGrid").click(function () {
+        kieuHienThi = "grid";
+        $(this).removeClass("btn-outline-primary").addClass("btn-primary");
+        $("#btnKieuList").removeClass("btn-primary").addClass("btn-outline-primary");
+        $("#vungKieuGrid").show();
+        $("#vungKieuList").hide();
+        thucThiRenderTheoTrang();
         });
 
         function loadGoiTinTatCaMayTinh() {
@@ -89,7 +211,17 @@
         success: function (res) {
         if (res.success && res.data) {
         danhSachGocCache = res.data;
-        renderDuLieuRaBang(danhSachGocCache);
+
+        // SẮP XẾP MÃ MÁY (IDMAY) GIẢM DẦN - CÁI NÀO MỚI HƠN SẼ ĐƯỢC LÊN ĐẦU
+        danhSachGocCache.sort(function (a, b) {
+        return b.idMay - a.idMay;
+        });
+
+        // Đổ danh sách Checkbox điều kiện động dựa trên tập dữ liệu thực tế nhận từ server
+        khoiTaoBoLocDropdownMulti();
+
+        // Tiến hành lọc và render dữ liệu lên màn hình
+        thucThiBoLocDuLieu();
         } else {
         hienThiLoiHeThong(res.message || "Dữ liệu trả về bị rỗng.");
         }
@@ -100,68 +232,221 @@
         });
         }
 
-        function renderDuLieuRaBang(dataList) {
-        var html = "";
-        if (dataList.length === 0) {
-        html = '<tr><td colspan="20" class="text-center text-muted py-4">Không tìm thấy bản ghi thiết bị máy tính nào hợp lệ.</td></tr>';
-        } else {
-        $.each(dataList, function (index, item) {
-        // Định dạng màu sắc nổi bật cho phần tài sản chưa bàn giao
-        var clsUser = item.taiKhoanSoHuu === "Chưa bàn giao" ? "text-danger fw-bold" : "text-primary fw-bold";
+        // Tạo ra các thẻ Checkbox động bên trong dropdown
+        function khoiTaoBoLocDropdownMulti() {
+        var mangWin = [];
+        var mangOffice = [];
 
-        html += '<tr>' +
-        '<td>' + item.idMay + '</td>' +
-        '<td class="fw-bold text-dark" style="white-space: nowrap;">' + (item.tenMay || "N/A") + '</td>' +
-        '<td class="text-danger fw-bold" style="white-space: nowrap;">' + (item.seriMay || "N/A") + '</td>' +
-        '<td style="white-space: nowrap;">' + (item.hoTenNguoiSoHuu || "N/A") + '</td>' +
-        '<td class="' + clsUser + '">' + (item.taiKhoanSoHuu || "N/A") + '</td>' +
-        '<td style="white-space: nowrap;">' + (item.phongBanSoHuu || "N/A") + '</td>' +
-        '<td style="white-space: nowrap;">' + (item.dongMay || "N/A") + '</td>' +
-        '<td style="white-space: nowrap;"><small>' + (item.heDieuHanh || "N/A") + '</small></td>' +
-        '<td>' + (item.kienTruc || "N/A") + '</td>' +
-        '<td style="white-space: nowrap;"><span class="badge bg-secondary">' + item.ngayCapNhat + '</span></td>' +
-        '<td style="white-space: nowrap;">' + (item.ramKhaDung || "N/A") + '</td>' +
-        '<td>' + (item.soLoiCpu != null ? item.soLoiCpu : "N/A") + '</td>' +
-        '<td style="white-space: nowrap;">' + (item.thongTinManHinhNgoai || "N/A") + '</td>' +
-        '<td style="white-space: nowrap;">' + (item.banQuyenWin || "N/A") + '</td>' +
-        '<td style="white-space: nowrap;"><small>' + (item.thongTinOffice || "N/A") + '</small></td>' +
-        '<td style="white-space: nowrap;">' + (item.banQuyenOffice || "N/A") + '</td>' +
-        '<td style="white-space: nowrap;">' + (item.tenNguoiDungHeThong || "N/A") + '</td>' +
-        '<td style="white-space: nowrap;"><small>' + (item.thuMucHeThong || "N/A") + '</small></td>' +
-        '<td style="white-space: nowrap;">' + (item.thoiGianHoatDong || "N/A") + '</td>' +
-        '<td style="white-space: nowrap;"><small>' + (item.phienBanNet || "N/A") + '</small></td>' +
-        '</tr>';
+        $.each(danhSachGocCache, function (i, item) {
+        var w = item.banQuyenWin || "N/A";
+        var o = item.banQuyenOffice || "N/A";
+        if ($.inArray(w, mangWin) === -1) mangWin.push(w);
+        if ($.inArray(o, mangOffice) === -1) mangOffice.push(o);
+        });
+
+        // Chèn danh sách Checkbox Windows
+        var htmlWin = "";
+        $.each(mangWin, function (i, v) {
+        htmlWin += '<div class="form-check">' +
+        '<input class="form-check-input chk-filter-win" type="checkbox" value="' + v + '" id="chkWin_' + i + '" checked>' +
+        '<label class="form-check-label small text-dark" for="chkWin_' + i + '">' + v + '</label>' +
+        '</div>';
+        });
+        $("#divFilterWinOptions").html(htmlWin);
+
+        // Chèn danh sách Checkbox Office
+        var htmlOffice = "";
+        $.each(mangOffice, function (i, v) {
+        htmlOffice += '<div class="form-check">' +
+        '<input class="form-check-input chk-filter-office" type="checkbox" value="' + v + '" id="chkOffice_' + i + '" checked>' +
+        '<label class="form-check-label small text-dark" for="chkOffice_' + i + '">' + v + '</label>' +
+        '</div>';
+        });
+        $("#divFilterOfficeOptions").html(htmlOffice);
+
+        // Gán sự kiện quét lọc khi click thay đổi trạng thái Checkbox
+        $(".chk-filter-win, .chk-filter-office").on("change", function () {
+        trangHienTai = 1;
+        thucThiBoLocDuLieu();
         });
         }
-        $("#tblTatCaMayTinh tbody").html(html);
-        $("#lblTongSoMay").text("Tổng số thiết bị: " + dataList.length);
+
+        // Tổ hợp quét đồng thời bộ lọc text phẳng và các ô Checkbox tùy chọn bản quyền công ty
+        function thucThiBoLocDuLieu() {
+        var tuKhoa = $("#txtTimKiemMay").val().toLowerCase().trim();
+
+        var selectedWins = [];
+        $(".chk-filter-win:checked").each(function () { selectedWins.push($(this).val()); });
+
+        var selectedOffices = [];
+        $(".chk-filter-office:checked").each(function () { selectedOffices.push($(this).val()); });
+
+        // Thay đổi text tiêu đề hiển thị trên nút Dropdown linh hoạt
+        var totalWinOpts = $(".chk-filter-win").length;
+        if (selectedWins.length === totalWinOpts) $("#lblFilterWinText").text("Tất cả bản quyền Win");
+        else if (selectedWins.length === 0) $("#lblFilterWinText").text("Đang ẩn tất cả Win");
+        else $("#lblFilterWinText").text("Đã chọn Win (" + selectedWins.length + ")");
+
+        var totalOfficeOpts = $(".chk-filter-office").length;
+        if (selectedOffices.length === totalOfficeOpts) $("#lblFilterOfficeText").text("Tất cả bản quyền Office");
+        else if (selectedOffices.length === 0) $("#lblFilterOfficeText").text("Đang ẩn tất cả Office");
+        else $("#lblFilterOfficeText").text("Đã chọn Office (" + selectedOffices.length + ")");
+
+        // Lọc dữ liệu mảng thông qua hàm grep mở rộng
+        danhSachDaLoc = $.grep(danhSachGocCache, function (item) {
+        var matchText = true;
+        if (tuKhoa !== "") {
+        matchText = (item.tenMay && item.tenMay.toLowerCase().indexOf(tuKhoa) !== -1) ||
+        (item.seriMay && item.seriMay.toLowerCase().indexOf(tuKhoa) !== -1) ||
+        (item.dongMay && item.dongMay.toLowerCase().indexOf(tuKhoa) !== -1);
         }
 
-        function hienThiLoiHeThong(msg) {
-        $("#tblTatCaMayTinh tbody").html('<tr><td colspan="20" class="text-center text-danger">Lỗi: ' + msg + '</td></tr>');
-        $("#alertTinNhan").text(msg).fadeIn();
-        $("#lblTongSoMay").text("Tổng số thiết bị: 0");
+        var vWin = item.banQuyenWin || "N/A";
+        var vOffice = item.banQuyenOffice || "N/A";
+
+        var matchWin = $.inArray(vWin, selectedWins) !== -1;
+        var matchOffice = $.inArray(vOffice, selectedOffices) !== -1;
+
+        return matchText && matchWin && matchOffice;
+        });
+
+        // Nếu người dùng chọn hiển thị tất cả, gán lại giá trị kích thước phân trang bằng tổng độ dài mảng
+        if ($("#ddlKichThuocTrang").val() === "all") {
+        kichThuocTrang = danhSachDaLoc.length > 0 ? danhSachDaLoc.length : 10;
         }
 
-        // Xử lý bộ lọc tìm kiếm nhanh trực tiếp trên Client không cần Reload trang
+        thucThiRenderTheoTrang();
+        }
+
+        // Lắng nghe sự kiện bàn phím tại ô nhập thông tin tìm kiếm
         $("#txtTimKiemMay").on("keyup", function () {
-        var tuKhoa = $(this).val().toLowerCase().trim();
-        if (tuKhoa === "") {
-        renderDuLieuRaBang(danhSachGocCache);
+        trangHienTai = 1;
+        thucThiBoLocDuLieu();
+        });
+
+        // Thực hiện lát cắt mảng dữ liệu (Slice Array) dựa trên số trang đang đứng để hiển thị
+        function thucThiRenderTheoTrang() {
+        $("#lblTongSoMay").text("Tổng số thiết bị: " + danhSachDaLoc.length);
+
+        if (danhSachDaLoc.length === 0) {
+        $("#tblTatCaMayTinh tbody").html('<tr><td colspan="10" class="text-center text-muted py-4">Không tìm thấy bản ghi thiết bị máy tính nào hợp lệ.</td></tr>');
+        $("#divContainerGrid").html('<div class="col-12 text-center text-muted py-4">Không tìm thấy bản ghi thiết bị máy tính nào hợp lệ.</div>');
+        $("#navPhanTrang .pagination").empty();
         return;
         }
 
-        var danhSachLoc = $.grep(danhSachGocCache, function (item) {
-        return (item.tenMay && item.tenMay.toLowerCase().indexOf(tuKhoa) !== -1) ||
-        (item.seriMay && item.seriMay.toLowerCase().indexOf(tuKhoa) !== -1) ||
-        (item.dongMay && item.dongMay.toLowerCase().indexOf(tuKhoa) !== -1) ||
-        (item.taiKhoanSoHuu && item.taiKhoanSoHuu.toLowerCase().indexOf(tuKhoa) !== -1) ||
-        (item.hoTenNguoiSoHuu && item.hoTenNguoiSoHuu.toLowerCase().indexOf(tuKhoa) !== -1) ||
-        (item.phongBanSoHuu && item.phongBanSoHuu.toLowerCase().indexOf(tuKhoa) !== -1);
-        });
+        var startIdx = (trangHienTai - 1) * kichThuocTrang;
+        var endIdx = startIdx + kichThuocTrang;
+        var phânĐoạnDữLiệuTrang = danhSachDaLoc.slice(startIdx, endIdx);
 
-        renderDuLieuRaBang(danhSachLoc);
+        if (kieuHienThi === "list") {
+        renderKieuBangDanhSach(phânĐoạnDữLiệuTrang);
+        } else {
+        renderKieuHinhHopGrid(phânĐoạnDữLiệuTrang);
+        }
+
+        // Tiến hành dựng các nút bấm thanh điều hướng trang
+        buildThanhPhanTrang(danhSachDaLoc.length);
+        }
+
+        // PHƯƠNG THỨC RENDER 1: GIAO DIỆN BẢNG DANH SÁCH (TABLE ROW)
+        function renderKieuBangDanhSach(dataList) {
+        var html = "";
+        $.each(dataList, function (index, item) {
+        html += '<tr>' +
+        '<td>' + item.idMay + '</td>' +
+        '<td class="text-danger fw-bold" style="white-space: nowrap;">' + (item.seriMay || "N/A") + '</td>' +
+        '<td style="white-space: nowrap;">' + (item.dongMay || "N/A") + '</td>' +
+        '<td class="fw-bold text-dark" style="white-space: nowrap;">' + (item.tenMay || "N/A") + '</td>' +
+        '<td>' + (item.tenNguoiDungHeThong || "N/A") + '</td>' +
+        '<td class="text-success small">' + (item.thongTinManHinhNgoai || "N/A") + '</td>' +
+        '<td>' + (item.thongTinManHinh || "N/A") + '</td>' +
+        '<td class="text-info fw-bold">' + (item.banQuyenWin || "N/A") + '</td>' +
+        '<td class="text-warning fw-bold">' + (item.banQuyenOffice || "N/A") + '</td>' +
+        '<td class="text-center">' +
+        '   <a href="/QLKiemKe/ViewChiTietMayTinh?idMay=' + item.idMay + '" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size: 11px;">' +
+        '       <i class="fa fa-eye"></i> Chi tiết' +
+        '   </a>' +
+        '</td>' +
+        '</tr>';
         });
+        $("#tblTatCaMayTinh tbody").html(html);
+        }
+
+        // PHƯƠNG THỨC RENDER 2: GIAO DIỆN HÌNH HỘP KHỐI (GRID CARD CELL)
+        function renderKieuHinhHopGrid(dataList) {
+        var html = "";
+        $.each(dataList, function (index, item) {
+        html += '<div class="col">' +
+        '   <div class="card h-100 shadow-sm border grid-item-card bg-white">' +
+        '       <div class="card-header bg-secondary text-white py-2 d-flex justify-content-between align-items-center">' +
+        '           <span class="badge bg-dark">ID: ' + item.idMay + '</span>' +
+        '           <small class="fw-bold text-light text-truncate" style="max-width: 140px;">' + (item.dongMay || "N/A") + '</small>' +
+        '       </div>' +
+        '       <div class="card-body p-3 text-dark" style="font-size: 12px;">' +
+        '           <h6 class="text-primary fw-bold mb-2 text-truncate" title="' + item.tenMay + '"><i class="fa fa-desktop me-1"></i>' + (item.tenMay || "N/A") + '</h6>' +
+        '           <p class="mb-1"><b>Serial:</b> <span class="text-danger fw-bold">' + (item.seriMay || "N/A") + '</span></p>' +
+        '           <p class="mb-1 text-muted text-truncate"><b>User hệ thống:</b> ' + (item.tenNguoiDungHeThong || "N/A") + '</p>' +
+        '           <div class="border-top my-2 pt-2" style="font-size: 11px;">' +
+        '               <div class="d-flex justify-content-between mb-1"><span><i class="fa fa-windows text-info me-1"></i>Win:</span><span class="fw-bold text-info text-truncate" style="max-width:110px;">' + (item.banQuyenWin || "N/A") + '</span></div>' +
+        '               <div class="d-flex justify-content-between"><span><i class="fa fa-key text-warning me-1"></i>Office:</span><span class="fw-bold text-warning text-truncate" style="max-width:110px;">' + (item.banQuyenOffice || "N/A") + '</span></div>' +
+        '           </div>' +
+        '       </div>' +
+        '       <div class="card-footer bg-light p-2 text-center border-top">' +
+        '           <a href="/QLKiemKe/ViewChiTietMayTinh?idMay=' + item.idMay + '" class="btn btn-xs btn-primary w-100 py-1" style="font-size: 11px;">' +
+        '               <i class="fa fa-eye"></i> Xem chi tiết' +
+        '           </a>' +
+        '       </div>' +
+        '   </div>' +
+        '</div>';
+        });
+        $("#divContainerGrid").html(html);
+        }
+
+        // Xây dựng giao diện thanh bấm chuyển số trang cơ động
+        function buildThanhPhanTrang(tongSoBanGhi) {
+        var tongSoTrang = Math.ceil(tongSoBanGhi / kichThuocTrang);
+        var htmlPhanTrang = "";
+
+        if (tongSoTrang <= 1) {
+        $("#navPhanTrang .pagination").empty();
+        return;
+        }
+
+        // Nút điều hướng trang trước (Previous)
+        var activePrev = trangHienTai === 1 ? "disabled" : "";
+        htmlPhanTrang += '<li class="page-item ' + activePrev + '"><a class="page-link link-phan-trang" href="#" data-page="' + (trangHienTai - 1) + '">&laquo;</a></li>';
+
+        // Khởi tạo vòng lặp dựng các ô số trang tương ứng
+        for (var i = 1; i <= tongSoTrang; i++) {
+        var activeClass = trangHienTai === i ? "active" : "";
+        htmlPhanTrang += '<li class="page-item ' + activeClass + '"><a class="page-link link-phan-trang" href="#" data-page="' + i + '">' + i + '</a></li>';
+        }
+
+        // Nút điều hướng trang sau (Next)
+        var activeNext = trangHienTai === tongSoTrang ? "disabled" : "";
+        htmlPhanTrang += '<li class="page-item ' + activeNext + '"><a class="page-link link-phan-trang" href="#" data-page="' + (trangHienTai + 1) + '">&raquo;</a></li>';
+
+        $("#navPhanTrang .pagination").html(htmlPhanTrang);
+
+        // Đăng ký bắt sự kiện click cho các thẻ phân trang vừa dựng xong
+        $(".link-phan-trang").on("click", function (e) {
+        e.preventDefault();
+        var mucTieuTrang = parseInt($(this).data("page"));
+        if (mucTieuTrang >= 1 && mucTieuTrang <= tongSoTrang) {
+        trangHienTai = mucTieuTrang;
+        thucThiRenderTheoTrang();
+        }
+        });
+        }
+
+        function hienThiLoiHeThong(msg) {
+        $("#tblTatCaMayTinh tbody").html('<tr><td colspan="10" class="text-center text-danger">Lỗi: ' + msg + '</td></tr>');
+        $("#divContainerGrid").html('<div class="col-12 text-center text-danger">Lỗi: ' + msg + '</div>');
+        $("#alertTinNhan").text(msg).fadeIn();
+        $("#lblTongSoMay").text("Tổng số thiết bị: 0");
+        $("#navPhanTrang .pagination").empty();
+        }
         });
     </script>
 }

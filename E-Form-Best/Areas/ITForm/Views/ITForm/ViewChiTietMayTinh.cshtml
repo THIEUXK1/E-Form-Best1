@@ -1,0 +1,169 @@
+﻿@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Chi tiết cấu hình phần cứng mở rộng";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="text-dark fw-bold mb-0"><i class="fa fa-info-circle text-primary me-2"></i>Chi Tiết Bản Ghi Thiết Bị</h4>
+        <a href="/QLKiemKe/ViewDanhSachTatCaMayTinh" class="btn btn-sm btn-secondary">
+            <i class="fa fa-arrow-left"></i> Quay lại danh sách
+        </a>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0" id="headerTenMay">Đang tải tên máy...</h5>
+        </div>
+        <div class="card-body">
+            <div id="loadingDetail" class="text-center my-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">Đang truy xuất cấu hình gốc từ máy chủ...</p>
+            </div>
+
+            <div id="errorDetailAlert" class="alert alert-danger" style="display: none;"></div>
+
+            <div id="contentChiTiet" style="display: none;">
+                <h5 class="text-primary border-bottom pb-2 fw-bold"><i class="fa fa-desktop me-2"></i>Thông số cơ bản công khai</h5>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <table class="table table-bordered table-striped m-0" style="font-size: 13px;">
+                            <tr><th style="width: 40%;">Mã máy trên Server</th><td id="detIdMay" class="fw-bold"></td></tr>
+                            <tr><th>Số Serial Máy</th><td id="detSeriMay" class="text-danger fw-bold"></td></tr>
+                            <tr><th>Dòng máy (Hãng)</th><td id="detDongMay"></td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-bordered table-striped m-0" style="font-size: 13px;">
+                            <tr><th style="width: 40%;">User hệ thống</th><td id="detUserHeThong"></td></tr>
+                            <tr><th>Kết nối phụ trợ</th><td id="detMhNgoai" class="text-success"></td></tr>
+                            <tr><th>Màn hình phát hiện</th><td id="detDsMh"></td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <h5 class="text-danger border-bottom pb-2 fw-bold"><i class="fa fa-lock me-2"></i>Thông số nâng cao bảo mật</h5>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <table class="table table-bordered table-striped m-0" style="font-size: 13px;">
+                            <tr><th style="width: 40%;">Hệ điều hành</th><td id="detOs"></td></tr>
+                            <tr><th>Kiến trúc</th><td id="detKienTruc"></td></tr>
+                            <tr><th>Số lõi CPU</th><td id="detCpu"></td></tr>
+                            <tr><th>RAM Khả dụng</th><td id="detRamKhaDung"></td></tr>
+                            <tr><th>Thư mục OS</th><td id="detThuMucOs"></td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-bordered table-striped m-0" style="font-size: 13px;">
+                            <tr><th style="width: 40%;">Bản quyền Windows</th><td id="detLicenseWin" class="text-info fw-bold"></td></tr>
+                            <tr><th>Phiên bản Office</th><td id="detVerOff"></td></tr>
+                            <tr><th>Bản quyền Office</th><td id="detLicenseOff" class="text-danger fw-bold"></td></tr>
+                            <tr><th>Thời gian Uptime</th><td id="detUptime"></td></tr>
+                            <tr><th>.NET Framework</th><td id="detNet"></td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <h5 class="text-success border-bottom pb-2 fw-bold"><i class="fa fa-cubes me-2"></i>Thông tin cấu trúc mảng phân rã (Bảng con)</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="border rounded p-2 bg-light">
+                            <h6 class="fw-bold text-dark"><i class="fa fa-database me-2 text-primary"></i>Danh sách thanh RAM cắm trên máy:</h6>
+                            <ul id="ulListRam" class="mb-0 ps-3 small text-muted"></ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="border rounded p-2 bg-light">
+                            <h6 class="fw-bold text-dark"><i class="fa fa-hdd-o me-2 text-info"></i>Danh sách ổ cứng và dung lượng phân vùng:</h6>
+                            <ul id="ulListOcung" class="mb-0 ps-3 small text-muted"></ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="border rounded p-2 bg-light">
+                            <h6 class="fw-bold text-dark"><i class="fa fa-wifi me-2 text-danger"></i>Danh sách địa chỉ MAC Wi-Fi:</h6>
+                            <ul id="ulListMac" class="mb-0 ps-3 small text-muted"></ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="border rounded p-2 bg-light">
+                            <h6 class="fw-bold text-dark"><i class="fa fa-clock-o me-2 text-secondary"></i>Thông tin kiểm kê / Ngày cập nhật</h6>
+                            <p class="mb-0 small">Mốc đồng bộ cuối: <span id="detNgayCapNhat" class="badge bg-dark"></span></p>
+                            <p class="mb-0 small mt-1">Tài khoản liên kết gần nhất: <span id="detTkSohuu" class="text-primary fw-bold"></span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+        var urlParams = new URLSearchParams(window.location.search);
+        var idMayParam = urlParams.get('idMay');
+
+        if (!idMayParam) {
+        $("#loadingDetail").hide();
+        $("#errorDetailAlert").text("Mã định danh thiết bị không hợp lệ.").show();
+        return;
+        }
+
+        $.ajax({
+        url: '/QLKiemKe/ChiTietMayTinhTheoId?idMay=' + idMayParam,
+        type: 'GET',
+        dataType: 'json',
+        success: function (res) {
+        $("#loadingDetail").hide();
+        if (res.success && res.data) {
+        var m = res.data;
+        $("#headerTenMay").text("Tên thiết bị (Machine Name): " + (m.tenMay || "N/A"));
+        $("#detIdMay").text(m.idMay);
+        $("#detSeriMay").text(m.seriMay || "N/A");
+        $("#detDongMay").text(m.dongMay || "N/A");
+        $("#detUserHeThong").text(m.tenNguoiDungHeThong || "N/A");
+        $("#detMhNgoai").text(m.thongTinManHinhNgoai || "N/A");
+        $("#detDsMh").html(m.thongTinManHinh || "N/A");
+
+        $("#detOs").text(m.heDieuHanh || "N/A");
+        $("#detKienTruc").text(m.kienTruc || "N/A");
+        $("#detCpu").text(m.soLoiCpu || "N/A");
+        $("#detRamKhaDung").text(m.ramKhaDung || "N/A");
+        $("#detThuMucOs").text(m.thuMucHeThong || "N/A");
+        $("#detLicenseWin").text(m.banQuyenWin || "N/A");
+        $("#detVerOff").text(m.thongTinOffice || "N/A");
+        $("#detLicenseOff").text(m.banQuyenOffice || "N/A");
+        $("#detUptime").text(m.thoiGianHoatDong || "N/A");
+        $("#detNet").text(m.phienBanNet || "N/A");
+        $("#detNgayCapNhat").text(m.ngayCapNhat);
+        $("#detTkSohuu").text(m.taiKhoanSoHuu);
+
+        // Đổ dữ liệu các bảng phụ mở rộng
+        $("#ulListRam, #ulListOcung, #ulListMac").empty();
+        if(m.listRams && m.listRams.length > 0){
+        $.each(m.listRams, function(i,v){ $("#ulListRam").append("<li>" + v + "</li>"); });
+        }else{ $("#ulListRam").append("<li>Không tìm thấy bản ghi RAM riêng lẻ</li>"); }
+
+        if(m.listOcungs && m.listOcungs.length > 0){
+        $.each(m.listOcungs, function(i,v){ $("#ulListOcung").append("<li>" + v + "</li>"); });
+        }else{ $("#ulListOcung").append("<li>Không tìm thấy dữ liệu cấu trúc ổ cứng riêng lẻ</li>"); }
+
+        if(m.listMacWifis && m.listMacWifis.length > 0){
+        $.each(m.listMacWifis, function(i,v){ $("#ulListMac").append("<li>" + v.tenCard + " - <b>" + v.diaChiMac + "</b></li>"); });
+        }else{ $("#ulListMac").append("<li>Không có dữ liệu Mac Card vô tuyến</li>"); }
+
+        $("#contentChiTiet").fadeIn(300);
+        } else {
+        $("#errorDetailAlert").text(res.message || "Không thể tìm thấy cấu hình của thiết bị này.").show();
+        }
+        },
+        error: function () {
+        $("#loadingDetail").hide();
+        $("#errorDetailAlert").text("Sự cố kết nối máy chủ khi truy vấn cấu hình con.").show();
+        }
+        });
+        });
+    </script>
+}

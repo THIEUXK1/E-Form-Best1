@@ -6061,68 +6061,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
-        #region hiển thị danh sách tất cả thiết bị máy tính
-
-        // 1. Action trả về giao diện trang xem danh sách toàn bộ thiết bị máy tính
-        [HttpGet("/QLKiemKe/ViewDanhSachTatCaMayTinh")]
-        public IActionResult ViewDanhSachTatCaMayTinh()
-        {
-            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
-            {
-                return Redirect("/DonXetDuyet/DangNhap");
-            }
-            return View();
-        }
-
-        // 2. API lấy toàn bộ danh sách máy tính từ hệ thống để hiển thị lên View dữ liệu
-        [HttpGet("/QLKiemKe/DanhSachTatCaMayTinh")]
-        public IActionResult DanhSachTatCaMayTinh()
-        {
-            try
-            {
-                // Sử dụng Include để kéo theo thông tin thực thể User sở hữu thiết bị nếu có
-                var danhSachMay = _context.TscnThongTinMays
-                    .Include(m => m.IdNguoiDungNavigation)
-                    .OrderByDescending(m => m.NgayCapNhat)
-                    .Select(m => new
-                    {
-                        idMay = m.IdMay,
-                        tenMay = m.TenMay,
-                        seriMay = m.SeriMay,
-                        dongMay = m.DongMay,
-                        heDieuHanh = m.HeDieuHanh,
-                        kienTruc = m.KienTruc,
-                        phienBanNet = m.PhienBanNet,
-                        soLoiCpu = m.SoLoiCpu,
-                        tenNguoiDungHeThong = m.TenNguoiDungHeThong,
-                        thuMucHeThong = m.ThuMucHeThong,
-                        thoiGianHoatDong = m.ThoiGianHoatDong,
-                        ramKhaDung = m.RamKhaDung,
-                        thongTinManHinhNgoai = m.ThongTinManHinhNgoai,
-                        thongTinOffice = m.ThongTinOffice,
-                        banQuyenWin = m.BanQuyenWin,
-                        banQuyenOffice = m.BanQuyenOffice,
-                        ngayCapNhat = m.NgayCapNhat.HasValue ? m.NgayCapNhat.Value.ToString("yyyy-MM-dd HH:mm:ss") : "N/A",
-                        idNguoiDung = m.IdNguoiDung,
-
-                        // Thông tin liên kết từ bảng người dùng sở hữu tài sản
-                        taiKhoanSoHuu = m.IdNguoiDungNavigation != null ? m.IdNguoiDungNavigation.Tk : "Chưa bàn giao",
-                        hoTenNguoiSoHuu = m.IdNguoiDungNavigation != null ? m.IdNguoiDungNavigation.HoTen : "Chưa bàn giao",
-                        phongBanSoHuu = m.IdNguoiDungNavigation != null ? m.IdNguoiDungNavigation.PhongBan : "N/A"
-                    })
-                    .ToList();
-
-                return Json(new { success = true, data = danhSachMay });
-            }
-            catch (Exception ex)
-            {
-                // Trả về thông tin InnerException chi tiết nhất nếu gặp sự cố hệ thống
-                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-                return Json(new { success = false, message = $"Lỗi hệ thống khi tải danh sách thiết bị máy tính: {chiTietLoi}" });
-            }
-        }
-
-        #endregion
 
         #endregion
 
@@ -6182,7 +6120,28 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // ACTION MỚI: Xử lý khi ấn xác nhận tài sản, nhận toàn bộ dữ liệu phần cứng từ Client
         [IgnoreAntiforgeryToken]
         [HttpPost("/QLKiemKe/XacNhanTaiSanMaMay")]
-        public IActionResult XacNhanTaiSanMaMay(string taikhoan, string matkhau, string seriMay, string tenMay, string dongMay, string heDieuHanh, string kienTruc, string phienBanNet, int? soLoiCPU, string tenNguoiDungHeThong, string thuMucHeThong, string thoiGianHoatDong, string ramKhaDung, string thongTinManHinhNgoai, string thongTinOffice, string banQuyenWin, string banQuyenOffice)
+        public IActionResult XacNhanTaiSanMaMay(
+            string taikhoan,
+            string matkhau,
+            string seriMay,
+            string tenMay,
+            string dongMay,
+            string heDieuHanh,
+            string kienTruc,
+            string phienBanNet,
+            int? soLoiCPU,
+            string tenNguoiDungHeThong,
+            string thuMucHeThong,
+            string thoiGianHoatDong,
+            string ramKhaDung,
+            string thongTinManHinhNgoai,
+            string thongTinOffice,
+            string banQuyenWin,
+            string banQuyenOffice,
+            string dsRamRaw = "",       // Tham số mở rộng nhận chuỗi RAM phân tách bởi dấu phẩy từ tool
+            string dsOcungRaw = "",     // Tham số mở rộng nhận chuỗi Ổ cứng phân tách bởi dấu phẩy từ tool
+            string dsManHinhRaw = "",   // Tham số mở rộng nhận chuỗi Màn hình phân tách bởi dấu đứng | từ tool
+            string dsMacWifiRaw = "")   // Tham số mở rộng nhận chuỗi MAC Wifi phân tách bởi dấu phẩy từ tool
         {
             if (string.IsNullOrEmpty(taikhoan) || string.IsNullOrEmpty(matkhau))
             {
@@ -6238,12 +6197,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         ThongTinOffice = thongTinOffice,
                         BanQuyenWin = banQuyenWin,
                         BanQuyenOffice = banQuyenOffice,
-                        IdNguoiDung = user.IdNguoiDung, // Gán trực tiếp chủ sở hữu
+                        IdNguoiDung = user.IdNguoiDung, // Lưu người gần đây nhấn xác nhận sở hữu vào bảng chính
                         NgayCapNhat = DateTime.Now
                     };
 
                     _context.TscnThongTinMays.Add(mayTonTai);
-                    _context.SaveChanges(); // Lưu tạo mới ID
+                    _context.SaveChanges(); // Lưu tạo mới ID thiết bị để lấy IdMay cấp phát cho các bảng con
                 }
                 else
                 {
@@ -6253,21 +6212,98 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         return Json(new { success = false, message = "Tên máy (Machine Name) của thiết bị này trống hoặc không hợp lệ. Vui lòng liên hệ với IT để check lỗi." });
                     }
 
-                    // ĐỒNG BỘ: Nếu máy ĐÃ CÓ, chỉ cập nhật trực tiếp chủ sở hữu hiện tại trên bảng TSCN_ThongTinMay
-                    mayTonTai.IdNguoiDung = user.IdNguoiDung;
+                    // ĐỒNG BỘ: Nếu máy ĐÃ CÓ, cập nhật các thông số phần cứng mới quét và gán IdNguoiDung là người gần nhất xác nhận
+                    mayTonTai.DongMay = dongMay;
+                    mayTonTai.HeDieuHanh = heDieuHanh;
+                    mayTonTai.KienTruc = kienTruc;
+                    mayTonTai.PhienBanNet = phienBanNet;
+                    mayTonTai.SoLoiCpu = soLoiCPU;
+                    mayTonTai.TenNguoiDungHeThong = tenNguoiDungHeThong;
+                    mayTonTai.ThuMucHeThong = thuMucHeThong;
+                    mayTonTai.ThoiGianHoatDong = thoiGianHoatDong;
+                    mayTonTai.RamKhaDung = ramKhaDung;
+                    mayTonTai.ThongTinManHinhNgoai = thongTinManHinhNgoai;
+                    mayTonTai.ThongTinOffice = thongTinOffice;
+                    mayTonTai.BanQuyenWin = banQuyenWin;
+                    mayTonTai.BanQuyenOffice = banQuyenOffice;
+
+                    mayTonTai.IdNguoiDung = user.IdNguoiDung; // Lưu người gần đây nhấn xác nhận sở hữu vào bảng chính
                     mayTonTai.NgayCapNhat = DateTime.Now;
+
+                    // Làm sạch dữ liệu cấu hình cũ ở các bảng chi tiết nhánh để ghi đè dữ liệu mới quét tinh chỉnh
+                    _context.TscnChiTietRams.RemoveRange(_context.TscnChiTietRams.Where(r => r.IdMay == mayTonTai.IdMay));
+                    _context.TscnChiTietOcungs.RemoveRange(_context.TscnChiTietOcungs.Where(o => o.IdMay == mayTonTai.IdMay));
+                    _context.TscnChiTietManHinhs.RemoveRange(_context.TscnChiTietManHinhs.Where(m => m.IdMay == mayTonTai.IdMay));
+                    _context.TscnChiTietMacWifis.RemoveRange(_context.TscnChiTietMacWifis.Where(w => w.IdMay == mayTonTai.IdMay));
+                    _context.SaveChanges();
                 }
 
-                // 3. Logic xử lý gắn kết máy với tài khoản qua bảng lịch sử xác thực trung gian thực tế của bạn
+                // 3. Tiến hành bóc tách chuỗi và lưu dữ liệu vào các bảng cấu hình chi tiết (Sub-tables)
+                // --- Lưu chi tiết RAM ---
+                if (!string.IsNullOrEmpty(dsRamRaw))
+                {
+                    var rams = dsRamRaw.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var r in rams)
+                    {
+                        _context.TscnChiTietRams.Add(new TscnChiTietRam { IdMay = mayTonTai.IdMay, ThanhRam = r.Trim() });
+                    }
+                }
+
+                // --- Lưu chi tiết Ổ Cứng ---
+                if (!string.IsNullOrEmpty(dsOcungRaw))
+                {
+                    var hdds = dsOcungRaw.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var h in hdds)
+                    {
+                        _context.TscnChiTietOcungs.Add(new TscnChiTietOcung { IdMay = mayTonTai.IdMay, ThongTinOcung = h.Trim() });
+                    }
+                }
+
+                // --- Lưu chi tiết Màn hình ---
+                if (!string.IsNullOrEmpty(dsManHinhRaw))
+                {
+                    var screens = dsManHinhRaw.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var s in screens)
+                    {
+                        _context.TscnChiTietManHinhs.Add(new TscnChiTietManHinh { IdMay = mayTonTai.IdMay, ThongTinManHinh = s.Trim() });
+                    }
+                }
+
+                // --- Lưu chi tiết địa chỉ MAC Wireless ---
+                if (!string.IsNullOrEmpty(dsMacWifiRaw))
+                {
+                    var macs = dsMacWifiRaw.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var m in macs)
+                    {
+                        _context.TscnChiTietMacWifis.Add(new TscnChiTietMacWifi
+                        {
+                            IdMay = mayTonTai.IdMay,
+                            TenCard = "Wi-Fi Adapter",
+                            DiaChiMac = m.Trim()
+                        });
+                    }
+                }
+
+                // 4. Logic xử lý gắn kết máy với tài khoản qua bảng lịch sử xác thực trung gian thực tế của bạn
                 var lichSu = new TscnLichSuXacThucNguoiDung
                 {
                     IdMay = mayTonTai.IdMay,
-                    IdNguoiDung = user.IdNguoiDung,
+                    IdNguoiDung = user.IdNguoiDung, // Luôn lưu người vừa xác nhận vào lịch sử log
                     NgayXacThuc = DateTime.Now,
                     GhiChu = $"Tài khoản {taikhoan} xác nhận sở hữu thiết bị này."
                 };
 
                 _context.TscnLichSuXacThucNguoiDungs.Add(lichSu);
+
+                // Đồng thời ghi nhận vào log lịch sử xác thực quản trị (Admin Audit)
+                _context.TscnLichSuXacThucAdmins.Add(new TscnLichSuXacThucAdmin
+                {
+                    IdMay = mayTonTai.IdMay,
+                    TaiKhoanXacThuc = taikhoan,
+                    ThoiGianXacThuc = DateTime.Now,
+                    TrangThai = "Xác nhận thành công"
+                });
+
                 _context.SaveChanges();
 
                 return Json(new { success = true, message = $"Xác nhận tài sản thành công! Máy '{mayTonTai.TenMay}' (Serial: {seriMay}) đã được liên kết với tài khoản {taikhoan} vào lúc {lichSu.NgayXacThuc:HH:mm:ss dd/MM/yyyy}." });
@@ -6298,6 +6334,135 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
+
+
+        #region hiển thị danh sách tất cả thiết bị máy tính
+
+        // 1. Action trả về giao diện trang xem danh sách toàn bộ thiết bị máy tính
+        [HttpGet("/QLKiemKe/ViewDanhSachTatCaMayTinh")]
+        public IActionResult ViewDanhSachTatCaMayTinh()
+        {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                return Redirect("/DonXetDuyet/DangNhap");
+            }
+            return View();
+        }
+
+        // 2. API lấy toàn bộ danh sách máy tính từ hệ thống để hiển thị lên View dữ liệu
+        [HttpGet("/QLKiemKe/DanhSachTatCaMayTinh")]
+        public IActionResult DanhSachTatCaMayTinh()
+        {
+            try
+            {
+                // Sử dụng Include để kéo theo thông tin thực thể User sở hữu thiết bị nếu có
+                var danhSachMay = _context.TscnThongTinMays
+                    .Include(m => m.IdNguoiDungNavigation)
+                    .Include(m => m.TscnChiTietManHinhs) // Kéo kèm bảng màn hình để hiển thị ở view rút gọn
+                    .OrderByDescending(m => m.NgayCapNhat)
+                    .Select(m => new
+                    {
+                        idMay = m.IdMay,
+                        tenMay = m.TenMay,
+                        seriMay = m.SeriMay,
+                        dongMay = m.DongMay,
+                        tenNguoiDungHeThong = m.TenNguoiDungHeThong,
+                        thongTinManHinhNgoai = m.ThongTinManHinhNgoai,
+                        // Gom danh sách màn hình chi tiết thành chuỗi text hiển thị phẳng
+                        thongTinManHinh = m.TscnChiTietManHinhs.Any()
+                            ? string.Join("<br/>", m.TscnChiTietManHinhs.Select(x => x.ThongTinManHinh))
+                            : "N/A",
+                        banQuyenWin = m.BanQuyenWin,
+                        banQuyenOffice = m.BanQuyenOffice,
+                        ngayCapNhat = m.NgayCapNhat.HasValue ? m.NgayCapNhat.Value.ToString("yyyy-MM-dd HH:mm:ss") : "N/A",
+                        idNguoiDung = m.IdNguoiDung,
+
+                        // Thông tin liên kết từ bảng người dùng sở hữu tài sản
+                        taiKhoanSoHuu = m.IdNguoiDungNavigation != null ? m.IdNguoiDungNavigation.Tk : "Chưa bàn giao",
+                        hoTenNguoiSoHuu = m.IdNguoiDungNavigation != null ? m.IdNguoiDungNavigation.HoTen : "Chưa bàn giao",
+                        phongBanSoHuu = m.IdNguoiDungNavigation != null ? m.IdNguoiDungNavigation.PhongBan : "N/A"
+                    })
+                    .ToList();
+
+                return Json(new { success = true, data = danhSachMay });
+            }
+            catch (Exception ex)
+            {
+                // Trả về thông tin InnerException chi tiết nhất nếu gặp sự cố hệ thống
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = $"Lỗi hệ thống khi tải danh sách thiết bị máy tính: {chiTietLoi}" });
+            }
+        }
+
+        // 3. Giao diện trang xem cấu hình chi tiết mở rộng
+        [HttpGet("/QLKiemKe/ViewChiTietMayTinh")]
+        public IActionResult ViewChiTietMayTinh(int idMay)
+        {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                return Redirect("/DonXetDuyet/DangNhap");
+            }
+            return View();
+        }
+
+        // 4. API bốc tách chuyên sâu cấu hình theo ID máy, liên kết toàn bộ Sub-Tables
+        [HttpGet("/QLKiemKe/ChiTietMayTinhTheoId")]
+        public IActionResult ChiTietMayTinhTheoId(int idMay)
+        {
+            try
+            {
+                var may = _context.TscnThongTinMays
+                    .Include(m => m.IdNguoiDungNavigation)
+                    .Include(m => m.TscnChiTietRams)
+                    .Include(m => m.TscnChiTietOcungs)
+                    .Include(m => m.TscnChiTietManHinhs)
+                    .Include(m => m.TscnChiTietMacWifis)
+                    .FirstOrDefault(m => m.IdMay == idMay);
+
+                if (may == null)
+                {
+                    return Json(new { success = false, message = "Thiết bị không tồn tại trên hệ thống dữ liệu." });
+                }
+
+                var data = new
+                {
+                    idMay = may.IdMay,
+                    tenMay = may.TenMay,
+                    seriMay = may.SeriMay,
+                    dongMay = may.DongMay,
+                    heDieuHanh = may.HeDieuHanh,
+                    kienTruc = may.KienTruc,
+                    phienBanNet = may.PhienBanNet,
+                    soLoiCpu = may.SoLoiCpu,
+                    tenNguoiDungHeThong = may.TenNguoiDungHeThong,
+                    thuMucHeThong = may.ThuMucHeThong,
+                    thoiGianHoatDong = may.ThoiGianHoatDong,
+                    ramKhaDung = may.RamKhaDung,
+                    thongTinManHinhNgoai = may.ThongTinManHinhNgoai,
+                    thongTinOffice = may.ThongTinOffice,
+                    banQuyenWin = may.BanQuyenWin,
+                    banQuyenOffice = may.BanQuyenOffice,
+                    ngayCapNhat = may.NgayCapNhat.HasValue ? may.NgayCapNhat.Value.ToString("yyyy-MM-dd HH:mm:ss") : "N/A",
+                    taiKhoanSoHuu = may.IdNguoiDungNavigation != null ? may.IdNguoiDungNavigation.Tk : "Chưa xác nhận",
+
+                    // Lấy mảng dữ liệu từ bảng liên kết con phụ trợ
+                    listRams = may.TscnChiTietRams.Select(r => r.ThanhRam).ToList(),
+                    listOcungs = may.TscnChiTietOcungs.Select(o => o.ThongTinOcung).ToList(),
+                    listManHinh = may.TscnChiTietManHinhs.Select(m => m.ThongTinManHinh).ToList(),
+                    listMacWifis = may.TscnChiTietMacWifis.Select(w => new { tenCard = w.TenCard, diaChiMac = w.DiaChiMac }).ToList()
+                };
+
+                return Json(new { success = true, data = data });
+            }
+            catch (Exception ex)
+            {
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = $"Lỗi hệ thống khi tải cấu hình phụ: {chiTietLoi}" });
+            }
+        }
+
+        #endregion
+
 
 
 
