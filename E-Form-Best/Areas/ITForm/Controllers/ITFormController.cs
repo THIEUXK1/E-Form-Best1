@@ -5390,6 +5390,19 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             try
             {
+                // Chặn trùng Tên bộ phận trong cùng 1 Công ty (không phân biệt hoa/thường, khoảng trắng thừa)
+                if (!string.IsNullOrWhiteSpace(model.TenBoPhan))
+                {
+                    string trimmedTen = model.TenBoPhan.Trim().ToLower();
+                    bool isDuplicate = _context.KkBoPhans.Any(x =>
+                        x.IdboPhan != model.IdboPhan &&
+                        x.IdcongTy == model.IdcongTy &&
+                        x.TenBoPhan != null && x.TenBoPhan.Trim().ToLower() == trimmedTen);
+
+                    if (isDuplicate)
+                        return Json(new { success = false, message = $"Bộ phận '{model.TenBoPhan}' đã tồn tại trong công ty này. Vui lòng kiểm tra lại!" });
+                }
+
                 string action = model.IdboPhan == 0 ? "Thêm mới" : "Cập nhật";
                 int objId = model.IdboPhan;
 
@@ -5581,7 +5594,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         x.Seribacode, // ĐẢM BẢO ĐẦY ĐỦ: Lấy dữ liệu các trường mới ra View
                         x.HanBaoHanh,
                         x.WinLicense,
-                        x.OfficeLicense
+                        x.OfficeLicense,
+                        x.IdMay
                     })
                     .ToList(); // Tải dữ liệu về bộ nhớ trước để xử lý chuẩn hóa chuỗi tiếng Việt chuẩn xác nhất
 
@@ -5782,6 +5796,159 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
+        public class CapNhatLoaiThietBiRequest
+        {
+            public int IdMay { get; set; }
+            public string? LoaiThietBi { get; set; }
+        }
+
+        // HÀM SỬA TRỰC TIẾP LOẠI THIẾT BỊ (Laptop/PC/MayAo/Server) CỦA 1 MÁY TÍNH TỪ TRANG DANH SÁCH
+        [HttpPost("/QLKiemKe/CapNhatLoaiThietBiMay")]
+        public async Task<IActionResult> CapNhatLoaiThietBiMay([FromBody] CapNhatLoaiThietBiRequest req)
+        {
+            try
+            {
+                if (req == null) return Json(new { success = false, message = "Dữ liệu không hợp lệ." });
+
+                var may = await _context.TscnThongTinMays.FindAsync(req.IdMay);
+                if (may == null) return Json(new { success = false, message = "Không tìm thấy máy tính." });
+
+                may.LoaiThietBi = string.IsNullOrWhiteSpace(req.LoaiThietBi) ? null : req.LoaiThietBi.Trim();
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Cập nhật loại thiết bị thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // Tự phân loại nhanh Laptop/PC/MayAo/Server dựa theo chuỗi Dòng máy (Model), dùng khi máy vừa quét lần đầu chưa có Loại thiết bị
+        private string? TuPhanLoaiThietBiTheoDongMay(string? dongMay)
+        {
+            if (string.IsNullOrWhiteSpace(dongMay)) return null;
+            string d = dongMay.ToLower();
+
+            if (d.Contains("virtual machine") || d.Contains("vmware") || d.Contains("virtualbox") || d.Contains("hyper-v") || d.Contains("qemu") || d.Contains("kvm"))
+                return "MayAo";
+            if (d.Contains("proliant"))
+                return "Server";
+            if (d.Contains("thinkpad") || d.Contains("notebook") || d.Contains("elitebook") || d.Contains("probook") ||
+                d.Contains("zbook") || d.Contains("legion") || d.Contains("ideapad") || d.Contains("latitude") ||
+                d.Contains("macbook") || d.Contains("zhaoyang"))
+                return "Laptop";
+            if (d.Contains("desktop") || d.Contains("sff") || d.Contains("small form factor") || d.Contains("microtower") ||
+                d.Contains("tower") || d.Contains("workstation") || d.EndsWith(" mt") || d.EndsWith(" dm") || d.Contains("base model"))
+                return "PC";
+
+            return null; // Không đủ dấu hiệu để tự phân loại - để trống, admin có thể sửa tay sau ở trang danh sách máy tính
+        }
+
+        // Chuyển Loại thiết bị của TSCN_ThongTinMay (PC/Laptop/MayAo/Server) sang đúng tên danh mục dùng trong KK_LoaiThietBi
+        private string ChuanHoaLoaiThietBiSangDanhMuc(string loaiTuMay)
+        {
+            switch ((loaiTuMay ?? "").Trim())
+            {
+                case "PC": return "Máy tính";
+                case "MayAo": return "Máy ảo";
+                default: return (loaiTuMay ?? "").Trim(); // Laptop, Server đã đúng tên sẵn
+            }
+        }
+
+        public class DongBoMayTinhRequest
+        {
+            public List<int> DanhSachIdMay { get; set; } = new();
+            public int? IdTrangThai { get; set; }
+        }
+
+        // HÀM ĐỒNG BỘ MÁY TÍNH (TSCN_ThongTinMay) SANG THIẾT BỊ (KK_ThietBi)
+        // Trùng theo cặp TenMayTinh + LoaiThietBi thì cập nhật, không trùng thì thêm mới. TenViTri/IDCongTy/IDBoPhan/Ảnh/Bản quyền bỏ qua, chỉ IdTrangThai được gán nếu người dùng chọn.
+        [HttpPost("/QLKiemKe/DongBoMayTinhSangThietBi")]
+        public async Task<IActionResult> DongBoMayTinhSangThietBi([FromBody] DongBoMayTinhRequest req)
+        {
+            try
+            {
+                if (req == null || req.DanhSachIdMay == null || !req.DanhSachIdMay.Any())
+                    return Json(new { success = false, message = "Chưa chọn máy tính nào để đồng bộ." });
+
+                int soThemMoi = 0, soCapNhat = 0;
+                var dsBoQua = new List<string>();
+
+                // Trạng thái mặc định gán cho thiết bị THÊM MỚI khi người dùng không chọn trạng thái nào trong hộp thoại
+                int? idTrangThaiMacDinh = _context.KkTrangThais
+                    .Where(x => x.TenTrangThai == "Đang hoạt động")
+                    .Select(x => (int?)x.IdTrangThai)
+                    .FirstOrDefault();
+
+                var danhSachMay = _context.TscnThongTinMays
+                    .Where(m => req.DanhSachIdMay.Contains(m.IdMay))
+                    .ToList();
+
+                foreach (var may in danhSachMay)
+                {
+                    if (string.IsNullOrWhiteSpace(may.TenMay) || string.IsNullOrWhiteSpace(may.LoaiThietBi))
+                    {
+                        dsBoQua.Add($"{may.TenMay ?? "(Không tên)"} (thiếu Tên máy hoặc Loại thiết bị)");
+                        continue;
+                    }
+
+                    // Chuẩn hóa Loại thiết bị của TSCN_ThongTinMay (PC/Laptop/MayAo/Server) sang đúng tên danh mục dùng ở KK_LoaiThietBi
+                    string loaiThietBiChuan = ChuanHoaLoaiThietBiSangDanhMuc(may.LoaiThietBi);
+
+                    string trimmedTen = may.TenMay.Trim().ToLower();
+                    string trimmedLoai = loaiThietBiChuan.Trim().ToLower();
+
+                    var existing = _context.KkThietBis.FirstOrDefault(x =>
+                        x.TenMayTinh != null && x.TenMayTinh.Trim().ToLower() == trimmedTen &&
+                        x.LoaiThietBi != null && x.LoaiThietBi.Trim().ToLower() == trimmedLoai);
+
+                    if (existing != null)
+                    {
+                        if (!string.IsNullOrWhiteSpace(may.SeriMay)) existing.Seribacode = may.SeriMay.Trim();
+                        if (!string.IsNullOrWhiteSpace(may.DongMay)) existing.QuyCach = may.DongMay.Trim();
+                        if (may.IdNguoiDung.HasValue) existing.IdNguoiDung = may.IdNguoiDung;
+                        if (req.IdTrangThai.HasValue) existing.IdTrangThai = req.IdTrangThai;
+                        existing.LoaiThietBi = loaiThietBiChuan;
+                        existing.IdMay = may.IdMay;
+                        existing.NgayCapNhat = DateTime.Now;
+                        existing.ThoiGianCheck = DateTime.Now;
+                        soCapNhat++;
+                    }
+                    else
+                    {
+                        var moi = new KkThietBi
+                        {
+                            TenViTri = "",
+                            TenMayTinh = may.TenMay.Trim(),
+                            LoaiThietBi = loaiThietBiChuan,
+                            Seribacode = may.SeriMay?.Trim(),
+                            QuyCach = may.DongMay?.Trim(),
+                            IdNguoiDung = may.IdNguoiDung,
+                            IdTrangThai = req.IdTrangThai ?? idTrangThaiMacDinh,
+                            IdMay = may.IdMay,
+                            NgayTao = DateTime.Now,
+                            NgayCapNhat = DateTime.Now,
+                            ThoiGianCheck = DateTime.Now
+                        };
+                        _context.KkThietBis.Add(moi);
+                        soThemMoi++;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                GhiLichSu("Đồng bộ", "Thiết Bị", 0, $"Đồng bộ từ danh sách máy tính: {soThemMoi} thêm mới, {soCapNhat} cập nhật, {dsBoQua.Count} bỏ qua.");
+
+                return Json(new { success = true, themMoi = soThemMoi, capNhat = soCapNhat, boQua = dsBoQua });
+            }
+            catch (Exception ex)
+            {
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = $"Lỗi hệ thống khi đồng bộ: {chiTietLoi}" });
+            }
+        }
+
         // HÀM XUẤT ẢNH TỪ FILE SERVER RA TRÌNH DUYỆT (THƯ MỤC THIẾT BỊ CHÍNH)
         [HttpGet("/QLKiemKe/GetImage")]
         public IActionResult GetImage(string fileName)
@@ -5897,10 +6064,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var item = _context.KkThietBis.Find(id);
                 if (item != null)
                 {
-                    // SỬA LỖI LINQ: Sử dụng EF.Functions.Like hoặc string.Equals chuẩn hóa
-                    // để EF Core có thể dịch sang SQL thành công với Case-Insensitive.
+                    // string.Equals(..., StringComparison.OrdinalIgnoreCase) không dịch được sang SQL nên EF Core ném lỗi runtime; dùng ToLower() để so sánh không phân biệt hoa/thường.
                     var statusXoa = _context.KkTrangThais
-                        .FirstOrDefault(x => x.TenTrangThai != null && string.Equals(x.TenTrangThai, "xóa", StringComparison.OrdinalIgnoreCase));
+                        .FirstOrDefault(x => x.TenTrangThai != null && x.TenTrangThai.ToLower() == "xóa");
 
                     if (statusXoa == null)
                     {
@@ -5936,8 +6102,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var item = _context.KkThietBis.Find(id);
                 if (item != null)
                 {
-                    // Sử dụng Equals kết hợp StringComparison.OrdinalIgnoreCase để dứt điểm cảnh báo
-                    var statusHoatDong = _context.KkTrangThais.FirstOrDefault(x => x.TenTrangThai != null && x.TenTrangThai.Equals("đang hoạt động", StringComparison.OrdinalIgnoreCase));
+                    // string.Equals(..., StringComparison.OrdinalIgnoreCase) không dịch được sang SQL nên EF Core ném lỗi runtime; dùng ToLower() để so sánh không phân biệt hoa/thường.
+                    var statusHoatDong = _context.KkTrangThais.FirstOrDefault(x => x.TenTrangThai != null && x.TenTrangThai.ToLower() == "đang hoạt động");
 
                     item.IdTrangThai = statusHoatDong?.IdTrangThai;
                     item.NgayXoa = null;
@@ -6120,7 +6286,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // ACTION MỚI: Xử lý khi ấn xác nhận tài sản, nhận toàn bộ dữ liệu phần cứng từ Client
         [IgnoreAntiforgeryToken]
         [HttpPost("/QLKiemKe/XacNhanTaiSanMaMay")]
-        public IActionResult XacNhanTaiSanMaMay(
+        public async Task<IActionResult> XacNhanTaiSanMaMay(
             string taikhoan,
             string matkhau,
             string seriMay,
@@ -6141,7 +6307,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             string dsRamRaw = "",       // Tham số mở rộng nhận chuỗi RAM phân tách bởi dấu phẩy từ tool
             string dsOcungRaw = "",     // Tham số mở rộng nhận chuỗi Ổ cứng phân tách bởi dấu phẩy từ tool
             string dsManHinhRaw = "",   // Tham số mở rộng nhận chuỗi Màn hình phân tách bởi dấu đứng | từ tool
-            string dsMacWifiRaw = "")   // Tham số mở rộng nhận chuỗi MAC Wifi phân tách bởi dấu phẩy từ tool
+            string dsMacWifiRaw = "",   // Tham số mở rộng nhận chuỗi MAC Wifi phân tách bởi dấu phẩy từ tool
+            string? tenViTri = null,    // Vị trí đặt máy - người xác nhận điền tại chỗ để đồng bộ sang KK_ThietBi
+            int? idCongTy = null,
+            int? idBoPhan = null,
+            IFormFile? anhThietBi = null) // Ảnh chụp thiết bị lúc xác nhận (tùy chọn)
         {
             if (string.IsNullOrEmpty(taikhoan) || string.IsNullOrEmpty(matkhau))
             {
@@ -6306,6 +6476,99 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 _context.SaveChanges();
 
+                // 5. ĐỒNG BỘ SANG KK_ThietBi kèm Vị trí/Công ty/Bộ phận vừa xác nhận + ảnh chụp (nếu có)
+                if (!string.IsNullOrWhiteSpace(mayTonTai.TenMay))
+                {
+                    // TSCN_ThongTinMay mới quét lần đầu chưa có Loại thiết bị -> tự phân loại nhanh theo Dòng máy để có thể đồng bộ
+                    if (string.IsNullOrWhiteSpace(mayTonTai.LoaiThietBi))
+                    {
+                        mayTonTai.LoaiThietBi = TuPhanLoaiThietBiTheoDongMay(mayTonTai.DongMay);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(mayTonTai.LoaiThietBi))
+                    {
+                        string loaiThietBiChuan = ChuanHoaLoaiThietBiSangDanhMuc(mayTonTai.LoaiThietBi);
+                        string trimmedTen = mayTonTai.TenMay.Trim().ToLower();
+                        string trimmedLoai = loaiThietBiChuan.Trim().ToLower();
+
+                        var thietBiLienKet = _context.KkThietBis.FirstOrDefault(x =>
+                            x.TenMayTinh != null && x.TenMayTinh.Trim().ToLower() == trimmedTen &&
+                            x.LoaiThietBi != null && x.LoaiThietBi.Trim().ToLower() == trimmedLoai);
+
+                        // Xử lý lưu ảnh chụp thiết bị (nếu người xác nhận có tải ảnh lên)
+                        string? tenFileAnhMoi = null;
+                        if (anhThietBi != null && anhThietBi.Length > 0)
+                        {
+                            string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\AnhKiemKe";
+                            if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
+
+                            string imgExtension = Path.GetExtension(anhThietBi.FileName) ?? "";
+                            if (string.IsNullOrEmpty(imgExtension)) imgExtension = ".jpg";
+                            string timeStamp = DateTime.Now.ToString("yyyyMMddHHmmss");
+                            string safeName = string.Join("_", (tenViTri ?? mayTonTai.TenMay).Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+                            if (string.IsNullOrEmpty(safeName)) safeName = "TB";
+
+                            tenFileAnhMoi = $"AnhTB_{safeName}_{timeStamp}{imgExtension}";
+                            string imgFullPath = Path.Combine(networkPath, tenFileAnhMoi);
+                            using (var imgStream = new FileStream(imgFullPath, FileMode.Create))
+                            {
+                                await anhThietBi.CopyToAsync(imgStream);
+                            }
+                        }
+
+                        if (thietBiLienKet != null)
+                        {
+                            if (!string.IsNullOrWhiteSpace(tenViTri)) thietBiLienKet.TenViTri = tenViTri.Trim();
+                            if (idCongTy.HasValue) thietBiLienKet.IdcongTy = idCongTy;
+                            if (idBoPhan.HasValue) thietBiLienKet.IdboPhan = idBoPhan;
+                            if (!string.IsNullOrWhiteSpace(mayTonTai.SeriMay)) thietBiLienKet.Seribacode = mayTonTai.SeriMay.Trim();
+                            if (!string.IsNullOrWhiteSpace(mayTonTai.DongMay)) thietBiLienKet.QuyCach = mayTonTai.DongMay.Trim();
+                            thietBiLienKet.IdNguoiDung = mayTonTai.IdNguoiDung;
+                            thietBiLienKet.LoaiThietBi = loaiThietBiChuan;
+                            thietBiLienKet.IdMay = mayTonTai.IdMay;
+                            thietBiLienKet.NgayCapNhat = DateTime.Now;
+                            thietBiLienKet.ThoiGianCheck = DateTime.Now;
+                            // Chỉ gán làm ảnh chính nếu thiết bị chưa từng có ảnh nào trước đó
+                            if (tenFileAnhMoi != null && string.IsNullOrWhiteSpace(thietBiLienKet.DuongDanAnh))
+                            {
+                                thietBiLienKet.DuongDanAnh = tenFileAnhMoi;
+                            }
+                        }
+                        else
+                        {
+                            thietBiLienKet = new KkThietBi
+                            {
+                                TenViTri = string.IsNullOrWhiteSpace(tenViTri) ? "" : tenViTri.Trim(),
+                                TenMayTinh = mayTonTai.TenMay.Trim(),
+                                LoaiThietBi = loaiThietBiChuan,
+                                Seribacode = mayTonTai.SeriMay?.Trim(),
+                                QuyCach = mayTonTai.DongMay?.Trim(),
+                                IdNguoiDung = mayTonTai.IdNguoiDung,
+                                IdcongTy = idCongTy,
+                                IdboPhan = idBoPhan,
+                                IdMay = mayTonTai.IdMay,
+                                DuongDanAnh = tenFileAnhMoi, // Ảnh đầu tiên (nếu có) được gán luôn làm ảnh chính
+                                NgayTao = DateTime.Now,
+                                NgayCapNhat = DateTime.Now,
+                                ThoiGianCheck = DateTime.Now
+                            };
+                            _context.KkThietBis.Add(thietBiLienKet);
+                        }
+
+                        _context.SaveChanges(); // Cần lưu trước để có IdThietBi khi thiết bị vừa được thêm mới
+
+                        // Luôn ghi 1 dòng Bằng chứng kiểm kê mỗi lần xác nhận, có ảnh hay không cũng ghi - Ghi chú lấy đúng Tên vị trí người xác nhận vừa điền
+                        _context.KkBangChungChecks.Add(new KkBangChungCheck
+                        {
+                            IdThietBi = thietBiLienKet.IdThietBi,
+                            ThoiGianCheck = DateTime.Now,
+                            DuongDanAnh = tenFileAnhMoi, // null nếu không tải ảnh lên
+                            GhiChu = string.IsNullOrWhiteSpace(tenViTri) ? "Xác nhận kiểm kê" : tenViTri.Trim()
+                        });
+                        _context.SaveChanges();
+                    }
+                }
+
                 return Json(new { success = true, message = $"Xác nhận tài sản thành công! Máy '{mayTonTai.TenMay}' (Serial: {seriMay}) đã được liên kết với tài khoản {taikhoan} vào lúc {lichSu.NgayXacThuc:HH:mm:ss dd/MM/yyyy}." });
             }
             catch (Exception ex)
@@ -6366,6 +6629,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         tenMay = m.TenMay,
                         seriMay = m.SeriMay,
                         dongMay = m.DongMay,
+                        loaiThietBi = m.LoaiThietBi,
                         thongTinOffice = m.ThongTinOffice, // Lấy phiên bản Office truyền xuống Client
                         thongTinManHinhNgoai = m.ThongTinManHinhNgoai,
                         thongTinManHinh = m.TscnChiTietManHinhs.Any()

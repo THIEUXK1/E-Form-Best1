@@ -232,14 +232,17 @@
 
                     <div class="col-12 mb-2">
                         <div class="row align-items-end g-2">
-                            <div class="col-md-9 col-12">
+                            <div class="col-md-6 col-12">
                                 <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-primary"></i> Tìm kiếm nhanh</label>
                                 <input type="text" id="filterText" class="form-control rounded-3 border-0 shadow-sm" placeholder="S/N, Hostname, Account, Note..." style="height: 38px;">
                             </div>
-                            <div class="col-md-3 col-12 text-md-end">
+                            <div class="col-md-3 col-6">
                                 <button type="button" id="btnToggleAdvancedFilter" class="btn btn-primary shadow-sm rounded-3 w-100 fw-semibold" style="height: 38px; background-color: #4f46e5; border-color: #4f46e5;" onclick="toggleAdvancedFilter()">
                                     <i class="fas fa-sliders-h me-1"></i> <span id="textToggleFilter">Bộ lọc nâng cao</span>
                                 </button>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <button class="btn btn-outline-secondary rounded-3 shadow-sm w-100 fw-semibold" onclick="clearFilters()" style="height: 38px;"><i class="fas fa-sync-alt"></i> Bỏ lọc</button>
                             </div>
                         </div>
                     </div>
@@ -351,10 +354,6 @@
                                     <option value="100">100</option>
                                     <option value="all">Tất cả</option>
                                 </select>
-                            </div>
-
-                            <div class="col-xl-1 col-lg-2 col-md-9 col-sm-6 mb-2 d-flex justify-content-end">
-                                <button class="btn btn-outline-secondary rounded-pill px-3 shadow-sm w-100" onclick="clearFilters()" style="height: 38px;"><i class="fas fa-sync-alt"></i> Bỏ lọc</button>
                             </div>
                         </div>
                     </div>
@@ -1373,7 +1372,8 @@
         (x.tenNguoiDung && x.tenNguoiDung.toLowerCase().includes(fText)) ||
         (x.tk && x.tk.toLowerCase().includes(fText)) ||
         (x.quyCach && x.quyCach.toLowerCase().includes(fText)) ||
-        (x.seribacode && x.seribacode.toLowerCase().includes(fText)) ||
+        // So khớp 2 chiều: khớp khi Serial lưu trong hệ thống chứa từ khóa tìm, HOẶC từ khóa tìm (VD: chuỗi quét mã vạch dài hơn) chứa Serial lưu trong hệ thống
+        (x.seribacode && (x.seribacode.toLowerCase().includes(fText) || fText.includes(x.seribacode.toLowerCase()))) ||
         (x.ghiChu && x.ghiChu.toLowerCase().includes(fText))
         );
         }
@@ -1426,8 +1426,14 @@
         let checkTimeStr = item.thoiGianCheck ? new Date(item.thoiGianCheck).toLocaleString('vi-VN') : '<span class="text-danger fst-italic">Chưa Check</span>';
 
         let hostName = item.tenMayTinh
-        ? `<a href="/QLKiemKe/ChiTietThietBi/${item.idThietBi}" class="fw-bold text-decoration-none text-primary mb-1 d-block" style="font-size:16px;" target="_blank"><i class="fas fa-desktop me-1"></i> ${item.tenMayTinh}</a>`
+        ? (item.idMay
+        ? `<a href="/QLKiemKe/ViewChiTietMayTinh?idMay=${item.idMay}" class="fw-bold text-decoration-none text-primary mb-1 d-block" style="font-size:16px;" target="_blank" title="Xem chi tiết máy tính đã đồng bộ"><i class="fas fa-desktop me-1"></i> ${item.tenMayTinh} <i class="fas fa-external-link-alt ms-1" style="font-size:10px;"></i></a>`
+        : `<a href="/QLKiemKe/ChiTietThietBi/${item.idThietBi}" class="fw-bold text-decoration-none text-primary mb-1 d-block" style="font-size:16px;" target="_blank"><i class="fas fa-desktop me-1"></i> ${item.tenMayTinh}</a>`)
         : '<i class="text-muted d-block mb-1">Chưa có Hostname</i>';
+
+        let btnXemMayTinh = item.idMay
+        ? `<button class="btn btn-sm btn-outline-primary w-100 shadow-sm" onclick="window.open('/QLKiemKe/ViewChiTietMayTinh?idMay=${item.idMay}', '_blank')" title="Thiết bị này đã liên kết với 1 máy tính trong hệ thống"><i class="fas fa-desktop"></i> Xem máy tính</button>`
+        : '';
 
         let accountName = item.tenDangNhap ? item.tenDangNhap : '<i class="text-muted">Chưa có Account</i>';
         let quyCachLine = item.quyCach ? `<div class="small text-dark text-truncate" style="max-width:200px" title="${item.quyCach}"><b>Quy cách:</b> ${item.quyCach}</div>` : '';
@@ -1467,6 +1473,7 @@
         </td>
         <td class="d-block d-md-table-cell text-center border-0 py-3 py-md-2 mt-2 mt-md-0 align-middle">
         <div class="d-flex flex-column gap-1">
+        ${btnXemMayTinh}
         <button class="btn btn-sm btn-success w-100 shadow-sm" onclick="xacNhanCheckThietBi(${item.idThietBi})"><i class="fas fa-check-circle"></i> Xác nhận Check</button>
         <div class="btn-group w-100 shadow-sm">
         <button class="btn btn-sm btn-outline-info text-info" onclick="openLichSuCheckThietBi(${item.idThietBi}, '${item.tenMayTinh || ''}', '${item.tenViTri || ''}')" title="Xem lịch sử & bằng chứng check"><i class="fas fa-history"></i></button>
