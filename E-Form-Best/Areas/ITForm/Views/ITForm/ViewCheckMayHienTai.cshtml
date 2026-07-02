@@ -198,19 +198,19 @@
                                 <input type="text" id="txtTaiSanViTri" class="form-control" placeholder="VD: Tầng 3 - Phòng Kế toán..." required />
                             </div>
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Công ty</label>
-                                <select id="ddlTaiSanCongTy" class="form-select">
+                                <label class="form-label fw-bold">Công ty <span class="text-danger">*</span></label>
+                                <select id="ddlTaiSanCongTy" class="form-select" required>
                                     <option value="">-- Chưa chọn --</option>
                                 </select>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold d-flex justify-content-between align-items-center">
-                                    <span>Bộ phận</span>
+                                    <span>Bộ phận <span class="text-danger">*</span></span>
                                     <button type="button" id="btnThemNhanhBoPhan" class="btn btn-sm btn-link p-0 text-decoration-none" style="font-size: 13px;">
                                         <i class="fa fa-plus-circle"></i> Thêm nhanh
                                     </button>
                                 </label>
-                                <select id="ddlTaiSanBoPhan" class="form-select">
+                                <select id="ddlTaiSanBoPhan" class="form-select" required>
                                     <option value="">-- Chưa chọn --</option>
                                 </select>
                                 <div id="boxThemNhanhBoPhan" class="mt-2 p-2 border rounded bg-light" style="display: none;">
@@ -482,6 +482,18 @@
             return;
             }
 
+            var idCongTyInput = $("#ddlTaiSanCongTy").val();
+            if (!idCongTyInput) {
+            $("#modalTaiSanAlertError").text("Vui lòng chọn Công ty.").fadeIn();
+            return;
+            }
+
+            var idBoPhanInput = $("#ddlTaiSanBoPhan").val();
+            if (!idBoPhanInput) {
+            $("#modalTaiSanAlertError").text("Vui lòng chọn Bộ phận.").fadeIn();
+            return;
+            }
+
             // Chuẩn bị toàn bộ dữ liệu phần cứng cần thiết để có thể INSERT khi thiết bị chưa tồn tại
             var fd = new FormData();
             fd.append('taikhoan', taikhoanInput);
@@ -501,6 +513,11 @@
             fd.append('thongTinOffice', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.thongTinOffice || '') : '');
             fd.append('banQuyenWin', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.banQuyenWin || '') : '');
             fd.append('banQuyenOffice', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.banQuyenOffice || '') : '');
+            // Các trường chi tiết nâng cao (RAM/Ổ cứng/Màn hình/MAC Wifi) - Tool local trả về theo đúng tên trường server đang nhận
+            fd.append('dsRamRaw', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.dsRamRaw || '') : '');
+            fd.append('dsOcungRaw', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.dsOcungRaw || '') : '');
+            fd.append('dsManHinhRaw', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.dsManHinhRaw || '') : '');
+            fd.append('dsMacWifiRaw', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.dsMacWifiRaw || '') : '');
             fd.append('tenViTri', viTriInput);
             if ($("#ddlTaiSanCongTy").val()) fd.append('idCongTy', $("#ddlTaiSanCongTy").val());
             if ($("#ddlTaiSanBoPhan").val()) fd.append('idBoPhan', $("#ddlTaiSanBoPhan").val());

@@ -329,6 +329,53 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return Redirect("/menuA");
         }
 
+        // Xác thực Hybrid dùng chung với trang đăng nhập chính (DangNhap): ưu tiên Domain theo UserDomainAuth.LoginMode
+        // (0 = Domain only, 1 = DB only, 2 = Hybrid - thử Domain trước, không được thì fallback DB). Trả về User nếu xác thực đúng, null nếu sai.
+        private async Task<User?> XacThucTaiKhoanHybrid(string taikhoan, string matkhau)
+        {
+            if (string.IsNullOrEmpty(taikhoan) || string.IsNullOrEmpty(matkhau)) return null;
+
+            var domainAuth = await _context.UserDomainAuths
+                .Include(a => a.IdNguoiDungNavigation)
+                .FirstOrDefaultAsync(a => a.DomainUsername != null && a.DomainUsername == taikhoan);
+
+            User? user = domainAuth != null
+                ? domainAuth.IdNguoiDungNavigation
+                : await _context.Users.FirstOrDefaultAsync(u => u.Tk == taikhoan && u.TrangThai != "Đã nghỉ");
+
+            if (user == null) return null;
+
+            bool isAuthenticated = false;
+
+            if (domainAuth != null)
+            {
+                if (domainAuth.LoginMode == 0 || domainAuth.LoginMode == 2)
+                {
+                    if (AuthenticateWithDomain(taikhoan, matkhau))
+                    {
+                        isAuthenticated = true;
+                    }
+                }
+
+                if (!isAuthenticated && (domainAuth.LoginMode == 1 || domainAuth.LoginMode == 2))
+                {
+                    if (string.Equals(user.MatKhau, matkhau, StringComparison.Ordinal))
+                    {
+                        isAuthenticated = true;
+                    }
+                }
+            }
+            else
+            {
+                if (string.Equals(user.MatKhau, matkhau, StringComparison.Ordinal))
+                {
+                    isAuthenticated = true;
+                }
+            }
+
+            return isAuthenticated ? user : null;
+        }
+
         private bool AuthenticateWithDomain(string username, string password)
         {
             // Kiểm tra xem ứng dụng có đang chạy trên Windows không
@@ -6248,7 +6295,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // ACTION ĐÃ ĐƯỢC SỬA: Bổ sung IgnoreAntiforgeryToken để chặn lỗi kết nối đường truyền khi POST AJAX
         [IgnoreAntiforgeryToken]
         [HttpPost("/QLKiemKe/XacThucAdmin")]
-        public IActionResult XacThucAdmin(string taikhoan, string matkhau)
+        public async Task<IActionResult> XacThucAdmin(string taikhoan, string matkhau)
         {
             if (string.IsNullOrEmpty(taikhoan) || string.IsNullOrEmpty(matkhau))
             {
@@ -6257,9 +6304,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             try
             {
-                // 1. Tìm user theo tài khoản (TK) và kiểm tra mật khẩu trực tiếp trong DB
-                var user = _context.Users
-                    .FirstOrDefault(u => u.Tk == taikhoan && u.MatKhau == matkhau);
+                // 1. Xác thực Hybrid (Domain hoặc DB tùy theo cấu hình LoginMode của tài khoản) - dùng chung logic với trang đăng nhập chính
+                var user = await XacThucTaiKhoanHybrid(taikhoan, matkhau);
 
                 if (user == null)
                 {
@@ -6324,11 +6370,24 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Json(new { success = false, message = "Không tìm thấy Số Serial Máy (Serial Number). Vui lòng liên hệ với IT để check lỗi." });
             }
 
+            // Vị trí, Công ty, Bộ phận là bắt buộc khi xác nhận tài sản
+            if (string.IsNullOrWhiteSpace(tenViTri))
+            {
+                return Json(new { success = false, message = "Vui lòng nhập Vị trí đặt máy." });
+            }
+            if (!idCongTy.HasValue)
+            {
+                return Json(new { success = false, message = "Vui lòng chọn Công ty." });
+            }
+            if (!idBoPhan.HasValue)
+            {
+                return Json(new { success = false, message = "Vui lòng chọn Bộ phận." });
+            }
+
             try
             {
-                // 1. Xác thực thông tin đăng nhập của AdminIT
-                var user = _context.Users
-                    .FirstOrDefault(u => u.Tk == taikhoan && u.MatKhau == matkhau);
+                // 1. Xác thực Hybrid (Domain hoặc DB tùy theo cấu hình LoginMode của tài khoản) - dùng chung logic với trang đăng nhập chính
+                var user = await XacThucTaiKhoanHybrid(taikhoan, matkhau);
 
                 if (user == null)
                 {
