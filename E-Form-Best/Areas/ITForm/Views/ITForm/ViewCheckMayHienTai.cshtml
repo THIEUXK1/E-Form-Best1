@@ -10,7 +10,7 @@
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fa fa-desktop" style="margin-right: 8px;"></i>Thông Tin Cấu Hình Máy Hiện Tại</h5>
                 <div>
-                    <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#modalXacNhanTaiSan">
+                    <button id="btnMoModalXacNhanTaiSan" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#modalXacNhanTaiSan" disabled title="Cần tải xong thông tin máy từ Tool local mới có thể xác nhận">
                         <i class="fa fa-check-square-o" style="margin-right: 4px;"></i> Xác nhận tài sản
                     </button>
                     <button id="btnRefresh" class="btn btn-sm btn-light text-primary" style="display: none;">
@@ -192,6 +192,41 @@
                                 <label class="form-label fw-bold">Mật khẩu</label>
                                 <input type="password" id="txtTaiSanPassword" class="form-control" placeholder="Nhập mật khẩu..." required />
                             </div>
+                            <hr />
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Vị trí đặt máy <span class="text-danger">*</span></label>
+                                <input type="text" id="txtTaiSanViTri" class="form-control" placeholder="VD: Tầng 3 - Phòng Kế toán..." required />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Công ty</label>
+                                <select id="ddlTaiSanCongTy" class="form-select">
+                                    <option value="">-- Chưa chọn --</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold d-flex justify-content-between align-items-center">
+                                    <span>Bộ phận</span>
+                                    <button type="button" id="btnThemNhanhBoPhan" class="btn btn-sm btn-link p-0 text-decoration-none" style="font-size: 13px;">
+                                        <i class="fa fa-plus-circle"></i> Thêm nhanh
+                                    </button>
+                                </label>
+                                <select id="ddlTaiSanBoPhan" class="form-select">
+                                    <option value="">-- Chưa chọn --</option>
+                                </select>
+                                <div id="boxThemNhanhBoPhan" class="mt-2 p-2 border rounded bg-light" style="display: none;">
+                                    <label class="form-label small fw-bold mb-1">Tên bộ phận mới (gợi ý theo tên máy, có thể sửa lại)</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" id="txtThemNhanhTenBoPhan" class="form-control text-uppercase" placeholder="VD: ZP-IT" style="text-transform: uppercase;" />
+                                        <button type="button" id="btnXacNhanThemBoPhan" class="btn btn-success"><i class="fa fa-check"></i> Thêm</button>
+                                        <button type="button" id="btnHuyThemBoPhan" class="btn btn-outline-secondary"><i class="fa fa-times"></i></button>
+                                    </div>
+                                    <div class="form-text">Bộ phận sẽ được thêm vào Công ty đang chọn ở trên và không được trùng tên trong công ty đó.</div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Ảnh chụp thiết bị (tùy chọn)</label>
+                                <input type="file" id="fileTaiSanAnh" class="form-control" accept="image/*" capture="environment" />
+                            </div>
                         </form>
                     </div>
                     <div class="modal-footer">
@@ -235,6 +270,104 @@
             // Tự động kéo tải dữ liệu ngay từ local helper khi vừa load trang
             taiSauThongSoCoBan();
 
+            // Nạp danh sách Công ty / Bộ phận cho modal Xác nhận tài sản
+            var dsBoPhanCache = []; // Cache toàn bộ Bộ phận để lọc lại theo Công ty được chọn
+
+            $.get('/QLKiemKe/GetKkCongTys', function (res) {
+            if (res && res.success && res.data) {
+            var html = '<option value="">-- Chưa chọn --</option>';
+            res.data.forEach(function (ct) { html += '<option value="' + ct.idcongTy + '">' + ct.tenCongTy + '</option>'; });
+            $("#ddlTaiSanCongTy").html(html);
+            }
+            });
+            $.get('/QLKiemKe/GetKkBoPhans', function (res) {
+            if (res && res.success && res.data) {
+            dsBoPhanCache = res.data;
+            renderDropdownBoPhan("");
+            }
+            });
+
+            // Chỉ hiển thị các Bộ phận thuộc đúng Công ty đang chọn (idCongTy rỗng thì hiển thị toàn bộ)
+            function renderDropdownBoPhan(idCongTyLoc) {
+            var html = '<option value="">-- Chưa chọn --</option>';
+            dsBoPhanCache.forEach(function (bp) {
+            if (!idCongTyLoc || String(bp.idcongTy) === String(idCongTyLoc)) {
+            html += '<option value="' + bp.idboPhan + '">' + bp.tenBoPhan + '</option>';
+            }
+            });
+            $("#ddlTaiSanBoPhan").html(html);
+            }
+
+            // Khi đổi Công ty thì lọc lại danh sách Bộ phận tương ứng và reset lựa chọn cũ
+            $("#ddlTaiSanCongTy").change(function () {
+            renderDropdownBoPhan($(this).val());
+            $("#boxThemNhanhBoPhan").hide();
+            });
+
+            // Bấm "Thêm nhanh": bóc tách gợi ý Tên bộ phận từ Tên máy hiện tại (VD: ZP-IT003 -> ZP-IT, VN-IT045 -> VN-IT)
+            $("#btnThemNhanhBoPhan").click(function () {
+            if (!$("#ddlTaiSanCongTy").val()) {
+            Swal.fire('Thông báo', 'Vui lòng chọn Công ty trước khi thêm nhanh Bộ phận.', 'warning');
+            return;
+            }
+
+            var tenMayHienTai = duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.tenMay || '') : $("#lblTenMay").text().trim();
+            var goiY = tenMayHienTai.replace(/[0-9]+$/, '').replace(/[-_]+$/, '').trim().toUpperCase();
+
+            $("#txtThemNhanhTenBoPhan").val(goiY);
+            $("#boxThemNhanhBoPhan").slideDown(150);
+            $("#txtThemNhanhTenBoPhan").focus();
+            });
+
+            // Luôn ép chữ hoa 100% khi người dùng tự gõ/sửa lại tên bộ phận, kể cả khi dán (paste) văn bản
+            $("#txtThemNhanhTenBoPhan").on('input', function () {
+            var viTriCon = this.selectionStart;
+            $(this).val($(this).val().toUpperCase());
+            this.setSelectionRange(viTriCon, viTriCon);
+            });
+
+            $("#btnHuyThemBoPhan").click(function () {
+            $("#boxThemNhanhBoPhan").slideUp(150);
+            });
+
+            // Xác nhận thêm nhanh: gọi API lưu Bộ phận mới (server tự chặn trùng tên trong cùng Công ty), rồi nạp lại dropdown và tự chọn luôn bộ phận vừa thêm
+            $("#btnXacNhanThemBoPhan").click(function () {
+            var tenBoPhanMoi = $("#txtThemNhanhTenBoPhan").val().trim().toUpperCase();
+            var idCongTyHienTai = $("#ddlTaiSanCongTy").val();
+
+            if (!idCongTyHienTai) {
+            Swal.fire('Thông báo', 'Vui lòng chọn Công ty trước.', 'warning');
+            return;
+            }
+            if (!tenBoPhanMoi) {
+            Swal.fire('Thông báo', 'Vui lòng nhập Tên bộ phận.', 'warning');
+            return;
+            }
+
+            $.post('/QLKiemKe/SaveKkBoPhan', { IdboPhan: 0, TenBoPhan: tenBoPhanMoi, IdcongTy: idCongTyHienTai }, function (res) {
+            if (res.success) {
+            $.get('/QLKiemKe/GetKkBoPhans', function (res2) {
+            if (res2 && res2.success && res2.data) {
+            dsBoPhanCache = res2.data;
+            renderDropdownBoPhan(idCongTyHienTai);
+
+            var boPhanMoi = dsBoPhanCache.find(function (bp) {
+            return (bp.tenBoPhan || '').trim().toLowerCase() === tenBoPhanMoi.toLowerCase() && String(bp.idcongTy) === String(idCongTyHienTai);
+            });
+            if (boPhanMoi) $("#ddlTaiSanBoPhan").val(boPhanMoi.idboPhan);
+
+            $("#boxThemNhanhBoPhan").slideUp(150);
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã thêm bộ phận mới', showConfirmButton: false, timer: 1500 });
+            }
+            });
+            } else {
+            Swal.fire('Lỗi', res.message || 'Không thể thêm bộ phận.', 'error');
+            }
+            }).fail(function () {
+            Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ để thêm bộ phận.', 'error');
+            });
+            });
+
             function taiSauThongSoCoBan() {
             $("#errorAlert").hide();
             $.ajax({
@@ -254,6 +387,9 @@
             $("#lblTenNguoiDungHeThong").text(duLieuQuetMayKhachCache.tenNguoiDungHeThong || "N/A");
             $("#lblThongTinManHinhNgoai").text(duLieuQuetMayKhachCache.thongTinManHinhNgoai || "N/A");
             $("#lblThongTinManHinh").html(duLieuQuetMayKhachCache.thongTinManHinh || "N/A");
+
+            // Dữ liệu tải thành công -> cho phép mở modal Xác nhận tài sản
+            $("#btnMoModalXacNhanTaiSan").prop("disabled", false).attr("title", "");
             } else {
             thongBaoLoiCoBan("Dữ liệu từ Tool local trả về bị rỗng.");
             }
@@ -269,6 +405,9 @@
             var textLoi = "Lỗi tải: " + (msg || "Không thể lấy dữ liệu");
             $("#lblSeriMay, #lblDongMay, #lblTenMay, #lblTenNguoiDungHeThong, #lblThongTinManHinhNgoai").text(textLoi);
             $("#lblThongTinManHinh").html(textLoi);
+
+            // Chưa có dữ liệu hợp lệ -> khóa nút Xác nhận tài sản lại
+            $("#btnMoModalXacNhanTaiSan").prop("disabled", true).attr("title", "Cần tải xong thông tin máy từ Tool local mới có thể xác nhận");
             }
 
             // XỬ LÝ SỰ KIỆN ĐĂNG NHẬP TRÊN MODAL ĐỂ MỞ KHÓA BẢNG 2
@@ -337,31 +476,43 @@
             return;
             }
 
+            var viTriInput = $("#txtTaiSanViTri").val().trim();
+            if (viTriInput === "") {
+            $("#modalTaiSanAlertError").text("Vui lòng nhập Vị trí đặt máy.").fadeIn();
+            return;
+            }
+
             // Chuẩn bị toàn bộ dữ liệu phần cứng cần thiết để có thể INSERT khi thiết bị chưa tồn tại
-            var postData = {
-            taikhoan: taikhoanInput,
-            matkhau: matkhauInput,
-            seriMay: seriMayInput,
-            tenMay: tenMayInput,
-            dongMay: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.dongMay : null,
-            heDieuHanh: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.heDieuHanh : null,
-            kienTruc: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.kienTruc : null,
-            phienBanNet: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.phienBanNet : null,
-            soLoiCPU: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.soLoiCPU : null,
-            tenNguoiDungHeThong: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.tenNguoiDungHeThong : null,
-            thuMucHeThong: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.thuMucHeThong : null,
-            thoiGianHoatDong: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.thoiGianHoatDong : null,
-            ramKhaDung: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.ramKhaDung : null,
-            thongTinManHinhNgoai: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.thongTinManHinhNgoai : null,
-            thongTinOffice: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.thongTinOffice : null,
-            banQuyenWin: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.banQuyenWin : null,
-            banQuyenOffice: duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.banQuyenOffice : null
-            };
+            var fd = new FormData();
+            fd.append('taikhoan', taikhoanInput);
+            fd.append('matkhau', matkhauInput);
+            fd.append('seriMay', seriMayInput);
+            fd.append('tenMay', tenMayInput);
+            fd.append('dongMay', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.dongMay || '') : '');
+            fd.append('heDieuHanh', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.heDieuHanh || '') : '');
+            fd.append('kienTruc', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.kienTruc || '') : '');
+            fd.append('phienBanNet', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.phienBanNet || '') : '');
+            fd.append('soLoiCPU', duLieuQuetMayKhachCache && duLieuQuetMayKhachCache.soLoiCPU ? duLieuQuetMayKhachCache.soLoiCPU : '');
+            fd.append('tenNguoiDungHeThong', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.tenNguoiDungHeThong || '') : '');
+            fd.append('thuMucHeThong', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.thuMucHeThong || '') : '');
+            fd.append('thoiGianHoatDong', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.thoiGianHoatDong || '') : '');
+            fd.append('ramKhaDung', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.ramKhaDung || '') : '');
+            fd.append('thongTinManHinhNgoai', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.thongTinManHinhNgoai || '') : '');
+            fd.append('thongTinOffice', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.thongTinOffice || '') : '');
+            fd.append('banQuyenWin', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.banQuyenWin || '') : '');
+            fd.append('banQuyenOffice', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.banQuyenOffice || '') : '');
+            fd.append('tenViTri', viTriInput);
+            if ($("#ddlTaiSanCongTy").val()) fd.append('idCongTy', $("#ddlTaiSanCongTy").val());
+            if ($("#ddlTaiSanBoPhan").val()) fd.append('idBoPhan', $("#ddlTaiSanBoPhan").val());
+            var fileAnh = $("#fileTaiSanAnh")[0].files[0];
+            if (fileAnh) fd.append('anhThietBi', fileAnh);
 
             $.ajax({
             url: '/QLKiemKe/XacNhanTaiSanMaMay',
             type: 'POST',
-            data: postData,
+            data: fd,
+            processData: false,
+            contentType: false,
             success: function (res) {
             if (res.success) {
             // Đóng modal xác nhận tài sản khi hoàn tất thành công
@@ -372,6 +523,11 @@
             // Khởi tạo lại trạng thái form nhập liệu trống
             $("#txtTaiSanUser").val('');
             $("#txtTaiSanPassword").val('');
+            $("#txtTaiSanViTri").val('');
+            $("#ddlTaiSanCongTy").val('');
+            renderDropdownBoPhan(""); // Khôi phục lại toàn bộ danh sách Bộ phận sau khi bỏ chọn Công ty
+            $("#boxThemNhanhBoPhan").hide();
+            $("#fileTaiSanAnh").val('');
 
             // ĐÃ CẬP NHẬT: Hiển thị đúng thông báo yêu cầu của bạn khi thành công
             var successAlert = $('<div class="alert alert-success alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">' +

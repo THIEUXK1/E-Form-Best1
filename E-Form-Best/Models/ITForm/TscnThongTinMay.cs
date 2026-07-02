@@ -62,6 +62,9 @@ public partial class TscnThongTinMay
 
     public int? IdNguoiDung { get; set; }
 
+    [StringLength(100)]
+    public string? LoaiThietBi { get; set; }
+
     [ForeignKey("IdNguoiDung")]
     [InverseProperty("TscnThongTinMays")]
     public virtual User? IdNguoiDungNavigation { get; set; }

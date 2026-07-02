@@ -24,6 +24,21 @@
             padding-top: 4px;
             padding-bottom: 4px;
         }
+
+    /* Ghim cột Hành động luôn hiển thị bên phải, không cần kéo ngang để thấy */
+    #tblTatCaMayTinh th.cot-ghim,
+    #tblTatCaMayTinh td.cot-ghim {
+        position: sticky;
+        right: 0;
+        z-index: 5;
+        background-color: #fff;
+        box-shadow: -2px 0 4px rgba(0,0,0,0.08);
+    }
+
+    #tblTatCaMayTinh thead th.cot-ghim {
+        z-index: 11;
+        background-color: #e9ecef;
+    }
 </style>
 
 <div class="container-fluid mt-4 text-dark">
@@ -83,8 +98,11 @@
                     <button id="btnTaiLaiDanhSach" class="btn btn-sm btn-primary me-1" style="white-space: nowrap;">
                         <i class="fa fa-refresh"></i> Tải lại
                     </button>
-                    <button id="btnBoLoc" class="btn btn-sm btn-danger" title="Xóa sạch bộ lọc quay về mặc định">
+                    <button id="btnBoLoc" class="btn btn-sm btn-danger me-1" title="Xóa sạch bộ lọc quay về mặc định">
                         <i class="fa fa-filter"></i> Bỏ lọc
+                    </button>
+                    <button id="btnDongBoThietBi" class="btn btn-sm btn-success" style="white-space: nowrap;" disabled>
+                        <i class="fa fa-exchange"></i> Đồng bộ sang Thiết bị (<span id="lblSoLuongDaChon">0</span>)
                     </button>
                 </div>
             </div>
@@ -104,17 +122,17 @@
                 <table class="table table-bordered table-striped table-hover mb-0" id="tblTatCaMayTinh" style="font-size: 13px;">
                     <thead class="table-secondary sticky-top" style="z-index: 10;">
                         <tr>
+                            <th style="width: 3%;" class="text-center"><input type="checkbox" id="chkChonTatCaTrangHienTai" title="Chọn tất cả trong trang hiện tại" /></th>
                             <th style="white-space: nowrap; width: 5%;">Mã máy</th>
                             <th style="white-space: nowrap;">Số Serial Máy</th>
                             <th style="white-space: nowrap;">Dòng máy (Hãng sản xuất)</th>
+                            <th style="white-space: nowrap;">Loại thiết bị</th>
                             <th style="white-space: nowrap;">Tên máy (Machine Name)</th>
                             <th style="white-space: nowrap;">Người dùng liên kết</th>
                             <th style="white-space: nowrap;">Phiên bản Office đang dùng</th>
-                            <th style="white-space: nowrap;">Trạng thái kết nối thêm</th>
-                            <th style="white-space: nowrap;">Danh sách Màn hình</th>
                             <th style="white-space: nowrap;">Bản quyền Win</th>
                             <th style="white-space: nowrap;">Bản quyền Office</th>
-                            <th style="white-space: nowrap; width: 8%;" class="text-center">Hành động</th>
+                            <th style="white-space: nowrap; width: 8%;" class="text-center cot-ghim">Hành động</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -157,6 +175,10 @@
         var kichThuocTrang = 10;
         var kieuHienThi = "list"; // list hoặc grid
 
+        // Tập hợp IdMay đang được tích chọn để đồng bộ (giữ nguyên khi chuyển trang/lọc)
+        var danhSachDangChon = new Set();
+        var trangDuLieuHienTai = []; // Dữ liệu đang render ở trang hiện tại (dùng cho Chọn tất cả)
+
         // ĐỌC TRẠNG THÁI BỘ LỌC ĐÃ LƯU TỪ LOCALSTORAGE KHI LOAD TRANG
         docTrangThaiBoLocTuLocalStorage();
 
@@ -178,6 +200,131 @@
         capNhatGiaoDienNutBamView();
         $(".chk-filter-win, .chk-filter-office").prop("checked", true);
         thucThiBoLocDuLieu();
+        });
+
+        // Sửa trực tiếp Loại thiết bị ngay trên bảng, tự lưu xuống server khi đổi giá trị
+        $("#tblTatCaMayTinh tbody").on("change", ".select-loai-thiet-bi", function () {
+        var $sel = $(this);
+        var idMay = parseInt($sel.data("id"));
+        var loaiMoi = $sel.val();
+
+        $sel.prop("disabled", true);
+        $.ajax({
+        url: '/QLKiemKe/CapNhatLoaiThietBiMay',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ idMay: idMay, loaiThietBi: loaiMoi }),
+        dataType: 'json',
+        success: function (res) {
+        $sel.prop("disabled", false);
+        if (res.success) {
+        $sel.attr("class", "form-select form-select-sm select-loai-thiet-bi fw-bold " + layMauLoaiThietBi(loaiMoi));
+        // Đồng bộ lại cache gốc để lọc/tìm kiếm và badge Hình hộp phản ánh đúng giá trị mới
+        var itemCache = danhSachGocCache.find(function (x) { return x.idMay === idMay; });
+        if (itemCache) itemCache.loaiThietBi = loaiMoi;
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã cập nhật loại thiết bị', showConfirmButton: false, timer: 1500 });
+        } else {
+        Swal.fire('Lỗi', res.message || 'Không thể cập nhật loại thiết bị.', 'error');
+        }
+        },
+        error: function () {
+        $sel.prop("disabled", false);
+        Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ để cập nhật.', 'error');
+        }
+        });
+        });
+
+        // Tích/bỏ tích 1 dòng máy tính (ủy quyền sự kiện vì bảng render lại liên tục)
+        $("#tblTatCaMayTinh tbody").on("change", ".chk-chon-may", function () {
+        var idMay = parseInt($(this).data("id"));
+        if ($(this).is(":checked")) danhSachDangChon.add(idMay);
+        else danhSachDangChon.delete(idMay);
+        capNhatTrangThaiChonTatCa();
+        capNhatNutDongBo();
+        });
+
+        // Chọn/bỏ chọn tất cả các dòng đang hiển thị trên trang hiện tại
+        $("#chkChonTatCaTrangHienTai").change(function () {
+        var dangChon = $(this).is(":checked");
+        trangDuLieuHienTai.forEach(function (item) {
+        if (dangChon) danhSachDangChon.add(item.idMay);
+        else danhSachDangChon.delete(item.idMay);
+        });
+        $(".chk-chon-may").prop("checked", dangChon);
+        capNhatNutDongBo();
+        });
+
+        // Cập nhật trạng thái checkbox "Chọn tất cả" dựa theo các dòng đang hiển thị ở trang hiện tại
+        function capNhatTrangThaiChonTatCa() {
+        var tongTrang = trangDuLieuHienTai.length;
+        var soDaChonTrongTrang = trangDuLieuHienTai.filter(function (item) { return danhSachDangChon.has(item.idMay); }).length;
+        $("#chkChonTatCaTrangHienTai").prop("checked", tongTrang > 0 && soDaChonTrongTrang === tongTrang);
+        $("#chkChonTatCaTrangHienTai").prop("indeterminate", soDaChonTrongTrang > 0 && soDaChonTrongTrang < tongTrang);
+        }
+
+        // Cập nhật số lượng hiển thị trên nút Đồng bộ và bật/tắt nút
+        function capNhatNutDongBo() {
+        $("#lblSoLuongDaChon").text(danhSachDangChon.size);
+        $("#btnDongBoThietBi").prop("disabled", danhSachDangChon.size === 0);
+        }
+
+        // Nhấn nút Đồng bộ sang Thiết bị: hỏi Trạng thái (tùy chọn) rồi gửi danh sách IdMay đã chọn lên server
+        $("#btnDongBoThietBi").click(function () {
+        if (danhSachDangChon.size === 0) return;
+
+        $.get('/QLKiemKe/GetKkTrangThais', function (res) {
+        var tuyChonTrangThai = '<option value="">-- Không gán trạng thái --</option>';
+        if (res && res.success && res.data) {
+        res.data.forEach(function (tt) {
+        // Mặc định chọn sẵn "Đang hoạt động" cho thiết bị mới thêm (vẫn có thể đổi trước khi xác nhận)
+        var macDinh = tt.tenTrangThai === 'Đang hoạt động' ? ' selected' : '';
+        tuyChonTrangThai += '<option value="' + tt.idTrangThai + '"' + macDinh + '>' + tt.tenTrangThai + '</option>';
+        });
+        }
+
+        Swal.fire({
+        title: 'Đồng bộ ' + danhSachDangChon.size + ' máy tính sang Thiết bị',
+        html: '<p class="text-start small text-muted mb-2">Trùng Tên máy + Loại thiết bị sẽ được cập nhật, không trùng sẽ thêm mới. Vị trí đặt máy sẽ để trống, cần bổ sung sau.</p>' +
+        '<label class="form-label small fw-bold text-start d-block">Gán trạng thái cho các thiết bị này (tùy chọn)</label>' +
+        '<select id="swalIdTrangThai" class="form-select form-select-sm">' + tuyChonTrangThai + '</select>',
+        showCancelButton: true,
+        confirmButtonText: 'Xác nhận đồng bộ',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#198754',
+        preConfirm: function () {
+        return $("#swalIdTrangThai").val();
+        }
+        }).then(function (result) {
+        if (!result.isConfirmed) return;
+
+        var idTrangThai = result.value ? parseInt(result.value) : null;
+
+        $.ajax({
+        url: '/QLKiemKe/DongBoMayTinhSangThietBi',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ danhSachIdMay: Array.from(danhSachDangChon), idTrangThai: idTrangThai }),
+        dataType: 'json',
+        success: function (res) {
+        if (res.success) {
+        var thongBaoBoQua = (res.boQua && res.boQua.length > 0) ? ('<br/><span class="text-warning">Bỏ qua ' + res.boQua.length + ' máy (thiếu Tên máy/Loại thiết bị).</span>') : '';
+        Swal.fire({
+        icon: 'success',
+        title: 'Đồng bộ thành công!',
+        html: 'Thêm mới: <b>' + res.themMoi + '</b> &nbsp;|&nbsp; Cập nhật: <b>' + res.capNhat + '</b>' + thongBaoBoQua
+        });
+        danhSachDangChon.clear();
+        capNhatNutDongBo();
+        } else {
+        Swal.fire('Lỗi', res.message || 'Không thể đồng bộ.', 'error');
+        }
+        },
+        error: function () {
+        Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ để đồng bộ.', 'error');
+        }
+        });
+        });
+        });
         });
 
         // Thay đổi số lượng phần tử trên một trang
@@ -398,12 +545,15 @@
         $("#tblTatCaMayTinh tbody").html('<tr><td colspan="11" class="text-center text-muted py-4">Không tìm thấy bản ghi thiết bị máy tính nào hợp lệ.</td></tr>');
         $("#divContainerGrid").html('<div class="col-12 text-center text-muted py-4">Không tìm thấy bản ghi thiết bị máy tính nào hợp lệ.</div>');
         $("#navPhanTrang .pagination").empty();
+        trangDuLieuHienTai = [];
+        capNhatTrangThaiChonTatCa();
         return;
         }
 
         var startIdx = (trangHienTai - 1) * kichThuocTrang;
         var endIdx = startIdx + kichThuocTrang;
         var phânĐoạnDữLiệuTrang = danhSachDaLoc.slice(startIdx, endIdx);
+        trangDuLieuHienTai = phânĐoạnDữLiệuTrang;
 
         if (kieuHienThi === "list") {
         renderKieuBangDanhSach(phânĐoạnDữLiệuTrang);
@@ -411,8 +561,38 @@
         renderKieuHinhHopGrid(phânĐoạnDữLiệuTrang);
         }
 
+        capNhatTrangThaiChonTatCa();
+
         // Tiến hành dựng các nút bấm thanh điều hướng trang
         buildThanhPhanTrang(danhSachDaLoc.length);
+        }
+
+        // Trả về class màu Bootstrap tương ứng với từng loại thiết bị (Laptop/PC/Máy ảo/Server)
+        function layMauLoaiThietBi(loai) {
+        if (loai === "Laptop") return "bg-primary";
+        if (loai === "PC") return "bg-success";
+        if (loai === "MayAo") return "bg-warning text-dark";
+        if (loai === "Server") return "bg-danger";
+        return "bg-secondary";
+        }
+
+        // Trả về HTML dropdown cho phép sửa trực tiếp Loại thiết bị ngay trên bảng, tự lưu khi đổi giá trị
+        function layHtmlSuaLoaiThietBi(idMay, loaiHienTai) {
+        var dsLoai = ["Laptop", "PC", "MayAo", "Server"];
+        var html = '<select class="form-select form-select-sm select-loai-thiet-bi fw-bold ' + layMauLoaiThietBi(loaiHienTai) + '" data-id="' + idMay + '" style="min-width: 110px;">';
+        html += '<option value=""' + (!loaiHienTai ? ' selected' : '') + '>-- Chưa rõ --</option>';
+        dsLoai.forEach(function (l) {
+        html += '<option value="' + l + '"' + (loaiHienTai === l ? ' selected' : '') + '>' + l + '</option>';
+        });
+        html += '</select>';
+        return html;
+        }
+
+        // Trả về HTML badge màu tương ứng với từng loại thiết bị (Laptop/PC/Máy ảo/Server) - dùng cho chế độ Hình hộp
+        function layHtmlBadgeLoaiThietBi(loai) {
+        var lop = layMauLoaiThietBi(loai);
+        var giaTri = loai || "Chưa xác định";
+        return '<span class="badge ' + lop + '">' + giaTri + '</span>';
         }
 
         // PHƯƠNG THỨC RENDER 1: GIAO DIỆN BẢNG DANH SÁCH (TABLE ROW)
@@ -426,17 +606,17 @@
         }
 
         html += '<tr>' +
+        '<td class="text-center"><input type="checkbox" class="chk-chon-may" data-id="' + item.idMay + '"' + (danhSachDangChon.has(item.idMay) ? ' checked' : '') + '></td>' +
         '<td>' + item.idMay + '</td>' +
         '<td class="text-danger fw-bold" style="white-space: nowrap;">' + (item.seriMay || "N/A") + '</td>' +
         '<td style="white-space: nowrap;">' + (item.dongMay || "N/A") + '</td>' +
+        '<td style="white-space: nowrap;">' + layHtmlSuaLoaiThietBi(item.idMay, item.loaiThietBi) + '</td>' +
         '<td class="fw-bold text-dark" style="white-space: nowrap;">' + (item.tenMay || "N/A") + '</td>' +
         '<td class="fw-bold text-primary">' + userInfo + '</td>' +
         '<td>' + (item.thongTinOffice || "N/A") + '</td>' +
-        '<td class="text-success small">' + (item.thongTinManHinhNgoai || "N/A") + '</td>' +
-        '<td>' + (item.thongTinManHinh || "N/A") + '</td>' +
         '<td class="text-info fw-bold">' + (item.banQuyenWin || "N/A") + '</td>' +
         '<td class="text-warning fw-bold">' + (item.banQuyenOffice || "N/A") + '</td>' +
-        '<td class="text-center">' +
+        '<td class="text-center cot-ghim">' +
         '   <a href="/QLKiemKe/ViewChiTietMayTinh?idMay=' + item.idMay + '" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size: 11px;">' +
         '       <i class="fa fa-eye"></i> Chi tiết' +
         '   </a>' +
@@ -459,10 +639,11 @@
         '   <div class="card h-100 shadow-sm border grid-item-card bg-white">' +
         '       <div class="card-header bg-secondary text-white py-2 d-flex justify-content-between align-items-center">' +
         '           <span class="badge bg-dark">ID: ' + item.idMay + '</span>' +
-        '           <small class="fw-bold text-light text-truncate" style="max-width: 140px;">' + (item.dongMay || "N/A") + '</small>' +
+        '           ' + layHtmlBadgeLoaiThietBi(item.loaiThietBi) +
         '       </div>' +
         '       <div class="card-body p-3 text-dark" style="font-size: 12px;">' +
         '           <h6 class="text-primary fw-bold mb-2 text-truncate" title="' + item.tenMay + '"><i class="fa fa-desktop me-1"></i>' + (item.tenMay || "N/A") + '</h6>' +
+        '           <p class="mb-1 text-muted text-truncate"><b>Dòng máy:</b> ' + (item.dongMay || "N/A") + '</p>' +
         '           <p class="mb-1"><b>Serial:</b> <span class="text-danger fw-bold">' + (item.seriMay || "N/A") + '</span></p>' +
         '           <p class="mb-1 text-truncate text-primary"><b>Nhân sự:</b> ' + userInfo + '</p>' +
         '           <p class="mb-1 text-muted text-truncate"><b>Bản Office:</b> ' + (item.thongTinOffice || "N/A") + '</p>' +
