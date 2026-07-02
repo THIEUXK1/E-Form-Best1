@@ -673,6 +673,8 @@ public partial class ITFormContext : DbContext
 
             entity.Property(e => e.NgayTao).HasDefaultValueSql("(getdate())");
 
+            entity.HasOne(d => d.IdMayNavigation).WithMany(p => p.KkThietBis).HasConstraintName("FK_KK_ThietBi_TSCN_ThongTinMay");
+
             entity.HasOne(d => d.IdNguoiDungNavigation).WithMany(p => p.KkThietBis)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_KK_ThietBi_User");

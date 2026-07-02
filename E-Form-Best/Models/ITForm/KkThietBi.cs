@@ -81,6 +81,12 @@ public partial class KkThietBi
     [StringLength(150)]
     public string? OfficeLicense { get; set; }
 
+    public int? IdMay { get; set; }
+
+    [ForeignKey("IdMay")]
+    [InverseProperty("KkThietBis")]
+    public virtual TscnThongTinMay? IdMayNavigation { get; set; }
+
     [ForeignKey("IdNguoiDung")]
     [InverseProperty("KkThietBis")]
     public virtual User? IdNguoiDungNavigation { get; set; }
