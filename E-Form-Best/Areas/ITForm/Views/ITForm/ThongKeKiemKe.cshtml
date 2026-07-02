@@ -268,6 +268,32 @@
     display: none;
     }
     }
+
+    /* CSS CHO TIMELINE NHẬT KÝ KIỂM KÊ (giống trang Thiết bị) */
+    .timeline-check {
+    position: relative;
+    border-left: 3px solid #e2e8f0;
+    padding-left: 20px;
+    margin-left: 10px;
+    }
+
+    .timeline-check-item {
+    position: relative;
+    margin-bottom: 25px;
+    }
+
+    .timeline-check-item::before {
+    content: "";
+    position: absolute;
+    left: -27px;
+    top: 4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #10b981;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 3px #d1fae5;
+    }
 </style>
 
 <div class="content-header py-3">
@@ -318,9 +344,10 @@
                         <select id="filterLimit" class="form-select rounded-3 shadow-sm border" style="height: 38px; font-weight: bold;">
                             <option value="10">10 dòng</option>
                             <option value="20">20 dòng</option>
-                            <option value="30" selected>30 dòng</option>
+                            <option value="30">30 dòng</option>
                             <option value="50">50 dòng</option>
-                            <option value="100">100 dòng</option>
+                            <option value="100" selected>100 dòng</option>
+                            <option value="all">Hiển thị tất cả</option>
                         </select>
                     </div>
 
@@ -453,6 +480,14 @@
             </div>
         </div>
 
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <button class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBieuDo" aria-expanded="false" aria-controls="collapseBieuDo" id="btnToggleBieuDo">
+                <i class="fas fa-chevron-right me-1" id="iconToggleBieuDo"></i> <span id="textToggleBieuDo">Xem biểu đồ thống kê</span>
+            </button>
+        </div>
+
+        <div class="collapse" id="collapseBieuDo">
+
         <div class="row g-4 mb-4">
             <div class="col-lg-4">
                 <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
@@ -502,6 +537,8 @@
                     </div>
                 </div>
             </div>
+        </div>
+
         </div>
 
         <div class="card border-0 shadow-sm mb-4" id="tableSection" style="border-radius: 15px;">
@@ -580,6 +617,24 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalLichSuCheckThietBi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header bg-info text-white border-0" style="border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title fw-bold"><i class="fas fa-clipboard-check me-2"></i> Nhật ký kiểm kê thiết bị</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="lblInfoThietBiLichSuKiemKe" class="mb-3 p-2 bg-light rounded border fw-bold small text-secondary"></div>
+                <div class="timeline-check" id="boxTimelineCheckResultThongKe"></div>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         // Các biến lưu trữ dữ liệu
@@ -589,7 +644,12 @@
 
         // Các biến phục vụ Phân trang (Pagination)
         let currentPage = 1;
-        let pageSize = 30;
+        let pageSize = 100;
+
+        // "Hiển thị tất cả" quy về 1 số rất lớn để tái sử dụng nguyên vẹn công thức phân trang hiện có (không cần rẽ nhánh riêng)
+        function layPageSizeTuGiaTri(val) {
+        return val === 'all' ? 999999 : parseInt(val);
+        }
 
         // Các biểu đồ
         let chartCongTy = null;
@@ -601,6 +661,21 @@
         let activeCardFilter = '';
 
         $(document).ready(function () {
+        // Phần biểu đồ mặc định thu gọn, resize lại khi người dùng bấm mở ra (canvas ẩn lúc vẽ ban đầu sẽ bị sai kích thước)
+        document.getElementById('collapseBieuDo').addEventListener('shown.bs.collapse', function () {
+        $('#iconToggleBieuDo').removeClass('fa-chevron-right').addClass('fa-chevron-down');
+        $('#textToggleBieuDo').text('Thu gọn biểu đồ thống kê');
+
+        if (chartCongTy) chartCongTy.resize();
+        if (chartLoai) chartLoai.resize();
+        if (chartTienDo) chartTienDo.resize();
+        chartBoPhanInstances.forEach(function (c) { if (c) c.resize(); });
+        });
+        document.getElementById('collapseBieuDo').addEventListener('hidden.bs.collapse', function () {
+        $('#iconToggleBieuDo').removeClass('fa-chevron-down').addClass('fa-chevron-right');
+        $('#textToggleBieuDo').text('Xem biểu đồ thống kê');
+        });
+
         // Đọc trạng thái ẩn hiện bộ lọc nâng cao từ localStorage
         let savedState = localStorage.getItem('dash_toggleAdvancedFilters') || 'hide';
         if (savedState === 'show') {
@@ -619,9 +694,10 @@
             $('#filterSort').val(localStorage.getItem('dash_filterSort'));
         }
         if (localStorage.getItem('dash_pageSize')) {
-            pageSize = parseInt(localStorage.getItem('dash_pageSize'));
-            $('#filterLimit').val(pageSize);
-            $('#lblSyncPageSize').text(pageSize + ' dòng');
+            let savedLimitVal = localStorage.getItem('dash_pageSize');
+            pageSize = layPageSizeTuGiaTri(savedLimitVal);
+            $('#filterLimit').val(savedLimitVal);
+            $('#lblSyncPageSize').text(savedLimitVal === 'all' ? 'Tất cả' : (pageSize + ' dòng'));
         }
         if (localStorage.getItem('dash_activeCardFilter') !== null) {
             activeCardFilter = localStorage.getItem('dash_activeCardFilter');
@@ -636,9 +712,10 @@
         });
 
         $('#filterLimit').on('change', function () {
-        pageSize = parseInt($(this).val());
+        let val = $(this).val();
+        pageSize = layPageSizeTuGiaTri(val);
         currentPage = 1;
-        $('#lblSyncPageSize').text(pageSize + ' dòng');
+        $('#lblSyncPageSize').text(val === 'all' ? 'Tất cả' : (pageSize + ' dòng'));
         renderTablePage();
         });
 
@@ -760,9 +837,9 @@
         });
         $('#filterText').val('');
         $('#filterSort').val('');
-        $('#filterLimit').val('30');
-        pageSize = 30;
-        $('#lblSyncPageSize').text('30 dòng');
+        $('#filterLimit').val('100');
+        pageSize = 100;
+        $('#lblSyncPageSize').text('100 dòng');
         setCardFilter('', 'card-all');
         }
 
@@ -789,7 +866,7 @@
         // --- TIẾN HÀNH LƯU TRẠNG THÁI HIỆN TẠI VÀO LOCALSTORAGE KHI CÓ THAY ĐỔI ---
         localStorage.setItem('dash_filterText', $('#filterText').val());
         localStorage.setItem('dash_filterSort', fSort);
-        localStorage.setItem('dash_pageSize', pageSize);
+        localStorage.setItem('dash_pageSize', $('#filterLimit').val());
         localStorage.setItem('dash_activeCardFilter', activeCardFilter);
         localStorage.setItem('dash_activeCardId', $('.stat-card.active').attr('id') || 'card-all');
         localStorage.setItem('dash_selectedCompanies', JSON.stringify(selectedCompanies));
@@ -1112,6 +1189,9 @@
         <button class="btn btn-sm text-white rounded-pill shadow-sm px-2 py-1 btn-action-mobile" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); border: none; font-weight: 600; font-size: 0.75rem;" onclick="xemLichSuThietBi(${item.idThietBi}, '${item.tenMayTinh || item.tenViTri || 'Vị trí'}')">
         <i class="fas fa-history me-1"></i> Lịch sử
         </button>
+        <button class="btn btn-sm text-white rounded-pill shadow-sm px-2 py-1 btn-action-mobile" style="background: linear-gradient(135deg, #10b981, #0ea5e9); border: none; font-weight: 600; font-size: 0.75rem;" onclick="xemNhatKyKiemKeThietBi(${item.idThietBi}, '${item.tenMayTinh || ''}', '${item.tenViTri || ''}')" title="Xem lại các lần Xác nhận kiểm kê trước đó, kèm ảnh bằng chứng">
+        <i class="fas fa-clipboard-check me-1"></i> Nhật ký kiểm kê
+        </button>
         </div>
         </td>
         </tr>`;
@@ -1292,6 +1372,53 @@
         }
         }).fail(function () {
         $('#tbodyLichSu').html('<tr><td colspan="4" class="text-center text-danger py-4"><i class="fas fa-exclamation-circle me-1"></i> Không thể kết nối tới máy chủ!</td></tr>');
+        });
+        }
+
+        // Xem Nhật ký kiểm kê thiết bị: các lần Xác nhận kiểm kê trước đó kèm ảnh bằng chứng (khác với Lịch sử thao tác ở trên)
+        function xemNhatKyKiemKeThietBi(idThietBi, tenMayTinh, tenViTri) {
+        $('#lblInfoThietBiLichSuKiemKe').html(`<i class="fas fa-laptop me-1"></i> Máy tính: ${tenMayTinh || 'N/A'} | Vị trí: ${tenViTri || 'N/A'}`);
+        $('#boxTimelineCheckResultThongKe').html(`<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i> Đang tải nhật ký...</div>`);
+
+        let myModal = new bootstrap.Modal(document.getElementById('modalLichSuCheckThietBi'));
+        myModal.show();
+
+        $.get('/QLKiemKe/GetKkBangChungChecks', { idThietBi: idThietBi }, function (res) {
+        if (res && res.success) {
+        let logs = res.data || [];
+        if (logs.length === 0) {
+        $('#boxTimelineCheckResultThongKe').html(`<div class="text-center text-muted py-4 small"><i class="fas fa-info-circle opacity-50 mb-1 d-block fs-4"></i> Thiết bị này chưa có lịch sử xác nhận kiểm kê kèm bằng chứng.</div>`);
+        return;
+        }
+
+        let timelineHtml = '';
+        logs.forEach(log => {
+        let dateStr = new Date(log.thoiGianCheck).toLocaleString('vi-VN');
+        let imgHtml = '';
+
+        if (log.duongDanAnh) {
+        let fullImgUrl = `/QLKiemKe/GetEvidenceImage?fileName=${encodeURIComponent(log.duongDanAnh)}`;
+        imgHtml = `
+        <div class="mt-2">
+        <img src="${fullImgUrl}" class="rounded shadow-sm border border-light" style="width: 100px; height: 75px; object-fit: cover; cursor: pointer;" onclick="viewFullImage('${fullImgUrl}', '${tenViTri || ''}')" title="Bấm để xem ảnh lớn bằng chứng" />
+        </div>`;
+        }
+
+        timelineHtml += `
+        <div class="timeline-check-item">
+        <div class="fw-bold text-dark small mb-1"><i class="fas fa-clock me-1 text-secondary"></i> ${dateStr}</div>
+        <div class="text-secondary small bg-light p-2 rounded border border-light shadow-none" style="font-size:12.5px;">
+        <b>Ghi chú:</b> ${log.ghiChu || 'Xác nhận kiểm kê'}
+        ${imgHtml}
+        </div>
+        </div>`;
+        });
+        $('#boxTimelineCheckResultThongKe').html(timelineHtml);
+        } else {
+        $('#boxTimelineCheckResultThongKe').html(`<div class="text-danger small">Lỗi tải nhật ký: ${res.message}</div>`);
+        }
+        }).fail(function () {
+        $('#boxTimelineCheckResultThongKe').html('<div class="text-danger small">Không thể kết nối tới máy chủ.</div>');
         });
         }
 
