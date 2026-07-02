@@ -67,6 +67,9 @@ public partial class TscnThongTinMay
     public virtual User? IdNguoiDungNavigation { get; set; }
 
     [InverseProperty("IdMayNavigation")]
+    public virtual ICollection<KkThietBi> KkThietBis { get; set; } = new List<KkThietBi>();
+
+    [InverseProperty("IdMayNavigation")]
     public virtual ICollection<TscnChiTietMacWifi> TscnChiTietMacWifis { get; set; } = new List<TscnChiTietMacWifi>();
 
     [InverseProperty("IdMayNavigation")]
