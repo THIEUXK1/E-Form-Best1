@@ -317,10 +317,17 @@
         });
 
         loadTrangThai();
+
+        var savedTabId = localStorage.getItem('kk_activeTab');
+        if (savedTabId) {
+        var savedTabEl = document.getElementById(savedTabId);
+        if (savedTabEl) { savedTabEl.click(); }
+        }
         });
 
         function changeTab(tabName, element) {
         currentTab = tabName;
+        localStorage.setItem('kk_activeTab', element.id);
         if(tabName === 'Lịch sử') {
         $('#btnMasterThemMoi').parent().hide();
         } else {

@@ -5843,6 +5843,149 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
+        public class ThemNhanhTaiSanRow
+        {
+            public string? Serial { get; set; }
+            public string? LoaiThietBi { get; set; }
+            public string? TenViTri { get; set; }
+            public IFormFile? Anh { get; set; }
+        }
+
+        // HÀM THÊM NHANH TÀI SẢN KHÁC (Súng bắn mã vạch, Điện thoại bàn, Máy chiếu, PDA, ...) TỪ TRANG XÁC NHẬN TÀI SẢN
+        // Dùng chung Tài khoản/Công ty/Bộ phận đã nhập ở form Xác nhận tài sản. Ghép trùng theo Serial + Loại thiết bị: có rồi thì Cập nhật, chưa có thì Thêm mới.
+        [HttpPost("/QLKiemKe/ThemNhanhTaiSanKhac")]
+        public async Task<IActionResult> ThemNhanhTaiSanKhac(string taikhoan, string matkhau, int? idCongTy, int? idBoPhan, [FromForm] List<ThemNhanhTaiSanRow> rows)
+        {
+            if (string.IsNullOrWhiteSpace(taikhoan) || string.IsNullOrWhiteSpace(matkhau))
+            {
+                return Json(new { success = false, message = "Vui lòng nhập Tài khoản và Mật khẩu ở phần Xác nhận tài sản trước." });
+            }
+            if (!idCongTy.HasValue)
+            {
+                return Json(new { success = false, message = "Vui lòng chọn Công ty." });
+            }
+            if (!idBoPhan.HasValue)
+            {
+                return Json(new { success = false, message = "Vui lòng chọn Bộ phận." });
+            }
+            if (rows == null || rows.Count == 0)
+            {
+                return Json(new { success = false, message = "Vui lòng thêm ít nhất một thiết bị." });
+            }
+
+            try
+            {
+                var user = await XacThucTaiKhoanHybrid(taikhoan, matkhau);
+                if (user == null)
+                {
+                    return Json(new { success = false, message = "Tài khoản hoặc mật khẩu xác nhận không chính xác." });
+                }
+
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    if (string.IsNullOrWhiteSpace(rows[i].Serial))
+                        return Json(new { success = false, message = $"Dòng {i + 1}: Vui lòng nhập Serial." });
+                    if (string.IsNullOrWhiteSpace(rows[i].LoaiThietBi))
+                        return Json(new { success = false, message = $"Dòng {i + 1}: Vui lòng chọn Loại thiết bị." });
+                }
+
+                string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\AnhKiemKe";
+                int soThem = 0, soCapNhat = 0;
+
+                // Trạng thái mặc định gán cho thiết bị THÊM MỚI (không đổi trạng thái của thiết bị đã tồn tại khi cập nhật)
+                int? idTrangThaiMacDinh = _context.KkTrangThais
+                    .Where(x => x.TenTrangThai == "Đang hoạt động")
+                    .Select(x => (int?)x.IdTrangThai)
+                    .FirstOrDefault();
+
+                foreach (var row in rows)
+                {
+                    string serialTrim = row.Serial!.Trim();
+                    string loaiTrim = row.LoaiThietBi!.Trim();
+
+                    var existing = _context.KkThietBis.FirstOrDefault(x =>
+                        x.Seribacode != null && x.Seribacode.Trim().ToLower() == serialTrim.ToLower() &&
+                        x.LoaiThietBi != null && x.LoaiThietBi.Trim().ToLower() == loaiTrim.ToLower());
+
+                    string? tenFileAnhMoi = null;
+                    if (row.Anh != null && row.Anh.Length > 0)
+                    {
+                        if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
+
+                        string imgExtension = Path.GetExtension(row.Anh.FileName) ?? "";
+                        if (string.IsNullOrEmpty(imgExtension)) imgExtension = ".jpg";
+                        string timeStamp = DateTime.Now.ToString("yyyyMMddHHmmssfff");
+                        string safeName = string.Join("_", (row.TenViTri ?? loaiTrim).Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+                        if (string.IsNullOrEmpty(safeName)) safeName = "TB";
+
+                        tenFileAnhMoi = $"AnhTB_{safeName}_{timeStamp}{imgExtension}";
+                        string imgFullPath = Path.Combine(networkPath, tenFileAnhMoi);
+                        using (var imgStream = new FileStream(imgFullPath, FileMode.Create))
+                        {
+                            await row.Anh.CopyToAsync(imgStream);
+                        }
+                    }
+
+                    KkThietBi thietBi;
+                    bool laCapNhat = existing != null;
+                    if (existing != null)
+                    {
+                        if (!string.IsNullOrWhiteSpace(row.TenViTri)) existing.TenViTri = row.TenViTri.Trim();
+                        existing.IdcongTy = idCongTy;
+                        existing.IdboPhan = idBoPhan;
+                        existing.TenDangNhap = taikhoan;
+                        existing.IdNguoiDung = user.IdNguoiDung;
+                        existing.NgayCapNhat = DateTime.Now;
+                        existing.ThoiGianCheck = DateTime.Now;
+                        if (tenFileAnhMoi != null) existing.DuongDanAnh = tenFileAnhMoi;
+                        thietBi = existing;
+                        soCapNhat++;
+                    }
+                    else
+                    {
+                        thietBi = new KkThietBi
+                        {
+                            TenViTri = row.TenViTri?.Trim() ?? "",
+                            LoaiThietBi = loaiTrim,
+                            Seribacode = serialTrim,
+                            TenDangNhap = taikhoan,
+                            IdNguoiDung = user.IdNguoiDung,
+                            IdcongTy = idCongTy,
+                            IdboPhan = idBoPhan,
+                            IdTrangThai = idTrangThaiMacDinh,
+                            DuongDanAnh = tenFileAnhMoi,
+                            NgayTao = DateTime.Now,
+                            NgayCapNhat = DateTime.Now,
+                            ThoiGianCheck = DateTime.Now
+                        };
+                        _context.KkThietBis.Add(thietBi);
+                        soThem++;
+                    }
+
+                    _context.SaveChanges();
+
+                    _context.KkBangChungChecks.Add(new KkBangChungCheck
+                    {
+                        IdThietBi = thietBi.IdThietBi,
+                        ThoiGianCheck = DateTime.Now,
+                        DuongDanAnh = tenFileAnhMoi,
+                        GhiChu = string.IsNullOrWhiteSpace(row.TenViTri) ? $"Xác nhận kiểm kê ({loaiTrim})" : row.TenViTri!.Trim()
+                    });
+                    _context.SaveChanges();
+
+                    GhiLichSu(laCapNhat ? "Cập nhật" : "Thêm mới", "Thiết Bị", thietBi.IdThietBi,
+                        $"[Tài sản khác] Serial: {serialTrim} | Loại: {loaiTrim} | Vị trí: {row.TenViTri} | Account: {taikhoan}");
+                }
+
+                return Json(new { success = true, message = $"Đã xử lý {rows.Count} thiết bị (Thêm mới: {soThem}, Cập nhật: {soCapNhat})." });
+            }
+            catch (Exception ex)
+            {
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = $"Lỗi hệ thống khi thêm tài sản: {chiTietLoi}" });
+            }
+        }
+
         public class CapNhatLoaiThietBiRequest
         {
             public int IdMay { get; set; }
@@ -6392,14 +6535,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (user == null)
                 {
                     return Json(new { success = false, message = "Tài khoản hoặc mật khẩu xác nhận không chính xác." });
-                }
-
-                bool isAdminIT = _context.UserQuyens
-                    .Any(uq => uq.IdNguoiDung == user.IdNguoiDung && uq.IdQuyenNavigation.TenQuyen == "AdminIT");
-
-                if (!isAdminIT)
-                {
-                    return Json(new { success = false, message = "Tài khoản hợp lệ nhưng bạn không có quyền AdminIT để thực hiện gán tài sản." });
                 }
 
                 // 2. Kiểm tra điều kiện: Số Serial Máy quét được phải trùng khớp với máy đã tồn tại trong DB

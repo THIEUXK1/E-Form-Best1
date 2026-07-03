@@ -3,8 +3,24 @@
     ViewData["Title"] = "Thông tin máy hiện tại";
 }
 
+<style>
+    .drag-drop-zone {
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 20px;
+        background: #f8fafc;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+        .drag-drop-zone.dragover {
+            border-color: #10b981;
+            background: #d1fae5;
+        }
+</style>
+
 <div class="container-fluid mt-4">
-    @if (User.Identity != null && User.Identity.IsAuthenticated && User.IsInRole("AdminIT"))
+    @if (User.Identity != null && User.Identity.IsAuthenticated)
     {
         <div class="card shadow">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -225,7 +241,37 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Ảnh chụp thiết bị (tùy chọn)</label>
-                                <input type="file" id="fileTaiSanAnh" class="form-control" accept="image/*" capture="environment" />
+                                <div class="drag-drop-zone text-center mb-2" id="dropZoneTaiSanAnh" title="Kéo thả ảnh vào đây, click để chọn ảnh, hoặc click vào đây rồi nhấn Ctrl + V để dán ảnh" onclick="$('#fileTaiSanAnh').click();">
+                                    <div class="py-2 text-muted" id="txtTaiSanAnhHint">
+                                        <i class="fa fa-camera-retro fa-2x mb-2 text-success"></i>
+                                        <p class="mb-0 small fw-semibold">Chọn ảnh từ máy / Kéo thả ảnh / Click vào đây rồi nhấn <b>Ctrl + V</b> để dán</p>
+                                    </div>
+                                </div>
+                                <input type="file" id="fileTaiSanAnh" accept="image/*" capture="environment" class="d-none" onchange="previewTaiSanAnh(this)" />
+                                <div class="text-center" id="boxPreviewTaiSanAnh" style="display: none;">
+                                    <div class="position-relative d-inline-block">
+                                        <img id="imgTaiSanAnhPreview" src="" alt="Ảnh thiết bị" style="max-height: 160px; max-width: 100%; border-radius: 10px; border: 2px dashed #10b981; padding: 3px;" />
+                                        <button type="button" class="btn btn-sm btn-danger position-absolute top-0 start-100 translate-middle rounded-circle shadow" onclick="clearTaiSanAnh(); event.stopPropagation();" style="width: 24px; height: 24px; padding: 0; line-height: 1;">
+                                            <i class="fa fa-times" style="font-size: 11px;"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <hr />
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label fw-bold mb-0">Tài sản khác đi kèm (tùy chọn)</label>
+                                    <button type="button" id="btnToggleTaiSanKhac" class="btn btn-sm btn-outline-success">
+                                        <i class="fa fa-plus-square"></i> Tài sản
+                                    </button>
+                                </div>
+                                <div class="form-text mb-2">Súng bắn mã vạch, Điện thoại bàn, Máy chiếu, PDA... sẽ được gửi cùng lúc với Tài khoản/Công ty/Bộ phận ở trên khi bấm "Gửi".</div>
+                                <div id="boxTaiSanKhac" style="display: none;">
+                                    <div id="dsRowTaiSanKhac"></div>
+                                    <button type="button" id="btnThemDongTaiSanKhac" class="btn btn-sm btn-outline-success">
+                                        <i class="fa fa-plus"></i> Thêm dòng
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -247,10 +293,10 @@
                 <h4 class="text-danger fw-bold">Thông tin được bảo mật</h4>
                 <p class="text-muted mt-2" style="font-size: 16px;">
                     Phần thông tin cấu hình máy tính này đã được ẩn đi. <br />
-                    Để xem được dữ liệu, bạn phải đăng nhập bằng tài khoản có quyền <strong>AdminIT</strong>.
+                    Để xem được dữ liệu, bạn phải đăng nhập bằng tài khoản của mình.
                 </p>
                 <a href="/DonXetDuyet/DangXuat" class="btn btn-primary mt-3" style="padding: 10px 25px;">
-                    <i class="fa fa-sign-in" style="margin-right: 6px;"></i> Đăng nhập tài khoản AdminIT
+                    <i class="fa fa-sign-in" style="margin-right: 6px;"></i> Đăng nhập
                 </a>
             </div>
         </div>
@@ -258,7 +304,7 @@
 </div>
 
 @section Scripts {
-    @if (User.Identity != null && User.Identity.IsAuthenticated && User.IsInRole("AdminIT"))
+    @if (User.Identity != null && User.Identity.IsAuthenticated)
     {
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bundle.min.js"></script>
@@ -267,11 +313,30 @@
             // Biến lưu cache cục bộ dữ liệu từ Tool Exe đổ lên nhằm hiển thị ngay khi gõ pass chuẩn
             var duLieuQuetMayKhachCache = null;
 
+            // Ảnh thiết bị lấy từ Kéo-thả hoặc Ctrl+V dán (khác với ảnh chọn qua input file thường)
+            var taiSanAnhBlob = null;
+
             // Tự động kéo tải dữ liệu ngay từ local helper khi vừa load trang
             taiSauThongSoCoBan();
+            initTaiSanAnhZoneEvents();
 
             // Nạp danh sách Công ty / Bộ phận cho modal Xác nhận tài sản
             var dsBoPhanCache = []; // Cache toàn bộ Bộ phận để lọc lại theo Công ty được chọn
+
+            // Ghi nhớ Công ty/Bộ phận đã chọn để tự khôi phục lại khi load lại trang
+            var congTyDaNap = false, boPhanDaNap = false;
+            function khoiPhucCongTyBoPhanDaLuu() {
+            if (!congTyDaNap || !boPhanDaNap) return;
+            var savedCongTy = localStorage.getItem('kk_taiSanCongTy');
+            var savedBoPhan = localStorage.getItem('kk_taiSanBoPhan');
+            if (savedCongTy && $("#ddlTaiSanCongTy option[value='" + savedCongTy + "']").length) {
+            $("#ddlTaiSanCongTy").val(savedCongTy);
+            }
+            renderDropdownBoPhan($("#ddlTaiSanCongTy").val());
+            if (savedBoPhan && $("#ddlTaiSanBoPhan option[value='" + savedBoPhan + "']").length) {
+            $("#ddlTaiSanBoPhan").val(savedBoPhan);
+            }
+            }
 
             $.get('/QLKiemKe/GetKkCongTys', function (res) {
             if (res && res.success && res.data) {
@@ -279,11 +344,22 @@
             res.data.forEach(function (ct) { html += '<option value="' + ct.idcongTy + '">' + ct.tenCongTy + '</option>'; });
             $("#ddlTaiSanCongTy").html(html);
             }
+            congTyDaNap = true;
+            khoiPhucCongTyBoPhanDaLuu();
             });
             $.get('/QLKiemKe/GetKkBoPhans', function (res) {
             if (res && res.success && res.data) {
             dsBoPhanCache = res.data;
-            renderDropdownBoPhan("");
+            }
+            boPhanDaNap = true;
+            khoiPhucCongTyBoPhanDaLuu();
+            });
+
+            // Nạp danh sách Loại thiết bị cho form "Thêm tài sản khác"
+            var dsLoaiThietBiCache = [];
+            $.get('/QLKiemKe/GetKkLoaiThietBis', function (res) {
+            if (res && res.success && res.data) {
+            dsLoaiThietBiCache = res.data;
             }
             });
 
@@ -298,10 +374,19 @@
             $("#ddlTaiSanBoPhan").html(html);
             }
 
-            // Khi đổi Công ty thì lọc lại danh sách Bộ phận tương ứng và reset lựa chọn cũ
+            // Khi đổi Công ty thì lọc lại danh sách Bộ phận tương ứng, reset lựa chọn cũ và ghi nhớ lựa chọn để khôi phục khi load lại trang
             $("#ddlTaiSanCongTy").change(function () {
-            renderDropdownBoPhan($(this).val());
+            var val = $(this).val();
+            if (val) localStorage.setItem('kk_taiSanCongTy', val); else localStorage.removeItem('kk_taiSanCongTy');
+            localStorage.removeItem('kk_taiSanBoPhan'); // Đổi Công ty thì Bộ phận cũ không còn hợp lệ nữa
+            renderDropdownBoPhan(val);
             $("#boxThemNhanhBoPhan").hide();
+            });
+
+            // Ghi nhớ Bộ phận đã chọn để khôi phục khi load lại trang
+            $("#ddlTaiSanBoPhan").change(function () {
+            var val = $(this).val();
+            if (val) localStorage.setItem('kk_taiSanBoPhan', val); else localStorage.removeItem('kk_taiSanBoPhan');
             });
 
             // Bấm "Thêm nhanh": bóc tách gợi ý Tên bộ phận từ Tên máy hiện tại (VD: ZP-IT003 -> ZP-IT, VN-IT045 -> VN-IT)
@@ -354,7 +439,7 @@
             var boPhanMoi = dsBoPhanCache.find(function (bp) {
             return (bp.tenBoPhan || '').trim().toLowerCase() === tenBoPhanMoi.toLowerCase() && String(bp.idcongTy) === String(idCongTyHienTai);
             });
-            if (boPhanMoi) $("#ddlTaiSanBoPhan").val(boPhanMoi.idboPhan);
+            if (boPhanMoi) { $("#ddlTaiSanBoPhan").val(boPhanMoi.idboPhan); localStorage.setItem('kk_taiSanBoPhan', boPhanMoi.idboPhan); }
 
             $("#boxThemNhanhBoPhan").slideUp(150);
             Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã thêm bộ phận mới', showConfirmButton: false, timer: 1500 });
@@ -408,6 +493,68 @@
 
             // Chưa có dữ liệu hợp lệ -> khóa nút Xác nhận tài sản lại
             $("#btnMoModalXacNhanTaiSan").prop("disabled", true).attr("title", "Cần tải xong thông tin máy từ Tool local mới có thể xác nhận");
+            }
+
+            // Cho phép Kéo-thả ảnh và Ctrl+V dán ảnh vào ô "Ảnh chụp thiết bị"
+            function initTaiSanAnhZoneEvents() {
+            let zone = document.getElementById('dropZoneTaiSanAnh');
+            if (!zone) return;
+
+            zone.addEventListener('dragover', function (e) { e.preventDefault(); zone.classList.add('dragover'); });
+            zone.addEventListener('dragleave', function () { zone.classList.remove('dragover'); });
+            zone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            let file = e.dataTransfer.files[0];
+            if (file.type.startsWith('image/')) {
+            taiSanAnhBlob = null;
+            $('#fileTaiSanAnh')[0].files = e.dataTransfer.files;
+            hienThiXemTruocAnhTaiSan(file);
+            }
+            }
+            });
+
+            let modalTaiSan = document.getElementById('modalXacNhanTaiSan');
+            modalTaiSan.addEventListener('paste', function (e) {
+            if (e.clipboardData && e.clipboardData.items) {
+            for (let i = 0; i < e.clipboardData.items.length; i++) {
+            let item = e.clipboardData.items[i];
+            if (item.type.indexOf('image') !== -1) {
+            let blob = item.getAsFile();
+            taiSanAnhBlob = blob;
+            $('#fileTaiSanAnh').val('');
+            hienThiXemTruocAnhTaiSan(blob);
+            break;
+            }
+            }
+            }
+            });
+            }
+
+            function hienThiXemTruocAnhTaiSan(fileHoacBlob) {
+            let r = new FileReader();
+            r.onload = function (evt) {
+            $('#imgTaiSanAnhPreview').attr('src', evt.target.result);
+            $('#boxPreviewTaiSanAnh').show();
+            $('#txtTaiSanAnhHint').hide();
+            };
+            r.readAsDataURL(fileHoacBlob);
+            }
+
+            function previewTaiSanAnh(input) {
+            if (input.files && input.files[0]) {
+            taiSanAnhBlob = null;
+            hienThiXemTruocAnhTaiSan(input.files[0]);
+            }
+            }
+
+            function clearTaiSanAnh() {
+            $('#fileTaiSanAnh').val('');
+            taiSanAnhBlob = null;
+            $('#imgTaiSanAnhPreview').attr('src', '');
+            $('#boxPreviewTaiSanAnh').hide();
+            $('#txtTaiSanAnhHint').show();
             }
 
             // XỬ LÝ SỰ KIỆN ĐĂNG NHẬP TRÊN MODAL ĐỂ MỞ KHÓA BẢNG 2
@@ -494,6 +641,13 @@
             return;
             }
 
+            // Kiểm tra trước các dòng "Tài sản khác" (nếu có mở khu vực + điền dòng nào)
+            var taiSanKhacInfo = layDanhSachTaiSanKhacHopLe();
+            if (taiSanKhacInfo.error) {
+            $("#modalTaiSanAlertError").text(taiSanKhacInfo.error).fadeIn();
+            return;
+            }
+
             // Chuẩn bị toàn bộ dữ liệu phần cứng cần thiết để có thể INSERT khi thiết bị chưa tồn tại
             var fd = new FormData();
             fd.append('taikhoan', taikhoanInput);
@@ -522,7 +676,8 @@
             if ($("#ddlTaiSanCongTy").val()) fd.append('idCongTy', $("#ddlTaiSanCongTy").val());
             if ($("#ddlTaiSanBoPhan").val()) fd.append('idBoPhan', $("#ddlTaiSanBoPhan").val());
             var fileAnh = $("#fileTaiSanAnh")[0].files[0];
-            if (fileAnh) fd.append('anhThietBi', fileAnh);
+            if (taiSanAnhBlob) fd.append('anhThietBi', taiSanAnhBlob, 'device_photo.jpg');
+            else if (fileAnh) fd.append('anhThietBi', fileAnh);
 
             $.ajax({
             url: '/QLKiemKe/XacNhanTaiSanMaMay',
@@ -532,6 +687,9 @@
             contentType: false,
             success: function (res) {
             if (res.success) {
+            // Gửi tiếp các dòng "Tài sản khác" (nếu có) dùng chung Tài khoản/Công ty/Bộ phận vừa xác nhận, rồi mới đóng modal & báo thành công
+            guiTaiSanKhac(taikhoanInput, matkhauInput, idCongTyInput, idBoPhanInput, taiSanKhacInfo.rows, function (resTaiSanKhac) {
+
             // Đóng modal xác nhận tài sản khi hoàn tất thành công
             var modalElement = document.getElementById('modalXacNhanTaiSan');
             var modalInstance = bootstrap.Modal.getInstance(modalElement);
@@ -544,15 +702,19 @@
             $("#ddlTaiSanCongTy").val('');
             renderDropdownBoPhan(""); // Khôi phục lại toàn bộ danh sách Bộ phận sau khi bỏ chọn Công ty
             $("#boxThemNhanhBoPhan").hide();
-            $("#fileTaiSanAnh").val('');
+            clearTaiSanAnh();
+            resetTaiSanKhac();
 
             // ĐÃ CẬP NHẬT: Hiển thị đúng thông báo yêu cầu của bạn khi thành công
-            var successAlert = $('<div class="alert alert-success alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">' +
-            '<strong>Thành công!</strong> Bạn đã xác nhận tài sản cá nhân thành công.' +
+            var thongBaoTaiSanKhac = (resTaiSanKhac && resTaiSanKhac.success) ? (' ' + resTaiSanKhac.message) :
+                (resTaiSanKhac && resTaiSanKhac.message ? ' Tuy nhiên, Tài sản khác gặp lỗi: ' + resTaiSanKhac.message : '');
+            var successAlert = $('<div class="alert alert-success alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 420px;">' +
+            '<strong>Thành công!</strong> Bạn đã xác nhận tài sản cá nhân thành công.' + thongBaoTaiSanKhac +
             '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
             '</div>');
             $('body').append(successAlert);
             setTimeout(function() { successAlert.alert('close'); }, 5000); // Tự giải phóng thông báo sau 5 giây
+            });
 
             } else {
             $("#modalTaiSanAlertError").text(res.message).fadeIn();
@@ -568,6 +730,123 @@
             e.preventDefault();
             $("#btnSubmitXacNhanTaiSan").click();
             });
+
+            // ===================== FORM "THÊM TÀI SẢN KHÁC" (Súng bắn mã vạch, Điện thoại bàn, Máy chiếu, PDA...) =====================
+            var demDongTaiSanKhac = 0;
+
+            // Các loại thiết bị máy tính đã được xử lý riêng ở phần "Xác nhận tài sản" phía trên -> không cho chọn lại ở "Tài sản khác"
+            var dsLoaiThietBiLoaiTru = ['máy tính', 'laptop', 'máy ảo', 'server', 'switch', 'màn hình', 'máy chấm công'];
+
+            function taoOptionLoaiThietBi() {
+            var html = '<option value="">-- Chọn --</option>';
+            dsLoaiThietBiCache.forEach(function (lt) {
+            var tenChuanHoa = (lt.tenLoai || '').trim().toLowerCase();
+            if (dsLoaiThietBiLoaiTru.indexOf(tenChuanHoa) !== -1) return;
+            html += '<option value="' + lt.tenLoai + '">' + lt.tenLoai + '</option>';
+            });
+            return html;
+            }
+
+            function themDongTaiSanKhac() {
+            var idx = demDongTaiSanKhac++;
+            var rowHtml =
+            '<div class="border rounded p-2 mb-2 dong-tai-san-khac" data-row-index="' + idx + '">' +
+            '  <div class="row g-2">' +
+            '    <div class="col-md-3">' +
+            '      <label class="form-label small fw-bold mb-1">Loại thiết bị <span class="text-danger">*</span></label>' +
+            '      <select class="form-select form-select-sm select-loai-tskhac">' + taoOptionLoaiThietBi() + '</select>' +
+            '    </div>' +
+            '    <div class="col-md-3">' +
+            '      <label class="form-label small fw-bold mb-1">Serial <span class="text-danger">*</span></label>' +
+            '      <input type="text" class="form-control form-control-sm input-serial-tskhac" placeholder="Nhập Serial..." />' +
+            '    </div>' +
+            '    <div class="col-md-3">' +
+            '      <label class="form-label small fw-bold mb-1">Vị trí</label>' +
+            '      <input type="text" class="form-control form-control-sm input-vitri-tskhac" placeholder="VD: Tầng 3 - Phòng Kế toán..." />' +
+            '    </div>' +
+            '    <div class="col-md-2">' +
+            '      <label class="form-label small fw-bold mb-1">Ảnh</label>' +
+            '      <input type="file" accept="image/*" class="form-control form-control-sm input-anh-tskhac" />' +
+            '    </div>' +
+            '    <div class="col-md-1 d-flex align-items-end">' +
+            '      <button type="button" class="btn btn-sm btn-outline-danger btn-xoa-dong-tskhac w-100" title="Xóa dòng"><i class="fa fa-trash"></i></button>' +
+            '    </div>' +
+            '  </div>' +
+            '</div>';
+            $("#dsRowTaiSanKhac").append(rowHtml);
+            }
+
+            $("#btnThemDongTaiSanKhac").click(function () { themDongTaiSanKhac(); });
+
+            $("#dsRowTaiSanKhac").on('click', '.btn-xoa-dong-tskhac', function () {
+            $(this).closest('.dong-tai-san-khac').remove();
+            });
+
+            // Luôn ép chữ hoa 100% khi nhập Serial, kể cả khi dán (paste) văn bản
+            $("#dsRowTaiSanKhac").on('input', '.input-serial-tskhac', function () {
+            var viTriCon = this.selectionStart;
+            $(this).val($(this).val().toUpperCase());
+            this.setSelectionRange(viTriCon, viTriCon);
+            });
+
+            // Bấm "+ Tài sản" ngay cạnh form Xác nhận tài sản để mở/đóng khu vực thêm dòng, tự thêm sẵn 1 dòng trống lần đầu
+            $("#btnToggleTaiSanKhac").click(function () {
+            $("#boxTaiSanKhac").slideToggle(150);
+            if ($("#dsRowTaiSanKhac .dong-tai-san-khac").length === 0) themDongTaiSanKhac();
+            });
+
+            // Gom + kiểm tra các dòng Tài sản khác đã điền (bỏ qua dòng còn để trống hoàn toàn); trả về { rows, error }
+            function layDanhSachTaiSanKhacHopLe() {
+            var rows = [];
+            var error = null;
+            $("#dsRowTaiSanKhac .dong-tai-san-khac").each(function (i) {
+            var loai = $(this).find('.select-loai-tskhac').val();
+            var serial = $(this).find('.input-serial-tskhac').val().trim();
+            var viTri = $(this).find('.input-vitri-tskhac').val().trim();
+            var file = $(this).find('.input-anh-tskhac')[0].files[0];
+
+            if (!serial && !loai && !viTri && !file) return; // Dòng bỏ trống hoàn toàn -> bỏ qua, không tính là lỗi
+
+            if (!serial) { error = 'Tài sản khác - Dòng ' + (i + 1) + ': Vui lòng nhập Serial.'; return false; }
+            if (!loai) { error = 'Tài sản khác - Dòng ' + (i + 1) + ': Vui lòng chọn Loại thiết bị.'; return false; }
+
+            rows.push({ loai: loai, serial: serial, viTri: viTri, file: file });
+            });
+            return { rows: rows, error: error };
+            }
+
+            // Gửi các dòng Tài sản khác (nếu có) lên server, dùng chung Tài khoản/Công ty/Bộ phận vừa xác nhận thành công
+            function guiTaiSanKhac(taikhoanInput, matkhauInput, idCongTyInput, idBoPhanInput, rows, callback) {
+            if (!rows || rows.length === 0) { callback(); return; }
+
+            var fd = new FormData();
+            fd.append('taikhoan', taikhoanInput);
+            fd.append('matkhau', matkhauInput);
+            fd.append('idCongTy', idCongTyInput);
+            fd.append('idBoPhan', idBoPhanInput);
+            rows.forEach(function (r, i) {
+            fd.append('rows[' + i + '].Serial', r.serial);
+            fd.append('rows[' + i + '].LoaiThietBi', r.loai);
+            fd.append('rows[' + i + '].TenViTri', r.viTri);
+            if (r.file) fd.append('rows[' + i + '].Anh', r.file);
+            });
+
+            $.ajax({
+            url: '/QLKiemKe/ThemNhanhTaiSanKhac',
+            type: 'POST',
+            data: fd,
+            processData: false,
+            contentType: false,
+            success: function (res) { callback(res); },
+            error: function () { callback({ success: false, message: 'Đã xảy ra lỗi kết nối khi gửi Tài sản khác.' }); }
+            });
+            }
+
+            function resetTaiSanKhac() {
+            $("#dsRowTaiSanKhac").empty();
+            demDongTaiSanKhac = 0;
+            $("#boxTaiSanKhac").hide();
+            }
 
             // Hàm cập nhật gán dữ liệu chi tiết nâng cao từ Cache bộ nhớ
             function taiToanBoThongTinChiTiet() {
