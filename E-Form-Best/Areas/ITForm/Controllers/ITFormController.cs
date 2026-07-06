@@ -6099,26 +6099,36 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return trimmed.Length > doDaiToiDa ? trimmed.Substring(0, doDaiToiDa) : trimmed;
         }
 
-        // Trích ra đúng "bản" (edition) của Windows mà key đang chạy thuộc về, VD: "Professional", "Home", "Enterprise"...
-        // Bỏ qua phần Partial Product Key/Description/Loại dài dòng, chỉ giữ lại tên edition
+        // Trích ra "bản" (edition) của Windows kèm trạng thái có key kích hoạt hay không, VD: "Professional - Có bản quyền", "Enterprise - Chưa có bản quyền"
+        // Tool local trả về nhiều định dạng chuỗi khác nhau tùy phiên bản (VD: "Name: Windows(R), Professional edition | ... | License Status: Đã kích hoạt (Licensed)..."
+        // hoặc "Đã kích hoạt bản quyền (Licensed) | Đang dùng key: Windows(R), Professional edition - XXXXX (loại: OEM)") nên chỉ dựa vào từ khóa trạng thái + tên edition, bỏ qua Partial Product Key/Description dài dòng.
         private static string? TrichPhienBanWindows(string? banQuyenWinRaw)
         {
             if (string.IsNullOrWhiteSpace(banQuyenWinRaw)) return null;
+            string d = banQuyenWinRaw.ToLower();
+
+            string trangThai;
+            if (d.Contains("đã kích hoạt")) trangThai = "Có bản quyền";
+            else if (d.Contains("không phát hiện") || d.Contains("chưa kích hoạt") || d.Contains("hết hạn") || d.Contains("notification"))
+                trangThai = "Chưa có bản quyền";
+            else
+                trangThai = "Không xác định";
+
             var match = System.Text.RegularExpressions.Regex.Match(banQuyenWinRaw, @"Windows\(R\),\s*([^|]+?)\s*edition", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            if (match.Success) return match.Groups[1].Value.Trim();
-            // Không khớp mẫu quen thuộc -> vẫn cắt về giới hạn an toàn để không lỗi truncate
-            return CatChuoiToiDa(banQuyenWinRaw, 150);
+            string? edition = match.Success ? match.Groups[1].Value.Trim() : null;
+
+            string ketQua = string.IsNullOrWhiteSpace(edition) ? trangThai : $"{edition} - {trangThai}";
+            return CatChuoiToiDa(ketQua, 150);
         }
 
-        // Quy đổi chuỗi trạng thái Office quét được (thường không đáng tin cậy/rất dài dòng) về đúng 2 giá trị Có/Không có bản quyền
+        // Quy đổi chuỗi trạng thái Office quét được (thường không đáng tin cậy/rất dài dòng) về đúng 3 giá trị Có/Không có bản quyền/Không xác định
         private static string? QuyDoiTrangThaiOffice(string? banQuyenOfficeRaw)
         {
             if (string.IsNullOrWhiteSpace(banQuyenOfficeRaw)) return null;
             string d = banQuyenOfficeRaw.ToLower();
-            bool coKichHoat = d.Contains("đã kích hoạt");
-            bool khongCo = d.Contains("không phát hiện") || d.Contains("chưa kích hoạt") || d.Contains("không xác định");
-            if (coKichHoat) return "Có bản quyền";
-            if (khongCo) return "Không có bản quyền";
+            if (d.Contains("đã kích hoạt")) return "Có bản quyền";
+            // "Không xác định" đơn thuần nghĩa là chưa rõ trạng thái, không đồng nghĩa với chắc chắn không có bản quyền nên KHÔNG gộp vào đây
+            if (d.Contains("không phát hiện") || d.Contains("chưa kích hoạt")) return "Không có bản quyền";
             return "Không xác định";
         }
 
