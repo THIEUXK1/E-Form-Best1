@@ -344,30 +344,72 @@
 
         var idTrangThai = result.value ? parseInt(result.value) : null;
 
+        // Chia nhỏ danh sách thành từng lô để gửi tuần tự, nhờ đó hiển thị được % tiến trình thay vì phải chờ 1 request duy nhất xử lý hết
+        var KICH_THUOC_LO_DONG_BO = 20;
+        var dsIdMayDongBo = Array.from(danhSachDangChon);
+        var tongSoMay = dsIdMayDongBo.length;
+        var soLo = Math.ceil(tongSoMay / KICH_THUOC_LO_DONG_BO);
+        var loHienTai = 0;
+        var tongThemMoi = 0, tongCapNhat = 0, dsBoQuaGop = [];
+
+        Swal.fire({
+        title: 'Đang đồng bộ...',
+        html: '<div class="progress" style="height: 24px;">' +
+        '<div id="thanhTienDoDongBo" class="progress-bar bg-success" role="progressbar" style="width: 0%;">0%</div>' +
+        '</div>' +
+        '<div id="ghiChuTienDoDongBo" class="small text-muted mt-2">Đang xử lý 0/' + tongSoMay + ' máy...</div>',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: function () { guiLoDongBoTiepTheo(); }
+        });
+
+        function guiLoDongBoTiepTheo() {
+        var viTriBatDau = loHienTai * KICH_THUOC_LO_DONG_BO;
+        var dsIdLo = dsIdMayDongBo.slice(viTriBatDau, viTriBatDau + KICH_THUOC_LO_DONG_BO);
+
         $.ajax({
         url: '/QLKiemKe/DongBoMayTinhSangThietBi',
         type: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify({ danhSachIdMay: Array.from(danhSachDangChon), idTrangThai: idTrangThai }),
+        data: JSON.stringify({ danhSachIdMay: dsIdLo, idTrangThai: idTrangThai }),
         dataType: 'json',
         success: function (res) {
         if (res.success) {
-        var thongBaoBoQua = (res.boQua && res.boQua.length > 0) ? ('<br/><span class="text-warning">Bỏ qua ' + res.boQua.length + ' máy (thiếu Tên máy/Loại thiết bị).</span>') : '';
+        tongThemMoi += res.themMoi;
+        tongCapNhat += res.capNhat;
+        if (res.boQua && res.boQua.length > 0) dsBoQuaGop = dsBoQuaGop.concat(res.boQua);
+        }
+        loHienTai++;
+        capNhatThanhTienDoDongBo();
+        },
+        error: function () {
+        loHienTai++;
+        capNhatThanhTienDoDongBo();
+        }
+        });
+        }
+
+        function capNhatThanhTienDoDongBo() {
+        var soDaXuLy = Math.min(loHienTai * KICH_THUOC_LO_DONG_BO, tongSoMay);
+        var phanTram = Math.round((loHienTai / soLo) * 100);
+        $("#thanhTienDoDongBo").css('width', phanTram + '%').text(phanTram + '%');
+        $("#ghiChuTienDoDongBo").text('Đang xử lý ' + soDaXuLy + '/' + tongSoMay + ' máy...');
+
+        if (loHienTai < soLo) {
+        guiLoDongBoTiepTheo();
+        } else {
+        var thongBaoBoQua = dsBoQuaGop.length > 0 ? ('<br/><span class="text-warning">Bỏ qua ' + dsBoQuaGop.length + ' máy (thiếu Tên máy/Loại thiết bị).</span>') : '';
         Swal.fire({
         icon: 'success',
         title: 'Đồng bộ thành công!',
-        html: 'Thêm mới: <b>' + res.themMoi + '</b> &nbsp;|&nbsp; Cập nhật: <b>' + res.capNhat + '</b>' + thongBaoBoQua
+        html: 'Thêm mới: <b>' + tongThemMoi + '</b> &nbsp;|&nbsp; Cập nhật: <b>' + tongCapNhat + '</b>' + thongBaoBoQua
         });
         danhSachDangChon.clear();
         capNhatNutDongBo();
-        } else {
-        Swal.fire('Lỗi', res.message || 'Không thể đồng bộ.', 'error');
+        loadGoiTinTatCaMayTinh();
         }
-        },
-        error: function () {
-        Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ để đồng bộ.', 'error');
         }
-        });
         });
         });
         });
