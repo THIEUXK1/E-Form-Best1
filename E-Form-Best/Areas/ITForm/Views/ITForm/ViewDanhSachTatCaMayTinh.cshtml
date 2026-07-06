@@ -101,6 +101,9 @@
                     <button id="btnBoLoc" class="btn btn-sm btn-danger me-1" title="Xóa sạch bộ lọc quay về mặc định">
                         <i class="fa fa-filter"></i> Bỏ lọc
                     </button>
+                    <button id="btnTuDongPhanLoai" class="btn btn-sm btn-warning me-1" style="white-space: nowrap;" disabled title="Tích chọn thiết bị cần phân loại trước, sau đó bấm nút này để tự đoán Laptop/PC/MayAo/Server dựa vào Dòng máy">
+                        <i class="fa fa-magic"></i> Tự động phân loại (<span id="lblSoLuongDaChonPhanLoai">0</span>)
+                    </button>
                     <button id="btnDongBoThietBi" class="btn btn-sm btn-success" style="white-space: nowrap;" disabled>
                         <i class="fa fa-exchange"></i> Đồng bộ sang Thiết bị (<span id="lblSoLuongDaChon">0</span>)
                     </button>
@@ -262,11 +265,53 @@
         $("#chkChonTatCaTrangHienTai").prop("indeterminate", soDaChonTrongTrang > 0 && soDaChonTrongTrang < tongTrang);
         }
 
-        // Cập nhật số lượng hiển thị trên nút Đồng bộ và bật/tắt nút
+        // Cập nhật số lượng hiển thị trên nút Đồng bộ / Tự động phân loại và bật/tắt các nút theo số lượng đang tích chọn
         function capNhatNutDongBo() {
         $("#lblSoLuongDaChon").text(danhSachDangChon.size);
         $("#btnDongBoThietBi").prop("disabled", danhSachDangChon.size === 0);
+        $("#lblSoLuongDaChonPhanLoai").text(danhSachDangChon.size);
+        $("#btnTuDongPhanLoai").prop("disabled", danhSachDangChon.size === 0);
         }
+
+        // Nhấn nút "Tự động phân loại": chỉ áp dụng cho các thiết bị ĐANG TÍCH CHỌN, đoán Laptop/PC/MayAo/Server dựa vào Dòng máy (ghi đè cả khi đã có sẵn giá trị)
+        $("#btnTuDongPhanLoai").click(function () {
+        if (danhSachDangChon.size === 0) return;
+
+        Swal.fire({
+        title: 'Tự động phân loại ' + danhSachDangChon.size + ' thiết bị đã chọn?',
+        html: 'Hệ thống sẽ dựa vào <b>Dòng máy</b> để tự đoán Laptop/PC/MayAo/Server cho các thiết bị đang tích chọn (ghi đè cả Loại thiết bị đã chọn trước đó nếu đoán được).<br/>Thiết bị không đủ dấu hiệu nhận diện sẽ vẫn giữ nguyên/để trống, cần chọn tay.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Thực hiện',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#ffc107'
+        }).then(function (result) {
+        if (!result.isConfirmed) return;
+
+        $("#btnTuDongPhanLoai").prop("disabled", true);
+        $.ajax({
+        url: '/QLKiemKe/TuDongPhanLoaiThietBiChuaPhanLoai',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ danhSachIdMay: Array.from(danhSachDangChon) }),
+        dataType: 'json',
+        success: function (res) {
+        $("#btnTuDongPhanLoai").prop("disabled", danhSachDangChon.size === 0);
+        if (res.success) {
+        var ghiChuConLai = res.soKhongXacDinh > 0 ? ('<br/><span class="text-warning">Còn ' + res.soKhongXacDinh + ' thiết bị không đủ dấu hiệu nhận diện, cần chọn tay ở cột Loại thiết bị.</span>') : '';
+        Swal.fire({ icon: 'success', title: 'Đã tự động phân loại xong!', html: 'Đã phân loại: <b>' + res.soDaPhanLoai + '</b> thiết bị.' + ghiChuConLai });
+        loadGoiTinTatCaMayTinh();
+        } else {
+        Swal.fire('Lỗi', res.message || 'Không thể tự động phân loại.', 'error');
+        }
+        },
+        error: function () {
+        $("#btnTuDongPhanLoai").prop("disabled", danhSachDangChon.size === 0);
+        Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ để tự động phân loại.', 'error');
+        }
+        });
+        });
+        });
 
         // Nhấn nút Đồng bộ sang Thiết bị: hỏi Trạng thái (tùy chọn) rồi gửi danh sách IdMay đã chọn lên server
         $("#btnDongBoThietBi").click(function () {
