@@ -1445,6 +1445,8 @@
         let accountName = item.tenDangNhap ? item.tenDangNhap : '<i class="text-muted">Chưa có Account</i>';
         let quyCachLine = item.quyCach ? `<div class="small text-dark text-truncate" style="max-width:200px" title="${item.quyCach}"><b>Quy cách:</b> ${item.quyCach}</div>` : '';
         let serialLine = item.seribacode ? `<div class="small text-secondary text-truncate" style="max-width:200px"><b>S/N:</b> ${item.seribacode}</div>` : '';
+        let winLine = item.winLicense ? `<div class="small text-truncate" style="max-width:200px; color:#0284c7;" title="Bản quyền Windows: ${item.winLicense}"><i class="fab fa-windows"></i> <b>Win:</b> ${item.winLicense}</div>` : '';
+        let officeLine = item.officeLicense ? `<div class="small text-truncate" style="max-width:200px; color:#d97706;" title="Bản quyền Office: ${item.officeLicense}"><i class="fas fa-file-word"></i> <b>Office:</b> ${item.officeLicense}</div>` : '';
 
         html += `
         <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative">
@@ -1465,6 +1467,8 @@
         <div class="fw-semibold text-dark mb-1"><i class="fas fa-user-circle me-1"></i> ${accountName}</div>
         ${quyCachLine}
         ${serialLine}
+        ${winLine}
+        ${officeLine}
         <div class="small text-muted mt-1 text-truncate d-inline-block" style="max-width:200px"><b>Note:</b> ${item.ghiChu || ''}</div>
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2 align-middle">
