@@ -12,49 +12,43 @@ public partial class TscnThongTinMay
     [Key]
     public int IdMay { get; set; }
 
-    [StringLength(150)]
+    [StringLength(500)]
     public string TenMay { get; set; } = null!;
 
-    [StringLength(150)]
+    [StringLength(500)]
     public string? SeriMay { get; set; }
 
-    [StringLength(250)]
+    [StringLength(1000)]
     public string? DongMay { get; set; }
 
-    [StringLength(250)]
     public string? HeDieuHanh { get; set; }
 
-    [StringLength(50)]
+    [StringLength(250)]
     public string? KienTruc { get; set; }
 
-    [StringLength(150)]
     public string? PhienBanNet { get; set; }
 
     [Column("SoLoiCPU")]
     public int? SoLoiCpu { get; set; }
 
-    [StringLength(150)]
+    [StringLength(500)]
     public string? TenNguoiDungHeThong { get; set; }
 
-    [StringLength(250)]
+    [StringLength(1000)]
     public string? ThuMucHeThong { get; set; }
 
-    [StringLength(100)]
+    [StringLength(500)]
     public string? ThoiGianHoatDong { get; set; }
 
-    [StringLength(100)]
+    [StringLength(500)]
     public string? RamKhaDung { get; set; }
 
-    [StringLength(250)]
     public string? ThongTinManHinhNgoai { get; set; }
 
-    [StringLength(500)]
     public string? ThongTinOffice { get; set; }
 
-    [StringLength(250)]
     public string? BanQuyenWin { get; set; }
 
-    [StringLength(250)]
     public string? BanQuyenOffice { get; set; }
 
     [Column(TypeName = "datetime")]
@@ -62,7 +56,7 @@ public partial class TscnThongTinMay
 
     public int? IdNguoiDung { get; set; }
 
-    [StringLength(100)]
+    [StringLength(500)]
     public string? LoaiThietBi { get; set; }
 
     [ForeignKey("IdNguoiDung")]
