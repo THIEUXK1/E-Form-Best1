@@ -14,15 +14,15 @@ public partial class KkThietBi
     public int IdThietBi { get; set; }
 
     [Column("ten_vi_tri")]
-    [StringLength(255)]
-    public string TenViTri { get; set; } = null!;
+    [StringLength(500)]
+    public string? TenViTri { get; set; }
 
     [Column("ten_may_tinh")]
-    [StringLength(100)]
+    [StringLength(255)]
     public string? TenMayTinh { get; set; }
 
     [Column("ten_dang_nhap")]
-    [StringLength(100)]
+    [StringLength(255)]
     public string? TenDangNhap { get; set; }
 
     [Column("id_nguoi_dung")]
@@ -41,14 +41,13 @@ public partial class KkThietBi
     public DateTime? NgayCapNhat { get; set; }
 
     [Column("loai_thiet_bi")]
-    [StringLength(100)]
+    [StringLength(255)]
     public string? LoaiThietBi { get; set; }
 
     [Column("ghi_chu")]
-    [StringLength(500)]
     public string? GhiChu { get; set; }
 
-    [StringLength(255)]
+    [StringLength(500)]
     public string? LyDoXoa { get; set; }
 
     [Column(TypeName = "datetime")]
@@ -67,18 +66,18 @@ public partial class KkThietBi
     public string? QuyCach { get; set; }
 
     [Column("seribacode")]
-    [StringLength(100)]
+    [StringLength(255)]
     public string? Seribacode { get; set; }
 
     [Column("han_bao_hanh")]
     public DateOnly? HanBaoHanh { get; set; }
 
     [Column("win_license")]
-    [StringLength(150)]
+    [StringLength(255)]
     public string? WinLicense { get; set; }
 
     [Column("office_license")]
-    [StringLength(150)]
+    [StringLength(255)]
     public string? OfficeLicense { get; set; }
 
     public int? IdMay { get; set; }
