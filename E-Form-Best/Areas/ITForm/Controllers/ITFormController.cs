@@ -5847,6 +5847,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             public string? Serial { get; set; }
             public string? LoaiThietBi { get; set; }
+            public string? QuyCach { get; set; }
             public string? TenViTri { get; set; }
             public IFormFile? Anh { get; set; }
         }
@@ -5931,6 +5932,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     if (existing != null)
                     {
                         if (!string.IsNullOrWhiteSpace(row.TenViTri)) existing.TenViTri = row.TenViTri.Trim();
+                        if (!string.IsNullOrWhiteSpace(row.QuyCach)) existing.QuyCach = row.QuyCach.Trim();
                         existing.IdcongTy = idCongTy;
                         existing.IdboPhan = idBoPhan;
                         existing.TenDangNhap = taikhoan;
@@ -5947,6 +5949,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         {
                             TenViTri = row.TenViTri?.Trim() ?? "",
                             LoaiThietBi = loaiTrim,
+                            QuyCach = row.QuyCach?.Trim(),
                             Seribacode = serialTrim,
                             TenDangNhap = taikhoan,
                             IdNguoiDung = user.IdNguoiDung,

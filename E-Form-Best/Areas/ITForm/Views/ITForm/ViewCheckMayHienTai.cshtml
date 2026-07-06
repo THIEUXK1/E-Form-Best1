@@ -377,8 +377,11 @@
             // Ảnh màn hình rời lấy từ Kéo-thả hoặc Ctrl+V dán
             var manHinhAnhBlob = null;
 
-            // Đánh dấu khu vực ảnh đang được chọn để nhận Ctrl+V (vì modal có 2 khu vực ảnh: Thiết bị chính và Màn hình rời)
+            // Đánh dấu khu vực ảnh đang được chọn để nhận Ctrl+V (vì modal có nhiều khu vực ảnh: Thiết bị chính, Màn hình rời, và từng dòng Tài sản khác)
             var vungAnhPasteHienTai = 'thietbi';
+
+            // Dòng Tài sản khác (jQuery) đang được chọn để nhận Ctrl+V dán ảnh, cập nhật mỗi khi click vào khu vực ảnh của 1 dòng
+            var rowTaiSanKhacPasteHienTai = null;
 
             // Tự động kéo tải dữ liệu ngay từ local helper khi vừa load trang
             taiSauThongSoCoBan();
@@ -706,7 +709,7 @@
             });
             }
 
-            // Ctrl+V dán ảnh trong modal - định tuyến theo vùng đang được chọn (vungAnhPasteHienTai) vì modal có 2 khu vực ảnh
+            // Ctrl+V dán ảnh trong modal - định tuyến theo vùng đang được chọn (vungAnhPasteHienTai) vì modal có nhiều khu vực ảnh
             let modalTaiSan = document.getElementById('modalXacNhanTaiSan');
             modalTaiSan.addEventListener('paste', function (e) {
             if (e.clipboardData && e.clipboardData.items) {
@@ -718,6 +721,9 @@
             manHinhAnhBlob = blob;
             $('#fileManHinhAnh').val('');
             hienThiXemTruocAnh(blob, 'imgManHinhAnhPreview', 'boxPreviewManHinhAnh', 'txtManHinhAnhHint');
+            } else if (vungAnhPasteHienTai === 'tskhac' && rowTaiSanKhacPasteHienTai && rowTaiSanKhacPasteHienTai.closest('body').length) {
+            rowTaiSanKhacPasteHienTai.removeData('anhBlob').data('anhBlob', blob);
+            hienThiXemTruocAnhRow(rowTaiSanKhacPasteHienTai, blob);
             } else {
             taiSanAnhBlob = blob;
             $('#fileTaiSanAnh').val('');
@@ -977,21 +983,29 @@
             var rowHtml =
             '<div class="border rounded p-2 mb-2 dong-tai-san-khac" data-row-index="' + idx + '">' +
             '  <div class="row g-2">' +
-            '    <div class="col-md-3">' +
+            '    <div class="col-md-2">' +
             '      <label class="form-label small fw-bold mb-1">Loại thiết bị <span class="text-danger">*</span></label>' +
             '      <select class="form-select form-select-sm select-loai-tskhac">' + taoOptionLoaiThietBi() + '</select>' +
             '    </div>' +
-            '    <div class="col-md-3">' +
+            '    <div class="col-md-2">' +
             '      <label class="form-label small fw-bold mb-1">Serial <span class="text-danger">*</span></label>' +
             '      <input type="text" class="form-control form-control-sm input-serial-tskhac" placeholder="Nhập Serial..." />' +
             '    </div>' +
-            '    <div class="col-md-3">' +
+            '    <div class="col-md-2">' +
+            '      <label class="form-label small fw-bold mb-1">Quy cách</label>' +
+            '      <input type="text" class="form-control form-control-sm input-quycach-tskhac" placeholder="VD: Model, số lượng..." />' +
+            '    </div>' +
+            '    <div class="col-md-2">' +
             '      <label class="form-label small fw-bold mb-1">Vị trí</label>' +
             '      <input type="text" class="form-control form-control-sm input-vitri-tskhac" placeholder="VD: Tầng 3 - Phòng Kế toán..." />' +
             '    </div>' +
-            '    <div class="col-md-2">' +
+            '    <div class="col-md-3">' +
             '      <label class="form-label small fw-bold mb-1">Ảnh</label>' +
-            '      <input type="file" accept="image/*" class="form-control form-control-sm input-anh-tskhac" />' +
+            '      <div class="drag-drop-zone dropzone-anh-tskhac text-center d-flex align-items-center justify-content-center gap-2" title="Kéo thả ảnh, click để chọn ảnh, hoặc click rồi Ctrl+V để dán ảnh" style="padding: 4px 6px; min-height: 38px; border-radius: 6px;">' +
+            '        <span class="hint-anh-tskhac text-muted" style="font-size:11px;"><i class="fa fa-camera-retro"></i> Chọn/Kéo/Dán</span>' +
+            '        <img class="preview-anh-tskhac" src="" style="display:none; max-height:32px; max-width:60px; border-radius:4px; object-fit:cover;" />' +
+            '        <input type="file" accept="image/*" class="d-none input-anh-tskhac" />' +
+            '      </div>' +
             '    </div>' +
             '    <div class="col-md-1 d-flex align-items-end">' +
             '      <button type="button" class="btn btn-sm btn-outline-danger btn-xoa-dong-tskhac w-100" title="Xóa dòng"><i class="fa fa-trash"></i></button>' +
@@ -1000,6 +1014,46 @@
             '</div>';
             $("#dsRowTaiSanKhac").append(rowHtml);
             }
+
+            // Đọc file/blob ảnh và hiện xem trước ngay trong dòng Tài sản khác tương ứng (mỗi dòng có ảnh riêng)
+            function hienThiXemTruocAnhRow(row, fileHoacBlob) {
+            var r = new FileReader();
+            r.onload = function (evt) {
+            row.find('.preview-anh-tskhac').attr('src', evt.target.result).show();
+            row.find('.hint-anh-tskhac').hide();
+            };
+            r.readAsDataURL(fileHoacBlob);
+            }
+
+            // Click vào khu vực ảnh của 1 dòng Tài sản khác: mở hộp thoại chọn file + đánh dấu dòng này đang nhận Ctrl+V
+            $("#dsRowTaiSanKhac").on('click', '.dropzone-anh-tskhac', function () {
+            rowTaiSanKhacPasteHienTai = $(this).closest('.dong-tai-san-khac');
+            vungAnhPasteHienTai = 'tskhac';
+            $(this).find('.input-anh-tskhac').trigger('click');
+            });
+
+            $("#dsRowTaiSanKhac").on('change', '.input-anh-tskhac', function () {
+            var row = $(this).closest('.dong-tai-san-khac');
+            row.removeData('anhBlob');
+            if (this.files && this.files[0]) hienThiXemTruocAnhRow(row, this.files[0]);
+            });
+
+            $("#dsRowTaiSanKhac").on('dragover', '.dropzone-anh-tskhac', function (e) { e.preventDefault(); $(this).addClass('dragover'); });
+            $("#dsRowTaiSanKhac").on('dragleave', '.dropzone-anh-tskhac', function () { $(this).removeClass('dragover'); });
+            $("#dsRowTaiSanKhac").on('drop', '.dropzone-anh-tskhac', function (e) {
+            e.preventDefault();
+            $(this).removeClass('dragover');
+            var dt = e.originalEvent.dataTransfer;
+            if (dt && dt.files && dt.files.length > 0) {
+            var file = dt.files[0];
+            if (file.type.startsWith('image/')) {
+            var row = $(this).closest('.dong-tai-san-khac');
+            row.removeData('anhBlob');
+            row.find('.input-anh-tskhac')[0].files = dt.files;
+            hienThiXemTruocAnhRow(row, file);
+            }
+            }
+            });
 
             $("#btnThemDongTaiSanKhac").click(function () { themDongTaiSanKhac(); });
 
@@ -1027,15 +1081,17 @@
             $("#dsRowTaiSanKhac .dong-tai-san-khac").each(function (i) {
             var loai = $(this).find('.select-loai-tskhac').val();
             var serial = $(this).find('.input-serial-tskhac').val().trim();
+            var quyCach = $(this).find('.input-quycach-tskhac').val().trim();
             var viTri = $(this).find('.input-vitri-tskhac').val().trim();
-            var file = $(this).find('.input-anh-tskhac')[0].files[0];
+            // Ưu tiên ảnh dán/kéo-thả (lưu qua .data('anhBlob')) vì input file gốc không giữ được Blob thô không tên
+            var file = $(this).data('anhBlob') || $(this).find('.input-anh-tskhac')[0].files[0];
 
-            if (!serial && !loai && !viTri && !file) return; // Dòng bỏ trống hoàn toàn -> bỏ qua, không tính là lỗi
+            if (!serial && !loai && !quyCach && !viTri && !file) return; // Dòng bỏ trống hoàn toàn -> bỏ qua, không tính là lỗi
 
             if (!serial) { error = 'Tài sản khác - Dòng ' + (i + 1) + ': Vui lòng nhập Serial.'; return false; }
             if (!loai) { error = 'Tài sản khác - Dòng ' + (i + 1) + ': Vui lòng chọn Loại thiết bị.'; return false; }
 
-            rows.push({ loai: loai, serial: serial, viTri: viTri, file: file });
+            rows.push({ loai: loai, serial: serial, quyCach: quyCach, viTri: viTri, file: file });
             });
             return { rows: rows, error: error };
             }
@@ -1052,6 +1108,7 @@
             rows.forEach(function (r, i) {
             fd.append('rows[' + i + '].Serial', r.serial);
             fd.append('rows[' + i + '].LoaiThietBi', r.loai);
+            fd.append('rows[' + i + '].QuyCach', r.quyCach || '');
             fd.append('rows[' + i + '].TenViTri', r.viTri);
             if (r.file) fd.append('rows[' + i + '].Anh', r.file, r.file.name || 'device_photo.jpg'); // Đặt tên file mặc định vì ảnh dán Ctrl+V là Blob thô không có tên
             });
@@ -1071,6 +1128,7 @@
             $("#dsRowTaiSanKhac").empty();
             demDongTaiSanKhac = 0;
             $("#boxTaiSanKhac").hide();
+            rowTaiSanKhacPasteHienTai = null; // Các dòng vừa bị xóa hết, tránh giữ tham chiếu tới dòng đã không còn tồn tại
             }
 
             // Hàm cập nhật gán dữ liệu chi tiết nâng cao từ Cache bộ nhớ
