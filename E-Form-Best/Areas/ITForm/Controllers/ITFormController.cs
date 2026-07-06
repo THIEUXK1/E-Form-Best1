@@ -6014,6 +6014,50 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
+        // HÀM TỰ ĐỘNG PHÂN LOẠI HÀNG LOẠT CÁC MÁY ĐANG TRỐNG "LOẠI THIẾT BỊ" (dùng ở nút "Tự động phân loại" trang Danh sách tất cả máy tính)
+        public class TuDongPhanLoaiRequest
+        {
+            public List<int>? DanhSachIdMay { get; set; }
+        }
+
+        [HttpPost("/QLKiemKe/TuDongPhanLoaiThietBiChuaPhanLoai")]
+        public async Task<IActionResult> TuDongPhanLoaiThietBiChuaPhanLoai([FromBody] TuDongPhanLoaiRequest? req)
+        {
+            try
+            {
+                // Nếu Client gửi kèm danh sách IdMay đã tích chọn -> chỉ xử lý đúng các máy đó và GHI ĐÈ luôn Loại thiết bị cũ (nếu đoán được)
+                bool coChonMay = req?.DanhSachIdMay != null && req.DanhSachIdMay.Count > 0;
+
+                var query = _context.TscnThongTinMays.AsQueryable();
+                query = coChonMay
+                    ? query.Where(m => req!.DanhSachIdMay!.Contains(m.IdMay))
+                    : query.Where(m => m.LoaiThietBi == null || m.LoaiThietBi == "");
+
+                var dsMayXuLy = query.ToList();
+
+                int soDaPhanLoai = 0;
+                foreach (var may in dsMayXuLy)
+                {
+                    var loaiDoan = TuPhanLoaiThietBiTheoDongMay(may.DongMay);
+                    if (!string.IsNullOrWhiteSpace(loaiDoan))
+                    {
+                        may.LoaiThietBi = loaiDoan;
+                        soDaPhanLoai++;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                int soKhongXacDinh = dsMayXuLy.Count - soDaPhanLoai;
+                return Json(new { success = true, soDaPhanLoai = soDaPhanLoai, soKhongXacDinh = soKhongXacDinh });
+            }
+            catch (Exception ex)
+            {
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = $"Lỗi hệ thống khi tự động phân loại: {chiTietLoi}" });
+            }
+        }
+
         // Tự phân loại nhanh Laptop/PC/MayAo/Server dựa theo chuỗi Dòng máy (Model), dùng khi máy vừa quét lần đầu chưa có Loại thiết bị
         private string? TuPhanLoaiThietBiTheoDongMay(string? dongMay)
         {
@@ -6029,7 +6073,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 d.Contains("macbook") || d.Contains("zhaoyang"))
                 return "Laptop";
             if (d.Contains("desktop") || d.Contains("sff") || d.Contains("small form factor") || d.Contains("microtower") ||
-                d.Contains("tower") || d.Contains("workstation") || d.EndsWith(" mt") || d.EndsWith(" dm") || d.Contains("base model"))
+                d.Contains("tower") || d.Contains("workstation") || d.EndsWith(" mt") || d.EndsWith(" dm") || d.Contains("base model") ||
+                d.Contains("inspiron"))
                 return "PC";
 
             return null; // Không đủ dấu hiệu để tự phân loại - để trống, admin có thể sửa tay sau ở trang danh sách máy tính
@@ -6046,6 +6091,37 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
+        // Cắt bớt chuỗi cho vừa giới hạn độ dài cột đích trong DB, tránh lỗi "String or binary data would be truncated"
+        private static string? CatChuoiToiDa(string? chuoi, int doDaiToiDa)
+        {
+            if (string.IsNullOrWhiteSpace(chuoi)) return chuoi?.Trim();
+            var trimmed = chuoi.Trim();
+            return trimmed.Length > doDaiToiDa ? trimmed.Substring(0, doDaiToiDa) : trimmed;
+        }
+
+        // Trích ra đúng "bản" (edition) của Windows mà key đang chạy thuộc về, VD: "Professional", "Home", "Enterprise"...
+        // Bỏ qua phần Partial Product Key/Description/Loại dài dòng, chỉ giữ lại tên edition
+        private static string? TrichPhienBanWindows(string? banQuyenWinRaw)
+        {
+            if (string.IsNullOrWhiteSpace(banQuyenWinRaw)) return null;
+            var match = System.Text.RegularExpressions.Regex.Match(banQuyenWinRaw, @"Windows\(R\),\s*([^|]+?)\s*edition", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (match.Success) return match.Groups[1].Value.Trim();
+            // Không khớp mẫu quen thuộc -> vẫn cắt về giới hạn an toàn để không lỗi truncate
+            return CatChuoiToiDa(banQuyenWinRaw, 150);
+        }
+
+        // Quy đổi chuỗi trạng thái Office quét được (thường không đáng tin cậy/rất dài dòng) về đúng 2 giá trị Có/Không có bản quyền
+        private static string? QuyDoiTrangThaiOffice(string? banQuyenOfficeRaw)
+        {
+            if (string.IsNullOrWhiteSpace(banQuyenOfficeRaw)) return null;
+            string d = banQuyenOfficeRaw.ToLower();
+            bool coKichHoat = d.Contains("đã kích hoạt");
+            bool khongCo = d.Contains("không phát hiện") || d.Contains("chưa kích hoạt") || d.Contains("không xác định");
+            if (coKichHoat) return "Có bản quyền";
+            if (khongCo) return "Không có bản quyền";
+            return "Không xác định";
+        }
+
         public class DongBoMayTinhRequest
         {
             public List<int> DanhSachIdMay { get; set; } = new();
@@ -6053,7 +6129,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // HÀM ĐỒNG BỘ MÁY TÍNH (TSCN_ThongTinMay) SANG THIẾT BỊ (KK_ThietBi)
-        // Trùng theo cặp TenMayTinh + LoaiThietBi thì cập nhật, không trùng thì thêm mới. TenViTri/IDCongTy/IDBoPhan/Ảnh/Bản quyền bỏ qua, chỉ IdTrangThai được gán nếu người dùng chọn.
+        // Trùng theo cặp TenMayTinh + LoaiThietBi thì cập nhật, không trùng thì thêm mới. TenViTri/IDCongTy/IDBoPhan/Ảnh bỏ qua, chỉ IdTrangThai được gán nếu người dùng chọn.
+        // Bản quyền Windows/Office được đồng bộ theo đúng dữ liệu quét được từ máy (BanQuyenWin/BanQuyenOffice) để phân biệt trên trang Thiết bị.
         [HttpPost("/QLKiemKe/DongBoMayTinhSangThietBi")]
         public async Task<IActionResult> DongBoMayTinhSangThietBi([FromBody] DongBoMayTinhRequest req)
         {
@@ -6099,6 +6176,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         if (!string.IsNullOrWhiteSpace(may.DongMay)) existing.QuyCach = may.DongMay.Trim();
                         if (may.IdNguoiDung.HasValue) existing.IdNguoiDung = may.IdNguoiDung;
                         if (req.IdTrangThai.HasValue) existing.IdTrangThai = req.IdTrangThai;
+                        if (!string.IsNullOrWhiteSpace(may.BanQuyenWin)) existing.WinLicense = TrichPhienBanWindows(may.BanQuyenWin);
+                        if (!string.IsNullOrWhiteSpace(may.BanQuyenOffice)) existing.OfficeLicense = QuyDoiTrangThaiOffice(may.BanQuyenOffice);
                         existing.LoaiThietBi = loaiThietBiChuan;
                         existing.IdMay = may.IdMay;
                         existing.NgayCapNhat = DateTime.Now;
@@ -6116,6 +6195,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             QuyCach = may.DongMay?.Trim(),
                             IdNguoiDung = may.IdNguoiDung,
                             IdTrangThai = req.IdTrangThai ?? idTrangThaiMacDinh,
+                            WinLicense = TrichPhienBanWindows(may.BanQuyenWin),
+                            OfficeLicense = QuyDoiTrangThaiOffice(may.BanQuyenOffice),
                             IdMay = may.IdMay,
                             NgayTao = DateTime.Now,
                             NgayCapNhat = DateTime.Now,
@@ -6433,6 +6514,79 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Redirect("/DonXetDuyet/DangNhap");
             }
             return View();
+        }
+
+        // Tra cứu Máy tính + Màn hình rời theo Serial trong KK_ThietBi để biết đang thuộc về ai, kèm toàn bộ Tài sản khác của đúng người đó
+        [HttpGet("/QLKiemKe/GetThongTinSoHuuTheoSeri")]
+        public IActionResult GetThongTinSoHuuTheoSeri(string? seriMay, string? seriManHinh)
+        {
+            try
+            {
+                object? mayInfo = null;
+                object? manHinhInfo = null;
+                int? idNguoiDungChuMay = null;
+
+                if (!string.IsNullOrWhiteSpace(seriMay))
+                {
+                    string seriMayChuan = seriMay.Trim().ToLower();
+                    var tbMay = _context.KkThietBis
+                        .Where(x => x.Seribacode != null && x.Seribacode.Trim().ToLower() == seriMayChuan)
+                        .Select(x => new
+                        {
+                            x.IdThietBi,
+                            x.LoaiThietBi,
+                            x.IdNguoiDung,
+                            TenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : null,
+                            Tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : null
+                        })
+                        .FirstOrDefault();
+
+                    if (tbMay != null)
+                    {
+                        mayInfo = tbMay;
+                        idNguoiDungChuMay = tbMay.IdNguoiDung;
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(seriManHinh))
+                {
+                    string seriManHinhChuan = seriManHinh.Trim().ToLower();
+                    manHinhInfo = _context.KkThietBis
+                        .Where(x => x.Seribacode != null && x.Seribacode.Trim().ToLower() == seriManHinhChuan)
+                        .Select(x => new
+                        {
+                            x.IdThietBi,
+                            x.LoaiThietBi,
+                            x.IdNguoiDung,
+                            TenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : null,
+                            Tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : null
+                        })
+                        .FirstOrDefault();
+                }
+
+                List<object> dsTaiSanKhac = new();
+                if (idNguoiDungChuMay.HasValue)
+                {
+                    string seriMayChuan = (seriMay ?? "").Trim().ToLower();
+                    dsTaiSanKhac = _context.KkThietBis
+                        .Where(x => x.IdNguoiDung == idNguoiDungChuMay &&
+                                    (x.Seribacode == null || x.Seribacode.Trim().ToLower() != seriMayChuan))
+                        .Select(x => new
+                        {
+                            x.LoaiThietBi,
+                            x.Seribacode,
+                            x.TenViTri
+                        })
+                        .ToList<object>();
+                }
+
+                return Json(new { success = true, may = mayInfo, manHinh = manHinhInfo, taiSanKhac = dsTaiSanKhac });
+            }
+            catch (Exception ex)
+            {
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = $"Lỗi hệ thống khi tra cứu chủ sở hữu: {chiTietLoi}" });
+            }
         }
 
         // ACTION ĐÃ ĐƯỢC SỬA: Bổ sung IgnoreAntiforgeryToken để chặn lỗi kết nối đường truyền khi POST AJAX

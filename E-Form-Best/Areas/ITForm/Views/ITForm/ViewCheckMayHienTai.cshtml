@@ -73,6 +73,31 @@
                     </table>
                 </div>
 
+                <div id="boxThongTinSoHuu" class="mt-3" style="display: none;">
+                    <table class="table table-bordered table-striped mb-0">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th style="width: 35%;">Thông tin sở hữu (theo Kiểm kê thiết bị)</th>
+                                <th style="width: 65%;">Giá trị</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong><i class="fa fa-user-circle text-primary" style="margin-right: 8px; width: 16px;"></i>Máy này đang thuộc về:</strong></td>
+                                <td id="lblMaySoHuuBoi" class="fw-bold text-primary">Chưa xác nhận kiểm kê</td>
+                            </tr>
+                            <tr id="rowManHinhSoHuuBoi" style="display: none;">
+                                <td><strong><i class="fa fa-desktop text-success" style="margin-right: 8px; width: 16px;"></i>Màn hình rời đang thuộc về:</strong></td>
+                                <td id="lblManHinhSoHuuBoi" class="fw-bold text-success">Chưa xác nhận kiểm kê</td>
+                            </tr>
+                            <tr>
+                                <td><strong><i class="fa fa-cubes text-warning" style="margin-right: 8px; width: 16px;"></i>Tài sản khác đi kèm:</strong></td>
+                                <td id="lblTaiSanKhacDiKem" class="text-dark">Không có</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
                 <div id="authGateContainer" class="text-center my-4 p-4 border rounded bg-light">
                     <i class="fa fa-lock text-warning" style="font-size: 32px; margin-bottom: 10px;"></i>
                     <h5 class="fw-bold text-dark">Thông tin cấu hình nâng cao đang được ẩn</h5>
@@ -191,7 +216,7 @@
         </div>
 
         <div class="modal fade" id="modalXacNhanTaiSan" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalXacNhanTaiSanLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-dialog modal-dialog-centered modal-xl">
                 <div class="modal-content">
                     <div class="modal-header bg-success text-white">
                         <h5 class="modal-title" id="modalXacNhanTaiSanLabel"><i class="fa fa-check-square-o" style="margin-right: 8px;"></i>Xác nhận tài sản</h5>
@@ -200,77 +225,110 @@
                     <div class="modal-body">
                         <div id="modalTaiSanAlertError" class="alert alert-danger p-2" style="display: none; font-size: 14px;"></div>
                         <form id="formXacNhanTaiSan" onsubmit="return false;">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Tài khoản</label>
-                                <input type="text" id="txtTaiSanUser" class="form-control" placeholder="Nhập tài khoản..." required />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Mật khẩu</label>
-                                <input type="password" id="txtTaiSanPassword" class="form-control" placeholder="Nhập mật khẩu..." required />
-                            </div>
-                            <hr />
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Vị trí đặt máy <span class="text-danger">*</span></label>
-                                <input type="text" id="txtTaiSanViTri" class="form-control" placeholder="VD: Tầng 3 - Phòng Kế toán..." required />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Công ty <span class="text-danger">*</span></label>
-                                <select id="ddlTaiSanCongTy" class="form-select" required>
-                                    <option value="">-- Chưa chọn --</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold d-flex justify-content-between align-items-center">
-                                    <span>Bộ phận <span class="text-danger">*</span></span>
-                                    <button type="button" id="btnThemNhanhBoPhan" class="btn btn-sm btn-link p-0 text-decoration-none" style="font-size: 13px;">
-                                        <i class="fa fa-plus-circle"></i> Thêm nhanh
-                                    </button>
-                                </label>
-                                <select id="ddlTaiSanBoPhan" class="form-select" required>
-                                    <option value="">-- Chưa chọn --</option>
-                                </select>
-                                <div id="boxThemNhanhBoPhan" class="mt-2 p-2 border rounded bg-light" style="display: none;">
-                                    <label class="form-label small fw-bold mb-1">Tên bộ phận mới (gợi ý theo tên máy, có thể sửa lại)</label>
-                                    <div class="input-group input-group-sm">
-                                        <input type="text" id="txtThemNhanhTenBoPhan" class="form-control text-uppercase" placeholder="VD: ZP-IT" style="text-transform: uppercase;" />
-                                        <button type="button" id="btnXacNhanThemBoPhan" class="btn btn-success"><i class="fa fa-check"></i> Thêm</button>
-                                        <button type="button" id="btnHuyThemBoPhan" class="btn btn-outline-secondary"><i class="fa fa-times"></i></button>
+                            <div class="row">
+                                <div class="col-md-5">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Tài khoản</label>
+                                        <input type="text" id="txtTaiSanUser" class="form-control" placeholder="Nhập tài khoản..." required />
                                     </div>
-                                    <div class="form-text">Bộ phận sẽ được thêm vào Công ty đang chọn ở trên và không được trùng tên trong công ty đó.</div>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Ảnh chụp thiết bị (tùy chọn)</label>
-                                <div class="drag-drop-zone text-center mb-2" id="dropZoneTaiSanAnh" title="Kéo thả ảnh vào đây, click để chọn ảnh, hoặc click vào đây rồi nhấn Ctrl + V để dán ảnh" onclick="$('#fileTaiSanAnh').click();">
-                                    <div class="py-2 text-muted" id="txtTaiSanAnhHint">
-                                        <i class="fa fa-camera-retro fa-2x mb-2 text-success"></i>
-                                        <p class="mb-0 small fw-semibold">Chọn ảnh từ máy / Kéo thả ảnh / Click vào đây rồi nhấn <b>Ctrl + V</b> để dán</p>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Mật khẩu</label>
+                                        <input type="password" id="txtTaiSanPassword" class="form-control" placeholder="Nhập mật khẩu..." required />
+                                    </div>
+                                    <hr />
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Vị trí đặt máy <span class="text-danger">*</span></label>
+                                        <input type="text" id="txtTaiSanViTri" class="form-control" placeholder="VD: Tầng 3 - Phòng Kế toán..." required />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Công ty <span class="text-danger">*</span></label>
+                                        <select id="ddlTaiSanCongTy" class="form-select" required>
+                                            <option value="">-- Chưa chọn --</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold d-flex justify-content-between align-items-center">
+                                            <span>Bộ phận <span class="text-danger">*</span></span>
+                                            <button type="button" id="btnThemNhanhBoPhan" class="btn btn-sm btn-link p-0 text-decoration-none" style="font-size: 13px;">
+                                                <i class="fa fa-plus-circle"></i> Thêm nhanh
+                                            </button>
+                                        </label>
+                                        <select id="ddlTaiSanBoPhan" class="form-select" required>
+                                            <option value="">-- Chưa chọn --</option>
+                                        </select>
+                                        <div id="boxThemNhanhBoPhan" class="mt-2 p-2 border rounded bg-light" style="display: none;">
+                                            <label class="form-label small fw-bold mb-1">Tên bộ phận mới (gợi ý theo tên máy, có thể sửa lại)</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="text" id="txtThemNhanhTenBoPhan" class="form-control text-uppercase" placeholder="VD: ZP-IT" style="text-transform: uppercase;" />
+                                                <button type="button" id="btnXacNhanThemBoPhan" class="btn btn-success"><i class="fa fa-check"></i> Thêm</button>
+                                                <button type="button" id="btnHuyThemBoPhan" class="btn btn-outline-secondary"><i class="fa fa-times"></i></button>
+                                            </div>
+                                            <div class="form-text">Bộ phận sẽ được thêm vào Công ty đang chọn ở trên và không được trùng tên trong công ty đó.</div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Ảnh chụp thiết bị (tùy chọn)</label>
+                                        <div class="drag-drop-zone text-center mb-2" id="dropZoneTaiSanAnh" title="Kéo thả ảnh vào đây, click để chọn ảnh, hoặc click vào đây rồi nhấn Ctrl + V để dán ảnh" onclick="$('#fileTaiSanAnh').click();">
+                                            <div class="py-2 text-muted" id="txtTaiSanAnhHint">
+                                                <i class="fa fa-camera-retro fa-2x mb-2 text-success"></i>
+                                                <p class="mb-0 small fw-semibold">Chọn ảnh từ máy / Kéo thả ảnh / Click vào đây rồi nhấn <b>Ctrl + V</b> để dán</p>
+                                            </div>
+                                        </div>
+                                        <input type="file" id="fileTaiSanAnh" accept="image/*" capture="environment" class="d-none" onchange="previewTaiSanAnh(this)" />
+                                        <div class="text-center" id="boxPreviewTaiSanAnh" style="display: none;">
+                                            <div class="position-relative d-inline-block">
+                                                <img id="imgTaiSanAnhPreview" src="" alt="Ảnh thiết bị" style="max-height: 160px; max-width: 100%; border-radius: 10px; border: 2px dashed #10b981; padding: 3px;" />
+                                                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 start-100 translate-middle rounded-circle shadow" onclick="clearTaiSanAnh(); event.stopPropagation();" style="width: 24px; height: 24px; padding: 0; line-height: 1;">
+                                                    <i class="fa fa-times" style="font-size: 11px;"></i>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <input type="file" id="fileTaiSanAnh" accept="image/*" capture="environment" class="d-none" onchange="previewTaiSanAnh(this)" />
-                                <div class="text-center" id="boxPreviewTaiSanAnh" style="display: none;">
-                                    <div class="position-relative d-inline-block">
-                                        <img id="imgTaiSanAnhPreview" src="" alt="Ảnh thiết bị" style="max-height: 160px; max-width: 100%; border-radius: 10px; border: 2px dashed #10b981; padding: 3px;" />
-                                        <button type="button" class="btn btn-sm btn-danger position-absolute top-0 start-100 translate-middle rounded-circle shadow" onclick="clearTaiSanAnh(); event.stopPropagation();" style="width: 24px; height: 24px; padding: 0; line-height: 1;">
-                                            <i class="fa fa-times" style="font-size: 11px;"></i>
-                                        </button>
+                                <div class="col-md-7">
+                                    <div class="mb-3 p-2 border rounded bg-light" id="boxManHinhNgoai" style="display: none;">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="chkXacNhanManHinhNgoai" checked />
+                                            <label class="form-check-label fw-bold text-dark" for="chkXacNhanManHinhNgoai">
+                                                <i class="fa fa-desktop text-primary" style="margin-right: 4px;"></i>
+                                                Xác nhận có màn hình rời đi kèm: <span id="lblManHinhNgoaiInfo" class="text-primary"></span>
+                                            </label>
+                                        </div>
+                                        <div class="form-text mb-2">Bỏ tích nếu màn hình rời này không thuộc sở hữu cá nhân/không cần kiểm kê riêng.</div>
+                                        <div id="boxAnhManHinhNgoai">
+                                            <label class="form-label small fw-bold mb-1">Ảnh chụp màn hình (tùy chọn)</label>
+                                            <div class="drag-drop-zone text-center mb-2" id="dropZoneManHinhAnh" title="Kéo thả ảnh vào đây, click để chọn ảnh, hoặc click vào đây rồi nhấn Ctrl + V để dán ảnh" onclick="$('#fileManHinhAnh').click(); vungAnhPasteHienTai = 'manhinh';">
+                                                <div class="py-2 text-muted" id="txtManHinhAnhHint">
+                                                    <i class="fa fa-camera-retro fa-2x mb-2 text-success"></i>
+                                                    <p class="mb-0 small fw-semibold">Chọn ảnh từ máy / Kéo thả ảnh / Click vào đây rồi nhấn <b>Ctrl + V</b> để dán</p>
+                                                </div>
+                                            </div>
+                                            <input type="file" id="fileManHinhAnh" accept="image/*" capture="environment" class="d-none" onchange="previewManHinhAnh(this)" />
+                                            <div class="text-center" id="boxPreviewManHinhAnh" style="display: none;">
+                                                <div class="position-relative d-inline-block">
+                                                    <img id="imgManHinhAnhPreview" src="" alt="Ảnh màn hình" style="max-height: 160px; max-width: 100%; border-radius: 10px; border: 2px dashed #10b981; padding: 3px;" />
+                                                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 start-100 translate-middle rounded-circle shadow" onclick="clearManHinhAnh(); event.stopPropagation();" style="width: 24px; height: 24px; padding: 0; line-height: 1;">
+                                                        <i class="fa fa-times" style="font-size: 11px;"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-                            <hr />
-                            <div class="mb-2">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <label class="form-label fw-bold mb-0">Tài sản khác đi kèm (tùy chọn)</label>
-                                    <button type="button" id="btnToggleTaiSanKhac" class="btn btn-sm btn-outline-success">
-                                        <i class="fa fa-plus-square"></i> Tài sản
-                                    </button>
-                                </div>
-                                <div class="form-text mb-2">Súng bắn mã vạch, Điện thoại bàn, Máy chiếu, PDA... sẽ được gửi cùng lúc với Tài khoản/Công ty/Bộ phận ở trên khi bấm "Gửi".</div>
-                                <div id="boxTaiSanKhac" style="display: none;">
-                                    <div id="dsRowTaiSanKhac"></div>
-                                    <button type="button" id="btnThemDongTaiSanKhac" class="btn btn-sm btn-outline-success">
-                                        <i class="fa fa-plus"></i> Thêm dòng
-                                    </button>
+                                    <div class="mb-2 p-2 border rounded" id="boxKhuVucTaiSanKhac">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <label class="form-label fw-bold mb-0">Tài sản khác đi kèm (tùy chọn)</label>
+                                            <button type="button" id="btnToggleTaiSanKhac" class="btn btn-sm btn-outline-success">
+                                                <i class="fa fa-plus-square"></i> Tài sản
+                                            </button>
+                                        </div>
+                                        <div class="form-text mb-2">Súng bắn mã vạch, Điện thoại bàn, Máy chiếu, PDA... sẽ được gửi cùng lúc với Tài khoản/Công ty/Bộ phận ở trên khi bấm "Gửi".</div>
+                                        <div id="boxTaiSanKhac" style="display: none;">
+                                            <div id="dsRowTaiSanKhac"></div>
+                                            <button type="button" id="btnThemDongTaiSanKhac" class="btn btn-sm btn-outline-success">
+                                                <i class="fa fa-plus"></i> Thêm dòng
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </form>
@@ -315,6 +373,12 @@
 
             // Ảnh thiết bị lấy từ Kéo-thả hoặc Ctrl+V dán (khác với ảnh chọn qua input file thường)
             var taiSanAnhBlob = null;
+
+            // Ảnh màn hình rời lấy từ Kéo-thả hoặc Ctrl+V dán
+            var manHinhAnhBlob = null;
+
+            // Đánh dấu khu vực ảnh đang được chọn để nhận Ctrl+V (vì modal có 2 khu vực ảnh: Thiết bị chính và Màn hình rời)
+            var vungAnhPasteHienTai = 'thietbi';
 
             // Tự động kéo tải dữ liệu ngay từ local helper khi vừa load trang
             taiSauThongSoCoBan();
@@ -453,13 +517,23 @@
             });
             });
 
-            function taiSauThongSoCoBan() {
+            var SO_LAN_THU_TOI_DA = 4; // Tool local đôi khi phản hồi chậm nên cho phép tự thử lại vài lần trước khi báo lỗi hẳn
+
+            function taiSauThongSoCoBan(soLanDaThu) {
+            soLanDaThu = soLanDaThu || 0;
             $("#errorAlert").hide();
+
+            if (soLanDaThu > 0) {
+            var textDoiCho = "Đang chờ Tool local phản hồi (lần " + (soLanDaThu + 1) + "/" + SO_LAN_THU_TOI_DA + ")...";
+            $("#lblSeriMay, #lblDongMay, #lblTenMay, #lblTenNguoiDungHeThong, #lblThongTinManHinhNgoai").text(textDoiCho);
+            $("#lblThongTinManHinh").html(textDoiCho);
+            }
+
             $.ajax({
             url: 'http://localhost:8888/get-hardware',
             type: 'GET',
             dataType: 'json',
-            timeout: 5000,
+            timeout: 20000, // Tăng thời gian chờ vì Tool local có lúc tải hơi lâu
             success: function (response) {
             if (response.success && response.data) {
             // Lưu trữ dữ liệu vào cache bộ nhớ tạm trên trình duyệt
@@ -475,13 +549,23 @@
 
             // Dữ liệu tải thành công -> cho phép mở modal Xác nhận tài sản
             $("#btnMoModalXacNhanTaiSan").prop("disabled", false).attr("title", "");
+
+            // Có màn hình rời phát hiện được -> hiện ô tích xác nhận kiểm kê luôn màn hình
+            capNhatBoxManHinhNgoai();
+
+            // Đối chiếu Serial máy + màn hình rời với trang Thiết bị để biết đang thuộc về ai
+            traCuuThongTinSoHuu();
             } else {
             thongBaoLoiCoBan("Dữ liệu từ Tool local trả về bị rỗng.");
             }
             },
             error: function (xhr, status, error) {
-            // ĐÃ SỬA THÔNG BÁO LỖI THEO YÊU CẦU CỦA BẠN:
+            // Tool local phản hồi chậm -> tự thử lại thay vì báo lỗi ngay
+            if (soLanDaThu < SO_LAN_THU_TOI_DA - 1) {
+            setTimeout(function () { taiSauThongSoCoBan(soLanDaThu + 1); }, 1500);
+            } else {
             thongBaoLoiCoBan("Đã gặp sự cố thiếu MSI hãy liên hệ với IT để được hỗ trợ.");
+            }
             }
             });
             }
@@ -495,11 +579,98 @@
             $("#btnMoModalXacNhanTaiSan").prop("disabled", true).attr("title", "Cần tải xong thông tin máy từ Tool local mới có thể xác nhận");
             }
 
+            // Bóc tách đúng màn hình rời thực tế (bỏ qua màn hình chính tích hợp "Màn hình tiêu chuẩn (S/N: 0)")
+            // Ưu tiên đọc dsManHinhRaw (phân cách bằng "|"); một số bản Tool local cũ không trả trường này nên fallback đọc thongTinManHinh (chuỗi HTML, phân cách bằng thẻ <br/>)
+            function layThongTinManHinhNgoaiThucTe() {
+            if (!duLieuQuetMayKhachCache) return null;
+            var dsMan;
+            if (duLieuQuetMayKhachCache.dsManHinhRaw) {
+            dsMan = duLieuQuetMayKhachCache.dsManHinhRaw.split('|');
+            } else if (duLieuQuetMayKhachCache.thongTinManHinh) {
+            dsMan = duLieuQuetMayKhachCache.thongTinManHinh.split(/<br\s*\/?>/i);
+            } else {
+            return null;
+            }
+            for (var i = 0; i < dsMan.length; i++) {
+            var match = dsMan[i].trim().match(/\]:\s*(.+?)\s*\(S\/N:\s*([^)]*)\)/i);
+            if (!match) continue;
+            var model = match[1].trim();
+            var serial = match[2].trim();
+            if (serial && serial !== '0' && model.toLowerCase().indexOf('tiêu chuẩn') === -1) {
+            return { model: model, serial: serial };
+            }
+            }
+            return null;
+            }
+
+            // Hiện/ẩn ô tích "Xác nhận có màn hình rời đi kèm" dựa vào thongTinManHinhNgoai + dsManHinhRaw quét được
+            function capNhatBoxManHinhNgoai() {
+            var txtTrangThai = duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.thongTinManHinhNgoai || '') : '';
+            var coPhatHien = txtTrangThai.indexOf('Phát hiện thêm') !== -1;
+            var manHinhNgoai = layThongTinManHinhNgoaiThucTe();
+
+            if (coPhatHien && manHinhNgoai) {
+            $("#lblManHinhNgoaiInfo").text(manHinhNgoai.model + ' (S/N: ' + manHinhNgoai.serial + ')');
+            $("#boxManHinhNgoai").show();
+            $("#chkXacNhanManHinhNgoai").prop('checked', true);
+            } else {
+            $("#boxManHinhNgoai").hide();
+            $("#chkXacNhanManHinhNgoai").prop('checked', false);
+            }
+            }
+
+            // Đối chiếu Serial máy hiện tại + màn hình rời (nếu có) với dữ liệu đã kiểm kê ở KK_ThietBi để hiển thị đang thuộc về ai
+            function traCuuThongTinSoHuu() {
+            var seriMayHienTai = duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.seriMay : null;
+            if (!seriMayHienTai || seriMayHienTai === "N/A") { $("#boxThongTinSoHuu").hide(); return; }
+
+            var manHinhNgoai = layThongTinManHinhNgoaiThucTe();
+            var seriManHinhHienTai = manHinhNgoai ? manHinhNgoai.serial : null;
+
+            $.get('/QLKiemKe/GetThongTinSoHuuTheoSeri', { seriMay: seriMayHienTai, seriManHinh: seriManHinhHienTai }, function (res) {
+            if (!res || !res.success) { $("#boxThongTinSoHuu").hide(); return; }
+
+            // Dòng "Máy này đang thuộc về"
+            if (res.may && res.may.tenNguoiDung) {
+            $("#lblMaySoHuuBoi").text(res.may.tenNguoiDung + (res.may.tk ? ' (' + res.may.tk + ')' : ''));
+            } else {
+            $("#lblMaySoHuuBoi").text("Chưa xác nhận kiểm kê");
+            }
+
+            // Dòng "Màn hình rời đang thuộc về" - chỉ hiện khi máy này có phát hiện màn hình rời
+            if (seriManHinhHienTai) {
+            $("#rowManHinhSoHuuBoi").show();
+            if (res.manHinh && res.manHinh.tenNguoiDung) {
+            $("#lblManHinhSoHuuBoi").text(res.manHinh.tenNguoiDung + (res.manHinh.tk ? ' (' + res.manHinh.tk + ')' : ''));
+            } else {
+            $("#lblManHinhSoHuuBoi").text("Chưa xác nhận kiểm kê");
+            }
+            } else {
+            $("#rowManHinhSoHuuBoi").hide();
+            }
+
+            // Dòng "Tài sản khác đi kèm" - liệt kê toàn bộ thiết bị khác cùng chủ sở hữu với máy này
+            if (res.taiSanKhac && res.taiSanKhac.length > 0) {
+            var html = res.taiSanKhac.map(function (ts) {
+            return (ts.loaiThietBi || 'Thiết bị') + (ts.seribacode ? ' - S/N: ' + ts.seribacode : '') + (ts.tenViTri ? ' (' + ts.tenViTri + ')' : '');
+            }).join('<br/>');
+            $("#lblTaiSanKhacDiKem").html(html);
+            } else {
+            $("#lblTaiSanKhacDiKem").text("Không có");
+            }
+
+            $("#boxThongTinSoHuu").show();
+            }).fail(function () {
+            $("#boxThongTinSoHuu").hide();
+            });
+            }
+
             // Cho phép Kéo-thả ảnh và Ctrl+V dán ảnh vào ô "Ảnh chụp thiết bị"
             function initTaiSanAnhZoneEvents() {
             let zone = document.getElementById('dropZoneTaiSanAnh');
             if (!zone) return;
 
+            zone.addEventListener('click', function () { vungAnhPasteHienTai = 'thietbi'; });
             zone.addEventListener('dragover', function (e) { e.preventDefault(); zone.classList.add('dragover'); });
             zone.addEventListener('dragleave', function () { zone.classList.remove('dragover'); });
             zone.addEventListener('drop', function (e) {
@@ -510,11 +681,32 @@
             if (file.type.startsWith('image/')) {
             taiSanAnhBlob = null;
             $('#fileTaiSanAnh')[0].files = e.dataTransfer.files;
-            hienThiXemTruocAnhTaiSan(file);
+            hienThiXemTruocAnh(file, 'imgTaiSanAnhPreview', 'boxPreviewTaiSanAnh', 'txtTaiSanAnhHint');
             }
             }
             });
 
+            // Vùng ảnh màn hình rời - cùng cơ chế Kéo-thả/Ctrl+V, độc lập với vùng ảnh thiết bị chính ở trên
+            let zoneManHinh = document.getElementById('dropZoneManHinhAnh');
+            if (zoneManHinh) {
+            zoneManHinh.addEventListener('click', function () { vungAnhPasteHienTai = 'manhinh'; });
+            zoneManHinh.addEventListener('dragover', function (e) { e.preventDefault(); zoneManHinh.classList.add('dragover'); });
+            zoneManHinh.addEventListener('dragleave', function () { zoneManHinh.classList.remove('dragover'); });
+            zoneManHinh.addEventListener('drop', function (e) {
+            e.preventDefault();
+            zoneManHinh.classList.remove('dragover');
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            let file = e.dataTransfer.files[0];
+            if (file.type.startsWith('image/')) {
+            manHinhAnhBlob = null;
+            $('#fileManHinhAnh')[0].files = e.dataTransfer.files;
+            hienThiXemTruocAnh(file, 'imgManHinhAnhPreview', 'boxPreviewManHinhAnh', 'txtManHinhAnhHint');
+            }
+            }
+            });
+            }
+
+            // Ctrl+V dán ảnh trong modal - định tuyến theo vùng đang được chọn (vungAnhPasteHienTai) vì modal có 2 khu vực ảnh
             let modalTaiSan = document.getElementById('modalXacNhanTaiSan');
             modalTaiSan.addEventListener('paste', function (e) {
             if (e.clipboardData && e.clipboardData.items) {
@@ -522,9 +714,15 @@
             let item = e.clipboardData.items[i];
             if (item.type.indexOf('image') !== -1) {
             let blob = item.getAsFile();
+            if (vungAnhPasteHienTai === 'manhinh') {
+            manHinhAnhBlob = blob;
+            $('#fileManHinhAnh').val('');
+            hienThiXemTruocAnh(blob, 'imgManHinhAnhPreview', 'boxPreviewManHinhAnh', 'txtManHinhAnhHint');
+            } else {
             taiSanAnhBlob = blob;
             $('#fileTaiSanAnh').val('');
-            hienThiXemTruocAnhTaiSan(blob);
+            hienThiXemTruocAnh(blob, 'imgTaiSanAnhPreview', 'boxPreviewTaiSanAnh', 'txtTaiSanAnhHint');
+            }
             break;
             }
             }
@@ -532,30 +730,47 @@
             });
             }
 
-            function hienThiXemTruocAnhTaiSan(fileHoacBlob) {
+            // Đọc file/blob ảnh và hiện xem trước - dùng chung cho cả vùng ảnh Thiết bị chính và Màn hình rời
+            function hienThiXemTruocAnh(fileHoacBlob, imgId, boxId, hintId) {
             let r = new FileReader();
             r.onload = function (evt) {
-            $('#imgTaiSanAnhPreview').attr('src', evt.target.result);
-            $('#boxPreviewTaiSanAnh').show();
-            $('#txtTaiSanAnhHint').hide();
+            $('#' + imgId).attr('src', evt.target.result);
+            $('#' + boxId).show();
+            $('#' + hintId).hide();
             };
             r.readAsDataURL(fileHoacBlob);
             }
 
-            function previewTaiSanAnh(input) {
+            // Gán ra window vì HTML gọi các hàm này qua thuộc tính inline onclick/onchange (chạy ở phạm vi global, không thấy được hàm khai báo trong closure này)
+            window.previewTaiSanAnh = function (input) {
             if (input.files && input.files[0]) {
             taiSanAnhBlob = null;
-            hienThiXemTruocAnhTaiSan(input.files[0]);
+            hienThiXemTruocAnh(input.files[0], 'imgTaiSanAnhPreview', 'boxPreviewTaiSanAnh', 'txtTaiSanAnhHint');
             }
-            }
+            };
 
-            function clearTaiSanAnh() {
+            window.clearTaiSanAnh = function () {
             $('#fileTaiSanAnh').val('');
             taiSanAnhBlob = null;
             $('#imgTaiSanAnhPreview').attr('src', '');
             $('#boxPreviewTaiSanAnh').hide();
             $('#txtTaiSanAnhHint').show();
+            };
+
+            window.previewManHinhAnh = function (input) {
+            if (input.files && input.files[0]) {
+            manHinhAnhBlob = null;
+            hienThiXemTruocAnh(input.files[0], 'imgManHinhAnhPreview', 'boxPreviewManHinhAnh', 'txtManHinhAnhHint');
             }
+            };
+
+            window.clearManHinhAnh = function () {
+            $('#fileManHinhAnh').val('');
+            manHinhAnhBlob = null;
+            $('#imgManHinhAnhPreview').attr('src', '');
+            $('#boxPreviewManHinhAnh').hide();
+            $('#txtManHinhAnhHint').show();
+            };
 
             // XỬ LÝ SỰ KIỆN ĐĂNG NHẬP TRÊN MODAL ĐỂ MỞ KHÓA BẢNG 2
             $("#btnSubmitXacThuc").click(function () {
@@ -648,6 +863,15 @@
             return;
             }
 
+            // Nếu đã tích xác nhận có màn hình rời đi kèm -> gộp thêm 1 dòng "Màn hình" vào Tài sản khác để kiểm kê chung, dùng đúng Vị trí vừa nhập ở trên
+            if ($("#boxManHinhNgoai").is(':visible') && $("#chkXacNhanManHinhNgoai").is(':checked')) {
+            var manHinhNgoaiXacNhan = layThongTinManHinhNgoaiThucTe();
+            if (manHinhNgoaiXacNhan) {
+            var fileManHinh = $("#fileManHinhAnh")[0].files[0];
+            taiSanKhacInfo.rows.push({ loai: 'Màn hình', serial: manHinhNgoaiXacNhan.serial, viTri: viTriInput, file: manHinhAnhBlob || fileManHinh || null });
+            }
+            }
+
             // Chuẩn bị toàn bộ dữ liệu phần cứng cần thiết để có thể INSERT khi thiết bị chưa tồn tại
             var fd = new FormData();
             fd.append('taikhoan', taikhoanInput);
@@ -703,6 +927,7 @@
             renderDropdownBoPhan(""); // Khôi phục lại toàn bộ danh sách Bộ phận sau khi bỏ chọn Công ty
             $("#boxThemNhanhBoPhan").hide();
             clearTaiSanAnh();
+            clearManHinhAnh();
             resetTaiSanKhac();
 
             // ĐÃ CẬP NHẬT: Hiển thị đúng thông báo yêu cầu của bạn khi thành công
@@ -828,7 +1053,7 @@
             fd.append('rows[' + i + '].Serial', r.serial);
             fd.append('rows[' + i + '].LoaiThietBi', r.loai);
             fd.append('rows[' + i + '].TenViTri', r.viTri);
-            if (r.file) fd.append('rows[' + i + '].Anh', r.file);
+            if (r.file) fd.append('rows[' + i + '].Anh', r.file, r.file.name || 'device_photo.jpg'); // Đặt tên file mặc định vì ảnh dán Ctrl+V là Blob thô không có tên
             });
 
             $.ajax({
@@ -900,10 +1125,13 @@
             url: 'http://localhost:8888/get-hardware',
             type: 'GET',
             dataType: 'json',
+            timeout: 20000, // Tăng thời gian chờ vì Tool local có lúc tải hơi lâu
             success: function(res) {
             if(res.success && res.data) {
             duLieuQuetMayKhachCache = res.data;
             taiToanBoThongTinChiTiet();
+            capNhatBoxManHinhNgoai();
+            traCuuThongTinSoHuu();
             }
             },
             error: function() {
