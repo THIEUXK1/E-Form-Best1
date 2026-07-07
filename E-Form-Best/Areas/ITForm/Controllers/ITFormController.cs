@@ -6266,6 +6266,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BangChungKiemKe";
             string filePath = Path.Combine(networkPath, fileName);
 
+            // Ảnh xác nhận tài sản (tenFileAnhMoi từ XacNhanTaiSanMaMay) được lưu vật lý trong thư mục "AnhKiemKe"
+            // nhưng vẫn được ghi vào KkBangChungCheck.DuongDanAnh -> cần dò thêm thư mục này nếu không thấy ở BangChungKiemKe
+            if (!System.IO.File.Exists(filePath))
+            {
+                string fallbackPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\AnhKiemKe";
+                filePath = Path.Combine(fallbackPath, fileName);
+            }
+
             if (!System.IO.File.Exists(filePath)) return NotFound();
 
             var ext = Path.GetExtension(filePath).ToLowerInvariant();
