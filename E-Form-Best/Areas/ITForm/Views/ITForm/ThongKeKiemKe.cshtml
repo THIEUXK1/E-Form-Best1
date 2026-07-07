@@ -305,8 +305,11 @@
                 </h4>
             </div>
             <div class="col-md-6 col-12 text-md-end">
+                <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold me-2" onclick="exportBaoCaoSoLuong()">
+                    <i class="fas fa-chart-pie me-1"></i> Xuất Báo Cáo Số Lượng
+                </button>
                 <button class="btn btn-success rounded-pill px-4 shadow-sm fw-bold" onclick="exportToExcel()">
-                    <i class="fas fa-file-excel me-1"></i> Xuất Báo Cáo Excel
+                    <i class="fas fa-file-excel me-1"></i> Xuất Báo Cáo Bản Quyền
                 </button>
             </div>
         </div>
@@ -1578,8 +1581,187 @@
         }
 
         // ==========================================
+        // HÀM XUẤT EXCEL BÁO CÁO SỐ LƯỢNG TỔNG QUAN (BAO QUÁT TẤT CẢ LOẠI THIẾT BỊ)
+        // ==========================================
+        window.exportBaoCaoSoLuong = function() {
+        if (filteredExportData.length === 0) {
+            Swal.fire("Thông báo", "Không có dữ liệu để xuất Excel!", "info");
+            return;
+        }
+
+        let fourMonthsAgo = new Date();
+        fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
+        let dateNowStr = new Date().toLocaleString('vi-VN');
+        const wb = XLSX.utils.book_new();
+
+        let totalCount = filteredExportData.length;
+        let countHD = 0, countBaoTri = 0, countHong = 0, countXoa = 0, countChuaCheck = 0;
+
+        let mapLoai = {};
+        let mapCongTy = {};
+        let deptMap = {};
+
+        filteredExportData.forEach(x => {
+            let t = (x.tenTrangThai || '').toLowerCase();
+            if (t.includes('xóa') || x.ngayXoa != null) countXoa++;
+            else if (t.includes('hoạt động')) countHD++;
+            else if (t.includes('bảo trì')) countBaoTri++;
+            else if (t.includes('hỏng')) countHong++;
+
+            if (!x.thoiGianCheck || new Date(x.thoiGianCheck) < fourMonthsAgo) countChuaCheck++;
+
+            let loai = x.loaiThietBi || 'Khác';
+            mapLoai[loai] = (mapLoai[loai] || 0) + 1;
+
+            let cty = x.tenCongTy || 'Chưa gắn';
+            mapCongTy[cty] = (mapCongTy[cty] || 0) + 1;
+
+            let bp = x.tenBoPhan || 'Chưa gắn';
+            let key = cty + "||" + bp;
+            if (!deptMap[key]) deptMap[key] = { cty: cty, bp: bp, total: 0 };
+            deptMap[key].total++;
+        });
+
+        // ----------------------------------------------------
+        // TAB 1: TỔNG QUAN SỐ LƯỢNG
+        // ----------------------------------------------------
+        let sheet1Rows = [
+            ["BÁO CÁO SỐ LƯỢNG TỔNG QUAN TÀI SẢN IT (TẤT CẢ LOẠI THIẾT BỊ)"],
+            ["Ngày lập báo cáo: " + dateNowStr + "  |  Nguồn dữ liệu: Hệ thống Dashboard quản trị tài sản"],
+            [],
+            ["", "TỔNG THIẾT BỊ", "", "HOẠT ĐỘNG", "", "HỎNG / MẤT", "", "BẢO TRÌ", "", "CHƯA KIỂM KÊ", "", "THÙNG RÁC"],
+            ["", totalCount, "", countHD, "", countHong, "", countBaoTri, "", countChuaCheck, "", countXoa],
+            [],
+            ["I. SỐ LƯỢNG THEO LOẠI THIẾT BỊ"],
+            ["Loại Thiết Bị", "Số Lượng", "Tỷ Lệ (%)"]
+        ];
+
+        Object.entries(mapLoai).sort((a, b) => b[1] - a[1]).forEach(([key, val]) => {
+            let pct = totalCount > 0 ? (val / totalCount * 100).toFixed(1) : "0.0";
+            sheet1Rows.push([key, val, pct + "%"]);
+        });
+        sheet1Rows.push(["TỔNG CỘNG", totalCount, "100.0%"]);
+
+        sheet1Rows.push([], [], ["II. SỐ LƯỢNG THEO CÔNG TY"], ["Công Ty", "Số Lượng", "Tỷ Lệ (%)"]);
+        Object.entries(mapCongTy).sort((a, b) => b[1] - a[1]).forEach(([key, val]) => {
+            let pct = totalCount > 0 ? (val / totalCount * 100).toFixed(1) : "0.0";
+            sheet1Rows.push([key, val, pct + "%"]);
+        });
+        sheet1Rows.push(["TỔNG CỘNG", totalCount, "100.0%"]);
+
+        const ws1 = XLSX.utils.aoa_to_sheet(sheet1Rows);
+        ws1['!cols'] = [{ wch: 35 }, { wch: 15 }, { wch: 15 }];
+        styleWorksheetUniversal(ws1);
+        XLSX.utils.book_append_sheet(wb, ws1, "1. Tổng Quan");
+
+        // ----------------------------------------------------
+        // TAB 2: SỐ LƯỢNG THEO BỘ PHẬN (THEO CÔNG TY)
+        // ----------------------------------------------------
+        let sheet2Rows = [
+            ["SỐ LƯỢNG THIẾT BỊ THEO PHÒNG BAN BỘ PHẬN"],
+            ["Ngày xuất báo cáo: " + dateNowStr + " | Tổng số thiết bị: " + totalCount],
+            [],
+            ["STT", "Công Ty", "Bộ Phận", "Tổng Số Máy", "Tỷ Lệ (%)"]
+        ];
+
+        Object.values(deptMap).sort((a, b) => b.total - a.total).forEach((item, idx) => {
+            let pct = totalCount > 0 ? (item.total / totalCount * 100).toFixed(1) : "0.0";
+            sheet2Rows.push([idx + 1, item.cty, item.bp, item.total, pct + "%"]);
+        });
+
+        const ws2 = XLSX.utils.aoa_to_sheet(sheet2Rows);
+        ws2['!cols'] = [{ wch: 6 }, { wch: 20 }, { wch: 25 }, { wch: 15 }, { wch: 15 }];
+        styleWorksheetUniversal(ws2);
+        XLSX.utils.book_append_sheet(wb, ws2, "2. Theo Bộ Phận");
+
+        // ----------------------------------------------------
+        // TAB 3: DANH SÁCH CHI TIẾT TOÀN BỘ THIẾT BỊ THEO LOẠI
+        // ----------------------------------------------------
+        let sheet3Rows = [
+            ["DANH SÁCH CHI TIẾT TOÀN BỘ THIẾT BỊ (BAO QUÁT TẤT CẢ LOẠI)"],
+            ["Tổng số thiết bị: " + totalCount],
+            [],
+            ["STT", "ID Máy", "Tên Vị Trí", "Tên Máy (Hostname)", "Loại TB", "Quy Cách", "Số Seri / Barcode", "Công Ty", "Bộ Phận", "Trạng Thái", "Người Sử Dụng", "Tài Khoản Đăng Nhập", "Bản Quyền Windows", "Bản Quyền Office", "Hạn Bảo Hành", "Lần Cuối Kiểm Kê", "Ngày Cập Nhật", "Ghi Chú"]
+        ];
+
+        filteredExportData
+            .slice()
+            .sort((a, b) => (a.loaiThietBi || '').localeCompare(b.loaiThietBi || '', 'vi', { sensitivity: 'base' }))
+            .forEach((item, idx) => {
+                sheet3Rows.push([
+                    idx + 1,
+                    item.idThietBi,
+                    item.tenViTri || 'Chưa rõ',
+                    item.tenMayTinh || 'No Hostname',
+                    item.loaiThietBi || 'Khác',
+                    item.quyCach || '-',
+                    item.seribacode || '-',
+                    item.tenCongTy || 'Chưa gắn',
+                    item.tenBoPhan || 'Chưa gắn',
+                    item.tenTrangThai || 'Chưa rõ',
+                    item.tenNguoiDung ? `${item.tenNguoiDung} (${item.tk || 'N/A'})` : 'Chưa cấp phát',
+                    item.tenDangNhap || '-',
+                    item.winLicense || 'Trống / Chưa rõ',
+                    item.officeLicense || 'Trống / Chưa rõ',
+                    item.hanBaoHanh ? new Date(item.hanBaoHanh).toLocaleDateString('vi-VN') : '-',
+                    item.thoiGianCheck ? new Date(item.thoiGianCheck).toLocaleString('vi-VN') : 'Chưa kiểm kê',
+                    item.ngayCapNhat ? new Date(item.ngayCapNhat).toLocaleString('vi-VN') : '-',
+                    item.ghiChu || '-'
+                ]);
+            });
+
+        const ws3 = XLSX.utils.aoa_to_sheet(sheet3Rows);
+        ws3['!cols'] = [
+            { wch: 6 }, { wch: 10 }, { wch: 22 }, { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 18 },
+            { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 30 }, { wch: 18 },
+            { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 30 }
+        ];
+        ws3['!views'] = [{ state: 'frozen', ySplit: 4 }];
+        styleWorksheetUniversal(ws3);
+        XLSX.utils.book_append_sheet(wb, ws3, "3. Danh Sách Chi Tiết");
+
+        // --- GHI WORKBOOK VÀ KÍCH HOẠT LỆNH TẢI FILE ---
+        let dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+        XLSX.writeFile(wb, `BaoCao_SoLuong_TongQuan_IT_${dateStr}.xlsx`);
+        }
+
+        // ==========================================
         // HÀM XUẤT EXCEL CHUYÊN NGHIỆP DỰA TRÊN FILE ĐÍNH KÈM
         // ==========================================
+        // Phân loại chính xác trạng thái bản quyền Windows dựa trên dữ liệu thực tế hiện có
+        // (Trường bản quyền hiện là ô nhập tự do nên dữ liệu có thể lẫn cả giá trị cũ lẫn mới)
+        // QUY ƯỚC CHUẨN CÔNG TY: chỉ Windows Professional (Pro) mới được tính "Đạt chuẩn".
+        // Home/Enterprise/Education tuy có bản quyền nhưng KHÔNG đúng chuẩn Pro nên vẫn cần xác minh/nâng cấp.
+        function phanLoaiBanQuyenWindows(raw) {
+        let v = (raw || '').trim();
+        if (v === '') return { nhom: 'Trống / Chưa cập nhật', risk: true };
+        let low = v.toLowerCase();
+        if (low.includes('chưa có') || low.includes('không có')) return { nhom: 'Chưa có bản quyền', risk: true };
+        if (low.includes('không xác định')) return { nhom: 'Không xác định', risk: true };
+        if (low.includes('chưa rõ')) return { nhom: 'Có bản quyền - Chưa rõ phiên bản', risk: true };
+        if (low.includes('professional')) return { nhom: 'Windows Professional (Đạt chuẩn)', risk: false };
+        if (low.includes('home')) return { nhom: 'Windows Home (Không đạt chuẩn - Cần nâng cấp Pro)', risk: true };
+        if (low.includes('education')) return { nhom: 'Windows Education (Không đạt chuẩn - Cần nâng cấp Pro)', risk: true };
+        if (low.includes('enterprise') || low.includes('iot')) return { nhom: 'Windows Enterprise (Không đạt chuẩn - Cần nâng cấp Pro)', risk: true };
+        if (low.includes('có bản quyền')) return { nhom: 'Có bản quyền - Chưa rõ phiên bản', risk: true };
+        if (low.includes('pro')) return { nhom: 'Windows Professional (Đạt chuẩn)', risk: false };
+        return { nhom: 'Không xác định', risk: true };
+        }
+
+        // Phân loại chính xác trạng thái bản quyền Office dựa trên dữ liệu thực tế hiện có
+        function phanLoaiBanQuyenOffice(raw) {
+        let v = (raw || '').trim();
+        if (v === '') return { nhom: 'Trống / Chưa cập nhật', risk: true };
+        let low = v.toLowerCase();
+        if (low.includes('không có') || low.includes('chưa có')) return { nhom: 'Chưa có bản quyền', risk: true };
+        if (low.includes('không xác định')) return { nhom: 'Không xác định', risk: true };
+        if (low.includes('chưa rõ')) return { nhom: 'Có bản quyền - Chưa rõ phiên bản', risk: true };
+        if (low.includes('có bản quyền') || low.includes('professional plus') || low.includes('standard') ||
+            low.includes('microsoft 365') || low.includes('home & business') || low.includes('home & student') ||
+            low.includes('apps for')) return { nhom: 'Có bản quyền (Đầy đủ)', risk: false };
+        return { nhom: 'Không xác định', risk: true };
+        }
+
         window.exportToExcel = function() {
         if (filteredExportData.length === 0) {
             Swal.fire("Thông báo", "Không có dữ liệu để xuất Excel!", "info");
@@ -1598,37 +1780,22 @@
         let winRiskCount = 0;
         let officeRiskCount = 0;
 
-        let winGroup = { "Windows Pro": 0, "Windows Home": 0, "Có bản quyền - Chưa rõ phiên bản": 0, "Trống / Chưa rõ": 0, "Chưa có bản quyền": 0 };
-        let officeGroup = { "Có bản quyền (Đầy đủ)": 0, "Có (Chưa rõ phiên bản)": 0, "Trống / Chưa rõ": 0, "Chưa có": 0 };
+        let winGroup = {};
+        let officeGroup = {};
 
         filteredExportData.forEach(x => {
             let t = (x.tenTrangThai || '').toLowerCase();
             if (t.includes('hoạt động')) activeCount++;
 
             // Thống kê Win
-            let wLic = x.winLicense || '';
-            if (wLic.includes('Windows Pro')) { winGroup["Windows Pro"]++; winOkCount++; }
-            else if (wLic.includes('Windows Home')) { winGroup["Windows Home"]++; winOkCount++; }
-            else if (wLic.includes('Có (Chưa rõ phiên bản)') || wLic.includes('Có bản quyền')) { winGroup["Có bản quyền - Chưa rõ phiên bản"]++; winRiskCount++; }
-            else if (wLic === '' || wLic.includes('Trống')) { winGroup["Trống / Chưa rõ"]++; winRiskCount++; }
-            else { winGroup["Chưa có bản quyền"]++; winRiskCount++; }
+            let winKq = phanLoaiBanQuyenWindows(x.winLicense);
+            winGroup[winKq.nhom] = (winGroup[winKq.nhom] || 0) + 1;
+            if (winKq.risk) winRiskCount++; else winOkCount++;
 
             // Thống kê Office
-            let oLic = x.officeLicense || '';
-            if (oLic !== '' && !oLic.includes('Chưa có') && !oLic.includes('Trống') && !oLic.includes('Chưa rõ')) {
-                if (oLic.includes('Có (Chưa rõ phiên bản)')) {
-                    officeGroup["Có (Chưa rõ phiên bản)"]++;
-                    officeRiskCount++;
-                } else {
-                    officeGroup["Có bản quyền (Đầy đủ)"]++;
-                }
-            } else if (oLic.includes('Trống') || oLic === '') {
-                officeGroup["Trống / Chưa rõ"]++;
-                officeRiskCount++;
-            } else {
-                officeGroup["Chưa có"]++;
-                officeRiskCount++;
-            }
+            let offKq = phanLoaiBanQuyenOffice(x.officeLicense);
+            officeGroup[offKq.nhom] = (officeGroup[offKq.nhom] || 0) + 1;
+            if (offKq.risk) officeRiskCount++;
         });
 
         // ----------------------------------------------------
@@ -1638,29 +1805,30 @@
             ["BÁO CÁO TÌNH TRẠNG BẢN QUYỀN PHẦN MỀM HỆ THỐNG IT"],
             ["Ngày lập báo cáo: " + dateNowStr + "  |  Nguồn dữ liệu: Hệ thống Dashboard quản trị tài sản"],
             [],
-            ["", "TỔNG THIẾT BỊ", "", "ĐANG HOẠT ĐỘNG", "", "WIN - CÓ BQ ĐẦY ĐỦ", "", "WIN - RỦI RO BẢN QUYỀN", "", "OFFICE - RỦI RO BẢN QUYỀN"],
+            ["", "TỔNG THIẾT BỊ", "", "ĐANG HOẠT ĐỘNG", "", "WIN - ĐẠT CHUẨN PRO", "", "WIN - RỦI RO BẢN QUYỀN", "", "OFFICE - RỦI RO BẢN QUYỀN"],
             ["", totalCount, "", activeCount, "", winOkCount, "", winRiskCount, "", officeRiskCount],
             [],
             ["I. PHÂN TÍCH TRẠNG THÁI BẢN QUYỀN WINDOWS"],
             ["Trạng Thái Bản Quyền", "Số Lượng Máy", "Tỷ Lệ (%)", "Mức Độ Rủi Ro", "Khuyến Nghị"]
         ];
 
-        Object.entries(winGroup).forEach(([key, val]) => {
+        Object.entries(winGroup).sort((a, b) => b[1] - a[1]).forEach(([key, val]) => {
             let pct = totalCount > 0 ? (val / totalCount) : 0;
             let riskLvl = "Đạt chuẩn ✔";
             let rec = "Duy trì và gia hạn đúng hạn";
-            if (key.includes("Chưa rõ") || key.includes("Trống")) { riskLvl = "Cần xác minh ⚠"; rec = "Kiểm tra và cập nhật thông tin"; }
-            else if (key.includes("Chưa có")) { riskLvl = "Nguy hiểm ✘"; rec = "Mua bổ sung bản quyền ngay"; }
+            if (key.includes("Chưa có")) { riskLvl = "Nguy hiểm ✘"; rec = "Mua bổ sung bản quyền Windows Pro ngay"; }
+            else if (key.includes("Không đạt chuẩn")) { riskLvl = "Cần nâng cấp ⚠"; rec = "Chuyển đổi/nâng cấp lên Windows Pro theo chuẩn công ty"; }
+            else if (key.includes("Chưa rõ") || key.includes("Trống") || key.includes("Không xác định")) { riskLvl = "Cần xác minh ⚠"; rec = "Kiểm tra và cập nhật thông tin"; }
             sheet1Rows.push([key, val, (pct * 100).toFixed(1) + "%", riskLvl, rec]);
         });
         sheet1Rows.push(["TỔNG CỘNG WINDOWS", totalCount, "100.0%", "", ""]);
 
         sheet1Rows.push([], [], ["II. PHÂN TÍCH TRẠNG THÁI BẢN QUYỀN OFFICE"], ["Trạng Thái Bản Quyền", "Số Lượng Máy", "Tỷ Lệ (%)", "Mức Độ Rủi Ro", "Khuyến Nghị"]);
-        Object.entries(officeGroup).forEach(([key, val]) => {
+        Object.entries(officeGroup).sort((a, b) => b[1] - a[1]).forEach(([key, val]) => {
             let pct = totalCount > 0 ? (val / totalCount) : 0;
             let riskLvl = "Đạt chuẩn ✔";
             let rec = "Duy trì đúng chính sách";
-            if (key.includes("Chưa rõ") || key.includes("Trống")) { riskLvl = "Cần xác minh ⚠"; rec = "Kiểm tra thực tế cài đặt"; }
+            if (key.includes("Chưa rõ") || key.includes("Trống") || key.includes("Không xác định")) { riskLvl = "Cần xác minh ⚠"; rec = "Kiểm tra thực tế cài đặt"; }
             else if (key.includes("Chưa có")) { riskLvl = "Nguy hiểm ✘"; rec = "Đăng ký mua Microsoft 365"; }
             sheet1Rows.push([key, val, (pct * 100).toFixed(1) + "%", riskLvl, rec]);
         });
@@ -1685,14 +1853,8 @@
             }
             deptMap[key].total++;
 
-            let wLic = x.winLicense || '';
-            if (!wLic.includes('Windows Pro') && !wLic.includes('Windows Home') && !wLic.includes('Windows Enterprise')) {
-                deptMap[key].winRisk++;
-            }
-            let oLic = x.officeLicense || '';
-            if (oLic === '' || oLic.includes('Chưa có') || oLic.includes('Trống') || oLic.includes('Chưa rõ')) {
-                deptMap[key].offRisk++;
-            }
+            if (phanLoaiBanQuyenWindows(x.winLicense).risk) deptMap[key].winRisk++;
+            if (phanLoaiBanQuyenOffice(x.officeLicense).risk) deptMap[key].offRisk++;
         });
 
         let sheet2Rows = [
@@ -1725,11 +1887,8 @@
 
         let riskIdx = 1;
         filteredExportData.forEach(item => {
-            let wLic = item.winLicense || '';
-            let oLic = item.officeLicense || '';
-
-            let isWinRisk = (!wLic.includes('Windows Pro') && !wLic.includes('Windows Home') && !wLic.includes('Windows Enterprise'));
-            let isOffRisk = (oLic === '' || oLic.includes('Chưa có') || oLic.includes('Trống') || oLic.includes('Chưa rõ'));
+            let isWinRisk = phanLoaiBanQuyenWindows(item.winLicense).risk;
+            let isOffRisk = phanLoaiBanQuyenOffice(item.officeLicense).risk;
 
             if (isWinRisk || isOffRisk) {
                 let priority = "🟠 Cao";

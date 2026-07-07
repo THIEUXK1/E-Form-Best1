@@ -599,20 +599,20 @@
             if (!match) continue;
             var model = match[1].trim();
             var serial = match[2].trim();
-            if (serial && serial !== '0' && model.toLowerCase().indexOf('tiêu chuẩn') === -1) {
+            if (serial && serial !== '0' && serial.toUpperCase() !== 'N/A' && model.toLowerCase().indexOf('tiêu chuẩn') === -1) {
             return { model: model, serial: serial };
             }
             }
             return null;
             }
 
-            // Hiện/ẩn ô tích "Xác nhận có màn hình rời đi kèm" dựa vào thongTinManHinhNgoai + dsManHinhRaw quét được
+            // Hiện/ẩn ô tích "Xác nhận có màn hình rời đi kèm" - chỉ dựa vào việc quét được màn hình có S/N thật (không phụ thuộc
+            // chuỗi thongTinManHinhNgoai của Tool local, vì Tool cũ mặc định máy chỉ có 1 màn hình là màn hình tích hợp của laptop,
+            // trong khi máy cây/máy bàn không có màn hình tích hợp nên dù chỉ 1 màn hình vẫn phải tính là màn hình rời)
             function capNhatBoxManHinhNgoai() {
-            var txtTrangThai = duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.thongTinManHinhNgoai || '') : '';
-            var coPhatHien = txtTrangThai.indexOf('Phát hiện thêm') !== -1;
             var manHinhNgoai = layThongTinManHinhNgoaiThucTe();
 
-            if (coPhatHien && manHinhNgoai) {
+            if (manHinhNgoai) {
             $("#lblManHinhNgoaiInfo").text(manHinhNgoai.model + ' (S/N: ' + manHinhNgoai.serial + ')');
             $("#boxManHinhNgoai").show();
             $("#chkXacNhanManHinhNgoai").prop('checked', true);
