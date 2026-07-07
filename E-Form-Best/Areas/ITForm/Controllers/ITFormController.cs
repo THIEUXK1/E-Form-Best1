@@ -5167,6 +5167,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         tenViTri = x.TenViTri, // ĐÃ ĐỒNG BỘ: Đổi sang cấu trúc thuộc tính mới từ dữ liệu
                         tenMayTinh = x.TenMayTinh,
                         loaiThietBi = x.LoaiThietBi,
+                        quyCach = x.QuyCach,
+                        seribacode = x.Seribacode,
+                        hanBaoHanh = x.HanBaoHanh,
                         tenDangNhap = x.TenDangNhap,
 
                         // Lấy thông tin từ bảng User
@@ -7091,8 +7094,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             try
             {
+                var truongAn = new[] { "ThoiGianHoatDong", "RamKhaDung" };
                 var logs = _context.TscnLichSuThayDois
-                    .Where(l => l.IdMay == idMay)
+                    .Where(l => l.IdMay == idMay && !truongAn.Contains(l.TenTruongThayDoi))
                     .OrderByDescending(l => l.ThoiGianThayDoi)
                     .Select(l => new {
                         thoiGianThayDoi = l.ThoiGianThayDoi.HasValue ? l.ThoiGianThayDoi.Value.ToString("yyyy-MM-dd HH:mm:ss") : "N/A",
