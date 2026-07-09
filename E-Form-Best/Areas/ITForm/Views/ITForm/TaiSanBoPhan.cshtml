@@ -1,0 +1,141 @@
+@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Tài sản bộ phận";
+}
+
+<div class="container-fluid mt-4 text-dark">
+    <div class="card shadow mb-3">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center flex-wrap">
+            <h5 class="mb-0"><i class="fa fa-building" style="margin-right: 8px;"></i>Tài Sản Của Bộ Phận Tôi</h5>
+            <span class="badge bg-light text-dark" id="lblPhamViQuanLy" style="font-size: 13px;">Đang tải phạm vi quản lý...</span>
+        </div>
+        <div class="card-body bg-light py-3">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">Tìm kiếm nhanh</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-secondary text-white"><i class="fa fa-search"></i></span>
+                        <input type="text" id="txtTimKiem" class="form-control" placeholder="Tên máy, tên vị trí, người dùng, serial..." />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <span class="text-dark small fw-bold" id="lblTongSo">Tổng số thiết bị: 0</span>
+                </div>
+                <div class="col-md-3 text-end">
+                    <button id="btnTaiLai" class="btn btn-sm btn-primary">
+                        <i class="fa fa-refresh"></i> Tải lại
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body p-0">
+            <div id="alertTinNhan" class="alert alert-warning m-3" style="display: none;" role="alert"></div>
+
+            <div class="table-responsive" style="max-height: 75vh; overflow-y: auto;">
+                <table class="table table-bordered table-striped table-hover mb-0" style="font-size: 13px;">
+                    <thead class="table-secondary sticky-top" style="z-index: 10;">
+                        <tr>
+                            <th style="white-space: nowrap;">Tên vị trí</th>
+                            <th style="white-space: nowrap;">Tên máy (Hostname)</th>
+                            <th style="white-space: nowrap;">Loại TB</th>
+                            <th style="white-space: nowrap;">Quy cách</th>
+                            <th style="white-space: nowrap;">Serial / Barcode</th>
+                            <th style="white-space: nowrap;">Người sử dụng</th>
+                            <th style="white-space: nowrap;">Trạng thái</th>
+                            <th style="white-space: nowrap;">Bản quyền Win</th>
+                            <th style="white-space: nowrap;">Bản quyền Office</th>
+                            <th style="white-space: nowrap;">Lần cuối kiểm kê</th>
+                            <th style="white-space: nowrap;">Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyThietBi">
+                        <tr>
+                            <td colspan="11" class="text-center py-4 text-muted">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                <span class="ms-2">Đang tải danh sách thiết bị của bộ phận...</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bundle.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            var danhSachGoc = [];
+
+            taiDuLieu();
+
+            $("#btnTaiLai").click(function () { taiDuLieu(); });
+            $("#txtTimKiem").on("keyup", function () { renderBang(locDuLieu()); });
+
+            function taiDuLieu() {
+                $("#alertTinNhan").hide();
+                $.get('/QLKiemKe/GetThietBiBoPhanCuaToi', function (res) {
+                    if (res && res.success) {
+                        danhSachGoc = res.data || [];
+                        $("#lblPhamViQuanLy").text((res.tenCongTy || "Chưa rõ") + " - " + (res.tenBoPhan || "Chưa rõ"));
+                        renderBang(locDuLieu());
+                    } else {
+                        $("#lblPhamViQuanLy").text("Không xác định");
+                        $("#tbodyThietBi").html('<tr><td colspan="11" class="text-center text-muted py-4">Không có dữ liệu.</td></tr>');
+                        $("#alertTinNhan").text(res.message || "Không thể tải dữ liệu.").fadeIn();
+                        $("#lblTongSo").text("Tổng số thiết bị: 0");
+                    }
+                }).fail(function () {
+                    $("#alertTinNhan").text("Không thể kết nối đến máy chủ để tải dữ liệu.").fadeIn();
+                });
+            }
+
+            function locDuLieu() {
+                var tuKhoa = $("#txtTimKiem").val().toLowerCase().trim();
+                if (tuKhoa === "") return danhSachGoc;
+                return $.grep(danhSachGoc, function (item) {
+                    return (item.tenMayTinh && item.tenMayTinh.toLowerCase().indexOf(tuKhoa) !== -1) ||
+                        (item.tenViTri && item.tenViTri.toLowerCase().indexOf(tuKhoa) !== -1) ||
+                        (item.tenNguoiDung && item.tenNguoiDung.toLowerCase().indexOf(tuKhoa) !== -1) ||
+                        (item.tk && item.tk.toLowerCase().indexOf(tuKhoa) !== -1) ||
+                        (item.seribacode && item.seribacode.toLowerCase().indexOf(tuKhoa) !== -1);
+                });
+            }
+
+            function renderBang(dsHienThi) {
+                $("#lblTongSo").text("Tổng số thiết bị: " + dsHienThi.length);
+
+                if (dsHienThi.length === 0) {
+                    $("#tbodyThietBi").html('<tr><td colspan="11" class="text-center text-muted py-4">Không tìm thấy thiết bị nào phù hợp.</td></tr>');
+                    return;
+                }
+
+                var html = "";
+                $.each(dsHienThi, function (i, item) {
+                    var userInfo = item.tenNguoiDung ? (item.tenNguoiDung + (item.tk ? ' (' + item.tk + ')' : '')) : 'Chưa cấp phát';
+                    var lanCuoiCheck = item.thoiGianCheck ? new Date(item.thoiGianCheck).toLocaleString('vi-VN') : 'Chưa kiểm kê';
+
+                    html += '<tr>' +
+                        '<td class="fw-bold">' + (item.tenViTri || 'Chưa rõ') + '</td>' +
+                        '<td>' + (item.tenMayTinh || 'N/A') + '</td>' +
+                        '<td>' + (item.loaiThietBi || 'Khác') + '</td>' +
+                        '<td>' + (item.quyCach || '-') + '</td>' +
+                        '<td class="text-danger fw-bold">' + (item.seribacode || '-') + '</td>' +
+                        '<td class="text-primary">' + userInfo + '</td>' +
+                        '<td>' + (item.tenTrangThai || 'Chưa rõ') + '</td>' +
+                        '<td class="text-info">' + (item.winLicense || 'Trống') + '</td>' +
+                        '<td class="text-warning">' + (item.officeLicense || 'Trống') + '</td>' +
+                        '<td style="white-space: nowrap;">' + lanCuoiCheck + '</td>' +
+                        '<td>' + (item.ghiChu || '-') + '</td>' +
+                        '</tr>';
+                });
+                $("#tbodyThietBi").html(html);
+            }
+        });
+    </script>
+}
