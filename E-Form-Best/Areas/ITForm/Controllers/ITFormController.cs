@@ -5281,6 +5281,32 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // ==================== TRẠNG THÁI ====================
+        // Lấy danh sách các giá trị Bản quyền Windows/Office ĐÃ TỪNG được nhập trong hệ thống, dùng làm gợi ý (datalist)
+        // khi thêm/sửa thiết bị thủ công - thay vì chỉ có sẵn vài mẫu cứng, gợi ý sẽ phản ánh đúng dữ liệu thực tế đang dùng.
+        [HttpGet("/QLKiemKe/GetGoiYBanQuyen")]
+        public IActionResult GetGoiYBanQuyen()
+        {
+            try
+            {
+                var dsWin = _context.KkThietBis
+                    .Where(x => x.WinLicense != null && x.WinLicense != "")
+                    .Select(x => x.WinLicense!.Trim())
+                    .Distinct()
+                    .OrderBy(x => x)
+                    .ToList();
+
+                var dsOffice = _context.KkThietBis
+                    .Where(x => x.OfficeLicense != null && x.OfficeLicense != "")
+                    .Select(x => x.OfficeLicense!.Trim())
+                    .Distinct()
+                    .OrderBy(x => x)
+                    .ToList();
+
+                return Json(new { success = true, dsWin, dsOffice });
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
         [HttpGet("/QLKiemKe/GetKkTrangThais")]
         public IActionResult GetKkTrangThais()
         {
@@ -5706,12 +5732,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     string currentLoai = (model.LoaiThietBi ?? "").Trim().ToLower();
 
                     // THAY ĐỔI: So sánh đồng thời cả tên máy tính VÀ loại thiết bị giống nhau thì mới tính là trùng
+                    // Bỏ qua các thiết bị đã nằm trong Thùng rác (NgayXoa != null), vì chúng không còn "đang tồn tại" nên không được tính là trùng
                     if (model.IdThietBi == 0)
                     {
                         isDuplicate = _context.KkThietBis.Any(x => x.TenMayTinh != null
                             && x.TenMayTinh.Trim().ToLower() == trimmedTarget
                             && x.LoaiThietBi != null
-                            && x.LoaiThietBi.Trim().ToLower() == currentLoai);
+                            && x.LoaiThietBi.Trim().ToLower() == currentLoai
+                            && x.NgayXoa == null);
                     }
                     else
                     {
@@ -5719,7 +5747,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             && x.TenMayTinh.Trim().ToLower() == trimmedTarget
                             && x.LoaiThietBi != null
                             && x.LoaiThietBi.Trim().ToLower() == currentLoai
-                            && x.IdThietBi != model.IdThietBi);
+                            && x.IdThietBi != model.IdThietBi
+                            && x.NgayXoa == null);
                     }
                 }
 
@@ -6068,7 +6097,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         private string? TuPhanLoaiThietBiTheoDongMay(string? dongMay)
         {
             if (string.IsNullOrWhiteSpace(dongMay)) return null;
-            string d = dongMay.ToLower();
+            string d = dongMay.Trim().ToLower();
 
             if (d.Contains("virtual machine") || d.Contains("vmware") || d.Contains("virtualbox") || d.Contains("hyper-v") || d.Contains("qemu") || d.Contains("kvm"))
                 return "MayAo";
@@ -6078,10 +6107,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 d.Contains("zbook") || d.Contains("legion") || d.Contains("ideapad") || d.Contains("latitude") ||
                 d.Contains("macbook") || d.Contains("zhaoyang"))
                 return "Laptop";
+            // Thêm "slim" (case Dell Slim - máy bàn dạng mỏng) và hậu tố " t" (VD: "Vostro 3020 T" - ký hiệu kiểu dáng Tower của Dell)
             if (d.Contains("desktop") || d.Contains("sff") || d.Contains("small form factor") || d.Contains("microtower") ||
-                d.Contains("tower") || d.Contains("workstation") || d.EndsWith(" mt") || d.EndsWith(" dm") || d.Contains("base model") ||
-                d.Contains("inspiron"))
+                d.Contains("tower") || d.Contains("workstation") || d.EndsWith(" mt") || d.EndsWith(" dm") || d.EndsWith(" t") ||
+                d.Contains("base model") || d.Contains("inspiron") || d.Contains("slim"))
                 return "PC";
+
+            // Dell Vostro dùng chung tên dòng máy cho cả Laptop và PC bàn, chỉ phân biệt được qua hậu tố kiểu dáng đã xét ở trên
+            // (T/SFF/MT/Tower/Slim). Nếu không có hậu tố kiểu dáng nào thì đây là dòng số thuần (VD: Vostro 3400/3500) -
+            // trên thực tế các model này đều thuộc dòng Laptop 14"/15" của Dell.
+            if (d.Contains("vostro"))
+                return "Laptop";
 
             return null; // Không đủ dấu hiệu để tự phân loại - để trống, admin có thể sửa tay sau ở trang danh sách máy tính
         }
@@ -6520,6 +6556,91 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return View("ChiTietThietBi", item); // Trả dữ liệu sang giao diện Razor View
         }
 
+        // NHẬP NHANH TÌNH TRẠNG KEY OFFICE TỪ FILE EXCEL: Cột A = Tên máy tính, Cột B = Tình trạng (Activated / Not Activated)
+        // Bỏ qua các dòng có Cột B trống hoặc không khớp Tên máy tính nào trong hệ thống. Dòng 1 được coi là tiêu đề nên luôn bỏ qua.
+        // Chỉ áp dụng cho thiết bị loại "Máy tính" (PC/máy cây) và "Laptop" - các loại thiết bị khác (Màn hình, Máy in...) không có Office nên bỏ qua dù trùng tên máy.
+        // Chuẩn hóa Activated/Not Activated về đúng 2 giá trị đã dùng sẵn trong hệ thống ("Có bản quyền" / "Không có bản quyền") để đồng bộ với datalist và bộ lọc hiện có.
+        [HttpPost("/QLKiemKe/ImportOfficeLicenseExcel")]
+        public IActionResult ImportOfficeLicenseExcel(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return Json(new { success = false, message = "Vui lòng chọn file Excel." });
+            }
+
+            try
+            {
+                int soDaCapNhat = 0;
+                int soBoQuaTrong = 0;
+                var dsKhongTimThay = new List<string>();
+                var dsBoQuaKhacLoai = new List<string>();
+                string[] loaiMayTinhHopLe = { "máy tính", "laptop" };
+
+                using (var stream = new MemoryStream())
+                {
+                    file.CopyTo(stream);
+                    using (var workbook = new ClosedXML.Excel.XLWorkbook(stream))
+                    {
+                        var worksheet = workbook.Worksheet(1);
+                        var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
+
+                        for (int row = 2; row <= lastRow; row++)
+                        {
+                            string tenMay = worksheet.Cell(row, 1).GetString().Trim();
+                            string tinhTrangGoc = worksheet.Cell(row, 2).GetString().Trim();
+
+                            if (string.IsNullOrEmpty(tenMay)) continue;
+                            if (string.IsNullOrEmpty(tinhTrangGoc)) { soBoQuaTrong++; continue; }
+
+                            // Quy đổi về đúng chuẩn nhãn đang dùng trong hệ thống: Activated -> Có bản quyền, Not Activated -> Chưa có bản quyền,
+                            // giá trị khác lạ không khớp 2 mẫu trên (nhưng không trống) thì coi là Không xác định.
+                            string tinhTrangGocLower = tinhTrangGoc.Trim().ToLower();
+                            string tinhTrang = tinhTrangGocLower == "not activated" ? "Chưa có bản quyền"
+                                             : tinhTrangGocLower == "activated" ? "Có bản quyền"
+                                             : "Không xác định";
+
+                            var dsThietBiCungTen = _context.KkThietBis
+                                .Where(x => x.TenMayTinh != null && x.TenMayTinh.Trim().ToLower() == tenMay.ToLower())
+                                .ToList();
+
+                            if (dsThietBiCungTen.Count == 0) { dsKhongTimThay.Add(tenMay); continue; }
+
+                            // Chỉ cập nhật đúng thiết bị loại Máy tính/Laptop, các thiết bị khác trùng tên (VD: Màn hình cùng vị trí) thì bỏ qua
+                            var dsThietBiKhop = dsThietBiCungTen
+                                .Where(x => x.LoaiThietBi != null && loaiMayTinhHopLe.Contains(x.LoaiThietBi.Trim().ToLower()))
+                                .ToList();
+
+                            if (dsThietBiKhop.Count == 0) { dsBoQuaKhacLoai.Add(tenMay); continue; }
+
+                            foreach (var thietBi in dsThietBiKhop)
+                            {
+                                thietBi.OfficeLicense = tinhTrang;
+                                thietBi.NgayCapNhat = DateTime.Now;
+                                soDaCapNhat++;
+                            }
+                        }
+
+                        _context.SaveChanges();
+                    }
+                }
+
+                GhiLichSu("Nhập Excel", "Thiết Bị", 0, $"Nhập nhanh tình trạng Key Office từ Excel: đã cập nhật {soDaCapNhat} thiết bị, bỏ qua {soBoQuaTrong} dòng trống, không tìm thấy {dsKhongTimThay.Count} tên máy, bỏ qua {dsBoQuaKhacLoai.Count} thiết bị khác loại Máy tính/Laptop.");
+
+                return Json(new
+                {
+                    success = true,
+                    soDaCapNhat,
+                    soBoQuaTrong,
+                    dsKhongTimThay,
+                    dsBoQuaKhacLoai
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi khi đọc file Excel: " + ex.Message });
+            }
+        }
+
         #endregion
 
 
@@ -6538,6 +6659,84 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Redirect("/DonXetDuyet/DangNhap");
             }
             return View();
+        }
+
+        // Xác định Công ty + Bộ phận của 1 người dùng, dựa vào thiết bị KK_ThietBi đã được xác nhận đứng tên họ (mới cập nhật gần nhất)
+        private (int? IdCongTy, int? IdBoPhan, string? TenCongTy, string? TenBoPhan) LayCongTyBoPhanCuaUser(int idNguoiDung)
+        {
+            var thietBi = _context.KkThietBis
+                .Include(x => x.IdcongTyNavigation)
+                .Include(x => x.IdboPhanNavigation)
+                .Where(x => x.IdNguoiDung == idNguoiDung && x.IdcongTy != null && x.IdboPhan != null && x.NgayXoa == null)
+                .OrderByDescending(x => x.NgayCapNhat)
+                .FirstOrDefault();
+
+            if (thietBi == null) return (null, null, null, null);
+            return (thietBi.IdcongTy, thietBi.IdboPhan, thietBi.IdcongTyNavigation?.TenCongTy, thietBi.IdboPhanNavigation?.TenBoPhan);
+        }
+
+        // Trang riêng dành cho người có quyền "XemTSCN" xem toàn bộ thiết bị của đúng Công ty + Bộ phận mà bản thân họ đang thuộc về
+        // (xác định qua thiết bị đã Xác nhận tài sản đứng tên họ), giúp bộ phận tự quản lý tài sản của mình mà không cần quyền AdminIT.
+        [HttpGet("/QLKiemKe/TaiSanBoPhan")]
+        public IActionResult TaiSanBoPhan()
+        {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                return Redirect("/DonXetDuyet/DangNhap");
+            }
+            if (!User.IsInRole("XemTSCN") && !User.IsInRole("All"))
+            {
+                return Forbid();
+            }
+            return View("TaiSanBoPhan");
+        }
+
+        // API dữ liệu cho trang TaiSanBoPhan ở trên - luôn kiểm tra lại quyền ở tầng Server, không chỉ dựa vào việc ẩn nút ở giao diện
+        [HttpGet("/QLKiemKe/GetThietBiBoPhanCuaToi")]
+        public IActionResult GetThietBiBoPhanCuaToi()
+        {
+            try
+            {
+                if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+                    return Json(new { success = false, message = "Bạn chưa đăng nhập." });
+                if (!User.IsInRole("XemTSCN") && !User.IsInRole("All"))
+                    return Json(new { success = false, message = "Bạn không có quyền xem dữ liệu này." });
+
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int idNguoiDung))
+                    return Json(new { success = false, message = "Không xác định được người dùng hiện tại." });
+
+                var (idCongTy, idBoPhan, tenCongTy, tenBoPhan) = LayCongTyBoPhanCuaUser(idNguoiDung);
+                if (idCongTy == null || idBoPhan == null)
+                    return Json(new { success = false, message = "Bạn chưa có thiết bị nào được Xác nhận tài sản gắn Công ty/Bộ phận, nên chưa thể xác định phạm vi quản lý." });
+
+                var data = _context.KkThietBis
+                    .Where(x => x.IdcongTy == idCongTy && x.IdboPhan == idBoPhan && x.NgayXoa == null)
+                    .Select(x => new
+                    {
+                        x.IdThietBi,
+                        x.TenViTri,
+                        x.TenMayTinh,
+                        x.LoaiThietBi,
+                        x.QuyCach,
+                        x.Seribacode,
+                        TenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : "",
+                        Tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : "",
+                        TenTrangThai = x.IdTrangThaiNavigation != null ? x.IdTrangThaiNavigation.TenTrangThai : "",
+                        x.WinLicense,
+                        x.OfficeLicense,
+                        x.ThoiGianCheck,
+                        x.GhiChu
+                    })
+                    .OrderBy(x => x.TenViTri)
+                    .ToList();
+
+                return Json(new { success = true, tenCongTy, tenBoPhan, data });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
         }
 
         // Tra cứu Máy tính + Màn hình rời theo Serial trong KK_ThietBi để biết đang thuộc về ai, kèm toàn bộ Tài sản khác của đúng người đó
@@ -6561,7 +6760,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             x.LoaiThietBi,
                             x.IdNguoiDung,
                             TenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : null,
-                            Tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : null
+                            Tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : null,
+                            x.DuongDanAnh,
+                            x.TenMayTinh,
+                            x.Seribacode,
+                            x.QuyCach
                         })
                         .FirstOrDefault();
 
@@ -6583,7 +6786,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             x.LoaiThietBi,
                             x.IdNguoiDung,
                             TenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : null,
-                            Tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : null
+                            Tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : null,
+                            x.DuongDanAnh,
+                            x.TenMayTinh,
+                            x.Seribacode,
+                            x.QuyCach
                         })
                         .FirstOrDefault();
                 }
@@ -6597,9 +6804,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                     (x.Seribacode == null || x.Seribacode.Trim().ToLower() != seriMayChuan))
                         .Select(x => new
                         {
+                            x.IdThietBi,
                             x.LoaiThietBi,
                             x.Seribacode,
-                            x.TenViTri
+                            x.TenViTri,
+                            x.DuongDanAnh
                         })
                         .ToList<object>();
                 }
@@ -6610,6 +6819,49 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
                 return Json(new { success = false, message = $"Lỗi hệ thống khi tra cứu chủ sở hữu: {chiTietLoi}" });
+            }
+        }
+
+        // Cập nhật ẢNH THIẾT BỊ (KK_ThietBi.DuongDanAnh) của máy/màn hình đang xem ở trang ViewCheckMayHienTai - dùng chung
+        // thư mục/quy ước tên file với SaveKkThietBi. Chỉ người có quyền XemTSCN/All mới được sửa ảnh thiết bị không phải của mình.
+        [HttpPost("/QLKiemKe/CapNhatAnhThietBiSoHuu")]
+        public async Task<IActionResult> CapNhatAnhThietBiSoHuu(int idThietBi, IFormFile? fileAnh)
+        {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+                return Json(new { success = false, message = "Bạn chưa đăng nhập." });
+            if (!User.IsInRole("XemTSCN") && !User.IsInRole("All"))
+                return Json(new { success = false, message = "Bạn không có quyền cập nhật ảnh thiết bị này." });
+            if (fileAnh == null || fileAnh.Length == 0)
+                return Json(new { success = false, message = "File không hợp lệ." });
+
+            try
+            {
+                var thietBi = await _context.KkThietBis.FindAsync(idThietBi);
+                if (thietBi == null) return Json(new { success = false, message = "Không tìm thấy thiết bị." });
+
+                string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\AnhKiemKe";
+                if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
+
+                string safeName = string.Join("_", (thietBi.TenViTri ?? "TB").Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+                if (string.IsNullOrEmpty(safeName)) safeName = "TB";
+
+                string fileName = $"AnhTB_{safeName}_{DateTime.Now:yyyyMMddHHmmss}{Path.GetExtension(fileAnh.FileName)}";
+                string fullPath = Path.Combine(networkPath, fileName);
+
+                using (var stream = new FileStream(fullPath, FileMode.Create))
+                {
+                    await fileAnh.CopyToAsync(stream);
+                }
+
+                thietBi.DuongDanAnh = fileName;
+                thietBi.NgayCapNhat = DateTime.Now;
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, fileName });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi Server: " + ex.Message });
             }
         }
 

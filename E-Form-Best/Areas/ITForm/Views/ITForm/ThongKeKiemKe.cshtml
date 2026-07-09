@@ -1432,6 +1432,40 @@
             if (!ws || !ws['!ref']) return;
             const range = XLSX.utils.decode_range(ws['!ref']);
 
+            // Các dòng "banner" chỉ có duy nhất 1 ô chứa dữ liệu (tiêu đề báo cáo, dòng ngày lập, tiêu đề mục I./II...) được thiết kế
+            // để tự tràn chữ ra các cột trống bên phải - không được tính vào bề rộng cột thật, nếu không cột A sẽ bị kéo giãn quá đà.
+            let bannerRows = new Set();
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                let filledCols = 0;
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    let ref = XLSX.utils.encode_cell({ r: R, c: C });
+                    if (ws[ref] && ws[ref].v !== undefined && ws[ref].v !== null && ws[ref].v !== "") filledCols++;
+                }
+                if (filledCols <= 1) bannerRows.add(R);
+            }
+
+            // Tự tính bề rộng từng cột theo nội dung dài nhất đang có, lấy độ rộng khai báo thủ công (nếu có) làm mức tối thiểu.
+            // Tránh trường hợp các cột không được khai báo trong '!cols' (VD: cột nhãn/giá trị của khối thẻ KPI Tổng quan)
+            // bị Excel co về bề rộng mặc định ~8.43 ký tự, gây vỡ dòng/chữ bị cắt xấu.
+            let manualCols = ws['!cols'] || [];
+            let autoCols = [];
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                let maxLen = 8;
+                for (let R = range.s.r; R <= range.e.r; ++R) {
+                    if (bannerRows.has(R)) continue;
+                    let ref = XLSX.utils.encode_cell({ r: R, c: C });
+                    let cellVal = ws[ref] ? ws[ref].v : null;
+                    if (cellVal !== null && cellVal !== undefined && cellVal !== "") {
+                        let len = String(cellVal).length;
+                        if (len > maxLen) maxLen = len;
+                    }
+                }
+                let autoWch = Math.min(maxLen + 3, 45);
+                let manualWch = manualCols[C] ? manualCols[C].wch : 0;
+                autoCols.push({ wch: Math.max(autoWch, manualWch) });
+            }
+            ws['!cols'] = autoCols;
+
             const thinBorder = {
                 top: { style: "thin", color: { rgb: "CBD5E1" } },
                 bottom: { style: "thin", color: { rgb: "CBD5E1" } },
@@ -1671,6 +1705,8 @@
 
         const ws2 = XLSX.utils.aoa_to_sheet(sheet2Rows);
         ws2['!cols'] = [{ wch: 6 }, { wch: 20 }, { wch: 25 }, { wch: 15 }, { wch: 15 }];
+        ws2['!views'] = [{ state: 'frozen', ySplit: 4 }];
+        ws2['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3, c: 4 } }) };
         styleWorksheetUniversal(ws2);
         XLSX.utils.book_append_sheet(wb, ws2, "2. Theo Bộ Phận");
 
@@ -1717,6 +1753,7 @@
             { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 30 }
         ];
         ws3['!views'] = [{ state: 'frozen', ySplit: 4 }];
+        ws3['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3, c: 17 } }) };
         styleWorksheetUniversal(ws3);
         XLSX.utils.book_append_sheet(wb, ws3, "3. Danh Sách Chi Tiết");
 
@@ -1768,13 +1805,22 @@
             return;
         }
 
+        // Bản quyền Windows/Office chỉ áp dụng cho Máy tính và Laptop - Màn hình/Máy in/Điện thoại bàn... không chạy Windows/Office
+        // nên phải loại khỏi báo cáo bản quyền, tránh tính nhầm thành "rủi ro thiếu bản quyền".
+        const loaiMayTinhHopLe = ['máy tính', 'laptop'];
+        let licenseData = filteredExportData.filter(x => x.loaiThietBi && loaiMayTinhHopLe.includes(x.loaiThietBi.trim().toLowerCase()));
+        if (licenseData.length === 0) {
+            Swal.fire("Thông báo", "Không có thiết bị Máy tính/Laptop nào trong dữ liệu đang lọc để xuất báo cáo bản quyền!", "info");
+            return;
+        }
+
         let fourMonthsAgo = new Date();
         fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
         let dateNowStr = new Date().toLocaleString('vi-VN');
         const wb = XLSX.utils.book_new();
 
-        // --- Đếm tổng hợp dữ liệu cho Tab 1 ---
-        let totalCount = filteredExportData.length;
+        // --- Đếm tổng hợp dữ liệu cho Tab 1 (chỉ tính Máy tính/Laptop) ---
+        let totalCount = licenseData.length;
         let activeCount = 0;
         let winOkCount = 0;
         let winRiskCount = 0;
@@ -1783,7 +1829,7 @@
         let winGroup = {};
         let officeGroup = {};
 
-        filteredExportData.forEach(x => {
+        licenseData.forEach(x => {
             let t = (x.tenTrangThai || '').toLowerCase();
             if (t.includes('hoạt động')) activeCount++;
 
@@ -1804,6 +1850,7 @@
         let sheet1Rows = [
             ["BÁO CÁO TÌNH TRẠNG BẢN QUYỀN PHẦN MỀM HỆ THỐNG IT"],
             ["Ngày lập báo cáo: " + dateNowStr + "  |  Nguồn dữ liệu: Hệ thống Dashboard quản trị tài sản"],
+            ["Phạm vi: Chỉ tính thiết bị loại Máy tính và Laptop (không gồm Màn hình, Máy in, Điện thoại bàn...)"],
             [],
             ["", "TỔNG THIẾT BỊ", "", "ĐANG HOẠT ĐỘNG", "", "WIN - ĐẠT CHUẨN PRO", "", "WIN - RỦI RO BẢN QUYỀN", "", "OFFICE - RỦI RO BẢN QUYỀN"],
             ["", totalCount, "", activeCount, "", winOkCount, "", winRiskCount, "", officeRiskCount],
@@ -1843,7 +1890,7 @@
         // TAB 2: PHÂN TÍCH THEO BỘ PHẬN
         // ----------------------------------------------------
         let deptMap = {};
-        filteredExportData.forEach(x => {
+        licenseData.forEach(x => {
             let cty = x.tenCongTy || 'Chưa rõ';
             let bp = x.tenBoPhan || 'Chưa rõ';
             let key = cty + "||" + bp;
@@ -1872,6 +1919,8 @@
 
         const ws2 = XLSX.utils.aoa_to_sheet(sheet2Rows);
         ws2['!cols'] = [{ wch: 6 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 18 }];
+        ws2['!views'] = [{ state: 'frozen', ySplit: 4 }];
+        ws2['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3, c: 7 } }) };
         styleWorksheetUniversal(ws2);
         XLSX.utils.book_append_sheet(wb, ws2, "2. Phân Tích Theo Bộ Phận");
 
@@ -1886,7 +1935,7 @@
         ];
 
         let riskIdx = 1;
-        filteredExportData.forEach(item => {
+        licenseData.forEach(item => {
             let isWinRisk = phanLoaiBanQuyenWindows(item.winLicense).risk;
             let isOffRisk = phanLoaiBanQuyenOffice(item.officeLicense).risk;
 
@@ -1922,6 +1971,7 @@
             { wch: 15 }, { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 35 }
         ];
         ws3['!views'] = [{ state: 'frozen', ySplit: 4 }]; // Đóng băng hàng tiêu đề bảng
+        ws3['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3, c: 10 } }) };
         styleWorksheetUniversal(ws3);
         XLSX.utils.book_append_sheet(wb, ws3, "3. Danh Sách Rủi Ro");
 

@@ -17,11 +17,58 @@
             border-color: #10b981;
             background: #d1fae5;
         }
+
+    .avatar-mini-wrapper {
+        position: relative;
+        width: 70px;
+        height: 70px;
+        flex-shrink: 0;
+        background: #e2e8f0;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+        .avatar-mini-wrapper img {
+            width: 70px;
+            height: 70px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 2px solid #cbd5e1;
+            cursor: pointer;
+        }
+
+    .avatar-mini-wrapper-sm {
+        position: relative;
+        width: 48px;
+        height: 48px;
+        flex-shrink: 0;
+        background: #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+        .avatar-mini-wrapper-sm img {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 2px solid #cbd5e1;
+            cursor: pointer;
+        }
 </style>
 
 <div class="container-fluid mt-4">
     @if (User.Identity != null && User.Identity.IsAuthenticated)
     {
+        @if (User.IsInRole("XemTSCN") || User.IsInRole("All"))
+        {
+            <div class="d-flex justify-content-end align-items-center mb-2">
+                <a href="/QLKiemKe/TaiSanBoPhan" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <i class="fa fa-building" style="margin-right: 4px;"></i> Xem tài sản bộ phận
+                </a>
+            </div>
+        }
+
         <div class="card shadow">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fa fa-desktop" style="margin-right: 8px;"></i>Thông Tin Cấu Hình Máy Hiện Tại</h5>
@@ -84,11 +131,39 @@
                         <tbody>
                             <tr>
                                 <td><strong><i class="fa fa-user-circle text-primary" style="margin-right: 8px; width: 16px;"></i>Máy này đang thuộc về:</strong></td>
-                                <td id="lblMaySoHuuBoi" class="fw-bold text-primary">Chưa xác nhận kiểm kê</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                                        <div class="avatar-mini-wrapper" id="wrapAvatarMay" style="display: none;">
+                                            <img id="imgAvatarMay" src="" onerror="this.style.visibility='hidden';" />
+                                        </div>
+                                        <div>
+                                            <div id="lblMaySoHuuBoi" class="fw-bold text-primary">Chưa xác nhận kiểm kê</div>
+                                            <div id="lblChiTietMay" class="small text-muted"></div>
+                                        </div>
+                                        <div id="btnsAnhMay" style="display: none;">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnXemAnhMay"><i class="fa fa-eye"></i> Xem ảnh</button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnSuaAnhMay" style="display: none;"><i class="fa fa-pencil"></i> Sửa ảnh</button>
+                                        </div>
+                                    </div>
+                                </td>
                             </tr>
                             <tr id="rowManHinhSoHuuBoi" style="display: none;">
                                 <td><strong><i class="fa fa-desktop text-success" style="margin-right: 8px; width: 16px;"></i>Màn hình rời đang thuộc về:</strong></td>
-                                <td id="lblManHinhSoHuuBoi" class="fw-bold text-success">Chưa xác nhận kiểm kê</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                                        <div class="avatar-mini-wrapper" id="wrapAvatarManHinh" style="display: none;">
+                                            <img id="imgAvatarManHinh" src="" onerror="this.style.visibility='hidden';" />
+                                        </div>
+                                        <div>
+                                            <div id="lblManHinhSoHuuBoi" class="fw-bold text-success">Chưa xác nhận kiểm kê</div>
+                                            <div id="lblChiTietManHinh" class="small text-muted"></div>
+                                        </div>
+                                        <div id="btnsAnhManHinh" style="display: none;">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnXemAnhManHinh"><i class="fa fa-eye"></i> Xem ảnh</button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnSuaAnhManHinh" style="display: none;"><i class="fa fa-pencil"></i> Sửa ảnh</button>
+                                        </div>
+                                    </div>
+                                </td>
                             </tr>
                             <tr>
                                 <td><strong><i class="fa fa-cubes text-warning" style="margin-right: 8px; width: 16px;"></i>Tài sản khác đi kèm:</strong></td>
@@ -342,6 +417,35 @@
                 </div>
             </div>
         </div>
+
+        <div class="modal fade" id="modalCapNhatAnhThietBi" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title"><i class="fa fa-camera-retro" style="margin-right: 8px;"></i>Cập nhật ảnh thiết bị</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="drag-drop-zone text-center mb-2" id="dropZoneCapNhatAnhTB" title="Kéo thả ảnh vào đây, click để chọn ảnh, hoặc click vào đây rồi nhấn Ctrl + V để dán ảnh" onclick="$('#fileCapNhatAnhTB').click();">
+                            <div class="py-2 text-muted" id="txtCapNhatAnhTBHint">
+                                <i class="fa fa-camera-retro fa-2x mb-2 text-success"></i>
+                                <p class="mb-0 small fw-semibold">Chọn ảnh từ máy / Kéo thả ảnh / Click vào đây rồi nhấn <b>Ctrl + V</b> để dán</p>
+                            </div>
+                            <div class="text-center" id="boxPreviewCapNhatAnhTB" style="display: none;">
+                                <img id="imgPreviewCapNhatAnhTB" src="" alt="Ảnh thiết bị" style="max-height: 200px; max-width: 100%; border-radius: 10px; border: 2px dashed #10b981; padding: 3px;" />
+                            </div>
+                        </div>
+                        <input type="file" id="fileCapNhatAnhTB" accept="image/*" class="d-none" />
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" id="btnLuuAnhThietBi" class="btn btn-success">
+                            <i class="fa fa-save" style="margin-right: 4px;"></i> Lưu ảnh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     }
     else
     {
@@ -368,6 +472,9 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bundle.min.js"></script>
         <script>
             $(document).ready(function () {
+            // Chỉ người có quyền XemTSCN/All mới được đổi ảnh đại diện của NGƯỜI KHÁC ngay tại dòng "thuộc về"
+            var coQuyenSuaAnhNguoiKhac = @((User.IsInRole("XemTSCN") || User.IsInRole("All")) ? "true" : "false");
+
             // Biến lưu cache cục bộ dữ liệu từ Tool Exe đổ lên nhằm hiển thị ngay khi gõ pass chuẩn
             var duLieuQuetMayKhachCache = null;
 
@@ -622,7 +729,52 @@
             }
             }
 
+            // Dựng dòng chi tiết nhỏ (Tên máy / Số serial / Quy cách) hiển thị dưới tên chủ sở hữu ở dòng Máy/Màn hình
+            function layDongChiTietThietBi(info) {
+            if (!info) return '';
+            var phan = [];
+            if (info.tenMayTinh) phan.push('Tên máy: <b>' + info.tenMayTinh + '</b>');
+            if (info.seribacode) phan.push('S/N: <b>' + info.seribacode + '</b>');
+            if (info.quyCach) phan.push('Quy cách: <b>' + info.quyCach + '</b>');
+            return phan.join(' &nbsp;|&nbsp; ');
+            }
+
+            // Mở ảnh phóng to bằng SweetAlert (đã có sẵn thư viện Swal trên trang, không cần dựng thêm modal riêng)
+            function xemAnhPhongTo(urlAnh) {
+            Swal.fire({ imageUrl: urlAnh, imageAlt: 'Ảnh thiết bị', showCloseButton: true, showConfirmButton: false, width: 'auto', background: '#f8fafc' });
+            }
+
             // Đối chiếu Serial máy hiện tại + màn hình rời (nếu có) với dữ liệu đã kiểm kê ở KK_ThietBi để hiển thị đang thuộc về ai
+            // Hiện ảnh thiết bị (Máy/Màn hình) kèm nút Xem ảnh (mọi người) và nút Sửa ảnh (chỉ người có quyền XemTSCN/All)
+            function renderAnhChuSoHuu(info, suffix) {
+            var wrap = $('#wrapAvatar' + suffix);
+            var img = $('#imgAvatar' + suffix);
+            var btnsWrap = $('#btnsAnh' + suffix);
+            var btnXem = $('#btnXemAnh' + suffix);
+            var btnSua = $('#btnSuaAnh' + suffix);
+
+            if (!info || !info.idThietBi) {
+            wrap.hide();
+            btnsWrap.hide();
+            return;
+            }
+
+            var urlAnh = '/QLKiemKe/GetEvidenceImage?fileName=' + encodeURIComponent(info.duongDanAnh || '');
+            img.css('visibility', 'visible').attr('src', urlAnh);
+            wrap.show();
+            btnsWrap.show();
+
+            img.off('click').on('click', function () { xemAnhPhongTo(urlAnh); });
+            btnXem.off('click').on('click', function () { xemAnhPhongTo(urlAnh); });
+
+            if (coQuyenSuaAnhNguoiKhac) {
+            btnSua.show();
+            btnSua.off('click').on('click', function () { moModalSuaAnhThietBi(info.idThietBi); });
+            } else {
+            btnSua.hide();
+            }
+            }
+
             function traCuuThongTinSoHuu() {
             var seriMayHienTai = duLieuQuetMayKhachCache ? duLieuQuetMayKhachCache.seriMay : null;
             if (!seriMayHienTai || seriMayHienTai === "N/A") { $("#boxThongTinSoHuu").hide(); return; }
@@ -639,6 +791,8 @@
             } else {
             $("#lblMaySoHuuBoi").text("Chưa xác nhận kiểm kê");
             }
+            $("#lblChiTietMay").html(layDongChiTietThietBi(res.may));
+            renderAnhChuSoHuu(res.may, 'May');
 
             // Dòng "Màn hình rời đang thuộc về" - chỉ hiện khi máy này có phát hiện màn hình rời
             if (seriManHinhHienTai) {
@@ -648,16 +802,34 @@
             } else {
             $("#lblManHinhSoHuuBoi").text("Chưa xác nhận kiểm kê");
             }
+            $("#lblChiTietManHinh").html(layDongChiTietThietBi(res.manHinh));
+            renderAnhChuSoHuu(res.manHinh, 'ManHinh');
             } else {
             $("#rowManHinhSoHuuBoi").hide();
             }
 
-            // Dòng "Tài sản khác đi kèm" - liệt kê toàn bộ thiết bị khác cùng chủ sở hữu với máy này
+            // Dòng "Tài sản khác đi kèm" - liệt kê toàn bộ thiết bị khác cùng chủ sở hữu với máy này, kèm ảnh từng thiết bị
             if (res.taiSanKhac && res.taiSanKhac.length > 0) {
-            var html = res.taiSanKhac.map(function (ts) {
-            return (ts.loaiThietBi || 'Thiết bị') + (ts.seribacode ? ' - S/N: ' + ts.seribacode : '') + (ts.tenViTri ? ' (' + ts.tenViTri + ')' : '');
-            }).join('<br/>');
-            $("#lblTaiSanKhacDiKem").html(html);
+            var htmlParts = res.taiSanKhac.map(function (ts) {
+            var thongTin = (ts.loaiThietBi || 'Thiết bị') + (ts.seribacode ? ' - S/N: ' + ts.seribacode : '') + (ts.tenViTri ? ' (' + ts.tenViTri + ')' : '');
+            return '<div class="d-flex align-items-center gap-2 mb-2 item-tai-san-khac" data-id="' + ts.idThietBi + '" data-anh="' + (ts.duongDanAnh || '') + '">' +
+            '<div class="avatar-mini-wrapper-sm"><img class="img-tsk" src="/QLKiemKe/GetEvidenceImage?fileName=' + encodeURIComponent(ts.duongDanAnh || '') + '" onerror="this.style.visibility=\'hidden\';" /></div>' +
+            '<span>' + thongTin + '</span>' +
+            '<button type="button" class="btn btn-sm btn-outline-secondary btn-xem-tsk"><i class="fa fa-eye"></i></button>' +
+            (coQuyenSuaAnhNguoiKhac ? '<button type="button" class="btn btn-sm btn-outline-primary btn-sua-tsk"><i class="fa fa-pencil"></i></button>' : '') +
+            '</div>';
+            });
+            $("#lblTaiSanKhacDiKem").html(htmlParts.join(''));
+
+            // Gắn sự kiện Xem ảnh / Sửa ảnh cho từng dòng Tài sản khác vừa render
+            $("#lblTaiSanKhacDiKem .img-tsk, #lblTaiSanKhacDiKem .btn-xem-tsk").off('click').on('click', function () {
+            var $row = $(this).closest('.item-tai-san-khac');
+            xemAnhPhongTo('/QLKiemKe/GetEvidenceImage?fileName=' + encodeURIComponent($row.data('anh') || ''));
+            });
+            $("#lblTaiSanKhacDiKem .btn-sua-tsk").off('click').on('click', function () {
+            var $row = $(this).closest('.item-tai-san-khac');
+            moModalSuaAnhThietBi($row.data('id'));
+            });
             } else {
             $("#lblTaiSanKhacDiKem").text("Không có");
             }
@@ -777,6 +949,101 @@
             $('#boxPreviewManHinhAnh').hide();
             $('#txtManHinhAnhHint').show();
             };
+
+            // MODAL CẬP NHẬT ẢNH THIẾT BỊ (KK_ThietBi.DuongDanAnh) - hỗ trợ Chọn file / Kéo-thả / Ctrl+V dán ảnh, giống hệt
+            // khu vực "Ảnh chụp thiết bị" ở modal Xác nhận tài sản, thay vì mở thẳng hộp thoại chọn file của hệ điều hành.
+            var idThietBiDangSuaAnh = null;
+            var blobAnhThietBiDangChon = null;
+
+            function moModalSuaAnhThietBi(idThietBi) {
+            if (!idThietBi) return;
+            idThietBiDangSuaAnh = idThietBi;
+            blobAnhThietBiDangChon = null;
+            $('#fileCapNhatAnhTB').val('');
+            $('#imgPreviewCapNhatAnhTB').attr('src', '');
+            $('#boxPreviewCapNhatAnhTB').hide();
+            $('#txtCapNhatAnhTBHint').show();
+            $('#modalCapNhatAnhThietBi').modal('show');
+            }
+
+            function initCapNhatAnhThietBiZoneEvents() {
+            let zone = document.getElementById('dropZoneCapNhatAnhTB');
+            if (!zone) return;
+
+            zone.addEventListener('dragover', function (e) { e.preventDefault(); zone.classList.add('dragover'); });
+            zone.addEventListener('dragleave', function () { zone.classList.remove('dragover'); });
+            zone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            let file = e.dataTransfer.files[0];
+            if (file.type.startsWith('image/')) {
+            blobAnhThietBiDangChon = null;
+            $('#fileCapNhatAnhTB')[0].files = e.dataTransfer.files;
+            hienThiXemTruocAnh(file, 'imgPreviewCapNhatAnhTB', 'boxPreviewCapNhatAnhTB', 'txtCapNhatAnhTBHint');
+            }
+            }
+            });
+
+            let modalEl = document.getElementById('modalCapNhatAnhThietBi');
+            modalEl.addEventListener('paste', function (e) {
+            if (e.clipboardData && e.clipboardData.items) {
+            for (let i = 0; i < e.clipboardData.items.length; i++) {
+            let item = e.clipboardData.items[i];
+            if (item.type.indexOf('image') !== -1) {
+            let blob = item.getAsFile();
+            blobAnhThietBiDangChon = blob;
+            $('#fileCapNhatAnhTB').val('');
+            hienThiXemTruocAnh(blob, 'imgPreviewCapNhatAnhTB', 'boxPreviewCapNhatAnhTB', 'txtCapNhatAnhTBHint');
+            break;
+            }
+            }
+            }
+            });
+            }
+            initCapNhatAnhThietBiZoneEvents();
+
+            $('#fileCapNhatAnhTB').on('change', function () {
+            if (this.files && this.files[0]) {
+            blobAnhThietBiDangChon = null;
+            hienThiXemTruocAnh(this.files[0], 'imgPreviewCapNhatAnhTB', 'boxPreviewCapNhatAnhTB', 'txtCapNhatAnhTBHint');
+            }
+            });
+
+            $('#btnLuuAnhThietBi').click(function () {
+            var fileGoc = $('#fileCapNhatAnhTB')[0].files[0];
+            var fileHoacBlob = blobAnhThietBiDangChon || fileGoc;
+
+            if (!fileHoacBlob) { Swal.fire('Thông báo', 'Vui lòng chọn/kéo thả/dán ảnh trước khi lưu.', 'warning'); return; }
+            if (!idThietBiDangSuaAnh) return;
+
+            var formData = new FormData();
+            formData.append('fileAnh', fileHoacBlob, 'anh_thiet_bi.jpg');
+            formData.append('idThietBi', idThietBiDangSuaAnh);
+
+            $('#btnLuuAnhThietBi').prop('disabled', true);
+            $.ajax({
+            url: '/QLKiemKe/CapNhatAnhThietBiSoHuu',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (res) {
+            $('#btnLuuAnhThietBi').prop('disabled', false);
+            if (res.success) {
+            $('#modalCapNhatAnhThietBi').modal('hide');
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã cập nhật ảnh thiết bị', showConfirmButton: false, timer: 1500 });
+            traCuuThongTinSoHuu();
+            } else {
+            Swal.fire('Lỗi', res.message || 'Không thể cập nhật ảnh thiết bị.', 'error');
+            }
+            },
+            error: function () {
+            $('#btnLuuAnhThietBi').prop('disabled', false);
+            Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ để cập nhật ảnh.', 'error');
+            }
+            });
+            });
 
             // XỬ LÝ SỰ KIỆN ĐĂNG NHẬP TRÊN MODAL ĐỂ MỞ KHÓA BẢNG 2
             $("#btnSubmitXacThuc").click(function () {

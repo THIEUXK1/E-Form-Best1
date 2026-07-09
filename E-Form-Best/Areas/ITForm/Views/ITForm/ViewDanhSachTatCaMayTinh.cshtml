@@ -45,11 +45,22 @@
     <div class="card shadow mb-3">
         <div class="card-body bg-light py-3">
             <div class="row g-3 align-items-center">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small fw-bold text-secondary">Tìm kiếm nhanh</label>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-secondary text-white"><i class="fa fa-search"></i></span>
                         <input type="text" id="txtTimKiemMay" class="form-control" placeholder="Tìm kiếm nhanh thiết bị, serial..." />
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-secondary">Loại thiết bị</label>
+                    <div class="dropdown w-100">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" id="dropFilterLoai" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                            <span class="text-truncate" id="lblFilterLoaiText">Tất cả loại thiết bị</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-checkbox shadow" aria-labelledby="dropFilterLoai" id="divFilterLoaiOptions">
+                        </div>
                     </div>
                 </div>
 
@@ -201,7 +212,7 @@
         kieuHienThi = "list";
 
         capNhatGiaoDienNutBamView();
-        $(".chk-filter-win, .chk-filter-office").prop("checked", true);
+        $(".chk-filter-win, .chk-filter-office, .chk-filter-loai").prop("checked", true);
         thucThiBoLocDuLieu();
         });
 
@@ -484,16 +495,41 @@
         function khoiTaoBoLocDropdownMulti() {
         var mangWin = [];
         var mangOffice = [];
+        var mangLoai = [];
+        var coChuaPhanLoai = false;
 
         $.each(danhSachGocCache, function (i, item) {
         var w = item.banQuyenWin || "N/A";
         var o = item.banQuyenOffice || "N/A";
         if ($.inArray(w, mangWin) === -1) mangWin.push(w);
         if ($.inArray(o, mangOffice) === -1) mangOffice.push(o);
+
+        if (item.loaiThietBi) {
+        if ($.inArray(item.loaiThietBi, mangLoai) === -1) mangLoai.push(item.loaiThietBi);
+        } else {
+        coChuaPhanLoai = true;
+        }
         });
+        // Luôn xếp "Chưa phân loại" lên đầu danh sách để dễ tìm thấy nhất
+        if (coChuaPhanLoai) mangLoai.unshift("");
 
         // Đọc lại cache cấu hình cũ nếu có để gán trạng thái checked chính xác
         var cacheBoLoc = JSON.parse(localStorage.getItem("Tscn_BoLocGiaoDien"));
+
+        // Chèn danh sách Checkbox Loại thiết bị (dùng value rỗng "" đại diện cho nhóm "Chưa phân loại")
+        var htmlLoai = "";
+        $.each(mangLoai, function (i, v) {
+        var isChecked = "checked";
+        if (cacheBoLoc && cacheBoLoc.selectedLoais) {
+        isChecked = $.inArray(v, cacheBoLoc.selectedLoais) !== -1 ? "checked" : "";
+        }
+        var nhan = v === "" ? '<span class="text-danger fw-bold">⚠ Chưa phân loại</span>' : v;
+        htmlLoai += '<div class="form-check">' +
+        '<input class="form-check-input chk-filter-loai" type="checkbox" value="' + v + '" id="chkLoai_' + i + '" ' + isChecked + '>' +
+        '<label class="form-check-label small text-dark" for="chkLoai_' + i + '">' + nhan + '</label>' +
+        '</div>';
+        });
+        $("#divFilterLoaiOptions").html(htmlLoai);
 
         // Chèn danh sách Checkbox Windows
         var htmlWin = "";
@@ -524,7 +560,7 @@
         $("#divFilterOfficeOptions").html(htmlOffice);
 
         // Gán sự kiện quét lọc khi click thay đổi trạng thái Checkbox
-        $(".chk-filter-win, .chk-filter-office").on("change", function () {
+        $(".chk-filter-win, .chk-filter-office, .chk-filter-loai").on("change", function () {
         trangHienTai = 1;
         thucThiBoLocDuLieu();
         });
@@ -539,6 +575,17 @@
 
         var selectedOffices = [];
         $(".chk-filter-office:checked").each(function () { selectedOffices.push($(this).val()); });
+
+        var selectedLoais = [];
+        $(".chk-filter-loai:checked").each(function () { selectedLoais.push($(this).val()); });
+
+        // Thay đổi text tiêu đề hiển thị trên nút Dropdown linh hoạt
+        var totalLoaiOpts = $(".chk-filter-loai").length;
+        if (totalLoaiOpts > 0) {
+        if (selectedLoais.length === totalLoaiOpts) $("#lblFilterLoaiText").text("Tất cả loại thiết bị");
+        else if (selectedLoais.length === 0) $("#lblFilterLoaiText").text("Đang ẩn tất cả loại");
+        else $("#lblFilterLoaiText").text("Đã chọn loại (" + selectedLoais.length + ")");
+        }
 
         // Thay đổi text tiêu đề hiển thị trên nút Dropdown linh hoạt
         var totalWinOpts = $(".chk-filter-win").length;
@@ -568,11 +615,13 @@
 
         var vWin = item.banQuyenWin || "N/A";
         var vOffice = item.banQuyenOffice || "N/A";
+        var vLoai = item.loaiThietBi || "";
 
         var matchWin = $(".chk-filter-win").length === 0 ? true : $.inArray(vWin, selectedWins) !== -1;
         var matchOffice = $(".chk-filter-office").length === 0 ? true : $.inArray(vOffice, selectedOffices) !== -1;
+        var matchLoai = $(".chk-filter-loai").length === 0 ? true : $.inArray(vLoai, selectedLoais) !== -1;
 
-        return matchText && matchWin && matchOffice;
+        return matchText && matchWin && matchOffice && matchLoai;
         });
 
         // Nếu người dùng chọn hiển thị tất cả, gán lại giá trị kích thước phân trang bằng tổng độ dài mảng
@@ -585,6 +634,7 @@
         tuKhoa: $("#txtTimKiemMay").val(),
         selectedWins: selectedWins,
         selectedOffices: selectedOffices,
+        selectedLoais: selectedLoais,
         kichThuocTrang: $("#ddlKichThuocTrang").val(),
         kieuHienThi: kieuHienThi,
         trangHienTai: trangHienTai
