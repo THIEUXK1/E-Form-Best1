@@ -6108,12 +6108,22 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return "Server";
             if (d.Contains("thinkpad") || d.Contains("notebook") || d.Contains("elitebook") || d.Contains("probook") ||
                 d.Contains("zbook") || d.Contains("legion") || d.Contains("ideapad") || d.Contains("latitude") ||
-                d.Contains("macbook") || d.Contains("zhaoyang"))
+                d.Contains("macbook") || d.Contains("zhaoyang") ||
+                // Bổ sung thêm các dòng Laptop phổ biến khác để giảm số máy không đoán được (Acer/HP/Lenovo/Dell/LG/Microsoft/Asus/MSI)
+                d.Contains("travelmate") || d.Contains("swift") || d.Contains("spin") || d.Contains("aspire a") ||
+                d.Contains("yoga") || d.Contains("thinkbook") || d.Contains("spectre") || d.Contains("pavilion x") ||
+                d.Contains("surface laptop") || d.Contains("surface book") || d.Contains("surface go") ||
+                d.Contains("gram") || d.Contains("chromebook") || d.Contains("vivobook") || d.Contains("zenbook") ||
+                d.Contains("rog strix") || d.Contains("rog zephyrus") || d.Contains("modern 14") || d.Contains("modern 15"))
                 return "Laptop";
             // Thêm "slim" (case Dell Slim - máy bàn dạng mỏng) và hậu tố " t" (VD: "Vostro 3020 T" - ký hiệu kiểu dáng Tower của Dell)
             if (d.Contains("desktop") || d.Contains("sff") || d.Contains("small form factor") || d.Contains("microtower") ||
                 d.Contains("tower") || d.Contains("workstation") || d.EndsWith(" mt") || d.EndsWith(" dm") || d.EndsWith(" t") ||
-                d.Contains("base model") || d.Contains("inspiron") || d.Contains("slim"))
+                d.Contains("base model") || d.Contains("inspiron") || d.Contains("slim") ||
+                // Bổ sung thêm các dòng PC bàn phổ biến khác (Dell/HP/Lenovo/Acer)
+                d.Contains("optiplex") || d.Contains("thinkcentre") || d.Contains("thinkstation") ||
+                d.Contains("elitedesk") || d.Contains("prodesk") || d.Contains("veriton") || d.Contains("aio") ||
+                d.Contains("all-in-one") || d.Contains("all in one"))
                 return "PC";
 
             // Dell Vostro dùng chung tên dòng máy cho cả Laptop và PC bàn, chỉ phân biệt được qua hậu tố kiểu dáng đã xét ở trên
@@ -6122,7 +6132,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (d.Contains("vostro"))
                 return "Laptop";
 
-            return null; // Không đủ dấu hiệu để tự phân loại - để trống, admin có thể sửa tay sau ở trang danh sách máy tính
+            return null; // Không đủ dấu hiệu để tự phân loại theo tên - hàm gọi sẽ tự áp mặc định, admin có thể sửa tay sau ở trang danh sách máy tính
         }
 
         // Chuyển Loại thiết bị của TSCN_ThongTinMay (PC/Laptop/MayAo/Server) sang đúng tên danh mục dùng trong KK_LoaiThietBi
@@ -6134,6 +6144,22 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 case "MayAo": return "Máy ảo";
                 default: return (loaiTuMay ?? "").Trim(); // Laptop, Server đã đúng tên sẵn
             }
+        }
+
+        // Tìm thiết bị KK_ThietBi đã tồn tại tương ứng với 1 máy tính (TSCN_ThongTinMay) để CẬP NHẬT thay vì thêm trùng, ưu tiên khớp theo:
+        // 1) Đã liên kết cùng IdMay từ lần đồng bộ trước, 2) Số Serial trùng khớp (định danh phần cứng duy nhất - đáng tin cậy nhất),
+        // 3) Tên máy trùng khớp nhưng bản ghi cũ CHƯA có Serial (VD: được tạo tay/từ Tài sản khác trước đó) -> nhận là cùng 1 máy và bổ sung Serial vào,
+        //    tránh vừa đổi Loại thiết bị (PC/Laptop) giữa các lần vừa tạo Serial đều làm phát sinh bản ghi trùng như logic khớp theo Tên máy + Loại thiết bị cũ.
+        private KkThietBi? TimThietBiTrungTheoMayTinh(int idMay, string tenMay, string? seriMay)
+        {
+            string trimmedTen = tenMay.Trim().ToLower();
+            string trimmedSerial = (seriMay ?? "").Trim().ToLower();
+
+            return _context.KkThietBis.FirstOrDefault(x =>
+                x.IdMay == idMay ||
+                (trimmedSerial != "" && x.Seribacode != null && x.Seribacode.Trim().ToLower() == trimmedSerial) ||
+                (x.TenMayTinh != null && x.TenMayTinh.Trim().ToLower() == trimmedTen &&
+                 (x.Seribacode == null || x.Seribacode.Trim() == "")));
         }
 
         // Cắt bớt chuỗi cho vừa giới hạn độ dài cột đích trong DB, tránh lỗi "String or binary data would be truncated"
@@ -6218,12 +6244,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     // Chuẩn hóa Loại thiết bị của TSCN_ThongTinMay (PC/Laptop/MayAo/Server) sang đúng tên danh mục dùng ở KK_LoaiThietBi
                     string loaiThietBiChuan = ChuanHoaLoaiThietBiSangDanhMuc(may.LoaiThietBi);
 
-                    string trimmedTen = may.TenMay.Trim().ToLower();
-                    string trimmedLoai = loaiThietBiChuan.Trim().ToLower();
-
-                    var existing = _context.KkThietBis.FirstOrDefault(x =>
-                        x.TenMayTinh != null && x.TenMayTinh.Trim().ToLower() == trimmedTen &&
-                        x.LoaiThietBi != null && x.LoaiThietBi.Trim().ToLower() == trimmedLoai);
+                    // Khớp theo IdMay đã liên kết / Serial trùng / Tên máy trùng nhưng chưa có Serial - để CẬP NHẬT thay vì thêm trùng
+                    var existing = TimThietBiTrungTheoMayTinh(may.IdMay, may.TenMay, may.SeriMay);
 
                     if (existing != null)
                     {
@@ -7108,20 +7130,19 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (!string.IsNullOrWhiteSpace(mayTonTai.TenMay))
                 {
                     // TSCN_ThongTinMay mới quét lần đầu chưa có Loại thiết bị -> tự phân loại nhanh theo Dòng máy để có thể đồng bộ
+                    // Nếu tên Dòng máy không đủ dấu hiệu nhận diện (model lạ/không có trong danh sách từ khóa) -> mặc định "PC" (Máy tính bàn)
+                    // để thiết bị VẪN được thêm vào trang Thiết bị ngay lúc xác nhận thay vì bị bỏ sót; admin có thể sửa lại tay sau nếu đoán sai.
                     if (string.IsNullOrWhiteSpace(mayTonTai.LoaiThietBi))
                     {
-                        mayTonTai.LoaiThietBi = TuPhanLoaiThietBiTheoDongMay(mayTonTai.DongMay);
+                        mayTonTai.LoaiThietBi = TuPhanLoaiThietBiTheoDongMay(mayTonTai.DongMay) ?? "PC";
                     }
 
                     if (!string.IsNullOrWhiteSpace(mayTonTai.LoaiThietBi))
                     {
                         string loaiThietBiChuan = ChuanHoaLoaiThietBiSangDanhMuc(mayTonTai.LoaiThietBi);
-                        string trimmedTen = mayTonTai.TenMay.Trim().ToLower();
-                        string trimmedLoai = loaiThietBiChuan.Trim().ToLower();
 
-                        var thietBiLienKet = _context.KkThietBis.FirstOrDefault(x =>
-                            x.TenMayTinh != null && x.TenMayTinh.Trim().ToLower() == trimmedTen &&
-                            x.LoaiThietBi != null && x.LoaiThietBi.Trim().ToLower() == trimmedLoai);
+                        // Khớp theo IdMay đã liên kết / Serial trùng / Tên máy trùng nhưng chưa có Serial - để CẬP NHẬT thay vì thêm trùng
+                        var thietBiLienKet = TimThietBiTrungTheoMayTinh(mayTonTai.IdMay, mayTonTai.TenMay, mayTonTai.SeriMay);
 
                         // Xử lý lưu ảnh chụp thiết bị (nếu người xác nhận có tải ảnh lên)
                         string? tenFileAnhMoi = null;
