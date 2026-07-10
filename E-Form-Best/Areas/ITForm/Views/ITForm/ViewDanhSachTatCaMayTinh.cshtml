@@ -4,25 +4,177 @@
 }
 
 <style>
+    :root {
+        --tscn-navy: #0f172a;
+        --tscn-blue: #1e40af;
+        --tscn-accent: #2563eb;
+        --tscn-accent-light: #60a5fa;
+        --tscn-border: #e2e8f0;
+        --tscn-bg-soft: #f8fafc;
+    }
+
+    .tscn-page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+        .tscn-page-header h4 {
+            margin: 0;
+            font-weight: 800;
+            color: var(--tscn-navy);
+        }
+
+        .tscn-page-header .tscn-subtitle {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+    .tscn-icon-badge {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--tscn-navy), var(--tscn-blue));
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .tscn-filter-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+    }
+
+        .tscn-filter-card .card-body {
+            background: #fff;
+            border-radius: 16px;
+        }
+
+    .tscn-filter-label {
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: .03em;
+        text-transform: uppercase;
+        color: #94a3b8;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .tscn-filter-card .form-control,
+    .tscn-filter-card .form-select,
+    .tscn-filter-card .dropdown-toggle {
+        border-radius: 8px;
+        border-color: var(--tscn-border);
+    }
+
+        .tscn-filter-card .form-control:focus,
+        .tscn-filter-card .form-select:focus {
+            border-color: var(--tscn-accent-light);
+            box-shadow: 0 0 0 .2rem rgba(37, 99, 235, .12);
+        }
+
+    .tscn-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        padding-top: 14px;
+        margin-top: 14px;
+        border-top: 1px dashed var(--tscn-border);
+    }
+
+        .tscn-toolbar .btn {
+            border-radius: 8px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+    .tscn-toolbar-spacer {
+        flex: 1 1 auto;
+    }
+
     .grid-item-card {
         transition: transform 0.2s, box-shadow 0.2s;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid var(--tscn-border) !important;
     }
 
         .grid-item-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.15) !important;
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12) !important;
         }
 
     .dropdown-menu-checkbox {
         max-height: 250px;
         overflow-y: auto;
         min-width: 240px;
-        padding: 8px;
+        padding: 10px;
+        border-radius: 10px;
+        border-color: var(--tscn-border);
     }
 
         .dropdown-menu-checkbox .form-check {
             padding-top: 4px;
             padding-bottom: 4px;
+            padding-left: 1.8em;
+        }
+
+            .dropdown-menu-checkbox .form-check:hover {
+                background: var(--tscn-bg-soft);
+                border-radius: 6px;
+            }
+
+    .tscn-main-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(15, 23, 42, 0.07);
+        overflow: hidden;
+    }
+
+        .tscn-main-card .card-header {
+            background: linear-gradient(135deg, var(--tscn-navy), var(--tscn-blue));
+            border: none;
+            padding: 16px 20px;
+        }
+
+            .tscn-main-card .card-header h5 {
+                font-weight: 700;
+                letter-spacing: .01em;
+            }
+
+    #tblTatCaMayTinh {
+        font-size: 13.5px;
+        margin-bottom: 0;
+    }
+
+        #tblTatCaMayTinh thead th {
+            font-size: 11.5px;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+            font-weight: 700;
+            color: #475569;
+            background-color: #eef2f7;
+            border-bottom: 2px solid var(--tscn-border);
+            vertical-align: middle;
+            padding: 10px 10px;
+        }
+
+        #tblTatCaMayTinh tbody td {
+            vertical-align: middle;
+            padding: 8px 10px;
+        }
+
+        #tblTatCaMayTinh tbody tr:hover {
+            background-color: #eff6ff;
         }
 
     /* Ghim cột Hành động luôn hiển thị bên phải, không cần kéo ngang để thấy */
@@ -37,26 +189,72 @@
 
     #tblTatCaMayTinh thead th.cot-ghim {
         z-index: 11;
-        background-color: #e9ecef;
+        background-color: #eef2f7;
+    }
+
+    .tscn-empty-state {
+        text-align: center;
+        padding: 48px 16px;
+        color: #94a3b8;
+    }
+
+        .tscn-empty-state i {
+            font-size: 34px;
+            margin-bottom: 10px;
+            display: block;
+            color: #cbd5e1;
+        }
+
+        .tscn-empty-state.text-danger i {
+            color: #dc3545;
+        }
+
+    .tscn-card-footer {
+        background: #fff;
+        border-top: 1px solid var(--tscn-border);
+        padding: 12px 20px;
+    }
+
+    #navPhanTrang .page-link {
+        border-radius: 6px;
+        margin: 0 2px;
+        border-color: var(--tscn-border);
+        color: var(--tscn-blue);
+    }
+
+    #navPhanTrang .page-item.active .page-link {
+        background-color: var(--tscn-accent);
+        border-color: var(--tscn-accent);
     }
 </style>
 
 <div class="container-fluid mt-4 text-dark">
-    <div class="card shadow mb-3">
-        <div class="card-body bg-light py-3">
-            <div class="row g-3 align-items-center">
+
+    <div class="tscn-page-header">
+        <div class="d-flex align-items-center gap-3">
+            <div class="tscn-icon-badge"><i class="fa fa-server"></i></div>
+            <div>
+                <h4>Danh sách tất cả thiết bị máy tính</h4>
+                <div class="tscn-subtitle">Quản lý, phân loại và đồng bộ toàn bộ máy tính đã kiểm kê trong hệ thống</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card tscn-filter-card mb-3">
+        <div class="card-body py-3 px-4">
+            <div class="row g-3 align-items-end">
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold text-secondary">Tìm kiếm nhanh</label>
+                    <label class="tscn-filter-label">Tìm kiếm nhanh</label>
                     <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-secondary text-white"><i class="fa fa-search"></i></span>
-                        <input type="text" id="txtTimKiemMay" class="form-control" placeholder="Tìm kiếm nhanh thiết bị, serial..." />
+                        <span class="input-group-text bg-white text-secondary border-end-0"><i class="fa fa-search"></i></span>
+                        <input type="text" id="txtTimKiemMay" class="form-control border-start-0 ps-0" placeholder="Tên máy, serial, nhân sự..." />
                     </div>
                 </div>
 
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold text-secondary">Loại thiết bị</label>
+                    <label class="tscn-filter-label">Loại thiết bị</label>
                     <div class="dropdown w-100">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" id="dropFilterLoai" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center bg-white" type="button" id="dropFilterLoai" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                             <span class="text-truncate" id="lblFilterLoaiText">Tất cả loại thiết bị</span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-checkbox shadow" aria-labelledby="dropFilterLoai" id="divFilterLoaiOptions">
@@ -65,9 +263,9 @@
                 </div>
 
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold text-secondary">Bản quyền Win</label>
+                    <label class="tscn-filter-label">Bản quyền Win</label>
                     <div class="dropdown w-100">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" id="dropFilterWin" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center bg-white" type="button" id="dropFilterWin" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                             <span class="text-truncate" id="lblFilterWinText">Tất cả bản quyền Win</span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-checkbox shadow" aria-labelledby="dropFilterWin" id="divFilterWinOptions">
@@ -76,9 +274,9 @@
                 </div>
 
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold text-secondary">Bản quyền Office</label>
+                    <label class="tscn-filter-label">Bản quyền Office</label>
                     <div class="dropdown w-100">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" id="dropFilterOffice" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center bg-white" type="button" id="dropFilterOffice" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                             <span class="text-truncate" id="lblFilterOfficeText">Tất cả bản quyền Office</span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-checkbox shadow" aria-labelledby="dropFilterOffice" id="divFilterOfficeOptions">
@@ -87,7 +285,7 @@
                 </div>
 
                 <div class="col-md-2 col-6">
-                    <label class="form-label small fw-bold text-secondary">Số dòng / trang</label>
+                    <label class="tscn-filter-label">Số dòng / trang</label>
                     <select id="ddlKichThuocTrang" class="form-select form-select-sm">
                         <option value="10">10 thiết bị</option>
                         <option value="25">25 thiết bị</option>
@@ -97,8 +295,9 @@
                     </select>
                 </div>
 
-                <div class="col-md-3 col-6 text-end align-self-end">
-                    <div class="btn-group btn-group-sm me-2" role="group">
+                <div class="col-md-2 col-6">
+                    <label class="tscn-filter-label">Kiểu hiển thị</label>
+                    <div class="btn-group btn-group-sm w-100" role="group">
                         <button type="button" id="btnKieuList" class="btn btn-primary" title="Hiển thị dạng bảng danh sách">
                             <i class="fa fa-list"></i> Danh sách
                         </button>
@@ -106,37 +305,43 @@
                             <i class="fa fa-th-large"></i> Hình hộp
                         </button>
                     </div>
-                    <button id="btnTaiLaiDanhSach" class="btn btn-sm btn-primary me-1" style="white-space: nowrap;">
-                        <i class="fa fa-refresh"></i> Tải lại
-                    </button>
-                    <button id="btnBoLoc" class="btn btn-sm btn-danger me-1" title="Xóa sạch bộ lọc quay về mặc định">
-                        <i class="fa fa-filter"></i> Bỏ lọc
-                    </button>
-                    <button id="btnTuDongPhanLoai" class="btn btn-sm btn-warning me-1" style="white-space: nowrap;" disabled title="Tích chọn thiết bị cần phân loại trước, sau đó bấm nút này để tự đoán Laptop/PC/MayAo/Server dựa vào Dòng máy">
-                        <i class="fa fa-magic"></i> Tự động phân loại (<span id="lblSoLuongDaChonPhanLoai">0</span>)
-                    </button>
-                    <button id="btnDongBoThietBi" class="btn btn-sm btn-success" style="white-space: nowrap;" disabled>
-                        <i class="fa fa-exchange"></i> Đồng bộ sang Thiết bị (<span id="lblSoLuongDaChon">0</span>)
-                    </button>
-                    <button id="btnDongBoChiNhanh" class="btn btn-sm btn-info text-white me-1" style="white-space: nowrap;" title="Kéo dữ liệu máy tính mới từ SQL Server chi nhánh 10.0.55.3 về hệ thống này">
-                        <i class="fa fa-cloud-download"></i> Đồng bộ từ chi nhánh
-                    </button>
                 </div>
+            </div>
+
+            <div class="tscn-toolbar">
+                <button id="btnTaiLaiDanhSach" class="btn btn-sm btn-primary">
+                    <i class="fa fa-refresh"></i> Tải lại
+                </button>
+                <button id="btnBoLoc" class="btn btn-sm btn-outline-danger" title="Xóa sạch bộ lọc quay về mặc định">
+                    <i class="fa fa-filter"></i> Bỏ lọc
+                </button>
+
+                <span class="tscn-toolbar-spacer"></span>
+
+                <button id="btnTuDongPhanLoai" class="btn btn-sm btn-warning" disabled title="Tích chọn thiết bị cần phân loại trước, sau đó bấm nút này để tự đoán Laptop/PC/MayAo/Server dựa vào Dòng máy">
+                    <i class="fa fa-magic"></i> Tự động phân loại (<span id="lblSoLuongDaChonPhanLoai">0</span>)
+                </button>
+                <button id="btnDongBoThietBi" class="btn btn-sm btn-success" disabled>
+                    <i class="fa fa-exchange"></i> Đồng bộ sang Thiết bị (<span id="lblSoLuongDaChon">0</span>)
+                </button>
+                <button id="btnDongBoChiNhanh" class="btn btn-sm btn-info text-white" title="Kéo dữ liệu máy tính mới từ SQL Server chi nhánh 10.0.55.3 về hệ thống này">
+                    <i class="fa fa-cloud-download"></i> Đồng bộ từ chi nhánh
+                </button>
             </div>
         </div>
     </div>
 
-    <div class="card shadow">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+    <div class="card tscn-main-card">
+        <div class="card-header text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
-                <i class="fa fa-server" style="margin-right: 8px;"></i>Danh Sách Quản Lý Tất Cả Thiết Bị Máy Tính
+                <i class="fa fa-desktop" style="margin-right: 8px;"></i>Danh Sách Quản Lý Tất Cả Thiết Bị Máy Tính
             </h5>
         </div>
         <div class="card-body p-0">
             <div id="alertTinNhan" class="alert alert-danger m-3" style="display: none;" role="alert"></div>
 
             <div id="vungKieuList" class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
-                <table class="table table-bordered table-striped table-hover mb-0" id="tblTatCaMayTinh" style="font-size: 13px;">
+                <table class="table table-bordered table-striped table-hover mb-0" id="tblTatCaMayTinh">
                     <thead class="table-secondary sticky-top" style="z-index: 10;">
                         <tr>
                             <th style="width: 3%;" class="text-center"><input type="checkbox" id="chkChonTatCaTrangHienTai" title="Chọn tất cả trong trang hiện tại" /></th>
@@ -169,7 +374,7 @@
             </div>
         </div>
 
-        <div class="card-footer bg-light py-2 d-flex justify-content-between align-items-center">
+        <div class="tscn-card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span class="text-dark small fw-bold" id="lblTongSoMay">Tổng số thiết bị: 0</span>
             <nav id="navPhanTrang" aria-label="Page navigation">
                 <ul class="pagination pagination-sm mb-0">
@@ -195,6 +400,44 @@
         // Tập hợp IdMay đang được tích chọn để đồng bộ (giữ nguyên khi chuyển trang/lọc)
         var danhSachDangChon = new Set();
         var trangDuLieuHienTai = []; // Dữ liệu đang render ở trang hiện tại (dùng cho Chọn tất cả)
+        var demTienDoGiaLap = 0; // Đếm để tạo id duy nhất cho từng lần hiển thị thanh tiến trình
+
+        // Mở popup có thanh tiến trình % mô phỏng (dùng cho các thao tác chỉ có 1 request, không chia lô được nên không có % thật)
+        // Thanh sẽ tự chạy tăng dần tới tối đa 90%, chỉ nhảy lên 100% khi gọi hoanTat() lúc request thực sự xong
+        function batDauTienDoGiaLap(tieuDe) {
+        demTienDoGiaLap++;
+        var idThanh = 'thanhTienDoGiaLap_' + demTienDoGiaLap;
+        var phanTramHienTai = 0;
+
+        Swal.fire({
+        title: tieuDe,
+        html: '<div class="progress" style="height: 24px;">' +
+        '<div id="' + idThanh + '" class="progress-bar bg-primary" role="progressbar" style="width: 0%;">0%</div>' +
+        '</div>',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false
+        });
+
+        var idBoDemThoiGian = setInterval(function () {
+        // Tăng nhanh lúc đầu, chậm dần khi gần tới 90% để không tạo cảm giác "giả" quá lộ liễu
+        var buocTang = phanTramHienTai < 50 ? 9 : (phanTramHienTai < 80 ? 4 : 1);
+        phanTramHienTai = Math.min(phanTramHienTai + buocTang, 90);
+        $("#" + idThanh).css('width', phanTramHienTai + '%').text(phanTramHienTai + '%');
+        }, 250);
+
+        return {
+        // Gọi khi request thực sự đã có kết quả: nhảy thanh lên 100%, đổi màu theo kết quả rồi mới chạy tiếp (vd: mở Swal kết quả)
+        hoanTat: function (thanhCong, sauKhiHoanTat) {
+        clearInterval(idBoDemThoiGian);
+        $("#" + idThanh).css('width', '100%').text('100%')
+        .removeClass('bg-primary').addClass(thanhCong === false ? 'bg-danger' : 'bg-success');
+        setTimeout(function () {
+        if (sauKhiHoanTat) sauKhiHoanTat(); else Swal.close();
+        }, 400);
+        }
+        };
+        }
 
         // ĐỌC TRẠNG THÁI BỘ LỌC ĐÃ LƯU TỪ LOCALSTORAGE KHI LOAD TRANG
         docTrangThaiBoLocTuLocalStorage();
@@ -202,7 +445,13 @@
         loadGoiTinTatCaMayTinh();
 
         $("#btnTaiLaiDanhSach").click(function () {
-        loadGoiTinTatCaMayTinh();
+        if ($(this).prop("disabled")) return;
+        $(this).prop("disabled", true);
+        var tienDo = batDauTienDoGiaLap('Đang tải lại danh sách thiết bị...');
+        loadGoiTinTatCaMayTinh(function (thanhCong) {
+        $("#btnTaiLaiDanhSach").prop("disabled", false);
+        tienDo.hoanTat(thanhCong);
+        });
         });
 
         // Nhấn nút "Đồng bộ từ chi nhánh": kéo các máy mới (Serial chưa từng có ở local) từ SQL Server chi nhánh 10.0.55.3 về
@@ -219,12 +468,14 @@
         if (!result.isConfirmed) return;
 
         $("#btnDongBoChiNhanh").prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i> Đang đồng bộ...');
+        var tienDo = batDauTienDoGiaLap('Đang đồng bộ thiết bị từ chi nhánh...');
         $.ajax({
         url: '/QLKiemKe/DongBoTuChiNhanh',
         type: 'POST',
         dataType: 'json',
         success: function (res) {
         $("#btnDongBoChiNhanh").prop("disabled", false).html('<i class="fa fa-cloud-download"></i> Đồng bộ từ chi nhánh');
+        tienDo.hoanTat(res.success, function () {
         if (res.success) {
         var dsTen = (res.chiTiet || []).map(function (x) { return x.tenMay + (x.seriMay ? ' (' + x.seriMay + ')' : ''); }).join('<br/>');
         Swal.fire({
@@ -236,10 +487,13 @@
         } else {
         Swal.fire('Lỗi', res.message || 'Không thể đồng bộ từ chi nhánh.', 'error');
         }
+        });
         },
         error: function () {
         $("#btnDongBoChiNhanh").prop("disabled", false).html('<i class="fa fa-cloud-download"></i> Đồng bộ từ chi nhánh');
+        tienDo.hoanTat(false, function () {
         Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ để đồng bộ.', 'error');
+        });
         }
         });
         });
@@ -343,6 +597,7 @@
         if (!result.isConfirmed) return;
 
         $("#btnTuDongPhanLoai").prop("disabled", true);
+        var tienDo = batDauTienDoGiaLap('Đang tự động phân loại ' + danhSachDangChon.size + ' thiết bị...');
         $.ajax({
         url: '/QLKiemKe/TuDongPhanLoaiThietBiChuaPhanLoai',
         type: 'POST',
@@ -351,6 +606,7 @@
         dataType: 'json',
         success: function (res) {
         $("#btnTuDongPhanLoai").prop("disabled", danhSachDangChon.size === 0);
+        tienDo.hoanTat(res.success, function () {
         if (res.success) {
         var ghiChuConLai = res.soKhongXacDinh > 0 ? ('<br/><span class="text-warning">Còn ' + res.soKhongXacDinh + ' thiết bị không đủ dấu hiệu nhận diện, cần chọn tay ở cột Loại thiết bị.</span>') : '';
         Swal.fire({ icon: 'success', title: 'Đã tự động phân loại xong!', html: 'Đã phân loại: <b>' + res.soDaPhanLoai + '</b> thiết bị.' + ghiChuConLai });
@@ -358,10 +614,13 @@
         } else {
         Swal.fire('Lỗi', res.message || 'Không thể tự động phân loại.', 'error');
         }
+        });
         },
         error: function () {
         $("#btnTuDongPhanLoai").prop("disabled", danhSachDangChon.size === 0);
+        tienDo.hoanTat(false, function () {
         Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ để tự động phân loại.', 'error');
+        });
         }
         });
         });
@@ -504,7 +763,7 @@
         }
         }
 
-        function loadGoiTinTatCaMayTinh() {
+        function loadGoiTinTatCaMayTinh(khiHoanTat) {
         $("#alertTinNhan").hide();
         $.ajax({
         url: '/QLKiemKe/DanhSachTatCaMayTinh',
@@ -524,12 +783,15 @@
 
         // Tiến hành lọc và render dữ liệu lên màn hình
         thucThiBoLocDuLieu();
+        if (khiHoanTat) khiHoanTat(true);
         } else {
         hienThiLoiHeThong(res.message || "Dữ liệu trả về bị rỗng.");
+        if (khiHoanTat) khiHoanTat(false);
         }
         },
         error: function (xhr, status, error) {
         hienThiLoiHeThong("Không thể kết nối đến máy chủ Web API để lấy danh sách máy.");
+        if (khiHoanTat) khiHoanTat(false);
         }
         });
         }
@@ -722,8 +984,8 @@
         }
 
         if (danhSachDaLoc.length === 0) {
-        $("#tblTatCaMayTinh tbody").html('<tr><td colspan="11" class="text-center text-muted py-4">Không tìm thấy bản ghi thiết bị máy tính nào hợp lệ.</td></tr>');
-        $("#divContainerGrid").html('<div class="col-12 text-center text-muted py-4">Không tìm thấy bản ghi thiết bị máy tính nào hợp lệ.</div>');
+        $("#tblTatCaMayTinh tbody").html('<tr><td colspan="11"><div class="tscn-empty-state"><i class="fa fa-inbox"></i>Không tìm thấy bản ghi thiết bị máy tính nào hợp lệ.</div></td></tr>');
+        $("#divContainerGrid").html('<div class="col-12"><div class="tscn-empty-state"><i class="fa fa-inbox"></i>Không tìm thấy bản ghi thiết bị máy tính nào hợp lệ.</div></div>');
         $("#navPhanTrang .pagination").empty();
         trangDuLieuHienTai = [];
         capNhatTrangThaiChonTatCa();
@@ -887,8 +1149,8 @@
         }
 
         function hienThiLoiHeThong(msg) {
-        $("#tblTatCaMayTinh tbody").html('<tr><td colspan="11" class="text-center text-danger">Lỗi: ' + msg + '</td></tr>');
-        $("#divContainerGrid").html('<div class="col-12 text-center text-danger">Lỗi: ' + msg + '</div>');
+        $("#tblTatCaMayTinh tbody").html('<tr><td colspan="11"><div class="tscn-empty-state text-danger"><i class="fa fa-exclamation-triangle"></i>Lỗi: ' + msg + '</div></td></tr>');
+        $("#divContainerGrid").html('<div class="col-12"><div class="tscn-empty-state text-danger"><i class="fa fa-exclamation-triangle"></i>Lỗi: ' + msg + '</div></div>');
         $("#alertTinNhan").text(msg).fadeIn();
         $("#lblTongSoMay").text("Tổng số thiết bị: 0");
         $("#navPhanTrang .pagination").empty();
