@@ -17,7 +17,12 @@ builder.Services.AddDbContext<ITFormContext>(options =>
 builder.Services.AddHostedService<AutoRatingWorker>();
 
 // 3. Thêm dịch vụ MVC (Controllers + Views)
-builder.Services.AddControllersWithViews();
+var mvcBuilder = builder.Services.AddControllersWithViews();
+if (builder.Environment.IsDevelopment())
+{
+    // Cho phép sửa file .cshtml và thấy thay đổi ngay khi F5 lại trang (không cần build lại project)
+    mvcBuilder.AddRazorRuntimeCompilation();
+}
 
 // 4. CẤU HÌNH COOKIE AUTHENTICATION (Đã thêm logic kiểm tra SecurityStamp)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

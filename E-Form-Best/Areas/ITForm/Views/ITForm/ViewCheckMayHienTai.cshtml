@@ -370,6 +370,10 @@
                                             </label>
                                         </div>
                                         <div class="form-text mb-2">Bỏ tích nếu màn hình rời này không thuộc sở hữu cá nhân/không cần kiểm kê riêng.</div>
+                                        <div class="mb-2">
+                                            <label class="form-label small fw-bold mb-1">Quy cách màn hình</label>
+                                            <input type="text" id="txtQuyCachManHinhNgoai" class="form-control form-control-sm" placeholder="VD: Model, kích thước..." />
+                                        </div>
                                         <div id="boxAnhManHinhNgoai">
                                             <label class="form-label small fw-bold mb-1">Ảnh chụp màn hình (tùy chọn)</label>
                                             <div class="drag-drop-zone text-center mb-2" id="dropZoneManHinhAnh" title="Kéo thả ảnh vào đây, click để chọn ảnh, hoặc click vào đây rồi nhấn Ctrl + V để dán ảnh" onclick="$('#fileManHinhAnh').click(); vungAnhPasteHienTai = 'manhinh';">
@@ -723,9 +727,11 @@
             $("#lblManHinhNgoaiInfo").text(manHinhNgoai.model + ' (S/N: ' + manHinhNgoai.serial + ')');
             $("#boxManHinhNgoai").show();
             $("#chkXacNhanManHinhNgoai").prop('checked', true);
+            $("#txtQuyCachManHinhNgoai").val(manHinhNgoai.model || '');
             } else {
             $("#boxManHinhNgoai").hide();
             $("#chkXacNhanManHinhNgoai").prop('checked', false);
+            $("#txtQuyCachManHinhNgoai").val('');
             }
             }
 
@@ -811,7 +817,7 @@
             // Dòng "Tài sản khác đi kèm" - liệt kê toàn bộ thiết bị khác cùng chủ sở hữu với máy này, kèm ảnh từng thiết bị
             if (res.taiSanKhac && res.taiSanKhac.length > 0) {
             var htmlParts = res.taiSanKhac.map(function (ts) {
-            var thongTin = (ts.loaiThietBi || 'Thiết bị') + (ts.seribacode ? ' - S/N: ' + ts.seribacode : '') + (ts.tenViTri ? ' (' + ts.tenViTri + ')' : '');
+            var thongTin = (ts.loaiThietBi || 'Thiết bị') + (ts.seribacode ? ' - S/N: ' + ts.seribacode : '') + (ts.quyCach ? ' - Quy cách: ' + ts.quyCach : '') + (ts.tenViTri ? ' (' + ts.tenViTri + ')' : '');
             return '<div class="d-flex align-items-center gap-2 mb-2 item-tai-san-khac" data-id="' + ts.idThietBi + '" data-anh="' + (ts.duongDanAnh || '') + '">' +
             '<div class="avatar-mini-wrapper-sm"><img class="img-tsk" src="/QLKiemKe/GetEvidenceImage?fileName=' + encodeURIComponent(ts.duongDanAnh || '') + '" onerror="this.style.visibility=\'hidden\';" /></div>' +
             '<span>' + thongTin + '</span>' +
@@ -1141,7 +1147,8 @@
             var manHinhNgoaiXacNhan = layThongTinManHinhNgoaiThucTe();
             if (manHinhNgoaiXacNhan) {
             var fileManHinh = $("#fileManHinhAnh")[0].files[0];
-            taiSanKhacInfo.rows.push({ loai: 'Màn hình', serial: manHinhNgoaiXacNhan.serial, viTri: viTriInput, file: manHinhAnhBlob || fileManHinh || null });
+            var quyCachManHinh = $("#txtQuyCachManHinhNgoai").val().trim() || manHinhNgoaiXacNhan.model;
+            taiSanKhacInfo.rows.push({ loai: 'Màn hình', serial: manHinhNgoaiXacNhan.serial, quyCach: quyCachManHinh, viTri: viTriInput, file: manHinhAnhBlob || fileManHinh || null });
             }
             }
 
