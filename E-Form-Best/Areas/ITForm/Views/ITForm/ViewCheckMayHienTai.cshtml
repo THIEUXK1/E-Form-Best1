@@ -372,7 +372,7 @@
                                         <div class="form-text mb-2">Bỏ tích nếu màn hình rời này không thuộc sở hữu cá nhân/không cần kiểm kê riêng.</div>
                                         <div class="mb-2">
                                             <label class="form-label small fw-bold mb-1">Quy cách màn hình</label>
-                                            <input type="text" id="txtQuyCachManHinhNgoai" class="form-control form-control-sm" placeholder="VD: Model, kích thước..." />
+                                            <input type="text" id="txtQuyCachManHinhNgoai" class="form-control form-control-sm bg-light" readonly title="Lấy tự động từ tên màn hình phát hiện được ở trên, không sửa được" />
                                         </div>
                                         <div id="boxAnhManHinhNgoai">
                                             <label class="form-label small fw-bold mb-1">Ảnh chụp màn hình (tùy chọn)</label>
@@ -724,10 +724,12 @@
             var manHinhNgoai = layThongTinManHinhNgoaiThucTe();
 
             if (manHinhNgoai) {
-            $("#lblManHinhNgoaiInfo").text(manHinhNgoai.model + ' (S/N: ' + manHinhNgoai.serial + ')');
+            var tenDayDuManHinh = manHinhNgoai.model + ' (S/N: ' + manHinhNgoai.serial + ')';
+            $("#lblManHinhNgoaiInfo").text(tenDayDuManHinh);
             $("#boxManHinhNgoai").show();
             $("#chkXacNhanManHinhNgoai").prop('checked', true);
-            $("#txtQuyCachManHinhNgoai").val(manHinhNgoai.model || '');
+            // Khóa cứng, lấy y hệt tên đã hiển thị ở dòng trên - không cho sửa tay để tránh Quy cách lệch với tên máy quét được
+            $("#txtQuyCachManHinhNgoai").val(tenDayDuManHinh);
             } else {
             $("#boxManHinhNgoai").hide();
             $("#chkXacNhanManHinhNgoai").prop('checked', false);

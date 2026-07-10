@@ -418,6 +418,11 @@
                     </div>
 
                     <div class="tab-pane fade show active" id="thietbi" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-2 px-1 flex-wrap gap-2">
+                            <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-2" style="font-size: 13px; border-radius: 8px;" id="lblSoLuongThietBi">
+                                <i class="fas fa-list-ol me-1"></i> Đang tải...
+                            </span>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0" id="adminDataTable" style="min-width: 100%;">
                                 <thead class="table-light">
@@ -437,6 +442,11 @@
                     </div>
 
                     <div class="tab-pane fade" id="daxoa" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-2 px-1 flex-wrap gap-2">
+                            <span class="badge bg-danger-subtle text-danger fw-bold px-3 py-2" style="font-size: 13px; border-radius: 8px;" id="lblSoLuongDaXoa">
+                                <i class="fas fa-list-ol me-1"></i> Đang tải...
+                            </span>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0" id="adminDataTableDaXoa" style="min-width: 100%;">
                                 <thead class="table-light">
@@ -1497,7 +1507,9 @@
         });
         }
 
+        let soLuongPhuHop = filtered.length;
         if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
+        $('#lblSoLuongThietBi').html(`<i class="fas fa-list-ol me-1"></i> Hiển thị <b>${filtered.length}</b> / <b>${soLuongPhuHop}</b> thiết bị phù hợp bộ lọc`);
 
         let html = '';
         filtered.forEach(item => {
@@ -1615,7 +1627,9 @@
         );
         }
 
+        let soLuongPhuHop = filtered.length;
         if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
+        $('#lblSoLuongDaXoa').html(`<i class="fas fa-list-ol me-1"></i> Hiển thị <b>${filtered.length}</b> / <b>${soLuongPhuHop}</b> thiết bị đã xóa phù hợp bộ lọc`);
 
         let html = '';
         filtered.forEach(item => {

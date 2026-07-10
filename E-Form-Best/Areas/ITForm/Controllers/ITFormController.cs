@@ -6748,8 +6748,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         TenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : "",
                         Tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : "",
                         TenTrangThai = x.IdTrangThaiNavigation != null ? x.IdTrangThaiNavigation.TenTrangThai : "",
-                        x.WinLicense,
-                        x.OfficeLicense,
+                        x.DuongDanAnh,
                         x.ThoiGianCheck,
                         x.GhiChu
                     })
