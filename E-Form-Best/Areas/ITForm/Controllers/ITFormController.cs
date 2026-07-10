@@ -6192,17 +6192,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return CatChuoiToiDa(ketQua, 150);
         }
 
-        // Quy đổi chuỗi trạng thái Office quét được (thường không đáng tin cậy/rất dài dòng) về đúng 3 giá trị Có/Không có bản quyền/Không xác định
-        private static string? QuyDoiTrangThaiOffice(string? banQuyenOfficeRaw)
-        {
-            if (string.IsNullOrWhiteSpace(banQuyenOfficeRaw)) return null;
-            string d = banQuyenOfficeRaw.ToLower();
-            if (d.Contains("đã kích hoạt")) return "Có bản quyền";
-            // "Không xác định" đơn thuần nghĩa là chưa rõ trạng thái, không đồng nghĩa với chắc chắn không có bản quyền nên KHÔNG gộp vào đây
-            if (d.Contains("không phát hiện") || d.Contains("chưa kích hoạt")) return "Không có bản quyền";
-            return "Không xác định";
-        }
-
         public class DongBoMayTinhRequest
         {
             public List<int> DanhSachIdMay { get; set; } = new();
@@ -6211,7 +6200,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // HÀM ĐỒNG BỘ MÁY TÍNH (TSCN_ThongTinMay) SANG THIẾT BỊ (KK_ThietBi)
         // Trùng theo cặp TenMayTinh + LoaiThietBi thì cập nhật, không trùng thì thêm mới. TenViTri/IDCongTy/IDBoPhan/Ảnh bỏ qua, chỉ IdTrangThai được gán nếu người dùng chọn.
-        // Bản quyền Windows/Office được đồng bộ theo đúng dữ liệu quét được từ máy (BanQuyenWin/BanQuyenOffice) để phân biệt trên trang Thiết bị.
+        // Bản quyền Windows được đồng bộ theo đúng dữ liệu quét được từ máy (BanQuyenWin). Bản quyền Office KHÔNG đụng vào ở luồng này -
+        // trường này được quản lý riêng qua chức năng nhập nhanh Excel (ImportOfficeLicenseExcel), tránh bị ghi đè ngoài ý muốn khi đồng bộ.
         [HttpPost("/QLKiemKe/DongBoMayTinhSangThietBi")]
         public async Task<IActionResult> DongBoMayTinhSangThietBi([FromBody] DongBoMayTinhRequest req)
         {
@@ -6254,7 +6244,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         if (may.IdNguoiDung.HasValue) existing.IdNguoiDung = may.IdNguoiDung;
                         if (req.IdTrangThai.HasValue) existing.IdTrangThai = req.IdTrangThai;
                         if (!string.IsNullOrWhiteSpace(may.BanQuyenWin)) existing.WinLicense = TrichPhienBanWindows(may.BanQuyenWin);
-                        if (!string.IsNullOrWhiteSpace(may.BanQuyenOffice)) existing.OfficeLicense = QuyDoiTrangThaiOffice(may.BanQuyenOffice);
+                        // Không đụng vào existing.OfficeLicense - trường này chỉ được cập nhật qua chức năng nhập nhanh Excel riêng
                         existing.LoaiThietBi = loaiThietBiChuan;
                         existing.IdMay = may.IdMay;
                         existing.NgayCapNhat = DateTime.Now;
@@ -6273,7 +6263,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             IdNguoiDung = may.IdNguoiDung,
                             IdTrangThai = req.IdTrangThai ?? idTrangThaiMacDinh,
                             WinLicense = TrichPhienBanWindows(may.BanQuyenWin),
-                            OfficeLicense = QuyDoiTrangThaiOffice(may.BanQuyenOffice),
                             IdMay = may.IdMay,
                             NgayTao = DateTime.Now,
                             NgayCapNhat = DateTime.Now,
@@ -6716,7 +6705,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return View("TaiSanBoPhan");
         }
 
-        // API dữ liệu cho trang TaiSanBoPhan ở trên - luôn kiểm tra lại quyền ở tầng Server, không chỉ dựa vào việc ẩn nút ở giao diện
+        // API dữ liệu cho trang TaiSanBoPhan ở trên - luôn kiểm tra lại quyền ở tầng Server, không chỉ dựa vào việc ẩn nút ở giao diện.
+        // Luôn trả về đúng Công ty/Bộ phận của bản thân người dùng. Quyền "All" dùng thêm GetTatCaThietBiChoAll bên dưới
+        // để xem/lọc theo nhiều bộ phận khác qua ô Dropdown multi-checkbox trên giao diện.
         [HttpGet("/QLKiemKe/GetThietBiBoPhanCuaToi")]
         public IActionResult GetThietBiBoPhanCuaToi()
         {
@@ -6727,19 +6718,25 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (!User.IsInRole("XemTSCN") && !User.IsInRole("All"))
                     return Json(new { success = false, message = "Bạn không có quyền xem dữ liệu này." });
 
+                bool isAll = User.IsInRole("All");
+
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int idNguoiDung))
-                    return Json(new { success = false, message = "Không xác định được người dùng hiện tại." });
+                    return Json(new { success = false, message = "Không xác định được người dùng hiện tại.", isAll });
 
                 var (idCongTy, idBoPhan, tenCongTy, tenBoPhan) = LayCongTyBoPhanCuaUser(idNguoiDung);
                 if (idCongTy == null || idBoPhan == null)
-                    return Json(new { success = false, message = "Bạn chưa có thiết bị nào được Xác nhận tài sản gắn Công ty/Bộ phận, nên chưa thể xác định phạm vi quản lý." });
+                    return Json(new { success = false, message = "Bạn chưa có thiết bị nào được Xác nhận tài sản gắn Công ty/Bộ phận, nên chưa thể xác định phạm vi quản lý.", isAll });
 
                 var data = _context.KkThietBis
                     .Where(x => x.IdcongTy == idCongTy && x.IdboPhan == idBoPhan && x.NgayXoa == null)
                     .Select(x => new
                     {
                         x.IdThietBi,
+                        IdCongTy = x.IdcongTy,
+                        IdBoPhan = x.IdboPhan,
+                        TenCongTy = tenCongTy,
+                        TenBoPhan = tenBoPhan,
                         x.TenViTri,
                         x.TenMayTinh,
                         x.LoaiThietBi,
@@ -6755,12 +6752,257 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .OrderBy(x => x.TenViTri)
                     .ToList();
 
-                return Json(new { success = true, tenCongTy, tenBoPhan, data });
+                return Json(new { success = true, tenCongTy, tenBoPhan, isAll, idCongTy, idBoPhan, data });
             }
             catch (Exception ex)
             {
                 return Json(new { success = false, message = ex.Message });
             }
+        }
+
+        // Toàn bộ thiết bị trong hệ thống (không giới hạn theo Công ty/Bộ phận), CHỈ dành cho quyền "All".
+        // Dùng để đổ dữ liệu cho ô Dropdown multi-checkbox chọn xem nhiều bộ phận cùng lúc trên trang Tài sản Bộ phận,
+        // bao gồm cả những thiết bị chưa xác định được Công ty/Bộ phận (IdboPhan null) để không bị bỏ sót khi kiểm kê.
+        [HttpGet("/QLKiemKe/GetTatCaThietBiChoAll")]
+        public IActionResult GetTatCaThietBiChoAll()
+        {
+            try
+            {
+                if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+                    return Json(new { success = false, message = "Bạn chưa đăng nhập." });
+                if (!User.IsInRole("All"))
+                    return Json(new { success = false, message = "Bạn không có quyền xem dữ liệu này." });
+
+                var data = _context.KkThietBis
+                    .Where(x => x.NgayXoa == null)
+                    .Select(x => new
+                    {
+                        x.IdThietBi,
+                        IdCongTy = x.IdcongTy,
+                        IdBoPhan = x.IdboPhan,
+                        TenCongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : null,
+                        TenBoPhan = x.IdboPhanNavigation != null ? x.IdboPhanNavigation.TenBoPhan : null,
+                        x.TenViTri,
+                        x.TenMayTinh,
+                        x.LoaiThietBi,
+                        x.QuyCach,
+                        x.Seribacode,
+                        TenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : "",
+                        Tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : "",
+                        TenTrangThai = x.IdTrangThaiNavigation != null ? x.IdTrangThaiNavigation.TenTrangThai : "",
+                        x.DuongDanAnh,
+                        x.ThoiGianCheck,
+                        x.GhiChu
+                    })
+                    .OrderBy(x => x.TenCongTy).ThenBy(x => x.TenBoPhan).ThenBy(x => x.TenViTri)
+                    .ToList();
+
+                return Json(new { success = true, data });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        private class BienBanThietBiRow
+        {
+            public string TenCongTy { get; set; } = "Chưa xác định";
+            public string TenBoPhan { get; set; } = "Chưa xác định";
+            public string? TenViTri { get; set; }
+            public string? TenMayTinh { get; set; }
+            public string? LoaiThietBi { get; set; }
+            public string? QuyCach { get; set; }
+            public string? Seribacode { get; set; }
+            public string? TenNguoiDung { get; set; }
+            public string? Tk { get; set; }
+            public string? TenTrangThai { get; set; }
+            public string? GhiChu { get; set; }
+        }
+
+        // Xuất Biên bản kiểm kê - xác nhận tài sản bộ phận dạng in giấy để ký tay (khác chữ ký điện tử của luồng FormIT).
+        // ids: danh sách IdThietBi cách nhau bởi dấu phẩy, ứng đúng những dòng đang hiển thị (đã lọc, có thể gồm nhiều bộ phận
+        // khác nhau nếu người dùng có quyền "All") trên giao diện.
+        [HttpGet("/QLKiemKe/ExportBienBanTaiSanBoPhan")]
+        public IActionResult ExportBienBanTaiSanBoPhan(string? ids)
+        {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+                return Redirect("/DonXetDuyet/DangNhap");
+            if (!User.IsInRole("XemTSCN") && !User.IsInRole("All"))
+                return Forbid();
+
+            bool isAll = User.IsInRole("All");
+
+            List<int>? dsId = null;
+            if (!string.IsNullOrWhiteSpace(ids))
+            {
+                dsId = ids.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => int.TryParse(s.Trim(), out int id) ? id : (int?)null)
+                    .Where(id => id.HasValue)
+                    .Select(id => id!.Value)
+                    .ToList();
+            }
+
+            IQueryable<KkThietBi> query;
+
+            if (isAll)
+            {
+                // Quyền All đã tự chọn đúng danh sách thiết bị (có thể trải nhiều Công ty/Bộ phận, kể cả thiết bị chưa
+                // xác định bộ phận) ở giao diện, nên chỉ cần lọc theo đúng danh sách Id đó, không giới hạn phạm vi.
+                if (dsId == null || dsId.Count == 0)
+                    return Content("Vui lòng chọn danh sách thiết bị cần xuất biên bản.");
+                query = _context.KkThietBis.Where(x => x.NgayXoa == null && dsId.Contains(x.IdThietBi));
+            }
+            else
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int idNguoiDung))
+                    return Content("Không xác định được người dùng hiện tại.");
+
+                var (idCongTy, idBoPhan, _, _) = LayCongTyBoPhanCuaUser(idNguoiDung);
+                if (idCongTy == null || idBoPhan == null)
+                    return Content("Bạn chưa có thiết bị nào được Xác nhận tài sản gắn Công ty/Bộ phận, nên chưa thể xuất biên bản.");
+
+                query = _context.KkThietBis.Where(x => x.IdcongTy == idCongTy && x.IdboPhan == idBoPhan && x.NgayXoa == null);
+                if (dsId != null && dsId.Count > 0) query = query.Where(x => dsId.Contains(x.IdThietBi));
+            }
+
+            var danhSach = query
+                .OrderBy(x => x.IdcongTyNavigation!.TenCongTy).ThenBy(x => x.IdboPhanNavigation!.TenBoPhan).ThenBy(x => x.TenViTri)
+                .Select(x => new BienBanThietBiRow
+                {
+                    TenCongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : "Chưa xác định",
+                    TenBoPhan = x.IdboPhanNavigation != null ? x.IdboPhanNavigation.TenBoPhan : "Chưa xác định",
+                    TenViTri = x.TenViTri,
+                    TenMayTinh = x.TenMayTinh,
+                    LoaiThietBi = x.LoaiThietBi,
+                    QuyCach = x.QuyCach,
+                    Seribacode = x.Seribacode,
+                    TenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : "",
+                    Tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : "",
+                    TenTrangThai = x.IdTrangThaiNavigation != null ? x.IdTrangThaiNavigation.TenTrangThai : "",
+                    GhiChu = x.GhiChu
+                })
+                .ToList();
+
+            string tenNguoiLap = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+            string htmlContent = BuildHtmlBienBanTaiSanBoPhan(tenNguoiLap, danhSach);
+
+            return Content(htmlContent, "text/html", System.Text.Encoding.UTF8);
+        }
+
+        // ============================================================
+        // HÀM HỖ TRỢ BUILD HTML BIÊN BẢN XÁC NHẬN TÀI SẢN BỘ PHẬN (DÙNG CHUNG PHONG CÁCH VĂN BẢN VỚI BuildHtmlContentIT)
+        // ============================================================
+        private string BuildHtmlBienBanTaiSanBoPhan(string tenNguoiLap, List<BienBanThietBiRow> danhSach)
+        {
+            var sb = new System.Text.StringBuilder();
+
+            sb.Append("<html><head><meta charset='utf-8'/><title>Bien ban xac nhan tai san bo phan</title>");
+            sb.Append("<style>");
+            sb.Append(@"
+                body { font-family: 'Times New Roman', Times, serif; line-height: 1.25; margin: 0; padding: 0; color: #000; background: #fff; }
+                .document-container { max-width: 1050px; margin: 0 auto; padding: 20px; background: #fff; }
+                .header-table { width: 100%; border: none; margin-bottom: 10px; text-align: center; }
+                .header-table td { border: none; padding: 0; }
+                .company-name { font-size: 13pt; font-weight: bold; text-transform: uppercase; }
+                .company-sub { font-size: 11pt; font-weight: bold; text-decoration: underline; margin-bottom: 4px; }
+                .national-title { font-size: 13pt; font-weight: bold; text-transform: uppercase; }
+                .national-sub { font-size: 12pt; font-weight: bold; text-decoration: underline; }
+                .form-title { font-size: 16pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 12px 0 4px 0; }
+                .form-id { font-size: 11pt; text-align: center; font-style: italic; margin-bottom: 10px; }
+                .info-line { font-size: 11pt; margin-bottom: 2px; }
+                .data-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+                .data-table th, .data-table td { border: 1px solid #000; padding: 2px 5px; font-size: 10pt; line-height: 1.15; vertical-align: middle; }
+                .data-table thead th { background-color: #f2f2f2; font-weight: bold; text-align: center; padding: 4px 5px; }
+                .data-table thead { display: table-header-group; }
+                .data-table tr { page-break-inside: avoid; }
+                .tong-so { font-size: 11pt; font-weight: bold; margin: 6px 0 10px 0; }
+                .ngay-ky { text-align: right; font-style: italic; font-size: 11pt; margin: 8px 0; }
+                .cam-ket { font-size: 11pt; margin-bottom: 6px; text-align: justify; }
+                .signature-table { width: 100%; text-align: center; margin-top: 6px; border: none; table-layout: fixed; page-break-inside: avoid; }
+                .signature-table td { vertical-align: top; border: none; font-size: 11pt; padding: 4px; word-wrap: break-word; }
+                .sig-note { font-size: 9pt; font-style: italic; color: #444; }
+            ");
+            sb.Append("@page { size: A4 landscape; margin: 15mm; } ");
+            sb.Append("@media print { .document-container { padding: 0; } } ");
+            sb.Append("</style><script>window.onload = function() { window.print(); }</script></head><body>");
+
+            sb.Append("<div class='document-container'>");
+
+            sb.Append("<table class='header-table'><tr>");
+            sb.Append("<td style='width:45%;'><div class='company-name'>BEST PACIFIC</div><div class='company-sub'>PHÒNG CÔNG NGHỆ THÔNG TIN (IT)</div></td>");
+            sb.Append("<td style='width:55%;'><div class='national-title'>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div><div class='national-sub'>Độc lập - Tự do - Hạnh phúc</div></td>");
+            sb.Append("</tr></table>");
+
+            sb.Append("<div class='form-title'>Biên bản kiểm kê - xác nhận tài sản bộ phận</div>");
+            sb.Append($"<div class='form-id'>Ngày lập: {DateTime.Now:dd/MM/yyyy HH:mm}</div>");
+
+            var dsPhamVi = danhSach.Select(x => (x.TenCongTy, x.TenBoPhan)).Distinct().ToList();
+            if (dsPhamVi.Count == 1)
+            {
+                sb.Append($"<div class='info-line'><b>Công ty:</b> {System.Net.WebUtility.HtmlEncode(dsPhamVi[0].TenCongTy)}</div>");
+                sb.Append($"<div class='info-line'><b>Bộ phận:</b> {System.Net.WebUtility.HtmlEncode(dsPhamVi[0].TenBoPhan)}</div>");
+            }
+            else
+            {
+                string dsTen = string.Join("; ", dsPhamVi.Select(x => System.Net.WebUtility.HtmlEncode(x.TenCongTy) + " - " + System.Net.WebUtility.HtmlEncode(x.TenBoPhan)));
+                sb.Append($"<div class='info-line'><b>Phạm vi:</b> {dsPhamVi.Count} bộ phận đã chọn ({dsTen})</div>");
+            }
+            sb.Append($"<div class='info-line' style='margin-bottom:16px;'><b>Người lập biên bản:</b> {System.Net.WebUtility.HtmlEncode(tenNguoiLap)}</div>");
+
+            sb.Append("<table class='data-table'><thead><tr>");
+            sb.Append("<th style='width:3%;'>STT</th>");
+            sb.Append("<th style='width:16%;'>Công ty / Bộ phận</th>");
+            sb.Append("<th style='width:12%;'>Tên vị trí</th>");
+            sb.Append("<th style='width:12%;'>Tên máy (Hostname)</th>");
+            sb.Append("<th style='width:9%;'>Loại TB</th>");
+            sb.Append("<th style='width:13%;'>Quy cách</th>");
+            sb.Append("<th style='width:11%;'>Serial / Barcode</th>");
+            sb.Append("<th style='width:13%;'>Người sử dụng</th>");
+            sb.Append("<th>Trạng thái</th>");
+            sb.Append("</tr></thead><tbody>");
+
+            int stt = 1;
+            foreach (var item in danhSach)
+            {
+                string userInfo = !string.IsNullOrEmpty(item.TenNguoiDung)
+                    ? item.TenNguoiDung + (!string.IsNullOrEmpty(item.Tk) ? $" ({item.Tk})" : "")
+                    : "Chưa cấp phát";
+
+                sb.Append("<tr>");
+                sb.Append($"<td style='text-align:center;'>{stt++}</td>");
+                sb.Append($"<td>{System.Net.WebUtility.HtmlEncode(item.TenCongTy)} - {System.Net.WebUtility.HtmlEncode(item.TenBoPhan)}</td>");
+                sb.Append($"<td>{System.Net.WebUtility.HtmlEncode(item.TenViTri ?? "Chưa rõ")}</td>");
+                sb.Append($"<td>{System.Net.WebUtility.HtmlEncode(item.TenMayTinh ?? "N/A")}</td>");
+                sb.Append($"<td>{System.Net.WebUtility.HtmlEncode(item.LoaiThietBi ?? "Khác")}</td>");
+                sb.Append($"<td>{System.Net.WebUtility.HtmlEncode(item.QuyCach ?? "-")}</td>");
+                sb.Append($"<td>{System.Net.WebUtility.HtmlEncode(item.Seribacode ?? "-")}</td>");
+                sb.Append($"<td>{System.Net.WebUtility.HtmlEncode(userInfo)}</td>");
+                sb.Append($"<td>{System.Net.WebUtility.HtmlEncode(item.TenTrangThai ?? "Chưa rõ")}</td>");
+                sb.Append("</tr>");
+            }
+
+            if (danhSach.Count == 0)
+            {
+                sb.Append("<tr><td colspan='9' style='text-align:center;'>Không có thiết bị nào.</td></tr>");
+            }
+
+            sb.Append("</tbody></table>");
+            sb.Append($"<div class='tong-so'>Tổng cộng: {danhSach.Count} thiết bị</div>");
+
+            sb.Append("<div class='cam-ket'>Chúng tôi, đại diện Bộ phận nêu trên, đã kiểm tra, đối chiếu số lượng và tình trạng tài sản được liệt kê trong biên bản này là đúng với thực tế đang sử dụng/quản lý tại bộ phận. Biên bản được lập thành các bên liên quan cùng lưu để đối chiếu khi cần.</div>");
+
+            sb.Append($"<div class='ngay-ky'>......................., ngày {DateTime.Now:dd} tháng {DateTime.Now:MM} năm {DateTime.Now:yyyy}</div>");
+
+            sb.Append("<table class='signature-table'><tr>");
+            sb.Append("<td style='width:33.33%;'><strong>NGƯỜI LẬP BIÊN BẢN</strong><br/><span class='sig-note'>(Ký, ghi rõ họ tên)</span><br/><br/><br/><strong>" + System.Net.WebUtility.HtmlEncode(tenNguoiLap) + "</strong></td>");
+            sb.Append("<td style='width:33.33%;'><strong>TRƯỞNG / PHỤ TRÁCH BỘ PHẬN XÁC NHẬN</strong><br/><span class='sig-note'>(Ký, ghi rõ họ tên)</span><br/><br/><br/><br/></td>");
+            sb.Append("<td style='width:33.33%;'><strong>ĐẠI DIỆN PHÒNG IT</strong><br/><span class='sig-note'>(Ký, ghi rõ họ tên)</span><br/><br/><br/><br/></td>");
+            sb.Append("</tr></table>");
+
+            sb.Append("</div></body></html>");
+            return sb.ToString();
         }
 
         // Tra cứu Máy tính + Màn hình rời theo Serial trong KK_ThietBi để biết đang thuộc về ai, kèm toàn bộ Tài sản khác của đúng người đó

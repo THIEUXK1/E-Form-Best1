@@ -69,6 +69,47 @@
         display: block;
     }
 
+    .dropdown-menu-checkbox {
+        max-height: 320px;
+        overflow-y: auto;
+        min-width: 320px;
+        padding: 0;
+        border-radius: 10px;
+        border-color: var(--tsbp-border);
+    }
+
+        .dropdown-menu-checkbox .chk-toolbar {
+            position: sticky;
+            top: 0;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--tsbp-border);
+            z-index: 2;
+        }
+
+            .dropdown-menu-checkbox .chk-toolbar a {
+                font-size: 12px;
+                font-weight: 700;
+                text-decoration: none;
+            }
+
+        .dropdown-menu-checkbox .chk-items {
+            padding: 8px 10px;
+        }
+
+        .dropdown-menu-checkbox .form-check {
+            padding-top: 4px;
+            padding-bottom: 4px;
+            padding-left: 1.8em;
+        }
+
+            .dropdown-menu-checkbox .form-check:hover {
+                background: #eff6ff;
+                border-radius: 6px;
+            }
+
     #tblTaiSanBoPhan {
         font-size: 13.5px;
         margin-bottom: 0;
@@ -196,6 +237,21 @@
             <h4>Tài sản của bộ phận tôi</h4>
             <div class="tsbp-subtitle" id="lblPhamViQuanLy">Đang tải phạm vi quản lý...</div>
         </div>
+        <div class="ms-md-auto d-flex flex-wrap gap-2" id="boxChuyenBoPhan" style="display:none;">
+            <div style="min-width: 220px;">
+                <label class="tsbp-filter-label mb-1"><i class="fa fa-building me-1"></i>Công ty (quyền All)</label>
+                <select id="ddlChonCongTyXem" class="form-select form-select-sm"></select>
+            </div>
+            <div style="min-width: 300px;">
+                <label class="tsbp-filter-label mb-1"><i class="fa fa-sitemap me-1"></i>Chọn bộ phận muốn xem</label>
+                <div class="dropdown w-100">
+                    <button class="btn btn-sm btn-outline-dark dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center bg-white" type="button" id="dropChonBoPhan" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                        <span class="text-truncate" id="lblChonBoPhanText">Đang tải danh sách bộ phận...</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-checkbox shadow" aria-labelledby="dropChonBoPhan" id="divChonBoPhanOptions"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="card tsbp-filter-card mb-3">
@@ -212,6 +268,9 @@
                     <span class="text-dark small fw-bold" id="lblTongSo">Tổng số thiết bị: 0</span>
                 </div>
                 <div class="col-md-3 text-end">
+                    <button id="btnInBienBan" class="btn btn-sm btn-outline-dark me-1" title="Xuất biên bản dạng in giấy để Trưởng bộ phận và Phòng IT ký xác nhận">
+                        <i class="fa fa-print"></i> In biên bản
+                    </button>
                     <button id="btnTaiLai" class="btn btn-sm btn-primary">
                         <i class="fa fa-refresh"></i> Tải lại
                     </button>
@@ -232,6 +291,7 @@
                     <thead class="table-secondary sticky-top" style="z-index: 10;">
                         <tr>
                             <th style="white-space: nowrap; width: 4%;" class="text-center">Ảnh</th>
+                            <th style="white-space: nowrap;">Công ty / Bộ phận</th>
                             <th style="white-space: nowrap;">Tên vị trí</th>
                             <th style="white-space: nowrap;">Tên máy (Hostname)</th>
                             <th style="white-space: nowrap;">Loại TB</th>
@@ -245,7 +305,7 @@
                     </thead>
                     <tbody id="tbodyThietBi">
                         <tr>
-                            <td colspan="10" class="text-center py-4 text-muted">
+                            <td colspan="11" class="text-center py-4 text-muted">
                                 <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
                                 <span class="ms-2">Đang tải danh sách thiết bị của bộ phận...</span>
                             </td>
@@ -338,12 +398,197 @@
         }
 
         $(document).ready(function () {
-            var danhSachGoc = [];
+            var danhSachGoc = [];    // Dữ liệu đang hiển thị trên bảng (đã theo (các) bộ phận được chọn)
+            var danhSachToanBo = []; // Cache toàn bộ thiết bị hệ thống - chỉ tải khi có quyền "All"
+            var isAllUser = false;   // Có quyền "All" hay không - quyết định có hiện ô chọn nhiều bộ phận không
 
-            taiDuLieu();
+            taiDuLieuBanDau();
 
-            $("#btnTaiLai").click(function () { taiDuLieu(); });
+            $("#btnTaiLai").click(function () {
+                // Giữ nguyên Công ty đang chọn khi tải lại (quyền All), tránh nhảy về công ty đầu danh sách
+                if (isAllUser) taiToanBoChoAll($("#ddlChonCongTyXem").val(), null); else taiDuLieuBanDau();
+            });
             $("#txtTimKiem").on("keyup", function () { renderBang(locDuLieu()); });
+
+            // Xuất biên bản in giấy đúng với đúng danh sách đang hiển thị (đã áp dụng ô tìm kiếm + các bộ phận đang chọn), để ký tay xác nhận
+            $("#btnInBienBan").click(function () {
+                var dsHienThi = locDuLieu();
+                if (dsHienThi.length === 0) {
+                    Swal.fire('Thông báo', 'Không có thiết bị nào để xuất biên bản.', 'warning');
+                    return;
+                }
+                var ids = dsHienThi.map(function (x) { return x.idThietBi; }).join(',');
+                window.open('/QLKiemKe/ExportBienBanTaiSanBoPhan?ids=' + encodeURIComponent(ids), '_blank');
+            });
+
+            // Tải dữ liệu ban đầu: luôn xác định đúng Công ty/Bộ phận của bản thân người dùng + biết được có quyền "All" hay không.
+            function taiDuLieuBanDau() {
+                $("#alertTinNhan").hide();
+                $.get('/QLKiemKe/GetThietBiBoPhanCuaToi', function (res) {
+                    isAllUser = !!(res && res.isAll);
+                    if (isAllUser) {
+                        // Quyền All: bỏ qua kết quả phạm vi đơn lẻ ở trên, chuyển sang tải toàn bộ hệ thống để chọn Công ty rồi tới Bộ phận
+                        $("#boxChuyenBoPhan").show();
+                        taiToanBoChoAll(res && res.success ? res.idCongTy : null, res && res.success ? res.idBoPhan : null);
+                        return;
+                    }
+                    if (res && res.success) {
+                        danhSachGoc = res.data || [];
+                        $("#lblPhamViQuanLy").text((res.tenCongTy || "Chưa rõ") + " - " + (res.tenBoPhan || "Chưa rõ"));
+                        renderBang(locDuLieu());
+                    } else {
+                        $("#lblPhamViQuanLy").text("Không xác định");
+                        $("#tbodyThietBi").html('<tr><td colspan="11"><div class="tsbp-empty-state"><i class="fa fa-inbox"></i>Không có dữ liệu.</div></td></tr>');
+                        $("#alertTinNhan").text((res && res.message) || "Không thể tải dữ liệu.").fadeIn();
+                        $("#lblTongSo").text("Tổng số thiết bị: 0");
+                    }
+                }).fail(function () {
+                    $("#alertTinNhan").text("Không thể kết nối đến máy chủ để tải dữ liệu.").fadeIn();
+                });
+            }
+
+            // Tải toàn bộ thiết bị hệ thống (chỉ quyền All, kể cả thiết bị chưa xác định Công ty/Bộ phận), rồi đổ vào 2 ô chọn theo bậc: Công ty trước, Bộ phận sau
+            function taiToanBoChoAll(idCongTyMacDinh, idBoPhanMacDinh) {
+                $("#alertTinNhan").hide();
+                $("#lblPhamViQuanLy").text("Đang tải dữ liệu toàn hệ thống...");
+                $.get('/QLKiemKe/GetTatCaThietBiChoAll', function (res) {
+                    if (!res || !res.success) {
+                        $("#alertTinNhan").text((res && res.message) || "Không thể tải dữ liệu toàn hệ thống.").fadeIn();
+                        return;
+                    }
+                    danhSachToanBo = res.data || [];
+                    khoiTaoDropdownCongTy(idCongTyMacDinh, idBoPhanMacDinh);
+                }).fail(function () {
+                    $("#alertTinNhan").text("Không thể kết nối đến máy chủ để tải dữ liệu toàn hệ thống.").fadeIn();
+                });
+            }
+
+            // Sinh ô chọn Công ty (select đơn) từ dữ liệu toàn bộ vừa tải, kèm nhóm "Chưa xác định công ty";
+            // mặc định chọn sẵn đúng Công ty của bản thân người dùng (nếu có) để giữ hành vi quen thuộc lúc mở trang.
+            function khoiTaoDropdownCongTy(idCongTyMacDinh, idBoPhanMacDinh) {
+                var nhom = {};
+                $.each(danhSachToanBo, function (i, item) {
+                    var key = item.idCongTy ? String(item.idCongTy) : "0";
+                    if (!nhom[key]) {
+                        nhom[key] = {
+                            idCongTy: item.idCongTy || 0,
+                            ten: item.idCongTy ? (item.tenCongTy || "Chưa rõ") : "Chưa xác định công ty",
+                            chuaXacDinh: !item.idCongTy,
+                            soLuong: 0
+                        };
+                    }
+                    nhom[key].soLuong++;
+                });
+
+                var dsNhom = $.map(nhom, function (x) { return x; });
+                dsNhom.sort(function (a, b) {
+                    if (a.chuaXacDinh !== b.chuaXacDinh) return a.chuaXacDinh ? 1 : -1;
+                    return a.ten.localeCompare(b.ten, 'vi');
+                });
+
+                var html = '';
+                $.each(dsNhom, function (i, x) {
+                    var macDinhChon = idCongTyMacDinh ? (String(x.idCongTy) === String(idCongTyMacDinh)) : (i === 0);
+                    html += '<option value="' + x.idCongTy + '" ' + (macDinhChon ? 'selected' : '') + '>' +
+                        (x.chuaXacDinh ? '⚠ ' : '') + x.ten + ' (' + x.soLuong + ')</option>';
+                });
+                $("#ddlChonCongTyXem").html(html);
+
+                $("#ddlChonCongTyXem").off("change").on("change", function () {
+                    khoiTaoDropdownBoPhan($(this).val(), null);
+                });
+
+                // Dựng sẵn danh sách Bộ phận cho đúng Công ty đang được chọn ở trên
+                khoiTaoDropdownBoPhan($("#ddlChonCongTyXem").val(), idBoPhanMacDinh);
+            }
+
+            // Sinh danh sách Checkbox các Bộ phận (kèm nhóm "Chưa xác định bộ phận") CHỈ trong phạm vi Công ty đang chọn ở ô trên,
+            // mặc định tích sẵn đúng bộ phận của bản thân (nếu được truyền vào), còn lại thì tích chọn tất cả bộ phận của công ty đó.
+            function khoiTaoDropdownBoPhan(idCongTyDangChon, idBoPhanMacDinh) {
+                var dsThuocCongTy = $.grep(danhSachToanBo, function (item) {
+                    return (item.idCongTy ? String(item.idCongTy) : "0") === String(idCongTyDangChon);
+                });
+
+                var nhom = {};
+                $.each(dsThuocCongTy, function (i, item) {
+                    var key = item.idBoPhan ? String(item.idBoPhan) : "0";
+                    if (!nhom[key]) {
+                        nhom[key] = {
+                            idBoPhan: item.idBoPhan || 0,
+                            ten: item.idBoPhan ? (item.tenBoPhan || "Chưa rõ") : "Chưa xác định bộ phận",
+                            chuaXacDinh: !item.idBoPhan,
+                            soLuong: 0
+                        };
+                    }
+                    nhom[key].soLuong++;
+                });
+
+                var dsNhom = $.map(nhom, function (x) { return x; });
+                dsNhom.sort(function (a, b) {
+                    if (a.chuaXacDinh !== b.chuaXacDinh) return a.chuaXacDinh ? 1 : -1;
+                    return a.ten.localeCompare(b.ten, 'vi');
+                });
+
+                var htmlItems = '';
+                $.each(dsNhom, function (i, x) {
+                    var macDinhChon = idBoPhanMacDinh ? (String(x.idBoPhan) === String(idBoPhanMacDinh)) : true;
+                    var nhanLop = x.chuaXacDinh ? 'text-danger fw-bold' : 'text-dark';
+                    htmlItems += '<div class="form-check">' +
+                        '<input class="form-check-input chk-chon-bo-phan" type="checkbox" value="' + x.idBoPhan + '" id="chkBoPhan_' + x.idBoPhan + '" ' + (macDinhChon ? 'checked' : '') + '>' +
+                        '<label class="form-check-label small ' + nhanLop + '" for="chkBoPhan_' + x.idBoPhan + '">' +
+                        (x.chuaXacDinh ? '⚠ ' : '') + x.ten + ' (' + x.soLuong + ')</label>' +
+                        '</div>';
+                });
+
+                var htmlToolbar = '<div class="chk-toolbar">' +
+                    '<a href="javascript:void(0)" id="lnkChonTatCaBoPhan">Chọn tất cả</a>' +
+                    '<a href="javascript:void(0)" id="lnkBoChonTatCaBoPhan" class="text-danger">Bỏ tích tất cả</a>' +
+                    '</div>';
+
+                $("#divChonBoPhanOptions").html(htmlToolbar + '<div class="chk-items">' + htmlItems + '</div>');
+                $(".chk-chon-bo-phan").off("change").on("change", function () { capNhatTheoBoPhanDaChon(); });
+
+                $("#lnkChonTatCaBoPhan").off("click").on("click", function () {
+                    $(".chk-chon-bo-phan").prop("checked", true);
+                    capNhatTheoBoPhanDaChon();
+                });
+                $("#lnkBoChonTatCaBoPhan").off("click").on("click", function () {
+                    $(".chk-chon-bo-phan").prop("checked", false);
+                    capNhatTheoBoPhanDaChon();
+                });
+
+                capNhatTheoBoPhanDaChon();
+            }
+
+            // Lọc lại dữ liệu đang hiển thị theo đúng Công ty đang chọn + các Bộ phận đang được tích trong Dropdown multi-checkbox
+            function capNhatTheoBoPhanDaChon() {
+                var idCongTyDangChon = $("#ddlChonCongTyXem").val();
+                var dsChon = [];
+                $(".chk-chon-bo-phan:checked").each(function () { dsChon.push($(this).val()); });
+
+                danhSachGoc = $.grep(danhSachToanBo, function (item) {
+                    var keyCt = item.idCongTy ? String(item.idCongTy) : "0";
+                    var keyBp = item.idBoPhan ? String(item.idBoPhan) : "0";
+                    return keyCt === String(idCongTyDangChon) && $.inArray(keyBp, dsChon) !== -1;
+                });
+
+                var tongSoNhom = $(".chk-chon-bo-phan").length;
+                if (dsChon.length === 0) $("#lblChonBoPhanText").text("Chưa chọn bộ phận nào");
+                else if (dsChon.length === tongSoNhom) $("#lblChonBoPhanText").text("Tất cả bộ phận (" + tongSoNhom + ")");
+                else $("#lblChonBoPhanText").text("Đã chọn " + dsChon.length + " / " + tongSoNhom + " bộ phận");
+
+                var tenCongTyDangChon = $("#ddlChonCongTyXem option:selected").text().replace(/\s*\(\d+\)$/, '').replace(/^⚠\s*/, '');
+                if (dsChon.length === 0) {
+                    $("#lblPhamViQuanLy").text(tenCongTyDangChon + " - Chưa chọn bộ phận nào");
+                } else if (dsChon.length === 1) {
+                    var mau = danhSachGoc[0];
+                    $("#lblPhamViQuanLy").text(mau ? (tenCongTyDangChon + " - " + (mau.idBoPhan ? mau.tenBoPhan : "Chưa xác định bộ phận")) : (tenCongTyDangChon + " - Không có dữ liệu"));
+                } else {
+                    $("#lblPhamViQuanLy").text(tenCongTyDangChon + " - Đang xem " + dsChon.length + " bộ phận (quyền All)");
+                }
+
+                renderBang(locDuLieu());
+            }
 
             // Kéo-thả ảnh vào vùng drop zone của modal
             var tsbpDropZoneEl = document.getElementById('tsbpDropZoneAnh');
@@ -424,24 +669,6 @@
                 });
             });
 
-            function taiDuLieu() {
-                $("#alertTinNhan").hide();
-                $.get('/QLKiemKe/GetThietBiBoPhanCuaToi', function (res) {
-                    if (res && res.success) {
-                        danhSachGoc = res.data || [];
-                        $("#lblPhamViQuanLy").text((res.tenCongTy || "Chưa rõ") + " - " + (res.tenBoPhan || "Chưa rõ"));
-                        renderBang(locDuLieu());
-                    } else {
-                        $("#lblPhamViQuanLy").text("Không xác định");
-                        $("#tbodyThietBi").html('<tr><td colspan="10"><div class="tsbp-empty-state"><i class="fa fa-inbox"></i>Không có dữ liệu.</div></td></tr>');
-                        $("#alertTinNhan").text(res.message || "Không thể tải dữ liệu.").fadeIn();
-                        $("#lblTongSo").text("Tổng số thiết bị: 0");
-                    }
-                }).fail(function () {
-                    $("#alertTinNhan").text("Không thể kết nối đến máy chủ để tải dữ liệu.").fadeIn();
-                });
-            }
-
             function locDuLieu() {
                 var tuKhoa = $("#txtTimKiem").val().toLowerCase().trim();
                 if (tuKhoa === "") return danhSachGoc;
@@ -458,7 +685,7 @@
                 $("#lblTongSo").text("Tổng số thiết bị: " + dsHienThi.length);
 
                 if (dsHienThi.length === 0) {
-                    $("#tbodyThietBi").html('<tr><td colspan="10"><div class="tsbp-empty-state"><i class="fa fa-inbox"></i>Không tìm thấy thiết bị nào phù hợp.</div></td></tr>');
+                    $("#tbodyThietBi").html('<tr><td colspan="11"><div class="tsbp-empty-state"><i class="fa fa-inbox"></i>Không tìm thấy thiết bị nào phù hợp.</div></td></tr>');
                     return;
                 }
 
@@ -466,6 +693,7 @@
                 $.each(dsHienThi, function (i, item) {
                     var userInfo = item.tenNguoiDung ? (item.tenNguoiDung + (item.tk ? ' (' + item.tk + ')' : '')) : 'Chưa cấp phát';
                     var lanCuoiCheck = item.thoiGianCheck ? new Date(item.thoiGianCheck).toLocaleString('vi-VN') : 'Chưa kiểm kê';
+                    var boPhanHienThi = item.idBoPhan ? ((item.tenCongTy || 'Chưa rõ') + ' - ' + (item.tenBoPhan || 'Chưa rõ')) : '<span class="text-danger fw-bold">⚠ Chưa xác định</span>';
 
                     var tenViTriAttr = (item.tenViTri || 'Vị trí').replace(/'/g, "\\'");
                     var oAnhTrong = '<div class="tsbp-anh-trong" title="Chưa có ảnh, bấm để tải ảnh lên" onclick="tsbpMoModalSuaAnh(' + item.idThietBi + ')"><i class="fa fa-image"></i></div>';
@@ -481,6 +709,7 @@
 
                     html += '<tr>' +
                         '<td class="text-center">' + oAnhBoc + '</td>' +
+                        '<td style="white-space: nowrap;">' + boPhanHienThi + '</td>' +
                         '<td class="fw-bold">' + (item.tenViTri || 'Chưa rõ') + '</td>' +
                         '<td>' + (item.tenMayTinh || 'N/A') + '</td>' +
                         '<td>' + (item.loaiThietBi || 'Khác') + '</td>' +
