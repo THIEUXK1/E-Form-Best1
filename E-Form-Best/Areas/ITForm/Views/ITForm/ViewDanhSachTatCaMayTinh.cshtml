@@ -118,6 +118,9 @@
                     <button id="btnDongBoThietBi" class="btn btn-sm btn-success" style="white-space: nowrap;" disabled>
                         <i class="fa fa-exchange"></i> Đồng bộ sang Thiết bị (<span id="lblSoLuongDaChon">0</span>)
                     </button>
+                    <button id="btnDongBoChiNhanh" class="btn btn-sm btn-info text-white me-1" style="white-space: nowrap;" title="Kéo dữ liệu máy tính mới từ SQL Server chi nhánh 10.0.55.3 về hệ thống này">
+                        <i class="fa fa-cloud-download"></i> Đồng bộ từ chi nhánh
+                    </button>
                 </div>
             </div>
         </div>
@@ -200,6 +203,46 @@
 
         $("#btnTaiLaiDanhSach").click(function () {
         loadGoiTinTatCaMayTinh();
+        });
+
+        // Nhấn nút "Đồng bộ từ chi nhánh": kéo các máy mới (Serial chưa từng có ở local) từ SQL Server chi nhánh 10.0.55.3 về
+        $("#btnDongBoChiNhanh").click(function () {
+        Swal.fire({
+        title: 'Đồng bộ máy tính từ chi nhánh?',
+        html: 'Hệ thống sẽ kết nối đến SQL Server chi nhánh (10.0.55.3) và thêm mới các máy tính <b>chưa từng có</b> ở đây (đối chiếu theo Số Serial).<br/>Máy đã tồn tại sẽ được <b>bỏ qua</b>, không ghi đè dữ liệu đã kiểm kê.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Đồng bộ ngay',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#0dcaf0'
+        }).then(function (result) {
+        if (!result.isConfirmed) return;
+
+        $("#btnDongBoChiNhanh").prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i> Đang đồng bộ...');
+        $.ajax({
+        url: '/QLKiemKe/DongBoTuChiNhanh',
+        type: 'POST',
+        dataType: 'json',
+        success: function (res) {
+        $("#btnDongBoChiNhanh").prop("disabled", false).html('<i class="fa fa-cloud-download"></i> Đồng bộ từ chi nhánh');
+        if (res.success) {
+        var dsTen = (res.chiTiet || []).map(function (x) { return x.tenMay + (x.seriMay ? ' (' + x.seriMay + ')' : ''); }).join('<br/>');
+        Swal.fire({
+        icon: 'success',
+        title: 'Đồng bộ hoàn tất!',
+        html: 'Đã thêm mới: <b>' + res.soDaThem + '</b> máy.<br/>Đã bỏ qua (trùng Serial): <b>' + res.soBoQuaTrungSeri + '</b> máy.' + (dsTen ? '<hr/><div style="text-align:left; max-height:200px; overflow-y:auto; font-size:13px;">' + dsTen + '</div>' : '')
+        });
+        loadGoiTinTatCaMayTinh();
+        } else {
+        Swal.fire('Lỗi', res.message || 'Không thể đồng bộ từ chi nhánh.', 'error');
+        }
+        },
+        error: function () {
+        $("#btnDongBoChiNhanh").prop("disabled", false).html('<i class="fa fa-cloud-download"></i> Đồng bộ từ chi nhánh');
+        Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ để đồng bộ.', 'error');
+        }
+        });
+        });
         });
 
         // Sự kiện khi nhấn nút Bỏ lọc để khôi phục cấu hình mặc định

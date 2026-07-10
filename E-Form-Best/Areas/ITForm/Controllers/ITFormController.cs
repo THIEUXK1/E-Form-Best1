@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using System.DirectoryServices.AccountManagement;
 using System.Runtime.InteropServices;
 using System.Security.Claims;
@@ -14,11 +15,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
     public class ITFormController : Controller
     {
         public ITFormContext _context;
+        private readonly IConfiguration _config;
 
         // Sửa constructor để nhận DI từ hệ thống
-        public ITFormController()
+        public ITFormController(IConfiguration config)
         {
             _context = new ITFormContext();
+            _config = config;
         }
 
         #region logo
@@ -6807,6 +6810,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             x.IdThietBi,
                             x.LoaiThietBi,
                             x.Seribacode,
+                            x.QuyCach,
                             x.TenViTri,
                             x.DuongDanAnh
                         })
@@ -7280,6 +7284,168 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
+        // 2b. ĐỒNG BỘ THIẾT BỊ TỪ CHI NHÁNH KHÁC (SQL Server 10.0.55.3, database ITForm - chỉ có bảng TSCN_ThongTinMay)
+        // Đồng bộ 1 chiều remote -> local: máy remote nào có Serial THẬT mà local chưa có thì thêm mới (kèm bảng con RAM/Ổ cứng/Màn hình/MacWifi).
+        // Máy đã tồn tại (trùng Serial thật) thì bỏ qua để tránh ghi đè dữ liệu đã kiểm kê/gán chủ sở hữu ở local.
+        // Serial dạng rác (BIOS không set, ví dụ "To be filled by O.E.M.") không dùng để đối chiếu trùng vì không phải định danh duy nhất thật sự - luôn coi là máy mới.
+        private static readonly string[] SeriRacKhongDoiChieu = { "to be filled by o.e.m.", "default string", "system serial number", "none", "0" };
+
+        [HttpPost("/QLKiemKe/DongBoTuChiNhanh")]
+        public async Task<IActionResult> DongBoTuChiNhanh()
+        {
+            try
+            {
+                var remoteConnStr = _config.GetConnectionString("ChiNhanhConnection");
+
+                using var remoteConn = new SqlConnection(remoteConnStr);
+                await remoteConn.OpenAsync();
+
+                var dsMayRemote = new List<(int IdMayRemote, string TenMay, string? SeriMay, string? DongMay, string? HeDieuHanh, string? KienTruc, string? PhienBanNet, int? SoLoiCpu, string? TenNguoiDungHeThong, string? ThuMucHeThong, string? ThoiGianHoatDong, string? RamKhaDung, string? ThongTinManHinhNgoai, string? ThongTinOffice, string? BanQuyenWin, string? BanQuyenOffice, DateTime? NgayCapNhat, string? LoaiThietBi)>();
+
+                using (var cmd = new SqlCommand("SELECT IdMay, TenMay, SeriMay, DongMay, HeDieuHanh, KienTruc, PhienBanNet, SoLoiCPU, TenNguoiDungHeThong, ThuMucHeThong, ThoiGianHoatDong, RamKhaDung, ThongTinManHinhNgoai, ThongTinOffice, BanQuyenWin, BanQuyenOffice, NgayCapNhat, LoaiThietBi FROM TSCN_ThongTinMay", remoteConn))
+                using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        dsMayRemote.Add((
+                            reader.GetInt32(0),
+                            reader.GetString(1),
+                            reader.IsDBNull(2) ? null : reader.GetString(2),
+                            reader.IsDBNull(3) ? null : reader.GetString(3),
+                            reader.IsDBNull(4) ? null : reader.GetString(4),
+                            reader.IsDBNull(5) ? null : reader.GetString(5),
+                            reader.IsDBNull(6) ? null : reader.GetString(6),
+                            reader.IsDBNull(7) ? null : reader.GetInt32(7),
+                            reader.IsDBNull(8) ? null : reader.GetString(8),
+                            reader.IsDBNull(9) ? null : reader.GetString(9),
+                            reader.IsDBNull(10) ? null : reader.GetString(10),
+                            reader.IsDBNull(11) ? null : reader.GetString(11),
+                            reader.IsDBNull(12) ? null : reader.GetString(12),
+                            reader.IsDBNull(13) ? null : reader.GetString(13),
+                            reader.IsDBNull(14) ? null : reader.GetString(14),
+                            reader.IsDBNull(15) ? null : reader.GetString(15),
+                            reader.IsDBNull(16) ? null : reader.GetDateTime(16),
+                            reader.IsDBNull(17) ? null : reader.GetString(17)
+                        ));
+                    }
+                }
+
+                // Tập hợp Serial local hiện có (chuẩn hóa trim + lower) để đối chiếu trùng nhanh
+                var seriLocalDaCo = new HashSet<string>(
+                    _context.TscnThongTinMays
+                        .Where(m => m.SeriMay != null)
+                        .Select(m => m.SeriMay!.Trim().ToLower())
+                        .ToList()
+                );
+
+                int soDaThem = 0, soBoQuaTrungSeri = 0;
+                var chiTietDaThem = new List<object>();
+
+                foreach (var may in dsMayRemote)
+                {
+                    string seriChuanHoa = (may.SeriMay ?? "").Trim().ToLower();
+                    bool laSeriRac = string.IsNullOrEmpty(seriChuanHoa) || SeriRacKhongDoiChieu.Contains(seriChuanHoa);
+
+                    if (!laSeriRac && seriLocalDaCo.Contains(seriChuanHoa))
+                    {
+                        soBoQuaTrungSeri++;
+                        continue;
+                    }
+
+                    var mayMoi = new TscnThongTinMay
+                    {
+                        TenMay = may.TenMay,
+                        SeriMay = may.SeriMay,
+                        DongMay = may.DongMay,
+                        HeDieuHanh = may.HeDieuHanh,
+                        KienTruc = may.KienTruc,
+                        PhienBanNet = may.PhienBanNet,
+                        SoLoiCpu = may.SoLoiCpu,
+                        TenNguoiDungHeThong = may.TenNguoiDungHeThong,
+                        ThuMucHeThong = may.ThuMucHeThong,
+                        ThoiGianHoatDong = may.ThoiGianHoatDong,
+                        RamKhaDung = may.RamKhaDung,
+                        ThongTinManHinhNgoai = may.ThongTinManHinhNgoai,
+                        ThongTinOffice = may.ThongTinOffice,
+                        BanQuyenWin = may.BanQuyenWin,
+                        BanQuyenOffice = may.BanQuyenOffice,
+                        NgayCapNhat = may.NgayCapNhat,
+                        LoaiThietBi = may.LoaiThietBi,
+                        IdNguoiDung = null // Người sở hữu bên chi nhánh không có bảng User tương ứng ở local nên để trống, gán tay sau
+                    };
+                    _context.TscnThongTinMays.Add(mayMoi);
+                    _context.SaveChanges(); // Lưu ngay để lấy IdMay mới sinh, phục vụ gán các bảng con bên dưới
+
+                    if (!laSeriRac) seriLocalDaCo.Add(seriChuanHoa); // Tránh trùng nếu nhiều máy remote lỡ trùng serial nhau trong cùng 1 lượt đồng bộ
+
+                    await DongBoBangConTuChiNhanh(remoteConn, may.IdMayRemote, mayMoi.IdMay);
+
+                    soDaThem++;
+                    chiTietDaThem.Add(new { tenMay = may.TenMay, seriMay = may.SeriMay });
+                }
+
+                return Json(new { success = true, soDaThem, soBoQuaTrungSeri, chiTiet = chiTietDaThem });
+            }
+            catch (Exception ex)
+            {
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = $"Lỗi khi đồng bộ từ chi nhánh 10.0.55.3: {chiTietLoi}" });
+            }
+        }
+
+        // Sao chép các bảng con (RAM/Ổ cứng/Màn hình/MAC Wifi) của 1 máy từ chi nhánh sang máy vừa tạo ở local
+        private async Task DongBoBangConTuChiNhanh(SqlConnection remoteConn, int idMayRemote, int idMayLocal)
+        {
+            using (var cmd = new SqlCommand("SELECT ThongTinManHinh FROM TSCN_ChiTietManHinh WHERE IdMay = @idMay", remoteConn))
+            {
+                cmd.Parameters.AddWithValue("@idMay", idMayRemote);
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    if (!reader.IsDBNull(0)) _context.TscnChiTietManHinhs.Add(new TscnChiTietManHinh { IdMay = idMayLocal, ThongTinManHinh = reader.GetString(0) });
+                }
+            }
+
+            using (var cmd = new SqlCommand("SELECT ThanhRam FROM TSCN_ChiTietRam WHERE IdMay = @idMay", remoteConn))
+            {
+                cmd.Parameters.AddWithValue("@idMay", idMayRemote);
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    if (!reader.IsDBNull(0)) _context.TscnChiTietRams.Add(new TscnChiTietRam { IdMay = idMayLocal, ThanhRam = reader.GetString(0) });
+                }
+            }
+
+            using (var cmd = new SqlCommand("SELECT ThongTinOcung FROM TSCN_ChiTietOCung WHERE IdMay = @idMay", remoteConn))
+            {
+                cmd.Parameters.AddWithValue("@idMay", idMayRemote);
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    if (!reader.IsDBNull(0)) _context.TscnChiTietOcungs.Add(new TscnChiTietOcung { IdMay = idMayLocal, ThongTinOcung = reader.GetString(0) });
+                }
+            }
+
+            using (var cmd = new SqlCommand("SELECT TenCard, DiaChiMac FROM TSCN_ChiTietMacWifi WHERE IdMay = @idMay", remoteConn))
+            {
+                cmd.Parameters.AddWithValue("@idMay", idMayRemote);
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    if (!reader.IsDBNull(1))
+                    {
+                        _context.TscnChiTietMacWifis.Add(new TscnChiTietMacWifi
+                        {
+                            IdMay = idMayLocal,
+                            TenCard = reader.IsDBNull(0) ? null : reader.GetString(0),
+                            DiaChiMac = reader.GetString(1)
+                        });
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+        }
 
         // 3. Giao diện trang xem cấu hình chi tiết mở rộng
         [HttpGet("/QLKiemKe/ViewChiTietMayTinh")]
