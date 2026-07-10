@@ -802,7 +802,7 @@
         }, 200);
         }
 
-        let savedLimit = localStorage.getItem('kk_filterLimit') || '50';
+        let savedLimit = localStorage.getItem('kk_filterLimit') || '100';
         $('#filterLimit').val(savedLimit);
         let savedText = localStorage.getItem('kk_filterText') || '';
         $('#filterText').val(savedText);
@@ -1089,7 +1089,7 @@
         localStorage.removeItem('kk_filterTT');
         localStorage.removeItem('kk_filterWinLicense');
         localStorage.removeItem('kk_filterOfficeLicense');
-        localStorage.setItem('kk_filterLimit', '50');
+        localStorage.setItem('kk_filterLimit', '100');
         localStorage.removeItem('kk_filterText');
         localStorage.removeItem('kk_filterSort');
         localStorage.removeItem('kk_filterTuNgay');
@@ -1102,7 +1102,7 @@
         renderFilterBoPhan();
         renderFilterLicenses();
         $('#filterSort, #filterTuNgay, #filterDenNgay, #filterTìnhTrangCheck').val('');
-        $('#filterLimit').val('50');
+        $('#filterLimit').val('100');
         $('#filterText').val('');
 
         applyFilters();
