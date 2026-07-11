@@ -4747,12 +4747,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             try
             {
                 // Loại bỏ các đơn có TrangThai chứa từ "HỦY" hoặc hành động hủy "DaHuy" để khớp logic hệ thống của bạn
-                // Sử dụng .Contains với StringComparison.OrdinalIgnoreCase để tối ưu so sánh chuỗi
+                // Contains(string, StringComparison) không dịch được sang SQL nên EF Core ném lỗi runtime; dùng Contains(string) thường (dịch sang LIKE, không phân biệt hoa/thường theo collation mặc định)
                 var query = _context.FormIts.AsNoTracking()
                     .Where(x => x.IdNguoiDuyet != null && x.TenNguoiDuyet != null && x.TimeNguoiDuyet != null)
                     .Where(x => x.TrangThai == null ||
-                               (!x.TrangThai.Contains("HỦY", StringComparison.OrdinalIgnoreCase) &&
-                                !x.TrangThai.Contains("DAHUY", StringComparison.OrdinalIgnoreCase)));
+                               (!x.TrangThai.Contains("HỦY") &&
+                                !x.TrangThai.Contains("DAHUY")));
 
                 // Mặc định lùi 1 tháng nếu giao diện chưa kịp truyền tham số lên ban đầu
                 var startFilter = fromDate ?? DateTime.Today.AddMonths(-1);

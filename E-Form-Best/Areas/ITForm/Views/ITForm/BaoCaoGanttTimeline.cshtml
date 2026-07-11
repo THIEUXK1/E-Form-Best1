@@ -65,16 +65,43 @@
         background-color: #0f172a;
         border: 1px solid #475569;
         padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 13px;
+        border-radius: 8px;
+        font-size: 13.5px;
         color: #f1f5f9;
         outline: none;
         height: 38px;
         cursor: pointer;
+        transition: border-color 0.15s, box-shadow 0.15s;
         }
 
         .filter-input:focus {
         border-color: #38bdf8;
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+        }
+
+        .status-legend {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-left: auto;
+        padding-left: 16px;
+        }
+
+        .status-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.5px;
+        color: #cbd5e1;
+        font-weight: 600;
+        }
+
+        .status-legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
         }
 
         .filter-input::-webkit-calendar-picker-indicator {
@@ -93,12 +120,12 @@
         color: white;
         border: none;
         padding: 7px 16px;
-        border-radius: 6px;
-        font-size: 13px;
+        border-radius: 8px;
+        font-size: 13.5px;
         font-weight: 600;
         cursor: pointer;
         height: 38px;
-        transition: background 0.2s;
+        transition: background 0.2s, transform 0.15s;
         }
 
         .btn-filter:hover {
@@ -110,12 +137,12 @@
         color: white;
         border: none;
         padding: 7px 16px;
-        border-radius: 6px;
-        font-size: 13px;
+        border-radius: 8px;
+        font-size: 13.5px;
         font-weight: 600;
         cursor: pointer;
         height: 38px;
-        transition: background 0.2s;
+        transition: background 0.2s, transform 0.15s;
         }
 
         .btn-today:hover {
@@ -128,12 +155,12 @@
         color: white;
         border: none;
         padding: 7px 16px;
-        border-radius: 6px;
-        font-size: 13px;
+        border-radius: 8px;
+        font-size: 13.5px;
         font-weight: 600;
         cursor: pointer;
         height: 38px;
-        transition: background 0.2s;
+        transition: background 0.2s, transform 0.15s;
         }
 
         .btn-refresh:hover {
@@ -187,50 +214,72 @@
 
         .vis-item {
         border-radius: 6px !important;
-        font-size: 11px !important;
-        font-weight: 600 !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
         box-shadow: 0 4px 6px rgba(0,0,0,0.4) !important;
-        border: 1px solid rgba(255,255,255,0.15) !important;
+        border: 1px solid rgba(255,255,255,0.2) !important;
         cursor: pointer;
-        min-width: 55px !important;
+        min-width: 62px !important;
+        min-height: 26px !important;
+        transition: box-shadow 0.15s, transform 0.15s;
+        }
+
+        .vis-item:hover {
+        box-shadow: 0 0 0 2px #38bdf8, 0 6px 10px rgba(0,0,0,0.5) !important;
+        transform: translateY(-1px);
+        z-index: 10;
+        }
+
+        .vis-item.vis-selected {
+        box-shadow: 0 0 0 2px #f8fafc, 0 6px 10px rgba(0,0,0,0.5) !important;
         }
 
         /* ------------------------------------------------------------- */
-        /* HIỆU ỨNG CHỚP NHÁY NHANH, SÁNG TỐI LIÊN TỤC (FAST FLASH)     */
+        /* HIỆU ỨNG NHẤN NHÁ NHẸ NHÀNG CHO ĐƠN CHƯA HOÀN THÀNH           */
+        /* (Đã làm chậm & giảm biên độ so với bản gốc để đỡ chói mắt)    */
         /* ------------------------------------------------------------- */
         .gantt-item-uncompleted {
-        animation: ganttFastFlash 0.3s infinite alternate linear !important;
-        border: 2px solid #ef4444 !important; /* Viền đỏ tươi nổi bật */
+        animation: ganttFastFlash 1.8s infinite ease-in-out !important;
+        border: 2px solid #f87171 !important;
         }
 
         @@keyframes ganttFastFlash {
-        0% {
-        box-shadow: 0 0 2px rgba(239, 68, 68, 0.2);
-        filter: brightness(0.4); /* Trạng thái tối hẳn */
-        opacity: 0.6;
+        0%, 100% {
+        box-shadow: 0 0 4px rgba(239, 68, 68, 0.35);
+        filter: brightness(0.85);
         }
 
-        100% {
-        box-shadow: 0 0 20px rgba(239, 68, 68, 1), 0 0 30px rgba(239, 68, 68, 0.6);
-        filter: brightness(1.6); /* Trạng thái rực sáng phát quang */
-        opacity: 1;
+        50% {
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.85);
+        filter: brightness(1.15);
         }
         }
 
-        /* Hiệu ứng nháy phụ cho dòng text mô tả trạng thái bên trong hộp Tooltip */
+        @@media (prefers-reduced-motion: reduce) {
+        .gantt-item-uncompleted {
+        animation: none !important;
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.6) !important;
+        }
+
         .gantt-blink-text {
-        animation: textBlink 0.6s infinite alternate steps(2);
-        color: #f43f5e;
+        animation: none !important;
+        }
+        }
+
+        /* Hiệu ứng nhấn nhá phụ cho dòng text mô tả trạng thái bên trong hộp Tooltip */
+        .gantt-blink-text {
+        animation: textBlink 1.4s infinite ease-in-out;
+        color: #fb7185;
         font-weight: bold;
         }
 
         @@keyframes textBlink {
-        from {
+        0%, 100% {
         opacity: 1;
         }
 
-        to {
-        opacity: 0;
+        50% {
+        opacity: 0.45;
         }
         }
         /* ------------------------------------------------------------- */
@@ -328,8 +377,9 @@
     <div class="container-fluid" style="max-width: 100%; margin: 0 auto;">
 
         <div class="gantt-header-title">
-            <i class="fa fa-sliders" style="color: #38bdf8;"></i> BÁO CÁO TIẾN ĐỘ THEO MÃ FORM (ĐƠN CHƯA HOÀN THÀNH CHỚP NHÁY NHANH)
+            <i class="fa fa-sliders" style="color: #38bdf8;"></i> Báo Cáo Tiến Độ Theo Mã Form
         </div>
+        <p style="margin: -10px 0 15px; color: #94a3b8; font-size: 13px;">Mỗi hàng là một mã form, mỗi thanh là một đơn yêu cầu. Thanh viền đỏ nhấp nháy = đơn IT chưa xử lý xong.</p>
 
         <div class="filter-wrapper">
             <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -344,6 +394,13 @@
             <button type="button" class="btn-refresh" onclick="refreshGanttDataOnly()"><i class="fa fa-refresh"></i> Tải lại</button>
             <button type="button" class="btn-today" onclick="moveTimelineToCurrent()"><i class="fa fa-clock-o"></i> Về hiện tại</button>
             <span id="lblGanttLoading" style="display:none; font-size:13px; color:#38bdf8; font-weight:600;"><i class="fa fa-spinner fa-spin"></i> Đang dựng biểu đồ...</span>
+
+            <div class="status-legend">
+                <span class="status-legend-item"><span class="status-legend-dot" style="background:#c98500;"></span> Chờ duyệt</span>
+                <span class="status-legend-item"><span class="status-legend-dot" style="background:#3987e5;"></span> Đang xử lý</span>
+                <span class="status-legend-item"><span class="status-legend-dot" style="background:#199e70;"></span> Hoàn tất</span>
+                <span class="status-legend-item"><span class="status-legend-dot" style="background:#ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.7);"></span> Chưa hoàn thành (nhấp nháy)</span>
+            </div>
         </div>
 
         <div class="gantt-container">
@@ -364,6 +421,8 @@
         let timelineInstance = null;
         let groupsDataSet = new vis.DataSet();
         let itemsDataSet = new vis.DataSet();
+        // Cờ báo cần tự động bấm "Về hiện tại" 1 lần duy nhất ngay sau khi timeline vừa dựng xong lúc tải trang
+        let autoMoveToNowPending = false;
 
         document.addEventListener('DOMContentLoaded', () => {
         const today = new Date();
@@ -376,12 +435,13 @@
         document.getElementById('txtGanttFromDate').value = oneMonthAgoStr;
         document.getElementById('txtGanttToDate').value = todayStr;
 
+        autoMoveToNowPending = true;
         searchGanttTimeline();
         });
 
         function searchGanttTimeline() {
         // Khi nhấn Lọc dữ liệu mới khởi tạo dựng lại timeline từ đầu
-        loadGanttData(false);
+        return loadGanttData(false);
         }
 
         // HÀM CHỈ TẢI LẠI DỮ LIỆU ĐẾN THỜI GIAN HIỆN TẠI - GIỮ NGUYÊN KHUNG NHÌN ĐANG XEM
@@ -400,7 +460,8 @@
         hash = idStr.charCodeAt(i) + ((hash << 5) - hash);
         }
         const hue = Math.abs(hash) % 360;
-        return `hsl(${hue}, 85%, 45%)`;
+        // Giảm nhẹ độ bão hòa/độ sáng so với bản gốc (85%/45%) để bớt chói trên nền tối, vẫn đủ phân biệt giữa các đơn
+        return `hsl(${hue}, 62%, 42%)`;
         }
 
         async function loadGanttData(isRefreshOnly = false) {
@@ -425,6 +486,7 @@
         container.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:50px;"><i class="fa fa-folder-open-o" style="font-size:30px; display:block; margin-bottom:10px;"></i> Không có dữ liệu đơn nào phù hợp</div>`;
         document.getElementById('ganttCenterNeedle').style.display = 'none';
         timelineInstance = null;
+        autoMoveToNowPending = false;
         return;
         }
 
@@ -446,9 +508,13 @@
         });
         }
 
-        let statusStyle = "background-color: #78350f; color: #fef3c7;";
-        if (item.trangThai.includes("HOÀN TẤT") || item.trangThai.includes("ĐỒNG Ý")) statusStyle = "background-color: #064e3b; color: #a7f3d0;";
-        else if (item.trangThai.includes("XỬ LÝ")) statusStyle = "background-color: #0c4a6e; color: #bae6fd;";
+        // Ghi chú: TrangThai lưu trong DB là mã không dấu (ChoDuyet/DaDuyet/HoanTat/DaHuy...),
+        // nên so khớp theo cả mã lẫn nhãn tiếng Việt đầy đủ để không bị rơi hết vào màu mặc định.
+        let statusStyle = "background-color: #78350f; color: #fde9b8;"; // Chờ duyệt (mặc định)
+        if (item.trangThai.includes("HoanTat") || item.trangThai.includes("HOÀN TẤT") || item.trangThai.includes("ĐỒNG Ý")) statusStyle = "background-color: #064e3b; color: #a7f3d0;"; // Hoàn tất
+        else if (item.trangThai.includes("ĐÁNH GIÁ")) statusStyle = "background-color: #312454; color: #ddd6fe;"; // Chờ đánh giá
+        else if (item.trangThai.includes("DaDuyet") || item.trangThai.includes("XỬ LÝ")) statusStyle = "background-color: #0c4a6e; color: #bae6fd;"; // Đã duyệt - IT đang xử lý
+        else if (item.trangThai.includes("DaHuy") || item.trangThai.includes("HỦY")) statusStyle = "background-color: #7f1d1d; color: #fecaca;"; // Đã hủy (dự phòng, thường đã bị lọc ở server)
 
         const dStart = item.timeNguoiTao ? new Date(item.timeNguoiTao) : null;
         const isUncompleted = (item.timeAdmin === null);
@@ -547,11 +613,18 @@
         needle.style.left = `calc(160px + (100% - 160px) / 2)`;
         }
         calculateNeedleTime();
+
+        // Timeline đã ổn định layout (đo được kích thước container) - giờ mới bấm "Về hiện tại" tự động lần đầu
+        if (autoMoveToNowPending) {
+        autoMoveToNowPending = false;
+        moveTimelineToCurrent();
+        }
         }, 250);
 
         } catch (err) {
         console.error(err);
         container.innerHTML = `<div style="text-align:center; color:#ef4444; font-weight:bold; padding:20px;">Lỗi tải dữ liệu tiến độ Gantt Chart.</div>`;
+        autoMoveToNowPending = false;
         } finally {
         lblLoading.style.display = 'none';
         }

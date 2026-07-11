@@ -100,6 +100,25 @@
             text-overflow: ellipsis;
         }
 
+    /* Bảng danh sách thiết bị: header rõ ràng hơn + kẻ vằn nhẹ để dễ dò theo hàng trên desktop */
+    #adminDataTable thead th, #adminDataTableDaXoa thead th {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .table-hover > tbody > tr:hover > * {
+        background-color: #eef6fd;
+    }
+
+    @@media (min-width: 769px) {
+        #tbodyThietBi > tr:nth-child(even), #tbodyDaXoa > tr:nth-child(even) {
+            background-color: #fafbfc;
+        }
+    }
+
     /* Vùng nhận ảnh kéo thả nâng cao */
     .drag-drop-zone {
         border: 2px dashed #cbd5e1;
@@ -1362,6 +1381,15 @@
         $(selector).html(html).val(selectedVal);
         }
 
+        // Màu trạng thái dùng chung cho badge trong bảng và biểu đồ, để 1 trạng thái luôn có đúng 1 màu trên toàn trang
+        function getStatusColor(tenTrangThai) {
+        let t = (tenTrangThai || '').toLowerCase();
+        if (t.includes('hoạt động')) return '#1baf7a';
+        if (t.includes('hỏng')) return '#e34948';
+        if (t.includes('bảo trì')) return '#eda100';
+        return '#64748b';
+        }
+
         function renderThongKe() {
         let activeDevices = allThietBiCache.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
 
@@ -1415,9 +1443,13 @@
         type: 'bar',
         data: {
         labels: Object.keys(countLoai),
-        datasets: [{ label: 'Số lượng thiết bị', data: Object.values(countLoai), backgroundColor: '#3b82f6', borderRadius: 5 }]
+        datasets: [{ label: 'Số lượng thiết bị', data: Object.values(countLoai), backgroundColor: '#2a78d6', borderRadius: 5 }]
         },
-        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, grid: { color: '#e1e0d9' }, ticks: { color: '#898781' } }, x: { grid: { display: false }, ticks: { color: '#52514e' } } }
+        }
         });
         }
 
@@ -1431,9 +1463,9 @@
         type: 'doughnut',
         data: {
         labels: Object.keys(countTT),
-        datasets: [{ data: Object.values(countTT), backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4', '#64748b'] }]
+        datasets: [{ data: Object.values(countTT), backgroundColor: Object.keys(countTT).map(getStatusColor), borderColor: '#fff', borderWidth: 2 }]
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#475569', font: { weight: '600' } } } } }
         });
         }
         }
@@ -1542,7 +1574,11 @@
 
         let locStr = [item.tenCongTy, item.tenBoPhan].filter(Boolean).join(' - ') || "Chưa gắn";
         let ttName = item.tenTrangThai || "Chưa gắn";
-        let badgeClass = ttName.toLowerCase().includes("hoạt động") ? "success" : "warning text-dark";
+        let ttLower = ttName.toLowerCase();
+        let badgeClass = "secondary";
+        if (ttLower.includes("hoạt động")) badgeClass = "success";
+        else if (ttLower.includes("hỏng")) badgeClass = "danger";
+        else if (ttLower.includes("bảo trì")) badgeClass = "warning text-dark";
 
         let imgHtml = item.duongDanAnh
         ? `<div class="position-relative d-inline-block">

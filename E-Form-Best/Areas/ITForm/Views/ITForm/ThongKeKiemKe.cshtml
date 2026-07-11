@@ -63,7 +63,30 @@
     }
 
     .table-hover tbody tr:hover {
-    background-color: #f1f5f9;
+    background-color: #eef6fd;
+    }
+
+    #adminDataTable thead th {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    }
+
+    /* Kẻ vằn nhẹ (zebra) + nới rộng vùng đọc từng dòng cho bảng chi tiết - chỉ áp dụng ở layout bảng desktop */
+    @@media (min-width: 769px) {
+    #adminDataTable tbody tr:nth-child(even) {
+    background-color: #fafbfc;
+    }
+
+    #adminDataTable > tbody > tr > td {
+    padding-top: 14px;
+    padding-bottom: 14px;
+    vertical-align: middle;
+    }
     }
 
     /* Tùy chỉnh thanh phân trang */
@@ -1007,6 +1030,12 @@
         });
 
         sortedCT = Object.entries(mapCongTy).sort((a,b) => b[1]-a[1]);
+        // Gán 1 màu cố định cho mỗi công ty (theo thứ tự xuất hiện) và dùng lại đúng màu đó ở cả biểu đồ tròn lẫn biểu đồ bộ phận bên dưới, để cùng 1 công ty luôn nhận diện bằng 1 màu duy nhất trên toàn trang
+        let companyColorMap = {};
+        sortedCT.forEach((entry, i) => {
+        companyColorMap[entry[0]] = { bg: CHART_PALETTE[i % CHART_PALETTE.length], ink: CHART_PALETTE_INK[i % CHART_PALETTE_INK.length] };
+        });
+
         chartCongTy = drawPieChart(chartCongTy, 'chartCongTy', sortedCT.map(i=>i[0]), sortedCT.map(i=>i[1]), function(label) {
         setTimeout(() => {
         $('.chk-company').prop('checked', false);
@@ -1015,10 +1044,10 @@
         applyFiltersAndRender();
         document.getElementById('tableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 50);
-        });
+        }, companyColorMap);
 
         let sortedLoai = Object.entries(mapLoai).sort((a,b) => b[1]-a[1]);
-        chartLoai = drawBarChart(chartLoai, 'chartLoai', sortedLoai.map(i=>i[0]), sortedLoai.map(i=>i[1]), 'Số lượng', '#06b6d4', function(label) {
+        chartLoai = drawBarChart(chartLoai, 'chartLoai', sortedLoai.map(i=>i[0]), sortedLoai.map(i=>i[1]), 'Số lượng', CHART_PALETTE[0], function(label) {
         setTimeout(() => {
         $('.chk-loai').prop('checked', false);
         $(`.chk-loai[value="${label}"]`).prop('checked', true);
@@ -1034,9 +1063,6 @@
         chartBoPhanInstances = [];
         $('#boPhanChartsContainer').empty();
 
-        let bpColors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b'];
-        let colorIdx = 0;
-
         if (typeof companyDeptsMap === 'object' && Object.keys(companyDeptsMap).length === 0) {
         $('#boPhanChartsContainer').html('<div class="col-12 text-center text-muted py-5"><i class="fas fa-folder-open fa-2x mb-2 d-block opacity-50"></i>Không có dữ liệu bộ phận</div>');
         } else {
@@ -1046,7 +1072,8 @@
         for (let cty in companyDeptsMap) {
         let sortedBP = Object.entries(companyDeptsMap[cty]).sort((a,b) => b[1]-a[1]).slice(0, 15);
         let canvasId = 'chartBP_' + chartIndex;
-        let currentColor = bpColors[colorIdx % bpColors.length];
+        // Dùng lại đúng màu của công ty này ở biểu đồ tròn phía trên, thay vì 1 bảng màu tách biệt
+        let currentColor = (companyColorMap[cty] && companyColorMap[cty].bg) || CHART_PALETTE[chartIndex % CHART_PALETTE.length];
 
         let htmlCol = `
         <div class="${colClass} mb-4">
@@ -1073,7 +1100,7 @@
         });
 
         chartBoPhanInstances.push(newChart);
-        chartIndex++; colorIdx++;
+        chartIndex++;
         }
         }
         }
@@ -1276,14 +1303,20 @@
         });
         }
 
-        function drawPieChart(chartInstance, canvasId, labels, data, onClickCallback = null) {
+        // Bảng màu categorical đã kiểm định (đủ tương phản & phân biệt tốt cho người mù màu), dùng cố định theo thứ tự cho mọi biểu đồ
+        const CHART_PALETTE = ['#2a78d6', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948', '#e87ba4', '#eb6834'];
+        // Vàng/cam sáng cần chữ tối để đủ tương phản, các màu còn lại dùng chữ trắng
+        const CHART_PALETTE_INK = ['#fff', '#fff', '#3a2a00', '#fff', '#fff', '#fff', '#3a0a1e', '#fff'];
+
+        function drawPieChart(chartInstance, canvasId, labels, data, onClickCallback = null, colorMap = null) {
         if (chartInstance) chartInstance.destroy();
-        let colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#64748b', '#ec4899'];
+        let colors = colorMap ? labels.map(l => colorMap[l].bg) : labels.map((_, i) => CHART_PALETTE[i % CHART_PALETTE.length]);
+        let inkColors = colorMap ? labels.map(l => colorMap[l].ink) : labels.map((_, i) => CHART_PALETTE_INK[i % CHART_PALETTE_INK.length]);
         return new Chart(document.getElementById(canvasId).getContext('2d'), {
         type: 'doughnut',
         data: {
         labels: labels,
-        datasets: [{ data: data, backgroundColor: colors, borderWidth: 2, hoverOffset: 4 }]
+        datasets: [{ data: data, backgroundColor: colors, borderColor: '#fff', borderWidth: 2, hoverOffset: 4 }]
         },
         options: {
         responsive: true, maintainAspectRatio: false,
@@ -1297,9 +1330,9 @@
         event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
         },
         plugins: {
-        legend: { position: 'right', labels: { boxWidth: 12 } },
+        legend: { position: 'right', labels: { boxWidth: 12, color: '#475569', font: { weight: '600' } } },
         datalabels: {
-        color: '#fff', font: { weight: 'bold', size: 14 },
+        color: (ctx) => inkColors[ctx.dataIndex % inkColors.length], font: { weight: 'bold', size: 13 },
         formatter: function(value) { return value > 0 ? value : ''; }
         }
         },
@@ -1315,14 +1348,14 @@
         type: 'pie',
         data: {
         labels: ['Đã Kiểm Kê (Gần đây)', 'Chưa / Quá hạn'],
-        datasets: [{ data: [valDaCheck, valChuaCheck], backgroundColor: ['#10b981', '#fcd34d'], borderWidth: 1, hoverOffset: 4 }]
+        datasets: [{ data: [valDaCheck, valChuaCheck], backgroundColor: ['#1baf7a', '#eda100'], borderColor: '#fff', borderWidth: 2, hoverOffset: 4 }]
         },
         options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 15 } },
+        legend: { position: 'bottom', labels: { boxWidth: 15, color: '#475569', font: { weight: '600' } } },
         datalabels: {
-        color: '#fff', font: { weight: 'bold', size: 14 },
+        color: (ctx) => ctx.dataIndex === 1 ? '#3a2a00' : '#fff', font: { weight: 'bold', size: 14 },
         formatter: function(value) { return value > 0 ? value : ''; }
         }
         }
