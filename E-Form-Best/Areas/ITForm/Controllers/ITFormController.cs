@@ -8,6 +8,7 @@ using Microsoft.Data.SqlClient;
 using System.DirectoryServices.AccountManagement;
 using System.Runtime.InteropServices;
 using System.Security.Claims;
+using System.Text;
 
 namespace E_Form_Best.Areas.ITForm.Controllers
 {
@@ -5185,12 +5186,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         ghiChu = x.GhiChu,
                         duongDanAnh = x.DuongDanAnh,
                         thoiGianCheck = x.ThoiGianCheck,
+                        ngayTao = x.NgayTao,
                         ngayCapNhat = x.NgayCapNhat,
                         ngayXoa = x.NgayXoa,
 
                         // Thêm trường bản quyền để đồng bộ hiển thị và lọc nâng cao
                         winLicense = x.WinLicense,
-                        officeLicense = x.OfficeLicense
+                        officeLicense = x.OfficeLicense,
+                        ip = x.Ip,
+                        version = x.Version,
+                        error = x.Error,
+                        idMay = x.IdMay
                     })
                     .ToList();
 
@@ -5674,7 +5680,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         x.HanBaoHanh,
                         x.WinLicense,
                         x.OfficeLicense,
-                        x.IdMay
+                        x.IdMay,
+                        x.Ip,
+                        x.Version,
+                        x.Error
                     })
                     .ToList(); // Tải dữ liệu về bộ nhớ trước để xử lý chuẩn hóa chuỗi tiếng Việt chuẩn xác nhất
 
@@ -6653,6 +6662,249 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 return Json(new { success = false, message = "Lỗi khi đọc file Excel: " + ex.Message });
             }
+        }
+
+        // Đọc file .xlsx/.xls (ClosedXML) hoặc .csv thành danh sách dòng dữ liệu (bỏ dòng tiêu đề).
+        // Mỗi dòng: [0]=ip, [1]=hostname, [2]=model, [3]=version, [4]=serial, [5]=image (bỏ qua), [6]=error
+        private static List<string[]> DocDuLieuFileSwitch(IFormFile file)
+        {
+            var dataRows = new List<string[]>();
+            string ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+            if (ext == ".csv")
+            {
+                string content;
+                using (var reader = new StreamReader(file.OpenReadStream(), Encoding.UTF8, detectEncodingFromByteOrderMarks: true))
+                {
+                    content = reader.ReadToEnd();
+                }
+                var allLines = ParseCsvContent(content);
+                dataRows = allLines.Skip(1).ToList(); // Bỏ dòng tiêu đề
+            }
+            else
+            {
+                using (var stream = new MemoryStream())
+                {
+                    file.CopyTo(stream);
+                    using (var workbook = new ClosedXML.Excel.XLWorkbook(stream))
+                    {
+                        var worksheet = workbook.Worksheet(1);
+                        var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
+                        for (int row = 2; row <= lastRow; row++)
+                        {
+                            dataRows.Add(new[]
+                            {
+                                worksheet.Cell(row, 1).GetString(),
+                                worksheet.Cell(row, 2).GetString(),
+                                worksheet.Cell(row, 3).GetString(),
+                                worksheet.Cell(row, 4).GetString(),
+                                worksheet.Cell(row, 5).GetString(),
+                                worksheet.Cell(row, 6).GetString(),
+                                worksheet.Cell(row, 7).GetString(),
+                            });
+                        }
+                    }
+                }
+            }
+
+            return dataRows;
+        }
+
+        // Xem trước dữ liệu Switch từ file trước khi đẩy vào DB: không lưu gì cả, chỉ đọc + đối chiếu trùng Serial.
+        [HttpPost("/QLKiemKe/PreviewSwitchExcel")]
+        public IActionResult PreviewSwitchExcel(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return Json(new { success = false, message = "Vui lòng chọn file." });
+            }
+
+            const string loaiSwitch = "Switch";
+
+            try
+            {
+                var dataRows = DocDuLieuFileSwitch(file);
+                string ColAt(string[] cols, int idx) => idx < cols.Length ? cols[idx].Trim() : "";
+
+                var dsSerialTrongFile = dataRows
+                    .Select(cols => ColAt(cols, 4).ToLower())
+                    .Where(s => !string.IsNullOrEmpty(s))
+                    .Distinct()
+                    .ToList();
+
+                var dsSerialDaCo = _context.KkThietBis
+                    .Where(x => x.LoaiThietBi != null && x.LoaiThietBi.Trim().ToLower() == loaiSwitch.ToLower()
+                             && x.Seribacode != null && dsSerialTrongFile.Contains(x.Seribacode.Trim().ToLower()))
+                    .Select(x => x.Seribacode!.Trim().ToLower())
+                    .ToList();
+
+                var preview = new List<object>();
+                int soHopLe = 0, soBoQuaThieuThongTin = 0;
+
+                foreach (var cols in dataRows)
+                {
+                    string ip = ColAt(cols, 0);
+                    string hostname = ColAt(cols, 1);
+                    string model = ColAt(cols, 2);
+                    string version = ColAt(cols, 3);
+                    string serial = ColAt(cols, 4);
+                    string error = ColAt(cols, 6);
+
+                    if (string.IsNullOrEmpty(ip) && string.IsNullOrEmpty(hostname) && string.IsNullOrEmpty(serial)) continue;
+
+                    bool hopLe = !string.IsNullOrEmpty(serial) && !string.IsNullOrEmpty(ip);
+                    if (hopLe) soHopLe++; else soBoQuaThieuThongTin++;
+
+                    string trangThai = !hopLe
+                        ? "Bỏ qua (thiếu Serial/IP)"
+                        : dsSerialDaCo.Contains(serial.ToLower()) ? "Cập nhật" : "Thêm mới";
+
+                    preview.Add(new { ip, hostname, model, version, serial, error, hopLe, trangThai });
+                }
+
+                return Json(new { success = true, soHopLe, soBoQuaThieuThongTin, rows = preview });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi khi đọc file: " + ex.Message });
+            }
+        }
+
+        // Nhập nhanh Switch từ Excel: cột A=ip, B=hostname, C=model, D=version, E=serial, F=image (bỏ qua), G=error.
+        // Trùng theo Serial + Loại thiết bị = Switch thì Cập nhật, chưa có thì Thêm mới.
+        // Nhận cả file .xlsx/.xls (ClosedXML) lẫn .csv (tự tách theo dấu phẩy/chấm phẩy/tab).
+        [HttpPost("/QLKiemKe/ImportSwitchExcel")]
+        public IActionResult ImportSwitchExcel(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return Json(new { success = false, message = "Vui lòng chọn file." });
+            }
+
+            const string loaiSwitch = "Switch";
+
+            try
+            {
+                var dataRows = DocDuLieuFileSwitch(file);
+
+                if (!_context.KkLoaiThietBis.Any(x => x.TenLoai == loaiSwitch))
+                {
+                    _context.KkLoaiThietBis.Add(new KkLoaiThietBi { TenLoai = loaiSwitch, NgayTao = DateTime.Now });
+                    _context.SaveChanges();
+                }
+
+                int? idTrangThaiMacDinh = _context.KkTrangThais
+                    .Where(x => x.TenTrangThai == "Đang hoạt động")
+                    .Select(x => (int?)x.IdTrangThai)
+                    .FirstOrDefault();
+
+                int soThem = 0, soCapNhat = 0, soBoQuaThieuThongTin = 0;
+
+                string ColAt(string[] cols, int idx) => idx < cols.Length ? cols[idx].Trim() : "";
+
+                foreach (var cols in dataRows)
+                {
+                    string ip = ColAt(cols, 0);
+                    string hostname = ColAt(cols, 1);
+                    string model = ColAt(cols, 2);
+                    string version = ColAt(cols, 3);
+                    string serial = ColAt(cols, 4);
+                    string error = ColAt(cols, 6);
+
+                    if (string.IsNullOrEmpty(ip) && string.IsNullOrEmpty(hostname) && string.IsNullOrEmpty(serial)) continue;
+
+                    if (string.IsNullOrEmpty(serial) || string.IsNullOrEmpty(ip)) { soBoQuaThieuThongTin++; continue; }
+
+                    var existing = _context.KkThietBis.FirstOrDefault(x =>
+                        x.Seribacode != null && x.Seribacode.Trim().ToLower() == serial.ToLower() &&
+                        x.LoaiThietBi != null && x.LoaiThietBi.Trim().ToLower() == loaiSwitch.ToLower());
+
+                    if (existing != null)
+                    {
+                        existing.Ip = ip;
+                        if (!string.IsNullOrEmpty(hostname)) existing.TenMayTinh = hostname;
+                        if (!string.IsNullOrEmpty(model)) existing.QuyCach = model;
+                        if (!string.IsNullOrEmpty(version)) existing.Version = version;
+                        existing.Error = error;
+                        existing.NgayCapNhat = DateTime.Now;
+                        soCapNhat++;
+                    }
+                    else
+                    {
+                        _context.KkThietBis.Add(new KkThietBi
+                        {
+                            LoaiThietBi = loaiSwitch,
+                            Seribacode = serial,
+                            Ip = ip,
+                            TenMayTinh = hostname,
+                            QuyCach = model,
+                            Version = version,
+                            Error = error,
+                            IdTrangThai = idTrangThaiMacDinh,
+                            NgayTao = DateTime.Now,
+                            NgayCapNhat = DateTime.Now
+                        });
+                        soThem++;
+                    }
+                }
+
+                _context.SaveChanges();
+
+                GhiLichSu("Nhập Excel", "Thiết Bị", 0, $"Nhập nhanh Switch từ file: thêm mới {soThem}, cập nhật {soCapNhat}, bỏ qua {soBoQuaThieuThongTin} dòng thiếu Serial/IP.");
+
+                return Json(new { success = true, soThem, soCapNhat, soBoQuaThieuThongTin });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi khi đọc file: " + ex.Message });
+            }
+        }
+
+        // Tách nội dung CSV thành từng dòng/cột, tự dò dấu phân cách (phẩy/chấm phẩy/tab) dựa theo dòng tiêu đề,
+        // có hỗ trợ field nằm trong dấu ngoặc kép (chứa dấu phân cách bên trong).
+        private static List<string[]> ParseCsvContent(string content)
+        {
+            var lines = content.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n').Where(l => l.Length > 0).ToList();
+            var result = new List<string[]>();
+            if (lines.Count == 0) return result;
+
+            string header = lines[0];
+            char delimiter = ',';
+            int commaCount = header.Count(c => c == ',');
+            int semiCount = header.Count(c => c == ';');
+            int tabCount = header.Count(c => c == '\t');
+            if (semiCount > commaCount && semiCount >= tabCount) delimiter = ';';
+            else if (tabCount > commaCount && tabCount > semiCount) delimiter = '\t';
+
+            foreach (var line in lines)
+            {
+                var fields = new List<string>();
+                var sb = new StringBuilder();
+                bool inQuotes = false;
+                for (int i = 0; i < line.Length; i++)
+                {
+                    char c = line[i];
+                    if (inQuotes)
+                    {
+                        if (c == '"')
+                        {
+                            if (i + 1 < line.Length && line[i + 1] == '"') { sb.Append('"'); i++; }
+                            else inQuotes = false;
+                        }
+                        else sb.Append(c);
+                    }
+                    else
+                    {
+                        if (c == '"') inQuotes = true;
+                        else if (c == delimiter) { fields.Add(sb.ToString()); sb.Clear(); }
+                        else sb.Append(c);
+                    }
+                }
+                fields.Add(sb.ToString());
+                result.Add(fields.ToArray());
+            }
+
+            return result;
         }
 
         #endregion

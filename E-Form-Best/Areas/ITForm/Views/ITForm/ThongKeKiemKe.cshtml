@@ -661,6 +661,27 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalXemChiTietThietBi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius: 15px;">
+            <div class="modal-header text-white" style="border-radius: 15px 15px 0 0; background-color: #4f46e5;">
+                <h5 class="modal-title fw-bold"><i class="fas fa-circle-info me-2"></i>Chi tiết thiết bị</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <img id="imgXemChiTietThietBi" src="" style="max-width: 160px; max-height: 160px; object-fit: cover; border-radius: 10px; border: 1px solid #e2e8f0;" />
+                </div>
+                <div id="bodyXemChiTietThietBi"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary" id="btnXemMayTinhChiTiet" style="display:none;"><i class="fas fa-desktop me-1"></i> Xem máy tính</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         // Các biến lưu trữ dữ liệu
@@ -1177,6 +1198,10 @@
 
         let htmlGhiChu = item.ghiChu ? `<div class="small text-wrap text-muted" style="max-width: 140px;">${item.ghiChu}</div>` : `<span class="text-muted fst-italic small" style="opacity: 0.5;">Trống</span>`;
 
+        let btnXemMayTinh = item.idMay
+        ? `<button class="btn btn-sm text-white rounded-pill shadow-sm px-2 py-1 btn-action-mobile" style="background: linear-gradient(135deg, #0ea5e9, #0369a1); border: none; font-weight: 600; font-size: 0.75rem;" onclick="window.open('/QLKiemKe/ViewChiTietMayTinh?idMay=${item.idMay}', '_blank')" title="Thiết bị này đã liên kết với 1 máy tính trong hệ thống"><i class="fas fa-desktop me-1"></i> Xem máy tính</button>`
+        : '';
+
         htmlTable += `
         <tr>
         <td class="ps-4 fw-bold text-muted" data-label="Mã ID">#${item.idThietBi}</td>
@@ -1213,15 +1238,16 @@
         </td>
         <td class="text-center" data-label="Thao tác">
         <div class="d-flex gap-1 justify-content-center flex-md-row flex-column">
-        <a href="/QLKiemKe/ChiTietThietBi/${item.idThietBi}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1 btn-action-mobile" style="font-size: 0.75rem; font-weight: 600;">
+        <button class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1 btn-action-mobile" style="font-size: 0.75rem; font-weight: 600;" onclick='xemChiTietThietBi(${JSON.stringify(item).replace(/'/g, "&#39;")})'>
         <i class="fas fa-eye me-1"></i> Chi tiết
-        </a>
+        </button>
         <button class="btn btn-sm text-white rounded-pill shadow-sm px-2 py-1 btn-action-mobile" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); border: none; font-weight: 600; font-size: 0.75rem;" onclick="xemLichSuThietBi(${item.idThietBi}, '${item.tenMayTinh || item.tenViTri || 'Vị trí'}')">
         <i class="fas fa-history me-1"></i> Lịch sử
         </button>
         <button class="btn btn-sm text-white rounded-pill shadow-sm px-2 py-1 btn-action-mobile" style="background: linear-gradient(135deg, #10b981, #0ea5e9); border: none; font-weight: 600; font-size: 0.75rem;" onclick="xemNhatKyKiemKeThietBi(${item.idThietBi}, '${item.tenMayTinh || ''}', '${item.tenViTri || ''}')" title="Xem lại các lần Xác nhận kiểm kê trước đó, kèm ảnh bằng chứng">
         <i class="fas fa-clipboard-check me-1"></i> Nhật ký kiểm kê
         </button>
+        ${btnXemMayTinh}
         </div>
         </td>
         </tr>`;
@@ -1362,6 +1388,65 @@
         },
         plugins: [ChartDataLabels]
         });
+        }
+
+        // Hiển thị TOÀN BỘ các trường của thiết bị trong 1 modal ngay tại trang này (không điều hướng sang trang khác)
+        function xemChiTietThietBi(item) {
+        function dong(nhan, giaTri, icon) {
+        let hienThi = (giaTri === null || giaTri === undefined || giaTri === '') ? '<span class="text-muted fst-italic">Chưa có</span>' : giaTri;
+        return `<div class="col-md-6 mb-3">
+        <div class="small text-muted text-uppercase fw-bold" style="font-size:11px;"><i class="fas ${icon} me-1"></i>${nhan}</div>
+        <div class="fw-semibold text-dark">${hienThi}</div>
+        </div>`;
+        }
+
+        let ngayTao = item.ngayTao ? new Date(item.ngayTao).toLocaleString('vi-VN') : '';
+        let ngayCapNhat = item.ngayCapNhat ? new Date(item.ngayCapNhat).toLocaleString('vi-VN') : '';
+        let thoiGianCheck = item.thoiGianCheck ? new Date(item.thoiGianCheck).toLocaleString('vi-VN') : '';
+        let hanBaoHanh = item.hanBaoHanh ? new Date(item.hanBaoHanh).toLocaleDateString('vi-VN') : '';
+
+        let html = '<div class="row">';
+        html += dong('ID', '#' + item.idThietBi, 'fa-hashtag');
+        html += dong('Loại thiết bị', item.loaiThietBi, 'fa-tag');
+        html += dong('Hostname', item.tenMayTinh, 'fa-desktop');
+        html += dong('IP', item.ip, 'fa-network-wired');
+        html += dong('Model / Quy cách', item.quyCach, 'fa-microchip');
+        html += dong('Version', item.version, 'fa-code-branch');
+        html += dong('Serial', item.seribacode, 'fa-barcode');
+        html += dong('Error', item.error, 'fa-triangle-exclamation');
+        html += dong('Vị trí', item.tenViTri, 'fa-map-marker-alt');
+        html += dong('Người dùng', item.tenNguoiDung, 'fa-user');
+        html += dong('Account', item.tk || item.tenDangNhap, 'fa-id-badge');
+        html += dong('Công ty', item.tenCongTy, 'fa-building');
+        html += dong('Bộ phận', item.tenBoPhan, 'fa-sitemap');
+        html += dong('Trạng thái', item.tenTrangThai, 'fa-toggle-on');
+        html += dong('Bản quyền Windows', item.winLicense, 'fa-windows');
+        html += dong('Bản quyền Office', item.officeLicense, 'fa-file-word');
+        html += dong('Hạn bảo hành', hanBaoHanh, 'fa-shield-alt');
+        html += dong('Thời gian Check gần nhất', thoiGianCheck, 'fa-clock');
+        html += dong('Ngày tạo', ngayTao, 'fa-calendar-plus');
+        html += dong('Ngày cập nhật', ngayCapNhat, 'fa-calendar-check');
+        html += `<div class="col-12 mb-3">
+        <div class="small text-muted text-uppercase fw-bold" style="font-size:11px;"><i class="fas fa-sticky-note me-1"></i>Ghi chú</div>
+        <div class="fw-semibold text-dark">${item.ghiChu ? item.ghiChu : '<span class="text-muted fst-italic">Chưa có</span>'}</div>
+        </div>`;
+        html += '</div>';
+
+        $('#bodyXemChiTietThietBi').html(html);
+
+        if (item.duongDanAnh) {
+        $('#imgXemChiTietThietBi').attr('src', '/QLKiemKe/GetImage?fileName=' + encodeURIComponent(item.duongDanAnh)).show();
+        } else {
+        $('#imgXemChiTietThietBi').hide();
+        }
+
+        if (item.idMay) {
+        $('#btnXemMayTinhChiTiet').show().attr('onclick', `window.open('/QLKiemKe/ViewChiTietMayTinh?idMay=${item.idMay}', '_blank')`);
+        } else {
+        $('#btnXemMayTinhChiTiet').hide();
+        }
+
+        new bootstrap.Modal(document.getElementById('modalXemChiTietThietBi')).show();
         }
 
         function viewFullImage(url, title) {

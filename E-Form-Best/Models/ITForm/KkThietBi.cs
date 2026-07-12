@@ -80,6 +80,18 @@ public partial class KkThietBi
     [StringLength(255)]
     public string? OfficeLicense { get; set; }
 
+    [Column("ip")]
+    [StringLength(50)]
+    public string? Ip { get; set; }
+
+    [Column("version")]
+    [StringLength(100)]
+    public string? Version { get; set; }
+
+    [Column("error")]
+    [StringLength(500)]
+    public string? Error { get; set; }
+
     public int? IdMay { get; set; }
 
     [ForeignKey("IdMay")]
