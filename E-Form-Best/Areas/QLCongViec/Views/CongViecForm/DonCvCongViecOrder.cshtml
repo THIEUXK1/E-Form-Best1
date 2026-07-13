@@ -82,14 +82,6 @@
         cursor: pointer;
     }
 
-    .overSelect {
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 0;
-        bottom: 0;
-    }
-
     .checkboxes-dropdown {
         display: none;
         position: absolute;
@@ -126,6 +118,11 @@
                 background-color: @colorLight;
             }
 
+            .checkboxes-dropdown label.row-selected {
+                background-color: @colorLight;
+                box-shadow: inset 3px 0 0 @colorPrimary;
+            }
+
         .checkboxes-dropdown input[type="checkbox"] {
             width: 18px;
             height: 18px;
@@ -133,22 +130,10 @@
             cursor: pointer;
         }
 
-    /* THANH TÌM KIẾM TRONG DROPDOWN */
-    .search-input-box {
-        width: 100%;
-        padding: 10px 12px;
-        border-radius: 8px;
-        border: 1px solid @colorBorder;
-        margin-bottom: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        outline: none;
-        color: @colorDark;
-        position: sticky;
-        top: 0;
-        background: #ffffff;
-        z-index: 10;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    /* CHỌN NGƯỜI THỰC HIỆN: khi ô đang mở dropdown thì bo góc dưới bằng 0 cho liền mạch */
+    .select-box:focus-within .input-hover {
+        border-color: @colorPrimary !important;
+        box-shadow: 0 0 0 4px rgba(101, 163, 13, 0.15) !important;
     }
 </style>
 
@@ -211,14 +196,17 @@
                     <div>
                         <label style="@labelBase">Chọn người thực hiện công việc <span style="color:red">*</span></label>
                         <div class="multiselect-container">
-                            <div class="select-box" onclick="showCheckboxes()">
-                                <select class="input-hover" style="@inputBase appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%232d4201%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
-                                    <option id="dropdownSelectedText">-- Chọn nhân sự (Có thể chọn nhiều) --</option>
-                                </select>
-                                <div class="overSelect"></div>
+                            <div class="select-box" onclick="openCheckboxes()">
+                                <input type="text" id="searchStaffInput" autocomplete="off"
+                                       class="input-hover" style="@inputBase cursor: text;"
+                                       placeholder="🔍 Bấm vào đây, gõ tên/mã NV để tìm và chọn nhanh..."
+                                       oninput="filterStaffFunction(event)" />
                             </div>
                             <div class="checkboxes-dropdown" id="checkboxesArea">
-                                <input type="text" id="searchStaffInput" oninput="filterStaffFunction(event)" onclick="event.stopPropagation()" placeholder="🔍 Nhập Tên, Mã NV, Phòng ban..." class="search-input-box" />
+                                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                                    <button type="button" onclick="event.stopPropagation(); selectAllVisibleStaff(true)" style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid @colorBorder; background: @colorLight; color: @colorDark; font-size: 11px; font-weight: 800; cursor: pointer; text-transform: uppercase;">✔ Chọn tất cả</button>
+                                    <button type="button" onclick="event.stopPropagation(); selectAllVisibleStaff(false)" style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; font-size: 11px; font-weight: 800; cursor: pointer; text-transform: uppercase;">✖ Bỏ chọn</button>
+                                </div>
 
                                 @if (ViewBag.NguoiNhanViecList != null)
                                 {
@@ -232,6 +220,9 @@
                                 }
                             </div>
                         </div>
+
+                        @* --- DANH SÁCH NHÂN SỰ ĐÃ CHỌN HIỂN THỊ DẠNG THẺ BÊN DƯỚI --- *@
+                        <div id="selectedStaffChips" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;"></div>
                     </div>
 
                     <div>
@@ -302,17 +293,9 @@
 </div>
 
 <script>
-    // Xử lý đóng/mở giao diện Multi-Checkbox Dropdown nhân viên
-    let expanded = false;
-    function showCheckboxes() {
-        const checkboxes = document.getElementById("checkboxesArea");
-        if (!expanded) {
-            checkboxes.style.display = "block";
-            expanded = true;
-        } else {
-            checkboxes.style.display = "none";
-            expanded = false;
-        }
+    // Mở danh sách nhân sự (bấm vào ô tìm kiếm là mở luôn, không cần bấm mũi tên nữa)
+    function openCheckboxes() {
+        document.getElementById("checkboxesArea").style.display = "block";
     }
 
     // Đóng danh sách nhân sự khi click chuột ra vùng ngoài
@@ -320,7 +303,6 @@
         const container = document.querySelector(".multiselect-container");
         if (container && !container.contains(event.target)) {
             document.getElementById("checkboxesArea").style.display = "none";
-            expanded = false;
         }
     });
 
@@ -353,15 +335,56 @@
         }
     }
 
-    // Tính toán số lượng nhân viên được chọn để hiển thị text thông báo ra ngoài ô Dropdown
-    function updateDropdownText() {
-        const checkedBoxes = document.querySelectorAll('input[name="selectedNguoiLienQuanIds"]:checked');
-        const textElement = document.getElementById("dropdownSelectedText");
-        if (checkedBoxes.length === 0) {
-            textElement.text = "-- Chọn nhân sự (Có thể chọn nhiều) --";
-        } else {
-            textElement.text = `Đã chọn (${checkedBoxes.length}) nhân sự thực hiện`;
+    // Chọn nhanh/Bỏ chọn nhanh toàn bộ nhân sự đang hiển thị (theo bộ lọc tìm kiếm hiện tại)
+    function selectAllVisibleStaff(checked) {
+        const div = document.getElementById("checkboxesArea");
+        const labels = div.getElementsByTagName("label");
+        for (let i = 0; i < labels.length; i++) {
+            if (labels[i].style.display !== "none") {
+                const checkbox = labels[i].querySelector('input[type="checkbox"]');
+                if (checkbox) checkbox.checked = checked;
+            }
         }
+        updateDropdownText();
+    }
+
+    // Tính toán số lượng nhân viên được chọn để hiển thị lên ô tìm kiếm (placeholder),
+    // tô sáng các dòng đã chọn trong danh sách, và vẽ lại danh sách thẻ (chip) bên dưới
+    function updateDropdownText() {
+        const allBoxes = document.querySelectorAll('input[name="selectedNguoiLienQuanIds"]');
+        const checkedBoxes = document.querySelectorAll('input[name="selectedNguoiLienQuanIds"]:checked');
+        const searchInput = document.getElementById("searchStaffInput");
+        searchInput.placeholder = checkedBoxes.length === 0
+            ? "🔍 Bấm vào đây, gõ tên/mã NV để tìm và chọn nhanh..."
+            : `✅ Đã chọn ${checkedBoxes.length} nhân sự — gõ để tìm và chọn thêm...`;
+
+        allBoxes.forEach(function (cb) {
+            const rowLabel = document.querySelector(`label[for="${cb.id}"]`);
+            if (rowLabel) rowLabel.classList.toggle("row-selected", cb.checked);
+        });
+
+        const chipsContainer = document.getElementById("selectedStaffChips");
+        chipsContainer.innerHTML = "";
+        checkedBoxes.forEach(function (cb) {
+            const labelSpan = document.querySelector(`label[for="${cb.id}"] span`);
+            const name = labelSpan ? labelSpan.textContent : cb.value;
+
+            const chip = document.createElement("div");
+            chip.style.cssText = "display:flex; align-items:center; gap:6px; background:#f7fee7; border:1px solid #bef264; color:#2d4201; padding:6px 8px 6px 12px; border-radius:50px; font-size:12px; font-weight:700;";
+            chip.innerHTML = `<span>${name}</span>`;
+
+            const removeBtn = document.createElement("span");
+            removeBtn.innerHTML = "&times;";
+            removeBtn.title = "Bỏ chọn";
+            removeBtn.style.cssText = "cursor:pointer; font-weight:900; color:#65a30d; font-size:16px; line-height:1; width:16px; height:16px; display:flex; align-items:center; justify-content:center;";
+            removeBtn.onclick = function () {
+                cb.checked = false;
+                updateDropdownText();
+            };
+
+            chip.appendChild(removeBtn);
+            chipsContainer.appendChild(chip);
+        });
     }
 
     // Cơ chế dán ảnh thông minh bằng tổ hợp phím (Ctrl + V)
