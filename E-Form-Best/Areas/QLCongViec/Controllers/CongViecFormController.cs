@@ -488,7 +488,8 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonCongViec";
             string fullPath = Path.Combine(networkPath, fileName);
 
-            if (!System.IO.File.Exists(fullPath))
+            var fileInfo = new FileInfo(fullPath);
+            if (!fileInfo.Exists)
                 return NotFound("Tệp tin đính kèm thảo luận không tồn tại.");
 
             var memory = new MemoryStream();
@@ -510,9 +511,15 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                 _ => "application/octet-stream"
             };
 
+            // Tệp đính kèm bình luận là bất biến (tên tệp không đổi sau khi tải lên) nên có thể
+            // cho trình duyệt lưu tạm và dùng lại trong thời gian ngắn thay vì tải lại mỗi lần vào trang
+            Response.Headers["Cache-Control"] = "private, max-age=1800";
+            var lastModified = new DateTimeOffset(fileInfo.LastWriteTimeUtc);
+            var entityTag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{fileInfo.LastWriteTimeUtc.Ticks:x}-{fileInfo.Length:x}\"");
+
             return contentType.StartsWith("image/")
-                ? File(memory, contentType)
-                : File(memory, contentType, fileName);
+                ? File(memory, contentType, lastModified, entityTag)
+                : File(memory, contentType, fileName, lastModified, entityTag);
         }
 
         // =========================================================================
@@ -967,6 +974,48 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                 }
 
                 return Json(new { success = true, message = "Đã thực hiện gỡ bỏ bình luận thảo luận thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+            }
+        }
+
+        [HttpPost("/FormCongViec/XoaDon/{id}")]
+        public async Task<IActionResult> XoaDon(int id)
+        {
+            try
+            {
+                var don = await _context.FormCongViecs.FindAsync(id);
+                if (don == null)
+                    return Json(new { success = false, message = "Đơn công việc không tồn tại hoặc đã bị xóa trước đó." });
+
+                var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdStr))
+                    return Json(new { success = false, message = "Bạn cần đăng nhập để thực hiện thao tác này." });
+
+                int userId = int.Parse(userIdStr);
+                bool isOwner = don.IdNguoiTao == userId;
+                bool isAdmin = User.IsInRole("AdminCV") || User.IsInRole("AdminIT") || User.IsInRole("All");
+
+                if (!isOwner && !isAdmin)
+                    return Json(new { success = false, message = "Bạn không có quyền xóa đơn công việc này." });
+
+                using var transaction = await _context.Database.BeginTransactionAsync();
+
+                _context.BinhLuanFormCongViecs.RemoveRange(_context.BinhLuanFormCongViecs.Where(x => x.IdForm == id));
+                _context.CvCongViecOrder1s.RemoveRange(_context.CvCongViecOrder1s.Where(x => x.IdFormCongViec == id));
+                _context.FormCongViecNguoiLienQuans.RemoveRange(_context.FormCongViecNguoiLienQuans.Where(x => x.IdFormCongViec == id));
+                _context.LichSuFormCongViecs.RemoveRange(_context.LichSuFormCongViecs.Where(x => x.IdFormCongViec == id));
+                _context.DanhGiaFormCongViecs.RemoveRange(_context.DanhGiaFormCongViecs.Where(x => x.IdFormCongViec == id));
+                await _context.SaveChangesAsync();
+
+                _context.FormCongViecs.Remove(don);
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return Json(new { success = true, message = "Đã xóa đơn công việc thành công!" });
             }
             catch (Exception ex)
             {

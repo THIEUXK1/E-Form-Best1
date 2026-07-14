@@ -3460,7 +3460,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonIT";
             string fullPath = Path.Combine(networkPath, fileName);
 
-            if (!System.IO.File.Exists(fullPath))
+            var fileInfo = new FileInfo(fullPath);
+            if (!fileInfo.Exists)
                 return NotFound("File không tồn tại");
 
             try
@@ -3490,7 +3491,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 // Lấy tên file gốc (bỏ phần timestamp và GUID)
                 string originalFileName = string.Join("_", fileName.Split('_').Skip(2));
 
-                return File(memory, contentType, originalFileName);
+                // Tệp đính kèm bình luận là bất biến nên cho trình duyệt lưu tạm, dùng lại
+                // trong thời gian ngắn thay vì tải lại mỗi lần vào trang
+                Response.Headers["Cache-Control"] = "private, max-age=1800";
+                var lastModified = new DateTimeOffset(fileInfo.LastWriteTimeUtc);
+                var entityTag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{fileInfo.LastWriteTimeUtc.Ticks:x}-{fileInfo.Length:x}\"");
+
+                return File(memory, contentType, originalFileName, lastModified, entityTag);
             }
             catch (Exception ex)
             {

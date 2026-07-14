@@ -703,10 +703,10 @@
 
                         <div style="padding: 20px; background: white; border-top: 2px solid #e2e8f0;">
                             <form id="formBinhLuan" enctype="multipart/form-data">
-                                <textarea id="txtBinhLuan" name="noiDung" placeholder="Gõ nội dung trao đổi tiến độ... (Hỗ trợ Ctrl+V chụp dán hình ảnh cực nhanh)" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; box-sizing: border-box; margin-bottom: 12px;"></textarea>
+                                <textarea id="txtBinhLuan" name="noiDung" placeholder="Gõ nội dung trao đổi tiến độ... (Hỗ trợ Ctrl+V hoặc kéo-thả hình ảnh vào đây để gửi cực nhanh)" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; box-sizing: border-box; margin-bottom: 12px; transition: all 0.2s;"></textarea>
                                 <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                                    <label for="fileBinhLuan" style="flex: 1; min-width: 200px; padding: 12px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; cursor: pointer; text-align: center; font-size: 14px; color: #64748b; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                        <i class="fa fa-paperclip"></i> <span id="fileLabel">Đính kèm tài liệu chứng từ (max 50MB)</span>
+                                    <label for="fileBinhLuan" id="dropZoneBinhLuan" style="flex: 1; min-width: 200px; padding: 12px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; cursor: pointer; text-align: center; font-size: 14px; color: #64748b; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
+                                        <i class="fa fa-paperclip"></i> <span id="fileLabel">Đính kèm hoặc kéo-thả ảnh/tài liệu vào đây (max 50MB)</span>
                                         <input type="file" id="fileBinhLuan" name="file" style="display: none;" onchange="updateFileLabel(this)">
                                     </label>
                                     <button type="submit" id="btnGuiBinhLuan" style="padding: 12px 30px; background: linear-gradient(135deg, @colorPrimary 0%, @colorDark 100%); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 14px; white-space: nowrap; width: 100%;">
@@ -1042,6 +1042,40 @@
                 }
             }
         });
+
+        // KÉO-THẢ ẢNH VÀO KHUNG BÌNH LUẬN ĐỂ ĐÍNH KÈM GỬI NHANH (không cần bấm chọn tệp)
+        const formBinhLuanEl = document.getElementById('formBinhLuan');
+        const dropZoneEl = document.getElementById('dropZoneBinhLuan');
+        if (formBinhLuanEl && dropZoneEl) {
+            const setDragHighlight = (on) => {
+                dropZoneEl.style.borderColor = on ? '@colorPrimary' : '#cbd5e1';
+                dropZoneEl.style.background = on ? '@colorLight' : '#f8fafc';
+            };
+            ['dragenter', 'dragover'].forEach(evt => {
+                formBinhLuanEl.addEventListener(evt, function (e) {
+                    e.preventDefault(); e.stopPropagation(); setDragHighlight(true);
+                });
+            });
+            ['dragleave', 'dragend'].forEach(evt => {
+                formBinhLuanEl.addEventListener(evt, function (e) {
+                    e.preventDefault(); e.stopPropagation();
+                    if (evt === 'dragleave' && formBinhLuanEl.contains(e.relatedTarget)) return;
+                    setDragHighlight(false);
+                });
+            });
+            formBinhLuanEl.addEventListener('drop', function (e) {
+                e.preventDefault(); e.stopPropagation(); setDragHighlight(false);
+                const droppedFile = e.dataTransfer?.files?.[0];
+                if (!droppedFile) return;
+                const fileBinhLuan = document.getElementById('fileBinhLuan');
+                if (!fileBinhLuan) return;
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(droppedFile);
+                fileBinhLuan.files = dataTransfer.files;
+                updateFileLabel(fileBinhLuan);
+            });
+        }
+
         taiBinhLuan(false);
         document.getElementById('commentList')?.addEventListener('scroll', function() {
             if (this.scrollTop <= 5 && hasMoreComments && !isLoadingComments) {

@@ -1048,10 +1048,18 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonSHD";
             string fullPath = Path.Combine(networkPath, fileName);
 
-            if (!System.IO.File.Exists(fullPath)) return NotFound("File SHD không tồn tại");
+            var fileInfo = new FileInfo(fullPath);
+            if (!fileInfo.Exists) return NotFound("File SHD không tồn tại");
 
             string originalFileName = string.Join("_", fileName.Split('_').Skip(2));
-            return PhysicalFile(fullPath, "application/octet-stream", originalFileName);
+
+            // Tệp đính kèm bình luận là bất biến nên cho trình duyệt lưu tạm, dùng lại
+            // trong thời gian ngắn thay vì tải lại mỗi lần vào trang
+            Response.Headers["Cache-Control"] = "private, max-age=1800";
+            var lastModified = new DateTimeOffset(fileInfo.LastWriteTimeUtc);
+            var entityTag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{fileInfo.LastWriteTimeUtc.Ticks:x}-{fileInfo.Length:x}\"");
+
+            return PhysicalFile(fullPath, "application/octet-stream", originalFileName, lastModified, entityTag);
         }
 
         #endregion
