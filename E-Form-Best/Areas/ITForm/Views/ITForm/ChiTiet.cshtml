@@ -900,13 +900,14 @@
                             <form id="formBinhLuan" enctype="multipart/form-data">
                                 <textarea id="txtBinhLuan"
                                           name="noiDung"
-                                          placeholder="Nhập bình luận... (Có thể dán ảnh/file bằng Ctrl+V)"
+                                          placeholder="Nhập bình luận... (Có thể dán hoặc kéo-thả ảnh/file để đính kèm nhanh)"
                                           style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; resize: vertical; min-height: 80px; outline: none; font-family: 'Segoe UI', sans-serif; box-sizing: border-box; margin-bottom: 12px;"
                                           onfocus="this.style.borderColor='#3b82f6'"
                                           onblur="this.style.borderColor='#e2e8f0'"></textarea>
 
                                 <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                                     <label for="fileBinhLuan"
+                                           id="dropZoneBinhLuan"
                                            style="flex: 1; min-width: 200px; padding: 12px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; cursor: pointer; text-align: center; font-size: 14px; color: #64748b; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;"
                                            onmouseover="this.style.borderColor='#3b82f6'; this.style.background='#eff6ff'"
                                            onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'">
@@ -1180,6 +1181,40 @@
                 }
             }
         });
+
+        // KÉO-THẢ ẢNH VÀO KHUNG BÌNH LUẬN ĐỂ ĐÍNH KÈM GỬI NHANH (không cần bấm chọn tệp)
+        const formBinhLuanEl = document.getElementById('formBinhLuan');
+        const dropZoneEl = document.getElementById('dropZoneBinhLuan');
+        if (formBinhLuanEl && dropZoneEl) {
+            const setDragHighlight = (on) => {
+                dropZoneEl.style.borderColor = on ? '#3b82f6' : '#cbd5e1';
+                dropZoneEl.style.background = on ? '#eff6ff' : '#f8fafc';
+            };
+            ['dragenter', 'dragover'].forEach(evt => {
+                formBinhLuanEl.addEventListener(evt, function (e) {
+                    e.preventDefault(); e.stopPropagation(); setDragHighlight(true);
+                });
+            });
+            ['dragleave', 'dragend'].forEach(evt => {
+                formBinhLuanEl.addEventListener(evt, function (e) {
+                    e.preventDefault(); e.stopPropagation();
+                    if (evt === 'dragleave' && formBinhLuanEl.contains(e.relatedTarget)) return;
+                    setDragHighlight(false);
+                });
+            });
+            formBinhLuanEl.addEventListener('drop', function (e) {
+                e.preventDefault(); e.stopPropagation(); setDragHighlight(false);
+                const droppedFile = e.dataTransfer?.files?.[0];
+                if (!droppedFile) return;
+                const fileBinhLuan = document.getElementById('fileBinhLuan');
+                if (!fileBinhLuan) return;
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(droppedFile);
+                fileBinhLuan.files = dataTransfer.files;
+                updateFileLabel(fileBinhLuan);
+            });
+        }
+
         taiBinhLuan(false);
         document.getElementById('commentList')?.addEventListener('scroll', function() {
             if (this.scrollTop <= 5 && hasMoreComments && !isLoadingComments) {
