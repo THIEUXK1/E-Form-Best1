@@ -55,6 +55,51 @@
             border: 2px solid #cbd5e1;
             cursor: pointer;
         }
+
+    /* Combobox tìm kiếm tự viết (không phụ thuộc CDN) cho Công ty/Bộ phận trong modal Xác nhận tài sản */
+    .mini-combo {
+        position: relative;
+    }
+
+    .mini-combo-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        max-height: 220px;
+        overflow-y: auto;
+        z-index: 2000;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+        margin-top: 4px;
+    }
+
+    .mini-combo-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #334155;
+    }
+
+        .mini-combo-item:hover {
+            background: #f1f5f9;
+        }
+
+        .mini-combo-item.active {
+            background: #eef2ff;
+            font-weight: 700;
+            box-shadow: inset 3px 0 0 #4f46e5;
+        }
+
+    .mini-combo-empty {
+        padding: 10px 12px;
+        color: #94a3b8;
+        font-size: 13px;
+        font-style: italic;
+    }
 </style>
 
 <div class="container-fluid mt-4">
@@ -317,7 +362,11 @@
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label fw-bold">Công ty <span class="text-danger">*</span></label>
-                                        <select id="ddlTaiSanCongTy" class="form-select" required>
+                                        <div class="mini-combo" id="comboCongTy">
+                                            <input type="text" class="form-control" id="searchCongTy" placeholder="🔍 Gõ để tìm Công ty..." autocomplete="off" />
+                                            <div class="mini-combo-menu" id="menuCongTySearch"></div>
+                                        </div>
+                                        <select id="ddlTaiSanCongTy" style="display:none">
                                             <option value="">-- Chưa chọn --</option>
                                         </select>
                                     </div>
@@ -328,7 +377,11 @@
                                                 <i class="fa fa-plus-circle"></i> Thêm nhanh
                                             </button>
                                         </label>
-                                        <select id="ddlTaiSanBoPhan" class="form-select" required>
+                                        <div class="mini-combo" id="comboBoPhan">
+                                            <input type="text" class="form-control" id="searchBoPhan" placeholder="🔍 Gõ để tìm Bộ phận..." autocomplete="off" />
+                                            <div class="mini-combo-menu" id="menuBoPhanSearch"></div>
+                                        </div>
+                                        <select id="ddlTaiSanBoPhan" style="display:none">
                                             <option value="">-- Chưa chọn --</option>
                                         </select>
                                         <div id="boxThemNhanhBoPhan" class="mt-2 p-2 border rounded bg-light" style="display: none;">
@@ -498,29 +551,101 @@
             taiSauThongSoCoBan();
             initTaiSanAnhZoneEvents();
 
+            // Bỏ dấu tiếng Việt để so khớp tìm kiếm không phân biệt dấu
+            function removeVietnameseTonesJS(str) {
+            if (!str) return "";
+            var s = str.normalize("NFD");
+            var result = "";
+            for (var i = 0; i < s.length; i++) {
+            var code = s.charCodeAt(i);
+            if (code >= 768 && code <= 879) continue; // Bỏ các dấu kết hợp Unicode (U+0300-U+036F)
+            result += s[i];
+            }
+            return result.replace(/đ/g, "d").replace(/Đ/g, "D");
+            }
+
+            // Combobox tìm kiếm tự viết (không phụ thuộc CDN ngoài) cho 2 field Công ty/Bộ phận trong modal Xác nhận tài sản:
+            // select thật vẫn giữ nguyên (ẩn đi) để không đổi logic đọc/ghi giá trị ở nơi khác, chỉ thêm lớp UI tìm kiếm phía trên.
+            function initMiniCombo(selectId, searchId, menuId) {
+            var $select = $('#' + selectId);
+            var $search = $('#' + searchId);
+            var $menu = $('#' + menuId);
+
+            function renderMenu(filterText) {
+            var filter = removeVietnameseTonesJS(filterText || '').toUpperCase();
+            var html = '';
+            $select.find('option').each(function () {
+            var val = $(this).val();
+            var text = $(this).text();
+            if (!val) return; // Bỏ qua option rỗng "-- Chưa chọn --"
+            if (filter && removeVietnameseTonesJS(text).toUpperCase().indexOf(filter) === -1) return;
+            var activeClass = (val === $select.val()) ? ' active' : '';
+            html += '<div class="mini-combo-item' + activeClass + '" data-value="' + val + '">' + text + '</div>';
+            });
+            $menu.html(html || '<div class="mini-combo-empty">Không tìm thấy kết quả</div>');
+            }
+
+            function dongBoHienThiTuSelect() {
+            var text = $select.find('option:selected').text();
+            $search.val($select.val() ? text : '');
+            }
+
+            $search.on('focus click', function (e) {
+            e.stopPropagation();
+            renderMenu('');
+            $menu.show();
+            });
+
+            $search.on('input', function () {
+            renderMenu($(this).val());
+            $menu.show();
+            });
+
+            $menu.on('click', '.mini-combo-item', function () {
+            $select.val($(this).data('value')).trigger('change');
+            dongBoHienThiTuSelect();
+            $menu.hide();
+            });
+
+            // Mỗi khi giá trị select thật đổi (kể cả do code khác gán bằng .val().trigger('change')) thì đồng bộ lại ô hiển thị
+            $select.on('change', dongBoHienThiTuSelect);
+            dongBoHienThiTuSelect();
+            }
+
+            $(document).on('click', function (e) {
+            if (!$(e.target).closest('.mini-combo').length) { $('.mini-combo-menu').hide(); }
+            });
+
+            initMiniCombo('ddlTaiSanCongTy', 'searchCongTy', 'menuCongTySearch');
+            initMiniCombo('ddlTaiSanBoPhan', 'searchBoPhan', 'menuBoPhanSearch');
+
             // Nạp danh sách Công ty / Bộ phận cho modal Xác nhận tài sản
             var dsBoPhanCache = []; // Cache toàn bộ Bộ phận để lọc lại theo Công ty được chọn
 
             // Ghi nhớ Công ty/Bộ phận đã chọn để tự khôi phục lại khi load lại trang
             var congTyDaNap = false, boPhanDaNap = false;
+            // Cờ đánh dấu đang trong quá trình tự khôi phục lựa chọn cũ, để các listener change bên dưới không ghi đè/xóa nhầm localStorage
+            var dangKhoiPhucCongTyBoPhan = false;
             function khoiPhucCongTyBoPhanDaLuu() {
             if (!congTyDaNap || !boPhanDaNap) return;
+            dangKhoiPhucCongTyBoPhan = true;
             var savedCongTy = localStorage.getItem('kk_taiSanCongTy');
             var savedBoPhan = localStorage.getItem('kk_taiSanBoPhan');
             if (savedCongTy && $("#ddlTaiSanCongTy option[value='" + savedCongTy + "']").length) {
-            $("#ddlTaiSanCongTy").val(savedCongTy);
+            $("#ddlTaiSanCongTy").val(savedCongTy).trigger('change');
             }
             renderDropdownBoPhan($("#ddlTaiSanCongTy").val());
             if (savedBoPhan && $("#ddlTaiSanBoPhan option[value='" + savedBoPhan + "']").length) {
-            $("#ddlTaiSanBoPhan").val(savedBoPhan);
+            $("#ddlTaiSanBoPhan").val(savedBoPhan).trigger('change');
             }
+            dangKhoiPhucCongTyBoPhan = false;
             }
 
             $.get('/QLKiemKe/GetKkCongTys', function (res) {
             if (res && res.success && res.data) {
             var html = '<option value="">-- Chưa chọn --</option>';
             res.data.forEach(function (ct) { html += '<option value="' + ct.idcongTy + '">' + ct.tenCongTy + '</option>'; });
-            $("#ddlTaiSanCongTy").html(html);
+            $("#ddlTaiSanCongTy").html(html).trigger('change');
             }
             congTyDaNap = true;
             khoiPhucCongTyBoPhanDaLuu();
@@ -549,11 +674,12 @@
             html += '<option value="' + bp.idboPhan + '">' + bp.tenBoPhan + '</option>';
             }
             });
-            $("#ddlTaiSanBoPhan").html(html);
+            $("#ddlTaiSanBoPhan").html(html).trigger('change');
             }
 
             // Khi đổi Công ty thì lọc lại danh sách Bộ phận tương ứng, reset lựa chọn cũ và ghi nhớ lựa chọn để khôi phục khi load lại trang
             $("#ddlTaiSanCongTy").change(function () {
+            if (dangKhoiPhucCongTyBoPhan) return;
             var val = $(this).val();
             if (val) localStorage.setItem('kk_taiSanCongTy', val); else localStorage.removeItem('kk_taiSanCongTy');
             localStorage.removeItem('kk_taiSanBoPhan'); // Đổi Công ty thì Bộ phận cũ không còn hợp lệ nữa
@@ -563,6 +689,7 @@
 
             // Ghi nhớ Bộ phận đã chọn để khôi phục khi load lại trang
             $("#ddlTaiSanBoPhan").change(function () {
+            if (dangKhoiPhucCongTyBoPhan) return;
             var val = $(this).val();
             if (val) localStorage.setItem('kk_taiSanBoPhan', val); else localStorage.removeItem('kk_taiSanBoPhan');
             });
@@ -617,7 +744,7 @@
             var boPhanMoi = dsBoPhanCache.find(function (bp) {
             return (bp.tenBoPhan || '').trim().toLowerCase() === tenBoPhanMoi.toLowerCase() && String(bp.idcongTy) === String(idCongTyHienTai);
             });
-            if (boPhanMoi) { $("#ddlTaiSanBoPhan").val(boPhanMoi.idboPhan); localStorage.setItem('kk_taiSanBoPhan', boPhanMoi.idboPhan); }
+            if (boPhanMoi) { $("#ddlTaiSanBoPhan").val(boPhanMoi.idboPhan).trigger('change'); localStorage.setItem('kk_taiSanBoPhan', boPhanMoi.idboPhan); }
 
             $("#boxThemNhanhBoPhan").slideUp(150);
             Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã thêm bộ phận mới', showConfirmButton: false, timer: 1500 });
