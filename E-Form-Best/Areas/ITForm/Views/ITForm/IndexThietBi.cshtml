@@ -60,29 +60,75 @@
         }
 
     .dropdown-combo-menu {
-        width: 100%;
-        max-height: 280px;
-        overflow-y: auto;
-        padding: 8px 0;
+        width: 260px;
+        max-width: 90vw;
+        padding: 8px;
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         border: 1px solid #e2e8f0;
         border-radius: 0.5rem;
         z-index: 1050;
     }
 
+    /* Ô tìm kiếm + nút chọn nhanh cố định trên đầu, giống combobox ở DonCvCongViecOrder */
+    .dropdown-combo-search {
+        width: 100%;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 13px;
+        margin-bottom: 6px;
+    }
+
+        .dropdown-combo-search:focus {
+            outline: none;
+            border-color: #a5b4fc;
+            box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.2);
+        }
+
+    .dropdown-combo-quickbtn {
+        flex: 1;
+        padding: 5px;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: #475569;
+        font-size: 10.5px;
+        font-weight: 700;
+        cursor: pointer;
+        text-transform: uppercase;
+    }
+
+        .dropdown-combo-quickbtn:hover {
+            background: #eef2ff;
+            border-color: #a5b4fc;
+            color: #4f46e5;
+        }
+
+    .dropdown-combo-items {
+        max-height: 220px;
+        overflow-y: auto;
+        margin-top: 4px;
+    }
+
     .dropdown-combo-item {
         display: flex;
         align-items: center;
-        padding: 6px 16px;
+        padding: 6px 8px;
         cursor: pointer;
         user-select: none;
         font-size: 13px;
         color: #334155;
+        border-radius: 6px;
         transition: background-color 0.15s ease;
     }
 
         .dropdown-combo-item:hover {
             background-color: #f1f5f9;
+        }
+
+        .dropdown-combo-item:has(input:checked) {
+            background-color: #eef2ff;
+            box-shadow: inset 3px 0 0 #4f46e5;
         }
 
         .dropdown-combo-item input[type="checkbox"] {
@@ -384,6 +430,12 @@
                                         -- Tất cả --
                                     </button>
                                     <div class="dropdown-menu dropdown-combo-menu" id="menuCongTy" aria-labelledby="btnDropCongTy">
+                                        <input type="text" class="dropdown-combo-search" placeholder="🔍 Tìm kiếm..." autocomplete="off" onclick="event.stopPropagation()">
+                                        <div class="d-flex gap-1 mb-1">
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-selectall">✔ Chọn tất cả</button>
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-clearall">✖ Bỏ chọn</button>
+                                        </div>
+                                        <div class="dropdown-combo-items"></div>
                                     </div>
                                 </div>
                             </div>
@@ -395,6 +447,12 @@
                                         -- Tất cả --
                                     </button>
                                     <div class="dropdown-menu dropdown-combo-menu" id="menuBoPhan" aria-labelledby="btnDropBoPhan">
+                                        <input type="text" class="dropdown-combo-search" placeholder="🔍 Tìm kiếm..." autocomplete="off" onclick="event.stopPropagation()">
+                                        <div class="d-flex gap-1 mb-1">
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-selectall">✔ Chọn tất cả</button>
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-clearall">✖ Bỏ chọn</button>
+                                        </div>
+                                        <div class="dropdown-combo-items"></div>
                                     </div>
                                 </div>
                             </div>
@@ -406,6 +464,12 @@
                                         -- Tất cả --
                                     </button>
                                     <div class="dropdown-menu dropdown-combo-menu" id="menuLoai" aria-labelledby="btnDropLoai">
+                                        <input type="text" class="dropdown-combo-search" placeholder="🔍 Tìm kiếm..." autocomplete="off" onclick="event.stopPropagation()">
+                                        <div class="d-flex gap-1 mb-1">
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-selectall">✔ Chọn tất cả</button>
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-clearall">✖ Bỏ chọn</button>
+                                        </div>
+                                        <div class="dropdown-combo-items"></div>
                                     </div>
                                 </div>
                             </div>
@@ -417,6 +481,12 @@
                                         -- Tất cả --
                                     </button>
                                     <div class="dropdown-menu dropdown-combo-menu" id="menuTrangThai" aria-labelledby="btnDropTrangThai">
+                                        <input type="text" class="dropdown-combo-search" placeholder="🔍 Tìm kiếm..." autocomplete="off" onclick="event.stopPropagation()">
+                                        <div class="d-flex gap-1 mb-1">
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-selectall">✔ Chọn tất cả</button>
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-clearall">✖ Bỏ chọn</button>
+                                        </div>
+                                        <div class="dropdown-combo-items"></div>
                                     </div>
                                 </div>
                             </div>
@@ -428,6 +498,12 @@
                                         -- Tất cả --
                                     </button>
                                     <div class="dropdown-menu dropdown-combo-menu" id="menuWinLicense" aria-labelledby="btnDropWinLicense">
+                                        <input type="text" class="dropdown-combo-search" placeholder="🔍 Tìm kiếm..." autocomplete="off" onclick="event.stopPropagation()">
+                                        <div class="d-flex gap-1 mb-1">
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-selectall">✔ Chọn tất cả</button>
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-clearall">✖ Bỏ chọn</button>
+                                        </div>
+                                        <div class="dropdown-combo-items"></div>
                                     </div>
                                 </div>
                             </div>
@@ -439,6 +515,12 @@
                                         -- Tất cả --
                                     </button>
                                     <div class="dropdown-menu dropdown-combo-menu" id="menuOfficeLicense" aria-labelledby="btnDropOfficeLicense">
+                                        <input type="text" class="dropdown-combo-search" placeholder="🔍 Tìm kiếm..." autocomplete="off" onclick="event.stopPropagation()">
+                                        <div class="d-flex gap-1 mb-1">
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-selectall">✔ Chọn tất cả</button>
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-clearall">✖ Bỏ chọn</button>
+                                        </div>
+                                        <div class="dropdown-combo-items"></div>
                                     </div>
                                 </div>
                             </div>
@@ -1063,10 +1145,10 @@
         try { savedWin = JSON.parse(localStorage.getItem('kk_filterWinLicense')) || []; } catch(e){}
         try { savedOffice = JSON.parse(localStorage.getItem('kk_filterOfficeLicense')) || []; } catch(e){}
 
-        $('#menuWinLicense').empty();
+        let $itemsWin = $('#menuWinLicense .dropdown-combo-items').empty();
         winList.forEach(w => {
         let isChecked = savedWin.includes(w) ? 'checked' : '';
-        $('#menuWinLicense').append(`
+        $itemsWin.append(`
         <label class="dropdown-combo-item">
         <input type="checkbox" class="chk-win" value="${w}" ${isChecked}>
         <span>${w}</span>
@@ -1075,10 +1157,10 @@
         });
         updateDropdownButtonLabel($('#menuWinLicense'));
 
-        $('#menuOfficeLicense').empty();
+        let $itemsOffice = $('#menuOfficeLicense .dropdown-combo-items').empty();
         officeList.forEach(o => {
         let isChecked = savedOffice.includes(o) ? 'checked' : '';
-        $('#menuOfficeLicense').append(`
+        $itemsOffice.append(`
         <label class="dropdown-combo-item">
         <input type="checkbox" class="chk-office" value="${o}" ${isChecked}>
         <span>${o}</span>
@@ -1100,6 +1182,42 @@
         $btn.text(`Đã chọn (${totalChecked})`);
         }
         }
+
+        // ===== TÌM KIẾM + CHỌN NHANH CHO CÁC DROPDOWN CHECKBOX BỘ LỌC (giống ô chọn người thực hiện ở DonCvCongViecOrder) =====
+        function removeVietnameseTonesJS(str) {
+        if (!str) return "";
+        let s = str.normalize("NFD");
+        let result = "";
+        for (let i = 0; i < s.length; i++) {
+        let code = s.charCodeAt(i);
+        if (code >= 768 && code <= 879) continue; // Bỏ các dấu kết hợp Unicode (U+0300-U+036F)
+        result += s[i];
+        }
+        return result.replace(/đ/g, "d").replace(/Đ/g, "D");
+        }
+
+        // Gõ để lọc tức thì các mục trong dropdown đang mở (không phân biệt dấu tiếng Việt)
+        $(document).on('input', '.dropdown-combo-search', function (e) {
+        e.stopPropagation();
+        let filter = removeVietnameseTonesJS($(this).val()).toUpperCase();
+        $(this).closest('.dropdown-combo-menu').find('.dropdown-combo-items .dropdown-combo-item').each(function () {
+        let txt = removeVietnameseTonesJS($(this).text()).toUpperCase();
+        $(this).toggle(txt.indexOf(filter) > -1);
+        });
+        });
+
+        $(document).on('click', '.dropdown-combo-search', function (e) { e.stopPropagation(); });
+
+        // Chọn tất cả / Bỏ chọn: chỉ áp dụng cho các mục đang hiển thị theo bộ lọc tìm kiếm hiện tại
+        $(document).on('click', '.dropdown-combo-selectall, .dropdown-combo-clearall', function (e) {
+        e.stopPropagation();
+        let checked = $(this).hasClass('dropdown-combo-selectall');
+        let $menu = $(this).closest('.dropdown-combo-menu');
+        $menu.find('.dropdown-combo-items .dropdown-combo-item:visible input[type="checkbox"]').prop('checked', checked);
+        updateDropdownButtonLabel($menu);
+        if ($menu.attr('id') === 'menuCongTy') { renderFilterBoPhan(); }
+        applyFilters();
+        });
 
         function khoiPhucDuLieuFormAdd() {
         if (parseInt($('#tb_Id').val()) !== 0) return;
@@ -1445,10 +1563,10 @@
         let savedTT = [];
         try { savedTT = JSON.parse(localStorage.getItem('kk_filterTT')) || []; } catch(e){}
 
-        $('#menuTrangThai').empty();
+        let $itemsTT = $('#menuTrangThai .dropdown-combo-items').empty();
         listTrangThaiCache.forEach(c => {
         let isChecked = savedTT.includes(c.idTrangThai) || savedTT.includes(String(c.idTrangThai)) ? 'checked' : '';
-        $('#menuTrangThai').append(`
+        $itemsTT.append(`
         <label class="dropdown-combo-item">
         <input type="checkbox" class="chk-status" data-id="${c.idTrangThai}" value="${c.tenTrangThai}" ${isChecked}>
         <span>${c.tenTrangThai}</span>
@@ -1463,11 +1581,11 @@
         try { savedLoai = JSON.parse(localStorage.getItem('kk_filterLoai')) || []; } catch(e){}
 
         let htmlForm = '<option value="">-- Chọn loại --</option>';
-        $('#menuLoai').empty();
+        let $itemsLoai = $('#menuLoai .dropdown-combo-items').empty();
 
         listLoaiThietBiCache.forEach(c => {
         let isChecked = savedLoai.includes(c.tenLoai) ? 'checked' : '';
-        $('#menuLoai').append(`
+        $itemsLoai.append(`
         <label class="dropdown-combo-item">
         <input type="checkbox" class="chk-loai" value="${c.tenLoai}" ${isChecked}>
         <span>${c.tenLoai}</span>
@@ -1483,12 +1601,12 @@
         let savedCT = [];
         try { savedCT = JSON.parse(localStorage.getItem('kk_filterCT')) || []; } catch(e){}
 
-        $('#menuCongTy').empty();
+        let $itemsCT = $('#menuCongTy .dropdown-combo-items').empty();
 
         // Luôn hiện sẵn tùy chọn "Chưa xác định công ty" để lọc ra các thiết bị chưa được gán Công ty,
         // tránh bị bỏ sót khi kiểm kê (thiết bị này sẽ mất hút nếu chỉ lọc theo tên công ty thực tế).
         let isCheckedChuaXacDinhCT = savedCT.includes('__CHUA_XAC_DINH__') ? 'checked' : '';
-        $('#menuCongTy').append(`
+        $itemsCT.append(`
         <label class="dropdown-combo-item">
         <input type="checkbox" class="chk-company" value="__CHUA_XAC_DINH__" ${isCheckedChuaXacDinhCT}>
         <span class="text-danger fw-bold">⚠ Chưa xác định công ty</span>
@@ -1498,7 +1616,7 @@
 
         listCongTyCache.forEach(c => {
         let isChecked = savedCT.includes(String(c.idcongTy)) || savedCT.includes(c.tenCongTy) ? 'checked' : '';
-        $('#menuCongTy').append(`
+        $itemsCT.append(`
         <label class="dropdown-combo-item">
         <input type="checkbox" class="chk-company" value="${c.tenCongTy}" data-id="${c.idcongTy}" ${isChecked}>
         <span>${c.tenCongTy}</span>
@@ -1519,11 +1637,11 @@
         filteredBPs = listBoPhanCache.filter(b => selectedCompanyIds.includes(b.idcongTy) || selectedCompanyIds.includes(String(b.idcongTy)));
         }
 
-        $('#menuBoPhan').empty();
+        let $itemsBP = $('#menuBoPhan .dropdown-combo-items').empty();
 
         // Luôn hiện sẵn tùy chọn "Chưa xác định bộ phận" để lọc ra các thiết bị chưa được gán Bộ phận
         let isCheckedChuaXacDinhBP = savedBP.includes('__CHUA_XAC_DINH__') ? 'checked' : '';
-        $('#menuBoPhan').append(`
+        $itemsBP.append(`
         <label class="dropdown-combo-item">
         <input type="checkbox" class="chk-dept" value="__CHUA_XAC_DINH__" ${isCheckedChuaXacDinhBP}>
         <span class="text-danger fw-bold">⚠ Chưa xác định bộ phận</span>
@@ -1534,7 +1652,7 @@
         filteredBPs.forEach(b => {
         let extendName = (selectedCompanyIds.length === 0 && b.tenCongTy) ? ` (${b.tenCongTy})` : '';
         let isChecked = savedBP.includes(b.tenBoPhan) ? 'checked' : '';
-        $('#menuBoPhan').append(`
+        $itemsBP.append(`
         <label class="dropdown-combo-item">
         <input type="checkbox" class="chk-dept" value="${b.tenBoPhan}" ${isChecked}>
         <span>${b.tenBoPhan}${extendName}</span>
