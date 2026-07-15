@@ -424,7 +424,13 @@
                     <div class="col-12 p-0" id="advancedFilterArea" style="display: none;">
                         <div class="row m-0 align-items-end w-100">
                             <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
-                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-building"></i> Công ty</label>
+                                <label class="form-label fw-bold small text-muted mb-1 d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-building"></i> Công ty</span>
+                                    <span class="form-check form-switch m-0" title="Bật: các mục đã chọn sẽ bị LOẠI TRỪ, hiển thị toàn bộ phần còn lại">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="chkExcludeCongTy" style="cursor:pointer;">
+                                        <label class="form-check-label text-muted" for="chkExcludeCongTy" style="font-size:10px; cursor:pointer;">Loại trừ</label>
+                                    </span>
+                                </label>
                                 <div class="dropdown">
                                     <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropCongTy" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                                         -- Tất cả --
@@ -441,7 +447,13 @@
                             </div>
 
                             <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
-                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sitemap"></i> Bộ phận</label>
+                                <label class="form-label fw-bold small text-muted mb-1 d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-sitemap"></i> Bộ phận</span>
+                                    <span class="form-check form-switch m-0" title="Bật: các mục đã chọn sẽ bị LOẠI TRỪ, hiển thị toàn bộ phần còn lại">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="chkExcludeBoPhan" style="cursor:pointer;">
+                                        <label class="form-check-label text-muted" for="chkExcludeBoPhan" style="font-size:10px; cursor:pointer;">Loại trừ</label>
+                                    </span>
+                                </label>
                                 <div class="dropdown">
                                     <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropBoPhan" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                                         -- Tất cả --
@@ -990,6 +1002,25 @@
         let savedTìnhTrangCheck = localStorage.getItem('kk_filterTìnhTrangCheck') || '';
         $('#filterTìnhTrangCheck').val(savedTìnhTrangCheck);
 
+        // Khôi phục chế độ Loại trừ Công ty/Bộ phận
+        excludeCongTyMode = localStorage.getItem('kk_excludeCongTyMode') === 'true';
+        excludeBoPhanMode = localStorage.getItem('kk_excludeBoPhanMode') === 'true';
+        $('#chkExcludeCongTy').prop('checked', excludeCongTyMode);
+        $('#chkExcludeBoPhan').prop('checked', excludeBoPhanMode);
+
+        $('#chkExcludeCongTy').on('change', function () {
+        excludeCongTyMode = $(this).is(':checked');
+        localStorage.setItem('kk_excludeCongTyMode', excludeCongTyMode);
+        updateDropdownButtonLabel($('#menuCongTy'));
+        applyFilters();
+        });
+        $('#chkExcludeBoPhan').on('change', function () {
+        excludeBoPhanMode = $(this).is(':checked');
+        localStorage.setItem('kk_excludeBoPhanMode', excludeBoPhanMode);
+        updateDropdownButtonLabel($('#menuBoPhan'));
+        applyFilters();
+        });
+
         // PHẦN LOGIC GHI NHỚ TRẠNG THÁI ẨN / HIỆN BỘ LỌC NÂNG CAO KHI LOAD LẠI TRANG
         let savedFilterState = localStorage.getItem('kk_toggleAdvancedFilter') || 'hide';
         if(savedFilterState === 'show') {
@@ -1170,12 +1201,20 @@
         updateDropdownButtonLabel($('#menuOfficeLicense'));
         }
 
+        // Chế độ lọc Công ty/Bộ phận: false = chỉ lấy các mục đã chọn, true = lấy tất cả TRỪ các mục đã chọn
+        let excludeCongTyMode = false;
+        let excludeBoPhanMode = false;
+
         function updateDropdownButtonLabel($menu) {
         let totalChecked = $menu.find('input[type="checkbox"]:checked').length;
         let $btn = $menu.siblings('.dropdown-combo-btn');
+        let menuId = $menu.attr('id');
+        let isExcludeMode = (menuId === 'menuCongTy' && excludeCongTyMode) || (menuId === 'menuBoPhan' && excludeBoPhanMode);
 
         if (totalChecked === 0) {
         $btn.text('-- Tất cả --');
+        } else if (isExcludeMode) {
+        $btn.text(`Tất cả, trừ ${totalChecked} mục`);
         } else if (totalChecked === 1) {
         $btn.text($menu.find('input[type="checkbox"]:checked').first().val());
         } else {
@@ -1306,6 +1345,13 @@
         localStorage.removeItem('kk_filterTuNgay');
         localStorage.removeItem('kk_filterDenNgay');
         localStorage.removeItem('kk_filterTìnhTrangCheck');
+        localStorage.removeItem('kk_excludeCongTyMode');
+        localStorage.removeItem('kk_excludeBoPhanMode');
+
+        excludeCongTyMode = false;
+        excludeBoPhanMode = false;
+        $('#chkExcludeCongTy').prop('checked', false);
+        $('#chkExcludeBoPhan').prop('checked', false);
 
         $('.dropdown-combo-menu input[type="checkbox"]').prop('checked', false);
         $('.dropdown-combo-menu').each(function() { updateDropdownButtonLabel($(this)); });
@@ -1788,8 +1834,15 @@
 
         let filtered = allThietBiCache.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
 
-        if (selectedCompanies.length > 0) filtered = filtered.filter(x => selectedCompanies.includes(x.tenCongTy) || (selectedCompanies.includes("__CHUA_XAC_DINH__") && (!x.tenCongTy || x.tenCongTy.trim() === "")));
-        if (selectedDepts.length > 0) filtered = filtered.filter(x => selectedDepts.includes(x.tenBoPhan) || (selectedDepts.includes("__CHUA_XAC_DINH__") && (!x.tenBoPhan || x.tenBoPhan.trim() === "")));
+        // Công ty/Bộ phận hỗ trợ 2 chiều: mặc định "chỉ lấy mục đã chọn", bật switch "Loại trừ" thì lấy tất cả TRỪ mục đã chọn
+        if (selectedCompanies.length > 0) {
+        let khopCT = x => selectedCompanies.includes(x.tenCongTy) || (selectedCompanies.includes("__CHUA_XAC_DINH__") && (!x.tenCongTy || x.tenCongTy.trim() === ""));
+        filtered = excludeCongTyMode ? filtered.filter(x => !khopCT(x)) : filtered.filter(khopCT);
+        }
+        if (selectedDepts.length > 0) {
+        let khopBP = x => selectedDepts.includes(x.tenBoPhan) || (selectedDepts.includes("__CHUA_XAC_DINH__") && (!x.tenBoPhan || x.tenBoPhan.trim() === ""));
+        filtered = excludeBoPhanMode ? filtered.filter(x => !khopBP(x)) : filtered.filter(khopBP);
+        }
         if (selectedLoais.length > 0) filtered = filtered.filter(x => selectedLoais.includes(x.loaiThietBi));
         if (selectedTrangThais.length > 0) filtered = filtered.filter(x => selectedTrangThais.includes(x.tenTrangThai));
 
@@ -1974,8 +2027,14 @@
 
         let filtered = allThietBiCache.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa'));
 
-        if (selectedCompanies.length > 0) filtered = filtered.filter(x => selectedCompanies.includes(x.tenCongTy) || (selectedCompanies.includes("__CHUA_XAC_DINH__") && (!x.tenCongTy || x.tenCongTy.trim() === "")));
-        if (selectedDepts.length > 0) filtered = filtered.filter(x => selectedDepts.includes(x.tenBoPhan) || (selectedDepts.includes("__CHUA_XAC_DINH__") && (!x.tenBoPhan || x.tenBoPhan.trim() === "")));
+        if (selectedCompanies.length > 0) {
+        let khopCT = x => selectedCompanies.includes(x.tenCongTy) || (selectedCompanies.includes("__CHUA_XAC_DINH__") && (!x.tenCongTy || x.tenCongTy.trim() === ""));
+        filtered = excludeCongTyMode ? filtered.filter(x => !khopCT(x)) : filtered.filter(khopCT);
+        }
+        if (selectedDepts.length > 0) {
+        let khopBP = x => selectedDepts.includes(x.tenBoPhan) || (selectedDepts.includes("__CHUA_XAC_DINH__") && (!x.tenBoPhan || x.tenBoPhan.trim() === ""));
+        filtered = excludeBoPhanMode ? filtered.filter(x => !khopBP(x)) : filtered.filter(khopBP);
+        }
         if (selectedLoais.length > 0) filtered = filtered.filter(x => selectedLoais.includes(x.loaiThietBi));
 
         if (fText) {
