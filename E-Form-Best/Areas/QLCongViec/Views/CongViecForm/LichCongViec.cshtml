@@ -19,6 +19,21 @@
     border-radius: 25px;
     box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
     border: 1px solid #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    }
+
+    /* Hàng chứa nút Toàn màn hình, luôn nằm trên cùng và không bao giờ chồng lấn lên toolbar của FullCalendar bên dưới */
+    .calendar-toolbar-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 14px;
+    flex: 0 0 auto;
+    }
+
+    #calendar {
+    flex: 1 1 auto;
+    min-height: 0;
     }
 
     /* Chỉnh màu cho các nút bấm lịch sang màu xanh lá chủ đạo */
@@ -40,21 +55,85 @@
     .fc-daygrid-event {
     white-space: normal !important;
     }
+
+    /* Khi ở chế độ toàn màn hình: hiện dạng thẻ căn giữa với kích thước vừa phải (không kéo giãn sát mép/quá to), lịch vẫn vừa khít trong khung không cần cuộn cả trang */
+    .calendar-wrapper:fullscreen {
+    max-width: 1400px;
+    width: 92vw;
+    height: 88vh;
+    margin: 6vh auto;
+    padding: 25px 35px 35px;
+    border-radius: 20px;
+    background: #ffffff;
+    box-sizing: border-box;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35);
+    }
+
+        /* Nền phía sau khung khi toàn màn hình: dùng tông sáng dịu thay vì mặc định đen của trình duyệt */
+        .calendar-wrapper:fullscreen::backdrop {
+            background: #eef2f6;
+        }
+
+    .btn-fullscreen-calendar {
+    border: 1px solid #65a30d;
+    color: #65a30d;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.2s;
+    }
+
+        .btn-fullscreen-calendar:hover {
+            background: #65a30d;
+            color: #ffffff;
+        }
 </style>
 
 <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
-    <h2 style="font-weight: 900; color: #2d4201; margin-bottom: 25px;">
+    <h2 style="font-weight: 900; color: #2d4201; margin: 0 0 25px;">
         <i class="fa fa-calendar" style="color: #65a30d;"></i> LỊCH THỰC HIỆN CÔNG VIỆC
     </h2>
-    <div class="calendar-wrapper">
+    <div class="calendar-wrapper" id="calendarWrapper">
+        <div class="calendar-toolbar-row">
+            <button type="button" id="btnFullscreenCalendar" class="btn-fullscreen-calendar" onclick="toggleFullscreenCalendar()">
+                <i class="fa fa-expand" id="iconFullscreenCalendar"></i> <span id="textFullscreenCalendar">Toàn màn hình</span>
+            </button>
+        </div>
         <div id='calendar'></div>
     </div>
 </div>
 
 <script>
+    var calendar; // Tham chiếu toàn cục để nút Toàn màn hình có thể gọi updateSize() khi đổi kích thước
+
+    // Bật/tắt chế độ xem toàn màn hình cho khung lịch, dùng Fullscreen API chuẩn của trình duyệt
+    function toggleFullscreenCalendar() {
+    var wrapper = document.getElementById('calendarWrapper');
+    if (!document.fullscreenElement) {
+    if (wrapper.requestFullscreen) { wrapper.requestFullscreen(); }
+    } else {
+    if (document.exitFullscreen) { document.exitFullscreen(); }
+    }
+    }
+
+    document.addEventListener('fullscreenchange', function () {
+    var isFullscreen = !!document.fullscreenElement;
+    document.getElementById('iconFullscreenCalendar').className = isFullscreen ? 'fa fa-compress' : 'fa fa-expand';
+    document.getElementById('textFullscreenCalendar').textContent = isFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình';
+    // Toàn màn hình: ép lịch co vừa đúng chiều cao khung (height: 'parent') để nhìn thấy hết trong 1 khung, không cuộn cả trang.
+    // Thoát ra: trả lại kiểu cao tự nhiên theo nội dung như ban đầu.
+    if (calendar) {
+    calendar.setOption('height', isFullscreen ? 'parent' : 'auto');
+    setTimeout(function () { calendar.updateSize(); }, 100);
+    }
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
-    var calendar = new FullCalendar.Calendar(calendarEl, {
+    calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
     locale: 'vi',
     headerToolbar: {
