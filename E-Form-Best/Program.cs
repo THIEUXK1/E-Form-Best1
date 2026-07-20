@@ -16,6 +16,9 @@ builder.Services.AddDbContext<ITFormContext>(options =>
 // --- 2. ĐĂNG KÝ BACKGROUND SERVICE (CHẠY NGẦM LÚC 12H ĐÊM) ---
 builder.Services.AddHostedService<AutoRatingWorker>();
 
+// Cache trong bộ nhớ cho dữ liệu tra cứu ít thay đổi (Công ty, Bộ phận...) để giảm truy vấn DB lặp lại
+builder.Services.AddMemoryCache();
+
 // 3. Thêm dịch vụ MVC (Controllers + Views)
 var mvcBuilder = builder.Services.AddControllersWithViews();
 if (builder.Environment.IsDevelopment())
@@ -98,7 +101,18 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // Quan trọng: Để truy cập sw.js và icon thông báo
+app.UseStaticFiles(new StaticFileOptions
+{
+    // Cho phép trình duyệt cache lib/css/js 7 ngày, giảm tải lại các file tĩnh không đổi mỗi lần chuyển trang.
+    // Ngoại trừ sw.js: service worker cần luôn được trình duyệt kiểm tra lại để nhận bản cập nhật kịp thời.
+    OnPrepareResponse = ctx =>
+    {
+        var path = ctx.File.Name;
+        ctx.Context.Response.Headers.CacheControl = path.Equals("sw.js", StringComparison.OrdinalIgnoreCase)
+            ? "no-cache"
+            : "public,max-age=604800";
+    }
+}); // Quan trọng: Để truy cập sw.js và icon thông báo
 
 app.UseRouting();
 

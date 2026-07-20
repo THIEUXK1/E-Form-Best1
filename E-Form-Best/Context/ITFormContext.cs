@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using E_Form_Best.Models.ITForm;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace E_Form_Best.Context;
 
@@ -197,8 +198,24 @@ public partial class ITFormContext : DbContext
     public virtual DbSet<UserQuyen> UserQuyens { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Data Source=10.0.60.33;Initial Catalog=ITForm;Persist Security Info=True;User ID=sa;Password=BestP@cific;Encrypt=True;Trust Server Certificate=True");
+        => optionsBuilder.UseSqlServer(GetConnectionStringFromConfig());
+
+    // Đọc connection string từ appsettings.json / biến môi trường thay vì hardcode trong source code.
+    // Cần thiết vì các controller tạo context bằng "new ITFormContext()" (không qua DI) nên không có
+    // DbContextOptions sẵn để dùng - OnConfiguring phải tự nạp cấu hình.
+    private static string GetConnectionStringFromConfig()
+    {
+        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+            .AddJsonFile($"appsettings.{env}.json", optional: true, reloadOnChange: false)
+            .AddEnvironmentVariables()
+            .Build();
+
+        return configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("Thiếu ConnectionStrings:DefaultConnection trong cấu hình (appsettings.json hoặc biến môi trường ConnectionStrings__DefaultConnection).");
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

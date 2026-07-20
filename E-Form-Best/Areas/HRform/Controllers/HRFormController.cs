@@ -3859,7 +3859,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
             IQueryable<E_Form_Best.Models.ITForm.FormHr> query = _context.FormHrs
                 .Include(f => f.HrNguoiXacNhans).ThenInclude(xn => xn.IdnguoiXacNhanNavigation)
                 .Include(f => f.HrQuanLyDuyetB2s)
-                .Include(f => f.BaoVeHrs)
                 .Include(f => f.HrCtNguoiHoTros).ThenInclude(ct => ct.IdHrNguoiHoTroNavigation);
 
             if (!User.IsInRole("All"))
@@ -4146,7 +4145,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
             IQueryable<E_Form_Best.Models.ITForm.FormHr> query = _context.FormHrs
                 .Include(f => f.HrNguoiXacNhans).ThenInclude(xn => xn.IdnguoiXacNhanNavigation)
                 .Include(f => f.HrQuanLyDuyetB2s).ThenInclude(b2 => b2.HrQuanLyDuyetB2UyQuyens) // Đã Include thêm bảng Ủy quyền
-                .Include(f => f.BaoVeHrs)
                 .Include(f => f.HrCtNguoiHoTros).ThenInclude(ct => ct.IdHrNguoiHoTroNavigation);
 
             // Điều kiện tiên quyết: Đã qua Quản lý trực tiếp
@@ -4476,7 +4474,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
             IQueryable<E_Form_Best.Models.ITForm.FormHr> query = _context.FormHrs
                 .Include(f => f.HrNguoiXacNhans).ThenInclude(x => x.IdnguoiXacNhanNavigation)
                 .Include(f => f.HrQuanLyDuyetB2s)
-                .Include(f => f.BaoVeHrs)
                 .Include(f => f.HrCtNguoiHoTros).ThenInclude(ct => ct.IdHrNguoiHoTroNavigation);
 
             // ĐIỀU KIỆN LỌC CHUNG
@@ -4733,7 +4730,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
             IQueryable<E_Form_Best.Models.ITForm.FormHr> query = _context.FormHrs
                 .Include(f => f.HrNguoiXacNhans).ThenInclude(xn => xn.IdnguoiXacNhanNavigation)
                 .Include(f => f.HrQuanLyDuyetB2s)
-                .Include(f => f.BaoVeHrs)
                 .Include(f => f.HrCtNguoiHoTros).ThenInclude(ct => ct.IdHrNguoiHoTroNavigation);
 
             query = query.Where(f => f.IdNguoiDuyet != null && f.TenNguoiDuyet != null && f.TimeNguoiDuyet != null);
@@ -5002,7 +4998,6 @@ namespace E_Form_Best.Areas.HRform.Controllers
             IQueryable<E_Form_Best.Models.ITForm.FormHr> query = _context.FormHrs
                 .Include(f => f.HrNguoiXacNhans)
                 .Include(f => f.HrQuanLyDuyetB2s)
-                .Include(f => f.BaoVeHrs)
                 .Include(f => f.HrCtNguoiHoTros).ThenInclude(ct => ct.IdHrNguoiHoTroNavigation);
 
             // ĐIỀU KIỆN HIỂN THỊ: CHỈ LẤY ĐƠN ĐÃ ĐƯỢC ADMIN XỬ LÝ XONG
@@ -5453,8 +5448,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             IQueryable<E_Form_Best.Models.ITForm.FormHr> query = _context.FormHrs
                 .Include(f => f.HrNguoiXacNhans)
                 .Include(f => f.HrQuanLyDuyetB2s)
-                .Include(f => f.BaoVeHrs)
-                .Include(f => f.HrCtNguoiHoTros).ThenInclude(ct => ct.IdHrNguoiHoTroNavigation);
+                .Include(f => f.BaoVeHrs);
 
             if (!User.IsInRole("All") && !string.IsNullOrEmpty(tenCongTy))
             {
