@@ -9,6 +9,7 @@ using System.DirectoryServices.AccountManagement;
 using System.Runtime.InteropServices;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace E_Form_Best.Areas.ITForm.Controllers
 {
@@ -17,12 +18,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
     {
         public ITFormContext _context;
         private readonly IConfiguration _config;
+        private readonly IMemoryCache _cache;
+
+        private const string CacheKeyKkCongTy = "KkCongTies_All";
+        private const string CacheKeyKkBoPhan = "KkBoPhans_All";
 
         // Sửa constructor để nhận DI từ hệ thống
-        public ITFormController(IConfiguration config)
+        public ITFormController(IConfiguration config, IMemoryCache cache)
         {
             _context = new ITFormContext();
             _config = config;
+            _cache = cache;
         }
 
         #region logo
@@ -4906,7 +4912,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     l.Time,
                     l.TieuDe,
                     l.Mota,
-                    f = l.IdFormItNavigation,
+                    f = l.IdFormItNavigation != null ? new
+                    {
+                        l.IdFormItNavigation.TrangThai,
+                        l.IdFormItNavigation.TenForm,
+                        l.IdFormItNavigation.TimeNguoiDuyet,
+                        l.IdFormItNavigation.TimeAdmin,
+                        l.IdFormItNavigation.TenAdmin
+                    } : null,
                     CurrentSupporterTen = l.IdFormItNavigation != null
                         ? l.IdFormItNavigation.ItCtNguoiHoTros
                             .OrderByDescending(x => x.Stt)
@@ -5394,7 +5407,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             try
             {
-                var data = _context.KkCongTies.OrderByDescending(x => x.IdcongTy).ToList();
+                if (!_cache.TryGetValue(CacheKeyKkCongTy, out var data))
+                {
+                    data = _context.KkCongTies.OrderByDescending(x => x.IdcongTy).ToList();
+                    _cache.Set(CacheKeyKkCongTy, data, TimeSpan.FromMinutes(30));
+                }
                 return Json(new { success = true, data = data });
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
@@ -5426,6 +5443,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
 
                 _context.SaveChanges();
+                _cache.Remove(CacheKeyKkCongTy);
 
                 if (objId == 0) objId = model.IdcongTy;
                 GhiLichSu(action, "Công Ty", objId, $"Tên công ty: {model.TenCongTy}");
@@ -5446,6 +5464,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     string tenCT = item.TenCongTy;
                     _context.KkCongTies.Remove(item);
                     _context.SaveChanges();
+                    _cache.Remove(CacheKeyKkCongTy);
 
                     GhiLichSu("Xóa", "Công Ty", id, $"Đã xóa công ty: {tenCT}");
                 }
@@ -5460,18 +5479,22 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             try
             {
-                var data = _context.KkBoPhans
-                    .Select(x => new
-                    {
-                        x.IdboPhan,
-                        x.TenBoPhan,
-                        x.IdcongTy,
-                        TenCongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : "",
-                        x.GhiChu,
-                        x.NgayTao,
-                        x.TrangThai
-                    })
-                    .OrderByDescending(x => x.IdboPhan).ToList();
+                if (!_cache.TryGetValue(CacheKeyKkBoPhan, out var data))
+                {
+                    data = _context.KkBoPhans
+                        .Select(x => new
+                        {
+                            x.IdboPhan,
+                            x.TenBoPhan,
+                            x.IdcongTy,
+                            TenCongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : "",
+                            x.GhiChu,
+                            x.NgayTao,
+                            x.TrangThai
+                        })
+                        .OrderByDescending(x => x.IdboPhan).ToList();
+                    _cache.Set(CacheKeyKkBoPhan, data, TimeSpan.FromMinutes(30));
+                }
                 return Json(new { success = true, data = data });
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
@@ -5517,6 +5540,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
 
                 _context.SaveChanges();
+                _cache.Remove(CacheKeyKkBoPhan);
 
                 if (objId == 0) objId = model.IdboPhan;
                 GhiLichSu(action, "Bộ Phận", objId, $"Tên bộ phận: {model.TenBoPhan}");
@@ -5537,6 +5561,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     string tenBP = item.TenBoPhan;
                     _context.KkBoPhans.Remove(item);
                     _context.SaveChanges();
+                    _cache.Remove(CacheKeyKkBoPhan);
 
                     GhiLichSu("Xóa", "Bộ Phận", id, $"Đã xóa bộ phận: {tenBP}");
                 }

@@ -1185,9 +1185,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                         B2TotalCount = b2List.Count(),
                         HasGD = hasGD,
                         GDApprovedCount = gdList.Count(x => x.TrangThaiXacNhan == 1),
-                        GDTotalCount = gdList.Count(),
-                        HasBV = false,
-                        BVStatusText = ""
+                        GDTotalCount = gdList.Count()
                     };
                 });
 
@@ -2429,7 +2427,6 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             var query = _context.LichSuFormShds.AsNoTracking()
                 .Include(l => l.IdFormShdNavigation)
                     .ThenInclude(f => f!.ShdQuanLyDuyetB2s)
-                        .ThenInclude(b2 => b2.ShdQuanLyDuyetB2UyQuyens) // Nạp cả dữ liệu Ủy quyền
                 .Include(l => l.IdFormShdNavigation)
                     .ThenInclude(f => f!.ShdNguoiXacNhans)
                 .Include(l => l.IdFormShdNavigation)
@@ -2460,7 +2457,14 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 .Select(l => new
                 {
                     log = l,
-                    f = l.IdFormShdNavigation,
+                    f = l.IdFormShdNavigation != null ? new
+                    {
+                        l.IdFormShdNavigation.TenForm,
+                        l.IdFormShdNavigation.TrangThai,
+                        l.IdFormShdNavigation.IdAdmin,
+                        l.IdFormShdNavigation.IdNguoiDuyet,
+                        l.IdFormShdNavigation.TenAdmin
+                    } : null,
                     XacNhans = l.IdFormShdNavigation != null && l.IdFormShdNavigation.ShdNguoiXacNhans != null ? l.IdFormShdNavigation.ShdNguoiXacNhans.Select(x => x.TrangThaiXacNhan) : Enumerable.Empty<int?>(),
                     B2s = l.IdFormShdNavigation != null && l.IdFormShdNavigation.ShdQuanLyDuyetB2s != null ? l.IdFormShdNavigation.ShdQuanLyDuyetB2s.Select(x => x.TrangThaiXacNhan) : Enumerable.Empty<int?>(),
                     NguoiHoTro = l.IdFormShdNavigation != null && l.IdFormShdNavigation.ShdCtNguoiHoTros != null
