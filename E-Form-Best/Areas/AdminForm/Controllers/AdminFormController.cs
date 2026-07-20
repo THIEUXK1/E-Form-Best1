@@ -235,6 +235,92 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             }
         }
         #endregion
+
+        #region Thống Kê Hệ Thống (Báo cáo tổng kết dự án)
+
+        // Chỉ trả về số liệu tổng hợp (count), không lộ dữ liệu chi tiết/nhạy cảm.
+        // Dùng cho báo cáo tổng kết giá trị doanh nghiệp - chỉ Admin/All mới xem được.
+        [HttpGet("/AdminForm/ThongKeHeThong")]
+        [Authorize]
+        public async Task<IActionResult> ThongKeHeThong(string? tuNgay)
+        {
+            bool isAdmin = User.IsInRole("All") || User.IsInRole("AdminIT") || User.IsInRole("AdminCV")
+                || User.IsInRole("AdminHR") || User.IsInRole("AdminSHD");
+            if (!isAdmin)
+                return Json(new { success = false, message = "Bạn không có quyền xem thống kê hệ thống." });
+
+            DateTime tuNgayParsed = DateTime.TryParse(tuNgay, out var d) ? d : new DateTime(2026, 1, 1);
+
+            try
+            {
+                // Đăng nhập vào E-Form chỉ phản ánh MỨC ĐỘ SỬ DỤNG phần mềm, không phải tình trạng nhân sự
+                // (còn làm việc / đã nghỉ) - đó là dữ liệu HR, không liên quan. Vì vậy KHÔNG dùng nhãn "đang làm"/
+                // "đã nghỉ" cho số liệu này, và cũng KHÔNG ghi ngược vào cột TrangThai của User.
+                // Dùng COUNT(DISTINCT ...) thẳng ở tầng CSDL thay vì tải cả bảng User/LichSuTruyCap về rồi lọc ở app.
+                var tongUsers = await _context.Users.CountAsync();
+                var usersDaTungSuDung = await _context.LichSuTruyCaps.Select(x => x.IdNguoiDung).Distinct().CountAsync();
+                var usersChuaTungSuDung = tongUsers - usersDaTungSuDung;
+
+                var tongCongViec = await _context.FormCongViecs.CountAsync();
+                var congViecTrongKy = await _context.FormCongViecs.CountAsync(x => x.TimeNguoiTao >= tuNgayParsed);
+                var congViecHoanTat = await _context.FormCongViecs.CountAsync(x => x.IdAdmin != null);
+
+                var tongIt = await _context.FormIts.CountAsync();
+                var itTrongKy = await _context.FormIts.CountAsync(x => x.TimeNguoiTao >= tuNgayParsed);
+                var itHoanTat = await _context.FormIts.CountAsync(x => x.IdAdmin != null);
+
+                var tongHr = await _context.FormHrs.CountAsync();
+                var hrTrongKy = await _context.FormHrs.CountAsync(x => x.TimeNguoiTao >= tuNgayParsed);
+                var hrHoanTat = await _context.FormHrs.CountAsync(x => x.IdAdmin != null);
+
+                var tongShd = await _context.FormShds.CountAsync();
+                var shdTrongKy = await _context.FormShds.CountAsync(x => x.TimeNguoiTao >= tuNgayParsed);
+                var shdHoanTat = await _context.FormShds.CountAsync(x => x.IdAdmin != null);
+
+                var tongThietBiKiemKe = await _context.KkThietBis.CountAsync(x => x.NgayXoa == null);
+                var tongMayDaQuetTscn = await _context.TscnThongTinMays.CountAsync();
+
+                var tongBinhLuan = await _context.BinhLuanFormCongViecs.CountAsync()
+                    + await _context.BinhLuanFormIts.CountAsync()
+                    + await _context.BinhLuanFormHrs.CountAsync()
+                    + await _context.BinhLuanFormShds.CountAsync();
+
+                var tongLuotDangNhap = await _context.LichSuTruyCaps.CountAsync();
+                var luotDangNhap30Ngay = await _context.LichSuTruyCaps.CountAsync(x => x.ThoiGianDangNhap >= DateTime.Now.AddDays(-30));
+                var nguoiDungHoatDong30Ngay = await _context.LichSuTruyCaps
+                    .Where(x => x.ThoiGianDangNhap >= DateTime.Now.AddDays(-30))
+                    .Select(x => x.IdNguoiDung)
+                    .Distinct()
+                    .CountAsync();
+
+                // Dung lượng database thực tế lấy trực tiếp từ SQL Server (qua kết nối cấu hình sẵn của app)
+                var dbSizeRows = await _context.Database
+                    .SqlQueryRaw<decimal>("SELECT CAST(SUM(CAST(size AS BIGINT)) * 8.0 / 1024 AS DECIMAL(18,2)) AS Value FROM sys.master_files WHERE database_id = DB_ID()")
+                    .ToListAsync();
+                var dbSizeMb = dbSizeRows.FirstOrDefault();
+
+                return Json(new
+                {
+                    success = true,
+                    generatedAt = DateTime.Now,
+                    tuNgay = tuNgayParsed,
+                    users = new { tong = tongUsers, daTungSuDung = usersDaTungSuDung, chuaTungSuDung = usersChuaTungSuDung },
+                    congViec = new { tong = tongCongViec, trongKy = congViecTrongKy, hoanTat = congViecHoanTat },
+                    it = new { tong = tongIt, trongKy = itTrongKy, hoanTat = itHoanTat },
+                    hr = new { tong = tongHr, trongKy = hrTrongKy, hoanTat = hrHoanTat },
+                    shd = new { tong = tongShd, trongKy = shdTrongKy, hoanTat = shdHoanTat },
+                    kiemKe = new { tongThietBi = tongThietBiKiemKe, tongMayDaQuetTscn = tongMayDaQuetTscn },
+                    binhLuan = new { tong = tongBinhLuan },
+                    dangNhap = new { tongLuot = tongLuotDangNhap, luot30Ngay = luotDangNhap30Ngay, nguoiDungHoatDong30Ngay = nguoiDungHoatDong30Ngay },
+                    dbSizeMb = dbSizeMb
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi truy vấn thống kê: " + ex.Message });
+            }
+        }
+        #endregion
     }
 
     }
