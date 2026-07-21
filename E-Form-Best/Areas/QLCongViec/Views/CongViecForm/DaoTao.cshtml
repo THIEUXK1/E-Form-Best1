@@ -1,0 +1,774 @@
+@using System.Security.Claims
+@{
+    ViewData["Title"] = "Đào Tạo";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+    var nguoiThamGiaList = ViewBag.NguoiThamGiaList as List<E_Form_Best.Models.ITForm.User> ?? new List<E_Form_Best.Models.ITForm.User>();
+    var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("UserRole")?.Value ?? "User";
+}
+
+<style>
+    .dt-btn {
+        border: none; border-radius: 50px; font-weight: 700; cursor: pointer; padding: 12px 22px;
+        display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; transition: 0.2s;
+    }
+    .dt-btn-light:hover { filter: brightness(1.15); }
+
+    .dt-section-title { font-weight: 900; font-size: 1.1rem; color: #0b3c5d; display: flex; align-items: center; gap: 10px; margin: 0 0 16px; }
+    .dt-section-title i { color: #00b4d8; }
+
+    .dt-card {
+        background: white; border-radius: 22px; box-shadow: 0 12px 28px -10px rgba(0,0,0,0.08);
+        border: 1px solid #f1f5f9; padding: 24px; margin-bottom: 18px; transition: 0.2s;
+    }
+    .dt-card:hover { box-shadow: 0 16px 32px -10px rgba(0,0,0,0.12); }
+    .dt-card-icon {
+        width: 46px; height: 46px; border-radius: 14px; background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+        color: #0b3c5d; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;
+    }
+    .dt-badge {
+        display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 50px;
+        font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .dt-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .dt-icon-btn {
+        width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: 0.2s; color: #ef4444; background: #fef2f2; border: none; flex-shrink: 0;
+    }
+    .dt-icon-btn:hover { background: #fee2e2; transform: scale(1.06); }
+    .dt-subsection { margin-top: 16px; padding-top: 16px; border-top: 1px dashed #e2e8f0; }
+    .dt-subsection-title { font-size: 0.72rem; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .dt-nv-row { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; padding: 6px 4px; border-radius: 10px; transition: 0.15s; }
+    .dt-nv-row:hover { background: #f8fafc; }
+    .dt-avatar { width: 26px; height: 26px; border-radius: 50%; background: #e0f2fe; color: #0369a1; font-size: 0.7rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .dt-doc-chip {
+        display: inline-flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid #e2e8f0;
+        padding: 8px 14px; border-radius: 12px; font-size: 0.8rem; text-decoration: none; color: #1e293b;
+        margin: 0 8px 8px 0; transition: 0.2s;
+    }
+    .dt-doc-chip:hover { background: #eff6ff; border-color: #93c5fd; }
+    .dt-photo {
+        width: 100px; height: 100px; object-fit: cover; border-radius: 14px; cursor: pointer;
+        border: 1px solid #f1f5f9; transition: 0.2s;
+    }
+    .dt-photo:hover { transform: scale(1.05); box-shadow: 0 8px 16px rgba(0,0,0,0.15); }
+    .dt-empty {
+        display: none; text-align: center; color: #94a3b8; padding: 60px 20px; background: #fff;
+        border-radius: 22px; border: 1.5px dashed #e2e8f0;
+    }
+    .dt-empty i { font-size: 3rem; color: #cbd5e1; margin-bottom: 14px; display: block; }
+
+    .dt-copy-code-btn {
+        width: 26px; height: 26px; border-radius: 8px; border: none; background: #f59e0b; color: #fff;
+        cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 0.78rem; transition: 0.2s;
+    }
+    .dt-copy-code-btn:hover { background: #d97706; transform: scale(1.08); }
+    .dt-copy-code-btn.copied { background: #10b981; }
+
+    .dt-modal-overlay {
+        display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px);
+        z-index: 2000; align-items: center; justify-content: center; padding: 20px;
+    }
+    .dt-modal { background: white; border-radius: 26px; width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto; }
+    .dt-modal-header {
+        background: linear-gradient(135deg, #0b3c5d, #00789c); padding: 24px 30px; position: sticky; top: 0; z-index: 2;
+        display: flex; justify-content: space-between; align-items: center; border-radius: 26px 26px 0 0;
+    }
+    .dt-modal-header div { color: #fff; font-weight: 900; font-size: 1.15rem; display: flex; align-items: center; gap: 10px; }
+    .dt-modal-close { cursor: pointer; color: rgba(255,255,255,0.8); font-size: 1.2rem; transition: 0.2s; }
+    .dt-modal-close:hover { color: #fff; transform: rotate(90deg); }
+    .dt-modal-body { padding: 26px 30px 30px; }
+    .dt-label { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 0.82rem; color: #334155; margin-bottom: 7px; }
+    .dt-label i { color: #00b4d8; font-size: 0.85rem; }
+    .dt-input {
+        width: 100%; padding: 12px 15px; border: 1.5px solid #e2e8f0; border-radius: 13px;
+        font-size: 0.9rem; box-sizing: border-box; margin-bottom: 18px; transition: 0.2s; font-family: inherit;
+    }
+    .dt-input:focus { outline: none; border-color: #00b4d8; box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.12); }
+    .dt-nv-box {
+        max-height: 170px; overflow-y: auto; border: 1.5px solid #e2e8f0; border-radius: 13px;
+        padding: 8px; margin-bottom: 18px;
+    }
+    .dt-nv-item { display: flex; align-items: center; gap: 8px; padding: 7px 6px; font-size: 0.85rem; border-radius: 8px; }
+    .dt-nv-item:hover { background: #f8fafc; }
+    #daoTaoPasteArea {
+        width: 100%; border: 2px dashed #93c5fd; height: 150px; border-radius: 15px;
+        display: flex; align-items: center; justify-content: center; background: #eff6ff;
+        color: #0b3c5d; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 700;
+        transition: 0.2s; outline: none;
+    }
+    #daoTaoPasteArea:hover { background: #dbeafe; border-color: #60a5fa; }
+    .dt-submit-btn {
+        width: 100%; padding: 17px; background: linear-gradient(to right, #0b3c5d, #00b4d8); color: #fff; border: none;
+        border-radius: 15px; font-weight: 900; font-size: 1rem; cursor: pointer; letter-spacing: 0.3px; transition: 0.2s;
+        box-shadow: 0 10px 20px -6px rgba(11, 60, 93, 0.4);
+    }
+    .dt-submit-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 14px 24px -6px rgba(11, 60, 93, 0.5); }
+    .dt-submit-btn:disabled { opacity: 0.7; cursor: default; }
+
+    .dt-stat-item:hover { transform: translateY(-3px); box-shadow: 0 10px 20px -6px rgba(0,0,0,0.12); }
+    .dt-stat-item.active-stat { box-shadow: 0 0 0 3px rgba(11, 60, 93, 0.35); }
+
+    @@media (max-width: 900px) {
+        div[style*="grid-template-columns: repeat(5, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+</style>
+
+<div style="background: #f1f5f9; min-height: 100vh; padding: 25px; font-family: 'Inter', sans-serif; color: #1e293b;">
+<div style="max-width: 1500px; margin: 0 auto;">
+
+    @* --- HEADER --- *@
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h2 style="margin: 0; font-size: 28px; font-weight: 1000; color: #0b3c5d; letter-spacing: -0.04em; display: flex; align-items: center; gap: 15px;">
+                <span style="background: linear-gradient(135deg, #0b3c5d, #00789c); color: white; width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px -3px rgba(11, 60, 93, 0.3);">
+                    <i class="fa fa-graduation-cap"></i>
+                </span>
+                ĐÀO TẠO
+            </h2>
+            <div style="margin-top: 10px; display: flex; gap: 10px;">
+                <span style="background: #0b3c5d; color: white; padding: 5px 15px; border-radius: 8px; font-size: 11px; font-weight: 900; text-transform: uppercase;">@currentUserRole</span>
+                <span style="background: #cbd5e1; color: #1e293b; padding: 5px 15px; border-radius: 8px; font-size: 11px; font-weight: 900;">HỒ SƠ ĐÀO TẠO</span>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+            <div style="position: relative;">
+                <i class="fa fa-search" style="position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: #64748b; font-weight: 900;"></i>
+                <input type="text" id="dtSearchInput" oninput="locDanhSachDaoTao()" placeholder="Tìm tên đào tạo, giảng viên..."
+                       style="padding: 14px 20px 14px 50px; border-radius: 15px; border: 2px solid #cbd5e1; width: 280px; font-size: 14px; font-weight: 700; outline: none; transition: all 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            </div>
+            <a href="/FormCongViec/QuanLyXetDuyetDaoTao" class="dt-btn dt-btn-light" style="background:#0b3c5d; color:#fff;">
+                <i class="fa fa-check-square-o"></i> Duyệt đào tạo
+            </a>
+            <button onclick="moModalDaoTao()" class="dt-btn" style="background: linear-gradient(to right, #0b3c5d, #00b4d8); color:#fff; box-shadow: 0 8px 18px -6px rgba(11,60,93,0.4);">
+                <i class="fa fa-plus"></i> Đề xuất đào tạo
+            </button>
+        </div>
+    </div>
+
+    @* --- NHẬP MÃ CUỘC HỌP ĐỂ TỰ ĐIỂM DANH THAM GIA --- *@
+    <div style="background: linear-gradient(135deg, #fff7ed, #fef3c7); border: 1.5px dashed #f59e0b; border-radius: 20px; padding: 16px 22px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+        <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:260px;">
+            <i class="fa fa-qrcode" style="font-size: 1.6rem; color: #b45309;"></i>
+            <div>
+                <div style="font-weight:900; color:#92400e; font-size:0.95rem;">Bạn vừa tham gia một buổi đào tạo/họp?</div>
+                <div style="font-size:0.78rem; color:#b45309;">Nhập mã cuộc họp được chia sẻ tại chỗ để tự điểm danh ngay.</div>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="dtMaThamGia" maxlength="10" placeholder="Nhập mã VD: 7K2XQ9" autocomplete="off"
+                   style="padding: 12px 16px; border-radius: 12px; border: 2px solid #f59e0b; font-size: 1rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; width: 180px; outline: none;"
+                   onkeydown="if(event.key==='Enter') thamGiaBangMa();">
+            <button onclick="thamGiaBangMa()" class="dt-btn" style="background:#b45309; color:#fff;">
+                <i class="fa fa-check"></i> Điểm danh
+            </button>
+        </div>
+    </div>
+
+    @* --- KHỐI CARD THỐNG KÊ, BẤM VÀO ĐỂ LỌC DANH SÁCH --- *@
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 25px;">
+        <div class="dt-stat-item active-stat" data-status="" onclick="locTheoTrangThai('', this)" style="background: white; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
+            <div style="font-size: 9px; font-weight: 900; color: #0b3c5d; letter-spacing: 1px; text-transform: uppercase;">TỔNG HỒ SƠ</div>
+            <div id="dtStatTong" style="font-size: 28px; font-weight: 1000; color: #0b3c5d; margin-top: 8px;">0</div>
+        </div>
+        <div class="dt-stat-item" data-status="ChoDuyet" onclick="locTheoTrangThai('ChoDuyet', this)" style="background: #fffbeb; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
+            <div style="font-size: 9px; font-weight: 900; color: #b45309; letter-spacing: 1px; text-transform: uppercase;">CHỜ DUYỆT</div>
+            <div id="dtStatChoDuyet" style="font-size: 28px; font-weight: 1000; color: #b45309; margin-top: 8px;">0</div>
+        </div>
+        <div class="dt-stat-item" data-status="DaDuyet" onclick="locTheoTrangThai('DaDuyet', this)" style="background: #eff6ff; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
+            <div style="font-size: 9px; font-weight: 900; color: #1d4ed8; letter-spacing: 1px; text-transform: uppercase;">ĐANG TỔ CHỨC</div>
+            <div id="dtStatDaDuyet" style="font-size: 28px; font-weight: 1000; color: #1d4ed8; margin-top: 8px;">0</div>
+        </div>
+        <div class="dt-stat-item" data-status="DaHoanTat" onclick="locTheoTrangThai('DaHoanTat', this)" style="background: #ecfdf5; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
+            <div style="font-size: 9px; font-weight: 900; color: #047857; letter-spacing: 1px; text-transform: uppercase;">ĐÃ HOÀN TẤT</div>
+            <div id="dtStatHoanTat" style="font-size: 28px; font-weight: 1000; color: #047857; margin-top: 8px;">0</div>
+        </div>
+        <div class="dt-stat-item" data-status="Huy" onclick="locTheoTrangThai('Huy', this)" style="background: #fef2f2; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
+            <div style="font-size: 9px; font-weight: 900; color: #dc2626; letter-spacing: 1px; text-transform: uppercase;">ĐÃ TỪ CHỐI/HỦY</div>
+            <div id="dtStatHuy" style="font-size: 28px; font-weight: 1000; color: #dc2626; margin-top: 8px;">0</div>
+        </div>
+    </div>
+
+    <div class="dt-section-title"><i class="fa fa-clipboard"></i> Nhật ký đào tạo</div>
+
+    <div id="daoTaoList"></div>
+    <div class="dt-empty" id="daoTaoEmpty">
+        <i class="fa fa-graduation-cap"></i>
+        Chưa có bản ghi đào tạo nào.<br><span style="font-size:0.8rem;">Bấm "Đề xuất đào tạo" để bắt đầu.</span>
+    </div>
+</div>
+</div>
+
+<div class="dt-modal-overlay" id="daoTaoModalOverlay">
+    <div class="dt-modal">
+        <div class="dt-modal-header">
+            <div><i class="fa fa-graduation-cap"></i> Đề xuất buổi đào tạo</div>
+            <i class="fa fa-times dt-modal-close" onclick="dongModalDaoTao()"></i>
+        </div>
+        <div class="dt-modal-body">
+            <label class="dt-label"><i class="fa fa-bookmark-o"></i> Tên/Chủ đề đào tạo <span style="color:red">*</span></label>
+            <input type="text" id="dt_TenDaoTao" class="dt-input" placeholder="Ví dụ: Đào tạo an toàn lao động...">
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <label class="dt-label"><i class="fa fa-user-o"></i> Người đào tạo</label>
+                    <input type="text" id="dt_NguoiDaoTao" class="dt-input" list="dt_NguoiDaoTao_list" placeholder="Gõ mã NV/tên để tìm, hoặc nhập tên giảng viên ngoài" autocomplete="off">
+                    <datalist id="dt_NguoiDaoTao_list">
+                        @foreach (var nv in nguoiThamGiaList)
+                        {
+                            <option value="@(nv.MaNhanVien) - @(nv.HoTen)"></option>
+                        }
+                    </datalist>
+                </div>
+                <div>
+                    <label class="dt-label"><i class="fa fa-calendar"></i> Ngày đào tạo</label>
+                    <input type="date" id="dt_NgayDaoTao" class="dt-input">
+                </div>
+            </div>
+
+            <label class="dt-label"><i class="fa fa-users"></i> Người tham dự</label>
+            <input type="text" id="dt_TimNguoiThamDu" class="dt-input" style="margin-bottom:8px;" placeholder="🔍 Tìm theo mã NV hoặc tên..." oninput="locNguoiThamDu(this.value)">
+            <div class="dt-nv-box" id="dt_nv_box">
+                @if (nguoiThamGiaList.Any())
+                {
+                    foreach (var nv in nguoiThamGiaList)
+                    {
+                        <label class="dt-nv-item" data-search="@((nv.MaNhanVien ?? "").ToLower()) @((nv.HoTen ?? "").ToLower())">
+                            <input type="checkbox" class="dt-chk-nv" value="@nv.IdNguoiDung">
+                            <span style="color:#94a3b8; font-family:monospace; font-size:0.8rem;">@nv.MaNhanVien</span> @nv.HoTen
+                        </label>
+                    }
+                }
+                else
+                {
+                    <div style="color:#94a3b8; font-size:0.8rem; padding:8px;">Không tìm thấy nhân sự cùng bộ phận.</div>
+                }
+            </div>
+
+            <label class="dt-label"><i class="fa fa-align-left"></i> Nội dung đào tạo</label>
+            <textarea id="dt_NoiDungDaoTao" class="dt-input" style="height: 100px; resize: vertical;" placeholder="Mô tả chi tiết nội dung đã đào tạo..."></textarea>
+
+            <label class="dt-label"><i class="fa fa-camera"></i> Ảnh bằng chứng (bấm để chọn nhiều ảnh, hoặc dán bằng Ctrl+V)</label>
+            <div id="daoTaoPasteArea" tabindex="0" onclick="document.getElementById('dt_file_Anh').click();" style="margin-bottom: 10px;">
+                <div style="text-align:center;"><i style="font-size: 26px; margin-bottom:8px;" class="fa fa-camera"></i><br>Bấm để chọn ảnh hoặc dán ảnh tại đây</div>
+            </div>
+            <div id="daoTaoAnhPreviewList" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom: 20px;"></div>
+            <input type="file" id="dt_file_Anh" hidden accept="image/*" multiple>
+
+            <label class="dt-label"><i class="fa fa-file-text-o"></i> Tài liệu đính kèm (giáo trình, slide...)</label>
+            <input type="file" id="dt_file_TaiLieu" class="dt-input" multiple>
+
+            <button onclick="luuDaoTao()" id="btnLuuDaoTao" class="dt-submit-btn">
+                <i class="fa fa-paper-plane"></i> GỬI ĐỀ XUẤT ĐÀO TẠO
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="dt-modal-overlay" id="suaDaoTaoModalOverlay">
+    <div class="dt-modal" style="max-width: 560px;">
+        <div class="dt-modal-header">
+            <div><i class="fa fa-pencil"></i> Sửa nội dung đào tạo</div>
+            <i class="fa fa-times dt-modal-close" onclick="dongModalSuaDaoTao()"></i>
+        </div>
+        <div class="dt-modal-body">
+            <input type="hidden" id="sua_Id">
+            <label class="dt-label"><i class="fa fa-bookmark-o"></i> Tên/Chủ đề đào tạo <span style="color:red">*</span></label>
+            <input type="text" id="sua_TenDaoTao" class="dt-input">
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <label class="dt-label"><i class="fa fa-user-o"></i> Người đào tạo</label>
+                    <input type="text" id="sua_NguoiDaoTao" class="dt-input">
+                </div>
+                <div>
+                    <label class="dt-label"><i class="fa fa-calendar"></i> Ngày đào tạo</label>
+                    <input type="date" id="sua_NgayDaoTao" class="dt-input">
+                </div>
+            </div>
+
+            <label class="dt-label"><i class="fa fa-align-left"></i> Nội dung đào tạo</label>
+            <textarea id="sua_NoiDungDaoTao" class="dt-input" style="height: 160px; resize: vertical;" placeholder="Mô tả chi tiết nội dung đã đào tạo..."></textarea>
+
+            <button onclick="luuSuaDaoTao()" id="btnLuuSuaDaoTao" class="dt-submit-btn">
+                <i class="fa fa-save"></i> LƯU THAY ĐỔI
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let daoTaoData = [];
+    let daoTaoDataLoc = [];
+    let trangThaiDangLoc = '';
+    let danhSachAnhChon = []; // Danh sách File ảnh bằng chứng đã chọn cho lần thêm mới (cho phép nhiều ảnh)
+    const currentUserIdDaoTao = '@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "")';
+    const isAdminDaoTao = @((User.IsInRole("AdminDaoTao") || User.IsInRole("All")) ? "true" : "false");
+
+    const TRANG_THAI_LABEL = {
+        'ChoDuyet': { text: 'Chờ duyệt', bg: '#fffbeb', fg: '#b45309' },
+        'DaDuyet': { text: 'Đã duyệt - đang tổ chức', bg: '#eff6ff', fg: '#1d4ed8' },
+        'Huy': { text: 'Đã từ chối/hủy', bg: '#fef2f2', fg: '#b91c1c' },
+        'DaHoanTat': { text: 'Đã hoàn tất - đã khóa hồ sơ', bg: '#ecfdf5', fg: '#047857' }
+    };
+
+    function moModalDaoTao() { document.getElementById('daoTaoModalOverlay').style.display = 'flex'; }
+    function dongModalDaoTao() { document.getElementById('daoTaoModalOverlay').style.display = 'none'; }
+
+    // Mở modal sửa nội dung đào tạo, điền sẵn dữ liệu hiện có của bản ghi
+    function moModalSuaDaoTao(id) {
+        const item = daoTaoData.find(x => x.id === id);
+        if (!item) return;
+
+        document.getElementById('sua_Id').value = item.id;
+        document.getElementById('sua_TenDaoTao').value = item.tenDaoTao || '';
+        document.getElementById('sua_NguoiDaoTao').value = item.nguoiDaoTao || '';
+        document.getElementById('sua_NoiDungDaoTao').value = item.noiDungDaoTao || '';
+
+        // Chuyển "dd/MM/yyyy" (server trả về) sang "yyyy-MM-dd" để input type=date hiển thị đúng
+        if (item.ngayDaoTao) {
+            const parts = item.ngayDaoTao.split('/');
+            document.getElementById('sua_NgayDaoTao').value = parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
+        } else {
+            document.getElementById('sua_NgayDaoTao').value = '';
+        }
+
+        document.getElementById('suaDaoTaoModalOverlay').style.display = 'flex';
+    }
+
+    function dongModalSuaDaoTao() { document.getElementById('suaDaoTaoModalOverlay').style.display = 'none'; }
+
+    async function luuSuaDaoTao() {
+        const tenDaoTao = document.getElementById('sua_TenDaoTao').value.trim();
+        if (!tenDaoTao) { alert('⚠️ Vui lòng nhập tên/chủ đề đào tạo!'); return; }
+
+        const btn = document.getElementById('btnLuuSuaDaoTao');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang lưu...';
+
+        try {
+            const res = await fetch('/FormCongViec/SuaDaoTao', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    idDaoTao: parseInt(document.getElementById('sua_Id').value),
+                    tenDaoTao: tenDaoTao,
+                    nguoiDaoTao: document.getElementById('sua_NguoiDaoTao').value.trim(),
+                    ngayDaoTao: document.getElementById('sua_NgayDaoTao').value,
+                    noiDungDaoTao: document.getElementById('sua_NoiDungDaoTao').value.trim()
+                })
+            });
+            const data = await res.json();
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-save"></i> LƯU THAY ĐỔI';
+
+            if (data.success) {
+                dongModalSuaDaoTao();
+                loadDanhSachDaoTao();
+            } else {
+                alert('❌ ' + data.message);
+            }
+        } catch (err) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-save"></i> LƯU THAY ĐỔI';
+            alert('❌ Có lỗi xảy ra, vui lòng thử lại.');
+        }
+    }
+
+    // Bấm vào thẻ thống kê để lọc nhanh danh sách theo trạng thái (giống trang Hoàn tất đơn chỉ định)
+    function locTheoTrangThai(trangThai, el) {
+        trangThaiDangLoc = trangThai;
+        document.querySelectorAll('.dt-stat-item').forEach(x => x.classList.remove('active-stat'));
+        if (el) el.classList.add('active-stat');
+        locDanhSachDaoTao();
+    }
+
+    // Gộp bộ lọc trạng thái (thẻ thống kê) + ô tìm kiếm theo tên đào tạo/giảng viên, không gọi lại API
+    function locDanhSachDaoTao() {
+        const kw = (document.getElementById('dtSearchInput').value || '').trim().toLowerCase();
+        daoTaoDataLoc = daoTaoData.filter(item => {
+            if (trangThaiDangLoc && item.trangThai !== trangThaiDangLoc) return false;
+            if (kw) {
+                const gop = `${item.tenDaoTao || ''} ${item.nguoiDaoTao || ''}`.toLowerCase();
+                if (!gop.includes(kw)) return false;
+            }
+            return true;
+        });
+        renderDaoTaoList();
+    }
+
+    // Tìm nhanh người tham dự theo mã nhân viên hoặc tên (lọc ngay trên danh sách đã có, không gọi thêm API)
+    function locNguoiThamDu(tuKhoa) {
+        const kw = tuKhoa.trim().toLowerCase();
+        document.querySelectorAll('#dt_nv_box .dt-nv-item').forEach(el => {
+            const match = !kw || (el.getAttribute('data-search') || '').includes(kw);
+            el.style.display = match ? 'flex' : 'none';
+        });
+    }
+
+    function renderAnhChonPreview() {
+        const box = document.getElementById('daoTaoAnhPreviewList');
+        box.innerHTML = danhSachAnhChon.map((file, idx) => {
+            const url = URL.createObjectURL(file);
+            return `<div style="position:relative; width:74px; height:74px;">
+                <img src="${url}" style="width:100%; height:100%; object-fit:cover; border-radius:12px; border:1px solid #e2e8f0;">
+                <i class="fa fa-times-circle" onclick="boChonAnhDaoTao(${idx})" style="position:absolute; top:-7px; right:-7px; color:#ef4444; background:#fff; border-radius:50%; cursor:pointer; font-size:17px;"></i>
+            </div>`;
+        }).join('');
+    }
+
+    function boChonAnhDaoTao(idx) {
+        danhSachAnhChon.splice(idx, 1);
+        renderAnhChonPreview();
+    }
+
+    // Dán ảnh bằng Ctrl+V - đồng bộ cách làm với "Hình ảnh mô tả" ở form Công việc chỉ định, hỗ trợ dán nhiều lần để gộp nhiều ảnh
+    document.getElementById('daoTaoPasteArea').addEventListener('paste', function (e) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                danhSachAnhChon.push(items[i].getAsFile());
+            }
+        }
+        renderAnhChonPreview();
+    });
+
+    document.getElementById('dt_file_Anh').addEventListener('change', function () {
+        for (const file of this.files) danhSachAnhChon.push(file);
+        renderAnhChonPreview();
+        this.value = ''; // Cho phép chọn lại cùng 1 file nếu cần mà vẫn kích hoạt sự kiện change
+    });
+
+    async function loadDanhSachDaoTao() {
+        try {
+            const res = await fetch('/FormCongViec/GetDanhSachDaoTao');
+            const data = await res.json();
+            daoTaoData = (data && data.success) ? (data.data || []) : [];
+            capNhatThongKe();
+            locDanhSachDaoTao();
+        } catch (err) { console.log(err); }
+    }
+
+    function capNhatThongKe() {
+        const dem = { ChoDuyet: 0, DaDuyet: 0, DaHoanTat: 0, Huy: 0 };
+        daoTaoData.forEach(x => { if (dem[x.trangThai] !== undefined) dem[x.trangThai]++; });
+        document.getElementById('dtStatChoDuyet').textContent = dem.ChoDuyet;
+        document.getElementById('dtStatDaDuyet').textContent = dem.DaDuyet;
+        document.getElementById('dtStatHoanTat').textContent = dem.DaHoanTat;
+        document.getElementById('dtStatHuy').textContent = dem.Huy;
+        document.getElementById('dtStatTong').textContent = daoTaoData.length;
+    }
+
+    function layChuCaiDau(ten) {
+        if (!ten) return '?';
+        const parts = ten.trim().split(' ');
+        return parts[parts.length - 1].charAt(0).toUpperCase();
+    }
+
+    function renderDaoTaoList() {
+        const list = document.getElementById('daoTaoList');
+        const empty = document.getElementById('daoTaoEmpty');
+
+        if (daoTaoDataLoc.length === 0) {
+            list.innerHTML = '';
+            empty.innerHTML = daoTaoData.length === 0
+                ? '<i class="fa fa-graduation-cap"></i>Chưa có bản ghi đào tạo nào.<br><span style="font-size:0.8rem;">Bấm "Đề xuất đào tạo" để bắt đầu.</span>'
+                : '<i class="fa fa-search"></i>Không tìm thấy hồ sơ nào khớp với bộ lọc.';
+            empty.style.display = 'block';
+            return;
+        }
+        empty.style.display = 'none';
+
+        list.innerHTML = daoTaoDataLoc.map(item => {
+            const coQuyenXoa = !item.daKhoaHoSo && (isAdminDaoTao || (item.idNguoiTao != null && item.idNguoiTao.toString() === currentUserIdDaoTao));
+            const coQuyenQuanLy = !item.daKhoaHoSo && (isAdminDaoTao || (item.idNguoiTao != null && item.idNguoiTao.toString() === currentUserIdDaoTao));
+            const danhSachAnh = item.danhSachAnh || [];
+            const danhSachThamGia = item.danhSachThamGia || [];
+            const danhSachTaiLieu = item.danhSachTaiLieu || [];
+            const trangThai = TRANG_THAI_LABEL[item.trangThai] || { text: item.trangThai, bg: '#f1f5f9', fg: '#475569' };
+
+            const themAnhHtml = coQuyenQuanLy
+                ? `<label class="dt-photo" style="display:flex; align-items:center; justify-content:center; border:2px dashed #93c5fd; background:#eff6ff; color:#0b3c5d; cursor:pointer;" title="Thêm ảnh bằng chứng">
+                    <i class="fa fa-plus" style="font-size:1.3rem;"></i>
+                    <input type="file" accept="image/*" multiple hidden onchange="themAnhDaoTao(${item.id}, this.files)">
+                   </label>`
+                : '';
+
+            const anhHtml = (danhSachAnh.length > 0 || coQuyenQuanLy)
+                ? `<div class="dt-subsection">
+                    <div class="dt-subsection-title"><i class="fa fa-camera"></i> Ảnh bằng chứng</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:10px;">${danhSachAnh.map(tenFile =>
+                        `<img src="/FormCongViec/DownloadDaoTaoFile/${encodeURIComponent(tenFile)}" class="dt-photo" onclick="window.open(this.src, '_blank')">`
+                      ).join('')}${themAnhHtml}</div>
+                   </div>`
+                : '';
+
+            const daTuDiemDanh = danhSachThamGia.some(tg => tg.idNguoiDung != null && tg.idNguoiDung.toString() === currentUserIdDaoTao && tg.coMat);
+            const coTheTuDiemDanh = !item.daKhoaHoSo && item.trangThai !== 'Huy' && currentUserIdDaoTao;
+            const tuDiemDanhHtml = coTheTuDiemDanh
+                ? (daTuDiemDanh
+                    ? `<span style="display:inline-flex; align-items:center; gap:6px; color:#059669; font-weight:700; font-size:0.8rem; margin-top:8px;"><i class="fa fa-check-circle"></i> Bạn đã tham gia</span>`
+                    : `<button onclick="tuDiemDanhDaoTao(${item.id}, this)" class="dt-btn" style="background:#0b3c5d; color:#fff; padding:7px 16px; font-size:0.78rem; margin-top:8px;"><i class="fa fa-hand-paper-o"></i> Tôi đã tham gia</button>`)
+                : '';
+
+            const thamGiaHtml = (danhSachThamGia.length > 0 || coTheTuDiemDanh)
+                ? `<div class="dt-subsection">
+                    <div class="dt-subsection-title"><i class="fa fa-users"></i> Người tham dự / điểm danh (${danhSachThamGia.filter(t => t.coMat).length}/${danhSachThamGia.length})</div>
+                    ${danhSachThamGia.map(tg => `
+                        <label class="dt-nv-row" style="${coQuyenQuanLy ? 'cursor:pointer;' : 'pointer-events:none;'}">
+                            <input type="checkbox" ${tg.coMat ? 'checked' : ''} onchange="diemDanhDaoTao(${tg.id}, this.checked)">
+                            <span class="dt-avatar">${layChuCaiDau(tg.hoTen)}</span>
+                            <span>${tg.hoTen}</span>
+                            ${tg.coMat ? `<span style="color:#10b981; font-size:0.72rem; margin-left:auto;"><i class="fa fa-check-circle"></i> ${tg.thoiGianDiemDanh}</span>` : ''}
+                        </label>`).join('')}
+                    ${tuDiemDanhHtml}
+                   </div>`
+                : '';
+
+            const themTaiLieuHtml = coQuyenQuanLy
+                ? `<label class="dt-doc-chip" style="cursor:pointer; border-style:dashed; border-color:#93c5fd; color:#0b3c5d;">
+                    <i class="fa fa-plus"></i> Thêm tài liệu
+                    <input type="file" multiple hidden onchange="themTaiLieuDaoTao(${item.id}, this.files)">
+                   </label>`
+                : '';
+
+            const taiLieuHtml = (danhSachTaiLieu.length > 0 || coQuyenQuanLy)
+                ? `<div class="dt-subsection">
+                    <div class="dt-subsection-title"><i class="fa fa-file-text-o"></i> Tài liệu đào tạo</div>
+                    ${danhSachTaiLieu.map(tl => `
+                        <a href="/FormCongViec/DownloadDaoTaoFile/${encodeURIComponent(tl.tenFile)}" target="_blank" class="dt-doc-chip">
+                            <i class="fa fa-file-text-o" style="color:#0b3c5d;"></i> ${tl.tenGoc || tl.tenFile} <span style="color:#94a3b8;">(v${tl.soPhienBan})</span>
+                        </a>`).join('')}${themTaiLieuHtml}
+                   </div>`
+                : '';
+
+            const hoanTatHtml = (isAdminDaoTao && item.trangThai === 'DaDuyet')
+                ? `<div class="dt-subsection" style="border-top:none; padding-top:6px;">
+                    <button onclick="moHoanTatDaoTao(${item.id})" class="dt-btn" style="background:#059669; color:#fff; padding:9px 18px; font-size:0.8rem;"><i class="fa fa-check-circle"></i> Hoàn tất &amp; khóa hồ sơ</button>
+                   </div>`
+                : '';
+
+            const danhGiaHtml = item.danhGiaHieuQua
+                ? `<div class="dt-subsection">
+                    <div class="dt-subsection-title"><i class="fa fa-star"></i> Đánh giá hiệu quả</div>
+                    <div style="font-size:0.85rem; color:#047857; font-weight:700;">⭐ ${item.danhGiaHieuQua}/5 ${item.ghiChuDanhGia ? '— ' + item.ghiChuDanhGia : ''}</div>
+                   </div>`
+                : '';
+
+            return `<div class="dt-card">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px;">
+                    <div style="display:flex; gap:14px; flex:1;">
+                        <div class="dt-card-icon"><i class="fa fa-graduation-cap"></i></div>
+                        <div style="flex:1;">
+                            <div style="font-weight:800; font-size:1.02rem; color:#1e293b;">${item.tenDaoTao}</div>
+                            <div style="font-size:0.8rem; color:#64748b; margin-top:5px; display:flex; flex-wrap:wrap; gap:12px;">
+                                ${item.ngayDaoTao ? `<span><i class="fa fa-calendar"></i> ${item.ngayDaoTao}</span>` : ''}
+                                ${item.nguoiDaoTao ? `<span><i class="fa fa-user-o"></i> ${item.nguoiDaoTao}</span>` : ''}
+                            </div>
+                            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;">
+                                <span class="dt-badge" style="background:${trangThai.bg}; color:${trangThai.fg};">${trangThai.text}</span>
+                                ${item.maCuocHop ? `
+                                <span style="display:inline-flex; align-items:center; gap:8px; background:#fef3c7; border:1px solid #fde68a; border-radius:10px; padding:5px 6px 5px 12px;">
+                                    <span style="font-size:0.72rem; font-weight:800; color:#92400e; text-transform:uppercase;">Mã cuộc họp</span>
+                                    <span style="font-family:monospace; font-weight:900; letter-spacing:2px; color:#92400e; font-size:0.9rem;">${item.maCuocHop}</span>
+                                    <button class="dt-copy-code-btn" onclick="copyMaCuocHop('${item.maCuocHop}', this)" title="Copy mã">
+                                        <i class="fa fa-clone"></i>
+                                    </button>
+                                </span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        ${coQuyenQuanLy ? `<button class="dt-icon-btn" onclick="moModalSuaDaoTao(${item.id})" title="Sửa" style="color:#0b3c5d; background:#eff6ff;"><i class="fa fa-pencil"></i></button>` : ''}
+                        ${coQuyenXoa ? `<button class="dt-icon-btn" onclick="xoaDaoTao(${item.id})" title="Xóa"><i class="fa fa-trash"></i></button>` : ''}
+                    </div>
+                </div>
+                ${item.noiDungDaoTao ? `<div style="font-size:0.85rem; color:#334155; margin-top:14px; white-space:pre-wrap; line-height:1.5;">${item.noiDungDaoTao}</div>` : ''}
+                ${thamGiaHtml}
+                ${taiLieuHtml}
+                ${anhHtml}
+                ${danhGiaHtml}
+                ${hoanTatHtml}
+                <div style="font-size:0.72rem; color:#94a3b8; margin-top:16px; padding-top:14px; border-top:1px solid #f1f5f9;"><i class="fa fa-user-circle-o"></i> Đề xuất bởi ${item.tenNguoiTao || 'N/A'} · ${item.timeNguoiTao}</div>
+            </div>`;
+        }).join('');
+    }
+
+    // Người tham dự tự nhập mã cuộc họp để điểm danh, không cần được thêm sẵn vào danh sách tham dự
+    async function thamGiaBangMa() {
+        const input = document.getElementById('dtMaThamGia');
+        const maCuocHop = input.value.trim();
+        if (!maCuocHop) { alert('⚠️ Vui lòng nhập mã cuộc họp.'); return; }
+
+        try {
+            const res = await fetch('/FormCongViec/ThamGiaDaoTaoBangMa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ maCuocHop })
+            });
+            const data = await res.json();
+            if (data.success) {
+                input.value = '';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'success', title: 'Đã điểm danh!', text: data.message, confirmButtonColor: '#b45309' });
+                } else {
+                    alert('✅ ' + data.message);
+                }
+                loadDanhSachDaoTao();
+            } else {
+                alert('❌ ' + data.message);
+            }
+        } catch (err) { alert('❌ Có lỗi xảy ra, vui lòng thử lại.'); }
+    }
+
+    // Người đang xem trang tự bấm 1 nút để điểm danh ngay, không cần gõ mã cuộc họp
+    async function tuDiemDanhDaoTao(idDaoTao, btn) {
+        btn.disabled = true;
+        try {
+            const res = await fetch('/FormCongViec/TuDiemDanhDaoTao', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idDaoTao })
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadDanhSachDaoTao();
+            } else {
+                alert('❌ ' + data.message);
+                btn.disabled = false;
+            }
+        } catch (err) {
+            alert('❌ Có lỗi xảy ra, vui lòng thử lại.');
+            btn.disabled = false;
+        }
+    }
+
+    function copyMaCuocHop(ma, el) {
+        navigator.clipboard.writeText(ma).then(() => {
+            const originalIcon = el.innerHTML;
+            el.innerHTML = '<i class="fa fa-check"></i>';
+            el.classList.add('copied');
+            setTimeout(() => { el.innerHTML = originalIcon; el.classList.remove('copied'); }, 1500);
+        }).catch(() => {});
+    }
+
+    // Bổ sung thêm ảnh bằng chứng vào 1 buổi đào tạo đã tạo trước đó (cho phép tải nhiều ảnh, nhiều lần)
+    async function themAnhDaoTao(idDaoTao, files) {
+        if (!files || files.length === 0) return;
+        const formData = new FormData();
+        for (const file of files) formData.append('AnhBangChung', file);
+
+        try {
+            const res = await fetch('/FormCongViec/ThemAnhDaoTao?idDaoTao=' + idDaoTao, { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.success) loadDanhSachDaoTao();
+            else alert('❌ ' + data.message);
+        } catch (err) { alert('❌ Có lỗi xảy ra, vui lòng thử lại.'); }
+    }
+
+    // Bổ sung thêm tài liệu vào 1 buổi đào tạo đã tạo trước đó (API chỉ nhận 1 file/lần nên gửi tuần tự từng file)
+    async function themTaiLieuDaoTao(idDaoTao, files) {
+        if (!files || files.length === 0) return;
+        try {
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('TaiLieu', file);
+                const res = await fetch(`/FormCongViec/ThemTaiLieuDaoTao?idDaoTao=${idDaoTao}`, { method: 'POST', body: formData });
+                const data = await res.json();
+                if (!data.success) { alert('❌ ' + data.message); break; }
+            }
+            loadDanhSachDaoTao();
+        } catch (err) { alert('❌ Có lỗi xảy ra, vui lòng thử lại.'); }
+    }
+
+    async function diemDanhDaoTao(idThamGia, coMat) {
+        try {
+            await fetch('/FormCongViec/DiemDanhDaoTao', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idThamGia, coMat })
+            });
+            loadDanhSachDaoTao();
+        } catch (err) { alert('❌ Có lỗi xảy ra, vui lòng thử lại.'); }
+    }
+
+    function moHoanTatDaoTao(idDaoTao) {
+        const danhGia = prompt('Đánh giá hiệu quả đào tạo (1-5):', '5');
+        if (danhGia === null) return;
+        const ghiChu = prompt('Ghi chú đánh giá (không bắt buộc):', '') || '';
+
+        fetch('/FormCongViec/HoanTatDaoTao', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idDaoTao, danhGiaHieuQua: parseInt(danhGia) || null, ghiChuDanhGia: ghiChu })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) loadDanhSachDaoTao();
+            else alert('❌ ' + data.message);
+        })
+        .catch(() => alert('❌ Có lỗi xảy ra, vui lòng thử lại.'));
+    }
+
+    async function luuDaoTao() {
+        const tenDaoTao = document.getElementById('dt_TenDaoTao').value.trim();
+        if (!tenDaoTao) {
+            alert('⚠️ Vui lòng nhập tên/chủ đề đào tạo!');
+            return;
+        }
+
+        const btn = document.getElementById('btnLuuDaoTao');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang lưu...';
+
+        const formData = new FormData();
+        formData.append('TenDaoTao', tenDaoTao);
+        formData.append('NguoiDaoTao', document.getElementById('dt_NguoiDaoTao').value.trim());
+        formData.append('NgayDaoTao', document.getElementById('dt_NgayDaoTao').value);
+        formData.append('NoiDungDaoTao', document.getElementById('dt_NoiDungDaoTao').value.trim());
+        danhSachAnhChon.forEach(file => formData.append('AnhBangChung', file));
+        for (const file of document.getElementById('dt_file_TaiLieu').files) formData.append('TaiLieu', file);
+        document.querySelectorAll('.dt-chk-nv:checked').forEach(cb => formData.append('selectedNguoiThamGiaIds', cb.value));
+
+        try {
+            const res = await fetch('/FormCongViec/ThemDaoTao', { method: 'POST', body: formData });
+            const data = await res.json();
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-paper-plane"></i> GỬI ĐỀ XUẤT ĐÀO TẠO';
+
+            if (data.success) {
+                dongModalDaoTao();
+                document.getElementById('dt_TenDaoTao').value = '';
+                document.getElementById('dt_NguoiDaoTao').value = '';
+                document.getElementById('dt_NgayDaoTao').value = '';
+                document.getElementById('dt_NoiDungDaoTao').value = '';
+                document.getElementById('dt_file_Anh').value = '';
+                document.getElementById('dt_file_TaiLieu').value = '';
+                document.querySelectorAll('.dt-chk-nv:checked').forEach(cb => cb.checked = false);
+                document.getElementById('dt_TimNguoiThamDu').value = '';
+                locNguoiThamDu('');
+                danhSachAnhChon = [];
+                renderAnhChonPreview();
+                loadDanhSachDaoTao();
+            } else {
+                alert('❌ ' + data.message);
+            }
+        } catch (err) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-paper-plane"></i> GỬI ĐỀ XUẤT ĐÀO TẠO';
+            alert('❌ Có lỗi xảy ra, vui lòng thử lại.');
+        }
+    }
+
+    async function xoaDaoTao(id) {
+        if (!confirm('Bạn chắc chắn muốn xóa bản ghi đào tạo này?')) return;
+        try {
+            const res = await fetch('/FormCongViec/XoaDaoTao/' + id, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) loadDanhSachDaoTao();
+            else alert('❌ ' + data.message);
+        } catch (err) { alert('❌ Có lỗi xảy ra, vui lòng thử lại.'); }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDanhSachDaoTao);
+</script>

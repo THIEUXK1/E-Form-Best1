@@ -25,6 +25,18 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<BinhLuanFormIt> BinhLuanFormIts { get; set; }
 
+    public virtual DbSet<DaoTao> DaoTaos { get; set; }
+
+    public virtual DbSet<DaoTaoAnh> DaoTaoAnhs { get; set; }
+
+    public virtual DbSet<DaoTaoQuanLyDuyet> DaoTaoQuanLyDuyets { get; set; }
+
+    public virtual DbSet<DaoTaoNguoiThamGia> DaoTaoNguoiThamGias { get; set; }
+
+    public virtual DbSet<DaoTaoTaiLieu> DaoTaoTaiLieus { get; set; }
+
+    public virtual DbSet<LichSuFormDaoTao> LichSuFormDaoTaos { get; set; }
+
     public virtual DbSet<BinhLuanFormShd> BinhLuanFormShds { get; set; }
 
     public virtual DbSet<BoPhan> BoPhans { get; set; }

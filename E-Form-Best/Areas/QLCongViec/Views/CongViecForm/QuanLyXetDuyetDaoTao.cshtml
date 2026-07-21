@@ -1,0 +1,108 @@
+@{
+    ViewData["Title"] = "Duyệt Đào Tạo";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .dxd-hero {
+        background: linear-gradient(135deg, #0b3c5d 0%, #00789c 100%);
+        border-radius: 28px; padding: 30px 38px; margin-bottom: 26px; position: relative; overflow: hidden;
+        box-shadow: 0 20px 40px -12px rgba(11, 60, 93, 0.4);
+        display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+    }
+    .dxd-hero::after {
+        content: ''; position: absolute; right: -40px; top: -40px; width: 200px; height: 200px;
+        background: rgba(255,255,255,0.07); border-radius: 50%;
+    }
+    .dxd-hero-title { color: #fff; font-weight: 900; font-size: 1.5rem; margin: 0; display: flex; align-items: center; gap: 14px; position: relative; z-index: 1; }
+    .dxd-hero-title i { background: rgba(255,255,255,0.15); width: 50px; height: 50px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+    .dxd-back {
+        text-decoration: none; color: #fff; background: rgba(255,255,255,0.15); backdrop-filter: blur(6px);
+        padding: 11px 20px; border-radius: 50px; font-weight: 700; font-size: 0.85rem; position: relative; z-index: 1; transition: 0.2s;
+    }
+    .dxd-back:hover { background: rgba(255,255,255,0.28); }
+
+    .dxd-card {
+        background: white; border-radius: 22px; box-shadow: 0 12px 28px -10px rgba(0,0,0,0.08);
+        border: 1px solid #f1f5f9; padding: 22px; margin-bottom: 16px; display: flex; gap: 16px; align-items: flex-start;
+    }
+    .dxd-icon { width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg, #fffbeb, #fef3c7); color: #b45309; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+    .dxd-meta { font-size: 0.8rem; color: #64748b; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 14px; }
+    .dxd-btn { border: none; padding: 9px 20px; border-radius: 10px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: 0.2s; }
+    .dxd-btn:hover { transform: translateY(-1px); }
+    .dxd-empty {
+        display: none; text-align: center; color: #94a3b8; padding: 60px 20px; background: #fff;
+        border-radius: 22px; border: 1.5px dashed #e2e8f0;
+    }
+    .dxd-empty i { font-size: 3rem; color: #a7f3d0; margin-bottom: 14px; display: block; }
+</style>
+
+<div style="max-width: 1280px; margin: 40px auto; padding: 0 20px;">
+    <div class="dxd-hero">
+        <h2 class="dxd-hero-title"><i class="fa fa-check-square-o"></i> DUYỆT ĐÀO TẠO</h2>
+        <a href="/FormCongViec/DaoTao" class="dxd-back"><i class="fa fa-graduation-cap"></i> Về trang Đào tạo</a>
+    </div>
+
+    <div id="dxdList"></div>
+    <div class="dxd-empty" id="dxdEmpty">
+        <i class="fa fa-check-circle"></i>
+        Không có đề xuất đào tạo nào đang chờ bạn duyệt.
+    </div>
+</div>
+
+<script>
+    async function loadDanhSachXetDuyetDaoTao() {
+        try {
+            const res = await fetch('/FormCongViec/GetQuanLyXetDuyetDaoTaoData');
+            const data = await res.json();
+            const list = (data && data.success) ? (data.data || []) : [];
+            const listEl = document.getElementById('dxdList');
+            const emptyEl = document.getElementById('dxdEmpty');
+
+            if (list.length === 0) {
+                listEl.innerHTML = '';
+                emptyEl.style.display = 'block';
+                return;
+            }
+            emptyEl.style.display = 'none';
+
+            listEl.innerHTML = list.map(item => `<div class="dxd-card">
+                <div class="dxd-icon"><i class="fa fa-graduation-cap"></i></div>
+                <div style="flex:1;">
+                    <div style="font-weight:800; font-size:1rem; color:#1e293b;">${item.tenDaoTao}</div>
+                    <div class="dxd-meta">
+                        ${item.ngayDaoTao ? `<span><i class="fa fa-calendar"></i> ${item.ngayDaoTao}</span>` : ''}
+                        ${item.nguoiDaoTao ? `<span><i class="fa fa-user-o"></i> ${item.nguoiDaoTao}</span>` : ''}
+                        ${item.boPhan ? `<span><i class="fa fa-building-o"></i> ${item.boPhan}</span>` : ''}
+                    </div>
+                    <div style="font-size:0.72rem; color:#94a3b8; margin-top:8px;"><i class="fa fa-user-circle-o"></i> Đề xuất bởi ${item.tenNguoiTao || 'N/A'} · ${item.timeNguoiTao}</div>
+                    <div style="margin-top:14px; display:flex; gap:10px;">
+                        <button onclick="xuLyDuyetDaoTao(${item.id}, true)" class="dxd-btn" style="background:#059669; color:#fff;"><i class="fa fa-check"></i> Duyệt</button>
+                        <button onclick="xuLyDuyetDaoTao(${item.id}, false)" class="dxd-btn" style="background:#ef4444; color:#fff;"><i class="fa fa-times"></i> Từ chối</button>
+                    </div>
+                </div>
+            </div>`).join('');
+        } catch (err) { console.log(err); }
+    }
+
+    function xuLyDuyetDaoTao(idDaoTao, duyet) {
+        const ghiChu = prompt(duyet ? 'Ghi chú khi duyệt (không bắt buộc):' : 'Lý do từ chối:', '') || '';
+        if (!duyet && ghiChu.trim() === '') {
+            if (!confirm('Bạn chưa nhập lý do từ chối, vẫn tiếp tục?')) return;
+        }
+
+        fetch('/FormCongViec/XuLyDuyetDaoTao', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idDaoTao, duyet, ghiChu })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) loadDanhSachXetDuyetDaoTao();
+            else alert('❌ ' + data.message);
+        })
+        .catch(() => alert('❌ Có lỗi xảy ra, vui lòng thử lại.'));
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDanhSachXetDuyetDaoTao);
+</script>
