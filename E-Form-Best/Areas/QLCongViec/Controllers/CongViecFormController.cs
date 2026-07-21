@@ -1697,6 +1697,100 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             return Ok(new { dataList = logs, unreadCount });
         }
 
+        // Xây query đơn "Công việc chỉ định" sắp quá hạn (còn dưới 24h hoặc đã trễ) và CHƯA hoàn tất (IdAdmin == null),
+        // đã lọc theo đúng phạm vi quyền xem của người dùng hiện tại. Dùng chung cho cả API đếm số lượng và API lấy danh sách chi tiết.
+        private IQueryable<FormCongViec> BuildQuerySapQuaHan(int userId, string tenCongTy, string phongBanSession, List<string> listTenBoPhan)
+        {
+            var nguongSapQuaHan = DateTime.Now.AddHours(24);
+
+            var query = _context.FormCongViecs.AsNoTracking()
+                .Where(f => f.Danhmuc == "Công việc chỉ định"
+                         && f.IdAdmin == null
+                         && (f.TenForm == null || !f.TenForm.Contains("[ĐÃ HỦY]"))
+                         && f.CvCongViecOrder1s.Any(o => o.ThoiHanHoanThanh != null && o.ThoiHanHoanThanh <= nguongSapQuaHan));
+
+            if (User.IsInRole("AdminCV") || User.IsInRole("All") || User.IsInRole("AdminIT"))
+            {
+                /* Ban quản trị: xem tất cả đơn sắp quá hạn */
+            }
+            else
+            {
+                query = query.Where(f => f.TenCongTy == tenCongTy);
+
+                if (User.IsInRole("QuanLyDuyetDonCV") || User.IsInRole("QuanLyDuyetDonIT"))
+                {
+                    bool hasPhu = listTenBoPhan.Any();
+                    query = query.Where(f =>
+                        f.IdNguoiTao == userId ||
+                        f.IdNguoiDuyet == userId ||
+                        f.FormCongViecNguoiLienQuans.Any(ct => ct.IdNguoiDung == userId) ||
+                        (hasPhu && f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan)) ||
+                        (!hasPhu && f.BoPhan == phongBanSession)
+                    );
+                }
+                else
+                {
+                    query = query.Where(f =>
+                        f.IdNguoiTao == userId ||
+                        f.FormCongViecNguoiLienQuans.Any(ct => ct.IdNguoiDung == userId));
+                }
+            }
+
+            return query;
+        }
+
+        private (int userId, string tenCongTy, string phongBanSession, List<string> listTenBoPhan) LayThongTinPhanQuyenCV()
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            int userId = string.IsNullOrEmpty(userIdStr) ? 0 : int.Parse(userIdStr);
+            var tenCongTy = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+            var phongBanSession = User.FindFirst("PhongBan")?.Value?.Trim() ?? "";
+
+            var listTenBoPhanStr = User.FindFirst("TenBoPhan")?.Value ?? "";
+            var listTenBoPhan = listTenBoPhanStr.Split(',')
+                                                .Select(s => s.Trim())
+                                                .Where(s => !string.IsNullOrEmpty(s))
+                                                .ToList();
+
+            return (userId, tenCongTy, phongBanSession, listTenBoPhan);
+        }
+
+        // Đếm số đơn sắp quá hạn - dùng để hiện chấm đỏ cảnh báo quyết liệt ở menuA. Độc lập với cookie "đã đọc thông báo",
+        // nên không bị mất dấu chấm đỏ cho tới khi đơn thực sự được xử lý xong hoặc dời hạn.
+        [HttpGet("/FormCongViec/GetSoLuongSapQuaHan")]
+        public async Task<IActionResult> GetSoLuongSapQuaHan()
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+
+            var (userId, tenCongTy, phongBanSession, listTenBoPhan) = LayThongTinPhanQuyenCV();
+            int count = await BuildQuerySapQuaHan(userId, tenCongTy, phongBanSession, listTenBoPhan).CountAsync();
+            return Ok(new { success = true, count });
+        }
+
+        // Lấy danh sách chi tiết đơn sắp quá hạn (kèm tên, thời hạn) để hiện ghim lên đầu danh sách thông báo ở layout.
+        [HttpGet("/FormCongViec/GetDanhSachSapQuaHan")]
+        public async Task<IActionResult> GetDanhSachSapQuaHan()
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+
+            var (userId, tenCongTy, phongBanSession, listTenBoPhan) = LayThongTinPhanQuyenCV();
+
+            var danhSach = await BuildQuerySapQuaHan(userId, tenCongTy, phongBanSession, listTenBoPhan)
+                .Select(f => new
+                {
+                    f.Id,
+                    TenForm = (f.TenForm ?? "").Replace("[ĐÃ HỦY]", "").Trim(),
+                    Ten = f.CvCongViecOrder1s.OrderBy(o => o.ThoiHanHoanThanh).Select(o => o.Ten).FirstOrDefault(),
+                    ThoiHanHoanThanh = f.CvCongViecOrder1s.OrderBy(o => o.ThoiHanHoanThanh).Select(o => o.ThoiHanHoanThanh).FirstOrDefault()
+                })
+                .OrderBy(x => x.ThoiHanHoanThanh)
+                .ToListAsync();
+
+            return Ok(new { success = true, count = danhSach.Count, data = danhSach });
+        }
+
         #endregion
 
         #region BÁO CÁO THỐNG KÊ FORM CÔNG VIỆC
@@ -1708,6 +1802,808 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return Redirect("/DonXetDuyet/DangNhap");
             return View();
+        }
+
+        // Trang Đào tạo: danh sách tài liệu/hướng dẫn sử dụng hệ thống để nhân viên tự học.
+        [HttpGet("/FormCongViec/QuanLyXetDuyetDaoTao")]
+        public IActionResult QuanLyXetDuyetDaoTao()
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Redirect("/DonXetDuyet/DangNhap");
+            return View();
+        }
+
+        [HttpGet("/FormCongViec/DaoTao")]
+        public async Task<IActionResult> DaoTao()
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Redirect("/DonXetDuyet/DangNhap");
+
+            int userId = int.Parse(userIdStr);
+            var currentUser = await _context.Users
+                .Include(u => u.UserBoPhans)
+                .FirstOrDefaultAsync(u => u.IdNguoiDung == userId);
+
+            List<User> danhSachNhanVien = new List<User>();
+            if (currentUser != null)
+            {
+                if (currentUser.UserBoPhans != null && currentUser.UserBoPhans.Any())
+                {
+                    var listIdBoPhanCuaToi = currentUser.UserBoPhans.Select(ub => ub.IdBoPhan).ToList();
+                    danhSachNhanVien = await _context.Users
+                        .Include(u => u.UserBoPhans)
+                        .Where(u => (u.TrangThai == "Đang làm" || u.TrangThai == "HoatDong" || u.TrangThai == null) &&
+                                    u.UserBoPhans.Any(ub => listIdBoPhanCuaToi.Contains(ub.IdBoPhan)))
+                        .OrderBy(u => u.HoTen)
+                        .ToListAsync();
+                }
+                else
+                {
+                    string phongBanThoCuaToi = currentUser.PhongBan?.Trim() ?? "";
+                    danhSachNhanVien = await _context.Users
+                        .Where(u => (u.TrangThai == "Đang làm" || u.TrangThai == "HoatDong" || u.TrangThai == null) &&
+                                    u.PhongBan != null && u.PhongBan == phongBanThoCuaToi)
+                        .OrderBy(u => u.HoTen)
+                        .ToListAsync();
+                }
+            }
+            ViewBag.NguoiThamGiaList = danhSachNhanVien;
+
+            return View();
+        }
+
+        // Danh sách nhật ký các buổi đào tạo đã ghi nhận (mới nhất trước), làm hồ sơ bằng chứng lưu trữ kiểu ISO.
+        // Phạm vi xem: người tạo, người tham dự, người có bước duyệt liên quan, hoặc vai trò quản trị đào tạo/All.
+        [HttpGet("/FormCongViec/GetDanhSachDaoTao")]
+        public async Task<IActionResult> GetDanhSachDaoTao()
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+
+            int userId = int.Parse(userIdStr);
+            var userMa = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+
+            // Cấp mã cuộc họp bù cho các bản ghi tạo trước khi tính năng này ra đời (MaCuocHop còn NULL).
+            var thieuMa = await _context.DaoTaos.Where(x => x.MaCuocHop == null).ToListAsync();
+            if (thieuMa.Count > 0)
+            {
+                foreach (var dt in thieuMa)
+                    dt.MaCuocHop = await TaoMaCuocHopDuyNhatAsync();
+                await _context.SaveChangesAsync();
+            }
+
+            var query = _context.DaoTaos.AsNoTracking();
+
+            if (!(User.IsInRole("AdminDaoTao") || User.IsInRole("All")))
+            {
+                query = query.Where(x =>
+                    x.IdNguoiTao == userId ||
+                    x.DaoTaoNguoiThamGias.Any(tg => tg.IdNguoiDung == userId) ||
+                    x.DaoTaoQuanLyDuyets.Any(d => d.IdnguoiXacNhan == userId || (d.MaNguoiXacNhan != null && d.MaNguoiXacNhan == userMa)));
+            }
+
+            var danhSach = await query
+                .OrderByDescending(x => x.NgayDaoTao)
+                .ThenByDescending(x => x.Id)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.TenDaoTao,
+                    x.NguoiDaoTao,
+                    NgayDaoTao = x.NgayDaoTao.HasValue ? x.NgayDaoTao.Value.ToString("dd/MM/yyyy") : "",
+                    x.NoiDungDaoTao,
+                    x.TrangThai,
+                    x.DanhGiaHieuQua,
+                    x.GhiChuDanhGia,
+                    x.MaCuocHop,
+                    DaKhoaHoSo = x.IdAdmin != null,
+                    DanhSachAnh = x.DaoTaoAnhs.OrderBy(a => a.Id).Select(a => a.TenFile).ToList(),
+                    DanhSachThamGia = x.DaoTaoNguoiThamGias.Select(tg => new
+                    {
+                        tg.Id,
+                        tg.IdNguoiDung,
+                        HoTen = tg.IdNguoiDungNavigation != null ? tg.IdNguoiDungNavigation.HoTen : "N/A",
+                        tg.CoMat,
+                        ThoiGianDiemDanh = tg.ThoiGianDiemDanh.HasValue ? tg.ThoiGianDiemDanh.Value.ToString("dd/MM/yyyy HH:mm") : ""
+                    }).ToList(),
+                    DanhSachTaiLieu = x.DaoTaoTaiLieus.Where(tl => tl.IsCurrent).OrderBy(tl => tl.Id).Select(tl => new
+                    {
+                        tl.Id,
+                        tl.TenFile,
+                        tl.TenGoc,
+                        tl.SoPhienBan
+                    }).ToList(),
+                    x.IdNguoiTao,
+                    x.TenNguoiTao,
+                    TimeNguoiTao = x.TimeNguoiTao.HasValue ? x.TimeNguoiTao.Value.ToString("dd/MM/yyyy HH:mm") : ""
+                })
+                .ToListAsync();
+
+            return Ok(new { success = true, data = danhSach });
+        }
+
+        // Đề xuất một buổi đào tạo mới: TrangThai = ChoDuyet, tự động tạo các bước phê duyệt theo cấu hình định tuyến
+        // dùng chung của toàn hệ thống (DM_NguoiDuyet_LoaiDon_BoPhan, MaLoaiDon = "DaoTao") - giống hệt cách HRFormController
+        // tự gán người duyệt cho các loại đơn HR, để không phải xây lại cơ chế định tuyến riêng.
+        [HttpPost("/FormCongViec/ThemDaoTao")]
+        public async Task<IActionResult> ThemDaoTao(List<int> selectedNguoiThamGiaIds)
+        {
+            try
+            {
+                var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdStr))
+                    return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn!" });
+
+                var tenDaoTao = Request.Form["TenDaoTao"].ToString().Trim();
+                if (string.IsNullOrWhiteSpace(tenDaoTao))
+                    return Json(new { success = false, message = "Vui lòng nhập tên/nội dung đào tạo." });
+
+                var nguoiDaoTao = Request.Form["NguoiDaoTao"].ToString().Trim();
+                var noiDungDaoTao = Request.Form["NoiDungDaoTao"].ToString().Trim();
+                DateOnly? ngayDaoTao = DateOnly.TryParse(Request.Form["NgayDaoTao"], out var ngay) ? ngay : null;
+
+                int userId = int.Parse(userIdStr);
+                var userName = User.Identity?.Name ?? "Unknown";
+                var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+                var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+
+                var danhSachAnhFile = Request.Form.Files.Where(f => f.Name == "AnhBangChung" && f.Length > 0).ToList();
+                var danhSachTaiLieuFile = Request.Form.Files.Where(f => f.Name == "TaiLieu" && f.Length > 0).ToList();
+                if (danhSachAnhFile.Any(f => f.Length > 20 * 1024 * 1024) || danhSachTaiLieuFile.Any(f => f.Length > 20 * 1024 * 1024))
+                    return Json(new { success = false, message = "Mỗi tệp tối đa 20MB." });
+
+                var daoTao = new DaoTao
+                {
+                    TenDaoTao = tenDaoTao,
+                    NguoiDaoTao = string.IsNullOrWhiteSpace(nguoiDaoTao) ? null : nguoiDaoTao,
+                    NgayDaoTao = ngayDaoTao,
+                    NoiDungDaoTao = string.IsNullOrWhiteSpace(noiDungDaoTao) ? null : noiDungDaoTao,
+                    IdNguoiTao = userId,
+                    TenNguoiTao = userName,
+                    TimeNguoiTao = DateTime.Now,
+                    TrangThai = "ChoDuyet",
+                    MaCuocHop = await TaoMaCuocHopDuyNhatAsync(),
+                    BoPhan = phongBan,
+                    TenCongTy = tenCongTy
+                };
+
+                _context.DaoTaos.Add(daoTao);
+                await _context.SaveChangesAsync();
+
+                // --- Người tham dự (chọn từ danh sách nhân viên có sẵn) ---
+                if (selectedNguoiThamGiaIds != null)
+                {
+                    foreach (var idNv in selectedNguoiThamGiaIds.Distinct())
+                    {
+                        _context.DaoTaoNguoiThamGias.Add(new DaoTaoNguoiThamGia
+                        {
+                            IdDaoTao = daoTao.Id,
+                            IdNguoiDung = idNv,
+                            CoMat = false
+                        });
+                    }
+                    await _context.SaveChangesAsync();
+                }
+
+                // --- Tự động tạo các bước phê duyệt theo cấu hình định tuyến chung ---
+                var listDuyetTheoBoPhan = await _context.DmNguoiDuyetLoaiDonBoPhans
+                    .Include(x => x.IdnguoiXacNhanNavigation)
+                    .Where(x => x.IdloaiDonNavigation != null && x.IdloaiDonNavigation.MaLoaiDon == "DaoTao"
+                                && x.IdboPhanNavigation != null && x.IdboPhanNavigation.TenBoPhan == daoTao.BoPhan
+                                && x.IdcongTyNavigation != null && x.IdcongTyNavigation.TenCongTy == daoTao.TenCongTy
+                                && x.TrangThai == true)
+                    .OrderBy(x => x.Stt)
+                    .ToListAsync();
+
+                foreach (var item in listDuyetTheoBoPhan)
+                {
+                    _context.DaoTaoQuanLyDuyets.Add(new DaoTaoQuanLyDuyet
+                    {
+                        IdDaoTao = daoTao.Id,
+                        IdnguoiXacNhan = item.IdnguoiXacNhan,
+                        ThuTuXacNhan = item.Stt,
+                        MaNguoiXacNhan = item.IdnguoiXacNhanNavigation?.MaNv,
+                        TenNguoiXacNhan = item.IdnguoiXacNhanNavigation?.HoTen,
+                        TrangThaiXacNhan = 0,
+                        Loai = item.Loai
+                    });
+                }
+                await _context.SaveChangesAsync();
+
+                // --- Ảnh bằng chứng + tài liệu đính kèm ---
+                await LuuFileDaoTaoAsync(daoTao.Id, danhSachAnhFile, danhSachTaiLieuFile, userId);
+
+                _context.LichSuFormDaoTaos.Add(new LichSuFormDaoTao
+                {
+                    IdDaoTao = daoTao.Id,
+                    TieuDe = "ĐỀ XUẤT ĐÀO TẠO MỚI",
+                    Mota = $"👤 {userName} đã đề xuất buổi đào tạo \"{tenDaoTao}\"" + (listDuyetTheoBoPhan.Any() ? "" : "\n⚠ Chưa cấu hình người duyệt cho bộ phận này."),
+                    Time = DateTime.Now,
+                    IsRead = false
+                });
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Đã gửi đề xuất đào tạo, chờ phê duyệt!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+            }
+        }
+
+        // Sinh mã cuộc họp ngắn, duy nhất, dùng để người tham dự tự nhập điểm danh mà không cần được chọn sẵn.
+        private async Task<string> TaoMaCuocHopDuyNhatAsync()
+        {
+            const string kyTu = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Bỏ ký tự dễ nhầm lẫn (0,O,1,I)
+            var rnd = new Random();
+            string ma;
+            do
+            {
+                ma = new string(Enumerable.Range(0, 6).Select(_ => kyTu[rnd.Next(kyTu.Length)]).ToArray());
+            }
+            while (await _context.DaoTaos.AnyAsync(x => x.MaCuocHop == ma));
+            return ma;
+        }
+
+        // Người tham dự tự nhập mã cuộc họp để điểm danh - không cần được thêm sẵn vào danh sách tham dự,
+        // nếu chưa có sẽ tự thêm mới; đơn giản hóa việc điểm danh cho các buổi đông người/không lên danh sách trước.
+        [HttpPost("/FormCongViec/ThamGiaDaoTaoBangMa")]
+        public async Task<IActionResult> ThamGiaDaoTaoBangMa([FromBody] System.Text.Json.JsonElement body)
+        {
+            try
+            {
+                var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdStr))
+                    return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn!" });
+                int userId = int.Parse(userIdStr);
+                var userName = User.Identity?.Name ?? "";
+
+                string maCuocHop = (body.TryGetProperty("maCuocHop", out var m) ? m.GetString() : null)?.Trim().ToUpper() ?? "";
+                if (string.IsNullOrWhiteSpace(maCuocHop))
+                    return Json(new { success = false, message = "Vui lòng nhập mã cuộc họp." });
+
+                var daoTao = await _context.DaoTaos
+                    .Include(x => x.DaoTaoNguoiThamGias)
+                    .FirstOrDefaultAsync(x => x.MaCuocHop == maCuocHop);
+                if (daoTao == null)
+                    return Json(new { success = false, message = "Mã cuộc họp không đúng hoặc không tồn tại." });
+
+                var loi = TuDiemDanh(daoTao, userId, userName, "qua mã cuộc họp");
+                if (loi != null) return Json(new { success = false, message = loi });
+
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = $"Đã điểm danh tham gia buổi \"{daoTao.TenDaoTao}\"!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+            }
+        }
+
+        // Người đang xem trang tự bấm 1 nút để điểm danh ngay cho đúng buổi đào tạo đó - không cần gõ mã,
+        // nhanh hơn cho trường hợp đang trực tiếp mở app xem danh sách (mã cuộc họp vẫn hữu ích cho người không có sẵn app/link).
+        [HttpPost("/FormCongViec/TuDiemDanhDaoTao")]
+        public async Task<IActionResult> TuDiemDanhDaoTao([FromBody] System.Text.Json.JsonElement body)
+        {
+            try
+            {
+                var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdStr))
+                    return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn!" });
+                int userId = int.Parse(userIdStr);
+                var userName = User.Identity?.Name ?? "";
+
+                int idDaoTao = body.GetProperty("idDaoTao").GetInt32();
+                var daoTao = await _context.DaoTaos
+                    .Include(x => x.DaoTaoNguoiThamGias)
+                    .FirstOrDefaultAsync(x => x.Id == idDaoTao);
+                if (daoTao == null)
+                    return Json(new { success = false, message = "Không tìm thấy bản ghi đào tạo." });
+
+                var loi = TuDiemDanh(daoTao, userId, userName, "trực tiếp trên trang");
+                if (loi != null) return Json(new { success = false, message = loi });
+
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = "Đã ghi nhận bạn tham gia buổi đào tạo này!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+            }
+        }
+
+        // Logic dùng chung cho điểm danh bằng mã và tự điểm danh trực tiếp: kiểm tra trạng thái hợp lệ,
+        // tìm hoặc tạo mới dòng người tham dự, đánh dấu có mặt, ghi lịch sử. Trả về null nếu thành công, hoặc thông báo lỗi.
+        private string? TuDiemDanh(DaoTao daoTao, int userId, string userName, string kenh)
+        {
+            if (daoTao.TrangThai == "Huy") return "Buổi đào tạo này đã bị hủy.";
+            if (daoTao.IdAdmin != null) return "Hồ sơ đã hoàn tất, không thể điểm danh thêm.";
+
+            var thamGia = daoTao.DaoTaoNguoiThamGias.FirstOrDefault(tg => tg.IdNguoiDung == userId);
+            if (thamGia == null)
+            {
+                thamGia = new DaoTaoNguoiThamGia { IdDaoTao = daoTao.Id, IdNguoiDung = userId };
+                _context.DaoTaoNguoiThamGias.Add(thamGia);
+            }
+            thamGia.CoMat = true;
+            thamGia.ThoiGianDiemDanh = DateTime.Now;
+
+            _context.LichSuFormDaoTaos.Add(new LichSuFormDaoTao
+            {
+                IdDaoTao = daoTao.Id,
+                TieuDe = "ĐIỂM DANH",
+                Mota = $"👤 {userName} đã điểm danh tham gia ({kenh}).",
+                Time = DateTime.Now,
+                IsRead = false
+            });
+
+            return null;
+        }
+
+        // Bổ sung thêm ảnh bằng chứng vào một buổi đào tạo đã tạo trước đó (cho phép tải nhiều ảnh, nhiều lần,
+        // miễn hồ sơ chưa hoàn tất/khóa) - dùng chung LuuFileDaoTaoAsync với ThemDaoTao để không lặp code lưu file.
+        [HttpPost("/FormCongViec/ThemAnhDaoTao")]
+        public async Task<IActionResult> ThemAnhDaoTao(int idDaoTao)
+        {
+            try
+            {
+                var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdStr))
+                    return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn!" });
+                int userId = int.Parse(userIdStr);
+                var userName = User.Identity?.Name ?? "";
+
+                var daoTao = await _context.DaoTaos.FindAsync(idDaoTao);
+                if (daoTao == null) return Json(new { success = false, message = "Không tìm thấy bản ghi đào tạo." });
+                if (daoTao.IdAdmin != null) return Json(new { success = false, message = "Hồ sơ đã hoàn tất, không thể thêm ảnh." });
+
+                var danhSachAnhFile = Request.Form.Files.Where(f => f.Name == "AnhBangChung" && f.Length > 0).ToList();
+                if (!danhSachAnhFile.Any()) return Json(new { success = false, message = "Vui lòng chọn ít nhất 1 ảnh." });
+                if (danhSachAnhFile.Any(f => f.Length > 20 * 1024 * 1024))
+                    return Json(new { success = false, message = "Mỗi ảnh tối đa 20MB." });
+
+                await LuuFileDaoTaoAsync(idDaoTao, danhSachAnhFile, new List<IFormFile>(), userId);
+
+                _context.LichSuFormDaoTaos.Add(new LichSuFormDaoTao
+                {
+                    IdDaoTao = idDaoTao,
+                    TieuDe = "BỔ SUNG ẢNH BẰNG CHỨNG",
+                    Mota = $"👤 {userName} đã tải thêm {danhSachAnhFile.Count} ảnh bằng chứng.",
+                    Time = DateTime.Now,
+                    IsRead = false
+                });
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Đã thêm ảnh bằng chứng!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+            }
+        }
+
+        // Lưu file (ảnh bằng chứng + tài liệu) lên fileserver chung của hệ thống - dùng chung cho tạo mới và bổ sung sau.
+        private async Task LuuFileDaoTaoAsync(int idDaoTao, List<IFormFile> danhSachAnhFile, List<IFormFile> danhSachTaiLieuFile, int? idNguoiUpload)
+        {
+            string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DaoTao";
+            if ((danhSachAnhFile.Any() || danhSachTaiLieuFile.Any()) && !Directory.Exists(networkPath))
+                Directory.CreateDirectory(networkPath);
+
+            foreach (var anhFile in danhSachAnhFile)
+            {
+                string ext = Path.GetExtension(anhFile.FileName);
+                if (string.IsNullOrEmpty(ext)) ext = ".jpg";
+                string fileName = $"AnhDaoTao_{idDaoTao}_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString().Substring(0, 8)}{ext}";
+                using (var stream = new FileStream(Path.Combine(networkPath, fileName), FileMode.Create))
+                    await anhFile.CopyToAsync(stream);
+
+                _context.DaoTaoAnhs.Add(new DaoTaoAnh { IdDaoTao = idDaoTao, TenFile = fileName, TimeUpload = DateTime.Now });
+            }
+
+            foreach (var tlFile in danhSachTaiLieuFile)
+            {
+                string ext = Path.GetExtension(tlFile.FileName);
+                string fileName = $"TaiLieuDaoTao_{idDaoTao}_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString().Substring(0, 8)}{ext}";
+                using (var stream = new FileStream(Path.Combine(networkPath, fileName), FileMode.Create))
+                    await tlFile.CopyToAsync(stream);
+
+                _context.DaoTaoTaiLieus.Add(new DaoTaoTaiLieu
+                {
+                    IdDaoTao = idDaoTao,
+                    TenFile = fileName,
+                    TenGoc = tlFile.FileName,
+                    SoPhienBan = 1,
+                    IsCurrent = true,
+                    TimeUpload = DateTime.Now,
+                    IdNguoiUpload = idNguoiUpload
+                });
+            }
+
+            if (danhSachAnhFile.Any() || danhSachTaiLieuFile.Any())
+                await _context.SaveChangesAsync();
+        }
+
+        // Hàng đợi phê duyệt đào tạo của người dùng hiện tại (những buổi đào tạo đang chờ CHÍNH người này duyệt).
+        [HttpGet("/FormCongViec/GetQuanLyXetDuyetDaoTaoData")]
+        public async Task<IActionResult> GetQuanLyXetDuyetDaoTaoData()
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+
+            int userId = int.Parse(userIdStr);
+            var userMa = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+            bool isAdmin = User.IsInRole("AdminDaoTao") || User.IsInRole("All");
+
+            var query = _context.DaoTaos.AsNoTracking().Where(x => x.TrangThai == "ChoDuyet");
+
+            if (!isAdmin)
+            {
+                query = query.Where(x => x.DaoTaoQuanLyDuyets.Any(d =>
+                    d.TrangThaiXacNhan == 0 && (d.IdnguoiXacNhan == userId || (d.MaNguoiXacNhan != null && d.MaNguoiXacNhan == userMa))));
+            }
+
+            var danhSach = await query
+                .OrderByDescending(x => x.Id)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.TenDaoTao,
+                    x.NguoiDaoTao,
+                    NgayDaoTao = x.NgayDaoTao.HasValue ? x.NgayDaoTao.Value.ToString("dd/MM/yyyy") : "",
+                    x.BoPhan,
+                    x.TenNguoiTao,
+                    TimeNguoiTao = x.TimeNguoiTao.HasValue ? x.TimeNguoiTao.Value.ToString("dd/MM/yyyy HH:mm") : ""
+                })
+                .ToListAsync();
+
+            return Ok(new { success = true, data = danhSach });
+        }
+
+        // Duyệt/từ chối 1 bước phê duyệt đào tạo. Hỗ trợ AND (mặc định, phải đủ tất cả người duyệt cùng bước)
+        // và OR/ANY (chỉ cần 1 người duyệt là đủ) qua field Loai - đúng logic đã dùng cho HR_QuanLyDuyetB2.
+        [HttpPost("/FormCongViec/XuLyDuyetDaoTao")]
+        public async Task<IActionResult> XuLyDuyetDaoTao([FromBody] System.Text.Json.JsonElement body)
+        {
+            try
+            {
+                var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdStr))
+                    return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn!" });
+
+                int userId = int.Parse(userIdStr);
+                var userMa = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+                var userName = User.Identity?.Name ?? "";
+
+                int idDaoTao = body.GetProperty("idDaoTao").GetInt32();
+                bool duyet = body.GetProperty("duyet").GetBoolean();
+                string ghiChu = body.TryGetProperty("ghiChu", out var gc) ? gc.GetString() ?? "" : "";
+
+                var daoTao = await _context.DaoTaos
+                    .Include(x => x.DaoTaoQuanLyDuyets)
+                    .FirstOrDefaultAsync(x => x.Id == idDaoTao);
+                if (daoTao == null) return Json(new { success = false, message = "Không tìm thấy đề xuất đào tạo." });
+                if (daoTao.IdAdmin != null) return Json(new { success = false, message = "Hồ sơ đã hoàn tất, không thể thay đổi." });
+                if (daoTao.TrangThai != "ChoDuyet") return Json(new { success = false, message = "Đề xuất này không còn ở trạng thái chờ duyệt." });
+
+                var buoc = daoTao.DaoTaoQuanLyDuyets.FirstOrDefault(d =>
+                    d.TrangThaiXacNhan == 0 && (d.IdnguoiXacNhan == userId || (d.MaNguoiXacNhan != null && d.MaNguoiXacNhan == userMa)));
+
+                bool isAdmin = User.IsInRole("AdminDaoTao") || User.IsInRole("All");
+                if (buoc == null && !isAdmin)
+                    return Json(new { success = false, message = "Bạn không có bước phê duyệt nào đang chờ cho đề xuất này." });
+
+                if (buoc != null)
+                {
+                    buoc.TrangThaiXacNhan = duyet ? 1 : 2;
+                    buoc.ThoiGianXacNhan = DateTime.Now;
+                    buoc.GhiChu = ghiChu;
+                }
+
+                if (!duyet)
+                {
+                    daoTao.TrangThai = "Huy";
+                }
+                else
+                {
+                    bool laOR = string.Equals(buoc?.Loai, "OR", StringComparison.OrdinalIgnoreCase) || string.Equals(buoc?.Loai, "ANY", StringComparison.OrdinalIgnoreCase);
+                    bool daDuDieuKien = laOR
+                        ? daoTao.DaoTaoQuanLyDuyets.Any(d => d.TrangThaiXacNhan == 1)
+                        : daoTao.DaoTaoQuanLyDuyets.All(d => d.TrangThaiXacNhan == 1);
+
+                    if (daoTao.DaoTaoQuanLyDuyets.Any(d => d.TrangThaiXacNhan == 2))
+                    {
+                        daoTao.TrangThai = "Huy";
+                    }
+                    else if (daDuDieuKien || !daoTao.DaoTaoQuanLyDuyets.Any())
+                    {
+                        daoTao.TrangThai = "DaDuyet";
+                        daoTao.IdNguoiDuyet = userId;
+                        daoTao.TenNguoiDuyet = userName;
+                        daoTao.TimeNguoiDuyet = DateTime.Now;
+                    }
+                }
+
+                _context.LichSuFormDaoTaos.Add(new LichSuFormDaoTao
+                {
+                    IdDaoTao = idDaoTao,
+                    TieuDe = duyet ? "ĐÃ DUYỆT ĐÀO TẠO" : "ĐÃ TỪ CHỐI ĐÀO TẠO",
+                    Mota = $"👤 {userName}: {(duyet ? "Duyệt" : "Từ chối")}" + (string.IsNullOrWhiteSpace(ghiChu) ? "" : $"\n📝 {ghiChu}"),
+                    Time = DateTime.Now,
+                    IsRead = false
+                });
+
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = duyet ? "Đã duyệt đề xuất đào tạo!" : "Đã từ chối đề xuất đào tạo." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+            }
+        }
+
+        // Điểm danh người tham dự - chỉ áp dụng khi hồ sơ chưa hoàn tất/khóa.
+        [HttpPost("/FormCongViec/DiemDanhDaoTao")]
+        public async Task<IActionResult> DiemDanhDaoTao([FromBody] System.Text.Json.JsonElement body)
+        {
+            try
+            {
+                int idThamGia = body.GetProperty("idThamGia").GetInt32();
+                bool coMat = body.GetProperty("coMat").GetBoolean();
+
+                var thamGia = await _context.DaoTaoNguoiThamGias
+                    .Include(x => x.IdDaoTaoNavigation)
+                    .FirstOrDefaultAsync(x => x.Id == idThamGia);
+                if (thamGia == null) return Json(new { success = false, message = "Không tìm thấy người tham dự." });
+                if (thamGia.IdDaoTaoNavigation.IdAdmin != null)
+                    return Json(new { success = false, message = "Hồ sơ đã hoàn tất, không thể điểm danh thêm." });
+
+                thamGia.CoMat = coMat;
+                thamGia.ThoiGianDiemDanh = coMat ? DateTime.Now : null;
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+            }
+        }
+
+        // Bổ sung tài liệu đào tạo sau khi tạo (có version: nếu truyền idTaiLieuThayThe thì đánh dấu bản cũ hết hiệu lực).
+        [HttpPost("/FormCongViec/ThemTaiLieuDaoTao")]
+        public async Task<IActionResult> ThemTaiLieuDaoTao(int idDaoTao, int? idTaiLieuThayThe)
+        {
+            try
+            {
+                var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdStr))
+                    return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn!" });
+                int userId = int.Parse(userIdStr);
+
+                var daoTao = await _context.DaoTaos.FindAsync(idDaoTao);
+                if (daoTao == null) return Json(new { success = false, message = "Không tìm thấy bản ghi đào tạo." });
+                if (daoTao.IdAdmin != null) return Json(new { success = false, message = "Hồ sơ đã hoàn tất, không thể thêm tài liệu." });
+
+                var file = Request.Form.Files.GetFile("TaiLieu");
+                if (file == null || file.Length == 0) return Json(new { success = false, message = "Vui lòng chọn tệp tài liệu." });
+                if (file.Length > 20 * 1024 * 1024) return Json(new { success = false, message = "Tệp tối đa 20MB." });
+
+                int soPhienBanMoi = 1;
+                if (idTaiLieuThayThe.HasValue)
+                {
+                    var taiLieuCu = await _context.DaoTaoTaiLieus.FindAsync(idTaiLieuThayThe.Value);
+                    if (taiLieuCu != null && taiLieuCu.IdDaoTao == idDaoTao)
+                    {
+                        taiLieuCu.IsCurrent = false;
+                        soPhienBanMoi = taiLieuCu.SoPhienBan + 1;
+                    }
+                }
+
+                string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DaoTao";
+                if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
+                string ext = Path.GetExtension(file.FileName);
+                string fileName = $"TaiLieuDaoTao_{idDaoTao}_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString().Substring(0, 8)}{ext}";
+                using (var stream = new FileStream(Path.Combine(networkPath, fileName), FileMode.Create))
+                    await file.CopyToAsync(stream);
+
+                _context.DaoTaoTaiLieus.Add(new DaoTaoTaiLieu
+                {
+                    IdDaoTao = idDaoTao,
+                    TenFile = fileName,
+                    TenGoc = file.FileName,
+                    SoPhienBan = soPhienBanMoi,
+                    IsCurrent = true,
+                    TimeUpload = DateTime.Now,
+                    IdNguoiUpload = userId
+                });
+
+                _context.LichSuFormDaoTaos.Add(new LichSuFormDaoTao
+                {
+                    IdDaoTao = idDaoTao,
+                    TieuDe = idTaiLieuThayThe.HasValue ? "CẬP NHẬT PHIÊN BẢN TÀI LIỆU" : "THÊM TÀI LIỆU ĐÀO TẠO",
+                    Mota = $"📎 {file.FileName} (phiên bản {soPhienBanMoi})",
+                    Time = DateTime.Now,
+                    IsRead = false
+                });
+
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = "Đã lưu tài liệu!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+            }
+        }
+
+        // Đánh dấu hoàn tất + khóa hồ sơ đào tạo - chỉ vai trò AdminDaoTao/All, và chỉ khi đã được duyệt.
+        [HttpPost("/FormCongViec/HoanTatDaoTao")]
+        public async Task<IActionResult> HoanTatDaoTao([FromBody] System.Text.Json.JsonElement body)
+        {
+            try
+            {
+                if (!(User.IsInRole("AdminDaoTao") || User.IsInRole("All")))
+                    return Json(new { success = false, message = "Bạn không có quyền hoàn tất hồ sơ đào tạo." });
+
+                var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdStr))
+                    return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn!" });
+                int userId = int.Parse(userIdStr);
+                var userName = User.Identity?.Name ?? "";
+
+                int idDaoTao = body.GetProperty("idDaoTao").GetInt32();
+                int? danhGia = body.TryGetProperty("danhGiaHieuQua", out var dg) && dg.ValueKind != System.Text.Json.JsonValueKind.Null ? dg.GetInt32() : null;
+                string ghiChu = body.TryGetProperty("ghiChuDanhGia", out var gc) ? gc.GetString() ?? "" : "";
+
+                var daoTao = await _context.DaoTaos.FindAsync(idDaoTao);
+                if (daoTao == null) return Json(new { success = false, message = "Không tìm thấy bản ghi đào tạo." });
+                if (daoTao.IdAdmin != null) return Json(new { success = false, message = "Hồ sơ đã được hoàn tất trước đó." });
+                if (daoTao.TrangThai != "DaDuyet") return Json(new { success = false, message = "Chỉ có thể hoàn tất sau khi đề xuất đã được duyệt." });
+
+                daoTao.IdAdmin = userId;
+                daoTao.TenAdmin = userName;
+                daoTao.TimeAdmin = DateTime.Now;
+                daoTao.TrangThai = "DaHoanTat";
+                daoTao.DanhGiaHieuQua = danhGia;
+                daoTao.GhiChuDanhGia = string.IsNullOrWhiteSpace(ghiChu) ? null : ghiChu;
+
+                _context.LichSuFormDaoTaos.Add(new LichSuFormDaoTao
+                {
+                    IdDaoTao = idDaoTao,
+                    TieuDe = "HOÀN TẤT HỒ SƠ ĐÀO TẠO",
+                    Mota = $"👤 {userName} đã hoàn tất và khóa hồ sơ." + (danhGia.HasValue ? $"\n⭐ Đánh giá hiệu quả: {danhGia}/5" : ""),
+                    Time = DateTime.Now,
+                    IsRead = false
+                });
+
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = "Đã hoàn tất và khóa hồ sơ đào tạo!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+            }
+        }
+
+        // Sửa nội dung buổi đào tạo (tên, người đào tạo, ngày, nội dung) - chỉ người tạo hoặc Admin,
+        // và chỉ khi hồ sơ chưa hoàn tất/khóa (khớp nguyên tắc "không sửa hồ sơ đã duyệt tùy tiện").
+        [HttpPost("/FormCongViec/SuaDaoTao")]
+        public async Task<IActionResult> SuaDaoTao([FromBody] System.Text.Json.JsonElement body)
+        {
+            try
+            {
+                var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdStr))
+                    return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn!" });
+                int userId = int.Parse(userIdStr);
+                var userName = User.Identity?.Name ?? "";
+
+                int idDaoTao = body.GetProperty("idDaoTao").GetInt32();
+                var daoTao = await _context.DaoTaos.FindAsync(idDaoTao);
+                if (daoTao == null) return Json(new { success = false, message = "Không tìm thấy bản ghi đào tạo." });
+
+                bool isOwner = daoTao.IdNguoiTao == userId;
+                bool isAdmin = User.IsInRole("AdminDaoTao") || User.IsInRole("All");
+                if (!isOwner && !isAdmin)
+                    return Json(new { success = false, message = "Bạn không có quyền sửa bản ghi đào tạo này." });
+                if (daoTao.IdAdmin != null)
+                    return Json(new { success = false, message = "Hồ sơ đã hoàn tất/khóa, không thể sửa." });
+
+                string tenDaoTao = body.TryGetProperty("tenDaoTao", out var td) ? (td.GetString() ?? "").Trim() : "";
+                if (string.IsNullOrWhiteSpace(tenDaoTao))
+                    return Json(new { success = false, message = "Vui lòng nhập tên/chủ đề đào tạo." });
+
+                string nguoiDaoTao = body.TryGetProperty("nguoiDaoTao", out var nd) ? (nd.GetString() ?? "").Trim() : "";
+                string noiDungDaoTao = body.TryGetProperty("noiDungDaoTao", out var ndd) ? (ndd.GetString() ?? "").Trim() : "";
+                DateOnly? ngayDaoTao = body.TryGetProperty("ngayDaoTao", out var ngd) && DateOnly.TryParse(ngd.GetString(), out var ngayParsed) ? ngayParsed : null;
+
+                daoTao.TenDaoTao = tenDaoTao;
+                daoTao.NguoiDaoTao = string.IsNullOrWhiteSpace(nguoiDaoTao) ? null : nguoiDaoTao;
+                daoTao.NgayDaoTao = ngayDaoTao;
+                daoTao.NoiDungDaoTao = string.IsNullOrWhiteSpace(noiDungDaoTao) ? null : noiDungDaoTao;
+
+                _context.LichSuFormDaoTaos.Add(new LichSuFormDaoTao
+                {
+                    IdDaoTao = idDaoTao,
+                    TieuDe = "CẬP NHẬT NỘI DUNG ĐÀO TẠO",
+                    Mota = $"👤 {userName} đã chỉnh sửa thông tin buổi đào tạo.",
+                    Time = DateTime.Now,
+                    IsRead = false
+                });
+
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = "Đã lưu thay đổi!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+            }
+        }
+
+        // Xóa một bản ghi đào tạo - chỉ người tạo hoặc Admin, và không cho xóa hồ sơ đã hoàn tất/khóa.
+        [HttpPost("/FormCongViec/XoaDaoTao/{id}")]
+        public async Task<IActionResult> XoaDaoTao(int id)
+        {
+            try
+            {
+                var daoTao = await _context.DaoTaos.FindAsync(id);
+                if (daoTao == null)
+                    return Json(new { success = false, message = "Bản ghi đào tạo không tồn tại hoặc đã bị xóa trước đó." });
+
+                var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdStr))
+                    return Json(new { success = false, message = "Bạn cần đăng nhập để thực hiện thao tác này." });
+
+                int userId = int.Parse(userIdStr);
+                bool isOwner = daoTao.IdNguoiTao == userId;
+                bool isAdmin = User.IsInRole("AdminDaoTao") || User.IsInRole("All");
+
+                if (!isOwner && !isAdmin)
+                    return Json(new { success = false, message = "Bạn không có quyền xóa bản ghi đào tạo này." });
+
+                if (daoTao.IdAdmin != null)
+                    return Json(new { success = false, message = "Hồ sơ đã hoàn tất/khóa, không thể xóa." });
+
+                _context.DaoTaos.Remove(daoTao);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Đã xóa bản ghi đào tạo thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+            }
+        }
+
+        // Tải/hiển thị ảnh bằng chứng đào tạo từ fileserver chung.
+        [HttpGet("/FormCongViec/DownloadDaoTaoFile/{fileName}")]
+        public async Task<IActionResult> DownloadDaoTaoFile(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) return NotFound();
+
+            string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DaoTao";
+            string fullPath = Path.Combine(networkPath, fileName);
+
+            if (!System.IO.File.Exists(fullPath))
+                return NotFound("Ảnh bằng chứng không tồn tại.");
+
+            var memory = new MemoryStream();
+            using (var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
+            {
+                await stream.CopyToAsync(memory);
+            }
+            memory.Position = 0;
+
+            string ext = Path.GetExtension(fileName).ToLowerInvariant();
+            string contentType = ext switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                _ => "application/octet-stream"
+            };
+
+            return File(memory, contentType);
         }
 
         // 2. API KẾT XUẤT DỮ LIỆU TỔNG QUAN (DÀNH CHO BIỂU ĐỒ TRẠNG THÁI, PHÒNG BAN, DANH MỤC, MÃ FORM)

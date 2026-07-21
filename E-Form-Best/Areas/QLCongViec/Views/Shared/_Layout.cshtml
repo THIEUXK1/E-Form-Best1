@@ -20,7 +20,9 @@
                            currentAction != "LichSuCongViec" &&
                            currentAction != "HoanTatDonChiDinh" &&
                            currentAction != "LichCongViec" &&
-                           currentAction != "BaoCaoThongKeCongViec";
+                           currentAction != "BaoCaoThongKeCongViec" &&
+                           currentAction != "DaoTao" &&
+                           currentAction != "QuanLyXetDuyetDaoTao";
 
     // CẬP NHẬT MÀU SẮC 2026: Gần giống IT nhưng mang bản sắc riêng (Deep Ocean Blue phối Teal)
     string primaryGradient = "linear-gradient(180deg, #071e3d 0%, #0b3c5d 100%)"; // Tone xanh biển sâu tinh tế, khác biệt với Navy của IT
@@ -192,6 +194,23 @@
                 }
             }
 
+            /* Cảnh báo quyết liệt cho chuông thông báo khi có đơn Công việc sắp quá hạn - to hơn, nhanh hơn pulseDot thường */
+            @@keyframes bellUrgentPulse {
+                0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.85), 0 4px 15px rgba(0,0,0,0.06); border-color: #ef4444; }
+                50% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0), 0 4px 15px rgba(0,0,0,0.06); border-color: #ef4444; }
+                100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), 0 4px 15px rgba(0,0,0,0.06); border-color: #ef4444; }
+            }
+            #notiBell.urgent {
+                animation: bellUrgentPulse 0.9s infinite;
+                color: #ef4444 !important;
+            }
+
+            @@keyframes bannerUrgentPulse {
+                0% { box-shadow: 0 8px 20px rgba(239,68,68,0.4); transform: scale(1); }
+                50% { box-shadow: 0 8px 28px rgba(239,68,68,0.7); transform: scale(1.03); }
+                100% { box-shadow: 0 8px 20px rgba(239,68,68,0.4); transform: scale(1); }
+            }
+
             .lang-item {
                 padding: 12px 18px;
                 display: flex;
@@ -347,6 +366,10 @@
                             <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text">Nhật ký hệ thống</span>
                         </a>
 
+                        <a href="/FormCongViec/DaoTao" class="nav-link-item @(currentAction == "DaoTao" ? "active" : "")">
+                            <i class="fa fa-graduation-cap" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text">Đào tạo</span>
+                        </a>
+
                         @if (User.Claims.Any(c => c.Type == System.Security.Claims.ClaimTypes.Role) || User.IsInRole("All"))
                         {
                             <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
@@ -364,6 +387,13 @@
                             <a href="/FormCongViec/BaoCaoThongKeCongViec" class="nav-link-item @(currentAction == "BaoCaoThongKeCongViec" ? "active" : "")">
                                 <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> <span class="lang-text">Thống kê đơn</span>
                             </a>
+
+                            @if (User.IsInRole("QuanLyDuyetDonDaoTao") || User.IsInRole("AdminDaoTao") || User.IsInRole("All"))
+                            {
+                                <a href="/FormCongViec/QuanLyXetDuyetDaoTao" class="nav-link-item @(currentAction == "QuanLyXetDuyetDaoTao" ? "active" : "")">
+                                    <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text">Duyệt đào tạo</span>
+                                </a>
+                            }
                         }
                     }
                 }
@@ -477,6 +507,11 @@
                             </div>
                             <i class="fa fa-times" onclick="this.parentElement.parentElement.style.display='none'" style="cursor: pointer; margin-left: 8px; opacity: 0.7;"></i>
                         </div>
+                    </div>
+
+                    <div id="sapQuaHanBanner" onclick="if (sapQuaHanItems[0]) window.location.href = '/FormCongViec/ChiTiet/' + sapQuaHanItems[0].id;" style="display: none; align-items: center; gap: 10px; white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 0.82rem; font-weight: 700; box-shadow: 0 8px 20px rgba(239,68,68,0.4); cursor: pointer; animation: bannerUrgentPulse 1.4s infinite;">
+                        <i class="fa fa-exclamation-triangle"></i>
+                        <span id="sapQuaHanBannerText" style="overflow: hidden; text-overflow: ellipsis;">Đơn sắp quá hạn</span>
                     </div>
 
                     <div id="notiBell" style="width: 48px; height: 48px; background: #fff; border-radius: 15px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; color: #64748b; position: relative; transition: 0.2s;">
@@ -732,6 +767,7 @@
         let isLoading = false;
         let hasMoreData = true;
         let allFetchedIds = [];
+        let sapQuaHanItems = [];
 
         const notiBell = document.getElementById('notiBell');
         const notiDrop = document.getElementById('notificationDropdown');
@@ -805,12 +841,100 @@
         }).join('');
 
         if (isOpen && notiList) {
-        if (isLoadMore) notiList.insertAdjacentHTML('beforeend', html);
-        else notiList.innerHTML = html;
+        if (isLoadMore) {
+        notiList.insertAdjacentHTML('beforeend', html);
+        } else {
+        notiList.innerHTML = buildSapQuaHanHtml() + html;
+        }
         }
         currentSkip += listItems.length;
         if (listItems.length < take) hasMoreData = false;
         } catch (err) { } finally { isLoading = false; }
+        }
+
+        // Dựng HTML các mục "SẮP QUÁ HẠN" ghim cố định lên đầu danh sách thông báo - tách biệt khỏi lịch sử thông báo thường
+        // Đếm chi tiết tới từng giây (không làm tròn giờ) để phản ánh đúng "còn bao lâu" theo thời gian thực.
+        function tinhThoiGianConLai(item) {
+        const han = new Date(item.thoiHanHoanThanh);
+        const diffMs = han.getTime() - Date.now();
+        const isTre = diffMs < 0;
+        const tongGiay = Math.floor(Math.abs(diffMs) / 1000);
+        const ngay = Math.floor(tongGiay / 86400);
+        const gio = Math.floor((tongGiay % 86400) / 3600);
+        const phut = Math.floor((tongGiay % 3600) / 60);
+        const giay = tongGiay % 60;
+        const phanNgay = ngay > 0 ? `${ngay}ngày ` : '';
+        const chuoi = `${phanNgay}${String(gio).padStart(2, '0')}h ${String(phut).padStart(2, '0')}p ${String(giay).padStart(2, '0')}s`;
+        return isTre ? `Đã trễ ${chuoi}` : `Còn ${chuoi}`;
+        }
+
+        function buildSapQuaHanHtml() {
+        if (!sapQuaHanItems || sapQuaHanItems.length === 0) return '';
+        return sapQuaHanItems.map(item => {
+        const tenViec = item.ten || item.tenForm || 'Công việc chỉ định';
+        return `<a href="/FormCongViec/ChiTiet/${item.id}" data-sapquahan-pin="1" style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:2px solid #fecaca; background: #fef2f2; color: inherit;">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: #ef4444; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.1rem;"><i class="fa fa-exclamation-triangle"></i></div>
+        <div style="flex:1;">
+        <div style="font-size: 0.7rem; font-weight: 900; color: #dc2626; text-transform: uppercase; letter-spacing: 0.5px;">Sắp quá hạn</div>
+        <div style="font-size: 0.88rem; font-weight: 800; color: #1e293b;">${tenViec}</div>
+        <div style="font-size: 0.75rem; color: #dc2626; font-weight: 700; margin-top: 4px;"><i class="fa fa-clock-o"></i> <span class="sqh-countdown" data-sqh-id="${item.id}">${tinhThoiGianConLai(item)}</span> - cần xử lý gấp!</div>
+        </div></a>`;
+        }).join('');
+        }
+
+        // Cảnh báo quyết liệt ngay trên chuông (ngoài dropdown) khi có đơn Công việc chỉ định sắp quá hạn/đã trễ hạn.
+        // Tách biệt với cookie "đã đọc" nên không tự mất khi người dùng đã xem, chỉ tắt khi đơn được xử lý xong/dời hạn.
+        // Tự kiểm tra lại định kỳ để cảnh báo liên tục trong lúc mở trang.
+        async function checkSapQuaHanLayout() {
+        try {
+        const res = await fetch('/FormCongViec/GetDanhSachSapQuaHan');
+        const data = await res.json();
+        sapQuaHanItems = (data && data.success) ? (data.data || []) : [];
+
+        if (notiBell) {
+        if (sapQuaHanItems.length > 0) notiBell.classList.add('urgent');
+        else notiBell.classList.remove('urgent');
+        }
+
+        // Hiện luôn tên + thời gian còn lại ngay cạnh chuông - KHÔNG cần bấm mở thông báo mới thấy
+        const banner = document.getElementById('sapQuaHanBanner');
+        const bannerText = document.getElementById('sapQuaHanBannerText');
+        if (banner && bannerText) {
+        if (sapQuaHanItems.length > 0) {
+        const first = sapQuaHanItems[0];
+        const tenViec = first.ten || first.tenForm || 'Công việc chỉ định';
+        const more = sapQuaHanItems.length > 1 ? ` (+${sapQuaHanItems.length - 1} đơn khác)` : '';
+        bannerText.innerHTML = `${tenViec} - <span id="sapQuaHanBannerCountdown"></span>${more}`;
+        document.getElementById('sapQuaHanBannerCountdown').textContent = tinhThoiGianConLai(first);
+        banner.style.display = 'flex';
+        } else {
+        banner.style.display = 'none';
+        }
+        }
+
+        // Nếu dropdown đang mở, cập nhật ngay phần ghim đầu danh sách mà không chờ vòng loadNotifications kế tiếp
+        if (notiDrop && notiDrop.style.display !== 'none' && notiList) {
+        const existingPinned = notiList.querySelectorAll('[data-sapquahan-pin]');
+        existingPinned.forEach(el => el.remove());
+        notiList.insertAdjacentHTML('afterbegin', buildSapQuaHanHtml());
+        }
+        } catch (err) { }
+        }
+
+        // Đếm ngược từng giây (không gọi lại API) - chỉ cập nhật lại phần chữ đếm giờ:phút:giây tại chỗ,
+        // không dựng lại toàn bộ HTML để tránh giật/mất trạng thái khi người dùng đang thao tác.
+        function updateSapQuaHanCountdownTick() {
+        if (!sapQuaHanItems || sapQuaHanItems.length === 0) return;
+
+        const bannerCountdown = document.getElementById('sapQuaHanBannerCountdown');
+        if (bannerCountdown) bannerCountdown.textContent = tinhThoiGianConLai(sapQuaHanItems[0]);
+
+        if (notiList) {
+        sapQuaHanItems.forEach(item => {
+        const el = notiList.querySelector(`.sqh-countdown[data-sqh-id="${item.id}"]`);
+        if (el) el.textContent = tinhThoiGianConLai(item);
+        });
+        }
         }
 
         function getReadIds() {
@@ -871,6 +995,10 @@
 
         setInterval(() => loadNotifications(false, false), 30000);
         loadNotifications(false, false);
+
+        checkSapQuaHanLayout();
+        setInterval(checkSapQuaHanLayout, 60000);
+        setInterval(updateSapQuaHanCountdownTick, 1000);
     </script>
 
     @RenderSection("Scripts", required: false)
