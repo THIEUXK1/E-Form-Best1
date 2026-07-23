@@ -250,6 +250,51 @@
                 justify-content: center;
             }
     }
+
+    /* Combobox tìm kiếm nhanh cho Công ty/Bộ phận trong modal Thêm/Cập nhật Thiết bị */
+    .mini-combo {
+        position: relative;
+    }
+
+    .mini-combo-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        max-height: 220px;
+        overflow-y: auto;
+        z-index: 2000;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+        margin-top: 4px;
+    }
+
+    .mini-combo-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #334155;
+    }
+
+        .mini-combo-item:hover {
+            background: #f1f5f9;
+        }
+
+        .mini-combo-item.active {
+            background: #eef2ff;
+            font-weight: 700;
+            box-shadow: inset 3px 0 0 #4f46e5;
+        }
+
+    .mini-combo-empty {
+        padding: 10px 12px;
+        color: #94a3b8;
+        font-size: 13px;
+        font-style: italic;
+    }
 </style>
 
 <div class="content-header py-3">
@@ -751,13 +796,21 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Gán Công ty</label>
-                        <select id="tb_IdCongTy" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
+                        <div class="mini-combo" id="comboTbCongTy">
+                            <input type="text" class="form-control rounded-3" id="searchTbCongTy" placeholder="🔍 Gõ để tìm Công ty..." autocomplete="off" style="border: 1px solid #e2e8f0; height: 45px;" />
+                            <div class="mini-combo-menu" id="menuTbCongTySearch"></div>
+                        </div>
+                        <select id="tb_IdCongTy" style="display:none">
                             <option value="">-- Chọn công ty --</option>
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Gán Bộ phận</label>
-                        <select id="tb_IdBoPhan" class="form-select rounded-3" style="border: 1px solid #e2e8f0; height: 45px;">
+                        <div class="mini-combo" id="comboTbBoPhan">
+                            <input type="text" class="form-control rounded-3" id="searchTbBoPhan" placeholder="🔍 Gõ để tìm Bộ phận..." autocomplete="off" style="border: 1px solid #e2e8f0; height: 45px;" />
+                            <div class="mini-combo-menu" id="menuTbBoPhanSearch"></div>
+                        </div>
+                        <select id="tb_IdBoPhan" style="display:none">
                             <option value="">-- Chọn bộ phận --</option>
                         </select>
                     </div>
@@ -958,6 +1011,54 @@
         let evidencePhotoBlob = null;
         let evidenceCamStream = null;
 
+        // Combobox tìm kiếm tự viết cho Công ty/Bộ phận trong modal Thêm/Cập nhật Thiết bị:
+        // select thật vẫn giữ nguyên (ẩn đi) để không đổi logic đọc/ghi giá trị ở nơi khác, chỉ thêm lớp UI tìm kiếm phía trên.
+        function initMiniComboThietBi(selectId, searchId, menuId) {
+        var $select = $('#' + selectId);
+        var $search = $('#' + searchId);
+        var $menu = $('#' + menuId);
+
+        function renderMenu(filterText) {
+        var filter = removeVietnameseTonesJS(filterText || '').toUpperCase();
+        var html = '';
+        $select.find('option').each(function () {
+        var val = $(this).val();
+        var text = $(this).text();
+        if (!val) return;
+        if (filter && removeVietnameseTonesJS(text).toUpperCase().indexOf(filter) === -1) return;
+        var activeClass = (val === $select.val()) ? ' active' : '';
+        html += '<div class="mini-combo-item' + activeClass + '" data-value="' + val + '">' + text + '</div>';
+        });
+        $menu.html(html || '<div class="mini-combo-empty">Không tìm thấy kết quả</div>');
+        }
+
+        function dongBoHienThiTuSelect() {
+        var text = $select.find('option:selected').text();
+        $search.val($select.val() ? text : '');
+        }
+
+        $search.on('focus click', function (e) {
+        e.stopPropagation();
+        renderMenu('');
+        $menu.show();
+        });
+
+        $search.on('input', function () {
+        renderMenu($(this).val());
+        $menu.show();
+        });
+
+        $menu.on('click', '.mini-combo-item', function () {
+        $select.val($(this).data('value')).trigger('change');
+        dongBoHienThiTuSelect();
+        $menu.hide();
+        });
+
+        // Mỗi khi giá trị select thật đổi (kể cả do code khác gán bằng .val().trigger('change')) thì đồng bộ lại ô hiển thị
+        $select.on('change', dongBoHienThiTuSelect);
+        dongBoHienThiTuSelect();
+        }
+
         $(document).ready(function () {
         if($.fn.select2) {
         $('.select2-modal').select2({
@@ -988,6 +1089,12 @@
         });
         }, 200);
         }
+
+        initMiniComboThietBi('tb_IdCongTy', 'searchTbCongTy', 'menuTbCongTySearch');
+        initMiniComboThietBi('tb_IdBoPhan', 'searchTbBoPhan', 'menuTbBoPhanSearch');
+        $(document).on('click', function (e) {
+        if (!$(e.target).closest('.mini-combo').length) { $('.mini-combo-menu').hide(); }
+        });
 
         let savedLimit = localStorage.getItem('kk_filterLimit') || '100';
         $('#filterLimit').val(savedLimit);
@@ -1086,11 +1193,11 @@
         } else {
         listBoPhanCache.forEach(b => { html += `<option value="${b.idboPhan}">${b.tenBoPhan} (${b.tenCongTy || 'Trống'})</option>`; });
         }
-        $('#tb_IdBoPhan').html(html);
+        $('#tb_IdBoPhan').html(html).trigger('change');
 
         if (parseInt($('#tb_Id').val()) === 0) {
         let savedBP = localStorage.getItem('add_form_tb_IdBoPhan') || '';
-        if ($(html).filter(`[value="${savedBP}"]`).length > 0) { $('#tb_IdBoPhan').val(savedBP); }
+        if ($(html).filter(`[value="${savedBP}"]`).length > 0) { $('#tb_IdBoPhan').val(savedBP).trigger('change'); }
         }
         });
 
@@ -1276,7 +1383,7 @@
         $('#tb_IdCongTy').val(savedCT).trigger('change');
 
         let savedBP = localStorage.getItem('add_form_tb_IdBoPhan') || '';
-        if(savedBP) { setTimeout(() => { $('#tb_IdBoPhan').val(savedBP); }, 50); }
+        if(savedBP) { setTimeout(() => { $('#tb_IdBoPhan').val(savedBP).trigger('change'); }, 50); }
 
         let savedND = localStorage.getItem('add_form_tb_IdNguoiDung') || '';
         $('#tb_IdNguoiDung').val(savedND).trigger('change.select2');
@@ -1711,13 +1818,13 @@
         function fillSelectCongTy(selector, selectedVal = '') {
         let html = '<option value="">-- Chọn công ty --</option>';
         listCongTyCache.forEach(c => { html += `<option value="${c.idcongTy}">${c.tenCongTy}</option>`; });
-        $(selector).html(html).val(selectedVal);
+        $(selector).html(html).val(selectedVal).trigger('change');
         }
 
         function fillSelectBoPhan(selector, selectedVal = '') {
         let html = '<option value="">-- Chọn bộ phận --</option>';
         listBoPhanCache.forEach(b => { html += `<option value="${b.idboPhan}">${b.tenBoPhan} (${b.tenCongTy || 'Trống'})</option>`; });
-        $(selector).html(html).val(selectedVal);
+        $(selector).html(html).val(selectedVal).trigger('change');
         }
 
         function fillSelectTrangThai(selector, selectedVal = '') {
@@ -2326,7 +2433,7 @@
         let html = '<option value="">-- Chọn bộ phận --</option>';
         let filtered = listBoPhanCache.filter(b => b.idcongTy == item.idcongTy);
         filtered.forEach(b => { html += `<option value="${b.idboPhan}">${b.tenBoPhan}</option>`; });
-        $('#tb_IdBoPhan').html(html).val(item.idboPhan || '');
+        $('#tb_IdBoPhan').html(html).val(item.idboPhan || '').trigger('change');
         } else {
         fillSelectBoPhan('#tb_IdBoPhan', item.idboPhan || '');
         }
