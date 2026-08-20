@@ -1,0 +1,216 @@
+/* ============================================================
+   FIXED PAGE LAYOUT
+   Khoá cuộn toàn trang, chỉ vùng bảng dữ liệu được cuộn.
+   Kích hoạt bằng class "fp-lock" trên thẻ <html> (do fixed-page-layout.js gán).
+   ============================================================ */
+
+html.fp-lock,
+html.fp-lock body {
+    height: 100%;
+    overflow: hidden;
+}
+
+html.fp-lock main {
+    height: 100vh;
+    min-height: 100vh !important;
+    overflow: hidden;
+}
+
+/* Nội dung rộng 95% bề ngang, canh giữa (đổi --fp-width nếu muốn khác) */
+:root {
+    --fp-width: 95%;
+}
+
+html.fp-lock .main-content-wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    padding: 8px 0 10px 0 !important;
+}
+
+html.fp-lock .main-card {
+    flex: 0 1 var(--fp-width);
+    width: var(--fp-width) !important;
+    max-width: var(--fp-width) !important;
+    height: 100%;
+    min-height: 0 !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 14px 16px !important;
+    border-radius: 18px !important;
+}
+
+/* Thu gọn thanh header phía trên để nhường chỗ cho bảng */
+html.fp-lock main > header {
+    padding: 10px 16px !important;
+}
+
+/* Nội dung trang dàn hết bề ngang, không còn lề/khung giới hạn.
+   min-height: 0 để các view có wrapper "min-height: 100vh" không làm tràn khung khoá. */
+html.fp-lock .main-card > * {
+    max-width: 100% !important;
+    width: 100%;
+    min-height: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+html.fp-lock .fp-chain,
+html.fp-lock .fp-grow {
+    min-height: 0 !important;
+}
+
+html.fp-lock .container-fluid,
+html.fp-lock .container,
+html.fp-lock .page-shell,
+html.fp-lock section.content {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+html.fp-lock .fp-scroll > table {
+    width: 100% !important;
+}
+
+/* Mắt xích flex từ .main-card xuống tới vùng cuộn */
+html.fp-lock .fp-chain:not(.tab-pane) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+html.fp-lock .tab-pane.fp-chain.active {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+html.fp-lock .fp-chain-row {
+    min-height: 0;
+}
+
+html.fp-lock .fp-grow {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* Vùng cuộn duy nhất của trang */
+html.fp-lock .fp-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto !important;
+    overscroll-behavior: contain;
+}
+
+    html.fp-lock .fp-scroll::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    html.fp-lock .fp-scroll::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+
+        html.fp-lock .fp-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+    /* Giữ tiêu đề bảng cố định khi cuộn */
+    html.fp-lock .fp-scroll > table > thead > tr > th,
+    html.fp-lock .fp-scroll > table > thead > tr > td {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background-color: #f8fafc;
+        box-shadow: inset 0 -1px 0 #e2e8f0;
+    }
+
+/* ---------- Nút ẩn / hiện bộ lọc ---------- */
+.fp-filter-bar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex: 0 0 auto;
+}
+
+.fp-filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: 0.25s;
+}
+
+    .fp-filter-toggle:hover {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+        color: #0f172a;
+    }
+
+    .fp-filter-toggle.is-off {
+        background: #0284c7;
+        border-color: #0284c7;
+        color: #fff;
+        box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
+    }
+
+.fp-filter-hidden {
+    display: none !important;
+}
+
+/* ---------- Mobile: trả lại cuộn trang bình thường ---------- */
+@media (max-width: 768px) {
+    html.fp-lock,
+    html.fp-lock body {
+        height: auto;
+        overflow: auto;
+    }
+
+    html.fp-lock main {
+        height: auto;
+        overflow: visible;
+    }
+
+    html.fp-lock .main-content-wrapper,
+    html.fp-lock .main-card,
+    html.fp-lock .fp-chain,
+    html.fp-lock .fp-grow {
+        display: block;
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+    }
+
+    html.fp-lock .fp-scroll {
+        overflow: auto !important;
+        max-height: none !important;
+    }
+
+        html.fp-lock .fp-scroll > table > thead > tr > th {
+            position: static;
+        }
+
+    .fp-filter-toggle {
+        width: 100%;
+        justify-content: center;
+    }
+}

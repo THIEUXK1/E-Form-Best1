@@ -935,9 +935,9 @@
         let depts = [...new Set(data.map(x => x.tenBoPhan).filter(Boolean))].sort();
         let types = [...new Set(data.map(x => x.loaiThietBi).filter(Boolean))].sort();
 
-        // Danh sách có thêm cấu hình "Trống / Chưa rõ" để lọc null/rỗng theo nghiệp vụ mới
-        let winLicenses = ["Windows Pro", "Windows Home", "Windows Enterprise", "Windows Education", "Windows Server", "Có (Chưa rõ phiên bản)", "Chưa có", "Trống / Chưa rõ"];
-        let officeLicenses = ["Office Professional Plus", "Office Standard", "Office Home & Business", "Office Home & Student", "Microsoft 365 Apps", "Có (Chưa rõ phiên bản)", "Chưa có", "Trống / Chưa rõ"];
+        // Trống, Chưa có, Không xác định, Chưa rõ phiên bản gộp chung thành một mục lọc "Chưa có bản quyền"
+        let winLicenses = ["Windows Pro", "Windows Home", "Windows Enterprise", "Windows Education", "Windows Server", "Chưa có bản quyền"];
+        let officeLicenses = ["Office Professional Plus", "Office Standard", "Office Home & Business", "Office Home & Student", "Microsoft 365 Apps", "Chưa có bản quyền"];
 
         let $itemsCongTy = $('#menuCongTy .dropdown-combo-items').empty();
         let $itemsBoPhan = $('#menuBoPhan .dropdown-combo-items').empty();
@@ -1113,19 +1113,17 @@
         }
         if (selectedLoais.length > 0) baseFiltered = baseFiltered.filter(x => selectedLoais.includes(x.loaiThietBi));
 
-        // Logic lọc bản quyền đặc thù nâng cao (Xử lý chuỗi trống, null hoặc text "Trống / Chưa rõ")
+        // Logic lọc bản quyền: mục "Chưa có bản quyền" gom cả chuỗi trống/null, "Chưa có", "Không xác định", "Chưa rõ phiên bản"
         if (selectedWins.length > 0) {
         baseFiltered = baseFiltered.filter(x =>
         selectedWins.includes(x.winLicense) ||
-        (selectedWins.includes("Chưa có") && x.winLicense === "Chưa có") ||
-        (selectedWins.includes("Trống / Chưa rõ") && (!x.winLicense || x.winLicense.trim() === ""))
+        (selectedWins.includes("Chưa có bản quyền") && nhanBanQuyenHopLe(x.winLicense) === "")
         );
         }
         if (selectedOffices.length > 0) {
         baseFiltered = baseFiltered.filter(x =>
         selectedOffices.includes(x.officeLicense) ||
-        (selectedOffices.includes("Chưa có") && x.officeLicense === "Chưa có") ||
-        (selectedOffices.includes("Trống / Chưa rõ") && (!x.officeLicense || x.officeLicense.trim() === ""))
+        (selectedOffices.includes("Chưa có bản quyền") && nhanBanQuyenHopLe(x.officeLicense) === "")
         );
         }
 
@@ -1307,6 +1305,17 @@
         }
         }
 
+        // Quy ước công ty: Trống, "Không xác định", "Chưa rõ phiên bản", "Chưa có"... đều là CHƯA CÓ BẢN QUYỀN.
+        // Trả về chuỗi rỗng khi máy thuộc nhóm chưa có bản quyền để nơi gọi tự quyết định cách hiển thị/ghi báo cáo.
+        function nhanBanQuyenHopLe(raw) {
+        let v = (raw || '').trim();
+        if (v === '') return '';
+        let low = v.toLowerCase();
+        if (low.includes('chưa có') || low.includes('không có') || low.includes('không xác định') ||
+            low.includes('chưa rõ') || low.includes('trống')) return '';
+        return v;
+        }
+
         // ====================================================
         // HÀM VẼ BẢNG DỮ LIỆU & PHÂN TRANG (PAGINATION)
         // ====================================================
@@ -1344,8 +1353,10 @@
         let locStr = [item.tenCongTy, item.tenBoPhan].filter(Boolean).join(' - ') || 'Chưa gắn';
 
         // Chuỗi hiển thị bản quyền Windows và Office trên bảng
-        let winStr = item.winLicense ? `<div class="text-primary small mb-1"><i class="fab fa-windows me-1"></i> ${item.winLicense}</div>` : '<div class="text-muted small mb-1"><i>Win: Trống / Chưa rõ</i></div>';
-        let officeStr = item.officeLicense ? `<div class="text-success small"><i class="fas fa-file-word me-1"></i> ${item.officeLicense}</div>` : '<div class="text-muted small"><i>Office: Trống / Chưa rõ</i></div>';
+        let winHopLe = nhanBanQuyenHopLe(item.winLicense);
+        let officeHopLe = nhanBanQuyenHopLe(item.officeLicense);
+        let winStr = winHopLe ? `<div class="text-primary small mb-1"><i class="fab fa-windows me-1"></i> ${winHopLe}</div>` : '<div class="text-danger small mb-1"><i class="fab fa-windows me-1"></i> Win: Chưa có bản quyền</div>';
+        let officeStr = officeHopLe ? `<div class="text-success small"><i class="fas fa-file-word me-1"></i> ${officeHopLe}</div>` : '<div class="text-danger small"><i class="fas fa-file-word me-1"></i> Office: Chưa có bản quyền</div>';
         let licenseColumnHtml = `<div>${winStr}${officeStr}</div>`;
 
         let t = (item.tenTrangThai || '').toLowerCase();
@@ -1601,8 +1612,8 @@
         html += dong('Công ty', item.tenCongTy, 'fa-building');
         html += dong('Bộ phận', item.tenBoPhan, 'fa-sitemap');
         html += dong('Trạng thái', item.tenTrangThai, 'fa-toggle-on');
-        html += dong('Bản quyền Windows', item.winLicense, 'fa-windows');
-        html += dong('Bản quyền Office', item.officeLicense, 'fa-file-word');
+        html += dong('Bản quyền Windows', nhanBanQuyenHopLe(item.winLicense) || 'Chưa có bản quyền', 'fa-windows');
+        html += dong('Bản quyền Office', nhanBanQuyenHopLe(item.officeLicense) || 'Chưa có bản quyền', 'fa-file-word');
         html += dong('Hạn bảo hành', hanBaoHanh, 'fa-shield-alt');
         html += dong('Thời gian Check gần nhất', thoiGianCheck, 'fa-clock');
         html += dong('Ngày tạo', ngayTao, 'fa-calendar-plus');
@@ -1782,7 +1793,9 @@
                 let isSectionHeading = false;
                 let isTableHeader = false;
                 let isSummaryRow = false;
-                let isMetadata = (R === 1 || R === 2);
+                // Một số báo cáo có tới 3-4 dòng chú thích đầu trang (phạm vi, nguyên tắc đánh giá...) nên dòng thứ 4
+                // cũng được tính là metadata khi nó là dòng "banner" (chỉ có 1 ô chứa dữ liệu), tránh bị style như dữ liệu bảng.
+                let isMetadata = (R === 1 || R === 2 || (R === 3 && bannerRows.has(R)));
                 let isKpiLabelRow = false;
                 let isKpiValueRow = false;
 
@@ -1893,7 +1906,12 @@
 
                         if (typeof cell.v === "string") {
                             let valLower = cell.v.toLowerCase().trim();
-                            if (valLower.includes("đạt chuẩn") || valLower === "hoạt động") {
+                            // "Không đạt chuẩn" / "Cần nâng cấp" phải xét TRƯỚC "đạt chuẩn", nếu không sẽ bị tô xanh ngược nghĩa
+                            if (valLower.includes("không đạt chuẩn") || valLower.includes("cần nâng cấp")) {
+                                cell.s.fill = { fgColor: { rgb: "FFF8E1" } };
+                                cell.s.font.color = { rgb: "F57F17" };
+                                cell.s.font.bold = true;
+                            } else if (valLower.includes("đạt chuẩn") || valLower === "hoạt động") {
                                 cell.s.fill = { fgColor: { rgb: "E8F5E9" } };
                                 cell.s.font.color = { rgb: "2E7D32" };
                                 cell.s.font.bold = true;
@@ -2036,8 +2054,8 @@
                     item.tenTrangThai || 'Chưa rõ',
                     item.tenNguoiDung ? `${item.tenNguoiDung} (${item.tk || 'N/A'})` : 'Chưa cấp phát',
                     item.tenDangNhap || '-',
-                    item.winLicense || 'Trống / Chưa rõ',
-                    item.officeLicense || 'Trống / Chưa rõ',
+                    nhanBanQuyenHopLe(item.winLicense) || 'Chưa có bản quyền',
+                    nhanBanQuyenHopLe(item.officeLicense) || 'Chưa có bản quyền',
                     item.hanBaoHanh ? new Date(item.hanBaoHanh).toLocaleDateString('vi-VN') : '-',
                     item.thoiGianCheck ? new Date(item.thoiGianCheck).toLocaleString('vi-VN') : 'Chưa kiểm kê',
                     item.ngayCapNhat ? new Date(item.ngayCapNhat).toLocaleString('vi-VN') : '-',
@@ -2247,8 +2265,12 @@
         // Dữ liệu loại key đến từ chức năng "Nhập nhanh Excel > Key Windows", lưu dạng "Windows 10 Professional(MAK-66PKM)".
         function phanLoaiBanQuyenWindows(raw) {
         let v = (raw || '').trim();
-        if (v === '') return { nhom: 'Trống / Chưa cập nhật', risk: true };
+        if (v === '') return { nhom: 'Chưa có bản quyền', capDo: 'nguyHiem', risk: true };
         let low = v.toLowerCase();
+
+        // Máy Apple: hệ điều hành đã kèm bản quyền theo máy, không cần license Windows -> tính đạt chuẩn
+        if (low.includes('macos') || low.includes('mac os') || low.includes('osx') || low.includes('os x'))
+        return { nhom: 'macOS - Bản quyền hệ điều hành theo máy (Apple)', capDo: 'dat', risk: false };
 
         // Nhãn mới có kèm loại key ở cuối -> phân loại theo đúng quy ước công ty
         // Phần key có thể chứa ký tự lạ (VD "N/A" khi máy không đọc được key) nên bắt tất cả tới dấu ')'
@@ -2256,41 +2278,55 @@
         if (m) {
         let loaiKey = m[1].toUpperCase();
         let key5 = m[2].toUpperCase();
-        if (loaiKey === 'OEM') return { nhom: 'OEM - Key theo máy (Đạt chuẩn)', risk: false };
+        if (loaiKey === 'OEM') return { nhom: 'OEM - Key theo máy (Đạt chuẩn)', capDo: 'dat', risk: false };
         if (loaiKey === 'MAK') {
         if (MAK_KEY_CONG_TY.some(k => (k || '').trim().toUpperCase() === key5))
-        return { nhom: 'MAK - Key bản quyền công ty (Đạt chuẩn)', risk: false };
-        return { nhom: 'MAK lạ - Không thuộc key công ty (Cần xác minh)', risk: true };
+        return { nhom: 'MAK - Key bản quyền công ty (Đạt chuẩn)', capDo: 'dat', risk: false };
+        return { nhom: 'MAK lạ - Không thuộc key công ty (Cần xác minh)', capDo: 'nguyHiem', risk: true };
         }
-        if (loaiKey === 'GVLK') return { nhom: 'GVLK - Key KMS công khai (Không đạt chuẩn)', risk: true };
-        if (loaiKey === 'RETAIL') return { nhom: 'Retail generic - Key công khai (Không đạt chuẩn)', risk: true };
-        return { nhom: 'Không xác định', risk: true };
+        if (loaiKey === 'GVLK') return { nhom: 'GVLK - Key KMS công khai (Không đạt chuẩn)', capDo: 'nangCap', risk: true };
+        if (loaiKey === 'RETAIL') return { nhom: 'Retail generic - Key công khai (Không đạt chuẩn)', capDo: 'nangCap', risk: true };
+        // OTHER-N/A: máy không đọc được key -> không chứng minh được nguồn gốc, quy về nhóm chưa có bản quyền
+        return { nhom: 'Chưa có bản quyền', capDo: 'nguyHiem', risk: true };
         }
 
         // Dữ liệu cũ chưa qua import Key Windows: không biết loại key nên KHÔNG thể khẳng định đạt chuẩn.
-        if (low.includes('chưa có') || low.includes('không có')) return { nhom: 'Chưa có bản quyền', risk: true };
-        if (low.includes('không xác định')) return { nhom: 'Không xác định', risk: true };
-        if (low.includes('chưa rõ')) return { nhom: 'Có bản quyền - Chưa rõ phiên bản', risk: true };
-        if (low.includes('home')) return { nhom: 'Windows Home (Không đạt chuẩn - Cần nâng cấp Pro)', risk: true };
-        if (low.includes('education')) return { nhom: 'Windows Education (Không đạt chuẩn - Cần nâng cấp Pro)', risk: true };
-        if (low.includes('enterprise') || low.includes('iot')) return { nhom: 'Windows Enterprise (Không đạt chuẩn - Cần nâng cấp Pro)', risk: true };
-        if (low.includes('professional') || low.includes('pro') || low.includes('có bản quyền'))
-        return { nhom: 'Chưa xác minh loại key (Cần nhập Excel Key Windows)', risk: true };
-        return { nhom: 'Không xác định', risk: true };
+        if (low.includes('home')) return { nhom: 'Windows Home (Không đạt chuẩn - Cần nâng cấp Pro)', capDo: 'nangCap', risk: true };
+        if (low.includes('education')) return { nhom: 'Windows Education (Không đạt chuẩn - Cần nâng cấp Pro)', capDo: 'nangCap', risk: true };
+        if (low.includes('enterprise') || low.includes('iot')) return { nhom: 'Windows Enterprise (Không đạt chuẩn - Cần nâng cấp Pro)', capDo: 'nangCap', risk: true };
+        // Chưa có / không có / không xác định / chưa rõ / Pro nhưng chưa xác minh loại key đều quy về CHƯA CÓ BẢN QUYỀN
+        return { nhom: 'Chưa có bản quyền', capDo: 'nguyHiem', risk: true };
         }
 
         // Phân loại chính xác trạng thái bản quyền Office dựa trên dữ liệu thực tế hiện có
         function phanLoaiBanQuyenOffice(raw) {
         let v = (raw || '').trim();
-        if (v === '') return { nhom: 'Trống / Chưa cập nhật', risk: true };
+        if (v === '') return { nhom: 'Chưa có bản quyền', risk: true };
         let low = v.toLowerCase();
         if (low.includes('không có') || low.includes('chưa có')) return { nhom: 'Chưa có bản quyền', risk: true };
-        if (low.includes('không xác định')) return { nhom: 'Không xác định', risk: true };
-        if (low.includes('chưa rõ')) return { nhom: 'Có bản quyền - Chưa rõ phiên bản', risk: true };
         if (low.includes('có bản quyền') || low.includes('professional plus') || low.includes('standard') ||
             low.includes('microsoft 365') || low.includes('home & business') || low.includes('home & student') ||
             low.includes('apps for')) return { nhom: 'Có bản quyền (Đầy đủ)', risk: false };
-        return { nhom: 'Không xác định', risk: true };
+        // Không xác định / chưa rõ phiên bản: không chứng minh được nguồn gốc -> quy về chưa có bản quyền
+        return { nhom: 'Chưa có bản quyền', risk: true };
+        }
+
+        // Ma trận Mức Độ Ưu Tiên / Hành Động cho từng máy, dùng chung cho sheet Danh Sách Thiết Bị
+        function xepUuTienThietBi(winKq, offRisk) {
+        if (winKq.capDo === 'dat') {
+        if (!offRisk) return { uuTien: '🟢 Đạt Chuẩn', hanhDong: 'Duy trì - gia hạn key đúng hạn' };
+        if (winKq.nhom.startsWith('macOS'))
+        return { uuTien: '🟠 Cao', hanhDong: 'Kiểm tra / bổ sung bản quyền Office for Mac (Microsoft 365)' };
+        return { uuTien: '🟠 Cao', hanhDong: 'Mua bản quyền Office bổ sung' };
+        }
+        if (winKq.capDo === 'nangCap') {
+        return offRisk
+        ? { uuTien: '🔴 Khẩn Cấp', hanhDong: 'Nâng cấp Windows Pro + mua bản quyền Office' }
+        : { uuTien: '🟠 Cao', hanhDong: 'Nâng cấp lên Windows Pro theo chuẩn công ty' };
+        }
+        return offRisk
+        ? { uuTien: '🔴 Khẩn Cấp', hanhDong: 'Mua cả Windows + Office bản quyền' }
+        : { uuTien: '🟠 Cao', hanhDong: 'Mua bổ sung bản quyền Windows Pro' };
         }
 
         window.exportToExcel = function() {
@@ -2308,75 +2344,96 @@
             return;
         }
 
-        let fourMonthsAgo = new Date();
-        fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
         let dateNowStr = new Date().toLocaleString('vi-VN');
         const wb = XLSX.utils.book_new();
 
-        // --- Đếm tổng hợp dữ liệu cho Tab 1 (chỉ tính Máy tính/Laptop) ---
-        let totalCount = licenseData.length;
+        // --- Tính sẵn kết quả phân loại 1 lần cho từng máy, dùng lại cho cả 5 sheet ---
+        let rows = licenseData.map(x => {
+            let winKq = phanLoaiBanQuyenWindows(x.winLicense);
+            let offKq = phanLoaiBanQuyenOffice(x.officeLicense);
+            return { item: x, winKq: winKq, offKq: offKq, offRisk: offKq.risk };
+        });
+
+        let totalCount = rows.length;
         let activeCount = 0;
         let winOkCount = 0;
         let winRiskCount = 0;
+        let winUpgradeCount = 0;
+        let winNoLicenseCount = 0;
+        let officeOkCount = 0;
         let officeRiskCount = 0;
+        let bothOkCount = 0;
 
-        let winGroup = {};
+        let winGroup = {};   // { nhom: { count, capDo } }
         let officeGroup = {};
 
-        licenseData.forEach(x => {
-            let t = (x.tenTrangThai || '').toLowerCase();
+        rows.forEach(r => {
+            let t = (r.item.tenTrangThai || '').toLowerCase();
             if (t.includes('hoạt động')) activeCount++;
 
             // Thống kê Win
-            let winKq = phanLoaiBanQuyenWindows(x.winLicense);
-            winGroup[winKq.nhom] = (winGroup[winKq.nhom] || 0) + 1;
-            if (winKq.risk) winRiskCount++; else winOkCount++;
+            if (!winGroup[r.winKq.nhom]) winGroup[r.winKq.nhom] = { count: 0, capDo: r.winKq.capDo };
+            winGroup[r.winKq.nhom].count++;
+            if (r.winKq.capDo === 'dat') winOkCount++; else winRiskCount++;
+            if (r.winKq.capDo === 'nangCap') winUpgradeCount++;
+            if (r.winKq.capDo === 'nguyHiem') winNoLicenseCount++;
 
             // Thống kê Office
-            let offKq = phanLoaiBanQuyenOffice(x.officeLicense);
-            officeGroup[offKq.nhom] = (officeGroup[offKq.nhom] || 0) + 1;
-            if (offKq.risk) officeRiskCount++;
+            officeGroup[r.offKq.nhom] = (officeGroup[r.offKq.nhom] || 0) + 1;
+            if (r.offRisk) officeRiskCount++; else officeOkCount++;
+
+            if (r.winKq.capDo === 'dat' && !r.offRisk) bothOkCount++;
+        });
+
+        // Thứ tự trình bày nhóm Windows: Đạt chuẩn -> Chưa có bản quyền (nguy hiểm) -> Cần nâng cấp
+        const thuTuCapDo = { dat: 0, nguyHiem: 1, nangCap: 2 };
+        let winGroupSorted = Object.entries(winGroup).sort((a, b) => {
+            let d = thuTuCapDo[a[1].capDo] - thuTuCapDo[b[1].capDo];
+            return d !== 0 ? d : b[1].count - a[1].count;
         });
 
         // ----------------------------------------------------
         // TAB 1: TỔNG QUAN BẢN QUYỀN
         // ----------------------------------------------------
+        let phamViCongTy = [...new Set(licenseData.map(x => x.tenCongTy).filter(Boolean))].join(', ') || 'Tất cả công ty';
         let sheet1Rows = [
             ["BÁO CÁO TÌNH TRẠNG BẢN QUYỀN PHẦN MỀM HỆ THỐNG IT"],
             ["Ngày lập báo cáo: " + dateNowStr + "  |  Nguồn dữ liệu: Hệ thống Dashboard quản trị tài sản"],
-            ["Phạm vi: Chỉ tính thiết bị loại Máy tính và Laptop (không gồm Màn hình, Máy in, Điện thoại bàn...)"],
-            [],
-            ["", "TỔNG THIẾT BỊ", "", "ĐANG HOẠT ĐỘNG", "", "WIN - ĐẠT CHUẨN PRO", "", "WIN - RỦI RO BẢN QUYỀN", "", "OFFICE - RỦI RO BẢN QUYỀN"],
+            ["Phạm vi: Chỉ tính thiết bị loại Máy tính và Laptop thuộc " + phamViCongTy + " (" + totalCount + " máy)"],
+            ["Nguyên tắc đánh giá: các trạng thái không chứng minh được nguồn gốc key (chưa xác minh loại key, trống/chưa cập nhật, không xác định, key không đọc được) đều quy về nhóm CHƯA CÓ BẢN QUYỀN - Nguy hiểm. Chỉ máy dùng key MAK của công ty, key OEM gắn theo máy hoặc máy macOS mới được tính đạt chuẩn. Nhóm Cần nâng cấp gồm GVLK, Retail generic, Windows Home, Enterprise, Education."],
+            ["", "TỔNG THIẾT BỊ", "", "ĐANG HOẠT ĐỘNG", "", "WIN - ĐẠT CHUẨN", "", "WIN - RỦI RO BẢN QUYỀN", "", "OFFICE - RỦI RO BẢN QUYỀN"],
             ["", totalCount, "", activeCount, "", winOkCount, "", winRiskCount, "", officeRiskCount],
             [],
             ["I. PHÂN TÍCH TRẠNG THÁI BẢN QUYỀN WINDOWS"],
             ["Trạng Thái Bản Quyền", "Số Lượng Máy", "Tỷ Lệ (%)", "Mức Độ Rủi Ro", "Khuyến Nghị"]
         ];
 
-        Object.entries(winGroup).sort((a, b) => b[1] - a[1]).forEach(([key, val]) => {
-            let pct = totalCount > 0 ? (val / totalCount) : 0;
+        winGroupSorted.forEach(([key, info]) => {
+            let pct = totalCount > 0 ? (info.count / totalCount) : 0;
             let riskLvl = "Đạt chuẩn ✔";
             let rec = "Duy trì và gia hạn đúng hạn";
-            if (key.includes("Chưa có")) { riskLvl = "Nguy hiểm ✘"; rec = "Mua bổ sung bản quyền Windows Pro ngay"; }
-            else if (key.includes("Không đạt chuẩn")) { riskLvl = "Cần nâng cấp ⚠"; rec = "Chuyển đổi/nâng cấp lên Windows Pro theo chuẩn công ty"; }
-            else if (key.includes("Chưa rõ") || key.includes("Trống") || key.includes("Không xác định")) { riskLvl = "Cần xác minh ⚠"; rec = "Kiểm tra và cập nhật thông tin"; }
-            sheet1Rows.push([key, val, (pct * 100).toFixed(1) + "%", riskLvl, rec]);
+            if (key.startsWith("macOS")) { rec = "Máy Apple - không cần cấp phép Windows"; }
+            else if (info.capDo === 'nguyHiem') { riskLvl = "Nguy hiểm ✘"; rec = "Mua bổ sung bản quyền Windows Pro ngay"; }
+            else if (info.capDo === 'nangCap') { riskLvl = "Cần nâng cấp ⚠"; rec = "Chuyển đổi/nâng cấp lên Windows Pro theo chuẩn công ty"; }
+            sheet1Rows.push([key, info.count, (pct * 100).toFixed(1) + "%", riskLvl, rec]);
         });
         sheet1Rows.push(["TỔNG CỘNG WINDOWS", totalCount, "100.0%", "", ""]);
 
         sheet1Rows.push([], [], ["II. PHÂN TÍCH TRẠNG THÁI BẢN QUYỀN OFFICE"], ["Trạng Thái Bản Quyền", "Số Lượng Máy", "Tỷ Lệ (%)", "Mức Độ Rủi Ro", "Khuyến Nghị"]);
-        Object.entries(officeGroup).sort((a, b) => b[1] - a[1]).forEach(([key, val]) => {
+        Object.entries(officeGroup).sort((a, b) => {
+            let ra = a[0].includes("Chưa có") ? 1 : 0, rb = b[0].includes("Chưa có") ? 1 : 0;
+            return ra !== rb ? ra - rb : b[1] - a[1];
+        }).forEach(([key, val]) => {
             let pct = totalCount > 0 ? (val / totalCount) : 0;
             let riskLvl = "Đạt chuẩn ✔";
             let rec = "Duy trì đúng chính sách";
-            if (key.includes("Chưa rõ") || key.includes("Trống") || key.includes("Không xác định")) { riskLvl = "Cần xác minh ⚠"; rec = "Kiểm tra thực tế cài đặt"; }
-            else if (key.includes("Chưa có")) { riskLvl = "Nguy hiểm ✘"; rec = "Đăng ký mua Microsoft 365"; }
+            if (key.includes("Chưa có")) { riskLvl = "Nguy hiểm ✘"; rec = "Đăng ký mua Microsoft 365 / Office Volume License"; }
             sheet1Rows.push([key, val, (pct * 100).toFixed(1) + "%", riskLvl, rec]);
         });
         sheet1Rows.push(["TỔNG CỘNG OFFICE", totalCount, "100.0%", "", ""]);
 
         const ws1 = XLSX.utils.aoa_to_sheet(sheet1Rows);
-        ws1['!cols'] = [{ wch: 35 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 35 }];
+        ws1['!cols'] = [{ wch: 45 }, { wch: 16 }, { wch: 15 }, { wch: 18 }, { wch: 50 }];
         styleWorksheetUniversal(ws1);
         XLSX.utils.book_append_sheet(wb, ws1, "1. Tổng Quan");
 
@@ -2384,110 +2441,201 @@
         // TAB 2: PHÂN TÍCH THEO BỘ PHẬN
         // ----------------------------------------------------
         let deptMap = {};
-        licenseData.forEach(x => {
-            let cty = x.tenCongTy || 'Chưa rõ';
-            let bp = x.tenBoPhan || 'Chưa rõ';
+        rows.forEach(r => {
+            let cty = r.item.tenCongTy || 'Chưa rõ';
+            let bp = r.item.tenBoPhan || 'Chưa rõ';
             let key = cty + "||" + bp;
 
             if (!deptMap[key]) {
-                deptMap[key] = { cty: cty, bp: bp, total: 0, winRisk: 0, offRisk: 0 };
+                deptMap[key] = {
+                    cty: cty, bp: bp, total: 0, laptop: 0, desktop: 0,
+                    winRisk: 0, offRisk: 0, winOk: 0, offOk: 0, bothOk: 0
+                };
             }
-            deptMap[key].total++;
-
-            if (phanLoaiBanQuyenWindows(x.winLicense).risk) deptMap[key].winRisk++;
-            if (phanLoaiBanQuyenOffice(x.officeLicense).risk) deptMap[key].offRisk++;
+            let d = deptMap[key];
+            d.total++;
+            if ((r.item.loaiThietBi || '').trim().toLowerCase() === 'laptop') d.laptop++; else d.desktop++;
+            if (r.winKq.capDo === 'dat') d.winOk++; else d.winRisk++;
+            if (r.offRisk) d.offRisk++; else d.offOk++;
+            if (r.winKq.capDo === 'dat' && !r.offRisk) d.bothOk++;
         });
 
         let sheet2Rows = [
             ["PHÂN TÍCH BẢN QUYỀN PHẦN MỀM THEO PHÒNG BAN BỘ PHẬN"],
-            ["Ngày xuất báo cáo: " + dateNowStr + " | Tổng số thiết bị: " + totalCount],
+            ["Ngày xuất báo cáo: " + dateNowStr + " | Tổng số thiết bị: " + totalCount + " | Nguyên tắc: không chứng minh được nguồn gốc key = CHƯA CÓ BẢN QUYỀN"],
             [],
             ["STT", "Công Ty", "Bộ Phận", "Tổng Số Máy", "Windows Rủi Ro", "Tỷ Lệ Win Rủi Ro", "Office Rủi Ro", "Tỷ Lệ Off Rủi Ro"]
         ];
 
-        Object.values(deptMap).sort((a,b) => b.total - a.total).forEach((item, idx) => {
+        let deptList = Object.values(deptMap).sort((a, b) => b.total - a.total);
+        deptList.forEach((item, idx) => {
             let wPct = item.total > 0 ? ((item.winRisk / item.total) * 100).toFixed(1) + "%" : "0.0%";
             let oPct = item.total > 0 ? ((item.offRisk / item.total) * 100).toFixed(1) + "%" : "0.0%";
             sheet2Rows.push([idx + 1, item.cty, item.bp, item.total, item.winRisk, wPct, item.offRisk, oPct]);
         });
 
         const ws2 = XLSX.utils.aoa_to_sheet(sheet2Rows);
-        ws2['!cols'] = [{ wch: 6 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 18 }];
+        ws2['!cols'] = [{ wch: 8 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 17 }, { wch: 19 }, { wch: 16 }, { wch: 19 }];
         ws2['!views'] = [{ state: 'frozen', ySplit: 4 }];
-        ws2['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3, c: 7 } }) };
+        ws2['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + deptList.length, c: 7 } }) };
         styleWorksheetUniversal(ws2);
         XLSX.utils.book_append_sheet(wb, ws2, "2. Phân Tích Theo Bộ Phận");
 
         // ----------------------------------------------------
-        // TAB 3: DANH SÁCH RỦI RO
+        // TAB 3: DANH SÁCH TOÀN BỘ THIẾT BỊ
+        // Máy có rủi ro xếp trước (theo ID máy giảm dần), máy đạt chuẩn cả Windows lẫn Office xếp sau (theo tên máy)
         // ----------------------------------------------------
+        let nhomRuiRo = rows.filter(r => r.winKq.capDo !== 'dat' || r.offRisk)
+                            .sort((a, b) => (b.item.idThietBi || 0) - (a.item.idThietBi || 0));
+        let nhomDatChuan = rows.filter(r => r.winKq.capDo === 'dat' && !r.offRisk)
+                               .sort((a, b) => String(a.item.tenMayTinh || '').localeCompare(String(b.item.tenMayTinh || ''), 'vi'));
+        let danhSachThietBi = nhomRuiRo.concat(nhomDatChuan);
+
         let sheet3Rows = [
-            ["DANH SÁCH THIẾT BỊ CÓ RỦI RO BẢN QUYỀN - CẦN XỬ LÝ SỚM"],
-            ["Bao gồm các thiết bị phát hiện thiếu hụt hệ điều hành Windows HOẶC bộ ứng dụng Office"],
+            ["DANH SÁCH TOÀN BỘ THIẾT BỊ VÀ TÌNH TRẠNG BẢN QUYỀN (" + totalCount + " MÁY)"],
+            ["Toàn bộ " + totalCount + " thiết bị: " + nhomRuiRo.length + " máy có rủi ro (xếp trước, theo ID máy giảm dần) + " + nhomDatChuan.length + " máy đạt chuẩn cả Windows lẫn Office (xếp sau, theo tên máy). ID máy, tên máy, loại thiết bị, bộ phận và người sử dụng lấy trực tiếp từ hệ thống quản lý tài sản IT (ITForm - KK_ThietBi)."],
             [],
-            ["STT", "ID Máy", "Tên Máy (Hostname)", "Loại TB", "Bộ Phận", "Công Ty", "Bản Quyền Windows", "Bản Quyền Office", "Người Sử Dụng", "Mức Độ Ưu Tiên", "Hành Động Cần Thực Hiện"]
+            ["STT", "ID Máy", "Tên Máy (Hostname)", "Loại TB", "Bộ Phận", "Công Ty", "Bản Quyền Windows", "Bản Quyền Office", "Người Sử Dụng", "Mức Độ Ưu Tiên", "Hành Động Cần Thực Hiện", "Số Seri"]
         ];
 
-        let riskIdx = 1;
-        licenseData.forEach(item => {
-            let isWinRisk = phanLoaiBanQuyenWindows(item.winLicense).risk;
-            let isOffRisk = phanLoaiBanQuyenOffice(item.officeLicense).risk;
+        danhSachThietBi.forEach((r, idx) => {
+            let item = r.item;
+            let kq = xepUuTienThietBi(r.winKq, r.offRisk);
+            // Máy không chứng minh được nguồn gốc key: hiển thị đúng kết luận "Chưa có bản quyền" thay vì nhãn thô gây hiểu nhầm
+            let winHienThi = r.winKq.capDo === 'nguyHiem' ? 'Chưa có bản quyền' : (item.winLicense || 'Chưa có bản quyền');
+            let offHienThi = r.offRisk ? 'Chưa có bản quyền' : (item.officeLicense || 'Có bản quyền');
 
-            if (isWinRisk || isOffRisk) {
-                let priority = "🟠 Cao";
-                let action = "Mua bản quyền Office bổ sung";
-                if (isWinRisk && isOffRisk) {
-                    priority = "🔴 Khẩn Cấp";
-                    action = "Mua cả Windows + Office bản quyền";
-                } else if (isWinRisk) {
-                    action = "Nâng cấp / Hợp thức hóa Windows Pro";
-                }
-
-                sheet3Rows.push([
-                    riskIdx++,
-                    item.idThietBi,
-                    item.tenMayTinh || 'No Hostname',
-                    item.loaiThietBi || 'Khác',
-                    item.tenBoPhan || 'Chưa gắn',
-                    item.tenCongTy || 'Chưa gắn',
-                    item.winLicense || 'Trống / Chưa rõ',
-                    item.officeLicense || 'Trống / Chưa rõ',
-                    item.tenNguoiDung ? `${item.tenNguoiDung} (${item.tk || 'N/A'})` : 'Chưa cấp phát',
-                    priority,
-                    action
-                ]);
-            }
+            sheet3Rows.push([
+                idx + 1,
+                item.idThietBi,
+                item.tenMayTinh || 'No Hostname',
+                item.loaiThietBi || 'Khác',
+                item.tenBoPhan || 'Chưa gắn',
+                item.tenCongTy || 'Chưa gắn',
+                winHienThi,
+                offHienThi,
+                item.tenNguoiDung ? (item.tk ? `${item.tenNguoiDung} (${item.tk})` : item.tenNguoiDung) : 'Chưa cấp phát',
+                kq.uuTien,
+                kq.hanhDong,
+                item.seribacode || ''
+            ]);
         });
 
         const ws3 = XLSX.utils.aoa_to_sheet(sheet3Rows);
         ws3['!cols'] = [
-            { wch: 6 }, { wch: 10 }, { wch: 20 }, { wch: 15 }, { wch: 18 },
-            { wch: 15 }, { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 35 }
+            { wch: 8 }, { wch: 10 }, { wch: 22 }, { wch: 14 }, { wch: 18 },
+            { wch: 14 }, { wch: 45 }, { wch: 25 }, { wch: 32 }, { wch: 16 }, { wch: 38 }, { wch: 22 }
         ];
         ws3['!views'] = [{ state: 'frozen', ySplit: 4 }]; // Đóng băng hàng tiêu đề bảng
-        ws3['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3, c: 10 } }) };
+        ws3['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + danhSachThietBi.length, c: 11 } }) };
         styleWorksheetUniversal(ws3);
-        XLSX.utils.book_append_sheet(wb, ws3, "3. Danh Sách Rủi Ro");
+        XLSX.utils.book_append_sheet(wb, ws3, "3. Danh Sách Thiết Bị");
 
         // ----------------------------------------------------
         // TAB 4: KẾ HOẠCH HÀNH ĐỘNG (LỘ TRÌNH KHẮC PHỤC)
         // ----------------------------------------------------
+        // Liệt kê top bộ phận rủi ro cao nhất để kế hoạch chỉ đúng nơi cần ưu tiên xử lý trước
+        function topBoPhan(loai) {
+            return deptList.slice()
+                .filter(d => (loai === 'win' ? d.winRisk : d.offRisk) > 0)
+                .sort((a, b) => {
+                    let ra = (loai === 'win' ? a.winRisk : a.offRisk) / a.total;
+                    let rb = (loai === 'win' ? b.winRisk : b.offRisk) / b.total;
+                    return rb !== ra ? rb - ra : b.total - a.total;
+                })
+                .slice(0, 5)
+                .map(d => {
+                    let so = loai === 'win' ? d.winRisk : d.offRisk;
+                    return `${d.bp} ${so}/${d.total} máy (${((so / d.total) * 100).toFixed(1)}%)`;
+                })
+                .join('; ');
+        }
+
+        let chiTietNhomNangCap = winGroupSorted
+            .filter(([, info]) => info.capDo === 'nangCap')
+            .map(([key, info]) => `${info.count} máy ${key.split(' (')[0]}`)
+            .join(', ') || 'không có';
+        let soMacOs = (winGroup['macOS - Bản quyền hệ điều hành theo máy (Apple)'] || { count: 0 }).count;
+
         let sheet4Rows = [
             ["KẾ HOẠCH KHẮC PHỤC VÀ LỘ TRÌNH TUÂN THỦ BẢN QUYỀN"],
-            ["Xây dựng dựa trên thực tế phân bổ rủi ro hệ thống tài sản số năm 2026"],
+            ["Xây dựng dựa trên thực tế phân bổ rủi ro hệ thống tài sản số - số liệu chốt ngày " + dateNowStr],
             [],
             ["STT", "Mức Độ Ưu Tiên", "Hạng Mục Công Việc", "Chi Tiết Thực Hiện", "Thời Hạn Dự Kiến", "Bộ Phận Phụ Trách"],
-            [1, "🔴 Khẩn Cấp", "Kích hoạt bản quyền Windows", "Cài đặt khóa và hợp thức hóa các máy thuộc nhóm Chưa có và Trống thông tin", "2 tuần", "IT Admin + Ban Giám Đốc"],
-            [2, "🔴 Khẩn Cấp", "Triển khai bản quyền Microsoft Office", "Mua sắm trang bị gói subscription Microsoft 365 Business cho nhân sự văn phòng", "1 tháng", "IT + Phòng Tài Chính"],
-            [3, "🟠 Cao", "Xác minh trạng thái Chưa rõ phiên bản", "Kỹ thuật viên chạy lệnh kiểm tra slmgr /dli trực tiếp tại máy của người dùng", "2 tuần", "Bộ phận Kỹ thuật IT"],
-            [4, "🟡 Trung Bình", "Xây dựng quy trình Quản lý Tài Sản Phần Mềm", "Ban hành quy định nghiêm cấm cài phần mềm bẻ khóa, kiểm kê định kỳ hàng quý", "1 tháng", "IT + Phòng Nhân Sự"],
-            [5, "🟢 Dài Hạn", "Triển khai hệ thống giám sát tự động (SAM)", "Cài đặt các agent Lansweeper/ManageEngine để quét cấu hình bản quyền thời gian thực", "3 tháng", "IT Project Team"]
+            [1, "🔴 Khẩn Cấp", "Đối chiếu key thực tế với danh mục MAK của công ty",
+                "Chạy slmgr /dli và ospp.vbs /dstatus tại máy người dùng; nhập kết quả vào Excel Key Windows. Đây là bước chốt số lượng license cần mua, phải hoàn thành trước khi trình ngân sách",
+                "2 tuần", "Bộ phận Kỹ thuật IT"],
+            [2, "🔴 Khẩn Cấp", "Lập báo giá và trình duyệt ngân sách",
+                "Lấy báo giá " + winNoLicenseCount + " license Windows Pro và " + officeRiskCount + " license Microsoft 365 / Office Volume License; trình Ban Giám Đốc phê duyệt ngân sách và phát hành PO",
+                "3 tuần", "IT + Phòng Tài Chính + Ban Giám Đốc"],
+            [3, "🔴 Khẩn Cấp", "Hợp thức hóa bản quyền Windows cho máy chưa có key",
+                winNoLicenseCount + " máy chưa chứng minh được nguồn gốc key Windows; ưu tiên các bộ phận rủi ro Windows cao nhất: " + topBoPhan('win'),
+                "6 tuần", "IT Admin + Ban Giám Đốc"],
+            [4, "🔴 Khẩn Cấp", "Triển khai bản quyền Microsoft Office",
+                "Trang bị Microsoft 365 / Office Volume License cho " + officeRiskCount + " máy chưa có bản quyền Office; ưu tiên các bộ phận có tỷ lệ rủi ro Office cao nhất: " + topBoPhan('off'),
+                "8 tuần", "IT + Phòng Tài Chính"],
+            [5, "🟠 Cao", "Nâng cấp " + winUpgradeCount + " máy dùng key không đạt chuẩn",
+                "Chuyển đổi lên Windows Pro theo chuẩn công ty: " + chiTietNhomNangCap,
+                "12 tuần", "Bộ phận Kỹ thuật IT"],
+            [6, "🟠 Cao", "Rà soát và gỡ bỏ phần mềm bẻ khóa",
+                "Quét toàn bộ " + totalCount + " máy, gỡ bỏ phần mềm crack/keygen đang cài đặt, lập biên bản xác nhận với người sử dụng",
+                "8 tuần", "Bộ phận Kỹ thuật IT"],
+            [7, "🟠 Cao", "Kiểm tra bản quyền Office cho máy macOS",
+                soMacOs + " máy macOS đã có bản quyền hệ điều hành theo máy (Apple), không cần license Windows; cần kiểm tra và bổ sung Microsoft 365 cho bộ Office",
+                "6 tuần", "Bộ phận Kỹ thuật IT"],
+            [8, "🟡 Trung Bình", "Xây dựng quy trình Quản lý Tài Sản Phần Mềm",
+                "Ban hành quy định nghiêm cấm cài phần mềm bẻ khóa, kiểm kê định kỳ hàng quý, gắn trách nhiệm vào quy chế nội bộ",
+                "4 tuần", "IT + Phòng Nhân Sự"],
+            [9, "🟡 Trung Bình", "Theo dõi hạn key của " + bothOkCount + " máy đã đạt chuẩn",
+                "Lập bảng theo dõi ngày hết hạn key MAK / OEM và gói Microsoft 365; cảnh báo gia hạn trước 30 ngày để không rơi lại nhóm rủi ro",
+                "8 tuần", "Bộ phận Kỹ thuật IT"],
+            [10, "🟢 Dài Hạn", "Triển khai hệ thống giám sát tự động (SAM)",
+                "Cài đặt các agent Lansweeper/ManageEngine để quét cấu hình bản quyền thời gian thực, cảnh báo ngay khi có máy cài phần mềm không phép",
+                "12 tuần", "IT Project Team"]
         ];
 
         const ws4 = XLSX.utils.aoa_to_sheet(sheet4Rows);
-        ws4['!cols'] = [{ wch: 6 }, { wch: 15 }, { wch: 30 }, { wch: 45 }, { wch: 18 }, { wch: 25 }];
+        ws4['!cols'] = [{ wch: 8 }, { wch: 18 }, { wch: 40 }, { wch: 75 }, { wch: 20 }, { wch: 28 }];
         styleWorksheetUniversal(ws4);
         XLSX.utils.book_append_sheet(wb, ws4, "4. Kế Hoạch Hành Động");
+
+        // ----------------------------------------------------
+        // TAB 5: TỔNG HỢP NHÂN SỰ - THIẾT BỊ THEO BỘ PHẬN
+        // Cột "Số Nhân Sự" và "Ghi Chú" để trống cho bộ phận Nhân Sự điền tay (hệ thống chưa quản lý số CNV)
+        // ----------------------------------------------------
+        let sheet5Rows = [
+            ["TỔNG HỢP NHÂN SỰ - THIẾT BỊ - TÌNH TRẠNG BẢN QUYỀN THEO BỘ PHẬN"],
+            ["Nguồn: Báo cáo tuân thủ bản quyền IT " + dateNowStr + ". Cột Số Nhân Sự và Ghi Chú để trống - điền bổ sung từ bảng số lượng CNV."],
+            ["Laptop + Máy Tính Bàn = toàn bộ thiết bị của bộ phận, lấy từ hệ thống quản lý tài sản IT. Cột \"Đạt Chuẩn Cả 2\" là số máy đạt chuẩn cả Windows lẫn Office, đã nằm trong sheet 3."],
+            [],
+            ["STT", "Công Ty", "Bộ Phận", "Số Nhân Sự", "Tổng Thiết Bị", "Laptop", "Máy Tính Bàn", "Đạt Chuẩn Cả 2", "Win - Đạt Chuẩn", "Win - Chưa Có BQ / Cần Nâng Cấp", "Office - Có BQ", "Office - Chưa Có BQ", "Ghi Chú"]
+        ];
+
+        let deptTheoTen = Object.values(deptMap).sort((a, b) => {
+            let c = String(a.cty).localeCompare(String(b.cty), 'vi');
+            return c !== 0 ? c : String(a.bp).localeCompare(String(b.bp), 'vi');
+        });
+        let tongLaptop = 0, tongDesktop = 0;
+        deptTheoTen.forEach((d, idx) => {
+            tongLaptop += d.laptop;
+            tongDesktop += d.desktop;
+            sheet5Rows.push([
+                idx + 1, d.cty, d.bp, "", d.total,
+                d.laptop || "", d.desktop || "", d.bothOk || "",
+                d.winOk || "", d.winRisk || "", d.offOk || "", d.offRisk || "", ""
+            ]);
+        });
+        sheet5Rows.push(["", "TỔNG CỘNG", "", "", totalCount, tongLaptop, tongDesktop, bothOkCount, winOkCount, winRiskCount, officeOkCount, officeRiskCount, ""]);
+
+        const ws5 = XLSX.utils.aoa_to_sheet(sheet5Rows);
+        ws5['!cols'] = [
+            { wch: 8 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 15 }, { wch: 12 }, { wch: 15 },
+            { wch: 15 }, { wch: 16 }, { wch: 16 }, { wch: 15 }, { wch: 16 }, { wch: 35 }
+        ];
+        ws5['!views'] = [{ state: 'frozen', ySplit: 5 }];
+        ws5['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 4, c: 0 }, e: { r: 4 + deptTheoTen.length, c: 12 } }) };
+        styleWorksheetUniversal(ws5);
+        XLSX.utils.book_append_sheet(wb, ws5, "5. Tổng Hợp Nhân Sự - Thiết Bị");
 
         // --- GHI WORKBOOK VÀ KÍCH HOẠT LỆNH TẢI FILE ---
         let dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
