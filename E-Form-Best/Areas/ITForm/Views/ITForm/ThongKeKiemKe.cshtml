@@ -1,6 +1,19 @@
-﻿@{
+﻿@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@{
     ViewData["Title"] = "Dashboard - Thống kê tổng quan Kiểm Kê";
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+
+    // Danh sách key MAK công ty đã mua - lấy từ appsettings.json để mua thêm key mới thì sửa config, không phải sửa code.
+    //
+    // LƯU Ý: project bật AddRazorRuntimeCompilation (Program.cs) và KHÔNG có _ViewImports.cshtml, nên view này được
+    // biên dịch lại lúc chạy với bộ using tối thiểu - không có global usings của SDK như khi build. Vì vậy ở đây
+    // tránh extension method (Get<T>() của ConfigurationBinder) và viết tên kiểu đầy đủ, nếu không sẽ build thì pass
+    // mà mở trang lại lỗi.
+    var makKeyCongTy = new System.Collections.Generic.List<string>();
+    foreach (var itemKey in Configuration.GetSection("BanQuyenWindows:MakKeyCongTy").GetChildren())
+    {
+        if (!string.IsNullOrWhiteSpace(itemKey.Value)) makKeyCongTy.Add(itemKey.Value.Trim());
+    }
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -2221,23 +2234,48 @@
         // ==========================================
         // HÀM XUẤT EXCEL CHUYÊN NGHIỆP DỰA TRÊN FILE ĐÍNH KÈM
         // ==========================================
-        // Phân loại chính xác trạng thái bản quyền Windows dựa trên dữ liệu thực tế hiện có
-        // (Trường bản quyền hiện là ô nhập tự do nên dữ liệu có thể lẫn cả giá trị cũ lẫn mới)
-        // QUY ƯỚC CHUẨN CÔNG TY: chỉ Windows Professional (Pro) mới được tính "Đạt chuẩn".
-        // Home/Enterprise/Education tuy có bản quyền nhưng KHÔNG đúng chuẩn Pro nên vẫn cần xác minh/nâng cấp.
+        // Danh sách 5 ký tự cuối của các key MAK công ty đã mua (cấu hình ở appsettings.json)
+        const MAK_KEY_CONG_TY = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(makKeyCongTy));
+
+        // QUY ƯỚC BẢN QUYỀN WINDOWS CỦA CÔNG TY
+        // Đạt chuẩn = máy dùng key MAK do công ty mua, hoặc key OEM gắn theo máy.
+        // KHÔNG đạt chuẩn:
+        //   - GVLK: key KMS client Microsoft công bố công khai (VD ...T83GX cho Win 10/11 Pro).
+        //           Máy kích hoạt được qua KMS không có nghĩa công ty sở hữu license.
+        //   - Retail generic: key cài đặt công khai (VD ...3V66T), nhiều máy dùng chung một key.
+        // Vì vậy KHÔNG được phân loại theo tên edition (Pro/Home/Enterprise) như trước - phải xét LOẠI KEY.
+        // Dữ liệu loại key đến từ chức năng "Nhập nhanh Excel > Key Windows", lưu dạng "Windows 10 Professional(MAK-66PKM)".
         function phanLoaiBanQuyenWindows(raw) {
         let v = (raw || '').trim();
         if (v === '') return { nhom: 'Trống / Chưa cập nhật', risk: true };
         let low = v.toLowerCase();
+
+        // Nhãn mới có kèm loại key ở cuối -> phân loại theo đúng quy ước công ty
+        // Phần key có thể chứa ký tự lạ (VD "N/A" khi máy không đọc được key) nên bắt tất cả tới dấu ')'
+        let m = v.match(/\(\s*([A-Za-z]+)\s*-\s*([^)]+?)\s*\)\s*$/);
+        if (m) {
+        let loaiKey = m[1].toUpperCase();
+        let key5 = m[2].toUpperCase();
+        if (loaiKey === 'OEM') return { nhom: 'OEM - Key theo máy (Đạt chuẩn)', risk: false };
+        if (loaiKey === 'MAK') {
+        if (MAK_KEY_CONG_TY.some(k => (k || '').trim().toUpperCase() === key5))
+        return { nhom: 'MAK - Key bản quyền công ty (Đạt chuẩn)', risk: false };
+        return { nhom: 'MAK lạ - Không thuộc key công ty (Cần xác minh)', risk: true };
+        }
+        if (loaiKey === 'GVLK') return { nhom: 'GVLK - Key KMS công khai (Không đạt chuẩn)', risk: true };
+        if (loaiKey === 'RETAIL') return { nhom: 'Retail generic - Key công khai (Không đạt chuẩn)', risk: true };
+        return { nhom: 'Không xác định', risk: true };
+        }
+
+        // Dữ liệu cũ chưa qua import Key Windows: không biết loại key nên KHÔNG thể khẳng định đạt chuẩn.
         if (low.includes('chưa có') || low.includes('không có')) return { nhom: 'Chưa có bản quyền', risk: true };
         if (low.includes('không xác định')) return { nhom: 'Không xác định', risk: true };
         if (low.includes('chưa rõ')) return { nhom: 'Có bản quyền - Chưa rõ phiên bản', risk: true };
-        if (low.includes('professional')) return { nhom: 'Windows Professional (Đạt chuẩn)', risk: false };
         if (low.includes('home')) return { nhom: 'Windows Home (Không đạt chuẩn - Cần nâng cấp Pro)', risk: true };
         if (low.includes('education')) return { nhom: 'Windows Education (Không đạt chuẩn - Cần nâng cấp Pro)', risk: true };
         if (low.includes('enterprise') || low.includes('iot')) return { nhom: 'Windows Enterprise (Không đạt chuẩn - Cần nâng cấp Pro)', risk: true };
-        if (low.includes('có bản quyền')) return { nhom: 'Có bản quyền - Chưa rõ phiên bản', risk: true };
-        if (low.includes('pro')) return { nhom: 'Windows Professional (Đạt chuẩn)', risk: false };
+        if (low.includes('professional') || low.includes('pro') || low.includes('có bản quyền'))
+        return { nhom: 'Chưa xác minh loại key (Cần nhập Excel Key Windows)', risk: true };
         return { nhom: 'Không xác định', risk: true };
         }
 

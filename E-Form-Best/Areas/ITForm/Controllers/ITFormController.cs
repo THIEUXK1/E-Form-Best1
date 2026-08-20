@@ -6696,6 +6696,137 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
+        // Quy về đúng tên phiên bản Windows dùng trong hệ thống.
+        // Script quét đọc tên OS theo ngôn ngữ hiển thị của máy, nên máy cài Windows tiếng Trung trả về "专业版" thay vì "Pro".
+        private static string ChuanHoaEditionWindows(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "Không rõ phiên bản";
+            string s = raw.Trim();
+            if (s.Equals("N/A", StringComparison.OrdinalIgnoreCase)) return "Không rõ phiên bản";
+
+            // Bỏ tiền tố "Microsoft " cho khớp định dạng đang lưu ở TSCN_ThongTinMay
+            s = System.Text.RegularExpressions.Regex.Replace(s, @"^Microsoft\s+", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            s = s.Replace("专业版", "Professional")
+                 .Replace("企业版", "Enterprise")
+                 .Replace("教育版", "Education")
+                 .Replace("家庭版", "Home");
+
+            // "Windows 10 Pro" -> "Windows 10 Professional". Dùng \bPro\b để không đụng vào chữ "Professional" có sẵn,
+            // đồng thời giữ nguyên hậu tố phía sau như "N for Workstations".
+            s = System.Text.RegularExpressions.Regex.Replace(s, @"\bPro\b", "Professional", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            return System.Text.RegularExpressions.Regex.Replace(s, @"\s+", " ").Trim();
+        }
+
+        // QUY ƯỚC BẢN QUYỀN WINDOWS CỦA CÔNG TY
+        // Chỉ key MAK do công ty mua (cấu hình ở BanQuyenWindows:MakKeyCongTy) hoặc key OEM gắn theo máy mới tính là Đạt chuẩn.
+        // GVLK là key KMS client Microsoft công bố công khai, Retail generic cũng là key công khai dùng để cài đặt -
+        // máy kích hoạt được bằng 2 loại key này KHÔNG đồng nghĩa công ty có license, nên không được tính Đạt chuẩn.
+        private bool LaKeyDatChuanCongTy(string? loaiKey, string? key5)
+        {
+            if (string.IsNullOrWhiteSpace(loaiKey)) return false;
+            if (loaiKey.Trim().Equals("OEM", StringComparison.OrdinalIgnoreCase)) return true;
+            if (!loaiKey.Trim().Equals("MAK", StringComparison.OrdinalIgnoreCase)) return false;
+
+            var dsKeyCongTy = _config.GetSection("BanQuyenWindows:MakKeyCongTy").Get<string[]>() ?? Array.Empty<string>();
+            return dsKeyCongTy.Any(k => !string.IsNullOrWhiteSpace(k)
+                                     && k.Trim().Equals((key5 ?? "").Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Nhập nhanh bản quyền Windows từ file báo cáo license (sheet ALL_PC).
+        // Khác với Office (chỉ lấy Activated/Not Activated), Windows phải lấy theo LOẠI KEY thì mới biết máy có license thật hay không.
+        [HttpPost("/QLKiemKe/ImportWinLicenseExcel")]
+        public IActionResult ImportWinLicenseExcel(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return Json(new { success = false, message = "Vui lòng chọn file Excel." });
+            }
+
+            try
+            {
+                int soDaCapNhat = 0, soBoQuaTrong = 0, soDatChuan = 0, soKhongDat = 0;
+                var dsKhongTimThay = new List<string>();
+                var dsBoQuaKhacLoai = new List<string>();
+                string[] loaiMayTinhHopLe = { "máy tính", "laptop" };
+
+                using (var stream = new MemoryStream())
+                {
+                    file.CopyTo(stream);
+                    using (var workbook = new ClosedXML.Excel.XLWorkbook(stream))
+                    {
+                        // File báo cáo gốc có nhiều sheet, dữ liệu máy trạm nằm ở ALL_PC. Không thấy thì mới lấy sheet đầu tiên.
+                        var worksheet = workbook.Worksheets.FirstOrDefault(w => w.Name.Trim().Equals("ALL_PC", StringComparison.OrdinalIgnoreCase))
+                                        ?? workbook.Worksheet(1);
+                        var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
+
+                        for (int row = 2; row <= lastRow; row++)
+                        {
+                            string tenMay = worksheet.Cell(row, 1).GetString().Trim();
+                            string osVersion = worksheet.Cell(row, 2).GetString().Trim();
+                            string loaiKey = worksheet.Cell(row, 3).GetString().Trim();
+                            string key5 = worksheet.Cell(row, 4).GetString().Trim();
+
+                            if (string.IsNullOrEmpty(tenMay)) continue;
+
+                            // Máy Offline/WinRM Blocked/Session Failed không đọc được key - bỏ qua, KHÔNG ghi đè dữ liệu cũ
+                            if (string.IsNullOrEmpty(loaiKey) || loaiKey.Equals("N/A", StringComparison.OrdinalIgnoreCase))
+                            {
+                                soBoQuaTrong++;
+                                continue;
+                            }
+
+                            // Nhãn hiển thị theo chuẩn công ty, VD: "Windows 10 Professional(MAK-66PKM)"
+                            string nhan = $"{ChuanHoaEditionWindows(osVersion)}({loaiKey.ToUpper()}-{key5.ToUpper()})";
+                            bool datChuan = LaKeyDatChuanCongTy(loaiKey, key5);
+
+                            var dsThietBiCungTen = _context.KkThietBis
+                                .Where(x => x.TenMayTinh != null && x.TenMayTinh.Trim().ToLower() == tenMay.ToLower())
+                                .ToList();
+
+                            if (dsThietBiCungTen.Count == 0) { dsKhongTimThay.Add(tenMay); continue; }
+
+                            // Chỉ cập nhật thiết bị Máy tính/Laptop, thiết bị khác trùng tên (VD: Màn hình cùng vị trí) thì bỏ qua
+                            var dsThietBiKhop = dsThietBiCungTen
+                                .Where(x => x.LoaiThietBi != null && loaiMayTinhHopLe.Contains(x.LoaiThietBi.Trim().ToLower()))
+                                .ToList();
+
+                            if (dsThietBiKhop.Count == 0) { dsBoQuaKhacLoai.Add(tenMay); continue; }
+
+                            foreach (var thietBi in dsThietBiKhop)
+                            {
+                                thietBi.WinLicense = CatChuoiToiDa(nhan, 255);
+                                thietBi.NgayCapNhat = DateTime.Now;
+                                soDaCapNhat++;
+                            }
+
+                            if (datChuan) soDatChuan++; else soKhongDat++;
+                        }
+
+                        _context.SaveChanges();
+                    }
+                }
+
+                GhiLichSu("Nhập Excel", "Thiết Bị", 0, $"Nhập nhanh bản quyền Windows từ Excel: cập nhật {soDaCapNhat} thiết bị ({soDatChuan} đạt chuẩn, {soKhongDat} không đạt), bỏ qua {soBoQuaTrong} máy không đọc được key, không tìm thấy {dsKhongTimThay.Count} tên máy.");
+
+                return Json(new
+                {
+                    success = true,
+                    soDaCapNhat,
+                    soBoQuaTrong,
+                    soDatChuan,
+                    soKhongDat,
+                    dsKhongTimThay,
+                    dsBoQuaKhacLoai
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi khi đọc file Excel: " + ex.Message });
+            }
+        }
+
         // Đọc file .xlsx/.xls (ClosedXML) hoặc .csv thành danh sách dòng dữ liệu (bỏ dòng tiêu đề).
         // Mỗi dòng: [0]=ip, [1]=hostname, [2]=model, [3]=version, [4]=serial, [5]=image (bỏ qua), [6]=error
         private static List<string[]> DocDuLieuFileSwitch(IFormFile file)
