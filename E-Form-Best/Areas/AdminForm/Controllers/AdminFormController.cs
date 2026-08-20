@@ -20,6 +20,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             _context = new ITFormContext();
         }
         #region MenuA
+        [HttpGet("/")]      // Trang chủ trỏ thẳng vào đây, không qua redirect trung gian
         [HttpGet("/MenuA")] // Hoặc đường dẫn tương ứng của bạn
         [Authorize]
         public async Task<IActionResult> MenuA()

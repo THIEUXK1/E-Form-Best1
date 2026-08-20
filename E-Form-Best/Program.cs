@@ -6,8 +6,23 @@ using E_Form_Best.Areas.AdminForm.Controllers; // Nhận diện PushNotification
 using E_Form_Best.Areas.ITForm.Services; // Thêm namespace của Worker mới
 using Microsoft.AspNetCore.Authentication; // Thêm để dùng SignOutAsync
 using System.Security.Claims; // Thêm để làm việc với Claims
+using Microsoft.AspNetCore.HttpOverrides; // Đọc header X-Forwarded-* do nginx gửi sang
 
 var builder = WebApplication.CreateBuilder(args);
+
+// --- 0. CẤU HÌNH ĐỌC HEADER TỪ REVERSE PROXY (nginx) ---
+// Không có phần này, ứng dụng tưởng request đến bằng http nên sinh redirect về http://,
+// khiến trình duyệt phải đi thêm một vòng 301 nữa mới quay lại https. Đồng thời client IP
+// ghi trong log sẽ là IP của nginx thay vì IP thật của người dùng.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor;
+    // nginx nằm trên máy khác nên không thuộc danh sách proxy tin cậy mặc định (loopback).
+    // Xoá danh sách này để chấp nhận header từ nginx; an toàn vì Kestrel/IIS chỉ nhận
+    // kết nối từ nginx, không mở trực tiếp ra Internet.
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // --- 1. ĐĂNG KÝ DATABASE CONTEXT ---
 builder.Services.AddDbContext<ITFormContext>(options =>
@@ -93,6 +108,10 @@ builder.Services.AddSession(options =>
 
 var app = builder.Build();
 
+// Phải đứng trước mọi middleware khác để các middleware sau đó (nhất là HttpsRedirection
+// và Cookie Authentication) nhìn thấy đúng scheme https và đúng IP của người dùng.
+app.UseForwardedHeaders();
+
 // Cấu hình Pipeline xử lý Request
 if (!app.Environment.IsDevelopment())
 {
@@ -122,11 +141,30 @@ app.UseAuthorization();
 app.UseSession();
 
 // 7. CẤU HÌNH ROUTES
-// ƯU TIÊN 1: Map trực tiếp trang chủ vào trang MenuA
-app.MapGet("/", context => {
-    context.Response.Redirect("/MenuA");
-    return Task.CompletedTask;
+
+// ƯU TIÊN 0: Endpoint cho công cụ giám sát uptime (không cần đăng nhập, không redirect)
+// /health       : ứng dụng còn sống hay không - trả lời ngay, không chạm database.
+// /health/ready : kiểm tra luôn kết nối SQL Server, dùng cho uptime check để biết
+//                 hệ thống thật sự dùng được, thay vì chỉ biết web server còn chạy.
+app.MapGet("/health", () => Results.Ok("Healthy"));
+
+app.MapGet("/health/ready", async (ITFormContext db) =>
+{
+    try
+    {
+        return await db.Database.CanConnectAsync()
+            ? Results.Ok("Healthy")
+            : Results.Text("Unhealthy: khong ket noi duoc database", statusCode: 503);
+    }
+    catch (Exception ex)
+    {
+        return Results.Text($"Unhealthy: {ex.Message}", statusCode: 503);
+    }
 });
+
+// ƯU TIÊN 1: Trang chủ "/" được xử lý trực tiếp bởi action MenuA (xem [HttpGet("/")]
+// trong AdminFormController) thay vì trả 302 sang /MenuA, bớt được một vòng round-trip
+// cho mọi người dùng khi mở trang.
 
 // ƯU TIÊN 2: Khai báo Route của Area (Phải đặt lên trước các route thông thường)
 app.MapControllerRoute(

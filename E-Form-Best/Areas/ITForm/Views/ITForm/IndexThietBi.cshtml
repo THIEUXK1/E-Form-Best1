@@ -311,12 +311,51 @@
                         <i class="fas fa-file-excel me-1"></i> Nhập nhanh Excel
                     </button>
                     <ul class="dropdown-menu dropdown-menu-md-end shadow-sm">
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalImportWinLicense"><i class="fab fa-windows me-2 text-primary"></i>Key Windows</a></li>
                         <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalImportOfficeLicense"><i class="fas fa-key me-2 text-success"></i>Key Office</a></li>
                         <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalImportSwitchExcel"><i class="fas fa-network-wired me-2 text-primary"></i>Switch</a></li>
                     </ul>
                 </div>
                 <button class="btn btn-sm rounded-pill px-3 shadow-sm text-white w-100 w-md-auto" style="background-color: #4f46e5; border-color: #4f46e5; padding-top: 8px; padding-bottom: 8px;" onclick="openModalCurrentTab()" id="btnMasterThemMoi">
                     <i class="fas fa-plus me-1"></i> Thêm mới <span id="txtBtnThemMoi">Thiết bị</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalImportWinLicense" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 15px;">
+            <div class="modal-header text-white" style="border-radius: 15px 15px 0 0; background-color: #0d6efd;">
+                <h5 class="modal-title fw-bold"><i class="fab fa-windows me-2"></i>Nhập nhanh Key Windows từ Excel</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-light border small mb-3">
+                    <b>Dùng thẳng file báo cáo license (VD: BPVN_LicenseReport_2026.xlsx)</b> - hệ thống tự đọc sheet <code>ALL_PC</code>.<br />
+                    Dòng 1 là tiêu đề, bỏ qua khi đọc. Thứ tự cột:<br />
+                    - Cột <b>A</b>: ComputerName &nbsp;|&nbsp; Cột <b>B</b>: OS_Version<br />
+                    - Cột <b>C</b>: Win_Type &nbsp;|&nbsp; Cột <b>D</b>: Win_Key5<br />
+                    - Máy <code>Offline</code>/<code>WinRM Blocked</code>/cột C là <code>N/A</code> sẽ được bỏ qua, không đụng đến dữ liệu cũ.<br />
+                    - Chỉ áp dụng cho thiết bị loại <b>Máy tính</b> và <b>Laptop</b>.
+                </div>
+                <div class="alert alert-warning small mb-3">
+                    <b><i class="fas fa-shield-alt me-1"></i>Quy ước bản quyền công ty:</b> chỉ <b>MAK</b> thuộc danh sách key công ty mua
+                    và <b>OEM</b> (key gắn theo máy) mới tính là <b>Đạt chuẩn</b>.<br />
+                    <b>GVLK</b> là key KMS client Microsoft công bố công khai, <b>Retail generic</b> cũng là key công khai -
+                    máy kích hoạt được bằng 2 loại này <u>không</u> đồng nghĩa công ty có license.
+                </div>
+                <div class="mb-2">
+                    <label class="form-label fw-bold">Chọn file Excel (.xlsx)</label>
+                    <input type="file" id="fileImportWinLicense" class="form-control" accept=".xlsx,.xls" />
+                </div>
+                <div id="ketQuaImportWinLicense" class="mt-3" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitImportWinLicense" onclick="submitImportWinLicense()">
+                    <i class="fas fa-upload me-1"></i> Tải lên & Cập nhật
                 </button>
             </div>
         </div>
@@ -1542,6 +1581,53 @@
         }
         }).fail(function() {
         $('#tbodyThietBi').html(`<tr><td colspan="7" class="text-center text-danger py-4">Không thể kết nối đến API /QLKiemKe/GetKkThietBis</td></tr>`);
+        });
+        }
+
+        // Gửi file báo cáo license lên Server để nhập nhanh bản quyền Windows theo LOẠI KEY (sheet ALL_PC)
+        function submitImportWinLicense() {
+        var fileInput = document.getElementById('fileImportWinLicense');
+        if (!fileInput.files || fileInput.files.length === 0) {
+        Swal.fire('Thông báo', 'Vui lòng chọn file Excel trước khi tải lên.', 'warning');
+        return;
+        }
+
+        var formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        var $btn = $('#btnSubmitImportWinLicense');
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang xử lý...');
+        $('#ketQuaImportWinLicense').hide().empty();
+
+        $.ajax({
+        url: '/QLKiemKe/ImportWinLicenseExcel',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (res) {
+        $btn.prop('disabled', false).html('<i class="fas fa-upload me-1"></i> Tải lên & Cập nhật');
+        if (res.success) {
+        var html = `<div class="alert alert-success mb-2"><i class="fas fa-check-circle me-1"></i> Đã cập nhật <b>${res.soDaCapNhat}</b> thiết bị (Máy tính/Laptop).</div>`;
+        html += `<div class="alert alert-info mb-2"><i class="fas fa-shield-alt me-1"></i> Đạt chuẩn (MAK công ty / OEM): <b>${res.soDatChuan}</b> máy &nbsp;|&nbsp; Không đạt (GVLK / Retail generic / khác): <b class="text-danger">${res.soKhongDat}</b> máy</div>`;
+        html += `<div class="alert alert-secondary mb-2"><i class="fas fa-info-circle me-1"></i> Bỏ qua <b>${res.soBoQuaTrong}</b> máy không đọc được key (Offline / WinRM Blocked / N/A) - giữ nguyên dữ liệu cũ.</div>`;
+        if (res.dsKhongTimThay && res.dsKhongTimThay.length > 0) {
+        html += `<div class="alert alert-warning mb-2"><i class="fas fa-exclamation-triangle me-1"></i> Không tìm thấy <b>${res.dsKhongTimThay.length}</b> tên máy trong hệ thống:<br/><small>${res.dsKhongTimThay.join(', ')}</small></div>`;
+        }
+        if (res.dsBoQuaKhacLoai && res.dsBoQuaKhacLoai.length > 0) {
+        html += `<div class="alert alert-secondary mb-0"><i class="fas fa-info-circle me-1"></i> Bỏ qua <b>${res.dsBoQuaKhacLoai.length}</b> tên máy trùng nhưng thiết bị không phải Máy tính/Laptop:<br/><small>${res.dsBoQuaKhacLoai.join(', ')}</small></div>`;
+        }
+        $('#ketQuaImportWinLicense').html(html).show();
+        fileInput.value = '';
+        loadThietBi();
+        } else {
+        $('#ketQuaImportWinLicense').html(`<div class="alert alert-danger mb-0"><i class="fas fa-times-circle me-1"></i> ${res.message}</div>`).show();
+        }
+        },
+        error: function () {
+        $btn.prop('disabled', false).html('<i class="fas fa-upload me-1"></i> Tải lên & Cập nhật');
+        $('#ketQuaImportWinLicense').html('<div class="alert alert-danger mb-0">Lỗi kết nối đến Server khi tải file lên.</div>').show();
+        }
         });
         }
 
