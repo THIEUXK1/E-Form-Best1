@@ -1,39 +1,41 @@
 ﻿@{
-    ViewData["Title"] = "Nhật ký hoạt động công việc";
-    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Nhật ký hoạt động IT";
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 }
 
-@* Container chính với Inline CSS cỏ non mạ non tươi sáng rực rỡ *@
-<div id="mainAppContainer" style="background-color: #f7fee7; background-image: radial-gradient(#bef264 1px, transparent 1px); background-size: 20px 20px; min-height: 100vh; padding: 40px 20px; font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; transition: all 0.3s ease;" class="main-container">
+@* Container chính *@
+<div id="mainAppContainer" style="background-color: #f0f9ff; background-image: radial-gradient(#bae6fd 1px, transparent 1px); background-size: 20px 20px; min-height: 100vh; padding: 40px 20px; font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; transition: all 0.3s ease;" class="main-container">
     <div style="max-width: 1100px; margin: 0 auto;">
 
         @* --- HEADER SECTION --- *@
-        <div id="headerSection" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid #bef264; padding-bottom: 20px; flex-wrap: wrap; gap: 20px;">
+        <div id="headerSection" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid #bae6fd; padding-bottom: 20px; flex-wrap: wrap; gap: 20px;">
             <div style="flex: 1; min-width: 300px;">
-                <h1 style="margin: 0; color: #2d4201; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 15px;">
-                    <span style="background: linear-gradient(135deg, #2d4201 0%, #65a30d 100%); color: white; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 12px; box-shadow: 0 4px 12px rgba(101, 163, 13, 0.3);">
+                <h1 style="margin: 0; color: #0c4a6e; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 15px;">
+                    <span style="background: linear-gradient(135deg, #0c4a6e 0%, #0284c7 100%); color: white; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 12px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);">
                         <i class="fa fa-history"></i>
                     </span>
-                    NHẬT KÝ HỆ THỐNG CÔNG VIỆC
+                    NHẬT KÝ HỆ THỐNG IT
                 </h1>
-                <p id="headerSubtitle" style="margin: 8px 0 0 60px; color: #4d7c0f; font-size: 15px; font-weight: 500;">Quản lý luồng điều phối tác vụ và vết tiến trình xử lý thời gian thực</p>
+                <p id="headerSubtitle" style="margin: 8px 0 0 60px; color: #0369a1; font-size: 15px; font-weight: 500;">Theo dõi quy trình xử lý đơn IT theo thời gian thực</p>
             </div>
 
             <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; width: auto;">
-                <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 10px 15px; border-radius: 14px; border: 2px solid #bef264; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-                    <span style="font-size: 12px; font-weight: 700; color: #4d7c0f;">Hiển thị:</span>
-                    <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: #65a30d; cursor: pointer; background: transparent; font-size: 14px;">
+                <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 10px 15px; border-radius: 14px; border: 2px solid #bae6fd; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                    <span style="font-size: 12px; font-weight: 700; color: #0369a1;">Hiển thị:</span>
+                    <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: #0284c7; cursor: pointer; background: transparent; font-size: 14px;">
                         <option value="10">10</option>
-                        <option value="20" selected>20</option>
-                        <option value="50">50</option>
+                        <option value="20">20</option>
+                        <option value="50" selected>50</option>
                         <option value="100">100</option>
+                        <option value="200">200</option>
+                        <option value="all">Tất cả</option>
                     </select>
                 </div>
 
                 <div style="position: relative; flex-grow: 1;">
-                    <i class="fa fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #65a30d; z-index: 10;"></i>
+                    <i class="fa fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #0284c7; z-index: 10;"></i>
                     <input type="text" id="logSearch" oninput="handleFilterAndPaginate()" placeholder="Tìm tên đơn, mã đơn..."
-                           style="padding: 14px 20px 14px 45px; border-radius: 14px; border: 2px solid white; width: 100%; min-width: 250px; max-width: 350px; outline: none; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-size: 14px; font-weight: 600; color: #2d4201;">
+                           style="padding: 14px 20px 14px 45px; border-radius: 14px; border: 2px solid white; width: 100%; min-width: 250px; max-width: 350px; outline: none; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-size: 14px; font-weight: 600; color: #0c4a6e;">
                 </div>
             </div>
         </div>
@@ -43,21 +45,17 @@
 
         @* --- LOG CONTAINER --- *@
         <div id="logContainer" style="display: flex; flex-direction: column; gap: 16px;">
-            <div style="text-align: center; padding: 50px; color: #4d7c0f; background: white; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border:1px solid #e6f7ff;">
-                <i class="fa fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 15px; color: #65a30d;"></i>
+            <div style="text-align: center; padding: 50px; color: #0369a1; background: white; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border:1px solid #e6f7ff;">
+                <i class="fa fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 15px; color: #0284c7;"></i>
                 <p style="font-weight: 600;">Đang đồng bộ dữ liệu nhật ký...</p>
             </div>
         </div>
 
-        @* --- PAGINATION --- *@
-        <div id="paginationWrapper" style="display: flex; justify-content: space-between; align-items: center; padding: 25px 0; border-top: 2px solid #bef264; margin-top: 20px; flex-wrap: wrap; gap: 20px;">
-            <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
-            <div id="paginationInfo" style="text-align: right; min-width: 150px;">
-                <div style="color: #4d7c0f; font-size: 13px; font-weight: 700;">
-                    Trang <span id="currentPageNum" style="color: #65a30d;">1</span> / <span id="totalPagesNum">1</span>
-                </div>
-                <div style="color: #a3e635; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px;">
-                    Tổng cộng: <span id="totalVisibleCount">0</span> bản ghi tác vụ
+        @* --- TỔNG KẾT --- *@
+        <div id="paginationWrapper" style="display: flex; justify-content: flex-end; align-items: center; padding: 20px 0; border-top: 2px solid #bae6fd; margin-top: 20px; flex-wrap: wrap; gap: 20px;">
+            <div id="paginationInfo" style="text-align: right;">
+                <div style="color: #0284c7; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;">
+                    Đang hiển thị <span id="totalVisibleCount" style="color: #0c4a6e;">0</span> / <span id="totalFilteredCount">0</span> bản ghi
                 </div>
             </div>
         </div>
@@ -69,10 +67,9 @@
     let masterLogs = [];
     let filteredLogs = [];
     let currentFilterStatus = 'all';
-    let currentPage = 1;
-    let rowsPerPage = 20;
+    let rowsPerPage = 50;
 
-    // Cấu hình màu sắc nhãn hiển thị cho phân hệ Quản lý công việc chỉ định
+    // Cấu hình màu sắc nhãn hiển thị cho phân hệ IT
     const statusConfigs = {
         'all': { label: 'Tất cả nhật ký', color: '#475569' },
         'Chờ phê duyệt': { label: 'Chờ phê duyệt', color: '#f97316' },
@@ -88,13 +85,13 @@
         window.addEventListener('resize', applyResponsiveStyles);
 
         try {
-            // Đồng bộ Endpoint kéo dữ liệu nhật ký phân hệ công việc mới
-            const response = await fetch('/FormCongViec/GetLichSuCongViecData');
+            // Endpoint kéo dữ liệu nhật ký hệ thống IT
+            const response = await fetch('/FormIT/GetLichSuITData');
             masterLogs = await response.json();
             renderFilterTabs();
             handleFilterAndPaginate();
         } catch (error) {
-            document.getElementById('logContainer').innerHTML = `<div style="text-align:center; padding:50px; color:#ef4444; background:white; border-radius:20px; font-weight:800; border:1px solid #fecaca;">⚠️ Không thể kết xuất kho dữ liệu tiến trình công việc từ máy chủ.</div>`;
+            document.getElementById('logContainer').innerHTML = `<div style="text-align:center; padding:50px; color:#ef4444; background:white; border-radius:20px; font-weight:800; border:1px solid #fecaca;">⚠️ Không thể kết xuất kho dữ liệu nhật ký IT từ máy chủ.</div>`;
         }
     });
 
@@ -130,11 +127,11 @@
         container.innerHTML = Object.keys(statusConfigs).map(key => {
             const config = statusConfigs[key];
             const isActive = currentFilterStatus === key;
-            const activeStyle = isActive ? `background: #65a30d; color: white; box-shadow: 0 4px 12px rgba(101, 163, 13, 0.3);` : `background: white; color: ${config.color};`;
+            const activeStyle = isActive ? `background: #0284c7; color: white; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);` : `background: white; color: ${config.color};`;
 
             return `
                 <button onclick="filterByStatus('${key}')"
-                    onmouseenter="if('${currentFilterStatus}' !== '${key}') { this.style.transform='translateY(-2px)'; this.style.background='#f7fee7'; }"
+                    onmouseenter="if('${currentFilterStatus}' !== '${key}') { this.style.transform='translateY(-2px)'; this.style.background='#f0f9ff'; }"
                     onmouseleave="if('${currentFilterStatus}' !== '${key}') { this.style.transform='translateY(0)'; this.style.background='white'; }"
                     style="padding: 8px 16px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.04); ${activeStyle}">
                     ${config.label}
@@ -144,15 +141,14 @@
     }
 
     function changePageSize() {
-        rowsPerPage = parseInt(document.getElementById("pageSizeSelect").value);
-        currentPage = 1;
+        const val = document.getElementById("pageSizeSelect").value;
+        rowsPerPage = val === 'all' ? Infinity : parseInt(val);
         handleFilterAndPaginate();
     }
 
     function filterByStatus(status) {
         currentFilterStatus = status;
         renderFilterTabs();
-        currentPage = 1;
         handleFilterAndPaginate();
     }
 
@@ -165,17 +161,12 @@
             return matchStatus && (searchText === "" || contentString.includes(searchText));
         });
 
-        const totalItems = filteredLogs.length;
-        const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
-        if (currentPage > totalPages) currentPage = totalPages;
+        const shownData = rowsPerPage === Infinity ? filteredLogs : filteredLogs.slice(0, rowsPerPage);
 
-        document.getElementById("totalVisibleCount").innerText = totalItems;
-        document.getElementById("currentPageNum").innerText = currentPage;
-        document.getElementById("totalPagesNum").innerText = totalPages;
+        document.getElementById("totalVisibleCount").innerText = shownData.length;
+        document.getElementById("totalFilteredCount").innerText = filteredLogs.length;
 
-        const pageData = filteredLogs.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
-        renderLogs(pageData);
-        renderPaginationButtons(totalPages);
+        renderLogs(shownData);
     }
 
     function renderLogs(pageData) {
@@ -184,7 +175,7 @@
         container.innerHTML = "";
 
         if (pageData.length === 0) {
-            container.innerHTML = `<div style="text-align: center; padding: 50px; background: white; border-radius: 20px; color: #94a3b8; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.04); border:1px solid #e6f7ff;"><i class="fa fa-folder-open-o" style="font-size: 48px; margin-bottom: 15px; display: block; color:#a3e635;"></i><p style="font-weight: 600;">Không có dữ liệu nhật ký khớp mục tiêu tìm kiếm.</p></div>`;
+            container.innerHTML = `<div style="text-align: center; padding: 50px; background: white; border-radius: 20px; color: #94a3b8; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.04); border:1px solid #e6f7ff;"><i class="fa fa-folder-open-o" style="font-size: 48px; margin-bottom: 15px; display: block; color:#0284c7;"></i><p style="font-weight: 600;">Không có dữ liệu nhật ký khớp mục tiêu tìm kiếm.</p></div>`;
             return;
         }
 
@@ -202,29 +193,29 @@
                 }
 
                 const metaStyle = isMobile
-                    ? `padding-top: 10px; border-top: 1px dashed #bef264; width: 100%;`
-                    : `min-width: 150px; text-align: right; border-left: 1px dashed #bef264; padding-left: 15px;`;
+                    ? `padding-top: 10px; border-top: 1px dashed #bae6fd; width: 100%;`
+                    : `min-width: 150px; text-align: right; border-left: 1px dashed #bae6fd; padding-left: 15px;`;
 
                 timeBlockHtml = `
                     <div style="${metaStyle} display: flex; flex-direction: column; justify-content: center; gap: 4px;">
                         ${stars}
-                        <div style="font-size: 10px; color: #3f6212; font-weight: 700; background: #f7fee7; padding: 2px 8px; border-radius: 6px; border: 1px solid #d9f99d; display: inline-block; white-space: nowrap; width: fit-content; margin-left: ${isMobile ? '0' : 'auto'};"><i class="fa fa-wrench"></i> Xử lý: ${log.timeProcessing}</div>
+                        <div style="font-size: 10px; color: #075985; font-weight: 700; background: #f0f9ff; padding: 2px 8px; border-radius: 6px; border: 1px solid #bae6fd; display: inline-block; white-space: nowrap; width: fit-content; margin-left: ${isMobile ? '0' : 'auto'};"><i class="fa fa-wrench"></i> Xử lý: ${log.timeProcessing}</div>
                         ${log.timeTotal ? `<div style="font-size: 10px; color: #14532d; font-weight: 700; background: #f0fdf4; padding: 2px 8px; border-radius: 6px; border: 1px solid #bbf7d0; display: inline-block; white-space: nowrap; width: fit-content; margin-left: ${isMobile ? '0' : 'auto'};"><i class="fa fa-check-circle"></i> Tổng: ${log.timeTotal}</div>` : ""}
                     </div>`;
             }
 
             const cardBg = log.isCanceled ? "#fef2f2" : "white";
-            const cardBorder = log.isCanceled ? "#fecaca" : "#bef264";
-            const cardInnerStyle = `background: ${cardBg}; border-radius: 20px; padding: 20px; border: 1px solid ${cardBorder}; display: flex; flex-direction: ${isMobile ? 'column' : 'row'}; align-items: ${isMobile ? 'flex-start' : 'center'}; gap: 20px; position: relative; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(45,66,1,0.02); transition: all 0.3s ease;`;
+            const cardBorder = log.isCanceled ? "#fecaca" : "#bae6fd";
+            const cardInnerStyle = `background: ${cardBg}; border-radius: 20px; padding: 20px; border: 1px solid ${cardBorder}; display: flex; flex-direction: ${isMobile ? 'column' : 'row'}; align-items: ${isMobile ? 'flex-start' : 'center'}; gap: 20px; position: relative; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(15,23,42,0.02); transition: all 0.3s ease;`;
 
             const timeBlockStyle = isMobile
-                ? `width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #bef264; padding-bottom: 10px;`
+                ? `width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #bae6fd; padding-bottom: 10px;`
                 : `min-width: 100px; text-align: center; border-right: 1px dashed ${cardBorder}; padding-right: 20px;`;
 
             htmlString += `
-                <a href="/FormCongViec/ChiTiet/${log.idFormIt}"
+                <a href="/FormIT/ChiTiet/${log.idFormIt}"
                    onmouseenter="if(window.innerWidth > 768) { this.style.transform='translateX(8px)'; this.querySelector('.card-inner').style.borderColor='${log.statusColor}'; this.querySelector('.card-inner').style.boxShadow='0 15px 20px -5px ${log.statusColor}25'; }"
-                   onmouseleave="if(window.innerWidth > 768) { this.style.transform='translateX(0)'; this.querySelector('.card-inner').style.borderColor='${cardBorder}'; this.querySelector('.card-inner').style.boxShadow='0 10px 15px -3px rgba(45,66,1,0.02)'; }"
+                   onmouseleave="if(window.innerWidth > 768) { this.style.transform='translateX(0)'; this.querySelector('.card-inner').style.borderColor='${cardBorder}'; this.querySelector('.card-inner').style.boxShadow='0 10px 15px -3px rgba(15,23,42,0.02)'; }"
                    style="text-decoration: none; display: block; border-radius: 20px; transition: all 0.3s ease; outline: none;">
                     <div class="card-inner" style="${cardInnerStyle}">
                         <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: ${log.statusColor};"></div>
@@ -238,12 +229,12 @@
                             <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
                                 <span style="background: ${log.actionColor}; color: white; padding: 3px 10px; border-radius: 8px; font-size: 10px; font-weight: 700; text-transform: uppercase;">${log.tieuDe}</span>
                                 <span style="background: ${log.statusColor}15; color: ${log.statusColor}; padding: 3px 10px; border-radius: 8px; font-size: 10px; font-weight: 700; border: 1px solid ${log.statusColor}30;"><i class="fa ${iconClass}"></i> ${log.statusText}</span>
-                                <span style="color: #2d4201; font-size: 13px; font-weight: 700; background: #f7fee7; padding: 3px 10px; border-radius: 8px; border: 1px solid #bef264;">#${log.idFormIt} - ${log.tenForm}</span>
+                                <span style="color: #0c4a6e; font-size: 13px; font-weight: 700; background: #f0f9ff; padding: 3px 10px; border-radius: 8px; border: 1px solid #bae6fd;">#${log.idFormIt} - ${log.tenForm}</span>
                             </div>
                             <div style="color: #334155; font-size: 14px; line-height: 1.5; font-weight: 500; margin-bottom: 10px;">${log.mota}</div>
                             <div style="display: flex; gap: 12px; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 8px; flex-wrap: wrap;">
                                 <div style="font-size: 11px; color: #64748b; font-weight: 600;"><i class="fa fa-user-circle"></i> BQT xác nhận: <span style="color: #1e293b;">${log.tenAdmin}</span></div>
-                                ${log.kyThuatTen ? `<div style="font-size: 11px; color: #4d7c0f; font-weight: 700;"><i class="fa fa-users"></i> Nhân sự thực hiện: ${log.kyThuatTen}</div>` : ""}
+                                ${log.kyThuatTen ? `<div style="font-size: 11px; color: #0369a1; font-weight: 700;"><i class="fa fa-users"></i> Nhân sự thực hiện: ${log.kyThuatTen}</div>` : ""}
                             </div>
                         </div>
                         ${timeBlockHtml}
@@ -251,37 +242,5 @@
                 </a>`;
         });
         container.innerHTML = htmlString;
-    }
-
-    function renderPaginationButtons(totalPages) {
-        const container = document.getElementById("paginationButtons");
-        container.innerHTML = "";
-        if (totalPages <= 1) return;
-
-        for (let i = 1; i <= totalPages; i++) {
-            if (totalPages > 5 && (i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1)) {
-                if (i === 3 || i === totalPages - 2) container.insertAdjacentHTML('beforeend', `<span style="padding:8px; color:#94a3b8;">...</span>`);
-                continue;
-            }
-
-            const isActive = i === currentPage;
-            const btnStyle = isActive
-                ? `background: #65a30d; color: white; border-color: #65a30d; box-shadow: 0 4px 6px -1px rgba(101, 163, 13, 0.2);`
-                : `background: white; color: #64748b; border-color: #e2e8f0;`;
-
-            const btn = document.createElement("button");
-            btn.innerText = i;
-            btn.setAttribute('style', `padding: 8px 16px; border-radius: 10px; border: 1px solid; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.3s; ${btnStyle}`);
-
-            btn.onmouseenter = () => { if(!isActive) btn.style.background = '#f7fee7'; };
-            btn.onmouseleave = () => { if(!isActive) btn.style.background = 'white'; };
-
-            btn.onclick = () => {
-                currentPage = i;
-                handleFilterAndPaginate();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            };
-            container.appendChild(btn);
-        }
     }
 </script>
