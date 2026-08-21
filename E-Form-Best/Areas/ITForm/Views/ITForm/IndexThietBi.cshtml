@@ -678,10 +678,30 @@
                                 <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sort-alpha-down"></i> Sắp xếp</label>
                                 <select id="filterSort" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
                                     <option value="">Mặc định</option>
-                                    <option value="name_asc">Tên Vị Trí (A-Z)</option>
-                                    <option value="name_desc">Tên Vị Trí (Z-A)</option>
-                                    <option value="host_asc">Hostname (A-Z)</option>
-                                    <option value="host_desc">Hostname (Z-A)</option>
+                                    <optgroup label="Người &amp; đơn vị">
+                                        <option value="user_asc">Người dùng (A-Z)</option>
+                                        <option value="user_desc">Người dùng (Z-A)</option>
+                                        <option value="account_asc">Account đăng nhập (A-Z)</option>
+                                        <option value="dept_asc">Bộ phận (A-Z)</option>
+                                        <option value="dept_desc">Bộ phận (Z-A)</option>
+                                        <option value="company_asc">Công ty (A-Z)</option>
+                                    </optgroup>
+                                    <optgroup label="Thông tin máy">
+                                        <option value="name_asc">Tên Vị Trí (A-Z)</option>
+                                        <option value="name_desc">Tên Vị Trí (Z-A)</option>
+                                        <option value="host_asc">Hostname (A-Z)</option>
+                                        <option value="host_desc">Hostname (Z-A)</option>
+                                        <option value="serial_asc">Serial (A-Z)</option>
+                                        <option value="type_asc">Loại thiết bị (A-Z)</option>
+                                        <option value="status_asc">Trạng thái (A-Z)</option>
+                                    </optgroup>
+                                    <optgroup label="Thời gian">
+                                        <option value="check_desc">Ngày check (mới nhất)</option>
+                                        <option value="check_asc">Ngày check (cũ nhất)</option>
+                                        <option value="created_desc">Ngày tạo (mới nhất)</option>
+                                        <option value="created_asc">Ngày tạo (cũ nhất)</option>
+                                        <option value="updated_desc">Ngày cập nhật (mới nhất)</option>
+                                    </optgroup>
                                 </select>
                             </div>
 
@@ -2218,14 +2238,45 @@
         }
 
         if (fSort) {
+        // Bảng ánh xạ tiêu chí sắp xếp -> trường dữ liệu tương ứng
+        let truongChu = {
+        name: x => (x.tenViTri || '').toLowerCase().trim(),
+        host: x => (x.tenMayTinh || '').toLowerCase().trim(),
+        user: x => (x.tenNguoiDung || '').toLowerCase().trim(),
+        account: x => (x.tenDangNhap || '').toLowerCase().trim(),
+        dept: x => (x.tenBoPhan || '').toLowerCase().trim(),
+        company: x => (x.tenCongTy || '').toLowerCase().trim(),
+        type: x => (x.loaiThietBi || '').toLowerCase().trim(),
+        serial: x => (x.seribacode || '').toLowerCase().trim(),
+        status: x => (x.tenTrangThai || '').toLowerCase().trim()
+        };
+        let truongNgay = {
+        check: x => x.thoiGianCheck,
+        created: x => x.ngayTao,
+        updated: x => x.ngayCapNhat
+        };
+
+        let tieuChi = fSort.replace(/_(asc|desc)$/, '');
+        let giamDan = fSort.endsWith('desc');
+
         filtered.sort((a, b) => {
-        let valA = '', valB = '';
-        if (fSort.startsWith('name')) {
-        valA = (a.tenViTri || '').toLowerCase().trim(); valB = (b.tenViTri || '').toLowerCase().trim();
-        } else if (fSort.startsWith('host')) {
-        valA = (a.tenMayTinh || '').toLowerCase().trim(); valB = (b.tenMayTinh || '').toLowerCase().trim();
+        // Sắp xếp theo mốc thời gian
+        if (truongNgay[tieuChi]) {
+        let tA = truongNgay[tieuChi](a) ? new Date(truongNgay[tieuChi](a)).getTime() : null;
+        let tB = truongNgay[tieuChi](b) ? new Date(truongNgay[tieuChi](b)).getTime() : null;
+        if (tA === null && tB === null) return 0;
+        if (tA === null) return 1;  // chưa có mốc thời gian thì đẩy xuống cuối
+        if (tB === null) return -1;
+        return giamDan ? tB - tA : tA - tB;
         }
-        return fSort.endsWith('asc') ? valA.localeCompare(valB, 'vi') : valB.localeCompare(valA, 'vi');
+
+        // Sắp xếp theo chuỗi
+        let layGiaTri = truongChu[tieuChi] || truongChu.name;
+        let vA = layGiaTri(a), vB = layGiaTri(b);
+        if (!vA && !vB) return 0;
+        if (!vA) return 1;  // ô trống luôn nằm cuối, cả khi A-Z lẫn Z-A
+        if (!vB) return -1;
+        return giamDan ? vB.localeCompare(vA, 'vi') : vA.localeCompare(vB, 'vi');
         });
         } else {
         filtered.sort((a, b) => {

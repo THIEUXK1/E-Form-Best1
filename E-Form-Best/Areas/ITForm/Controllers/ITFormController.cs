@@ -7379,6 +7379,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         private class BienBanThietBiRow
         {
+            public int IdThietBi { get; set; }
             public string TenCongTy { get; set; } = "Chưa xác định";
             public string TenBoPhan { get; set; } = "Chưa xác định";
             public string? TenViTri { get; set; }
@@ -7423,9 +7424,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             IQueryable<KkThietBi> query = _context.KkThietBis.Where(x => x.NgayXoa == null && dsId.Contains(x.IdThietBi));
 
             var danhSach = query
-                .OrderBy(x => x.IdcongTyNavigation!.TenCongTy).ThenBy(x => x.IdboPhanNavigation!.TenBoPhan).ThenBy(x => x.TenViTri)
                 .Select(x => new BienBanThietBiRow
                 {
+                    IdThietBi = x.IdThietBi,
                     TenCongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : "Chưa xác định",
                     TenBoPhan = x.IdboPhanNavigation != null ? x.IdboPhanNavigation.TenBoPhan : "Chưa xác định",
                     TenViTri = x.TenViTri,
@@ -7443,6 +7444,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // Ẩn các thiết bị nằm trong danh sách chặn khỏi biên bản
             var tapChanBb = TapKhoaChan();
             danhSach = danhSach.Where(x => !BiChan(tapChanBb, x.Seribacode, x.TenMayTinh)).ToList();
+
+            // Giữ ĐÚNG thứ tự đang hiển thị trên giao diện: client gửi ids theo thứ tự đã sắp xếp,
+            // nên chỉ cần xếp lại theo vị trí của từng Id trong chuỗi ids đó.
+            var thuTuHienThi = new Dictionary<int, int>();
+            for (int i = 0; i < dsId.Count; i++)
+            {
+                if (!thuTuHienThi.ContainsKey(dsId[i])) thuTuHienThi[dsId[i]] = i;
+            }
+            danhSach = danhSach
+                .OrderBy(x => thuTuHienThi.TryGetValue(x.IdThietBi, out int vt) ? vt : int.MaxValue)
+                .ToList();
 
             string tenNguoiLap = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
             string htmlContent = BuildHtmlBienBanTaiSanBoPhan(tenNguoiLap, danhSach);
