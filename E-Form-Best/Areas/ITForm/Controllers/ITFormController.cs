@@ -7400,10 +7400,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
                 return Redirect("/DonXetDuyet/DangNhap");
-            if (!User.IsInRole("XemTSCN") && !User.IsInRole("All"))
+            // Quyền được xuất biên bản ký: XemTSCN, KKTS-PFVN (nhóm làm kiểm kê) và All
+            if (!User.IsInRole("XemTSCN") && !User.IsInRole("KKTS-PFVN") && !User.IsInRole("All"))
                 return Forbid();
-
-            bool isAll = User.IsInRole("All");
 
             List<int>? dsId = null;
             if (!string.IsNullOrWhiteSpace(ids))
@@ -7415,29 +7414,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .ToList();
             }
 
-            IQueryable<KkThietBi> query;
+            // Cả quyền XemTSCN lẫn All đều xuất đúng danh sách đang lọc trên giao diện (có thể trải nhiều Công ty/Bộ phận,
+            // kể cả thiết bị chưa xác định bộ phận), KHÔNG giới hạn theo bộ phận của người đăng nhập -
+            // vì người lập biên bản thường lập hộ cho bộ phận khác.
+            if (dsId == null || dsId.Count == 0)
+                return Content("Vui lòng chọn danh sách thiết bị cần xuất biên bản.");
 
-            if (isAll)
-            {
-                // Quyền All đã tự chọn đúng danh sách thiết bị (có thể trải nhiều Công ty/Bộ phận, kể cả thiết bị chưa
-                // xác định bộ phận) ở giao diện, nên chỉ cần lọc theo đúng danh sách Id đó, không giới hạn phạm vi.
-                if (dsId == null || dsId.Count == 0)
-                    return Content("Vui lòng chọn danh sách thiết bị cần xuất biên bản.");
-                query = _context.KkThietBis.Where(x => x.NgayXoa == null && dsId.Contains(x.IdThietBi));
-            }
-            else
-            {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int idNguoiDung))
-                    return Content("Không xác định được người dùng hiện tại.");
-
-                var (idCongTy, idBoPhan, _, _) = LayCongTyBoPhanCuaUser(idNguoiDung);
-                if (idCongTy == null || idBoPhan == null)
-                    return Content("Bạn chưa có thiết bị nào được Xác nhận tài sản gắn Công ty/Bộ phận, nên chưa thể xuất biên bản.");
-
-                query = _context.KkThietBis.Where(x => x.IdcongTy == idCongTy && x.IdboPhan == idBoPhan && x.NgayXoa == null);
-                if (dsId != null && dsId.Count > 0) query = query.Where(x => dsId.Contains(x.IdThietBi));
-            }
+            IQueryable<KkThietBi> query = _context.KkThietBis.Where(x => x.NgayXoa == null && dsId.Contains(x.IdThietBi));
 
             var danhSach = query
                 .OrderBy(x => x.IdcongTyNavigation!.TenCongTy).ThenBy(x => x.IdboPhanNavigation!.TenBoPhan).ThenBy(x => x.TenViTri)
