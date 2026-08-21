@@ -6424,6 +6424,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     if (existing != null)
                     {
+                        // Thiết bị nhập tay thường bỏ trống Hostname - lấy tên máy quét được điền vào, KHÔNG ghi đè nếu đã có tên
+                        if (string.IsNullOrWhiteSpace(existing.TenMayTinh)) existing.TenMayTinh = may.TenMay.Trim();
                         if (!string.IsNullOrWhiteSpace(may.SeriMay)) existing.Seribacode = may.SeriMay.Trim();
                         if (!string.IsNullOrWhiteSpace(may.DongMay)) existing.QuyCach = may.DongMay.Trim();
                         if (may.IdNguoiDung.HasValue) existing.IdNguoiDung = may.IdNguoiDung;
@@ -7988,6 +7990,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                         if (thietBiLienKet != null)
                         {
+                            // Thiết bị nhập tay thường bỏ trống Hostname - lấy tên máy quét được điền vào, KHÔNG ghi đè nếu đã có tên
+                            if (string.IsNullOrWhiteSpace(thietBiLienKet.TenMayTinh)) thietBiLienKet.TenMayTinh = mayTonTai.TenMay.Trim();
                             if (!string.IsNullOrWhiteSpace(tenViTri)) thietBiLienKet.TenViTri = tenViTri.Trim();
                             if (idCongTy.HasValue) thietBiLienKet.IdcongTy = idCongTy;
                             if (idBoPhan.HasValue) thietBiLienKet.IdboPhan = idBoPhan;
