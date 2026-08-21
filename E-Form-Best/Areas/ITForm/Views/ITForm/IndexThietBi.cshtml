@@ -531,6 +531,11 @@
                                 <input class="form-check-input sw-tich-nhanh-loai m-0" type="checkbox" role="switch" id="swLoaiMayTinh" data-loai="Máy tính" style="cursor: pointer; width: 40px; height: 20px;">
                                 <label class="form-check-label small fw-semibold text-dark m-0" for="swLoaiMayTinh" style="cursor: pointer;"><i class="fas fa-desktop me-1 text-primary"></i>Máy tính</label>
                             </div>
+                            <span class="text-muted ms-2 me-1">|</span>
+                            <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0">
+                                <input class="form-check-input m-0" type="checkbox" role="switch" id="swThieuHostname" style="cursor: pointer; width: 40px; height: 20px;">
+                                <label class="form-check-label small fw-semibold text-dark m-0" for="swThieuHostname" style="cursor: pointer;" title="Chỉ hiện các thiết bị đang bỏ trống ô Tên máy (Hostname)"><i class="fas fa-triangle-exclamation me-1 text-danger"></i>Thiếu Hostname</label>
+                            </div>
                         </div>
                     </div>
 
@@ -1180,6 +1185,15 @@
         let savedTìnhTrangCheck = localStorage.getItem('kk_filterTìnhTrangCheck') || '';
         $('#filterTìnhTrangCheck').val(savedTìnhTrangCheck);
 
+        // Khôi phục nút gạt "Thiếu Hostname"
+        locThieuHostname = localStorage.getItem('kk_locThieuHostname') === 'true';
+        $('#swThieuHostname').prop('checked', locThieuHostname);
+        $('#swThieuHostname').on('change', function () {
+        locThieuHostname = $(this).is(':checked');
+        localStorage.setItem('kk_locThieuHostname', locThieuHostname);
+        applyFilters();
+        });
+
         // Khôi phục chế độ Loại trừ Công ty/Bộ phận
         excludeCongTyMode = localStorage.getItem('kk_excludeCongTyMode') === 'true';
         excludeBoPhanMode = localStorage.getItem('kk_excludeBoPhanMode') === 'true';
@@ -1381,6 +1395,8 @@
 
         // Chế độ lọc Công ty/Bộ phận: false = chỉ lấy các mục đã chọn, true = lấy tất cả TRỪ các mục đã chọn
         let excludeCongTyMode = false;
+        // Lọc nhanh: chỉ hiện thiết bị đang bỏ trống Tên máy (Hostname)
+        let locThieuHostname = false;
         let excludeBoPhanMode = false;
 
         function updateDropdownButtonLabel($menu) {
@@ -2152,6 +2168,9 @@
         }
         if (selectedLoais.length > 0) filtered = filtered.filter(x => selectedLoais.includes(x.loaiThietBi));
         if (selectedTrangThais.length > 0) filtered = filtered.filter(x => selectedTrangThais.includes(x.tenTrangThai));
+
+        // Nút gạt "Thiếu Hostname": chỉ giữ thiết bị bỏ trống ô Tên máy
+        if (locThieuHostname) filtered = filtered.filter(x => !x.tenMayTinh || x.tenMayTinh.trim() === '');
 
         // Xử lý Logic lọc dữ liệu Windows License và Office License
         if (selectedWins.length > 0) filtered = filtered.filter(x => selectedWins.includes(x.winLicense) || (selectedWins.includes("Trống / Chưa rõ") && (!x.winLicense || x.winLicense.trim() === "")));
