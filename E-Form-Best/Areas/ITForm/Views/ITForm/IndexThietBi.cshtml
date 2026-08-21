@@ -297,7 +297,8 @@
     }
 </style>
 
-<div class="content-header py-3">
+@* Kéo tiêu đề lên sát mép trên: bù lại phần padding 45px của .main-card ở _Layout để đỡ trống *@
+<div class="content-header pt-0 pb-2" style="margin-top: -25px;">
     <div class="container-fluid">
         <div class="row align-items-center">
             <div class="col-md-6 col-12 mb-2 mb-md-0">
@@ -306,14 +307,22 @@
                 </h4>
             </div>
             <div class="col-md-6 col-12 text-md-end text-start">
+                @* Gom các chức năng phụ (Nhập Excel, Danh sách chặn) vào 1 menu "Tiện ích" cho gọn góc phải, chỉ chừa nút Thêm mới nổi bật *@
                 <div class="dropdown w-100 w-md-auto d-inline-block mb-2 mb-md-0 me-md-2">
-                    <button class="btn btn-sm rounded-pill px-3 shadow-sm text-success w-100 w-md-auto dropdown-toggle" style="border-color: #16a34a; padding-top: 8px; padding-bottom: 8px;" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-file-excel me-1"></i> Nhập nhanh Excel
+                    <button class="btn btn-sm rounded-pill px-3 shadow-sm text-secondary w-100 w-md-auto dropdown-toggle" style="border-color: #cbd5e1; padding-top: 8px; padding-bottom: 8px;" data-bs-toggle="dropdown" aria-expanded="false" title="Các chức năng khác">
+                        <i class="fas fa-ellipsis-v me-1"></i> Tiện ích
                     </button>
                     <ul class="dropdown-menu dropdown-menu-md-end shadow-sm">
+                        <li><h6 class="dropdown-header"><i class="fas fa-file-excel me-1 text-success"></i> Nhập nhanh Excel</h6></li>
                         <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalImportWinLicense"><i class="fab fa-windows me-2 text-primary"></i>Key Windows</a></li>
                         <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalImportOfficeLicense"><i class="fas fa-key me-2 text-success"></i>Key Office</a></li>
                         <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalImportSwitchExcel"><i class="fas fa-network-wired me-2 text-primary"></i>Switch</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="#" id="btnDanhSachChan" onclick="ChanThietBiKiemKe.moDanhSach(); return false;" title="Xem và bỏ chặn các thiết bị đang bị ẩn khỏi hệ thống kiểm kê">
+                                <i class="fas fa-ban me-2 text-danger"></i>Danh sách chặn
+                            </a>
+                        </li>
                     </ul>
                 </div>
                 <button class="btn btn-sm rounded-pill px-3 shadow-sm text-white w-100 w-md-auto" style="background-color: #4f46e5; border-color: #4f46e5; padding-top: 8px; padding-bottom: 8px;" onclick="openModalCurrentTab()" id="btnMasterThemMoi">
@@ -494,13 +503,33 @@
                                 <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-primary"></i> Tìm kiếm nhanh</label>
                                 <input type="text" id="filterText" class="form-control rounded-3 border-0 shadow-sm" placeholder="S/N, Hostname, Account, Note..." style="height: 38px;">
                             </div>
-                            <div class="col-md-3 col-6">
+                            <div class="col-md-2 col-6">
                                 <button type="button" id="btnToggleAdvancedFilter" class="btn btn-primary shadow-sm rounded-3 w-100 fw-semibold" style="height: 38px; background-color: #4f46e5; border-color: #4f46e5;" onclick="toggleAdvancedFilter()">
                                     <i class="fas fa-sliders-h me-1"></i> <span id="textToggleFilter">Bộ lọc nâng cao</span>
                                 </button>
                             </div>
-                            <div class="col-md-3 col-6">
+                            <div class="col-md-2 col-6">
                                 <button class="btn btn-outline-secondary rounded-3 shadow-sm w-100 fw-semibold" onclick="clearFilters()" style="height: 38px;"><i class="fas fa-sync-alt"></i> Bỏ lọc</button>
+                            </div>
+                            <div class="col-md-2 col-12 mt-2 mt-md-0">
+                                <button type="button" id="btnXuatBienBanBoPhan" class="btn btn-success rounded-3 shadow-sm w-100 fw-semibold" style="height: 38px;" onclick="xuatBienBanBoPhan()" title="Xuất biên bản danh sách thiết bị đang lọc để bộ phận đối chiếu và ký tay">
+                                    <i class="fas fa-file-signature me-1"></i> Biên bản ký
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Lọc nhanh 2 loại dùng nhiều nhất - khỏi phải mở Bộ lọc nâng cao. Trạng thái tích được ghi nhớ qua F5 và không bị "Bỏ lọc" xóa mất. *@
+                    <div class="col-12 mb-2">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <span class="small fw-bold text-muted"><i class="fas fa-bolt text-warning me-1"></i>Lọc nhanh:</span>
+                            <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0">
+                                <input class="form-check-input sw-tich-nhanh-loai m-0" type="checkbox" role="switch" id="swLoaiLaptop" data-loai="Laptop" style="cursor: pointer; width: 40px; height: 20px;">
+                                <label class="form-check-label small fw-semibold text-dark m-0" for="swLoaiLaptop" style="cursor: pointer;"><i class="fas fa-laptop me-1 text-primary"></i>Laptop</label>
+                            </div>
+                            <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0 ms-3">
+                                <input class="form-check-input sw-tich-nhanh-loai m-0" type="checkbox" role="switch" id="swLoaiMayTinh" data-loai="Máy tính" style="cursor: pointer; width: 40px; height: 20px;">
+                                <label class="form-check-label small fw-semibold text-dark m-0" for="swLoaiMayTinh" style="cursor: pointer;"><i class="fas fa-desktop me-1 text-primary"></i>Máy tính</label>
                             </div>
                         </div>
                     </div>
@@ -823,7 +852,7 @@
                     <div class="col-md-12">
                         <label class="form-label fw-bold" style="color: #4f46e5;">Gán người sử dụng</label>
                         <select id="tb_IdNguoiDung" class="form-control select2-modal w-100">
-                            <option value="">-- Chưa cấp phát --</option>
+                            <option value="">-- Chưa xác nhận người dùng --</option>
                             @if (ViewBag.Users != null)
                             {
                                 foreach (var item in ViewBag.Users)
@@ -1028,6 +1057,7 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/kiemke-chan-thietbi.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
@@ -1038,6 +1068,8 @@
         let listBoPhanCache = [];
         let listTrangThaiCache = [];
         let listLoaiThietBiCache = [];
+        // Toàn bộ thiết bị khớp bộ lọc hiện tại (TRƯỚC khi cắt bớt theo ô "Hiển thị") - dùng để xuất biên bản ký
+        let dsThietBiTheoBoLoc = [];
         let allThietBiCache = [];
 
         let chartLoai = null;
@@ -1479,9 +1511,11 @@
         }
 
         function clearFilters() {
+        // Giữ lại lựa chọn Loại thiết bị (nút lọc nhanh Laptop/Máy tính) - chỉ bấm lại chính nút đó mới bỏ
+        let giuLaiLoai = $('.chk-loai:checked').map(function () { return $(this).val(); }).get();
+
         localStorage.removeItem('kk_filterCT');
         localStorage.removeItem('kk_filterBP');
-        localStorage.removeItem('kk_filterLoai');
         localStorage.removeItem('kk_filterTT');
         localStorage.removeItem('kk_filterWinLicense');
         localStorage.removeItem('kk_filterOfficeLicense');
@@ -1500,7 +1534,9 @@
         $('#chkExcludeBoPhan').prop('checked', false);
 
         $('.dropdown-combo-menu input[type="checkbox"]').prop('checked', false);
+        $('.chk-loai').each(function () { if (giuLaiLoai.indexOf($(this).val()) !== -1) $(this).prop('checked', true); });
         $('.dropdown-combo-menu').each(function() { updateDropdownButtonLabel($(this)); });
+        capNhatNutTichNhanhLoai();
 
         renderFilterBoPhan();
         renderFilterLicenses();
@@ -1566,6 +1602,51 @@
         }
         });
         });
+        }
+
+        // Thoát ký tự cho giá trị đưa vào thuộc tính HTML (Tên máy/Serial có thể chứa dấu nháy)
+        function thoatThuocTinhChan(giaTri) {
+        return String(giaTri == null ? "" : giaTri).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // Chặn thiết bị (module dùng chung kiemke-chan-thietbi.js): sau khi chặn/bỏ chặn thì nạp lại danh sách
+        ChanThietBiKiemKe.onThayDoi = function () { loadThietBi(); };
+
+        $(document).on("click", ".btn-chan-thiet-bi", function () {
+        ChanThietBiKiemKe.chan($(this).data("seri"), $(this).data("ten"));
+        });
+
+        // Xuất biên bản xác nhận tài sản bộ phận (bản in để bộ phận đối chiếu và ký tay)
+        // Lấy đúng danh sách đang khớp bộ lọc, nên muốn biên bản của 1 bộ phận thì lọc Bộ phận đó trước.
+        function xuatBienBanBoPhan() {
+        if (!dsThietBiTheoBoLoc.length) {
+        return Swal.fire('Chưa có dữ liệu', 'Không có thiết bị nào khớp bộ lọc hiện tại để xuất biên bản.', 'warning');
+        }
+
+        let dsBoPhan = [...new Set(dsThietBiTheoBoLoc.map(x => (x.tenBoPhan && x.tenBoPhan.trim()) ? x.tenBoPhan.trim() : 'Chưa xác định'))];
+        let ids = dsThietBiTheoBoLoc.map(x => x.idThietBi).join(',');
+        let moBienBan = () => window.open('/QLKiemKe/ExportBienBanTaiSanBoPhan?ids=' + encodeURIComponent(ids), '_blank');
+
+        if (dsThietBiTheoBoLoc.length > 500) {
+        return Swal.fire({
+        title: 'Danh sách quá dài',
+        html: `Đang có <b>${dsThietBiTheoBoLoc.length}</b> thiết bị. Biên bản ký nên lập theo từng bộ phận - vui lòng lọc <b>Bộ phận</b> ở Bộ lọc nâng cao rồi xuất lại.`,
+        icon: 'warning'
+        });
+        }
+
+        if (dsBoPhan.length > 1) {
+        return Swal.fire({
+        title: 'Đang gồm nhiều bộ phận',
+        html: `Danh sách hiện có <b>${dsThietBiTheoBoLoc.length}</b> thiết bị thuộc <b>${dsBoPhan.length}</b> bộ phận:<br/><span class="small text-muted">${dsBoPhan.join(', ')}</span><br/><br/>Biên bản ký thường lập riêng cho từng bộ phận.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Vẫn xuất chung',
+        cancelButtonText: 'Để tôi lọc lại'
+        }).then(kq => { if (kq.isConfirmed) moBienBan(); });
+        }
+
+        moBienBan();
         }
 
         function loadThietBi() {
@@ -1815,6 +1896,28 @@
         updateDropdownButtonLabel($('#menuTrangThai'));
         }
 
+        // Đồng bộ trạng thái nút gạt lọc nhanh theo đúng checkbox Loại thiết bị đang tích
+        function capNhatNutTichNhanhLoai() {
+        $('.sw-tich-nhanh-loai').each(function () {
+        let loai = String($(this).data('loai'));
+        let dangChon = $('.chk-loai').filter(function () { return $(this).val() === loai; }).is(':checked');
+        $(this).prop('checked', dangChon);
+        });
+        }
+
+        $(document).on('change', '.sw-tich-nhanh-loai', function () {
+        let loai = String($(this).data('loai'));
+        let bat = $(this).is(':checked');
+        let $chk = $('.chk-loai').filter(function () { return $(this).val() === loai; });
+        if (!$chk.length) {
+        $(this).prop('checked', false);
+        return Swal.fire('Không tìm thấy', `Danh mục chưa có loại thiết bị "${loai}".`, 'warning');
+        }
+        $chk.prop('checked', bat);
+        updateDropdownButtonLabel($('#menuLoai'));
+        applyFilters();
+        });
+
         function renderFilterLoaiThietBi() {
         let savedLoai = [];
         try { savedLoai = JSON.parse(localStorage.getItem('kk_filterLoai')) || []; } catch(e){}
@@ -1822,7 +1925,17 @@
         let htmlForm = '<option value="">-- Chọn loại --</option>';
         let $itemsLoai = $('#menuLoai .dropdown-combo-items').empty();
 
-        listLoaiThietBiCache.forEach(c => {
+        // Ưu tiên đẩy Laptop và Máy tính lên đầu danh sách (2 loại dùng nhiều nhất), các loại còn lại giữ nguyên thứ tự
+        let uuTienLoai = ['laptop', 'máy tính'];
+        let dsLoaiSapXep = listLoaiThietBiCache.slice().sort((a, b) => {
+        let ia = uuTienLoai.indexOf((a.tenLoai || '').trim().toLowerCase());
+        let ib = uuTienLoai.indexOf((b.tenLoai || '').trim().toLowerCase());
+        if (ia === -1) ia = uuTienLoai.length;
+        if (ib === -1) ib = uuTienLoai.length;
+        return ia - ib;
+        });
+
+        dsLoaiSapXep.forEach(c => {
         let isChecked = savedLoai.includes(c.tenLoai) ? 'checked' : '';
         $itemsLoai.append(`
         <label class="dropdown-combo-item">
@@ -1830,10 +1943,11 @@
         <span>${c.tenLoai}</span>
         </label>
         `);
-        htmlForm += `<option value="${c.tenLoai}">${c.tenLoai}</option>';`;
+        htmlForm += `<option value="${c.tenLoai}">${c.tenLoai}</option>`;
         });
         updateDropdownButtonLabel($('#menuLoai'));
         $('#tb_LoaiThietBi').html(htmlForm);
+        capNhatNutTichNhanhLoai();
         }
 
         function renderFilterCongTy() {
@@ -2108,6 +2222,7 @@
         }
 
         let soLuongPhuHop = filtered.length;
+        dsThietBiTheoBoLoc = filtered.slice(); // giữ đủ danh sách khớp bộ lọc để xuất biên bản, không phụ thuộc ô "Hiển thị"
         if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
         $('#lblSoLuongThietBi').html(`<i class="fas fa-list-ol me-1"></i> Hiển thị <b>${filtered.length}</b> / <b>${soLuongPhuHop}</b> thiết bị phù hợp bộ lọc`);
 
@@ -2115,7 +2230,7 @@
         filtered.forEach(item => {
         let userStr = item.tenNguoiDung
         ? `<span class="text-success fw-bold"><i class="fas fa-user me-1"></i>${item.tenNguoiDung} <span class="text-danger fw-normal">(${item.tk || 'N/A'})</span></span>`
-        : `<span class="text-muted fst-italic">Chưa cấp phát</span>`;
+        : `<span class="text-muted fst-italic">Chưa xác nhận người dùng</span>`;
 
         let locStr = [item.tenCongTy, item.tenBoPhan].filter(Boolean).join(' - ') || "Chưa gắn";
         let ttName = item.tenTrangThai || "Chưa gắn";
@@ -2153,7 +2268,8 @@
         <button class="btn btn-sm btn-outline-info text-info" onclick="openLichSuCheckThietBi(${item.idThietBi}, '${item.tenMayTinh || ''}', '${item.tenViTri || ''}')" title="Xem lịch sử & bằng chứng check"><i class="fas fa-history"></i></button>
         <button class="btn btn-sm btn-outline-dark flex-fill" onclick='editThietBi(${JSON.stringify(item).replace(/'/g, "&#39;")})'><i class="fas fa-edit"></i> Sửa</button>
         <button class="btn btn-sm btn-outline-danger" onclick="deleteThietBi(${item.idThietBi})"><i class="fas fa-trash"></i></button>
-        </div>`;
+        </div>
+        <button class="btn btn-sm btn-outline-dark w-100 shadow-sm btn-chan-thiet-bi" title="Ẩn thiết bị này khỏi toàn bộ hệ thống kiểm kê" data-seri="${thoatThuocTinhChan(item.seribacode)}" data-ten="${thoatThuocTinhChan(item.tenMayTinh)}"><i class="fas fa-ban"></i> Chặn</button>`;
 
         let accountName = item.tenDangNhap ? item.tenDangNhap : '<i class="text-muted">Chưa có Account</i>';
         let quyCachLine = item.quyCach ? `<div class="small text-dark text-truncate" style="max-width:200px" title="${item.quyCach}"><b>Quy cách:</b> ${item.quyCach}</div>` : '';

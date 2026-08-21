@@ -1,0 +1,101 @@
+# ==========================================================
+# .claudeignore — E-Form-Best
+# Bỏ qua tệp/thư mục không mang thông tin khi quét dự án,
+# để tiết kiệm token và tránh nhiễu kết quả tìm kiếm.
+# ==========================================================
+
+# --- Kết quả build .NET ---
+bin/
+obj/
+**/bin/
+**/obj/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.nupkg
+project.assets.json
+*.nuget.props
+*.nuget.targets
+*.AssemblyInfo.cs
+*.GeneratedMSBuildEditorConfig.editorconfig
+publish/
+artifacts/
+
+# --- Visual Studio / Rider / VS Code ---
+.vs/
+.idea/
+*.user
+*.suo
+*.rsuser
+*.userosscache
+*.sln.docstates
+*.csproj.user
+
+# --- Log (kể cả log dotnet watch đổ ra gốc repo) ---
+*.log
+watch_log.txt
+dotnet-watch.log
+dotnet-watch.err.log
+logs/
+
+# --- Thư viện frontend bên thứ ba (không bao giờ sửa tay) ---
+E-Form-Best/wwwroot/lib/
+**/wwwroot/lib/
+*.min.js
+*.min.css
+*.map
+
+# --- File người dùng upload / tài liệu nhị phân ---
+E-Form-Best/wwwroot/FileIT/
+E-Form-Best/wwwroot/HuongDanIT/
+*.xlsx
+*.xls
+*.docx
+*.doc
+*.pdf
+*.zip
+*.rar
+*.7z
+
+# --- Ảnh, font, media ---
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.ico
+*.svg
+*.webp
+*.woff
+*.woff2
+*.ttf
+*.eot
+*.mp4
+*.mp3
+
+# --- Node / bundler (hiện chưa dùng, chặn sẵn phòng khi phát sinh) ---
+node_modules/
+dist/
+build/
+.next/
+coverage/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# --- Cơ sở dữ liệu / backup / bản kết xuất ---
+*.mdf
+*.ldf
+*.bak
+*.bacpac
+*.dacpac
+
+# --- Tạm & hệ điều hành ---
+*.tmp
+*.temp
+*.bak
+*~
+Thumbs.db
+desktop.ini
+.DS_Store

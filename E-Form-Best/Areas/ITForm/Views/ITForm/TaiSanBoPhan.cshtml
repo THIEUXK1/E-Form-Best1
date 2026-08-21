@@ -691,7 +691,7 @@
 
                 var html = "";
                 $.each(dsHienThi, function (i, item) {
-                    var userInfo = item.tenNguoiDung ? (item.tenNguoiDung + (item.tk ? ' (' + item.tk + ')' : '')) : 'Chưa cấp phát';
+                    var userInfo = item.tenNguoiDung ? (item.tenNguoiDung + (item.tk ? ' (' + item.tk + ')' : '')) : 'Chưa xác nhận người dùng';
                     var lanCuoiCheck = item.thoiGianCheck ? new Date(item.thoiGianCheck).toLocaleString('vi-VN') : 'Chưa kiểm kê';
                     var boPhanHienThi = item.idBoPhan ? ((item.tenCongTy || 'Chưa rõ') + ' - ' + (item.tenBoPhan || 'Chưa rõ')) : '<span class="text-danger fw-bold">⚠ Chưa xác định</span>';
 

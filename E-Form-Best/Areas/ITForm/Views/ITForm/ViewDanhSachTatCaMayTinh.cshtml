@@ -228,7 +228,8 @@
     }
 </style>
 
-<div class="container-fluid mt-4 text-dark">
+@* Kéo tiêu đề lên sát mép trên: bù lại phần padding 45px của .main-card ở _Layout để đỡ trống *@
+<div class="container-fluid text-dark" style="margin-top: -25px;">
 
     <div class="tscn-page-header">
         <div class="d-flex align-items-center gap-3">
@@ -326,6 +327,9 @@
                 </button>
                 <button id="btnDongBoChiNhanh" class="btn btn-sm btn-info text-white" title="Kéo dữ liệu máy tính mới từ SQL Server chi nhánh 10.0.55.3 về hệ thống này">
                     <i class="fa fa-cloud-download"></i> Đồng bộ từ chi nhánh
+                </button>
+                <button id="btnDanhSachChan" class="btn btn-sm btn-outline-dark" title="Xem và bỏ chặn các thiết bị đang bị ẩn khỏi hệ thống kiểm kê">
+                    <i class="fa fa-ban"></i> Danh sách chặn
                 </button>
             </div>
         </div>
@@ -1037,6 +1041,20 @@
         return '<span class="badge ' + lop + '">' + giaTri + '</span>';
         }
 
+        // Thoát ký tự cho giá trị đưa vào thuộc tính HTML (tránh vỡ HTML khi Tên máy/Serial có dấu nháy)
+        function thoatThuocTinh(giaTri) {
+        return String(giaTri == null ? "" : giaTri).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // Chặn / xem danh sách chặn (module dùng chung kiemke-chan-thietbi.js)
+        ChanThietBiKiemKe.onThayDoi = function () { loadGoiTinTatCaMayTinh(); };
+
+        $("#btnDanhSachChan").click(function () { ChanThietBiKiemKe.moDanhSach(); });
+
+        $(document).on("click", ".btn-chan-may", function () {
+        ChanThietBiKiemKe.chan($(this).data("seri"), $(this).data("ten"));
+        });
+
         // PHƯƠNG THỨC RENDER 1: GIAO DIỆN BẢNG DANH SÁCH (TABLE ROW)
         function renderKieuBangDanhSach(dataList) {
         var html = "";
@@ -1058,10 +1076,14 @@
         '<td>' + (item.thongTinOffice || "N/A") + '</td>' +
         '<td class="text-info fw-bold">' + (item.banQuyenWin || "N/A") + '</td>' +
         '<td class="text-warning fw-bold">' + (item.banQuyenOffice || "N/A") + '</td>' +
-        '<td class="text-center cot-ghim">' +
+        '<td class="text-center cot-ghim" style="white-space: nowrap;">' +
         '   <a href="/QLKiemKe/ViewChiTietMayTinh?idMay=' + item.idMay + '" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size: 11px;">' +
         '       <i class="fa fa-eye"></i> Chi tiết' +
         '   </a>' +
+        '   <button type="button" class="btn btn-xs btn-outline-danger py-0 px-2 ms-1 btn-chan-may" style="font-size: 11px;" title="Ẩn máy này khỏi toàn bộ hệ thống kiểm kê"' +
+        '           data-seri="' + thoatThuocTinh(item.seriMay) + '" data-ten="' + thoatThuocTinh(item.tenMay) + '">' +
+        '       <i class="fa fa-ban"></i> Chặn' +
+        '   </button>' +
         '</td>' +
         '</tr>';
         });
@@ -1094,10 +1116,14 @@
         '               <div class="d-flex justify-content-between"><span><i class="fa fa-key text-warning me-1"></i>Office:</span><span class="fw-bold text-warning text-truncate" style="max-width:110px;">' + (item.banQuyenOffice || "N/A") + '</span></div>' +
         '           </div>' +
         '       </div>' +
-        '       <div class="card-footer bg-light p-2 text-center border-top">' +
-        '           <a href="/QLKiemKe/ViewChiTietMayTinh?idMay=' + item.idMay + '" class="btn btn-xs btn-primary w-100 py-1" style="font-size: 11px;">' +
-        '               <i class="fa fa-eye"></i> Xem chi tiết' +
+        '       <div class="card-footer bg-light p-2 text-center border-top d-flex gap-1">' +
+        '           <a href="/QLKiemKe/ViewChiTietMayTinh?idMay=' + item.idMay + '" class="btn btn-xs btn-primary flex-fill py-1" style="font-size: 11px;">' +
+        '               <i class="fa fa-eye"></i> Chi tiết' +
         '           </a>' +
+        '           <button type="button" class="btn btn-xs btn-outline-danger flex-fill py-1 btn-chan-may" style="font-size: 11px;" title="Ẩn máy này khỏi toàn bộ hệ thống kiểm kê"' +
+        '                   data-seri="' + thoatThuocTinh(item.seriMay) + '" data-ten="' + thoatThuocTinh(item.tenMay) + '">' +
+        '               <i class="fa fa-ban"></i> Chặn' +
+        '           </button>' +
         '       </div>' +
         '   </div>' +
         '</div>';
