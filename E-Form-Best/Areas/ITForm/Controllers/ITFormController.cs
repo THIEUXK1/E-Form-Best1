@@ -7397,7 +7397,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // ids: danh sách IdThietBi cách nhau bởi dấu phẩy, ứng đúng những dòng đang hiển thị (đã lọc, có thể gồm nhiều bộ phận
         // khác nhau nếu người dùng có quyền "All") trên giao diện.
         [HttpGet("/QLKiemKe/ExportBienBanTaiSanBoPhan")]
-        public IActionResult ExportBienBanTaiSanBoPhan(string? ids)
+        public IActionResult ExportBienBanTaiSanBoPhan(string? ids, string? dinhDang = null)
         {
             if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
                 return Redirect("/DonXetDuyet/DangNhap");
@@ -7457,9 +7457,140 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 .ToList();
 
             string tenNguoiLap = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+
+            // Bản Excel để bộ phận sửa/ghi chú trực tiếp trước khi in ký
+            if (!string.IsNullOrWhiteSpace(dinhDang) && dinhDang.Trim().ToLower() == "excel")
+            {
+                var noiDungExcel = BuildExcelBienBanTaiSanBoPhan(tenNguoiLap, danhSach);
+                string tenFile = $"BienBanKiemKe_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+                return File(noiDungExcel, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", tenFile);
+            }
+
             string htmlContent = BuildHtmlBienBanTaiSanBoPhan(tenNguoiLap, danhSach);
 
             return Content(htmlContent, "text/html", System.Text.Encoding.UTF8);
+        }
+
+        // ============================================================
+        // BUILD BIÊN BẢN DẠNG EXCEL (.xlsx) - cùng nội dung bản in nhưng sửa được, có sẵn cột trống để bộ phận ghi chú khi đối chiếu
+        // ============================================================
+        private byte[] BuildExcelBienBanTaiSanBoPhan(string tenNguoiLap, List<BienBanThietBiRow> danhSach)
+        {
+            using var wb = new ClosedXML.Excel.XLWorkbook();
+            var ws = wb.Worksheets.Add("Bien ban kiem ke");
+
+            const int soCot = 10; // A..J (9 cột dữ liệu + 1 cột ghi chú để trống cho bộ phận điền)
+
+            ws.Cell(1, 1).Value = "BIÊN BẢN KIỂM KÊ - XÁC NHẬN TÀI SẢN BỘ PHẬN";
+            ws.Range(1, 1, 1, soCot).Merge().Style
+                .Font.SetBold().Font.SetFontSize(14)
+                .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            ws.Cell(2, 1).Value = $"Ngày lập: {DateTime.Now:dd/MM/yyyy HH:mm}";
+            ws.Range(2, 1, 2, soCot).Merge().Style
+                .Font.SetItalic()
+                .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            var dsPhamVi = danhSach.Select(x => (x.TenCongTy, x.TenBoPhan)).Distinct().ToList();
+            if (dsPhamVi.Count == 1)
+            {
+                ws.Cell(4, 1).Value = "Công ty:";
+                ws.Cell(4, 2).Value = dsPhamVi[0].TenCongTy;
+                ws.Cell(5, 1).Value = "Bộ phận:";
+                ws.Cell(5, 2).Value = dsPhamVi[0].TenBoPhan;
+            }
+            else
+            {
+                ws.Cell(4, 1).Value = "Phạm vi:";
+                ws.Cell(4, 2).Value = $"{dsPhamVi.Count} bộ phận: " + string.Join("; ", dsPhamVi.Select(x => x.TenCongTy + " - " + x.TenBoPhan));
+            }
+            ws.Cell(6, 1).Value = "Người lập:";
+            ws.Cell(6, 2).Value = tenNguoiLap;
+            ws.Range(4, 1, 6, 1).Style.Font.SetBold();
+
+            int hangTieuDe = 8;
+            string[] tieuDe = { "STT", "Công ty / Bộ phận", "Tên vị trí", "Tên máy (Hostname)", "Loại TB", "Quy cách", "Serial / Barcode", "Người sử dụng", "Trạng thái", "Ghi chú khi đối chiếu" };
+            for (int i = 0; i < tieuDe.Length; i++) ws.Cell(hangTieuDe, i + 1).Value = tieuDe[i];
+
+            var vungTieuDe = ws.Range(hangTieuDe, 1, hangTieuDe, soCot);
+            vungTieuDe.Style.Font.SetBold()
+                .Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray)
+                .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center)
+                .Alignment.SetVertical(ClosedXML.Excel.XLAlignmentVerticalValues.Center);
+
+            int hang = hangTieuDe + 1;
+            int stt = 1;
+            foreach (var item in danhSach)
+            {
+                string userInfo = !string.IsNullOrEmpty(item.TenNguoiDung)
+                    ? item.TenNguoiDung + (!string.IsNullOrEmpty(item.Tk) ? $" ({item.Tk})" : "")
+                    : "Chưa xác nhận người dùng";
+
+                ws.Cell(hang, 1).Value = stt++;
+                ws.Cell(hang, 2).Value = item.TenCongTy + " - " + item.TenBoPhan;
+                ws.Cell(hang, 3).Value = item.TenViTri ?? "Chưa rõ";
+                ws.Cell(hang, 4).Value = item.TenMayTinh ?? "N/A";
+                ws.Cell(hang, 5).Value = item.LoaiThietBi ?? "Khác";
+                ws.Cell(hang, 6).Value = item.QuyCach ?? "-";
+                ws.Cell(hang, 7).Value = item.Seribacode ?? "-";
+                ws.Cell(hang, 8).Value = userInfo;
+                ws.Cell(hang, 9).Value = item.TenTrangThai ?? "Chưa rõ";
+                hang++;
+            }
+
+            int hangCuoiBang = Math.Max(hang - 1, hangTieuDe);
+            var vungBang = ws.Range(hangTieuDe, 1, hangCuoiBang, soCot);
+            vungBang.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+            vungBang.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+            vungBang.Style.Alignment.SetWrapText(true);
+            ws.Range(hangTieuDe, 1, hangCuoiBang, 1).Style.Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            // Cột Serial để dạng chữ, tránh Excel tự đổi các mã toàn số sang dạng số/khoa học
+            ws.Column(7).Style.NumberFormat.SetFormat("@");
+
+            ws.Cell(hang + 1, 1).Value = $"Tổng cộng: {danhSach.Count} thiết bị";
+            ws.Range(hang + 1, 1, hang + 1, soCot).Merge().Style.Font.SetBold();
+
+            ws.Cell(hang + 3, 1).Value = "Chúng tôi, đại diện Bộ phận nêu trên, đã kiểm tra, đối chiếu số lượng và tình trạng tài sản được liệt kê trong biên bản này là đúng với thực tế đang sử dụng/quản lý tại bộ phận. Biên bản được lập thành các bên liên quan cùng lưu để đối chiếu khi cần.";
+            ws.Range(hang + 3, 1, hang + 3, soCot).Merge().Style.Alignment.SetWrapText(true).Font.SetItalic();
+            ws.Row(hang + 3).Height = 32;
+
+            ws.Cell(hang + 5, 1).Value = $"......................., ngày {DateTime.Now:dd} tháng {DateTime.Now:MM} năm {DateTime.Now:yyyy}";
+            ws.Range(hang + 5, 1, hang + 5, soCot).Merge().Style
+                .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Right).Font.SetItalic();
+
+            int hangKy = hang + 7;
+            ws.Cell(hangKy, 1).Value = "NGƯỜI LẬP BIÊN BẢN";
+            ws.Cell(hangKy, 5).Value = "TRƯỞNG / PHỤ TRÁCH BỘ PHẬN XÁC NHẬN";
+            ws.Cell(hangKy, 8).Value = "ĐẠI DIỆN PHÒNG IT";
+            ws.Cell(hangKy + 1, 1).Value = "(Ký, ghi rõ họ tên)";
+            ws.Cell(hangKy + 1, 5).Value = "(Ký, ghi rõ họ tên)";
+            ws.Cell(hangKy + 1, 8).Value = "(Ký, ghi rõ họ tên)";
+            ws.Cell(hangKy + 5, 1).Value = tenNguoiLap;
+
+            foreach (var (cotDau, cotCuoi) in new[] { (1, 4), (5, 7), (8, soCot) })
+            {
+                ws.Range(hangKy, cotDau, hangKy, cotCuoi).Merge().Style
+                    .Font.SetBold().Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+                ws.Range(hangKy + 1, cotDau, hangKy + 1, cotCuoi).Merge().Style
+                    .Font.SetItalic().Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+            }
+            ws.Range(hangKy + 5, 1, hangKy + 5, 4).Merge().Style
+                .Font.SetBold().Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            ws.Columns(1, soCot).AdjustToContents();
+            ws.Column(1).Width = 6;
+            foreach (int c in new[] { 2, 3, 4, 6, 8, 10 })
+            {
+                if (ws.Column(c).Width > 32) ws.Column(c).Width = 32;
+            }
+
+            // Cố định phần tiêu đề để cuộn danh sách dài vẫn thấy tên cột
+            ws.SheetView.FreezeRows(hangTieuDe);
+
+            using var ms = new MemoryStream();
+            wb.SaveAs(ms);
+            return ms.ToArray();
         }
 
         // ============================================================
