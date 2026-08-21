@@ -512,9 +512,16 @@
                                 <button class="btn btn-outline-secondary rounded-3 shadow-sm w-100 fw-semibold" onclick="clearFilters()" style="height: 38px;"><i class="fas fa-sync-alt"></i> Bỏ lọc</button>
                             </div>
                             <div class="col-md-2 col-12 mt-2 mt-md-0">
-                                <button type="button" id="btnXuatBienBanBoPhan" class="btn btn-success rounded-3 shadow-sm w-100 fw-semibold" style="height: 38px;" onclick="xuatBienBanBoPhan()" title="Xuất biên bản danh sách thiết bị đang lọc để bộ phận đối chiếu và ký tay">
-                                    <i class="fas fa-file-signature me-1"></i> Biên bản ký
-                                </button>
+                                <div class="btn-group w-100 shadow-sm" style="height: 38px;">
+                                    <button type="button" id="btnXuatBienBanBoPhan" class="btn btn-success rounded-start-3 fw-semibold" onclick="xuatBienBanBoPhan('in')" title="Bản in để bộ phận đối chiếu và ký tay">
+                                        <i class="fas fa-file-signature me-1"></i> Biên bản ký
+                                    </button>
+                                    <button type="button" class="btn btn-success dropdown-toggle dropdown-toggle-split rounded-end-3" data-bs-toggle="dropdown" aria-expanded="false" style="max-width: 38px;"></button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        <li><a class="dropdown-item" href="#" onclick="xuatBienBanBoPhan('in'); return false;"><i class="fas fa-print me-2 text-secondary"></i>Bản in (ký tay)</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="xuatBienBanBoPhan('excel'); return false;"><i class="fas fa-file-excel me-2 text-success"></i>Tải Excel (sửa được)</a></li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1654,14 +1661,15 @@
 
         // Xuất biên bản xác nhận tài sản bộ phận (bản in để bộ phận đối chiếu và ký tay)
         // Lấy đúng danh sách đang khớp bộ lọc, nên muốn biên bản của 1 bộ phận thì lọc Bộ phận đó trước.
-        function xuatBienBanBoPhan() {
+        function xuatBienBanBoPhan(dinhDang) {
+        dinhDang = (dinhDang === 'excel') ? 'excel' : 'in';
         if (!dsThietBiTheoBoLoc.length) {
         return Swal.fire('Chưa có dữ liệu', 'Không có thiết bị nào khớp bộ lọc hiện tại để xuất biên bản.', 'warning');
         }
 
         let dsBoPhan = [...new Set(dsThietBiTheoBoLoc.map(x => (x.tenBoPhan && x.tenBoPhan.trim()) ? x.tenBoPhan.trim() : 'Chưa xác định'))];
         let ids = dsThietBiTheoBoLoc.map(x => x.idThietBi).join(',');
-        let moBienBan = () => window.open('/QLKiemKe/ExportBienBanTaiSanBoPhan?ids=' + encodeURIComponent(ids), '_blank');
+        let moBienBan = () => window.open('/QLKiemKe/ExportBienBanTaiSanBoPhan?dinhDang=' + dinhDang + '&ids=' + encodeURIComponent(ids), '_blank');
 
         if (dsThietBiTheoBoLoc.length > 500) {
         return Swal.fire({
