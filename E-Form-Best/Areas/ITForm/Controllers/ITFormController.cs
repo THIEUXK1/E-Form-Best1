@@ -5115,6 +5115,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .Where(x => x.NgayXoa == null && (x.IdTrangThaiNavigation == null || !x.IdTrangThaiNavigation.TenTrangThai.Equals("xóa", StringComparison.OrdinalIgnoreCase)))
                     .ToList();
 
+                // Loại bỏ các thiết bị nằm trong danh sách chặn để không tính vào thống kê
+                var tapChanTk = TapKhoaChan();
+                thietBis = thietBis.Where(x => !BiChan(tapChanTk, x.Seribacode, x.TenMayTinh)).ToList();
+
                 // 1. Thống kê theo Công ty
                 var thongKeCongTy = thietBis
                     .GroupBy(x => x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : "Chưa gắn")
@@ -5219,6 +5223,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         idMay = x.IdMay
                     })
                     .ToList();
+
+                // Ẩn các thiết bị nằm trong danh sách chặn
+                var tapChanBang = TapKhoaChan();
+                data = data.Where(x => !BiChan(tapChanBang, x.seribacode, x.tenMayTinh)).ToList();
 
                 return Json(new { success = true, data = data });
             }
@@ -5637,6 +5645,130 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #endregion
 
 
+        #region 2b. DANH SÁCH CHẶN THIẾT BỊ (ẩn khỏi toàn bộ hệ thống kiểm kê)
+
+        // Các máy nằm trong bảng KK_ThietBiChan bị coi như "không tồn tại" với hệ thống kiểm kê:
+        // không hiện ở trang Thiết bị, Danh sách tất cả máy tính, Thống kê, Tài sản bộ phận, biên bản...
+        // và cũng không được đồng bộ/import thêm mới trở lại.
+        // Đối chiếu ưu tiên theo Serial; Serial rỗng hoặc thuộc nhóm rác (SeriRacKhongDoiChieu) thì đối chiếu theo Tên máy.
+        private const string CacheKeyThietBiChan = "KkThietBiChan_All";
+
+        private static string KhoaChan(string? s) => (s ?? string.Empty).Trim().ToLowerInvariant();
+
+        private List<KkThietBiChan> LayDanhSachChan()
+        {
+            return _cache.GetOrCreate(CacheKeyThietBiChan, entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
+                return _context.KkThietBiChans.AsNoTracking().OrderByDescending(x => x.NgayChan).ToList();
+            }) ?? new List<KkThietBiChan>();
+        }
+
+        // Tập khóa dùng để lọc nhanh trong bộ nhớ (gọi 1 lần cho mỗi request danh sách)
+        private (HashSet<string> Seri, HashSet<string> TenMay) TapKhoaChan()
+        {
+            var ds = LayDanhSachChan();
+            var seri = new HashSet<string>(ds.Select(x => KhoaChan(x.Seri))
+                .Where(s => s.Length > 0 && !SeriRacKhongDoiChieu.Contains(s)));
+            var ten = new HashSet<string>(ds.Select(x => KhoaChan(x.TenMay)).Where(s => s.Length > 0));
+            return (seri, ten);
+        }
+
+        private static bool BiChan((HashSet<string> Seri, HashSet<string> TenMay) tap, string? seri, string? tenMay)
+        {
+            var s = KhoaChan(seri);
+            var t = KhoaChan(tenMay);
+            return (s.Length > 0 && tap.Seri.Contains(s)) || (t.Length > 0 && tap.TenMay.Contains(t));
+        }
+
+        private bool BiChan(string? seri, string? tenMay) => BiChan(TapKhoaChan(), seri, tenMay);
+
+        public class ChanThietBiRequest
+        {
+            public string? Seri { get; set; }
+            public string? TenMay { get; set; }
+            public string? LyDo { get; set; }
+        }
+
+        public class BoChanThietBiRequest
+        {
+            public int IdChan { get; set; }
+        }
+
+        [HttpGet("/QLKiemKe/GetDanhSachChan")]
+        public IActionResult GetDanhSachChan()
+        {
+            try
+            {
+                var data = LayDanhSachChan()
+                    .Select(x => new
+                    {
+                        idChan = x.IdChan,
+                        seri = x.Seri,
+                        tenMay = x.TenMay,
+                        lyDo = x.LyDo,
+                        nguoiChan = x.NguoiChan,
+                        ngayChan = x.NgayChan.ToString("yyyy-MM-dd HH:mm:ss")
+                    })
+                    .ToList();
+                return Json(new { success = true, data });
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost("/QLKiemKe/ChanThietBi")]
+        public IActionResult ChanThietBi([FromBody] ChanThietBiRequest req)
+        {
+            try
+            {
+                if (req == null || (string.IsNullOrWhiteSpace(req.Seri) && string.IsNullOrWhiteSpace(req.TenMay)))
+                    return Json(new { success = false, message = "Cần ít nhất Serial hoặc Tên máy để chặn." });
+
+                var seri = (req.Seri ?? "").Trim();
+                var tenMay = (req.TenMay ?? "").Trim();
+
+                // Đã có trong danh sách chặn thì không thêm trùng
+                if (BiChan(seri, tenMay))
+                    return Json(new { success = true, message = "Thiết bị này đã nằm trong danh sách chặn." });
+
+                var item = new KkThietBiChan
+                {
+                    Seri = string.IsNullOrWhiteSpace(seri) ? null : seri,
+                    TenMay = string.IsNullOrWhiteSpace(tenMay) ? null : tenMay,
+                    LyDo = string.IsNullOrWhiteSpace(req.LyDo) ? null : req.LyDo.Trim(),
+                    NguoiChan = User.Identity?.Name ?? "Hệ thống",
+                    NgayChan = DateTime.Now
+                };
+                _context.KkThietBiChans.Add(item);
+                _context.SaveChanges();
+                _cache.Remove(CacheKeyThietBiChan);
+
+                GhiLichSu("Chặn", "Thiết Bị", item.IdChan, $"Đã chặn thiết bị (Tên máy: {tenMay}, Serial: {seri}). Lý do: {item.LyDo ?? "Không ghi"}");
+                return Json(new { success = true, message = "Đã đưa thiết bị vào danh sách chặn." });
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost("/QLKiemKe/BoChanThietBi")]
+        public IActionResult BoChanThietBi([FromBody] BoChanThietBiRequest req)
+        {
+            try
+            {
+                var item = _context.KkThietBiChans.Find(req?.IdChan ?? 0);
+                if (item == null) return Json(new { success = false, message = "Không tìm thấy bản ghi chặn." });
+
+                _context.KkThietBiChans.Remove(item);
+                _context.SaveChanges();
+                _cache.Remove(CacheKeyThietBiChan);
+
+                GhiLichSu("Bỏ chặn", "Thiết Bị", item.IdChan, $"Đã bỏ chặn thiết bị (Tên máy: {item.TenMay}, Serial: {item.Seri}).");
+                return Json(new { success = true, message = "Đã bỏ chặn thiết bị." });
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        #endregion
+
         #region 2. QL KIỂM KÊ: THIẾT BỊ (Xử lý Thiết Bị & Hình Ảnh)
 
         // View chuyên biệt quản lý Thiết Bị
@@ -5718,6 +5850,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         x.Error
                     })
                     .ToList(); // Tải dữ liệu về bộ nhớ trước để xử lý chuẩn hóa chuỗi tiếng Việt chuẩn xác nhất
+
+                // Ẩn các thiết bị nằm trong danh sách chặn
+                var tapChanTb = TapKhoaChan();
+                data = data.Where(x => !BiChan(tapChanTb, x.Seribacode, x.TenMayTinh)).ToList();
 
                 // THỰC HIỆN SẮP XẾP TRÊN MEMORY (Chuẩn hóa loại bỏ khoảng trắng thừa và không phân biệt hoa thường)
                 var sortedData = data
@@ -5897,11 +6033,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 if (objId == 0) objId = model.IdThietBi;
 
-                string tenNguoiDung = "Chưa cấp phát";
+                string tenNguoiDung = "Chưa xác nhận người dùng";
                 if (model.IdNguoiDung.HasValue)
                 {
                     var user = _context.Users.Find(model.IdNguoiDung.Value);
-                    if (user != null) tenNguoiDung = user.HoTen ?? "Chưa cấp phát";
+                    if (user != null) tenNguoiDung = user.HoTen ?? "Chưa xác nhận người dùng";
                 }
 
                 string tenBoPhan = "Chưa gắn";
@@ -6264,8 +6400,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .Where(m => req.DanhSachIdMay.Contains(m.IdMay))
                     .ToList();
 
+                var tapChanDongBo = TapKhoaChan();
+
                 foreach (var may in danhSachMay)
                 {
+                    if (BiChan(tapChanDongBo, may.SeriMay, may.TenMay))
+                    {
+                        dsBoQua.Add($"{may.TenMay ?? "(Không tên)"} (nằm trong danh sách chặn)");
+                        continue;
+                    }
+
                     if (string.IsNullOrWhiteSpace(may.TenMay) || string.IsNullOrWhiteSpace(may.LoaiThietBi))
                     {
                         dsBoQua.Add($"{may.TenMay ?? "(Không tên)"} (thiếu Tên máy hoặc Loại thiết bị)");
@@ -6566,7 +6710,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     item.IdcongTy,
                     item.IdboPhan,
                     item.IdTrangThai,
-                    TenNguoiDung = item.IdNguoiDungNavigation != null ? item.IdNguoiDungNavigation.HoTen : "Chưa cấp phát",
+                    TenNguoiDung = item.IdNguoiDungNavigation != null ? item.IdNguoiDungNavigation.HoTen : "Chưa xác nhận người dùng",
                     TkNguoiDung = item.IdNguoiDungNavigation != null ? item.IdNguoiDungNavigation.Tk : "N/A",
                     TenCongTy = item.IdcongTyNavigation != null ? item.IdcongTyNavigation.TenCongTy : "Chưa gắn",
                     TenBoPhan = item.IdboPhanNavigation != null ? item.IdboPhanNavigation.TenBoPhan : "Chưa gắn",
@@ -6978,6 +7122,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     if (string.IsNullOrEmpty(serial) || string.IsNullOrEmpty(ip)) { soBoQuaThieuThongTin++; continue; }
 
+                    // Thiết bị nằm trong danh sách chặn thì không nhập vào hệ thống
+                    if (BiChan(serial, hostname)) { soBoQuaThieuThongTin++; continue; }
+
                     var existing = _context.KkThietBis.FirstOrDefault(x =>
                         x.Seribacode != null && x.Seribacode.Trim().ToLower() == serial.ToLower() &&
                         x.LoaiThietBi != null && x.LoaiThietBi.Trim().ToLower() == loaiSwitch.ToLower());
@@ -7167,6 +7314,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .OrderBy(x => x.TenViTri)
                     .ToList();
 
+                // Ẩn các thiết bị nằm trong danh sách chặn
+                var tapChanBp = TapKhoaChan();
+                data = data.Where(x => !BiChan(tapChanBp, x.Seribacode, x.TenMayTinh)).ToList();
+
                 return Json(new { success = true, tenCongTy, tenBoPhan, isAll, idCongTy, idBoPhan, data });
             }
             catch (Exception ex)
@@ -7211,6 +7362,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     })
                     .OrderBy(x => x.TenCongTy).ThenBy(x => x.TenBoPhan).ThenBy(x => x.TenViTri)
                     .ToList();
+
+                // Ẩn các thiết bị nằm trong danh sách chặn
+                var tapChanAll = TapKhoaChan();
+                data = data.Where(x => !BiChan(tapChanAll, x.Seribacode, x.TenMayTinh)).ToList();
 
                 return Json(new { success = true, data });
             }
@@ -7300,6 +7455,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 })
                 .ToList();
 
+            // Ẩn các thiết bị nằm trong danh sách chặn khỏi biên bản
+            var tapChanBb = TapKhoaChan();
+            danhSach = danhSach.Where(x => !BiChan(tapChanBb, x.Seribacode, x.TenMayTinh)).ToList();
+
             string tenNguoiLap = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
             string htmlContent = BuildHtmlBienBanTaiSanBoPhan(tenNguoiLap, danhSach);
 
@@ -7383,7 +7542,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 string userInfo = !string.IsNullOrEmpty(item.TenNguoiDung)
                     ? item.TenNguoiDung + (!string.IsNullOrEmpty(item.Tk) ? $" ({item.Tk})" : "")
-                    : "Chưa cấp phát";
+                    : "Chưa xác nhận người dùng";
 
                 sb.Append("<tr>");
                 sb.Append($"<td style='text-align:center;'>{stt++}</td>");
@@ -7647,6 +7806,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (user == null)
                 {
                     return Json(new { success = false, message = "Tài khoản hoặc mật khẩu xác nhận không chính xác." });
+                }
+
+                // Máy nằm trong danh sách chặn thì không cho ghi nhận/tạo mới trong hệ thống kiểm kê
+                if (BiChan(seriMay, tenMay))
+                {
+                    return Json(new { success = false, message = "Máy này nằm trong danh sách chặn của hệ thống kiểm kê nên không được ghi nhận. Vui lòng liên hệ phòng IT." });
                 }
 
                 // 2. Kiểm tra điều kiện: Số Serial Máy quét được phải trùng khớp với máy đã tồn tại trong DB
@@ -7952,6 +8117,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     })
                     .ToList();
 
+                // Ẩn các máy nằm trong danh sách chặn
+                var tapChanMay = TapKhoaChan();
+                danhSachMay = danhSachMay.Where(m => !BiChan(tapChanMay, m.seriMay, m.tenMay)).ToList();
+
                 return Json(new { success = true, data = danhSachMay });
             }
             catch (Exception ex)
@@ -8017,9 +8186,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 int soDaThem = 0, soBoQuaTrungSeri = 0;
                 var chiTietDaThem = new List<object>();
+                var tapChanChiNhanh = TapKhoaChan();
 
                 foreach (var may in dsMayRemote)
                 {
+                    // Máy nằm trong danh sách chặn thì không đồng bộ về local
+                    if (BiChan(tapChanChiNhanh, may.SeriMay, may.TenMay))
+                    {
+                        soBoQuaTrungSeri++;
+                        continue;
+                    }
+
                     string seriChuanHoa = (may.SeriMay ?? "").Trim().ToLower();
                     bool laSeriRac = string.IsNullOrEmpty(seriChuanHoa) || SeriRacKhongDoiChieu.Contains(seriChuanHoa);
 

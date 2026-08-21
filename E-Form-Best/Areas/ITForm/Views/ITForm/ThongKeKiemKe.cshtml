@@ -378,7 +378,8 @@
     }
 </style>
 
-<div class="content-header py-3">
+@* Kéo tiêu đề lên sát mép trên: bù lại phần padding 45px của .main-card ở _Layout để đỡ trống *@
+<div class="content-header pt-0 pb-2" style="margin-top: -25px;">
     <div class="container-fluid">
         <div class="row align-items-center">
             <div class="col-md-6 col-12 mb-2 mb-md-0">
@@ -1346,7 +1347,7 @@
         pageData.forEach(item => {
         let namePart = item.tenNguoiDung
         ? `<span class="text-primary fw-bold">${item.tenNguoiDung}</span> <span class="text-danger fw-normal">(${item.tk || 'N/A'})</span>`
-        : `<span class="text-muted fst-italic">Chưa cấp phát</span>`;
+        : `<span class="text-muted fst-italic">Chưa xác nhận người dùng</span>`;
 
         let accPart = item.tenDangNhap ? item.tenDangNhap : `<span class="text-muted fst-italic">Trống</span>`;
         let userStr = `<div>${namePart}</div><div class="small text-muted mt-1"><i class="fas fa-user-circle me-1"></i> Account: <b>${accPart}</b></div>`;
@@ -2052,7 +2053,7 @@
                     item.tenCongTy || 'Chưa gắn',
                     item.tenBoPhan || 'Chưa gắn',
                     item.tenTrangThai || 'Chưa rõ',
-                    item.tenNguoiDung ? `${item.tenNguoiDung} (${item.tk || 'N/A'})` : 'Chưa cấp phát',
+                    item.tenNguoiDung ? `${item.tenNguoiDung} (${item.tk || 'N/A'})` : 'Chưa xác nhận người dùng',
                     item.tenDangNhap || '-',
                     nhanBanQuyenHopLe(item.winLicense) || 'Chưa có bản quyền',
                     nhanBanQuyenHopLe(item.officeLicense) || 'Chưa có bản quyền',
@@ -2216,7 +2217,7 @@
                 item.tenMayTinh || 'No Hostname',
                 item.tenBoPhan || 'Chưa gắn',
                 item.tk || '-',
-                item.tenNguoiDung || 'Chưa cấp phát'
+                item.tenNguoiDung || 'Chưa xác nhận người dùng'
             ]);
         });
 
@@ -2514,7 +2515,7 @@
                 item.tenCongTy || 'Chưa gắn',
                 winHienThi,
                 offHienThi,
-                item.tenNguoiDung ? (item.tk ? `${item.tenNguoiDung} (${item.tk})` : item.tenNguoiDung) : 'Chưa cấp phát',
+                item.tenNguoiDung ? (item.tk ? `${item.tenNguoiDung} (${item.tk})` : item.tenNguoiDung) : 'Chưa xác nhận người dùng',
                 kq.uuTien,
                 kq.hanhDong,
                 item.seribacode || ''
