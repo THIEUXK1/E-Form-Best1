@@ -1122,20 +1122,34 @@
         } catch (err) { } finally { isLoading = false; }
         }
 
-        function getReadIds() {
+        // Cookie "read_notifications" cũ không giới hạn dung lượng: dùng lâu ngày chuỗi ID
+        // vượt quá ~4KB khiến trình duyệt âm thầm từ chối ghi cookie mới, làm nút "Đọc tất cả"
+        // mất tác dụng vĩnh viễn. Chuyển sang localStorage (không bị giới hạn này) và dọn cookie cũ 1 lần.
+        (function migrateReadNotificationsCookie() {
+        try {
+        if (!localStorage.getItem('read_notifications')) {
         const name = "read_notifications=";
         const ca = document.cookie.split(';');
         for (let i = 0; i < ca.length; i++) {
         let c = ca[i].trim();
-        if (c.indexOf(name) === 0) return c.substring(name.length).split(',').filter(id => id !== "");
+        if (c.indexOf(name) === 0) { localStorage.setItem('read_notifications', c.substring(name.length)); break; }
         }
-        return [];
+        }
+        document.cookie = "read_notifications=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+        } catch (e) { }
+        })();
+
+        function getReadIds() {
+        try {
+        const stored = localStorage.getItem('read_notifications');
+        return stored ? stored.split(',').filter(id => id !== "") : [];
+        } catch (e) { return []; }
         }
 
         function setReadCookie(ids) {
-        const d = new Date();
-        d.setTime(d.getTime() + (30 * 24 * 60 * 60 * 1000));
-        document.cookie = "read_notifications=" + ids.join(',') + ";expires=" + d.toUTCString() + ";path=/";
+        // Chỉ giữ 300 id gần nhất, tránh lặp lại tình trạng phình to không giới hạn như cookie cũ.
+        const trimmed = ids.slice(-300);
+        try { localStorage.setItem('read_notifications', trimmed.join(',')); } catch (e) { }
         }
 
         function triggerNewNotificationEffect(item) {
