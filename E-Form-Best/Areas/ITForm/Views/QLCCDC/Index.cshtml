@@ -1,0 +1,498 @@
+﻿@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Quản lý Công cụ dụng cụ";
+
+    @* Kiểu tường minh thay cho dynamic: view chạy ở assembly khác khi bật runtime compilation *@
+    var dsCongTy = ViewBag.DsCongTy as IEnumerable<E_Form_Best.Models.ITForm.KkCongTy>
+                   ?? Enumerable.Empty<E_Form_Best.Models.ITForm.KkCongTy>();
+    var dsBoPhan = ViewBag.DsBoPhan as IEnumerable<E_Form_Best.Models.ITForm.KkBoPhan>
+                   ?? Enumerable.Empty<E_Form_Best.Models.ITForm.KkBoPhan>();
+    string[] dsTinhTrang = new[] { "Trong kho", "Đang sử dụng", "Hư hỏng", "Thanh lý" };
+    string[] dsTinhTrangTra = new[] { "Nguyên vẹn", "Trầy xước", "Hư hỏng", "Mất" };
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+@* Dự án không đăng ký Tag Helper (không có _ViewImports.cshtml) nên "~/" không phân giải được
+   và asp-append-version vô tác dụng — phải dùng đường dẫn tuyệt đối + tự đánh version *@
+<link rel="stylesheet" href="/css/ccdc-quanly.css?v=20260825e">
+
+@* Kéo tiêu đề lên sát mép trên: bù lại phần padding 45px của .main-card ở _Layout *@
+<div class="content-header pt-0 pb-2" style="margin-top: -25px;">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-md-6 col-12 mb-2 mb-md-0">
+                <h4 class="m-0 fw-bold" style="color: #1e293b; letter-spacing: -0.5px;">
+                    <i class="fas fa-screwdriver-wrench me-2" style="color: #fb923c;"></i> Quản lý Công cụ dụng cụ (CCDC)
+                </h4>
+            </div>
+            <div class="col-md-6 col-12 text-md-end text-start">
+                <button type="button" class="btn btn-sm rounded-pill px-3 shadow-sm text-white w-100 w-md-auto"
+                        style="background-color:#fb923c; border-color:#fb923c; padding-top:8px; padding-bottom:8px;"
+                        id="btnThemCCDC">
+                    <i class="fas fa-plus me-1"></i> Thêm CCDC
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card border-0 shadow-sm bg-white" style="border-radius: 15px;">
+            <div class="card-body p-2 p-md-3">
+
+                <div class="row g-2 mb-3 pb-3 border-bottom align-items-end"
+                     style="background:#f8fafc; padding:15px; border-radius:10px; margin:0 1px;">
+                    <div class="col-md-4 col-12">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search"></i> Tìm kiếm</label>
+                        <input type="text" id="filterTuKhoa" class="form-control rounded-3 border-0 shadow-sm"
+                               style="height:38px;" placeholder="Mã, tên, loại, người quản lý, vị trí...">
+                    </div>
+                    <div class="col-md-3 col-sm-6 col-12">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-building"></i> Công ty</label>
+                        <select id="filterCongTy" class="form-select rounded-3 border-0 shadow-sm" style="height:38px;">
+                            <option value="">-- Tất cả --</option>
+                            @foreach (var ct in dsCongTy)
+                            {
+                                <option value="@ct.IdcongTy">@ct.TenCongTy</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-sm-6 col-12">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sitemap"></i> Bộ phận</label>
+                        <select id="filterBoPhan" class="form-select rounded-3 border-0 shadow-sm" style="height:38px;">
+                            <option value="">-- Tất cả --</option>
+                            @foreach (var bp in dsBoPhan)
+                            {
+                                <option value="@bp.IdboPhan" data-congty="@bp.IdcongTy">@bp.TenBoPhan</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-12">
+                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-info-circle"></i> Tình trạng</label>
+                        <select id="filterTinhTrang" class="form-select rounded-3 border-0 shadow-sm" style="height:38px;">
+                            <option value="">-- Tất cả --</option>
+                            @foreach (var tt in dsTinhTrang)
+                            {
+                                <option value="@tt">@tt</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                @* Hai màn hình dùng chung bộ lọc ở trên: kho CCDC và các phiếu đang còn nợ *@
+                <ul class="nav nav-pills nav-pills-ccdc mb-2" id="ccdcTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tabKhoBtn" data-bs-toggle="pill"
+                                data-bs-target="#paneKho" type="button" role="tab">
+                            <i class="fas fa-boxes-stacked me-1"></i> Danh sách CCDC
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tabDangMuonBtn" data-bs-toggle="pill"
+                                data-bs-target="#paneDangMuon" type="button" role="tab">
+                            <i class="fas fa-hand-holding-hand me-1"></i> Đang cho mượn
+                            <span class="badge rounded-pill bg-secondary ms-1" id="badgeDangMuon">0</span>
+                            <span class="badge rounded-pill bg-danger ms-1 d-none" id="badgeQuaHan">0 quá hạn</span>
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                <div class="tab-pane fade show active" id="paneKho" role="tabpanel">
+
+                <div class="d-flex flex-wrap gap-3 mb-2 small text-muted fw-bold" id="ccdcTongHop">
+                    <span><i class="fas fa-list-ol me-1"></i> Số dòng: <span id="tongDong">0</span></span>
+                    <span><i class="fas fa-boxes-stacked me-1"></i> Tổng số lượng: <span id="tongSoLuong">0</span></span>
+                    <span><i class="fas fa-hand-holding-hand me-1"></i> Đang cho mượn: <span id="tongDangMuon">0</span></span>
+                    <span><i class="fas fa-coins me-1"></i> Tổng giá trị: <span id="tongGiaTri">0</span> đ</span>
+                </div>
+
+                <div class="ccdc-table-wrap">
+                    <table class="table table-hover align-middle mb-0 ccdc-table">
+                        <colgroup>
+                            <col style="width:48px;">
+                            <col style="width:120px;">
+                            <col style="width:230px;">
+                            <col style="width:150px;">
+                            <col style="width:70px;">
+                            <col style="width:80px;">
+                            <col style="width:70px;">
+                            <col style="width:80px;">
+                            <col style="width:160px;">
+                            <col style="width:160px;">
+                            <col style="width:160px;">
+                            <col style="width:170px;">
+                            <col style="width:130px;">
+                            <col style="width:120px;">
+                            <col style="width:160px;">
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Mã</th>
+                                <th>Tên CCDC</th>
+                                <th>Loại</th>
+                                <th class="ccdc-num">SL</th>
+                                <th class="ccdc-num">Mượn</th>
+                                <th class="ccdc-num">Còn</th>
+                                <th>ĐVT</th>
+                                <th>Công ty</th>
+                                <th>Bộ phận</th>
+                                <th>Người quản lý</th>
+                                <th>Vị trí</th>
+                                <th>Tình trạng</th>
+                                <th class="ccdc-num">Giá trị</th>
+                                <th class="ccdc-thaotac">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ccdcTableBody">
+                            <tr><td colspan="15" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                </div>@* /paneKho *@
+
+                @* ---------- Màn hình: mọi phiếu còn nợ của mọi CCDC ---------- *@
+                <div class="tab-pane fade" id="paneDangMuon" role="tabpanel">
+
+                    <div class="d-flex flex-wrap align-items-center gap-3 mb-2 small text-muted fw-bold">
+                        <span><i class="fas fa-clipboard-list me-1"></i> Số phiếu: <span id="dmTongPhieu">0</span></span>
+                        <span><i class="fas fa-boxes-stacked me-1"></i> Tổng còn nợ: <span id="dmTongConNo">0</span></span>
+                        <span class="text-danger"><i class="fas fa-triangle-exclamation me-1"></i> Quá hạn: <span id="dmTongQuaHan">0</span></span>
+                        <div class="form-check form-switch ms-auto">
+                            <input class="form-check-input" type="checkbox" id="dmChiQuaHan">
+                            <label class="form-check-label small" for="dmChiQuaHan">Chỉ xem phiếu quá hạn</label>
+                        </div>
+                    </div>
+
+                    <div class="ccdc-table-wrap">
+                        <table class="table table-hover align-middle mb-0 ccdc-table ccdc-table-dm">
+                            <colgroup>
+                                <col style="width:48px;">
+                                <col style="width:110px;">
+                                <col style="width:170px;">
+                                <col style="width:150px;">
+                                <col style="width:130px;">
+                                <col style="width:230px;">
+                                <col style="width:80px;">
+                                <col style="width:130px;">
+                                <col style="width:130px;">
+                                <col style="width:140px;">
+                                <col style="width:130px;">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Mã NV</th>
+                                    <th>Họ tên</th>
+                                    <th>Bộ phận</th>
+                                    <th>Mã CCDC</th>
+                                    <th>Tên CCDC</th>
+                                    <th class="ccdc-num">Còn nợ</th>
+                                    <th>Ngày mượn</th>
+                                    <th>Hẹn trả</th>
+                                    <th>Tình trạng hạn</th>
+                                    <th class="ccdc-thaotac">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dangMuonTableBody">
+                                <tr><td colspan="11" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>@* /paneDangMuon *@
+                </div>@* /tab-content *@
+
+            </div>
+        </div>
+    </div>
+</section>
+
+@* ------- Modal thêm / sửa ------- *@
+<div class="modal fade" id="modalCCDC" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="modalCCDCTitle">
+                    <i class="fas fa-screwdriver-wrench me-2" style="color:#fb923c;"></i> Thêm công cụ dụng cụ
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCCDC" class="row g-3">
+                    <input type="hidden" id="IdCcdc" name="IdCcdc" value="0" />
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Mã CCDC</label>
+                        <input type="text" class="form-control" id="MaCcdc" name="MaCcdc" maxlength="100">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small fw-bold text-muted">Tên CCDC <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="TenCcdc" name="TenCcdc" maxlength="255" required>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Loại</label>
+                        <input type="text" class="form-control" id="LoaiCcdc" name="LoaiCcdc" maxlength="255"
+                               placeholder="Dụng cụ cầm tay, vật tư mạng...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Số lượng</label>
+                        <input type="number" class="form-control" id="SoLuong" name="SoLuong" min="0" value="1">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Đơn vị tính</label>
+                        <input type="text" class="form-control" id="DonViTinh" name="DonViTinh" maxlength="50"
+                               placeholder="cái / bộ / mét / cuộn">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Công ty</label>
+                        <select class="form-select" id="IdcongTy" name="IdcongTy">
+                            <option value="">-- Chọn công ty --</option>
+                            @foreach (var ct in dsCongTy)
+                            {
+                                <option value="@ct.IdcongTy">@ct.TenCongTy</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Bộ phận</label>
+                        <select class="form-select" id="IdboPhan" name="IdboPhan">
+                            <option value="">-- Chọn bộ phận --</option>
+                            @foreach (var bp in dsBoPhan)
+                            {
+                                <option value="@bp.IdboPhan" data-congty="@bp.IdcongTy">@bp.TenBoPhan</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Người quản lý</label>
+                        <input type="text" class="form-control" id="NguoiQuanLy" name="NguoiQuanLy" maxlength="255">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Vị trí cất giữ</label>
+                        <input type="text" class="form-control" id="ViTri" name="ViTri" maxlength="500">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Tình trạng</label>
+                        <select class="form-select" id="TinhTrang" name="TinhTrang">
+                            @foreach (var tt in dsTinhTrang)
+                            {
+                                <option value="@tt">@tt</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Ngày mua</label>
+                        <input type="date" class="form-control" id="NgayMua" name="NgayMua">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Hạn bảo hành</label>
+                        <input type="date" class="form-control" id="HanBaoHanh" name="HanBaoHanh">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Giá trị (đ / đơn vị)</label>
+                        <input type="number" step="0.01" min="0" class="form-control" id="GiaTri" name="GiaTri">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small fw-bold text-muted">Ghi chú</label>
+                        <textarea class="form-control" id="GhiChu" name="GhiChu" rows="1"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn text-white rounded-pill px-4" style="background-color:#fb923c;" id="btnLuuCCDC">
+                    <i class="fas fa-save me-1"></i> Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ------- Modal xoá (bắt buộc nêu lý do vì đây là xoá mềm có ghi vết) ------- *@
+<div class="modal fade" id="modalXoaCCDC" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger"><i class="fas fa-trash me-2"></i> Xoá công cụ dụng cụ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="xoaIdCcdc" value="0">
+                <p class="mb-2">Xoá <strong id="xoaTenCcdc"></strong>?</p>
+                <label class="form-label small fw-bold text-muted">Lý do xoá</label>
+                <input type="text" class="form-control" id="xoaLyDo" maxlength="500" placeholder="Ví dụ: hỏng không sửa được, đã thanh lý...">
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Huỷ</button>
+                <button type="button" class="btn btn-danger rounded-pill px-4" id="btnXacNhanXoaCCDC">Xoá</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ------- Modal cho mượn ------- *@
+<div class="modal fade" id="modalChoMuon" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-hand-holding-hand me-2" style="color:#0ea5e9;"></i> Cho mượn công cụ dụng cụ
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="muonIdCcdc" value="0">
+                <div class="alert alert-light border mb-3 py-2">
+                    <div class="fw-bold" id="muonTenCcdc"></div>
+                    <div class="small text-muted">
+                        Tổng: <span id="muonTongSL">0</span> —
+                        Đang cho mượn: <span id="muonDangMuon">0</span> —
+                        <span class="text-success fw-bold">Còn khả dụng: <span id="muonConLai">0</span></span>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold text-muted">Mã nhân viên người mượn <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="muonMaNhanVien" maxlength="50"
+                                   placeholder="VD: I260474" autocomplete="off">
+                            <button class="btn btn-outline-secondary" type="button" id="btnTraCuuNhanVien" title="Tra cứu">
+                                <i class="fas fa-magnifying-glass"></i>
+                            </button>
+                        </div>
+                        <div class="form-text" id="muonKetQuaTraCuu">Nhập mã rồi rời chuột ra để tự lấy tên.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Họ tên</label>
+                        <input type="text" class="form-control bg-light" id="muonHoTen" readonly>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted">Công ty</label>
+                        <input type="text" class="form-control bg-light" id="muonCongTy" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Bộ phận</label>
+                        <input type="text" class="form-control bg-light" id="muonBoPhan" readonly>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted">Số lượng mượn</label>
+                        <input type="number" class="form-control" id="muonSoLuong" min="1" value="1">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted">Ngày hẹn trả</label>
+                        <input type="date" class="form-control" id="muonNgayHenTra">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-muted">Ghi chú</label>
+                        <input type="text" class="form-control" id="muonGhiChu" placeholder="Mượn để làm gì, bàn giao ở đâu...">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn text-white rounded-pill px-4" style="background-color:#0ea5e9;" id="btnXacNhanChoMuon">
+                    <i class="fas fa-check me-1"></i> Xác nhận cho mượn
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ------- Modal danh sách phiếu mượn + nhận trả ------- *@
+<div class="modal fade" id="modalPhieuMuon" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-clipboard-list me-2" style="color:#7c3aed;"></i> Phiếu mượn — <span id="phieuTenCcdc"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="phieuIdCcdc" value="0">
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="phieuXemTatCa">
+                    <label class="form-check-label small text-muted" for="phieuXemTatCa">Xem cả phiếu đã trả xong</label>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead style="background:#f1f5f9;">
+                            <tr class="small text-uppercase text-muted">
+                                <th>Mã NV</th>
+                                <th>Họ tên</th>
+                                <th>Bộ phận</th>
+                                <th class="text-end">Mượn</th>
+                                <th class="text-end">Đã trả</th>
+                                <th class="text-end">Còn nợ</th>
+                                <th>Ngày mượn</th>
+                                <th>Hẹn trả</th>
+                                <th>Ngày trả</th>
+                                <th class="text-center" style="width:110px;">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="phieuMuonTableBody">
+                            <tr><td colspan="10" class="text-center text-muted py-3">Đang tải...</td></tr>
+                            @* Cột "Hẹn trả" sẽ kèm nhãn trễ hạn do JS gắn *@
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ------- Modal nhận trả ------- *@
+<div class="modal fade" id="modalNhanTra" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-success"><i class="fas fa-rotate-left me-2"></i> Nhận trả</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="traIdMuon" value="0">
+                <p class="mb-3 small text-muted" id="traThongTin"></p>
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold text-muted">Số lượng trả</label>
+                        <input type="number" class="form-control" id="traSoLuong" min="1" value="1">
+                    </div>
+                    <div class="col-md-7">
+                        <label class="form-label small fw-bold text-muted">Tình trạng khi trả</label>
+                        <select class="form-select" id="traTinhTrang">
+                            @foreach (var tt in dsTinhTrangTra)
+                            {
+                                <option value="@tt">@tt</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-muted">Ghi chú</label>
+                        <input type="text" class="form-control" id="traGhiChu" placeholder="Ví dụ: trả thiếu 1 cuộn, hẹn tuần sau">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Huỷ</button>
+                <button type="button" class="btn btn-success rounded-pill px-4" id="btnXacNhanNhanTra">Xác nhận trả</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="/js/ccdc-quanly.js?v=20260825e"></script>
+}
