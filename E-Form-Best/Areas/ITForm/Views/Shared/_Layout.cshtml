@@ -13,7 +13,10 @@
     var requestCulture = Context.Features.Get<IRequestCultureFeature>();
     var cultureCode = requestCulture?.RequestCulture.Culture.Name ?? "vi-VN";
 
-    bool isITSystem = currentController.Contains("IT") || currentController == "Mail" || currentController.Contains("Order");
+    // QLCCDC là module IT nhưng tên controller không chứa chữ "IT" nên phải liệt kê tường minh,
+    // nếu không trang sẽ hiển thị nhầm giao diện HR (màu xanh lá, logo "HR SERVICE").
+    bool isITSystem = currentController.Contains("IT") || currentController == "Mail"
+                      || currentController.Contains("Order") || currentController == "QLCCDC";
 
     string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi", "DonCapQuyenOChung" }; bool isITSubActive = itSubPages.Contains(currentAction);
 
@@ -612,6 +615,12 @@
                         <a href="/QLKiemKe/ThongKe" class="nav-link-item @(currentController == "QLKiemKe" && (currentAction == "ThongKeKiemKe" || currentAction == "ThongKe") ? "active" : "")">
                             <i class="fa fa-pie-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#3b82f6;"></i>
                             <span class="lang-text" data-key="inventory_stats">Kiểm kê tài sản</span>
+                        </a>
+
+                        @* CCDC = công cụ dụng cụ. Trang /QLCCDC chưa dựng, mới chỉ đặt chỗ ở menu *@
+                        <a href="/QLCCDC" class="nav-link-item @(currentController == "QLCCDC" ? "active" : "")">
+                            <i class="fa fa-wrench" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#fb923c;"></i>
+                            <span class="lang-text" data-key="ccdc_manage">Quản lý CCDC</span>
                         </a>
 
                     }

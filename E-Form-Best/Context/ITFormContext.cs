@@ -145,6 +145,10 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<KkBoPhan> KkBoPhans { get; set; }
 
+    public virtual DbSet<KkCcdcMuonTra> KkCcdcMuonTras { get; set; }
+
+    public virtual DbSet<KkCongCuDungCu> KkCongCuDungCus { get; set; }
+
     public virtual DbSet<KkCongTy> KkCongTies { get; set; }
 
     public virtual DbSet<KkLichSuThaoTac> KkLichSuThaoTacs { get; set; }
