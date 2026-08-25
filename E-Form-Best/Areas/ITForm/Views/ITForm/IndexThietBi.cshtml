@@ -520,6 +520,7 @@
                                     <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                                         <li><a class="dropdown-item" href="#" onclick="xuatBienBanBoPhan('in'); return false;"><i class="fas fa-print me-2 text-secondary"></i>Bản in (ký tay)</a></li>
                                         <li><a class="dropdown-item" href="#" onclick="xuatBienBanBoPhan('excel'); return false;"><i class="fas fa-file-excel me-2 text-success"></i>Tải Excel (sửa được)</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="xuatBienBanBoPhan('excel_vitrung'); return false;"><i class="fas fa-language me-2 text-danger"></i>Tải Excel song ngữ Việt - Trung</a></li>
                                     </ul>
                                 </div>
                             </div>
@@ -1662,7 +1663,7 @@
         // Xuất biên bản xác nhận tài sản bộ phận (bản in để bộ phận đối chiếu và ký tay)
         // Lấy đúng danh sách đang khớp bộ lọc, nên muốn biên bản của 1 bộ phận thì lọc Bộ phận đó trước.
         function xuatBienBanBoPhan(dinhDang) {
-        dinhDang = (dinhDang === 'excel') ? 'excel' : 'in';
+        if (dinhDang !== 'excel' && dinhDang !== 'excel_vitrung') dinhDang = 'in';
         if (!dsThietBiTheoBoLoc.length) {
         return Swal.fire('Chưa có dữ liệu', 'Không có thiết bị nào khớp bộ lọc hiện tại để xuất biên bản.', 'warning');
         }
