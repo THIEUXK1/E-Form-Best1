@@ -16,9 +16,12 @@
     var requestCulture = Context.Features.Get<IRequestCultureFeature>();
     var cultureCode = requestCulture?.RequestCulture.Culture.Name ?? "vi-VN";
 
-    // Danh sách các Action thuộc menu Đăng ký để giữ trạng thái Active
-    string[] subPages = { "DangKySuDungXeCongTac" };
+    // Các trang thuộc nhóm "Đăng ký đơn" — dùng để tô sáng mục menu, kể cả khi đang ở trang chọn loại đơn
+    string[] subPages = { "DangKyDon", "DangKySuDungXeCongTac" };
     bool isSubPageActive = subPages.Contains(currentAction);
+
+    // Đang ở một form đơn cụ thể (không phải trang chọn loại đơn) thì hiện nút quay lại trang chọn
+    bool isTrangFormDon = isSubPageActive && currentAction != "DangKyDon";
 
     // ==========================================
     // BỘ MÀU: LUXURY DEEP INDIGO & CYAN (Đồng bộ SHD 2026)
@@ -44,6 +47,7 @@
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/dangky-don.css?v=1" />
 
     <style>
         :root {
@@ -96,17 +100,6 @@
             color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             border-left: 4px solid var(--shd-accent);
         }
-
-        /* SUBMENU STYLING */
-        #registrationSubmenu a {
-            padding: 10px 15px 10px 48px;
-            color: rgba(255,255,255,0.6); text-decoration: none;
-            font-size: 0.85rem; display: flex; align-items: center;
-            transition: 0.3s; border-radius: 10px; position: relative;
-        }
-
-        #registrationSubmenu a:hover { color: var(--shd-accent); background: rgba(255,255,255,0.05); }
-        #registrationSubmenu a.active { color: var(--shd-accent); font-weight: 700; background: rgba(255,255,255,0.08); }
 
         /* CONTENT AREA */
         main {
@@ -227,7 +220,7 @@
     </style>
 </head>
 
-<body>
+<body data-scroll-key="sidebarScrollPos_shd">
 
     @if (!isLoginPage)
     {
@@ -250,20 +243,14 @@
                 <div class="lang-text" data-key="personal_reg" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 15px 0 10px 12px; font-weight: 800;">Cá nhân & Đăng ký</div>
 
                 @* --- MENU ĐĂNG KÝ --- *@
-                <div id="btnRegistrationMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-radius: 14px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isSubPageActive ? "rgba(255,255,255,0.1)" : "transparent")">
+                @* Không xổ menu con nữa: bấm vào đây mở trang /FormSHD/DangKyDon liệt kê các loại đơn dạng thẻ *@
+                <a id="btnRegistrationMenu" href="/FormSHD/DangKyDon" class="nav-link-item @(isSubPageActive ? "active" : "")" aria-current="@(isSubPageActive ? "page" : null)" style="justify-content: space-between; color:#fff;">
                     <span style="display:flex; align-items:center;">
-                        <i class="fa fa-pencil-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> 
+                        <i class="fa fa-pencil-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i>
                         <span class="lang-text" data-key="reg_form">Đăng ký mẫu đơn</span>
                     </span>
-                    <i class="fa fa-angle-down" id="regArrow" style="transition: 0.3s; transform: @(isSubPageActive ? "rotate(180deg)" : "rotate(0deg)")"></i>
-                </div>
-
-                <div id="registrationSubmenu" style="display: @(isSubPageActive ? "flex" : "none"); flex-direction: column; background: rgba(0, 0, 0, 0.12); border-radius: 14px; margin: 5px 0 10px 0; padding: 5px 0;">
-                    <a href="/FormSHD/DangKySuDungXeCongTac" class="@(currentAction == "DangKySuDungXeCongTac" ? "active" : "")">
-                        <i class="fa fa-car" style="position:absolute; left:22px; color: var(--shd-accent); font-size: 1rem;"></i> 
-                        <span class="lang-text" data-key="car_biz">Đăng ký xe công tác</span>
-                    </a>
-                </div>
+                    <i class="fa fa-angle-right" style="opacity:0.6;"></i>
+                </a>
 
                 <a href="/FormSHD/DonCho" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
                     <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text" data-key="my_forms">Đơn của tôi</span>
@@ -374,6 +361,14 @@
                         <i class="fa fa-bars"></i>
                     </button>
 
+                    @if (isTrangFormDon)
+                    {
+                        <a href="/FormSHD/DangKyDon" class="btn-quay-lai-dangky" title="Quay lại danh sách loại đơn">
+                            <i class="fa fa-arrow-left"></i>
+                            <span class="lang-text">Quay lại</span>
+                        </a>
+                    }
+
                     @* --- LANGUAGE SWITCHER - ĐÃ ĐỒNG BỘ GOOGLE TRANSLATE --- *@
                     <div style="position: relative;">
                         <button id="btnLanguage" class="lang-btn">
@@ -470,216 +465,22 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
 
     <!-- SCRIPT GOOGLE TRANSLATE -->
-    <script type="text/javascript">
-        function googleTranslateElementInit() {
-            new google.translate.TranslateElement({ pageLanguage: 'vi', autoDisplay: false }, 'google_translate_element');
-        }
-    </script>
+    <script src="~/js/google-translate-init.js?v=1"></script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+    <script src="~/js/form-layout-chung.js?v=1"></script>
 
     <script>
         NProgress.start();
         window.onload = function() { NProgress.done(); };
 
-        // ==========================================
-        // XỬ LÝ GIAO DIỆN MENU MOBILE
-        // ==========================================
-        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-        const sidebarApp = document.getElementById('sidebar');
-        const sidebarBackdrop = document.getElementById('sidebar-backdrop');
 
-        if (mobileMenuBtn && sidebarApp && sidebarBackdrop) {
-            mobileMenuBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                sidebarApp.classList.toggle('open');
-                sidebarBackdrop.classList.toggle('show');
-            });
-
-            sidebarBackdrop.addEventListener('click', () => {
-                sidebarApp.classList.remove('open');
-                sidebarBackdrop.classList.remove('show');
-            });
-        }
-
-        // ==========================================
-        // 0. HỆ THỐNG ĐA NGÔN NGỮ BẰNG GOOGLE TRANSLATE (NUCLEAR OPTION CHỐNG KẸT)
-        // ==========================================
-        function clearGoogTransCookie() {
-            let domain = window.location.hostname;
-            let paths = ['/', window.location.pathname];
-            let domainParts = domain.split('.');
-            let domainsToClear = [domain, '.' + domain, ''];
-            
-            if (domainParts.length >= 2) {
-                domainsToClear.push('.' + domainParts.slice(-2).join('.'));
-                domainsToClear.push(domainParts.slice(-2).join('.'));
-            }
-
-            paths.forEach(p => {
-                domainsToClear.forEach(d => {
-                    let dStr = d ? `; domain=${d}` : '';
-                    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}${dStr};`;
-                });
-            });
-            
-            window.localStorage.removeItem('googtrans');
-            window.sessionStorage.removeItem('googtrans');
-        }
-
-        function setGoogTransCookie(lang) {
-            let domain = window.location.hostname;
-            let domainParts = domain.split('.');
-            let rootDomain = domainParts.length >= 2 ? '.' + domainParts.slice(-2).join('.') : domain;
-
-            document.cookie = `googtrans=/vi/${lang}; path=/; domain=${rootDomain};`;
-            document.cookie = `googtrans=/vi/${lang}; path=/;`;
-        }
-
-        function initLanguageGTranslate() {
-            let currentLang = localStorage.getItem('siteLangGlobal') || 'vi'; 
-            if (!localStorage.getItem('siteLangGlobal')) {
-                localStorage.setItem('siteLangGlobal', 'vi');
-            }
-
-            const labels = { 'vi': 'Tiếng Việt', 'en': 'English', 'zh-CN': '中文' };
-            const currentLangText = document.getElementById('currentLangText');
-            if(currentLangText) currentLangText.innerText = labels[currentLang] || 'Tiếng Việt';
-            
-            document.querySelectorAll('#langDropdown .lang-item i').forEach(i => i.style.display = 'none');
-            const activeCheck = document.querySelector(`#lang-${currentLang} i`);
-            if(activeCheck) activeCheck.style.display = 'inline-block';
-
-            let match = document.cookie.match(/(^| )googtrans=([^;]+)/);
-            let currentCookie = match ? match[2] : null;
-            let expectedCookie = currentLang === 'vi' ? null : `/vi/${currentLang}`;
-
-            if (currentCookie !== expectedCookie) {
-                clearGoogTransCookie();
-                if (currentLang !== 'vi') {
-                    setGoogTransCookie(currentLang);
-                }
-            }
-        }
-
-        function changeLanguageGTranslate(lang, label) {
-            localStorage.setItem('siteLangGlobal', lang); 
-            
-            // BƯỚC 1: PHÁ HỦY DOM CỦA GOOGLE TRANSLATE
-            const gtEl = document.getElementById('google_translate_element');
-            if (gtEl) gtEl.innerHTML = '';
-            const iframes = document.querySelectorAll('iframe.goog-te-menu-frame, iframe.goog-te-banner-frame');
-            iframes.forEach(f => f.remove());
-
-            // BƯỚC 2: DỌN RÁC COOKIE
-            clearGoogTransCookie();
-
-            // BƯỚC 3: GÁN COOKIE MỚI & ĐIỀU HƯỚNG
-            setTimeout(() => {
-                if (lang !== 'vi') {
-                    setGoogTransCookie(lang);
-                }
-                window.location.href = window.location.pathname + window.location.search;
-            }, 50);
-        }
-        
-        // ==========================================
-        // HỆ THỐNG ZOOM % KÍCH THƯỚC WEB
-        // ==========================================
-        const btnZoom = document.getElementById('btnZoom');
-        const zoomDrop = document.getElementById('zoomDropdown');
-        const currentZoomText = document.getElementById('currentZoomText');
-
-        if (btnZoom) {
-            btnZoom.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const langDrop = document.getElementById('langDropdown');
-                if(langDrop) langDrop.style.display = 'none';
-                const isHidden = zoomDrop.style.display === 'none' || zoomDrop.style.display === '';
-                zoomDrop.style.display = isHidden ? 'block' : 'none';
-            });
-        }
-
-        function initZoom() {
-            let currentZoom = getCookieSHD('siteZoomGlobal') || '100';
-            applyZoom(currentZoom);
-        }
-
-        function changeZoom(percent) {
-            setCookieSHD('siteZoomGlobal', percent, 365);
-            applyZoom(percent);
-            if (zoomDrop) zoomDrop.style.display = 'none';
-        }
-
-        function applyZoom(percent) {
-            document.body.style.zoom = percent + '%';
-            if (currentZoomText) currentZoomText.innerText = percent + '%';
-            
-            if (zoomDrop) {
-                const items = zoomDrop.querySelectorAll('.lang-item');
-                items.forEach(item => {
-                    const text = item.querySelector('span').innerText;
-                    const check = item.querySelector('i');
-                    if (text === percent + '%') {
-                        if(check) check.style.display = 'inline-block';
-                        item.classList.add('active');
-                    } else {
-                        if(check) check.style.display = 'none';
-                        item.classList.remove('active');
-                    }
-                });
-            }
-        }
-
-        function setCookieSHD(cname, cvalue, exdays) {
-            const d = new Date();
-            d.setTime(d.getTime() + (exdays*24*60*60*1000));
-            let expires = "expires="+ d.toUTCString();
-            document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-        }
-
-        function getCookieSHD(cname) {
-            let name = cname + "=";
-            let decodedCookie = decodeURIComponent(document.cookie);
-            let ca = decodedCookie.split(';');
-            for(let i = 0; i <ca.length; i++) {
-                let c = ca[i];
-                while (c.charAt(0) == ' ') { c = c.substring(1); }
-                if (c.indexOf(name) == 0) { return c.substring(name.length, c.length); }
-            }
-            return "";
-        }
 
         document.addEventListener('DOMContentLoaded', () => {
-            initLanguageGTranslate();
-            initZoom(); 
             
             if (typeof $ !== 'undefined') { $('.select2').select2({ width: '100%' }); }
 
-            // Restore Scroll Position
-            const sidebarNav = document.getElementById('main-sidebar-nav');
-            if (sidebarNav && sessionStorage.getItem('sidebarScrollPos_shd')) {
-                sidebarNav.scrollTop = parseInt(sessionStorage.getItem('sidebarScrollPos_shd'));
-            }
 
-            // Submenu persistence
-            const regSub = document.getElementById('registrationSubmenu');
-            const regBtn = document.getElementById('btnRegistrationMenu');
-            const regArrow = document.getElementById('regArrow');
-            if (localStorage.getItem('regMenuState_shd') === 'open' && regSub) {
-                regSub.style.display = 'flex';
-                if(regArrow) regArrow.style.transform = 'rotate(180deg)';
-                if(regBtn) regBtn.style.background = 'rgba(255, 255, 255, 0.12)';
-            }
-
-            if (regBtn) {
-                regBtn.addEventListener('click', () => {
-                    const isHidden = regSub.style.display === 'none';
-                    regSub.style.display = isHidden ? 'flex' : 'none';
-                    if(regArrow) regArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
-                    regBtn.style.background = isHidden ? 'rgba(255, 255, 255, 0.12)' : 'transparent';
-                    localStorage.setItem('regMenuState_shd', isHidden ? 'open' : 'closed');
-                });
-            }
         });
 
         // Dropdown Click Handlers
@@ -706,20 +507,6 @@
             });
         }
 
-        document.getElementById('btnLanguage')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if(zoomDrop) zoomDrop.style.display = 'none';
-            const drop = document.getElementById('langDropdown');
-            drop.style.display = (drop.style.display === 'none' || drop.style.display === '') ? 'block' : 'none';
-        });
-
-        document.addEventListener('click', () => {
-            if(document.getElementById('langDropdown')) document.getElementById('langDropdown').style.display = 'none';
-            if(document.getElementById('zoomDropdown')) document.getElementById('zoomDropdown').style.display = 'none';
-            if (dropNotiMenu) dropNotiMenu.style.display = 'none';
-            if (userDrop) userDrop.style.display = 'none';
-            if (userArrow) userArrow.style.transform = 'rotate(0deg)';
-        });
 
         // Notifications Logic
         const notiSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');

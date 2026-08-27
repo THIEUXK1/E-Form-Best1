@@ -363,3 +363,7 @@ MigrationBackup/
 FodyWeavers.xsd
 # Cau hinh Claude Code ca nhan - khong commit (chua quy tac quyen cuc bo)
 .claude/settings.local.json
+
+# Log cua dotnet watch (khong commit)
+watch_log.txt
+watch_err.txt

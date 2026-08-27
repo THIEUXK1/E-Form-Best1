@@ -137,3 +137,28 @@
         font-size: 1.35rem;
     }
 }
+
+/* Nút quay lại trang chọn loại đơn — nằm ở header, chỉ hiện khi đang mở một form đơn cụ thể.
+   Nạp ở <head> của layout nên dùng được trên mọi trang form của cả 4 Area. */
+.btn-quay-lai-dangky {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    padding: 8px 15px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1d4ed8;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.2s;
+    white-space: nowrap;
+}
+
+    .btn-quay-lai-dangky:hover {
+        background: #dbeafe;
+        border-color: #3b82f6;
+        color: #1d4ed8;
+        transform: translateY(-1px);
+    }

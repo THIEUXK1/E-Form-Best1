@@ -86,6 +86,46 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
         #endregion
 
+        #region Trang chọn loại đơn HR
+
+        /// <summary>Một loại đơn HR hiển thị dạng thẻ trên trang "Đăng ký đơn".</summary>
+        public class LoaiDonHr
+        {
+            public int Stt { get; set; }
+            public string Ten { get; set; } = "";
+            public string MoTa { get; set; } = "";
+            public string Icon { get; set; } = "";
+            public string Mau { get; set; } = "";
+            public string Url { get; set; } = "";
+        }
+
+        // Menu sidebar không xổ danh sách con nữa; toàn bộ loại đơn gom về trang này để người dùng
+        // đọc được mô tả từng loại trước khi chọn. Danh sách khai ở controller, view chỉ render.
+        [HttpGet("/FormHR/DangKyDon")]
+        public IActionResult DangKyDon()
+        {
+            if (User?.Identity == null || !User.Identity.IsAuthenticated)
+                return Redirect("/DonXetDuyet/DangNhap");
+
+            var danhSachLoaiDon = new List<LoaiDonHr>
+            {
+                new LoaiDonHr { Stt = 1,  Ten = "Đơn xin ra ngoài",      Icon = "fa-external-link", Mau = "#ff4d4d", Url = "/FormHR/DonXinRaNgoai",       MoTa = "Xin phép ra khỏi công ty trong giờ làm việc." },
+                new LoaiDonHr { Stt = 2,  Ten = "Mang hàng hoá ra cổng", Icon = "fa-archive",       Mau = "#48bb78", Url = "/FormHR/MangHangHoaRaCong",   MoTa = "Đăng ký mang hàng hoá, tài sản qua cổng bảo vệ." },
+                new LoaiDonHr { Stt = 3,  Ten = "Đăng ký xe Daily",      Icon = "fa-bus",           Mau = "#ed8936", Url = "/FormHR/DangKySuDungXeDaily", MoTa = "Đăng ký chỗ trên xe đưa đón hằng ngày của công ty." },
+                new LoaiDonHr { Stt = 4,  Ten = "Đơn tiếp khách / Khác", Icon = "fa-handshake-o",   Mau = "#f472b6", Url = "/FormHR/DonTiepKhac",         MoTa = "Đăng ký tiếp khách hoặc các trường hợp phát sinh khác." },
+                new LoaiDonHr { Stt = 5,  Ten = "Nhà thầu qua cổng",     Icon = "fa-id-badge",      Mau = "#2dd4bf", Url = "/FormHR/NhaThauQuaCong",      MoTa = "Đăng ký cho nhà thầu, khách bên ngoài vào công ty." },
+                new LoaiDonHr { Stt = 6,  Ten = "Hỗ trợ tiền điện thoại",Icon = "fa-phone",         Mau = "#3b82f6", Url = "/FormHR/HoTroTienDienThoai",  MoTa = "Đề nghị hỗ trợ chi phí điện thoại phục vụ công việc." },
+                new LoaiDonHr { Stt = 7,  Ten = "Đơn hỗ trợ công tác",   Icon = "fa-briefcase",     Mau = "#a855f7", Url = "/FormHR/DonHoTroCongTac",     MoTa = "Đề nghị hỗ trợ chi phí, phương tiện khi đi công tác." },
+                new LoaiDonHr { Stt = 8,  Ten = "Đăng ký Ký túc xá",     Icon = "fa-bed",           Mau = "#4338ca", Url = "/FormHR/DonKiTucXa",          MoTa = "Đăng ký chỗ ở tại ký túc xá của công ty." },
+                new LoaiDonHr { Stt = 9,  Ten = "Xin làm lại thẻ",       Icon = "fa-id-card-o",     Mau = "#d69e2e", Url = "/FormHR/DonLamLaiThe",        MoTa = "Xin cấp lại thẻ nhân viên khi mất hoặc hư hỏng." },
+                new LoaiDonHr { Stt = 10, Ten = "Sử dụng điện thoại",    Icon = "fa-mobile",        Mau = "#65a30d", Url = "/FormHR/DonSuDungDienThoai",  MoTa = "Đăng ký được sử dụng điện thoại trong khu vực làm việc." }
+            };
+
+            return View(danhSachLoaiDon);
+        }
+
+        #endregion
+
         #region Don Xin Ra Ngoai (HrXinRaNgoai1)
 
         [HttpGet("/FormHR/DonXinRaNgoai")]
