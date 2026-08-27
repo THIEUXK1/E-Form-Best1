@@ -110,5 +110,8 @@ public partial class FormIt
     public virtual ICollection<ItOrderIt2> ItOrderIt2s { get; set; } = new List<ItOrderIt2>();
 
     [InverseProperty("IdFormItNavigation")]
+    public virtual ICollection<ItThietKeTemIn9> ItThietKeTemIn9s { get; set; } = new List<ItThietKeTemIn9>();
+
+    [InverseProperty("IdFormItNavigation")]
     public virtual ICollection<LichSuFormIt> LichSuFormIts { get; set; } = new List<LichSuFormIt>();
 }

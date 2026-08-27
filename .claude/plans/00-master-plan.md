@@ -67,3 +67,39 @@ microservice) trừ khi có quyết định tường minh của người dùng �
 ## 5. Trạng thái hiện tại
 
 Đang làm gì, vướng gì, đã quyết gì → [`00-context-memory.md`](00-context-memory.md).
+
+## 6. Backlog Phase 2 — Chuyển form đồng bộ sang AJAX (bắt buộc về 0)
+
+Ràng buộc: [`../rules/architecture-workflow.md`](../rules/architecture-workflow.md) mục 5.
+Khảo sát 27/08/2026: 79 view / 35 thẻ `<form>`; ~537 điểm trả JSON so với **24** `RedirectToAction`
+— codebase đã gần như AJAX toàn bộ, phần vi phạm còn lại là **22 form tạo đơn** cùng một khuôn
+(`<form method="post" action="/FormXX/...">` → action POST → `RedirectToAction("DonCho")`,
+không file nào có `preventDefault`).
+
+| # | Area | View | Trạng thái |
+|---|---|---|---|
+| 1 | ITForm | `DonMail.cshtml` | ✅ **đã chuyển (pilot 27/08/2026)** — mẫu để nhân ra các form còn lại |
+| 2–8 | ITForm | `DonCapQuyenOChung`, `DonDienThoaiBan`, `DonLapDatThietBi`, `DonTaiKhoanHeThong`, `DonTaiKhoanMayTinh`, `TaoIT_Order`, `TaoIT_Wifi` | ⬜ |
+| 9–20 | HRform | `DonXinRaNgoai`, `MangHangHoaRaCong`, `DoiCaLam`, `DonHoTroCongTac`, `DonKiTucXa`, `DonLamLaiThe`, `DonSuDungDienThoai`, `DonTiepKhac`, `HoTroTienDienThoai`, `NhaThauQuaCong`, `DangKySuDungXeCongTac`, `DangKySuDungXeDaily` | ⬜ |
+| 21 | HRform | `QuanLyPhongHop` → `/FormHR/LuuPhongHop` | ⬜ |
+| 22 | SHDForm | `DangKySuDungXeCongTac` | ⬜ |
+| 23 | QLCongViec | `DonCvCongViecOrder` | ⬜ |
+
+**Không nằm trong backlog (điều hướng thật là đúng):**
+
+| View / luồng | Lý do |
+|---|---|
+| `ITForm/DangNhap.cshtml` | Cookie auth + `returnUrl`; điều hướng là một phần của luồng đăng nhập |
+| `HRform/XuatBaoCao`, `SHDForm/XuatBaoCao` | `method="get"` tải file Excel — không phải cập nhật UI |
+| `ITForm/TaoMail.cshtml` | View chết, không route nào gọi tới → **xoá**, không chuyển |
+
+### Công thức chuyển (đã kiểm chứng ở form pilot)
+
+1. Action POST: bỏ `Redirect`/`return View(form)`, trả `Json(new { thanhCong, thongBao, idDon })`.
+2. Thêm **chốt idempotency phía server** bù cho việc mất POST-Redirect-GET (xem `DonMail`:
+   chặn đơn trùng cùng người tạo + cùng `IdForm` trong 30 giây).
+3. Tách toàn bộ JS inline của view ra `wwwroot/js/<ten-don>.js`.
+4. View: bỏ `method`/`action` khỏi `<form>`, chuyển sang `data-url`; nút bấm `type="submit"`,
+   bỏ `onclick` inline; giữ `@Html.AntiForgeryToken()` trong form để `FormData` gửi kèm token.
+5. JS: `submit` + `event.preventDefault()` → `fetch(FormData)` → SweetAlert2 báo kết quả,
+   khoá nút khi đang gửi, thành công thì reset form tại chỗ (không tự điều hướng).

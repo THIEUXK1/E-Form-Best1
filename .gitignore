@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Cau hinh Claude Code ca nhan - khong commit (chua quy tac quyen cuc bo)
+.claude/settings.local.json

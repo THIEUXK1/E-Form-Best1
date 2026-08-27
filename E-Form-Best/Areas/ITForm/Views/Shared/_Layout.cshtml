@@ -558,6 +558,11 @@
                             <a href="/FormIT/DonCapQuyenOChung" class="submenu-link @(currentAction == "DonCapQuyenOChung" ? "active" : "")">
                                 <i class="fa fa-folder-open" style="margin-right:12px; width:15px; color: #8b5cf6;"></i> <span class="lang-text" data-key="reg_share_folder">8. Cấp quyền ổ chung</span>
                             </a>
+
+                            @* Mục số 9 — Thiết kế tem in, màu #c026d3 (Fuchsia) — nằm ở khoảng hở màu rộng nhất giữa violet #8b5cf6 và pink #db2777 *@
+                            <a href="/FormIT/DonThietKeTemIn" class="submenu-link @(currentAction == "DonThietKeTemIn" ? "active" : "")">
+                                <i class="fa fa-tags" style="margin-right:12px; width:15px; color: #c026d3;"></i> <span class="lang-text" data-key="reg_label_design">9. Thiết kế tem in</span>
+                            </a>
                         }
                     </div>
                     <a href="@(isITSystem ? "/FormIT/DonCho" : "/FormHR/DonCho")" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
