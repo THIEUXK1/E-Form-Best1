@@ -32,6 +32,37 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         }
         #endregion
 
+        #region Trang chọn loại đơn Công việc
+
+        /// <summary>Một loại đơn Công việc hiển thị dạng thẻ trên trang "Đăng ký đơn".</summary>
+        public class LoaiDonCv
+        {
+            public int Stt { get; set; }
+            public string Ten { get; set; } = "";
+            public string MoTa { get; set; } = "";
+            public string Icon { get; set; } = "";
+            public string Mau { get; set; } = "";
+            public string Url { get; set; } = "";
+        }
+
+        // Menu sidebar không xổ danh sách con nữa; các loại đơn gom về trang này.
+        // Hiện mới có một loại đơn, thêm loại mới chỉ cần bổ sung vào danh sách dưới đây.
+        [HttpGet("/FormCongViec/DangKyDon")]
+        public IActionResult DangKyDon()
+        {
+            if (User?.Identity == null || !User.Identity.IsAuthenticated)
+                return Redirect("/DonXetDuyet/DangNhap");
+
+            var danhSachLoaiDon = new List<LoaiDonCv>
+            {
+                new LoaiDonCv { Stt = 1, Ten = "Công việc chỉ định", Icon = "fa-file-text-o", Mau = "#65a30d", Url = "/FormCongViec/DonCvCongViecOrder", MoTa = "Giao việc chỉ định cho cá nhân hoặc bộ phận, kèm hạn hoàn thành." }
+            };
+
+            return View(danhSachLoaiDon);
+        }
+
+        #endregion
+
         #region CvCongViecOrder1
 
         [HttpGet("/FormCongViec/DonCvCongViecOrder")]

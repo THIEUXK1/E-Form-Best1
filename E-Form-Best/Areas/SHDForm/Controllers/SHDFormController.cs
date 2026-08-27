@@ -86,6 +86,36 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         }
         #endregion
 
+        #region Trang chọn loại đơn SHD
+
+        /// <summary>Một loại đơn SHD hiển thị dạng thẻ trên trang "Đăng ký đơn".</summary>
+        public class LoaiDonShd
+        {
+            public int Stt { get; set; }
+            public string Ten { get; set; } = "";
+            public string MoTa { get; set; } = "";
+            public string Icon { get; set; } = "";
+            public string Mau { get; set; } = "";
+            public string Url { get; set; } = "";
+        }
+
+        // Menu sidebar không xổ danh sách con nữa; các loại đơn gom về trang này.
+        // Hiện SHD mới có một loại đơn, thêm loại mới chỉ cần bổ sung vào danh sách dưới đây.
+        [HttpGet("/FormSHD/DangKyDon")]
+        public IActionResult DangKyDon()
+        {
+            if (!User.Identity?.IsAuthenticated == true) return Redirect("/DonXetDuyet/DangNhap");
+
+            var danhSachLoaiDon = new List<LoaiDonShd>
+            {
+                new LoaiDonShd { Stt = 1, Ten = "Đăng ký xe công tác", Icon = "fa-car", Mau = "#22d3ee", Url = "/FormSHD/DangKySuDungXeCongTac", MoTa = "Đăng ký xe của công ty phục vụ chuyến đi công tác." }
+            };
+
+            return View(danhSachLoaiDon);
+        }
+
+        #endregion
+
         #region ĐƠN XE ĐI CÔNG TÁC (SHD_DangKySuDungXeCongTac_1)
 
         [HttpGet("/FormSHD/DangKySuDungXeCongTac")]
