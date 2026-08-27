@@ -83,3 +83,52 @@ E-Form-Best/
    Dự án **không có test tự động** — kiểm chứng bằng luồng thật là bắt buộc.
 5. **Cập nhật `00-context-memory.md`** nếu phát sinh quyết định/blocker mới.
 6. Báo đúng sự thật: cái gì đã kiểm, cái gì chưa.
+
+## 5. Quy tắc View & Tương tác Web — bắt buộc
+
+### 5.1. View chỉ là View (Dumb / Presentational UI)
+
+`.cshtml` chỉ làm **một việc**: đổ dữ liệu đã chuẩn bị sẵn ra HTML.
+
+| Trong View được phép | Trong View bị cấm |
+|---|---|
+| `@Model.X`, `@ViewBag.Y`, vòng lặp render, `@Html.*`, partial | Truy vấn EF / gọi `DbContext` |
+| Định dạng hiển thị đơn giản (`ToString("dd/MM/yyyy")`) | Tính toán nghiệp vụ, tổng hợp, thống kê trong `@{ }` |
+| Đặt `data-*` để JS đọc lại | Gọi HTTP/API trực tiếp từ view |
+| `<script src="~/js/<ten>.js">` | Viết logic JS mới inline trong `<script>` |
+
+Mọi dữ liệu view cần **phải được Controller/Service chuẩn bị trước** rồi đưa vào qua Model/ViewBag.
+Cần thêm dữ liệu → sửa Controller, **không** sửa view để tự đi lấy.
+
+### 5.2. Thao tác trên web KHÔNG load lại trang — 100% JavaScript
+
+Mọi tương tác người dùng (submit form, lọc, phân trang, duyệt/huỷ đơn, xoá, upload, đổi trạng thái)
+xử lý **bất đồng bộ bằng JavaScript**, cập nhật UI **cục bộ**, tuyệt đối không full page reload.
+
+| Yêu cầu | Cụ thể |
+|---|---|
+| Chặn hành vi mặc định | `form.addEventListener('submit', e => { e.preventDefault(); … })`; link hành động dùng `<button>` hoặc `e.preventDefault()` |
+| Không dùng | `location.reload()`, `window.location = …` sau khi lưu, `<form method="post">` submit thẳng, `RedirectToAction` cho luồng AJAX |
+| Giao tiếp server | `fetch()` (hoặc `$.ajax` theo lệ file cũ) → action trả **JSON** (`Json(new { thanhCong, thongBao, duLieu })`), không trả về view |
+| Cập nhật UI | Chỉ vẽ lại đúng vùng bị ảnh hưởng (dòng bảng, badge, tổng số) bằng DOM API |
+| Trạng thái | Có loading khi đang gửi, khoá nút chống double-submit, hiện lỗi ngay tại chỗ — không mất dữ liệu người dùng đã nhập |
+| Chống double-submit | Bắt buộc — xem [`database-safety.md`](database-safety.md) mục Idempotency |
+
+**Ngoại lệ hợp lệ** (được phép điều hướng thật): đăng nhập/đăng xuất, mở trang chi tiết là một URL
+riêng cần bookmark được, tải file xuất Excel/Word/PDF.
+### 5.3. Ràng buộc là TUYỆT ĐỐI — kể cả view cũ
+
+Không có khái niệm "view cũ được miễn". Mọi view trong repo **phải** đạt trạng thái không reload;
+danh sách form còn vi phạm được theo dõi ở [`../plans/00-master-plan.md`](../plans/00-master-plan.md)
+mục 4 (Phase 2) và phải về 0.
+
+- Chạm vào một view còn submit đồng bộ → **chuyển nó sang AJAX trong chính lần sửa đó**, không
+  được sửa thêm tính năng lên trên form đồng bộ.
+- Không thêm mới bất kỳ `<form method="post">` submit thẳng, `RedirectToAction` sau khi lưu,
+  hay `location.reload()` nào nữa — kể cả trong view đã có sẵn.
+- `RedirectToAction`/`Redirect` chỉ còn được phép cho: chưa đăng nhập → trang đăng nhập.
+
+**Khi chuyển một form sang AJAX, bắt buộc kèm chốt chống trùng.** POST-Redirect-GET đang *vô tình*
+chống double-submit (F5 sau khi lưu không tạo đơn thứ hai); bỏ redirect là mất lá chắn đó.
+Mỗi form chuyển đổi phải có: khoá nút khi đang gửi **và** chốt idempotency phía server
+(xem [`database-safety.md`](database-safety.md) mục 4).

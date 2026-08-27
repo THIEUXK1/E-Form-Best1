@@ -81,3 +81,35 @@ Mọi lệnh build/lint/test/chạy phải **thu gọn output**, không đổ ng
 
 Nguyên tắc: **luôn ưu tiên cờ `--quiet`/`-v quiet`/`--nologo`/`--silent`, hoặc lọc chỉ dòng
 `FAILED`/`ERROR`/`Exception`.** Chỉ đọc log đầy đủ khi bản thu gọn không đủ để chẩn đoán.
+
+### 6.1. Chạy server hot reload — bắt buộc
+
+- Web **phải auto chạy hot reload**: `cd E-Form-Best && dotnet watch run` (không dùng `dotnet run` trần).
+  Chạy ở **nền**, ghi output ra `watch_log.txt` / `watch_err.txt`, đọc lại bằng `tail -n 30` —
+  không stream log vào phiên làm việc.
+- **Luôn kèm cờ/cấu hình không xoá lịch sử terminal.** Trình chạy nào có cờ đó thì phải bật:
+  Vite → `vite --clearScreen false`; công cụ khác → cờ tương đương (`--no-clear`, `--preserve-output`).
+  `dotnet watch` không có cờ này, nên **bù bằng cách ghi log ra file** (log không bị xoá,
+  vẫn tra cứu được lỗi của lần chạy trước).
+- `dotnet watch` của SDK .NET 10 thỉnh thoảng tự chết khi hot-reload → **bọc bằng supervisor**
+  (vòng lặp tự chạy lại) thay vì để app tắt im lặng.
+- Không tự ý thêm build step frontend (Vite/Node) vào dự án này — xem
+  [`project-scope.md`](project-scope.md). Mục Vite ở trên chỉ là quy ước áp dụng **nếu** dự án có.
+
+## 7. JavaScript & tương tác không reload trang
+
+Chi tiết ràng buộc: [`architecture-workflow.md`](architecture-workflow.md) mục 5.
+
+| Quy tắc | Ghi chú |
+|---|---|
+| **Một tính năng = một file JS độc lập** trong `wwwroot/js/<ten-tinh-nang>.js` | kebab-case, vd `kiemke-chan-thietbi.js`. Không viết JS mới inline trong `.cshtml` |
+| View chỉ `<script src>` + `data-*` | View không chứa logic; JS đọc cấu hình/URL/id từ `data-*` hoặc `<script type="application/json">` |
+| Mọi submit/hành động phải `event.preventDefault()` | Không để trình duyệt tự tải lại trang |
+| Giao tiếp bằng `fetch()`, server trả **JSON** | Action AJAX trả `Json(...)`, không trả `View`/`Redirect` |
+| Không `location.reload()` / gán `window.location` sau khi lưu | Cập nhật DOM cục bộ đúng vùng bị ảnh hưởng |
+| Khoá nút + hiện loading khi đang gửi | Chống double-submit (tạo trùng đơn/bản ghi) |
+| Lỗi hiển thị tại chỗ, giữ nguyên dữ liệu đã nhập | `try/catch` quanh `fetch`, kiểm `res.ok` trước khi `res.json()` |
+| Đặt listener theo **event delegation** cho nội dung vẽ động | Tránh listener chết sau khi render lại bảng |
+| Escape khi chèn dữ liệu vào DOM | Ưu tiên `textContent`; dùng `innerHTML` phải có lý do rõ |
+| Chống CSRF cho POST AJAX | Gửi kèm token nếu action yêu cầu `[ValidateAntiForgeryToken]` |
+| Đổi nội dung file JS cũ | Cache tĩnh 7 ngày — cân nhắc thêm query version |

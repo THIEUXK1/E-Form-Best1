@@ -348,6 +348,21 @@
         chiTietNoiDung += RenderInfoRow("🎯", "Mục đích", ct.MucDich, "#fff1f2", "#be123c");
         if (!string.IsNullOrEmpty(ct.GhiChu)) chiTietNoiDung += RenderInfoRow("📝", "Ghi chú đơn", ct.GhiChu, "#f8fafc", "#475569");
     }
+    else if (Model.ItThietKeTemIn9s != null && Model.ItThietKeTemIn9s.Any())
+    {
+        var ct = Model.ItThietKeTemIn9s.First();
+        ProcessImage(ct.DuonDanAnh, null);
+
+        chiTietNoiDung += RenderInfoRow("🏷️", "Loại tem", ct.LoaiTem?.ToUpper(), "#fdf4ff", "#86198f");
+        chiTietNoiDung += RenderInfoRow("📐", "Kích thước", ct.KichThuoc, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🧾", "Chất liệu", ct.ChatLieu, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🔢", "Số lượng", ct.SoLuong?.ToString("N0"), "#fffbeb", "#92400e");
+        chiTietNoiDung += RenderInfoRow("📦", "Mã hàng / Khách hàng", ct.MaHang, "#fff7ed", "#9a3412");
+        chiTietNoiDung += RenderInfoRow("📅", "Ngày cần có", ct.NgayCanCo?.ToString("dd/MM/yyyy"), "#fef2f2", "#991b1b");
+        chiTietNoiDung += RenderInfoRow("✍️", "Nội dung in trên tem", ct.NoiDungTem, "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("🎯", "Mục đích", ct.MucDich, "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("📝", "Ghi chú", ct.GhiChu, "#f8fafc", "#0f172a");
+    }
 
     void ProcessImage(string? path, byte[]? rawData)
     {

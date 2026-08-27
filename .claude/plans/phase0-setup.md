@@ -18,7 +18,13 @@ Phase này phần lớn **đã xong** (dự án đang chạy production); phần
 cd E-Form-Best && dotnet watch run
 ```
 
-- Luôn dùng `dotnet watch run`, **không** `dotnet run` trần.
+- Luôn dùng `dotnet watch run`, **không** `dotnet run` trần — môi trường Dev phải **auto hot reload**
+  (đổi `.cs` → rebuild/áp nóng, đổi `.cshtml` → RuntimeCompilation áp ngay).
+- Chạy ở **nền**, ghi ra `watch_log.txt` / `watch_err.txt` để **không mất lịch sử terminal**
+  (tương đương cờ `--clearScreen false` của Vite; `dotnet watch` không có cờ này).
+- **Bọc supervisor** (vòng lặp chạy lại khi tiến trình chết) — SDK .NET 10 có lúc làm
+  `dotnet watch` tự thoát sau một rude edit.
+- Chi tiết cờ thu gọn output: [`../rules/coding-standards.md`](../rules/coding-standards.md) mục 6.
 - Development: `https://localhost:7200` / `http://localhost:5200`; RuntimeCompilation bật nên
   sửa `.cshtml` chỉ cần F5.
 - Kiểm tra nhanh: `GET /health` (app sống), `GET /health/ready` (nối được SQL Server).

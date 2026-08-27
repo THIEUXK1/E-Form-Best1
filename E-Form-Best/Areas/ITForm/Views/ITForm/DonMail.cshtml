@@ -111,7 +111,7 @@
 
 <div class="main-container" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif;">
 
-    <form id="itMailForm" action="/FormIT/DonMail" method="post" enctype="multipart/form-data" class="form-card"
+    <form id="itMailForm" data-url="/FormIT/DonMail" data-url-don-cho="/FormIT/DonCho" enctype="multipart/form-data" class="form-card"
           style="max-width: 950px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(120, 53, 15, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
 
         @Html.AntiForgeryToken()
@@ -325,7 +325,7 @@
                 </label>
             </div>
 
-            <button type="button" id="btnSubmit" onclick="xuLyLuuDonIT()" class="btn-grad"
+            <button type="submit" id="btnSubmit" class="btn-grad"
                     style="width: 100%; padding: 22px; background: linear-gradient(to right, @colorPrimary, #d97706); color: #ffffff; border: none; border-radius: 20px; font-weight: 900; font-size: 18px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.4); transition: 0.3s;">
                 Gửi yêu cầu phê duyệt
             </button>
@@ -333,68 +333,6 @@
     </form>
 </div>
 
-<script>
-    // Xử lý dán ảnh từ Clipboard
-    document.getElementById("paste_AnhMail").addEventListener('paste', function(e) {
-        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf("image") !== -1) {
-                const blob = items[i].getAsFile();
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    this.innerHTML = `<img src="${event.target.result}" style="height:100%; width:100%; object-fit:contain; border-radius:12px;">`;
-
-                    const dataTransfer = new DataTransfer();
-                    dataTransfer.items.add(blob);
-                    document.getElementById("input_Anh").files = dataTransfer.files;
-                };
-                reader.readAsDataURL(blob);
-            }
-        }
-    });
-
-    // Hàm xử lý gửi đơn
-    function xuLyLuuDonIT() {
-        const nguoiDung = document.getElementById("NguoiSuDung").value;
-        const email = document.getElementById("Email").value;
-        const chk = document.getElementById('chkCamKet');
-        const btn = document.getElementById("btnSubmit");
-        const selectedCVs = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
-
-        const loaiYeuCau = document.querySelector('input[name="LoaiYeuCau"]:checked');
-
-        if (!loaiYeuCau) {
-            alert("⚠️ Vui lòng chọn Loại yêu cầu!");
-            return;
-        }
-
-        if (!nguoiDung.trim()) {
-            alert("⚠️ Vui lòng nhập Họ tên và Mã nhân viên người sử dụng!");
-            document.getElementById("NguoiSuDung").focus();
-            return;
-        }
-
-        if (!email.trim()) {
-            alert("⚠️ Vui lòng nhập Email đề xuất!");
-            document.getElementById("Email").focus();
-            return;
-        }
-
-        if (selectedCVs.length === 0) {
-            alert("⚠️ Vui lòng chọn ít nhất một nhân sự IT hỗ trợ!");
-            return;
-        }
-
-        if (!chk.checked) {
-            alert("⚠️ Bạn cần xác nhận vào ô cam kết trước khi gửi!");
-            return;
-        }
-
-        if (confirm("Xác nhận gửi đơn " + loaiYeuCau.value + " này?")) {
-            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG XỬ LÝ...';
-            btn.style.opacity = '0.6';
-            btn.style.pointerEvents = 'none';
-            document.getElementById("itMailForm").submit();
-        }
-    }
-</script>
+@section Scripts {
+    <script src="/js/don-mail.js?v=20260827a"></script>
+}
