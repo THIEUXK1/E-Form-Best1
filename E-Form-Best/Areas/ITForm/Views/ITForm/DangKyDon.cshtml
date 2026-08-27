@@ -1,0 +1,28 @@
+@model List<E_Form_Best.Areas.ITForm.Controllers.ITFormController.LoaiDonIt>
+
+@{
+    ViewData["Title"] = "Đăng ký đơn";
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/dangky-don-it.css?v=1" />
+
+<div class="dkd-wrap">
+    <div class="dkd-header">
+        <h1 class="dkd-title"><i class="fa fa-plus-circle"></i> Đăng ký đơn</h1>
+        <p class="dkd-sub">Chọn loại đơn bạn muốn gửi tới bộ phận IT.</p>
+    </div>
+
+    <div class="dkd-grid">
+        @foreach (var loai in Model)
+        {
+            <a class="dkd-card" href="@loai.Url" style="--dkd-color:@loai.Mau;">
+                <span class="dkd-stt">@loai.Stt</span>
+                <span class="dkd-icon"><i class="fa @loai.Icon"></i></span>
+                <span class="dkd-name">@loai.Ten</span>
+                <span class="dkd-desc">@loai.MoTa</span>
+                <span class="dkd-go">Tạo đơn <i class="fa fa-angle-right"></i></span>
+            </a>
+        }
+    </div>
+</div>

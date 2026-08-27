@@ -603,6 +603,45 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
         #endregion
 
+        #region Trang chọn loại đơn IT
+
+        /// <summary>Một loại đơn IT hiển thị dạng thẻ trên trang "Đăng ký đơn".</summary>
+        public class LoaiDonIt
+        {
+            public int Stt { get; set; }
+            public string Ten { get; set; } = "";
+            public string MoTa { get; set; } = "";
+            public string Icon { get; set; } = "";
+            public string Mau { get; set; } = "";
+            public string Url { get; set; } = "";
+        }
+
+        // Menu sidebar không xổ danh sách con nữa; toàn bộ loại đơn gom về trang này để người dùng
+        // đọc được mô tả từng loại trước khi chọn. Danh sách khai ở controller, view chỉ render.
+        [HttpGet("/FormIT/DangKyDon")]
+        public IActionResult DangKyDon()
+        {
+            if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
+                return Redirect("/DonXetDuyet/DangNhap");
+
+            var danhSachLoaiDon = new List<LoaiDonIt>
+            {
+                new LoaiDonIt { Stt = 1, Ten = "Đăng ký Mail",          Icon = "fa-envelope-o",    Mau = "#fbbf24", Url = "/FormIT/DonMail",             MoTa = "Cấp mới, thay đổi hoặc thu hồi hộp thư điện tử của công ty." },
+                new LoaiDonIt { Stt = 2, Ten = "Sửa chữa thiết bị",     Icon = "fa-wrench",        Mau = "#ea580c", Url = "/FormIT/TaoIT_Order",         MoTa = "Báo hỏng máy tính, máy in, thiết bị mạng cần bộ phận IT xử lý." },
+                new LoaiDonIt { Stt = 3, Ten = "Đăng ký Wifi",          Icon = "fa-wifi",          Mau = "#22c55e", Url = "/FormIT/TaoIT_Wifi",          MoTa = "Xin cấp quyền truy cập Wi-Fi cho điện thoại, laptop dùng trong công việc." },
+                new LoaiDonIt { Stt = 4, Ten = "Đăng ký ĐT bàn",        Icon = "fa-phone",         Mau = "#4f46e5", Url = "/FormIT/DonDienThoaiBan",     MoTa = "Cấp mới hoặc thay đổi số máy lẻ, điện thoại bàn tại vị trí làm việc." },
+                new LoaiDonIt { Stt = 5, Ten = "Đăng ký TK Hệ thống",   Icon = "fa-user-circle-o", Mau = "#db2777", Url = "/FormIT/DonTaiKhoanHeThong",  MoTa = "Tạo, sửa hoặc khoá tài khoản trên các phần mềm nghiệp vụ." },
+                new LoaiDonIt { Stt = 6, Ten = "Đăng ký TK Máy tính",   Icon = "fa-desktop",       Mau = "#06b6d4", Url = "/FormIT/DonTaiKhoanMayTinh",  MoTa = "Cấp tài khoản đăng nhập máy tính, tài khoản Domain cho nhân viên." },
+                new LoaiDonIt { Stt = 7, Ten = "Đơn lắp đặt thiết bị",  Icon = "fa-plus-square",   Mau = "#65a30d", Url = "/FormIT/DonLapDatThietBi",    MoTa = "Yêu cầu lắp đặt, di chuyển hoặc bàn giao thiết bị CNTT." },
+                new LoaiDonIt { Stt = 8, Ten = "Cấp quyền ổ chung",     Icon = "fa-folder-open",   Mau = "#8b5cf6", Url = "/FormIT/DonCapQuyenOChung",   MoTa = "Xin quyền đọc/ghi thư mục dùng chung trên máy chủ." },
+                new LoaiDonIt { Stt = 9, Ten = "Thiết kế tem in",       Icon = "fa-tags",          Mau = "#c026d3", Url = "/FormIT/DonThietKeTemIn",     MoTa = "Yêu cầu thiết kế, chỉnh sửa mẫu tem/nhãn in phục vụ sản xuất." }
+            };
+
+            return View(danhSachLoaiDon);
+        }
+
+        #endregion
+
         #region Don Mail  1Form IT 1)
 
         [HttpGet("/FormIT/DonMail")]

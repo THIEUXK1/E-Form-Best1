@@ -18,11 +18,20 @@
     bool isITSystem = currentController.Contains("IT") || currentController == "Mail"
                       || currentController.Contains("Order") || currentController == "QLCCDC";
 
-    string[] itSubPages = { "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi", "DonCapQuyenOChung" }; bool isITSubActive = itSubPages.Contains(currentAction);
+    // Các trang thuộc nhóm "Đăng ký đơn" — dùng để tô sáng mục menu, kể cả khi đang ở trang chọn loại đơn
+    string[] itSubPages = { "DangKyDon", "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi", "DonCapQuyenOChung", "DonThietKeTemIn" }; bool isITSubActive = itSubPages.Contains(currentAction);
+
+    // Đang ở một form đơn cụ thể (không phải trang chọn loại đơn) thì hiện nút quay lại trang chọn
+    bool isTrangFormDon = isITSubActive && currentAction != "DangKyDon";
 
     // Khai báo biến cho menu Thống kê
-    string[] reportPages = { "BaoCaoThongKe" }; // Bạn có thể thêm các Action báo cáo khác vào đây sau này
+    string[] reportPages = { "BaoCaoThongKe", "ThongKeMacWifi", "BaoCaoGanttTimeline" }; // Bạn có thể thêm các Action báo cáo khác vào đây sau này
     bool isReportActive = reportPages.Contains(currentAction);
+
+    // Route /QLKiemKe/* được khai bằng attribute routing NGAY TRÊN ITFormController, nên
+    // RouteData["controller"] luôn là "ITForm" — không được so với "QLKiemKe", phải so theo action.
+    string[] kiemKePages = { "IndexKiemKe", "IndexThietBi", "ViewDanhSachTatCaMayTinh", "ThongKeKiemKe" };
+    bool isKiemKeGroupActive = kiemKePages.Contains(currentAction);
 
     string primaryGradient = isITSystem ? "linear-gradient(180deg, #0f172a 0%, #1e40af 100%)" : "linear-gradient(180deg, #1a365d 0%, #2d3748 100%)";
     string accentColor = isITSystem ? "#60a5fa" : "#34d399";
@@ -93,6 +102,40 @@
                     color: #fff;
                 }
 
+            /* Icon dẫn đầu của mục menu — gom style vốn lặp inline ở từng thẻ <i> */
+            .nav-ico {
+                margin-right: 12px;
+                width: 20px;
+                font-size: 1.1rem;
+            }
+
+            .sub-ico {
+                margin-right: 12px;
+                width: 15px;
+            }
+
+            /* Đường kẻ ngăn nhóm và tiêu đề nhóm trong sidebar */
+            .nav-divider {
+                height: 1px;
+                background: rgba(255,255,255,0.12);
+                margin: 20px 10px;
+            }
+
+            .nav-section-title {
+                font-size: 0.72rem;
+                color: rgba(255,255,255,0.45);
+                text-transform: uppercase;
+                letter-spacing: 1.5px;
+                margin: 10px 0 10px 12px;
+                font-weight: 700;
+                transition: color 0.3s;
+            }
+
+                /* Nhóm đang mở trang con thì tiêu đề sáng lên cho dễ định vị */
+                .nav-section-title.is-active {
+                    color: #60a5fa;
+                }
+
             .submenu-link {
                 text-decoration: none;
                 display: flex;
@@ -150,6 +193,30 @@
                     background: #f1f5f9;
                     transform: translateY(-1px);
                     border-color: #3b82f6;
+                }
+
+            /* Nút quay lại trang chọn loại đơn — chỉ hiện khi đang mở một form đơn cụ thể */
+            .btn-quay-lai-dangky {
+                background: #eff6ff;
+                border: 1px solid #bfdbfe;
+                padding: 8px 15px;
+                border-radius: 12px;
+                font-size: 0.85rem;
+                font-weight: 700;
+                color: #1d4ed8;
+                text-decoration: none;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: 0.2s;
+                white-space: nowrap;
+            }
+
+                .btn-quay-lai-dangky:hover {
+                    background: #dbeafe;
+                    border-color: #3b82f6;
+                    color: #1d4ed8;
+                    transform: translateY(-1px);
                 }
 
             #langDropdown, #zoomDropdown {
@@ -369,6 +436,7 @@
             html.fp-slim #sidebar .brand-text,
             html.fp-slim #sidebar .user-text,
             html.fp-slim #sidebar .fa-angle-down,
+            html.fp-slim #sidebar #btnMainMenu .fa-angle-right,
             html.fp-slim #sidebar .menu-arrow,
             html.fp-slim #sidebar #arrowIcon,
             html.fp-slim #sidebar #userDropdown {
@@ -409,10 +477,6 @@
                 html.fp-slim #sidebar .nav-link-item:hover {
                     transform: none;
                 }
-
-            html.fp-slim #sidebar #mainSubmenu {
-                padding-left: 0 !important;
-            }
         }
 
         @@media (max-width: 768px) {
@@ -517,83 +581,48 @@
             </div>
 
             <nav id="main-sidebar-nav" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right: 5px;">
-                <div class="lang-text" data-key="main_function" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 700;">Cá nhân & Đăng ký</div>
+                <div class="lang-text nav-section-title" data-key="main_function" style="margin-top:15px;">Cá nhân & Đăng ký</div>
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <div id="btnMainMenu" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-radius: 14px; color: #fff; font-weight: 600; transition: 0.3s; background: @(isITSubActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
+                    @* Không xổ menu con nữa: bấm vào đây mở trang /FormIT/DangKyDon liệt kê đủ các loại đơn dạng thẻ *@
+                    <a id="btnMainMenu" href="/FormIT/DangKyDon" class="nav-link-item @(isITSubActive ? "active" : "")" aria-current="@(isITSubActive ? "page" : null)" style="justify-content: space-between; color:#fff;">
                         <span style="display:flex; align-items:center;">
-                            <i class="fa @(isITSystem ? "fa-plus-circle" : "fa-pencil-square-o")" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i>
+                            <i class="fa nav-ico @(isITSystem ? "fa-plus-circle" : "fa-pencil-square-o")" style="color:@accentColor;"></i>
                             <span class="lang-text" data-key="reg_form">Đăng ký đơn</span>
                         </span>
-                        <i class="fa fa-angle-down" id="menuArrow" style="transition: 0.3s; transform: @(isITSubActive ? "rotate(180deg)" : "rotate(0deg)");"></i>
-                    </div>
-
-                    <div id="mainSubmenu" style="display: @(isITSubActive ? "flex" : "none"); flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
-                        @if (isITSystem)
-                        {
-                            <a href="/FormIT/DonMail" class="submenu-link @(currentAction == "DonMail" ? "active" : "")">
-                                <i class="fa fa-envelope-o" style="margin-right:12px; width:15px; color: #fbbf24;"></i> <span class="lang-text" data-key="reg_mail">1. Đăng ký Mail</span>
-                            </a>
-                            <a href="/FormIT/TaoIT_Order" class="submenu-link @(currentAction == "TaoIT_Order" ? "active" : "")">
-                                <i class="fa fa-wrench" style="margin-right:12px; width:15px; color: #ea580c;"></i> <span class="lang-text" data-key="repair_it">2. Sửa chữa thiết bị</span>
-                            </a>
-                            <a href="/FormIT/TaoIT_Wifi" class="submenu-link @(currentAction == "TaoIT_Wifi" ? "active" : "")">
-                                <i class="fa fa-wifi" style="margin-right:12px; width:15px; color: #22c55e;"></i> <span class="lang-text" data-key="reg_wifi">3. Đăng ký Wifi</span>
-                            </a>
-                            <a href="/FormIT/DonDienThoaiBan" class="submenu-link @(currentAction == "DonDienThoaiBan" ? "active" : "")">
-                                <i class="fa fa-phone" style="margin-right:12px; width:15px; color: #4f46e5;"></i> <span class="lang-text" data-key="reg_phone">4. Đăng ký ĐT bàn</span>
-                            </a>
-                            <a href="/FormIT/DonTaiKhoanHeThong" class="submenu-link @(currentAction == "DonTaiKhoanHeThong" ? "active" : "")">
-                                <i class="fa fa-user-circle-o" style="margin-right:12px; width:15px; color: #db2777;"></i> <span class="lang-text" data-key="reg_system_acc">5. Đăng ký TK Hệ thống</span>
-                            </a>
-                            <a href="/FormIT/DonTaiKhoanMayTinh" class="submenu-link @(currentAction == "DonTaiKhoanMayTinh" ? "active" : "")">
-                                <i class="fa fa-desktop" style="margin-right:12px; width:15px; color: #06b6d4;"></i> <span class="lang-text" data-key="reg_pc_acc">6. Đăng ký TK Máy tính</span>
-                            </a>
-                            @* Mục số 7 với màu mới #65a30d *@
-                            <a href="/FormIT/DonLapDatThietBi" class="submenu-link @(currentAction == "DonLapDatThietBi" ? "active" : "")">
-                                <i class="fa fa-plus-square" style="margin-right:12px; width:15px; color: #65a30d;"></i> <span class="lang-text" data-key="reg_install_equip">7. Đơn lắp đặt TB</span>
-                            </a>
-                            @* Mục số 8 với màu mới hoàn toàn #8b5cf6 (Màu Tím) *@
-                            <a href="/FormIT/DonCapQuyenOChung" class="submenu-link @(currentAction == "DonCapQuyenOChung" ? "active" : "")">
-                                <i class="fa fa-folder-open" style="margin-right:12px; width:15px; color: #8b5cf6;"></i> <span class="lang-text" data-key="reg_share_folder">8. Cấp quyền ổ chung</span>
-                            </a>
-
-                            @* Mục số 9 — Thiết kế tem in, màu #c026d3 (Fuchsia) — nằm ở khoảng hở màu rộng nhất giữa violet #8b5cf6 và pink #db2777 *@
-                            <a href="/FormIT/DonThietKeTemIn" class="submenu-link @(currentAction == "DonThietKeTemIn" ? "active" : "")">
-                                <i class="fa fa-tags" style="margin-right:12px; width:15px; color: #c026d3;"></i> <span class="lang-text" data-key="reg_label_design">9. Thiết kế tem in</span>
-                            </a>
-                        }
-                    </div>
-                    <a href="@(isITSystem ? "/FormIT/DonCho" : "/FormHR/DonCho")" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
-                        <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text" data-key="my_forms">Đơn của tôi</span>
+                        <i class="fa fa-angle-right" style="opacity:0.6;"></i>
                     </a>
 
-                    <a href="/FormIT/LichSuIT" class="nav-link-item @(currentAction == "LichSuIT" ? "active" : "")">
-                        <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text" data-key="sys_logs">Nhật ký hệ thống</span>
+                    <a href="@(isITSystem ? "/FormIT/DonCho" : "/FormHR/DonCho")" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")" aria-current="@(currentAction == "DonCho" ? "page" : null)">
+                        <i class="fa fa-list-alt nav-ico" style="color:#34d399;"></i> <span class="lang-text" data-key="my_forms">Đơn của tôi</span>
+                    </a>
+
+                    <a href="/FormIT/LichSuIT" class="nav-link-item @(currentAction == "LichSuIT" ? "active" : "")" aria-current="@(currentAction == "LichSuIT" ? "page" : null)">
+                        <i class="fa fa-history nav-ico" style="color:#60a5fa;"></i> <span class="lang-text" data-key="sys_logs">Nhật ký hệ thống</span>
                     </a>
 
                     @if (User.IsInRole("QuanLyDuyetDonIT") || User.IsInRole("All"))
                     {
-                        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-                        <div class="lang-text" data-key="approval_sec" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Phê duyệt</div>
-                        <a href="@(isITSystem ? "/FormIT/QuanLyXetDuyet" : "/FormHR/QuanLyXetDuyet")" class="nav-link-item @(currentAction == "QuanLyXetDuyet" ? "active" : "")">
-                            <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> <span class="lang-text" data-key="manage_appr">Quản lý xét duyệt</span>
+                        <div class="nav-divider"></div>
+                        <div class="lang-text nav-section-title" data-key="approval_sec">Phê duyệt</div>
+                        <a href="@(isITSystem ? "/FormIT/QuanLyXetDuyet" : "/FormHR/QuanLyXetDuyet")" class="nav-link-item @(currentAction == "QuanLyXetDuyet" ? "active" : "")" aria-current="@(currentAction == "QuanLyXetDuyet" ? "page" : null)">
+                            <i class="fa fa-check-square-o nav-ico" style="color:#f6e05e;"></i> <span class="lang-text" data-key="manage_appr">Quản lý xét duyệt</span>
                         </a>
                     }
 
                     @if (User.IsInRole("AdminIT") || User.IsInRole("All"))
                     {
-                        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-                        <div class="lang-text" data-key="admin_sec" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị IT</div>
+                        <div class="nav-divider"></div>
+                        <div class="lang-text nav-section-title" data-key="admin_sec">Quản trị IT</div>
 
-                        <a href="/FormIT/HoanTatDon" class="nav-link-item @(currentAction == "HoanTatDon" ? "active" : "")">
-                            <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text" data-key="archive_form">Lưu trữ đơn</span>
+                        <a href="/FormIT/HoanTatDon" class="nav-link-item @(currentAction == "HoanTatDon" ? "active" : "")" aria-current="@(currentAction == "HoanTatDon" ? "page" : null)">
+                            <i class="fa fa-archive nav-ico" style="color:#a78bfa;"></i> <span class="lang-text" data-key="archive_form">Lưu trữ đơn</span>
                         </a>
 
-                        <a data-bs-toggle="collapse" href="#collapseThongKe" role="button" aria-expanded="@(isReportActive ? "true" : "false")" class="nav-link-item" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: @(isReportActive ? "rgba(255, 255, 255, 0.15)" : "transparent");">
+                        <a data-bs-toggle="collapse" href="#collapseThongKe" role="button" aria-expanded="@(isReportActive ? "true" : "false")" aria-controls="collapseThongKe" class="nav-link-item @(isReportActive ? "active" : "")" style="justify-content: space-between; cursor: pointer;">
                             <span style="display:flex; align-items:center;">
-                                <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i>
+                                <i class="fa fa-bar-chart nav-ico" style="color:#10b981;"></i>
                                 <span class="lang-text" data-key="statistics">Thống kê báo cáo</span>
                             </span>
                             <i class="fa fa-angle-down menu-arrow"></i>
@@ -601,53 +630,52 @@
 
                         <div class="collapse @(isReportActive ? "show" : "")" id="collapseThongKe">
                             <div style="display: flex; flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
-                                <a href="/FormIT/BaoCaoThongKe" class="submenu-link @(currentAction == "BaoCaoThongKe" ? "active" : "")">
-                                    <i class="fa fa-file-text-o" style="margin-right:12px; width:15px; color: #10b981;"></i>
+                                <a href="/FormIT/BaoCaoThongKe" class="submenu-link @(currentAction == "BaoCaoThongKe" ? "active" : "")" aria-current="@(currentAction == "BaoCaoThongKe" ? "page" : null)">
+                                    <i class="fa fa-file-text-o sub-ico" style="color: #10b981;"></i>
                                     <span class="lang-text" data-key="order_statistics">Thống kê đơn</span>
                                 </a>
 
-                                <a href="/FormIT/ThongKeMacWifi" class="submenu-link @(currentAction == "ThongKeMacWifi" ? "active" : "")">
-                                    <i class="fa fa-wifi" style="margin-right:12px; width:15px; color: #14b8a6;"></i>
+                                <a href="/FormIT/ThongKeMacWifi" class="submenu-link @(currentAction == "ThongKeMacWifi" ? "active" : "")" aria-current="@(currentAction == "ThongKeMacWifi" ? "page" : null)">
+                                    <i class="fa fa-wifi sub-ico" style="color: #14b8a6;"></i>
                                     <span class="lang-text" data-key="mac_statistics">Thống kê MAC Wi-Fi</span>
                                 </a>
 
-                                <a href="/FormIT/BaoCaoGanttTimeline" target="_blank" class="submenu-link @(currentAction == "BaoCaoGanttTimeline" ? "active" : "")">
-                                    <i class="fa fa-sliders" style="margin-right:12px; width:15px; color: #0284c7;"></i>
+                                @* Mở tab mới nên trang này không bao giờ là trang hiện tại — không gắn aria-current *@
+                                <a href="/FormIT/BaoCaoGanttTimeline" target="_blank" rel="noopener" class="submenu-link">
+                                    <i class="fa fa-sliders sub-ico" style="color: #0284c7;"></i>
                                     <span class="lang-text" data-key="gantt_timeline_statistics">Báo cáo tiến độ Gantt</span>
                                 </a>
                             </div>
                         </div>
-                        <a href="/QLKiemKe/ThongKe" class="nav-link-item @(currentController == "QLKiemKe" && (currentAction == "ThongKeKiemKe" || currentAction == "ThongKe") ? "active" : "")">
-                            <i class="fa fa-pie-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#3b82f6;"></i>
+                        <a href="/QLKiemKe/ThongKe" class="nav-link-item @(currentAction == "ThongKeKiemKe" ? "active" : "")" aria-current="@(currentAction == "ThongKeKiemKe" ? "page" : null)">
+                            <i class="fa fa-pie-chart nav-ico" style="color:#3b82f6;"></i>
                             <span class="lang-text" data-key="inventory_stats">Kiểm kê tài sản</span>
                         </a>
 
-                        @* CCDC = công cụ dụng cụ. Trang /QLCCDC chưa dựng, mới chỉ đặt chỗ ở menu *@
-                        <a href="/QLCCDC" class="nav-link-item @(currentController == "QLCCDC" ? "active" : "")">
-                            <i class="fa fa-wrench" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#fb923c;"></i>
+                        @* CCDC = công cụ dụng cụ: quản lý danh mục và cho mượn/trả, xử lý ở QLCCDCController *@
+                        <a href="/QLCCDC" class="nav-link-item @(currentController == "QLCCDC" ? "active" : "")" aria-current="@(currentController == "QLCCDC" ? "page" : null)">
+                            <i class="fa fa-wrench nav-ico" style="color:#fb923c;"></i>
                             <span class="lang-text" data-key="ccdc_manage">Quản lý CCDC</span>
                         </a>
 
                     }
                     @if (User.IsInRole("KKTS-PFVN") || User.IsInRole("All"))
                     {
-                        bool isKiemKeGroupActive = currentController == "QLKiemKe";
-
-                        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-                        <div class="lang-text" data-key="inventory_sec" style="font-size: 0.72rem; color: @(isKiemKeGroupActive ? "#60a5fa" : "rgba(255, 255, 255, 0.45)"); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700; transition: color 0.3s;">
+                        <div class="nav-divider"></div>
+                        <div class="lang-text nav-section-title @(isKiemKeGroupActive ? "is-active" : "")" data-key="inventory_sec">
                             Kiểm Kê Thiết Bị @(isKiemKeGroupActive ? "•" : "")
                         </div>
 
-                        <a href="/QLKiemKe/ThietBi" class="nav-link-item @(currentController == "QLKiemKe" && (currentAction == "IndexThietBi" || currentAction == "ThietBi") ? "active" : "")">
-                            <i class="fa fa-laptop" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text" data-key="device_manage">Quản lý Thiết bị</span>
+                        <a href="/QLKiemKe/ThietBi" class="nav-link-item @(currentAction == "IndexThietBi" ? "active" : "")" aria-current="@(currentAction == "IndexThietBi" ? "page" : null)">
+                            <i class="fa fa-laptop nav-ico" style="color:#60a5fa;"></i> <span class="lang-text" data-key="device_manage">Quản lý Thiết bị</span>
                         </a>
 
-                        <a href="/QLKiemKe/ViewDanhSachTatCaMayTinh" class="nav-link-item @(currentController == "QLKiemKe" && currentAction == "ViewDanhSachTatCaMayTinh" ? "active" : "")">
-                            <i class="fa fa-list-ul" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text" data-key="asset_list">Danh sách tài sản</span>
+                        <a href="/QLKiemKe/ViewDanhSachTatCaMayTinh" class="nav-link-item @(currentAction == "ViewDanhSachTatCaMayTinh" ? "active" : "")" aria-current="@(currentAction == "ViewDanhSachTatCaMayTinh" ? "page" : null)">
+                            <i class="fa fa-list-ul nav-ico" style="color:#34d399;"></i> <span class="lang-text" data-key="asset_list">Danh sách tài sản</span>
                         </a>
 
-                        <a href="/QLKiemKe" class="nav-link-item @(currentController == "QLKiemKe" && (currentAction == "IndexKiemKe" || currentAction == "Index") ? "active" : "")">
-                            <i class="fa fa-cubes" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f472b6;"></i> <span class="lang-text" data-key="inventory">Cấu hình Danh mục</span>
+                        <a href="/QLKiemKe" class="nav-link-item @(currentAction == "IndexKiemKe" ? "active" : "")" aria-current="@(currentAction == "IndexKiemKe" ? "page" : null)">
+                            <i class="fa fa-cubes nav-ico" style="color:#f472b6;"></i> <span class="lang-text" data-key="inventory">Cấu hình Danh mục</span>
                         </a>
                     }
                 }
@@ -668,8 +696,8 @@
                         </div>
                     }
 
-                    <a href="/QLKiemKe/ViewCheckMayHienTai" class="nav-link-item @(currentAction == "ViewCheckMayHienTai" ? "active" : "")" style="margin-bottom: 15px; background: rgba(255,255,255,0.05);">
-                        <i class="fa fa-desktop" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i>
+                    <a href="/QLKiemKe/ViewCheckMayHienTai" class="nav-link-item @(currentAction == "ViewCheckMayHienTai" ? "active" : "")" aria-current="@(currentAction == "ViewCheckMayHienTai" ? "page" : null)" style="margin-bottom: 15px; background: rgba(255,255,255,0.05);">
+                        <i class="fa fa-desktop nav-ico" style="color:#34d399;"></i>
                         <span class="lang-text" data-key="personal_assets">Tài sản cá nhân</span>
                     </a>
 
@@ -720,6 +748,14 @@
                     <button type="button" id="btnSlimLayout" class="slim-toggle-btn" title="Thu gọn menu">
                         <i class="fa fa-angle-double-left"></i>
                     </button>
+
+                    @if (isTrangFormDon)
+                    {
+                        <a href="/FormIT/DangKyDon" class="btn-quay-lai-dangky" title="Quay lại danh sách loại đơn">
+                            <i class="fa fa-arrow-left"></i>
+                            <span class="lang-text" data-key="back_to_form_list">Quay lại</span>
+                        </a>
+                    }
 
 
                     <div style="position: relative;">
@@ -997,9 +1033,6 @@
         // ==========================================
         // 1. Quản lý Sidebar & User Dropdown
         // ==========================================
-        const btnMenu = document.getElementById('btnMainMenu');
-        const submenu = document.getElementById('mainSubmenu');
-        const arrow = document.getElementById('menuArrow');
         const sidebarNav = document.getElementById('main-sidebar-nav');
         const btnLang = document.getElementById('btnLanguage');
         const langDrop = document.getElementById('langDropdown');
@@ -1009,16 +1042,6 @@
         e.stopPropagation();
         if(zoomDrop) zoomDrop.style.display = 'none';
         langDrop.style.display = langDrop.style.display === 'block' ? 'none' : 'block';
-        });
-        }
-
-        if (btnMenu && submenu) {
-        btnMenu.addEventListener('click', () => {
-        const isHidden = submenu.style.display === 'none' || submenu.style.display === '';
-        submenu.style.display = isHidden ? 'flex' : 'none';
-        if (arrow) arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
-        btnMenu.style.background = isHidden ? 'rgba(255, 255, 255, 0.15)' : 'transparent';
-        localStorage.setItem('itMenuState', isHidden ? 'open' : 'closed');
         });
         }
 
@@ -1036,13 +1059,6 @@
         });
         }
 
-        const isSubActiveServer = '@isITSubActive'.toLowerCase() === 'true';
-        const savedMenuState = localStorage.getItem('itMenuState');
-        if ((isSubActiveServer || savedMenuState === 'open') && submenu) {
-        submenu.style.display = 'flex';
-        if (arrow) arrow.style.transform = 'rotate(180deg)';
-        if (btnMenu) btnMenu.style.background = 'rgba(255, 255, 255, 0.15)';
-        }
         });
 
         // Notification Logic
@@ -1203,7 +1219,16 @@
         }
         }
 
-        setInterval(() => loadNotifications(false, false), 30000);
+        // Tab đang ẩn thì bỏ lượt hỏi, tránh mỗi tab mở sẵn nện 120 request/giờ vào GetNotifications.
+        // Khi người dùng quay lại tab thì nạp bù ngay để không trễ thông báo.
+        setInterval(() => {
+        if (document.visibilityState === 'visible') loadNotifications(false, false);
+        }, 30000);
+
+        document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') loadNotifications(false, false);
+        });
+
         loadNotifications(false, false);
     </script>
 

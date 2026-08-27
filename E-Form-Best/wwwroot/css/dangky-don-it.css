@@ -1,0 +1,139 @@
+/* Trang /FormIT/DangKyDon — danh sách các loại đơn IT dạng thẻ, thay cho menu con ở sidebar */
+
+.dkd-wrap {
+    width: 100%;
+    padding: 10px 4px 40px;
+}
+
+.dkd-header {
+    margin-bottom: 28px;
+}
+
+.dkd-title {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+    .dkd-title i {
+        color: #2563eb;
+    }
+
+.dkd-sub {
+    margin: 8px 0 0 2px;
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+.dkd-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 18px;
+}
+
+.dkd-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 22px 20px 18px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+    /* Dải màu nhận diện từng loại đơn, lấy đúng màu icon vốn dùng ở sidebar */
+    .dkd-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: var(--dkd-color, #2563eb);
+    }
+
+    .dkd-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--dkd-color, #2563eb);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+    }
+
+    .dkd-card:focus-visible {
+        outline: 3px solid var(--dkd-color, #2563eb);
+        outline-offset: 3px;
+    }
+
+.dkd-stt {
+    position: absolute;
+    top: 16px;
+    right: 18px;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--dkd-color, #2563eb);
+    opacity: 0.16;
+    line-height: 1;
+}
+
+.dkd-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    color: var(--dkd-color, #2563eb);
+    background: color-mix(in srgb, var(--dkd-color, #2563eb) 14%, #fff);
+    margin-bottom: 4px;
+}
+
+.dkd-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.dkd-desc {
+    font-size: 0.86rem;
+    line-height: 1.5;
+    color: #64748b;
+    flex: 1;
+}
+
+.dkd-go {
+    margin-top: 10px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--dkd-color, #2563eb);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dkd-card:hover .dkd-go i {
+    transform: translateX(4px);
+}
+
+.dkd-go i {
+    transition: transform 0.22s ease;
+}
+
+@media (max-width: 576px) {
+    .dkd-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dkd-title {
+        font-size: 1.35rem;
+    }
+}
