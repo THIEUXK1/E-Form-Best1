@@ -364,6 +364,18 @@
         chiTietNoiDung += RenderInfoRow("📝", "Ghi chú", ct.GhiChu, "#f8fafc", "#0f172a");
     }
 
+    else if (Model.ItCaiDatPhanMem10s != null && Model.ItCaiDatPhanMem10s.Any())
+    {
+        var ct = Model.ItCaiDatPhanMem10s.First();
+        ProcessImage(ct.DuonDanAnh, null);
+
+        chiTietNoiDung += RenderInfoRow("💿", "Phần mềm", ct.TenPhanMem?.ToUpper(), "#eff6ff", "#1d4ed8");
+        chiTietNoiDung += RenderInfoRow("🔢", "Phiên bản", ct.PhienBan, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🖥️", "Máy cần cài", ct.MayCaiDat, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("📅", "Ngày cần có", ct.NgayCanCo?.ToString("dd/MM/yyyy"), "#fef2f2", "#991b1b");
+        chiTietNoiDung += RenderInfoRow("🎯", "Lý do sử dụng", ct.LyDoSuDung, "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("📝", "Ghi chú", ct.GhiChu, "#f8fafc", "#0f172a");
+    }
     void ProcessImage(string? path, byte[]? rawData)
     {
         if (!string.IsNullOrEmpty(path))

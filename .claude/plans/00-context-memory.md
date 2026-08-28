@@ -53,6 +53,9 @@ Mỗi dòng: **ngày — quyết định — vì sao — hệ quả**. Chỉ ghi
 | (`599ba5f`) | Bật Razor RuntimeCompilation **chỉ ở Development** | Sửa `.cshtml` thấy ngay khi F5 | Production vẫn phải build lại khi đổi view |
 | 27/08/2026 | Thêm đơn số 9 **Thiết kế tem in** (`IT_ThietKeTemIn_9`), nhân sự phụ trách là V200887 (Nguyễn Văn Phúc, `CongViecIT.id=1026`) | Nghiệp vụ mới của IT; bám đúng khuôn `FormIt + chi tiết + LichSu + NguoiHoTro` | Đổi người phụ trách = sửa dòng `CongViecIT` có `Ten = N'Thiết kế tem in'`, **không sửa code**. Đây là đơn đầu tiên đạt chuẩn không-reload ngay từ đầu |
 | 27/08/2026 | Cho phép Claude chạy `sqlcmd` qua `.claude/settings.local.json` (không commit) | Chạy DDL đã duyệt mà không bị auto mode chặn | Quyền này là **toàn quyền ghi** trên CSDL bằng tài khoản `sa` — gắn liền với blocker B2. Gỡ quyền = xoá file đó |
+| 27/08/2026 | Thêm đơn số 10 **Cài đặt phần mềm** (`IT_CaiDatPhanMem_10`), bộ trường gọn 8 cột, phụ trách V200887 (`CongViecIT.id=1027`) | Nghiệp vụ IT còn thiếu; chọn bộ gọn để phát hành nhanh, phần bản quyền/nguồn cài gộp vào ô Ghi chú | Muốn tách riêng bản quyền/nguồn cài về sau thì phải `ALTER TABLE` thêm cột, không sửa được bằng cấu hình |
+| 27/08/2026 | **Nơi đăng ký loại đơn IT là `ITFormController.DangKyDon()`**, không phải submenu trong `_Layout` | Từ commit `a019bd6` menu sidebar bỏ danh sách con, gom về trang thẻ chọn `/FormIT/DangKyDon` | Thêm đơn mới = thêm 1 dòng `LoaiDonIt` (Stt/Ten/Icon/Mau/Url/MoTa) + thêm action vào `itSubPages` ở `_Layout` dòng 22. Sửa submenu trong layout là sai chỗ |
+| 27/08/2026 | Bảng màu thẻ đơn IT đã dùng 10 hue: 21°, 43°, 78°, 142°, 189°, 221°, 245°, 258°, 293°, 333° | Mỗi đơn một màu riêng để phân biệt trên trang thẻ chọn | **Sắp hết chỗ**: khoảng hở lớn nhất còn lại chỉ ~64° (giữa 78° và 142°, vùng xanh lá). Đơn 11 trở đi nên phân biệt bằng độ đậm/icon thay vì tìm hue mới |
 
 ---
 
