@@ -19,7 +19,7 @@
                       || currentController.Contains("Order") || currentController == "QLCCDC";
 
     // Các trang thuộc nhóm "Đăng ký đơn" — dùng để tô sáng mục menu, kể cả khi đang ở trang chọn loại đơn
-    string[] itSubPages = { "DangKyDon", "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi", "DonCapQuyenOChung", "DonThietKeTemIn" }; bool isITSubActive = itSubPages.Contains(currentAction);
+    string[] itSubPages = { "DangKyDon", "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi", "DonCapQuyenOChung", "DonThietKeTemIn", "DonCaiDatPhanMem" }; bool isITSubActive = itSubPages.Contains(currentAction);
 
     // Đang ở một form đơn cụ thể (không phải trang chọn loại đơn) thì hiện nút quay lại trang chọn
     bool isTrangFormDon = isITSubActive && currentAction != "DangKyDon";

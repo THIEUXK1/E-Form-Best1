@@ -86,6 +86,9 @@ public partial class FormIt
     public virtual ICollection<ItCapQuyenOchung8> ItCapQuyenOchung8s { get; set; } = new List<ItCapQuyenOchung8>();
 
     [InverseProperty("IdFormItNavigation")]
+    public virtual ICollection<ItCaiDatPhanMem10> ItCaiDatPhanMem10s { get; set; } = new List<ItCaiDatPhanMem10>();
+
+    [InverseProperty("IdFormItNavigation")]
     public virtual ICollection<ItCtNguoiHoTro> ItCtNguoiHoTros { get; set; } = new List<ItCtNguoiHoTro>();
 
     [InverseProperty("IdFormItNavigation")]
