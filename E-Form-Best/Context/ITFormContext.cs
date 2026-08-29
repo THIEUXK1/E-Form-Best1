@@ -123,6 +123,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<ItCaiDatPhanMem10> ItCaiDatPhanMem10s { get; set; }
 
+    public virtual DbSet<ItLapTrinhUngDung11> ItLapTrinhUngDung11s { get; set; }
+
     public virtual DbSet<ItCtNguoiHoTro> ItCtNguoiHoTros { get; set; }
 
     public virtual DbSet<ItDangKiSuDungDtban4> ItDangKiSuDungDtban4s { get; set; }
@@ -651,14 +653,21 @@ public partial class ITFormContext : DbContext
                 .HasConstraintName("FK_ITThietKeTemIn_FormIT");
         });
 
-modelBuilder.Entity<ItCaiDatPhanMem10>(entity =>
+        modelBuilder.Entity<ItCaiDatPhanMem10>(entity =>
         {
             entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.ItCaiDatPhanMem10s)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_ITCaiDatPhanMem_FormIT");
         });
 
-                modelBuilder.Entity<ItNguoiHoTro>(entity =>
+        modelBuilder.Entity<ItLapTrinhUngDung11>(entity =>
+        {
+            entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.ItLapTrinhUngDung11s)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_ITLapTrinhUngDung_FormIT");
+        });
+
+        modelBuilder.Entity<ItNguoiHoTro>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__IT_Nguoi__3213E83F4E28386C");
         });

@@ -376,6 +376,30 @@
         chiTietNoiDung += RenderInfoRow("🎯", "Lý do sử dụng", ct.LyDoSuDung, "#f0fdf4", "#166534");
         chiTietNoiDung += RenderInfoRow("📝", "Ghi chú", ct.GhiChu, "#f8fafc", "#0f172a");
     }
+    else if (Model.ItLapTrinhUngDung11s != null && Model.ItLapTrinhUngDung11s.Any())
+    {
+        var ct = Model.ItLapTrinhUngDung11s.First();
+        ProcessImage(ct.DuonDanAnh, null);
+
+        string uuTienBg = "#f8fafc";
+        string uuTienColor = "#0f172a";
+        if (ct.MucDoUuTien == "Khẩn") { uuTienBg = "#fef2f2"; uuTienColor = "#991b1b"; }
+        else if (ct.MucDoUuTien == "Cao") { uuTienBg = "#fff7ed"; uuTienColor = "#9a3412"; }
+
+        chiTietNoiDung += RenderInfoRow("🧩", "Loại yêu cầu", ct.LoaiYeuCau?.ToUpper(), "#f0fdfa", "#0f766e");
+        chiTietNoiDung += RenderInfoRow("💻", "Tên ứng dụng", ct.TenUngDung, "#f0fdfa", "#0f766e");
+        chiTietNoiDung += RenderInfoRow("🚦", "Mức độ ưu tiên", ct.MucDoUuTien, uuTienBg, uuTienColor);
+        chiTietNoiDung += RenderInfoRow("📅", "Ngày mong muốn", ct.NgayMongMuon?.ToString("dd/MM/yyyy"), "#fef2f2", "#991b1b");
+        chiTietNoiDung += RenderInfoRow("📝", "Mô tả yêu cầu", ct.MoTaYeuCau, "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("📥", "Dữ liệu đầu vào", ct.DuLieuDauVao, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("📤", "Kết quả mong muốn", ct.KetQuaMongMuon, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("👥", "Người sử dụng", ct.NguoiSuDung, "#fff7ed", "#9a3412");
+        chiTietNoiDung += RenderInfoRow("🏢", "Bộ phận sử dụng", ct.BoPhanSuDung, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🔗", "Hệ thống liên quan", ct.HeThongLienQuan, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🔁", "Tần suất sử dụng", ct.TanSuatSuDung, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🗒️", "Ghi chú", ct.GhiChu, "#f8fafc", "#0f172a");
+    }
+
     void ProcessImage(string? path, byte[]? rawData)
     {
         if (!string.IsNullOrEmpty(path))
