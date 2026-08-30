@@ -42,9 +42,12 @@ logs/
 # --- Thư viện frontend bên thứ ba (không bao giờ sửa tay) ---
 E-Form-Best/wwwroot/lib/
 **/wwwroot/lib/
+vendor/
+**/vendor/
 *.min.js
 *.min.css
 *.map
+*.bundle.js
 
 # --- File người dùng upload / tài liệu nhị phân ---
 E-Form-Best/wwwroot/FileIT/
@@ -71,7 +74,9 @@ E-Form-Best/wwwroot/HuongDanIT/
 *.woff2
 *.ttf
 *.eot
+*.otf
 *.mp4
+*.webm
 *.mp3
 
 # --- Node / bundler (hiện chưa dùng, chặn sẵn phòng khi phát sinh) ---
@@ -83,6 +88,17 @@ coverage/
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
+composer.lock
+.nuxt/
+.turbo/
+.cache/
+
+# --- Docs/meta dài dòng, không mang thông tin khi làm việc ---
+CHANGELOG.md
+CHANGELOG
+LICENSE
+LICENSE.*
+.github/
 
 # --- Cơ sở dữ liệu / backup / bản kết xuất ---
 *.mdf
