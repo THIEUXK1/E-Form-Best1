@@ -82,6 +82,20 @@ Mọi lệnh build/lint/test/chạy phải **thu gọn output**, không đổ ng
 Nguyên tắc: **luôn ưu tiên cờ `--quiet`/`-v quiet`/`--nologo`/`--silent`, hoặc lọc chỉ dòng
 `FAILED`/`ERROR`/`Exception`.** Chỉ đọc log đầy đủ khi bản thu gọn không đủ để chẩn đoán.
 
+**Output Clamping — bắt buộc kẹp số dòng.** Mọi lệnh có thể trả về output dài (`grep`, `find`,
+`cat`, `ls`, `git`, `dotnet build`) phải đi kèm pipe giới hạn dòng, mặc định `| head -n 20`:
+
+```bash
+grep -rn "TenHam" E-Form-Best/Areas | head -n 20
+find E-Form-Best/wwwroot/js -name "*.js" | head -n 20
+cat watch_log.txt | tail -n 20          # log: lấy phần cuối, không cat cả file
+git status --short | head -n 20
+dotnet build -v quiet --nologo | grep -E "error|Error" | head -n 20
+```
+
+Không có lệnh nào được phép "xả" nguyên output vào phiên làm việc. Cần xem thêm thì tăng dần
+(`head -n 50`), không bỏ pipe.
+
 ### 6.1. Chạy server hot reload — bắt buộc
 
 - Web **phải auto chạy hot reload**: `cd E-Form-Best && dotnet watch run` (không dùng `dotnet run` trần).
@@ -95,6 +109,25 @@ Nguyên tắc: **luôn ưu tiên cờ `--quiet`/`-v quiet`/`--nologo`/`--silent`
   (vòng lặp tự chạy lại) thay vì để app tắt im lặng.
 - Không tự ý thêm build step frontend (Vite/Node) vào dự án này — xem
   [`project-scope.md`](project-scope.md). Mục Vite ở trên chỉ là quy ước áp dụng **nếu** dự án có.
+
+**Bảng tra công cụ hot reload theo ngôn ngữ** (nhận diện từ file manifest — `*.csproj`,
+`package.json`, `go.mod`, `composer.json`, `pyproject.toml`, `Cargo.toml` — rồi chọn đúng dòng;
+với repo này luôn là dòng .NET):
+
+| Stack | Lệnh dev bắt buộc | Cờ giữ lịch sử terminal |
+|---|---|---|
+| **.NET (repo này)** | `dotnet watch run` | không có cờ → **ghi log ra file** `watch_log.txt` |
+| JS/TS + Vite | `vite --clearScreen false` | `--clearScreen false` |
+| Node/Express | `nodemon --exec ...` | không tự clear; tránh `console.clear()` |
+| Next.js | `next dev` | ghi log ra file nếu cần giữ |
+| Python FastAPI | `uvicorn app:app --reload` | `--no-use-colors` nếu log khó đọc; không clear |
+| Python khác | `watchfiles`/`watchdog` | — |
+| PHP/Laravel | `php artisan serve` + `npm run dev` (Vite) | `--clearScreen false` cho Vite |
+| Go | `air` | `-c .air.toml` với `clear_on_rebuild = false` |
+| Rust | `cargo watch -x run` | `--no-clear` (mặc định `cargo watch` có clear) |
+
+Nguyên tắc chung: **không bao giờ chạy server dev ở chế độ không hot reload**, và **không bao giờ
+để công cụ xoá màn hình terminal** — log của lần chạy trước là dữ liệu debug.
 
 ## 7. JavaScript & tương tác không reload trang
 
@@ -113,3 +146,14 @@ Chi tiết ràng buộc: [`architecture-workflow.md`](architecture-workflow.md) 
 | Escape khi chèn dữ liệu vào DOM | Ưu tiên `textContent`; dùng `innerHTML` phải có lý do rõ |
 | Chống CSRF cho POST AJAX | Gửi kèm token nếu action yêu cầu `[ValidateAntiForgeryToken]` |
 | Đổi nội dung file JS cũ | Cache tĩnh 7 ngày — cân nhắc thêm query version |
+
+## 8. Zero-Fluff & Diff Output — cách trả lời
+
+| Quy tắc | Cụ thể |
+|---|---|
+| Trả lời trực diện | Không chào hỏi, không mở bài, không tóm tắt lại yêu cầu vừa nhận. Vào thẳng kết quả/kết luận |
+| Chỉ xuất phần thay đổi | Khi sửa code, in **đoạn code đã đổi** hoặc diff, kèm đường dẫn + số dòng. Không in lại cả file, không in lại hàm không bị ảnh hưởng |
+| Không lặp lại code vừa ghi | File đã sửa bằng công cụ edit thì **không dán lại nội dung** vào câu trả lời — chỉ nói đã đổi gì, ở đâu |
+| Không tự thêm phần thừa | Không viết changelog, không viết doc, không format lại file, không "dọn dẹp" nếu không được yêu cầu |
+| Báo cáo đúng sự thật | Cái gì đã build/chạy thử thì nói rõ; cái gì chưa kiểm thì ghi "chưa kiểm", không suy đoán thành khẳng định |
+| Độ dài bám việc | Việc nhỏ → vài dòng. Không dàn trang mục lục, bảng biểu cho một sửa đổi một dòng |

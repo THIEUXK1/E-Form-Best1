@@ -1,161 +1,62 @@
-﻿@{
+@{
     ViewData["Title"] = "Lịch Công Việc";
     Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
 }
 
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+<link rel="stylesheet" href="~/css/lich-cong-viec.css?v=3" />
 
-<style>
-    .fc-event {
-    cursor: pointer;
-    border-radius: 6px;
-    padding: 2px 5px;
-    }
+<div class="lcv-container">
+    <div class="lcv-header">
+        <h2>
+            <i class="fa fa-calendar" style="color: #65a30d;"></i> LỊCH THỰC HIỆN CÔNG VIỆC
+        </h2>
+        <button type="button" id="btnFullscreenCalendar" class="btn-fullscreen-calendar">
+            <i class="fa fa-expand" id="iconFullscreenCalendar"></i> <span id="textFullscreenCalendar">Toàn màn hình</span>
+        </button>
+    </div>
 
-    .calendar-wrapper {
-    background: white;
-    padding: 30px;
-    border-radius: 25px;
-    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-    border: 1px solid #f1f5f9;
-    display: flex;
-    flex-direction: column;
-    }
-
-    /* Hàng chứa nút Toàn màn hình, luôn nằm trên cùng và không bao giờ chồng lấn lên toolbar của FullCalendar bên dưới */
-    .calendar-toolbar-row {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 14px;
-    flex: 0 0 auto;
-    }
-
-    #calendar {
-    flex: 1 1 auto;
-    min-height: 0;
-    }
-
-    /* Chỉnh màu cho các nút bấm lịch sang màu xanh lá chủ đạo */
-    .fc .fc-button-primary {
-    background-color: #65a30d !important;
-    border-color: #65a30d !important;
-    }
-
-    .fc .fc-button-primary:hover {
-    background-color: #4d7c0f !important;
-    }
-
-    /* Cho phép chữ hiển thị tự động bẻ dòng khi tiêu đề tên hạng mục công việc quá dài */
-    .fc-event-title {
-    white-space: normal !important;
-    word-wrap: break-word;
-    }
-
-    .fc-daygrid-event {
-    white-space: normal !important;
-    }
-
-    /* Khi ở chế độ toàn màn hình: hiện dạng thẻ căn giữa với kích thước vừa phải (không kéo giãn sát mép/quá to), lịch vẫn vừa khít trong khung không cần cuộn cả trang */
-    .calendar-wrapper:fullscreen {
-    max-width: 1400px;
-    width: 92vw;
-    height: 88vh;
-    margin: 6vh auto;
-    padding: 25px 35px 35px;
-    border-radius: 20px;
-    background: #ffffff;
-    box-sizing: border-box;
-    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35);
-    }
-
-        /* Nền phía sau khung khi toàn màn hình: dùng tông sáng dịu thay vì mặc định đen của trình duyệt */
-        .calendar-wrapper:fullscreen::backdrop {
-            background: #eef2f6;
-        }
-
-    .btn-fullscreen-calendar {
-    border: 1px solid #65a30d;
-    color: #65a30d;
-    background: #ffffff;
-    border-radius: 10px;
-    padding: 8px 16px;
-    font-weight: 700;
-    font-size: 13px;
-    cursor: pointer;
-    transition: 0.2s;
-    }
-
-        .btn-fullscreen-calendar:hover {
-            background: #65a30d;
-            color: #ffffff;
-        }
-</style>
-
-<div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
-    <h2 style="font-weight: 900; color: #2d4201; margin: 0 0 25px;">
-        <i class="fa fa-calendar" style="color: #65a30d;"></i> LỊCH THỰC HIỆN CÔNG VIỆC
-    </h2>
-    <div class="calendar-wrapper" id="calendarWrapper">
-        <div class="calendar-toolbar-row">
-            <button type="button" id="btnFullscreenCalendar" class="btn-fullscreen-calendar" onclick="toggleFullscreenCalendar()">
-                <i class="fa fa-expand" id="iconFullscreenCalendar"></i> <span id="textFullscreenCalendar">Toàn màn hình</span>
-            </button>
+    <div class="lcv-body">
+        <div class="calendar-wrapper" id="calendarWrapper">
+            <div class="calendar-toolbar-row">
+                <div class="lcv-filters" id="lcvFilters">
+                    <button type="button" class="lcv-chip active" data-loc="tatca">
+                        Tất cả <span class="lcv-count">0</span>
+                    </button>
+                    <button type="button" class="lcv-chip" data-loc="quahan">
+                        <span class="lcv-dot" style="background:#dc2626"></span> Quá hạn / hôm nay <span class="lcv-count">0</span>
+                    </button>
+                    <button type="button" class="lcv-chip" data-loc="sapden">
+                        <span class="lcv-dot" style="background:#f59e0b"></span> Sắp đến hạn (≤7 ngày) <span class="lcv-count">0</span>
+                    </button>
+                    <button type="button" class="lcv-chip" data-loc="condu">
+                        <span class="lcv-dot" style="background:#0891b2"></span> Còn nhiều thời gian <span class="lcv-count">0</span>
+                    </button>
+                    <button type="button" class="lcv-chip" data-loc="hoantat">
+                        <span class="lcv-dot" style="background:#16a34a"></span> Hoàn tất <span class="lcv-count">0</span>
+                    </button>
+                    <button type="button" class="lcv-chip" data-loc="khonghan">
+                        <span class="lcv-dot" style="background:#8b5cf6"></span> Chưa đặt hạn <span class="lcv-count">0</span>
+                    </button>
+                    <button type="button" class="lcv-chip" data-loc="huy">
+                        <span class="lcv-dot" style="background:#94a3b8"></span> Đã hủy <span class="lcv-count">0</span>
+                    </button>
+                </div>
+            </div>
+            <div id='calendar'></div>
         </div>
-        <div id='calendar'></div>
+
+        <aside class="lcv-panel">
+            <h3><i class="fa fa-bell" style="color:#f59e0b"></i> HẠN CHÓT GẦN NHẤT</h3>
+            <div class="lcv-panel-sub">Việc chưa hoàn tất, đã quá hạn hoặc đến hạn trong 14 ngày tới</div>
+            <div class="lcv-deadline-list" id="lcvDeadlineList">
+                <div class="lcv-empty"><i class="fa fa-spinner fa-spin"></i> Đang tải…</div>
+            </div>
+        </aside>
     </div>
 </div>
 
-<script>
-    var calendar; // Tham chiếu toàn cục để nút Toàn màn hình có thể gọi updateSize() khi đổi kích thước
-
-    // Bật/tắt chế độ xem toàn màn hình cho khung lịch, dùng Fullscreen API chuẩn của trình duyệt
-    function toggleFullscreenCalendar() {
-    var wrapper = document.getElementById('calendarWrapper');
-    if (!document.fullscreenElement) {
-    if (wrapper.requestFullscreen) { wrapper.requestFullscreen(); }
-    } else {
-    if (document.exitFullscreen) { document.exitFullscreen(); }
-    }
-    }
-
-    document.addEventListener('fullscreenchange', function () {
-    var isFullscreen = !!document.fullscreenElement;
-    document.getElementById('iconFullscreenCalendar').className = isFullscreen ? 'fa fa-compress' : 'fa fa-expand';
-    document.getElementById('textFullscreenCalendar').textContent = isFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình';
-    // Toàn màn hình: ép lịch co vừa đúng chiều cao khung (height: 'parent') để nhìn thấy hết trong 1 khung, không cuộn cả trang.
-    // Thoát ra: trả lại kiểu cao tự nhiên theo nội dung như ban đầu.
-    if (calendar) {
-    calendar.setOption('height', isFullscreen ? 'parent' : 'auto');
-    setTimeout(function () { calendar.updateSize(); }, 100);
-    }
-    });
-
-    document.addEventListener('DOMContentLoaded', function() {
-    var calendarEl = document.getElementById('calendar');
-    calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: 'dayGridMonth',
-    locale: 'vi',
-    headerToolbar: {
-    left: 'prev,next today',
-    center: 'title',
-    right: 'dayGridMonth,timeGridWeek'
-    },
-    // Gọi đến API bạn đã viết trong bộ sinh JSON dữ liệu tổng
-    events: '/FormCongViec/GetLichCongViecData',
-    eventClick: function(info) {
-    if (info.event.url) {
-    window.location.href = info.event.url;
-    return false;
-    }
-    },
-    eventContent: function(arg) {
-    // Render tự động xuống hàng theo thuộc tính white-space giúp text hiển thị đầy đủ tên công việc cụ thể
-    return {
-    html: `<div style="font-size:12px; font-weight:700; white-space:normal; word-break:break-word; padding: 2px 0;">${arg.event.title}</div>`
-    };
-    }
-    });
-    calendar.render();
-    });
-</script>
+@section Scripts {
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+    <script src="~/js/lich-cong-viec.js?v=4"></script>
+}

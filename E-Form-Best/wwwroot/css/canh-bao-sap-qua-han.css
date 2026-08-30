@@ -1,0 +1,76 @@
+/* Nháy đỏ mục "Lịch công việc" trên menu trái khi có đơn sắp quá hạn / đã trễ hạn.
+   Tách riêng khỏi hiệu ứng của chuông thông báo để menu vẫn đọc được chữ khi đang nháy. */
+
+@keyframes navLichNhayDo {
+    0% {
+        background: rgba(239, 68, 68, 0.10);
+        box-shadow: inset 3px 0 0 0 #ef4444;
+    }
+
+    50% {
+        background: rgba(239, 68, 68, 0.35);
+        box-shadow: inset 3px 0 0 0 #ef4444, 0 0 14px rgba(239, 68, 68, 0.55);
+    }
+
+    100% {
+        background: rgba(239, 68, 68, 0.10);
+        box-shadow: inset 3px 0 0 0 #ef4444;
+    }
+}
+
+@keyframes navChamDoNhay {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.25;
+        transform: scale(0.75);
+    }
+}
+
+.nav-link-item.co-canh-bao-han {
+    animation: navLichNhayDo 1s infinite;
+    color: #fff !important;
+}
+
+    .nav-link-item.co-canh-bao-han i {
+        color: #fecaca !important;
+    }
+
+/* Huy hiệu số đơn đang cảnh báo, chỉ hiện khi có cảnh báo */
+.nav-canh-bao-badge {
+    display: none;
+    margin-left: auto;
+    min-width: 20px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    line-height: 18px;
+    text-align: center;
+    animation: navChamDoNhay 1s infinite;
+}
+
+.nav-link-item.co-canh-bao-han .nav-canh-bao-badge {
+    display: inline-block;
+}
+
+/* Nháy đỏ dòng/thẻ công việc đang bị cảnh báo trên các trang danh sách
+   (bảng "Công việc chỉ định"…). Ô việc trên trang Lịch có style riêng trong lich-cong-viec.css. */
+@keyframes hangNhayDo {
+    0% { background-color: #fff1f2; box-shadow: inset 4px 0 0 0 #dc2626; }
+    50% { background-color: #fecaca; box-shadow: inset 4px 0 0 0 #dc2626, 0 0 12px rgba(220,38,38,.45); }
+    100% { background-color: #fff1f2; box-shadow: inset 4px 0 0 0 #dc2626; }
+}
+
+tr.lcv-nhay-do {
+    animation: hangNhayDo 1s infinite;
+}
+
+    tr.lcv-nhay-do > td {
+        background: transparent !important;
+    }

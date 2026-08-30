@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Localization
+@using Microsoft.AspNetCore.Localization
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
@@ -43,6 +43,7 @@
 
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/dangky-don.css?v=1" />
+    <link rel="stylesheet" href="~/css/canh-bao-sap-qua-han.css?v=2" />
 
     <style>
             body {
@@ -370,13 +371,15 @@
                             <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
                             <div class="lang-text" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị</div>
 
-                            <a href="/FormCongViec/HoanTatDonChiDinh" class="nav-link-item @(currentAction == "HoanTatDonChiDinh" ? "active" : "")">
+                            <a href="/FormCongViec/HoanTatDonChiDinh" id="navCongViecChiDinh" class="nav-link-item @(currentAction == "HoanTatDonChiDinh" ? "active" : "")">
                                 <i class="fa fa-user-plus" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f97316;"></i> <span class="lang-text">Công việc chỉ định</span>
+                                <span class="nav-canh-bao-badge"></span>
                             </a>
 
                             @* CẬP NHẬT CHÍNH XÁC: THÊM LỊCH CÔNG VIỆC Ở PHÍA TRÊN PHẦN THỐNG KÊ THEO YÊU CẦU CỦA BẠN (MÀU XANH CỎ NON TƯƠI SÁNG) *@
-                            <a href="/FormCongViec/LichCongViec" class="nav-link-item @(currentAction == "LichCongViec" ? "active" : "")">
+                            <a href="/FormCongViec/LichCongViec" id="navLichCongViec" class="nav-link-item @(currentAction == "LichCongViec" ? "active" : "")">
                                 <i class="fa fa-calendar" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#84cc16;"></i> <span class="lang-text">Lịch công việc</span>
+                                <span class="nav-canh-bao-badge"></span>
                             </a>
 
                             <a href="/FormCongViec/BaoCaoThongKeCongViec" class="nav-link-item @(currentAction == "BaoCaoThongKeCongViec" ? "active" : "")">
@@ -561,6 +564,7 @@
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
     <script src="~/js/form-layout-chung.js?v=1"></script>
+    <script src="~/js/canh-bao-sap-qua-han.js?v=2"></script>
 
     <script>
 
@@ -693,6 +697,10 @@
         const res = await fetch('/FormCongViec/GetDanhSachSapQuaHan');
         const data = await res.json();
         sapQuaHanItems = (data && data.success) ? (data.data || []) : [];
+
+        // Báo cho các script khác (nháy đỏ menu "Lịch công việc", nháy đỏ ô công việc trên trang Lịch)
+        // dùng chung kết quả này, tránh gọi lại API lần hai.
+        document.dispatchEvent(new CustomEvent('cv:sapquahan', { detail: sapQuaHanItems }));
 
         if (notiBell) {
         if (sapQuaHanItems.length > 0) notiBell.classList.add('urgent');

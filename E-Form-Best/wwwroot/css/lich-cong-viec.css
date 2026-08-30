@@ -1,0 +1,363 @@
+/* Trang Lịch công việc — bố cục 2 cột: lịch bên trái, panel hạn chót bên phải */
+.lcv-container {
+    max-width: 1500px;
+    margin: 32px auto;
+    padding: 0 20px;
+}
+
+.lcv-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+    .lcv-header h2 {
+        font-weight: 900;
+        color: #2d4201;
+        margin: 0;
+        font-size: 22px;
+    }
+
+.lcv-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 1100px) {
+    .lcv-body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.calendar-wrapper {
+    background: #fff;
+    padding: 22px 24px 26px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,.1);
+    border: 1px solid #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.calendar-toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex: 0 0 auto;
+}
+
+/* Bộ lọc nhanh theo tình trạng hạn */
+.lcv-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.lcv-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #475569;
+    border-radius: 999px;
+    padding: 6px 13px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .15s;
+}
+
+    .lcv-chip:hover {
+        border-color: #cbd5e1;
+        background: #f1f5f9;
+    }
+
+    .lcv-chip .lcv-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .lcv-chip.active {
+        background: #2d4201;
+        border-color: #2d4201;
+        color: #fff;
+    }
+
+    .lcv-chip .lcv-count {
+        background: rgba(0,0,0,.08);
+        border-radius: 999px;
+        padding: 0 7px;
+        font-size: 11px;
+        line-height: 17px;
+        min-width: 20px;
+        text-align: center;
+    }
+
+    .lcv-chip.active .lcv-count {
+        background: rgba(255,255,255,.22);
+    }
+
+#calendar {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* Nút điều hướng của FullCalendar theo tông xanh lá chủ đạo */
+.fc .fc-button-primary {
+    background-color: #65a30d !important;
+    border-color: #65a30d !important;
+    font-weight: 600;
+}
+
+    .fc .fc-button-primary:hover {
+        background-color: #4d7c0f !important;
+    }
+
+.fc .fc-toolbar-title {
+    font-size: 19px;
+    font-weight: 800;
+    color: #1e293b;
+    text-transform: capitalize;
+}
+
+.fc .fc-day-today {
+    background: #f7fee7 !important;
+}
+
+.fc .fc-col-header-cell {
+    background: #f8fafc;
+    font-weight: 700;
+    font-size: 12.5px;
+    color: #475569;
+    text-transform: uppercase;
+}
+
+/* Sự kiện: thanh bo tròn, chữ tự bẻ dòng để đọc được tên việc dài */
+.fc-event {
+    cursor: pointer;
+    border-radius: 7px;
+    border: none !important;
+    overflow: hidden;
+}
+
+.fc-daygrid-event {
+    white-space: normal !important;
+    margin-bottom: 3px;
+}
+
+.lcv-ev {
+    padding: 3px 7px;
+    line-height: 1.32;
+    color: #fff;
+}
+
+.lcv-ev-title {
+    font-size: 12px;
+    font-weight: 700;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.lcv-ev-han {
+    font-size: 10.5px;
+    font-weight: 600;
+    opacity: .95;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Việc đã quá hạn: viền trái đậm + nhấp nháy nhẹ để đập vào mắt */
+.fc-event.lcv-quahan {
+    box-shadow: inset 3px 0 0 rgba(0,0,0,.35);
+}
+
+.fc-event.lcv-hoantat .lcv-ev-title {
+    text-decoration: line-through;
+    opacity: .85;
+}
+
+/* Panel bên phải: danh sách hạn chót gần nhất */
+.lcv-panel {
+    background: #fff;
+    border: 1px solid #f1f5f9;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,.1);
+    padding: 20px;
+    position: sticky;
+    top: 20px;
+}
+
+    .lcv-panel h3 {
+        font-size: 15px;
+        font-weight: 900;
+        color: #2d4201;
+        margin: 0 0 4px;
+    }
+
+.lcv-panel-sub {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-bottom: 14px;
+}
+
+.lcv-deadline-list {
+    max-height: 62vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.lcv-dl-item {
+    display: block;
+    text-decoration: none;
+    border: 1px solid #eef2f7;
+    border-left: 4px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: #fcfdfe;
+    transition: .15s;
+}
+
+    .lcv-dl-item:hover {
+        background: #f1f5f9;
+        transform: translateX(2px);
+    }
+
+.lcv-dl-ten {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 4px;
+    word-break: break-word;
+}
+
+.lcv-dl-meta {
+    font-size: 11.5px;
+    color: #64748b;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.lcv-badge {
+    border-radius: 999px;
+    padding: 2px 9px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #fff;
+}
+
+.lcv-empty {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 13px;
+    padding: 26px 6px;
+}
+
+.btn-fullscreen-calendar {
+    border: 1px solid #65a30d;
+    color: #65a30d;
+    background: #fff;
+    border-radius: 10px;
+    padding: 7px 15px;
+    font-weight: 700;
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: .2s;
+}
+
+    .btn-fullscreen-calendar:hover {
+        background: #65a30d;
+        color: #fff;
+    }
+
+/* Toàn màn hình: khung dạng thẻ căn giữa, lịch vừa khít không cuộn cả trang */
+.calendar-wrapper:fullscreen {
+    max-width: 1500px;
+    width: 94vw;
+    height: 90vh;
+    margin: 5vh auto;
+    padding: 22px 30px 30px;
+    border-radius: 20px;
+    background: #fff;
+    box-sizing: border-box;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,.35);
+}
+
+    .calendar-wrapper:fullscreen::backdrop {
+        background: #eef2f6;
+    }
+
+/* Tooltip chi tiết khi rê chuột lên một việc */
+.lcv-tip {
+    position: fixed;
+    z-index: 9999;
+    max-width: 300px;
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    box-shadow: 0 12px 28px rgba(0,0,0,.28);
+    pointer-events: none;
+}
+
+    .lcv-tip b {
+        color: #fff;
+        display: block;
+        margin-bottom: 5px;
+        font-size: 12.5px;
+    }
+
+/* Lọc theo tình trạng hạn: ẩn bằng CSS thay vì vẽ lại lịch (nhanh, không giật) */
+.lcv-loc-quahan .fc-event:not(.lcv-quahan),
+.lcv-loc-sapden .fc-event:not(.lcv-sapden),
+.lcv-loc-condu .fc-event:not(.lcv-condu),
+.lcv-loc-khonghan .fc-event:not(.lcv-khonghan),
+.lcv-loc-hoantat .fc-event:not(.lcv-hoantat),
+.lcv-loc-huy .fc-event:not(.lcv-huy) {
+    display: none !important;
+}
+
+/* Nháy đỏ công việc đang bị cảnh báo sắp quá hạn / đã trễ hạn.
+   Cùng nguồn dữ liệu với chuông cảnh báo trên layout nên hai chỗ luôn khớp nhau. */
+@keyframes lcvNhayDo {
+    0% { box-shadow: 0 0 0 0 rgba(239,68,68,.85); }
+    50% { box-shadow: 0 0 0 7px rgba(239,68,68,0); }
+    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+}
+
+.fc-event.lcv-nhay-do {
+    background-color: #dc2626 !important;
+    border-color: #7f1d1d !important;
+    color: #fff !important;
+    animation: lcvNhayDo .9s infinite;
+    z-index: 3;
+}
+
+    .fc-event.lcv-nhay-do .lcv-ev-title {
+        font-weight: 800;
+    }
+
+.lcv-dl-item.lcv-nhay-do {
+    border-left-color: #dc2626 !important;
+    background: #fef2f2;
+    animation: lcvNhayDo .9s infinite;
+}

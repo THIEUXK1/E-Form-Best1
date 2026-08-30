@@ -465,6 +465,7 @@
     </div>
 </div>
 
+<script src="~/js/canh-bao-don-chi-dinh.js?v=1"></script>
 <script>
     let masterData = [];
     let filteredData = [];
@@ -812,6 +813,9 @@
 
                 const tr = document.createElement("tr");
                 tr.className = "d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative";
+                // Nháy đỏ khi sắp đến hạn NHƯNG chỉ với đơn chưa bàn giao kết quả
+                // ("Bàn giao kết quả: ---" / "Đang theo dõi triển khai...") — quy tắc ở canh-bao-don-chi-dinh.js
+                if (window.CanhBaoDonChiDinh) window.CanhBaoDonChiDinh.danhDauDong(tr, item);
                 tr.innerHTML = `
                     <td data-label="Nhân viên" style="padding: 15px 20px;">
                         <div class="mobile-td-content">

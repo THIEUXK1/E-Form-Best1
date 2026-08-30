@@ -1730,9 +1730,10 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
         // Xây query đơn "Công việc chỉ định" sắp quá hạn (còn dưới 24h hoặc đã trễ) và CHƯA hoàn tất (IdAdmin == null),
         // đã lọc theo đúng phạm vi quyền xem của người dùng hiện tại. Dùng chung cho cả API đếm số lượng và API lấy danh sách chi tiết.
-        private IQueryable<FormCongViec> BuildQuerySapQuaHan(int userId, string tenCongTy, string phongBanSession, List<string> listTenBoPhan)
+        private IQueryable<FormCongViec> BuildQuerySapQuaHan(int userId, string tenCongTy, string phongBanSession, List<string> listTenBoPhan, DateTime? nguong = null)
         {
-            var nguongSapQuaHan = DateTime.Now.AddHours(24);
+            // Mặc định 24h (dùng cho chuông thông báo); trang Lịch công việc truyền ngưỡng rộng hơn
+            var nguongSapQuaHan = nguong ?? DateTime.Now.AddHours(24);
 
             var query = _context.FormCongViecs.AsNoTracking()
                 .Where(f => f.Danhmuc == "Công việc chỉ định"
@@ -2755,49 +2756,152 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
         #region BÁO CÁO THỐNG KÊ THEO NGÀY (LỊCH CÔNG VIỆC)
 
+        /// <summary>
+        /// Dữ liệu cho lịch công việc. Mỗi đơn là một thanh trải từ ngày tạo tới HẠN HOÀN THÀNH
+        /// (CV_CongViec_Order_1.ThoiHanHoanThanh) để nhìn là biết ngay việc nào sắp/đã hết hạn.
+        /// </summary>
         [HttpGet("/FormCongViec/GetLichCongViecData")]
         public async Task<IActionResult> GetLichCongViecData(DateTime start, DateTime end)
         {
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
-            int userId = int.Parse(userIdStr);
-
-            // Truy vấn lấy danh sách đơn kèm theo thực thể liên kết CvCongViecOrder1s để bóc tách trường Ten
+            // Lấy đơn có ngày tạo HOẶC hạn hoàn thành rơi vào khoảng lịch đang xem,
+            // để việc tạo từ tháng trước nhưng hết hạn tháng này vẫn hiện ra.
+            // CHỈ lấy đúng các cột cần: bảng chi tiết có cột ảnh (varbinary) rất nặng,
+            // dùng Include sẽ kéo cả BLOB về làm lịch tải rất chậm.
             var danhSachDon = await _context.FormCongViecs
                 .AsNoTracking()
-                .Include(f => f.CvCongViecOrder1s)
-                .Where(f => f.TimeNguoiTao >= start && f.TimeNguoiTao <= end)
+                .Where(f => (f.TimeNguoiTao >= start && f.TimeNguoiTao <= end)
+                            || f.CvCongViecOrder1s.Any(o => o.ThoiHanHoanThanh >= start && o.ThoiHanHoanThanh <= end))
+                .Select(f => new
+                {
+                    f.Id,
+                    f.TenForm,
+                    f.TrangThai,
+                    f.IdAdmin,
+                    f.TimeNguoiTao,
+                    f.TenNguoiTao,
+                    f.BoPhan,
+                    Ten = f.CvCongViecOrder1s.OrderBy(o => o.ThoiHanHoanThanh).Select(o => o.Ten).FirstOrDefault(),
+                    MucDoUuTien = f.CvCongViecOrder1s.OrderBy(o => o.ThoiHanHoanThanh).Select(o => o.MucDoUuTien).FirstOrDefault(),
+                    HanChot = f.CvCongViecOrder1s.OrderBy(o => o.ThoiHanHoanThanh).Select(o => o.ThoiHanHoanThanh).FirstOrDefault()
+                })
                 .ToListAsync();
 
-            var result = danhSachDon.Select(f => {
-                // Logic xác định màu sắc theo trạng thái
-                string color = "#65a30d"; // Mặc định xanh lá (Hoàn tất/Bình thường)
+            var homNay = DateTime.Now.Date;
 
-                // Kiểm tra trạng thái "Huy" hoặc tiêu đề có chứa "[ĐÃ HỦY]"
-                if (f.TrangThai == "Huy" || (f.TenForm != null && f.TenForm.Contains("[ĐÃ HỦY]")))
-                    color = "#ef4444"; // Đỏ
-                else if (f.TrangThai == "ChoDuyet")
-                    color = "#f59e0b"; // Cam
-                else if (f.TrangThai == "DaDuyet")
-                    color = "#3b82f6"; // Xanh dương
+            var result = danhSachDon.Select(f =>
+            {
+                var hanChot = f.HanChot;
 
-                // Bóc tách tên công việc cụ thể từ thực thể con CvCongViecOrder1
-                var tenCongViecCuThe = f.CvCongViecOrder1s.Select(o => o.Ten).FirstOrDefault();
+                bool daHuy = f.TrangThai == "Huy" || (f.TenForm != null && f.TenForm.Contains("[ĐÃ HỦY]"));
+                bool hoanTat = !daHuy && f.IdAdmin != null;
 
-                // Nếu có tên công việc cụ thể thì hiển thị, nếu không sẽ dự phòng bằng tên nhóm Form chung
-                string tieuDeHienThi = !string.IsNullOrEmpty(tenCongViecCuThe) ? tenCongViecCuThe : (f.TenForm ?? "Công việc không tiêu đề");
+                // Số ngày còn lại tính theo ngày (âm = đã quá hạn)
+                int? soNgayConLai = hanChot.HasValue ? (int?)(hanChot.Value.Date - homNay).Days : null;
+
+                string mau, nhomLoc, nhanHan;
+                if (daHuy) { mau = "#94a3b8"; nhomLoc = "huy"; nhanHan = "Đã hủy"; }
+                else if (hoanTat) { mau = "#16a34a"; nhomLoc = "hoantat"; nhanHan = "Đã hoàn tất"; }
+                else if (soNgayConLai == null) { mau = "#8b5cf6"; nhomLoc = "khonghan"; nhanHan = "Chưa đặt hạn"; }
+                else if (soNgayConLai < 0) { mau = "#dc2626"; nhomLoc = "quahan"; nhanHan = $"Quá hạn {-soNgayConLai} ngày"; }
+                else if (soNgayConLai == 0) { mau = "#ea580c"; nhomLoc = "quahan"; nhanHan = "Hết hạn hôm nay"; }
+                else if (soNgayConLai <= 3) { mau = "#f59e0b"; nhomLoc = "sapden"; nhanHan = $"Còn {soNgayConLai} ngày"; }
+                else if (soNgayConLai <= 7) { mau = "#0ea5e9"; nhomLoc = "sapden"; nhanHan = $"Còn {soNgayConLai} ngày"; }
+                else { mau = "#0891b2"; nhomLoc = "condu"; nhanHan = $"Còn {soNgayConLai} ngày"; }
+
+                string trangThaiText = daHuy ? "Đã hủy"
+                    : hoanTat ? "Hoàn tất"
+                    : f.TrangThai == "DaDuyet" ? "Đã duyệt"
+                    : f.TrangThai == "ChoDuyet" ? "Chờ duyệt"
+                    : (f.TrangThai ?? "Đang xử lý");
+
+                string tieuDe = !string.IsNullOrEmpty(f.Ten)
+                    ? f.Ten!
+                    : (f.TenForm ?? "Công việc không tiêu đề");
+
+                // FullCalendar hiểu 'end' là mốc loại trừ nên cộng thêm 1 ngày để thanh phủ hết ngày hết hạn
+                var ngayBatDau = (f.TimeNguoiTao ?? hanChot ?? DateTime.Now).Date;
+                var ngayKetThuc = hanChot.HasValue && hanChot.Value.Date >= ngayBatDau
+                    ? hanChot.Value.Date.AddDays(1)
+                    : (DateTime?)null;
 
                 return new
                 {
                     id = f.Id,
-                    title = tieuDeHienThi,
-                    start = f.TimeNguoiTao?.ToString("yyyy-MM-dd"),
-                    backgroundColor = color,
-                    borderColor = color,
-                    url = "/FormCongViec/ChiTiet/" + f.Id
+                    title = tieuDe,
+                    start = ngayBatDau.ToString("yyyy-MM-dd"),
+                    end = ngayKetThuc?.ToString("yyyy-MM-dd"),
+                    backgroundColor = mau,
+                    borderColor = mau,
+                    url = "/FormCongViec/ChiTiet/" + f.Id,
+                    extendedProps = new
+                    {
+                        nhomLoc,
+                        nhanHan,
+                        soNgayConLai,
+                        trangThaiText,
+                        mucDoUuTien = f.MucDoUuTien,
+                        hanChotText = hanChot?.ToString("dd/MM/yyyy"),
+                        ngayTaoText = f.TimeNguoiTao?.ToString("dd/MM/yyyy"),
+                        nguoiTao = f.TenNguoiTao,
+                        boPhan = f.BoPhan
+                    }
                 };
-            });
+            }).ToList();
+
+            return Json(result);
+        }
+
+        /// <summary>
+        /// Danh sách việc quá hạn / sắp tới hạn trong 14 ngày, đổ vào panel bên phải của trang lịch.
+        /// </summary>
+        [HttpGet("/FormCongViec/GetCongViecSapDenHan")]
+        public async Task<IActionResult> GetCongViecSapDenHan()
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+
+            var (userId, tenCongTy, phongBanSession, listTenBoPhan) = LayThongTinPhanQuyenCV();
+
+            var homNay = DateTime.Now.Date;
+            var nguong = homNay.AddDays(15); // lấy dư 1 ngày để bao trọn ngày thứ 14
+
+            // Dùng lại query đã lọc đúng phạm vi quyền xem, chỉ nới ngưỡng thời gian ra 14 ngày
+            var danhSach = await BuildQuerySapQuaHan(userId, tenCongTy, phongBanSession, listTenBoPhan, nguong)
+                .Select(f => new
+                {
+                    f.Id,
+                    f.TenForm,
+                    f.TenNguoiTao,
+                    f.BoPhan,
+                    Ten = f.CvCongViecOrder1s.OrderBy(o => o.ThoiHanHoanThanh).Select(o => o.Ten).FirstOrDefault(),
+                    HanChot = f.CvCongViecOrder1s.OrderBy(o => o.ThoiHanHoanThanh).Select(o => o.ThoiHanHoanThanh).FirstOrDefault()
+                })
+                .ToListAsync();
+
+            var result = danhSach
+                .Select(x =>
+                {
+                    int soNgay = x.HanChot.HasValue ? (x.HanChot.Value.Date - homNay).Days : 0;
+                    return new
+                    {
+                        id = x.Id,
+                        ten = !string.IsNullOrEmpty(x.Ten) ? x.Ten : ((x.TenForm ?? "").Replace("[ĐÃ HỦY]", "").Trim()),
+                        hanChotText = x.HanChot?.ToString("dd/MM/yyyy") ?? "",
+                        soNgayConLai = soNgay,
+                        nhanHan = soNgay < 0 ? $"Quá hạn {-soNgay} ngày"
+                                : soNgay == 0 ? "Hết hạn hôm nay"
+                                : $"Còn {soNgay} ngày",
+                        nguoiTao = x.TenNguoiTao,
+                        boPhan = x.BoPhan,
+                        url = "/FormCongViec/ChiTiet/" + x.Id
+                    };
+                })
+                .OrderBy(x => x.soNgayConLai)
+                .Take(50)
+                .ToList();
 
             return Json(result);
         }
