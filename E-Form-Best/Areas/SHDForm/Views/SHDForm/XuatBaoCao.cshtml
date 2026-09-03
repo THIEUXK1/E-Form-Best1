@@ -405,7 +405,7 @@
         </div>
 
         @* --- TABLE AREA --- *@
-        <div style="background: white; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
+        <div id="tableViewWrap" style="background: white; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
             <table id="dataTable" style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr style="background: #f8fafc; border-bottom: 3px solid #e2e8f0;">
@@ -426,6 +426,11 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+        
+        @* --- LƯỚI THẺ (dạng xem thứ hai, bật/tắt trong Cài đặt giao diện) --- *@
+        <div id="cardViewWrap" style="display: none;">
+            <div id="cardViewGrid" class="card-view-grid"></div>
         </div>
 
         @* --- PHẦN PHÂN TRANG --- *@
@@ -482,6 +487,9 @@
         };
 
         document.addEventListener("DOMContentLoaded", async () => {
+            // Đổi dạng xem trong hộp Cài đặt giao diện thì vẽ lại danh sách, không tải lại trang
+            DangXemDon.onChange(() => renderCurrentPage());
+
             // Khôi phục text search từ bộ nhớ tạm session storage
             const savedText = sessionStorage.getItem("savedBaoCaoTextSHD");
             if (savedText) document.getElementById("quickSearch").value = savedText;
@@ -758,7 +766,38 @@
             renderPaginationButtons(totalPages);
         }
 
+        // Quy đổi một đơn sang mô tả thẻ cho dạng xem "Thẻ"
+        function mapCardDon(item) {
+            return {
+                catalog: item.boPhan,
+                statusText: item.trangThai,
+                statusBg: "#ecfdf5",
+                statusFg: "#047857",
+                title: item.tenForm,
+                name: item.tenNguoiNv,
+                sub: `#${item.id} • MS: ${item.soNhanVien}`,
+                chips: item.tenAdmin ? [item.tenAdmin] : [],
+                emptyChipText: "Chưa có người duyệt",
+                progressWidth: "100%",
+                progressColor: "#10b981",
+                date: `${item.timeNguoiTao} → ${item.timeAdmin}`,
+                link: `/FormSHD/ChiTiet/${encodeURIComponent(item.id)}`,
+                linkText: "Chi tiết"
+            };
+        }
+        
         function renderTable(pageData) {
+            const tableWrap = document.getElementById("tableViewWrap");
+            const cardWrap = document.getElementById("cardViewWrap");
+            const isCard = window.DangXemDon && DangXemDon.getMode() === "card";
+            const coDuLieu = pageData.length > 0;
+            tableWrap.style.display = (coDuLieu && isCard) ? "none" : "block";
+            cardWrap.style.display = (coDuLieu && isCard) ? "block" : "none";
+            if (coDuLieu && isCard) {
+                DangXemDon.renderCards(pageData, mapCardDon);
+                return;
+            }
+
             const tbody = document.getElementById("tableBody");
             tbody.innerHTML = "";
 

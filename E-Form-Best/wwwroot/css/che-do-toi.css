@@ -1,0 +1,424 @@
+/* ============================================================
+   CHẾ ĐỘ TỐI — nền xanh dương đậm (navy), không dùng đen
+   Bật bằng thuộc tính data-theme="dark" trên <html> (che-do-giao-dien.js).
+
+   Lưu ý: phần lớn view trong dự án tô màu bằng style nội tuyến, mà style nội
+   tuyến thắng CSS thường, nên ở đây phải dùng bộ chọn theo thuộc tính
+   [style*="..."] kèm !important. Đây là lớp phủ diện rộng: trang nào còn sót
+   màu chưa hợp thì chỉnh thêm đúng chỗ đó, đừng gỡ các luật chung bên dưới.
+
+   Nguyên tắc màu: giữ đúng "ý nghĩa" màu của bản sáng (xanh = đang xử lý,
+   lục = hoàn tất, cam = chờ, đỏ = huỷ) nhưng hạ độ sáng nền xuống mức đọc
+   được trên nền tối, chữ màu thì giữ tươi để nổi bật.
+   ============================================================ */
+
+:root[data-theme="dark"] {
+    --nen-app: #0b1727;
+    --nen-mat: #13233d;
+    --nen-mat-2: #1b3050;
+    --vien: #2c4468;
+    --vien-nhat: #23395c;
+    --chu: #e6edf7;
+    --chu-mo: #9db0cc;
+    --xanh-nhat: #8ab4f8;
+    --do-bong: 0 10px 24px -12px rgba(0,0,0,0.65);
+}
+
+:root[data-theme="dark"] body {
+    background: var(--nen-app) !important;
+    color: var(--chu) !important;
+}
+
+:root[data-theme="dark"] ::-webkit-scrollbar-track {
+    background: var(--nen-app) !important;
+}
+
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: var(--vien) !important;
+}
+
+/* --- Nền trắng / xám nhạt (kể cả style nội tuyến) --- */
+:root[data-theme="dark"] .main-card,
+:root[data-theme="dark"] .bg-white,
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .modal-content,
+:root[data-theme="dark"] .dropdown-menu,
+:root[data-theme="dark"] .list-group-item,
+:root[data-theme="dark"] [style*="background: white"],
+:root[data-theme="dark"] [style*="background:white"],
+:root[data-theme="dark"] [style*="background-color: white"],
+:root[data-theme="dark"] [style*="background-color:white"],
+:root[data-theme="dark"] [style*="background: #fff"],
+:root[data-theme="dark"] [style*="background:#fff"],
+:root[data-theme="dark"] [style*="background-color: #fff"],
+:root[data-theme="dark"] [style*="background-color:#fff"],
+:root[data-theme="dark"] [style*="background: #f8fafc"],
+:root[data-theme="dark"] [style*="background:#f8fafc"],
+:root[data-theme="dark"] [style*="background: #f1f5f9"],
+:root[data-theme="dark"] [style*="background:#f1f5f9"] {
+    background: var(--nen-mat) !important;
+    border-color: var(--vien) !important;
+    color: var(--chu) !important;
+}
+
+/* --- Thẻ nền pastel: giữ sắc thái, chỉ hạ sáng --- */
+/* Xanh dương: đang xử lý / thông tin */
+:root[data-theme="dark"] [style*="background: #eff6ff"],
+:root[data-theme="dark"] [style*="background:#eff6ff"],
+:root[data-theme="dark"] [style*="background: #dbeafe"],
+:root[data-theme="dark"] [style*="background: #e0f2fe"],
+:root[data-theme="dark"] [style*="background: #f0f9ff"] {
+    background: #15294a !important;
+    border-color: #29477a !important;
+}
+
+/* Lục: hoàn tất */
+:root[data-theme="dark"] [style*="background: #f0fdf4"],
+:root[data-theme="dark"] [style*="background:#f0fdf4"],
+:root[data-theme="dark"] [style*="background: #ecfdf5"],
+:root[data-theme="dark"] [style*="background: #d1fae5"],
+:root[data-theme="dark"] [style*="background: #f7fee7"] {
+    background: #113528 !important;
+    border-color: #1e5c43 !important;
+}
+
+/* Cam / vàng: đang chờ */
+:root[data-theme="dark"] [style*="background: #fff7ed"],
+:root[data-theme="dark"] [style*="background:#fff7ed"],
+:root[data-theme="dark"] [style*="background: #fffbeb"],
+:root[data-theme="dark"] [style*="background: #fef3c7"] {
+    background: #3a2b13 !important;
+    border-color: #6b4d1c !important;
+}
+
+/* Đỏ: huỷ / từ chối */
+:root[data-theme="dark"] [style*="background: #fef2f2"],
+:root[data-theme="dark"] [style*="background:#fef2f2"],
+:root[data-theme="dark"] [style*="background: #fee2e2"] {
+    background: #3a1b20 !important;
+    border-color: #703038 !important;
+}
+
+/* Tím: chờ đánh giá / giám đốc */
+:root[data-theme="dark"] [style*="background: #f5f3ff"],
+:root[data-theme="dark"] [style*="background:#f5f3ff"],
+:root[data-theme="dark"] [style*="background: #fdf4ff"],
+:root[data-theme="dark"] [style*="background: #f3e8ff"] {
+    background: #271f47 !important;
+    border-color: #453a7a !important;
+}
+
+/* --- Chữ màu tối trên nền tối --- */
+:root[data-theme="dark"] [style*="color: #1e293b"],
+:root[data-theme="dark"] [style*="color:#1e293b"],
+:root[data-theme="dark"] [style*="color: #0f172a"],
+:root[data-theme="dark"] [style*="color:#0f172a"],
+:root[data-theme="dark"] [style*="color: #334155"],
+:root[data-theme="dark"] [style*="color:#334155"],
+:root[data-theme="dark"] [style*="color: #475569"],
+:root[data-theme="dark"] [style*="color:#475569"],
+:root[data-theme="dark"] [style*="color: #52514e"],
+:root[data-theme="dark"] [style*="color: #1e3a8a"] {
+    color: var(--chu) !important;
+}
+
+:root[data-theme="dark"] [style*="color: #64748b"],
+:root[data-theme="dark"] [style*="color:#64748b"],
+:root[data-theme="dark"] [style*="color: #94a3b8"],
+:root[data-theme="dark"] [style*="color:#94a3b8"],
+:root[data-theme="dark"] [style*="color: #cbd5e1"],
+:root[data-theme="dark"] [style*="color: #898781"],
+:root[data-theme="dark"] .text-muted {
+    color: var(--chu-mo) !important;
+}
+
+/* Màu trạng thái: nâng sáng để nổi trên nền tối */
+:root[data-theme="dark"] [style*="color: #1e40af"],
+:root[data-theme="dark"] [style*="color:#1e40af"],
+:root[data-theme="dark"] [style*="color: #1d4ed8"],
+:root[data-theme="dark"] [style*="color: #2563eb"],
+:root[data-theme="dark"] [style*="color: #1d5aa8"],
+:root[data-theme="dark"] [style*="color: #0369a1"],
+:root[data-theme="dark"] [style*="color: #0c4a6e"],
+:root[data-theme="dark"] [style*="color: #0284c7"] {
+    color: var(--xanh-nhat) !important;
+}
+
+:root[data-theme="dark"] [style*="color: #047857"],
+:root[data-theme="dark"] [style*="color: #059669"],
+:root[data-theme="dark"] [style*="color: #065f46"],
+:root[data-theme="dark"] [style*="color: #15803d"],
+:root[data-theme="dark"] [style*="color: #2d4201"],
+:root[data-theme="dark"] [style*="color: #4d7c0f"],
+:root[data-theme="dark"] [style*="color: #0f7a52"] {
+    color: #5ddba4 !important;
+}
+
+:root[data-theme="dark"] [style*="color: #b45309"],
+:root[data-theme="dark"] [style*="color: #d97706"],
+:root[data-theme="dark"] [style*="color: #f59e0b"],
+:root[data-theme="dark"] [style*="color: #c2410c"] {
+    color: #fbbf5a !important;
+}
+
+:root[data-theme="dark"] [style*="color: #b91c1c"],
+:root[data-theme="dark"] [style*="color: #dc2626"],
+:root[data-theme="dark"] [style*="color: #991b1b"],
+:root[data-theme="dark"] [style*="color: #ef4444"] {
+    color: #ff8a8a !important;
+}
+
+:root[data-theme="dark"] [style*="color: #6d28d9"],
+:root[data-theme="dark"] [style*="color: #7c3aed"],
+:root[data-theme="dark"] [style*="color: #4f46e5"],
+:root[data-theme="dark"] [style*="color: #86198f"] {
+    color: #c4a6ff !important;
+}
+
+/* Nút/nhãn nền màu đậm: giữ nền, ép chữ trắng */
+:root[data-theme="dark"] [style*="background: #1e40af"],
+:root[data-theme="dark"] [style*="background:#1e40af"],
+:root[data-theme="dark"] [style*="background: #2563eb"],
+:root[data-theme="dark"] [style*="background: #0284c7"],
+:root[data-theme="dark"] [style*="background: #059669"],
+:root[data-theme="dark"] [style*="background: #dc2626"] {
+    color: #fff !important;
+}
+
+/* Bóng đổ của bản sáng vô hình trên nền tối -> thay bằng bóng sâu hơn */
+:root[data-theme="dark"] [style*="box-shadow"] {
+    box-shadow: var(--do-bong) !important;
+}
+
+/* --- Khung sườn layout --- */
+:root[data-theme="dark"] #sidebar {
+    background: linear-gradient(180deg, #0f2038 0%, #16305a 100%) !important;
+    box-shadow: 10px 0 40px rgba(0,0,0,0.45) !important;
+}
+
+:root[data-theme="dark"] header {
+    background: rgba(11, 23, 39, 0.85) !important;
+    border-bottom-color: var(--vien) !important;
+}
+
+:root[data-theme="dark"] .main-card {
+    background: var(--nen-mat) !important;
+    border-color: var(--vien-nhat) !important;
+}
+
+:root[data-theme="dark"] footer {
+    color: var(--chu-mo) !important;
+}
+
+/* --- Bảng --- */
+:root[data-theme="dark"] table,
+:root[data-theme="dark"] .table {
+    color: var(--chu) !important;
+    --bs-table-color: var(--chu);
+    --bs-table-bg: transparent;
+    --bs-table-striped-color: var(--chu);
+    --bs-table-striped-bg: rgba(255,255,255,0.03);
+    --bs-table-hover-color: var(--chu);
+    --bs-table-hover-bg: rgba(138,180,248,0.10);
+}
+
+:root[data-theme="dark"] table th,
+:root[data-theme="dark"] table td {
+    border-color: var(--vien-nhat) !important;
+}
+
+:root[data-theme="dark"] thead tr,
+:root[data-theme="dark"] thead th,
+:root[data-theme="dark"] .table-light,
+:root[data-theme="dark"] .table-light > * {
+    background: #16294a !important;
+    color: var(--chu-mo) !important;
+}
+
+:root[data-theme="dark"] tbody tr:hover {
+    background: rgba(138,180,248,0.08) !important;
+}
+
+/* --- Ô nhập liệu --- */
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] .form-control,
+:root[data-theme="dark"] .form-select {
+    background: var(--nen-mat-2) !important;
+    color: var(--chu) !important;
+    border-color: var(--vien) !important;
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+    color: var(--chu-mo) !important;
+    opacity: 0.75;
+}
+
+:root[data-theme="dark"] option {
+    background: var(--nen-mat-2);
+    color: var(--chu);
+}
+
+/* Ô ngày tháng: icon lịch mặc định màu đen, không thấy trên nền tối */
+:root[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(1.6);
+}
+
+/* --- Nút & dropdown trên thanh trên cùng --- */
+:root[data-theme="dark"] .lang-btn,
+:root[data-theme="dark"] #langDropdown,
+:root[data-theme="dark"] #zoomDropdown,
+:root[data-theme="dark"] #notiBell,
+:root[data-theme="dark"] #notificationDropdown,
+:root[data-theme="dark"] #notiList > * {
+    background: var(--nen-mat) !important;
+    color: var(--chu) !important;
+    border-color: var(--vien) !important;
+}
+
+:root[data-theme="dark"] .lang-item {
+    color: var(--chu) !important;
+}
+
+:root[data-theme="dark"] .lang-item:hover {
+    background: var(--nen-mat-2) !important;
+}
+
+/* --- Dạng xem thẻ & hộp cài đặt giao diện --- */
+:root[data-theme="dark"] .don-card,
+:root[data-theme="dark"] .cddg-panel,
+:root[data-theme="dark"] .view-switch,
+:root[data-theme="dark"] .page-btn,
+:root[data-theme="dark"] .cddg-close {
+    background: var(--nen-mat) !important;
+    border-color: var(--vien) !important;
+    color: var(--chu) !important;
+}
+
+:root[data-theme="dark"] .cddg-head {
+    background: var(--nen-mat-2) !important;
+    border-bottom-color: var(--vien) !important;
+}
+
+:root[data-theme="dark"] .don-card:hover {
+    border-color: #3a5c94 !important;
+    box-shadow: 0 16px 28px -14px rgba(0,0,0,0.75) !important;
+}
+
+:root[data-theme="dark"] .don-card-title,
+:root[data-theme="dark"] .don-card-name,
+:root[data-theme="dark"] .don-card-kv-value,
+:root[data-theme="dark"] .cddg-title,
+:root[data-theme="dark"] .cddg-label {
+    color: var(--chu) !important;
+}
+
+:root[data-theme="dark"] .don-card-sub,
+:root[data-theme="dark"] .don-card-date,
+:root[data-theme="dark"] .don-card-kv-label,
+:root[data-theme="dark"] .cddg-desc,
+:root[data-theme="dark"] .cddg-hint {
+    color: var(--chu-mo) !important;
+}
+
+:root[data-theme="dark"] .don-card-cat,
+:root[data-theme="dark"] .don-card-chip {
+    background: #15294a !important;
+    border-color: #29477a !important;
+    color: var(--xanh-nhat) !important;
+}
+
+:root[data-theme="dark"] .don-card-progress {
+    background: var(--nen-mat-2) !important;
+}
+
+:root[data-theme="dark"] .don-card-auto .don-card-kv,
+:root[data-theme="dark"] .don-card-auto .don-card-title {
+    border-color: var(--vien-nhat) !important;
+}
+
+:root[data-theme="dark"] .view-mode-btn,
+:root[data-theme="dark"] .theme-mode-btn {
+    color: var(--chu-mo) !important;
+}
+
+:root[data-theme="dark"] .view-mode-btn:hover:not(.active),
+:root[data-theme="dark"] .theme-mode-btn:hover:not(.active),
+:root[data-theme="dark"] .page-btn:hover:not(.active) {
+    background: var(--nen-mat-2) !important;
+    color: var(--chu) !important;
+}
+
+:root[data-theme="dark"] .view-mode-btn.active,
+:root[data-theme="dark"] .theme-mode-btn.active,
+:root[data-theme="dark"] .page-btn.active {
+    background: #2563eb !important;
+    color: #fff !important;
+    border-color: #2563eb !important;
+}
+
+:root[data-theme="dark"] .cddg-overlay {
+    background: rgba(4, 10, 20, 0.65);
+}
+
+/* --- Hộp thoại SweetAlert / Bootstrap --- */
+:root[data-theme="dark"] .swal2-popup {
+    background: var(--nen-mat) !important;
+    color: var(--chu) !important;
+}
+
+:root[data-theme="dark"] .swal2-title,
+:root[data-theme="dark"] .swal2-html-container,
+:root[data-theme="dark"] .swal2-input,
+:root[data-theme="dark"] .modal-title {
+    color: var(--chu) !important;
+}
+
+:root[data-theme="dark"] .modal-header,
+:root[data-theme="dark"] .modal-footer {
+    border-color: var(--vien) !important;
+}
+
+:root[data-theme="dark"] .btn-close {
+    filter: invert(1) grayscale(1) brightness(1.6);
+}
+
+:root[data-theme="dark"] .btn-light,
+:root[data-theme="dark"] .btn-outline-secondary {
+    background: var(--nen-mat-2) !important;
+    color: var(--chu) !important;
+    border-color: var(--vien) !important;
+}
+
+:root[data-theme="dark"] .nav-tabs {
+    border-bottom-color: var(--vien) !important;
+}
+
+:root[data-theme="dark"] .nav-tabs .nav-link {
+    color: var(--chu-mo) !important;
+}
+
+:root[data-theme="dark"] .nav-tabs .nav-link.active {
+    background: var(--nen-mat) !important;
+    border-color: var(--vien) var(--vien) var(--nen-mat) !important;
+    color: var(--chu) !important;
+}
+
+:root[data-theme="dark"] hr {
+    border-color: var(--vien) !important;
+}
+
+/* Đường kẻ mảnh khai bằng style nội tuyến */
+:root[data-theme="dark"] [style*="border: 1px solid #e2e8f0"],
+:root[data-theme="dark"] [style*="border:1px solid #e2e8f0"],
+:root[data-theme="dark"] [style*="border: 1px solid #cbd5e1"],
+:root[data-theme="dark"] [style*="border: 2px solid #cbd5e1"],
+:root[data-theme="dark"] [style*="border-bottom: 1px solid #f1f5f9"],
+:root[data-theme="dark"] [style*="border-bottom: 2px solid #e2e8f0"],
+:root[data-theme="dark"] [style*="border-bottom: 3px solid #e2e8f0"],
+:root[data-theme="dark"] [style*="border-top: 1px solid #e2e8f0"],
+:root[data-theme="dark"] [style*="border: 1px solid rgba(226, 232, 240"] {
+    border-color: var(--vien-nhat) !important;
+}

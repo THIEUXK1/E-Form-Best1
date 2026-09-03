@@ -739,8 +739,21 @@
         thucThiBoLocDuLieu();
         });
 
+        // Trang này vốn đã có sẵn hai kiểu hiển thị, nên chỉ cần đồng bộ với
+        // lựa chọn chung trong hộp "Cài đặt giao diện" trên thanh trên cùng.
+        if (window.DangXemDon) {
+        const apDungDangXemChung = () => {
+        kieuHienThi = DangXemDon.getMode() === "card" ? "grid" : "list";
+        capNhatGiaoDienNutBamView();
+        thucThiBoLocDuLieu();
+        };
+        DangXemDon.onChange(apDungDangXemChung);
+        apDungDangXemChung();
+        }
+
         // Chuyển sang hiển thị giao diện dạng Bảng Danh Sách
         $("#btnKieuList").click(function () {
+        if (window.DangXemDon) DangXemDon.setMode("list");
         kieuHienThi = "list";
         capNhatGiaoDienNutBamView();
         thucThiBoLocDuLieu();
@@ -748,6 +761,7 @@
 
         // Chuyển sang hiển thị giao diện dạng Khối Hình Hộp
         $("#btnKieuGrid").click(function () {
+        if (window.DangXemDon) DangXemDon.setMode("card");
         kieuHienThi = "grid";
         capNhatGiaoDienNutBamView();
         thucThiBoLocDuLieu();

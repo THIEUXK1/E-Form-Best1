@@ -411,7 +411,7 @@
         <div class="tab-content" id="roomTabContent">
             @* --- TAB 1: LỊCH ĐẶT PHÒNG --- *@
             <div class="tab-pane fade show active" id="history" role="tabpanel">
-                <div class="table-responsive" style="overflow-x: auto;">
+                <div id="tableViewWrap" class="table-responsive" style="overflow-x: auto;">
                     <table class="table-modern" id="dataTable">
                         <thead>
                             <tr>
@@ -427,6 +427,11 @@
                             <tr><td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8;"><i class="fa fa-spinner fa-spin fa-2x"></i></td></tr>
                         </tbody>
                     </table>
+                </div>
+
+                @* --- LƯỚI THẺ (dạng xem thứ hai, bật/tắt trong Cài đặt giao diện) --- *@
+                <div id="cardViewWrap" style="display: none; padding: 20px 25px;">
+                    <div id="cardViewGrid" class="card-view-grid"></div>
                 </div>
 
                 @* PHÂN TRANG *@
@@ -509,6 +514,9 @@
         let rowsPerPage = 20;
 
         document.addEventListener('DOMContentLoaded', async function() {
+        // Đổi dạng xem trong hộp Cài đặt giao diện thì vẽ lại danh sách, không tải lại trang
+        DangXemDon.onChange(() => paginateBookings());
+
         const modalEl = document.getElementById('modalRoom');
         if (modalEl) roomModal = new bootstrap.Modal(modalEl);
 
@@ -636,9 +644,42 @@
         renderPaginationButtons(totalPages);
         }
 
+        // Quy đổi một lịch đặt phòng sang mô tả thẻ cho dạng xem "Thẻ"
+        function mapCardDon(item) {
+        const dangDung = item.trangThaiPhong === "on";
+        return {
+        catalog: item.tenCongTy,
+        statusText: dangDung ? "ĐANG SỬ DỤNG" : "TRỐNG",
+        statusBg: dangDung ? "#ecfdf5" : "#f8fafc",
+        statusFg: dangDung ? "#047857" : "#64748b",
+        title: item.tenPhongHop,
+        name: item.nguoiBook,
+        sub: `Khách: ${item.tenCongTyKhach}`,
+        chips: [],
+        emptyChipText: `${item.thoiGianBatDau} → ${item.thoiGianKetThuc}`,
+        progressWidth: dangDung ? "100%" : "10%",
+        progressColor: dangDung ? "#10b981" : "#cbd5e1",
+        date: item.thoiGianBatDau,
+        link: `/FormHR/ChiTiet/${encodeURIComponent(item.idFormHr)}`,
+        linkText: "Chi tiết"
+        };
+        }
+
         function renderBookings(pageData, startIndex) {
         const tbody = document.getElementById("bookingTableBody");
+        const tableWrap = document.getElementById("tableViewWrap");
+        const cardWrap = document.getElementById("cardViewWrap");
+        const isCard = window.DangXemDon && DangXemDon.getMode() === "card";
+        const coDuLieu = pageData.length > 0;
         tbody.innerHTML = "";
+
+        tableWrap.style.display = (coDuLieu && isCard) ? "none" : "block";
+        cardWrap.style.display = (coDuLieu && isCard) ? "block" : "none";
+
+        if (coDuLieu && isCard) {
+        DangXemDon.renderCards(pageData, mapCardDon);
+        return;
+        }
 
         if (pageData.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8; display: block; width: 100%;">Không tìm thấy lịch đặt nào phù hợp.</td></tr>`;

@@ -437,7 +437,7 @@
     </div>
 
     @* --- BẢNG DỮ LIỆU --- *@
-    <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+    <div id="tableViewWrap" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
         <div class="table-responsive" style="overflow-x: auto;">
             <table id="myTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
                 <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
@@ -462,6 +462,11 @@
         </div>
     </div>
 
+    @* --- LƯỚI THẺ (dạng xem thứ hai, bật/tắt trong Cài đặt giao diện) --- *@
+    <div id="cardViewWrap" style="display: none;">
+        <div id="cardViewGrid" class="card-view-grid"></div>
+    </div>
+
     @* --- PHẦN PHÂN TRANG --- *@
     <div class="pagination-mobile" style="display: flex; justify-content: space-between; align-items: center; padding: 25px 0; margin-top: 10px;">
         <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
@@ -484,6 +489,9 @@
     let currentActiveStatusFilter = "";
 
     document.addEventListener("DOMContentLoaded", async () => {
+        // Đổi dạng xem trong hộp Cài đặt giao diện thì vẽ lại danh sách, không tải lại trang
+        DangXemDon.onChange(() => handleFilterAndPaginate());
+
         // --- 1. PHỤC HỒI TỪ SESSION STORAGE ---
         const savedText = sessionStorage.getItem("savedShdDonChoText");
         if (savedText) document.getElementById("myInput").value = savedText;
@@ -725,7 +733,39 @@
         renderPaginationButtons(totalPages);
     }
 
+    // Quy đổi một đơn sang mô tả thẻ cho dạng xem "Thẻ"
+    function mapCardDon(item) {
+        return {
+            catalog: item.danhmuc,
+            statusText: item.statusText,
+            statusBg: item.bgColor,
+            statusFg: item.fgColor,
+            title: item.tenForm,
+            name: `Yêu cầu #${item.id}`,
+            avatar: "#",
+            sub: `${item.ngay} • ${item.timeNguoiTao}`,
+            chips: (item.supportName && item.supportName !== "Chờ phân công") ? [item.supportName] : [],
+            emptyChipText: "Chờ phân công",
+            progressWidth: item.progressWidth,
+            progressColor: item.progressColor,
+            date: item.ngay,
+            link: `/FormSHD/ChiTiet/${encodeURIComponent(item.id)}`,
+            linkText: "Chi tiết"
+        };
+    }
+    
     function renderTable(pageData) {
+        const tableWrap = document.getElementById("tableViewWrap");
+        const cardWrap = document.getElementById("cardViewWrap");
+        const isCard = window.DangXemDon && DangXemDon.getMode() === "card";
+        const coDuLieu = pageData.length > 0;
+        tableWrap.style.display = (coDuLieu && isCard) ? "none" : "block";
+        cardWrap.style.display = (coDuLieu && isCard) ? "block" : "none";
+        if (coDuLieu && isCard) {
+            DangXemDon.renderCards(pageData, mapCardDon);
+            return;
+        }
+
         const tbody = document.getElementById("tableBody");
         tbody.innerHTML = "";
 

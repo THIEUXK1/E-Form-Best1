@@ -1,0 +1,134 @@
+/* ============================================================
+   MENU THU GỌN (LITE) — sidebar chỉ còn biểu tượng
+   Bật khi <html> có cờ data-menu-gon (menu-thu-gon.js đặt).
+   Dùng !important vì hai layout khai width/margin bằng style nội tuyến.
+   Chỉ áp dụng từ 769px trở lên: dưới mức đó sidebar vốn đã là kiểu trượt ra.
+   ============================================================ */
+
+@media (min-width: 769px) {
+    :root[data-menu-gon] #sidebar {
+        width: 78px !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+        overflow: visible !important;
+    }
+
+    :root[data-menu-gon] main {
+        margin-left: 78px !important;
+        width: calc(100% - 78px) !important;
+    }
+
+    /* Ẩn mọi phần chữ, chỉ chừa biểu tượng.
+       .menu-an-khi-gon do menu-thu-gon.js gắn theo cấu trúc từng sidebar,
+       nhờ đó 4 layout (IT/HR/SHD/Công việc) thu gọn ra kết quả như nhau. */
+    :root[data-menu-gon] #sidebar .menu-an-khi-gon,
+    :root[data-menu-gon] #sidebar .brand-text,
+    :root[data-menu-gon] #sidebar .user-text,
+    :root[data-menu-gon] #sidebar .nav-section-title,
+    :root[data-menu-gon] #sidebar .menu-arrow {
+        display: none !important;
+    }
+
+    /* Ô logo trên cùng: bỏ nền/viền, chỉ còn ô vuông chữ tắt căn giữa */
+    :root[data-menu-gon] #sidebar .brand-row,
+    :root[data-menu-gon] #sidebar > a:first-of-type {
+        margin-bottom: 22px !important;
+    }
+
+    :root[data-menu-gon] #sidebar .brand-row a,
+    :root[data-menu-gon] #sidebar > a:first-of-type {
+        justify-content: center !important;
+        padding: 8px !important;
+        gap: 0 !important;
+        background: transparent !important;
+        border-color: transparent !important;
+    }
+
+        :root[data-menu-gon] #sidebar .brand-row a > div:first-child,
+        :root[data-menu-gon] #sidebar > a:first-of-type > div:first-child {
+            width: 46px !important;
+            height: 46px !important;
+        }
+
+    /* Đường kẻ phân nhóm ngắn lại cho cân với menu hẹp */
+    :root[data-menu-gon] #sidebar .nav-divider {
+        margin-left: 12px !important;
+        margin-right: 12px !important;
+    }
+
+    /* Khối tài khoản dưới chân */
+    :root[data-menu-gon] #sidebar .sidebar-footer,
+    :root[data-menu-gon] #sidebar #userMenuButton {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    :root[data-menu-gon] #sidebar .nav-link-item {
+        justify-content: center !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+        /* Mục "Đăng ký đơn" bọc icon+chữ trong một span */
+        :root[data-menu-gon] #sidebar .nav-link-item > span {
+            justify-content: center !important;
+            width: 100%;
+        }
+
+    :root[data-menu-gon] #sidebar .nav-ico,
+    :root[data-menu-gon] #sidebar .nav-link-item i {
+        margin-right: 0 !important;
+        font-size: 1.15rem !important;
+    }
+
+    :root[data-menu-gon] #sidebar #userMenuButton {
+        justify-content: center !important;
+        gap: 0 !important;
+    }
+
+    :root[data-menu-gon] #sidebar #userDropdown {
+        left: 100% !important;
+        right: auto !important;
+        bottom: 20px !important;
+        width: 240px;
+    }
+
+        :root[data-menu-gon] #sidebar #userDropdown .lang-text {
+            display: inline !important;
+        }
+
+}
+
+
+/* Ô chú thích tên mục khi rê chuột lúc menu đang thu gọn.
+   Do menu-thu-gon.js gắn thẳng vào <body> và định vị fixed: đặt trong sidebar
+   sẽ bị <nav overflow-y:auto> cắt mất. */
+.menu-goi-y {
+    position: fixed;
+    z-index: 3000;
+    transform: translateY(-50%);
+    background: #0f172a;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 13px;
+    border-radius: 9px;
+    white-space: nowrap;
+    box-shadow: 0 12px 24px -10px rgba(0,0,0,0.6);
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.12s ease;
+}
+
+    .menu-goi-y.hien {
+        opacity: 1;
+        visibility: visible;
+    }
+
+:root[data-theme="dark"] .menu-goi-y {
+    background: #1b3050;
+    color: #e6edf7;
+    border: 1px solid #2c4468;
+}

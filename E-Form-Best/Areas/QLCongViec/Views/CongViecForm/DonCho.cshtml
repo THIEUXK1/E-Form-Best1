@@ -415,7 +415,7 @@
     </div>
 
     @* --- BẢNG DỮ LIỆU --- *@
-    <div style="background: white; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 20px -10px rgba(0,0,0,0.1);">
+    <div id="tableViewWrap" style="background: white; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 20px -10px rgba(0,0,0,0.1);">
         <div class="table-responsive" style="overflow-x: auto;">
             <table id="myTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
                 <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
@@ -437,6 +437,11 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    @* --- LƯỚI THẺ (dạng xem thứ hai, bật/tắt trong Cài đặt giao diện) --- *@
+    <div id="cardViewWrap" style="display: none;">
+        <div id="cardViewGrid" class="card-view-grid"></div>
     </div>
 
     @* --- PHÂN TRANG --- *@
@@ -461,6 +466,9 @@
     let currentActiveStatusFilter = "";
 
     document.addEventListener("DOMContentLoaded", () => {
+        // Đổi dạng xem trong hộp Cài đặt giao diện thì vẽ lại danh sách, không tải lại trang
+        DangXemDon.onChange(() => renderTable());
+
         // Phục hồi bộ nhớ tạm Cache Session Storage của phân hệ Công việc
         const savedText = sessionStorage.getItem("savedDonChoCVText");
         if (savedText) document.getElementById("myInput").value = savedText;
@@ -700,14 +708,47 @@
         renderTable();
     }
 
+    // Quy đổi một phiếu công việc sang mô tả thẻ cho dạng xem "Thẻ"
+    function mapCardDon(item) {
+        const s = determineStatus(item);
+        const nguoiHoTro = item.tenNguoiHoTro && item.tenNguoiHoTro !== "Chưa có" ? item.tenNguoiHoTro : null;
+
+        return {
+            catalog: item.danhmuc,
+            statusText: s.text,
+            statusBg: s.bg,
+            statusFg: s.fg,
+            title: (item.ten || "").replace("[ĐÃ HỦY]", "").trim() || "Công việc không tiêu đề",
+            name: `Phiếu #${item.id}`,
+            avatar: "#",
+            sub: (item.tenForm || "").replace("[ĐÃ HỦY]", "").trim(),
+            chips: nguoiHoTro ? [nguoiHoTro] : [],
+            emptyChipText: "Chưa có người hỗ trợ",
+            progressWidth: s.w,
+            progressColor: s.color,
+            date: item.ngay,
+            link: `/FormCongViec/ChiTiet/${encodeURIComponent(item.id)}`,
+            linkText: "Chi tiết"
+        };
+    }
+
     function renderTable() {
         const tbody = document.getElementById("tableBody");
+        const tableWrap = document.getElementById("tableViewWrap");
+        const cardWrap = document.getElementById("cardViewWrap");
+        const isCard = window.DangXemDon && DangXemDon.getMode() === "card";
         tbody.innerHTML = "";
 
         const startIndex = (currentPage - 1) * rowsPerPage;
         const pageData = filteredData.slice(startIndex, startIndex + rowsPerPage);
 
-        if (pageData.length === 0) {
+        const coDuLieu = pageData.length > 0;
+        tableWrap.style.display = (coDuLieu && isCard) ? "none" : "block";
+        cardWrap.style.display = (coDuLieu && isCard) ? "block" : "none";
+
+        if (coDuLieu && isCard) {
+            DangXemDon.renderCards(pageData, mapCardDon);
+        } else if (pageData.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 50px; color: #94a3b8;">Không có dữ liệu phiếu công việc phù hợp.</td></tr>';
         } else {
             pageData.forEach(item => {
