@@ -279,16 +279,33 @@
     }
 
     // ---------- lớp hạt rơi ----------
-    let canvas = null, ctx = null, hat = [], khungHinh = null;
+    let canvas = null, ctx = null, hat = [], khungHinh = null, mauHat = "#ffffff";
+
+    // Trang chủ: hạt phủ toàn màn hình. Các trang có layout: hạt chỉ rơi trong
+    // khung menu bên trái, nằm sau chữ và biểu tượng của menu.
+    function khungChua() {
+        return document.getElementById("nenTrangChu") ? null : document.getElementById("sidebar");
+    }
 
     function taoCanvas() {
         if (canvas) return canvas;
+        const khung = khungChua();
+
         canvas = document.createElement("canvas");
         canvas.id = "lopHatMua";
-        // Trang chủ: hạt bay phía trước cho nổi. Các layout khác: hạt nằm sau
-        // nội dung để không che bảng biểu, chỉ làm nền.
-        canvas.style.zIndex = document.getElementById("nenTrangChu") ? "1" : "-1";
-        document.body.appendChild(canvas);
+
+        if (khung) {
+            canvas.classList.add("hat-trong-menu");
+            khung.appendChild(canvas);
+            // menu co/giãn khi thu gọn -> phải đo lại khung vẽ
+            if (window.ResizeObserver) {
+                new ResizeObserver(chinhKichThuoc).observe(khung);
+            }
+        } else {
+            canvas.style.zIndex = "1";
+            document.body.appendChild(canvas);
+        }
+
         ctx = canvas.getContext("2d");
         window.addEventListener("resize", chinhKichThuoc);
         chinhKichThuoc();
@@ -297,18 +314,21 @@
 
     function chinhKichThuoc() {
         if (!canvas) return;
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const khung = khungChua();
+        canvas.width = khung ? khung.clientWidth : window.innerWidth;
+        canvas.height = khung ? khung.clientHeight : window.innerHeight;
     }
 
     function sinhHat(cauHinh) {
         hat = [];
-        // ít hạt thôi cho nhẹ máy; màn nhỏ thì càng ít
-        const soLuong = window.innerWidth < 768 ? 18 : 34;
+        const rong = canvas ? canvas.width : window.innerWidth;
+        const cao = canvas ? canvas.height : window.innerHeight;
+        // ít hạt thôi cho nhẹ máy; khung càng hẹp thì càng ít
+        const soLuong = rong < 200 ? 10 : (rong < 768 ? 18 : 34);
         for (let i = 0; i < soLuong; i++) {
             hat.push({
-                x: Math.random() * window.innerWidth,
-                y: Math.random() * window.innerHeight,
+                x: Math.random() * rong,
+                y: Math.random() * cao,
                 co: 10 + Math.random() * 12,
                 v: cauHinh.toc_do * (0.6 + Math.random()),
                 lech: Math.random() * Math.PI * 2,
@@ -331,6 +351,10 @@
             }
             ctx.globalAlpha = h.mo;
             ctx.font = h.co + "px serif";
+            // Không đặt màu thì canvas vẽ bằng màu đen mặc định -> nền tối coi
+            // như không thấy gì. Ký tự emoji tự có màu riêng, nhưng ký tự
+            // thường (✦ • ❄) thì lấy màu của chủ đề.
+            ctx.fillStyle = mauHat;
             ctx.fillText(h.kyTu, h.x, h.y);
         });
         ctx.globalAlpha = 1;
@@ -338,9 +362,9 @@
     }
 
     function batHat(cauHinh) {
-        // Hạt rơi chỉ chạy ở trang chủ. Trong các layout, hiệu ứng chỉ đổi màu
-        // menu bên trái — không thả hạt để khỏi rối mắt khi đang làm việc.
-        if (!document.getElementById("nenTrangChu")) return;
+        // Trang có layout mà chưa dựng xong menu thì thôi, lát nữa gọi lại
+        if (!document.getElementById("nenTrangChu") && !document.getElementById("sidebar")) return;
+        mauHat = cauHinh.mau || "#ffffff";
         taoCanvas();
         sinhHat(cauHinh);
         if (!khungHinh) ve();
