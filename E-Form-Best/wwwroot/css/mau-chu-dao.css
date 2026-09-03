@@ -1,0 +1,163 @@
+/* ============================================================
+   MÀU CHỦ ĐẠO DO NGƯỜI DÙNG CHỌN
+   Chỉ có hiệu lực khi <html> có cờ data-mau-chu-dao (mau-chu-dao.js đặt).
+   Không chọn màu -> không có cờ -> mỗi phân hệ giữ nguyên màu gốc của nó.
+
+   Vẫn phải dùng [style*="..."] + !important vì màu trong view khai bằng
+   style nội tuyến. Danh sách mã màu bên dưới là các màu chủ đạo đang dùng:
+   #1e40af (IT), #2563eb (HR), #0284c7 (SHD), #65a30d (Công việc).
+   ============================================================ */
+
+/* --- Nền màu chủ đạo ---
+   CHỈ tô cho phần "khung" giao diện: sidebar, nút bấm, nút hành động.
+   KHÔNG đụng tới màu trạng thái (badge, thanh tiến độ, thẻ thống kê) — những
+   màu đó mang ý nghĩa nghiệp vụ (xanh = đang xử lý, lục = xong, đỏ = huỷ),
+   đổi theo màu chủ đạo là mô tả sai trạng thái. */
+:root[data-mau-chu-dao] #sidebar {
+    background: linear-gradient(180deg, var(--mau-chu-dao) 0%, var(--mau-chu-dao-dam) 100%) !important;
+}
+
+:root[data-mau-chu-dao] .btn-primary,
+:root[data-mau-chu-dao] .bg-primary,
+:root[data-mau-chu-dao] .view-mode-btn.active,
+:root[data-mau-chu-dao] .theme-mode-btn.active,
+:root[data-mau-chu-dao] .page-btn.active,
+:root[data-mau-chu-dao] .don-card-link,
+:root[data-mau-chu-dao] .don-card-avatar,
+:root[data-mau-chu-dao] a[style*="background: #1e40af"],
+:root[data-mau-chu-dao] a[style*="background:#1e40af"],
+:root[data-mau-chu-dao] a[style*="background: #2563eb"],
+:root[data-mau-chu-dao] a[style*="background: #0284c7"],
+:root[data-mau-chu-dao] a[style*="background: #65a30d"],
+:root[data-mau-chu-dao] button[style*="background: #1e40af"],
+:root[data-mau-chu-dao] button[style*="background:#1e40af"],
+:root[data-mau-chu-dao] button[style*="background: #2563eb"],
+:root[data-mau-chu-dao] button[style*="background: #0284c7"],
+:root[data-mau-chu-dao] button[style*="background: #65a30d"] {
+    background: var(--mau-chu-dao) !important;
+    border-color: var(--mau-chu-dao) !important;
+    color: #fff !important;
+}
+
+:root[data-mau-chu-dao] .don-card-link:hover,
+:root[data-mau-chu-dao] .btn-primary:hover {
+    background: var(--mau-chu-dao-dam) !important;
+}
+
+/* --- Chip người hỗ trợ trên thẻ (không mang ý nghĩa trạng thái) --- */
+:root[data-mau-chu-dao] .don-card-chip {
+    background: var(--mau-chu-dao-mo) !important;
+    border-color: var(--mau-chu-dao-mo) !important;
+    color: var(--mau-chu-dao) !important;
+}
+
+/* --- Chữ / biểu tượng màu chủ đạo --- */
+:root[data-mau-chu-dao]:not([data-theme="dark"]) .text-primary,
+:root[data-mau-chu-dao]:not([data-theme="dark"]) .don-card-chip {
+    color: var(--mau-chu-dao) !important;
+}
+
+/* Ở chế độ tối dùng bản sáng hơn cho dễ đọc */
+:root[data-mau-chu-dao][data-theme="dark"] .text-primary,
+:root[data-mau-chu-dao][data-theme="dark"] .don-card-chip {
+    color: var(--mau-chu-dao-sang) !important;
+}
+
+/* --- Ô nhập đang focus --- */
+:root[data-mau-chu-dao] input:focus,
+:root[data-mau-chu-dao] select:focus,
+:root[data-mau-chu-dao] textarea:focus {
+    border-color: var(--mau-chu-dao) !important;
+}
+
+/* ============================================================
+   Ô CHỌN MÀU TRONG HỘP CÀI ĐẶT GIAO DIỆN
+   ============================================================ */
+.cddg-mau-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
+    max-width: 250px;
+}
+
+.mau-chu-dao-item {
+    /* Màu của ô đặt qua biến --o-mau chứ không viết thẳng "background: #xxx"
+       vào style nội tuyến: viết thẳng thì chính ô chọn màu lại bị luật màu
+       chủ đạo ở trên tô đè, nhìn ra màu khác. */
+    background: var(--o-mau) !important;
+    width: 26px;
+    height: 26px;
+    border-radius: 9px;
+    border: 2px solid transparent;
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
+    cursor: pointer;
+    padding: 0;
+    transition: 0.2s;
+}
+
+    .mau-chu-dao-item:hover {
+        transform: scale(1.12);
+    }
+
+    .mau-chu-dao-item.active {
+        border-color: #0f172a;
+        box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.25);
+    }
+
+:root[data-theme="dark"] .mau-chu-dao-item.active {
+    border-color: #e6edf7;
+    box-shadow: 0 0 0 2px rgba(230, 237, 247, 0.35);
+}
+
+/* Ô chọn màu thật của trình duyệt: ẩn đi, mở bằng nút "Tự pha" */
+#inputMauChuDao {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+#btnTuPhaMau,
+#btnMauMacDinh {
+    border: 1px solid #cbd5e1;
+    background: transparent;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 900;
+    padding: 5px 10px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+    #btnTuPhaMau:hover,
+    #btnTuPhaMau.active,
+    #btnMauMacDinh:hover,
+    #btnMauMacDinh.active {
+        background: #f1f5f9;
+        color: #0f172a;
+    }
+
+:root[data-theme="dark"] #btnTuPhaMau,
+:root[data-theme="dark"] #btnMauMacDinh {
+    border-color: #2c4468;
+    color: #9db0cc;
+}
+
+    :root[data-theme="dark"] #btnTuPhaMau:hover,
+    :root[data-theme="dark"] #btnTuPhaMau.active,
+    :root[data-theme="dark"] #btnMauMacDinh:hover,
+    :root[data-theme="dark"] #btnMauMacDinh.active {
+        background: #1b3050;
+        color: #e6edf7;
+    }
+
+/* Đang dùng màu tự pha thì nút "Tự pha" hiện luôn màu đó */
+#btnTuPhaMau.active {
+    background: var(--mau-chu-dao) !important;
+    border-color: var(--mau-chu-dao) !important;
+    color: #fff !important;
+}

@@ -489,7 +489,7 @@
             </button>
         </div>
 
-        <div class="table-scroll">
+        <div class="table-scroll" id="tableViewWrap">
             <table class="custom-table" id="tableDanhSachMac">
                 <thead>
                     <tr>
@@ -509,6 +509,11 @@
                     <tr><td colspan="10" style="text-align: center; padding: 20px;">Đang tải dữ liệu...</td></tr>
                 </tbody>
             </table>
+        </div>
+
+        @* --- LƯỚI THẺ (dạng xem thứ hai, bật/tắt trong Cài đặt giao diện) --- *@
+        <div id="cardViewWrap" style="display: none;">
+            <div id="cardViewGrid" class="card-view-grid"></div>
         </div>
 
         @* --- KHU VỰC PHÂN TRANG --- *@
@@ -724,8 +729,45 @@
     }
     });
 
+    // Dữ liệu trang đang hiển thị, giữ lại để vẽ lại khi đổi dạng xem
+    let duLieuTrangHienTai = [];
+
+    // Quy đổi một bản ghi MAC sang mô tả thẻ cho dạng xem "Thẻ"
+    function mapCardDon(item) {
+    return {
+    catalog: item.boPhan || "—",
+    statusText: item.loaiThietBi || "THIẾT BỊ",
+    statusBg: "#f1f5f9",
+    statusFg: "#334155",
+    title: item.macTb || "",
+    name: item.tenNguoiNv || "",
+    sub: `Mã TB: ${item.maThietBi || "—"}`,
+    chips: item.tenAdmin ? [item.tenAdmin] : [],
+    emptyChipText: "Chưa có IT xử lý",
+    progressWidth: "100%",
+    progressColor: "#1d5aa8",
+    date: `${formatDateTimeView(item.thoiGianBatDau)} → ${formatDateTimeView(item.thoiGianKetThuc)}`,
+    link: `/FormIT/ChiTiet/${encodeURIComponent(item.formId)}`,
+    linkText: "Xem"
+    };
+    }
+
     function renderTableDanhSach(data) {
+    duLieuTrangHienTai = data || [];
     const tbody = document.getElementById('tblDanhSachMacBody');
+    const tableWrap = document.getElementById('tableViewWrap');
+    const cardWrap = document.getElementById('cardViewWrap');
+    const isCard = window.DangXemDon && DangXemDon.getMode() === "card";
+    const coDuLieu = data.length > 0;
+
+    tableWrap.style.display = (coDuLieu && isCard) ? "none" : "block";
+    cardWrap.style.display = (coDuLieu && isCard) ? "block" : "none";
+
+    if (coDuLieu && isCard) {
+    DangXemDon.renderCards(data, mapCardDon);
+    return;
+    }
+
     if (data.length === 0) {
     tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 32px; color: #898781;"><i class="fa fa-inbox" style="font-size: 22px; display: block; margin-bottom: 8px; color: #cbd5e1;"></i>Không có dữ liệu phù hợp</td></tr>';
     return;
@@ -826,5 +868,9 @@
     }
     });
 
-    document.addEventListener('DOMContentLoaded', initMacStats);
+    document.addEventListener('DOMContentLoaded', () => {
+    // Đổi dạng xem trong hộp Cài đặt giao diện thì vẽ lại danh sách, không tải lại trang
+    DangXemDon.onChange(() => renderTableDanhSach(duLieuTrangHienTai));
+    initMacStats();
+    });
 </script>

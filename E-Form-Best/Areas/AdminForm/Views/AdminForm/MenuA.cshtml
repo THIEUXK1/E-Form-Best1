@@ -34,6 +34,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
+    @* Hiệu ứng nền theo mùa & ngày lễ — mặc định TẮT, bật bằng nút ở góc phải trên *@
+    <link rel="stylesheet" href="~/css/hieu-ung-mua.css?v=13" />
+    <script src="~/js/hieu-ung-mua.js?v=16"></script>
+
     <style>
             /* ==========================================
                                                        MOBILE RESPONSIVE
@@ -107,7 +111,7 @@
     </style>
 </head>
 <body style="margin: 0; padding: 0;">
-    <div style="
+    <div id="nenTrangChu" style="
         min-height: 100vh;
         display: flex;
         flex-direction: column;
@@ -175,6 +179,12 @@
                     onmouseout="this.style.background='rgba(0, 212, 255, 0.15)'; this.style.transform='translateY(0)'">
                 <span class="guide-text">Hướng dẫn sử dụng</span>
                 <span style="font-size: 20px;">📚</span>
+            </button>
+
+            @* Bật/tắt hiệu ứng nền — mặc định tắt, nhãn do hieu-ung-mua.js cập nhật *@
+            <button type="button" id="btnHieuUngMua" title="Bấm để bật hiệu ứng nền theo mùa và ngày lễ">
+                <span id="tenMuaHienTai">Bật hiệu ứng nền</span>
+                <span class="nhan-hieu-ung" style="font-size: 16px;">🎨</span>
             </button>
 
             <div id="guideMenu"
@@ -360,10 +370,44 @@
                     .then(data => {
                         let items = data.dataList || [];
                         let readIds = getReadIds('read_cv_notifications');
-                        if (items.filter(i => !readIds.includes(i.id.toString())).length > 0) {
-                            document.getElementById('badge-work').style.display = 'block';
-                        }
+                        badgeWorkState.coChuaDoc = items.filter(i => !readIds.includes(i.id.toString())).length > 0;
+                        veBadgeWork();
                     }).catch(err => console.log(err));
+            }
+
+            // Badge WORK có hai nguồn dữ liệu chạy song song (thông báo chưa đọc + công việc sắp quá hạn).
+            // Trước đây mỗi fetch tự ghi style lên cùng một thẻ nên cái nào trả về sau sẽ đè cái kia:
+            // display bị trả về 'block' làm mất canh giữa flex -> số trong chấm đỏ lệch, tuỳ thứ tự mạng mỗi lần F5.
+            // Nay gom trạng thái về một chỗ, chỉ một hàm được phép vẽ.
+            var badgeWorkState = { coChuaDoc: false, soSapQuaHan: 0 };
+
+            function veBadgeWork() {
+                var badge = document.getElementById('badge-work');
+                if (!badge) return;
+                var count = badgeWorkState.soSapQuaHan;
+
+                if (count > 0) {
+                    badge.style.display = 'flex';
+                    badge.style.width = '22px';
+                    badge.style.height = '22px';
+                    badge.style.lineHeight = '1';
+                    badge.style.boxShadow = '0 0 14px rgba(239,68,68,1)';
+                    badge.style.animation = 'pulseUrgent 0.8s infinite';
+                    badge.style.border = '2px solid #fff';
+                    badge.title = 'Có ' + count + ' công việc chỉ định SẮP QUÁ HẠN - cần xử lý gấp!';
+                    badge.textContent = count > 9 ? '9+' : count.toString();
+                    return;
+                }
+
+                // Hết công việc sắp quá hạn: phải xoá số và trả về chấm đỏ trơn, nếu không badge giữ số cũ đã lỗi thời
+                badge.textContent = '';
+                badge.title = '';
+                badge.style.width = '16px';
+                badge.style.height = '16px';
+                badge.style.border = 'none';
+                badge.style.boxShadow = '0 0 8px rgba(239,68,68,0.8)';
+                badge.style.animation = 'pulseDot 1.5s infinite';
+                badge.style.display = badgeWorkState.coChuaDoc ? 'flex' : 'none';
             }
 
             // Cảnh báo QUYẾT LIỆT cho công việc chỉ định sắp quá hạn (còn dưới 24h) chưa xử lý xong.
@@ -373,20 +417,8 @@
                 fetch('/FormCongViec/GetSoLuongSapQuaHan')
                     .then(res => res.json())
                     .then(data => {
-                        var badge = document.getElementById('badge-work');
-                        if (!badge) return;
-                        var count = data && data.success ? (data.count || 0) : 0;
-
-                        if (count > 0) {
-                            badge.style.display = 'flex';
-                            badge.style.width = '22px';
-                            badge.style.height = '22px';
-                            badge.style.boxShadow = '0 0 14px rgba(239,68,68,1)';
-                            badge.style.animation = 'pulseUrgent 0.8s infinite';
-                            badge.style.border = '2px solid #fff';
-                            badge.title = 'Có ' + count + ' công việc chỉ định SẮP QUÁ HẠN - cần xử lý gấp!';
-                            badge.textContent = count > 9 ? '9+' : count.toString();
-                        }
+                        badgeWorkState.soSapQuaHan = data && data.success ? (data.count || 0) : 0;
+                        veBadgeWork();
                     }).catch(err => console.log(err));
             }
 

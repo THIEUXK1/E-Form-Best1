@@ -9,6 +9,7 @@
                         ?? User.FindFirst("UserRole")?.Value ?? "User";
 }
 
+
 <style>
     /* Style cho phân trang & hiệu ứng chung */
     .page-btn {
@@ -319,6 +320,7 @@
             </div>
 
             <div class="search-area-mobile" style="display: flex; gap: 15px; align-items: center;">
+
                 <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 10px 15px; border-radius: 15px; border: 2px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                     <span style="font-size: 11px; font-weight: 900; color: #64748b; text-transform: uppercase;">Dòng:</span>
                     <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 1000; color: #1e40af; cursor: pointer; background: transparent; font-size: 14px;">
@@ -406,7 +408,7 @@
         </div>
 
         @* --- BẢNG DANH SÁCH --- *@
-        <div style="background: white; border-radius: 25px; border: 1px solid #e2e8f0; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); overflow: hidden;">
+        <div id="tableViewWrap" style="background: white; border-radius: 25px; border: 1px solid #e2e8f0; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); overflow: hidden;">
             <table id="dataTable" style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
@@ -422,11 +424,16 @@
                     <tr><td colspan="6" style="text-align: center; padding: 60px; color: #64748b;"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu kho...</td></tr>
                 </tbody>
             </table>
+        </div>
 
-            <div id="emptyState" style="display: none; padding: 80px 20px; text-align: center; color: #94a3b8;">
-                <i class="fa fa-folder-open-o" style="font-size: 54px; margin-bottom: 20px; display: block; opacity: 0.5;"></i>
-                <div style="font-weight: 700; font-size: 16px;">Không tìm thấy kết quả phù hợp với bộ lọc</div>
-            </div>
+        @* --- LƯỚI THẺ (dạng xem thứ hai, JS bật/tắt) --- *@
+        <div id="cardViewWrap" style="display: none;">
+            <div id="cardViewGrid" class="card-view-grid"></div>
+        </div>
+
+        <div id="emptyState" style="display: none; padding: 80px 20px; text-align: center; color: #94a3b8; background: white; border-radius: 25px; border: 1px solid #e2e8f0; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
+            <i class="fa fa-folder-open-o" style="font-size: 54px; margin-bottom: 20px; display: block; opacity: 0.5;"></i>
+            <div style="font-weight: 700; font-size: 16px;">Không tìm thấy kết quả phù hợp với bộ lọc</div>
         </div>
 
         @* --- THANH PHÂN TRANG --- *@
@@ -443,6 +450,7 @@
         </div>
     </div>
 </div>
+
 
 <script>
     let masterData = [];
@@ -476,6 +484,9 @@
             updateDropdownButtonLabel($menu);
             handleSearch();
         });
+
+        // Bộ chuyển dạng xem: đổi xong chỉ vẽ lại vùng danh sách, không tải lại trang
+        DangXemDon.onChange(() => renderTable());
 
         loadDataFromAPI();
     });
@@ -616,6 +627,27 @@
         return { statusName, pWidth, pColor, stBg, stFg };
     }
 
+    // Quy đổi một đơn sang mô tả thẻ cho dạng xem "Thẻ"
+    function mapCardDon(item) {
+        const s = determineStatus(item);
+        return {
+            catalog: item.danhmuc,
+            statusText: s.statusName,
+            statusBg: s.stBg,
+            statusFg: s.stFg,
+            title: (item.tenForm || "").replace("[ĐÃ HỦY]", "").trim(),
+            name: item.tenNguoiNv,
+            sub: `#${item.id} • ${item.boPhan}`,
+            chips: item.nguoiHoTros || [],
+            emptyChipText: "Chưa có tiếp nhận",
+            progressWidth: s.pWidth,
+            progressColor: s.pColor,
+            date: item.timeNguoiTao,
+            link: `/FormIT/ChiTiet/${encodeURIComponent(item.id)}`,
+            linkText: "Chi tiết"
+        };
+    }
+
     function changePageSize() {
         rowsPerPage = parseInt(document.getElementById("pageSizeSelect").value);
         currentPage = 1;
@@ -729,17 +761,23 @@
     function renderTable() {
         const tbody = document.getElementById("tableBody");
         const emptyState = document.getElementById("emptyState");
-        const dataTable = document.getElementById("dataTable");
+        const tableWrap = document.getElementById("tableViewWrap");
+        const cardWrap = document.getElementById("cardViewWrap");
+        const isCard = window.DangXemDon && DangXemDon.getMode() === "card";
 
         tbody.innerHTML = "";
         const startIdx = (currentPage - 1) * rowsPerPage;
         const pageData = filteredData.slice(startIdx, startIdx + rowsPerPage);
 
-        if (pageData.length === 0) {
-            emptyState.style.display = "block"; dataTable.style.display = "none";
-        } else {
-            emptyState.style.display = "none"; dataTable.style.display = "table";
+        const coDuLieu = pageData.length > 0;
+        emptyState.style.display = coDuLieu ? "none" : "block";
+        tableWrap.style.display = (coDuLieu && !isCard) ? "block" : "none";
+        cardWrap.style.display = (coDuLieu && isCard) ? "block" : "none";
 
+        if (coDuLieu) {
+            if (isCard) {
+                DangXemDon.renderCards(pageData, mapCardDon);
+            } else {
             pageData.forEach(item => {
                 const s = determineStatus(item);
                 const cleanTenForm = (item.tenForm || "").replace("[ĐÃ HỦY]", "").trim();
@@ -798,6 +836,7 @@
                 `;
                 tbody.appendChild(tr);
             });
+            }
         }
 
         const totalPages = Math.ceil(filteredData.length / rowsPerPage) || 1;

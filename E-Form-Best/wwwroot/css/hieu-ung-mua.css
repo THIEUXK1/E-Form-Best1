@@ -1,0 +1,86 @@
+/* ============================================================
+   HIỆU ỨNG THEO MÙA CHO TRANG CHỦ
+   Nền đổi màu theo mùa thật của đồng hồ máy (xuân/hạ/thu/đông) và theo
+   ngày/đêm, kèm lớp hạt rơi nhẹ (cánh hoa, nắng, lá, tuyết).
+   MẶC ĐỊNH TẮT — người dùng tự bật bằng nút ở góc phải trên.
+   ============================================================ */
+
+/* Nền chỉ đổi khi hiệu ứng được bật; tắt thì trả về nền gốc của trang */
+#nenTrangChu {
+    transition: background 1.2s ease;
+}
+
+:root[data-hieu-ung-mua] #nenTrangChu {
+    background: var(--nen-mua) !important;
+}
+
+/* Lớp hạt rơi: phủ toàn màn, không chắn thao tác */
+#lopHatMua {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+}
+
+:root[data-hieu-ung-mua] #lopHatMua {
+    opacity: 1;
+}
+
+/* Nút bật/tắt ở góc phải trên, dùng chung phong cách với nút Hướng dẫn */
+#btnHieuUngMua {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 18px;
+    border-radius: 50px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #cbd5e1;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+    #btnHieuUngMua:hover {
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, 0.12);
+    }
+
+:root[data-hieu-ung-mua] #btnHieuUngMua {
+    background: rgba(0, 212, 255, 0.15);
+    border-color: rgba(0, 212, 255, 0.4);
+    color: #00d4ff;
+}
+
+/* Tên mùa hiện trên nút khi đang bật */
+#tenMuaHienTai {
+    font-weight: 800;
+    letter-spacing: 0.3px;
+}
+
+@media (max-width: 768px) {
+    #btnHieuUngMua {
+        padding: 8px 14px;
+        font-size: 12px;
+    }
+
+        #btnHieuUngMua .nhan-hieu-ung {
+            display: none;
+        }
+}
+
+/* ============================================================
+   ÁP CHỦ ĐỀ SANG CÁC LAYOUT (IT / HR / SHD / Công việc)
+   CHỈ tô cho MENU bên trái, không đụng tới phần còn lại của trang:
+   nền nội dung, thẻ, thanh trên cùng giữ nguyên như cũ.
+   ============================================================ */
+:root[data-hieu-ung-mua] #sidebar {
+    background: var(--nen-mua) !important;
+    background-attachment: fixed !important;
+    background-size: cover !important;
+}
