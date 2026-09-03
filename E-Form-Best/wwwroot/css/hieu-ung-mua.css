@@ -84,3 +84,17 @@
     background-attachment: fixed !important;
     background-size: cover !important;
 }
+
+/* Lớp hạt rơi bên trong khung menu: nằm sau chữ và biểu tượng của menu */
+#lopHatMua.hat-trong-menu {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+:root[data-hieu-ung-mua] #sidebar > *:not(#lopHatMua) {
+    position: relative;
+    z-index: 1;
+}
