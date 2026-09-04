@@ -6,6 +6,9 @@
     var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("UserRole")?.Value ?? "User";
 }
 
+@* Token chống giả mạo (CSRF) cho các lời gọi fetch ghi dữ liệu trong trang này *@
+@Html.AntiForgeryToken()
+
 <style>
     .dt-btn {
         border: none; border-radius: 50px; font-weight: 700; cursor: pointer; padding: 12px 22px;
@@ -685,7 +688,10 @@
         try {
             await fetch('/FormCongViec/DiemDanhDaoTao', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                },
                 body: JSON.stringify({ idThamGia, coMat })
             });
             loadDanhSachDaoTao();
