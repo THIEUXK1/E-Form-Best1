@@ -407,6 +407,10 @@
         return chuDeHienTai().ten;
     }
 
+    // Chủ đề + trạng thái ngày/đêm đang được vẽ. Dùng để nhận ra "không có gì
+    // đổi" mà bỏ qua, tránh mỗi phút lại gieo lại đàn hạt làm hiệu ứng giật cục.
+    let dauChuDeDangChay = null;
+
     function apDung() {
         const mua = chuDeHienTai();
 
@@ -414,9 +418,18 @@
             document.documentElement.removeAttribute("data-hieu-ung-mua");
             document.documentElement.style.removeProperty("--nen-mua");
             tatHat();
+            dauChuDeDangChay = null;
             capNhatNut(mua);
             return;
         }
+
+        // Cùng chủ đề, cùng ngày/đêm và hạt vẫn đang chạy -> để yên cho liền mạch
+        const dau = mua.ten + (banNgay() ? "|ngay" : "|dem");
+        if (dau === dauChuDeDangChay && khungHinh) {
+            capNhatNut(mua);
+            return;
+        }
+        dauChuDeDangChay = dau;
 
         document.documentElement.style.setProperty("--nen-mua", banNgay() ? mua.ngay : mua.dem);
         document.documentElement.setAttribute("data-hieu-ung-mua", mua.ten);
