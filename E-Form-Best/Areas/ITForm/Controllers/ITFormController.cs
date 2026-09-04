@@ -3,6 +3,7 @@ using E_Form_Best.Models.ITForm;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
 using System.DirectoryServices.AccountManagement;
@@ -50,6 +51,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/DonXetDuyet/DangNhap")]
+        [EnableRateLimiting("dang-nhap")] // Chặn tool quét tài khoản: tối đa 10 lần POST/phút cho mỗi IP
         public async Task<IActionResult> DangNhap(string email, string matKhau, string deviceName, bool rememberMe = false)
         {
             // 1. Kiểm tra nhập liệu
