@@ -7,6 +7,8 @@ using E_Form_Best.Areas.ITForm.Services; // Thêm namespace của Worker mới
 using Microsoft.AspNetCore.Authentication; // Thêm để dùng SignOutAsync
 using System.Security.Claims; // Thêm để làm việc với Claims
 using Microsoft.AspNetCore.HttpOverrides; // Đọc header X-Forwarded-* do nginx gửi sang
+using Microsoft.AspNetCore.RateLimiting; // Giới hạn tần suất request cho trang đăng nhập
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -106,6 +108,45 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+// 5b. GIỚI HẠN TẦN SUẤT ĐĂNG NHẬP THEO IP
+// Chốt khoá tài khoản trong ITFormController đếm theo từng user nên không cản được kiểu quét
+// "một mật khẩu thử cho hàng nghìn tài khoản" (password spraying) — mỗi tài khoản chỉ sai 1 lần,
+// không tài khoản nào chạm ngưỡng 5. Điểm chung của kiểu quét đó là cùng một IP, nên chặn theo IP.
+// Bộ đếm phải PHÂN VÙNG theo IP; nếu dùng limiter chung, một kẻ quét sẽ khoá đăng nhập cả công ty.
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("dang-nhap", httpContext =>
+    {
+        // UseForwardedHeaders chạy trước nên đây là IP thật của người dùng, không phải IP nginx.
+        // Không lấy được IP (trường hợp hiếm) thì gom chung vào một vùng "khong-ro" để vẫn bị giới hạn.
+        string khoaIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "khong-ro";
+
+        return RateLimitPartition.GetFixedWindowLimiter(khoaIp, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,                   // 10 lần POST đăng nhập
+            Window = TimeSpan.FromMinutes(1),   // trong mỗi 1 phút
+            QueueLimit = 0                      // vượt là từ chối ngay, không xếp hàng chờ
+        });
+    });
+
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Trả kèm Retry-After để client biết chờ bao lâu, và một câu tiếng Việt cho người dùng thật
+    // lỡ bị dính (thay vì trang lỗi trắng khó hiểu).
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers.RetryAfter = ((int)retryAfter.TotalSeconds).ToString();
+        }
+
+        context.HttpContext.Response.ContentType = "text/plain; charset=utf-8";
+        await context.HttpContext.Response.WriteAsync(
+            "Bạn đã thử đăng nhập quá nhiều lần. Vui lòng chờ khoảng 1 phút rồi thử lại.",
+            cancellationToken);
+    };
+});
+
 var app = builder.Build();
 
 // Phải đứng trước mọi middleware khác để các middleware sau đó (nhất là HttpsRedirection
@@ -134,6 +175,10 @@ app.UseStaticFiles(new StaticFileOptions
 }); // Quan trọng: Để truy cập sw.js và icon thông báo
 
 app.UseRouting();
+
+// Phải đứng sau UseRouting thì middleware mới biết request rơi vào endpoint nào để áp đúng
+// policy [EnableRateLimiting]. Đặt trước Authentication để chặn ngay, không tốn truy vấn DB.
+app.UseRateLimiter();
 
 // 6. THỨ TỰ MIDDLEWARE
 app.UseAuthentication();
