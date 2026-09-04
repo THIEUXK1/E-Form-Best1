@@ -3,6 +3,7 @@ using E_Form_Best.Models.ITForm;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
@@ -342,10 +343,20 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // Xác thực Hybrid dùng chung với trang đăng nhập chính (DangNhap): ưu tiên Domain theo UserDomainAuth.LoginMode
-        // (0 = Domain only, 1 = DB only, 2 = Hybrid - thử Domain trước, không được thì fallback DB). Trả về User nếu xác thực đúng, null nếu sai.
-        private async Task<User?> XacThucTaiKhoanHybrid(string taikhoan, string matkhau)
+        // (0 = Domain only, 1 = DB only, 2 = Hybrid - thử Domain trước, không được thì fallback DB).
+        //
+        // BẢO MẬT (chống dò mật khẩu): trước đây hàm này chỉ so mật khẩu rồi trả kết quả, KHÔNG dùng chung
+        // cơ chế khoá tài khoản (FailedAttempts/LockoutEnd) của trang đăng nhập chính. Vì thế các endpoint gọi
+        // nó (XacThucAdmin, XacNhanTaiSanMaMay, ThemNhanhTaiSanKhac) trở thành cửa sau dò mật khẩu không giới
+        // hạn — kể cả dò thẳng mật khẩu Active Directory. Nay áp đúng cơ chế khoá như DangNhap:
+        //  - Đang bị khoá  -> trả về ngay, KHÔNG thử mật khẩu (nhờ đó cũng không hammer AD gây khoá nhầm bên AD).
+        //  - Sai            -> tăng FailedAttempts, đủ 5 lần thì khoá theo cấp số nhân 30*2^(n-5) giây.
+        //  - Đúng           -> reset trạng thái khoá.
+        // Trả về tuple (user, loi): user != null là xác thực thành công; ngược lại loi là thông báo cho người dùng.
+        private async Task<(User? user, string? loi)> XacThucTaiKhoanHybrid(string taikhoan, string matkhau)
         {
-            if (string.IsNullOrEmpty(taikhoan) || string.IsNullOrEmpty(matkhau)) return null;
+            if (string.IsNullOrEmpty(taikhoan) || string.IsNullOrEmpty(matkhau))
+                return (null, "Vui lòng nhập đầy đủ tài khoản và mật khẩu.");
 
             var domainAuth = await _context.UserDomainAuths
                 .Include(a => a.IdNguoiDungNavigation)
@@ -355,7 +366,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 ? domainAuth.IdNguoiDungNavigation
                 : await _context.Users.FirstOrDefaultAsync(u => u.Tk == taikhoan && u.TrangThai != "Đã nghỉ");
 
-            if (user == null) return null;
+            if (user == null)
+                return (null, "Tài khoản hoặc mật khẩu không chính xác.");
+
+            // Đang trong thời gian bị khoá: từ chối ngay, không đụng tới mật khẩu / AD.
+            if (user.LockoutEnd.HasValue && user.LockoutEnd > DateTime.Now)
+            {
+                int conLai = (int)(user.LockoutEnd.Value - DateTime.Now).TotalSeconds;
+                return (null, $"Tài khoản bị khóa. Vui lòng thử lại sau {conLai} giây.");
+            }
 
             bool isAuthenticated = false;
 
@@ -385,7 +404,36 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
             }
 
-            return isAuthenticated ? user : null;
+            if (!isAuthenticated)
+            {
+                // Cùng công thức khoá với trang đăng nhập chính để một kẻ tấn công không thể né bằng cách đổi endpoint.
+                user.FailedAttempts = (user.FailedAttempts ?? 0) + 1;
+                string thongBao;
+                if (user.FailedAttempts >= 5)
+                {
+                    int seconds = 30 * (int)Math.Pow(2, user.FailedAttempts.Value - 5);
+                    user.LockoutEnd = DateTime.Now.AddSeconds(seconds);
+                    thongBao = $"Bạn đã nhập sai {user.FailedAttempts} lần. Tài khoản bị khóa {seconds} giây.";
+                }
+                else
+                {
+                    thongBao = $"Tài khoản hoặc mật khẩu không chính xác. (Lần thử {user.FailedAttempts}/5)";
+                }
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+                return (null, thongBao);
+            }
+
+            // Đăng nhập đúng -> gỡ trạng thái khoá.
+            if ((user.FailedAttempts ?? 0) != 0 || user.LockoutEnd != null)
+            {
+                user.FailedAttempts = 0;
+                user.LockoutEnd = null;
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+            }
+
+            return (user, null);
         }
 
         private bool AuthenticateWithDomain(string username, string password)
@@ -3495,15 +3543,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #endregion
 
         // --- ACTION DOWNLOAD / XEM FILE (Giữ nguyên 100%) ---
+        [Authorize]
         [HttpGet("/FormIT/DownloadFile/{fileName}")]
         public async Task<IActionResult> DownloadFile(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return NotFound();
 
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonIT";
-            string fullPath = Path.Combine(networkPath, fileName);
+            string? fullPath = DuongDanFileAnToan(networkPath, fileName);
 
-            if (!System.IO.File.Exists(fullPath))
+            if (fullPath == null || !System.IO.File.Exists(fullPath))
                 return NotFound("Tệp tin không tồn tại.");
 
             var memory = new MemoryStream();
@@ -4285,6 +4334,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
+        [Authorize]
         [HttpGet("/FormIT/DownloadBinhLuanFile/{fileName}")]
         public async Task<IActionResult> DownloadBinhLuanFile(string fileName)
         {
@@ -4292,7 +4342,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return NotFound();
 
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonIT";
-            string fullPath = Path.Combine(networkPath, fileName);
+            string? fullPath = DuongDanFileAnToan(networkPath, fileName);
+            if (fullPath == null)
+                return NotFound("File không tồn tại");
 
             var fileInfo = new FileInfo(fullPath);
             if (!fileInfo.Exists)
@@ -6117,6 +6169,41 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch { /* Bỏ qua lỗi ghi log để không làm gián đoạn luồng chính */ }
         }
 
+        // Chốt xác thực dùng chung cho các endpoint AJAX của module Kiểm kê.
+        // Trước đây các action ghi dữ liệu ở đây không kiểm tra gì cả: trang GET có chặn
+        // đăng nhập nhưng URL POST thì gọi thẳng bằng curl vẫn chạy, nên người ngoài xoá
+        // được thiết bị. Ẩn nút trên giao diện không phải là phân quyền — mọi action ghi
+        // dữ liệu phải tự gọi hàm này ở dòng đầu tiên.
+        // Trả JSON kèm 401 thay vì Redirect vì phía JS đang đọc thẳng res.json().
+        private IActionResult? ChanNeuChuaDangNhap()
+        {
+            if (User?.Identity?.IsAuthenticated == true) return null;
+
+            Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." });
+        }
+
+        // Chống path traversal / absolute path: chỉ cho đọc file NẰM TRONG thư mục gốc.
+        // Người dùng gửi "..\..\appsettings.json" hay đường dẫn tuyệt đối sẽ bị loại,
+        // vì file lưu lên đều có tên trần do hệ thống sinh ra (không chứa dấu phân tách).
+        private static string? DuongDanFileAnToan(string thuMucGoc, string? tenFile)
+        {
+            if (string.IsNullOrEmpty(tenFile)) return null;
+
+            // GetFileName cắt bỏ mọi thành phần thư mục; nếu tên gốc khác kết quả
+            // (tức có chứa "\", "/", "..", hoặc ổ đĩa) thì coi như tấn công, từ chối.
+            string chiTenFile = Path.GetFileName(tenFile);
+            if (string.IsNullOrEmpty(chiTenFile) || !string.Equals(chiTenFile, tenFile, StringComparison.Ordinal))
+                return null;
+
+            string goc = Path.GetFullPath(thuMucGoc);
+            string duongDan = Path.GetFullPath(Path.Combine(goc, chiTenFile));
+
+            // Chốt cuối: đường dẫn giải ra vẫn phải nằm trong thư mục gốc.
+            string tienTo = goc.EndsWith(Path.DirectorySeparatorChar.ToString()) ? goc : goc + Path.DirectorySeparatorChar;
+            return duongDan.StartsWith(tienTo, StringComparison.OrdinalIgnoreCase) ? duongDan : null;
+        }
+
         #region 1. QL KIỂM KÊ: DANH MỤC & CẤU HÌNH (Công Ty, Bộ Phận, Loại Thiết Bị, Trạng Thái, Lịch Sử)
 
         // View dành cho Danh mục
@@ -6184,8 +6271,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLKiemKe/SaveKkTrangThai")]
+        [ValidateAntiForgeryToken]
         public IActionResult SaveKkTrangThai(KkTrangThai model)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 string action = model.IdTrangThai == 0 ? "Thêm mới" : "Cập nhật";
@@ -6215,8 +6307,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLKiemKe/DeleteKkTrangThai")]
+        [ValidateAntiForgeryToken]
         public IActionResult DeleteKkTrangThai(int id)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 var item = _context.KkTrangThais.Find(id);
@@ -6254,8 +6351,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLKiemKe/SaveKkCongTy")]
+        [ValidateAntiForgeryToken]
         public IActionResult SaveKkCongTy(KkCongTy model)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 string action = model.IdcongTy == 0 ? "Thêm mới" : "Cập nhật";
@@ -6290,8 +6392,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLKiemKe/DeleteKkCongTy")]
+        [ValidateAntiForgeryToken]
         public IActionResult DeleteKkCongTy(int id)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 var item = _context.KkCongTies.Find(id);
@@ -6337,8 +6444,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLKiemKe/SaveKkBoPhan")]
+        [ValidateAntiForgeryToken]
         public IActionResult SaveKkBoPhan(KkBoPhan model)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 // Chặn trùng Tên bộ phận trong cùng 1 Công ty (không phân biệt hoa/thường, khoảng trắng thừa)
@@ -6387,8 +6499,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLKiemKe/DeleteKkBoPhan")]
+        [ValidateAntiForgeryToken]
         public IActionResult DeleteKkBoPhan(int id)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 var item = _context.KkBoPhans.Find(id);
@@ -6419,8 +6536,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLKiemKe/SaveKkLoaiThietBi")]
+        [ValidateAntiForgeryToken]
         public IActionResult SaveKkLoaiThietBi(KkLoaiThietBi model)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 string action = model.IdLoai == 0 ? "Thêm mới" : "Cập nhật";
@@ -6452,8 +6574,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLKiemKe/DeleteKkLoaiThietBi")]
+        [ValidateAntiForgeryToken]
         public IActionResult DeleteKkLoaiThietBi(int id)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 var item = _context.KkLoaiThietBis.Find(id);
@@ -6578,8 +6705,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLKiemKe/BoChanThietBi")]
+        [ValidateAntiForgeryToken]
         public IActionResult BoChanThietBi([FromBody] BoChanThietBiRequest req)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 var item = _context.KkThietBiChans.Find(req?.IdChan ?? 0);
@@ -6723,8 +6855,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // HÀM LƯU THIẾT BỊ (CẬP NHẬT: CHECK TRÙNG THEO LOẠI & THAM SỐ LƯU NHÂN BẢN SAVE AS NEW)
         [HttpPost("/QLKiemKe/SaveKkThietBi")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveKkThietBi([FromForm] KkThietBi model, IFormFile? AnhThietBi, bool saveAsNew = false)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 // Nếu người dùng chọn lưu thành bản sao mới, reset Id về 0 để sinh khóa tự động
@@ -6895,8 +7032,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // HÀM THÊM NHANH TÀI SẢN KHÁC (Súng bắn mã vạch, Điện thoại bàn, Máy chiếu, PDA, ...) TỪ TRANG XÁC NHẬN TÀI SẢN
         // Dùng chung Tài khoản/Công ty/Bộ phận đã nhập ở form Xác nhận tài sản. Ghép trùng theo Serial + Loại thiết bị: có rồi thì Cập nhật, chưa có thì Thêm mới.
         [HttpPost("/QLKiemKe/ThemNhanhTaiSanKhac")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ThemNhanhTaiSanKhac(string taikhoan, string matkhau, int? idCongTy, int? idBoPhan, [FromForm] List<ThemNhanhTaiSanRow> rows)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             if (string.IsNullOrWhiteSpace(taikhoan) || string.IsNullOrWhiteSpace(matkhau))
             {
                 return Json(new { success = false, message = "Vui lòng nhập Tài khoản và Mật khẩu ở phần Xác nhận tài sản trước." });
@@ -6916,10 +7058,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             try
             {
-                var user = await XacThucTaiKhoanHybrid(taikhoan, matkhau);
+                var (user, loiXacThuc) = await XacThucTaiKhoanHybrid(taikhoan, matkhau);
                 if (user == null)
                 {
-                    return Json(new { success = false, message = "Tài khoản hoặc mật khẩu xác nhận không chính xác." });
+                    return Json(new { success = false, message = loiXacThuc ?? "Tài khoản hoặc mật khẩu xác nhận không chính xác." });
                 }
 
                 for (int i = 0; i < rows.Count; i++)
@@ -7037,8 +7179,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // HÀM SỬA TRỰC TIẾP LOẠI THIẾT BỊ (Laptop/PC/MayAo/Server) CỦA 1 MÁY TÍNH TỪ TRANG DANH SÁCH
         [HttpPost("/QLKiemKe/CapNhatLoaiThietBiMay")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> CapNhatLoaiThietBiMay([FromBody] CapNhatLoaiThietBiRequest req)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 if (req == null) return Json(new { success = false, message = "Dữ liệu không hợp lệ." });
@@ -7064,8 +7211,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLKiemKe/TuDongPhanLoaiThietBiChuaPhanLoai")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> TuDongPhanLoaiThietBiChuaPhanLoai([FromBody] TuDongPhanLoaiRequest? req)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 // Nếu Client gửi kèm danh sách IdMay đã tích chọn -> chỉ xử lý đúng các máy đó và GHI ĐÈ luôn Loại thiết bị cũ (nếu đoán được)
@@ -7208,8 +7360,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // Bản quyền Windows được đồng bộ theo đúng dữ liệu quét được từ máy (BanQuyenWin). Bản quyền Office KHÔNG đụng vào ở luồng này -
         // trường này được quản lý riêng qua chức năng nhập nhanh Excel (ImportOfficeLicenseExcel), tránh bị ghi đè ngoài ý muốn khi đồng bộ.
         [HttpPost("/QLKiemKe/DongBoMayTinhSangThietBi")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DongBoMayTinhSangThietBi([FromBody] DongBoMayTinhRequest req)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 if (req == null || req.DanhSachIdMay == null || !req.DanhSachIdMay.Any())
@@ -7302,15 +7459,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // HÀM XUẤT ẢNH TỪ FILE SERVER RA TRÌNH DUYỆT (THƯ MỤC THIẾT BỊ CHÍNH)
+        [Authorize]
         [HttpGet("/QLKiemKe/GetImage")]
         public IActionResult GetImage(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return NotFound();
 
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\AnhKiemKe";
-            string filePath = Path.Combine(networkPath, fileName);
+            string? filePath = DuongDanFileAnToan(networkPath, fileName);
 
-            if (!System.IO.File.Exists(filePath)) return NotFound();
+            if (filePath == null || !System.IO.File.Exists(filePath)) return NotFound();
 
             var ext = Path.GetExtension(filePath).ToLowerInvariant();
             string mimeType = "image/jpeg"; // Mặc định
@@ -7323,23 +7481,25 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // BỔ SUNG SỬA LỖI: HÀM XUẤT ẢNH BẰNG CHỨNG TỪ THƯ MỤC RIÊNG "BangChungKiemKe" RA VIEW
+        [Authorize]
         [HttpGet("/QLKiemKe/GetEvidenceImage")]
         public IActionResult GetEvidenceImage(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return NotFound();
 
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BangChungKiemKe";
-            string filePath = Path.Combine(networkPath, fileName);
+            string? filePath = DuongDanFileAnToan(networkPath, fileName);
+            if (filePath == null) return NotFound();
 
             // Ảnh xác nhận tài sản (tenFileAnhMoi từ XacNhanTaiSanMaMay) được lưu vật lý trong thư mục "AnhKiemKe"
             // nhưng vẫn được ghi vào KkBangChungCheck.DuongDanAnh -> cần dò thêm thư mục này nếu không thấy ở BangChungKiemKe
             if (!System.IO.File.Exists(filePath))
             {
                 string fallbackPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\AnhKiemKe";
-                filePath = Path.Combine(fallbackPath, fileName);
+                filePath = DuongDanFileAnToan(fallbackPath, fileName);
             }
 
-            if (!System.IO.File.Exists(filePath)) return NotFound();
+            if (filePath == null || !System.IO.File.Exists(filePath)) return NotFound();
 
             var ext = Path.GetExtension(filePath).ToLowerInvariant();
             string mimeType = "image/jpeg";
@@ -7353,8 +7513,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // HÀM XÁC NHẬN CHECK THIẾT BỊ (MỚI: LƯU LỊCH SỬ BẰNG CHỨNG KIỂM KÊ VÀO BẢNG RIÊNG & THƯ MỤC MẠNG RIÊNG)
         [HttpPost("/QLKiemKe/XacNhanCheck")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> XacNhanCheck([FromForm] int idThietBi, [FromForm] IFormFile? AnhBangChung, [FromForm] string? ghiChuCheck)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 var thietBi = await _context.KkThietBis.FindAsync(idThietBi);
@@ -7417,8 +7582,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // NÚT XÓA: Chuyển vào thùng rác
         [HttpPost("/QLKiemKe/DeleteKkThietBi")]
+        [ValidateAntiForgeryToken]
         public IActionResult DeleteKkThietBi(int id, string lyDo)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 var item = _context.KkThietBis.Find(id);
@@ -7455,8 +7625,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // NÚT KHÔI PHỤC: Lấy lại từ thùng rác
         [HttpPost("/QLKiemKe/RestoreKkThietBi")]
+        [ValidateAntiForgeryToken]
         public IActionResult RestoreKkThietBi(int id)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 var item = _context.KkThietBis.Find(id);
@@ -7481,8 +7656,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // NÚT XÓA VĨNH VIỄN: Hủy hoàn toàn khỏi CSDL
         [HttpPost("/QLKiemKe/HardDeleteKkThietBi")]
+        [ValidateAntiForgeryToken]
         public IActionResult HardDeleteKkThietBi(int id)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 var item = _context.KkThietBis.Find(id);
@@ -7590,8 +7770,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // Chỉ áp dụng cho thiết bị loại "Máy tính" (PC/máy cây) và "Laptop" - các loại thiết bị khác (Màn hình, Máy in...) không có Office nên bỏ qua dù trùng tên máy.
         // Chuẩn hóa Activated/Not Activated về đúng 2 giá trị đã dùng sẵn trong hệ thống ("Có bản quyền" / "Không có bản quyền") để đồng bộ với datalist và bộ lọc hiện có.
         [HttpPost("/QLKiemKe/ImportOfficeLicenseExcel")]
+        [ValidateAntiForgeryToken]
         public IActionResult ImportOfficeLicenseExcel(IFormFile file)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             if (file == null || file.Length == 0)
             {
                 return Json(new { success = false, message = "Vui lòng chọn file Excel." });
@@ -7711,8 +7896,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // Nhập nhanh bản quyền Windows từ file báo cáo license (sheet ALL_PC).
         // Khác với Office (chỉ lấy Activated/Not Activated), Windows phải lấy theo LOẠI KEY thì mới biết máy có license thật hay không.
         [HttpPost("/QLKiemKe/ImportWinLicenseExcel")]
+        [ValidateAntiForgeryToken]
         public IActionResult ImportWinLicenseExcel(IFormFile file)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             if (file == null || file.Length == 0)
             {
                 return Json(new { success = false, message = "Vui lòng chọn file Excel." });
@@ -7849,8 +8039,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // Xem trước dữ liệu Switch từ file trước khi đẩy vào DB: không lưu gì cả, chỉ đọc + đối chiếu trùng Serial.
         [HttpPost("/QLKiemKe/PreviewSwitchExcel")]
+        [ValidateAntiForgeryToken]
         public IActionResult PreviewSwitchExcel(IFormFile file)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             if (file == null || file.Length == 0)
             {
                 return Json(new { success = false, message = "Vui lòng chọn file." });
@@ -7911,8 +8106,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // Trùng theo Serial + Loại thiết bị = Switch thì Cập nhật, chưa có thì Thêm mới.
         // Nhận cả file .xlsx/.xls (ClosedXML) lẫn .csv (tự tách theo dấu phẩy/chấm phẩy/tab).
         [HttpPost("/QLKiemKe/ImportSwitchExcel")]
+        [ValidateAntiForgeryToken]
         public IActionResult ImportSwitchExcel(IFormFile file)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             if (file == null || file.Length == 0)
             {
                 return Json(new { success = false, message = "Vui lòng chọn file." });
@@ -8707,10 +8907,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // ACTION ĐÃ ĐƯỢC SỬA: Bổ sung IgnoreAntiforgeryToken để chặn lỗi kết nối đường truyền khi POST AJAX
+        // (endpoint tự xác thực lại bằng tài khoản/mật khẩu nên CSRF không khai thác được).
+        // Thêm giới hạn tần suất theo IP giống trang đăng nhập chính: chống dò mật khẩu qua cửa phụ này.
         [IgnoreAntiforgeryToken]
+        [EnableRateLimiting("dang-nhap")]
         [HttpPost("/QLKiemKe/XacThucAdmin")]
         public async Task<IActionResult> XacThucAdmin(string taikhoan, string matkhau)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             if (string.IsNullOrEmpty(taikhoan) || string.IsNullOrEmpty(matkhau))
             {
                 return Json(new { success = false, message = "Vui lòng nhập đầy đủ tài khoản và mật khẩu." });
@@ -8719,11 +8926,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             try
             {
                 // 1. Xác thực Hybrid (Domain hoặc DB tùy theo cấu hình LoginMode của tài khoản) - dùng chung logic với trang đăng nhập chính
-                var user = await XacThucTaiKhoanHybrid(taikhoan, matkhau);
+                var (user, loiXacThuc) = await XacThucTaiKhoanHybrid(taikhoan, matkhau);
 
                 if (user == null)
                 {
-                    return Json(new { success = false, message = "Tài khoản hoặc mật khẩu không chính xác." });
+                    return Json(new { success = false, message = loiXacThuc ?? "Tài khoản hoặc mật khẩu không chính xác." });
                 }
 
                 // 2. Check xem tài khoản đó có TenQuyen là AdminIT không dựa vào mối quan hệ nhiều-nhiều qua bảng trung gian UserQuyen và Quyen
@@ -8744,6 +8951,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // ACTION MỚI: Xử lý khi ấn xác nhận tài sản, nhận toàn bộ dữ liệu phần cứng từ Client
+        // Giữ IgnoreAntiforgeryToken như thiết kế ban đầu (endpoint tự xác thực lại bằng tài khoản/mật khẩu).
         [IgnoreAntiforgeryToken]
         [HttpPost("/QLKiemKe/XacNhanTaiSanMaMay")]
         public async Task<IActionResult> XacNhanTaiSanMaMay(
@@ -8773,6 +8981,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             int? idBoPhan = null,
             IFormFile? anhThietBi = null) // Ảnh chụp thiết bị lúc xác nhận (tùy chọn)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             if (string.IsNullOrEmpty(taikhoan) || string.IsNullOrEmpty(matkhau))
             {
                 return Json(new { success = false, message = "Vui lòng nhập đầy đủ tài khoản và mật khẩu." });
@@ -8801,11 +9013,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             try
             {
                 // 1. Xác thực Hybrid (Domain hoặc DB tùy theo cấu hình LoginMode của tài khoản) - dùng chung logic với trang đăng nhập chính
-                var user = await XacThucTaiKhoanHybrid(taikhoan, matkhau);
+                var (user, loiXacThuc) = await XacThucTaiKhoanHybrid(taikhoan, matkhau);
 
                 if (user == null)
                 {
-                    return Json(new { success = false, message = "Tài khoản hoặc mật khẩu xác nhận không chính xác." });
+                    return Json(new { success = false, message = loiXacThuc ?? "Tài khoản hoặc mật khẩu xác nhận không chính xác." });
                 }
 
                 // Máy nằm trong danh sách chặn thì không cho ghi nhận/tạo mới trong hệ thống kiểm kê
@@ -9406,3 +9618,4 @@ namespace E_Form_Best.Areas.ITForm.Controllers
     }
 }
  
+

@@ -1,6 +1,7 @@
 ﻿using E_Form_Best.Context;
 using E_Form_Best.Models.ITForm;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using static E_Form_Best.Areas.ITForm.Controllers.ITFormController;
@@ -15,6 +16,23 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         public SHDFormController()
         {
             _context= new ITFormContext();
+        }
+
+        // Chống path traversal / absolute path: chỉ cho đọc file NẰM TRONG thư mục gốc.
+        // Người dùng gửi "..\..\appsettings.json" hay đường dẫn tuyệt đối sẽ bị loại,
+        // vì file lưu lên đều có tên trần do hệ thống sinh ra (không chứa dấu phân tách).
+        private static string? DuongDanFileAnToan(string thuMucGoc, string? tenFile)
+        {
+            if (string.IsNullOrEmpty(tenFile)) return null;
+
+            string chiTenFile = Path.GetFileName(tenFile);
+            if (string.IsNullOrEmpty(chiTenFile) || !string.Equals(chiTenFile, tenFile, StringComparison.Ordinal))
+                return null;
+
+            string goc = Path.GetFullPath(thuMucGoc);
+            string duongDan = Path.GetFullPath(Path.Combine(goc, chiTenFile));
+            string tienTo = goc.EndsWith(Path.DirectorySeparatorChar.ToString()) ? goc : goc + Path.DirectorySeparatorChar;
+            return duongDan.StartsWith(tienTo, StringComparison.OrdinalIgnoreCase) ? duongDan : null;
         }
 
         #region Trang logo
@@ -498,13 +516,14 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         }
 
         // 6. Tải tệp tin SHD
+        [Authorize]
         [HttpGet("/FormSHD/DownloadFile/{fileName}")]
         public async Task<IActionResult> DownloadFile(string? fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return NotFound();
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonSHD";
-            string fullPath = Path.Combine(networkPath, fileName);
-            if (!System.IO.File.Exists(fullPath)) return NotFound("Tệp tin không tồn tại.");
+            string? fullPath = DuongDanFileAnToan(networkPath, fileName);
+            if (fullPath == null || !System.IO.File.Exists(fullPath)) return NotFound("Tệp tin không tồn tại.");
 
             var memory = new MemoryStream();
             using (var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
@@ -1070,13 +1089,15 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             }
         }
 
+        [Authorize]
         [HttpGet("/FormSHD/DownloadBinhLuanFile/{fileName}")]
         public IActionResult DownloadBinhLuanFile(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return NotFound();
 
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonSHD";
-            string fullPath = Path.Combine(networkPath, fileName);
+            string? fullPath = DuongDanFileAnToan(networkPath, fileName);
+            if (fullPath == null) return NotFound("File SHD không tồn tại");
 
             var fileInfo = new FileInfo(fullPath);
             if (!fileInfo.Exists) return NotFound("File SHD không tồn tại");

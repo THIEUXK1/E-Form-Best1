@@ -19,6 +19,24 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         {
             _context = new ITFormContext();
         }
+
+        // Chống path traversal / absolute path: chỉ cho đọc file NẰM TRONG thư mục gốc.
+        // Người dùng gửi "..\..\appsettings.json" hay đường dẫn tuyệt đối sẽ bị loại,
+        // vì file lưu lên đều có tên trần do hệ thống sinh ra (không chứa dấu phân tách).
+        private static string? DuongDanFileAnToan(string thuMucGoc, string? tenFile)
+        {
+            if (string.IsNullOrEmpty(tenFile)) return null;
+
+            string chiTenFile = Path.GetFileName(tenFile);
+            if (string.IsNullOrEmpty(chiTenFile) || !string.Equals(chiTenFile, tenFile, StringComparison.Ordinal))
+                return null;
+
+            string goc = Path.GetFullPath(thuMucGoc);
+            string duongDan = Path.GetFullPath(Path.Combine(goc, chiTenFile));
+            string tienTo = goc.EndsWith(Path.DirectorySeparatorChar.ToString()) ? goc : goc + Path.DirectorySeparatorChar;
+            return duongDan.StartsWith(tienTo, StringComparison.OrdinalIgnoreCase) ? duongDan : null;
+        }
+
         #region MenuA
         [HttpGet("/")]      // Trang chủ trỏ thẳng vào đây, không qua redirect trung gian
         [HttpGet("/MenuA")] // Hoặc đường dẫn tương ứng của bạn
@@ -171,7 +189,14 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
         [Authorize]
         public IActionResult GetAvatar(string path)
         {
-            if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path))
+            // BẢO MẬT: trước đây action mở thẳng bất kỳ đường dẫn nào client gửi lên, nên
+            // /GetAvatar?path=C:\...\appsettings.json đọc được cả file cấu hình (lộ mật khẩu sa).
+            // Ảnh đại diện chỉ nằm trong đúng một thư mục; chỉ lấy TÊN FILE và ghép lại với thư mục
+            // đó, bỏ mọi thành phần đường dẫn client cố chèn vào.
+            string thuMucAnh = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\User";
+            string? duongDanAnh = DuongDanFileAnToan(thuMucAnh, string.IsNullOrEmpty(path) ? null : Path.GetFileName(path));
+
+            if (duongDanAnh == null || !System.IO.File.Exists(duongDanAnh))
             {
                 // [FIX 2] Kiểm tra tồn tại file mặc định trước khi đọc để tránh sập (Lỗi 500).
                 // Nếu không có, trả về NotFound() để View kích hoạt hàm "onerror" và hiện ảnh thay thế.
@@ -183,6 +208,7 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                 return NotFound();
             }
 
+            path = duongDanAnh;
             var image = System.IO.File.OpenRead(path);
 
             // [FIX 3] Trả về đúng định dạng extension của ảnh thay vì fix cứng jpeg

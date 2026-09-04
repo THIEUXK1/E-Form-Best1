@@ -2,6 +2,7 @@
 using E_Form_Best.Models.ITForm;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -22,6 +23,34 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         public CongViecFormController()
         {
             _context = new ITFormContext();
+        }
+
+        // Chốt xác thực dùng chung cho các endpoint AJAX. Một số action ghi dữ liệu trước
+        // đây không kiểm tra danh tính nên gọi thẳng URL bằng curl vẫn chạy dù chưa đăng nhập.
+        // Trả JSON kèm 401 thay vì Redirect vì phía JS đang đọc thẳng res.json().
+        private IActionResult? ChanNeuChuaDangNhap()
+        {
+            if (User?.Identity?.IsAuthenticated == true) return null;
+
+            Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." });
+        }
+
+        // Chống path traversal / absolute path: chỉ cho đọc file NẰM TRONG thư mục gốc.
+        // Người dùng gửi "..\..\appsettings.json" hay đường dẫn tuyệt đối sẽ bị loại,
+        // vì file lưu lên đều có tên trần do hệ thống sinh ra (không chứa dấu phân tách).
+        private static string? DuongDanFileAnToan(string thuMucGoc, string? tenFile)
+        {
+            if (string.IsNullOrEmpty(tenFile)) return null;
+
+            string chiTenFile = Path.GetFileName(tenFile);
+            if (string.IsNullOrEmpty(chiTenFile) || !string.Equals(chiTenFile, tenFile, StringComparison.Ordinal))
+                return null;
+
+            string goc = Path.GetFullPath(thuMucGoc);
+            string duongDan = Path.GetFullPath(Path.Combine(goc, chiTenFile));
+            string tienTo = goc.EndsWith(Path.DirectorySeparatorChar.ToString()) ? goc : goc + Path.DirectorySeparatorChar;
+            return duongDan.StartsWith(tienTo, StringComparison.OrdinalIgnoreCase) ? duongDan : null;
         }
 
         #region logo
@@ -475,15 +504,16 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         }
 
         // --- ACTION DOWNLOAD / XEM FILE ĐÍNH KÈM ĐƠN CÔNG VIỆC CHÍNH ---
+        [Authorize]
         [HttpGet("/FormCongViec/DownloadFile/{fileName}")]
         public async Task<IActionResult> DownloadFile(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return NotFound();
 
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonCongViec";
-            string fullPath = Path.Combine(networkPath, fileName);
+            string? fullPath = DuongDanFileAnToan(networkPath, fileName);
 
-            if (!System.IO.File.Exists(fullPath))
+            if (fullPath == null || !System.IO.File.Exists(fullPath))
                 return NotFound("Tệp tin tài liệu công việc không tồn tại.");
 
             var memory = new MemoryStream();
@@ -511,13 +541,16 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         }
 
         // --- ACTION ĐỌC VÀ KẾT XUẤT FILE ĐÍNH KÈM KHÔNG GIAN BÌNH LUẬN THẢO LUẬN ---
+        [Authorize]
         [HttpGet("/FormCongViec/DownloadBinhLuanFile/{fileName}")]
         public async Task<IActionResult> DownloadBinhLuanFile(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return NotFound();
 
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\BinhLuanDonCongViec";
-            string fullPath = Path.Combine(networkPath, fileName);
+            string? fullPath = DuongDanFileAnToan(networkPath, fileName);
+            if (fullPath == null)
+                return NotFound("Tệp tin đính kèm thảo luận không tồn tại.");
 
             var fileInfo = new FileInfo(fullPath);
             if (!fileInfo.Exists)
@@ -741,8 +774,13 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         }
 
         [HttpPost("/FormCongViec/XacNhanChuaHoanThanh")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> XacNhanChuaHoanThanh([FromBody] System.Text.Json.JsonElement body)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             int id = body.GetProperty("id").GetInt32();
             string reason = body.GetProperty("reason").GetString() ?? "";
 
@@ -2375,8 +2413,13 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
         // Điểm danh người tham dự - chỉ áp dụng khi hồ sơ chưa hoàn tất/khóa.
         [HttpPost("/FormCongViec/DiemDanhDaoTao")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DiemDanhDaoTao([FromBody] System.Text.Json.JsonElement body)
         {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
             try
             {
                 int idThamGia = body.GetProperty("idThamGia").GetInt32();
@@ -2607,15 +2650,16 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         }
 
         // Tải/hiển thị ảnh bằng chứng đào tạo từ fileserver chung.
+        [Authorize]
         [HttpGet("/FormCongViec/DownloadDaoTaoFile/{fileName}")]
         public async Task<IActionResult> DownloadDaoTaoFile(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return NotFound();
 
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DaoTao";
-            string fullPath = Path.Combine(networkPath, fileName);
+            string? fullPath = DuongDanFileAnToan(networkPath, fileName);
 
-            if (!System.IO.File.Exists(fullPath))
+            if (fullPath == null || !System.IO.File.Exists(fullPath))
                 return NotFound("Ảnh bằng chứng không tồn tại.");
 
             var memory = new MemoryStream();
