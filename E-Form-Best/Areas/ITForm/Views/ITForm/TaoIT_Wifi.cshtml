@@ -190,7 +190,8 @@
 
 <div class="main-page-container" style="background: linear-gradient(135deg, #f0fdf4 0%, #bbf7d0 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', sans-serif;">
 
-    <form id="itWifiForm" method="post" enctype="multipart/form-data" asp-action="TaoIT_Wifi" asp-controller="FormIT" asp-area="ITForm" class="form-card"
+    <form id="itWifiForm" method="post" enctype="multipart/form-data" class="form-card"
+          data-url="/FormIT/TaoIT_Wifi" data-url-doncho="/FormIT/DonCho"
           style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(20, 83, 45, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
 
         @Html.AntiForgeryToken()
@@ -282,9 +283,18 @@
                                 <div class="dynamic-wifi-row">
                                     <input type="text" name="arrMaThietBi" placeholder="BoPhan_MaNV_HoTen (viết liền không dấu)" required class="input-hover" style="@inputBase">
                                     <input type="text" name="arrMacTb" maxlength="17" placeholder="00:00:00:00:00:00" required class="input-hover mac-input" style="@inputBase">
-                                    <button type="button" onclick="addWifiRow()" style="background: @colorPrimary; color: white; border: none; border-radius: 10px; height: 42px; font-size: 20px; font-weight: 900; cursor: pointer; transition: 0.2s; width: 100%; display: flex; align-items: center; justify-content: center;">+</button>
+                                    <button type="button" data-them-dong style="background: @colorPrimary; color: white; border: none; border-radius: 10px; height: 42px; font-size: 20px; font-weight: 900; cursor: pointer; transition: 0.2s; width: 100%; display: flex; align-items: center; justify-content: center;">+</button>
                                 </div>
                             </div>
+
+                            @* Khuôn dòng thiết bị: để trong view vì đây là markup, JS chỉ nhân bản *@
+                            <template id="tplWifiRow">
+                                <div class="dynamic-wifi-row">
+                                    <input type="text" name="arrMaThietBi" placeholder="BoPhan_MaNV_HoTen (viết liền không dấu)" required class="input-hover" style="@inputBase">
+                                    <input type="text" name="arrMacTb" maxlength="17" placeholder="00:00:00:00:00:00" required class="input-hover mac-input" style="@inputBase">
+                                    <button type="button" data-xoa-dong style="background: #ef4444; color: white; border: none; border-radius: 10px; height: 42px; font-size: 20px; font-weight: 900; cursor: pointer; transition: 0.2s; width: 100%; display: flex; align-items: center; justify-content: center;">-</button>
+                                </div>
+                            </template>
                         </div>
 
                         <div class="grid-responsive" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
@@ -360,7 +370,7 @@
                 </label>
             </div>
 
-            <button type="button" id="btnSubmit" onclick="xuLyLuuWifi()" class="btn-grad"
+            <button type="submit" id="btnSubmit" class="btn-grad"
                     style="width: 100%; padding: 22px; background: linear-gradient(to right, @colorPrimary, @colorDark); color: #ffffff; border: none; border-radius: 20px; font-weight: 900; font-size: 18px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.4); transition: 0.3s;">
                 Xác nhận gửi đơn
             </button>
@@ -368,90 +378,4 @@
     </form>
 </div>
 
-<script>
-    // Hàm format MAC Address dùng chung
-    function applyMacFormat(input) {
-        input.addEventListener('input', function(e) {
-            let value = e.target.value.toUpperCase().replace(/[^0-9A-F]/g, '');
-            let formatted = "";
-            for (let i = 0; i < value.length && i < 12; i++) {
-                if (i > 0 && i % 2 === 0) formatted += ":";
-                formatted += value[i];
-            }
-            e.target.value = formatted;
-        });
-    }
-
-    // Khởi tạo format cho input MAC đầu tiên
-    applyMacFormat(document.querySelector(".mac-input"));
-
-    // Xử lý dán ảnh từ Clipboard
-    document.getElementById("paste_AnhWifi").addEventListener('paste', function(e) {
-        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf("image") !== -1) {
-                const blob = items[i].getAsFile();
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    this.innerHTML = `<img src="${event.target.result}" style="height:100%; width:100%; object-fit:contain; border-radius:12px;">`;
-                    const dataTransfer = new DataTransfer();
-                    dataTransfer.items.add(blob);
-                    document.getElementById("input_Anh").files = dataTransfer.files;
-                };
-                reader.readAsDataURL(blob);
-            }
-        }
-    });
-
-    // --- HÀM THÊM Ô ĐIỀN MÃ THIẾT BỊ VÀ ĐỊA CHỈ MAC TRÊN CÙNG 1 DÒNG CHUẨN ĐẸP Y HỆT Ô ĐẦU ---
-    function addWifiRow() {
-        const wrapper = document.getElementById('dynamicWifiWrapper');
-        const row = document.createElement('div');
-        row.className = 'dynamic-wifi-row';
-        row.innerHTML = `
-            <input type="text" name="arrMaThietBi" placeholder="BoPhan_MaNV_HoTen (viết liền không dấu)" required class="input-hover" style="@inputBase">
-            <input type="text" name="arrMacTb" maxlength="17" placeholder="00:00:00:00:00:00" required class="input-hover mac-input" style="@inputBase">
-            <button type="button" onclick="this.parentElement.remove()" style="background: #ef4444; color: white; border: none; border-radius: 10px; height: 42px; font-size: 20px; font-weight: 900; cursor: pointer; transition: 0.2s; width: 100%; display: flex; align-items: center; justify-content: center;">-</button>
-        `;
-        // Áp dụng định dạng MAC cho ô nhập liệu vừa được sinh ra để giữ tính đồng bộ mượt mà
-        applyMacFormat(row.querySelector(".mac-input"));
-        wrapper.appendChild(row);
-    }
-
-    // Giữ lại định nghĩa hàm trống để tránh lỗi kịch bản nếu layout có gọi
-    function themThietBi() {}
-    function xoaThietBi(btn) {}
-    function capNhatNutXoa() {}
-
-    // --- LOGIC KIỂM TRA VÀ GỬI DỮ LIỆU ĐƠN ---
-    function xuLyLuuWifi() {
-        const arrMa = document.getElementsByName('arrMaThietBi');
-        const arrMac = document.getElementsByName('arrMacTb');
-        const congViec = document.getElementById("selectedCongViecId").value;
-        const chk = document.getElementById("chkCamKet");
-
-        // Kiểm tra vòng lặp toàn bộ các dòng động được tạo ra
-        for (let i = 0; i < arrMa.length; i++) {
-            if (!arrMa[i].value.trim()) {
-                alert(`⚠️ Dòng số ${i + 1}: Vui lòng nhập Mã thiết bị / Định danh!`);
-                arrMa[i].focus();
-                return;
-            }
-            if (arrMac[i].value.length < 17) {
-                alert(`⚠️ Dòng số ${i + 1}: Địa chỉ MAC Address không hợp lệ hoặc không đủ 17 ký tự!`);
-                arrMac[i].focus();
-                return;
-            }
-        }
-
-        if (!congViec) { alert("⚠️ Vui lòng chọn loại công việc!"); return; }
-        if (!chk.checked) { alert("⚠️ Bạn phải xác nhận cam kết!"); return; }
-
-        if (confirm(`Xác nhận gửi đơn đăng ký sử dụng mạng Wifi công ty?`)) {
-            const btn = document.getElementById("btnSubmit");
-            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG XỬ LÝ...';
-            btn.style.pointerEvents = 'none';
-            document.getElementById("itWifiForm").submit();
-        }
-    }
-</script>
+<script src="~/js/don-dang-ky-wifi.js?v=1"></script>
