@@ -2,7 +2,9 @@ using E_Form_Best.Context;
 using E_Form_Best.Models.ITForm;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using System.Security.Claims;
 
 namespace E_Form_Best.Areas.ITForm.Controllers
@@ -110,6 +112,35 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 return Json(new { thanhCong = false });
             }
+        }
+
+        /// <summary>
+        /// Ghi cookie ngôn ngữ cho RequestLocalization. Phải làm ở máy chủ vì cookie
+        /// .AspNetCore.Culture có định dạng riêng (c=...|uic=...) và phần culture định dạng
+        /// số/ngày phải giữ đúng của máy chủ — JS không biết giá trị đó.
+        /// Cho phép cả người chưa đăng nhập để trang đăng nhập cũng đổi được ngôn ngữ.
+        /// </summary>
+        [HttpPost("/CaiDat/NgonNgu")]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public IActionResult DoiNgonNgu([FromBody] YeuCauNgonNgu yeuCau)
+        {
+            var ma = (yeuCau?.Ma ?? "vi").Trim();
+            if (ma != "vi" && ma != "en" && ma != "zh-CN")
+                return Json(new { thanhCong = false, thongBao = "Ngôn ngữ không hợp lệ." });
+
+            Response.Cookies.Append(
+                CookieRequestCultureProvider.DefaultCookieName,
+                CookieRequestCultureProvider.MakeCookieValue(
+                    new RequestCulture(CultureInfo.CurrentCulture, new CultureInfo(ma))),
+                new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), IsEssential = true, Path = "/" });
+
+            return Json(new { thanhCong = true, ma });
+        }
+
+        public class YeuCauNgonNgu
+        {
+            public string? Ma { get; set; }
         }
 
         private string? LayTenMay()

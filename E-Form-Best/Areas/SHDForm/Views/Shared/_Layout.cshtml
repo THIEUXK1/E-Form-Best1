@@ -1,4 +1,5 @@
-﻿@using Microsoft.AspNetCore.Localization
+﻿@inject Microsoft.AspNetCore.Mvc.Localization.IHtmlLocalizer<E_Form_Best.Resources.GiaoDien> L
+@using Microsoft.AspNetCore.Localization
 
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
@@ -225,6 +226,11 @@
     <script src="~/js/menu-thu-gon.js?v=11"></script>
     <link rel="stylesheet" href="~/css/hieu-ung-mua.css?v=19" />
     <script src="~/js/hieu-ung-mua.js?v=23"></script>
+    @* Mức % kích thước: áp ngay trong head để trang không vẽ 100% rồi mới co lại *@
+    <script src="~/js/zoom-som.js?v=1"></script>
+    @* Google Translate nap ngay o head de chu khong hien tieng Viet mot luc roi moi lat *@
+    <script src="~/js/google-translate-init.js?v=2"></script>
+    <script type="text/javascript" async src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </head>
 
 <body data-scroll-key="sidebarScrollPos_shd">
@@ -234,7 +240,7 @@
         <!-- Backdrop cho mobile -->
         <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
-        <aside id="sidebar">
+        <aside id="sidebar" translate="no">
             @* --- LOGO --- *@
             <a href="/" style="text-decoration:none; display:flex; align-items:center; gap:12px; margin-bottom:35px; padding: 12px; border-radius: 18px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
                 <div style="width:48px; height:48px; background:#fff; border-radius:14px; display:flex; justify-content:center; align-items:center; font-weight:900; font-size:1.3rem; color:#1e1b4b; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
@@ -247,34 +253,34 @@
 
             <nav id="main-sidebar-nav" style="flex:1; overflow-y:auto; padding-right:5px; display:flex; flex-direction:column; gap:3px;">
 
-                <div class="lang-text" data-key="personal_reg" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 15px 0 10px 12px; font-weight: 800;">Cá nhân & Đăng ký</div>
+                <div class="lang-text" data-key="personal_reg" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 15px 0 10px 12px; font-weight: 800;">@L["Cá nhân & Đăng ký"]</div>
 
                 @* --- MENU ĐĂNG KÝ --- *@
                 @* Không xổ menu con nữa: bấm vào đây mở trang /FormSHD/DangKyDon liệt kê các loại đơn dạng thẻ *@
                 <a id="btnRegistrationMenu" href="/FormSHD/DangKyDon" class="nav-link-item @(isSubPageActive ? "active" : "")" aria-current="@(isSubPageActive ? "page" : null)" style="justify-content: space-between; color:#fff;">
                     <span style="display:flex; align-items:center;">
                         <i class="fa fa-pencil-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i>
-                        <span class="lang-text" data-key="reg_form">Đăng ký mẫu đơn</span>
+                        <span class="lang-text" data-key="reg_form">@L["Đăng ký mẫu đơn"]</span>
                     </span>
                     <i class="fa fa-angle-right" style="opacity:0.6;"></i>
                 </a>
 
                 <a href="/FormSHD/DonCho" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
-                    <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text" data-key="my_forms">Đơn của tôi</span>
+                    <i class="fa fa-list-alt" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text" data-key="my_forms">@L["Đơn của tôi"]</span>
                 </a>
 
                 <a href="/FormSHD/LichSuSHD" class="nav-link-item @(currentAction == "LichSuSHD" ? "active" : "")">
-                    <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text" data-key="sys_logs">Nhật ký hệ thống</span>
+                    <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text" data-key="sys_logs">@L["Nhật ký hệ thống"]</span>
                 </a>
 
                 @* --- PHẦN PHÊ DUYỆT --- *@
               @if (User.Identity?.IsAuthenticated == true && (User.IsInRole("QuanLyDuyetDonSHD") || User.IsInRole("All")))
 {
     <div style="height:1px; background:rgba(255,255,255,0.08); margin:15px 10px;"></div>
-    <div class="lang-text" data-key="approval_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 5px 0 10px 12px; font-weight: 800;">Phê duyệt</div>
+    <div class="lang-text" data-key="approval_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 5px 0 10px 12px; font-weight: 800;">@L["Phê duyệt"]</div>
 
     <a href="/FormSHD/QuanLyXetDuyet" class="nav-link-item @(currentAction == "QuanLyXetDuyet" ? "active" : "")">
-        <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> <span class="lang-text" data-key="manage_appr">Quản lý xét duyệt</span>
+        <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f6e05e;"></i> <span class="lang-text" data-key="manage_appr">@L["Quản lý xét duyệt"]</span>
     </a>
 }
 
@@ -282,10 +288,10 @@
 {
     @* Thêm phần ghi chú B2 tại đây *@
     <div style="height:1px; background:rgba(255,255,255,0.08); margin:15px 10px;"></div>
-    <div class="lang-text" data-key="approval_b2_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 5px 0 10px 12px; font-weight: 800;">Phê duyệt B2</div>
+    <div class="lang-text" data-key="approval_b2_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 5px 0 10px 12px; font-weight: 800;">@L["Phê duyệt B2"]</div>
 
     <a href="/FormSHD/QuanLyXetDuyetB2" class="nav-link-item @(currentAction == "QuanLyXetDuyetB2" ? "active" : "")">
-        <i class="fa fa-users" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#818cf8;"></i> <span class="lang-text" data-key="manage_appr_b2">Quản lý xét duyệt B2</span>
+        <i class="fa fa-users" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#818cf8;"></i> <span class="lang-text" data-key="manage_appr_b2">@L["Quản lý xét duyệt B2"]</span>
     </a>
 }
 
@@ -293,16 +299,16 @@
                 @if (User.Identity?.IsAuthenticated == true && (User.IsInRole("AdminSHD") || User.IsInRole("All")))
                 {
                     <div style="height:1px; background:rgba(255,255,255,0.08); margin:15px 10px;"></div>
-                    <div class="lang-text" data-key="admin_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 5px 0 10px 12px; font-weight: 800;">Quản trị SHD</div>
+                    <div class="lang-text" data-key="admin_sec" style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.35); text-transform: uppercase; letter-spacing: 1.8px; margin: 5px 0 10px 12px; font-weight: 800;">@L["Quản trị SHD"]</div>
 
                     <a href="/FormSHD/HoanTatDon" class="nav-link-item @(currentAction == "HoanTatDon" ? "active" : "")">
-                        <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#c084fc;"></i> <span class="lang-text" data-key="archive_form">Lưu trữ đơn</span>
+                        <i class="fa fa-archive" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#c084fc;"></i> <span class="lang-text" data-key="archive_form">@L["Lưu trữ đơn"]</span>
                     </a>
                     <a href="/FormSHD/XuatBaoCao" class="nav-link-item @(currentAction == "XuatBaoCao" ? "active" : "")">
-                        <i class="fa fa-database" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#38bdf8;"></i> <span class="lang-text" data-key="all_forms">Kho đơn tổng hợp</span>
+                        <i class="fa fa-database" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#38bdf8;"></i> <span class="lang-text" data-key="all_forms">@L["Kho đơn tổng hợp"]</span>
                     </a>
                     <a href="/FormSHD/BaoCaoThongKe" class="nav-link-item @(currentAction == "BaoCaoThongKe" ? "active" : "")">
-                        <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#4ade80;"></i> <span class="lang-text" data-key="statistics">Thống kê báo cáo</span>
+                        <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#4ade80;"></i> <span class="lang-text" data-key="statistics">@L["Thống kê báo cáo"]</span>
                     </a>
                 }
             </nav>
@@ -316,11 +322,8 @@
                     {
                         <div style="background: rgba(239, 68, 68, 0.2); border: 1px dashed #ef4444; border-radius: 12px; padding: 10px; margin-bottom: 15px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                             <div style="color: #fca5a5; font-size: 0.75rem; font-weight: 700; margin-bottom: 6px;">
-                                <i class="fa fa-exclamation-triangle" style="color: #ef4444;"></i> Bạn đang dùng mật khẩu mặc định!
-                            </div>
-                            <a href="/ThongTinTaiKhoan" target="_blank" style="display: inline-block; background: #ef4444; color: #fff; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 5px 12px; border-radius: 8px; transition: 0.2s;">
-                                Đổi mật khẩu ngay
-                            </a>
+                                <i class="fa fa-exclamation-triangle" style="color: #ef4444;"></i>@L["Bạn đang dùng mật khẩu mặc định!"]</div>
+                            <a href="/ThongTinTaiKhoan" target="_blank" style="display: inline-block; background: #ef4444; color: #fff; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 5px 12px; border-radius: 8px; transition: 0.2s;">@L["Đổi mật khẩu ngay"]</a>
                         </div>
                     }
 
@@ -337,10 +340,10 @@
 
                     <div id="userDropdown" style="position:absolute; bottom:85px; left:0; right:0; background:#fff; border-radius:18px; box-shadow:0 -15px 35px rgba(0,0,0,0.2); display:none; flex-direction:column; overflow:hidden; border: 1px solid #e2e8f0; z-index: 1001;">
                         <a href="/ThongTinTaiKhoan" target="_blank" class="user-dropdown-item" style="padding:14px 20px; color:#334155; text-decoration:none; font-size:0.9rem; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; font-weight: 600;">
-                            <i class="fa fa-user-circle-o" style="margin-right:12px; color:#1e1b4b;"></i> <span class="lang-text" data-key="profile">Hồ sơ cá nhân</span>
+                            <i class="fa fa-user-circle-o" style="margin-right:12px; color:#1e1b4b;"></i> <span class="lang-text" data-key="profile">@L["Hồ sơ cá nhân"]</span>
                         </a>
                         <a href="/DonXetDuyet/DangXuat" class="user-dropdown-item" style="padding:14px 20px; color:#ef4444; text-decoration:none; font-size:0.9rem; font-weight:700; display:flex; align-items:center;">
-                            <i class="fa fa-sign-out" style="margin-right:12px;"></i> <span class="lang-text" data-key="logout">Đăng xuất</span>
+                            <i class="fa fa-sign-out" style="margin-right:12px;"></i> <span class="lang-text" data-key="logout">@L["Đăng xuất"]</span>
                         </a>
                     </div>
                 }
@@ -351,8 +354,8 @@
                             <i class="fa fa-sign-in" style="color: #fff;"></i>
                         </div>
                         <div style="flex:1;">
-                            <div class="lang-text" data-key="login" style="font-weight:700; font-size:0.9rem; color: #fff;">Đăng nhập</div>
-                            <div class="lang-text" data-key="access_sys" style="font-size:0.7rem; color:rgba(255,255,255,0.4);">Truy cập hệ thống</div>
+                            <div class="lang-text" data-key="login" style="font-weight:700; font-size:0.9rem; color: #fff;">@L["Đăng nhập"]</div>
+                            <div class="lang-text" data-key="access_sys" style="font-size:0.7rem; color:rgba(255,255,255,0.4);">@L["Truy cập hệ thống"]</div>
                         </div>
                     </a>
                 }
@@ -360,7 +363,7 @@
         </aside>
 
         <main>
-            <header>
+            <header translate="no">
                 <!-- Nhóm trái: Mobile Button + Language Switcher + Zoom -->
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <!-- Nút mở Menu Mobile (Chỉ hiện trên điện thoại) -->
@@ -370,9 +373,9 @@
 
                     @if (isTrangFormDon)
                     {
-                        <a href="/FormSHD/DangKyDon" class="btn-quay-lai-dangky" title="Quay lại danh sách loại đơn">
+                        <a href="/FormSHD/DangKyDon" class="btn-quay-lai-dangky" title='@L["Quay lại danh sách loại đơn"]'>
                             <i class="fa fa-arrow-left"></i>
-                            <span class="lang-text">Quay lại</span>
+                            <span class="lang-text">@L["Quay lại"]</span>
                         </a>
                     }
 
@@ -424,7 +427,7 @@
                     <div id="latestNotiTag" style="display: none; position: absolute; right: 65px; white-space: nowrap; background: #1e1b4b; color: white; padding: 12px 22px; border-radius: 16px; font-size: 0.85rem; box-shadow: 0 15px 30px rgba(0,0,0,0.25); z-index: 1001; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.1);">
                         <div style="width: 10px; height: 10px; background: var(--shd-accent); border-radius: 50%; box-shadow: 0 0 10px var(--shd-accent); animation: pulse 1.5s infinite;"></div>
                         <div style="display: flex; flex-direction: column; line-height: 1.4;">
-                            <span class="lang-text" data-key="new_noti" style="font-size: 0.65rem; text-transform: uppercase; font-weight: 800; color: rgba(255,255,255,0.5); letter-spacing: 0.5px;">Thông báo mới</span>
+                            <span class="lang-text" data-key="new_noti" style="font-size: 0.65rem; text-transform: uppercase; font-weight: 800; color: rgba(255,255,255,0.5); letter-spacing: 0.5px;">@L["Thông báo mới"]</span>
                             <span id="latestNotiText" style="font-weight: 600;">...</span>
                         </div>
                         <i class="fa fa-times" onclick="this.parentElement.style.display='none'" style="cursor: pointer; margin-left: 10px; color: rgba(255,255,255,0.4);"></i>
@@ -437,12 +440,12 @@
 
                     <div id="notificationDropdown" style="display: none; flex-direction: column; width: 400px; position: absolute; right: 0; top: 60px; background: white; border-radius: 24px; box-shadow: 0 25px 60px rgba(0,0,0,0.18); overflow: hidden; z-index: 1000; border: 1px solid #e2e8f0;">
                         <div style="padding: 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fdfdfd;">
-                            <span class="lang-text" data-key="notifications" style="font-weight: 800; color: #0f172a; font-size: 1.15rem;">Thông báo</span>
-                            <button class="lang-text" data-key="read_all" onclick="markAllAsRead(event)" style="background: #f0f9ff; border: none; color: #1d4ed8; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 7px 16px; border-radius: 10px; transition: 0.2s;">Đọc tất cả</button>
+                            <span class="lang-text" data-key="notifications" style="font-weight: 800; color: #0f172a; font-size: 1.15rem;">@L["Thông báo"]</span>
+                            <button class="lang-text" data-key="read_all" onclick="markAllAsRead(event)" style="background: #f0f9ff; border: none; color: #1d4ed8; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 7px 16px; border-radius: 10px; transition: 0.2s;">@L["Đọc tất cả"]</button>
                         </div>
                         <div id="notiList" style="max-height: 500px; overflow-y: auto;"></div>
                         <div style="padding: 18px; text-align: center; background: #f8fafc; border-top: 1px solid #f1f5f9;">
-                            <a class="lang-text" data-key="view_logs" href="/FormSHD/LichSuSHD" style="text-decoration: none; color: #64748b; font-size: 0.85rem; font-weight: 700;">Xem nhật ký hệ thống</a>
+                            <a class="lang-text" data-key="view_logs" href="/FormSHD/LichSuSHD" style="text-decoration: none; color: #64748b; font-size: 0.85rem; font-weight: 700;">@L["Xem nhật ký hệ thống"]</a>
                         </div>
                     </div>
                 </div>
@@ -473,10 +476,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
 
     <!-- SCRIPT GOOGLE TRANSLATE -->
-    <script src="~/js/google-translate-init.js?v=1"></script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-    <script src="~/js/form-layout-chung.js?v=1"></script>
+    <script src="~/js/form-layout-chung.js?v=2"></script>
 
     <script>
         NProgress.start();

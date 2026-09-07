@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Thống kê MAC Wi-Fi" xml:space="preserve">
+    <value>Wi-Fi MAC statistics</value>
+  </data>
+  <data name="Quản lý CCDC" xml:space="preserve">
+    <value>Tools &amp; equipment</value>
+  </data>
+  <data name="Nhật ký hệ thống" xml:space="preserve">
+    <value>System log</value>
+  </data>
+  <data name="Đăng ký đơn" xml:space="preserve">
+    <value>Submit a request</value>
+  </data>
+  <data name="Danh sách tài sản" xml:space="preserve">
+    <value>Asset list</value>
+  </data>
+  <data name="Quay lại danh sách loại đơn" xml:space="preserve">
+    <value>Back to request types</value>
+  </data>
+  <data name="Ban Điều Hành" xml:space="preserve">
+    <value>Executive Board</value>
+  </data>
+  <data name="Thống kê đơn" xml:space="preserve">
+    <value>Request statistics</value>
+  </data>
+  <data name="Hồ sơ cá nhân" xml:space="preserve">
+    <value>My profile</value>
+  </data>
+  <data name="Đọc tất cả" xml:space="preserve">
+    <value>Mark all as read</value>
+  </data>
+  <data name="AN NINH &amp; CỔNG" xml:space="preserve">
+    <value>SECURITY &amp; GATE</value>
+  </data>
+  <data name="Lưu trữ đơn" xml:space="preserve">
+    <value>Archived requests</value>
+  </data>
+  <data name="Quản trị IT" xml:space="preserve">
+    <value>IT administration</value>
+  </data>
+  <data name="Xem tất cả" xml:space="preserve">
+    <value>View all</value>
+  </data>
+  <data name="Phê duyệt B2" xml:space="preserve">
+    <value>B2 approval</value>
+  </data>
+  <data name="Đơn của tôi" xml:space="preserve">
+    <value>My requests</value>
+  </data>
+  <data name="Quản trị SHD" xml:space="preserve">
+    <value>SHD administration</value>
+  </data>
+  <data name="Thông báo" xml:space="preserve">
+    <value>Notifications</value>
+  </data>
+  <data name="Quay lại" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Đào tạo" xml:space="preserve">
+    <value>Training</value>
+  </data>
+  <data name="Quản lý phòng họp" xml:space="preserve">
+    <value>Meeting rooms</value>
+  </data>
+  <data name="Đăng xuất" xml:space="preserve">
+    <value>Sign out</value>
+  </data>
+  <data name="Quản lý xét duyệt B2" xml:space="preserve">
+    <value>B2 approval management</value>
+  </data>
+  <data name="Đơn sắp quá hạn" xml:space="preserve">
+    <value>Requests due soon</value>
+  </data>
+  <data name="Kiểm kê tài sản" xml:space="preserve">
+    <value>Asset inventory</value>
+  </data>
+  <data name="Thông báo mới" xml:space="preserve">
+    <value>New notification</value>
+  </data>
+  <data name="Đăng ký mẫu đơn" xml:space="preserve">
+    <value>Request forms</value>
+  </data>
+  <data name="Quản lý Thiết bị" xml:space="preserve">
+    <value>Device management</value>
+  </data>
+  <data name="Báo cáo tiến độ Gantt" xml:space="preserve">
+    <value>Gantt progress report</value>
+  </data>
+  <data name="Cấu hình Danh mục" xml:space="preserve">
+    <value>Category configuration</value>
+  </data>
+  <data name="Quản trị" xml:space="preserve">
+    <value>Administration</value>
+  </data>
+  <data name="Truy cập hệ thống" xml:space="preserve">
+    <value>System access</value>
+  </data>
+  <data name="Công việc chỉ định" xml:space="preserve">
+    <value>Assigned tasks</value>
+  </data>
+  <data name="Đổi mật khẩu ngay" xml:space="preserve">
+    <value>Change password now</value>
+  </data>
+  <data name="Đăng nhập" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="Duyệt đào tạo" xml:space="preserve">
+    <value>Training approval</value>
+  </data>
+  <data name="Quản lý xét duyệt" xml:space="preserve">
+    <value>Approval management</value>
+  </data>
+  <data name="Có thông báo mới!" xml:space="preserve">
+    <value>New notification!</value>
+  </data>
+  <data name="Vừa xong" xml:space="preserve">
+    <value>Just now</value>
+  </data>
+  <data name="Bạn có tin nhắn mới!" xml:space="preserve">
+    <value>You have a new message!</value>
+  </data>
+  <data name="Kho đơn tổng hợp" xml:space="preserve">
+    <value>Request archive</value>
+  </data>
+  <data name="Bạn đang dùng mật khẩu mặc định!" xml:space="preserve">
+    <value>You are using the default password!</value>
+  </data>
+  <data name="Tài sản cá nhân" xml:space="preserve">
+    <value>My assets</value>
+  </data>
+  <data name="Sắp quá hạn" xml:space="preserve">
+    <value>Due soon</value>
+  </data>
+  <data name="Xem nhật ký hệ thống" xml:space="preserve">
+    <value>View system log</value>
+  </data>
+  <data name="Thống kê báo cáo" xml:space="preserve">
+    <value>Reports &amp; statistics</value>
+  </data>
+  <data name="Lịch công việc" xml:space="preserve">
+    <value>Work calendar</value>
+  </data>
+  <data name="Phê duyệt" xml:space="preserve">
+    <value>Approval</value>
+  </data>
+  <data name="Quản trị HR" xml:space="preserve">
+    <value>HR administration</value>
+  </data>
+  <data name="Cá nhân &amp; Đăng ký" xml:space="preserve">
+    <value>Personal &amp; Requests</value>
+  </data>
+  <data name="Kiểm soát ra vào" xml:space="preserve">
+    <value>Access control</value>
+  </data>
+  <data name="Phê duyệt cấp cao" xml:space="preserve">
+    <value>Senior approval</value>
+  </data>
+</root>

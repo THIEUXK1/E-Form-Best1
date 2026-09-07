@@ -1,4 +1,5 @@
-﻿@using Microsoft.AspNetCore.Localization
+﻿@inject Microsoft.AspNetCore.Mvc.Localization.IHtmlLocalizer<E_Form_Best.Resources.GiaoDien> L
+@using Microsoft.AspNetCore.Localization
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
@@ -352,6 +353,11 @@
     <script src="~/js/menu-thu-gon.js?v=11"></script>
     <link rel="stylesheet" href="~/css/hieu-ung-mua.css?v=19" />
     <script src="~/js/hieu-ung-mua.js?v=23"></script>
+    @* Mức % kích thước: áp ngay trong head để trang không vẽ 100% rồi mới co lại *@
+    <script src="~/js/zoom-som.js?v=1"></script>
+    @* Google Translate nap ngay o head de chu khong hien tieng Viet mot luc roi moi lat *@
+    <script src="~/js/google-translate-init.js?v=2"></script>
+    <script type="text/javascript" async src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </head>
 
 <body data-scroll-key="sidebarScrollPosIT">
@@ -363,7 +369,7 @@
     {
         <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
-        <aside id="sidebar" style="width:280px; background:@primaryGradient; color:#fff; padding:25px 15px; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; box-shadow:10px 0 40px rgba(0,0,0,0.15); z-index:1000; transition: all 0.3s ease;">
+        <aside id="sidebar" translate="no" style="width:280px; background:@primaryGradient; color:#fff; padding:25px 15px; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; box-shadow:10px 0 40px rgba(0,0,0,0.15); z-index:1000; transition: all 0.3s ease;">
 
             <div class="brand-row" style="display:flex; align-items:center; gap:8px; margin-bottom:35px;">
             <a href="/" style="text-decoration:none; display:flex; align-items:center; gap:12px; flex:1; min-width:0; padding: 15px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(10px);">
@@ -378,7 +384,7 @@
             </div>
 
             <nav id="main-sidebar-nav" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right: 5px;">
-                <div class="lang-text nav-section-title" data-key="main_function" style="margin-top:15px;">Cá nhân & Đăng ký</div>
+                <div class="lang-text nav-section-title" data-key="main_function" style="margin-top:15px;">@L["Cá nhân & Đăng ký"]</div>
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
@@ -386,41 +392,41 @@
                     <a id="btnMainMenu" href="/FormIT/DangKyDon" class="nav-link-item @(isITSubActive ? "active" : "")" aria-current="@(isITSubActive ? "page" : null)" style="justify-content: space-between; color:#fff;">
                         <span style="display:flex; align-items:center;">
                             <i class="fa nav-ico @(isITSystem ? "fa-plus-circle" : "fa-pencil-square-o")" style="color:@accentColor;"></i>
-                            <span class="lang-text" data-key="reg_form">Đăng ký đơn</span>
+                            <span class="lang-text" data-key="reg_form">@L["Đăng ký đơn"]</span>
                         </span>
                         <i class="fa fa-angle-right" style="opacity:0.6;"></i>
                     </a>
 
                     <a href="@(isITSystem ? "/FormIT/DonCho" : "/FormHR/DonCho")" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")" aria-current="@(currentAction == "DonCho" ? "page" : null)">
-                        <i class="fa fa-list-alt nav-ico" style="color:#34d399;"></i> <span class="lang-text" data-key="my_forms">Đơn của tôi</span>
+                        <i class="fa fa-list-alt nav-ico" style="color:#34d399;"></i> <span class="lang-text" data-key="my_forms">@L["Đơn của tôi"]</span>
                     </a>
 
                     <a href="/FormIT/LichSuIT" class="nav-link-item @(currentAction == "LichSuIT" ? "active" : "")" aria-current="@(currentAction == "LichSuIT" ? "page" : null)">
-                        <i class="fa fa-history nav-ico" style="color:#60a5fa;"></i> <span class="lang-text" data-key="sys_logs">Nhật ký hệ thống</span>
+                        <i class="fa fa-history nav-ico" style="color:#60a5fa;"></i> <span class="lang-text" data-key="sys_logs">@L["Nhật ký hệ thống"]</span>
                     </a>
 
                     @if (User.IsInRole("QuanLyDuyetDonIT") || User.IsInRole("All"))
                     {
                         <div class="nav-divider"></div>
-                        <div class="lang-text nav-section-title" data-key="approval_sec">Phê duyệt</div>
+                        <div class="lang-text nav-section-title" data-key="approval_sec">@L["Phê duyệt"]</div>
                         <a href="@(isITSystem ? "/FormIT/QuanLyXetDuyet" : "/FormHR/QuanLyXetDuyet")" class="nav-link-item @(currentAction == "QuanLyXetDuyet" ? "active" : "")" aria-current="@(currentAction == "QuanLyXetDuyet" ? "page" : null)">
-                            <i class="fa fa-check-square-o nav-ico" style="color:#f6e05e;"></i> <span class="lang-text" data-key="manage_appr">Quản lý xét duyệt</span>
+                            <i class="fa fa-check-square-o nav-ico" style="color:#f6e05e;"></i> <span class="lang-text" data-key="manage_appr">@L["Quản lý xét duyệt"]</span>
                         </a>
                     }
 
                     @if (User.IsInRole("AdminIT") || User.IsInRole("All"))
                     {
                         <div class="nav-divider"></div>
-                        <div class="lang-text nav-section-title" data-key="admin_sec">Quản trị IT</div>
+                        <div class="lang-text nav-section-title" data-key="admin_sec">@L["Quản trị IT"]</div>
 
                         <a href="/FormIT/HoanTatDon" class="nav-link-item @(currentAction == "HoanTatDon" ? "active" : "")" aria-current="@(currentAction == "HoanTatDon" ? "page" : null)">
-                            <i class="fa fa-archive nav-ico" style="color:#a78bfa;"></i> <span class="lang-text" data-key="archive_form">Lưu trữ đơn</span>
+                            <i class="fa fa-archive nav-ico" style="color:#a78bfa;"></i> <span class="lang-text" data-key="archive_form">@L["Lưu trữ đơn"]</span>
                         </a>
 
                         <a data-bs-toggle="collapse" href="#collapseThongKe" role="button" aria-expanded="@(isReportActive ? "true" : "false")" aria-controls="collapseThongKe" class="nav-link-item @(isReportActive ? "active" : "")" style="justify-content: space-between; cursor: pointer;">
                             <span style="display:flex; align-items:center;">
                                 <i class="fa fa-bar-chart nav-ico" style="color:#10b981;"></i>
-                                <span class="lang-text" data-key="statistics">Thống kê báo cáo</span>
+                                <span class="lang-text" data-key="statistics">@L["Thống kê báo cáo"]</span>
                             </span>
                             <i class="fa fa-angle-down menu-arrow"></i>
                         </a>
@@ -429,30 +435,30 @@
                             <div style="display: flex; flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
                                 <a href="/FormIT/BaoCaoThongKe" class="submenu-link @(currentAction == "BaoCaoThongKe" ? "active" : "")" aria-current="@(currentAction == "BaoCaoThongKe" ? "page" : null)">
                                     <i class="fa fa-file-text-o sub-ico" style="color: #10b981;"></i>
-                                    <span class="lang-text" data-key="order_statistics">Thống kê đơn</span>
+                                    <span class="lang-text" data-key="order_statistics">@L["Thống kê đơn"]</span>
                                 </a>
 
                                 <a href="/FormIT/ThongKeMacWifi" class="submenu-link @(currentAction == "ThongKeMacWifi" ? "active" : "")" aria-current="@(currentAction == "ThongKeMacWifi" ? "page" : null)">
                                     <i class="fa fa-wifi sub-ico" style="color: #14b8a6;"></i>
-                                    <span class="lang-text" data-key="mac_statistics">Thống kê MAC Wi-Fi</span>
+                                    <span class="lang-text" data-key="mac_statistics">@L["Thống kê MAC Wi-Fi"]</span>
                                 </a>
 
                                 @* Mở tab mới nên trang này không bao giờ là trang hiện tại — không gắn aria-current *@
                                 <a href="/FormIT/BaoCaoGanttTimeline" target="_blank" rel="noopener" class="submenu-link">
                                     <i class="fa fa-sliders sub-ico" style="color: #0284c7;"></i>
-                                    <span class="lang-text" data-key="gantt_timeline_statistics">Báo cáo tiến độ Gantt</span>
+                                    <span class="lang-text" data-key="gantt_timeline_statistics">@L["Báo cáo tiến độ Gantt"]</span>
                                 </a>
                             </div>
                         </div>
                         <a href="/QLKiemKe/ThongKe" class="nav-link-item @(currentAction == "ThongKeKiemKe" ? "active" : "")" aria-current="@(currentAction == "ThongKeKiemKe" ? "page" : null)">
                             <i class="fa fa-pie-chart nav-ico" style="color:#3b82f6;"></i>
-                            <span class="lang-text" data-key="inventory_stats">Kiểm kê tài sản</span>
+                            <span class="lang-text" data-key="inventory_stats">@L["Kiểm kê tài sản"]</span>
                         </a>
 
                         @* CCDC = công cụ dụng cụ: quản lý danh mục và cho mượn/trả, xử lý ở QLCCDCController *@
                         <a href="/QLCCDC" class="nav-link-item @(currentController == "QLCCDC" ? "active" : "")" aria-current="@(currentController == "QLCCDC" ? "page" : null)">
                             <i class="fa fa-wrench nav-ico" style="color:#fb923c;"></i>
-                            <span class="lang-text" data-key="ccdc_manage">Quản lý CCDC</span>
+                            <span class="lang-text" data-key="ccdc_manage">@L["Quản lý CCDC"]</span>
                         </a>
 
                     }
@@ -464,15 +470,15 @@
                         </div>
 
                         <a href="/QLKiemKe/ThietBi" class="nav-link-item @(currentAction == "IndexThietBi" ? "active" : "")" aria-current="@(currentAction == "IndexThietBi" ? "page" : null)">
-                            <i class="fa fa-laptop nav-ico" style="color:#60a5fa;"></i> <span class="lang-text" data-key="device_manage">Quản lý Thiết bị</span>
+                            <i class="fa fa-laptop nav-ico" style="color:#60a5fa;"></i> <span class="lang-text" data-key="device_manage">@L["Quản lý Thiết bị"]</span>
                         </a>
 
                         <a href="/QLKiemKe/ViewDanhSachTatCaMayTinh" class="nav-link-item @(currentAction == "ViewDanhSachTatCaMayTinh" ? "active" : "")" aria-current="@(currentAction == "ViewDanhSachTatCaMayTinh" ? "page" : null)">
-                            <i class="fa fa-list-ul nav-ico" style="color:#34d399;"></i> <span class="lang-text" data-key="asset_list">Danh sách tài sản</span>
+                            <i class="fa fa-list-ul nav-ico" style="color:#34d399;"></i> <span class="lang-text" data-key="asset_list">@L["Danh sách tài sản"]</span>
                         </a>
 
                         <a href="/QLKiemKe" class="nav-link-item @(currentAction == "IndexKiemKe" ? "active" : "")" aria-current="@(currentAction == "IndexKiemKe" ? "page" : null)">
-                            <i class="fa fa-cubes nav-ico" style="color:#f472b6;"></i> <span class="lang-text" data-key="inventory">Cấu hình Danh mục</span>
+                            <i class="fa fa-cubes nav-ico" style="color:#f472b6;"></i> <span class="lang-text" data-key="inventory">@L["Cấu hình Danh mục"]</span>
                         </a>
                     }
                 }
@@ -485,17 +491,14 @@
                     {
                         <div style="background: rgba(239, 68, 68, 0.2); border: 1px dashed #ef4444; border-radius: 12px; padding: 10px; margin-bottom: 15px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                             <div style="color: #fca5a5; font-size: 0.75rem; font-weight: 700; margin-bottom: 6px;">
-                                <i class="fa fa-exclamation-triangle" style="color: #ef4444;"></i> Bạn đang dùng mật khẩu mặc định!
-                            </div>
-                            <a href="/ThongTinTaiKhoan" target="_blank" style="display: inline-block; background: #ef4444; color: #fff; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 5px 12px; border-radius: 8px; transition: 0.2s;">
-                                Đổi mật khẩu ngay
-                            </a>
+                                <i class="fa fa-exclamation-triangle" style="color: #ef4444;"></i>@L["Bạn đang dùng mật khẩu mặc định!"]</div>
+                            <a href="/ThongTinTaiKhoan" target="_blank" style="display: inline-block; background: #ef4444; color: #fff; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 5px 12px; border-radius: 8px; transition: 0.2s;">@L["Đổi mật khẩu ngay"]</a>
                         </div>
                     }
 
                     <a href="/QLKiemKe/ViewCheckMayHienTai" class="nav-link-item @(currentAction == "ViewCheckMayHienTai" ? "active" : "")" aria-current="@(currentAction == "ViewCheckMayHienTai" ? "page" : null)" style="margin-bottom: 15px; background: rgba(255,255,255,0.05);">
                         <i class="fa fa-desktop nav-ico" style="color:#34d399;"></i>
-                        <span class="lang-text" data-key="personal_assets">Tài sản cá nhân</span>
+                        <span class="lang-text" data-key="personal_assets">@L["Tài sản cá nhân"]</span>
                     </a>
 
                     <div id="userMenuButton" style="display:flex; align-items:center; gap:12px; cursor:pointer;">
@@ -511,10 +514,10 @@
 
                     <div id="userDropdown" style="position:absolute; bottom:90px; left:0; right:0; background:#fff; border-radius:16px; box-shadow:0 -15px 35px rgba(0,0,0,0.25); display:none; flex-direction:column; overflow:hidden; border: 1px solid #edf2f7; z-index: 1001;">
                         <a href="/ThongTinTaiKhoan" target="_blank" rel="noopener noreferrer" class="user-dropdown-item" style="padding:15px 20px; color:#334155; text-decoration:none; font-size:0.92rem; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; font-weight: 500;">
-                            <i class="fa fa-user-circle" style="margin-right:12px; color:#64748b; font-size: 1.1rem;"></i> <span class="lang-text" data-key="profile">Hồ sơ cá nhân</span>
+                            <i class="fa fa-user-circle" style="margin-right:12px; color:#64748b; font-size: 1.1rem;"></i> <span class="lang-text" data-key="profile">@L["Hồ sơ cá nhân"]</span>
                         </a>
                         <a href="/DonXetDuyet/DangXuat" class="user-dropdown-item" style="padding:15px 20px; color:#ef4444; text-decoration:none; font-size:0.92rem; font-weight:700; display:flex; align-items:center;">
-                            <i class="fa fa-sign-out" style="margin-right:12px; font-size: 1.1rem;"></i> <span class="lang-text" data-key="logout">Đăng xuất</span>
+                            <i class="fa fa-sign-out" style="margin-right:12px; font-size: 1.1rem;"></i> <span class="lang-text" data-key="logout">@L["Đăng xuất"]</span>
                         </a>
                     </div>
                 }
@@ -525,8 +528,8 @@
                             <i class="fa fa-sign-in" style="color: #fff;"></i>
                         </div>
                         <div class="user-text" style="flex:1;">
-                            <div class="lang-text" data-key="login" style="font-weight:700; font-size:0.92rem; color: #fff;">Đăng nhập</div>
-                            <div class="lang-text" data-key="access_sys" style="font-size:0.75rem; color:rgba(255,255,255,0.5);">Truy cập hệ thống</div>
+                            <div class="lang-text" data-key="login" style="font-weight:700; font-size:0.92rem; color: #fff;">@L["Đăng nhập"]</div>
+                            <div class="lang-text" data-key="access_sys" style="font-size:0.75rem; color:rgba(255,255,255,0.5);">@L["Truy cập hệ thống"]</div>
                         </div>
                     </a>
                 }
@@ -535,7 +538,7 @@
 
         <main style="margin-left:280px; width:calc(100% - 280px); box-sizing: border-box; min-height:100vh; position:relative; display: flex; flex-direction: column; transition: all 0.3s ease;">
 
-            <header style="padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 999; font-family: 'Inter', system-ui, -apple-system, sans-serif; border-bottom: 1px solid rgba(226, 232, 240, 0.6); transition: all 0.3s ease;">
+            <header translate="no" style="padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 999; font-family: 'Inter', system-ui, -apple-system, sans-serif; border-bottom: 1px solid rgba(226, 232, 240, 0.6); transition: all 0.3s ease;">
 
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <button id="mobile-menu-btn" style="display: none; background: none; border: none; font-size: 1.5rem; color: #1e293b; cursor: pointer; padding: 0;">
@@ -544,9 +547,9 @@
 
                     @if (isTrangFormDon)
                     {
-                        <a href="/FormIT/DangKyDon" class="btn-quay-lai-dangky" title="Quay lại danh sách loại đơn">
+                        <a href="/FormIT/DangKyDon" class="btn-quay-lai-dangky" title='@L["Quay lại danh sách loại đơn"]'>
                             <i class="fa fa-arrow-left"></i>
-                            <span class="lang-text" data-key="back_to_form_list">Quay lại</span>
+                            <span class="lang-text" data-key="back_to_form_list">@L["Quay lại"]</span>
                         </a>
                     }
 
@@ -596,8 +599,8 @@
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i class="fa fa-info-circle"></i>
                             <div style="display: flex; flex-direction: column; line-height: 1.2;">
-                                <span class="lang-text" data-key="just_now" style="font-size: 0.65rem; text-transform: uppercase; font-weight: 800; opacity: 0.8;">Vừa xong</span>
-                                <span id="latestNotiText" style="font-weight: 600;">Có thông báo mới!</span>
+                                <span class="lang-text" data-key="just_now" style="font-size: 0.65rem; text-transform: uppercase; font-weight: 800; opacity: 0.8;">@L["Vừa xong"]</span>
+                                <span id="latestNotiText" style="font-weight: 600;">@L["Có thông báo mới!"]</span>
                             </div>
                             <i class="fa fa-times" onclick="this.parentElement.parentElement.style.display='none'" style="cursor: pointer; margin-left: 8px; opacity: 0.7;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'"></i>
                         </div>
@@ -610,12 +613,12 @@
 
                     <div id="notificationDropdown" style="display: none; flex-direction: column; width: 380px; position: absolute; right: 0; top: 60px; background: white; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); overflow: hidden; z-index: 1000; border: 1px solid #f1f5f9;">
                         <div style="padding: 15px 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fff;">
-                            <span class="lang-text" data-key="notifications" style="font-weight: 800; color: #1e293b; font-size: 1rem; letter-spacing: -0.5px;">Thông báo</span>
-                            <button class="lang-text" data-key="read_all" onclick="markAllAsRead(event)" style="background: #eff6ff; border: none; color: #3b82f6; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: 0.2s;">Đọc tất cả</button>
+                            <span class="lang-text" data-key="notifications" style="font-weight: 800; color: #1e293b; font-size: 1rem; letter-spacing: -0.5px;">@L["Thông báo"]</span>
+                            <button class="lang-text" data-key="read_all" onclick="markAllAsRead(event)" style="background: #eff6ff; border: none; color: #3b82f6; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: 0.2s;">@L["Đọc tất cả"]</button>
                         </div>
                         <div id="notiList" style="max-height: 450px; overflow-y: auto;"></div>
                         <div style="padding: 12px; text-align: center; border-top: 1px solid #f1f5f9; background: #f8fafc;">
-                            <a class="lang-text" data-key="view_all" href="/FormIT/LichSuIT" style="text-decoration: none; color: #94a3b8; font-size: 0.75rem; font-weight: 600;">Xem tất cả</a>
+                            <a class="lang-text" data-key="view_all" href="/FormIT/LichSuIT" style="text-decoration: none; color: #94a3b8; font-size: 0.75rem; font-weight: 600;">@L["Xem tất cả"]</a>
                         </div>
                     </div>
                 </div>
@@ -645,10 +648,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-    <script src="~/js/google-translate-init.js?v=1"></script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-    <script src="~/js/form-layout-chung.js?v=1"></script>
+    <script src="~/js/form-layout-chung.js?v=2"></script>
     <script src="~/js/it-layout-thongbao.js?v=1"></script>
 
     @RenderSection("Scripts", required: false)

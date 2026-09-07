@@ -1,3 +1,4 @@
+@inject Microsoft.AspNetCore.Mvc.Localization.IHtmlLocalizer<E_Form_Best.Resources.GiaoDien> L
 @using Microsoft.AspNetCore.Localization
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
@@ -324,6 +325,11 @@
     <script src="~/js/menu-thu-gon.js?v=11"></script>
     <link rel="stylesheet" href="~/css/hieu-ung-mua.css?v=19" />
     <script src="~/js/hieu-ung-mua.js?v=23"></script>
+    @* Mức % kích thước: áp ngay trong head để trang không vẽ 100% rồi mới co lại *@
+    <script src="~/js/zoom-som.js?v=1"></script>
+    @* Google Translate nap ngay o head de chu khong hien tieng Viet mot luc roi moi lat *@
+    <script src="~/js/google-translate-init.js?v=2"></script>
+    <script type="text/javascript" async src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </head>
 
 <body data-scroll-key="sidebarScrollPosCV">
@@ -332,7 +338,7 @@
     {
         <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
-        <aside id="sidebar" style="width:280px; background:@primaryGradient; color:#fff; padding:25px 15px; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; box-shadow:10px 0 40px rgba(0,0,0,0.15); z-index:1000; transition: all 0.3s ease;">
+        <aside id="sidebar" translate="no" style="width:280px; background:@primaryGradient; color:#fff; padding:25px 15px; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; box-shadow:10px 0 40px rgba(0,0,0,0.15); z-index:1000; transition: all 0.3s ease;">
 
             <a href="/menuA" style="text-decoration:none; display:flex; align-items:center; gap:12px; margin-bottom:35px; padding: 15px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(10px);">
                 <div style="width:48px; height:48px; background:#fff; border-radius:14px; display:flex; justify-content:center; align-items:center; font-weight:900; font-size:1.3rem; color:#0b3c5d; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
@@ -345,7 +351,7 @@
             </a>
 
             <nav id="main-sidebar-nav" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right: 5px;">
-                <div class="lang-text" data-key="main_function" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 700;">Cá nhân & Đăng ký</div>
+                <div class="lang-text" data-key="main_function" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 15px 0 10px 12px; font-weight: 700;">@L["Cá nhân & Đăng ký"]</div>
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
@@ -356,47 +362,47 @@
                         <a id="btnMainMenu" href="/FormCongViec/DangKyDon" class="nav-link-item @(isWorkSubActive ? "active" : "")" aria-current="@(isWorkSubActive ? "page" : null)" style="justify-content: space-between; color:#fff;">
                             <span style="display:flex; align-items:center;">
                                 <i class="fa fa-tasks" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i>
-                                <span class="lang-text" data-key="reg_form">Đăng ký đơn</span>
+                                <span class="lang-text" data-key="reg_form">@L["Đăng ký đơn"]</span>
                             </span>
                             <i class="fa fa-angle-right" style="opacity:0.6;"></i>
                         </a>
 
                         <a href="/FormCongViec/DonCho" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
-                            <i class="fa fa-align-left" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text">Đơn của tôi</span>
+                            <i class="fa fa-align-left" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text">@L["Đơn của tôi"]</span>
                         </a>
 
                         <a href="/FormCongViec/LichSuCongViec" class="nav-link-item @(currentAction == "LichSuCongViec" ? "active" : "")">
-                            <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text">Nhật ký hệ thống</span>
+                            <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text">@L["Nhật ký hệ thống"]</span>
                         </a>
 
                         <a href="/FormCongViec/DaoTao" class="nav-link-item @(currentAction == "DaoTao" ? "active" : "")">
-                            <i class="fa fa-graduation-cap" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text">Đào tạo</span>
+                            <i class="fa fa-graduation-cap" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text">@L["Đào tạo"]</span>
                         </a>
 
                         @if (User.Claims.Any(c => c.Type == System.Security.Claims.ClaimTypes.Role) || User.IsInRole("All"))
                         {
                             <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-                            <div class="lang-text" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">Quản trị</div>
+                            <div class="lang-text" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">@L["Quản trị"]</div>
 
                             <a href="/FormCongViec/HoanTatDonChiDinh" id="navCongViecChiDinh" class="nav-link-item @(currentAction == "HoanTatDonChiDinh" ? "active" : "")">
-                                <i class="fa fa-user-plus" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f97316;"></i> <span class="lang-text">Công việc chỉ định</span>
+                                <i class="fa fa-user-plus" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f97316;"></i> <span class="lang-text">@L["Công việc chỉ định"]</span>
                                 <span class="nav-canh-bao-badge"></span>
                             </a>
 
                             @* CẬP NHẬT CHÍNH XÁC: THÊM LỊCH CÔNG VIỆC Ở PHÍA TRÊN PHẦN THỐNG KÊ THEO YÊU CẦU CỦA BẠN (MÀU XANH CỎ NON TƯƠI SÁNG) *@
                             <a href="/FormCongViec/LichCongViec" id="navLichCongViec" class="nav-link-item @(currentAction == "LichCongViec" ? "active" : "")">
-                                <i class="fa fa-calendar" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#84cc16;"></i> <span class="lang-text">Lịch công việc</span>
+                                <i class="fa fa-calendar" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#84cc16;"></i> <span class="lang-text">@L["Lịch công việc"]</span>
                                 <span class="nav-canh-bao-badge"></span>
                             </a>
 
                             <a href="/FormCongViec/BaoCaoThongKeCongViec" class="nav-link-item @(currentAction == "BaoCaoThongKeCongViec" ? "active" : "")">
-                                <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> <span class="lang-text">Thống kê đơn</span>
+                                <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> <span class="lang-text">@L["Thống kê đơn"]</span>
                             </a>
 
                             @if (User.IsInRole("QuanLyDuyetDonDaoTao") || User.IsInRole("AdminDaoTao") || User.IsInRole("All"))
                             {
                                 <a href="/FormCongViec/QuanLyXetDuyetDaoTao" class="nav-link-item @(currentAction == "QuanLyXetDuyetDaoTao" ? "active" : "")">
-                                    <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text">Duyệt đào tạo</span>
+                                    <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text">@L["Duyệt đào tạo"]</span>
                                 </a>
                             }
                         }
@@ -411,11 +417,8 @@
                     {
                         <div style="background: rgba(239, 68, 68, 0.2); border: 1px dashed #ef4444; border-radius: 12px; padding: 10px; margin-bottom: 15px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                             <div style="color: #fca5a5; font-size: 0.75rem; font-weight: 700; margin-bottom: 6px;">
-                                <i class="fa fa-exclamation-triangle" style="color: #ef4444;"></i> Bạn đang dùng mật khẩu mặc định!
-                            </div>
-                            <a href="/ThongTinTaiKhoan" target="_blank" style="display: inline-block; background: #ef4444; color: #fff; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 5px 12px; border-radius: 8px; transition: 0.2s;">
-                                Đổi mật khẩu ngay
-                            </a>
+                                <i class="fa fa-exclamation-triangle" style="color: #ef4444;"></i>@L["Bạn đang dùng mật khẩu mặc định!"]</div>
+                            <a href="/ThongTinTaiKhoan" target="_blank" style="display: inline-block; background: #ef4444; color: #fff; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 5px 12px; border-radius: 8px; transition: 0.2s;">@L["Đổi mật khẩu ngay"]</a>
                         </div>
                     }
 
@@ -432,10 +435,10 @@
 
                     <div id="userDropdown" style="position:absolute; bottom:90px; left:0; right:0; background:#fff; border-radius:16px; box-shadow:0 -15px 35px rgba(0,0,0,0.25); display:none; flex-direction:column; overflow:hidden; border: 1px solid #edf2f7; z-index: 1001;">
                         <a href="/ThongTinTaiKhoan" target="_blank" rel="noopener noreferrer" class="user-dropdown-item" style="padding:15px 20px; color:#334155; text-decoration:none; font-size:0.92rem; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; font-weight: 500;">
-                            <i class="fa fa-user-circle" style="margin-right:12px; color:#64748b; font-size: 1.1rem;"></i> <span class="lang-text">Hồ sơ cá nhân</span>
+                            <i class="fa fa-user-circle" style="margin-right:12px; color:#64748b; font-size: 1.1rem;"></i> <span class="lang-text">@L["Hồ sơ cá nhân"]</span>
                         </a>
                         <a href="/DonXetDuyet/DangXuat" class="user-dropdown-item" style="padding:15px 20px; color:#ef4444; text-decoration:none; font-size:0.92rem; font-weight:700; display:flex; align-items:center;">
-                            <i class="fa fa-sign-out" style="margin-right:12px; font-size: 1.1rem;"></i> <span class="lang-text">Đăng xuất</span>
+                            <i class="fa fa-sign-out" style="margin-right:12px; font-size: 1.1rem;"></i> <span class="lang-text">@L["Đăng xuất"]</span>
                         </a>
                     </div>
                 }
@@ -446,8 +449,8 @@
                             <i class="fa fa-sign-in" style="color: #fff;"></i>
                         </div>
                         <div style="flex:1;">
-                            <div class="lang-text" style="font-weight:700; font-size:0.92rem; color: #fff;">Đăng nhập</div>
-                            <div class="lang-text" style="font-size:0.75rem; color:rgba(255,255,255,0.5);">Truy cập hệ thống</div>
+                            <div class="lang-text" style="font-weight:700; font-size:0.92rem; color: #fff;">@L["Đăng nhập"]</div>
+                            <div class="lang-text" style="font-size:0.75rem; color:rgba(255,255,255,0.5);">@L["Truy cập hệ thống"]</div>
                         </div>
                     </a>
                 }
@@ -456,7 +459,7 @@
 
         <main style="margin-left:280px; width:calc(100% - 280px); box-sizing: border-box; min-height:100vh; position:relative; display: flex; flex-direction: column; transition: all 0.3s ease;">
 
-            <header style="padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 999; font-family: 'Inter', system-ui, -apple-system, sans-serif; border-bottom: 1px solid rgba(226, 232, 240, 0.6); transition: all 0.3s ease;">
+            <header translate="no" style="padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 999; font-family: 'Inter', system-ui, -apple-system, sans-serif; border-bottom: 1px solid rgba(226, 232, 240, 0.6); transition: all 0.3s ease;">
 
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <button id="mobile-menu-btn" style="display: none; background: none; border: none; font-size: 1.5rem; color: #1e293b; cursor: pointer; padding: 0;">
@@ -465,9 +468,9 @@
 
                     @if (isTrangFormDon)
                     {
-                        <a href="/FormCongViec/DangKyDon" class="btn-quay-lai-dangky" title="Quay lại danh sách loại đơn">
+                        <a href="/FormCongViec/DangKyDon" class="btn-quay-lai-dangky" title='@L["Quay lại danh sách loại đơn"]'>
                             <i class="fa fa-arrow-left"></i>
-                            <span class="lang-text">Quay lại</span>
+                            <span class="lang-text">@L["Quay lại"]</span>
                         </a>
                     }
 
@@ -517,8 +520,8 @@
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i class="fa fa-info-circle"></i>
                             <div style="display: flex; flex-direction: column; line-height: 1.2;">
-                                <span style="font-size: 0.65rem; text-transform: uppercase; font-weight: 800; opacity: 0.8;">Vừa xong</span>
-                                <span id="latestNotiText" style="font-weight: 600;">Có thông báo mới!</span>
+                                <span style="font-size: 0.65rem; text-transform: uppercase; font-weight: 800; opacity: 0.8;">@L["Vừa xong"]</span>
+                                <span id="latestNotiText" style="font-weight: 600;">@L["Có thông báo mới!"]</span>
                             </div>
                             <i class="fa fa-times" onclick="this.parentElement.parentElement.style.display='none'" style="cursor: pointer; margin-left: 8px; opacity: 0.7;"></i>
                         </div>
@@ -526,7 +529,7 @@
 
                     <div id="sapQuaHanBanner" onclick="if (sapQuaHanItems[0]) window.location.href = '/FormCongViec/ChiTiet/' + sapQuaHanItems[0].id;" style="display: none; align-items: center; gap: 10px; white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 0.82rem; font-weight: 700; box-shadow: 0 8px 20px rgba(239,68,68,0.4); cursor: pointer; animation: bannerUrgentPulse 1.4s infinite;">
                         <i class="fa fa-exclamation-triangle"></i>
-                        <span id="sapQuaHanBannerText" style="overflow: hidden; text-overflow: ellipsis;">Đơn sắp quá hạn</span>
+                        <span id="sapQuaHanBannerText" style="overflow: hidden; text-overflow: ellipsis;">@L["Đơn sắp quá hạn"]</span>
                     </div>
 
                     <div id="notiBell" style="width: 48px; height: 48px; background: #fff; border-radius: 15px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; color: #64748b; position: relative; transition: 0.2s;">
@@ -536,12 +539,12 @@
 
                     <div id="notificationDropdown" style="display: none; flex-direction: column; width: 380px; position: absolute; right: 0; top: 60px; background: white; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); overflow: hidden; z-index: 1000; border: 1px solid #f1f5f9;">
                         <div style="padding: 15px 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fff;">
-                            <span style="font-weight: 800; color: #1e293b; font-size: 1rem; letter-spacing: -0.5px;">Thông báo</span>
-                            <button onclick="markAllAsRead(event)" style="background: #e6f7ff; border: none; color: #00b4d8; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: 0.2s;">Đọc tất cả</button>
+                            <span style="font-weight: 800; color: #1e293b; font-size: 1rem; letter-spacing: -0.5px;">@L["Thông báo"]</span>
+                            <button onclick="markAllAsRead(event)" style="background: #e6f7ff; border: none; color: #00b4d8; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: 0.2s;">@L["Đọc tất cả"]</button>
                         </div>
                         <div id="notiList" style="max-height: 450px; overflow-y: auto;"></div>
                         <div style="padding: 12px; text-align: center; border-top: 1px solid #f1f5f9; background: #f8fafc;">
-                            <a href="/FormCongViec/LichSuCongViec" style="text-decoration: none; color: #94a3b8; font-size: 0.75rem; font-weight: 600;">Xem tất cả</a>
+                            <a href="/FormCongViec/LichSuCongViec" style="text-decoration: none; color: #94a3b8; font-size: 0.75rem; font-weight: 600;">@L["Xem tất cả"]</a>
                         </div>
                     </div>
                 </div>
@@ -569,10 +572,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-    <script src="~/js/google-translate-init.js?v=1"></script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-    <script src="~/js/form-layout-chung.js?v=1"></script>
+    <script src="~/js/form-layout-chung.js?v=2"></script>
     <script src="~/js/canh-bao-sap-qua-han.js?v=2"></script>
 
     <script>

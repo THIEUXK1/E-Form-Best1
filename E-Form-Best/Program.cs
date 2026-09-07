@@ -9,6 +9,9 @@ using System.Security.Claims; // Thêm để làm việc với Claims
 using Microsoft.AspNetCore.HttpOverrides; // Đọc header X-Forwarded-* do nginx gửi sang
 using Microsoft.AspNetCore.RateLimiting; // Giới hạn tần suất request cho trang đăng nhập
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Localization; // Đọc cookie ngôn ngữ, đặt UICulture cho request
+using Microsoft.Extensions.Options;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +46,29 @@ if (builder.Environment.IsDevelopment())
     // Cho phép sửa file .cshtml và thấy thay đổi ngay khi F5 lại trang (không cần build lại project)
     mvcBuilder.AddRazorRuntimeCompilation();
 }
+
+// 3b. Đa ngôn ngữ: chuỗi giao diện được dịch SẴN Ở MÁY CHỦ (Resources/*.resx) thay vì
+// để Google Translate lật chữ sau khi trang đã vẽ (mỗi lần chuyển trang là nháy một cái).
+// Khoá tra cứu chính là câu tiếng Việt, nên tiếng Việt không cần file resource.
+// Không đặt ResourcesPath: lớp mốc GiaoDien đã nằm sẵn trong namespace E_Form_Best.Resources,
+// khai thêm đường dẫn nữa là thành "Resources.Resources.GiaoDien" và không tìm thấy file.
+builder.Services.AddLocalization();
+mvcBuilder.AddViewLocalization();
+
+// CHỈ đổi ngôn ngữ HIỂN THỊ (UICulture). Culture định dạng số/ngày giữ nguyên của máy chủ:
+// đổi sang vi-VN sẽ đổi dấu phân cách thập phân và làm hỏng việc nhận số từ form.
+var vanHoaMayChu = CultureInfo.CurrentCulture;
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    options.DefaultRequestCulture = new RequestCulture(vanHoaMayChu, new CultureInfo("vi"));
+    options.SupportedCultures = new List<CultureInfo> { vanHoaMayChu };
+    options.SupportedUICultures = new List<CultureInfo>
+    {
+        new CultureInfo("vi"),
+        new CultureInfo("en"),
+        new CultureInfo("zh-CN")
+    };
+});
 
 // 4. CẤU HÌNH COOKIE AUTHENTICATION (Đã thêm logic kiểm tra SecurityStamp)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -173,6 +199,10 @@ app.UseStaticFiles(new StaticFileOptions
             : "public,max-age=604800";
     }
 }); // Quan trọng: Để truy cập sw.js và icon thông báo
+
+// Đọc cookie ngôn ngữ (.AspNetCore.Culture) rồi đặt UICulture cho request. Phải đứng
+// trước UseRouting để mọi view/controller phía sau đều nhìn thấy đúng ngôn ngữ.
+app.UseRequestLocalization(app.Services.GetRequiredService<IOptions<RequestLocalizationOptions>>().Value);
 
 app.UseRouting();
 
