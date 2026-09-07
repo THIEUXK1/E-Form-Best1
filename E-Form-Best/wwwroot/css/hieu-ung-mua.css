@@ -81,8 +81,16 @@
    ============================================================ */
 :root[data-hieu-ung-mua] #sidebar {
     background: var(--nen-mua) !important;
-    background-attachment: fixed !important;
+    /* KHÔNG dùng background-attachment: fixed — nền gắn theo khung nhìn thì trình
+       duyệt phải vẽ lại mỗi lần cuộn/đổi trang, thấy rõ nháy ở dải menu. Menu vốn
+       đã position:fixed cao hết màn nên gắn nền theo chính nó là đủ. */
+    background-attachment: scroll !important;
+    background-repeat: no-repeat !important;
     background-size: cover !important;
+    /* Menu có transition: all 0.3s (style nội tuyến) để chạy mượt lúc thu gọn.
+       Nếu để "all" thì mọi lần nền được đặt lại nó cũng chuyển màu dần -> nháy.
+       Chỉ cho phép các thuộc tính hình học chạy hiệu ứng. */
+    transition-property: width, padding, transform, box-shadow !important;
 }
 
 /* Lớp hạt rơi bên trong khung menu: nằm sau chữ và biểu tượng của menu */
