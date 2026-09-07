@@ -319,13 +319,54 @@
         canvas.height = khung ? khung.clientHeight : window.innerHeight;
     }
 
+    // Vị trí đàn hạt được cất vào sessionStorage khi rời trang và lấy lại ở trang
+    // sau, nhờ vậy chuyển mục trong menu thì sao/hoa/lá rơi tiếp chỗ cũ chứ không
+    // "gieo lại" từ đầu — mắt nhìn thấy đúng như là chưa hề tải lại trang.
+    // sessionStorage: chỉ sống trong một thẻ trình duyệt, đóng thẻ là sạch.
+    const KEY_HAT = "eformHatMuaViTri";
+
+    function luuViTriHat() {
+        if (!canvas || !hat.length || !dauChuDeDangChay) return;
+        try {
+            sessionStorage.setItem(KEY_HAT, JSON.stringify({
+                chuDe: dauChuDeDangChay,
+                // lưu theo TỈ LỆ khung để menu rộng/hẹp khác nhau vẫn khớp
+                hat: hat.map(h => [
+                    +(h.x / canvas.width).toFixed(4),
+                    +(h.y / canvas.height).toFixed(4),
+                    +h.co.toFixed(2), +h.v.toFixed(3), +h.lech.toFixed(3),
+                    h.kyTu, +h.mo.toFixed(2)
+                ])
+            }));
+        } catch (e) { }
+    }
+
+    function docViTriHat(rong, cao) {
+        try {
+            const raw = sessionStorage.getItem(KEY_HAT);
+            if (!raw) return null;
+            const d = JSON.parse(raw);
+            // Khác chủ đề (đổi mùa / sang ngày-đêm) thì phải gieo lại cho đúng ký tự
+            if (!d || d.chuDe !== dauChuDeDangChay || !Array.isArray(d.hat) || !d.hat.length) return null;
+            return d.hat.map(h => ({
+                x: h[0] * rong, y: h[1] * cao,
+                co: h[2], v: h[3], lech: h[4], kyTu: h[5], mo: h[6]
+            }));
+        } catch (e) {
+            return null;
+        }
+    }
+
     function sinhHat(cauHinh) {
-        hat = [];
         const rong = canvas ? canvas.width : window.innerWidth;
         const cao = canvas ? canvas.height : window.innerHeight;
         // ít hạt thôi cho nhẹ máy; khung càng hẹp thì càng ít
         const soLuong = rong < 200 ? 10 : (rong < 768 ? 18 : 34);
-        for (let i = 0; i < soLuong; i++) {
+
+        const cu = docViTriHat(rong, cao);
+        hat = cu ? cu.slice(0, soLuong) : [];
+
+        for (let i = hat.length; i < soLuong; i++) {
             hat.push({
                 x: Math.random() * rong,
                 y: Math.random() * cao,
@@ -523,6 +564,37 @@
             guiLenMayChu(bat);
             apDung();
         }
+    });
+
+    // Áp nền NGAY lúc script chạy (script nằm trong <head>, chạy trước khi thân
+    // trang được vẽ). Nếu đợi DOMContentLoaded thì menu đã vẽ xong bằng nền gốc
+    // rồi mới đổi sang nền mùa, cộng thêm `transition` sẵn có của #sidebar nên
+    // mỗi lần chuyển trang trong menu là thấy nền nháy một cái.
+    // Chỉ đặt biến màu + thuộc tính, chưa đụng DOM (lúc này chưa có <body>).
+    (function apDungNenSom() {
+        if (!bat) return;
+        const mua = chuDeHienTai();
+        document.documentElement.style.setProperty("--nen-mua", banNgay() ? mua.ngay : mua.dem);
+        document.documentElement.setAttribute("data-hieu-ung-mua", mua.ten);
+
+        // Dựng lớp hạt ngay khi khung menu vừa được phân tích xong, không đợi
+        // DOMContentLoaded (phải chờ cả ảnh/script cuối trang) — đợi thì có một
+        // quãng menu trống rồi sao mới hiện ra, nhìn như hiệu ứng bị tải lại.
+        (function choKhung() {
+            if (document.getElementById("nenTrangChu") || document.getElementById("sidebar")) {
+                apDung();
+                return;
+            }
+            if (document.readyState === "loading") setTimeout(choKhung, 10);
+        })();
+    })();
+
+    // Rời trang thì cất vị trí đàn hạt lại cho trang sau dùng tiếp.
+    // pagehide bắt được cả điều hướng thường lẫn đóng thẻ; visibilitychange là
+    // lưới đỡ cho di động (nơi pagehide có thể không chạy).
+    window.addEventListener("pagehide", luuViTriHat);
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") luuViTriHat();
     });
 
     document.addEventListener("DOMContentLoaded", () => {
