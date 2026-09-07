@@ -217,6 +217,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<UserDevice> UserDevices { get; set; }
 
+    public virtual DbSet<UserHieuUngNen> UserHieuUngNens { get; set; }
+
     public virtual DbSet<UserDomainAuth> UserDomainAuths { get; set; }
 
     public virtual DbSet<UserQuyen> UserQuyens { get; set; }

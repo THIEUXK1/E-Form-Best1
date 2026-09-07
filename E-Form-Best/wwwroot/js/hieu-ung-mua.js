@@ -437,9 +437,75 @@
         capNhatNut(mua);
     }
 
+    // ============================================================
+    // ĐỒNG BỘ VỚI TÀI KHOẢN
+    // localStorage vẫn giữ để trang hiện ngay, không chờ mạng (tránh nháy màn hình).
+    // Máy chủ giữ bản chính thức: đăng nhập máy khác vẫn đúng lựa chọn, và quản trị
+    // biết được ai đang bật hiệu ứng. Mọi lỗi mạng đều nuốt — hiệu ứng chỉ là trang trí,
+    // không được phép làm hỏng trang.
+    // ============================================================
+    const API = "/CaiDat/HieuUngNen";
+
+    function layToken() {
+        const o = document.querySelector('input[name="__RequestVerificationToken"]');
+        return o ? o.value : null;
+    }
+
+    function guiLenMayChu(giaTri) {
+        const token = layToken();
+        if (!token) return; // Trang chưa đăng nhập / chưa có token thì chỉ lưu cục bộ
+        fetch(API, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                "Content-Type": "application/json",
+                "RequestVerificationToken": token
+            },
+            body: JSON.stringify({ bat: giaTri })
+        }).catch(() => { });
+    }
+
+    // Nhịp tim: cứ 30 phút báo "trang này còn mở và còn bật" để quản trị phân biệt được
+    // người đang thực sự dùng với người bấm bật một lần rồi thôi. Chỉ gửi khi đang bật.
+    const NHIP_PING = 30 * 60 * 1000;
+
+    function guiPing() {
+        if (!bat) return;
+        const token = layToken();
+        if (!token) return;
+        fetch(API + "/Ping", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "RequestVerificationToken": token }
+        }).catch(() => { });
+    }
+
+    async function dongBoTuMayChu() {
+        try {
+            const res = await fetch(API, { credentials: "same-origin", headers: { "Accept": "application/json" } });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!data || data.thanhCong !== true) return;
+
+            if (data.bat === null || typeof data.bat === "undefined") {
+                // Máy chủ chưa có bản ghi: đẩy lựa chọn đang có sẵn ở máy này lên,
+                // chỉ khi đang bật — để bảng không phình vì những người chưa từng dùng.
+                if (bat) guiLenMayChu(true);
+                return;
+            }
+
+            if (data.bat !== bat) {
+                bat = data.bat === true;
+                try { localStorage.setItem(KEY, bat ? "1" : "0"); } catch (e) { }
+                apDung();
+            }
+        } catch (e) { }
+    }
+
     function doiTrangThai() {
         bat = !bat;
         try { localStorage.setItem(KEY, bat ? "1" : "0"); } catch (e) { }
+        guiLenMayChu(bat);
         apDung();
     }
 
@@ -454,14 +520,17 @@
             e.preventDefault();
             bat = nutCaiDat.dataset.hieuUng === "bat";
             try { localStorage.setItem(KEY, bat ? "1" : "0"); } catch (err) { }
+            guiLenMayChu(bat);
             apDung();
         }
     });
 
     document.addEventListener("DOMContentLoaded", () => {
         apDung();
+        dongBoTuMayChu();
         // Đổi mùa / chuyển ngày-đêm ngay trong lúc đang mở trang cũng phải bắt được
         setInterval(apDung, 60000);
+        setInterval(guiPing, NHIP_PING);
     });
 
     function luuTrangThai() {
@@ -469,8 +538,8 @@
     }
 
     window.HieuUngMua = {
-        bat: () => { bat = true; luuTrangThai(); apDung(); },
-        tat: () => { bat = false; luuTrangThai(); apDung(); },
+        bat: () => { bat = true; luuTrangThai(); guiLenMayChu(true); apDung(); },
+        tat: () => { bat = false; luuTrangThai(); guiLenMayChu(false); apDung(); },
         refreshButtons: () => capNhatNut(chuDeHienTai()),
         tenChuDe,
         dangBat: () => bat
