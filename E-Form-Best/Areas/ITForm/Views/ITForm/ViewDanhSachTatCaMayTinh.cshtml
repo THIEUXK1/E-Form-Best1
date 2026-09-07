@@ -34,18 +34,6 @@
             line-height: 1.2;
         }
 
-        /* Mô tả phụ nằm cùng hàng với tiêu đề, tự ẩn khi màn hình hẹp cho khỏi xuống dòng */
-        .tscn-page-header .tscn-subtitle {
-            font-size: 12px;
-            color: #64748b;
-        }
-
-    @@media (max-width: 991.98px) {
-        .tscn-page-header .tscn-subtitle {
-            display: none;
-        }
-    }
-
     .tscn-icon-badge {
         width: 30px;
         height: 30px;
@@ -152,17 +140,6 @@
         overflow: hidden;
     }
 
-        .tscn-main-card .card-header {
-            background: linear-gradient(135deg, var(--tscn-navy), var(--tscn-blue));
-            border: none;
-            padding: 16px 20px;
-        }
-
-            .tscn-main-card .card-header h5 {
-                font-weight: 700;
-                letter-spacing: .01em;
-            }
-
     #tblTatCaMayTinh {
         font-size: 13.5px;
         margin-bottom: 0;
@@ -247,16 +224,9 @@
     }
 </style>
 
-@* Kéo tiêu đề lên sát mép trên: bù lại phần padding 45px của .main-card ở _Layout để đỡ trống *@
-<div class="container-fluid text-dark" style="margin-top: -25px;">
-
-    <div class="tscn-page-header">
-        <div class="d-flex align-items-center gap-2">
-            <div class="tscn-icon-badge"><i class="fa fa-server"></i></div>
-            <h4>Danh sách tất cả thiết bị máy tính</h4>
-            <span class="tscn-subtitle">— Quản lý, phân loại và đồng bộ toàn bộ máy tính đã kiểm kê</span>
-        </div>
-    </div>
+@* Không kéo âm lề trên nữa: tiêu đề trang đã bỏ, mà margin âm khiến nút "Ẩn lọc"
+   (do fixed-page-layout.js chèn ở đầu khối) bị đẩy trồi lên đè thanh header của _Layout. *@
+<div class="container-fluid text-dark">
 
     <div class="card tscn-filter-card mb-3">
         <div class="card-body py-3 px-4">
@@ -280,28 +250,6 @@
                     </div>
                 </div>
 
-                <div class="col-md-2">
-                    <label class="tscn-filter-label">Bản quyền Win</label>
-                    <div class="dropdown w-100">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center bg-white" type="button" id="dropFilterWin" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                            <span class="text-truncate" id="lblFilterWinText">Tất cả bản quyền Win</span>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-checkbox shadow" aria-labelledby="dropFilterWin" id="divFilterWinOptions">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-2">
-                    <label class="tscn-filter-label">Bản quyền Office</label>
-                    <div class="dropdown w-100">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center bg-white" type="button" id="dropFilterOffice" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                            <span class="text-truncate" id="lblFilterOfficeText">Tất cả bản quyền Office</span>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-checkbox shadow" aria-labelledby="dropFilterOffice" id="divFilterOfficeOptions">
-                        </div>
-                    </div>
-                </div>
-
                 <div class="col-md-2 col-6">
                     <label class="tscn-filter-label">Số dòng / trang</label>
                     <select id="ddlKichThuocTrang" class="form-select form-select-sm">
@@ -309,7 +257,7 @@
                         <option value="25">25 thiết bị</option>
                         <option value="50">50 thiết bị</option>
                         <option value="100">100 thiết bị</option>
-                        <option value="all">Hiển thị tất cả</option>
+                        <option value="all" selected>Hiển thị tất cả</option>
                     </select>
                 </div>
 
@@ -376,11 +324,6 @@
     </div>
 
     <div class="card tscn-main-card">
-        <div class="card-header text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">
-                <i class="fa fa-desktop" style="margin-right: 8px;"></i>Danh Sách Quản Lý Tất Cả Thiết Bị Máy Tính
-            </h5>
-        </div>
         <div class="card-body p-0">
             <div id="alertTinNhan" class="alert alert-danger m-3" style="display: none;" role="alert"></div>
 
@@ -439,7 +382,7 @@
 
         // Các biến thiết lập trạng thái phân trang và view
         var trangHienTai = 1;
-        var kichThuocTrang = 10;
+        var kichThuocTrang = 999999; // mặc định "Hiển thị tất cả"
         var kieuHienThi = "list"; // list hoặc grid
 
         // Trạng thái sắp xếp do người dùng chọn (mặc định: Mã máy giảm dần - máy mới nhất lên đầu)
@@ -566,17 +509,14 @@
         $("#btnBoLoc").click(function () {
         localStorage.removeItem("Tscn_BoLocGiaoDien");
         $("#txtTimKiemMay").val("");
-        $("#ddlKichThuocTrang").val("10");
-        kichThuocTrang = 10;
+        $("#ddlKichThuocTrang").val("all");
+        kichThuocTrang = 999999;
         trangHienTai = 1;
         kieuHienThi = "list";
-        truongSapXep = "idMay";
-        chieuSapXep = "desc";
-        $("#ddlSapXep").val("idMay");
-        capNhatGiaoDienNutSapXep();
+        // "Bỏ lọc" chỉ xoá điều kiện lọc, GIỮ NGUYÊN lựa chọn sắp xếp của người dùng (truongSapXep/chieuSapXep)
 
         capNhatGiaoDienNutBamView();
-        $(".chk-filter-win, .chk-filter-office, .chk-filter-loai").prop("checked", true);
+        $(".chk-filter-loai").prop("checked", true);
         thucThiBoLocDuLieu();
         });
 
@@ -883,17 +823,10 @@
 
         // Tạo ra các thẻ Checkbox động bên trong dropdown
         function khoiTaoBoLocDropdownMulti() {
-        var mangWin = [];
-        var mangOffice = [];
         var mangLoai = [];
         var coChuaPhanLoai = false;
 
         $.each(danhSachGocCache, function (i, item) {
-        var w = item.banQuyenWin || "N/A";
-        var o = item.banQuyenOffice || "N/A";
-        if ($.inArray(w, mangWin) === -1) mangWin.push(w);
-        if ($.inArray(o, mangOffice) === -1) mangOffice.push(o);
-
         if (item.loaiThietBi) {
         if ($.inArray(item.loaiThietBi, mangLoai) === -1) mangLoai.push(item.loaiThietBi);
         } else {
@@ -921,36 +854,8 @@
         });
         $("#divFilterLoaiOptions").html(htmlLoai);
 
-        // Chèn danh sách Checkbox Windows
-        var htmlWin = "";
-        $.each(mangWin, function (i, v) {
-        var isChecked = "checked";
-        if (cacheBoLoc && cacheBoLoc.selectedWins && cacheBoLoc.selectedWins.length > 0) {
-        isChecked = $.inArray(v, cacheBoLoc.selectedWins) !== -1 ? "checked" : "";
-        }
-        htmlWin += '<div class="form-check">' +
-        '<input class="form-check-input chk-filter-win" type="checkbox" value="' + v + '" id="chkWin_' + i + '" ' + isChecked + '>' +
-        '<label class="form-check-label small text-dark" for="chkWin_' + i + '">' + v + '</label>' +
-        '</div>';
-        });
-        $("#divFilterWinOptions").html(htmlWin);
-
-        // Chèn danh sách Checkbox Office
-        var htmlOffice = "";
-        $.each(mangOffice, function (i, v) {
-        var isChecked = "checked";
-        if (cacheBoLoc && cacheBoLoc.selectedOffices && cacheBoLoc.selectedOffices.length > 0) {
-        isChecked = $.inArray(v, cacheBoLoc.selectedOffices) !== -1 ? "checked" : "";
-        }
-        htmlOffice += '<div class="form-check">' +
-        '<input class="form-check-input chk-filter-office" type="checkbox" value="' + v + '" id="chkOffice_' + i + '" ' + isChecked + '>' +
-        '<label class="form-check-label small text-dark" for="chkOffice_' + i + '">' + v + '</label>' +
-        '</div>';
-        });
-        $("#divFilterOfficeOptions").html(htmlOffice);
-
         // Gán sự kiện quét lọc khi click thay đổi trạng thái Checkbox
-        $(".chk-filter-win, .chk-filter-office, .chk-filter-loai").on("change", function () {
+        $(".chk-filter-loai").on("change", function () {
         trangHienTai = 1;
         thucThiBoLocDuLieu();
         });
@@ -997,12 +902,6 @@
         function thucThiBoLocDuLieu() {
         var tuKhoa = $("#txtTimKiemMay").val().toLowerCase().trim();
 
-        var selectedWins = [];
-        $(".chk-filter-win:checked").each(function () { selectedWins.push($(this).val()); });
-
-        var selectedOffices = [];
-        $(".chk-filter-office:checked").each(function () { selectedOffices.push($(this).val()); });
-
         var selectedLoais = [];
         $(".chk-filter-loai:checked").each(function () { selectedLoais.push($(this).val()); });
 
@@ -1014,21 +913,6 @@
         else $("#lblFilterLoaiText").text("Đã chọn loại (" + selectedLoais.length + ")");
         }
 
-        // Thay đổi text tiêu đề hiển thị trên nút Dropdown linh hoạt
-        var totalWinOpts = $(".chk-filter-win").length;
-        if (totalWinOpts > 0) {
-        if (selectedWins.length === totalWinOpts) $("#lblFilterWinText").text("Tất cả bản quyền Win");
-        else if (selectedWins.length === 0) $("#lblFilterWinText").text("Đang ẩn tất cả Win");
-        else $("#lblFilterWinText").text("Đã chọn Win (" + selectedWins.length + ")");
-        }
-
-        var totalOfficeOpts = $(".chk-filter-office").length;
-        if (totalOfficeOpts > 0) {
-        if (selectedOffices.length === totalOfficeOpts) $("#lblFilterOfficeText").text("Tất cả bản quyền Office");
-        else if (selectedOffices.length === 0) $("#lblFilterOfficeText").text("Đang ẩn tất cả Office");
-        else $("#lblFilterOfficeText").text("Đã chọn Office (" + selectedOffices.length + ")");
-        }
-
         // Lọc dữ liệu mảng thông qua hàm grep mở rộng
         danhSachDaLoc = $.grep(danhSachGocCache, function (item) {
         var matchText = true;
@@ -1037,15 +921,11 @@
         matchText = !!(item.tenMay && item.tenMay.toLowerCase().indexOf(tuKhoa) !== -1);
         }
 
-        var vWin = item.banQuyenWin || "N/A";
-        var vOffice = item.banQuyenOffice || "N/A";
         var vLoai = item.loaiThietBi || "";
 
-        var matchWin = $(".chk-filter-win").length === 0 ? true : $.inArray(vWin, selectedWins) !== -1;
-        var matchOffice = $(".chk-filter-office").length === 0 ? true : $.inArray(vOffice, selectedOffices) !== -1;
         var matchLoai = $(".chk-filter-loai").length === 0 ? true : $.inArray(vLoai, selectedLoais) !== -1;
 
-        return matchText && matchWin && matchOffice && matchLoai;
+        return matchText && matchLoai;
         });
 
         // Sắp xếp theo lựa chọn của người dùng. Mã máy so sánh kiểu số, các trường còn lại so chuỗi
@@ -1059,14 +939,12 @@
 
         // TIẾN HÀNH ĐỒNG BỘ LƯU TRẠNG THÁI BỘ LỌC VÀO LOCALSTORAGE
         // Hàm này còn chạy lúc trang vừa mở (đồng bộ kiểu xem chung) khi AJAX chưa trả về, lúc đó các
-        // checkbox lọc CHƯA được dựng nên ba mảng selected* đều rỗng. Ghi đè rỗng xuống localStorage sẽ
+        // checkbox lọc CHƯA được dựng nên mảng selectedLoais rỗng. Ghi đè rỗng xuống localStorage sẽ
         // khiến lần dựng checkbox ngay sau đó bỏ tick toàn bộ -> danh sách trắng, phải bấm "Bỏ lọc" mới hiện.
-        // Vì vậy chỉ ghi đè nhóm nào thực sự đã có checkbox trên DOM, nhóm chưa dựng thì giữ giá trị cũ.
+        // Vì vậy chỉ ghi đè khi checkbox đã có trên DOM, chưa dựng thì giữ giá trị cũ.
         var cacheCu = JSON.parse(localStorage.getItem("Tscn_BoLocGiaoDien")) || {};
         var configBoLoc = {
         tuKhoa: $("#txtTimKiemMay").val(),
-        selectedWins: totalWinOpts > 0 ? selectedWins : cacheCu.selectedWins,
-        selectedOffices: totalOfficeOpts > 0 ? selectedOffices : cacheCu.selectedOffices,
         selectedLoais: totalLoaiOpts > 0 ? selectedLoais : cacheCu.selectedLoais,
         kichThuocTrang: $("#ddlKichThuocTrang").val(),
         kieuHienThi: kieuHienThi,
@@ -1085,7 +963,7 @@
         if (cache) {
         var obj = JSON.parse(cache);
         $("#txtTimKiemMay").val(obj.tuKhoa || "");
-        $("#ddlKichThuocTrang").val(obj.kichThuocTrang || "10");
+        $("#ddlKichThuocTrang").val(obj.kichThuocTrang || "all");
 
         kieuHienThi = obj.kieuHienThi || "list";
         truongSapXep = obj.truongSapXep || "idMay";
@@ -1185,6 +1063,62 @@
         ChanThietBiKiemKe.chan($(this).data("seri"), $(this).data("ten"));
         });
 
+        // Xóa vĩnh viễn một máy khỏi CSDL. Hỏi xác nhận hai lớp vì thao tác này không hoàn tác được,
+        // và khóa nút ngay khi gửi để tránh bấm hai lần tạo hai request xóa.
+        $(document).on("click", ".btn-xoa-may", function () {
+        var $nut = $(this);
+        var idMay = parseInt($nut.data("id"));
+        var tenMay = $nut.data("ten") || "(không rõ tên)";
+        var seriMay = $nut.data("seri") || "(không có)";
+
+        Swal.fire({
+        title: 'Xóa vĩnh viễn máy này?',
+        html: 'Tên máy: <b>' + tenMay + '</b><br/>Serial: <b>' + seriMay + '</b>' +
+        '<hr/><div class="text-start small">Sẽ xóa luôn cấu hình RAM / Ổ cứng / Màn hình / MAC Wifi và lịch sử thay đổi của máy này. ' +
+        'Thiết bị kiểm kê liên quan chỉ bị gỡ liên kết, không mất.<br/>' +
+        '<span class="text-danger fw-bold">Thao tác này KHÔNG hoàn tác được.</span><br/>' +
+        'Nếu máy vẫn đang chạy, lần quét cấu hình sau nó sẽ tự xuất hiện trở lại — khi đó nên dùng nút <b>Chặn</b>.</div>',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Xóa vĩnh viễn',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#dc3545'
+        }).then(function (result) {
+        if (!result.isConfirmed) return;
+
+        $nut.prop("disabled", true);
+        var tienDo = batDauTienDoGiaLap('Đang xóa máy ' + tenMay + '...');
+        $.ajax({
+        url: '/QLKiemKe/XoaMayTinh',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ idMay: idMay }),
+        dataType: 'json',
+        success: function (res) {
+        tienDo.hoanTat(res.success, function () {
+        if (res.success) {
+        // Bỏ máy khỏi bộ nhớ đệm rồi vẽ lại đúng vùng bảng, không nạp lại cả trang
+        danhSachGocCache = $.grep(danhSachGocCache, function (x) { return x.idMay !== idMay; });
+        danhSachDangChon.delete(idMay);
+        capNhatNutDongBo();
+        thucThiBoLocDuLieu();
+        Swal.fire({ icon: 'success', title: 'Đã xóa', text: res.message || ('Đã xóa máy ' + tenMay + '.') });
+        } else {
+        $nut.prop("disabled", false);
+        Swal.fire('Lỗi', res.message || 'Không xóa được máy.', 'error');
+        }
+        });
+        },
+        error: function () {
+        $nut.prop("disabled", false);
+        tienDo.hoanTat(false, function () {
+        Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ để xóa máy.', 'error');
+        });
+        }
+        });
+        });
+        });
+
         // PHƯƠNG THỨC RENDER 1: GIAO DIỆN BẢNG DANH SÁCH (TABLE ROW)
         function renderKieuBangDanhSach(dataList) {
         var html = "";
@@ -1213,6 +1147,10 @@
         '   <button type="button" class="btn btn-xs btn-outline-danger py-0 px-2 ms-1 btn-chan-may" style="font-size: 11px;" title="Ẩn máy này khỏi toàn bộ hệ thống kiểm kê"' +
         '           data-seri="' + thoatThuocTinh(item.seriMay) + '" data-ten="' + thoatThuocTinh(item.tenMay) + '">' +
         '       <i class="fa fa-ban"></i> Chặn' +
+        '   </button>' +
+        '   <button type="button" class="btn btn-xs btn-danger py-0 px-2 ms-1 btn-xoa-may" style="font-size: 11px;" title="Xóa vĩnh viễn máy này khỏi cơ sở dữ liệu"' +
+        '           data-id="' + item.idMay + '" data-ten="' + thoatThuocTinh(item.tenMay) + '" data-seri="' + thoatThuocTinh(item.seriMay) + '">' +
+        '       <i class="fa fa-trash"></i> Xóa' +
         '   </button>' +
         '</td>' +
         '</tr>';
@@ -1253,6 +1191,10 @@
         '           <button type="button" class="btn btn-xs btn-outline-danger flex-fill py-1 btn-chan-may" style="font-size: 11px;" title="Ẩn máy này khỏi toàn bộ hệ thống kiểm kê"' +
         '                   data-seri="' + thoatThuocTinh(item.seriMay) + '" data-ten="' + thoatThuocTinh(item.tenMay) + '">' +
         '               <i class="fa fa-ban"></i> Chặn' +
+        '           </button>' +
+        '           <button type="button" class="btn btn-xs btn-danger flex-fill py-1 btn-xoa-may" style="font-size: 11px;" title="Xóa vĩnh viễn máy này khỏi cơ sở dữ liệu"' +
+        '                   data-id="' + item.idMay + '" data-ten="' + thoatThuocTinh(item.tenMay) + '" data-seri="' + thoatThuocTinh(item.seriMay) + '">' +
+        '               <i class="fa fa-trash"></i> Xóa' +
         '           </button>' +
         '       </div>' +
         '   </div>' +

@@ -9640,6 +9640,75 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
+        // 2a. XÓA VĨNH VIỄN MỘT MÁY TÍNH KHỎI HỆ THỐNG (nút "Xóa" ở trang Danh sách tất cả máy tính)
+        // Đây là xóa CỨNG, không hoàn tác được:
+        // - Bốn bảng chi tiết (RAM / Ổ cứng / Màn hình / MAC Wifi) có FK ON DELETE CASCADE nên SQL Server tự dọn.
+        // - TSCN_LichSuXacThucAdmin có FK SET NULL nên bản ghi log vẫn còn, chỉ mất liên kết máy.
+        // - TSCN_LichSuThayDoi và TSCN_LichSuXacThucNguoiDung có cột id_may NOT NULL và FK không cascade,
+        //   nên buộc phải xóa dòng log của đúng máy này thì mới xóa được máy. Bù lại có ghi KK_LichSuThaoTac
+        //   (ai xóa, máy nào, xóa kèm bao nhiêu dòng log) để vẫn còn dấu vết truy vết.
+        // - KK_ThietBi trỏ tới máy qua id_may (nullable): chỉ GỠ liên kết, không xóa thiết bị kiểm kê.
+        public class XoaMayTinhRequest
+        {
+            public int IdMay { get; set; }
+        }
+
+        [HttpPost("/QLKiemKe/XoaMayTinh")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> XoaMayTinh([FromBody] XoaMayTinhRequest? req)
+        {
+            // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
+            if (req == null || req.IdMay <= 0)
+            {
+                return Json(new { success = false, message = "Thiếu mã máy cần xóa." });
+            }
+
+            await using var giaoDich = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var may = await _context.TscnThongTinMays.FirstOrDefaultAsync(m => m.IdMay == req.IdMay);
+                if (may == null)
+                {
+                    // Bấm xóa hai lần / hai người cùng xóa: lần sau coi như đã xong, không báo lỗi đỏ
+                    return Json(new { success = true, message = "Máy này không còn trong hệ thống (có thể đã được xóa trước đó)." });
+                }
+
+                string tenMay = may.TenMay ?? "Không rõ";
+                string seriMay = may.SeriMay ?? "";
+
+                // Gỡ liên kết ở KK_ThietBi thay vì xóa - thiết bị kiểm kê là dữ liệu nghiệp vụ riêng
+                var dsThietBiLienKet = await _context.KkThietBis.Where(x => x.IdMay == may.IdMay).ToListAsync();
+                foreach (var thietBi in dsThietBiLienKet) thietBi.IdMay = null;
+
+                // Hai bảng log có id_may NOT NULL nên phải xóa trước, nếu không SQL Server chặn vì ràng buộc khóa ngoại
+                var dsLogThayDoi = await _context.TscnLichSuThayDois.Where(x => x.IdMay == may.IdMay).ToListAsync();
+                var dsLogXacThuc = await _context.TscnLichSuXacThucNguoiDungs.Where(x => x.IdMay == may.IdMay).ToListAsync();
+                int soLogDaXoa = dsLogThayDoi.Count + dsLogXacThuc.Count;
+                _context.TscnLichSuThayDois.RemoveRange(dsLogThayDoi);
+                _context.TscnLichSuXacThucNguoiDungs.RemoveRange(dsLogXacThuc);
+
+                int idMayDaXoa = may.IdMay;
+                _context.TscnThongTinMays.Remove(may);
+                await _context.SaveChangesAsync();
+                await giaoDich.CommitAsync();
+
+                GhiLichSu("Xóa vĩnh viễn", "Máy tính (TSCN)", idMayDaXoa,
+                    $"Đã xóa máy '{tenMay}' (Serial: {(string.IsNullOrWhiteSpace(seriMay) ? "không có" : seriMay)}) khỏi TSCN_ThongTinMay. " +
+                    $"Gỡ liên kết {dsThietBiLienKet.Count} thiết bị kiểm kê, xóa kèm {soLogDaXoa} dòng lịch sử của máy.");
+
+                return Json(new { success = true, message = $"Đã xóa máy '{tenMay}' khỏi hệ thống." });
+            }
+            catch (Exception ex)
+            {
+                await giaoDich.RollbackAsync();
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = $"Không xóa được máy: {chiTietLoi}" });
+            }
+        }
+
         // 2b. ĐỒNG BỘ THIẾT BỊ TỪ CHI NHÁNH KHÁC (SQL Server 10.0.55.3, database ITForm - chỉ có bảng TSCN_ThongTinMay)
         // Đồng bộ 1 chiều remote -> local: máy remote nào có Serial THẬT mà local chưa có thì thêm mới (kèm bảng con RAM/Ổ cứng/Màn hình/MacWifi).
         // Máy đã tồn tại (trùng Serial thật) thì bỏ qua để tránh ghi đè dữ liệu đã kiểm kê/gán chủ sở hữu ở local.
