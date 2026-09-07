@@ -157,3 +157,19 @@ Chi tiết ràng buộc: [`architecture-workflow.md`](architecture-workflow.md) 
 | Không tự thêm phần thừa | Không viết changelog, không viết doc, không format lại file, không "dọn dẹp" nếu không được yêu cầu |
 | Báo cáo đúng sự thật | Cái gì đã build/chạy thử thì nói rõ; cái gì chưa kiểm thì ghi "chưa kiểm", không suy đoán thành khẳng định |
 | Độ dài bám việc | Việc nhỏ → vài dòng. Không dàn trang mục lục, bảng biểu cho một sửa đổi một dòng |
+
+## 9. Context Lazy-Loading — chỉ đọc rule khi cần
+
+Không nạp toàn bộ `.claude/rules/` cho mọi task. Đọc **đúng file liên quan** tới việc đang làm:
+
+| Task đang làm | File rule bắt buộc đọc |
+|---|---|
+| Chạm schema, viết DDL, truy vấn `KkThietBi`, nhập liệu hàng loạt | [`database-safety.md`](database-safety.md) |
+| Sửa `.cshtml`, JS, layout, chuyển form sang AJAX | [`architecture-workflow.md`](architecture-workflow.md) mục 5 |
+| Tạo file mới, đặt tên, chọn thư mục, Git flow | [`architecture-workflow.md`](architecture-workflow.md) mục 2–3 |
+| Nghi ngờ việc được giao vượt phạm vi / đổi stack / thêm package | [`project-scope.md`](project-scope.md) |
+| Viết code C#/Razor/JS thông thường | file này |
+| Cần biết đang vướng gì, đã quyết gì | [`../plans/00-context-memory.md`](../plans/00-context-memory.md) |
+
+Nguyên tắc: **một task chạm mấy miền thì đọc bấy nhiêu file**, không đọc thừa. Đọc rồi thì
+không đọc lại trong cùng phiên.
