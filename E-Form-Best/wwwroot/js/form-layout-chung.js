@@ -103,6 +103,14 @@ function initLanguageGTranslate() {
     const activeCheck = document.querySelector(`#lang-${currentLang} i`);
     if (activeCheck) activeCheck.style.display = 'inline-block';
 
+    // Máy chủ chưa biết ngôn ngữ này (mới bật tính năng dịch sẵn, hoặc cookie hết hạn)
+    // thì báo lại một lần — lần chuyển trang sau khung đã ra đúng tiếng, không reload ở đây.
+    const cookieVanHoa = document.cookie.match(/(?:^|;\s*)\.AspNetCore\.Culture=([^;]+)/);
+    const uicHienCo = cookieVanHoa ? decodeURIComponent(cookieVanHoa[1]).match(/uic=([^|]+)/) : null;
+    if (!uicHienCo || uicHienCo[1] !== currentLang) {
+        luuNgonNguMayChu(currentLang);
+    }
+
     // Trình duyệt có thể lén giữ cookie sai lệch — đối chiếu rồi ép về đúng
     let match = document.cookie.match(/(^| )googtrans=([^;]+)/);
     let currentCookie = match ? match[2] : null;
@@ -116,8 +124,24 @@ function initLanguageGTranslate() {
     }
 }
 
+// Báo ngôn ngữ cho máy chủ để lần vẽ trang sau đã ra đúng tiếng ở phần khung
+// (menu, thanh trên cùng). Cookie .AspNetCore.Culture phải do máy chủ ghi vì nó có
+// định dạng riêng và phần culture định dạng số/ngày phải giữ nguyên của máy chủ.
+// Lỗi mạng thì nuốt: cùng lắm khung vẫn tiếng Việt, Google Translate vẫn dịch như cũ.
+function luuNgonNguMayChu(lang) {
+    const o = document.querySelector('input[name="__RequestVerificationToken"]');
+    if (!o) return Promise.resolve();
+    return fetch('/CaiDat/NgonNgu', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': o.value },
+        body: JSON.stringify({ ma: lang })
+    }).catch(() => { });
+}
+
 function changeLanguageGTranslate(lang, label) {
     localStorage.setItem('siteLangGlobal', lang);
+    luuNgonNguMayChu(lang);
 
     // BƯỚC 1: phá DOM của widget để nó không kịp ghi lại cookie cũ lúc unload
     const gtEl = document.getElementById('google_translate_element');
@@ -128,13 +152,15 @@ function changeLanguageGTranslate(lang, label) {
     // BƯỚC 2: dọn rác cookie
     clearGoogTransCookie();
 
-    // BƯỚC 3: gán cookie mới rồi điều hướng bằng href (tránh dính POST resubmit như reload)
-    setTimeout(() => {
+    // BƯỚC 3: gán cookie mới rồi điều hướng bằng href (tránh dính POST resubmit như reload).
+    // Chờ máy chủ ghi xong cookie ngôn ngữ mới điều hướng, nếu không trang sau vẫn ra
+    // khung tiếng cũ rồi lần sau mới đúng.
+    luuNgonNguMayChu(lang).finally(() => {
         if (lang !== 'vi') {
             setGoogTransCookie(lang);
         }
         window.location.href = window.location.pathname + window.location.search;
-    }, 50);
+    });
 }
 
 // ==========================================
