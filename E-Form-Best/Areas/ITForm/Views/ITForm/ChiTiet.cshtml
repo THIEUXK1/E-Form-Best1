@@ -400,6 +400,27 @@
         chiTietNoiDung += RenderInfoRow("🗒️", "Ghi chú", ct.GhiChu, "#f8fafc", "#0f172a");
     }
 
+    else if (Model.ItTraThietBi12s != null && Model.ItTraThietBi12s.Any())
+    {
+        var ct = Model.ItTraThietBi12s.First();
+        ProcessImage(ct.DuonDanAnh, null);
+
+        string tinhTrangBg = "#f8fafc";
+        string tinhTrangColor = "#0f172a";
+        if (ct.TinhTrang == "Hỏng hoàn toàn") { tinhTrangBg = "#fef2f2"; tinhTrangColor = "#991b1b"; }
+        else if (ct.TinhTrang == "Chập chờn") { tinhTrangBg = "#fff7ed"; tinhTrangColor = "#9a3412"; }
+
+        chiTietNoiDung += RenderInfoRow("🖥️", "Loại thiết bị", ct.LoaiThietBi?.ToUpper(), "#fef2f2", "#b91c1c");
+        chiTietNoiDung += RenderInfoRow("🏷️", "Tên thiết bị", ct.TenThietBi, "#fef2f2", "#b91c1c");
+        chiTietNoiDung += RenderInfoRow("🔖", "Serial / Mã tài sản", ct.SerialTaiSan, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("⚠️", "Tình trạng", ct.TinhTrang, tinhTrangBg, tinhTrangColor);
+        chiTietNoiDung += RenderInfoRow("🐞", "Mô tả lỗi", ct.MoTaLoi, "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("📍", "Vị trí hiện tại", ct.ViTriHienTai, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🎒", "Phụ kiện kèm theo", ct.PhuKienKemTheo, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("📅", "Ngày trả", ct.NgayTra?.ToString("dd/MM/yyyy"), "#fffbeb", "#92400e");
+        chiTietNoiDung += RenderInfoRow("📝", "Ghi chú", ct.GhiChu, "#f8fafc", "#0f172a");
+    }
+
     void ProcessImage(string? path, byte[]? rawData)
     {
         if (!string.IsNullOrEmpty(path))

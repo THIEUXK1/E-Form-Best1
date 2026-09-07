@@ -3,6 +3,9 @@
     ViewData["Title"] = "Danh sách tất cả thiết bị máy tính";
 }
 
+@* Khoá cuộn toàn trang, chỉ vùng bảng/lưới dữ liệu được cuộn (module dùng chung fixed-page-layout) *@
+<link rel="stylesheet" href="~/css/fixed-page-layout.css" />
+
 <style>
     :root {
         --tscn-navy: #0f172a;
@@ -13,37 +16,46 @@
         --tscn-bg-soft: #f8fafc;
     }
 
+    /* Tiêu đề trang để 1 hàng, thu nhỏ tối đa nhường diện tích cho bảng dữ liệu */
     .tscn-page-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         flex-wrap: wrap;
-        gap: 10px;
-        margin-bottom: 18px;
+        gap: 8px;
+        margin-bottom: 8px;
     }
 
         .tscn-page-header h4 {
             margin: 0;
+            font-size: 16px;
             font-weight: 800;
             color: var(--tscn-navy);
+            line-height: 1.2;
         }
 
+        /* Mô tả phụ nằm cùng hàng với tiêu đề, tự ẩn khi màn hình hẹp cho khỏi xuống dòng */
         .tscn-page-header .tscn-subtitle {
-            font-size: 13px;
+            font-size: 12px;
             color: #64748b;
-            margin-top: 2px;
         }
+
+    @@media (max-width: 991.98px) {
+        .tscn-page-header .tscn-subtitle {
+            display: none;
+        }
+    }
 
     .tscn-icon-badge {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
         background: linear-gradient(135deg, var(--tscn-navy), var(--tscn-blue));
         color: #fff;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 18px;
+        font-size: 14px;
         flex-shrink: 0;
     }
 
@@ -226,18 +238,23 @@
         background-color: var(--tscn-accent);
         border-color: var(--tscn-accent);
     }
+
+    /* Công tắc "Hiện bản quyền": khi tắt thì ẩn 3 cột Phiên bản Office / Bản quyền Win / Bản quyền Office
+       ở cả bảng danh sách lẫn thẻ grid. Dùng class trên body để một quy tắc CSS phủ được cả hai kiểu xem,
+       kể cả các dòng/thẻ được vẽ lại sau đó. */
+    body.an-cot-banquyen .cot-banquyen {
+        display: none !important;
+    }
 </style>
 
 @* Kéo tiêu đề lên sát mép trên: bù lại phần padding 45px của .main-card ở _Layout để đỡ trống *@
 <div class="container-fluid text-dark" style="margin-top: -25px;">
 
     <div class="tscn-page-header">
-        <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center gap-2">
             <div class="tscn-icon-badge"><i class="fa fa-server"></i></div>
-            <div>
-                <h4>Danh sách tất cả thiết bị máy tính</h4>
-                <div class="tscn-subtitle">Quản lý, phân loại và đồng bộ toàn bộ máy tính đã kiểm kê trong hệ thống</div>
-            </div>
+            <h4>Danh sách tất cả thiết bị máy tính</h4>
+            <span class="tscn-subtitle">— Quản lý, phân loại và đồng bộ toàn bộ máy tính đã kiểm kê</span>
         </div>
     </div>
 
@@ -248,7 +265,7 @@
                     <label class="tscn-filter-label">Tìm kiếm nhanh</label>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-white text-secondary border-end-0"><i class="fa fa-search"></i></span>
-                        <input type="text" id="txtTimKiemMay" class="form-control border-start-0 ps-0" placeholder="Tên máy, serial, nhân sự..." />
+                        <input type="text" id="txtTimKiemMay" class="form-control border-start-0 ps-0" placeholder="Tên máy..." />
                     </div>
                 </div>
 
@@ -297,6 +314,24 @@
                 </div>
 
                 <div class="col-md-2 col-6">
+                    <label class="tscn-filter-label">Sắp xếp theo</label>
+                    <div class="input-group input-group-sm">
+                        <select id="ddlSapXep" class="form-select form-select-sm">
+                            <option value="idMay">Mã máy</option>
+                            <option value="tenMay">Tên máy</option>
+                            <option value="seriMay">Số Serial</option>
+                            <option value="dongMay">Dòng máy</option>
+                            <option value="loaiThietBi">Loại thiết bị</option>
+                            <option value="hoTenNguoiSoHuu">Người dùng liên kết</option>
+                            <option value="ngayCapNhat">Ngày cập nhật</option>
+                        </select>
+                        <button type="button" id="btnDoiChieuSapXep" class="btn btn-outline-secondary" title="Đổi chiều sắp xếp tăng / giảm">
+                            <i class="fa fa-sort-amount-desc"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-md-2 col-6">
                     <label class="tscn-filter-label">Kiểu hiển thị</label>
                     <div class="btn-group btn-group-sm w-100" role="group">
                         <button type="button" id="btnKieuList" class="btn btn-primary" title="Hiển thị dạng bảng danh sách">
@@ -316,6 +351,11 @@
                 <button id="btnBoLoc" class="btn btn-sm btn-outline-danger" title="Xóa sạch bộ lọc quay về mặc định">
                     <i class="fa fa-filter"></i> Bỏ lọc
                 </button>
+
+                <div class="form-check form-switch d-flex align-items-center gap-1 mb-0 ms-1">
+                    <input class="form-check-input mt-0" type="checkbox" role="switch" id="chkHienCotBanQuyen">
+                    <label class="form-check-label small text-nowrap" for="chkHienCotBanQuyen">Hiện cột bản quyền</label>
+                </div>
 
                 <span class="tscn-toolbar-spacer"></span>
 
@@ -344,7 +384,7 @@
         <div class="card-body p-0">
             <div id="alertTinNhan" class="alert alert-danger m-3" style="display: none;" role="alert"></div>
 
-            <div id="vungKieuList" class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+            <div id="vungKieuList" class="table-responsive" data-fp-scroll style="max-height: 70vh; overflow-y: auto;">
                 <table class="table table-bordered table-striped table-hover mb-0" id="tblTatCaMayTinh">
                     <thead class="table-secondary sticky-top" style="z-index: 10;">
                         <tr>
@@ -355,9 +395,9 @@
                             <th style="white-space: nowrap;">Loại thiết bị</th>
                             <th style="white-space: nowrap;">Tên máy (Machine Name)</th>
                             <th style="white-space: nowrap;">Người dùng liên kết</th>
-                            <th style="white-space: nowrap;">Phiên bản Office đang dùng</th>
-                            <th style="white-space: nowrap;">Bản quyền Win</th>
-                            <th style="white-space: nowrap;">Bản quyền Office</th>
+                            <th class="cot-banquyen" style="white-space: nowrap;">Phiên bản Office đang dùng</th>
+                            <th class="cot-banquyen" style="white-space: nowrap;">Bản quyền Win</th>
+                            <th class="cot-banquyen" style="white-space: nowrap;">Bản quyền Office</th>
                             <th style="white-space: nowrap; width: 8%;" class="text-center cot-ghim">Hành động</th>
                         </tr>
                     </thead>
@@ -372,7 +412,7 @@
                 </table>
             </div>
 
-            <div id="vungKieuGrid" class="p-3" style="display: none; max-height: 70vh; overflow-y: auto;">
+            <div id="vungKieuGrid" class="p-3" data-fp-scroll style="display: none; max-height: 70vh; overflow-y: auto;">
                 <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3" id="divContainerGrid">
                 </div>
             </div>
@@ -389,8 +429,8 @@
 </div>
 
 @section Scripts {
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bundle.min.js"></script>
+    <script src="~/js/fixed-page-layout.js" defer></script>
+    <script src="~/js/kiemke-chan-thietbi.js"></script>
     <script src="~/js/kiemke-chitiet-tab.js"></script>
     <script>
         $(document).ready(function () {
@@ -401,6 +441,10 @@
         var trangHienTai = 1;
         var kichThuocTrang = 10;
         var kieuHienThi = "list"; // list hoặc grid
+
+        // Trạng thái sắp xếp do người dùng chọn (mặc định: Mã máy giảm dần - máy mới nhất lên đầu)
+        var truongSapXep = "idMay";
+        var chieuSapXep = "desc";
 
         // Tập hợp IdMay đang được tích chọn để đồng bộ (giữ nguyên khi chuyển trang/lọc)
         var danhSachDangChon = new Set();
@@ -446,6 +490,20 @@
 
         // ĐỌC TRẠNG THÁI BỘ LỌC ĐÃ LƯU TỪ LOCALSTORAGE KHI LOAD TRANG
         docTrangThaiBoLocTuLocalStorage();
+
+        // Công tắc "Hiện cột bản quyền": mặc định TẮT (ẩn 3 cột Phiên bản Office / Bản quyền Win / Bản quyền Office).
+        // Trạng thái lưu riêng theo trình duyệt để lần vào sau vẫn giữ nguyên lựa chọn.
+        function apDungCongTacCotBanQuyen(dangHien) {
+        $("body").toggleClass("an-cot-banquyen", !dangHien);
+        $("#chkHienCotBanQuyen").prop("checked", dangHien);
+        }
+        apDungCongTacCotBanQuyen(localStorage.getItem("Tscn_HienCotBanQuyen") === "1");
+
+        $("#chkHienCotBanQuyen").change(function () {
+        var dangHien = $(this).is(":checked");
+        localStorage.setItem("Tscn_HienCotBanQuyen", dangHien ? "1" : "0");
+        apDungCongTacCotBanQuyen(dangHien);
+        });
 
         loadGoiTinTatCaMayTinh();
 
@@ -512,6 +570,10 @@
         kichThuocTrang = 10;
         trangHienTai = 1;
         kieuHienThi = "list";
+        truongSapXep = "idMay";
+        chieuSapXep = "desc";
+        $("#ddlSapXep").val("idMay");
+        capNhatGiaoDienNutSapXep();
 
         capNhatGiaoDienNutBamView();
         $(".chk-filter-win, .chk-filter-office, .chk-filter-loai").prop("checked", true);
@@ -756,6 +818,10 @@
         $("#btnKieuList").click(function () {
         if (window.DangXemDon) DangXemDon.setMode("list");
         kieuHienThi = "list";
+        truongSapXep = "idMay";
+        chieuSapXep = "desc";
+        $("#ddlSapXep").val("idMay");
+        capNhatGiaoDienNutSapXep();
         capNhatGiaoDienNutBamView();
         thucThiBoLocDuLieu();
         });
@@ -844,7 +910,7 @@
         var htmlLoai = "";
         $.each(mangLoai, function (i, v) {
         var isChecked = "checked";
-        if (cacheBoLoc && cacheBoLoc.selectedLoais) {
+        if (cacheBoLoc && cacheBoLoc.selectedLoais && cacheBoLoc.selectedLoais.length > 0) { // mảng rỗng coi như chưa lọc -> tick hết, tránh trang trắng do cache hỏng cũ
         isChecked = $.inArray(v, cacheBoLoc.selectedLoais) !== -1 ? "checked" : "";
         }
         var nhan = v === "" ? '<span class="text-danger fw-bold">⚠ Chưa phân loại</span>' : v;
@@ -859,7 +925,7 @@
         var htmlWin = "";
         $.each(mangWin, function (i, v) {
         var isChecked = "checked";
-        if (cacheBoLoc && cacheBoLoc.selectedWins) {
+        if (cacheBoLoc && cacheBoLoc.selectedWins && cacheBoLoc.selectedWins.length > 0) {
         isChecked = $.inArray(v, cacheBoLoc.selectedWins) !== -1 ? "checked" : "";
         }
         htmlWin += '<div class="form-check">' +
@@ -873,7 +939,7 @@
         var htmlOffice = "";
         $.each(mangOffice, function (i, v) {
         var isChecked = "checked";
-        if (cacheBoLoc && cacheBoLoc.selectedOffices) {
+        if (cacheBoLoc && cacheBoLoc.selectedOffices && cacheBoLoc.selectedOffices.length > 0) {
         isChecked = $.inArray(v, cacheBoLoc.selectedOffices) !== -1 ? "checked" : "";
         }
         htmlOffice += '<div class="form-check">' +
@@ -891,6 +957,43 @@
         }
 
         // Tổ hợp quét đồng thời bộ lọc text phẳng và các ô Checkbox tùy chọn bản quyền công ty
+        // Sắp xếp mảng đã lọc theo trường và chiều người dùng chọn
+        function sapXepDanhSachDaLoc() {
+        var heSoChieu = chieuSapXep === "asc" ? 1 : -1;
+        danhSachDaLoc.sort(function (a, b) {
+        if (truongSapXep === "idMay") {
+        return (a.idMay - b.idMay) * heSoChieu;
+        }
+        var va = (a[truongSapXep] || "").toString().toLowerCase();
+        var vb = (b[truongSapXep] || "").toString().toLowerCase();
+        // Giá trị rỗng luôn nằm cuối bảng bất kể đang tăng hay giảm
+        if (va === "" && vb !== "") return 1;
+        if (vb === "" && va !== "") return -1;
+        if (va === vb) return b.idMay - a.idMay; // cùng giá trị thì máy mới hơn lên trước cho ổn định
+        return va > vb ? heSoChieu : -heSoChieu;
+        });
+        }
+
+        // Đổi icon + tooltip nút chiều sắp xếp cho khớp trạng thái hiện tại
+        function capNhatGiaoDienNutSapXep() {
+        var tang = chieuSapXep === "asc";
+        $("#btnDoiChieuSapXep i").attr("class", tang ? "fa fa-sort-amount-asc" : "fa fa-sort-amount-desc");
+        $("#btnDoiChieuSapXep").attr("title", tang ? "Đang sắp xếp tăng dần - bấm để chuyển sang giảm dần" : "Đang sắp xếp giảm dần - bấm để chuyển sang tăng dần");
+        }
+
+        $("#ddlSapXep").change(function () {
+        truongSapXep = $(this).val();
+        trangHienTai = 1;
+        thucThiBoLocDuLieu();
+        });
+
+        $("#btnDoiChieuSapXep").click(function () {
+        chieuSapXep = chieuSapXep === "asc" ? "desc" : "asc";
+        capNhatGiaoDienNutSapXep();
+        trangHienTai = 1;
+        thucThiBoLocDuLieu();
+        });
+
         function thucThiBoLocDuLieu() {
         var tuKhoa = $("#txtTimKiemMay").val().toLowerCase().trim();
 
@@ -930,11 +1033,8 @@
         danhSachDaLoc = $.grep(danhSachGocCache, function (item) {
         var matchText = true;
         if (tuKhoa !== "") {
-        matchText = (item.tenMay && item.tenMay.toLowerCase().indexOf(tuKhoa) !== -1) ||
-        (item.seriMay && item.seriMay.toLowerCase().indexOf(tuKhoa) !== -1) ||
-        (item.dongMay && item.dongMay.toLowerCase().indexOf(tuKhoa) !== -1) ||
-        (item.hoTenNguoiSoHuu && item.hoTenNguoiSoHuu.toLowerCase().indexOf(tuKhoa) !== -1) ||
-        (item.maNhanVienSoHuu && item.maNhanVienSoHuu.toLowerCase().indexOf(tuKhoa) !== -1);
+        // Tìm kiếm nhanh chỉ đối chiếu Tên máy (theo yêu cầu nghiệp vụ), không quét serial/dòng máy/nhân sự nữa
+        matchText = !!(item.tenMay && item.tenMay.toLowerCase().indexOf(tuKhoa) !== -1);
         }
 
         var vWin = item.banQuyenWin || "N/A";
@@ -948,19 +1048,30 @@
         return matchText && matchWin && matchOffice && matchLoai;
         });
 
+        // Sắp xếp theo lựa chọn của người dùng. Mã máy so sánh kiểu số, các trường còn lại so chuỗi
+        // không phân biệt hoa thường; ô trống luôn bị đẩy xuống cuối để không chiếm chỗ đầu danh sách.
+        sapXepDanhSachDaLoc();
+
         // Nếu người dùng chọn hiển thị tất cả, gán lại giá trị kích thước phân trang bằng tổng độ dài mảng
         if ($("#ddlKichThuocTrang").val() === "all") {
         kichThuocTrang = danhSachDaLoc.length > 0 ? danhSachDaLoc.length : 10;
         }
 
         // TIẾN HÀNH ĐỒNG BỘ LƯU TRẠNG THÁI BỘ LỌC VÀO LOCALSTORAGE
+        // Hàm này còn chạy lúc trang vừa mở (đồng bộ kiểu xem chung) khi AJAX chưa trả về, lúc đó các
+        // checkbox lọc CHƯA được dựng nên ba mảng selected* đều rỗng. Ghi đè rỗng xuống localStorage sẽ
+        // khiến lần dựng checkbox ngay sau đó bỏ tick toàn bộ -> danh sách trắng, phải bấm "Bỏ lọc" mới hiện.
+        // Vì vậy chỉ ghi đè nhóm nào thực sự đã có checkbox trên DOM, nhóm chưa dựng thì giữ giá trị cũ.
+        var cacheCu = JSON.parse(localStorage.getItem("Tscn_BoLocGiaoDien")) || {};
         var configBoLoc = {
         tuKhoa: $("#txtTimKiemMay").val(),
-        selectedWins: selectedWins,
-        selectedOffices: selectedOffices,
-        selectedLoais: selectedLoais,
+        selectedWins: totalWinOpts > 0 ? selectedWins : cacheCu.selectedWins,
+        selectedOffices: totalOfficeOpts > 0 ? selectedOffices : cacheCu.selectedOffices,
+        selectedLoais: totalLoaiOpts > 0 ? selectedLoais : cacheCu.selectedLoais,
         kichThuocTrang: $("#ddlKichThuocTrang").val(),
         kieuHienThi: kieuHienThi,
+        truongSapXep: truongSapXep,
+        chieuSapXep: chieuSapXep,
         trangHienTai: trangHienTai
         };
         localStorage.setItem("Tscn_BoLocGiaoDien", JSON.stringify(configBoLoc));
@@ -977,6 +1088,10 @@
         $("#ddlKichThuocTrang").val(obj.kichThuocTrang || "10");
 
         kieuHienThi = obj.kieuHienThi || "list";
+        truongSapXep = obj.truongSapXep || "idMay";
+        chieuSapXep = obj.chieuSapXep || "desc";
+        $("#ddlSapXep").val(truongSapXep);
+        capNhatGiaoDienNutSapXep();
         trangHienTai = obj.trangHienTai || 1;
 
         var valTrang = $("#ddlKichThuocTrang").val();
@@ -1088,9 +1203,9 @@
         '<td style="white-space: nowrap;">' + layHtmlSuaLoaiThietBi(item.idMay, item.loaiThietBi) + '</td>' +
         '<td class="fw-bold text-dark" style="white-space: nowrap;">' + (item.tenMay || "N/A") + '</td>' +
         '<td class="fw-bold text-primary">' + userInfo + '</td>' +
-        '<td>' + (item.thongTinOffice || "N/A") + '</td>' +
-        '<td class="text-info fw-bold">' + (item.banQuyenWin || "N/A") + '</td>' +
-        '<td class="text-warning fw-bold">' + (item.banQuyenOffice || "N/A") + '</td>' +
+        '<td class="cot-banquyen">' + (item.thongTinOffice || "N/A") + '</td>' +
+        '<td class="text-info fw-bold cot-banquyen">' + (item.banQuyenWin || "N/A") + '</td>' +
+        '<td class="text-warning fw-bold cot-banquyen">' + (item.banQuyenOffice || "N/A") + '</td>' +
         '<td class="text-center cot-ghim" style="white-space: nowrap;">' +
         '   <a href="/QLKiemKe/ViewChiTietMayTinh?idMay=' + item.idMay + '" class="btn btn-xs btn-outline-primary py-0 px-2 link-chi-tiet-may" style="font-size: 11px;">' +
         '       <i class="fa fa-eye"></i> Chi tiết' +
@@ -1125,8 +1240,8 @@
         '           <p class="mb-1 text-muted text-truncate"><b>Dòng máy:</b> ' + (item.dongMay || "N/A") + '</p>' +
         '           <p class="mb-1"><b>Serial:</b> <span class="text-danger fw-bold">' + (item.seriMay || "N/A") + '</span></p>' +
         '           <p class="mb-1 text-truncate text-primary"><b>Nhân sự:</b> ' + userInfo + '</p>' +
-        '           <p class="mb-1 text-muted text-truncate"><b>Bản Office:</b> ' + (item.thongTinOffice || "N/A") + '</p>' +
-        '           <div class="border-top my-2 pt-2" style="font-size: 11px;">' +
+        '           <p class="mb-1 text-muted text-truncate cot-banquyen"><b>Bản Office:</b> ' + (item.thongTinOffice || "N/A") + '</p>' +
+        '           <div class="border-top my-2 pt-2 cot-banquyen" style="font-size: 11px;">' +
         '               <div class="d-flex justify-content-between mb-1"><span><i class="fa fa-windows text-info me-1"></i>Win:</span><span class="fw-bold text-info text-truncate" style="max-width:110px;">' + (item.banQuyenWin || "N/A") + '</span></div>' +
         '               <div class="d-flex justify-content-between"><span><i class="fa fa-key text-warning me-1"></i>Office:</span><span class="fw-bold text-warning text-truncate" style="max-width:110px;">' + (item.banQuyenOffice || "N/A") + '</span></div>' +
         '           </div>' +
