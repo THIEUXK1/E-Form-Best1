@@ -20,8 +20,10 @@ public partial class ItDangKiSuDungWifi3
     [StringLength(255)]
     public string? LoaiThietBi { get; set; }
 
+    // Một đơn gộp nhiều địa chỉ MAC vào cùng một ô, ngăn cách " | ", nên cột phải rộng.
+    // Mức 100 ký tự cũ chỉ chứa nổi 5 thiết bị, quá số đó là insert nổ và mất cả đơn.
     [Column("MacTB")]
-    [StringLength(100)]
+    [StringLength(4000)]
     public string? MacTb { get; set; }
 
     [StringLength(100)]
@@ -41,7 +43,8 @@ public partial class ItDangKiSuDungWifi3
 
     public string? DuongDanAnh { get; set; }
 
-    [StringLength(100)]
+    // Xem ghi chú ở MacTb: cột này cũng gộp nhiều mã thiết bị của cùng một đơn.
+    [StringLength(4000)]
     public string? MaThietBi { get; set; }
 
     [StringLength(100)]

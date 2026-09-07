@@ -2035,6 +2035,47 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 try
                 {
+                    // Chốt chống trùng: luồng AJAX không còn POST-Redirect-GET che double-submit nữa,
+                    // nên cùng người tạo gửi lại đúng loại đơn này trong 30 giây thì coi là bấm lặp.
+                    var nguongTrung = DateTime.Now.AddSeconds(-30);
+                    var donVuaTao = await _context.FormIts
+                        .Where(x => x.IdNguoiTao == userId
+                                    && x.IdForm == "IT_DangKiSuDungWifi_3"
+                                    && x.TimeNguoiTao != null
+                                    && x.TimeNguoiTao > nguongTrung)
+                        .OrderByDescending(x => x.TimeNguoiTao)
+                        .Select(x => new { x.Id })
+                        .FirstOrDefaultAsync();
+
+                    if (donVuaTao != null)
+                    {
+                        await transaction.RollbackAsync();
+                        return Json(new
+                        {
+                            thanhCong = true,
+                            trung = true,
+                            idDon = donVuaTao.Id,
+                            thongBao = $"Đơn của bạn đã được ghi nhận trước đó (mã đơn {donVuaTao.Id}). Hệ thống không tạo thêm đơn trùng."
+                        });
+                    }
+
+                    // Nhiều thiết bị bị gộp vào một ô nvarchar(4000). Chặn ngay từ đầu thay vì để
+                    // SQL nổ giữa chừng: trước đây tràn cột là rollback mất trắng cả đơn mà người
+                    // dùng không thấy báo lỗi gì.
+                    string GhepDs(List<string>? ds) => ds == null
+                        ? ""
+                        : string.Join(" | ", ds.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()));
+
+                    if (GhepDs(arrMaThietBi).Length > 4000 || GhepDs(arrMacTb).Length > 4000)
+                    {
+                        await transaction.RollbackAsync();
+                        return Json(new
+                        {
+                            thanhCong = false,
+                            thongBao = "Danh sách thiết bị quá dài. Vui lòng tách bớt thành nhiều đơn."
+                        });
+                    }
+
                     // --- 1. TRUY VẤN NGƯỜI HỖ TRỢ VÀ THÔNG TIN CÔNG VIỆC ---
                     var congViec = await _context.CongViecIts
                         .Include(c => c.IdItNguoiHoTroNavigation)
@@ -2165,15 +2206,24 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    TempData["Success"] = "Gửi yêu cầu đăng ký Wifi thành công!";
-                    return Redirect("/FormIT/DonCho");
+                    return Json(new
+                    {
+                        thanhCong = true,
+                        trung = false,
+                        idDon = form.Id,
+                        thongBao = $"Đã gửi đơn đăng ký sử dụng Wifi (mã đơn {form.Id}) cho {thietBiCount} thiết bị. Đơn đang chờ duyệt."
+                    });
                 }
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    ViewBag.CongViecList = await _context.CongViecIts.OrderBy(x => x.Ten).ToListAsync();
-                    ModelState.AddModelError("", "Lỗi hệ thống: " + ex.Message);
-                    return View(form);
+
+                    // Trả lỗi dạng JSON để view giữ nguyên dữ liệu người dùng đã nhập.
+                    return Json(new
+                    {
+                        thanhCong = false,
+                        thongBao = "Lỗi trong quá trình lưu: " + ex.Message
+                    });
                 }
             }
         }
