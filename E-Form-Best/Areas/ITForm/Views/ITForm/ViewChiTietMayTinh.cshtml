@@ -126,6 +126,12 @@
                     </div>
                 </div>
 
+                @* Liên kết sang thiết bị kiểm kê: phải gỡ ở đây thì trang danh sách máy mới xóa được máy *@
+                <h5 class="text-primary border-bottom pb-2 fw-bold mt-4"><i class="fa fa-link me-2"></i>Liên kết với thiết bị kiểm kê</h5>
+                <div id="vungLienKetKiemKe" class="mb-2">
+                    <div class="text-muted small">Đang kiểm tra liên kết...</div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -206,6 +212,7 @@
 
         // Gọi kéo nạp nhật ký lịch sử thay đổi cấu hình phụ thuộc
         loadLichSuThayDoiCauHinh(idMayParam);
+        loadThietBiKiemKeLienKet();
         } else {
         $("#errorDetailAlert").text(res.message || "Không thể tìm thấy cấu hình của thiết bị này.").show();
         }
@@ -214,6 +221,90 @@
         $("#loadingDetail").hide();
         $("#errorDetailAlert").text("Sự cố kết nối máy chủ khi truy vấn cấu hình con.").show();
         }
+        });
+
+        // Chèn text an toàn vào HTML (tên máy/serial do người dùng nhập, không tin cậy)
+        function thoatHtml(s) {
+        return $("<div/>").text(s == null ? "" : s).html();
+        }
+
+        // Danh sách thiết bị kiểm kê đang liên kết + nút gỡ. Máy còn liên kết thì trang danh sách từ chối xóa,
+        // nên đây là chỗ duy nhất gỡ được mối nối đó.
+        function loadThietBiKiemKeLienKet() {
+        $.ajax({
+        url: '/QLKiemKe/ThietBiKiemKeLienKet?idMay=' + idMayParam,
+        type: 'GET',
+        dataType: 'json',
+        success: function (res) {
+        if (!res.success) {
+        $("#vungLienKetKiemKe").html('<div class="alert alert-danger py-2 mb-0 small">' + thoatHtml(res.message || "Không tải được liên kết.") + '</div>');
+        return;
+        }
+        if (!res.data || res.data.length === 0) {
+        $("#vungLienKetKiemKe").html('<div class="alert alert-secondary py-2 mb-0 small"><i class="fa fa-unlink me-1"></i>Máy này không liên kết thiết bị kiểm kê nào — có thể xóa máy ở trang danh sách.</div>');
+        return;
+        }
+
+        var html = '<div class="alert alert-warning py-2 small mb-2"><i class="fa fa-exclamation-triangle me-1"></i>' +
+        'Máy đang liên kết <b>' + res.data.length + '</b> thiết bị kiểm kê nên <b>không xóa được</b>. Gỡ liên kết trước nếu muốn xóa máy.</div>' +
+        '<div class="table-responsive"><table class="table table-sm table-bordered mb-0" style="font-size: 13px;"><thead class="table-secondary">' +
+        '<tr><th style="width:12%;">Mã TB</th><th>Tên máy tính</th><th>Vị trí</th><th>Serial</th><th style="width:15%;" class="text-center">Thao tác</th></tr></thead><tbody>';
+        $.each(res.data, function (i, tb) {
+        html += '<tr>' +
+        '<td>' + tb.idThietBi + '</td>' +
+        '<td>' + thoatHtml(tb.tenMayTinh || "(không tên)") + '</td>' +
+        '<td>' + thoatHtml(tb.tenViTri || "") + '</td>' +
+        '<td>' + thoatHtml(tb.seribacode || "") + '</td>' +
+        '<td class="text-center"><button type="button" class="btn btn-xs btn-outline-danger py-0 px-2 btn-go-lien-ket" style="font-size:11px;" data-id-thiet-bi="' + tb.idThietBi + '">' +
+        '<i class="fa fa-unlink"></i> Gỡ liên kết</button></td>' +
+        '</tr>';
+        });
+        html += '</tbody></table></div>';
+        $("#vungLienKetKiemKe").html(html);
+        },
+        error: function () {
+        $("#vungLienKetKiemKe").html('<div class="alert alert-danger py-2 mb-0 small">Không kết nối được máy chủ để kiểm tra liên kết.</div>');
+        }
+        });
+        }
+
+        // Gỡ liên kết một thiết bị: chỉ xóa mối nối id_may, bản ghi thiết bị kiểm kê vẫn còn nguyên
+        $(document).on("click", ".btn-go-lien-ket", function () {
+        var $nut = $(this);
+        var idThietBi = parseInt($nut.data("id-thiet-bi"));
+
+        Swal.fire({
+        title: 'Gỡ liên kết thiết bị #' + idThietBi + '?',
+        html: 'Thiết bị kiểm kê vẫn còn trong hệ thống, chỉ mất liên kết tới máy này.<br/>Gỡ xong bạn mới xóa được máy ở trang danh sách.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Gỡ liên kết',
+        cancelButtonText: 'Hủy'
+        }).then(function (kq) {
+        if (!kq.isConfirmed) return;
+
+        $nut.prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i> Đang gỡ...');
+        $.ajax({
+        url: '/QLKiemKe/GoLienKetThietBiKiemKe',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ idMay: parseInt(idMayParam), idThietBi: idThietBi }),
+        dataType: 'json',
+        success: function (res) {
+        if (res.success) {
+        loadThietBiKiemKeLienKet();
+        Swal.fire({ icon: 'success', title: 'Đã gỡ liên kết', text: res.message || '' });
+        } else {
+        $nut.prop("disabled", false).html('<i class="fa fa-unlink"></i> Gỡ liên kết');
+        Swal.fire('Lỗi', res.message || 'Không gỡ được liên kết.', 'error');
+        }
+        },
+        error: function () {
+        $nut.prop("disabled", false).html('<i class="fa fa-unlink"></i> Gỡ liên kết');
+        Swal.fire('Lỗi', 'Không kết nối được máy chủ để gỡ liên kết.', 'error');
+        }
+        });
+        });
         });
 
         // Hàm gọi AJAX lấy danh sách lịch sử log từ Server đổ vào Table ẩn

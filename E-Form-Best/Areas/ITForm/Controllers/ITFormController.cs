@@ -9647,7 +9647,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // - TSCN_LichSuThayDoi và TSCN_LichSuXacThucNguoiDung có cột id_may NOT NULL và FK không cascade,
         //   nên buộc phải xóa dòng log của đúng máy này thì mới xóa được máy. Bù lại có ghi KK_LichSuThaoTac
         //   (ai xóa, máy nào, xóa kèm bao nhiêu dòng log) để vẫn còn dấu vết truy vết.
-        // - KK_ThietBi trỏ tới máy qua id_may (nullable): chỉ GỠ liên kết, không xóa thiết bị kiểm kê.
+        // - Máy còn liên kết thiết bị kiểm kê (KK_ThietBi.id_may) thì TỪ CHỐI xóa, bắt gỡ liên kết trước
+        //   ở trang chi tiết máy (/QLKiemKe/ViewChiTietMayTinh) - xem action GoLienKetThietBiKiemKe.
         public class XoaMayTinhRequest
         {
             public int IdMay { get; set; }
@@ -9679,9 +9680,31 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 string tenMay = may.TenMay ?? "Không rõ";
                 string seriMay = may.SeriMay ?? "";
 
-                // Gỡ liên kết ở KK_ThietBi thay vì xóa - thiết bị kiểm kê là dữ liệu nghiệp vụ riêng
-                var dsThietBiLienKet = await _context.KkThietBis.Where(x => x.IdMay == may.IdMay).ToListAsync();
-                foreach (var thietBi in dsThietBiLienKet) thietBi.IdMay = null;
+                // Máy đã được đồng bộ sang trang Thiết bị kiểm kê thì KHÔNG cho xóa: xóa ở đây sẽ làm
+                // thiết bị bên đó mất nguồn cấu hình mà người dùng không hay biết. Bắt gỡ liên kết trước,
+                // thao tác gỡ nằm ở trang chi tiết máy để người gỡ nhìn thấy rõ mình đang gỡ máy nào.
+                var dsThietBiLienKet = await _context.KkThietBis
+                    .Where(x => x.IdMay == may.IdMay && x.NgayXoa == null)
+                    .Select(x => new { x.IdThietBi, x.TenMayTinh })
+                    .ToListAsync();
+
+                if (dsThietBiLienKet.Count > 0)
+                {
+                    string dsTen = string.Join(", ", dsThietBiLienKet.Select(x => x.TenMayTinh ?? ("#" + x.IdThietBi)));
+                    return Json(new
+                    {
+                        success = false,
+                        canGoLienKet = true,
+                        idMay = may.IdMay,
+                        message = $"Máy '{tenMay}' đang liên kết với {dsThietBiLienKet.Count} thiết bị kiểm kê ({dsTen}). " +
+                                  "Hãy gỡ liên kết ở trang chi tiết máy trước khi xóa."
+                    });
+                }
+
+                // Thiết bị đã xóa mềm (nằm trong thùng rác) vẫn giữ khóa ngoại id_may nên vẫn chặn việc xóa máy.
+                // Cột này nullable, chỉ cần gỡ liên kết là đủ - không đụng tới bản ghi thiết bị trong thùng rác.
+                var dsThietBiDaXoaMem = await _context.KkThietBis.Where(x => x.IdMay == may.IdMay).ToListAsync();
+                foreach (var thietBi in dsThietBiDaXoaMem) thietBi.IdMay = null;
 
                 // Hai bảng log có id_may NOT NULL nên phải xóa trước, nếu không SQL Server chặn vì ràng buộc khóa ngoại
                 var dsLogThayDoi = await _context.TscnLichSuThayDois.Where(x => x.IdMay == may.IdMay).ToListAsync();
@@ -9697,7 +9720,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 GhiLichSu("Xóa vĩnh viễn", "Máy tính (TSCN)", idMayDaXoa,
                     $"Đã xóa máy '{tenMay}' (Serial: {(string.IsNullOrWhiteSpace(seriMay) ? "không có" : seriMay)}) khỏi TSCN_ThongTinMay. " +
-                    $"Gỡ liên kết {dsThietBiLienKet.Count} thiết bị kiểm kê, xóa kèm {soLogDaXoa} dòng lịch sử của máy.");
+                    $"Xóa kèm {soLogDaXoa} dòng lịch sử của máy.");
 
                 return Json(new { success = true, message = $"Đã xóa máy '{tenMay}' khỏi hệ thống." });
             }
@@ -9944,6 +9967,85 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
                 return Json(new { success = false, message = $"Lỗi hệ thống khi tải cấu hình phụ: {chiTietLoi}" });
+            }
+        }
+
+        // 4b. DANH SÁCH THIẾT BỊ KIỂM KÊ ĐANG LIÊN KẾT VỚI MÁY (hiện ở trang chi tiết máy để biết vì sao chưa xóa được máy)
+        [HttpGet("/QLKiemKe/ThietBiKiemKeLienKet")]
+        public async Task<IActionResult> ThietBiKiemKeLienKet(int idMay)
+        {
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
+            try
+            {
+                // KkThietBi có soft-delete: thiết bị trong thùng rác không tính là đang liên kết
+                var ds = await _context.KkThietBis
+                    .Where(x => x.IdMay == idMay && x.NgayXoa == null)
+                    .Select(x => new
+                    {
+                        idThietBi = x.IdThietBi,
+                        tenMayTinh = x.TenMayTinh,
+                        tenViTri = x.TenViTri,
+                        seribacode = x.Seribacode
+                    })
+                    .ToListAsync();
+
+                return Json(new { success = true, data = ds });
+            }
+            catch (Exception ex)
+            {
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = $"Lỗi khi tải thiết bị kiểm kê liên kết: {chiTietLoi}" });
+            }
+        }
+
+        // 4c. GỠ LIÊN KẾT giữa máy (TSCN_ThongTinMay) và thiết bị kiểm kê (KK_ThietBi)
+        // Chỉ xóa mối nối id_may, hai bản ghi vẫn còn nguyên. Gỡ xong mới xóa được máy ở trang danh sách.
+        public class GoLienKetRequest
+        {
+            public int IdMay { get; set; }
+            public int? IdThietBi { get; set; } // null = gỡ toàn bộ thiết bị đang liên kết với máy này
+        }
+
+        [HttpPost("/QLKiemKe/GoLienKetThietBiKiemKe")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> GoLienKetThietBiKiemKe([FromBody] GoLienKetRequest? req)
+        {
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
+            if (req == null || req.IdMay <= 0)
+            {
+                return Json(new { success = false, message = "Thiếu mã máy cần gỡ liên kết." });
+            }
+
+            try
+            {
+                var truyVan = _context.KkThietBis.Where(x => x.IdMay == req.IdMay);
+                if (req.IdThietBi.HasValue) truyVan = truyVan.Where(x => x.IdThietBi == req.IdThietBi.Value);
+
+                var ds = await truyVan.ToListAsync();
+                if (ds.Count == 0)
+                {
+                    // Gỡ hai lần: lần sau coi như đã xong để nút không báo lỗi đỏ vô cớ
+                    return Json(new { success = true, soDaGo = 0, message = "Máy này hiện không còn liên kết thiết bị kiểm kê nào." });
+                }
+
+                var may = await _context.TscnThongTinMays.FirstOrDefaultAsync(m => m.IdMay == req.IdMay);
+                foreach (var thietBi in ds) thietBi.IdMay = null;
+                await _context.SaveChangesAsync();
+
+                GhiLichSu("Gỡ liên kết", "Máy tính (TSCN)", req.IdMay,
+                    $"Đã gỡ liên kết {ds.Count} thiết bị kiểm kê khỏi máy '{may?.TenMay ?? "không rõ"}' " +
+                    $"(thiết bị: {string.Join(", ", ds.Select(x => x.TenMayTinh ?? ("#" + x.IdThietBi)))}).");
+
+                return Json(new { success = true, soDaGo = ds.Count, message = $"Đã gỡ liên kết {ds.Count} thiết bị kiểm kê." });
+            }
+            catch (Exception ex)
+            {
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = $"Không gỡ được liên kết: {chiTietLoi}" });
             }
         }
 

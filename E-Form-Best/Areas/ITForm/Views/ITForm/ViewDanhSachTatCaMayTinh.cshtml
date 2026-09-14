@@ -1103,6 +1103,19 @@
         capNhatNutDongBo();
         thucThiBoLocDuLieu();
         Swal.fire({ icon: 'success', title: 'Đã xóa', text: res.message || ('Đã xóa máy ' + tenMay + '.') });
+        } else if (res.canGoLienKet) {
+        // Máy còn liên kết thiết bị kiểm kê: chỉ trang chi tiết máy mới gỡ được liên kết
+        $nut.prop("disabled", false);
+        Swal.fire({
+        icon: 'warning',
+        title: 'Chưa xóa được máy',
+        html: thoatThuocTinh(res.message) + '<br/><br/>Mở trang chi tiết máy để gỡ liên kết?',
+        showCancelButton: true,
+        confirmButtonText: 'Mở trang chi tiết',
+        cancelButtonText: 'Để sau'
+        }).then(function (kq) {
+        if (kq.isConfirmed) window.open('/QLKiemKe/ViewChiTietMayTinh?idMay=' + idMay, '_blank');
+        });
         } else {
         $nut.prop("disabled", false);
         Swal.fire('Lỗi', res.message || 'Không xóa được máy.', 'error');
