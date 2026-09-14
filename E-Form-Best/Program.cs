@@ -12,6 +12,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Localization; // Đọc cookie ngôn ngữ, đặt UICulture cho request
 using Microsoft.Extensions.Options;
 using System.Globalization;
+using Microsoft.AspNetCore.DataProtection; // Giữ key mã hoá cookie cố định giữa các lần restart/deploy
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -69,6 +70,51 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
         new CultureInfo("zh-CN")
     };
 });
+
+// --- 3.5. GIỮ KEY DATA PROTECTION CỐ ĐỊNH ---
+// Key này mã hoá cookie đăng nhập và session. Mặc định ASP.NET Core sinh key mới mỗi khi app
+// khởi động ở nơi không có user profile (IIS recycle app pool) hoặc khi thư mục deploy bị ghi đè
+// -> toàn bộ người dùng bị đá ra đăng nhập lại, log đầy "Error unprotecting the session cookie".
+// Ghim key ra thư mục NGOÀI vùng deploy để robocopy không xoá mất khi cập nhật bản build.
+// ApplicationName cố định để mọi instance cùng đọc chung một key ring.
+var thuMucKeyDataProtection = builder.Configuration["DataProtection:KeyPath"]
+    ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "E-Form-Best", "DataProtection-Keys");
+
+// Tài khoản app pool IIS có thể không có quyền ghi lên ProgramData. Thử tạo thư mục VÀ ghi thử
+// một file thăm dò: CreateDirectory thành công không có nghĩa là ghi được file bên trong, mà lỗi
+// ghi key chỉ nổ muộn lúc mã hoá cookie đầu tiên (người dùng thấy 500 khi đăng nhập).
+// Thà quay về hành vi mặc định cũ (key tạm, người dùng bị đăng xuất khi restart) còn hơn sập app.
+var ghiDuocKeyDataProtection = true;
+try
+{
+    Directory.CreateDirectory(thuMucKeyDataProtection);
+    var fileThamDo = Path.Combine(thuMucKeyDataProtection, ".probe-quyen-ghi");
+    File.WriteAllText(fileThamDo, string.Empty);
+    File.Delete(fileThamDo);
+}
+catch (Exception ex)
+{
+    ghiDuocKeyDataProtection = false;
+    Console.Error.WriteLine(
+        $"[CẢNH BÁO] Không ghi được key Data Protection vào '{thuMucKeyDataProtection}': {ex.Message}. " +
+        "Quay về key ring mặc định — người dùng sẽ bị đăng xuất mỗi lần app khởi động lại. " +
+        "Cấp quyền ghi cho tài khoản app pool trên thư mục này để khắc phục.");
+}
+
+if (ghiDuocKeyDataProtection)
+{
+    var builderDataProtection = builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(thuMucKeyDataProtection))
+        .SetApplicationName("E-Form-Best");
+    // Mã hoá key khi lưu xuống đĩa bằng DPAPI phạm vi máy (app pool IIS chạy tài khoản khác user
+    // đăng nhập nên phải là LocalMachine, không phải CurrentUser). Đổi máy chủ thì key cũ không
+    // giải mã được -> người dùng đăng nhập lại một lần, chấp nhận được so với để key trần trên đĩa.
+    if (OperatingSystem.IsWindows())
+    {
+        builderDataProtection.ProtectKeysWithDpapi(protectToLocalMachine: true);
+    }
+}
 
 // 4. CẤU HÌNH COOKIE AUTHENTICATION (Đã thêm logic kiểm tra SecurityStamp)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -184,9 +230,14 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
-}
 
-app.UseHttpsRedirection();
+    // Chỉ bật ngoài Development. Ở máy dev chỉ có endpoint http nên middleware không biết
+    // redirect sang cổng https nào, nó tự bỏ qua nhưng ghi cảnh báo "Failed to determine the
+    // https port for redirect" rác log. Trên production nginx đã cắt TLS và gửi
+    // X-Forwarded-Proto: https nên app thấy scheme đã là https — giữ ở đây cho đúng ý đồ
+    // phòng trường hợp có request http lọt thẳng vào Kestrel.
+    app.UseHttpsRedirection();
+}
 app.UseStaticFiles(new StaticFileOptions
 {
     // Cho phép trình duyệt cache lib/css/js 7 ngày, giảm tải lại các file tĩnh không đổi mỗi lần chuyển trang.
