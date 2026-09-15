@@ -2425,7 +2425,8 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
         [HttpPost("/FormHR/DonSuDungDienThoai")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DonSuDungDienThoai(FormHr form, [FromForm] HrDonSuDungDienThoai12 chiTiet, int[] SelectedCongViecIds)
+        public async Task<IActionResult> DonSuDungDienThoai(FormHr form, [FromForm] HrDonSuDungDienThoai12 chiTiet, int[] SelectedCongViecIds,
+            List<string> arrHoTen, List<string> arrMaSoThe, List<string> arrBoPhan, List<string> arrChucVu, List<string> arrCapBac)
         {
             // Kiểm tra an toàn User và Identity
             if (User?.Identity == null || !User.Identity.IsAuthenticated) return Redirect("/DonXetDuyet/DangNhap");
@@ -2445,6 +2446,59 @@ namespace E_Form_Best.Areas.HRform.Controllers
             {
                 try
                 {
+                    // --- BƯỚC 0: GOM DANH SÁCH NGƯỜI SỬ DỤNG ---
+                    // Một đơn đăng ký được cho nhiều người: mỗi người là một dòng trong
+                    // HR_DonSuDungDienThoai_12, dùng chung thời gian/lý do/ảnh của đơn.
+                    var dsNguoi = new List<HrDonSuDungDienThoai12>();
+                    for (int i = 0; arrHoTen != null && i < arrHoTen.Count; i++)
+                    {
+                        if (string.IsNullOrWhiteSpace(arrHoTen[i])) continue;
+
+                        string LayO(List<string>? ds) => (ds != null && i < ds.Count ? ds[i] : "")?.Trim() ?? "";
+
+                        dsNguoi.Add(new HrDonSuDungDienThoai12
+                        {
+                            HoTen = arrHoTen[i].Trim(),
+                            MaSoThe = LayO(arrMaSoThe),
+                            BoPhan = LayO(arrBoPhan),
+                            ChucVu = LayO(arrChucVu),
+                            CapBac = LayO(arrCapBac),
+                            ThoiGianBatDauSuDung = chiTiet?.ThoiGianBatDauSuDung,
+                            LyDoSuDung = chiTiet?.LyDoSuDung,
+                            GhiChu = chiTiet?.GhiChu
+                        });
+                    }
+
+                    if (dsNguoi.Count == 0)
+                    {
+                        await transaction.RollbackAsync();
+                        return Json(new { thanhCong = false, thongBao = "Vui lòng khai ít nhất một người sử dụng điện thoại." });
+                    }
+
+                    // Chốt chống trùng: luồng AJAX không còn POST-Redirect-GET che double-submit nữa,
+                    // nên cùng người tạo gửi lại đúng loại đơn này trong 30 giây thì coi là bấm lặp.
+                    var nguongTrung = DateTime.Now.AddSeconds(-30);
+                    var donVuaTao = await _context.FormHrs
+                        .Where(x => x.IdNguoiTao == userId
+                                    && x.IdForm == "HR_DonSuDungDienThoai_12"
+                                    && x.TimeNguoiTao != null
+                                    && x.TimeNguoiTao > nguongTrung)
+                        .OrderByDescending(x => x.TimeNguoiTao)
+                        .Select(x => new { x.Id })
+                        .FirstOrDefaultAsync();
+
+                    if (donVuaTao != null)
+                    {
+                        await transaction.RollbackAsync();
+                        return Json(new
+                        {
+                            thanhCong = true,
+                            trung = true,
+                            idDon = donVuaTao.Id,
+                            thongBao = $"Đơn của bạn đã được ghi nhận trước đó (mã đơn {donVuaTao.Id}). Hệ thống không tạo thêm đơn trùng."
+                        });
+                    }
+
                     // --- BƯỚC 1: LƯU BẢNG CHÍNH ---
                     form.Ngay = DateOnly.FromDateTime(DateTime.Now);
                     form.IdNguoiTao = userId;
@@ -2516,9 +2570,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     await _context.SaveChangesAsync();
 
                     // --- BƯỚC 4: CHI TIẾT + FILES ---
-                    if (chiTiet != null)
                     {
-                        chiTiet.IdFormHr = form.Id;
                         if (!Directory.Exists(networkPath)) Directory.CreateDirectory(networkPath);
                         string safeName = RemoveSign4VietnameseString(userName).Replace(" ", "");
                         string ts = DateTime.Now.ToString("ddMMyy_HHmm");
@@ -2534,18 +2586,22 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         {
                             string imgName = $"Anh_DienThoai_{form.Id}_{safeName}_{ts}{Path.GetExtension(anhFile.FileName) ?? ".jpg"}";
                             using (var fs = new FileStream(Path.Combine(networkPath, imgName), FileMode.Create)) await anhFile.CopyToAsync(fs);
-                            chiTiet.DuongDanAnh = imgName;
+                            // Ảnh là của cả đơn, chỉ gắn vào dòng đầu để trang chi tiết không hiện trùng ảnh
+                            dsNguoi[0].DuongDanAnh = imgName;
                         }
-                        _context.HrDonSuDungDienThoai12s.Add(chiTiet);
+
+                        foreach (var nguoi in dsNguoi) nguoi.IdFormHr = form.Id;
+                        _context.HrDonSuDungDienThoai12s.AddRange(dsNguoi);
                         await _context.SaveChangesAsync();
                     }
 
                     // --- BƯỚC 5: LỊCH SỬ ---
+                    string dsTenNguoi = string.Join(", ", dsNguoi.Select(x => $"{x.HoTen} ({x.MaSoThe})"));
                     _context.LichSuFormHrs.Add(new LichSuFormHr
                     {
                         IdFormHr = form.Id,
                         TieuDe = "Khởi tạo đơn sử dụng điện thoại",
-                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn.",
+                        Mota = $"Nhân viên {userName} ({soNhanVien}) đã tạo đơn cho {dsNguoi.Count} người: {dsTenNguoi}.",
                         Time = DateTime.Now,
                         IsRead = false,
                         TrangThaiAnHien = true
@@ -2556,14 +2612,18 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    TempData["Success"] = "Gửi đơn xin sử dụng điện thoại thành công!";
-                    return RedirectToAction("DonCho");
+                    return Json(new
+                    {
+                        thanhCong = true,
+                        trung = false,
+                        idDon = form.Id,
+                        thongBao = $"Đã gửi đơn xin sử dụng điện thoại cho {dsNguoi.Count} người (mã đơn {form.Id})."
+                    });
                 }
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    ModelState.AddModelError("", "Lỗi hệ thống: " + ex.Message);
-                    return View(form);
+                    return Json(new { thanhCong = false, thongBao = "Lỗi hệ thống: " + ex.Message });
                 }
             }
         }
@@ -2822,7 +2882,9 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 // KIỂM TRA NẾU LÀ ĐƠN SỬ DỤNG ĐIỆN THOẠI (LOẠI 12)
                 if (don.HrDonSuDungDienThoai12s != null && don.HrDonSuDungDienThoai12s.Any())
                 {
-                    var ct = don.HrDonSuDungDienThoai12s.First();
+                    // Một đơn có thể đăng ký cho nhiều người: thời gian/lý do dùng chung lấy ở dòng đầu
+                    var dsNguoi12 = don.HrDonSuDungDienThoai12s.OrderBy(x => x.Id).ToList();
+                    var ct = dsNguoi12[0];
                     var ngayTao = don.TimeNguoiTao ?? DateTime.Now;
 
                     // Tiêu đề công ty
@@ -2844,52 +2906,96 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     worksheet.Range("A7:H7").Merge().Style.Font.SetItalic().Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Right);
 
                     // --- BẢNG DỮ LIỆU CHÍNH ---
-                    // Hàng 1: Họ tên | Mã số thẻ | Cấp bậc | Chức vụ
-                    worksheet.Cell(9, 1).Value = "Họ tên\n姓名";
-                    worksheet.Cell(9, 2).Value = ct.HoTen;
-                    worksheet.Cell(9, 3).Value = "Mã số thẻ\n工号";
-                    worksheet.Cell(9, 4).Value = ct.MaSoThe;
-                    worksheet.Cell(9, 5).Value = "Cấp bậc\n级别";
-                    worksheet.Cell(9, 6).Value = ct.CapBac;
-                    worksheet.Cell(9, 7).Value = "Chức vụ\n职务/职称";
-                    worksheet.Cell(9, 8).Value = ct.ChucVu;
+                    int rTg;    // dòng "Thời gian bắt đầu sử dụng"
+                    int rLyDo;  // dòng "Lý do sử dụng"
 
-                    // Hàng 2: Bộ phận | Thời gian bắt đầu sử dụng
-                    worksheet.Cell(10, 1).Value = "Bộ phận\n部门";
-                    worksheet.Cell(10, 2).Value = ct.BoPhan;
-                    worksheet.Cell(10, 3).Value = "Thời gian bắt đầu\nsử dụng\n使用开始日期";
-                    worksheet.Cell(10, 4).Value = ct.ThoiGianBatDauSuDung?.ToString("dd/MM/yyyy HH:mm");
-                    worksheet.Range("D10:H10").Merge();
+                    if (dsNguoi12.Count == 1)
+                    {
+                        // Một người: giữ nguyên bố cục biểu mẫu gốc BPVN-HR-PR-006
+                        worksheet.Cell(9, 1).Value = "Họ tên\n姓名";
+                        worksheet.Cell(9, 2).Value = ct.HoTen;
+                        worksheet.Cell(9, 3).Value = "Mã số thẻ\n工号";
+                        worksheet.Cell(9, 4).Value = ct.MaSoThe;
+                        worksheet.Cell(9, 5).Value = "Cấp bậc\n级别";
+                        worksheet.Cell(9, 6).Value = ct.CapBac;
+                        worksheet.Cell(9, 7).Value = "Chức vụ\n职务/职称";
+                        worksheet.Cell(9, 8).Value = ct.ChucVu;
 
-                    // Hàng 3: Lý do sử dụng
-                    worksheet.Cell(11, 1).Value = "Lý do sử dụng\n使用原因";
-                    worksheet.Cell(11, 2).Value = ct.LyDoSuDung + (string.IsNullOrEmpty(ct.GhiChu) ? "" : $" (Ghi chú: {ct.GhiChu})");
-                    worksheet.Range("B11:H11").Merge();
+                        worksheet.Cell(9, 1).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                        worksheet.Cell(9, 3).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                        worksheet.Cell(9, 5).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                        worksheet.Cell(9, 7).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                        worksheet.Row(9).Height = 35;
+
+                        rTg = 10;
+                        worksheet.Cell(rTg, 1).Value = "Bộ phận\n部门";
+                        worksheet.Cell(rTg, 2).Value = ct.BoPhan;
+                        worksheet.Cell(rTg, 3).Value = "Thời gian bắt đầu\nsử dụng\n使用开始日期";
+                        worksheet.Cell(rTg, 4).Value = ct.ThoiGianBatDauSuDung?.ToString("dd/MM/yyyy HH:mm");
+                        worksheet.Range(rTg, 4, rTg, 8).Merge();
+                        worksheet.Cell(rTg, 1).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                        worksheet.Cell(rTg, 3).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                        worksheet.Row(rTg).Height = 40;
+                    }
+                    else
+                    {
+                        // Nhiều người trong một đơn: mỗi người một dòng
+                        worksheet.Cell(9, 1).Value = "STT\n序号";
+                        worksheet.Cell(9, 2).Value = "Họ tên\n姓名";
+                        worksheet.Cell(9, 4).Value = "Mã số thẻ\n工号";
+                        worksheet.Cell(9, 5).Value = "Bộ phận\n部门";
+                        worksheet.Cell(9, 7).Value = "Chức vụ\n职务/职称";
+                        worksheet.Cell(9, 8).Value = "Cấp bậc\n级别";
+                        worksheet.Range(9, 2, 9, 3).Merge();
+                        worksheet.Range(9, 5, 9, 6).Merge();
+                        worksheet.Range(9, 1, 9, 8).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                        worksheet.Row(9).Height = 35;
+
+                        int r = 10;
+                        int stt = 1;
+                        foreach (var n in dsNguoi12)
+                        {
+                            worksheet.Cell(r, 1).Value = stt++;
+                            worksheet.Cell(r, 2).Value = n.HoTen;
+                            worksheet.Cell(r, 4).Value = n.MaSoThe;
+                            worksheet.Cell(r, 5).Value = n.BoPhan;
+                            worksheet.Cell(r, 7).Value = n.ChucVu;
+                            worksheet.Cell(r, 8).Value = n.CapBac;
+                            worksheet.Range(r, 2, r, 3).Merge();
+                            worksheet.Range(r, 5, r, 6).Merge();
+                            worksheet.Row(r).Height = 22;
+                            r++;
+                        }
+
+                        rTg = r;
+                        worksheet.Cell(rTg, 1).Value = "Thời gian bắt đầu sử dụng\n使用开始日期";
+                        worksheet.Range(rTg, 1, rTg, 3).Merge();
+                        worksheet.Cell(rTg, 4).Value = ct.ThoiGianBatDauSuDung?.ToString("dd/MM/yyyy HH:mm");
+                        worksheet.Range(rTg, 4, rTg, 8).Merge();
+                        worksheet.Cell(rTg, 1).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                        worksheet.Row(rTg).Height = 40;
+                    }
+
+                    // Dòng lý do sử dụng (dùng chung cho mọi người trong đơn)
+                    rLyDo = rTg + 1;
+                    worksheet.Cell(rLyDo, 1).Value = "Lý do sử dụng\n使用原因";
+                    worksheet.Cell(rLyDo, 2).Value = ct.LyDoSuDung + (string.IsNullOrEmpty(ct.GhiChu) ? "" : $" (Ghi chú: {ct.GhiChu})");
+                    worksheet.Range(rLyDo, 2, rLyDo, 8).Merge();
+                    worksheet.Cell(rLyDo, 1).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+                    worksheet.Row(rLyDo).Height = 55;
 
                     // Định dạng borders & căn lề cho bảng thông tin
-                    var mainGrid = worksheet.Range("A9:H11");
+                    var mainGrid = worksheet.Range(9, 1, rLyDo, 8);
                     mainGrid.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
                     mainGrid.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
                     mainGrid.Style.Alignment.SetVertical(ClosedXML.Excel.XLAlignmentVerticalValues.Center);
                     mainGrid.Style.Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
                     mainGrid.Style.Alignment.WrapText = true;
 
-                    // Định dạng màu nền tiêu đề cột trong bảng
-                    worksheet.Cell(9, 1).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
-                    worksheet.Cell(9, 3).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
-                    worksheet.Cell(9, 5).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
-                    worksheet.Cell(9, 7).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
-                    worksheet.Cell(10, 1).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
-                    worksheet.Cell(10, 3).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
-                    worksheet.Cell(11, 1).Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
-
-                    worksheet.Row(9).Height = 35;
-                    worksheet.Row(10).Height = 40;
-                    worksheet.Row(11).Height = 55;
-                    worksheet.Cell(11, 2).Style.Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Left);
+                    worksheet.Cell(rLyDo, 2).Style.Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Left);
 
                     // --- KHỐI KÝ TÊN BIỂU MẪU ---
-                    int sigRow = 14;
+                    int sigRow = rLyDo + 3;
                     worksheet.Cell(sigRow, 1).Value = "Người xin\n申请人";
                     worksheet.Cell(sigRow, 4).Value = "Quản lý bộ phận\n部门经理";
                     worksheet.Cell(sigRow, 7).Value = "HCNS xác nhận\n人力资源部";
@@ -2911,8 +3017,9 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     worksheet.Range(sigRow + 2, 1, sigRow + 2, 8).Style.Font.SetItalic().Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
 
                     // Footer Mã số biểu mẫu ở góc dưới phải
-                    worksheet.Cell(20, 7).Value = "BPVN-HR-PR-006 A/1";
-                    worksheet.Range("G20:H20").Merge().Style.Font.SetBold().Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Right);
+                    int footRow = sigRow + 6;
+                    worksheet.Cell(footRow, 7).Value = "BPVN-HR-PR-006 A/1";
+                    worksheet.Range(footRow, 7, footRow, 8).Merge().Style.Font.SetBold().Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Right);
                 }
                 else
                 {
@@ -3251,7 +3358,9 @@ namespace E_Form_Best.Areas.HRform.Controllers
             // KIỂM TRA NẾU LÀ ĐƠN SỬ DỤNG ĐIỆN THOẠI (LOẠI 12) THÌ APPLY MẪU SONG NGỮ THEO ẢNH
             if (don.HrDonSuDungDienThoai12s != null && don.HrDonSuDungDienThoai12s.Any())
             {
-                var ct = don.HrDonSuDungDienThoai12s.First();
+                // Một đơn có thể đăng ký cho nhiều người: thời gian/lý do dùng chung lấy ở dòng đầu
+                var dsNguoi12 = don.HrDonSuDungDienThoai12s.OrderBy(x => x.Id).ToList();
+                var ct = dsNguoi12[0];
 
                 // Header chuẩn BEST PACIFIC VIỆT NAM (Dòng 1: Logo, Dòng 2: Tên tiếng Việt, Dòng 3: Tên tiếng Trung căn giữa)
                 sb.Append("<table class='header-table' style='margin-bottom: 10px; width: 100%; border-collapse: collapse;'>");
@@ -3290,23 +3399,58 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
                 // Bảng nội dung thông tin chi tiết cấu trúc chuẩn 100% theo ảnh
                 sb.Append("<table class='form-card-table'>");
-                sb.Append("<tr>");
-                sb.Append("<td style='width: 12%; text-align: center;' class='text-bold'>Họ tên<br/><span class='lang-zh'>姓名</span></td>");
-                sb.Append($"<td style='width: 22%; text-align: center;'>{ct.HoTen}</td>");
-                sb.Append("<td style='width: 13%; text-align: center;' class='text-bold'>Mã số thẻ<br/><span class='lang-zh'>工号</span></td>");
-                sb.Append($"<td style='width: 18%; text-align: center;'>{ct.MaSoThe}</td>");
-                sb.Append("<td style='width: 10%; text-align: center;' class='text-bold'>Cấp bậc<br/><span class='lang-zh'>级别</span></td>");
-                sb.Append($"<td style='width: 9%; text-align: center;'>{ct.CapBac}</td>");
-                sb.Append("<td style='width: 11%; text-align: center;' class='text-bold'>Chức vụ<br/><span class='lang-zh'>职务/职称</span></td>");
-                sb.Append($"<td style='width: 15%; text-align: center;'>{ct.ChucVu}</td>");
-                sb.Append("</tr>");
 
-                sb.Append("<tr>");
-                sb.Append("<td style='text-align: center;' class='text-bold'>Bộ phận<br/><span class='lang-zh'>部门</span></td>");
-                sb.Append($"<td style='text-align: center;'>{ct.BoPhan}</td>");
-                sb.Append("<td style='text-align: center;' class='text-bold'>Thời gian bắt đầu<br/>sử dụng<br/><span class='lang-zh'>使用开始日期</span></td>");
-                sb.Append($"<td colspan='5' style='padding-left: 15px;'>{ct.ThoiGianBatDauSuDung?.ToString("dd/MM/yyyy HH:mm")}</td>");
-                sb.Append("</tr>");
+                if (dsNguoi12.Count == 1)
+                {
+                    // Một người: giữ nguyên bố cục biểu mẫu gốc BPVN-HR-PR-006
+                    sb.Append("<tr>");
+                    sb.Append("<td style='width: 12%; text-align: center;' class='text-bold'>Họ tên<br/><span class='lang-zh'>姓名</span></td>");
+                    sb.Append($"<td style='width: 22%; text-align: center;'>{ct.HoTen}</td>");
+                    sb.Append("<td style='width: 13%; text-align: center;' class='text-bold'>Mã số thẻ<br/><span class='lang-zh'>工号</span></td>");
+                    sb.Append($"<td style='width: 18%; text-align: center;'>{ct.MaSoThe}</td>");
+                    sb.Append("<td style='width: 10%; text-align: center;' class='text-bold'>Cấp bậc<br/><span class='lang-zh'>级别</span></td>");
+                    sb.Append($"<td style='width: 9%; text-align: center;'>{ct.CapBac}</td>");
+                    sb.Append("<td style='width: 11%; text-align: center;' class='text-bold'>Chức vụ<br/><span class='lang-zh'>职务/职称</span></td>");
+                    sb.Append($"<td style='width: 15%; text-align: center;'>{ct.ChucVu}</td>");
+                    sb.Append("</tr>");
+
+                    sb.Append("<tr>");
+                    sb.Append("<td style='text-align: center;' class='text-bold'>Bộ phận<br/><span class='lang-zh'>部门</span></td>");
+                    sb.Append($"<td style='text-align: center;'>{ct.BoPhan}</td>");
+                    sb.Append("<td style='text-align: center;' class='text-bold'>Thời gian bắt đầu<br/>sử dụng<br/><span class='lang-zh'>使用开始日期</span></td>");
+                    sb.Append($"<td colspan='5' style='padding-left: 15px;'>{ct.ThoiGianBatDauSuDung?.ToString("dd/MM/yyyy HH:mm")}</td>");
+                    sb.Append("</tr>");
+                }
+                else
+                {
+                    // Nhiều người trong một đơn: liệt kê mỗi người một dòng
+                    sb.Append("<tr>");
+                    sb.Append("<td style='width: 6%; text-align: center;' class='text-bold'>STT<br/><span class='lang-zh'>序号</span></td>");
+                    sb.Append("<td colspan='2' style='width: 28%; text-align: center;' class='text-bold'>Họ tên<br/><span class='lang-zh'>姓名</span></td>");
+                    sb.Append("<td style='width: 16%; text-align: center;' class='text-bold'>Mã số thẻ<br/><span class='lang-zh'>工号</span></td>");
+                    sb.Append("<td colspan='2' style='width: 24%; text-align: center;' class='text-bold'>Bộ phận<br/><span class='lang-zh'>部门</span></td>");
+                    sb.Append("<td style='width: 16%; text-align: center;' class='text-bold'>Chức vụ<br/><span class='lang-zh'>职务/职称</span></td>");
+                    sb.Append("<td style='width: 10%; text-align: center;' class='text-bold'>Cấp bậc<br/><span class='lang-zh'>级别</span></td>");
+                    sb.Append("</tr>");
+
+                    int stt12 = 1;
+                    foreach (var n in dsNguoi12)
+                    {
+                        sb.Append("<tr>");
+                        sb.Append($"<td style='text-align: center;'>{stt12++}</td>");
+                        sb.Append($"<td colspan='2' style='text-align: center;'>{n.HoTen}</td>");
+                        sb.Append($"<td style='text-align: center;'>{n.MaSoThe}</td>");
+                        sb.Append($"<td colspan='2' style='text-align: center;'>{n.BoPhan}</td>");
+                        sb.Append($"<td style='text-align: center;'>{n.ChucVu}</td>");
+                        sb.Append($"<td style='text-align: center;'>{n.CapBac}</td>");
+                        sb.Append("</tr>");
+                    }
+
+                    sb.Append("<tr>");
+                    sb.Append("<td colspan='3' style='text-align: center;' class='text-bold'>Thời gian bắt đầu sử dụng<br/><span class='lang-zh'>使用开始日期</span></td>");
+                    sb.Append($"<td colspan='5' style='padding-left: 15px;'>{ct.ThoiGianBatDauSuDung?.ToString("dd/MM/yyyy HH:mm")}</td>");
+                    sb.Append("</tr>");
+                }
 
                 sb.Append("<tr>");
                 sb.Append("<td style='text-align: center; height: 90px;' class='text-bold'>Lý do sử dụng<br/><span class='lang-zh'>使用原因</span></td>");
@@ -5289,8 +5433,12 @@ namespace E_Form_Best.Areas.HRform.Controllers
                         var f11 = item.HrDonLamLaiThe11s.FirstOrDefault();
                         return f11 != null ? $"- Tên trên thẻ: {f11.HoTen}\n- Mã số thẻ: {f11.MaSoThe}\n- Lý do: {f11.LyDoLamLaiThe}\n- Ghi chú: {f11.GhiChu}" : "";
                     case "HR_DonSuDungDienThoai_12":
-                        var f12 = item.HrDonSuDungDienThoai12s.FirstOrDefault();
-                        return f12 != null ? $"- Người sử dụng: {f12.HoTen} (Mã NV/Thẻ: {f12.MaSoThe})\n- Lý do: {f12.LyDoSuDung}\n- Thời gian bắt đầu: {f12.ThoiGianBatDauSuDung:dd/MM/yyyy HH:mm}\n- Ghi chú: {f12.GhiChu}" : "";
+                        // Một đơn có thể đăng ký cho nhiều người nên liệt kê hết, không lấy mỗi dòng đầu
+                        var ds12 = item.HrDonSuDungDienThoai12s.OrderBy(x => x.Id).ToList();
+                        if (ds12.Count == 0) return "";
+                        var f12 = ds12[0];
+                        string dsNguoi12 = string.Join("\n", ds12.Select(x => $"  + {x.HoTen} (Mã NV/Thẻ: {x.MaSoThe}) - {x.BoPhan} - {x.ChucVu}"));
+                        return $"- Người sử dụng ({ds12.Count}):\n{dsNguoi12}\n- Lý do: {f12.LyDoSuDung}\n- Thời gian bắt đầu: {f12.ThoiGianBatDauSuDung:dd/MM/yyyy HH:mm}\n- Ghi chú: {f12.GhiChu}";
 
                     default: return "N/A";
                 }

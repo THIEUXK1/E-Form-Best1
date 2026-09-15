@@ -344,15 +344,44 @@
         }
         if (Model.HrDonSuDungDienThoai12s?.Any() == true)
         {
-            var ct = Model.HrDonSuDungDienThoai12s.First();
-            if (!string.IsNullOrEmpty(ct.DuongDanAnh))
-                listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(ct.DuongDanAnh));
+            // Một đơn có thể đăng ký cho nhiều người: liệt kê từng người, phần dùng chung in một lần
+            var dsNguoi = Model.HrDonSuDungDienThoai12s.OrderBy(x => x.Id).ToList();
+            foreach (var anh in dsNguoi.Where(x => !string.IsNullOrEmpty(x.DuongDanAnh)))
+                listImages.Add("/FormHR/DownloadFile/" + System.IO.Path.GetFileName(anh.DuongDanAnh!));
 
-            chiTietNoiDung += RenderInfoRow("📱", "Loại đơn", "Đăng ký sử dụng điện thoại", "#f0fdf4", "#0f766e");
-            chiTietNoiDung += RenderInfoRow("🆔", "Mã số thẻ", ct.MaSoThe, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("👤", "Họ tên", ct.HoTen, "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("🏷️", "Cấp bậc / Chức vụ", $"{ct.CapBac} - {ct.ChucVu}", "#f8fafc", "#0f172a");
-            chiTietNoiDung += RenderInfoRow("🏢", "Bộ phận", ct.BoPhan, "#f8fafc", "#0f172a");
+            var ct = dsNguoi.First();
+            chiTietNoiDung += RenderInfoRow("📱", "Loại đơn", $"Đăng ký sử dụng điện thoại ({dsNguoi.Count} người)", "#f0fdf4", "#0f766e");
+
+            // Bảng danh sách người sử dụng — đồng bộ kiểu bảng thiết bị của đơn Wifi bên IT
+            string bangNguoi = "<div style='margin-top:10px; border:1px solid #cbd5e1; border-radius:12px; overflow-x:auto;'>";
+            bangNguoi += "<table style='width:100%; border-collapse:collapse; text-align:left; font-size:14px; background:#fff; table-layout:auto;'>";
+            bangNguoi += "<thead style='background:#f8fafc;'><tr style='border-bottom:2px solid #cbd5e1;'>";
+            bangNguoi += "<th style='padding:12px 10px; color:#475569; width:1%; white-space:nowrap; text-align:center; font-weight:700;'>STT</th>";
+            bangNguoi += "<th style='padding:12px 15px; color:#475569; font-weight:700;'>Họ tên</th>";
+            bangNguoi += "<th style='padding:12px 15px; color:#475569; text-align:center; font-weight:700;'>Mã thẻ / Mã NV</th>";
+            bangNguoi += "<th style='padding:12px 15px; color:#475569; font-weight:700;'>Bộ phận</th>";
+            bangNguoi += "<th style='padding:12px 15px; color:#475569; font-weight:700;'>Chức vụ</th>";
+            bangNguoi += "<th style='padding:12px 15px; color:#475569; text-align:center; font-weight:700;'>Cấp bậc</th>";
+            bangNguoi += "</tr></thead><tbody>";
+
+            int sttNguoi = 0;
+            foreach (var n in dsNguoi)
+            {
+                string bgRow = (sttNguoi % 2 == 0) ? "#ffffff" : "#fbfcfd";
+                bangNguoi += $"<tr style='background:{bgRow}; border-bottom:1px solid #f1f5f9;'>";
+                bangNguoi += $"<td style='padding:12px 10px; text-align:center; font-weight:700; color:#94a3b8; width:1%; white-space:nowrap;'>{sttNguoi + 1}</td>";
+                bangNguoi += $"<td style='padding:12px 15px; color:#1e293b; font-weight:700;'>{n.HoTen}</td>";
+                bangNguoi += $"<td style='padding:12px 15px; text-align:center; font-weight:800; color:#0f766e;'>{n.MaSoThe}</td>";
+                bangNguoi += $"<td style='padding:12px 15px; color:#1e293b; font-weight:600;'>{n.BoPhan}</td>";
+                bangNguoi += $"<td style='padding:12px 15px; color:#1e293b; font-weight:600;'>{n.ChucVu}</td>";
+                bangNguoi += $"<td style='padding:12px 15px; text-align:center; color:#475569; font-weight:600;'>{(string.IsNullOrEmpty(n.CapBac) ? "---" : n.CapBac)}</td>";
+                bangNguoi += "</tr>";
+                sttNguoi++;
+            }
+            bangNguoi += "</tbody></table></div>";
+
+            chiTietNoiDung += RenderInfoRow("👥", "Danh sách người sử dụng", bangNguoi, "#f0fdf4", "#0f766e");
+
             string tgBatDau = ct.ThoiGianBatDauSuDung?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa xác định";
             chiTietNoiDung += RenderInfoRow("🕒", "Bắt đầu sử dụng", tgBatDau, "#eff6ff", "#1e40af");
             chiTietNoiDung += RenderInfoRow("📝", "Lý do sử dụng", ct.LyDoSuDung ?? "Không có", "#fff1f2", "#be123c");

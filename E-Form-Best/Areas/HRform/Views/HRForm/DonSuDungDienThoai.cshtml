@@ -23,9 +23,60 @@
 }
 
 <style>
+    /* Hàng nhập một người sử dụng — nhân bản động giống đơn đăng ký Wifi */
+    .dynamic-nguoi-row {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr 1.2fr 1.2fr 0.9fr 45px;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .btn-add-item {
+        background: @lightColor;
+        color: @darkColor;
+        border: 1px dashed @primaryColor;
+        padding: 10px 20px;
+        border-radius: 12px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .btn-add-item:hover {
+            background: @primaryColor;
+            color: white;
+        }
+
     @@media (max-width: 768px) {
         .mobile-wrapper {
             padding: 15px 10px !important;
+        }
+
+        .dynamic-nguoi-row {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+            padding: 12px;
+            border: 1px dashed @borderColor;
+            border-radius: 14px;
+            margin-bottom: 15px;
+        }
+
+            .dynamic-nguoi-row button {
+                width: 100% !important;
+                height: 42px !important;
+            }
+
+        .nguoi-row-header {
+            display: none !important;
+        }
+
+        .btn-add-item {
+            width: 100%;
+            justify-content: center;
         }
 
         .mobile-header {
@@ -61,7 +112,8 @@
 </style>
 
 <div class="mobile-wrapper" style="background: linear-gradient(135deg, #f7fee7 0%, #ecfccb 100%); padding: 40px 15px; min-height: 100vh; font-family: 'Inter', sans-serif;">
-    <form id="hrForm" method="post" enctype="multipart/form-data" action="/FormHR/DonSuDungDienThoai" style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 30px; box-shadow: 0 20px 50px rgba(101, 163, 13, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
+    <form id="hrFormDienThoai" method="post" enctype="multipart/form-data"
+          data-url="/FormHR/DonSuDungDienThoai" data-url-doncho="/FormHR/DonCho" style="max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 30px; box-shadow: 0 20px 50px rgba(101, 163, 13, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.8);">
         @Html.AntiForgeryToken()
 
         <div class="mobile-header" style="background: linear-gradient(135deg, @primaryColor 0%, @darkColor 100%); padding: 40px; color: #ffffff; text-align: center; position: relative;">
@@ -90,43 +142,57 @@
             </div>
 
             <div class="mobile-section" style="background: #fbfdfe; padding: 25px; border-radius: 20px; border: 1px solid @borderColor; margin-bottom: 30px;">
-                <h3 style="color: @darkColor; font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;">
-                    <span style="background: @darkColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">2</span>
-                    Đăng ký thông tin thiết bị (Tự điền)
-                </h3>
-
-                <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
-                    <div>
-                        <label style="@labelStyle">Họ tên người sử dụng <span style="color:#e53e3e">*</span></label>
-                        <input name="chiTiet.HoTen" placeholder="Nhập họ tên người sử dụng" required style="@inputStyle border: 1px solid @primaryColor;">
-                    </div>
-                    <div>
-                        <label style="@labelStyle">Mã thẻ/Mã NV <span style="color:#e53e3e">*</span></label>
-                        <input name="chiTiet.MaSoThe" placeholder="Nhập mã nhân viên" required style="@inputStyle border: 1px solid @primaryColor;">
-                    </div>
-                    <div>
-                        <label style="@labelStyle">Bộ phận <span style="color:#e53e3e">*</span></label>
-                        <input name="chiTiet.BoPhan" placeholder="Nhập bộ phận" required style="@inputStyle border: 1px solid @primaryColor;">
-                    </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+                    <h3 style="color: @darkColor; font-size: 15px; display: flex; align-items: center; gap: 10px; margin: 0; font-weight: 800; text-transform: uppercase;">
+                        <span style="background: @darkColor; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px;">2</span>
+                        Danh sách người sử dụng điện thoại
+                    </h3>
+                    <button type="button" class="btn-add-item" data-them-nguoi>
+                        <i class="fa fa-plus"></i> Thêm người
+                    </button>
                 </div>
 
-                <div class="mobile-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                    <div>
-                        <label style="@labelStyle">Chức vụ <span style="color:#e53e3e">*</span></label>
-                        <input name="chiTiet.ChucVu" placeholder="Nhập chức vụ" required style="@inputStyle border: 1px solid @primaryColor;">
+                <div style="margin-bottom: 20px; padding: 20px; border-radius: 16px; background: #fdfefd; border: 1px dashed @primaryColor;">
+                    <div class="dynamic-nguoi-row nguoi-row-header" style="margin-bottom: 8px;">
+                        <label style="@labelStyle margin-bottom: 0;">Họ tên <span style="color:#e53e3e">*</span></label>
+                        <label style="@labelStyle margin-bottom: 0;">Mã thẻ/Mã NV <span style="color:#e53e3e">*</span></label>
+                        <label style="@labelStyle margin-bottom: 0;">Bộ phận <span style="color:#e53e3e">*</span></label>
+                        <label style="@labelStyle margin-bottom: 0;">Chức vụ <span style="color:#e53e3e">*</span></label>
+                        <label style="@labelStyle margin-bottom: 0;">Cấp bậc</label>
+                        <div></div>
                     </div>
-                    <div>
-                        <label style="@labelStyle">Cấp bậc</label>
-                        <input name="chiTiet.CapBac" placeholder="Staff, Worker..." style="@inputStyle">
+
+                    <div id="dsNguoiSuDung">
+                        <div class="dynamic-nguoi-row">
+                            <input name="arrHoTen" placeholder="Họ tên người sử dụng" required style="@inputStyle border: 1px solid @primaryColor;">
+                            <input name="arrMaSoThe" placeholder="Mã nhân viên" required style="@inputStyle border: 1px solid @primaryColor;">
+                            <input name="arrBoPhan" placeholder="Bộ phận" required style="@inputStyle border: 1px solid @primaryColor;">
+                            <input name="arrChucVu" placeholder="Chức vụ" required style="@inputStyle border: 1px solid @primaryColor;">
+                            <input name="arrCapBac" placeholder="Staff, Worker..." style="@inputStyle">
+                            <button type="button" data-them-nguoi style="background: @primaryColor; color: white; border: none; border-radius: 10px; height: 42px; font-size: 20px; font-weight: 900; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center;">+</button>
+                        </div>
                     </div>
-                    <div>
-                        <label style="@labelStyle">Thời gian bắt đầu <span style="color:#e53e3e">*</span></label>
-                        <input type="datetime-local" id="inpTGBatDau" name="chiTiet.ThoiGianBatDauSuDung" required style="@inputStyle border: 1px solid @primaryColor;">
-                    </div>
+
+                    @* Khuôn một dòng người sử dụng: markup nằm ở view, JS chỉ nhân bản *@
+                    <template id="tplNguoiRow">
+                        <div class="dynamic-nguoi-row">
+                            <input name="arrHoTen" placeholder="Họ tên người sử dụng" required style="@inputStyle border: 1px solid @primaryColor;">
+                            <input name="arrMaSoThe" placeholder="Mã nhân viên" required style="@inputStyle border: 1px solid @primaryColor;">
+                            <input name="arrBoPhan" placeholder="Bộ phận" required style="@inputStyle border: 1px solid @primaryColor;">
+                            <input name="arrChucVu" placeholder="Chức vụ" required style="@inputStyle border: 1px solid @primaryColor;">
+                            <input name="arrCapBac" placeholder="Staff, Worker..." style="@inputStyle">
+                            <button type="button" data-xoa-nguoi style="background: #ef4444; color: white; border: none; border-radius: 10px; height: 42px; font-size: 20px; font-weight: 900; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center;">-</button>
+                        </div>
+                    </template>
                 </div>
 
                 <div style="margin-bottom: 20px;">
-                    <label style="@labelStyle">Lý do sử dụng điện thoại <span style="color:#e53e3e">*</span></label>
+                    <label style="@labelStyle">Thời gian bắt đầu sử dụng <span style="color:#e53e3e">*</span></label>
+                    <input type="datetime-local" id="inpTGBatDau" name="chiTiet.ThoiGianBatDauSuDung" required style="@inputStyle border: 1px solid @primaryColor;">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="@labelStyle">Lý do sử dụng điện thoại (áp dụng chung cho mọi người trong đơn) <span style="color:#e53e3e">*</span></label>
                     <textarea name="chiTiet.LyDoSuDung" placeholder="Nêu rõ lý do cần thiết sử dụng điện thoại trong khu vực làm việc..." required style="@inputStyle; height: 80px; resize: none; border: 1px solid @primaryColor;"></textarea>
                 </div>
 
@@ -196,7 +262,7 @@
             </div>
 
             <div style="text-align: center;">
-                <button type="button" onclick="xuLyLuuDon()" style="width: 100%; padding: 20px; background: linear-gradient(to right, @primaryColor, @darkColor); color: #fff; border: none; border-radius: 15px; font-weight: 900; font-size: 18px; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 25px rgba(101, 163, 13, 0.3); text-transform: uppercase;">
+                <button type="submit" id="btnSubmit" style="width: 100%; padding: 20px; background: linear-gradient(to right, @primaryColor, @darkColor); color: #fff; border: none; border-radius: 15px; font-weight: 900; font-size: 18px; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 25px rgba(101, 163, 13, 0.3); text-transform: uppercase;">
                     <i class="fa fa-share-square" style="margin-right: 10px;"></i> Đăng ký sử dụng ĐT
                 </button>
             </div>
@@ -204,99 +270,4 @@
     </form>
 </div>
 
-<script>
-    window.onload = function() {
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById('inpTGBatDau').value = now.toISOString().slice(0, 16);
-    };
-
-    function handlePaste(e, inputId, zoneId) {
-        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-        let blob = null;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf("image") !== -1) {
-                blob = items[i].getAsFile();
-                break;
-            }
-        }
-        if (blob) {
-            const reader = new FileReader();
-            reader.onload = function (event) {
-                const zone = document.getElementById(zoneId);
-                zone.innerHTML = `<img src="${event.target.result}" style="width:100%; height:100%; object-fit:contain; border-radius:10px;">`;
-                zone.style.border = "2px solid @primaryColor";
-
-                const fileInput = document.getElementById(inputId);
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(blob);
-                fileInput.files = dataTransfer.files;
-            };
-            reader.readAsDataURL(blob);
-        }
-    }
-
-    const zoneEl = document.getElementById("paste_AnhMinhChung");
-    if (zoneEl) {
-        zoneEl.addEventListener('paste', (e) => handlePaste(e, "AnhMinhChung", "paste_AnhMinhChung"));
-        zoneEl.onclick = () => zoneEl.focus();
-    }
-
-    function xuLyLuuDon() {
-        // Lấy giá trị các trường bắt buộc
-        const hoTen = document.querySelector('input[name="chiTiet.HoTen"]').value.trim();
-        const maSoThe = document.querySelector('input[name="chiTiet.MaSoThe"]').value.trim();
-        const boPhan = document.querySelector('input[name="chiTiet.BoPhan"]').value.trim();
-        const chucVu = document.querySelector('input[name="chiTiet.ChucVu"]').value.trim();
-        const thoiGianBatDau = document.querySelector('input[name="chiTiet.ThoiGianBatDauSuDung"]').value.trim();
-        const lyDo = document.querySelector('textarea[name="chiTiet.LyDoSuDung"]').value.trim();
-
-        // Validate các trường input
-        if (hoTen === '') {
-            alert("⚠️ Vui lòng nhập Họ tên người sử dụng!");
-            document.querySelector('input[name="chiTiet.HoTen"]').focus();
-            return;
-        }
-        if (maSoThe === '') {
-            alert("⚠️ Vui lòng nhập Mã thẻ/Mã NV!");
-            document.querySelector('input[name="chiTiet.MaSoThe"]').focus();
-            return;
-        }
-        if (boPhan === '') {
-            alert("⚠️ Vui lòng nhập Bộ phận!");
-            document.querySelector('input[name="chiTiet.BoPhan"]').focus();
-            return;
-        }
-        if (chucVu === '') {
-            alert("⚠️ Vui lòng nhập Chức vụ!");
-            document.querySelector('input[name="chiTiet.ChucVu"]').focus();
-            return;
-        }
-        if (thoiGianBatDau === '') {
-            alert("⚠️ Vui lòng nhập Thời gian bắt đầu!");
-            document.querySelector('input[name="chiTiet.ThoiGianBatDauSuDung"]').focus();
-            return;
-        }
-        if (lyDo === '') {
-            alert("⚠️ Vui lòng nhập Lý do sử dụng điện thoại!");
-            document.querySelector('textarea[name="chiTiet.LyDoSuDung"]').focus();
-            return;
-        }
-
-        const chk = document.getElementById('chkCamKet');
-        const selectedHoTro = document.querySelectorAll('input[name="SelectedCongViecIds"]:checked');
-
-        if (selectedHoTro.length === 0) {
-            alert("⚠️ Vui lòng chọn người tiếp nhận hỗ trợ!");
-            return;
-        }
-        if (!chk.checked) {
-            alert("⚠️ Bạn chưa tích chọn xác nhận cam kết!");
-            return;
-        }
-
-        if (confirm("Xác nhận gửi đơn xin sử dụng điện thoại này đi phê duyệt?")) {
-            document.getElementById("hrForm").submit();
-        }
-    }
-</script>
+<script src="~/js/don-su-dung-dien-thoai.js?v=1"></script>
