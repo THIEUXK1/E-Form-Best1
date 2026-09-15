@@ -16,9 +16,20 @@ html.fp-lock main {
     overflow: hidden;
 }
 
-/* Nội dung rộng 95% bề ngang, canh giữa (đổi --fp-width nếu muốn khác) */
+/* Nội dung dùng trọn bề ngang, chỉ chừa lề --fp-gutter hai bên
+   (đổi --fp-width / --fp-gutter trong view nếu muốn khác) */
 :root {
-    --fp-width: 95%;
+    --fp-width: 100%;
+    --fp-gutter: 14px;
+    --fp-pad: 12px;
+}
+
+/* Màn hẹp: lề và padding co lại để bảng không bị bóp */
+@media (max-width: 1400px) {
+    :root {
+        --fp-gutter: 8px;
+        --fp-pad: 10px;
+    }
 }
 
 html.fp-lock .main-content-wrapper {
@@ -27,20 +38,43 @@ html.fp-lock .main-content-wrapper {
     overflow: hidden;
     display: flex;
     justify-content: center;
-    padding: 8px 0 10px 0 !important;
+    padding: 8px var(--fp-gutter, 14px) 10px !important;
 }
 
-html.fp-lock .main-card {
-    flex: 0 1 var(--fp-width);
-    width: var(--fp-width) !important;
-    max-width: var(--fp-width) !important;
+/* Khung nội dung: .main-card (ITForm) hoặc phần tử được JS gắn .fp-card (Area khác).
+   var() luôn kèm giá trị dự phòng: thiếu biến -> cả khai báo hỏng -> khung co lại
+   bằng bề rộng nội dung (flex item auto) thay vì dàn hết ngang. */
+html.fp-lock .main-card,
+html.fp-lock .fp-card {
+    flex: 1 1 var(--fp-width, 100%);
+    align-self: stretch;
+    width: var(--fp-width, 100%) !important;
+    max-width: var(--fp-width, 100%) !important;
     height: 100%;
     min-height: 0 !important;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding: 14px 16px !important;
-    border-radius: 18px !important;
+    padding: var(--fp-pad, 12px) !important;
+    border-radius: 16px !important;
+}
+
+/* Mọi mắt xích tới vùng cuộn phải dàn hết bề ngang của khung */
+html.fp-lock .fp-chain,
+html.fp-lock .fp-chain-row,
+html.fp-lock .fp-grow,
+html.fp-lock .fp-scroll {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Wrapper ngoài cùng của view (view tự gắn class): khi đã khoá cuộn thì khung trắng của
+   layout đã làm nền + lề rồi, bỏ padding/nền riêng của view để không phí bề ngang */
+html.fp-lock .fp-page {
+    padding: 0 !important;
+    background: transparent !important;
 }
 
 /* Thu gọn thanh header phía trên để nhường chỗ cho bảng */
@@ -48,9 +82,17 @@ html.fp-lock main > header {
     padding: 10px 16px !important;
 }
 
+/* HRform đặt <footer> ngay trong .main-content-wrapper: khi khoá cuộn, wrapper là flex
+   ngang nên footer sẽ chiếm chỗ cạnh bảng -> ẩn đi, chế độ toàn màn hình không cần footer */
+html.fp-lock .main-content-wrapper > footer {
+    display: none !important;
+}
+
 /* Nội dung trang dàn hết bề ngang, không còn lề/khung giới hạn.
    min-height: 0 để các view có wrapper "min-height: 100vh" không làm tràn khung khoá. */
-html.fp-lock .main-card > * {
+/* Trừ các lớp phủ/modal position:fixed — ép width 100% sẽ làm hỏng hộp thoại */
+html.fp-lock .main-card > *:not(.modal):not(.modal-overlay):not([class*="-modal"]),
+html.fp-lock .fp-card > *:not(.modal):not(.modal-overlay):not([class*="-modal"]) {
     max-width: 100% !important;
     width: 100%;
     min-height: 0 !important;
@@ -173,6 +215,13 @@ html.fp-lock .fp-scroll {
         box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
     }
 
+/* Khi nút được đặt chung hàng với các nút của view: đứng đầu hàng và cao bằng chúng */
+[data-fp-filter-slot] .fp-filter-toggle {
+    order: -1;
+    align-self: stretch;
+    padding: 0 16px;
+}
+
 .fp-filter-hidden {
     display: none !important;
 }
@@ -192,6 +241,7 @@ html.fp-lock .fp-scroll {
 
     html.fp-lock .main-content-wrapper,
     html.fp-lock .main-card,
+    html.fp-lock .fp-card,
     html.fp-lock .fp-chain,
     html.fp-lock .fp-grow {
         display: block;
@@ -203,6 +253,10 @@ html.fp-lock .fp-scroll {
     html.fp-lock .fp-scroll {
         overflow: auto !important;
         max-height: none !important;
+    }
+
+    html.fp-lock .main-content-wrapper > footer {
+        display: block !important;
     }
 
         html.fp-lock .fp-scroll > table > thead > tr > th {

@@ -6,6 +6,9 @@
 @* Token bảo mật để gửi kèm các yêu cầu POST *@
 @Html.AntiForgeryToken()
 
+<link rel="stylesheet" href="/css/fixed-page-layout.css?v=5">
+<script src="/js/fixed-page-layout.js?v=5" defer></script>
+
 <style>
     @@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
 
@@ -59,13 +62,13 @@
             font-size: 11px;
             font-weight: 900;
             text-transform: uppercase;
-            padding: 15px 20px;
+            padding: 7px 14px;
             border-bottom: 2px solid #e2e8f0;
             white-space: nowrap;
         }
 
         .table-modern tbody td {
-            padding: 15px 20px;
+            padding: 7px 14px;
             vertical-align: middle;
             border-bottom: 1px solid #f1f5f9;
             background: #fff;
@@ -110,14 +113,14 @@
     /* Style Bộ Lọc Nâng Cao */
     .advanced-filter {
         background: white;
-        padding: 15px 20px;
+        padding: 8px 14px;
         border-radius: 15px;
         border: 1px solid #e2e8f0;
         box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-        margin-bottom: 25px;
+        margin-bottom: 10px;
         display: flex;
         flex-wrap: wrap;
-        gap: 15px;
+        gap: 10px;
         align-items: center;
     }
 
@@ -175,9 +178,9 @@
                RESPONSIVE & CHỐNG VỠ FORM
                ========================================== */
     .container-fluid-custom {
-        max-width: 1600px;
+        max-width: 100%;
         margin: 0 auto;
-        padding: 25px;
+        padding: 12px;
         font-family: 'Inter', sans-serif;
     }
 
@@ -302,7 +305,7 @@
     }
 </style>
 
-<div class="container-fluid-custom">
+<div class="container-fluid-custom fp-page">
 
     @* --- HIỂN THỊ THÔNG BÁO --- *@
     @if (TempData["Success"] != null)
@@ -321,16 +324,16 @@
     }
 
     @* --- TOP BAR --- *@
-    <div class="mobile-top-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
-        <h2 style="margin: 0; color: #1e40af; font-weight: 1000; font-size: 26px; display: flex; align-items: center; gap: 12px;">
-            <span style="background: #1e40af; color: white; width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);">
+    <div class="mobile-top-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+        <h2 style="margin: 0; color: #1e40af; font-weight: 1000; font-size: 19px; display: flex; align-items: center; gap: 10px;">
+            <span style="background: #1e40af; color: white; width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);">
                 <i class="fa fa-building"></i>
             </span>
             PHÒNG HỌP
         </h2>
 
         <div class="mobile-controls" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 10px 15px; border-radius: 14px; border: 2px solid #cbd5e1;">
+            <div style="display: flex; align-items: center; gap: 8px; background: white; padding: 5px 12px; border-radius: 10px; border: 2px solid #cbd5e1;">
                 <span style="font-size: 13px; font-weight: 700; color: #64748b;">Dòng:</span>
                 <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: #0f172a; cursor: pointer; background: transparent; font-size: 14px;">
                     <option value="10">10</option>
@@ -342,7 +345,7 @@
             <div class="mobile-search-box" style="position: relative;">
                 <i class="fa fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px; font-weight: 900;"></i>
                 <input type="text" id="quickSearch" onkeyup="filterData()" placeholder="Tìm nhanh lịch đặt..."
-                       style="padding: 12px 12px 12px 42px; border-radius: 14px; border: 2px solid #cbd5e1; font-size: 14px; width: 280px; outline: none; font-weight: 700; background: white;">
+                       style="padding: 8px 12px 8px 38px; border-radius: 10px; border: 2px solid #cbd5e1; font-size: 13px; width: 240px; outline: none; font-weight: 700; background: white;">
             </div>
             <div style="font-size: 11px; background: #1e40af; padding: 10px 18px; border-radius: 10px; font-weight: 900; color: #ffffff; text-transform: uppercase; text-align: center;">@ViewBag.UserRole</div>
         </div>
@@ -372,28 +375,28 @@
     </div>
 
     @* --- STATS ROW --- *@
-    <div class="mobile-stat-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
-        <div class="stat-card" style="background: white; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="font-size: 11px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">Tổng lượt đặt</div>
-            <div id="statTotalBookings" class="card-value" style="font-size: 28px; font-weight: 1000; color: #1e293b;">0</div>
+    <div class="mobile-stat-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px;">
+        <div class="stat-card" style="background: white; padding: 10px 14px; border-radius: 12px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+            <div style="font-size: 11px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 2px;">Tổng lượt đặt</div>
+            <div id="statTotalBookings" class="card-value" style="font-size: 22px; font-weight: 1000; color: #1e293b;">0</div>
         </div>
-        <div class="stat-card" style="background: #ecfdf5; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 2px solid #10b981;">
-            <div style="font-size: 11px; font-weight: 900; color: #047857; text-transform: uppercase; margin-bottom: 8px;">Đang sử dụng</div>
-            <div id="statRoomsOn" class="card-value" style="font-size: 28px; font-weight: 1000; color: #10b981;">0</div>
+        <div class="stat-card" style="background: #ecfdf5; padding: 10px 14px; border-radius: 12px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border: 2px solid #10b981;">
+            <div style="font-size: 11px; font-weight: 900; color: #047857; text-transform: uppercase; margin-bottom: 2px;">Đang sử dụng</div>
+            <div id="statRoomsOn" class="card-value" style="font-size: 22px; font-weight: 1000; color: #10b981;">0</div>
         </div>
-        <div class="stat-card" style="background: #fef2f2; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 2px solid #ef4444;">
-            <div style="font-size: 11px; font-weight: 900; color: #b91c1c; text-transform: uppercase; margin-bottom: 8px;">Phòng trống</div>
-            <div id="statEmptyRooms" class="card-value" style="font-size: 28px; font-weight: 1000; color: #ef4444;">0</div>
+        <div class="stat-card" style="background: #fef2f2; padding: 10px 14px; border-radius: 12px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border: 2px solid #ef4444;">
+            <div style="font-size: 11px; font-weight: 900; color: #b91c1c; text-transform: uppercase; margin-bottom: 2px;">Phòng trống</div>
+            <div id="statEmptyRooms" class="card-value" style="font-size: 22px; font-weight: 1000; color: #ef4444;">0</div>
         </div>
-        <div class="stat-card" style="background: #eff6ff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 2px solid #1e40af;">
-            <div style="font-size: 11px; font-weight: 900; color: #1e40af; text-transform: uppercase; margin-bottom: 8px;">Danh mục phòng</div>
-            <div id="statTotalRooms" class="card-value" style="font-size: 28px; font-weight: 1000; color: #1e40af;">0</div>
+        <div class="stat-card" style="background: #eff6ff; padding: 10px 14px; border-radius: 12px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border: 2px solid #1e40af;">
+            <div style="font-size: 11px; font-weight: 900; color: #1e40af; text-transform: uppercase; margin-bottom: 2px;">Danh mục phòng</div>
+            <div id="statTotalRooms" class="card-value" style="font-size: 22px; font-weight: 1000; color: #1e40af;">0</div>
         </div>
     </div>
 
     @* --- TABS & TABLE AREA --- *@
-    <div style="background: white; border-radius: 24px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
-        <div style="padding: 10px 25px 0 25px; border-bottom: 1px solid #f1f5f9; background: #fff;">
+    <div style="background: white; border-radius: 14px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 10px -3px rgba(0,0,0,0.06);">
+        <div style="padding: 6px 14px 0 14px; border-bottom: 1px solid #f1f5f9; background: #fff;">
             <ul class="nav nav-tabs border-bottom-0" id="roomTab" role="tablist">
                 <li class="nav-item">
                     <button class="nav-link active" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">
@@ -411,7 +414,7 @@
         <div class="tab-content" id="roomTabContent">
             @* --- TAB 1: LỊCH ĐẶT PHÒNG --- *@
             <div class="tab-pane fade show active" id="history" role="tabpanel">
-                <div id="tableViewWrap" class="table-responsive" style="overflow-x: auto;">
+                <div id="tableViewWrap" class="table-responsive" data-fp-scroll style="overflow-x: auto;">
                     <table class="table-modern" id="dataTable">
                         <thead>
                             <tr>
@@ -430,12 +433,12 @@
                 </div>
 
                 @* --- LƯỚI THẺ (dạng xem thứ hai, bật/tắt trong Cài đặt giao diện) --- *@
-                <div id="cardViewWrap" style="display: none; padding: 20px 25px;">
+                <div id="cardViewWrap" data-fp-scroll style="display: none; padding: 12px 14px;">
                     <div id="cardViewGrid" class="card-view-grid"></div>
                 </div>
 
                 @* PHÂN TRANG *@
-                <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 25px; border-top: 1px solid #e2e8f0;">
+                <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid #e2e8f0;">
                     <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
                     <div style="text-align: right; color: #64748b; font-size: 13px; font-weight: 700;">
                         Trang <span id="currentPageNum" style="color: #1e40af;">1</span> / <span id="totalPagesNum">1</span>
@@ -452,7 +455,7 @@
                         <i class="fa fa-plus me-2"></i> THÊM PHÒNG MỚI
                     </button>
                 </div>
-                <div class="table-responsive" style="overflow-x: auto;">
+                <div class="table-responsive" data-fp-scroll style="overflow-x: auto;">
                     <table class="table-modern" id="categoryTable">
                         <thead>
                             <tr>

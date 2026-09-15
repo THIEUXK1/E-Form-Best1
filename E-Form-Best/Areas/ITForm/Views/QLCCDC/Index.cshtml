@@ -16,22 +16,96 @@
    và asp-append-version vô tác dụng — phải dùng đường dẫn tuyệt đối + tự đánh version *@
 <link rel="stylesheet" href="/css/ccdc-quanly.css?v=20260825e">
 
+@* Khoá cuộn toàn trang, chỉ bảng dữ liệu được cuộn (module dùng chung fixed-page-layout) *@
+<link rel="stylesheet" href="/css/fixed-page-layout.css?v=5">
+
+<style>
+    /* Thanh lệnh gọn: tiêu đề + bộ lọc + nút thêm nằm chung một hàng, nhường chiều cao cho bảng */
+    .dash-topbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 10px 14px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    }
+
+        /* Ô tìm kiếm là thứ duy nhất co giãn; còn lại giữ nguyên kích thước, thiếu chỗ thì xuống hàng */
+        .dash-topbar > * {
+            flex-shrink: 0;
+        }
+
+    .dash-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #1e293b;
+        white-space: nowrap;
+        margin: 0;
+    }
+
+    .dash-search {
+        flex: 1 1 220px;
+        min-width: 180px;
+        max-width: 320px;
+    }
+
+    html.fp-lock .content-header {
+        margin-top: 0 !important;
+    }
+
+    /* flex-shrink mặc định = 1 sẽ bóp các khối trên bảng thấp hơn nội dung rồi tràn đè lên nhau */
+    html.fp-lock .content-header,
+    html.fp-lock .fp-chain > *:not(.fp-grow) {
+        flex: 0 0 auto;
+    }
+</style>
+
 @* Kéo tiêu đề lên sát mép trên: bù lại phần padding 45px của .main-card ở _Layout *@
-<div class="content-header pt-0 pb-2" style="margin-top: -25px;">
+<div class="content-header pt-0 pb-0" style="margin-top: -25px;">
     <div class="container-fluid">
-        <div class="row align-items-center">
-            <div class="col-md-6 col-12 mb-2 mb-md-0">
-                <h4 class="m-0 fw-bold" style="color: #1e293b; letter-spacing: -0.5px;">
-                    <i class="fas fa-screwdriver-wrench me-2" style="color: #fb923c;"></i> Quản lý Công cụ dụng cụ (CCDC)
-                </h4>
+        <div class="dash-topbar">
+            <h4 class="dash-title"><i class="fas fa-screwdriver-wrench me-2" style="color: #fb923c;"></i>Công cụ dụng cụ</h4>
+
+            <div class="dash-search">
+                <input type="text" id="filterTuKhoa" class="form-control form-control-sm" style="height:38px;"
+                       placeholder="Tìm mã, tên, loại, người quản lý, vị trí...">
             </div>
-            <div class="col-md-6 col-12 text-md-end text-start">
-                <button type="button" class="btn btn-sm rounded-pill px-3 shadow-sm text-white w-100 w-md-auto"
-                        style="background-color:#fb923c; border-color:#fb923c; padding-top:8px; padding-bottom:8px;"
-                        id="btnThemCCDC">
-                    <i class="fas fa-plus me-1"></i> Thêm CCDC
-                </button>
-            </div>
+
+            <select id="filterCongTy" class="form-select form-select-sm w-auto" style="height:38px;" title="Lọc theo công ty">
+                <option value="">-- Tất cả công ty --</option>
+                @foreach (var ct in dsCongTy)
+                {
+                    <option value="@ct.IdcongTy">@ct.TenCongTy</option>
+                }
+            </select>
+
+            <select id="filterBoPhan" class="form-select form-select-sm w-auto" style="height:38px;" title="Lọc theo bộ phận">
+                <option value="">-- Tất cả bộ phận --</option>
+                @foreach (var bp in dsBoPhan)
+                {
+                    <option value="@bp.IdboPhan" data-congty="@bp.IdcongTy">@bp.TenBoPhan</option>
+                }
+            </select>
+
+            <select id="filterTinhTrang" class="form-select form-select-sm w-auto" style="height:38px;" title="Lọc theo tình trạng">
+                <option value="">-- Tất cả tình trạng --</option>
+                @foreach (var tt in dsTinhTrang)
+                {
+                    <option value="@tt">@tt</option>
+                }
+            </select>
+
+            <span class="flex-grow-1"></span>
+
+            <button type="button" class="btn rounded-3 px-3 shadow-sm text-white"
+                    style="background-color:#fb923c; border-color:#fb923c; height:38px;"
+                    id="btnThemCCDC">
+                <i class="fas fa-plus me-1"></i> Thêm CCDC
+            </button>
         </div>
     </div>
 </div>
@@ -40,45 +114,6 @@
     <div class="container-fluid">
         <div class="card border-0 shadow-sm bg-white" style="border-radius: 15px;">
             <div class="card-body p-2 p-md-3">
-
-                <div class="row g-2 mb-3 pb-3 border-bottom align-items-end"
-                     style="background:#f8fafc; padding:15px; border-radius:10px; margin:0 1px;">
-                    <div class="col-md-4 col-12">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search"></i> Tìm kiếm</label>
-                        <input type="text" id="filterTuKhoa" class="form-control rounded-3 border-0 shadow-sm"
-                               style="height:38px;" placeholder="Mã, tên, loại, người quản lý, vị trí...">
-                    </div>
-                    <div class="col-md-3 col-sm-6 col-12">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-building"></i> Công ty</label>
-                        <select id="filterCongTy" class="form-select rounded-3 border-0 shadow-sm" style="height:38px;">
-                            <option value="">-- Tất cả --</option>
-                            @foreach (var ct in dsCongTy)
-                            {
-                                <option value="@ct.IdcongTy">@ct.TenCongTy</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-3 col-sm-6 col-12">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-sitemap"></i> Bộ phận</label>
-                        <select id="filterBoPhan" class="form-select rounded-3 border-0 shadow-sm" style="height:38px;">
-                            <option value="">-- Tất cả --</option>
-                            @foreach (var bp in dsBoPhan)
-                            {
-                                <option value="@bp.IdboPhan" data-congty="@bp.IdcongTy">@bp.TenBoPhan</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-2 col-12">
-                        <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-info-circle"></i> Tình trạng</label>
-                        <select id="filterTinhTrang" class="form-select rounded-3 border-0 shadow-sm" style="height:38px;">
-                            <option value="">-- Tất cả --</option>
-                            @foreach (var tt in dsTinhTrang)
-                            {
-                                <option value="@tt">@tt</option>
-                            }
-                        </select>
-                    </div>
-                </div>
 
                 @* Hai màn hình dùng chung bộ lọc ở trên: kho CCDC và các phiếu đang còn nợ *@
                 <ul class="nav nav-pills nav-pills-ccdc mb-2" id="ccdcTab" role="tablist">
@@ -108,7 +143,7 @@
                     <span><i class="fas fa-coins me-1"></i> Tổng giá trị: <span id="tongGiaTri">0</span> đ</span>
                 </div>
 
-                <div class="ccdc-table-wrap">
+                <div class="ccdc-table-wrap" data-fp-scroll>
                     <table class="table table-hover align-middle mb-0 ccdc-table" data-dang-xem="auto">
                         <colgroup>
                             <col style="width:48px;">
@@ -167,7 +202,7 @@
                         </div>
                     </div>
 
-                    <div class="ccdc-table-wrap">
+                    <div class="ccdc-table-wrap" data-fp-scroll>
                         <table class="table table-hover align-middle mb-0 ccdc-table ccdc-table-dm" data-dang-xem="auto">
                             <colgroup>
                                 <col style="width:48px;">
@@ -494,5 +529,6 @@
 </div>
 
 @section Scripts {
+    <script src="/js/fixed-page-layout.js?v=5" defer></script>
     <script src="/js/ccdc-quanly.js?v=20260825e"></script>
 }

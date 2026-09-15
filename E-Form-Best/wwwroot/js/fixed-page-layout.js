@@ -17,6 +17,8 @@
     "use strict";
 
     var MOBILE_MAX = 768;
+    // Khung nội dung của Area: ITForm dùng .main-card, HRform dùng .content-inner-wrapper
+    var CARD_SELECTOR = "[data-fp-card], .main-card, .content-inner-wrapper";
     var FILTER_SELECTOR = "[data-fp-filter], .advanced-filter, .filter-panel, #filterBar, .tscn-filter-card";
     var STORAGE_KEY = "fpHideFilter::" + window.location.pathname.toLowerCase();
 
@@ -27,9 +29,10 @@
 
     /* --- Dựng chuỗi flex từ vùng cuộn ngược lên .main-card --- */
     function buildChain(scrollEl, path) {
-        var card = scrollEl.closest(".main-card");
+        var card = scrollEl.closest(CARD_SELECTOR);
         if (!card) return false;
 
+        card.classList.add("fp-card");
         scrollEl.classList.add("fp-scroll");
         // Xoá giới hạn chiều cao cứng có sẵn trong view (vd: max-height: 70vh)
         scrollEl.style.maxHeight = "none";
@@ -68,7 +71,7 @@
     }
 
     function setupToolbar() {
-        var card = document.querySelector(".main-card");
+        var card = document.querySelector(".fp-card") || document.querySelector(CARD_SELECTOR);
         if (!card) return;
 
         var panels = Array.prototype.filter.call(
@@ -78,17 +81,24 @@
 
         if (!panels.length) return;
 
-        var bar = document.createElement("div");
-        bar.className = "fp-filter-bar";
-
         var btn = document.createElement("button");
         btn.type = "button";
         btn.className = "fp-filter-toggle";
         btn.title = "Ẩn/hiện bộ lọc";
         btn.innerHTML = '<i class="fa fa-chevron-up"></i> <span>Ẩn lọc</span>';
-        bar.appendChild(btn);
 
-        panels[0].parentElement.insertBefore(bar, panels[0]);
+        // View có thể chỉ định chỗ đặt nút (vd: cùng hàng với nút Xuất Excel) bằng
+        // data-fp-filter-slot; chỗ đó phải nằm NGOÀI khối data-fp-filter, nếu không
+        // ẩn lọc xong sẽ mất luôn nút để hiện lại.
+        var slot = card.querySelector("[data-fp-filter-slot]");
+        if (slot) {
+            slot.appendChild(btn);
+        } else {
+            var bar = document.createElement("div");
+            bar.className = "fp-filter-bar";
+            bar.appendChild(btn);
+            panels[0].parentElement.insertBefore(bar, panels[0]);
+        }
 
         btn.addEventListener("click", function () {
             var hidden = !panels[0].classList.contains("fp-filter-hidden");

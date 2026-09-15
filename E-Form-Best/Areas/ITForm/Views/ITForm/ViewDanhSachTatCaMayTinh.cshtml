@@ -4,7 +4,7 @@
 }
 
 @* Khoá cuộn toàn trang, chỉ vùng bảng/lưới dữ liệu được cuộn (module dùng chung fixed-page-layout) *@
-<link rel="stylesheet" href="~/css/fixed-page-layout.css" />
+<link rel="stylesheet" href="~/css/fixed-page-layout.css?v=5" />
 
 <style>
     :root {
@@ -84,11 +84,33 @@
     .tscn-toolbar {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 6px;
         align-items: center;
-        padding-top: 14px;
-        margin-top: 14px;
-        border-top: 1px dashed var(--tscn-border);
+    }
+
+        /* Ô tìm kiếm là thứ duy nhất được co giãn; các nút giữ nguyên kích thước, thiếu chỗ thì xuống hàng */
+        .tscn-toolbar > * {
+            flex-shrink: 0;
+        }
+
+    .tscn-o-tim {
+        flex: 1 1 200px;
+        min-width: 160px;
+        max-width: 280px;
+    }
+
+    /* Chuỗi flex khi khoá cuộn: mặc định flex-shrink = 1 làm khối lọc/chân trang bị bóp
+       thấp hơn nội dung rồi tràn đè lên nhau. Chỉ vùng cuộn (.fp-grow) được co giãn. */
+    html.fp-lock .fp-chain > *:not(.fp-grow) {
+        flex: 0 0 auto;
+    }
+
+    /* Bảng gọn: bớt padding để mỗi màn hình xem được nhiều dòng hơn */
+    #tblTatCaMayTinh > tbody > tr > td,
+    #tblTatCaMayTinh > thead > tr > th {
+        padding-top: 0.3rem;
+        padding-bottom: 0.3rem;
+        font-size: 0.82rem;
     }
 
         .tscn-toolbar .btn {
@@ -228,96 +250,81 @@
    (do fixed-page-layout.js chèn ở đầu khối) bị đẩy trồi lên đè thanh header của _Layout. *@
 <div class="container-fluid text-dark">
 
-    <div class="card tscn-filter-card mb-3">
-        <div class="card-body py-3 px-4">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-2">
-                    <label class="tscn-filter-label">Tìm kiếm nhanh</label>
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-white text-secondary border-end-0"><i class="fa fa-search"></i></span>
-                        <input type="text" id="txtTimKiemMay" class="form-control border-start-0 ps-0" placeholder="Tên máy..." />
-                    </div>
-                </div>
-
-                <div class="col-md-2">
-                    <label class="tscn-filter-label">Loại thiết bị</label>
-                    <div class="dropdown w-100">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center bg-white" type="button" id="dropFilterLoai" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                            <span class="text-truncate" id="lblFilterLoaiText">Tất cả loại thiết bị</span>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-checkbox shadow" aria-labelledby="dropFilterLoai" id="divFilterLoaiOptions">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-2 col-6">
-                    <label class="tscn-filter-label">Số dòng / trang</label>
-                    <select id="ddlKichThuocTrang" class="form-select form-select-sm">
-                        <option value="10">10 thiết bị</option>
-                        <option value="25">25 thiết bị</option>
-                        <option value="50">50 thiết bị</option>
-                        <option value="100">100 thiết bị</option>
-                        <option value="all" selected>Hiển thị tất cả</option>
-                    </select>
-                </div>
-
-                <div class="col-md-2 col-6">
-                    <label class="tscn-filter-label">Sắp xếp theo</label>
-                    <div class="input-group input-group-sm">
-                        <select id="ddlSapXep" class="form-select form-select-sm">
-                            <option value="idMay">Mã máy</option>
-                            <option value="tenMay">Tên máy</option>
-                            <option value="seriMay">Số Serial</option>
-                            <option value="dongMay">Dòng máy</option>
-                            <option value="loaiThietBi">Loại thiết bị</option>
-                            <option value="hoTenNguoiSoHuu">Người dùng liên kết</option>
-                            <option value="ngayCapNhat">Ngày cập nhật</option>
-                        </select>
-                        <button type="button" id="btnDoiChieuSapXep" class="btn btn-outline-secondary" title="Đổi chiều sắp xếp tăng / giảm">
-                            <i class="fa fa-sort-amount-desc"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="col-md-2 col-6">
-                    <label class="tscn-filter-label">Kiểu hiển thị</label>
-                    <div class="btn-group btn-group-sm w-100" role="group">
-                        <button type="button" id="btnKieuList" class="btn btn-primary" title="Hiển thị dạng bảng danh sách">
-                            <i class="fa fa-list"></i> Danh sách
-                        </button>
-                        <button type="button" id="btnKieuGrid" class="btn btn-outline-primary" title="Hiển thị dạng khối hình hộp">
-                            <i class="fa fa-th-large"></i> Hình hộp
-                        </button>
-                    </div>
-                </div>
-            </div>
-
+    @* Bộ lọc + thanh nút gom vào MỘT hàng ngang: bỏ nhãn phía trên (chuyển thành placeholder/tooltip),
+       bỏ lưới 5 cột và đường kẻ ngăn -> tiết kiệm khoảng 90px chiều cao cho bảng dữ liệu. *@
+    <div class="card tscn-filter-card mb-2">
+        <div class="card-body py-2 px-3">
             <div class="tscn-toolbar">
-                <button id="btnTaiLaiDanhSach" class="btn btn-sm btn-primary">
-                    <i class="fa fa-refresh"></i> Tải lại
+                <div class="input-group input-group-sm tscn-o-tim">
+                    <span class="input-group-text bg-white text-secondary border-end-0"><i class="fa fa-search"></i></span>
+                    <input type="text" id="txtTimKiemMay" class="form-control border-start-0 ps-0" placeholder="Tìm tên máy..." />
+                </div>
+
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle text-start d-flex justify-content-between align-items-center bg-white" type="button" id="dropFilterLoai" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Lọc theo loại thiết bị" style="min-width: 160px;">
+                        <span class="text-truncate" id="lblFilterLoaiText">Tất cả loại thiết bị</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-checkbox shadow" aria-labelledby="dropFilterLoai" id="divFilterLoaiOptions">
+                    </div>
+                </div>
+
+                <select id="ddlKichThuocTrang" class="form-select form-select-sm w-auto" title="Số dòng mỗi trang">
+                    <option value="10">10 thiết bị</option>
+                    <option value="25">25 thiết bị</option>
+                    <option value="50">50 thiết bị</option>
+                    <option value="100">100 thiết bị</option>
+                    <option value="all" selected>Hiển thị tất cả</option>
+                </select>
+
+                <div class="input-group input-group-sm w-auto">
+                    <select id="ddlSapXep" class="form-select form-select-sm w-auto" title="Sắp xếp theo">
+                        <option value="idMay">Mã máy</option>
+                        <option value="tenMay">Tên máy</option>
+                        <option value="seriMay">Số Serial</option>
+                        <option value="dongMay">Dòng máy</option>
+                        <option value="loaiThietBi">Loại thiết bị</option>
+                        <option value="hoTenNguoiSoHuu">Người dùng liên kết</option>
+                        <option value="ngayCapNhat">Ngày cập nhật</option>
+                    </select>
+                    <button type="button" id="btnDoiChieuSapXep" class="btn btn-outline-secondary" title="Đổi chiều sắp xếp tăng / giảm">
+                        <i class="fa fa-sort-amount-desc"></i>
+                    </button>
+                </div>
+
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" id="btnKieuList" class="btn btn-primary px-2" title="Hiển thị dạng bảng danh sách">
+                        <i class="fa fa-list"></i>
+                    </button>
+                    <button type="button" id="btnKieuGrid" class="btn btn-outline-primary px-2" title="Hiển thị dạng khối hình hộp">
+                        <i class="fa fa-th-large"></i>
+                    </button>
+                </div>
+
+                <button id="btnTaiLaiDanhSach" class="btn btn-sm btn-primary px-2" title="Tải lại danh sách">
+                    <i class="fa fa-refresh"></i>
                 </button>
-                <button id="btnBoLoc" class="btn btn-sm btn-outline-danger" title="Xóa sạch bộ lọc quay về mặc định">
-                    <i class="fa fa-filter"></i> Bỏ lọc
+                <button id="btnBoLoc" class="btn btn-sm btn-outline-danger px-2" title="Xóa sạch bộ lọc quay về mặc định">
+                    <i class="fa fa-filter"></i>
                 </button>
 
                 <div class="form-check form-switch d-flex align-items-center gap-1 mb-0 ms-1">
                     <input class="form-check-input mt-0" type="checkbox" role="switch" id="chkHienCotBanQuyen">
-                    <label class="form-check-label small text-nowrap" for="chkHienCotBanQuyen">Hiện cột bản quyền</label>
+                    <label class="form-check-label small text-nowrap" for="chkHienCotBanQuyen">Cột bản quyền</label>
                 </div>
 
                 <span class="tscn-toolbar-spacer"></span>
 
                 <button id="btnTuDongPhanLoai" class="btn btn-sm btn-warning" disabled title="Tích chọn thiết bị cần phân loại trước, sau đó bấm nút này để tự đoán Laptop/PC/MayAo/Server dựa vào Dòng máy">
-                    <i class="fa fa-magic"></i> Tự động phân loại (<span id="lblSoLuongDaChonPhanLoai">0</span>)
+                    <i class="fa fa-magic"></i> Phân loại (<span id="lblSoLuongDaChonPhanLoai">0</span>)
                 </button>
                 <button id="btnDongBoThietBi" class="btn btn-sm btn-success" disabled>
-                    <i class="fa fa-exchange"></i> Đồng bộ sang Thiết bị (<span id="lblSoLuongDaChon">0</span>)
+                    <i class="fa fa-exchange"></i> Đồng bộ (<span id="lblSoLuongDaChon">0</span>)
                 </button>
-                <button id="btnDongBoChiNhanh" class="btn btn-sm btn-info text-white" title="Kéo dữ liệu máy tính mới từ SQL Server chi nhánh 10.0.55.3 về hệ thống này">
-                    <i class="fa fa-cloud-download"></i> Đồng bộ từ chi nhánh
+                <button id="btnDongBoChiNhanh" class="btn btn-sm btn-info text-white px-2" title="Kéo dữ liệu máy tính mới từ SQL Server chi nhánh 10.0.55.3 về hệ thống này">
+                    <i class="fa fa-cloud-download"></i>
                 </button>
-                <button id="btnDanhSachChan" class="btn btn-sm btn-outline-dark" title="Xem và bỏ chặn các thiết bị đang bị ẩn khỏi hệ thống kiểm kê">
-                    <i class="fa fa-ban"></i> Danh sách chặn
+                <button id="btnDanhSachChan" class="btn btn-sm btn-outline-dark px-2" title="Xem và bỏ chặn các thiết bị đang bị ẩn khỏi hệ thống kiểm kê">
+                    <i class="fa fa-ban"></i>
                 </button>
             </div>
         </div>
@@ -372,7 +379,7 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/fixed-page-layout.js" defer></script>
+    <script src="~/js/fixed-page-layout.js?v=5" defer></script>
     <script src="~/js/kiemke-chan-thietbi.js"></script>
     <script src="~/js/kiemke-chitiet-tab.js"></script>
     <script>
@@ -866,6 +873,12 @@
         function sapXepDanhSachDaLoc() {
         var heSoChieu = chieuSapXep === "asc" ? 1 : -1;
         danhSachDaLoc.sort(function (a, b) {
+        // Máy CHƯA được phân loại thiết bị luôn nằm đầu danh sách, bất kể đang sắp xếp theo gì:
+        // đó chính là phần việc cần xử lý, để trôi xuống cuối là không ai thấy.
+        var chuaPhanLoaiA = !(a.loaiThietBi || "").toString().trim();
+        var chuaPhanLoaiB = !(b.loaiThietBi || "").toString().trim();
+        if (chuaPhanLoaiA !== chuaPhanLoaiB) return chuaPhanLoaiA ? -1 : 1;
+
         if (truongSapXep === "idMay") {
         return (a.idMay - b.idMay) * heSoChieu;
         }

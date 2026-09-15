@@ -47,18 +47,18 @@
 
     .chart-container {
         background: white;
-        padding: 20px;
+        padding: 12px 14px;
         border-radius: 12px;
         border: 1px solid #e2e8f0;
-        margin-bottom: 20px;
+        margin-bottom: 12px;
         position: relative;
     }
 
     .chart-header {
         font-weight: 800;
         color: @colorDark;
-        margin-bottom: 15px;
-        font-size: 16px;
+        margin-bottom: 10px;
+        font-size: 15px;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -75,12 +75,12 @@
             background-color: @colorLight;
             color: @colorDark;
             text-align: left;
-            padding: 12px;
+            padding: 7px 10px;
             border-bottom: 2px solid @colorBorder;
         }
 
         .custom-table td {
-            padding: 12px;
+            padding: 7px 10px;
             border-bottom: 1px solid #f1f5f9;
             color: #1e293b;
         }
@@ -110,10 +110,71 @@
         align-items: flex-end;
         flex-wrap: wrap;
         background: white;
-        padding: 15px 20px;
+        padding: 10px 14px;
         border-radius: 12px;
         border: 1px solid #e2e8f0;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
+    }
+
+    /* Tiêu đề nằm chung thanh lọc */
+    .bc-title {
+        font-weight: 900;
+        color: @colorDark;
+        margin: 0 8px 0 0;
+        font-size: 17px;
+        white-space: nowrap;
+        align-self: center;
+    }
+
+    .bc-field {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+        .bc-field label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #475569;
+        }
+
+    /* Dải KPI: 5 ô một hàng, thay 5 thẻ cao ~80px */
+    .bc-kpi-strip {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .bc-kpi {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.15;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-left: 4px solid var(--kpi-c, #64748b);
+        border-radius: 10px;
+        padding: 7px 12px;
+    }
+
+    .bc-kpi-label {
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .3px;
+        color: #64748b;
+    }
+
+    .bc-kpi-value {
+        font-size: 21px;
+        font-weight: 900;
+        color: var(--kpi-c, #0f172a);
+    }
+
+    @@media (max-width: 991px) {
+        .bc-kpi-strip {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
     }
 
     .filter-input {
@@ -327,14 +388,7 @@
     }
 </style>
 
-<div class="dashboard-container" style="max-width: 1400px; margin: 20px auto; padding: 0 20px;">
-
-    @* --- HEADER --- *@
-    <div class="header-section" style="margin-bottom: 20px;">
-        <h2 style="font-weight: 900; color: @colorDark; margin: 0;">
-            <i class="fa fa-dashboard" style="color: @colorPrimary;"></i> HỆ THỐNG QUẢN TRỊ BÁO CÁO CÔNG VIỆC
-        </h2>
-    </div>
+<div class="dashboard-container" style="margin: 8px auto; padding: 0 12px;">
 
     @* --- BANNER HIỂN THỊ LỖI --- *@
     <div id="lblError" class="error-banner">
@@ -343,18 +397,21 @@
     </div>
 
     @* --- BỘ LỌC THỜI GIAN VÀ DROPDOWN CHECKBOX NHÂN SỰ THỰC HIỆN --- *@
+    @* Tiêu đề nằm luôn trong thanh lọc để bớt một khối tiêu đề riêng *@
     <div class="filter-wrapper">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 12px; font-weight: 700; color: #475569;">Từ ngày:</label>
+        <h2 class="bc-title"><i class="fa fa-dashboard" style="color: @colorPrimary;"></i> Báo cáo công việc</h2>
+
+        <div class="bc-field">
+            <label>Từ ngày</label>
             <input type="date" id="txtFromDate" class="filter-input" />
         </div>
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 12px; font-weight: 700; color: #475569;">Đến ngày:</label>
+        <div class="bc-field">
+            <label>Đến ngày</label>
             <input type="date" id="txtToDate" class="filter-input" />
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 12px; font-weight: 700; color: #475569;">Nhân sự xử lý:</label>
+        <div class="bc-field">
+            <label>Nhân sự xử lý</label>
             <div class="dropdown">
                 <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropStaff" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                     -- Tất cả --
@@ -369,16 +426,16 @@
     </div>
 
     @* --- HÀNG CON SỐ TỔNG QUAN --- *@
-    <div class="stat-grid-mobile" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
-        <div class="stat-card" style="border-top: 4px solid #64748b;"><span class="card-title">Tổng số đơn</span><span class="card-value" id="lblTotal" style="color: #64748b;">0</span></div>
-        <div class="stat-card" style="border-top: 4px solid #f59e0b;"><span class="card-title">Chờ QL duyệt</span><span class="card-value" id="lblWaitQL" style="color: #f59e0b;">0</span></div>
-        <div class="stat-card" style="border-top: 4px solid #3b82f6;"><span class="card-title">Đang xử lý</span><span class="card-value" id="lblProcessing" style="color: #3b82f6;">0</span></div>
-        <div class="stat-card" style="border-top: 4px solid #8b5cf6;"><span class="card-title">Chờ đánh giá</span><span class="card-value" id="lblWaitRate" style="color: #8b5cf6;">0</span></div>
-        <div class="stat-card" style="border-top: 4px solid @colorPrimary;"><span class="card-title">Đã hoàn tất</span><span class="card-value" id="lblDone" style="color: @colorPrimary;">0</span></div>
+    <div class="bc-kpi-strip">
+        <div class="bc-kpi" style="--kpi-c:#64748b;"><span class="bc-kpi-label">Tổng số đơn</span><span class="bc-kpi-value" id="lblTotal">0</span></div>
+        <div class="bc-kpi" style="--kpi-c:#f59e0b;"><span class="bc-kpi-label">Chờ QL duyệt</span><span class="bc-kpi-value" id="lblWaitQL">0</span></div>
+        <div class="bc-kpi" style="--kpi-c:#3b82f6;"><span class="bc-kpi-label">Đang xử lý</span><span class="bc-kpi-value" id="lblProcessing">0</span></div>
+        <div class="bc-kpi" style="--kpi-c:#8b5cf6;"><span class="bc-kpi-label">Chờ đánh giá</span><span class="bc-kpi-value" id="lblWaitRate">0</span></div>
+        <div class="bc-kpi" style="--kpi-c:@colorPrimary;"><span class="bc-kpi-label">Đã hoàn tất</span><span class="bc-kpi-value" id="lblDone">0</span></div>
     </div>
 
     @* --- HÀNG BIỂU ĐỒ 1 --- *@
-    <div class="chart-row-mobile" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 20px;">
+    <div class="chart-row-mobile" style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px; margin-bottom: 12px;">
         <div class="chart-container">
             <div class="chart-header"><i class="fa fa-tasks"></i> Tỉ lệ Trạng thái phiếu</div>
             <div class="canvas-wrapper-mobile" id="wrapStatus" style="height: 300px;"><canvas id="chartStatus"></canvas></div>
@@ -399,7 +456,7 @@
     </div>
 
     @* --- HÀNG BIỂU ĐỒ 3 --- *@
-    <div class="chart-row-mobile" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+    <div class="chart-row-mobile" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
         <div class="chart-container">
             <div class="chart-header"><i class="fa fa-tags"></i> Phân tích theo Danh mục công việc</div>
             <div class="canvas-wrapper-mobile" id="wrapCategory" style="height: 350px;"><canvas id="chartCategory"></canvas></div>

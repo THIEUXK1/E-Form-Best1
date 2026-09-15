@@ -5,6 +5,8 @@
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+@* Khoá cuộn toàn trang, chỉ bảng dữ liệu được cuộn (module dùng chung fixed-page-layout) *@
+<link rel="stylesheet" href="~/css/fixed-page-layout.css?v=5" />
 
 <style>
     body {
@@ -295,21 +297,122 @@
         font-size: 13px;
         font-style: italic;
     }
+
+    /* ===== Thanh lệnh gọn trên cùng: tiêu đề + tìm kiếm + các nút trên MỘT hàng,
+       chừa tối đa chiều cao cho bảng dữ liệu ===== */
+    .dash-topbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 10px 14px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    }
+
+        /* Nút không được co lại (bóp méo/cắt chữ) - thiếu chỗ thì cho xuống hàng */
+        .dash-topbar > * {
+            flex-shrink: 0;
+        }
+
+    .dash-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #1e293b;
+        white-space: nowrap;
+        margin: 0;
+    }
+
+    .dash-search {
+        flex: 1 1 240px;
+        min-width: 180px;
+    }
+
+        .dash-search .form-control {
+            height: 38px;
+        }
+
+    /* Khi khoá cuộn toàn trang, .main-card bị thu padding -> lề âm kéo tiêu đề đè header _Layout */
+    html.fp-lock .content-header {
+        margin-top: 0 !important;
+    }
+
+    /* .main-card và các mắt xích là flex-column: mặc định flex-shrink = 1 nên khối phía trên
+       bảng bị bóp thấp hơn nội dung thật -> tràn ra ngoài và đè lên khối kế tiếp.
+       Chỉ vùng cuộn (.fp-grow) được co giãn. */
+    html.fp-lock .content-header,
+    html.fp-lock .fp-chain > *:not(.fp-grow) {
+        flex: 0 0 auto;
+    }
+
+    /* ===== Bảng gọn: bớt khoảng trắng thừa để mỗi màn hình xem được nhiều dòng hơn.
+       Chỉ áp dụng từ md trở lên - dưới md bảng chuyển sang dạng thẻ, cần thoáng. ===== */
+    @@media (min-width: 769px) {
+        #adminDataTable > tbody > tr > td,
+        #adminDataTableDaXoa > tbody > tr > td {
+            padding-top: 0.35rem !important;
+            padding-bottom: 0.35rem !important;
+            line-height: 1.35;
+        }
+
+        #adminDataTable > tbody > tr > td .btn-sm,
+        #adminDataTableDaXoa > tbody > tr > td .btn-sm {
+            padding: 0.2rem 0.45rem;
+            font-size: 0.78rem;
+        }
+
+        #adminDataTable > thead > tr > th {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            font-size: 0.8rem;
+        }
+    }
+
+    /* Tab "Tổng quan" chỉ có biểu đồ (không có bảng) nên không nằm trong chuỗi vùng cuộn:
+       cho chính nó cuộn để biểu đồ không bị cắt khi trang đang khoá cuộn. */
+    html.fp-lock #thongke.active {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+    }
 </style>
 
 @* Kéo tiêu đề lên sát mép trên: bù lại phần padding 45px của .main-card ở _Layout để đỡ trống *@
-<div class="content-header pt-0 pb-2" style="margin-top: -25px;">
+<div class="content-header pt-0 pb-0" style="margin-top: -25px;">
     <div class="container-fluid">
-        <div class="row align-items-center">
-            <div class="col-md-6 col-12 mb-2 mb-md-0">
-                <h4 class="m-0 fw-bold" style="color: #1e293b; letter-spacing: -0.5px;">
-                    <i class="fas fa-laptop me-2" style="color: #4f46e5;"></i> Quản lý Thiết bị
-                </h4>
+        @* Thanh lệnh gọn: gom tiêu đề, tìm kiếm và toàn bộ nút thao tác vào một hàng.
+           Ô tìm kiếm để ngoài khối lọc để luôn dùng được kể cả khi thu gọn bộ lọc. *@
+        <div class="dash-topbar">
+            <h4 class="dash-title"><i class="fas fa-laptop me-2" style="color: #4f46e5;"></i>Quản lý Thiết bị</h4>
+
+            <div class="dash-search">
+                <input type="text" id="filterText" class="form-control rounded-3 shadow-sm" placeholder="Tìm S/N, Hostname, Account, Note..." style="border: 1px solid #e2e8f0;">
             </div>
-            <div class="col-md-6 col-12 text-md-end text-start">
-                @* Gom các chức năng phụ (Nhập Excel, Danh sách chặn) vào 1 menu "Tiện ích" cho gọn góc phải, chỉ chừa nút Thêm mới nổi bật *@
-                <div class="dropdown w-100 w-md-auto d-inline-block mb-2 mb-md-0 me-md-2">
-                    <button class="btn btn-sm rounded-pill px-3 shadow-sm text-secondary w-100 w-md-auto dropdown-toggle" style="border-color: #cbd5e1; padding-top: 8px; padding-bottom: 8px;" data-bs-toggle="dropdown" aria-expanded="false" title="Các chức năng khác">
+
+            <button type="button" id="btnToggleAdvancedFilter" class="btn btn-primary shadow-sm rounded-3 fw-semibold" style="height: 38px; background-color: #4f46e5; border-color: #4f46e5;" onclick="toggleAdvancedFilter()">
+                <i class="fas fa-sliders-h me-1"></i> <span id="textToggleFilter">Bộ lọc nâng cao</span>
+            </button>
+
+            <button class="btn btn-outline-secondary rounded-3 shadow-sm fw-semibold" onclick="clearFilters()" style="height: 38px;" title="Bỏ toàn bộ điều kiện lọc"><i class="fas fa-sync-alt"></i></button>
+
+            <div class="btn-group shadow-sm" style="height: 38px;">
+                <button type="button" id="btnXuatBienBanBoPhan" class="btn btn-success rounded-start-3 fw-semibold" onclick="xuatBienBanBoPhan('in')" title="Bản in để bộ phận đối chiếu và ký tay">
+                    <i class="fas fa-file-signature me-1"></i> Biên bản ký
+                </button>
+                <button type="button" class="btn btn-success dropdown-toggle dropdown-toggle-split rounded-end-3" data-bs-toggle="dropdown" aria-expanded="false" style="max-width: 38px;"></button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item" href="#" onclick="xuatBienBanBoPhan('in'); return false;"><i class="fas fa-print me-2 text-secondary"></i>Bản in (ký tay)</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="xuatBienBanBoPhan('excel'); return false;"><i class="fas fa-file-excel me-2 text-success"></i>Tải Excel (sửa được)</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="xuatBienBanBoPhan('excel_vitrung'); return false;"><i class="fas fa-language me-2 text-danger"></i>Tải Excel song ngữ Việt - Trung</a></li>
+                </ul>
+            </div>
+
+            @* Gom các chức năng phụ (Nhập Excel, Danh sách chặn) vào 1 menu "Tiện ích", chỉ chừa nút Thêm mới nổi bật *@
+                <div class="dropdown">
+                    <button class="btn rounded-3 px-3 shadow-sm text-secondary dropdown-toggle" style="border-color: #cbd5e1; height: 38px;" data-bs-toggle="dropdown" aria-expanded="false" title="Các chức năng khác">
                         <i class="fas fa-ellipsis-v me-1"></i> Tiện ích
                     </button>
                     <ul class="dropdown-menu dropdown-menu-md-end shadow-sm">
@@ -325,7 +428,10 @@
                         </li>
                     </ul>
                 </div>
-                <button class="btn btn-sm rounded-pill px-3 shadow-sm text-white w-100 w-md-auto" style="background-color: #4f46e5; border-color: #4f46e5; padding-top: 8px; padding-bottom: 8px;" onclick="openModalCurrentTab()" id="btnMasterThemMoi">
+
+            @* Bọc trong div riêng vì changeTab() ẩn/hiện nút này qua .parent() *@
+            <div>
+                <button class="btn rounded-3 px-3 shadow-sm text-white" style="background-color: #4f46e5; border-color: #4f46e5; height: 38px;" onclick="openModalCurrentTab()" id="btnMasterThemMoi">
                     <i class="fas fa-plus me-1"></i> Thêm mới <span id="txtBtnThemMoi">Thiết bị</span>
                 </button>
             </div>
@@ -495,37 +601,8 @@
             </div>
 
             <div class="card-body p-2 p-md-3">
-                <div class="row mb-3 pb-3 border-bottom align-items-end" id="filterBar" style="background: #f8fafc; padding: 15px; border-radius: 10px; margin: 0 5px;">
-
-                    <div class="col-12 mb-2">
-                        <div class="row align-items-end g-2">
-                            <div class="col-md-6 col-12">
-                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-search text-primary"></i> Tìm kiếm nhanh</label>
-                                <input type="text" id="filterText" class="form-control rounded-3 border-0 shadow-sm" placeholder="S/N, Hostname, Account, Note..." style="height: 38px;">
-                            </div>
-                            <div class="col-md-2 col-6">
-                                <button type="button" id="btnToggleAdvancedFilter" class="btn btn-primary shadow-sm rounded-3 w-100 fw-semibold" style="height: 38px; background-color: #4f46e5; border-color: #4f46e5;" onclick="toggleAdvancedFilter()">
-                                    <i class="fas fa-sliders-h me-1"></i> <span id="textToggleFilter">Bộ lọc nâng cao</span>
-                                </button>
-                            </div>
-                            <div class="col-md-2 col-6">
-                                <button class="btn btn-outline-secondary rounded-3 shadow-sm w-100 fw-semibold" onclick="clearFilters()" style="height: 38px;"><i class="fas fa-sync-alt"></i> Bỏ lọc</button>
-                            </div>
-                            <div class="col-md-2 col-12 mt-2 mt-md-0">
-                                <div class="btn-group w-100 shadow-sm" style="height: 38px;">
-                                    <button type="button" id="btnXuatBienBanBoPhan" class="btn btn-success rounded-start-3 fw-semibold" onclick="xuatBienBanBoPhan('in')" title="Bản in để bộ phận đối chiếu và ký tay">
-                                        <i class="fas fa-file-signature me-1"></i> Biên bản ký
-                                    </button>
-                                    <button type="button" class="btn btn-success dropdown-toggle dropdown-toggle-split rounded-end-3" data-bs-toggle="dropdown" aria-expanded="false" style="max-width: 38px;"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                                        <li><a class="dropdown-item" href="#" onclick="xuatBienBanBoPhan('in'); return false;"><i class="fas fa-print me-2 text-secondary"></i>Bản in (ký tay)</a></li>
-                                        <li><a class="dropdown-item" href="#" onclick="xuatBienBanBoPhan('excel'); return false;"><i class="fas fa-file-excel me-2 text-success"></i>Tải Excel (sửa được)</a></li>
-                                        <li><a class="dropdown-item" href="#" onclick="xuatBienBanBoPhan('excel_vitrung'); return false;"><i class="fas fa-language me-2 text-danger"></i>Tải Excel song ngữ Việt - Trung</a></li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                @* fp-ignore: đã có nút "Bộ lọc nâng cao" trên topbar, không để fixed-page-layout chèn thêm nút "Ẩn lọc" thứ hai *@
+                <div class="row mb-2 pb-2 border-bottom align-items-end fp-ignore" id="filterBar" style="background: #f8fafc; padding: 10px; border-radius: 10px; margin: 0 5px;">
 
                     @* Lọc nhanh 2 loại dùng nhiều nhất - khỏi phải mở Bộ lọc nâng cao. Trạng thái tích được ghi nhớ qua F5 và không bị "Bỏ lọc" xóa mất. *@
                     <div class="col-12 mb-2">
@@ -714,12 +791,12 @@
                             </div>
 
                             <div class="col-xl-1 col-lg-2 col-md-3 col-sm-6 mb-2">
-                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-list-ol"></i> Hiển thị</label>
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-list-ol"></i> Dòng / trang</label>
                                 <select id="filterLimit" class="form-select rounded-3 border-0 shadow-sm" style="height: 38px;">
                                     <option value="10">10</option>
                                     <option value="20">20</option>
                                     <option value="50">50</option>
-                                    <option value="100">100</option>
+                                    <option value="100" selected>100</option>
                                     <option value="all">Tất cả</option>
                                 </select>
                             </div>
@@ -756,12 +833,12 @@
                                 <i class="fas fa-list-ol me-1"></i> Đang tải...
                             </span>
                         </div>
-                        <div class="table-responsive">
+                        <div class="table-responsive" data-fp-scroll>
                             <table class="table table-hover align-middle mb-0" id="adminDataTable" style="min-width: 100%;" data-dang-xem="auto">
                                 <thead class="table-light">
                                     <tr>
                                         <th width="60">ID</th>
-                                        <th width="100" class="text-center">Hình ảnh</th>
+                                        <th width="70" class="text-center">Ảnh</th>
                                         <th width="120">Loại thiết bị</th>
                                         <th>Thông tin máy tính</th>
                                         <th>Người dùng & Vị trí</th>
@@ -772,6 +849,8 @@
                                 <tbody id="tbodyThietBi"></tbody>
                             </table>
                         </div>
+                        @* Thanh phân trang nằm NGOÀI vùng cuộn để luôn nhìn thấy khi cuộn bảng *@
+                        <div id="phanTrangThietBi"></div>
                     </div>
 
                     <div class="tab-pane fade" id="daxoa" role="tabpanel">
@@ -780,7 +859,7 @@
                                 <i class="fas fa-list-ol me-1"></i> Đang tải...
                             </span>
                         </div>
-                        <div class="table-responsive">
+                        <div class="table-responsive" data-fp-scroll>
                             <table class="table table-hover align-middle mb-0" id="adminDataTableDaXoa" style="min-width: 100%;" data-dang-xem="auto">
                                 <thead class="table-light">
                                     <tr>
@@ -1089,6 +1168,7 @@
 </div>
 
 @section Scripts {
+    <script src="~/js/fixed-page-layout.js?v=5" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="~/js/kiemke-chan-thietbi.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1103,6 +1183,7 @@
         let listLoaiThietBiCache = [];
         // Toàn bộ thiết bị khớp bộ lọc hiện tại (TRƯỚC khi cắt bớt theo ô "Hiển thị") - dùng để xuất biên bản ký
         let dsThietBiTheoBoLoc = [];
+        let trangHienTaiThietBi = 1; // trang đang xem của bảng Thiết bị (phân trang phía client)
         let allThietBiCache = [];
 
         let chartLoai = null;
@@ -1199,6 +1280,13 @@
         $(document).on('click', function (e) {
         if (!$(e.target).closest('.mini-combo').length) { $('.mini-combo-menu').hide(); }
         });
+
+        // Bản trước từng đặt mặc định "Tất cả"; giá trị đó còn kẹt trong localStorage của người đã mở trang,
+        // làm bảng chỉ có 1 trang nên không thấy thanh chuyển trang. Dọn đúng MỘT lần, sau đó tôn trọng lựa chọn của người dùng.
+        if (!localStorage.getItem('kk_phanTrang_v2')) {
+        if (localStorage.getItem('kk_filterLimit') === 'all') localStorage.setItem('kk_filterLimit', '100');
+        localStorage.setItem('kk_phanTrang_v2', '1');
+        }
 
         let savedLimit = localStorage.getItem('kk_filterLimit') || '100';
         $('#filterLimit').val(savedLimit);
@@ -1651,6 +1739,14 @@
         // Thoát ký tự cho giá trị đưa vào thuộc tính HTML (Tên máy/Serial có thể chứa dấu nháy)
         function thoatThuocTinhChan(giaTri) {
         return String(giaTri == null ? "" : giaTri).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // Các loại thiết bị không chạy Windows/Office nên không có khái niệm bản quyền —
+        // hiện thông tin bản quyền cho chúng là sai nghiệp vụ, phải ẩn đi.
+        const loaiKhongCoBanQuyen = ['màn hình', 'máy in', 'điện thoại bàn', 'tivi', 'pda', 'máy scan', 'loa',
+        'bộ lưu điện', 'máy chiếu', 'switch', 'súng bắn mã vạch', 'máy chấm công', 'thiết bị họp trực tuyến'];
+        function khongCoBanQuyen(loai) {
+        return loaiKhongCoBanQuyen.includes((loai || '').trim().toLowerCase());
         }
 
         // Chặn thiết bị (module dùng chung kiemke-chan-thietbi.js): sau khi chặn/bỏ chặn thì nạp lại danh sách
@@ -2300,10 +2396,27 @@
         });
         }
 
-        let soLuongPhuHop = filtered.length;
-        dsThietBiTheoBoLoc = filtered.slice(); // giữ đủ danh sách khớp bộ lọc để xuất biên bản, không phụ thuộc ô "Hiển thị"
-        if (fLimit !== 'all') filtered = filtered.slice(0, parseInt(fLimit));
-        $('#lblSoLuongThietBi').html(`<i class="fas fa-list-ol me-1"></i> Hiển thị <b>${filtered.length}</b> / <b>${soLuongPhuHop}</b> thiết bị phù hợp bộ lọc`);
+        dsThietBiTheoBoLoc = filtered.slice(); // giữ đủ danh sách khớp bộ lọc để xuất biên bản, không phụ thuộc ô "Dòng / trang"
+        trangHienTaiThietBi = 1; // đổi bộ lọc thì luôn về trang đầu
+        veBangThietBi();
+        }
+
+        // Vẽ MỘT trang của bảng thiết bị. Danh sách đã lọc nằm sẵn ở dsThietBiTheoBoLoc nên
+        // chuyển trang không phải lọc lại từ đầu.
+        function veBangThietBi() {
+        let fLimit = $('#filterLimit').val();
+        let soLuongPhuHop = dsThietBiTheoBoLoc.length;
+        let soDongMoiTrang = (fLimit === 'all') ? Math.max(soLuongPhuHop, 1) : parseInt(fLimit);
+        let tongSoTrang = Math.max(1, Math.ceil(soLuongPhuHop / soDongMoiTrang));
+        if (trangHienTaiThietBi > tongSoTrang) trangHienTaiThietBi = tongSoTrang;
+        if (trangHienTaiThietBi < 1) trangHienTaiThietBi = 1;
+
+        let batDau = (trangHienTaiThietBi - 1) * soDongMoiTrang;
+        let filtered = dsThietBiTheoBoLoc.slice(batDau, batDau + soDongMoiTrang);
+
+        $('#lblSoLuongThietBi').html(soLuongPhuHop === 0
+        ? '<i class="fas fa-list-ol me-1"></i> Không có thiết bị nào phù hợp bộ lọc'
+        : `<i class="fas fa-list-ol me-1"></i> Hiển thị <b>${batDau + 1}-${batDau + filtered.length}</b> / <b>${soLuongPhuHop}</b> thiết bị phù hợp bộ lọc`);
 
         let html = '';
         filtered.forEach(item => {
@@ -2321,11 +2434,11 @@
 
         let imgHtml = item.duongDanAnh
         ? `<div class="position-relative d-inline-block">
-        <img src="/QLKiemKe/GetImage?fileName=${encodeURIComponent(item.duongDanAnh)}" class="shadow-sm img-thumbnail-hover" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;" alt="Ảnh TB" onclick="phongToAnh('/QLKiemKe/GetImage?fileName=${encodeURIComponent(item.duongDanAnh)}', '${item.tenViTri || 'Vị trí'}')" title="Nhấn để phóng to ảnh" />
+        <img src="/QLKiemKe/GetImage?fileName=${encodeURIComponent(item.duongDanAnh)}" class="shadow-sm img-thumbnail-hover" style="width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;" alt="Ảnh TB" onclick="phongToAnh('/QLKiemKe/GetImage?fileName=${encodeURIComponent(item.duongDanAnh)}', '${item.tenViTri || 'Vị trí'}')" title="Nhấn để phóng to ảnh" />
         <div class="mobile-quick-cam-wrap"><button class="btn btn-sm btn-success btn-quick-cam" onclick="openQuickCameraMobile(${item.idThietBi}, event)"><i class="fas fa-camera" style="font-size:11px;"></i></button></div>
         </div>`
         : `<div class="position-relative d-inline-block">
-        <div class="bg-light d-flex align-items-center justify-content-center text-muted shadow-sm" style="width: 80px; height: 80px; border-radius: 8px; border: 1px dashed #cbd5e1;"><i class="fas fa-laptop fs-3"></i></div>
+        <div class="bg-light d-flex align-items-center justify-content-center text-muted shadow-sm" style="width: 56px; height: 56px; border-radius: 8px; border: 1px dashed #cbd5e1;"><i class="fas fa-laptop"></i></div>
         <div class="mobile-quick-cam-wrap"><button class="btn btn-sm btn-success btn-quick-cam" onclick="openQuickCameraMobile(${item.idThietBi}, event)"><i class="fas fa-camera" style="font-size:11px;"></i></button></div>
         </div>`;
 
@@ -2333,28 +2446,41 @@
 
         let hostName = item.tenMayTinh
         ? (item.idMay
-        ? `<a href="/QLKiemKe/ViewChiTietMayTinh?idMay=${item.idMay}" class="fw-bold text-decoration-none text-primary mb-1 d-block" style="font-size:16px;" target="_blank" title="Xem chi tiết máy tính đã đồng bộ"><i class="fas fa-desktop me-1"></i> ${item.tenMayTinh} <i class="fas fa-external-link-alt ms-1" style="font-size:10px;"></i></a>`
-        : `<a href="/QLKiemKe/ChiTietThietBi/${item.idThietBi}" class="fw-bold text-decoration-none text-primary mb-1 d-block" style="font-size:16px;" target="_blank"><i class="fas fa-desktop me-1"></i> ${item.tenMayTinh}</a>`)
+        ? `<a href="/QLKiemKe/ViewChiTietMayTinh?idMay=${item.idMay}" class="fw-bold text-decoration-none text-primary d-block" style="font-size:14px;" target="_blank" title="Xem chi tiết máy tính đã đồng bộ"><i class="fas fa-desktop me-1"></i> ${item.tenMayTinh} <i class="fas fa-external-link-alt ms-1" style="font-size:10px;"></i></a>`
+        : `<a href="/QLKiemKe/ChiTietThietBi/${item.idThietBi}" class="fw-bold text-decoration-none text-primary d-block" style="font-size:14px;" target="_blank"><i class="fas fa-desktop me-1"></i> ${item.tenMayTinh}</a>`)
         : '<i class="text-muted d-block mb-1">Chưa có Hostname</i>';
 
+        // Cột thao tác: 6 nút xếp dọc làm mỗi dòng cao gần 200px. Gom thành một dải nút biểu tượng
+        // trên cùng một hàng (chữ nằm ở tooltip) để dòng chỉ còn cao bằng phần nội dung.
         let btnXemMayTinh = item.idMay
-        ? `<button class="btn btn-sm btn-outline-primary w-100 shadow-sm" style="white-space: nowrap;" onclick="window.open('/QLKiemKe/ViewChiTietMayTinh?idMay=${item.idMay}', '_blank')" title="Thiết bị này đã liên kết với 1 máy tính trong hệ thống"><i class="fas fa-desktop"></i> Xem máy tính</button>`
+        ? `<button class="btn btn-sm btn-outline-primary px-2" onclick="window.open('/QLKiemKe/ViewChiTietMayTinh?idMay=${item.idMay}', '_blank')" title="Xem máy tính đã liên kết"><i class="fas fa-desktop"></i></button>`
         : '';
 
-        let htmlHanhDong = `<button class="btn btn-sm btn-success w-100 shadow-sm" onclick="xacNhanCheckThietBi(${item.idThietBi})"><i class="fas fa-check-circle"></i> Xác nhận Check</button>
-        <button class="btn btn-sm btn-outline-primary w-100 shadow-sm" onclick='xemChiTietThietBi(${JSON.stringify(item).replace(/'/g, "&#39;")})'><i class="fas fa-circle-info"></i> Xem chi tiết</button>
-        <div class="btn-group w-100 shadow-sm">
-        <button class="btn btn-sm btn-outline-info text-info" onclick="openLichSuCheckThietBi(${item.idThietBi}, '${item.tenMayTinh || ''}', '${item.tenViTri || ''}')" title="Xem lịch sử & bằng chứng check"><i class="fas fa-history"></i></button>
-        <button class="btn btn-sm btn-outline-dark flex-fill" onclick='editThietBi(${JSON.stringify(item).replace(/'/g, "&#39;")})'><i class="fas fa-edit"></i> Sửa</button>
-        <button class="btn btn-sm btn-outline-danger" onclick="deleteThietBi(${item.idThietBi})"><i class="fas fa-trash"></i></button>
-        </div>
-        <button class="btn btn-sm btn-outline-dark w-100 shadow-sm btn-chan-thiet-bi" title="Ẩn thiết bị này khỏi toàn bộ hệ thống kiểm kê" data-seri="${thoatThuocTinhChan(item.seribacode)}" data-ten="${thoatThuocTinhChan(item.tenMayTinh)}"><i class="fas fa-ban"></i> Chặn</button>`;
+        let htmlHanhDong = `<button class="btn btn-sm btn-success px-2" onclick="xacNhanCheckThietBi(${item.idThietBi})" title="Xác nhận Check"><i class="fas fa-check-circle"></i></button>
+        <button class="btn btn-sm btn-outline-primary px-2" onclick='xemChiTietThietBi(${JSON.stringify(item).replace(/'/g, "&#39;")})' title="Xem chi tiết"><i class="fas fa-circle-info"></i></button>
+        <button class="btn btn-sm btn-outline-info text-info px-2" onclick="openLichSuCheckThietBi(${item.idThietBi}, '${item.tenMayTinh || ''}', '${item.tenViTri || ''}')" title="Lịch sử & bằng chứng check"><i class="fas fa-history"></i></button>
+        <button class="btn btn-sm btn-outline-dark px-2" onclick='editThietBi(${JSON.stringify(item).replace(/'/g, "&#39;")})' title="Sửa thiết bị"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-sm btn-outline-danger px-2" onclick="deleteThietBi(${item.idThietBi})" title="Xoá thiết bị"><i class="fas fa-trash"></i></button>
+        <button class="btn btn-sm btn-outline-secondary px-2 btn-chan-thiet-bi" title="Chặn: ẩn thiết bị này khỏi toàn bộ hệ thống kiểm kê" data-seri="${thoatThuocTinhChan(item.seribacode)}" data-ten="${thoatThuocTinhChan(item.tenMayTinh)}"><i class="fas fa-ban"></i></button>`;
 
         let accountName = item.tenDangNhap ? item.tenDangNhap : '<i class="text-muted">Chưa có Account</i>';
-        let quyCachLine = item.quyCach ? `<div class="small text-dark text-truncate" style="max-width:200px" title="${item.quyCach}"><b>Quy cách:</b> ${item.quyCach}</div>` : '';
-        let serialLine = item.seribacode ? `<div class="small text-secondary text-truncate" style="max-width:200px"><b>S/N:</b> ${item.seribacode}</div>` : '';
-        let winLine = item.winLicense ? `<div class="small text-truncate" style="max-width:200px; color:#0284c7;" title="Bản quyền Windows: ${item.winLicense}"><i class="fab fa-windows"></i> <b>Win:</b> ${item.winLicense}</div>` : '';
-        let officeLine = item.officeLicense ? `<div class="small text-truncate" style="max-width:200px; color:#d97706;" title="Bản quyền Office: ${item.officeLicense}"><i class="fas fa-file-word"></i> <b>Office:</b> ${item.officeLicense}</div>` : '';
+        // Gộp các cặp thông tin vào chung một dòng: trước đây mỗi thứ một <div> làm dòng cao tới 7 dòng chữ
+        let quyCachLine = item.quyCach ? `<span class="text-dark" title="Quy cách: ${item.quyCach}"><b>QC:</b> ${item.quyCach}</span>` : '';
+        let serialLine = item.seribacode ? `<span class="text-secondary"><b>S/N:</b> ${item.seribacode}</span>` : '';
+        let dongKyThuat = (quyCachLine || serialLine)
+        ? `<div class="small text-truncate" style="max-width:260px">${[quyCachLine, serialLine].filter(Boolean).join(' <span class="text-muted">·</span> ')}</div>`
+        : '';
+
+        let anBanQuyen = khongCoBanQuyen(item.loaiThietBi);
+        let winLine = (!anBanQuyen && item.winLicense) ? `<span style="color:#0284c7;" title="Bản quyền Windows: ${item.winLicense}"><i class="fab fa-windows"></i> ${item.winLicense}</span>` : '';
+        let officeLine = (!anBanQuyen && item.officeLicense) ? `<span style="color:#d97706;" title="Bản quyền Office: ${item.officeLicense}"><i class="fas fa-file-word"></i> ${item.officeLicense}</span>` : '';
+        let dongBanQuyen = (winLine || officeLine)
+        ? `<div class="small text-truncate" style="max-width:260px">${[winLine, officeLine].filter(Boolean).join(' <span class="text-muted">·</span> ')}</div>`
+        : '';
+
+        let dongGhiChu = item.ghiChu
+        ? `<div class="small text-muted text-truncate" style="max-width:260px" title="${item.ghiChu}"><b>Note:</b> ${item.ghiChu}</div>`
+        : '';
 
         html += `
         <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative">
@@ -2372,26 +2498,23 @@
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2 align-middle">
         <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px;">Thông tin máy:</span>
         ${hostName}
-        <div class="fw-semibold text-dark mb-1"><i class="fas fa-user-circle me-1"></i> ${accountName}</div>
-        ${quyCachLine}
-        ${serialLine}
-        ${winLine}
-        ${officeLine}
-        <div class="small text-muted mt-1 text-truncate d-inline-block" style="max-width:200px"><b>Note:</b> ${item.ghiChu || ''}</div>
+        <div class="small fw-semibold text-dark"><i class="fas fa-user-circle me-1"></i>${accountName}</div>
+        ${dongKyThuat}
+        ${dongBanQuyen}
+        ${dongGhiChu}
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2 align-middle">
         <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px;">Người dùng & Vị trí:</span>
-        ${userStr}<br/>
-        <span class="small text-muted"><i class="fas fa-map-marker-alt mt-1"></i> ${locStr}</span><br/>
-        <span class="badge bg-dark mt-1 text-white"><i class="fas fa-map-pin"></i> Vị trí: ${item.tenViTri}</span>
+        <div class="small">${userStr}</div>
+        <div class="small text-muted text-truncate" style="max-width:220px"><i class="fas fa-map-marker-alt me-1"></i>${locStr} <span class="text-muted">·</span> <span class="text-dark fw-semibold" title="Vị trí: ${item.tenViTri || ''}">${item.tenViTri || 'Chưa có vị trí'}</span></div>
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2 align-middle">
         <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px;">Trạng thái:</span>
-        <span class="badge bg-${badgeClass} mb-1">${ttName}</span><br/>
-        <span class="small" style="color: #64748b;"><i class="fas fa-clock"></i> Check: <b>${checkTimeStr}</b></span>
+        <div><span class="badge bg-${badgeClass}">${ttName}</span></div>
+        <div class="small" style="color: #64748b;"><i class="fas fa-clock me-1"></i>${checkTimeStr}</div>
         </td>
-        <td class="d-block d-md-table-cell text-center border-0 py-3 py-md-2 mt-2 mt-md-0 align-middle">
-        <div class="d-flex flex-column gap-1">
+        <td class="d-block d-md-table-cell text-center border-0 py-2 mt-2 mt-md-0 align-middle">
+        <div class="d-flex flex-wrap gap-1 justify-content-center justify-content-md-start">
         ${btnXemMayTinh}
         ${htmlHanhDong}
         </div>
@@ -2403,6 +2526,60 @@
         html = `<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-search fs-2 mb-2 d-block opacity-50"></i> Không tìm thấy thiết bị nào phù hợp</td></tr>`;
         }
         $('#tbodyThietBi').html(html);
+        vePhanTrangThietBi(tongSoTrang, soLuongPhuHop);
+        }
+
+        // Thanh phân trang: chỉ hiện khi danh sách bị chia thành nhiều trang
+        function vePhanTrangThietBi(tongSoTrang, soLuongPhuHop) {
+        let $box = $('#phanTrangThietBi');
+        if (soLuongPhuHop === 0) { $box.empty(); return; }
+
+        // Chỉ có một trang (thường là khi chọn "Tất cả"): chỉ hiện dòng tổng kết, không cần nút chuyển trang
+        if (tongSoTrang <= 1) {
+        $box.html(`<div class="small text-muted mt-2 px-1">Đang hiển thị toàn bộ <b>${soLuongPhuHop}</b> thiết bị
+        <button type="button" class="btn btn-sm btn-link p-0 ms-1 align-baseline" onclick="chiaTrang100()">Chia trang 100 dòng</button></div>`);
+        return;
+        }
+
+        let trang = trangHienTaiThietBi;
+        let cacTrang = [];
+        let dau = Math.max(1, trang - 2);
+        let cuoi = Math.min(tongSoTrang, trang + 2);
+        if (dau > 1) cacTrang.push(1);
+        if (dau > 2) cacTrang.push('...');
+        for (let i = dau; i <= cuoi; i++) cacTrang.push(i);
+        if (cuoi < tongSoTrang - 1) cacTrang.push('...');
+        if (cuoi < tongSoTrang) cacTrang.push(tongSoTrang);
+
+        let nut = cacTrang.map(function (p) {
+        if (p === '...') return '<li class="page-item disabled"><span class="page-link">…</span></li>';
+        return `<li class="page-item ${p === trang ? 'active' : ''}"><button type="button" class="page-link" onclick="doiTrangThietBi(${p})">${p}</button></li>`;
+        }).join('');
+
+        $box.html(`
+        <nav class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2 px-1">
+        <span class="small text-muted">Trang <b>${trang}</b> / <b>${tongSoTrang}</b> — tổng <b>${soLuongPhuHop}</b> thiết bị</span>
+        <ul class="pagination pagination-sm mb-0">
+        <li class="page-item ${trang === 1 ? 'disabled' : ''}"><button type="button" class="page-link" onclick="doiTrangThietBi(${trang - 1})"><i class="fas fa-chevron-left"></i></button></li>
+        ${nut}
+        <li class="page-item ${trang === tongSoTrang ? 'disabled' : ''}"><button type="button" class="page-link" onclick="doiTrangThietBi(${trang + 1})"><i class="fas fa-chevron-right"></i></button></li>
+        </ul>
+        </nav>`);
+        }
+
+        window.chiaTrang100 = function () {
+        $('#filterLimit').val('100');
+        localStorage.setItem('kk_filterLimit', '100');
+        trangHienTaiThietBi = 1;
+        veBangThietBi();
+        }
+
+        window.doiTrangThietBi = function (trang) {
+        trangHienTaiThietBi = trang;
+        veBangThietBi();
+        // Cuộn vùng bảng về đầu thay vì cuộn cả trang (trang đang khoá cuộn)
+        let vungCuon = document.querySelector('#thietbi .table-responsive');
+        if (vungCuon) vungCuon.scrollTop = 0;
         }
 
         function renderUIDaXoa() {
@@ -2681,8 +2858,10 @@
         html += dong('Công ty', item.tenCongTy, 'fa-building');
         html += dong('Bộ phận', item.tenBoPhan, 'fa-sitemap');
         html += dong('Trạng thái', item.tenTrangThai, 'fa-toggle-on');
+        if (!khongCoBanQuyen(item.loaiThietBi)) {
         html += dong('Bản quyền Windows', item.winLicense, 'fa-windows');
         html += dong('Bản quyền Office', item.officeLicense, 'fa-file-word');
+        }
         html += dong('Hạn bảo hành', hanBaoHanh, 'fa-shield-alt');
         html += dong('Thời gian Check gần nhất', thoiGianCheck, 'fa-clock');
         html += dong('Ngày tạo', ngayTao, 'fa-calendar-plus');

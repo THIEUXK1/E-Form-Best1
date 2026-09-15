@@ -53,7 +53,7 @@
                 radial-gradient(at 100% 0%, hsla(339,49%,30%,0.05) 0, transparent 50%);
             min-height: 100vh;
             display: flex; align-items: center; justify-content: center;
-            padding: 20px 10px; margin: 0;
+            padding: 12px 10px; margin: 0;
         }
 
         /* Language Switcher */
@@ -76,19 +76,22 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .profile-container {
-            width: 100%; max-width: 850px;
+            width: 95%; max-width: 95%;
+            height: 95vh; display: flex; flex-direction: column;
             background: var(--card-bg); border-radius: 28px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
             overflow: hidden; animation: slideUpFade 0.6s ease forwards;
         }
 
-        .profile-cover { height: 200px; background: var(--primary-gradient); position: relative; }
-        .profile-content { padding: 0 40px 40px 40px; position: relative; }
-        .header-row { display: flex; align-items: flex-end; margin-top: -75px; margin-bottom: 25px; }
+        .profile-cover { height: 110px; flex: 0 0 auto; background: var(--primary-gradient); position: relative; }
+        .profile-content { padding: 0 32px 24px 32px; position: relative; flex: 1 1 auto; min-height: 0; overflow: auto; }
+        /* Không kéo âm lề nữa: .profile-content có overflow:auto nên phần trồi lên của ảnh bị cắt mất.
+           Ảnh nằm hẳn dưới dải bìa -> luôn thấy trọn vòng tròn. */
+        .header-row { display: flex; align-items: center; margin-top: 0; padding-top: 16px; margin-bottom: 22px; }
 
         /* AVATAR: Chống méo ảnh tuyệt đối */
         .avatar-wrapper {
-            width: 150px; height: 150px;
+            width: 230px; height: 230px;
             border-radius: 50%; border: 6px solid var(--card-bg);
             background: #f1f5f9; position: relative;
             overflow: hidden; flex-shrink: 0; z-index: 10;
@@ -108,30 +111,30 @@
         }
         .avatar-wrapper:hover .avatar-overlay { opacity: 1; }
         .btn-avatar-action {
-            background: white; border: none; width: 38px; height: 38px;
+            background: white; border: none; width: 46px; height: 46px;
             border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
         }
 
-        .user-titles { margin-left: 25px; flex-grow: 1; }
-        .user-name { color: var(--text-main); font-weight: 800; font-size: 1.6rem; margin: 0; }
+        .user-titles { margin-left: 18px; flex-grow: 1; }
+        .user-name { color: var(--text-main); font-weight: 800; font-size: 2rem; margin: 0; }
         
-        .badge-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .badge-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
         .role-badge {
             background: #eff6ff; color: #0284c7; padding: 5px 12px;
-            border-radius: 8px; font-size: 0.75rem; font-weight: 700;
+            border-radius: 8px; font-size: 0.9rem; font-weight: 700;
             border: 1px solid #bae6fd; display: inline-flex; align-items: center; gap: 6px;
         }
 
-        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-        .info-card { background: #fff; border: 1px solid #f1f5f9; border-radius: 16px; padding: 20px; transition: 0.3s; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .info-card { background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; padding: 18px 22px; transition: 0.3s; }
         .info-card:hover { border-color: #cbd5e1; transform: translateY(-2px); }
-        .info-label { color: #94a3b8; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
-        .info-value { color: #334155; font-weight: 600; display: flex; align-items: center; gap: 10px; }
-        .dept-tag { background: #fdf2f8; color: #be185d; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; border: 1px solid #fce7f3; }
+        .info-label { color: #94a3b8; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+        .info-value { color: #334155; font-weight: 600; font-size: 1.15rem; display: flex; align-items: center; gap: 10px; }
+        .dept-tag { background: #fdf2f8; color: #be185d; padding: 6px 14px; border-radius: 8px; font-size: 1rem; font-weight: 600; border: 1px solid #fce7f3; }
         .full-width { grid-column: 1 / -1; }
 
-        .profile-footer { background: #f8fafc; padding: 25px 40px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
-        .btn-custom { padding: 10px 20px; border-radius: 12px; font-weight: 600; border: none; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+        .profile-footer { background: #f8fafc; flex: 0 0 auto; padding: 16px 32px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+        .btn-custom { padding: 11px 24px; font-size: 1rem; border-radius: 12px; font-weight: 600; border: none; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
         .btn-primary-custom { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; }
         .btn-primary-custom:hover { opacity: 0.9; }
         .btn-outline-custom { background: white; border: 1.5px solid #e2e8f0; color: #475569; }
@@ -154,6 +157,7 @@
             .header-row { flex-direction: column; align-items: center; text-align: center; }
             .user-titles { margin-left: 0; margin-top: 15px; }
             .info-grid { grid-template-columns: 1fr; }
+            .profile-container { height: auto; }
             .profile-footer { flex-direction: column; gap: 15px; }
         }
     </style>
@@ -189,7 +193,7 @@
 
                 <div class="user-titles">
                     <h2 class="user-name">@hoTen</h2>
-                    <div style="color: #64748b;"><i class="fas fa-envelope me-2"></i>@email</div>
+                    <div style="color: #64748b; font-size: 1.1rem; margin-top: 4px;"><i class="fas fa-envelope me-2"></i>@email</div>
                     <div class="badge-list">
                         @foreach (var quyen in danhSachQuyen) {
                             <span class="role-badge"><i class="fas fa-shield-alt"></i> @quyen</span>
@@ -215,7 +219,7 @@
                             <span class="dept-tag">@bp</span>
                         }
                     </div>
-                    <div style="margin-top: 15px; font-size: 0.85rem; color: #64748b; border-top: 1px dashed #e2e8f0; padding-top: 10px;">
+                    <div style="margin-top: 8px; font-size: 0.82rem; color: #64748b; border-top: 1px dashed #e2e8f0; padding-top: 6px;">
                         <i class="fas fa-info-circle me-1"></i> <span>@moTaBoPhan</span>
                     </div>
                 </div>

@@ -5,6 +5,9 @@
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 }
 
+<link rel="stylesheet" href="/css/fixed-page-layout.css?v=5">
+<script src="/js/fixed-page-layout.js?v=5" defer></script>
+
 <style>
     :root {
         --series-unique: #2a78d6;
@@ -70,21 +73,21 @@
 
     .chart-container {
         background: var(--surface);
-        padding: 22px;
+        padding: 12px 14px;
         border-radius: 14px;
         border: 1px solid var(--border-hairline);
-        margin-bottom: 20px;
+        margin-bottom: 12px;
     }
 
     .chart-header {
         font-weight: 700;
         color: var(--ink-primary);
-        margin-bottom: 16px;
-        font-size: 16px;
+        margin-bottom: 10px;
+        font-size: 15px;
         display: flex;
         align-items: center;
         gap: 10px;
-        padding-bottom: 14px;
+        padding-bottom: 8px;
         border-bottom: 1px solid var(--border-hairline);
     }
 
@@ -102,7 +105,7 @@
         border-collapse: separate;
         border-spacing: 0;
         margin-top: 0;
-        font-size: 14px;
+        font-size: 13px;
     }
 
         .custom-table th {
@@ -112,14 +115,14 @@
             background-color: #f8fafc;
             color: var(--ink-secondary);
             text-align: left;
-            padding: 12px 16px;
+            padding: 7px 12px;
             border-bottom: 2px solid var(--border-hairline);
             font-weight: 700;
             font-size: 12.5px;
         }
 
         .custom-table td {
-            padding: 13px 16px;
+            padding: 7px 12px;
             border-bottom: 1px solid #f1f5f9;
             color: var(--ink-primary);
             line-height: 1.5;
@@ -177,15 +180,15 @@
 
     /* Style kiến trúc phân trang */
     .page-btn {
-        min-width: 34px;
-        padding: 6px 12px;
+        min-width: 28px;
+        padding: 3px 9px;
         border: 1px solid var(--border-hairline);
         background: white;
         color: #475569;
         border-radius: 8px;
         cursor: pointer;
         transition: all 0.15s;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
     }
 
@@ -206,13 +209,14 @@
         }
 
     /* Style cho lưới bộ lọc */
+    /* Bộ lọc gọn: 7 ô nằm cùng một hàng, nhãn rút ngắn, không còn ô nào chiếm trọn một dòng */
     .filter-panel {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-        gap: 16px;
-        margin-bottom: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 8px 10px;
+        margin-bottom: 10px;
         background: #f8fafc;
-        padding: 18px;
+        padding: 10px 12px;
         border-radius: 10px;
         border: 1px solid var(--border-hairline);
     }
@@ -220,7 +224,64 @@
     .filter-group {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 2px;
+    }
+
+    /* Thanh lệnh trên cùng: tiêu đề + 2 con số + nút biểu đồ trên một hàng,
+       thay cho khối tiêu đề 2 dòng và 2 thẻ số cao 90px */
+    .mac-topbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        background: var(--surface);
+        border: 1px solid var(--border-hairline);
+        border-radius: 14px;
+        padding: 10px 14px;
+        margin-bottom: 12px;
+    }
+
+    .mac-title {
+        font-weight: 800;
+        color: var(--ink-primary);
+        margin: 0;
+        font-size: 17px;
+        white-space: nowrap;
+    }
+
+    .mac-kpi {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.15;
+        padding-left: 12px;
+        border-left: 4px solid var(--kpi-c, #64748b);
+    }
+
+    .mac-kpi-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .3px;
+        color: var(--ink-secondary);
+    }
+
+    .mac-kpi-value {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--kpi-c, #0f172a);
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Khoá cuộn toàn trang: chỉ bảng danh sách được cuộn.
+       flex-shrink mặc định = 1 sẽ bóp các khối trên bảng thấp hơn nội dung rồi tràn đè lên nhau. */
+    html.fp-lock .fp-chain > *:not(.fp-grow) {
+        flex: 0 0 auto;
+    }
+
+    /* Khu biểu đồ cao hơn màn hình -> giới hạn và cho cuộn riêng khi mở, để bảng không bị đẩy mất */
+    html.fp-lock #summaryChartsContainer {
+        max-height: 45vh;
+        overflow: auto;
     }
 
         .filter-group label {
@@ -253,7 +314,7 @@
             }
 
     .btn-action {
-        padding: 9px 16px;
+        padding: 6px 12px;
         border-radius: 8px;
         font-weight: 700;
         cursor: pointer;
@@ -366,38 +427,25 @@
     }
 </style>
 
-<div class="dashboard-container" style="max-width: 1400px; margin: 20px auto; padding: 0 20px;">
+<div class="dashboard-container fp-page" style="margin: 8px auto; padding: 0 12px;">
 
-    @* --- HEADER --- *@
-    <div class="header-section" style="margin-bottom: 24px;">
-        <h2 style="font-weight: 800; color: var(--ink-primary); margin: 0; font-size: 22px; display: flex; align-items: center; gap: 10px;">
-            <i class="fa fa-wifi" style="color: #1baf7a;"></i> Thống Kê Địa Chỉ MAC Đăng Ký
-        </h2>
-        <p style="margin: 6px 0 0; color: var(--ink-secondary); font-size: 13.5px;">Tổng hợp và tra cứu địa chỉ MAC thiết bị đã đăng ký sử dụng Wi-Fi</p>
-    </div>
+    @* --- THANH LỆNH: tiêu đề + 2 con số tổng quan + nút xem biểu đồ, gom trên MỘT hàng --- *@
+    <div class="mac-topbar">
+        <h2 class="mac-title"><i class="fa fa-wifi" style="color: #1baf7a;"></i> Thống kê MAC Wi-Fi</h2>
 
-    @* --- HÀNG CON SỐ TỔNG QUAN --- *@
-    <div class="stat-grid-mobile" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">
-        <div class="stat-card" style="border-top: 3px solid var(--series-unique);">
-            <div class="stat-icon" style="background: #e8f0fc; color: var(--series-unique);"><i class="fa fa-bar-chart"></i></div>
-            <div>
-                <span class="card-title">Tổng Lượt Đăng Ký MAC</span>
-                <span class="card-value" id="lblTotalMac" style="color: var(--series-unique);">0</span>
-            </div>
+        <div class="mac-kpi" style="--kpi-c: var(--series-unique);">
+            <span class="mac-kpi-label">Tổng lượt đăng ký</span>
+            <span class="mac-kpi-value" id="lblTotalMac">0</span>
         </div>
-        <div class="stat-card" style="border-top: 3px solid var(--series-total);">
-            <div class="stat-icon" style="background: #e6f7f0; color: var(--series-total);"><i class="fa fa-check-circle"></i></div>
-            <div>
-                <span class="card-title">Tổng MAC Duy Nhất (Thực tế)</span>
-                <span class="card-value" id="lblUniqueMac" style="color: var(--series-total);">0</span>
-            </div>
+        <div class="mac-kpi" style="--kpi-c: var(--series-total);">
+            <span class="mac-kpi-label">MAC duy nhất</span>
+            <span class="mac-kpi-value" id="lblUniqueMac">0</span>
         </div>
-    </div>
 
-    @* --- NÚT BẤM ĐỂ ẨN/HIỆN BIỂU ĐỒ TỔNG HỢP --- *@
-    <div style="margin-bottom: 20px; text-align: left;">
+        <span style="flex: 1 1 auto;"></span>
+
         <button id="btnToggleSummary" class="btn-action" style="background-color: white; color: #475569; border: 1px solid var(--border-hairline);" onclick="toggleSummary()">
-            <i class="fa fa-pie-chart"></i> Xem biểu đồ phân bổ & số liệu chi tiết
+            <i class="fa fa-pie-chart"></i> Biểu đồ phân bổ
         </button>
     </div>
 
@@ -436,9 +484,10 @@
                     <select id="ddlPageSize" onchange="changePageSize()" style="padding: 5px 8px; border-radius: 6px; border: 1px solid #cbd5e1; outline: none; cursor: pointer; font-family: 'Inter', sans-serif;">
                         <option value="10">10 dòng</option>
                         <option value="20">20 dòng</option>
-                        <option value="50" selected>50 dòng</option>
-                        <option value="100">100 dòng</option>
+                        <option value="50">50 dòng</option>
+                        <option value="100" selected>100 dòng</option>
                         <option value="500">500 dòng</option>
+                        <option value="all">Hiển thị tất cả</option>
                     </select>
                 </div>
                 <div style="font-size: 13px; font-weight: 600; color: #475569; background: #f1f5f9; padding: 5px 12px; border-radius: 20px;" id="lblTotalRecords"></div>
@@ -448,11 +497,11 @@
         @* Bộ Lọc Danh Sách *@
         <div class="filter-panel">
             <div class="filter-group">
-                <label><i class="fa fa-calendar"></i> Thời gian IT xử lý (Từ)</label>
+                <label><i class="fa fa-calendar"></i> IT xử lý (Từ)</label>
                 <input type="date" id="txtFromDate">
             </div>
             <div class="filter-group">
-                <label><i class="fa fa-calendar"></i> Thời gian IT xử lý (Đến)</label>
+                <label><i class="fa fa-calendar"></i> IT xử lý (Đến)</label>
                 <input type="date" id="txtToDate">
             </div>
             <div class="filter-group">
@@ -477,7 +526,8 @@
             </div>
         </div>
 
-        <div class="filter-action-group" style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+        @* data-fp-filter-slot: nút Ẩn/Hiện lọc được chèn vào đây thay vì chiếm riêng một hàng *@
+        <div class="filter-action-group" data-fp-filter-slot style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
             <button class="btn-action btn-clear" onclick="clearFilters()">
                 <i class="fa fa-refresh"></i> Bỏ lọc &amp; Sắp xếp
             </button>
@@ -489,7 +539,7 @@
             </button>
         </div>
 
-        <div class="table-scroll" id="tableViewWrap">
+        <div class="table-scroll" id="tableViewWrap" data-fp-scroll>
             <table class="custom-table" id="tableDanhSachMac">
                 <thead>
                     <tr>
@@ -517,7 +567,7 @@
         </div>
 
         @* --- KHU VỰC PHÂN TRANG --- *@
-        <div id="paginationContainer" style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 5px; flex-wrap: wrap;"></div>
+        <div id="paginationContainer" style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 5px; flex-wrap: wrap;"></div>
     </div>
 
 </div>
@@ -536,7 +586,7 @@
     };
 
     let currentPageList = 1;
-    let pageSizeList = 50;
+    let pageSizeList = 100;
     let currentSortColumn = "TimeAdmin";
     let currentSortDir = "desc";
     let myChartInstance = null;
@@ -675,8 +725,13 @@
     return params;
     }
 
+    // "Hiển thị tất cả": server nhận pageSize là số nguyên nên gửi một con số đủ lớn
+    // thay vì phải sửa API - dữ liệu bảng này vài nghìn dòng, không có trang thứ hai.
+    const PAGE_SIZE_TAT_CA = 1000000;
+
     function changePageSize() {
-    pageSizeList = parseInt(document.getElementById('ddlPageSize').value);
+    var chon = document.getElementById("ddlPageSize").value;
+    pageSizeList = (chon === "all") ? PAGE_SIZE_TAT_CA : parseInt(chon);
     loadDanhSachMac(1);
     }
 

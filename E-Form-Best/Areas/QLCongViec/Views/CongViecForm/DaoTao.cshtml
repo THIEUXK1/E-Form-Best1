@@ -11,21 +11,21 @@
 
 <style>
     .dt-btn {
-        border: none; border-radius: 50px; font-weight: 700; cursor: pointer; padding: 12px 22px;
+        border: none; border-radius: 50px; font-weight: 700; cursor: pointer; padding: 8px 16px;
         display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; transition: 0.2s;
     }
     .dt-btn-light:hover { filter: brightness(1.15); }
 
-    .dt-section-title { font-weight: 900; font-size: 1.1rem; color: #0b3c5d; display: flex; align-items: center; gap: 10px; margin: 0 0 16px; }
+    .dt-section-title { font-weight: 900; font-size: 1rem; color: #0b3c5d; display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
     .dt-section-title i { color: #00b4d8; }
 
     .dt-card {
-        background: white; border-radius: 22px; box-shadow: 0 12px 28px -10px rgba(0,0,0,0.08);
-        border: 1px solid #f1f5f9; padding: 24px; margin-bottom: 18px; transition: 0.2s;
+        background: white; border-radius: 14px; box-shadow: 0 6px 16px -10px rgba(0,0,0,0.12);
+        border: 1px solid #f1f5f9; padding: 14px 16px; margin-bottom: 10px; transition: 0.2s;
     }
     .dt-card:hover { box-shadow: 0 16px 32px -10px rgba(0,0,0,0.12); }
     .dt-card-icon {
-        width: 46px; height: 46px; border-radius: 14px; background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+        width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(135deg, #eff6ff, #e0f2fe);
         color: #0b3c5d; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;
     }
     .dt-badge {
@@ -116,29 +116,27 @@
     }
 </style>
 
-<div style="background: #f1f5f9; min-height: 100vh; padding: 25px; font-family: 'Inter', sans-serif; color: #1e293b;">
-<div style="max-width: 1500px; margin: 0 auto;">
+<div style="background: #f1f5f9; min-height: 100vh; padding: 12px; font-family: 'Inter', sans-serif; color: #1e293b;">
+<div style="max-width: 100%; margin: 0 auto;">
 
     @* --- HEADER --- *@
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-        <div>
-            <h2 style="margin: 0; font-size: 28px; font-weight: 1000; color: #0b3c5d; letter-spacing: -0.04em; display: flex; align-items: center; gap: 15px;">
-                <span style="background: linear-gradient(135deg, #0b3c5d, #00789c); color: white; width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px -3px rgba(11, 60, 93, 0.3);">
-                    <i class="fa fa-graduation-cap"></i>
-                </span>
-                ĐÀO TẠO
-            </h2>
-            <div style="margin-top: 10px; display: flex; gap: 10px;">
-                <span style="background: #0b3c5d; color: white; padding: 5px 15px; border-radius: 8px; font-size: 11px; font-weight: 900; text-transform: uppercase;">@currentUserRole</span>
-                <span style="background: #cbd5e1; color: #1e293b; padding: 5px 15px; border-radius: 8px; font-size: 11px; font-weight: 900;">HỒ SƠ ĐÀO TẠO</span>
-            </div>
-        </div>
+    @* Tiêu đề, nhãn vai trò, ô tìm và các nút gom hết vào MỘT hàng cho gọn chiều cao *@
+    <div style="display: flex; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+        <h2 style="margin: 0; font-size: 19px; font-weight: 1000; color: #0b3c5d; letter-spacing: -0.03em; display: flex; align-items: center; gap: 10px; white-space: nowrap;">
+            <span style="background: linear-gradient(135deg, #0b3c5d, #00789c); color: white; width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                <i class="fa fa-graduation-cap"></i>
+            </span>
+            ĐÀO TẠO
+        </h2>
+        <span style="background: #0b3c5d; color: white; padding: 4px 10px; border-radius: 7px; font-size: 10px; font-weight: 900; text-transform: uppercase;">@currentUserRole</span>
 
-        <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+        <span style="flex: 1 1 auto;"></span>
+
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <div style="position: relative;">
-                <i class="fa fa-search" style="position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: #64748b; font-weight: 900;"></i>
+                <i class="fa fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b; font-weight: 900;"></i>
                 <input type="text" id="dtSearchInput" oninput="locDanhSachDaoTao()" placeholder="Tìm tên đào tạo, giảng viên..."
-                       style="padding: 14px 20px 14px 50px; border-radius: 15px; border: 2px solid #cbd5e1; width: 280px; font-size: 14px; font-weight: 700; outline: none; transition: all 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                       style="padding: 9px 14px 9px 38px; border-radius: 10px; border: 2px solid #cbd5e1; width: 240px; font-size: 13px; font-weight: 700; outline: none;">
             </div>
             <a href="/FormCongViec/QuanLyXetDuyetDaoTao" class="dt-btn dt-btn-light" style="background:#0b3c5d; color:#fff;">
                 <i class="fa fa-check-square-o"></i> Duyệt đào tạo
@@ -150,17 +148,16 @@
     </div>
 
     @* --- NHẬP MÃ CUỘC HỌP ĐỂ TỰ ĐIỂM DANH THAM GIA --- *@
-    <div style="background: linear-gradient(135deg, #fff7ed, #fef3c7); border: 1.5px dashed #f59e0b; border-radius: 20px; padding: 16px 22px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+    <div style="background: linear-gradient(135deg, #fff7ed, #fef3c7); border: 1.5px dashed #f59e0b; border-radius: 14px; padding: 8px 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
         <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:260px;">
-            <i class="fa fa-qrcode" style="font-size: 1.6rem; color: #b45309;"></i>
+            <i class="fa fa-qrcode" style="font-size: 1.2rem; color: #b45309;"></i>
             <div>
-                <div style="font-weight:900; color:#92400e; font-size:0.95rem;">Bạn vừa tham gia một buổi đào tạo/họp?</div>
-                <div style="font-size:0.78rem; color:#b45309;">Nhập mã cuộc họp được chia sẻ tại chỗ để tự điểm danh ngay.</div>
+                <div style="font-weight:900; color:#92400e; font-size:0.85rem;">Vừa tham gia một buổi đào tạo/họp? Nhập mã để tự điểm danh.</div>
             </div>
         </div>
         <div style="display:flex; gap:10px;">
             <input type="text" id="dtMaThamGia" maxlength="10" placeholder="Nhập mã VD: 7K2XQ9" autocomplete="off"
-                   style="padding: 12px 16px; border-radius: 12px; border: 2px solid #f59e0b; font-size: 1rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; width: 180px; outline: none;"
+                   style="padding: 8px 12px; border-radius: 10px; border: 2px solid #f59e0b; font-size: 0.95rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; width: 160px; outline: none;"
                    onkeydown="if(event.key==='Enter') thamGiaBangMa();">
             <button onclick="thamGiaBangMa()" class="dt-btn" style="background:#b45309; color:#fff;">
                 <i class="fa fa-check"></i> Điểm danh
@@ -169,26 +166,26 @@
     </div>
 
     @* --- KHỐI CARD THỐNG KÊ, BẤM VÀO ĐỂ LỌC DANH SÁCH --- *@
-    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 25px;">
-        <div class="dt-stat-item active-stat" data-status="" onclick="locTheoTrangThai('', this)" style="background: white; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
-            <div style="font-size: 9px; font-weight: 900; color: #0b3c5d; letter-spacing: 1px; text-transform: uppercase;">TỔNG HỒ SƠ</div>
-            <div id="dtStatTong" style="font-size: 28px; font-weight: 1000; color: #0b3c5d; margin-top: 8px;">0</div>
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px;">
+        <div class="dt-stat-item active-stat" data-status="" onclick="locTheoTrangThai('', this)" style="background: white; padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
+            <div style="font-size: 10px; font-weight: 900; color: #0b3c5d; letter-spacing: .5px; text-transform: uppercase;">TỔNG HỒ SƠ</div>
+            <div id="dtStatTong" style="font-size: 22px; font-weight: 1000; color: #0b3c5d; margin-top: 2px;">0</div>
         </div>
-        <div class="dt-stat-item" data-status="ChoDuyet" onclick="locTheoTrangThai('ChoDuyet', this)" style="background: #fffbeb; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
-            <div style="font-size: 9px; font-weight: 900; color: #b45309; letter-spacing: 1px; text-transform: uppercase;">CHỜ DUYỆT</div>
-            <div id="dtStatChoDuyet" style="font-size: 28px; font-weight: 1000; color: #b45309; margin-top: 8px;">0</div>
+        <div class="dt-stat-item" data-status="ChoDuyet" onclick="locTheoTrangThai('ChoDuyet', this)" style="background: #fffbeb; padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
+            <div style="font-size: 10px; font-weight: 900; color: #b45309; letter-spacing: .5px; text-transform: uppercase;">CHỜ DUYỆT</div>
+            <div id="dtStatChoDuyet" style="font-size: 22px; font-weight: 1000; color: #b45309; margin-top: 2px;">0</div>
         </div>
-        <div class="dt-stat-item" data-status="DaDuyet" onclick="locTheoTrangThai('DaDuyet', this)" style="background: #eff6ff; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
-            <div style="font-size: 9px; font-weight: 900; color: #1d4ed8; letter-spacing: 1px; text-transform: uppercase;">ĐANG TỔ CHỨC</div>
-            <div id="dtStatDaDuyet" style="font-size: 28px; font-weight: 1000; color: #1d4ed8; margin-top: 8px;">0</div>
+        <div class="dt-stat-item" data-status="DaDuyet" onclick="locTheoTrangThai('DaDuyet', this)" style="background: #eff6ff; padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
+            <div style="font-size: 10px; font-weight: 900; color: #1d4ed8; letter-spacing: .5px; text-transform: uppercase;">ĐANG TỔ CHỨC</div>
+            <div id="dtStatDaDuyet" style="font-size: 22px; font-weight: 1000; color: #1d4ed8; margin-top: 2px;">0</div>
         </div>
-        <div class="dt-stat-item" data-status="DaHoanTat" onclick="locTheoTrangThai('DaHoanTat', this)" style="background: #ecfdf5; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
-            <div style="font-size: 9px; font-weight: 900; color: #047857; letter-spacing: 1px; text-transform: uppercase;">ĐÃ HOÀN TẤT</div>
-            <div id="dtStatHoanTat" style="font-size: 28px; font-weight: 1000; color: #047857; margin-top: 8px;">0</div>
+        <div class="dt-stat-item" data-status="DaHoanTat" onclick="locTheoTrangThai('DaHoanTat', this)" style="background: #ecfdf5; padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
+            <div style="font-size: 10px; font-weight: 900; color: #047857; letter-spacing: .5px; text-transform: uppercase;">ĐÃ HOÀN TẤT</div>
+            <div id="dtStatHoanTat" style="font-size: 22px; font-weight: 1000; color: #047857; margin-top: 2px;">0</div>
         </div>
-        <div class="dt-stat-item" data-status="Huy" onclick="locTheoTrangThai('Huy', this)" style="background: #fef2f2; padding: 18px 15px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
-            <div style="font-size: 9px; font-weight: 900; color: #dc2626; letter-spacing: 1px; text-transform: uppercase;">ĐÃ TỪ CHỐI/HỦY</div>
-            <div id="dtStatHuy" style="font-size: 28px; font-weight: 1000; color: #dc2626; margin-top: 8px;">0</div>
+        <div class="dt-stat-item" data-status="Huy" onclick="locTheoTrangThai('Huy', this)" style="background: #fef2f2; padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;">
+            <div style="font-size: 10px; font-weight: 900; color: #dc2626; letter-spacing: .5px; text-transform: uppercase;">ĐÃ TỪ CHỐI/HỦY</div>
+            <div id="dtStatHuy" style="font-size: 22px; font-weight: 1000; color: #dc2626; margin-top: 2px;">0</div>
         </div>
     </div>
 

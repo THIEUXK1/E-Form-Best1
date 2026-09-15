@@ -3,19 +3,68 @@
     ViewData["Title"] = "Chi tiết cấu hình phần cứng mở rộng";
 }
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="text-dark fw-bold mb-0"><i class="fa fa-info-circle text-primary me-2"></i>Chi Tiết Bản Ghi Thiết Bị</h4>
-        <button type="button" id="btnQuayLaiDanhSach" class="btn btn-sm btn-secondary" data-url-danh-sach="/QLKiemKe/ViewDanhSachTatCaMayTinh">
+@* Trang gọn: tiêu đề + tên máy + nút quay lại nằm chung một thanh, bảng thông số dùng cỡ nhỏ,
+   4 khối bảng con dàn 4 cột ở màn rộng - mục đích là xem hết cấu hình mà ít phải cuộn. *@
+<style>
+    .ct-topbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 8px 12px;
+        margin-bottom: 10px;
+    }
+
+    .ct-section {
+        font-size: 1.05rem;
+        font-weight: 700;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 4px;
+        margin-bottom: 8px;
+    }
+
+    .ct-table th,
+    .ct-table td {
+        padding: 0.45rem 0.6rem !important;
+        font-size: 13.5px;
+        vertical-align: middle;
+    }
+
+    .ct-box {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 8px 10px;
+        background: #f8fafc;
+        height: 100%;
+    }
+
+        .ct-box h6 {
+            font-size: 0.92rem;
+            margin-bottom: 4px;
+        }
+
+        /* Danh sách RAM / ổ cứng / MAC: chữ .small của Bootstrap quá nhỏ để đọc số serial */
+        .ct-box li,
+        .ct-box p {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+</style>
+
+<div class="container-fluid mt-2 px-3">
+    <div class="ct-topbar">
+        <span class="fw-bold text-dark text-nowrap"><i class="fa fa-info-circle text-primary me-2"></i>Chi tiết thiết bị</span>
+        <span class="fw-bold text-primary text-truncate flex-grow-1" id="headerTenMay">Đang tải tên máy...</span>
+        <button type="button" id="btnQuayLaiDanhSach" class="btn btn-sm btn-secondary text-nowrap" data-url-danh-sach="/QLKiemKe/ViewDanhSachTatCaMayTinh">
             <i class="fa fa-arrow-left"></i> Quay lại danh sách
         </button>
     </div>
 
-    <div class="card shadow text-dark">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0" id="headerTenMay">Đang tải tên máy...</h5>
-        </div>
-        <div class="card-body">
+    <div class="card shadow-sm text-dark">
+        <div class="card-body p-3">
             <div id="loadingDetail" class="text-center my-4">
                 <div class="spinner-border text-primary" role="status"></div>
                 <p class="mt-2 text-muted">Đang truy xuất cấu hình gốc từ máy chủ...</p>
@@ -24,76 +73,84 @@
             <div id="errorDetailAlert" class="alert alert-danger" style="display: none;"></div>
 
             <div id="contentChiTiet" style="display: none;">
-                <h5 class="text-primary border-bottom pb-2 fw-bold"><i class="fa fa-desktop me-2"></i>Thông số cơ bản công khai</h5>
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <table class="table table-bordered table-striped m-0" style="font-size: 13px;">
-                            <tr><th style="width: 40%;">Mã máy trên Server</th><td id="detIdMay" class="fw-bold"></td></tr>
+                @* 3 bảng thông số chung dàn ngang một hàng; khối Bản quyền tách xuống hàng riêng bên dưới *@
+                <div class="row g-2 mb-2">
+                    <div class="col-xxl-4 col-lg-6">
+                        <div class="ct-section text-primary"><i class="fa fa-desktop me-2"></i>Thông số cơ bản</div>
+                        <table class="table table-bordered table-striped m-0 ct-table">
+                            <tr><th style="width: 45%;">Mã máy trên Server</th><td id="detIdMay" class="fw-bold"></td></tr>
                             <tr><th>Số Serial Máy</th><td id="detSeriMay" class="text-danger fw-bold"></td></tr>
                             <tr><th>Dòng máy (Hãng)</th><td id="detDongMay"></td></tr>
                         </table>
                     </div>
-                    <div class="col-md-6">
-                        <table class="table table-bordered table-striped m-0" style="font-size: 13px;">
-                            <tr><th style="width: 40%;">User hệ thống</th><td id="detUserHeThong"></td></tr>
+                    <div class="col-xxl-4 col-lg-6">
+                        <div class="ct-section text-primary"><i class="fa fa-user me-2"></i>Người dùng &amp; kết nối</div>
+                        <table class="table table-bordered table-striped m-0 ct-table">
+                            <tr><th style="width: 45%;">User hệ thống</th><td id="detUserHeThong"></td></tr>
                             <tr><th>Kết nối phụ trợ</th><td id="detMhNgoai" class="text-success"></td></tr>
                             <tr><th>Màn hình phát hiện</th><td id="detDsMh"></td></tr>
                         </table>
                     </div>
-                </div>
-
-                <h5 class="text-danger border-bottom pb-2 fw-bold"><i class="fa fa-lock me-2"></i>Thông số nâng cao bảo mật</h5>
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <table class="table table-bordered table-striped m-0" style="font-size: 13px;">
-                            <tr><th style="width: 40%;">Hệ điều hành</th><td id="detOs"></td></tr>
+                    <div class="col-xxl-4 col-lg-6">
+                        <div class="ct-section text-danger"><i class="fa fa-lock me-2"></i>Hệ thống</div>
+                        <table class="table table-bordered table-striped m-0 ct-table">
+                            <tr><th style="width: 45%;">Hệ điều hành</th><td id="detOs"></td></tr>
                             <tr><th>Kiến trúc</th><td id="detKienTruc"></td></tr>
                             <tr><th>Số lõi CPU</th><td id="detCpu"></td></tr>
                             <tr><th>RAM Khả dụng</th><td id="detRamKhaDung"></td></tr>
                             <tr><th>Thư mục OS</th><td id="detThuMucOs"></td></tr>
                         </table>
                     </div>
-                    <div class="col-md-6">
-                        <table class="table table-bordered table-striped m-0" style="font-size: 13px;">
-                            <tr><th style="width: 40%;">Bản quyền Windows</th><td id="detLicenseWin" class="text-info fw-bold"></td></tr>
+                </div>
+
+                @* Bản quyền để riêng một hàng: giá trị key/phiên bản dài, nhồi vào cột hẹp là xuống dòng loạn *@
+                <div class="ct-section text-danger"><i class="fa fa-key me-2"></i>Bản quyền &amp; phiên bản</div>
+                <div class="row g-2 mb-2">
+                    <div class="col-lg-6">
+                        <table class="table table-bordered table-striped m-0 ct-table">
+                            <tr><th style="width: 30%;">Bản quyền Windows</th><td id="detLicenseWin" class="text-info fw-bold"></td></tr>
                             <tr><th>Phiên bản Office</th><td id="detVerOff"></td></tr>
                             <tr><th>Bản quyền Office</th><td id="detLicenseOff" class="text-danger fw-bold"></td></tr>
-                            <tr><th>Thời gian Uptime</th><td id="detUptime"></td></tr>
+                        </table>
+                    </div>
+                    <div class="col-lg-6">
+                        <table class="table table-bordered table-striped m-0 ct-table">
+                            <tr><th style="width: 30%;">Thời gian Uptime</th><td id="detUptime"></td></tr>
                             <tr><th>.NET Framework</th><td id="detNet"></td></tr>
                         </table>
                     </div>
                 </div>
 
-                <h5 class="text-success border-bottom pb-2 fw-bold"><i class="fa fa-cubes me-2"></i>Thông tin cấu trúc mảng phân rã (Bảng con)</h5>
-                <div class="row mb-4">
-                    <div class="col-md-6 mb-3">
-                        <div class="border rounded p-2 bg-light">
-                            <h6 class="fw-bold text-dark"><i class="fa fa-database me-2 text-primary"></i>Danh sách thanh RAM cắm trên máy:</h6>
+                <div class="ct-section text-success"><i class="fa fa-cubes me-2"></i>Cấu trúc phần cứng &amp; kiểm kê</div>
+                <div class="row g-2 mb-2">
+                    <div class="col-xxl-3 col-lg-6">
+                        <div class="ct-box">
+                            <h6 class="fw-bold text-dark"><i class="fa fa-database me-2 text-primary"></i>Thanh RAM</h6>
                             <ul id="ulListRam" class="mb-0 ps-3 small text-muted"></ul>
                         </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="border rounded p-2 bg-light">
-                            <h6 class="fw-bold text-dark"><i class="fa fa-hdd-o me-2 text-info"></i>Danh sách ổ cứng và dung lượng phân vùng:</h6>
+                    <div class="col-xxl-3 col-lg-6">
+                        <div class="ct-box">
+                            <h6 class="fw-bold text-dark"><i class="fa fa-hdd-o me-2 text-info"></i>Ổ cứng &amp; phân vùng</h6>
                             <ul id="ulListOcung" class="mb-0 ps-3 small text-muted"></ul>
                         </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="border rounded p-2 bg-light">
-                            <h6 class="fw-bold text-dark"><i class="fa fa-wifi me-2 text-danger"></i>Danh sách địa chỉ MAC Wi-Fi:</h6>
+                    <div class="col-xxl-3 col-lg-6">
+                        <div class="ct-box">
+                            <h6 class="fw-bold text-dark"><i class="fa fa-wifi me-2 text-danger"></i>Địa chỉ MAC Wi-Fi</h6>
                             <ul id="ulListMac" class="mb-0 ps-3 small text-muted"></ul>
                         </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="border rounded p-2 bg-light">
-                            <h6 class="fw-bold text-dark"><i class="fa fa-clock-o me-2 text-secondary"></i>Thông tin kiểm kê / Ngày cập nhật</h6>
+                    <div class="col-xxl-3 col-lg-6">
+                        <div class="ct-box">
+                            <h6 class="fw-bold text-dark"><i class="fa fa-clock-o me-2 text-secondary"></i>Kiểm kê / Cập nhật</h6>
                             <p class="mb-0 small">Mốc đồng bộ cuối: <span id="detNgayCapNhat" class="badge bg-dark"></span></p>
-                            <p class="mb-0 small mt-1">Tài khoản liên kết gần nhất: <span id="detTkSohuu" class="text-primary fw-bold"></span></p>
+                            <p class="mb-0 small mt-1">Tài khoản liên kết: <span id="detTkSohuu" class="text-primary fw-bold"></span></p>
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-3 border-top pt-3">
+                <div class="mt-2 border-top pt-2">
                     <button class="btn btn-outline-danger w-100 fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLichSuThayDoi" aria-expanded="false" aria-controls="collapseLichSuThayDoi">
                         <i class="fa fa-history me-2"></i> Xem lịch sử thay đổi cấu hình phần cứng thiết bị
                     </button>
@@ -127,7 +184,7 @@
                 </div>
 
                 @* Liên kết sang thiết bị kiểm kê: phải gỡ ở đây thì trang danh sách máy mới xóa được máy *@
-                <h5 class="text-primary border-bottom pb-2 fw-bold mt-4"><i class="fa fa-link me-2"></i>Liên kết với thiết bị kiểm kê</h5>
+                <div class="ct-section text-primary mt-3"><i class="fa fa-link me-2"></i>Liên kết với thiết bị kiểm kê</div>
                 <div id="vungLienKetKiemKe" class="mb-2">
                     <div class="text-muted small">Đang kiểm tra liên kết...</div>
                 </div>

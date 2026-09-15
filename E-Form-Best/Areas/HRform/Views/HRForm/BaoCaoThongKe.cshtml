@@ -13,8 +13,8 @@
 
     .stat-card {
         background: white;
-        padding: 18px;
-        border-radius: 16px;
+        padding: 9px 14px;
+        border-radius: 12px;
         border: 1px solid #e2e8f0;
         box-shadow: 0 4px 6px rgba(0,0,0,0.02);
         transition: 0.3s;
@@ -44,8 +44,8 @@
 
     .chart-container {
         background: white;
-        padding: 22px;
-        border-radius: 20px;
+        padding: 12px 14px;
+        border-radius: 14px;
         border: 1px solid #e2e8f0;
         margin-bottom: 20px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.02);
@@ -73,7 +73,7 @@
             background-color: #f8fafc;
             color: #475569;
             text-align: left;
-            padding: 14px;
+            padding: 7px 12px;
             border-bottom: 2px solid #e2e8f0;
             font-weight: 900;
             text-transform: uppercase;
@@ -81,7 +81,7 @@
         }
 
         .custom-table td {
-            padding: 12px 14px;
+            padding: 7px 12px;
             border-bottom: 1px solid #f1f5f9;
             color: #1e293b;
             font-weight: 600;
@@ -106,10 +106,10 @@
         align-items: flex-end;
         flex-wrap: wrap;
         background: white;
-        padding: 15px 20px;
-        border-radius: 16px;
+        padding: 8px 14px;
+        border-radius: 14px;
         border: 1px solid #e2e8f0;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
     }
 
     .filter-input {
@@ -360,16 +360,16 @@
     }
 </style>
 
-<div style="max-width: 1600px; margin: 10px auto; padding: 0 15px;">
+<div style="max-width: 100%; margin: 8px auto; padding: 0 12px;">
 
     @* --- HEADER --- *@
-    <div class="mobile-header" style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
-        <h2 style="font-weight: 1000; color: #1e40af; margin: 0; font-size: 26px; display: flex; align-items: center; gap: 12px;">
-            <i class="fa fa-line-chart" style="background: #1e40af; color: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 10px rgba(30,64,175,0.3);"></i>
+    <div class="mobile-header" style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-weight: 1000; color: #1e40af; margin: 0; font-size: 19px; display: flex; align-items: center; gap: 10px;">
+            <i class="fa fa-line-chart" style="background: #1e40af; color: white; padding: 8px; border-radius: 10px;"></i>
             PHÂN TÍCH HR
         </h2>
         <div style="display: flex; gap: 10px;">
-            <button onclick="clearAllFilters()" style="background: white; border: 2px solid #e2e8f0; padding: 10px 18px; border-radius: 12px; font-weight: 800; cursor: pointer; color: #475569;">
+            <button onclick="clearAllFilters()" style="background: white; border: 2px solid #e2e8f0; padding: 7px 14px; border-radius: 10px; font-weight: 800; cursor: pointer; color: #475569;">
                 <i class="fa fa-refresh"></i> Làm mới
             </button>
         </div>
@@ -383,16 +383,16 @@
 
     @* --- BỘ LỌC THỜI GIAN VÀ DROPDOWN MULTI-CHECKBOX NGƯỜI PHỤ TRÁCH --- *@
     <div class="filter-wrapper">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 12px; font-weight: 700; color: #475569;">Từ ngày:</label>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+            <label style="font-size: 11px; font-weight: 700; color: #475569;">Từ ngày:</label>
             <input type="date" id="txtFromDate" class="filter-input" />
         </div>
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 12px; font-weight: 700; color: #475569;">Đến ngày:</label>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+            <label style="font-size: 11px; font-weight: 700; color: #475569;">Đến ngày:</label>
             <input type="date" id="txtToDate" class="filter-input" />
         </div>
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 12px; font-weight: 700; color: #475569;">Người phụ trách:</label>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+            <label style="font-size: 11px; font-weight: 700; color: #475569;">Người phụ trách:</label>
             <div class="dropdown">
                 <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropStaff" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                     -- Tất cả --
