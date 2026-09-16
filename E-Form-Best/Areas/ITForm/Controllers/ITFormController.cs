@@ -8822,6 +8822,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             public string? Tk { get; set; }
             public string? TenTrangThai { get; set; }
             public string? GhiChu { get; set; }
+            public bool? CanCaiOffice { get; set; }
+            public string? TenViTriDiaLy { get; set; }
         }
 
         // Xuất Biên bản kiểm kê - xác nhận tài sản bộ phận dạng in giấy để ký tay (khác chữ ký điện tử của luồng FormIT).
@@ -8869,7 +8871,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     TenTiengTrung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.TenTiengTrung : "",
                     Tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : "",
                     TenTrangThai = x.IdTrangThaiNavigation != null ? x.IdTrangThaiNavigation.TenTrangThai : "",
-                    GhiChu = x.GhiChu
+                    GhiChu = x.GhiChu,
+                    CanCaiOffice = x.CanCaiOffice,
+                    TenViTriDiaLy = x.IdViTriDiaLyNavigation != null ? x.IdViTriDiaLyNavigation.TenViTriDiaLy : null
                 })
                 .ToList();
 
@@ -8899,6 +8903,24 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 string hauTo = songNgu ? "_VN-CN" : "";
                 string tenFile = $"BienBanKiemKe{hauTo}_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
                 return File(noiDungExcel, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", tenFile);
+            }
+
+            // Phiếu xác nhận riêng: bộ phận tự chọn Vị trí địa lý và trả lời "máy này có cần cài Office không",
+            // tách khỏi biên bản ký cho gọn - biên bản ký giữ nguyên nội dung tài sản như cũ.
+            if (dinhDangChuan == "excel_xacnhan")
+            {
+                // Danh mục địa điểm đang dùng - đổ vào dropdown để bộ phận chọn đúng tên trong hệ thống,
+                // tránh mỗi người gõ một kiểu ("Hải Dương" / "HD" / "hai duong") rồi IT không nhập ngược lại được.
+                var dsViTriDiaLy = _context.KkViTriDiaLies
+                    .Where(x => x.DangSuDung)
+                    .OrderBy(x => x.ThuTu == null)
+                    .ThenBy(x => x.ThuTu)
+                    .ThenBy(x => x.TenViTriDiaLy)
+                    .Select(x => x.TenViTriDiaLy)
+                    .ToList();
+                var noiDungPhieu = BuildExcelPhieuXacNhanOfficeDiaLy(tenNguoiLap, danhSach, dsViTriDiaLy);
+                string tenFilePhieu = $"PhieuXacNhanOffice_ViTri_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+                return File(noiDungPhieu, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", tenFilePhieu);
             }
 
             string htmlContent = BuildHtmlBienBanTaiSanBoPhan(tenNguoiLap, danhSach);
@@ -9064,6 +9086,278 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             using var ms = new MemoryStream();
             wb.SaveAs(ms);
+            return ms.ToArray();
+        }
+
+        // ============================================================
+        // BUILD PHIẾU XÁC NHẬN VỊ TRÍ ĐỊA LÝ & NHU CẦU CÀI OFFICE (.xlsx)
+        // Phiếu gửi bộ phận tự điền: chỉ giữ các cột đủ nhận diện máy + 2 ô chọn. Kết quả họ trả về
+        // là căn cứ để IT cập nhật id_vi_tri_dia_ly và can_cai_office của thiết bị.
+        // ============================================================
+        private byte[] BuildExcelPhieuXacNhanOfficeDiaLy(string tenNguoiLap, List<BienBanThietBiRow> danhSach,
+            List<string>? dsViTriDiaLy = null)
+        {
+            using var wb = new ClosedXML.Excel.XLWorkbook();
+            var ws = wb.Worksheets.Add("Xac nhan Office - Vi tri");
+
+            const int soCot = 10;     // A..J
+            const int cotDiaLy = 8;   // H - ô chọn địa điểm lấy từ danh mục KK_ViTriDiaLy
+            const int cotOffice = 9;  // I - ô tích, chỉ mở cho Laptop và Máy tính
+
+            // Vị trí các ô sẽ gắn checkbox (hàng, tích sẵn hay chưa) - xử lý sau khi ClosedXML lưu xong file
+            var dsOTich = new List<(int Hang, bool Tich)>();
+
+            // Chỉ máy tính/laptop mới có nhu cầu cài Office; thiết bị khác (màn hình, máy in...) để "-" cho khỏi gây hiểu nhầm.
+            // Dùng đúng tên loại của nút Lọc nhanh trên trang Thiết bị.
+            static bool CoHoiOffice(string? loai)
+            {
+                string l = (loai ?? "").Trim();
+                return l.Equals("Laptop", StringComparison.OrdinalIgnoreCase)
+                    || l.Equals("Máy tính", StringComparison.OrdinalIgnoreCase);
+            }
+
+            ws.Cell(1, 1).Value = "PHIẾU XÁC NHẬN VỊ TRÍ ĐỊA LÝ VÀ NHU CẦU CÀI OFFICE";
+            ws.Range(1, 1, 1, soCot).Merge().Style
+                .Font.SetBold().Font.SetFontSize(14)
+                .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            ws.Cell(2, 1).Value = $"Ngày lập: {DateTime.Now:dd/MM/yyyy HH:mm}";
+            ws.Range(2, 1, 2, soCot).Merge().Style
+                .Font.SetItalic()
+                .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            var dsPhamVi = danhSach.Select(x => (x.TenCongTy, x.TenBoPhan)).Distinct().ToList();
+            if (dsPhamVi.Count == 1)
+            {
+                ws.Cell(4, 1).Value = "Công ty:";
+                ws.Cell(4, 2).Value = dsPhamVi[0].TenCongTy;
+                ws.Cell(5, 1).Value = "Bộ phận:";
+                ws.Cell(5, 2).Value = dsPhamVi[0].TenBoPhan;
+            }
+            else
+            {
+                ws.Cell(4, 1).Value = "Phạm vi:";
+                ws.Cell(4, 2).Value = $"{dsPhamVi.Count} bộ phận: " + string.Join("; ", dsPhamVi.Select(x => x.TenCongTy + " - " + x.TenBoPhan));
+            }
+            ws.Cell(6, 1).Value = "Người lập:";
+            ws.Cell(6, 2).Value = tenNguoiLap;
+            ws.Range(4, 1, 6, 1).Style.Font.SetBold();
+
+            ws.Cell(7, 1).Value = "Hướng dẫn: cột \"Vị trí địa lý\" bấm vào ô để chọn địa điểm trong danh sách. "
+                + "Cột \"Cần cài Office?\" bấm thẳng vào ô vuông để tích; máy nào không cần thì để trống. "
+                + "Cột này chỉ áp dụng cho Laptop và Máy tính; thiết bị khác đã để sẵn dấu \"-\".";
+            ws.Range(7, 1, 7, soCot).Merge().Style
+                .Alignment.SetWrapText(true).Font.SetItalic().Font.SetFontSize(9);
+            ws.Row(7).Height = 26;
+
+            int hangTieuDe = 9;
+            string[] tieuDe = {
+                "STT",
+                "ID thiết bị",
+                "Công ty / Bộ phận",
+                "Tên máy (Hostname)",
+                "Loại TB",
+                "Serial / Barcode",
+                "Người sử dụng",
+                "Vị trí địa lý (xác nhận)",
+                "Cần cài Office? (bấm để tích - chỉ Laptop / Máy tính)",
+                "Ghi chú"
+            };
+            for (int i = 0; i < tieuDe.Length; i++) ws.Cell(hangTieuDe, i + 1).Value = tieuDe[i];
+
+            ws.Range(hangTieuDe, 1, hangTieuDe, soCot).Style.Font.SetBold()
+                .Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray)
+                .Alignment.SetWrapText(true)
+                .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center)
+                .Alignment.SetVertical(ClosedXML.Excel.XLAlignmentVerticalValues.Center);
+            // Hai cột bộ phận phải điền - tô nhạt cho nổi khỏi phần dữ liệu chỉ để đối chiếu
+            ws.Range(hangTieuDe, cotDiaLy, hangTieuDe, cotOffice).Style
+                .Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(255, 242, 204));
+
+            // Danh mục địa điểm phải nằm trong một vùng ô của workbook thì Excel mới cho làm dropdown;
+            // để ở sheet phụ đã ẩn cho khỏi vướng mắt người điền.
+            ClosedXML.Excel.IXLRange? vungDiaLy = null;
+            if (dsViTriDiaLy != null && dsViTriDiaLy.Count > 0)
+            {
+                var wsDanhMuc = wb.Worksheets.Add("DanhMuc");
+                for (int i = 0; i < dsViTriDiaLy.Count; i++) wsDanhMuc.Cell(i + 1, 1).Value = dsViTriDiaLy[i];
+                vungDiaLy = wsDanhMuc.Range(1, 1, dsViTriDiaLy.Count, 1);
+                wsDanhMuc.Hide();
+            }
+
+            int hang = hangTieuDe + 1;
+            int stt = 1;
+            foreach (var item in danhSach)
+            {
+                ws.Cell(hang, 1).Value = stt++;
+                // ID thiết bị = khoá trong hệ thống, để IT nhập kết quả ngược lại đúng máy dù bộ phận có sửa tên máy
+                ws.Cell(hang, 2).Value = item.IdThietBi;
+                ws.Cell(hang, 3).Value = item.TenCongTy + " - " + item.TenBoPhan;
+                ws.Cell(hang, 4).Value = item.TenMayTinh ?? "N/A";
+                ws.Cell(hang, 5).Value = item.LoaiThietBi ?? "Khác";
+                ws.Cell(hang, 6).Value = item.Seribacode ?? "-";
+                ws.Cell(hang, 7).Value = !string.IsNullOrEmpty(item.TenNguoiDung)
+                    ? item.TenNguoiDung + (!string.IsNullOrEmpty(item.Tk) ? $" ({item.Tk})" : "")
+                    : "Chưa xác nhận người dùng";
+
+                // Điền sẵn địa điểm đang lưu (nếu có) để bộ phận chỉ sửa khi sai; chưa có thì để trống cho họ chọn
+                if (!string.IsNullOrWhiteSpace(item.TenViTriDiaLy)) ws.Cell(hang, cotDiaLy).Value = item.TenViTriDiaLy;
+                if (vungDiaLy != null)
+                {
+                    var oDiaLy = ws.Cell(hang, cotDiaLy).CreateDataValidation();
+                    oDiaLy.List(vungDiaLy, true);
+                    oDiaLy.IgnoreBlanks = true;
+                    // Người điền có thể ghi địa điểm chưa có trong danh mục - chỉ cảnh báo, không chặn nhập
+                    oDiaLy.ErrorStyle = ClosedXML.Excel.XLErrorStyle.Warning;
+                }
+
+                if (CoHoiOffice(item.LoaiThietBi))
+                {
+                    // Checkbox thật được gắn vào ô này ở bước sau; ô chỉ giữ giá trị TRUE/FALSE mà checkbox ghi xuống.
+                    // Định dạng ";;;" giấu chữ TRUE/FALSE đi cho người điền chỉ thấy cái ô tích.
+                    bool tichSan = item.CanCaiOffice == true;
+                    ws.Cell(hang, cotOffice).Value = tichSan;
+                    ws.Cell(hang, cotOffice).Style.NumberFormat.SetFormat(";;;");
+                    dsOTich.Add((hang, tichSan));
+                }
+                else
+                {
+                    ws.Cell(hang, cotOffice).Value = "-";
+                    ws.Cell(hang, cotOffice).Style.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(242, 242, 242));
+                }
+                ws.Cell(hang, cotOffice).Style.Alignment
+                    .SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+                hang++;
+            }
+
+            int hangCuoiBang = Math.Max(hang - 1, hangTieuDe);
+            var vungBang = ws.Range(hangTieuDe, 1, hangCuoiBang, soCot);
+            vungBang.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+            vungBang.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+            vungBang.Style.Alignment.SetWrapText(true);
+            ws.Range(hangTieuDe, 1, hangCuoiBang, 1).Style.Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            // Cột Serial để dạng chữ, tránh Excel tự đổi các mã toàn số sang dạng số/khoa học
+            ws.Column(6).Style.NumberFormat.SetFormat("@");
+            ws.Range(hangTieuDe, 2, hangCuoiBang, 2).Style.Alignment
+                .SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            ws.Cell(hang + 1, 1).Value = $"Tổng cộng: {danhSach.Count} thiết bị";
+            ws.Range(hang + 1, 1, hang + 1, soCot).Merge().Style.Font.SetBold();
+
+            ws.Cell(hang + 3, 1).Value = "Bộ phận xác nhận các thông tin điền ở trên là đúng thực tế đang sử dụng. "
+                + "Phiếu này là căn cứ để phòng IT cập nhật vị trí địa lý và nhu cầu cài Office cho từng thiết bị.";
+            ws.Range(hang + 3, 1, hang + 3, soCot).Merge().Style.Alignment.SetWrapText(true).Font.SetItalic();
+            ws.Row(hang + 3).Height = 32;
+
+            ws.Cell(hang + 5, 1).Value = $"......................., ngày {DateTime.Now:dd} tháng {DateTime.Now:MM} năm {DateTime.Now:yyyy}";
+            ws.Range(hang + 5, 1, hang + 5, soCot).Merge().Style
+                .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Right).Font.SetItalic();
+
+            int hangKy = hang + 7;
+            ws.Cell(hangKy, 1).Value = "NGƯỜI LẬP PHIẾU";
+            ws.Cell(hangKy, 6).Value = "TRƯỞNG / PHỤ TRÁCH BỘ PHẬN XÁC NHẬN";
+            foreach (var (cotDau, cotCuoi) in new[] { (1, 4), (6, soCot) })
+            {
+                ws.Range(hangKy, cotDau, hangKy, cotCuoi).Merge().Style
+                    .Font.SetBold().Alignment.SetWrapText(true)
+                    .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+                ws.Cell(hangKy + 1, cotDau).Value = "(Ký, ghi rõ họ tên)";
+                ws.Range(hangKy + 1, cotDau, hangKy + 1, cotCuoi).Merge().Style
+                    .Font.SetItalic().Alignment.SetWrapText(true)
+                    .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+            }
+            ws.Cell(hangKy + 5, 1).Value = tenNguoiLap;
+            ws.Range(hangKy + 5, 1, hangKy + 5, 4).Merge().Style
+                .Font.SetBold().Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            ws.Columns(1, soCot).AdjustToContents();
+            ws.Column(1).Width = 6;
+            ws.Column(2).Width = 9;
+            foreach (int c in new[] { 3, 4, 7, 10 })
+            {
+                if (ws.Column(c).Width > 32) ws.Column(c).Width = 32;
+            }
+            ws.Column(cotDiaLy).Width = 22;
+            ws.Column(cotOffice).Width = 16;
+
+            // Cố định phần tiêu đề để cuộn danh sách dài vẫn thấy tên cột
+            ws.SheetView.FreezeRows(hangTieuDe);
+
+            using var ms = new MemoryStream();
+            wb.SaveAs(ms);
+
+            // ClosedXML không tạo được điều khiển biểu mẫu, nên checkbox phải ghép thẳng vào file .xlsx sau khi lưu
+            return ChenCheckboxVaoSheet(ms.ToArray(), ws.Name, cotOffice, dsOTich);
+        }
+
+        // ============================================================
+        // CHÈN CHECKBOX (Form Control) THẬT VÀO MỘT SHEET CỦA FILE .XLSX ĐÃ LƯU
+        // ClosedXML chỉ ghi được dữ liệu/định dạng, không tạo được điều khiển biểu mẫu. Ở đây mở lại gói OOXML
+        // bằng OpenXML SDK (đã đi kèm ClosedXML) rồi thêm phần VML mô tả các ô tích.
+        // Mỗi checkbox liên kết (FmlaLink) tới đúng ô nó nằm trên: người dùng tích -> ô thành TRUE, bỏ tích -> FALSE,
+        // nên đọc lại kết quả chỉ cần đọc giá trị cột đó, không phải mò trong phần điều khiển.
+        // ============================================================
+        private static byte[] ChenCheckboxVaoSheet(byte[] noiDungFile, string tenSheet, int cot, List<(int Hang, bool Tich)> dsO)
+        {
+            if (dsO == null || dsO.Count == 0) return noiDungFile;
+
+            using var ms = new MemoryStream();
+            ms.Write(noiDungFile, 0, noiDungFile.Length);
+            ms.Position = 0;
+
+            using (var doc = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(ms, true))
+            {
+                var wbPart = doc.WorkbookPart;
+                if (wbPart == null) return noiDungFile;
+
+                var sheet = wbPart.Workbook.Descendants<DocumentFormat.OpenXml.Spreadsheet.Sheet>()
+                    .FirstOrDefault(s => s.Name != null && s.Name.Value == tenSheet);
+                if (sheet?.Id?.Value == null) return noiDungFile;
+                if (wbPart.GetPartById(sheet.Id.Value) is not DocumentFormat.OpenXml.Packaging.WorksheetPart wsPart) return noiDungFile;
+
+                string tenCot = ClosedXML.Excel.XLHelper.GetColumnLetterFromNumber(cot);
+                var vml = new System.Text.StringBuilder();
+                vml.Append("<xml xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\">");
+                vml.Append("<o:shapelayout v:ext=\"edit\"><o:idmap v:ext=\"edit\" data=\"1\"/></o:shapelayout>");
+                vml.Append("<v:shapetype id=\"_x0000_t201\" coordsize=\"21600,21600\" o:spt=\"201\" path=\"m,l,21600r21600,l21600,xe\">");
+                vml.Append("<v:stroke joinstyle=\"miter\"/><v:path shadowok=\"t\" o:extrusionok=\"f\" gradientshapeok=\"t\" o:connecttype=\"rect\"/>");
+                vml.Append("<o:lock v:ext=\"edit\" shapetype=\"t\"/></v:shapetype>");
+
+                int shapeId = 1025;
+                foreach (var (hangO, tich) in dsO)
+                {
+                    // Anchor dùng chỉ số 0-based; đặt ô tích lệch vào giữa ô cho cân
+                    int c0 = cot - 1, r0 = hangO - 1;
+                    vml.Append($"<v:shape id=\"_x0000_s{shapeId}\" type=\"#_x0000_t201\" style=\"position:absolute;margin-left:0;margin-top:0;width:20pt;height:14pt;z-index:{shapeId - 1024};mso-wrap-style:tight\" filled=\"f\" fillcolor=\"window\" stroked=\"f\" strokecolor=\"windowText\" o:insetmode=\"auto\">");
+                    vml.Append("<v:textbox style=\"mso-direction-alt:auto\" o:singleclick=\"f\"><div style=\"text-align:left\"></div></v:textbox>");
+                    vml.Append("<x:ClientData ObjectType=\"Checkbox\"><x:MoveWithCells/><x:SizeWithCells/>");
+                    vml.Append($"<x:Anchor>{c0}, 30, {r0}, 2, {c0}, 75, {r0}, 17</x:Anchor>");
+                    vml.Append("<x:AutoFill>False</x:AutoFill>");
+                    vml.Append($"<x:FmlaLink>${tenCot}${hangO}</x:FmlaLink>");
+                    if (tich) vml.Append("<x:Checked>1</x:Checked>");
+                    vml.Append("<x:CF>Pict</x:CF></x:ClientData></v:shape>");
+                    shapeId++;
+                }
+                vml.Append("</xml>");
+
+                var vmlPart = wsPart.AddNewPart<DocumentFormat.OpenXml.Packaging.VmlDrawingPart>();
+                // Không để BOM: phần VML là XML kiểu cũ, vài bản Excel không nuốt được BOM ở đầu file
+                using (var sw = new StreamWriter(vmlPart.GetStream(FileMode.Create), new System.Text.UTF8Encoding(false)))
+                {
+                    sw.Write(vml.ToString());
+                }
+
+                // Thứ tự phần tử trong <worksheet> là bắt buộc: <legacyDrawing> phải đứng TRƯỚC <tableParts> và <extLst>
+                // mà ClosedXML luôn ghi ra; đặt sai chỗ là Excel báo file hỏng.
+                var legacy = new DocumentFormat.OpenXml.Spreadsheet.LegacyDrawing { Id = wsPart.GetIdOfPart(vmlPart) };
+                var moc = (DocumentFormat.OpenXml.OpenXmlElement?)wsPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.TableParts>().FirstOrDefault()
+                    ?? wsPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.WorksheetExtensionList>().FirstOrDefault();
+                if (moc != null) wsPart.Worksheet.InsertBefore(legacy, moc);
+                else wsPart.Worksheet.Append(legacy);
+                wsPart.Worksheet.Save();
+            }
+
             return ms.ToArray();
         }
 
