@@ -9110,8 +9110,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             const int cotDiaLy = 8;   // H - ô chọn địa điểm lấy từ danh mục KK_ViTriDiaLy
             const int cotOffice = 9;  // I - ô tích, chỉ mở cho Laptop và Máy tính
 
-            // Vị trí các ô sẽ gắn checkbox (hàng, tích sẵn hay chưa) - xử lý sau khi ClosedXML lưu xong file
-            var dsOTich = new List<(int Hang, bool Tich)>();
+            const string TICH_CO = "☑";     // U+2611 - có cần cài Office
+            const string TICH_KHONG = "☐";  // U+2610 - để nguyên nghĩa là không cần
 
             // Chỉ máy tính/laptop mới có nhu cầu cài Office; thiết bị khác (màn hình, máy in...) để "-" cho khỏi gây hiểu nhầm.
             // Dùng đúng tên loại của nút Lọc nhanh trên trang Thiết bị.
@@ -9150,10 +9150,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             ws.Range(4, 1, 6, 1).Style.Font.SetBold();
 
             ws.Cell(7, 1).Value = "Hướng dẫn: cột \"Vị trí địa lý\" bấm vào ô để chọn địa điểm trong danh sách. "
-                + "Cột \"Cần cài Office?\" bấm thẳng vào ô vuông để tích; máy nào không cần thì để trống. "
+                + "Cột \"Cần cài Office?\" bấm vào ô rồi chọn ☑ nếu máy cần cài Office, để nguyên ☐ nếu không cần. "
                 + "Cột này chỉ áp dụng cho Laptop và Máy tính; thiết bị khác đã để sẵn dấu \"-\".";
             ws.Range(7, 1, 7, soCot).Merge().Style
-                .Alignment.SetWrapText(true).Font.SetItalic().Font.SetFontSize(9);
+                .Alignment.SetWrapText(true).Font.SetItalic().Font.SetFontSize(9)
+                .Font.SetFontName("Segoe UI Symbol"); // để 2 ký hiệu ☑ ☐ trong câu hướng dẫn hiện đúng
             ws.Row(7).Height = 26;
 
             int hangTieuDe = 9;
@@ -9166,7 +9167,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 "Serial / Barcode",
                 "Người sử dụng",
                 "Vị trí địa lý (xác nhận)",
-                "Cần cài Office? (bấm để tích - chỉ Laptop / Máy tính)",
+                "Cần cài Office? (tích ☑ - chỉ Laptop / Máy tính)",
                 "Ghi chú"
             };
             for (int i = 0; i < tieuDe.Length; i++) ws.Cell(hangTieuDe, i + 1).Value = tieuDe[i];
@@ -9179,6 +9180,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // Hai cột bộ phận phải điền - tô nhạt cho nổi khỏi phần dữ liệu chỉ để đối chiếu
             ws.Range(hangTieuDe, cotDiaLy, hangTieuDe, cotOffice).Style
                 .Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(255, 242, 204));
+            ws.Cell(hangTieuDe, cotOffice).Style.Font.SetFontName("Segoe UI Symbol");
 
             // Danh mục địa điểm phải nằm trong một vùng ô của workbook thì Excel mới cho làm dropdown;
             // để ở sheet phụ đã ẩn cho khỏi vướng mắt người điền.
@@ -9219,12 +9221,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 if (CoHoiOffice(item.LoaiThietBi))
                 {
-                    // Checkbox thật được gắn vào ô này ở bước sau; ô chỉ giữ giá trị TRUE/FALSE mà checkbox ghi xuống.
-                    // Định dạng ";;;" giấu chữ TRUE/FALSE đi cho người điền chỉ thấy cái ô tích.
-                    bool tichSan = item.CanCaiOffice == true;
-                    ws.Cell(hang, cotOffice).Value = tichSan;
-                    ws.Cell(hang, cotOffice).Style.NumberFormat.SetFormat(";;;");
-                    dsOTich.Add((hang, tichSan));
+                    // Dấu tích nằm TRONG ô, không phải hình nổi: có lọc/sắp xếp thì vẫn dính đúng dòng của nó.
+                    // (Checkbox Form Control là hình nổi trên mặt sheet nên lọc xong là dồn lệch hàng.)
+                    ws.Cell(hang, cotOffice).Value = item.CanCaiOffice == true ? TICH_CO : TICH_KHONG;
+
+                    var oTich = ws.Cell(hang, cotOffice).CreateDataValidation();
+                    oTich.List($"\"{TICH_CO},{TICH_KHONG}\"", true);
+                    oTich.IgnoreBlanks = true;
+                    // Calibri không có 2 ký tự này, không ép font thì Excel vẽ ra ô vuông rỗng
+                    ws.Cell(hang, cotOffice).Style.Font.SetFontName("Segoe UI Symbol").Font.SetFontSize(12);
                 }
                 else
                 {
@@ -9292,78 +9297,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             using var ms = new MemoryStream();
             wb.SaveAs(ms);
-
-            // ClosedXML không tạo được điều khiển biểu mẫu, nên checkbox phải ghép thẳng vào file .xlsx sau khi lưu
-            return ChenCheckboxVaoSheet(ms.ToArray(), ws.Name, cotOffice, dsOTich);
-        }
-
-        // ============================================================
-        // CHÈN CHECKBOX (Form Control) THẬT VÀO MỘT SHEET CỦA FILE .XLSX ĐÃ LƯU
-        // ClosedXML chỉ ghi được dữ liệu/định dạng, không tạo được điều khiển biểu mẫu. Ở đây mở lại gói OOXML
-        // bằng OpenXML SDK (đã đi kèm ClosedXML) rồi thêm phần VML mô tả các ô tích.
-        // Mỗi checkbox liên kết (FmlaLink) tới đúng ô nó nằm trên: người dùng tích -> ô thành TRUE, bỏ tích -> FALSE,
-        // nên đọc lại kết quả chỉ cần đọc giá trị cột đó, không phải mò trong phần điều khiển.
-        // ============================================================
-        private static byte[] ChenCheckboxVaoSheet(byte[] noiDungFile, string tenSheet, int cot, List<(int Hang, bool Tich)> dsO)
-        {
-            if (dsO == null || dsO.Count == 0) return noiDungFile;
-
-            using var ms = new MemoryStream();
-            ms.Write(noiDungFile, 0, noiDungFile.Length);
-            ms.Position = 0;
-
-            using (var doc = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(ms, true))
-            {
-                var wbPart = doc.WorkbookPart;
-                if (wbPart == null) return noiDungFile;
-
-                var sheet = wbPart.Workbook.Descendants<DocumentFormat.OpenXml.Spreadsheet.Sheet>()
-                    .FirstOrDefault(s => s.Name != null && s.Name.Value == tenSheet);
-                if (sheet?.Id?.Value == null) return noiDungFile;
-                if (wbPart.GetPartById(sheet.Id.Value) is not DocumentFormat.OpenXml.Packaging.WorksheetPart wsPart) return noiDungFile;
-
-                string tenCot = ClosedXML.Excel.XLHelper.GetColumnLetterFromNumber(cot);
-                var vml = new System.Text.StringBuilder();
-                vml.Append("<xml xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\">");
-                vml.Append("<o:shapelayout v:ext=\"edit\"><o:idmap v:ext=\"edit\" data=\"1\"/></o:shapelayout>");
-                vml.Append("<v:shapetype id=\"_x0000_t201\" coordsize=\"21600,21600\" o:spt=\"201\" path=\"m,l,21600r21600,l21600,xe\">");
-                vml.Append("<v:stroke joinstyle=\"miter\"/><v:path shadowok=\"t\" o:extrusionok=\"f\" gradientshapeok=\"t\" o:connecttype=\"rect\"/>");
-                vml.Append("<o:lock v:ext=\"edit\" shapetype=\"t\"/></v:shapetype>");
-
-                int shapeId = 1025;
-                foreach (var (hangO, tich) in dsO)
-                {
-                    // Anchor dùng chỉ số 0-based; đặt ô tích lệch vào giữa ô cho cân
-                    int c0 = cot - 1, r0 = hangO - 1;
-                    vml.Append($"<v:shape id=\"_x0000_s{shapeId}\" type=\"#_x0000_t201\" style=\"position:absolute;margin-left:0;margin-top:0;width:20pt;height:14pt;z-index:{shapeId - 1024};mso-wrap-style:tight\" filled=\"f\" fillcolor=\"window\" stroked=\"f\" strokecolor=\"windowText\" o:insetmode=\"auto\">");
-                    vml.Append("<v:textbox style=\"mso-direction-alt:auto\" o:singleclick=\"f\"><div style=\"text-align:left\"></div></v:textbox>");
-                    vml.Append("<x:ClientData ObjectType=\"Checkbox\"><x:MoveWithCells/><x:SizeWithCells/>");
-                    vml.Append($"<x:Anchor>{c0}, 30, {r0}, 2, {c0}, 75, {r0}, 17</x:Anchor>");
-                    vml.Append("<x:AutoFill>False</x:AutoFill>");
-                    vml.Append($"<x:FmlaLink>${tenCot}${hangO}</x:FmlaLink>");
-                    if (tich) vml.Append("<x:Checked>1</x:Checked>");
-                    vml.Append("<x:CF>Pict</x:CF></x:ClientData></v:shape>");
-                    shapeId++;
-                }
-                vml.Append("</xml>");
-
-                var vmlPart = wsPart.AddNewPart<DocumentFormat.OpenXml.Packaging.VmlDrawingPart>();
-                // Không để BOM: phần VML là XML kiểu cũ, vài bản Excel không nuốt được BOM ở đầu file
-                using (var sw = new StreamWriter(vmlPart.GetStream(FileMode.Create), new System.Text.UTF8Encoding(false)))
-                {
-                    sw.Write(vml.ToString());
-                }
-
-                // Thứ tự phần tử trong <worksheet> là bắt buộc: <legacyDrawing> phải đứng TRƯỚC <tableParts> và <extLst>
-                // mà ClosedXML luôn ghi ra; đặt sai chỗ là Excel báo file hỏng.
-                var legacy = new DocumentFormat.OpenXml.Spreadsheet.LegacyDrawing { Id = wsPart.GetIdOfPart(vmlPart) };
-                var moc = (DocumentFormat.OpenXml.OpenXmlElement?)wsPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.TableParts>().FirstOrDefault()
-                    ?? wsPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.WorksheetExtensionList>().FirstOrDefault();
-                if (moc != null) wsPart.Worksheet.InsertBefore(legacy, moc);
-                else wsPart.Worksheet.Append(legacy);
-                wsPart.Worksheet.Save();
-            }
-
             return ms.ToArray();
         }
 
