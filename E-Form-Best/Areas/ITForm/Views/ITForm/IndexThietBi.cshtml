@@ -1784,14 +1784,36 @@
 
         let dsBoPhan = [...new Set(dsThietBiTheoBoLoc.map(x => (x.tenBoPhan && x.tenBoPhan.trim()) ? x.tenBoPhan.trim() : 'Chưa xác định'))];
         let ids = dsThietBiTheoBoLoc.map(x => x.idThietBi).join(',');
-        let moBienBan = () => window.open('/QLKiemKe/ExportBienBanTaiSanBoPhan?dinhDang=' + dinhDang + '&ids=' + encodeURIComponent(ids), '_blank');
 
-        if (dsThietBiTheoBoLoc.length > 500) {
-        return Swal.fire({
-        title: 'Danh sách quá dài',
-        html: `Đang có <b>${dsThietBiTheoBoLoc.length}</b> thiết bị. Biên bản ký nên lập theo từng bộ phận - vui lòng lọc <b>Bộ phận</b> ở Bộ lọc nâng cao rồi xuất lại.`,
-        icon: 'warning'
+        // Gửi bằng form ẩn (POST) thay vì nhét ids vào URL: vài nghìn thiết bị là chuỗi ids dài quá mức
+        // cho phép của URL, trình duyệt/Kestrel sẽ cắt hoặc trả 414.
+        let moBienBan = () => {
+        let f = document.createElement('form');
+        f.method = 'post';
+        f.action = '/QLKiemKe/ExportBienBanTaiSanBoPhan';
+        f.target = '_blank';
+        f.style.display = 'none';
+        [['dinhDang', dinhDang], ['ids', ids]].forEach(([ten, giaTri]) => {
+        let o = document.createElement('input');
+        o.type = 'hidden'; o.name = ten; o.value = giaTri;
+        f.appendChild(o);
         });
+        document.body.appendChild(f);
+        f.submit();
+        f.remove();
+        };
+
+        // Danh sách dài chỉ là lời nhắc, không chặn: ai vẫn muốn xuất chung thì bấm "Vẫn xuất".
+        // Phiếu xác nhận Office & Vị trí địa lý thì không nhắc gì, xuất thẳng.
+        if (dinhDang !== 'excel_xacnhan' && dsThietBiTheoBoLoc.length > 500) {
+        return Swal.fire({
+        title: 'Danh sách khá dài',
+        html: `Đang có <b>${dsThietBiTheoBoLoc.length}</b> thiết bị. Biên bản ký thường lập theo từng bộ phận - bạn có thể lọc <b>Bộ phận</b> ở Bộ lọc nâng cao rồi xuất lại.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Vẫn xuất',
+        cancelButtonText: 'Để tôi lọc lại'
+        }).then(kq => { if (kq.isConfirmed) moBienBan(); });
         }
 
         if (dsBoPhan.length > 1) {

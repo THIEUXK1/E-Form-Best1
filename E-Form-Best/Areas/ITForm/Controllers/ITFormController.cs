@@ -8829,6 +8829,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // Xuất Biên bản kiểm kê - xác nhận tài sản bộ phận dạng in giấy để ký tay (khác chữ ký điện tử của luồng FormIT).
         // ids: danh sách IdThietBi cách nhau bởi dấu phẩy, ứng đúng những dòng đang hiển thị (đã lọc, có thể gồm nhiều bộ phận
         // khác nhau nếu người dùng có quyền "All") trên giao diện.
+        // Bản POST: danh sách vài nghìn thiết bị thì chuỗi ids vượt giới hạn độ dài URL của trình duyệt/Kestrel,
+        // nên trang Thiết bị gửi bằng form ẩn. Chỉ đọc dữ liệu rồi trả file nên không cần khác gì bản GET.
+        [HttpPost("/QLKiemKe/ExportBienBanTaiSanBoPhan")]
+        public IActionResult ExportBienBanTaiSanBoPhanPost([FromForm] string? ids, [FromForm] string? dinhDang)
+            => ExportBienBanTaiSanBoPhan(ids, dinhDang);
+
         [HttpGet("/QLKiemKe/ExportBienBanTaiSanBoPhan")]
         public IActionResult ExportBienBanTaiSanBoPhan(string? ids, string? dinhDang = null)
         {
