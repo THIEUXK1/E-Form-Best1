@@ -367,3 +367,8 @@ FodyWeavers.xsd
 # Log cua dotnet watch (khong commit)
 watch_log.txt
 watch_err.txt
+
+# Bien moi truong chua mat khau DB - KHONG BAO GIO commit (.env.example la mau, van commit)
+.env
+.env.local
+!.env.example

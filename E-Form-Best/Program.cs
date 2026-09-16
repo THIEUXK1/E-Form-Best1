@@ -14,6 +14,38 @@ using Microsoft.Extensions.Options;
 using System.Globalization;
 using Microsoft.AspNetCore.DataProtection; // Giữ key mã hoá cookie cố định giữa các lần restart/deploy
 
+// --- NẠP BIẾN MÔI TRƯỜNG TỪ FILE .env (trước mọi cấu hình khác) ---
+// Chuỗi kết nối chứa mật khẩu SQL nên không được để trong appsettings.json (file đó nằm trong git).
+// Giá trị thật đọc từ .env đặt cạnh ứng dụng; file .env đã bị .gitignore loại trừ.
+// Phải chạy TRƯỚC CreateBuilder thì AddEnvironmentVariables() mặc định mới thấy được,
+// và OnConfiguring của ITFormContext (chạy sau, cùng tiến trình) cũng dùng chung các biến này.
+NapFileEnv(Path.Combine(AppContext.BaseDirectory, ".env"));
+NapFileEnv(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
+
+static void NapFileEnv(string duongDan)
+{
+    if (!File.Exists(duongDan)) return;
+
+    foreach (var dong in File.ReadAllLines(duongDan))
+    {
+        var noiDung = dong.Trim();
+        if (noiDung.Length == 0 || noiDung.StartsWith('#')) continue;
+
+        var viTriDauBang = noiDung.IndexOf('=');
+        if (viTriDauBang <= 0) continue;
+
+        var ten = noiDung[..viTriDauBang].Trim();
+        // Không cắt phần sau dấu # ở cuối dòng: mật khẩu SQL có thể chứa ký tự #
+        var giaTri = noiDung[(viTriDauBang + 1)..].Trim();
+        if (giaTri.Length >= 2 && ((giaTri[0] == '"' && giaTri[^1] == '"') || (giaTri[0] == '\'' && giaTri[^1] == '\'')))
+            giaTri = giaTri[1..^1];
+
+        // Biến môi trường đặt sẵn ở máy chủ/IIS được ưu tiên hơn file .env
+        if (Environment.GetEnvironmentVariable(ten) is null)
+            Environment.SetEnvironmentVariable(ten, giaTri);
+    }
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 // --- 0. CẤU HÌNH ĐỌC HEADER TỪ REVERSE PROXY (nginx) ---
