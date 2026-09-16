@@ -2,10 +2,12 @@
     ViewData["Title"] = "Nhật ký hoạt động HR";
     Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
 }
+<link rel="stylesheet" href="~/css/fixed-page-layout.css" />
+
 
 @* Container chính *@
-<div class="main-container">
-    <div style="max-width: 1100px; margin: 0 auto;">
+<div class="main-container fp-page">
+    <div style="max-width: 100%; margin: 0 auto;">
 
         @* --- HEADER SECTION --- *@
         <div class="header-section">
@@ -51,7 +53,7 @@
         </div>
 
         @* --- LOG CONTAINER --- *@
-        <div id="logContainer" class="logs-wrapper">
+        <div id="logContainer" class="logs-wrapper" data-fp-scroll>
             <div class="loading-state">
                 <i class="fa fa-spinner fa-spin"></i>
                 <p>Đang tải nhật ký hệ thống...</p>
@@ -81,8 +83,8 @@
         background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
         background-size: 20px 20px;
         min-height: 100vh;
-        padding: 40px 20px;
-        font-family: 'Inter', 'Segoe UI', sans-serif;
+        padding: 12px;
+        font-family: 'Inter', sans-serif;
     }
 
     /* HEADER */
@@ -90,63 +92,63 @@
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
         border-bottom: 2px solid #e2e8f0;
-        padding-bottom: 20px;
+        padding-bottom: 10px;
         flex-wrap: wrap;
-        gap: 20px;
+        gap: 12px;
     }
     .page-title {
-        margin: 0; color: #0f172a; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;
-        display: flex; align-items: center; gap: 15px;
+        margin: 0; color: #0f172a; font-size: 19px; font-weight: 800; letter-spacing: -0.5px;
+        display: flex; align-items: center; gap: 10px;
     }
     .icon-box {
         background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
-        color: white; width: 45px; height: 45px; display: flex;
+        color: white; width: 34px; height: 34px; display: flex;
         align-items: center; justify-content: center; border-radius: 12px;
         box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
     }
-    .page-subtitle { margin: 8px 0 0 60px; color: #64748b; font-size: 15px; font-weight: 500; }
+    .page-subtitle { margin: 2px 0 0 44px; color: #64748b; font-size: 12px; font-weight: 500; }
 
     /* CONTROLS */
     .header-controls { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; width: 100%; justify-content: flex-end; }
     .pagesize-box {
         display: flex; align-items: center; gap: 10px; background: white;
-        padding: 12px 15px; border-radius: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        padding: 7px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
     }
     .clean-select { border: none; outline: none; font-weight: 800; color: #1e293b; background: transparent; font-size: 14px; }
     .search-box { position: relative; flex-grow: 1; max-width: 350px; }
     .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #6366f1; z-index: 10; }
     .search-input {
-        padding: 14px 20px 14px 45px; border-radius: 14px; border: 2px solid white;
+        padding: 9px 16px 9px 40px; border-radius: 10px; border: 1.5px solid #cbd5e1;
         width: 100%; outline: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         font-size: 14px; font-weight: 600; color: #1e293b; box-sizing: border-box;
     }
 
     /* FILTER TABS */
-    .filter-wrapper { margin-bottom: 25px; overflow: hidden; }
+    .filter-wrapper { margin-bottom: 10px; overflow: hidden; }
     .filter-scroll-container {
         display: flex; gap: 8px; overflow-x: auto; padding: 5px 2px 15px 2px;
         scrollbar-width: none; /* Firefox */
     }
     .filter-scroll-container::-webkit-scrollbar { display: none; /* Chrome, Safari */ }
     .filter-btn {
-        padding: 10px 18px; border-radius: 12px; border: none; background: white;
-        color: #64748b; font-weight: 800; font-size: 12px; text-transform: uppercase;
+        padding: 7px 14px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: white;
+        color: #475569; font-weight: 700; font-size: 13px;
         cursor: pointer; transition: all 0.25s ease; white-space: nowrap;
         box-shadow: 0 2px 4px rgba(0,0,0,0.04);
     }
-    .filter-btn.active { background: #4338ca !important; color: white !important; transform: translateY(-2px); }
+    .filter-btn.active { background: #4338ca !important; color: white !important; border-color: #4338ca !important; transform: translateY(-2px); }
 
     /* LOGS */
-    .logs-wrapper { display: flex; flex-direction: column; gap: 16px; }
+    .logs-wrapper { display: flex; flex-direction: column; gap: 8px; }
     .loading-state { text-align: center; padding: 60px; background: white; border-radius: 24px; color: #94a3b8; border: 2px dashed #e2e8f0; }
     .loading-state i { font-size: 50px; margin-bottom: 15px; display: block; }
 
     /* PAGINATION */
-    .pagination-container { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; flex-wrap: wrap; gap: 20px; }
+    .pagination-container { display: flex; justify-content: space-between; align-items: center; padding: 8px 0 0; flex-wrap: wrap; gap: 20px; }
     .pagination-btns { display: flex; gap: 8px; flex-wrap: wrap; }
-    .page-btn { padding: 8px 16px; border-radius: 10px; border: 1px solid #e2e8f0; background: white; color: #64748b; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .page-btn { padding: 8px 16px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: white; color: #64748b; font-weight: 700; font-size: 13.5px; cursor: pointer; }
     .page-btn.active { background: #4338ca; color: white; border-color: #4338ca; }
     .total-count { color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px; }
 
@@ -168,6 +170,46 @@
         .log-time-column div:last-child { margin-top: 0 !important; }
         .log-arrow { display: none; }
         .pagination-container { justify-content: center; }
+    }
+
+    /* Phải thấy rõ đang trỏ vào bản ghi nào: viền đậm + nền nhạt theo màu nhấn HR */
+    .log-item:hover .log-item-inner {
+        border-color: #4338ca !important;
+        border-width: 2px !important;
+        background-color: #f5f3ff !important;
+        box-shadow: 0 6px 16px -6px rgba(67, 56, 202, 0.35) !important;
+    }
+
+    .log-item:focus-visible .log-item-inner {
+        outline: 3px solid #4338ca;
+        outline-offset: 2px;
+    }
+
+    .filter-btn:hover:not(.active) {
+        background: #f8fafc;
+        border-color: #94a3b8;
+    }
+
+    /* --- Khoá cuộn trang: chỉ danh sách nhật ký được cuộn --- */
+    /* Wrapper cao 100vh + flex-shrink mặc định sẽ bóp tiêu đề/tab lọc xuống dưới
+       chiều cao thật của chúng -> nội dung đè nhau. Khoá chúng ở kích thước thật. */
+    html.fp-lock .fp-page {
+        min-height: 0 !important;
+        display: flex;
+        flex-direction: column;
+    }
+
+    html.fp-lock .fp-chain > *:not(.fp-grow) {
+        flex: 0 0 auto;
+    }
+
+    html.fp-lock .logs-wrapper {
+        padding-right: 4px;
+    }
+
+    html.fp-lock .pagination-container {
+        flex: 0 0 auto;
+        padding: 8px 0 0 !important;
     }
 </style>
 
@@ -247,28 +289,28 @@
                 let avatarChar = item.tenAdmin ? item.tenAdmin.charAt(0) : "A";
 
                 html += `
-                    <a href="/FormHR/ChiTiet/${item.idFormHr}" class="log-item" style="text-decoration: none; display: block; border-radius: 20px; margin-bottom: 16px;">
-                        <div class="log-item-inner" style="background: white; border-radius: 20px; padding: 20px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); position: relative; overflow: hidden; transition: all 0.3s ease;">
+                    <a href="/FormHR/ChiTiet/${item.idFormHr}" class="log-item" style="text-decoration: none; display: block; border-radius: 14px; margin-bottom: 8px;">
+                        <div class="log-item-inner" style="background: white; border-radius: 14px; padding: 10px 14px; border: 1.5px solid #e2e8f0; display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); position: relative; overflow: hidden; transition: all 0.3s ease;">
                             
                             <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: ${item.statusColor};"></div>
 
-                            <div class="log-time-column" style="min-width: 100px; text-align: center; border-right: 1px dashed #e2e8f0; padding-right: 20px;">
-                                <div style="font-size: 20px; font-weight: 800; color: #1e293b;">${item.timeHHmm}</div>
+                            <div class="log-time-column" style="min-width: 84px; text-align: center; border-right: 1px dashed #e2e8f0; padding-right: 14px;">
+                                <div style="font-size: 18px; font-weight: 800; color: #1e293b;">${item.timeHHmm}</div>
                                 <div style="font-size: 12px; font-weight: 700; color: #94a3b8; margin-top: 4px;">${item.timeDate}</div>
                             </div>
 
                             <div style="flex-grow: 1;">
-                                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
-                                    <span style="background: ${item.actionColor}; color: white; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase;">
+                                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 6px;">
+                                    <span style="background: ${item.actionColor}; color: white; padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 800; text-transform: uppercase;">
                                         ${item.tieuDe}
                                     </span>
-                                    <span style="background: ${item.statusColor}15; color: ${item.statusColor}; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; border: 1px solid ${item.statusColor}30;">
+                                    <span style="background: ${item.statusColor}15; color: ${item.statusColor}; padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 800; border: 1px solid ${item.statusColor}30;">
                                         ${item.statusText}
                                     </span>
                                     <span style="color: #475569; font-size: 13px; font-weight: 700;">#${item.idFormHr} - ${item.tenForm}</span>
                                 </div>
 
-                                <div style="color: #334155; font-size: 15px; line-height: 1.5; font-weight: 500; margin-bottom: 12px;">
+                                <div style="color: #334155; font-size: 14.5px; line-height: 1.55; font-weight: 500; margin-bottom: 8px;">
                                     ${item.mota}
                                 </div>
 
@@ -317,4 +359,5 @@
             }
         }
     </script>
+    <script src="~/js/fixed-page-layout.js" defer></script>
 }

@@ -28,11 +28,27 @@
         }
 
     .dash-title {
-        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.15rem;
         font-weight: 800;
         color: #1e293b;
         white-space: nowrap;
         margin: 0;
+    }
+
+    /* Huy hiệu icon gradient, dựng theo trang báo cáo SHD */
+    .dash-title-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 15px;
+        background: linear-gradient(135deg, #4f46e5, #312e81);
     }
 
     /* Khi khoá cuộn: bỏ lề âm của tiêu đề, và không cho khối nào ngoài vùng cuộn bị co
@@ -60,7 +76,7 @@
 <div class="content-header pt-0 pb-0" style="margin-top: -25px;">
     <div class="container-fluid">
         <div class="dash-topbar">
-            <h4 class="dash-title"><i class="fas fa-cogs me-2" style="color: #4f46e5;"></i>Cấu hình Danh mục Kiểm kê</h4>
+            <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-cogs"></i></span>Cấu hình Danh mục Kiểm kê</h4>
 
             <span class="flex-grow-1"></span>
 

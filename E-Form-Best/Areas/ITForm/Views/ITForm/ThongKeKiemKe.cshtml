@@ -395,11 +395,27 @@
     }
 
     .dash-title {
-        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.15rem;
         font-weight: 800;
         color: #0f172a;
         white-space: nowrap;
         margin: 0;
+    }
+
+    /* Huy hiệu icon gradient, dựng theo trang báo cáo SHD */
+    .dash-title-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 15px;
+        background: linear-gradient(135deg, #2a78d6, #1e40af);
     }
 
         /* Nút không được co lại (bị bóp méo/cắt mất chữ) - thiếu chỗ thì cho xuống hàng */
@@ -426,28 +442,34 @@
         margin-bottom: 10px;
     }
 
+    /* Thẻ KPI kiểu trang báo cáo SHD: viền trên tô màu trạng thái, số căn giữa,
+       icon mờ nằm góc phải để không chiếm chỗ của con số. */
     .kpi.stat-card {
+        position: relative;
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+        gap: 2px;
         background: #fff !important;
         color: #0f172a !important;
-        border: 1px solid #e2e8f0 !important;
-        border-left: 5px solid var(--kpi-color, #3b82f6) !important;
-        border-radius: 12px;
-        padding: 8px 12px;
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+        border: 1.5px solid var(--kpi-color, #e2e8f0) !important;
+        border-top: 5px solid var(--kpi-color, #3b82f6) !important;
+        border-radius: 14px;
+        padding: 9px 10px;
+        box-shadow: 0 4px 6px rgba(15, 23, 42, 0.03) !important;
         transform: none !important;
+        transition: 0.25s;
     }
 
         .kpi.stat-card:hover {
             background: #f8fafc !important;
-            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.08) !important;
         }
 
         .kpi.stat-card.active {
-            background: #f1f5f9 !important;
+            background: #f8fafc !important;
             border-color: var(--kpi-color, #3b82f6) !important;
             box-shadow: inset 0 0 0 1px var(--kpi-color, #3b82f6) !important;
         }
@@ -457,12 +479,13 @@
             }
 
     .kpi-label {
-        font-size: 11px;
-        font-weight: 700;
+        font-size: 10.5px;
+        font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.2px;
+        letter-spacing: 0.5px;
         color: #64748b;
         line-height: 1.2;
+        margin-bottom: 4px;
     }
 
     .kpi-value {
@@ -470,13 +493,16 @@
         font-weight: 800;
         line-height: 1;
         color: var(--kpi-color, #1d4ed8);
-        margin: 2px 0 0 0;
+        margin: 0;
     }
 
     .kpi-ic {
-        font-size: 1.1rem;
+        position: absolute;
+        top: 6px;
+        right: 8px;
+        font-size: 0.95rem;
         color: var(--kpi-color, #3b82f6);
-        opacity: 0.35;
+        opacity: 0.25;
     }
 
     @@media (max-width: 1199px) {
@@ -519,7 +545,7 @@
         @* Thanh lệnh gọn: gom tiêu đề, tìm kiếm và toàn bộ nút thao tác vào một hàng.
            Ô tìm kiếm để ngoài khối bộ lọc để khi "Ẩn lọc" vẫn tìm được. *@
         <div class="dash-topbar">
-            <h4 class="dash-title"><i class="fas fa-chart-line me-2 text-primary"></i>Tổng quan tài sản IT</h4>
+            <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-chart-line"></i></span>Tổng quan tài sản IT</h4>
 
             <div class="dash-search">
                 <div class="input-group">

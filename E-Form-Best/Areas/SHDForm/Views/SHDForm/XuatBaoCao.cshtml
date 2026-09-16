@@ -8,6 +8,8 @@
                         ?? User.FindFirst("UserRole")?.Value ?? "User";
 }
 
+<link rel="stylesheet" href="~/css/fixed-page-layout.css" />
+
 <style>
     body {
         background-color: #f1f5f9;
@@ -290,15 +292,104 @@
             justify-content: center;
         }
     }
+
+
+    /* Modal chọn loại đơn: thiếu CSS thì khối này đổ thẳng xuống cuối trang,
+       phải để display:none + position:fixed mới đúng dạng hộp thoại */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.6);
+        z-index: 9998;
+        backdrop-filter: blur(4px);
+    }
+
+    .type-filter-modal {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        width: 500px;
+        max-width: 95%;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        z-index: 9999;
+        padding: 25px;
+        overflow: hidden;
+    }
+
+    .type-checkbox-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 20px;
+        margin-bottom: 25px;
+        max-height: 350px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+
+    .type-item-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 15px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: 0.2s;
+        font-size: 13px;
+        font-weight: 700;
+        color: #334155;
+    }
+
+        .type-item-label:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+    .type-checkbox {
+        width: 18px;
+        height: 18px;
+        accent-color: #0891b2;
+        cursor: pointer;
+    }
+
+    /* --- Khoá cuộn trang: chỉ bảng được cuộn --- */
+    /* Wrapper của view cao 100vh + flex mặc định co lại (flex-shrink:1) sẽ bóp
+       thanh tiêu đề/thẻ số xuống dưới chiều cao nội dung -> chữ đè nhau.
+       Khoá các khối ngoài vùng cuộn ở kích thước thật của chúng. */
+    html.fp-lock .fp-page {
+        min-height: 0 !important;
+        display: flex;
+        flex-direction: column;
+    }
+
+    html.fp-lock .fp-chain > *:not(.fp-grow) {
+        flex: 0 0 auto;
+    }
+
+    html.fp-lock .pagination-container {
+        flex: 0 0 auto;
+        padding: 8px 0 0 !important;
+        margin-top: 0 !important;
+    }
 </style>
 
-<div style="background: #f1f5f9; min-height: 100vh; padding: 25px; font-family: 'Inter', sans-serif; color: #1e293b;">
-    <div style="max-width: 1600px; margin: 0 auto;">
+<div class="fp-page" style="background: #f1f5f9; min-height: 100vh; padding: 12px; font-family: 'Inter', sans-serif; color: #1e293b;">
+    <div style="max-width: 100%; margin: 0 auto;">
 
         @* --- TOP BAR --- *@
-        <div class="mobile-top-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 15px;">
-            <h2 style="margin: 0; color: #0891b2; font-weight: 800; font-size: 24px; display: flex; align-items: center; gap: 10px;">
-                <span style="background: #0891b2; color: white; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(8, 145, 178, 0.2);">
+        <div class="mobile-top-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 15px;">
+            <h2 style="margin: 0; color: #1e293b; font-weight: 800; font-size: 18px; display: flex; align-items: center; gap: 10px;">
+                <span style="background: #0891b2; color: white; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(8, 145, 178, 0.2);">
                     <i class="fa fa-bar-chart"></i>
                 </span>
                 XUẤT BÁO CÁO SHD (ĐÃ HOÀN TẤT)
@@ -316,7 +407,7 @@
                 </div>
 
                 <div class="mobile-search-input" style="position: relative;">
-                    <i class="fa fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px; font-weight: 900;"></i>
+                    <i class="fa fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px; font-weight: 800;"></i>
                     <input type="text" id="quickSearch" onkeyup="applyAllFilters()" placeholder="Tìm tên, bộ phận, mã đơn..."
                            style="padding: 10px 15px 10px 40px; border-radius: 12px; border: 2px solid #cbd5e1; font-size: 14px; width: 300px; outline: none; font-weight: 700; width: 100%; box-sizing: border-box;">
                 </div>
@@ -325,14 +416,14 @@
                     <i class="fa fa-filter"></i> <span class="d-none d-md-inline">Phân loại đơn</span>
                 </button>
 
-                <div style="font-size: 11px; background: #0891b2; padding: 8px 15px; border-radius: 8px; font-weight: 900; color: #ffffff; text-transform: uppercase; text-align: center;">
+                <div style="font-size: 11px; background: #0891b2; padding: 8px 15px; border-radius: 8px; font-weight: 800; color: #ffffff; text-transform: uppercase; text-align: center;">
                     @currentUserRole
                 </div>
             </div>
         </div>
 
         @* --- BỘ LỌC NÂNG CAO DROPDOWN MULTI-CHECKBOX --- *@
-        <div style="background: white; padding: 20px; border-radius: 20px; border: 1px solid #e2e8f0; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+        <div data-fp-filter style="background: white; padding: 10px 14px; border-radius: 14px; border: 1px solid #e2e8f0; margin-bottom: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
             <form id="exportForm" action="/FormSHD/ExportExcelSHD" method="get" class="filter-form" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
 
                 <div style="display: flex; flex-direction: column; gap: 5px; flex-grow: 1;">
@@ -393,28 +484,28 @@
         </div>
 
         @* --- STATS ROW --- *@
-        <div class="mobile-stat-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 25px;">
-            <div class="stat-card" style="background: white; padding: 20px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                <div style="font-size: 10px; font-weight: 900; color: #1e293b; text-transform: uppercase; margin-bottom: 5px;">TỔNG HOÀN TẤT</div>
-                <div id="stat-total" style="font-size: 26px; font-weight: 800; color: #1e293b;">0</div>
+        <div class="mobile-stat-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px;">
+            <div class="stat-card" style="background: white; padding: 9px 14px; border-radius: 12px; border: 2px solid rgba(0,0,0,0.03); text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <div style="font-size: 10px; font-weight: 800; color: #1e293b; text-transform: uppercase; margin-bottom: 5px;">TỔNG HOÀN TẤT</div>
+                <div id="stat-total" style="font-size: 22px; font-weight: 800; color: #1e293b;">0</div>
             </div>
-            <div class="stat-card" style="background: #ecfeff; padding: 20px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.03); text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                <div style="font-size: 10px; font-weight: 900; color: #0891b2; text-transform: uppercase; margin-bottom: 5px;">KẾT QUẢ TÌM KIẾM</div>
-                <div id="stat-shd" style="font-size: 26px; font-weight: 800; color: #0891b2;">0</div>
+            <div class="stat-card" style="background: #ecfeff; padding: 9px 14px; border-radius: 12px; border: 2px solid rgba(0,0,0,0.03); text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <div style="font-size: 10px; font-weight: 800; color: #0891b2; text-transform: uppercase; margin-bottom: 5px;">KẾT QUẢ TÌM KIẾM</div>
+                <div id="stat-shd" style="font-size: 22px; font-weight: 800; color: #0891b2;">0</div>
             </div>
         </div>
 
         @* --- TABLE AREA --- *@
-        <div id="tableViewWrap" style="background: white; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
+        <div id="tableViewWrap" data-fp-scroll style="background: white; border-radius: 14px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
             <table id="dataTable" style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr style="background: #f8fafc; border-bottom: 3px solid #e2e8f0;">
-                        <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Nhân viên</th>
-                        <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Thông tin đơn</th>
-                        <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Người Hỗ Trợ</th>
-                        <th style="padding: 18px 20px; text-align: left; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase; width: 180px;">Thông tin hoàn tất</th>
-                        <th style="padding: 18px 20px; text-align: center; color: #475569; font-size: 11px; font-weight: 900; text-transform: uppercase;">Trạng thái</th>
-                        <th style="padding: 18px 20px; text-align: right;"></th>
+                        <th style="padding: 8px 14px; text-align: left; color: #475569; font-size: 11px; font-weight: 800; text-transform: uppercase;">Nhân viên</th>
+                        <th style="padding: 8px 14px; text-align: left; color: #475569; font-size: 11px; font-weight: 800; text-transform: uppercase;">Thông tin đơn</th>
+                        <th style="padding: 8px 14px; text-align: left; color: #475569; font-size: 11px; font-weight: 800; text-transform: uppercase;">Người Hỗ Trợ</th>
+                        <th style="padding: 8px 14px; text-align: left; color: #475569; font-size: 11px; font-weight: 800; text-transform: uppercase; width: 180px;">Thông tin hoàn tất</th>
+                        <th style="padding: 8px 14px; text-align: center; color: #475569; font-size: 11px; font-weight: 800; text-transform: uppercase;">Trạng thái</th>
+                        <th style="padding: 8px 14px; text-align: right;"></th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -429,12 +520,12 @@
         </div>
         
         @* --- LƯỚI THẺ (dạng xem thứ hai, bật/tắt trong Cài đặt giao diện) --- *@
-        <div id="cardViewWrap" style="display: none;">
+        <div id="cardViewWrap" data-fp-scroll style="display: none;">
             <div id="cardViewGrid" class="card-view-grid"></div>
         </div>
 
         @* --- PHẦN PHÂN TRANG --- *@
-        <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-top: 5px;">
+        <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; margin-top: 5px;">
             <div id="paginationButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
             <div style="text-align: right;">
                 <div style="color: #64748b; font-size: 13px; font-weight: 700;">
@@ -453,7 +544,7 @@
 <div id="modalOverlay" class="modal-overlay" onclick="closeTypeFilterModal()"></div>
 <div id="typeFilterModal" class="type-filter-modal">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px;">
-        <h3 style="margin: 0; color: #0f172a; font-size: 20px; font-weight: 900; display: flex; align-items: center; gap: 12px;">
+        <h3 style="margin: 0; color: #0f172a; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 12px;">
             <i class="fa fa-layer-group" style="color: #0891b2;"></i> DANH MỤC SHD
         </h3>
         <button onclick="closeTypeFilterModal()" style="background: #f1f5f9; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer;">&times;</button>
@@ -837,13 +928,13 @@
 
                 html += `
                     <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative" style="border-left: 6px solid #312e81 !important;">
-                        <td data-label="Nhân viên" style="padding: 15px 20px;">
+                        <td data-label="Nhân viên" style="padding: 8px 14px;">
                             <div class="mobile-td-val">
-                                <div style="font-weight: 1000; color: #0f172a; font-size: 14px;">${item.tenNguoiNv}</div>
+                                <div style="font-weight: 800; color: #0f172a; font-size: 14px;">${item.tenNguoiNv}</div>
                                 <div style="font-size: 11px; color: #64748b; font-weight: 800;">${item.boPhan} • <span style="color: #312e81;">MS: ${item.soNhanVien}</span></div>
                             </div>
                         </td>
-                        <td data-label="Thông tin đơn" style="padding: 15px 20px;">
+                        <td data-label="Thông tin đơn" style="padding: 8px 14px;">
                             <div class="mobile-td-val">
                                 <div style="font-weight: 800; color: #1e293b; font-size: 14px;">${item.tenForm}</div>
                                 <div style="font-size: 11px; color: #64748b; font-weight: 700; display: flex; gap: 5px; flex-wrap: wrap; align-items: center; margin-top:4px; justify-content: flex-end;">
@@ -851,10 +942,10 @@
                                 </div>
                             </div>
                         </td>
-                        <td data-label="Hỗ trợ" style="padding: 15px 20px;">
+                        <td data-label="Hỗ trợ" style="padding: 8px 14px;">
                             <div class="mobile-td-val" style="gap: 5px;">${supportHtml}</div>
                         </td>
-                        <td data-label="Hoàn tất" style="padding: 15px 20px;">
+                        <td data-label="Hoàn tất" style="padding: 8px 14px;">
                             <div class="mobile-td-val">
                                 <div style="font-size: 11px; font-weight: 600; color: #0891b2;">
                                     <i class="fa fa-check-square-o"></i> ${item.tenAdmin}
@@ -864,13 +955,13 @@
                                 </div>
                             </div>
                         </td>
-                        <td data-label="Trạng thái" style="padding: 15px 20px; text-align: center;">
+                        <td data-label="Trạng thái" style="padding: 8px 14px; text-align: center;">
                             <span style="background:#ecfdf5; color:#047857; padding:6px 12px; border-radius:8px; font-size:10px; font-weight: 700; border: 1.5px solid #047857; display: inline-block; min-width: 100px; text-transform: uppercase;">
                                 ${item.trangThai}
                             </span>
                         </td>
-                        <td style="padding: 15px 20px; text-align: right;">
-                            <a href="/FormSHD/ChiTiet/${item.id}" style="text-decoration: none; padding: 10px 20px; border-radius: 10px; font-size: 11px; font-weight: 1000; display: inline-block; transition: 0.2s; background: #0891b2; color: #ffffff; width: 100%; text-align: center; box-sizing: border-box;">
+                        <td style="padding: 8px 14px; text-align: right;">
+                            <a href="/FormSHD/ChiTiet/${item.id}" style="text-decoration: none; padding: 10px 20px; border-radius: 10px; font-size: 11px; font-weight: 800; display: inline-block; transition: 0.2s; background: #0891b2; color: #ffffff; width: 100%; text-align: center; box-sizing: border-box;">
                                 Chi tiết <i class="fa fa-arrow-right" style="margin-left: 5px;"></i>
                             </a>
                         </td>
@@ -904,4 +995,5 @@
             }
         }
     </script>
+    <script src="~/js/fixed-page-layout.js" defer></script>
 }

@@ -75,12 +75,13 @@
         padding: 12px 14px;
         border-radius: 14px;
         border: 1px solid var(--border-hairline);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
         margin-bottom: 12px;
         position: relative;
     }
 
     .chart-header {
-        font-weight: 700;
+        font-weight: 800;
         color: var(--ink-primary);
         margin-bottom: 10px;
         font-size: 15px;
@@ -161,17 +162,8 @@
         padding: 10px 14px;
         border-radius: 14px;
         border: 1px solid var(--border-hairline);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
         margin-bottom: 10px;
-    }
-
-    /* Tiêu đề nằm chung thanh lọc */
-    .bc-title {
-        font-weight: 800;
-        color: var(--ink-primary);
-        margin: 0 8px 4px 0;
-        font-size: 17px;
-        white-space: nowrap;
-        align-self: center;
     }
 
     .bc-field {
@@ -186,7 +178,64 @@
             color: #475569;
         }
 
-    /* Dải KPI: 5 ô một hàng, thay 5 thẻ có icon cao ~80px */
+    /* Khối tiêu đề trang, dựng theo trang báo cáo SHD: icon gradient + mô tả + nút làm mới */
+    .bc-page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .bc-page-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+        font-size: 19px;
+        font-weight: 800;
+        color: var(--ink-primary);
+    }
+
+    .bc-page-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 15px;
+        background: linear-gradient(135deg, #2a78d6, #1e40af);
+    }
+
+    .bc-page-sub {
+        margin: 2px 0 0 44px;
+        color: var(--ink-secondary);
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .bc-btn-reset {
+        background: #fff;
+        border: 2px solid var(--border-hairline);
+        padding: 8px 16px;
+        border-radius: 14px;
+        font-weight: 800;
+        font-size: 13px;
+        color: #475569;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+        .bc-btn-reset:hover {
+            border-color: #94a3b8;
+            color: #1e293b;
+        }
+
+    /* Dải KPI: thẻ kiểu bên SHD — nền trắng, viền trên tô màu trạng thái,
+       số căn giữa. Giữ nguyên id (lblTotal, lblWaitQL…) để JS không phải sửa. */
     .bc-kpi-strip {
         display: grid;
         grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -197,25 +246,36 @@
     .bc-kpi {
         display: flex;
         flex-direction: column;
-        line-height: 1.15;
+        justify-content: center;
+        text-align: center;
+        min-width: 0;
         background: white;
-        border: 1px solid var(--border-hairline);
-        border-left: 4px solid var(--kpi-c, #64748b);
-        border-radius: 10px;
-        padding: 7px 12px;
+        border: 1.5px solid var(--border-hairline);
+        border-top: 5px solid var(--kpi-c, #64748b);
+        border-radius: 14px;
+        padding: 9px 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        transition: 0.25s;
     }
 
+        .bc-kpi:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.08);
+        }
+
     .bc-kpi-label {
-        font-size: 11px;
-        font-weight: 700;
+        font-size: 10.5px;
+        font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: .3px;
+        letter-spacing: .5px;
         color: var(--ink-secondary);
+        margin-bottom: 6px;
     }
 
     .bc-kpi-value {
         font-size: 21px;
         font-weight: 800;
+        line-height: 1;
         color: var(--kpi-c, #0f172a);
         font-variant-numeric: tabular-nums;
     }
@@ -446,6 +506,20 @@
 
 <div class="dashboard-container" style="margin: 8px auto; padding: 0 12px;">
 
+    @* --- HEADER: tiêu đề + mô tả + nút làm mới, bố cục theo trang báo cáo SHD --- *@
+    <div class="bc-page-header">
+        <div>
+            <h2 class="bc-page-title">
+                <span class="bc-page-icon"><i class="fa fa-bar-chart"></i></span>
+                HỆ THỐNG PHÂN TÍCH DỮ LIỆU IT
+            </h2>
+            <p class="bc-page-sub">Báo cáo trực quan tình trạng đơn &amp; năng suất xử lý của bộ phận IT</p>
+        </div>
+        <button type="button" class="bc-btn-reset" onclick="clearAllFilters()">
+            <i class="fa fa-refresh"></i> Làm mới bộ lọc
+        </button>
+    </div>
+
     @* --- BANNER HIỂN THỊ LỖI --- *@
     <div id="lblError" class="error-banner">
         <i class="fa fa-exclamation-triangle" style="font-size: 16px;"></i>
@@ -455,7 +529,6 @@
     @* --- BỘ LỌC THỜI GIAN VÀ DROPDOWN CHECKBOX NGƯỜI HỖ TRỢ --- *@
     @* Tiêu đề nằm luôn trong thanh lọc để bớt một khối tiêu đề 2 dòng phía trên *@
     <div class="filter-wrapper">
-        <h2 class="bc-title"><i class="fa fa-dashboard" style="color: #2a78d6;"></i> Báo cáo thống kê IT</h2>
 
         <div class="bc-field">
             <label>Từ ngày</label>
@@ -714,6 +787,16 @@
     }
 
     renderTable(cachedDataStaff);
+    }
+
+    // Nút "Làm mới bộ lọc" ở thanh tiêu đề: xoá ngày, bỏ chọn người hỗ trợ rồi tải lại số liệu
+    function clearAllFilters() {
+    document.getElementById('txtFromDate').value = "";
+    document.getElementById('txtToDate').value = "";
+    $('.chk-staff').prop('checked', false);
+    selectedStaffFilter = [];
+    updateDropdownButtonLabel();
+    initStats();
     }
 
     async function initStats() {

@@ -3,24 +3,56 @@
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 }
 
+<link rel="stylesheet" href="~/css/fixed-page-layout.css" />
+
+<style>
+    /* --- Khoá cuộn trang: chỉ danh sách nhật ký được cuộn --- */
+    /* Wrapper cao 100vh + flex-shrink mặc định sẽ bóp tiêu đề/tab lọc xuống dưới
+       chiều cao thật của chúng -> nội dung đè nhau. Khoá chúng ở kích thước thật. */
+    html.fp-lock .fp-page {
+        min-height: 0 !important;
+        display: flex;
+        flex-direction: column;
+    }
+
+    html.fp-lock .fp-chain > *:not(.fp-grow) {
+        flex: 0 0 auto;
+    }
+
+    html.fp-lock #logContainer {
+        padding-right: 4px;
+    }
+
+    html.fp-lock #paginationWrapper {
+        flex: 0 0 auto;
+        padding: 8px 0 0 !important;
+    }
+
+    /* Đi bằng phím Tab cũng phải thấy rõ đang ở bản ghi nào, như khi rê chuột */
+    #logContainer a:focus-visible .card-inner {
+        outline: 3px solid #0284c7;
+        outline-offset: 2px;
+    }
+</style>
+
 @* Container chính *@
-<div id="mainAppContainer" style="background-color: #f0f9ff; background-image: radial-gradient(#bae6fd 1px, transparent 1px); background-size: 20px 20px; min-height: 100vh; padding: 40px 20px; font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; transition: all 0.3s ease;" class="main-container">
-    <div style="max-width: 1100px; margin: 0 auto;">
+<div id="mainAppContainer" style="background-color: #f0f9ff; background-image: radial-gradient(#bae6fd 1px, transparent 1px); background-size: 20px 20px; min-height: 100vh; padding: 12px; transition: all 0.3s ease;" class="main-container fp-page">
+    <div style="max-width: 100%; margin: 0 auto;">
 
         @* --- HEADER SECTION --- *@
-        <div id="headerSection" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid #bae6fd; padding-bottom: 20px; flex-wrap: wrap; gap: 20px;">
+        <div id="headerSection" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; border-bottom: 2px solid #bae6fd; padding-bottom: 10px; flex-wrap: wrap; gap: 12px;">
             <div style="flex: 1; min-width: 300px;">
-                <h1 style="margin: 0; color: #0c4a6e; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 15px;">
-                    <span style="background: linear-gradient(135deg, #0c4a6e 0%, #0284c7 100%); color: white; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 12px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);">
+                <h1 style="margin: 0; color: #0c4a6e; font-size: 19px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 15px;">
+                    <span style="background: linear-gradient(135deg, #0c4a6e 0%, #0284c7 100%); color: white; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 12px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);">
                         <i class="fa fa-history"></i>
                     </span>
                     NHẬT KÝ HỆ THỐNG IT
                 </h1>
-                <p id="headerSubtitle" style="margin: 8px 0 0 60px; color: #0369a1; font-size: 15px; font-weight: 500;">Theo dõi quy trình xử lý đơn IT theo thời gian thực</p>
+                <p id="headerSubtitle" style="margin: 2px 0 0 44px; color: #0369a1; font-size: 12px; font-weight: 500;">Theo dõi quy trình xử lý đơn IT theo thời gian thực</p>
             </div>
 
             <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; width: auto;">
-                <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 10px 15px; border-radius: 14px; border: 2px solid #bae6fd; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                <div style="display: flex; align-items: center; gap: 10px; background: white; padding: 7px 12px; border-radius: 10px; border: 1.5px solid #bae6fd; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                     <span style="font-size: 12px; font-weight: 700; color: #0369a1;">Hiển thị:</span>
                     <select id="pageSizeSelect" onchange="changePageSize()" style="border: none; outline: none; font-weight: 800; color: #0284c7; cursor: pointer; background: transparent; font-size: 14px;">
                         <option value="10">10</option>
@@ -35,16 +67,16 @@
                 <div style="position: relative; flex-grow: 1;">
                     <i class="fa fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #0284c7; z-index: 10;"></i>
                     <input type="text" id="logSearch" oninput="handleFilterAndPaginate()" placeholder="Tìm tên đơn, mã đơn..."
-                           style="padding: 14px 20px 14px 45px; border-radius: 14px; border: 2px solid white; width: 100%; min-width: 250px; max-width: 350px; outline: none; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-size: 14px; font-weight: 600; color: #0c4a6e;">
+                           style="padding: 9px 16px 9px 40px; border-radius: 10px; border: 1.5px solid #bae6fd; width: 100%; min-width: 250px; max-width: 350px; outline: none; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-size: 14px; font-weight: 600; color: #0c4a6e;">
                 </div>
             </div>
         </div>
 
         @* --- FILTER TABS (Rendered via JS for Dynamic Active Styles) --- *@
-        <div id="filterTabsContainer" style="display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap;"></div>
+        <div id="filterTabsContainer" style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;"></div>
 
         @* --- LOG CONTAINER --- *@
-        <div id="logContainer" style="display: flex; flex-direction: column; gap: 16px;">
+        <div id="logContainer" data-fp-scroll style="display: flex; flex-direction: column; gap: 8px;">
             <div style="text-align: center; padding: 50px; color: #0369a1; background: white; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border:1px solid #e6f7ff;">
                 <i class="fa fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 15px; color: #0284c7;"></i>
                 <p style="font-weight: 600;">Đang đồng bộ dữ liệu nhật ký...</p>
@@ -52,7 +84,7 @@
         </div>
 
         @* --- TỔNG KẾT --- *@
-        <div id="paginationWrapper" style="display: flex; justify-content: flex-end; align-items: center; padding: 20px 0; border-top: 2px solid #bae6fd; margin-top: 20px; flex-wrap: wrap; gap: 20px;">
+        <div id="paginationWrapper" style="display: flex; justify-content: flex-end; align-items: center; padding: 8px 0 0; border-top: 2px solid #bae6fd; margin-top: 20px; flex-wrap: wrap; gap: 20px;">
             <div id="paginationInfo" style="text-align: right;">
                 <div style="color: #0284c7; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;">
                     Đang hiển thị <span id="totalVisibleCount" style="color: #0c4a6e;">0</span> / <span id="totalFilteredCount">0</span> bản ghi
@@ -127,13 +159,13 @@
         container.innerHTML = Object.keys(statusConfigs).map(key => {
             const config = statusConfigs[key];
             const isActive = currentFilterStatus === key;
-            const activeStyle = isActive ? `background: #0284c7; color: white; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);` : `background: white; color: ${config.color};`;
+            const activeStyle = isActive ? `background: #0284c7; color: white; border-color: #0284c7; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);` : `background: white; color: ${config.color};`;
 
             return `
                 <button onclick="filterByStatus('${key}')"
                     onmouseenter="if('${currentFilterStatus}' !== '${key}') { this.style.transform='translateY(-2px)'; this.style.background='#f0f9ff'; }"
                     onmouseleave="if('${currentFilterStatus}' !== '${key}') { this.style.transform='translateY(0)'; this.style.background='white'; }"
-                    style="padding: 8px 16px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.04); ${activeStyle}">
+                    style="padding: 7px 14px; border-radius: 10px; border: 1.5px solid #bae6fd; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.04); ${activeStyle}">
                     ${config.label}
                 </button>
             `;
@@ -206,32 +238,32 @@
 
             const cardBg = log.isCanceled ? "#fef2f2" : "white";
             const cardBorder = log.isCanceled ? "#fecaca" : "#bae6fd";
-            const cardInnerStyle = `background: ${cardBg}; border-radius: 20px; padding: 20px; border: 1px solid ${cardBorder}; display: flex; flex-direction: ${isMobile ? 'column' : 'row'}; align-items: ${isMobile ? 'flex-start' : 'center'}; gap: 20px; position: relative; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(15,23,42,0.02); transition: all 0.3s ease;`;
+            const cardInnerStyle = `background: ${cardBg}; border-radius: 14px; padding: 10px 14px; border: 1.5px solid ${cardBorder}; display: flex; flex-direction: ${isMobile ? 'column' : 'row'}; align-items: ${isMobile ? 'flex-start' : 'center'}; gap: 14px; position: relative; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(15,23,42,0.02); transition: all 0.3s ease;`;
 
             const timeBlockStyle = isMobile
                 ? `width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #bae6fd; padding-bottom: 10px;`
-                : `min-width: 100px; text-align: center; border-right: 1px dashed ${cardBorder}; padding-right: 20px;`;
+                : `min-width: 84px; text-align: center; border-right: 1px dashed ${cardBorder}; padding-right: 14px;`;
 
             htmlString += `
                 <a href="/FormIT/ChiTiet/${log.idFormIt}"
-                   onmouseenter="if(window.innerWidth > 768) { this.style.transform='translateX(8px)'; this.querySelector('.card-inner').style.borderColor='${log.statusColor}'; this.querySelector('.card-inner').style.boxShadow='0 15px 20px -5px ${log.statusColor}25'; }"
-                   onmouseleave="if(window.innerWidth > 768) { this.style.transform='translateX(0)'; this.querySelector('.card-inner').style.borderColor='${cardBorder}'; this.querySelector('.card-inner').style.boxShadow='0 10px 15px -3px rgba(15,23,42,0.02)'; }"
-                   style="text-decoration: none; display: block; border-radius: 20px; transition: all 0.3s ease; outline: none;">
+                   onmouseenter="if(window.innerWidth > 768) { this.querySelector('.card-inner').style.borderWidth='2px'; this.querySelector('.card-inner').style.background='#f0f9ff'; this.querySelector('.card-inner').style.borderColor='${log.statusColor}'; this.querySelector('.card-inner').style.boxShadow='0 15px 20px -5px ${log.statusColor}25'; }"
+                   onmouseleave="if(window.innerWidth > 768) { this.querySelector('.card-inner').style.borderWidth='1.5px'; this.querySelector('.card-inner').style.background='${cardBg}'; this.querySelector('.card-inner').style.borderColor='${cardBorder}'; this.querySelector('.card-inner').style.boxShadow='0 10px 15px -3px rgba(15,23,42,0.02)'; }"
+                   style="text-decoration: none; display: block; border-radius: 14px; transition: all 0.2s ease; outline: none;">
                     <div class="card-inner" style="${cardInnerStyle}">
                         <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: ${log.statusColor};"></div>
 
                         <div style="${timeBlockStyle}">
-                            <div style="font-size: 20px; font-weight: 800; color: #1e293b;">${log.timeHHmm}</div>
+                            <div style="font-size: 18px; font-weight: 800; color: #1e293b;">${log.timeHHmm}</div>
                             <div style="font-size: 12px; font-weight: 700; color: #64748b;">${log.timeDDMM}</div>
                         </div>
 
                         <div style="flex-grow: 1; width: 100%;">
-                            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
-                                <span style="background: ${log.actionColor}; color: white; padding: 3px 10px; border-radius: 8px; font-size: 10px; font-weight: 700; text-transform: uppercase;">${log.tieuDe}</span>
-                                <span style="background: ${log.statusColor}15; color: ${log.statusColor}; padding: 3px 10px; border-radius: 8px; font-size: 10px; font-weight: 700; border: 1px solid ${log.statusColor}30;"><i class="fa ${iconClass}"></i> ${log.statusText}</span>
+                            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 6px;">
+                                <span style="background: ${log.actionColor}; color: white; padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; text-transform: uppercase;">${log.tieuDe}</span>
+                                <span style="background: ${log.statusColor}15; color: ${log.statusColor}; padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; border: 1px solid ${log.statusColor}30;"><i class="fa ${iconClass}"></i> ${log.statusText}</span>
                                 <span style="color: #0c4a6e; font-size: 13px; font-weight: 700; background: #f0f9ff; padding: 3px 10px; border-radius: 8px; border: 1px solid #bae6fd;">#${log.idFormIt} - ${log.tenForm}</span>
                             </div>
-                            <div style="color: #334155; font-size: 14px; line-height: 1.5; font-weight: 500; margin-bottom: 10px;">${log.mota}</div>
+                            <div style="color: #334155; font-size: 14.5px; line-height: 1.55; font-weight: 500; margin-bottom: 8px;">${log.mota}</div>
                             <div style="display: flex; gap: 12px; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 8px; flex-wrap: wrap;">
                                 <div style="font-size: 11px; color: #64748b; font-weight: 600;"><i class="fa fa-user-circle"></i> BQT xác nhận: <span style="color: #1e293b;">${log.tenAdmin}</span></div>
                                 ${log.kyThuatTen ? `<div style="font-size: 11px; color: #0369a1; font-weight: 700;"><i class="fa fa-users"></i> Nhân sự thực hiện: ${log.kyThuatTen}</div>` : ""}
@@ -244,3 +276,5 @@
         container.innerHTML = htmlString;
     }
 </script>
+
+<script src="~/js/fixed-page-layout.js" defer></script>

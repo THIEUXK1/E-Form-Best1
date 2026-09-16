@@ -81,6 +81,31 @@
             box-shadow: 0 0 0 .2rem rgba(37, 99, 235, .12);
         }
 
+    /* Tiêu đề nằm ngay đầu thanh công cụ (trang này không có khối tiêu đề riêng
+       để nhường chiều cao cho bảng), huy hiệu icon gradient theo trang báo cáo SHD */
+    .tscn-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #1e293b;
+        white-space: nowrap;
+        margin: 0 4px 0 0;
+    }
+
+    .tscn-title-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 14px;
+        background: linear-gradient(135deg, #2a78d6, #1e40af);
+    }
+
     .tscn-toolbar {
         display: flex;
         flex-wrap: wrap;
@@ -255,6 +280,7 @@
     <div class="card tscn-filter-card mb-2">
         <div class="card-body py-2 px-3">
             <div class="tscn-toolbar">
+                <h4 class="tscn-title"><span class="tscn-title-icon"><i class="fa fa-desktop"></i></span>Danh sách máy tính</h4>
                 <div class="input-group input-group-sm tscn-o-tim">
                     <span class="input-group-text bg-white text-secondary border-end-0"><i class="fa fa-search"></i></span>
                     <input type="text" id="txtTimKiemMay" class="form-control border-start-0 ps-0" placeholder="Tìm tên máy..." />

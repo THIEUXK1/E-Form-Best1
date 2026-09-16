@@ -76,11 +76,12 @@
         padding: 12px 14px;
         border-radius: 14px;
         border: 1px solid var(--border-hairline);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
         margin-bottom: 12px;
     }
 
     .chart-header {
-        font-weight: 700;
+        font-weight: 800;
         color: var(--ink-primary);
         margin-bottom: 10px;
         font-size: 15px;
@@ -226,48 +227,87 @@
         flex-direction: column;
         gap: 2px;
     }
-
-    /* Thanh lệnh trên cùng: tiêu đề + 2 con số + nút biểu đồ trên một hàng,
        thay cho khối tiêu đề 2 dòng và 2 thẻ số cao 90px */
+    /* Thanh tiêu đề dựng theo trang báo cáo SHD: icon gradient + mô tả, nút thao tác bên phải */
     .mac-topbar {
         display: flex;
         align-items: center;
+        justify-content: space-between;
         gap: 12px;
         flex-wrap: wrap;
-        background: var(--surface);
-        border: 1px solid var(--border-hairline);
-        border-radius: 14px;
-        padding: 10px 14px;
         margin-bottom: 12px;
     }
 
     .mac-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
         font-weight: 800;
         color: var(--ink-primary);
         margin: 0;
-        font-size: 17px;
-        white-space: nowrap;
+        font-size: 19px;
+    }
+
+    .mac-title-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 15px;
+        background: linear-gradient(135deg, #1baf7a, #0f766e);
+    }
+
+    .mac-sub {
+        margin: 2px 0 0 44px;
+        color: var(--ink-secondary);
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    /* Hai số tổng quan: thẻ kiểu bên SHD — viền trên tô màu, số căn giữa */
+    .mac-kpi-strip {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
     }
 
     .mac-kpi {
         display: flex;
         flex-direction: column;
-        line-height: 1.15;
-        padding-left: 12px;
-        border-left: 4px solid var(--kpi-c, #64748b);
+        justify-content: center;
+        text-align: center;
+        min-width: 0;
+        background: var(--surface);
+        border: 1.5px solid var(--border-hairline);
+        border-top: 5px solid var(--kpi-c, #64748b);
+        border-radius: 14px;
+        padding: 9px 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        transition: 0.25s;
     }
 
+        .mac-kpi:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.08);
+        }
+
     .mac-kpi-label {
-        font-size: 11px;
-        font-weight: 700;
+        font-size: 10.5px;
+        font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: .3px;
+        letter-spacing: .5px;
         color: var(--ink-secondary);
+        margin-bottom: 6px;
     }
 
     .mac-kpi-value {
-        font-size: 20px;
+        font-size: 21px;
         font-weight: 800;
+        line-height: 1;
         color: var(--kpi-c, #0f172a);
         font-variant-numeric: tabular-nums;
     }
@@ -429,10 +469,23 @@
 
 <div class="dashboard-container fp-page" style="margin: 8px auto; padding: 0 12px;">
 
-    @* --- THANH LỆNH: tiêu đề + 2 con số tổng quan + nút xem biểu đồ, gom trên MỘT hàng --- *@
+    @* --- TIÊU ĐỀ TRANG: icon + mô tả bên trái, nút xem biểu đồ bên phải --- *@
     <div class="mac-topbar">
-        <h2 class="mac-title"><i class="fa fa-wifi" style="color: #1baf7a;"></i> Thống kê MAC Wi-Fi</h2>
+        <div>
+            <h2 class="mac-title">
+                <span class="mac-title-icon"><i class="fa fa-wifi"></i></span>
+                THỐNG KÊ MAC WI-FI
+            </h2>
+            <p class="mac-sub">Theo dõi lượt đăng ký Wi-Fi và số địa chỉ MAC duy nhất theo loại thiết bị</p>
+        </div>
 
+        <button id="btnToggleSummary" class="btn-action" style="background-color: white; color: #475569; border: 1px solid var(--border-hairline);" onclick="toggleSummary()">
+            <i class="fa fa-pie-chart"></i> Biểu đồ phân bổ
+        </button>
+    </div>
+
+    @* --- HAI SỐ TỔNG QUAN --- *@
+    <div class="mac-kpi-strip">
         <div class="mac-kpi" style="--kpi-c: var(--series-unique);">
             <span class="mac-kpi-label">Tổng lượt đăng ký</span>
             <span class="mac-kpi-value" id="lblTotalMac">0</span>
@@ -441,12 +494,6 @@
             <span class="mac-kpi-label">MAC duy nhất</span>
             <span class="mac-kpi-value" id="lblUniqueMac">0</span>
         </div>
-
-        <span style="flex: 1 1 auto;"></span>
-
-        <button id="btnToggleSummary" class="btn-action" style="background-color: white; color: #475569; border: 1px solid var(--border-hairline);" onclick="toggleSummary()">
-            <i class="fa fa-pie-chart"></i> Biểu đồ phân bổ
-        </button>
     </div>
 
     @* --- BIỂU ĐỒ & BẢNG CHI TIẾT (MẶC ĐỊNH BỊ ẨN) --- *@

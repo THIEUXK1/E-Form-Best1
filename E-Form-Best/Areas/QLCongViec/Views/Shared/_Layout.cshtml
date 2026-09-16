@@ -1,4 +1,4 @@
-@inject Microsoft.AspNetCore.Mvc.Localization.IHtmlLocalizer<E_Form_Best.Resources.GiaoDien> L
+﻿@inject Microsoft.AspNetCore.Mvc.Localization.IHtmlLocalizer<E_Form_Best.Resources.GiaoDien> L
 @using Microsoft.AspNetCore.Localization
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
@@ -556,9 +556,6 @@
                 </div>
             </div>
 
-            <footer style="text-align:center; color:#94a3b8; font-size:0.85rem; padding-bottom: 20px;">
-                &copy; @DateTime.Now.Year - <strong>Work Management Portal</strong> - Professional Solution
-            </footer>
         </main>
     }
     else

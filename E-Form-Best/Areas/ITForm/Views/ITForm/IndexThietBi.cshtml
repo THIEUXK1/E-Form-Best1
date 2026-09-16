@@ -319,11 +319,27 @@
         }
 
     .dash-title {
-        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.15rem;
         font-weight: 800;
         color: #1e293b;
         white-space: nowrap;
         margin: 0;
+    }
+
+    /* Huy hiệu icon gradient, dựng theo trang báo cáo SHD */
+    .dash-title-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 15px;
+        background: linear-gradient(135deg, #4f46e5, #312e81);
     }
 
     .dash-search {
@@ -386,7 +402,7 @@
         @* Thanh lệnh gọn: gom tiêu đề, tìm kiếm và toàn bộ nút thao tác vào một hàng.
            Ô tìm kiếm để ngoài khối lọc để luôn dùng được kể cả khi thu gọn bộ lọc. *@
         <div class="dash-topbar">
-            <h4 class="dash-title"><i class="fas fa-laptop me-2" style="color: #4f46e5;"></i>Quản lý Thiết bị</h4>
+            <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-laptop"></i></span>Quản lý Thiết bị</h4>
 
             <div class="dash-search">
                 <input type="text" id="filterText" class="form-control rounded-3 shadow-sm" placeholder="Tìm S/N, Hostname, Account, Note..." style="border: 1px solid #e2e8f0;">

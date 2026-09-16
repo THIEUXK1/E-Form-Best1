@@ -12,7 +12,7 @@
 
 <style>
     body {
-        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+        font-family: 'Inter', sans-serif;
         background-color: #f1f5f9;
         color: #1e293b;
     }
@@ -22,13 +22,13 @@
         display: grid;
         grid-template-columns: repeat(7, 1fr);
         gap: 12px;
-        margin-bottom: 25px;
+        margin-bottom: 12px;
     }
 
     .stat-card {
         background: white;
-        padding: 15px 10px;
-        border-radius: 20px;
+        padding: 9px 10px;
+        border-radius: 14px;
         border: 1.5px solid #e2e8f0;
         box-shadow: 0 4px 6px rgba(0,0,0,0.02);
         transition: 0.3s;
@@ -47,7 +47,7 @@
         }
 
     .card-title {
-        font-size: 9px;
+        font-size: 10.5px;
         font-weight: 800;
         color: #64748b;
         text-transform: uppercase;
@@ -56,8 +56,8 @@
     }
 
     .card-value {
-        font-size: 22px;
-        font-weight: 1000;
+        font-size: 21px;
+        font-weight: 800;
         display: block;
         line-height: 1;
     }
@@ -65,10 +65,10 @@
     /* Container Biểu Đồ */
     .chart-container {
         background: white;
-        padding: 25px;
-        border-radius: 24px;
+        padding: 12px 14px;
+        border-radius: 14px;
         border: 1px solid #e2e8f0;
-        margin-bottom: 20px;
+        margin-bottom: 12px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.02);
         display: flex;
         flex-direction: column;
@@ -76,9 +76,9 @@
     }
 
     .chart-header {
-        font-weight: 900;
+        font-weight: 800;
         color: #1e293b;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
         font-size: 15px;
         display: flex;
         align-items: center;
@@ -98,15 +98,15 @@
             background-color: #f8fafc;
             color: #475569;
             text-align: left;
-            padding: 14px;
+            padding: 7px 12px;
             border-bottom: 2px solid #e2e8f0;
-            font-weight: 900;
+            font-weight: 800;
             text-transform: uppercase;
             font-size: 11px;
         }
 
         .custom-table td {
-            padding: 12px 14px;
+            padding: 7px 12px;
             border-bottom: 1px solid #f1f5f9;
             color: #1e293b;
             font-weight: 600;
@@ -139,10 +139,10 @@
         align-items: flex-end;
         flex-wrap: wrap;
         background: white;
-        padding: 15px 20px;
-        border-radius: 20px;
+        padding: 8px 14px;
+        border-radius: 14px;
         border: 1px solid #e2e8f0;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.02);
     }
 
@@ -230,9 +230,9 @@
         background: #fef2f2;
         border: 1px solid #fca5a5;
         color: #b91c1c;
-        padding: 12px 20px;
+        padding: 8px 14px;
         border-radius: 16px;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
         font-size: 13px;
         font-weight: 700;
         align-items: center;
@@ -441,21 +441,21 @@
     }
 </style>
 
-<div class="main-container" style="max-width: 1650px; margin: 0 auto; padding: 25px;">
+<div class="main-container" style="max-width: 100%; margin: 0 auto; padding: 12px;">
 
     @* --- HEADER --- *@
-    <div class="page-header" style="margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
+    <div class="page-header" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <h2 style="font-weight: 1000; color: #1e40af; margin: 0; font-size: 28px; display: flex; align-items: center; gap: 15px;">
-                <span style="background: linear-gradient(135deg, #0891b2, #1e40af); color: white; width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px rgba(8,145,178,0.2);">
+            <h2 style="font-weight: 800; color: #1e293b; margin: 0; font-size: 19px; display: flex; align-items: center; gap: 10px;">
+                <span style="background: linear-gradient(135deg, #0891b2, #1e40af); color: white; width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px rgba(8,145,178,0.2);">
                     <i class="fa fa-bar-chart"></i>
                 </span>
                 HỆ THỐNG PHÂN TÍCH DỮ LIỆU SHD
             </h2>
-            <p style="margin: 5px 0 0 65px; color: #64748b; font-weight: 600;">Báo cáo trực quan tình trạng hồ sơ & năng suất bộ phận Xuất Nhập Khẩu</p>
+            <p style="margin: 2px 0 0 44px; color: #64748b; font-weight: 600; font-size: 12px;">Báo cáo trực quan tình trạng hồ sơ & năng suất bộ phận Xuất Nhập Khẩu</p>
         </div>
         <div style="display: flex; gap: 10px;">
-            <button onclick="clearAllFilters()" style="background: white; border: 2px solid #e2e8f0; padding: 12px 24px; border-radius: 14px; font-weight: 800; cursor: pointer; color: #475569; transition: 0.3s; display: flex; align-items: center; gap: 8px;">
+            <button onclick="clearAllFilters()" style="background: white; border: 2px solid #e2e8f0; padding: 8px 16px; border-radius: 14px; font-weight: 800; cursor: pointer; color: #475569; transition: 0.3s; display: flex; align-items: center; gap: 8px;">
                 <i class="fa fa-refresh"></i> Làm mới bộ lọc
             </button>
         </div>
@@ -503,15 +503,15 @@
     </div>
 
     @* --- HÀNG BIỂU ĐỒ 1 --- *@
-    <div class="chart-grid-split" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 20px;">
+    <div class="chart-grid-split" style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px; margin-bottom: 12px;">
         <div class="chart-container">
             <div class="chart-header"><i class="fa fa-pie-chart" style="color: #0891b2;"></i> Phân bổ trạng thái SHD</div>
-            <div id="wrapStatus" style="height: 350px;"><canvas id="chartStatus"></canvas></div>
+            <div id="wrapStatus" style="height: 280px;"><canvas id="chartStatus"></canvas></div>
             <div class="chart-empty-state" id="emptyStatus"><i class="fa fa-pie-chart"></i>Không có dữ liệu trạng thái</div>
         </div>
         <div class="chart-container">
             <div class="chart-header"><i class="fa fa-truck" style="color: #1e40af;"></i> Lưu lượng đơn theo Bộ phận sử dụng</div>
-            <div id="wrapDept" style="height: 350px;"><canvas id="chartDept"></canvas></div>
+            <div id="wrapDept" style="height: 280px;"><canvas id="chartDept"></canvas></div>
             <div class="chart-empty-state" id="emptyDept"><i class="fa fa-bar-chart"></i>Không có dữ liệu bộ phận</div>
         </div>
     </div>
@@ -519,26 +519,26 @@
     @* --- HÀNG BIỂU ĐỒ 2: HIỆU SUẤT NHÂN VIÊN --- *@
     <div class="chart-container">
         <div class="chart-header"><i class="fa fa-users" style="color: #0891b2;"></i> Hiệu suất xử lý của Nhân sự Admin SHD <span style="font-size:11px; color:#64748b; font-weight:normal; text-transform: none;">(Bấm vào cột để lọc bảng chi tiết)</span></div>
-        <div id="wrapStaff" style="height: 400px;"><canvas id="chartStaff"></canvas></div>
+        <div id="wrapStaff" style="height: 320px;"><canvas id="chartStaff"></canvas></div>
         <div class="chart-empty-state" id="emptyStaff"><i class="fa fa-user-times"></i>Không có dữ liệu nhân viên hỗ trợ</div>
     </div>
 
     @* --- HÀNG BIỂU ĐỒ 3: DANH MỤC & LOẠI ĐƠN --- *@
-    <div class="chart-grid-split" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+    <div class="chart-grid-split" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
         <div class="chart-container">
             <div class="chart-header"><i class="fa fa-th-large" style="color: #f59e0b;"></i> Theo Danh mục</div>
-            <div id="wrapCategory" style="height: 380px;"><canvas id="chartCategory"></canvas></div>
+            <div id="wrapCategory" style="height: 300px;"><canvas id="chartCategory"></canvas></div>
             <div class="chart-empty-state" id="emptyCategory"><i class="fa fa-tags"></i>Không có dữ liệu danh mục</div>
         </div>
         <div class="chart-container">
             <div class="chart-header"><i class="fa fa-list-ul" style="color: #ef4444;"></i> Top loại đơn yêu cầu SHD</div>
-            <div id="wrapIdForm" style="height: 380px;"><canvas id="chartIdForm"></canvas></div>
+            <div id="wrapIdForm" style="height: 300px;"><canvas id="chartIdForm"></canvas></div>
             <div class="chart-empty-state" id="emptyIdForm"><i class="fa fa-code"></i>Không có dữ liệu loại đơn</div>
         </div>
     </div>
 
     @* --- BẢNG CHI TIẾT --- *@
-    <div class="chart-container" style="margin-bottom: 50px;">
+    <div class="chart-container" style="margin-bottom: 12px;">
         <div class="chart-header"><i class="fa fa-clock-o" style="color: #475569;"></i> Chỉ số thời gian xử lý trung bình theo nghiệp vụ SHD</div>
         <div id="tableFilterBadge" class="filter-badge"></div>
         <div class="table-responsive">
@@ -598,7 +598,7 @@
 
     const commonLabelOptions = {
     color: '#fff',
-    font: { weight: 'bold', family: 'Plus Jakarta Sans', size: 11 },
+    font: { weight: 'bold', family: 'Inter', size: 11 },
     formatter: (value) => value > 0 ? value : '',
     anchor: 'center',
     align: 'center'
