@@ -169,6 +169,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<KkTrangThai> KkTrangThais { get; set; }
 
+    public virtual DbSet<KkViTriDiaLy> KkViTriDiaLies { get; set; }
+
     public virtual DbSet<LichSuFormCongViec> LichSuFormCongViecs { get; set; }
 
     public virtual DbSet<LichSuFormHr> LichSuFormHrs { get; set; }
@@ -726,6 +728,14 @@ public partial class ITFormContext : DbContext
             entity.Property(e => e.TrangThai).HasDefaultValue(true);
         });
 
+        modelBuilder.Entity<KkViTriDiaLy>(entity =>
+        {
+            entity.HasKey(e => e.IdViTriDiaLy).HasName("PK_KK_ViTriDiaLy");
+
+            entity.Property(e => e.NgayTao).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.DangSuDung).HasDefaultValue(true);
+        });
+
         modelBuilder.Entity<KkLichSuThaoTac>(entity =>
         {
             entity.HasKey(e => e.IdLichSu).HasName("PK__KK_LichS__823B17723D03585D");
@@ -753,6 +763,8 @@ public partial class ITFormContext : DbContext
                 .HasConstraintName("FK_KK_ThietBi_User");
 
             entity.HasOne(d => d.IdTrangThaiNavigation).WithMany(p => p.KkThietBis).HasConstraintName("FK_ThietBi_TrangThai");
+
+            entity.HasOne(d => d.IdViTriDiaLyNavigation).WithMany(p => p.KkThietBis).HasConstraintName("FK_KK_ThietBi_ViTriDiaLy");
 
             entity.HasOne(d => d.IdboPhanNavigation).WithMany(p => p.KkThietBis)
                 .OnDelete(DeleteBehavior.SetNull)

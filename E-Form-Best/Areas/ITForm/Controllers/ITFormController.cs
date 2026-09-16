@@ -24,6 +24,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         private const string CacheKeyKkCongTy = "KkCongTies_All";
         private const string CacheKeyKkBoPhan = "KkBoPhans_All";
+        private const string CacheKeyKkViTriDiaLy = "KkViTriDiaLies_All";
 
         // Sửa constructor để nhận DI từ hệ thống
         public ITFormController(IConfiguration config, IMemoryCache cache)
@@ -6364,6 +6365,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .Include(x => x.IdboPhanNavigation)
                     .Include(x => x.IdTrangThaiNavigation)
                     .Include(x => x.IdNguoiDungNavigation) // Bắt buộc Include bảng User
+                    .Include(x => x.IdViTriDiaLyNavigation)
                     .OrderByDescending(x => x.IdThietBi) // <--- DESCENDING ĐỂ MỚI NHẤT LÊN ĐẦU
                     .Select(x => new
                     {
@@ -6396,7 +6398,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         ip = x.Ip,
                         version = x.Version,
                         error = x.Error,
-                        idMay = x.IdMay
+                        idMay = x.IdMay,
+
+                        // Các trường khai ở modal Xác nhận tài sản
+                        maNhanVien = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.MaNhanVien : null,
+                        idViTriDiaLy = x.IdViTriDiaLy,
+                        tenViTriDiaLy = x.IdViTriDiaLyNavigation != null ? x.IdViTriDiaLyNavigation.TenViTriDiaLy : null,
+                        canCaiOffice = x.CanCaiOffice,
+                        ngayTraLoiOffice = x.NgayTraLoiOffice
                     })
                     .ToList();
 
@@ -6794,6 +6803,80 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
+        // Danh mục Vị trí địa lý thực tế (Hải Dương, Nghệ An, Hưng Yên...) - ít thay đổi nên cache như Công ty/Bộ phận.
+        // Lưu ý: sửa danh mục xong dropdown chỉ đổi sau khi cache bị xoá (SaveKkViTriDiaLy tự xoá).
+        [HttpGet("/QLKiemKe/GetKkViTriDiaLys")]
+        public IActionResult GetKkViTriDiaLys()
+        {
+            try
+            {
+                if (!_cache.TryGetValue(CacheKeyKkViTriDiaLy, out var data))
+                {
+                    data = _context.KkViTriDiaLies
+                        .Where(x => x.DangSuDung)
+                        .OrderBy(x => x.ThuTu == null)   // NULL xếp cuối
+                        .ThenBy(x => x.ThuTu)
+                        .ThenBy(x => x.TenViTriDiaLy)
+                        .Select(x => new { x.IdViTriDiaLy, x.TenViTriDiaLy, x.MoTa, x.ThuTu })
+                        .ToList();
+                    _cache.Set(CacheKeyKkViTriDiaLy, data, TimeSpan.FromMinutes(30));
+                }
+                return Json(new { success = true, data = data });
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        // Thêm nhanh địa điểm ngay trong modal Xác nhận tài sản khi danh mục chưa có tỉnh cần chọn
+        [HttpPost("/QLKiemKe/SaveKkViTriDiaLy")]
+        [ValidateAntiForgeryToken]
+        public IActionResult SaveKkViTriDiaLy(string tenViTriDiaLy, string? moTa)
+        {
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
+            if (string.IsNullOrWhiteSpace(tenViTriDiaLy))
+                return Json(new { success = false, message = "Vui lòng nhập Tên vị trí địa lý." });
+
+            try
+            {
+                string ten = tenViTriDiaLy.Trim();
+                string tenSoSanh = ten.ToLower();
+
+                // DB đã có unique index, nhưng chặn sớm ở đây để trả thông báo tử tế thay vì lỗi SQL
+                var daCo = _context.KkViTriDiaLies
+                    .FirstOrDefault(x => x.TenViTriDiaLy.Trim().ToLower() == tenSoSanh);
+                if (daCo != null)
+                {
+                    // Địa điểm từng bị ẩn -> bật lại thay vì báo lỗi trùng, tránh người dùng bế tắc
+                    if (!daCo.DangSuDung)
+                    {
+                        daCo.DangSuDung = true;
+                        daCo.NgayCapNhat = DateTime.Now;
+                        _context.SaveChanges();
+                        _cache.Remove(CacheKeyKkViTriDiaLy);
+                        GhiLichSu("Cập nhật", "Vị trí địa lý", daCo.IdViTriDiaLy, $"Bật lại địa điểm: {daCo.TenViTriDiaLy}");
+                    }
+                    return Json(new { success = true, message = "Địa điểm đã có sẵn, hệ thống chọn luôn.", data = new { daCo.IdViTriDiaLy, daCo.TenViTriDiaLy } });
+                }
+
+                var moi = new KkViTriDiaLy
+                {
+                    TenViTriDiaLy = ten,
+                    MoTa = string.IsNullOrWhiteSpace(moTa) ? null : moTa.Trim(),
+                    DangSuDung = true,
+                    NgayTao = DateTime.Now
+                };
+                _context.KkViTriDiaLies.Add(moi);
+                _context.SaveChanges();
+                _cache.Remove(CacheKeyKkViTriDiaLy);
+
+                GhiLichSu("Thêm mới", "Vị trí địa lý", moi.IdViTriDiaLy, $"Tên vị trí địa lý: {ten}");
+
+                return Json(new { success = true, message = "Đã thêm địa điểm mới.", data = new { moi.IdViTriDiaLy, moi.TenViTriDiaLy } });
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
         [HttpPost("/QLKiemKe/DeleteKkBoPhan")]
         [ValidateAntiForgeryToken]
         public IActionResult DeleteKkBoPhan(int id)
@@ -7103,7 +7186,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         x.IdMay,
                         x.Ip,
                         x.Version,
-                        x.Error
+                        x.Error,
+
+                        // Các trường khai ở modal Xác nhận tài sản
+                        MaNhanVien = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.MaNhanVien : "",
+                        x.IdViTriDiaLy,
+                        TenViTriDiaLy = x.IdViTriDiaLyNavigation != null ? x.IdViTriDiaLyNavigation.TenViTriDiaLy : "",
+                        x.CanCaiOffice,
+                        x.NgayTraLoiOffice
                     })
                     .ToList(); // Tải dữ liệu về bộ nhớ trước để xử lý chuẩn hóa chuỗi tiếng Việt chuẩn xác nhất
 
@@ -7329,7 +7419,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // Dùng chung Tài khoản/Công ty/Bộ phận đã nhập ở form Xác nhận tài sản. Ghép trùng theo Serial + Loại thiết bị: có rồi thì Cập nhật, chưa có thì Thêm mới.
         [HttpPost("/QLKiemKe/ThemNhanhTaiSanKhac")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ThemNhanhTaiSanKhac(string taikhoan, string matkhau, int? idCongTy, int? idBoPhan, [FromForm] List<ThemNhanhTaiSanRow> rows)
+        public async Task<IActionResult> ThemNhanhTaiSanKhac(string taikhoan, string matkhau, int? idCongTy, int? idBoPhan, [FromForm] List<ThemNhanhTaiSanRow> rows, string? maNhanVien = null, int? idViTriDiaLy = null)
         {
             // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
             var chuaDangNhap = ChanNeuChuaDangNhap();
@@ -7351,6 +7441,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 return Json(new { success = false, message = "Vui lòng thêm ít nhất một thiết bị." });
             }
+            if (string.IsNullOrWhiteSpace(maNhanVien))
+            {
+                return Json(new { success = false, message = "Vui lòng nhập Mã nhân viên của người dùng hiện tại ở phần Xác nhận tài sản trước." });
+            }
 
             try
             {
@@ -7358,6 +7452,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (user == null)
                 {
                     return Json(new { success = false, message = loiXacThuc ?? "Tài khoản hoặc mật khẩu xác nhận không chính xác." });
+                }
+
+                // Tài sản khác cũng đứng tên người dùng thật (theo Mã nhân viên), không phải tài khoản vừa xác thực
+                var nguoiSuDung = await TimNguoiDungTheoMaNhanVien(maNhanVien);
+                if (nguoiSuDung == null)
+                {
+                    return Json(new { success = false, message = $"Không tìm thấy nhân viên đang làm việc với mã '{maNhanVien.Trim()}'." });
                 }
 
                 for (int i = 0; i < rows.Count; i++)
@@ -7413,8 +7514,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         if (!string.IsNullOrWhiteSpace(row.QuyCach)) existing.QuyCach = row.QuyCach.Trim();
                         existing.IdcongTy = idCongTy;
                         existing.IdboPhan = idBoPhan;
-                        existing.TenDangNhap = taikhoan;
-                        existing.IdNguoiDung = user.IdNguoiDung;
+                        if (idViTriDiaLy.HasValue) existing.IdViTriDiaLy = idViTriDiaLy;
+                        existing.TenDangNhap = nguoiSuDung.Tk;
+                        existing.IdNguoiDung = nguoiSuDung.IdNguoiDung;
                         existing.NgayCapNhat = DateTime.Now;
                         existing.ThoiGianCheck = DateTime.Now;
                         if (tenFileAnhMoi != null) existing.DuongDanAnh = tenFileAnhMoi;
@@ -7429,10 +7531,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             LoaiThietBi = loaiTrim,
                             QuyCach = row.QuyCach?.Trim(),
                             Seribacode = serialTrim,
-                            TenDangNhap = taikhoan,
-                            IdNguoiDung = user.IdNguoiDung,
+                            TenDangNhap = nguoiSuDung.Tk,
+                            IdNguoiDung = nguoiSuDung.IdNguoiDung,
                             IdcongTy = idCongTy,
                             IdboPhan = idBoPhan,
+                            IdViTriDiaLy = idViTriDiaLy,
                             IdTrangThai = idTrangThaiMacDinh,
                             DuongDanAnh = tenFileAnhMoi,
                             NgayTao = DateTime.Now,
@@ -7455,7 +7558,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     _context.SaveChanges();
 
                     GhiLichSu(laCapNhat ? "Cập nhật" : "Thêm mới", "Thiết Bị", thietBi.IdThietBi,
-                        $"[Tài sản khác] Serial: {serialTrim} | Loại: {loaiTrim} | Vị trí: {row.TenViTri} | Account: {taikhoan}");
+                        $"[Tài sản khác] Serial: {serialTrim} | Loại: {loaiTrim} | Vị trí: {row.TenViTri} | Người dùng: {nguoiSuDung.MaNhanVien} - {nguoiSuDung.HoTen} | Xác thực bởi: {taikhoan}");
                 }
 
                 return Json(new { success = true, message = $"Đã xử lý {rows.Count} thiết bị (Thêm mới: {soThem}, Cập nhật: {soCapNhat})." });
@@ -8560,6 +8663,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 return Redirect("/DonXetDuyet/DangNhap");
             }
+            // Điền sẵn ô Tài khoản ở modal Xác nhận tài sản bằng tài khoản đang đăng nhập (claim "MaNv" lưu User.Tk),
+            // người kiểm kê chỉ cần gõ mật khẩu; vẫn cho sửa nếu người đứng máy là người khác.
+            ViewBag.TaiKhoanDangNhap = User.FindFirst("MaNv")?.Value ?? "";
             return View();
         }
 
@@ -9097,10 +9203,19 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             x.IdNguoiDung,
                             TenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : null,
                             Tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : null,
+                            MaNhanVien = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.MaNhanVien : null,
                             x.DuongDanAnh,
                             x.TenMayTinh,
                             x.Seribacode,
-                            x.QuyCach
+                            x.QuyCach,
+                            // Vị trí/Công ty/Bộ phận đã khai lần trước của chính máy này, để modal Xác nhận tài sản điền sẵn
+                            x.TenViTri,
+                            x.IdcongTy,
+                            x.IdboPhan,
+                            x.IdViTriDiaLy,
+                            // Đáp án Office lần kiểm kê trước - chỉ để hiển thị đối chiếu, KHÔNG tự điền sẵn
+                            x.CanCaiOffice,
+                            x.NgayTraLoiOffice
                         })
                         .FirstOrDefault();
 
@@ -9246,6 +9361,33 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
+        // Đổi Mã nhân viên -> User còn đang làm việc. Dùng chung cho các endpoint kiểm kê, vì ô "Người dùng hiện tại"
+        // mới là người sử dụng thật của thiết bị, còn Tài khoản/Mật khẩu chỉ để xác thực người đang đứng máy kiểm kê.
+        private async Task<User?> TimNguoiDungTheoMaNhanVien(string? maNhanVien)
+        {
+            if (string.IsNullOrWhiteSpace(maNhanVien)) return null;
+            string ma = maNhanVien.Trim().ToLower();
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.MaNhanVien != null && u.MaNhanVien.ToLower() == ma && u.TrangThai != "Đã nghỉ");
+        }
+
+        // Tra cứu nhanh nhân viên theo mã để modal Xác nhận tài sản hiện Họ tên đối chiếu ngay khi gõ xong mã
+        [HttpGet("/QLKiemKe/TimNhanVienTheoMa")]
+        public async Task<IActionResult> TimNhanVienTheoMa(string? maNhanVien)
+        {
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
+            var nv = await TimNguoiDungTheoMaNhanVien(maNhanVien);
+            if (nv == null) return Json(new { success = false, message = "Không tìm thấy nhân viên đang làm việc với mã này." });
+
+            return Json(new
+            {
+                success = true,
+                data = new { nv.IdNguoiDung, nv.MaNhanVien, nv.HoTen, nv.Tk, nv.PhongBan }
+            });
+        }
+
         // ACTION MỚI: Xử lý khi ấn xác nhận tài sản, nhận toàn bộ dữ liệu phần cứng từ Client
         // Giữ IgnoreAntiforgeryToken như thiết kế ban đầu (endpoint tự xác thực lại bằng tài khoản/mật khẩu).
         [IgnoreAntiforgeryToken]
@@ -9275,6 +9417,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             string? tenViTri = null,    // Vị trí đặt máy - người xác nhận điền tại chỗ để đồng bộ sang KK_ThietBi
             int? idCongTy = null,
             int? idBoPhan = null,
+            string? maNhanVien = null,  // Mã nhân viên của NGƯỜI DÙNG THẬT đang sử dụng máy (khác với tài khoản dùng để xác thực)
+            int? idViTriDiaLy = null,   // Vị trí địa lý thực tế (tỉnh/địa bàn) chọn từ danh mục KK_ViTriDiaLy
+            bool? canCaiOffice = null,  // Câu hỏi bắt buộc khi kiểm kê: máy này có cần cài Office không
             IFormFile? anhThietBi = null) // Ảnh chụp thiết bị lúc xác nhận (tùy chọn)
         {
             // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
@@ -9305,6 +9450,18 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 return Json(new { success = false, message = "Vui lòng chọn Bộ phận." });
             }
+            if (string.IsNullOrWhiteSpace(maNhanVien))
+            {
+                return Json(new { success = false, message = "Vui lòng nhập Mã nhân viên của người dùng hiện tại." });
+            }
+            if (!idViTriDiaLy.HasValue)
+            {
+                return Json(new { success = false, message = "Vui lòng chọn Vị trí địa lý thực tế." });
+            }
+            if (!canCaiOffice.HasValue)
+            {
+                return Json(new { success = false, message = "Vui lòng trả lời câu hỏi: Máy này có cần cài Office hay không?" });
+            }
 
             try
             {
@@ -9314,6 +9471,21 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (user == null)
                 {
                     return Json(new { success = false, message = loiXacThuc ?? "Tài khoản hoặc mật khẩu xác nhận không chính xác." });
+                }
+
+                // Người dùng THẬT của thiết bị lấy theo Mã nhân viên vừa nhập, không phải tài khoản vừa xác thực
+                var nguoiSuDung = await TimNguoiDungTheoMaNhanVien(maNhanVien);
+                if (nguoiSuDung == null)
+                {
+                    return Json(new { success = false, message = $"Không tìm thấy nhân viên đang làm việc với mã '{maNhanVien.Trim()}'. Vui lòng kiểm tra lại Mã nhân viên." });
+                }
+
+                // Địa điểm phải có thật trong danh mục (client gửi id tuỳ ý cũng không lách được)
+                bool viTriDiaLyHopLe = await _context.KkViTriDiaLies
+                    .AnyAsync(x => x.IdViTriDiaLy == idViTriDiaLy.Value && x.DangSuDung);
+                if (!viTriDiaLyHopLe)
+                {
+                    return Json(new { success = false, message = "Vị trí địa lý thực tế không hợp lệ hoặc đã ngừng sử dụng. Vui lòng chọn lại." });
                 }
 
                 // Máy nằm trong danh sách chặn thì không cho ghi nhận/tạo mới trong hệ thống kiểm kê
@@ -9346,7 +9518,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         ThongTinOffice = thongTinOffice,
                         BanQuyenWin = banQuyenWin,
                         BanQuyenOffice = banQuyenOffice,
-                        IdNguoiDung = user.IdNguoiDung, // Lưu người gần đây nhấn xác nhận sở hữu vào bảng chính
+                        IdNguoiDung = nguoiSuDung.IdNguoiDung, // Chủ sở hữu là người dùng thật khai theo Mã nhân viên, không phải tài khoản xác thực
                         NgayCapNhat = DateTime.Now
                     };
 
@@ -9376,7 +9548,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     mayTonTai.BanQuyenWin = banQuyenWin;
                     mayTonTai.BanQuyenOffice = banQuyenOffice;
 
-                    mayTonTai.IdNguoiDung = user.IdNguoiDung; // Lưu người gần đây nhấn xác nhận sở hữu vào bảng chính
+                    mayTonTai.IdNguoiDung = nguoiSuDung.IdNguoiDung; // Chủ sở hữu là người dùng thật khai theo Mã nhân viên, không phải tài khoản xác thực
                     mayTonTai.NgayCapNhat = DateTime.Now;
 
                     // Làm sạch dữ liệu cấu hình cũ ở các bảng chi tiết nhánh để ghi đè dữ liệu mới quét tinh chỉnh
@@ -9437,9 +9609,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var lichSu = new TscnLichSuXacThucNguoiDung
                 {
                     IdMay = mayTonTai.IdMay,
-                    IdNguoiDung = user.IdNguoiDung, // Luôn lưu người vừa xác nhận vào lịch sử log
+                    IdNguoiDung = nguoiSuDung.IdNguoiDung, // Lịch sử ghi theo người dùng thật của máy
                     NgayXacThuc = DateTime.Now,
-                    GhiChu = $"Tài khoản {taikhoan} xác nhận sở hữu thiết bị này."
+                    GhiChu = $"Tài khoản {taikhoan} xác nhận máy này cho nhân viên {nguoiSuDung.MaNhanVien} - {nguoiSuDung.HoTen}."
                 };
 
                 _context.TscnLichSuXacThucNguoiDungs.Add(lichSu);
@@ -9501,6 +9673,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             if (!string.IsNullOrWhiteSpace(tenViTri)) thietBiLienKet.TenViTri = tenViTri.Trim();
                             if (idCongTy.HasValue) thietBiLienKet.IdcongTy = idCongTy;
                             if (idBoPhan.HasValue) thietBiLienKet.IdboPhan = idBoPhan;
+                            if (idViTriDiaLy.HasValue) thietBiLienKet.IdViTriDiaLy = idViTriDiaLy;
+                            thietBiLienKet.CanCaiOffice = canCaiOffice;
+                            thietBiLienKet.NgayTraLoiOffice = DateTime.Now;
                             if (!string.IsNullOrWhiteSpace(mayTonTai.SeriMay)) thietBiLienKet.Seribacode = mayTonTai.SeriMay.Trim();
                             if (!string.IsNullOrWhiteSpace(mayTonTai.DongMay)) thietBiLienKet.QuyCach = mayTonTai.DongMay.Trim();
                             thietBiLienKet.IdNguoiDung = mayTonTai.IdNguoiDung;
@@ -9526,6 +9701,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                 IdNguoiDung = mayTonTai.IdNguoiDung,
                                 IdcongTy = idCongTy,
                                 IdboPhan = idBoPhan,
+                                IdViTriDiaLy = idViTriDiaLy,
+                                CanCaiOffice = canCaiOffice,
+                                NgayTraLoiOffice = DateTime.Now,
                                 IdMay = mayTonTai.IdMay,
                                 DuongDanAnh = tenFileAnhMoi, // Ảnh đầu tiên (nếu có) được gán luôn làm ảnh chính
                                 NgayTao = DateTime.Now,
@@ -9543,13 +9721,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             IdThietBi = thietBiLienKet.IdThietBi,
                             ThoiGianCheck = DateTime.Now,
                             DuongDanAnh = tenFileAnhMoi, // null nếu không tải ảnh lên
-                            GhiChu = string.IsNullOrWhiteSpace(tenViTri) ? "Xác nhận kiểm kê" : tenViTri.Trim()
+                            // Kèm luôn câu trả lời Office vào bằng chứng để tra lại được ai khai gì ở lần kiểm kê nào
+                            GhiChu = (string.IsNullOrWhiteSpace(tenViTri) ? "Xác nhận kiểm kê" : tenViTri.Trim())
+                                     + $" | Cần cài Office: {(canCaiOffice.Value ? "Có" : "Không")}"
                         });
                         _context.SaveChanges();
                     }
                 }
 
-                return Json(new { success = true, message = $"Xác nhận tài sản thành công! Máy '{mayTonTai.TenMay}' (Serial: {seriMay}) đã được liên kết với tài khoản {taikhoan} vào lúc {lichSu.NgayXacThuc:HH:mm:ss dd/MM/yyyy}." });
+                return Json(new { success = true, message = $"Xác nhận tài sản thành công! Máy '{mayTonTai.TenMay}' (Serial: {seriMay}) đã được gán cho {nguoiSuDung.HoTen} ({nguoiSuDung.MaNhanVien}) vào lúc {lichSu.NgayXacThuc:HH:mm:ss dd/MM/yyyy}." });
             }
             catch (Exception ex)
             {

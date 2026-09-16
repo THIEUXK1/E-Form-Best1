@@ -2354,6 +2354,9 @@
         (x.quyCach && x.quyCach.toLowerCase().includes(fText)) ||
         // So khớp 2 chiều: khớp khi Serial lưu trong hệ thống chứa từ khóa tìm, HOẶC từ khóa tìm (VD: chuỗi quét mã vạch dài hơn) chứa Serial lưu trong hệ thống
         (x.seribacode && (x.seribacode.toLowerCase().includes(fText) || fText.includes(x.seribacode.toLowerCase()))) ||
+        // Tìm được cả theo Mã nhân viên và Vị trí địa lý (VD: gõ "Nghệ An" ra toàn bộ máy ở địa bàn đó)
+        (x.maNhanVien && x.maNhanVien.toLowerCase().includes(fText)) ||
+        (x.tenViTriDiaLy && x.tenViTriDiaLy.toLowerCase().includes(fText)) ||
         (x.ghiChu && x.ghiChu.toLowerCase().includes(fText))
         );
         }
@@ -2440,6 +2443,26 @@
         ? `<span class="text-success fw-bold"><i class="fas fa-user me-1"></i>${item.tenNguoiDung} <span class="text-danger fw-normal">(${item.tk || 'N/A'})</span></span>`
         : `<span class="text-muted fst-italic">Chưa xác nhận người dùng</span>`;
 
+        // Mã nhân viên của người đang đứng tên thiết bị - khai ở ô "Mã nhân viên - người dùng hiện tại" khi Xác nhận tài sản
+        let dongMaNhanVien = item.maNhanVien
+        ? `<div class="small text-muted"><i class="fas fa-id-badge me-1"></i>Mã NV: <span class="fw-semibold text-dark">${item.maNhanVien}</span></div>`
+        : '';
+
+        // Vị trí địa lý thực tế (Hải Dương, Nghệ An...) - khác với Vị trí đặt máy trong nhà xưởng
+        let dongDiaBan = item.tenViTriDiaLy
+        ? `<div class="small"><span class="badge bg-info-subtle text-info-emphasis border border-info-subtle"><i class="fas fa-location-dot me-1"></i>${item.tenViTriDiaLy}</span></div>`
+        : `<div class="small text-muted fst-italic">Chưa khai địa bàn</div>`;
+
+        // Câu trả lời kiểm kê "Máy này có cần cài Office không?" - null là chưa từng được hỏi
+        let dongOffice;
+        if (item.canCaiOffice === true) {
+        dongOffice = `<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle" title="Người dùng xác nhận cần cài Office"><i class="fas fa-file-word me-1"></i>Cần Office</span>`;
+        } else if (item.canCaiOffice === false) {
+        dongOffice = `<span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle" title="Người dùng xác nhận KHÔNG cần cài Office"><i class="fas fa-file-word me-1"></i>Không cần Office</span>`;
+        } else {
+        dongOffice = `<span class="badge bg-light text-muted border" title="Chưa trả lời câu hỏi Office khi kiểm kê"><i class="fas fa-file-word me-1"></i>Office: chưa hỏi</span>`;
+        }
+
         let locStr = [item.tenCongTy, item.tenBoPhan].filter(Boolean).join(' - ') || "Chưa gắn";
         let ttName = item.tenTrangThai || "Chưa gắn";
         let ttLower = ttName.toLowerCase();
@@ -2522,12 +2545,15 @@
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2 align-middle">
         <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px;">Người dùng & Vị trí:</span>
         <div class="small">${userStr}</div>
+        ${dongMaNhanVien}
         <div class="small text-muted text-truncate" style="max-width:220px"><i class="fas fa-map-marker-alt me-1"></i>${locStr} <span class="text-muted">·</span> <span class="text-dark fw-semibold" title="Vị trí: ${item.tenViTri || ''}">${item.tenViTri || 'Chưa có vị trí'}</span></div>
+        ${dongDiaBan}
         </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2 align-middle">
         <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px;">Trạng thái:</span>
         <div><span class="badge bg-${badgeClass}">${ttName}</span></div>
         <div class="small" style="color: #64748b;"><i class="fas fa-clock me-1"></i>${checkTimeStr}</div>
+        <div class="mt-1">${dongOffice}</div>
         </td>
         <td class="d-block d-md-table-cell text-center border-0 py-2 mt-2 mt-md-0 align-middle">
         <div class="d-flex flex-wrap gap-1 justify-content-center justify-content-md-start">
@@ -2870,9 +2896,18 @@
         html += dong('Error', item.error, 'fa-triangle-exclamation');
         html += dong('Vị trí', item.tenViTri, 'fa-map-marker-alt');
         html += dong('Người dùng', item.tenNguoiDung, 'fa-user');
+        html += dong('Mã nhân viên', item.maNhanVien, 'fa-id-card');
         html += dong('Account', item.tk || item.tenDangNhap, 'fa-id-badge');
         html += dong('Công ty', item.tenCongTy, 'fa-building');
         html += dong('Bộ phận', item.tenBoPhan, 'fa-sitemap');
+        html += dong('Vị trí địa lý thực tế', item.tenViTriDiaLy, 'fa-location-dot');
+        // Trả lời câu hỏi kiểm kê về Office; null = máy chưa từng được hỏi
+        html += dong('Cần cài Office',
+        item.canCaiOffice === true ? 'Có cần' : (item.canCaiOffice === false ? 'Không cần' : ''),
+        'fa-file-word');
+        html += dong('Ngày trả lời Office',
+        item.ngayTraLoiOffice ? new Date(item.ngayTraLoiOffice).toLocaleString('vi-VN') : '',
+        'fa-calendar-day');
         html += dong('Trạng thái', item.tenTrangThai, 'fa-toggle-on');
         if (!khongCoBanQuyen(item.loaiThietBi)) {
         html += dong('Bản quyền Windows', item.winLicense, 'fa-windows');

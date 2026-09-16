@@ -1,4 +1,4 @@
-@{
+﻿@{
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "Thông tin máy hiện tại";
 }
@@ -124,6 +124,167 @@
         color: #1e293b;
         margin: 0;
         white-space: nowrap;
+    }
+
+    /* ===== Hộp thông báo lỗi giữa màn hình =====
+       Nổi trên cả modal (modal Bootstrap z-index 1055). Nền làm mờ hậu cảnh để mắt dồn vào nội dung. */
+    .lop-phu-thong-bao {
+        position: fixed;
+        inset: 0;
+        z-index: 20000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(3px);
+        animation: hienLopPhu 0.18s ease-out;
+    }
+
+    @@keyframes hienLopPhu {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    .hop-thong-bao {
+        width: min(460px, 100%);
+        background: #fff;
+        border-radius: 20px;
+        padding: 30px 28px 24px;
+        text-align: center;
+        box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.45);
+        animation: hienHopThongBao 0.22s cubic-bezier(0.34, 1.3, 0.64, 1);
+    }
+
+    @@keyframes hienHopThongBao {
+        from {
+            opacity: 0;
+            transform: translateY(12px) scale(0.94);
+        }
+
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    .hop-thong-bao-icon {
+        width: 66px;
+        height: 66px;
+        margin: 0 auto 16px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 30px;
+        color: #fff;
+        background: linear-gradient(135deg, #f87171, #dc2626);
+        box-shadow: 0 10px 20px -6px rgba(220, 38, 38, 0.6);
+    }
+
+    .hop-thong-bao-tieude {
+        font-size: 19px;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 8px;
+    }
+
+    .hop-thong-bao-noidung {
+        font-size: 15px;
+        line-height: 1.55;
+        color: #475569;
+        margin-bottom: 20px;
+        word-break: break-word;
+    }
+
+    .hop-thong-bao-nut {
+        min-width: 140px;
+        font-weight: 700;
+        border-radius: 10px;
+        padding: 9px 22px;
+    }
+
+    /* Vạch thời gian chạy hết là hộp tự đóng - cho người dùng biết nó sắp biến mất, không phải mất đột ngột */
+    .hop-thong-bao-vach {
+        height: 3px;
+        margin: 18px -28px -24px;
+        border-radius: 0 0 20px 20px;
+        background: #fecaca;
+        overflow: hidden;
+    }
+
+        .hop-thong-bao-vach > span {
+            display: block;
+            height: 100%;
+            background: #dc2626;
+            animation: chayVachThoiGian 6s linear forwards;
+        }
+
+    @@keyframes chayVachThoiGian {
+        from {
+            width: 100%;
+        }
+
+        to {
+            width: 0;
+        }
+    }
+
+    /* Form Xác nhận tài sản chia 3 cột nên cần rộng hơn modal-xl mặc định (1140px).
+       Vẫn chừa 32px mỗi bên để không dính mép màn hình trên laptop 1366px. */
+    @@media (min-width: 1200px) {
+        .modal-xac-nhan-rong {
+            max-width: min(1500px, calc(100vw - 64px));
+        }
+    }
+
+    /* Modal Xác nhận tài sản - giao diện thích nghi:
+       - Màn hình lớn: 2 cột (thông tin người dùng | màn hình rời + tài sản khác), thân modal tự cuộn.
+       - Tablet/điện thoại (<992px): modal chiếm trọn màn hình, dồn về 1 cột, nút Gửi/Hủy dính đáy để luôn bấm được. */
+    @@media (max-width: 991.98px) {
+        #modalXacNhanTaiSan .modal-footer {
+            position: sticky;
+            bottom: 0;
+            background: #fff;
+            z-index: 5;
+        }
+
+            #modalXacNhanTaiSan .modal-footer .btn {
+                flex: 1 1 0;
+            }
+    }
+
+    @@media (max-width: 575.98px) {
+        #modalXacNhanTaiSan .modal-header {
+            padding: 10px 12px;
+        }
+
+        #modalXacNhanTaiSan .modal-title {
+            font-size: 1rem;
+        }
+
+        #modalXacNhanTaiSan .modal-body {
+            padding: 12px;
+        }
+
+        #modalXacNhanTaiSan .drag-drop-zone {
+            padding: 12px;
+        }
+
+        /* iOS tự phóng to trang khi focus ô có cỡ chữ < 16px - ép 16px để không bị nhảy layout */
+        #modalXacNhanTaiSan .form-control,
+        #modalXacNhanTaiSan .form-select {
+            font-size: 16px;
+        }
+
+        #modalXacNhanTaiSan .form-text {
+            font-size: 12px;
+        }
     }
 
     /* Bảng thông số: bớt padding, trang ngắn lại đáng kể vì có tới 22 dòng */
@@ -344,7 +505,8 @@
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <div id="modalAlertError" class="alert alert-danger p-2" style="display: none; font-size: 14px;"></div>
+                        @* Nội dung lỗi được đẩy sang hộp thông báo giữa màn hình (#lopPhuThongBao) - div này chỉ còn giữ chỗ cho code cũ *@
+                        <div id="modalAlertError" style="display: none;"></div>
                         <form id="formCheckAdminIT">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Tài khoản (TK)</label>
@@ -367,26 +529,58 @@
         </div>
 
         <div class="modal fade" id="modalXacNhanTaiSan" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalXacNhanTaiSanLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl modal-fullscreen-lg-down modal-xac-nhan-rong">
                 <div class="modal-content">
                     <div class="modal-header bg-success text-white">
                         <h5 class="modal-title" id="modalXacNhanTaiSanLabel"><i class="fa fa-check-square-o" style="margin-right: 8px;"></i>Xác nhận tài sản</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <div id="modalTaiSanAlertError" class="alert alert-danger p-2" style="display: none; font-size: 14px;"></div>
+                        <div id="modalTaiSanAlertError" style="display: none;"></div>
                         <form id="formXacNhanTaiSan" onsubmit="return false;">
-                            <div class="row">
-                                <div class="col-md-5">
+                            @* Token cho các POST có [ValidateAntiForgeryToken] gọi từ modal này (Thêm nhanh Bộ phận / Vị trí địa lý / Tài sản khác) *@
+                            @Html.AntiForgeryToken()
+                            <div class="row g-3">
+                                @* Cột 1: xác thực người kiểm kê + người dùng thật + ảnh thiết bị *@
+                                <div class="col-12 col-lg-4">
                                     <div class="mb-3">
                                         <label class="form-label fw-bold">Tài khoản</label>
-                                        <input type="text" id="txtTaiSanUser" class="form-control" placeholder="Nhập tài khoản..." required />
+                                        <input type="text" id="txtTaiSanUser" class="form-control" placeholder="Nhập tài khoản..." value="@(ViewBag.TaiKhoanDangNhap as string ?? "")" required />
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label fw-bold">Mật khẩu</label>
                                         <input type="password" id="txtTaiSanPassword" class="form-control" placeholder="Nhập mật khẩu..." required />
                                     </div>
                                     <hr />
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Mã nhân viên - người dùng hiện tại <span class="text-danger">*</span></label>
+                                        <input type="text" id="txtMaNhanVienNguoiDung" class="form-control text-uppercase" placeholder="Nhập mã nhân viên đang dùng máy này..." autocomplete="off" style="text-transform: uppercase;" required />
+                                        <div class="form-text">Tài khoản/Mật khẩu ở trên chỉ để xác thực người kiểm kê. Thiết bị sẽ đứng tên nhân viên có mã này.</div>
+                                        <div id="ketQuaTimNhanVien" class="small mt-1" style="display: none;"></div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Ảnh chụp thiết bị (tùy chọn)</label>
+                                        <div class="drag-drop-zone text-center mb-2" id="dropZoneTaiSanAnh" title="Kéo thả ảnh vào đây, click để chọn ảnh, hoặc click vào đây rồi nhấn Ctrl + V để dán ảnh" onclick="$('#fileTaiSanAnh').click();">
+                                            <div class="py-2 text-muted" id="txtTaiSanAnhHint">
+                                                <i class="fa fa-camera-retro fa-2x mb-2 text-success"></i>
+                                                <p class="mb-0 small fw-semibold">Chọn ảnh từ máy / Kéo thả ảnh / Click vào đây rồi nhấn <b>Ctrl + V</b> để dán</p>
+                                            </div>
+                                        </div>
+                                        <input type="file" id="fileTaiSanAnh" accept="image/*" capture="environment" class="d-none" onchange="previewTaiSanAnh(this)" />
+                                        <div class="text-center" id="boxPreviewTaiSanAnh" style="display: none;">
+                                            <div class="position-relative d-inline-block">
+                                                <img id="imgTaiSanAnhPreview" src="" alt="Ảnh thiết bị" style="max-height: 160px; max-width: 100%; border-radius: 10px; border: 2px dashed #10b981; padding: 3px;" />
+                                                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 start-100 translate-middle rounded-circle shadow" onclick="clearTaiSanAnh(); event.stopPropagation();" style="width: 24px; height: 24px; padding: 0; line-height: 1;">
+                                                    <i class="fa fa-times" style="font-size: 11px;"></i>
+                                                </button>
+                                            </div>
+                                            <div class="small text-muted mt-1" id="txtTaiSanAnhDaLuu" style="display: none;">Ảnh đã lưu lần trước - chọn ảnh mới nếu muốn thay</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @* Cột 2: nơi đặt máy - vị trí, công ty, bộ phận, địa bàn *@
+                                <div class="col-12 col-lg-4">
                                     <div class="mb-3">
                                         <label class="form-label fw-bold">Vị trí đặt máy <span class="text-danger">*</span></label>
                                         <input type="text" id="txtTaiSanViTri" class="form-control" placeholder="VD: Tầng 3 - Phòng Kế toán..." required />
@@ -426,25 +620,33 @@
                                         </div>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label fw-bold">Ảnh chụp thiết bị (tùy chọn)</label>
-                                        <div class="drag-drop-zone text-center mb-2" id="dropZoneTaiSanAnh" title="Kéo thả ảnh vào đây, click để chọn ảnh, hoặc click vào đây rồi nhấn Ctrl + V để dán ảnh" onclick="$('#fileTaiSanAnh').click();">
-                                            <div class="py-2 text-muted" id="txtTaiSanAnhHint">
-                                                <i class="fa fa-camera-retro fa-2x mb-2 text-success"></i>
-                                                <p class="mb-0 small fw-semibold">Chọn ảnh từ máy / Kéo thả ảnh / Click vào đây rồi nhấn <b>Ctrl + V</b> để dán</p>
-                                            </div>
+                                        <label class="form-label fw-bold d-flex justify-content-between align-items-center">
+                                            <span>Vị trí địa lý thực tế <span class="text-danger">*</span></span>
+                                            <button type="button" id="btnThemNhanhViTriDiaLy" class="btn btn-sm btn-link p-0 text-decoration-none" style="font-size: 13px;">
+                                                <i class="fa fa-plus-circle"></i> Thêm nhanh
+                                            </button>
+                                        </label>
+                                        <div class="mini-combo" id="comboViTriDiaLy">
+                                            <input type="text" class="form-control" id="searchViTriDiaLy" placeholder="🔍 Gõ để tìm (VD: Hải Dương, Nghệ An...)" autocomplete="off" />
+                                            <div class="mini-combo-menu" id="menuViTriDiaLySearch"></div>
                                         </div>
-                                        <input type="file" id="fileTaiSanAnh" accept="image/*" capture="environment" class="d-none" onchange="previewTaiSanAnh(this)" />
-                                        <div class="text-center" id="boxPreviewTaiSanAnh" style="display: none;">
-                                            <div class="position-relative d-inline-block">
-                                                <img id="imgTaiSanAnhPreview" src="" alt="Ảnh thiết bị" style="max-height: 160px; max-width: 100%; border-radius: 10px; border: 2px dashed #10b981; padding: 3px;" />
-                                                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 start-100 translate-middle rounded-circle shadow" onclick="clearTaiSanAnh(); event.stopPropagation();" style="width: 24px; height: 24px; padding: 0; line-height: 1;">
-                                                    <i class="fa fa-times" style="font-size: 11px;"></i>
-                                                </button>
+                                        <select id="ddlTaiSanViTriDiaLy" style="display:none">
+                                            <option value="">-- Chưa chọn --</option>
+                                        </select>
+                                        <div id="boxThemNhanhViTriDiaLy" class="mt-2 p-2 border rounded bg-light" style="display: none;">
+                                            <label class="form-label small fw-bold mb-1">Tên địa điểm mới (tỉnh/địa bàn)</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="text" id="txtThemNhanhTenViTriDiaLy" class="form-control" placeholder="VD: Bắc Ninh" />
+                                                <button type="button" id="btnXacNhanThemViTriDiaLy" class="btn btn-success"><i class="fa fa-check"></i> Thêm</button>
+                                                <button type="button" id="btnHuyThemViTriDiaLy" class="btn btn-outline-secondary"><i class="fa fa-times"></i></button>
                                             </div>
+                                            <div class="form-text">Địa điểm dùng chung cho toàn hệ thống, không được trùng tên.</div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-7">
+
+                                @* Cột 3: màn hình rời + câu hỏi kiểm kê bắt buộc *@
+                                <div class="col-12 col-lg-4">
                                     <div class="mb-3 p-2 border rounded bg-light" id="boxManHinhNgoai" style="display: none;">
                                         <div class="form-check">
                                             <input class="form-check-input" type="checkbox" id="chkXacNhanManHinhNgoai" checked />
@@ -474,9 +676,33 @@
                                                         <i class="fa fa-times" style="font-size: 11px;"></i>
                                                     </button>
                                                 </div>
+                                                <div class="small text-muted mt-1" id="txtManHinhAnhDaLuu" style="display: none;">Ảnh đã lưu lần trước - chọn ảnh mới nếu muốn thay</div>
                                             </div>
                                         </div>
                                     </div>
+                                    @* Câu hỏi kiểm kê bắt buộc - cố tình KHÔNG tích sẵn để người dùng phải tự trả lời mỗi lần *@
+                                    <div class="mb-3 p-2 border border-warning rounded bg-warning-subtle" id="boxCauHoiOffice">
+                                        <label class="form-label fw-bold mb-1">
+                                            <i class="fa fa-file-word-o text-primary" style="margin-right: 6px;"></i>
+                                            Máy này có cần cài Office không? <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="d-flex gap-3 flex-wrap">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="canCaiOffice" id="rdoCanOfficeCo" value="true" />
+                                                <label class="form-check-label fw-semibold" for="rdoCanOfficeCo">Có cần</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="canCaiOffice" id="rdoCanOfficeKhong" value="false" />
+                                                <label class="form-check-label fw-semibold" for="rdoCanOfficeKhong">Không cần</label>
+                                            </div>
+                                        </div>
+                                        <div class="form-text">Câu trả lời này quyết định máy có được cài / nâng cấp Office trong thời gian tới.</div>
+                                        <div id="lblOfficeLanTruoc" class="small text-muted mt-1" style="display: none;"></div>
+                                    </div>
+                                </div>
+
+                                @* Tài sản khác trải hết chiều ngang: mỗi dòng có tới 6 ô nên nhét vào 1/3 form sẽ rất chật *@
+                                <div class="col-12">
                                     <div class="mb-2 p-2 border rounded" id="boxKhuVucTaiSanKhac">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <label class="form-label fw-bold mb-0">Tài sản khác đi kèm (tùy chọn)</label>
@@ -503,6 +729,17 @@
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        @* Hộp thông báo lỗi dùng chung, đặt NGOÀI mọi modal để không bị khung/vùng cuộn của modal cắt mất *@
+        <div id="lopPhuThongBao" class="lop-phu-thong-bao" style="display: none;">
+            <div class="hop-thong-bao" role="alertdialog" aria-live="assertive">
+                <div class="hop-thong-bao-icon"><i class="fa fa-exclamation"></i></div>
+                <div class="hop-thong-bao-tieude" id="tieuDeThongBaoLoi">Chưa gửi được</div>
+                <div class="hop-thong-bao-noidung" id="noiDungThongBaoLoi"></div>
+                <button type="button" class="btn btn-danger hop-thong-bao-nut" id="btnDongThongBaoLoi">Đã hiểu</button>
+                <div class="hop-thong-bao-vach"><span id="vachThoiGianThongBao"></span></div>
             </div>
         </div>
 
@@ -647,6 +884,171 @@
 
             initMiniCombo('ddlTaiSanCongTy', 'searchCongTy', 'menuCongTySearch');
             initMiniCombo('ddlTaiSanBoPhan', 'searchBoPhan', 'menuBoPhanSearch');
+            initMiniCombo('ddlTaiSanViTriDiaLy', 'searchViTriDiaLy', 'menuViTriDiaLySearch');
+
+            // ===== Hộp thông báo lỗi giữa màn hình =====
+            // Đưa hẳn ra <body>: nằm trong modal-body thì bị khung modal và vùng cuộn cắt mất.
+            $("#lopPhuThongBao").appendTo('body');
+
+            var timerAnThongBaoLoi = null;
+
+            function dongThongBaoLoi() {
+            clearTimeout(timerAnThongBaoLoi);
+            $("#lopPhuThongBao").fadeOut(140);
+            }
+
+            // Đóng bằng nút "Đã hiểu", bấm ra nền mờ, hoặc phím Esc - đóng kiểu nào cũng được
+            $("#btnDongThongBaoLoi").on('click', dongThongBaoLoi);
+            $("#lopPhuThongBao").on('click', function (e) {
+            if (e.target === this) dongThongBaoLoi();
+            });
+            $(document).on('keydown', function (e) {
+            if (e.key === 'Escape' && $("#lopPhuThongBao").is(':visible')) dongThongBaoLoi();
+            });
+
+            // Giữ nguyên chữ ký cũ (idO, thongBao) để 15 chỗ gọi sẵn có không phải sửa;
+            // mọi lỗi nay đều hiện chung một hộp giữa màn hình nên tham số idO không còn dùng tới.
+            function hienLoiNoiGiua(idO, thongBao) {
+            clearTimeout(timerAnThongBaoLoi);
+            $("#noiDungThongBaoLoi").text(thongBao);
+
+            // Gán lại animation của vạch thời gian để mỗi lần hiện là chạy lại từ đầu
+            var vach = document.getElementById('vachThoiGianThongBao');
+            vach.style.animation = 'none';
+            void vach.offsetWidth; // ép trình duyệt tính lại layout, nếu không animation sẽ không chạy lại
+            vach.style.animation = '';
+
+            $("#lopPhuThongBao").stop(true, true).css('display', 'flex').hide().fadeIn(140);
+            timerAnThongBaoLoi = setTimeout(dongThongBaoLoi, 6000);
+            }
+
+            // Token chống CSRF cho các POST có [ValidateAntiForgeryToken] gọi từ modal này
+            function layTokenChongGiaMao() {
+            return $('#formXacNhanTaiSan input[name="__RequestVerificationToken"]').val() || '';
+            }
+
+            // ===== Danh mục "Vị trí địa lý thực tế" (Hải Dương, Nghệ An, Hưng Yên...) =====
+            var viTriDiaLyDaNap = false;
+
+            function napDanhMucViTriDiaLy(idTuChon) {
+            return $.get('/QLKiemKe/GetKkViTriDiaLys', function (res) {
+            if (res && res.success && res.data) {
+            var html = '<option value="">-- Chưa chọn --</option>';
+            res.data.forEach(function (v) {
+            html += '<option value="' + v.idViTriDiaLy + '">' + v.tenViTriDiaLy + '</option>';
+            });
+            $("#ddlTaiSanViTriDiaLy").html(html);
+            if (idTuChon && $("#ddlTaiSanViTriDiaLy option[value='" + idTuChon + "']").length) {
+            $("#ddlTaiSanViTriDiaLy").val(String(idTuChon));
+            }
+            $("#ddlTaiSanViTriDiaLy").trigger('change');
+            }
+            viTriDiaLyDaNap = true;
+            khoiPhucViTriDiaLyDaLuu();
+            });
+            }
+
+            // Ưu tiên địa điểm máy này đã khai trong DB, sau đó mới tới lựa chọn cũ lưu trong trình duyệt
+            function khoiPhucViTriDiaLyDaLuu() {
+            if (!viTriDiaLyDaNap) return;
+            if ($("#ddlTaiSanViTriDiaLy").val()) return; // Người dùng/điền sẵn đã chọn rồi thì không đè
+
+            var idCanChon = (thongTinDaKhaiCuaMay && thongTinDaKhaiCuaMay.idViTriDiaLy)
+            ? String(thongTinDaKhaiCuaMay.idViTriDiaLy)
+            : localStorage.getItem('kk_taiSanViTriDiaLy');
+
+            if (idCanChon && $("#ddlTaiSanViTriDiaLy option[value='" + idCanChon + "']").length) {
+            $("#ddlTaiSanViTriDiaLy").val(idCanChon).trigger('change');
+            }
+            }
+
+            $("#ddlTaiSanViTriDiaLy").change(function () {
+            var val = $(this).val();
+            if (val) localStorage.setItem('kk_taiSanViTriDiaLy', val); else localStorage.removeItem('kk_taiSanViTriDiaLy');
+            });
+
+            napDanhMucViTriDiaLy();
+
+            // Thêm nhanh địa điểm chưa có trong danh mục, thêm xong tự chọn luôn
+            $("#btnThemNhanhViTriDiaLy").click(function () {
+            $("#txtThemNhanhTenViTriDiaLy").val($("#searchViTriDiaLy").val().trim());
+            $("#boxThemNhanhViTriDiaLy").slideDown(150);
+            $("#txtThemNhanhTenViTriDiaLy").focus();
+            });
+
+            $("#btnHuyThemViTriDiaLy").click(function () {
+            $("#boxThemNhanhViTriDiaLy").slideUp(150);
+            });
+
+            $("#btnXacNhanThemViTriDiaLy").click(function () {
+            var ten = $("#txtThemNhanhTenViTriDiaLy").val().trim();
+            if (!ten) {
+            Swal.fire('Thông báo', 'Vui lòng nhập Tên địa điểm.', 'warning');
+            return;
+            }
+
+            var $nut = $(this).prop('disabled', true); // Khoá nút chống bấm hai lần tạo trùng danh mục
+            $.post('/QLKiemKe/SaveKkViTriDiaLy', { tenViTriDiaLy: ten, __RequestVerificationToken: layTokenChongGiaMao() }, function (res) {
+            if (res && res.success) {
+            var idMoi = res.data ? res.data.idViTriDiaLy : null;
+            napDanhMucViTriDiaLy(idMoi).always(function () {
+            $("#boxThemNhanhViTriDiaLy").slideUp(150);
+            $("#txtThemNhanhTenViTriDiaLy").val('');
+            });
+            } else {
+            Swal.fire('Lỗi', (res && res.message) ? res.message : 'Không thêm được địa điểm.', 'error');
+            }
+            }).fail(function () {
+            Swal.fire('Lỗi', 'Lỗi kết nối khi thêm địa điểm.', 'error');
+            }).always(function () {
+            $nut.prop('disabled', false);
+            });
+            });
+
+            // ===== Ô "Mã nhân viên - người dùng hiện tại": tra cứu ra nhân viên thật sở hữu thiết bị =====
+            // Tài khoản/Mật khẩu chỉ xác thực người đang kiểm kê; thiết bị luôn đứng tên nhân viên tra được ở đây.
+            // Tài khoản đang đăng nhập được server điền sẵn vào ô Tài khoản - giữ lại để khôi phục sau mỗi lần gửi xong
+            var taiKhoanDangNhapMacDinh = $("#txtTaiSanUser").val() || '';
+            var nhanVienDangChon = null;   // Kết quả tra cứu hợp lệ gần nhất, dùng để chặn gửi khi mã chưa hợp lệ
+            var timerTimNhanVien = null;   // Debounce để không gọi API sau mỗi phím gõ
+
+            function timNhanVienTheoMa() {
+            var ma = $("#txtMaNhanVienNguoiDung").val().trim();
+            if (ma === "") {
+            nhanVienDangChon = null;
+            $("#ketQuaTimNhanVien").hide().empty();
+            return;
+            }
+
+            $("#ketQuaTimNhanVien").show().removeClass('text-success text-danger').addClass('text-muted').text('Đang tra cứu...');
+            $.get('/QLKiemKe/TimNhanVienTheoMa', { maNhanVien: ma }, function (res) {
+            // Người dùng đã gõ tiếp sang mã khác trong lúc chờ -> bỏ qua kết quả cũ
+            if ($("#txtMaNhanVienNguoiDung").val().trim().toUpperCase() !== ma.toUpperCase()) return;
+
+            if (res && res.success && res.data) {
+            nhanVienDangChon = res.data;
+            var moTa = res.data.hoTen + (res.data.tk ? ' (' + res.data.tk + ')' : '') + (res.data.phongBan ? ' - ' + res.data.phongBan : '');
+            $("#ketQuaTimNhanVien").removeClass('text-muted text-danger').addClass('text-success').text('✔ ' + moTa);
+            } else {
+            nhanVienDangChon = null;
+            $("#ketQuaTimNhanVien").removeClass('text-muted text-success').addClass('text-danger').text('✖ ' + ((res && res.message) ? res.message : 'Không tìm thấy nhân viên với mã này.'));
+            }
+            }).fail(function () {
+            nhanVienDangChon = null;
+            $("#ketQuaTimNhanVien").removeClass('text-muted text-success').addClass('text-danger').text('✖ Lỗi kết nối khi tra cứu Mã nhân viên.');
+            });
+            }
+
+            $("#txtMaNhanVienNguoiDung").on('input', function () {
+            var viTriCon = this.selectionStart;
+            $(this).val($(this).val().toUpperCase()); // Mã nhân viên luôn chữ hoa, kể cả khi dán
+            this.setSelectionRange(viTriCon, viTriCon);
+
+            nhanVienDangChon = null;
+            clearTimeout(timerTimNhanVien);
+            timerTimNhanVien = setTimeout(timNhanVienTheoMa, 400);
+            });
+            $("#txtMaNhanVienNguoiDung").on('blur', function () { clearTimeout(timerTimNhanVien); timNhanVienTheoMa(); });
 
             // Nạp danh sách Công ty / Bộ phận cho modal Xác nhận tài sản
             var dsBoPhanCache = []; // Cache toàn bộ Bộ phận để lọc lại theo Công ty được chọn
@@ -655,11 +1057,22 @@
             var congTyDaNap = false, boPhanDaNap = false;
             // Cờ đánh dấu đang trong quá trình tự khôi phục lựa chọn cũ, để các listener change bên dưới không ghi đè/xóa nhầm localStorage
             var dangKhoiPhucCongTyBoPhan = false;
+            // Vị trí/Công ty/Bộ phận mà chính máy này đã khai ở lần xác nhận trước (lấy từ DB theo Serial máy).
+            // Ưu tiên hơn localStorage vì đây là dữ liệu thật của máy, không phụ thuộc trình duyệt đang dùng.
+            var thongTinDaKhaiCuaMay = null;
             function khoiPhucCongTyBoPhanDaLuu() {
             if (!congTyDaNap || !boPhanDaNap) return;
             dangKhoiPhucCongTyBoPhan = true;
             var savedCongTy = localStorage.getItem('kk_taiSanCongTy');
             var savedBoPhan = localStorage.getItem('kk_taiSanBoPhan');
+            if (thongTinDaKhaiCuaMay) {
+            if (thongTinDaKhaiCuaMay.idcongTy) savedCongTy = String(thongTinDaKhaiCuaMay.idcongTy);
+            if (thongTinDaKhaiCuaMay.idboPhan) savedBoPhan = String(thongTinDaKhaiCuaMay.idboPhan);
+            // Chỉ điền Vị trí khi người dùng chưa tự gõ gì, tránh ghi đè dữ liệu đang nhập dở
+            if (thongTinDaKhaiCuaMay.tenViTri && !$("#txtTaiSanViTri").val()) {
+            $("#txtTaiSanViTri").val(thongTinDaKhaiCuaMay.tenViTri);
+            }
+            }
             if (savedCongTy && $("#ddlTaiSanCongTy option[value='" + savedCongTy + "']").length) {
             $("#ddlTaiSanCongTy").val(savedCongTy).trigger('change');
             }
@@ -763,7 +1176,7 @@
             return;
             }
 
-            $.post('/QLKiemKe/SaveKkBoPhan', { IdboPhan: 0, TenBoPhan: tenBoPhanMoi, IdcongTy: idCongTyHienTai }, function (res) {
+            $.post('/QLKiemKe/SaveKkBoPhan', { IdboPhan: 0, TenBoPhan: tenBoPhanMoi, IdcongTy: idCongTyHienTai, __RequestVerificationToken: layTokenChongGiaMao() }, function (res) {
             if (res.success) {
             $.get('/QLKiemKe/GetKkBoPhans', function (res2) {
             if (res2 && res2.success && res2.data) {
@@ -958,6 +1371,32 @@
             $("#lblChiTietMay").html(layDongChiTietThietBi(res.may));
             renderAnhChuSoHuu(res.may, 'May');
 
+            // Máy này đã từng khai Vị trí/Công ty/Bộ phận → điền sẵn luôn vào modal Xác nhận tài sản
+            if (res.may && (res.may.tenViTri || res.may.idcongTy || res.may.idboPhan || res.may.idViTriDiaLy)) {
+            thongTinDaKhaiCuaMay = res.may;
+            khoiPhucCongTyBoPhanDaLuu();
+            khoiPhucViTriDiaLyDaLuu();
+            }
+            // Mã nhân viên của người đang đứng tên máy: điền sẵn để lần kiểm kê sau chỉ cần sửa khi đổi người dùng
+            if (res.may && res.may.maNhanVien && !$("#txtMaNhanVienNguoiDung").val()) {
+            $("#txtMaNhanVienNguoiDung").val(res.may.maNhanVien);
+            timNhanVienTheoMa();
+            }
+            // Máy đã trả lời câu hỏi Office lần trước -> nhớ lại đáp án đã lưu trong DB và tích sẵn
+            if (res.may && res.may.canCaiOffice !== null && res.may.canCaiOffice !== undefined) {
+            dapAnOfficeDaLuu = res.may.canCaiOffice ? 'true' : 'false';
+            var ngayTraLoi = res.may.ngayTraLoiOffice ? new Date(res.may.ngayTraLoiOffice) : null;
+            ngayTraLoiOfficeDaLuu = (ngayTraLoi && !isNaN(ngayTraLoi)) ? ngayTraLoi.toLocaleDateString('vi-VN') : '';
+            } else {
+            dapAnOfficeDaLuu = null;
+            ngayTraLoiOfficeDaLuu = '';
+            }
+            apDungDapAnOfficeDaLuu();
+
+            // Nhớ tên file ảnh đã lưu của máy để dựng lại mỗi lần mở modal (đóng bằng Hủy/X rồi mở lại vẫn thấy ảnh)
+            tenAnhDaLuuMay = (res.may && res.may.duongDanAnh) ? res.may.duongDanAnh : null;
+            apDungAnhDaLuuVaoModal();
+
             // Dòng "Màn hình rời đang thuộc về" - chỉ hiện khi máy này có phát hiện màn hình rời
             if (seriManHinhHienTai) {
             $("#rowManHinhSoHuuBoi").show();
@@ -968,8 +1407,12 @@
             }
             $("#lblChiTietManHinh").html(layDongChiTietThietBi(res.manHinh));
             renderAnhChuSoHuu(res.manHinh, 'ManHinh');
+            // Ảnh màn hình rời đã lưu lần trước - cùng cơ chế nhớ như ảnh máy
+            tenAnhDaLuuManHinh = (res.manHinh && res.manHinh.duongDanAnh) ? res.manHinh.duongDanAnh : null;
+            apDungAnhDaLuuVaoModal();
             } else {
             $("#rowManHinhSoHuuBoi").hide();
+            tenAnhDaLuuManHinh = null; // Máy này không có màn hình rời -> không có ảnh màn hình đã lưu để dựng lại
             }
 
             // Dòng "Tài sản khác đi kèm" - liệt kê toàn bộ thiết bị khác cùng chủ sở hữu với máy này, kèm ảnh từng thiết bị
@@ -1074,8 +1517,12 @@
 
             // Đọc file/blob ảnh và hiện xem trước - dùng chung cho cả vùng ảnh Thiết bị chính và Màn hình rời
             function hienThiXemTruocAnh(fileHoacBlob, imgId, boxId, hintId) {
+            // Người dùng vừa chọn ảnh mới (chọn file / kéo thả / Ctrl+V) thì ghi chú "Ảnh đã lưu lần trước" không còn đúng nữa
+            if (imgId === 'imgTaiSanAnhPreview') $('#txtTaiSanAnhDaLuu').hide();
+            if (imgId === 'imgManHinhAnhPreview') $('#txtManHinhAnhDaLuu').hide();
             let r = new FileReader();
             r.onload = function (evt) {
+            document.getElementById(imgId).onerror = null; // Bỏ handler onerror của ảnh đã lưu để không ẩn nhầm ô xem trước
             $('#' + imgId).attr('src', evt.target.result);
             $('#' + boxId).show();
             $('#' + hintId).hide();
@@ -1083,10 +1530,70 @@
             r.readAsDataURL(fileHoacBlob);
             }
 
+            // Tên file ảnh đang lưu trong DB của máy / màn hình rời đang đứng trước mặt.
+            // Giữ ở biến riêng để dựng lại ô xem trước MỖI LẦN mở modal: đóng bằng Hủy/X rồi mở lại vẫn thấy ảnh cũ.
+            var tenAnhDaLuuMay = null, tenAnhDaLuuManHinh = null;
+
+            // Đáp án "có cần cài Office" đã lưu trong DB của chính máy này - dùng để tích sẵn cho lần kiểm kê sau
+            var dapAnOfficeDaLuu = null, ngayTraLoiOfficeDaLuu = '';
+
+            function apDungDapAnOfficeDaLuu() {
+            if (!dapAnOfficeDaLuu) {
+            $("#lblOfficeLanTruoc").hide().empty();
+            return;
+            }
+            // Người dùng đang thao tác dở (đã tự chọn) thì giữ nguyên lựa chọn của họ
+            if (!$("input[name='canCaiOffice']:checked").length) {
+            $("input[name='canCaiOffice'][value='" + dapAnOfficeDaLuu + "']").prop('checked', true);
+            }
+            $("#lblOfficeLanTruoc")
+            .text('Đã trả lời lần kiểm kê trước: ' + (dapAnOfficeDaLuu === 'true' ? 'Có cần' : 'Không cần')
+            + (ngayTraLoiOfficeDaLuu ? ' (' + ngayTraLoiOfficeDaLuu + ')' : '')
+            + ' - sửa lại nếu nhu cầu đã thay đổi.')
+            .show();
+            }
+
+            function apDungAnhDaLuuVaoModal() {
+            // Người dùng đã tự chọn ảnh mới thì giữ nguyên ảnh họ chọn, không đè bằng ảnh cũ trong DB
+            if (tenAnhDaLuuMay && !taiSanAnhBlob && !$('#fileTaiSanAnh').val()) {
+            hienThiAnhDaLuu(tenAnhDaLuuMay, 'imgTaiSanAnhPreview', 'boxPreviewTaiSanAnh', 'txtTaiSanAnhHint', 'txtTaiSanAnhDaLuu');
+            }
+            if (tenAnhDaLuuManHinh && !manHinhAnhBlob && !$('#fileManHinhAnh').val()) {
+            hienThiAnhDaLuu(tenAnhDaLuuManHinh, 'imgManHinhAnhPreview', 'boxPreviewManHinhAnh', 'txtManHinhAnhHint', 'txtManHinhAnhDaLuu');
+            }
+            }
+
+            // Mở lại modal sau khi bấm Hủy/X -> dựng lại ảnh đã lưu (và ảnh người dùng đang chọn dở vẫn còn nguyên)
+            $('#modalXacNhanTaiSan').on('show.bs.modal', function () {
+            apDungAnhDaLuuVaoModal();
+            apDungDapAnOfficeDaLuu(); // Đáp án Office đã lưu cũng được nhớ lại khi mở lại modal
+            });
+
+            // Hiện ảnh ĐÃ LƯU trong DB của thiết bị lên ô xem trước. Ảnh này chỉ để xem lại, không gửi kèm khi submit
+            // (server giữ nguyên ảnh cũ nếu người dùng không chọn ảnh mới), nên không đụng vào taiSanAnhBlob/manHinhAnhBlob.
+            function hienThiAnhDaLuu(tenFile, imgId, boxId, hintId, ghiChuId) {
+            if (!tenFile) return;
+            var img = document.getElementById(imgId);
+            if (!img) return;
+            img.onerror = function () { // File ảnh không còn trên fileserver thì trả ô về trạng thái trống
+            img.onerror = null;
+            $('#' + boxId).hide();
+            $('#' + ghiChuId).hide();
+            $('#' + hintId).show();
+            };
+            img.onload = function () {
+            $('#' + boxId).show();
+            $('#' + ghiChuId).show();
+            $('#' + hintId).hide();
+            };
+            img.src = '/QLKiemKe/GetEvidenceImage?fileName=' + encodeURIComponent(tenFile);
+            }
+
             // Gán ra window vì HTML gọi các hàm này qua thuộc tính inline onclick/onchange (chạy ở phạm vi global, không thấy được hàm khai báo trong closure này)
             window.previewTaiSanAnh = function (input) {
             if (input.files && input.files[0]) {
             taiSanAnhBlob = null;
+            $('#txtTaiSanAnhDaLuu').hide();
             hienThiXemTruocAnh(input.files[0], 'imgTaiSanAnhPreview', 'boxPreviewTaiSanAnh', 'txtTaiSanAnhHint');
             }
             };
@@ -1094,14 +1601,18 @@
             window.clearTaiSanAnh = function () {
             $('#fileTaiSanAnh').val('');
             taiSanAnhBlob = null;
+            // KHÔNG xoá tenAnhDaLuuMay: ảnh vẫn còn trong DB, bấm X chỉ là dọn ô xem trước để chọn ảnh khác.
+            // Đóng rồi mở lại modal phải thấy lại ảnh cũ, không bắt người dùng F5 cả trang.
             $('#imgTaiSanAnhPreview').attr('src', '');
             $('#boxPreviewTaiSanAnh').hide();
+            $('#txtTaiSanAnhDaLuu').hide();
             $('#txtTaiSanAnhHint').show();
             };
 
             window.previewManHinhAnh = function (input) {
             if (input.files && input.files[0]) {
             manHinhAnhBlob = null;
+            $('#txtManHinhAnhDaLuu').hide();
             hienThiXemTruocAnh(input.files[0], 'imgManHinhAnhPreview', 'boxPreviewManHinhAnh', 'txtManHinhAnhHint');
             }
             };
@@ -1109,8 +1620,10 @@
             window.clearManHinhAnh = function () {
             $('#fileManHinhAnh').val('');
             manHinhAnhBlob = null;
+            // Như trên: giữ tenAnhDaLuuManHinh để mở lại modal vẫn dựng được ảnh màn hình đã lưu
             $('#imgManHinhAnhPreview').attr('src', '');
             $('#boxPreviewManHinhAnh').hide();
+            $('#txtManHinhAnhDaLuu').hide();
             $('#txtManHinhAnhHint').show();
             };
 
@@ -1216,7 +1729,7 @@
             $("#modalAlertError").hide();
 
             if (taikhoanInput === "" || matkhauInput === "") {
-            $("#modalAlertError").text("Vui lòng không để trống tài khoản hoặc mật khẩu.").fadeIn();
+            hienLoiNoiGiua("#modalAlertError", "Vui lòng không để trống tài khoản hoặc mật khẩu.");
             return;
             }
 
@@ -1238,11 +1751,11 @@
             // Tiến hành bung dữ liệu đã lấy từ Tool lên bảng chi tiết (Bảng 2)
             taiToanBoThongTinChiTiet();
             } else {
-            $("#modalAlertError").text(res.message).fadeIn();
+            hienLoiNoiGiua("#modalAlertError", res.message);
             }
             },
             error: function () {
-            $("#modalAlertError").text("Đã xảy ra lỗi kết nối đường truyền xác thực với máy chủ website.").fadeIn();
+            hienLoiNoiGiua("#modalAlertError", "Đã xảy ra lỗi kết nối đường truyền xác thực với máy chủ website.");
             }
             });
             });
@@ -1266,37 +1779,62 @@
             // SỬA ĐỔI CHẶN LỖI: Nếu 2 trường này null, rỗng, lỗi tải hoặc chưa load xong thì không cho xác nhận
             if (!seriMayInput || seriMayInput === "" || seriMayInput === "N/A" || seriMayInput === "Đang tải..." || seriMayInput.indexOf("Lỗi tải") !== -1 ||
             !tenMayInput || tenMayInput === "" || tenMayInput === "N/A" || tenMayInput === "Đang tải..." || tenMayInput.indexOf("Lỗi tải") !== -1) {
-            $("#modalTaiSanAlertError").text("Số Serial Máy hoặc Tên máy hiện tại chưa hợp lệ hoặc trống. Cần liên hệ với IT để check lỗi.").fadeIn();
+            hienLoiNoiGiua("#modalTaiSanAlertError", "Số Serial Máy hoặc Tên máy hiện tại chưa hợp lệ hoặc trống. Cần liên hệ với IT để check lỗi.");
             return;
             }
 
             if (taikhoanInput === "" || matkhauInput === "") {
-            $("#modalTaiSanAlertError").text("Vui lòng không để trống tài khoản hoặc mật khẩu.").fadeIn();
+            hienLoiNoiGiua("#modalTaiSanAlertError", "Vui lòng không để trống tài khoản hoặc mật khẩu.");
+            return;
+            }
+
+            var maNhanVienInput = $("#txtMaNhanVienNguoiDung").val().trim();
+            if (maNhanVienInput === "") {
+            hienLoiNoiGiua("#modalTaiSanAlertError", "Vui lòng nhập Mã nhân viên của người dùng hiện tại.");
+            return;
+            }
+            // Mã phải tra được ra nhân viên đang làm việc thì mới cho gửi (server vẫn kiểm lại lần nữa)
+            if (!nhanVienDangChon || nhanVienDangChon.maNhanVien.toUpperCase() !== maNhanVienInput.toUpperCase()) {
+            hienLoiNoiGiua("#modalTaiSanAlertError", "Mã nhân viên chưa được kiểm tra hợp lệ. Vui lòng nhập lại và chờ hệ thống tra cứu xong.");
+            timNhanVienTheoMa();
             return;
             }
 
             var viTriInput = $("#txtTaiSanViTri").val().trim();
             if (viTriInput === "") {
-            $("#modalTaiSanAlertError").text("Vui lòng nhập Vị trí đặt máy.").fadeIn();
+            hienLoiNoiGiua("#modalTaiSanAlertError", "Vui lòng nhập Vị trí đặt máy.");
             return;
             }
 
             var idCongTyInput = $("#ddlTaiSanCongTy").val();
             if (!idCongTyInput) {
-            $("#modalTaiSanAlertError").text("Vui lòng chọn Công ty.").fadeIn();
+            hienLoiNoiGiua("#modalTaiSanAlertError", "Vui lòng chọn Công ty.");
             return;
             }
 
             var idBoPhanInput = $("#ddlTaiSanBoPhan").val();
             if (!idBoPhanInput) {
-            $("#modalTaiSanAlertError").text("Vui lòng chọn Bộ phận.").fadeIn();
+            hienLoiNoiGiua("#modalTaiSanAlertError", "Vui lòng chọn Bộ phận.");
+            return;
+            }
+
+            var canCaiOfficeInput = $("input[name='canCaiOffice']:checked").val();
+            if (canCaiOfficeInput !== 'true' && canCaiOfficeInput !== 'false') {
+            hienLoiNoiGiua("#modalTaiSanAlertError", "Vui lòng trả lời câu hỏi: Máy này có cần cài Office hay không?");
+            $("#boxCauHoiOffice")[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+            }
+
+            var idViTriDiaLyInput = $("#ddlTaiSanViTriDiaLy").val();
+            if (!idViTriDiaLyInput) {
+            hienLoiNoiGiua("#modalTaiSanAlertError", "Vui lòng chọn Vị trí địa lý thực tế (Hải Dương, Nghệ An, Hưng Yên...). Chưa có thì bấm Thêm nhanh.");
             return;
             }
 
             // Kiểm tra trước các dòng "Tài sản khác" (nếu có mở khu vực + điền dòng nào)
             var taiSanKhacInfo = layDanhSachTaiSanKhacHopLe();
             if (taiSanKhacInfo.error) {
-            $("#modalTaiSanAlertError").text(taiSanKhacInfo.error).fadeIn();
+            hienLoiNoiGiua("#modalTaiSanAlertError", taiSanKhacInfo.error);
             return;
             }
 
@@ -1335,6 +1873,9 @@
             fd.append('dsManHinhRaw', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.dsManHinhRaw || '') : '');
             fd.append('dsMacWifiRaw', duLieuQuetMayKhachCache ? (duLieuQuetMayKhachCache.dsMacWifiRaw || '') : '');
             fd.append('tenViTri', viTriInput);
+            fd.append('maNhanVien', maNhanVienInput);
+            fd.append('idViTriDiaLy', idViTriDiaLyInput);
+            fd.append('canCaiOffice', canCaiOfficeInput);
             if ($("#ddlTaiSanCongTy").val()) fd.append('idCongTy', $("#ddlTaiSanCongTy").val());
             if ($("#ddlTaiSanBoPhan").val()) fd.append('idBoPhan', $("#ddlTaiSanBoPhan").val());
             var fileAnh = $("#fileTaiSanAnh")[0].files[0];
@@ -1350,7 +1891,7 @@
             success: function (res) {
             if (res.success) {
             // Gửi tiếp các dòng "Tài sản khác" (nếu có) dùng chung Tài khoản/Công ty/Bộ phận vừa xác nhận, rồi mới đóng modal & báo thành công
-            guiTaiSanKhac(taikhoanInput, matkhauInput, idCongTyInput, idBoPhanInput, taiSanKhacInfo.rows, function (resTaiSanKhac) {
+            guiTaiSanKhac(taikhoanInput, matkhauInput, idCongTyInput, idBoPhanInput, taiSanKhacInfo.rows, maNhanVienInput, idViTriDiaLyInput, function (resTaiSanKhac) {
 
             // Đóng modal xác nhận tài sản khi hoàn tất thành công
             var modalElement = document.getElementById('modalXacNhanTaiSan');
@@ -1358,15 +1899,25 @@
             if (modalInstance) modalInstance.hide();
 
             // Khởi tạo lại trạng thái form nhập liệu trống
-            $("#txtTaiSanUser").val('');
+            $("#txtTaiSanUser").val(taiKhoanDangNhapMacDinh); // Trả về tài khoản đang đăng nhập thay vì để trống
             $("#txtTaiSanPassword").val('');
+            $("#txtMaNhanVienNguoiDung").val('');
+            nhanVienDangChon = null;
+            $("#ketQuaTimNhanVien").hide().empty();
             $("#txtTaiSanViTri").val('');
             $("#ddlTaiSanCongTy").val('');
             renderDropdownBoPhan(""); // Khôi phục lại toàn bộ danh sách Bộ phận sau khi bỏ chọn Công ty
             $("#boxThemNhanhBoPhan").hide();
+            $("#ddlTaiSanViTriDiaLy").val('').trigger('change');
+            $("#boxThemNhanhViTriDiaLy").hide();
+            // Bỏ tích tạm thời; traCuuThongTinSoHuu() ngay dưới sẽ tích lại theo đáp án vừa lưu vào DB
+            $("input[name='canCaiOffice']").prop('checked', false);
             clearTaiSanAnh();
             clearManHinhAnh();
             resetTaiSanKhac();
+
+            // Vừa xác nhận xong -> nạp lại thông tin sở hữu/ảnh mới nhất để lần mở modal sau hiện đúng dữ liệu vừa lưu
+            traCuuThongTinSoHuu();
 
             // ĐÃ CẬP NHẬT: Hiển thị đúng thông báo yêu cầu của bạn khi thành công
             var thongBaoTaiSanKhac = (resTaiSanKhac && resTaiSanKhac.success) ? (' ' + resTaiSanKhac.message) :
@@ -1380,11 +1931,11 @@
             });
 
             } else {
-            $("#modalTaiSanAlertError").text(res.message).fadeIn();
+            hienLoiNoiGiua("#modalTaiSanAlertError", res.message);
             }
             },
             error: function () {
-            $("#modalTaiSanAlertError").text("Đã xảy ra lỗi kết nối đường truyền xác thực với máy chủ website.").fadeIn();
+            hienLoiNoiGiua("#modalTaiSanAlertError", "Đã xảy ra lỗi kết nối đường truyền xác thực với máy chủ website.");
             }
             });
             });
@@ -1415,23 +1966,24 @@
             var rowHtml =
             '<div class="border rounded p-2 mb-2 dong-tai-san-khac" data-row-index="' + idx + '">' +
             '  <div class="row g-2">' +
-            '    <div class="col-md-2">' +
+            // Điện thoại: 2 ô/hàng cho gọn; từ md trở lên mới trải đủ 6 cột trên một hàng
+            '    <div class="col-6 col-md-2">' +
             '      <label class="form-label small fw-bold mb-1">Loại thiết bị <span class="text-danger">*</span></label>' +
             '      <select class="form-select form-select-sm select-loai-tskhac">' + taoOptionLoaiThietBi() + '</select>' +
             '    </div>' +
-            '    <div class="col-md-2">' +
+            '    <div class="col-6 col-md-2">' +
             '      <label class="form-label small fw-bold mb-1">Serial <span class="text-danger">*</span></label>' +
             '      <input type="text" class="form-control form-control-sm input-serial-tskhac" placeholder="Nhập Serial..." />' +
             '    </div>' +
-            '    <div class="col-md-2">' +
+            '    <div class="col-6 col-md-2">' +
             '      <label class="form-label small fw-bold mb-1">Quy cách</label>' +
             '      <input type="text" class="form-control form-control-sm input-quycach-tskhac" placeholder="VD: Model, số lượng..." />' +
             '    </div>' +
-            '    <div class="col-md-2">' +
+            '    <div class="col-6 col-md-2">' +
             '      <label class="form-label small fw-bold mb-1">Vị trí</label>' +
             '      <input type="text" class="form-control form-control-sm input-vitri-tskhac" placeholder="VD: Tầng 3 - Phòng Kế toán..." />' +
             '    </div>' +
-            '    <div class="col-md-3">' +
+            '    <div class="col-8 col-md-3">' +
             '      <label class="form-label small fw-bold mb-1">Ảnh</label>' +
             '      <div class="drag-drop-zone dropzone-anh-tskhac text-center d-flex align-items-center justify-content-center gap-2" title="Kéo thả ảnh, click để chọn ảnh, hoặc click rồi Ctrl+V để dán ảnh" style="padding: 4px 6px; min-height: 38px; border-radius: 6px;">' +
             '        <span class="hint-anh-tskhac text-muted" style="font-size:11px;"><i class="fa fa-camera-retro"></i> Chọn/Kéo/Dán</span>' +
@@ -1439,7 +1991,7 @@
             '        <input type="file" accept="image/*" class="d-none input-anh-tskhac" />' +
             '      </div>' +
             '    </div>' +
-            '    <div class="col-md-1 d-flex align-items-end">' +
+            '    <div class="col-4 col-md-1 d-flex align-items-end">' +
             '      <button type="button" class="btn btn-sm btn-outline-danger btn-xoa-dong-tskhac w-100" title="Xóa dòng"><i class="fa fa-trash"></i></button>' +
             '    </div>' +
             '  </div>' +
@@ -1529,7 +2081,7 @@
             }
 
             // Gửi các dòng Tài sản khác (nếu có) lên server, dùng chung Tài khoản/Công ty/Bộ phận vừa xác nhận thành công
-            function guiTaiSanKhac(taikhoanInput, matkhauInput, idCongTyInput, idBoPhanInput, rows, callback) {
+            function guiTaiSanKhac(taikhoanInput, matkhauInput, idCongTyInput, idBoPhanInput, rows, maNhanVienInput, idViTriDiaLyInput, callback) {
             if (!rows || rows.length === 0) { callback(); return; }
 
             var fd = new FormData();
@@ -1537,6 +2089,9 @@
             fd.append('matkhau', matkhauInput);
             fd.append('idCongTy', idCongTyInput);
             fd.append('idBoPhan', idBoPhanInput);
+            fd.append('maNhanVien', maNhanVienInput); // Tài sản khác đứng tên đúng người dùng thật như máy chính
+            fd.append('idViTriDiaLy', idViTriDiaLyInput); // Dùng chung vị trí địa lý với máy vừa xác nhận
+            fd.append('__RequestVerificationToken', layTokenChongGiaMao()); // Action này có [ValidateAntiForgeryToken]
             rows.forEach(function (r, i) {
             fd.append('rows[' + i + '].Serial', r.serial);
             fd.append('rows[' + i + '].LoaiThietBi', r.loai);

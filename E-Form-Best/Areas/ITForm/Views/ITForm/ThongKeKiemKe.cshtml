@@ -583,6 +583,48 @@
 <section class="content">
     <div class="container-fluid">
 
+        @* Lọc nhanh: luôn hiện, không nằm trong khối "Bộ lọc" đóng/mở. Trạng thái được ghi nhớ qua F5.
+           fp-ignore để fixed-page-layout không chèn thêm nút "Ẩn lọc" thứ hai. *@
+        <div class="card border-0 shadow-sm mb-2 fp-ignore" style="border-radius: 15px;">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="small fw-bold text-muted"><i class="fas fa-bolt text-warning me-1"></i>Lọc nhanh:</span>
+
+                    <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0">
+                        <input class="form-check-input sw-nhanh-loai m-0" type="checkbox" role="switch" id="swLoaiLaptop" data-loai="Laptop" style="cursor: pointer; width: 40px; height: 20px;">
+                        <label class="form-check-label small fw-semibold text-dark m-0" for="swLoaiLaptop" style="cursor: pointer;"><i class="fas fa-laptop me-1 text-primary"></i>Laptop</label>
+                    </div>
+                    <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0 ms-2">
+                        <input class="form-check-input sw-nhanh-loai m-0" type="checkbox" role="switch" id="swLoaiMayTinh" data-loai="Máy tính" style="cursor: pointer; width: 40px; height: 20px;">
+                        <label class="form-check-label small fw-semibold text-dark m-0" for="swLoaiMayTinh" style="cursor: pointer;"><i class="fas fa-desktop me-1 text-primary"></i>Máy tính</label>
+                    </div>
+
+                    <span class="text-muted ms-2 me-1">|</span>
+
+                    <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0">
+                        <input class="form-check-input m-0" type="checkbox" role="switch" id="swThieuHostname" style="cursor: pointer; width: 40px; height: 20px;">
+                        <label class="form-check-label small fw-semibold text-dark m-0" for="swThieuHostname" style="cursor: pointer;" title="Chỉ hiện các thiết bị đang bỏ trống ô Tên máy (Hostname)"><i class="fas fa-triangle-exclamation me-1 text-danger"></i>Thiếu Hostname</label>
+                    </div>
+
+                    <span class="text-muted ms-2 me-1">|</span>
+
+                    <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0">
+                        <input class="form-check-input m-0" type="checkbox" role="switch" id="swCanOffice" style="cursor: pointer; width: 40px; height: 20px;">
+                        <label class="form-check-label small fw-semibold text-dark m-0" for="swCanOffice" style="cursor: pointer;" title="Máy mà người dùng đã trả lời là CẦN cài Office"><i class="fas fa-file-word me-1 text-success"></i>Cần Office</label>
+                    </div>
+                    <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0 ms-2">
+                        <input class="form-check-input m-0" type="checkbox" role="switch" id="swChuaHoiOffice" style="cursor: pointer; width: 40px; height: 20px;">
+                        <label class="form-check-label small fw-semibold text-dark m-0" for="swChuaHoiOffice" style="cursor: pointer;" title="Máy chưa từng trả lời câu hỏi Office khi kiểm kê"><i class="fas fa-circle-question me-1 text-secondary"></i>Chưa hỏi Office</label>
+                    </div>
+
+                    @* Chip địa bàn được dựng từ chính dữ liệu đang có, không hard-code tên tỉnh *@
+                    <span class="text-muted ms-2 me-1">|</span>
+                    <span class="small fw-bold text-muted"><i class="fas fa-location-dot text-info me-1"></i>Địa bàn:</span>
+                    <div class="d-flex flex-wrap gap-1" id="boxChipDiaBan"></div>
+                </div>
+            </div>
+        </div>
+
         @* Cả khối lọc (sắp xếp, số dòng, lọc nâng cao) do MỘT nút #btnToggleFilters trên topbar đóng/mở.
            Không đặt data-fp-filter để fixed-page-layout khỏi chèn thêm nút "Ẩn lọc" thứ hai. *@
         <div class="card border-0 shadow-sm mb-2" id="boxFilterCard" style="border-radius: 15px; background: #fff; display: none;">
@@ -963,7 +1005,79 @@
         let excludeCongTyMode = false;
         let excludeBoPhanMode = false;
 
+        // ===== Trạng thái khu "Lọc nhanh" (độc lập với Bộ lọc nâng cao, được nhớ qua F5) =====
+        let nhanhLoaiThietBi = [];      // Các loại thiết bị bật nhanh: Laptop / Máy tính
+        let nhanhThieuHostname = false; // Chỉ hiện máy bỏ trống Hostname
+        let nhanhCanOffice = false;     // Chỉ hiện máy trả lời CẦN cài Office
+        let nhanhChuaHoiOffice = false; // Chỉ hiện máy chưa từng trả lời câu hỏi Office
+        let nhanhDiaBan = [];           // Các vị trí địa lý đang chọn
+
+        // Dựng chip địa bàn từ chính dữ liệu đang có, không hard-code danh sách tỉnh
+        function renderChipDiaBan() {
+        let dsDiaBan = [...new Set(allDataCache.map(x => x.tenViTriDiaLy).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi'));
+        let html = '';
+        dsDiaBan.forEach(ten => {
+        let dangChon = nhanhDiaBan.includes(ten);
+        html += `<button type="button" class="btn btn-sm ${dangChon ? 'btn-info text-white' : 'btn-outline-info'} chip-dia-ban py-0 px-2" data-ten="${ten}" style="font-size: 12px; border-radius: 999px;">${ten}</button>`;
+        });
+        let chonChuaKhai = nhanhDiaBan.includes('__CHUA_KHAI__');
+        html += `<button type="button" class="btn btn-sm ${chonChuaKhai ? 'btn-secondary text-white' : 'btn-outline-secondary'} chip-dia-ban py-0 px-2" data-ten="__CHUA_KHAI__" style="font-size: 12px; border-radius: 999px;" title="Thiết bị chưa khai vị trí địa lý">Chưa khai</button>`;
+        $('#boxChipDiaBan').html(html || '<span class="small text-muted fst-italic">Chưa có dữ liệu địa bàn</span>');
+        }
+
+        function khoiTaoLocNhanh() {
+        try {
+        nhanhLoaiThietBi = JSON.parse(localStorage.getItem('dash_nhanhLoai') || '[]');
+        nhanhDiaBan = JSON.parse(localStorage.getItem('dash_nhanhDiaBan') || '[]');
+        } catch (e) { nhanhLoaiThietBi = []; nhanhDiaBan = []; }
+        nhanhThieuHostname = localStorage.getItem('dash_nhanhThieuHostname') === 'true';
+        nhanhCanOffice = localStorage.getItem('dash_nhanhCanOffice') === 'true';
+        nhanhChuaHoiOffice = localStorage.getItem('dash_nhanhChuaHoiOffice') === 'true';
+
+        $('.sw-nhanh-loai').each(function () {
+        $(this).prop('checked', nhanhLoaiThietBi.includes(String($(this).data('loai'))));
+        });
+        $('#swThieuHostname').prop('checked', nhanhThieuHostname);
+        $('#swCanOffice').prop('checked', nhanhCanOffice);
+        $('#swChuaHoiOffice').prop('checked', nhanhChuaHoiOffice);
+
+        $(document).on('change', '.sw-nhanh-loai', function () {
+        nhanhLoaiThietBi = $('.sw-nhanh-loai:checked').map(function () { return String($(this).data('loai')); }).get();
+        localStorage.setItem('dash_nhanhLoai', JSON.stringify(nhanhLoaiThietBi));
+        applyFiltersAndRender();
+        });
+        $('#swThieuHostname').on('change', function () {
+        nhanhThieuHostname = $(this).is(':checked');
+        localStorage.setItem('dash_nhanhThieuHostname', nhanhThieuHostname);
+        applyFiltersAndRender();
+        });
+        $('#swCanOffice').on('change', function () {
+        nhanhCanOffice = $(this).is(':checked');
+        // Hai nút Office loại trừ nhau, bật cái này thì tắt cái kia cho khỏi ra 0 kết quả
+        if (nhanhCanOffice && nhanhChuaHoiOffice) { nhanhChuaHoiOffice = false; $('#swChuaHoiOffice').prop('checked', false); localStorage.setItem('dash_nhanhChuaHoiOffice', false); }
+        localStorage.setItem('dash_nhanhCanOffice', nhanhCanOffice);
+        applyFiltersAndRender();
+        });
+        $('#swChuaHoiOffice').on('change', function () {
+        nhanhChuaHoiOffice = $(this).is(':checked');
+        if (nhanhCanOffice && nhanhChuaHoiOffice) { nhanhCanOffice = false; $('#swCanOffice').prop('checked', false); localStorage.setItem('dash_nhanhCanOffice', false); }
+        localStorage.setItem('dash_nhanhChuaHoiOffice', nhanhChuaHoiOffice);
+        applyFiltersAndRender();
+        });
+
+        // Chip địa bàn vẽ động nên phải dùng event delegation
+        $(document).on('click', '.chip-dia-ban', function () {
+        let ten = String($(this).data('ten'));
+        if (nhanhDiaBan.includes(ten)) nhanhDiaBan = nhanhDiaBan.filter(x => x !== ten);
+        else nhanhDiaBan.push(ten);
+        localStorage.setItem('dash_nhanhDiaBan', JSON.stringify(nhanhDiaBan));
+        renderChipDiaBan();
+        applyFiltersAndRender();
+        });
+        }
+
         $(document).ready(function () {
+        khoiTaoLocNhanh();
         // Phần biểu đồ mặc định thu gọn, resize lại khi người dùng bấm mở ra (canvas ẩn lúc vẽ ban đầu sẽ bị sai kích thước)
         document.getElementById('collapseBieuDo').addEventListener('shown.bs.collapse', function () {
         $('#iconToggleBieuDo').removeClass('fa-chevron-right').addClass('fa-chevron-down');
@@ -1074,6 +1188,7 @@
         if (res.success) {
         allDataCache = res.data || [];
         populateFilters(allDataCache);
+        renderChipDiaBan(); // Chip địa bàn dựng từ dữ liệu vừa tải về
         applyFiltersAndRender();
         } else {
         Swal.fire("Lỗi tải dữ liệu", res.msg, "error");
@@ -1211,6 +1326,18 @@
         $('#filterLimit').val('100');
         pageSize = 100;
         $('#lblSyncPageSize').text('100 dòng');
+
+        // Xoá luôn khu Lọc nhanh để nút "Bỏ lọc" thật sự trả về trạng thái sạch
+        nhanhLoaiThietBi = []; nhanhDiaBan = [];
+        nhanhThieuHostname = false; nhanhCanOffice = false; nhanhChuaHoiOffice = false;
+        $('.sw-nhanh-loai, #swThieuHostname, #swCanOffice, #swChuaHoiOffice').prop('checked', false);
+        localStorage.setItem('dash_nhanhLoai', '[]');
+        localStorage.setItem('dash_nhanhDiaBan', '[]');
+        localStorage.setItem('dash_nhanhThieuHostname', 'false');
+        localStorage.setItem('dash_nhanhCanOffice', 'false');
+        localStorage.setItem('dash_nhanhChuaHoiOffice', 'false');
+        renderChipDiaBan();
+
         setCardFilter('', 'card-all');
         }
 
@@ -1265,6 +1392,16 @@
         }
         if (selectedLoais.length > 0) baseFiltered = baseFiltered.filter(x => selectedLoais.includes(x.loaiThietBi));
 
+        // ----- Khu Lọc nhanh (chồng thêm lên Bộ lọc nâng cao) -----
+        if (nhanhLoaiThietBi.length > 0) baseFiltered = baseFiltered.filter(x => nhanhLoaiThietBi.includes(x.loaiThietBi));
+        if (nhanhThieuHostname) baseFiltered = baseFiltered.filter(x => !x.tenMayTinh || x.tenMayTinh.trim() === '');
+        if (nhanhCanOffice) baseFiltered = baseFiltered.filter(x => x.canCaiOffice === true);
+        if (nhanhChuaHoiOffice) baseFiltered = baseFiltered.filter(x => x.canCaiOffice === null || x.canCaiOffice === undefined);
+        if (nhanhDiaBan.length > 0) {
+        baseFiltered = baseFiltered.filter(x => nhanhDiaBan.includes(x.tenViTriDiaLy)
+        || (nhanhDiaBan.includes('__CHUA_KHAI__') && !x.tenViTriDiaLy));
+        }
+
         // Logic lọc bản quyền: mục "Chưa có bản quyền" gom cả chuỗi trống/null, "Chưa có", "Không xác định", "Chưa rõ phiên bản"
         if (selectedWins.length > 0) {
         baseFiltered = baseFiltered.filter(x =>
@@ -1287,7 +1424,10 @@
         (x.tenDangNhap && x.tenDangNhap.toLowerCase().includes(fText)) ||
         (x.tk && x.tk.toLowerCase().includes(fText)) ||
         (x.winLicense && x.winLicense.toLowerCase().includes(fText)) ||
-        (x.officeLicense && x.officeLicense.toLowerCase().includes(fText))
+        (x.officeLicense && x.officeLicense.toLowerCase().includes(fText)) ||
+        // Tìm được cả theo Mã nhân viên và Vị trí địa lý (VD: gõ "Nghệ An")
+        (x.maNhanVien && x.maNhanVien.toLowerCase().includes(fText)) ||
+        (x.tenViTriDiaLy && x.tenViTriDiaLy.toLowerCase().includes(fText))
         );
         }
 
@@ -1509,8 +1649,25 @@
         : `<span class="text-muted fst-italic">Chưa xác nhận người dùng</span>`;
 
         let accPart = item.tenDangNhap ? item.tenDangNhap : `<span class="text-muted fst-italic">Trống</span>`;
-        let userStr = `<div>${namePart}</div><div class="small text-muted mt-1"><i class="fas fa-user-circle me-1"></i> Account: <b>${accPart}</b></div>`;
+        // Mã nhân viên khai ở ô "Mã nhân viên - người dùng hiện tại" khi Xác nhận tài sản
+        let maNvPart = item.maNhanVien ? `<div class="small text-muted"><i class="fas fa-id-badge me-1"></i> Mã NV: <b class="text-dark">${item.maNhanVien}</b></div>` : '';
+        let userStr = `<div>${namePart}</div>${maNvPart}<div class="small text-muted mt-1"><i class="fas fa-user-circle me-1"></i> Account: <b>${accPart}</b></div>`;
         let locStr = [item.tenCongTy, item.tenBoPhan].filter(Boolean).join(' - ') || 'Chưa gắn';
+
+        // Vị trí địa lý thực tế (Hải Dương, Nghệ An...) - khác với Vị trí đặt máy trong nhà xưởng
+        let diaBanStr = item.tenViTriDiaLy
+        ? `<div class="mt-1"><span class="badge bg-info-subtle text-info-emphasis border border-info-subtle"><i class="fas fa-location-dot me-1"></i>${item.tenViTriDiaLy}</span></div>`
+        : `<div class="mt-1 small text-muted fst-italic">Chưa khai địa bàn</div>`;
+
+        // Trả lời câu hỏi kiểm kê "Máy này có cần cài Office không?" - null = chưa từng được hỏi
+        let officeHoiStr;
+        if (item.canCaiOffice === true) {
+        officeHoiStr = `<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle" title="Người dùng xác nhận cần cài Office"><i class="fas fa-file-word me-1"></i>Cần Office</span>`;
+        } else if (item.canCaiOffice === false) {
+        officeHoiStr = `<span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle" title="Người dùng xác nhận KHÔNG cần cài Office"><i class="fas fa-file-word me-1"></i>Không cần Office</span>`;
+        } else {
+        officeHoiStr = `<span class="badge bg-light text-muted border" title="Chưa trả lời câu hỏi Office khi kiểm kê"><i class="fas fa-file-word me-1"></i>Office: chưa hỏi</span>`;
+        }
 
         // Chuỗi hiển thị bản quyền Windows và Office trên bảng
         let winHopLe = nhanBanQuyenHopLe(item.winLicense);
@@ -1580,9 +1737,11 @@
         </td>
         <td class="small" data-label="Vị trí (Công ty - Bộ phận)">
         <div class="text-end text-md-start"><i class="fas fa-map-marker-alt text-muted me-1"></i>${locStr}</div>
+        <div class="text-end text-md-start">${diaBanStr}</div>
         </td>
         <td class="text-center" data-label="Trạng thái kiểm kê">
         <div class="text-end text-md-center"><span class="badge ${badgeClass} w-100 py-2 shadow-sm">${item.tenTrangThai || 'Chưa rõ'}</span></div>
+        <div class="text-end text-md-center mt-1">${officeHoiStr}</div>
         </td>
         <td class="text-center" data-label="Lần cuối Check">
         <div class="text-end text-md-center">${checkHtml}</div>
@@ -1770,9 +1929,18 @@
         html += dong('Error', item.error, 'fa-triangle-exclamation');
         html += dong('Vị trí', item.tenViTri, 'fa-map-marker-alt');
         html += dong('Người dùng', item.tenNguoiDung, 'fa-user');
+        html += dong('Mã nhân viên', item.maNhanVien, 'fa-id-card');
         html += dong('Account', item.tk || item.tenDangNhap, 'fa-id-badge');
         html += dong('Công ty', item.tenCongTy, 'fa-building');
         html += dong('Bộ phận', item.tenBoPhan, 'fa-sitemap');
+        html += dong('Vị trí địa lý thực tế', item.tenViTriDiaLy, 'fa-location-dot');
+        // Trả lời câu hỏi kiểm kê về Office; null = máy chưa từng được hỏi
+        html += dong('Cần cài Office',
+        item.canCaiOffice === true ? 'Có cần' : (item.canCaiOffice === false ? 'Không cần' : ''),
+        'fa-file-word');
+        html += dong('Ngày trả lời Office',
+        item.ngayTraLoiOffice ? new Date(item.ngayTraLoiOffice).toLocaleString('vi-VN') : '',
+        'fa-calendar-day');
         html += dong('Trạng thái', item.tenTrangThai, 'fa-toggle-on');
         if (!khongCoBanQuyen(item.loaiThietBi)) {
         html += dong('Bản quyền Windows', nhanBanQuyenHopLe(item.winLicense) || 'Chưa có bản quyền', 'fa-windows');

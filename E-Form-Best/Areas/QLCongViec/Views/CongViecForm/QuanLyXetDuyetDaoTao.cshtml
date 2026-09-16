@@ -2,6 +2,7 @@
     ViewData["Title"] = "Duyệt Đào Tạo";
     Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
 }
+<link rel="stylesheet" href="~/css/fixed-page-layout.css" />
 
 <style>
     .dxd-hero {
@@ -35,15 +36,41 @@
         border-radius: 14px; border: 1.5px dashed #e2e8f0;
     }
     .dxd-empty i { font-size: 3rem; color: #a7f3d0; margin-bottom: 14px; display: block; }
+
+    /* Rê chuột vào một đề xuất: viền + nền sáng lên để biết đang trỏ vào dòng nào */
+    .dxd-card {
+        transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+    }
+
+        .dxd-card:hover {
+            border-color: #b45309;
+            background: #fffbeb;
+            box-shadow: 0 0 0 3px rgba(180, 83, 9, .25), 0 10px 18px -8px rgba(15, 23, 42, .3);
+        }
+
+    /* --- Khoá cuộn trang: chỉ danh sách đề xuất được cuộn --- */
+    html.fp-lock .fp-page {
+        min-height: 0 !important;
+        display: flex;
+        flex-direction: column;
+    }
+
+    html.fp-lock .fp-chain > *:not(.fp-grow) {
+        flex: 0 0 auto;
+    }
+
+    html.fp-lock #dxdList {
+        padding-right: 4px;
+    }
 </style>
 
-<div style="max-width: 100%; margin: 12px auto; padding: 0 12px;">
+<div class="fp-page" style="max-width: 100%; margin: 0 auto; padding: 12px;">
     <div class="dxd-hero">
         <h2 class="dxd-hero-title"><i class="fa fa-check-square-o"></i> DUYỆT ĐÀO TẠO</h2>
         <a href="/FormCongViec/DaoTao" class="dxd-back"><i class="fa fa-graduation-cap"></i> Về trang Đào tạo</a>
     </div>
 
-    <div id="dxdList"></div>
+    <div id="dxdList" data-fp-scroll></div>
     <div class="dxd-empty" id="dxdEmpty">
         <i class="fa fa-check-circle"></i>
         Không có đề xuất đào tạo nào đang chờ bạn duyệt.
@@ -106,3 +133,5 @@
 
     document.addEventListener('DOMContentLoaded', loadDanhSachXetDuyetDaoTao);
 </script>
+
+<script src="~/js/fixed-page-layout.js" defer></script>

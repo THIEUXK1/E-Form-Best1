@@ -94,6 +94,25 @@ public partial class KkThietBi
 
     public int? IdMay { get; set; }
 
+    /// <summary>
+    /// Trả lời câu hỏi bắt buộc khi kiểm kê "Máy này có cần cài Office không?".
+    /// NULL = chưa từng hỏi (thiết bị có từ trước khi có câu hỏi này); true = cần; false = không cần.
+    /// Dùng để quyết định máy có được cài/nâng cấp Office trong đợt tới.
+    /// </summary>
+    [Column("can_cai_office")]
+    public bool? CanCaiOffice { get; set; }
+
+    [Column("ngay_tra_loi_office", TypeName = "datetime")]
+    public DateTime? NgayTraLoiOffice { get; set; }
+
+    /// <summary>Vị trí địa lý thực tế (tỉnh/địa bàn) - trỏ tới danh mục KK_ViTriDiaLy.</summary>
+    [Column("id_vi_tri_dia_ly")]
+    public int? IdViTriDiaLy { get; set; }
+
+    [ForeignKey("IdViTriDiaLy")]
+    [InverseProperty("KkThietBis")]
+    public virtual KkViTriDiaLy? IdViTriDiaLyNavigation { get; set; }
+
     [ForeignKey("IdMay")]
     [InverseProperty("KkThietBis")]
     public virtual TscnThongTinMay? IdMayNavigation { get; set; }

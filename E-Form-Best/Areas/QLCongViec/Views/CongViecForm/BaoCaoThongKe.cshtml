@@ -52,6 +52,7 @@
         border: 1px solid #e2e8f0;
         margin-bottom: 12px;
         position: relative;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
     }
 
     .chart-header {
@@ -116,15 +117,61 @@
         margin-bottom: 10px;
     }
 
-    /* Tiêu đề nằm chung thanh lọc */
-    .bc-title {
-        font-weight: 900;
-        color: @colorDark;
-        margin: 0 8px 0 0;
-        font-size: 17px;
-        white-space: nowrap;
-        align-self: center;
+    /* Khối tiêu đề trang, dựng theo trang báo cáo SHD: icon gradient + mô tả + nút làm mới */
+    .bc-page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 12px;
     }
+
+    .bc-page-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+        font-size: 19px;
+        font-weight: 800;
+        color: #1e293b;
+    }
+
+    .bc-page-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 15px;
+        background: linear-gradient(135deg, #84cc16, #4d7c0f);
+    }
+
+    .bc-page-sub {
+        margin: 2px 0 0 44px;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .bc-btn-reset {
+        background: #fff;
+        border: 2px solid #e2e8f0;
+        padding: 8px 16px;
+        border-radius: 14px;
+        font-weight: 800;
+        font-size: 13px;
+        color: #475569;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+        .bc-btn-reset:hover {
+            border-color: #94a3b8;
+            color: #1e293b;
+        }
 
     .bc-field {
         display: flex;
@@ -146,28 +193,44 @@
         margin-bottom: 12px;
     }
 
+    /* Thẻ KPI kiểu trang báo cáo SHD: viền tô màu trạng thái, số căn giữa */
     .bc-kpi {
         display: flex;
         flex-direction: column;
+        justify-content: center;
+        text-align: center;
+        min-width: 0;
         line-height: 1.15;
         background: white;
-        border: 1px solid #e2e8f0;
-        border-left: 4px solid var(--kpi-c, #64748b);
-        border-radius: 10px;
-        padding: 7px 12px;
+        border: 2px solid var(--kpi-c, #64748b);
+        border-radius: 12px;
+        padding: 9px 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        transition: box-shadow .18s ease, transform .18s ease;
     }
 
+        .bc-kpi:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 0 3px var(--kpi-c, #94a3b8), 0 10px 18px -8px rgba(15, 23, 42, .35);
+        }
+
+            .bc-kpi:hover i {
+                opacity: 1 !important;
+            }
+
     .bc-kpi-label {
-        font-size: 11px;
+        font-size: 10.5px;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: .3px;
+        letter-spacing: .5px;
         color: #64748b;
+        margin-bottom: 4px;
     }
 
     .bc-kpi-value {
         font-size: 21px;
-        font-weight: 900;
+        font-weight: 800;
+        line-height: 1;
         color: var(--kpi-c, #0f172a);
     }
 
@@ -390,6 +453,20 @@
 
 <div class="dashboard-container" style="margin: 8px auto; padding: 0 12px;">
 
+    @* --- HEADER: tiêu đề + mô tả + nút làm mới, bố cục theo trang báo cáo SHD --- *@
+    <div class="bc-page-header">
+        <div>
+            <h2 class="bc-page-title">
+                <span class="bc-page-icon"><i class="fa fa-bar-chart"></i></span>
+                HỆ THỐNG PHÂN TÍCH CÔNG VIỆC
+            </h2>
+            <p class="bc-page-sub">Báo cáo trực quan tiến độ đơn &amp; năng suất xử lý của nhân sự</p>
+        </div>
+        <button type="button" class="bc-btn-reset" onclick="clearAllFilters()">
+            <i class="fa fa-refresh"></i> Làm mới bộ lọc
+        </button>
+    </div>
+
     @* --- BANNER HIỂN THỊ LỖI --- *@
     <div id="lblError" class="error-banner">
         <i class="fa fa-exclamation-triangle" style="font-size: 16px;"></i>
@@ -399,7 +476,6 @@
     @* --- BỘ LỌC THỜI GIAN VÀ DROPDOWN CHECKBOX NHÂN SỰ THỰC HIỆN --- *@
     @* Tiêu đề nằm luôn trong thanh lọc để bớt một khối tiêu đề riêng *@
     <div class="filter-wrapper">
-        <h2 class="bc-title"><i class="fa fa-dashboard" style="color: @colorPrimary;"></i> Báo cáo công việc</h2>
 
         <div class="bc-field">
             <label>Từ ngày</label>
@@ -427,11 +503,11 @@
 
     @* --- HÀNG CON SỐ TỔNG QUAN --- *@
     <div class="bc-kpi-strip">
-        <div class="bc-kpi" style="--kpi-c:#64748b;"><span class="bc-kpi-label">Tổng số đơn</span><span class="bc-kpi-value" id="lblTotal">0</span></div>
-        <div class="bc-kpi" style="--kpi-c:#f59e0b;"><span class="bc-kpi-label">Chờ QL duyệt</span><span class="bc-kpi-value" id="lblWaitQL">0</span></div>
-        <div class="bc-kpi" style="--kpi-c:#3b82f6;"><span class="bc-kpi-label">Đang xử lý</span><span class="bc-kpi-value" id="lblProcessing">0</span></div>
-        <div class="bc-kpi" style="--kpi-c:#8b5cf6;"><span class="bc-kpi-label">Chờ đánh giá</span><span class="bc-kpi-value" id="lblWaitRate">0</span></div>
-        <div class="bc-kpi" style="--kpi-c:@colorPrimary;"><span class="bc-kpi-label">Đã hoàn tất</span><span class="bc-kpi-value" id="lblDone">0</span></div>
+        <div class="bc-kpi" style="--kpi-c:#64748b;"><span class="bc-kpi-label"><i class="fa fa-inbox" style="margin-right:5px;opacity:.85;"></i>Tổng số đơn</span><span class="bc-kpi-value" id="lblTotal">0</span></div>
+        <div class="bc-kpi" style="--kpi-c:#f59e0b;"><span class="bc-kpi-label"><i class="fa fa-hourglass-half" style="margin-right:5px;opacity:.85;"></i>Chờ QL duyệt</span><span class="bc-kpi-value" id="lblWaitQL">0</span></div>
+        <div class="bc-kpi" style="--kpi-c:#3b82f6;"><span class="bc-kpi-label"><i class="fa fa-cogs" style="margin-right:5px;opacity:.85;"></i>Đang xử lý</span><span class="bc-kpi-value" id="lblProcessing">0</span></div>
+        <div class="bc-kpi" style="--kpi-c:#8b5cf6;"><span class="bc-kpi-label"><i class="fa fa-star-o" style="margin-right:5px;opacity:.85;"></i>Chờ đánh giá</span><span class="bc-kpi-value" id="lblWaitRate">0</span></div>
+        <div class="bc-kpi" style="--kpi-c:@colorPrimary;"><span class="bc-kpi-label"><i class="fa fa-check-circle" style="margin-right:5px;opacity:.85;"></i>Đã hoàn tất</span><span class="bc-kpi-value" id="lblDone">0</span></div>
     </div>
 
     @* --- HÀNG BIỂU ĐỒ 1 --- *@
@@ -610,6 +686,16 @@
     renderTable(cachedDataStaff);
     }
 
+
+    // Nút "Làm mới bộ lọc" ở thanh tiêu đề: xoá ngày, bỏ chọn nhân sự rồi tải lại số liệu
+    function clearAllFilters() {
+    document.getElementById('txtFromDate').value = "";
+    document.getElementById('txtToDate').value = "";
+    $('.chk-staff').prop('checked', false);
+    selectedStaffFilter = [];
+    updateDropdownButtonLabel();
+    initStats();
+    }
     async function initStats() {
     const fromDate = document.getElementById('txtFromDate').value;
     const toDate = document.getElementById('txtToDate').value;
