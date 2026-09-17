@@ -1697,7 +1697,13 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         public async Task<IActionResult> GetNotifications(int skip = 0, int take = 20)
         {
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+            // Trả JSON kèm 401 thay vì body rỗng: phía JS đọc thẳng res.json(), body rỗng làm nó
+            // ném lỗi rồi bị try/catch nuốt, người dùng không biết mình đã bị đăng xuất.
+            if (string.IsNullOrEmpty(userIdStr))
+            {
+                Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." });
+            }
 
             int userId = int.Parse(userIdStr);
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";

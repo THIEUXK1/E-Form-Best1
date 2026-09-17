@@ -691,6 +691,23 @@
                             </div>
 
                             <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-location-dot"></i> Vị trí địa lý</label>
+                                <div class="dropdown">
+                                    <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropViTriDiaLy" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        -- Tất cả --
+                                    </button>
+                                    <div class="dropdown-menu dropdown-combo-menu" id="menuViTriDiaLy" aria-labelledby="btnDropViTriDiaLy">
+                                        <input type="text" class="dropdown-combo-search" placeholder="🔍 Tìm kiếm..." autocomplete="off" onclick="event.stopPropagation()">
+                                        <div class="d-flex gap-1 mb-1">
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-selectall">✔ Chọn tất cả</button>
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-clearall">✖ Bỏ chọn</button>
+                                        </div>
+                                        <div class="dropdown-combo-items"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
                                 <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-tags"></i> Loại thiết bị</label>
                                 <div class="dropdown">
                                     <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropLoai" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
@@ -1189,6 +1206,7 @@
     <script src="~/js/fixed-page-layout.js?v=5" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="~/js/kiemke-chan-thietbi.js"></script>
+    <script src="~/js/kiemke-loc-vitri-dialy.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
@@ -1677,6 +1695,7 @@
         localStorage.removeItem('kk_filterTìnhTrangCheck');
         localStorage.removeItem('kk_excludeCongTyMode');
         localStorage.removeItem('kk_excludeBoPhanMode');
+        LocViTriDiaLyKiemKe.xoaLuaChon();
 
         excludeCongTyMode = false;
         excludeBoPhanMode = false;
@@ -1711,6 +1730,7 @@
         localStorage.setItem('kk_filterTT', JSON.stringify(selectedTT));
         localStorage.setItem('kk_filterWinLicense', JSON.stringify(selectedWin));
         localStorage.setItem('kk_filterOfficeLicense', JSON.stringify(selectedOffice));
+        LocViTriDiaLyKiemKe.luu();
 
         localStorage.setItem('kk_filterLimit', $('#filterLimit').val());
         localStorage.setItem('kk_filterText', $('#filterText').val().trim());
@@ -1729,6 +1749,7 @@
         $.get('/QLKiemKe/GetKkLoaiThietBis', function(res) { if(res.success) { listLoaiThietBiCache = res.data; renderFilterLoaiThietBi(); } });
         $.get('/QLKiemKe/GetKkCongTys', function(res) { if(res.success) { listCongTyCache = res.data; renderFilterCongTy(); } });
         $.get('/QLKiemKe/GetKkBoPhans', function(res) { if(res.success) { listBoPhanCache = res.data; renderFilterBoPhan(); } });
+        LocViTriDiaLyKiemKe.taiDanhSach();
         napGoiYBanQuyen();
         renderFilterLicenses();
         loadThietBi();
@@ -2333,6 +2354,7 @@
         }
         if (selectedLoais.length > 0) filtered = filtered.filter(x => selectedLoais.includes(x.loaiThietBi));
         if (selectedTrangThais.length > 0) filtered = filtered.filter(x => selectedTrangThais.includes(x.tenTrangThai));
+        filtered = LocViTriDiaLyKiemKe.loc(filtered);
 
         // Nút gạt "Thiếu Hostname": chỉ giữ thiết bị bỏ trống ô Tên máy
         if (locThieuHostname) filtered = filtered.filter(x => !x.tenMayTinh || x.tenMayTinh.trim() === '');
@@ -2482,7 +2504,7 @@
         if (item.canCaiOffice === true) {
         dongOffice = `<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle" title="Người dùng xác nhận cần cài Office"><i class="fas fa-file-word me-1"></i>Cần Office</span>`;
         } else if (item.canCaiOffice === false) {
-        dongOffice = `<span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle" title="Người dùng xác nhận KHÔNG cần cài Office"><i class="fas fa-file-word me-1"></i>Không cần Office</span>`;
+        dongOffice = `<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle" title="Người dùng xác nhận KHÔNG cần cài Office"><i class="fas fa-file-word me-1"></i>Không cần Office</span>`;
         } else {
         dongOffice = `<span class="badge bg-light text-muted border" title="Chưa trả lời câu hỏi Office khi kiểm kê"><i class="fas fa-file-word me-1"></i>Office: chưa hỏi</span>`;
         }
@@ -2667,6 +2689,7 @@
         filtered = excludeBoPhanMode ? filtered.filter(x => !khopBP(x)) : filtered.filter(khopBP);
         }
         if (selectedLoais.length > 0) filtered = filtered.filter(x => selectedLoais.includes(x.loaiThietBi));
+        filtered = LocViTriDiaLyKiemKe.loc(filtered);
 
         if (fText) {
         filtered = filtered.filter(x =>

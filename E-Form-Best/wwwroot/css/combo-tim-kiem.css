@@ -1,0 +1,65 @@
+/* Combobox có ô tìm kiếm — nâng cấp từ <select> bằng JS, không dùng thư viện ngoài */
+.combo-tim-kiem {
+    position: relative;
+}
+
+.combo-tim-kiem > input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #fcd34d;
+    border-radius: 10px;
+    font-weight: 700;
+    color: #0f172a;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.combo-tim-kiem > input:focus {
+    outline: none;
+    border-color: #b45309;
+    box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.15);
+}
+
+.combo-tim-kiem > input.combo-chua-chon {
+    border-color: #ef4444;
+}
+
+.combo-tim-kiem-danhsach {
+    position: absolute;
+    z-index: 50;
+    left: 0;
+    right: 0;
+    top: calc(100% + 4px);
+    max-height: 240px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.18);
+    display: none;
+}
+
+.combo-tim-kiem-danhsach.hien {
+    display: block;
+}
+
+.combo-tim-kiem-danhsach > div {
+    padding: 9px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+    cursor: pointer;
+}
+
+.combo-tim-kiem-danhsach > div.dang-chon,
+.combo-tim-kiem-danhsach > div:hover {
+    background: #fffbeb;
+    color: #92400e;
+}
+
+.combo-tim-kiem-danhsach > div.khong-co {
+    color: #94a3b8;
+    font-weight: 600;
+    cursor: default;
+    background: none;
+}

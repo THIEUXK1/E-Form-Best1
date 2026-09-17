@@ -3828,6 +3828,26 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .ToListAsync();
             }
 
+            // Chỉ quyền "All" mới được đổi Bộ phận / Tên công ty của đơn -> chuẩn bị sẵn danh mục cho view
+            bool coTheDoiDonVi = User.IsInRole("All");
+            ViewBag.CoTheDoiDonVi = coTheDoiDonVi;
+            if (coTheDoiDonVi)
+            {
+                ViewBag.DsCongTy = await _context.DmCongTies
+                    .Where(x => x.TrangThai != false && x.TenCongTy != null)
+                    .OrderBy(x => x.TenCongTy)
+                    .Select(x => x.TenCongTy!)
+                    .Distinct()
+                    .ToListAsync();
+
+                ViewBag.DsBoPhan = await _context.DmBoPhans
+                    .Where(x => x.TrangThai != false && x.TenBoPhan != null)
+                    .OrderBy(x => x.TenBoPhan)
+                    .Select(x => x.TenBoPhan!)
+                    .Distinct()
+                    .ToListAsync();
+            }
+
             ViewBag.CurrentUserId = userId;
             ViewBag.UserEmail = userEmail;
 
@@ -4941,6 +4961,80 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     return Json(new { success = false, message = "Lỗi: " + ex.Message });
                 }
             }
+        }
+
+        // ===================================================================
+        // API: ĐỔI BỘ PHẬN / TÊN CÔNG TY CỦA ĐƠN (chỉ quyền "All")
+        // Đơn bị nhập sai đơn vị sẽ lọt khỏi tầm duyệt của quản lý đúng bộ phận,
+        // nên cần một chỗ sửa lại — nhưng chỉ mở cho quyền cao nhất.
+        // ===================================================================
+
+        [HttpPost("/FormIT/DoiDonViDon")]
+        [Authorize(Roles = "All")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DoiDonViDon([FromBody] DoiDonViDonRequest req)
+        {
+            if (req == null || req.IdFormIt <= 0)
+                return Json(new { success = false, message = "Dữ liệu không hợp lệ!" });
+
+            var boPhanMoi = (req.BoPhan ?? "").Trim();
+            var congTyMoi = (req.TenCongTy ?? "").Trim();
+
+            if (string.IsNullOrEmpty(boPhanMoi) || string.IsNullOrEmpty(congTyMoi))
+                return Json(new { success = false, message = "Vui lòng chọn đủ Bộ phận và Tên công ty!" });
+
+            // Chỉ nhận giá trị có trong danh mục, không tin dữ liệu client gửi lên
+            bool hopLeBoPhan = await _context.DmBoPhans.AnyAsync(x => x.TenBoPhan == boPhanMoi && x.TrangThai != false);
+            bool hopLeCongTy = await _context.DmCongTies.AnyAsync(x => x.TenCongTy == congTyMoi && x.TrangThai != false);
+            if (!hopLeBoPhan || !hopLeCongTy)
+                return Json(new { success = false, message = "Bộ phận hoặc công ty không có trong danh mục!" });
+
+            var don = await _context.FormIts.FirstOrDefaultAsync(x => x.Id == req.IdFormIt);
+            if (don == null)
+                return Json(new { success = false, message = "Không tìm thấy đơn!" });
+
+            var boPhanCu = (don.BoPhan ?? "").Trim();
+            var congTyCu = (don.TenCongTy ?? "").Trim();
+
+            // Chốt idempotency: gửi lại đúng giá trị cũ thì không ghi thêm dòng lịch sử nào
+            if (string.Equals(boPhanCu, boPhanMoi, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(congTyCu, congTyMoi, StringComparison.OrdinalIgnoreCase))
+            {
+                return Json(new { success = true, message = "Không có thay đổi nào.", boPhan = don.BoPhan, tenCongTy = don.TenCongTy });
+            }
+
+            don.BoPhan = boPhanMoi;
+            don.TenCongTy = congTyMoi;
+
+            var userName = User.Identity?.Name ?? "Quản trị";
+            var maNv = User.FindFirst("MaNv")?.Value ?? "N/A";
+
+            _context.LichSuFormIts.Add(new LichSuFormIt
+            {
+                IdFormIt = don.Id,
+                TieuDe = "Đổi đơn vị của đơn",
+                Mota = $"{userName} ({maNv}) đã đổi đơn vị: "
+                     + $"Bộ phận '{(string.IsNullOrEmpty(boPhanCu) ? "(trống)" : boPhanCu)}' → '{boPhanMoi}'; "
+                     + $"Công ty '{(string.IsNullOrEmpty(congTyCu) ? "(trống)" : congTyCu)}' → '{congTyMoi}'.",
+                Time = DateTime.Now
+            });
+
+            await _context.SaveChangesAsync();
+
+            return Json(new
+            {
+                success = true,
+                message = "Đã cập nhật Bộ phận và Tên công ty của đơn.",
+                boPhan = don.BoPhan,
+                tenCongTy = don.TenCongTy
+            });
+        }
+
+        public class DoiDonViDonRequest
+        {
+            public int IdFormIt { get; set; }
+            public string? BoPhan { get; set; }
+            public string? TenCongTy { get; set; }
         }
 
         // ===================================================================
@@ -6184,7 +6278,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         public async Task<IActionResult> GetNotifications(int skip = 0, int take = 20)
         {
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+            // Trả JSON kèm 401 thay vì body rỗng: phía JS đọc thẳng res.json(), body rỗng làm nó
+            // ném lỗi rồi bị try/catch nuốt, người dùng không biết mình đã bị đăng xuất.
+            if (string.IsNullOrEmpty(userIdStr))
+            {
+                Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." });
+            }
 
             int userId = int.Parse(userIdStr);
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
