@@ -7218,6 +7218,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 return Redirect("/DonXetDuyet/DangNhap");
             }
+            // Trang này mở cho nhóm kiểm kê và cả AdminIT — kiểm ở server, không dựa vào việc ẩn menu
+            if (!User.IsInRole("KKTS-PFVN") && !User.IsInRole("AdminIT") && !User.IsInRole("All"))
+            {
+                return Forbid();
+            }
             // Truyền User list sang View để đổ vào Dropdown Người Dùng
             ViewBag.Users = _context.Users.OrderBy(u => u.HoTen).ToList();
             return View("IndexThietBi"); // Bạn cần tạo file IndexThietBi.cshtml trong thư mục Views

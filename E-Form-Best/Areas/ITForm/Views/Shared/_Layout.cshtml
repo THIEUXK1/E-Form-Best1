@@ -457,6 +457,14 @@
                             <span class="lang-text" data-key="inventory_stats">@L["Kiểm kê tài sản"]</span>
                         </a>
 
+                        @* AdminIT cũng được xem Quản lý Thiết bị; chặn hiện 2 lần khi user có thêm quyền kiểm kê ở khối bên dưới *@
+                        @if (!User.IsInRole("KKTS-PFVN") && !User.IsInRole("All"))
+                        {
+                            <a href="/QLKiemKe/ThietBi" class="nav-link-item @(currentAction == "IndexThietBi" ? "active" : "")" aria-current="@(currentAction == "IndexThietBi" ? "page" : null)">
+                                <i class="fa fa-laptop nav-ico" style="color:#60a5fa;"></i> <span class="lang-text" data-key="device_manage">@L["Quản lý Thiết bị"]</span>
+                            </a>
+                        }
+
                         @* CCDC = công cụ dụng cụ: quản lý danh mục và cho mượn/trả, xử lý ở QLCCDCController *@
                         <a href="/QLCCDC" class="nav-link-item @(currentController == "QLCCDC" ? "active" : "")" aria-current="@(currentController == "QLCCDC" ? "page" : null)">
                             <i class="fa fa-wrench nav-ico" style="color:#fb923c;"></i>

@@ -1016,6 +1016,8 @@
                                           onfocus="this.style.borderColor='#3b82f6'"
                                           onblur="this.style.borderColor='#e2e8f0'"></textarea>
 
+                                <div id="previewFileBinhLuan" style="display: none; margin-bottom: 12px;"></div>
+
                                 <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                                     <label for="fileBinhLuan"
                                            id="dropZoneBinhLuan"
@@ -1283,48 +1285,7 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('formBinhLuan')?.addEventListener('submit', guiBinhLuan);
-        document.getElementById('txtBinhLuan')?.addEventListener('paste', function (e) {
-            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-            for (let i = 0; i < items.length; i++) {
-                if (items[i].kind === 'file' && items[i].type.startsWith('image/')) {
-                    const blob = items[i].getAsFile(); const dataTransfer = new DataTransfer(); dataTransfer.items.add(blob);
-                    const fileBinhLuan = document.getElementById('fileBinhLuan'); if (fileBinhLuan) { fileBinhLuan.files = dataTransfer.files; updateFileLabel(fileBinhLuan); }
-                }
-            }
-        });
-
-        // KÉO-THẢ ẢNH VÀO KHUNG BÌNH LUẬN ĐỂ ĐÍNH KÈM GỬI NHANH (không cần bấm chọn tệp)
-        const formBinhLuanEl = document.getElementById('formBinhLuan');
-        const dropZoneEl = document.getElementById('dropZoneBinhLuan');
-        if (formBinhLuanEl && dropZoneEl) {
-            const setDragHighlight = (on) => {
-                dropZoneEl.style.borderColor = on ? '#3b82f6' : '#cbd5e1';
-                dropZoneEl.style.background = on ? '#eff6ff' : '#f8fafc';
-            };
-            ['dragenter', 'dragover'].forEach(evt => {
-                formBinhLuanEl.addEventListener(evt, function (e) {
-                    e.preventDefault(); e.stopPropagation(); setDragHighlight(true);
-                });
-            });
-            ['dragleave', 'dragend'].forEach(evt => {
-                formBinhLuanEl.addEventListener(evt, function (e) {
-                    e.preventDefault(); e.stopPropagation();
-                    if (evt === 'dragleave' && formBinhLuanEl.contains(e.relatedTarget)) return;
-                    setDragHighlight(false);
-                });
-            });
-            formBinhLuanEl.addEventListener('drop', function (e) {
-                e.preventDefault(); e.stopPropagation(); setDragHighlight(false);
-                const droppedFile = e.dataTransfer?.files?.[0];
-                if (!droppedFile) return;
-                const fileBinhLuan = document.getElementById('fileBinhLuan');
-                if (!fileBinhLuan) return;
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(droppedFile);
-                fileBinhLuan.files = dataTransfer.files;
-                updateFileLabel(fileBinhLuan);
-            });
-        }
+        // Dán/kéo-thả ảnh vào khung bình luận: xem wwwroot/js/formit-binhluan-dan-anh.js
 
         taiBinhLuan(false);
         document.getElementById('commentList')?.addEventListener('scroll', function() {
@@ -1335,3 +1296,4 @@
     });
 </script>
 <script src="~/js/formit-chitiet-doi-donvi.js?v=20260917"></script>
+<script src="~/js/formit-binhluan-dan-anh.js?v=20260917"></script>

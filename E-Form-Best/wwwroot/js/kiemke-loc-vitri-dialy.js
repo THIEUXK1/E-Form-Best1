@@ -1,14 +1,20 @@
 // Bộ lọc "Vị trí địa lý" cho trang QL Kiểm kê > Thiết bị.
-// Dùng chung khuôn dropdown nhiều lựa chọn (.dropdown-combo-menu) đã có sẵn của trang,
-// nên chỉ cần đổ checkbox vào #menuViTriDiaLy rồi lọc trên mảng thiết bị đang hiển thị.
+// Gồm 2 lối vào: dropdown nhiều lựa chọn (#menuViTriDiaLy) trong Bộ lọc nâng cao,
+// và nút gạt nhanh "Thiếu vị trí" (#swThieuViTriDiaLy) ở hàng Lọc nhanh.
+// Dùng chung khuôn .dropdown-combo-menu có sẵn của trang nên chỉ cần đổ checkbox vào rồi lọc mảng thiết bị.
 window.LocViTriDiaLyKiemKe = (function () {
     const KHOA_LUU = 'kk_filterViTriDiaLy';
+    const KHOA_THIEU = 'kk_locThieuViTriDiaLy';
     const CHUA_XAC_DINH = '__CHUA_XAC_DINH__';
 
     let danhMuc = [];
 
     function layDaLuu() {
         try { return JSON.parse(localStorage.getItem(KHOA_LUU)) || []; } catch (e) { return []; }
+    }
+
+    function dangLocThieu() {
+        return $('#swThieuViTriDiaLy').is(':checked');
     }
 
     // Tên địa điểm là dữ liệu người dùng nhập nên phải escape trước khi ghép vào HTML
@@ -44,7 +50,7 @@ window.LocViTriDiaLyKiemKe = (function () {
         if (typeof updateDropdownButtonLabel === 'function') updateDropdownButtonLabel($('#menuViTriDiaLy'));
     }
 
-    return {
+    const api = {
         taiDanhSach: function () {
             $.get('/QLKiemKe/GetKkViTriDiaLys', function (res) {
                 if (!res || !res.success) return;
@@ -60,16 +66,20 @@ window.LocViTriDiaLyKiemKe = (function () {
         },
 
         luu: function () {
-            localStorage.setItem(KHOA_LUU, JSON.stringify(this.layDangChon()));
+            localStorage.setItem(KHOA_LUU, JSON.stringify(api.layDangChon()));
+            localStorage.setItem(KHOA_THIEU, dangLocThieu() ? 'true' : 'false');
         },
 
         xoaLuaChon: function () {
             localStorage.removeItem(KHOA_LUU);
         },
 
-        // Lọc mảng thiết bị theo các địa điểm đang tích; không tích gì thì giữ nguyên danh sách
+        // Lọc mảng thiết bị: nút gạt "Thiếu vị trí" thắng tất cả, sau đó tới các địa điểm đang tích
         loc: function (danhSach) {
-            const chon = this.layDangChon();
+            if (dangLocThieu()) {
+                danhSach = danhSach.filter(function (x) { return !x.tenViTriDiaLy || x.tenViTriDiaLy.trim() === ''; });
+            }
+            const chon = api.layDangChon();
             if (!chon.length) return danhSach;
             return danhSach.filter(function (x) {
                 const ten = (x.tenViTriDiaLy || '').trim();
@@ -78,4 +88,13 @@ window.LocViTriDiaLyKiemKe = (function () {
             });
         }
     };
+
+    $(function () {
+        $('#swThieuViTriDiaLy').prop('checked', localStorage.getItem(KHOA_THIEU) === 'true');
+        $(document).on('change', '#swThieuViTriDiaLy', function () {
+            if (typeof applyFilters === 'function') applyFilters();
+        });
+    });
+
+    return api;
 })();

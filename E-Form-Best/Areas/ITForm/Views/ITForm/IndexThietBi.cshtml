@@ -639,6 +639,10 @@
                                 <input class="form-check-input m-0" type="checkbox" role="switch" id="swThieuHostname" style="cursor: pointer; width: 40px; height: 20px;">
                                 <label class="form-check-label small fw-semibold text-dark m-0" for="swThieuHostname" style="cursor: pointer;" title="Chỉ hiện các thiết bị đang bỏ trống ô Tên máy (Hostname)"><i class="fas fa-triangle-exclamation me-1 text-danger"></i>Thiếu Hostname</label>
                             </div>
+                            <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0 ms-3">
+                                <input class="form-check-input m-0" type="checkbox" role="switch" id="swThieuViTriDiaLy" style="cursor: pointer; width: 40px; height: 20px;">
+                                <label class="form-check-label small fw-semibold text-dark m-0" for="swThieuViTriDiaLy" style="cursor: pointer;" title="Chỉ hiện các thiết bị chưa được gán Vị trí địa lý"><i class="fas fa-location-dot me-1 text-danger"></i>Thiếu vị trí</label>
+                            </div>
                         </div>
                     </div>
 
@@ -697,6 +701,23 @@
                                         -- Tất cả --
                                     </button>
                                     <div class="dropdown-menu dropdown-combo-menu" id="menuViTriDiaLy" aria-labelledby="btnDropViTriDiaLy">
+                                        <input type="text" class="dropdown-combo-search" placeholder="🔍 Tìm kiếm..." autocomplete="off" onclick="event.stopPropagation()">
+                                        <div class="d-flex gap-1 mb-1">
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-selectall">✔ Chọn tất cả</button>
+                                            <button type="button" class="dropdown-combo-quickbtn dropdown-combo-clearall">✖ Bỏ chọn</button>
+                                        </div>
+                                        <div class="dropdown-combo-items"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+                                <label class="form-label fw-bold small text-muted mb-1"><i class="fas fa-file-circle-question"></i> Cần cài Office</label>
+                                <div class="dropdown">
+                                    <button class="dropdown-combo-btn dropdown-toggle text-truncate" type="button" id="btnDropCanCaiOffice" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        -- Tất cả --
+                                    </button>
+                                    <div class="dropdown-menu dropdown-combo-menu" id="menuCanCaiOffice" aria-labelledby="btnDropCanCaiOffice">
                                         <input type="text" class="dropdown-combo-search" placeholder="🔍 Tìm kiếm..." autocomplete="off" onclick="event.stopPropagation()">
                                         <div class="d-flex gap-1 mb-1">
                                             <button type="button" class="dropdown-combo-quickbtn dropdown-combo-selectall">✔ Chọn tất cả</button>
@@ -1206,7 +1227,9 @@
     <script src="~/js/fixed-page-layout.js?v=5" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="~/js/kiemke-chan-thietbi.js"></script>
-    <script src="~/js/kiemke-loc-vitri-dialy.js"></script>
+    @* File tĩnh được cache 7 ngày, đổi nội dung phải nâng số v để trình duyệt tải lại *@
+    <script src="/js/kiemke-loc-vitri-dialy.js?v=2"></script>
+    <script src="/js/kiemke-loc-can-cai-office.js?v=1"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
@@ -1696,6 +1719,7 @@
         localStorage.removeItem('kk_excludeCongTyMode');
         localStorage.removeItem('kk_excludeBoPhanMode');
         LocViTriDiaLyKiemKe.xoaLuaChon();
+        LocCanCaiOfficeKiemKe.xoaLuaChon();
 
         excludeCongTyMode = false;
         excludeBoPhanMode = false;
@@ -1731,6 +1755,7 @@
         localStorage.setItem('kk_filterWinLicense', JSON.stringify(selectedWin));
         localStorage.setItem('kk_filterOfficeLicense', JSON.stringify(selectedOffice));
         LocViTriDiaLyKiemKe.luu();
+        LocCanCaiOfficeKiemKe.luu();
 
         localStorage.setItem('kk_filterLimit', $('#filterLimit').val());
         localStorage.setItem('kk_filterText', $('#filterText').val().trim());
@@ -2223,9 +2248,16 @@
         $(selector).html(html).val(selectedVal).trigger('change');
         }
 
-        function fillSelectBoPhan(selector, selectedVal = '') {
+        // Có Công ty thì chỉ đổ bộ phận của công ty đó (khỏi chọn nhầm bộ phận khác công ty);
+        // chưa chọn công ty mới liệt kê tất cả kèm tên công ty trong ngoặc.
+        function fillSelectBoPhan(selector, selectedVal = '', idCongTy = '') {
         let html = '<option value="">-- Chọn bộ phận --</option>';
+        if (idCongTy) {
+        listBoPhanCache.filter(b => b.idcongTy == idCongTy)
+        .forEach(b => { html += `<option value="${b.idboPhan}">${b.tenBoPhan}</option>`; });
+        } else {
         listBoPhanCache.forEach(b => { html += `<option value="${b.idboPhan}">${b.tenBoPhan} (${b.tenCongTy || 'Trống'})</option>`; });
+        }
         $(selector).html(html).val(selectedVal).trigger('change');
         }
 
@@ -2355,6 +2387,7 @@
         if (selectedLoais.length > 0) filtered = filtered.filter(x => selectedLoais.includes(x.loaiThietBi));
         if (selectedTrangThais.length > 0) filtered = filtered.filter(x => selectedTrangThais.includes(x.tenTrangThai));
         filtered = LocViTriDiaLyKiemKe.loc(filtered);
+        filtered = LocCanCaiOfficeKiemKe.loc(filtered);
 
         // Nút gạt "Thiếu Hostname": chỉ giữ thiết bị bỏ trống ô Tên máy
         if (locThieuHostname) filtered = filtered.filter(x => !x.tenMayTinh || x.tenMayTinh.trim() === '');
@@ -2690,6 +2723,7 @@
         }
         if (selectedLoais.length > 0) filtered = filtered.filter(x => selectedLoais.includes(x.loaiThietBi));
         filtered = LocViTriDiaLyKiemKe.loc(filtered);
+        filtered = LocCanCaiOfficeKiemKe.loc(filtered);
 
         if (fText) {
         filtered = filtered.filter(x =>
@@ -2987,14 +3021,7 @@
         fillSelectTrangThai('#tb_IdTrangThai', item.idTrangThai || '');
         fillSelectCongTy('#tb_IdCongTy', item.idcongTy || '');
 
-        if (item.idcongTy) {
-        let html = '<option value="">-- Chọn bộ phận --</option>';
-        let filtered = listBoPhanCache.filter(b => b.idcongTy == item.idcongTy);
-        filtered.forEach(b => { html += `<option value="${b.idboPhan}">${b.tenBoPhan}</option>`; });
-        $('#tb_IdBoPhan').html(html).val(item.idboPhan || '').trigger('change');
-        } else {
-        fillSelectBoPhan('#tb_IdBoPhan', item.idboPhan || '');
-        }
+        fillSelectBoPhan('#tb_IdBoPhan', item.idboPhan || '', item.idcongTy || '');
 
         $('#tb_LoaiThietBi').val(item.loaiThietBi);
         $('#tb_QuyCach').val(item.quyCach || '');
