@@ -69,6 +69,23 @@ builder.Services.AddDbContext<ITFormContext>(options =>
 // --- 2. ĐĂNG KÝ BACKGROUND SERVICE (CHẠY NGẦM LÚC 12H ĐÊM) ---
 builder.Services.AddHostedService<AutoRatingWorker>();
 
+// --- 2b. MODULE QUẢN LÝ MÁY IN ---
+// Máy in FUJIFILM dùng chứng thư tự ký cho HTTPS nội bộ nên phải bỏ kiểm chứng thư; phạm vi
+// chỉ nằm trong HttpClient tên "MayIn", không ảnh hưởng các lời gọi HTTPS khác của ứng dụng.
+builder.Services.AddHttpClient(MayInApiService.TenHttpClient, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(builder.Configuration.GetValue<int?>("MayIn:TimeoutGiay") ?? 10);
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+    AllowAutoRedirect = true
+});
+
+builder.Services.AddScoped<MayInApiService>();
+builder.Services.AddScoped<MayInQuetService>();
+builder.Services.AddHostedService<MayInPollWorker>();
+
 // Cache trong bộ nhớ cho dữ liệu tra cứu ít thay đổi (Công ty, Bộ phận...) để giảm truy vấn DB lặp lại
 builder.Services.AddMemoryCache();
 

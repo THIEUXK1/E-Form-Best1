@@ -1,0 +1,202 @@
+@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Chi tiết máy in";
+
+    @* Id do Controller truyền sang; JS đọc lại từ data-* thay vì nhúng script inline *@
+    var idMayIn = ViewBag.IdMayIn as int? ?? 0;
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="/css/mayin-quanly.css?v=20260918n">
+
+@* Thẻ body nằm ở layout nên gắn id máy vào đây rồi JS tự đọc lên *@
+<div id="mayInGoc" data-id-may-in="@idMayIn"></div>
+
+<div class="main-card" style="padding:0 4px;">
+
+    <div class="mayin-topbar">
+        @* Trang này mở từ danh sách bằng tab mới nên đóng tab là hành vi đúng; mở thẳng bằng
+           đường dẫn (bookmark) thì trình duyệt chặn window.close() và JS quay về danh sách *@
+        <button type="button" class="btn btn-sm btn-light rounded-pill px-3" id="btnDongTab">
+            <i class="fa fa-xmark me-1"></i> Đóng tab
+        </button>
+
+        <div class="me-auto d-flex align-items-center gap-2">
+            <span class="mayin-title-icon"><i class="fa fa-print"></i></span>
+            <div>
+                <div class="fw-bold" style="color:#1e293b; font-size:1.05rem;" id="ctTieuDe">Đang tải...</div>
+                <div class="text-muted" style="font-size:0.75rem;" id="ctPhuDe"></div>
+            </div>
+        </div>
+
+        <span class="small" id="ctKetQuaDoc"></span>
+
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" id="btnDocChiSo">
+            <i class="fa fa-rotate me-1"></i> Đọc chỉ số ngay
+        </button>
+
+        <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3" id="btnNhapTay">
+            <i class="fa fa-keyboard me-1"></i> Nhập chỉ số tay
+        </button>
+
+        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="btnSuaMay">
+            <i class="fa fa-pen me-1"></i> Sửa thông tin
+        </button>
+
+        <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3" id="btnQuetThietBi">
+            <i class="fa fa-satellite-dish me-1"></i> Quét lại
+        </button>
+    </div>
+
+    @* Dải thẻ số: chỉ số hiện tại và nhịp in gần đây *@
+    <div class="mayin-dai-the-so" id="ctTheSo"></div>
+
+    @* Hồ sơ máy: toàn bộ trường đang lưu trong danh mục *@
+    <div class="bg-white border rounded-4 p-3 mb-2">
+        <div class="mayin-khoi-tieude mb-2"><i class="fa fa-id-card me-1"></i> Hồ sơ máy in</div>
+        <div id="ctHoSo" class="mayin-luoi-quet"></div>
+    </div>
+
+    @* Kết quả quét thiết bị: tự chạy khi mở trang nếu máy có IP *@
+    <div class="bg-white border rounded-4 p-3 mb-2">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <div class="mayin-khoi-tieude mb-0"><i class="fa fa-satellite-dish me-1"></i> Thông số đọc trực tiếp từ máy</div>
+            <span class="small text-muted" id="ctQuetThoiDiem"></span>
+        </div>
+        <div id="ctQuet"></div>
+    </div>
+
+    <div class="bg-white border rounded-4 p-3 mb-2">
+        <div class="mayin-khoi-tieude mb-2"><i class="fa fa-chart-column me-1"></i> Trang in theo ngày</div>
+        <canvas id="ctBieuDo" height="80"></canvas>
+    </div>
+
+    <div class="bg-white border rounded-4 p-3">
+        <div class="mayin-khoi-tieude mb-2"><i class="fa fa-table-list me-1"></i> Lịch sử chỉ số</div>
+        <div class="table-responsive" style="max-height:340px; overflow:auto;">
+            <table class="table table-sm mayin-bang mb-0">
+                <thead>
+                    <tr>
+                        <th>Ngày</th>
+                        <th>Đọc lúc</th>
+                        <th class="mayin-cot-so">In</th>
+                        <th class="mayin-cot-so">Copy</th>
+                        <th class="mayin-cot-so">Scan</th>
+                        <th class="mayin-cot-so">Tổng</th>
+                        <th class="mayin-cot-so">Trong ngày</th>
+                        <th class="mayin-cot-so">Mực</th>
+                        <th class="mayin-cot-so">Trống</th>
+                        <th>Nguồn</th>
+                    </tr>
+                </thead>
+                <tbody id="ctLichSu"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@* ---------- Modal sửa thông tin ---------- *@
+<div class="modal fade" id="modalMayIn" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-primary"><i class="fa fa-print me-2"></i> Sửa thông tin máy in</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="mayId" value="0">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Bộ phận</label>
+                        <input type="text" class="form-control" id="mayBoPhan">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Model *</label>
+                        <input type="text" class="form-control" id="mayModel">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Serial *</label>
+                        <input type="text" class="form-control" id="maySerial">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Địa chỉ IP</label>
+                        <input type="text" class="form-control" id="mayIp" placeholder="Để trống nếu cắm USB">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small fw-bold text-muted">Tên máy in (hàng đợi trên print server)</label>
+                        <input type="text" class="form-control" id="mayTenHangDoi">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold text-muted">Vị trí</label>
+                        <input type="text" class="form-control" id="mayViTri">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Trạng thái</label>
+                        <select class="form-select" id="mayTrangThai">
+                            <option value="HoatDong">Đang hoạt động</option>
+                            <option value="TamDung">Tạm dừng</option>
+                            <option value="BaoPhe">Báo phế</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8 d-flex align-items-end">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="mayTheoDoi">
+                            <label class="form-check-label small" for="mayTheoDoi">Đọc chỉ số tự động hằng ngày</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-muted">Ghi chú</label>
+                        <input type="text" class="form-control" id="mayGhiChu">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Huỷ</button>
+                <button type="button" class="btn btn-primary rounded-pill px-4" id="btnLuuMay">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ---------- Modal nhập chỉ số tay ---------- *@
+<div class="modal fade" id="modalChiSoTay" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-warning"><i class="fa fa-keyboard me-2"></i> Nhập chỉ số tay</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="tayId" value="0">
+                <p class="small text-muted mb-3" id="tayThongTin"></p>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Ngày chốt</label>
+                        <input type="date" class="form-control" id="tayNgay">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Chỉ số tổng (in + copy) *</label>
+                        <input type="number" class="form-control" id="tayCounter" min="0">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Mực còn (%)</label>
+                        <input type="number" class="form-control" id="tayToner" min="0" max="100">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-muted">Ghi chú</label>
+                        <input type="text" class="form-control" id="tayGhiChu" placeholder="Ví dụ: đọc từ màn hình máy">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Huỷ</button>
+                <button type="button" class="btn btn-warning rounded-pill px-4" id="btnLuuChiSoTay">Lưu chỉ số</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/js/mayin-chitiet.js?v=20260918n"></script>
+}

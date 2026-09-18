@@ -1,0 +1,246 @@
+/* MÃ n hÃ¬nh Quáº£n lÃ½ mÃ¡y in â /QLMayIn
+   DÃ¹ng chung khung cuá»n vá»i fixed-page-layout.css: chá» vÃ¹ng báº£ng cuá»n, Äáº§u trang Äá»©ng yÃªn. */
+
+.mayin-topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+}
+
+/* Thẻ số kiểu các trang kiểm kê/duyệt đơn: viền tô màu theo nhóm chỉ số (--st-c),
+   nội dung căn giữa, rê chuột thì sáng lên để biết đang trỏ vào ô nào. */
+.mayin-the-so {
+    background: #fff;
+    border: 2px solid var(--st-c, #e2e8f0);
+    border-radius: 14px;
+    padding: 9px 12px;
+    flex: 1 1 150px;
+    text-align: center;
+    transition: box-shadow .18s ease, transform .18s ease;
+}
+
+    .mayin-the-so:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 0 3px var(--st-c, #94a3b8), 0 10px 18px -8px rgba(15, 23, 42, .35);
+    }
+
+        .mayin-the-so:hover i {
+            opacity: 1 !important;
+        }
+
+    .mayin-the-so .so {
+        font-size: 1.35rem;
+        font-weight: 800;
+        line-height: 1.1;
+        color: var(--st-c, #0f172a);
+    }
+
+    .mayin-the-so .nhan {
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748b;
+    }
+
+/* Huy hiệu icon gradient ở tiêu đề, dựng theo trang báo cáo SHD */
+.mayin-title-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 15px;
+    background: linear-gradient(135deg, #38bdf8, #0369a1);
+    flex-shrink: 0;
+}
+
+.mayin-bang {
+    font-size: 0.86rem;
+}
+
+    .mayin-bang thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #f1f5f9;
+        color: #334155;
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        white-space: nowrap;
+    }
+
+    .mayin-bang td {
+        vertical-align: middle;
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+/* Thanh má»±c/trá»ng: Äá»c nhanh má»©c cÃ²n láº¡i mÃ  khÃ´ng cáº§n soi con sá» */
+.mayin-thanh {
+    height: 6px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+    min-width: 54px;
+}
+
+    .mayin-thanh > span {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+    }
+
+/* Chấm màu mực của máy in màu, xếp dưới thanh mực thấp nhất trong bảng danh sách */
+.mayin-cham-muc {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    cursor: help;
+}
+
+.muc-du { background: #22c55e; }
+.muc-vua { background: #f59e0b; }
+.muc-can { background: #ef4444; }
+
+.mayin-trangthai {
+    text-align: center;
+}
+
+.mayin-cot-so {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Khi khoá cuộn, .main-card thành flex cột: mọi khối ngoài vùng cuộn phải giữ đúng
+   chiều cao thật của nó. flex-shrink mặc định = 1 sẽ bóp thanh lệnh và dải thẻ số
+   thấp hơn nội dung -> chữ tràn ra ngoài và đè lên bảng (đúng lỗi đang thấy). */
+html.fp-lock .main-card > *:not(.fp-grow):not(.fp-scroll) {
+    flex: 0 0 auto;
+}
+
+html.fp-lock .mayin-topbar,
+html.fp-lock .mayin-dai-the-so {
+    flex: 0 0 auto;
+}
+
+/* Dải thẻ số: mỗi ô tự co giãn trong hàng, nhưng cả hàng không được co chiều cao */
+.mayin-dai-the-so {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+/* ---------- Kết quả quét thiết bị trong modal chi tiết ----------
+   Lưới tự xếp 2-3 cột tuỳ bề ngang màn hình, mỗi nhóm thông số là một thẻ. */
+.mayin-luoi-quet {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 10px;
+}
+
+.mayin-khoi {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: #f8fafc;
+}
+
+.mayin-khoi-tieude {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #0369a1;
+    margin-bottom: 6px;
+}
+
+.mayin-dong {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 0.82rem;
+    padding: 2px 0;
+    border-bottom: 1px dashed #e2e8f0;
+}
+
+    .mayin-dong:last-child {
+        border-bottom: 0;
+    }
+
+    .mayin-dong > span:first-child {
+        color: #64748b;
+    }
+
+/* Khối có bảng bên trong (Mức sử dụng) cần trọn bề ngang, không bó trong một cột lưới */
+.mayin-khoi-rong {
+    grid-column: 1 / -1;
+}
+
+    .mayin-khoi-rong table {
+        margin-bottom: 4px;
+    }
+
+/* Chấm trạng thái mạng đứng trước địa chỉ IP trong bảng */
+.mayin-cham {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.cham-song {
+    background: #22c55e;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, .2);
+}
+
+.cham-tat {
+    background: #cbd5e1;
+}
+
+/* Thẻ số bấm được để lọc nhanh bảng bên dưới */
+.mayin-the-so[data-loc] {
+    cursor: pointer;
+    user-select: none;
+}
+
+    .mayin-the-so[data-loc]:focus-visible {
+        outline: 2px solid var(--st-c, #2563eb);
+        outline-offset: 2px;
+    }
+
+/* Thẻ đang được dùng làm bộ lọc: nền tô nhạt theo màu nhóm để phân biệt với thẻ chỉ xem */
+.mayin-the-so.dang-loc {
+    background: color-mix(in srgb, var(--st-c, #2563eb) 12%, #fff);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--st-c, #2563eb) 30%, transparent);
+}
+
+    .mayin-the-so.dang-loc .nhan {
+        color: var(--st-c, #2563eb);
+    }
+
+/* Dòng trong bảng mở được trang chi tiết nên phải trông như bấm được */
+.js-dong-may {
+    cursor: pointer;
+}
+
+    .js-dong-may:focus-visible {
+        outline: 2px solid #0ea5e9;
+        outline-offset: -2px;
+    }

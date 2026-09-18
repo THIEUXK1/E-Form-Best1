@@ -227,6 +227,11 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<UserQuyen> UserQuyens { get; set; }
 
+    // Module Quản lý máy in — bảng tạo bằng .claude/plans/sql/mayin-tao-bang-20260918.sql
+    public virtual DbSet<MayIn> MayIns { get; set; }
+
+    public virtual DbSet<MayInChiSo> MayInChiSos { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer(GetConnectionStringFromConfig());
 

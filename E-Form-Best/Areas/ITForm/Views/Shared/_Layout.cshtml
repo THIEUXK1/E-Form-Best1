@@ -17,7 +17,8 @@
     // QLCCDC là module IT nhưng tên controller không chứa chữ "IT" nên phải liệt kê tường minh,
     // nếu không trang sẽ hiển thị nhầm giao diện HR (màu xanh lá, logo "HR SERVICE").
     bool isITSystem = currentController.Contains("IT") || currentController == "Mail"
-                      || currentController.Contains("Order") || currentController == "QLCCDC";
+                      || currentController.Contains("Order") || currentController == "QLCCDC"
+                      || currentController == "QLMayIn";
 
     // Các trang thuộc nhóm "Đăng ký đơn" — dùng để tô sáng mục menu, kể cả khi đang ở trang chọn loại đơn
     string[] itSubPages = { "DangKyDon", "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi", "DonCapQuyenOChung", "DonThietKeTemIn", "DonCaiDatPhanMem", "DonLapTrinhUngDung", "DonTraThietBi" }; bool isITSubActive = itSubPages.Contains(currentAction);
@@ -465,12 +466,6 @@
                             </a>
                         }
 
-                        @* CCDC = công cụ dụng cụ: quản lý danh mục và cho mượn/trả, xử lý ở QLCCDCController *@
-                        <a href="/QLCCDC" class="nav-link-item @(currentController == "QLCCDC" ? "active" : "")" aria-current="@(currentController == "QLCCDC" ? "page" : null)">
-                            <i class="fa fa-wrench nav-ico" style="color:#fb923c;"></i>
-                            <span class="lang-text" data-key="ccdc_manage">@L["Quản lý CCDC"]</span>
-                        </a>
-
                     }
                     @if (User.IsInRole("KKTS-PFVN") || User.IsInRole("All"))
                     {
@@ -489,6 +484,25 @@
 
                         <a href="/QLKiemKe" class="nav-link-item @(currentAction == "IndexKiemKe" ? "active" : "")" aria-current="@(currentAction == "IndexKiemKe" ? "page" : null)">
                             <i class="fa fa-cubes nav-ico" style="color:#f472b6;"></i> <span class="lang-text" data-key="inventory">@L["Cấu hình Danh mục"]</span>
+                        </a>
+                    }
+
+                    @* Nhóm "Máy in & CCDC": quyền AdminIT và All đều thấy cả hai mục —
+                       quyền được kiểm lại ở QLMayInController và QLCCDCController *@
+                    @if (User.IsInRole("AdminIT") || User.IsInRole("All"))
+                    {
+                        <div class="nav-divider"></div>
+                        <div class="lang-text nav-section-title" data-key="printer_sec">@L["Máy in & CCDC"]</div>
+
+                        <a href="/QLMayIn" class="nav-link-item @(currentController == "QLMayIn" ? "active" : "")" aria-current="@(currentController == "QLMayIn" ? "page" : null)">
+                            <i class="fa fa-print nav-ico" style="color:#0ea5e9;"></i>
+                            <span class="lang-text" data-key="printer_manage">@L["Quản lý máy in"]</span>
+                        </a>
+
+                        @* CCDC = công cụ dụng cụ, xử lý ở QLCCDCController *@
+                        <a href="/QLCCDC" class="nav-link-item @(currentController == "QLCCDC" ? "active" : "")" aria-current="@(currentController == "QLCCDC" ? "page" : null)">
+                            <i class="fa fa-wrench nav-ico" style="color:#fb923c;"></i>
+                            <span class="lang-text" data-key="ccdc_manage">@L["Quản lý CCDC"]</span>
                         </a>
                     }
                 }

@@ -1,0 +1,218 @@
+@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Quản lý máy in";
+
+    @* Kiểu tường minh thay cho dynamic: view chạy ở assembly khác khi bật runtime compilation *@
+    var dsBoPhan = ViewBag.DsBoPhan as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var dsModel = ViewBag.DsModel as IEnumerable<string> ?? Enumerable.Empty<string>();
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+@* Dự án không đăng ký Tag Helper nên "~/" không phân giải được — dùng đường dẫn tuyệt đối + tự đánh version *@
+<link rel="stylesheet" href="/css/fixed-page-layout.css?v=5">
+<link rel="stylesheet" href="/css/mayin-quanly.css?v=20260918n">
+
+<div class="main-card" data-fp-card>
+
+    <div class="mayin-topbar" data-fp-filter>
+        <div class="me-auto d-flex align-items-center gap-2">
+            <span class="mayin-title-icon"><i class="fa fa-print"></i></span>
+            <div>
+                <div class="fw-bold" style="color:#1e293b; font-size:1.05rem;">Quản lý máy in</div>
+                <div class="text-muted" style="font-size:0.75rem;">Chỉ số trang in, mực và trống của máy in toàn nhà máy</div>
+            </div>
+        </div>
+
+        <input type="search" class="form-control form-control-sm" id="filterTuKhoa" style="max-width:200px;"
+               placeholder="Serial / model / vị trí / IP">
+
+        <select class="form-select form-select-sm" id="filterBoPhan" style="max-width:150px;">
+            <option value="">Tất cả bộ phận</option>
+            @foreach (var bp in dsBoPhan)
+            {
+                <option value="@bp">@bp</option>
+            }
+        </select>
+
+        <select class="form-select form-select-sm" id="filterModel" style="max-width:150px;">
+            <option value="">Tất cả model</option>
+            @foreach (var m in dsModel)
+            {
+                <option value="@m">@m</option>
+            }
+        </select>
+
+        <select class="form-select form-select-sm" id="filterTrangThai" style="max-width:150px;">
+            <option value="HoatDong">Đang hoạt động</option>
+            <option value="TamDung">Tạm dừng</option>
+            <option value="BaoPhe">Báo phế</option>
+            <option value="">Tất cả trạng thái</option>
+        </select>
+
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" id="btnDocTatCa">
+            <i class="fa fa-rotate me-1"></i> Đọc chỉ số
+        </button>
+
+        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" id="btnThemMay">
+            <i class="fa fa-plus me-1"></i> Thêm máy
+        </button>
+    </div>
+
+    <div class="mayin-dai-the-so">
+        <div class="mayin-the-so" role="button" tabindex="0" data-loc="tatCa" style="--st-c: #475569;"><div class="so" id="soTongMay">—</div><div class="nhan"><i class="fa fa-print" style="margin-right:5px;opacity:.85;"></i>Máy in</div></div>
+        <div class="mayin-the-so" role="button" tabindex="0" data-loc="hoatDong" style="--st-c: #059669;"><div class="so" id="soDangChay">—</div><div class="nhan"><i class="fa fa-circle-play" style="margin-right:5px;opacity:.85;"></i>Đang hoạt động</div></div>
+        <div class="mayin-the-so" role="button" tabindex="0" data-loc="dangBat" style="--st-c: #0891b2;"><div class="so" id="soDangBat">—</div><div class="nhan"><i class="fa fa-wifi" style="margin-right:5px;opacity:.85;"></i>Đang bật</div></div>
+        <div class="mayin-the-so" role="button" tabindex="0" data-loc="theoDoi" style="--st-c: #2563eb;"><div class="so" id="soTheoDoi">—</div><div class="nhan"><i class="fa fa-rss" style="margin-right:5px;opacity:.85;"></i>Đọc tự động</div></div>
+        <div class="mayin-the-so" role="button" tabindex="0" data-loc="tonerThap" style="--st-c: #dc2626;"><div class="so" id="soTonerThap">—</div><div class="nhan"><i class="fa fa-droplet" style="margin-right:5px;opacity:.85;"></i>Mực ≤ 20%</div></div>
+        <div class="mayin-the-so" role="button" tabindex="0" data-loc="coInHomNay" style="--st-c: #ea580c;"><div class="so" id="soTrangInHomNay">—</div><div class="nhan"><i class="fa fa-calendar-day" style="margin-right:5px;opacity:.85;"></i>Trang in hôm nay</div></div>
+        <div class="mayin-the-so" role="button" tabindex="0" data-loc="coIn30Ngay" style="--st-c: #7c3aed;"><div class="so" id="soTrangIn30">—</div><div class="nhan"><i class="fa fa-file-lines" style="margin-right:5px;opacity:.85;"></i>Trang in 30 ngày</div></div>
+    </div>
+
+    <div class="table-responsive bg-white border rounded-4" data-fp-scroll>
+        <table class="table table-hover align-middle mb-0 mayin-bang">
+            <thead>
+                <tr>
+                    <th style="width:38px;">#</th>
+                    <th>Bộ phận</th>
+                    <th>Model</th>
+                    <th>Serial</th>
+                    <th>Tên máy in</th>
+                    <th>IP</th>
+                    <th>Vị trí</th>
+                    <th class="mayin-cot-so">Chỉ số</th>
+                    <th class="mayin-cot-so">Hôm nay</th>
+                    <th class="mayin-cot-so">7 ngày</th>
+                    <th class="mayin-cot-so">30 ngày</th>
+                    <th>Mực</th>
+                    <th>Trống</th>
+                    <th class="mayin-trangthai">Trạng thái</th>
+                    <th>Đọc lúc</th>
+                    <th style="width:120px;"></th>
+                </tr>
+            </thead>
+            <tbody id="mayinTableBody">
+                <tr><td colspan="16" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@* ---------- Modal thêm / sửa ---------- *@
+<div class="modal fade" id="modalMayIn" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-primary"><i class="fa fa-print me-2"></i> <span id="mayTieuDe">Thêm máy in</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="mayId" value="0">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Bộ phận</label>
+                        <input type="text" class="form-control" id="mayBoPhan" list="dsBoPhanGoiY" placeholder="Ví dụ: WH">
+                        <datalist id="dsBoPhanGoiY">
+                            @foreach (var bp in dsBoPhan)
+                            {
+                                <option value="@bp"></option>
+                            }
+                        </datalist>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Model *</label>
+                        <input type="text" class="form-control" id="mayModel" list="dsModelGoiY" placeholder="Ví dụ: FX4830">
+                        <datalist id="dsModelGoiY">
+                            @foreach (var m in dsModel)
+                            {
+                                <option value="@m"></option>
+                            }
+                        </datalist>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Serial *</label>
+                        <input type="text" class="form-control" id="maySerial" placeholder="Ví dụ: 010069">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Địa chỉ IP</label>
+                        <input type="text" class="form-control" id="mayIp" placeholder="Để trống nếu cắm USB">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small fw-bold text-muted">Tên máy in (hàng đợi trên print server)</label>
+                        <input type="text" class="form-control" id="mayTenHangDoi" placeholder="Ví dụ: VN-IT-OFFICE">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold text-muted">Vị trí</label>
+                        <input type="text" class="form-control" id="mayViTri" placeholder="Ví dụ: Workshop WH E2">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Trạng thái</label>
+                        <select class="form-select" id="mayTrangThai">
+                            <option value="HoatDong">Đang hoạt động</option>
+                            <option value="TamDung">Tạm dừng</option>
+                            <option value="BaoPhe">Báo phế</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8 d-flex align-items-end">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="mayTheoDoi">
+                            <label class="form-check-label small" for="mayTheoDoi">
+                                Đọc chỉ số tự động hằng ngày (chỉ chạy được với máy Apeos đời mới có IP)
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-muted">Ghi chú</label>
+                        <input type="text" class="form-control" id="mayGhiChu" placeholder="Ví dụ: kết nối qua USB, máy dự phòng">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Huỷ</button>
+                <button type="button" class="btn btn-primary rounded-pill px-4" id="btnLuuMay">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ---------- Modal nhập chỉ số tay ---------- *@
+<div class="modal fade" id="modalChiSoTay" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-warning"><i class="fa fa-keyboard me-2"></i> Nhập chỉ số tay</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="tayId" value="0">
+                <p class="small text-muted mb-3" id="tayThongTin"></p>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Ngày chốt</label>
+                        <input type="date" class="form-control" id="tayNgay">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Chỉ số tổng (in + copy) *</label>
+                        <input type="number" class="form-control" id="tayCounter" min="0">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Mực còn (%)</label>
+                        <input type="number" class="form-control" id="tayToner" min="0" max="100">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-muted">Ghi chú</label>
+                        <input type="text" class="form-control" id="tayGhiChu" placeholder="Ví dụ: đọc từ màn hình máy">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Huỷ</button>
+                <button type="button" class="btn btn-warning rounded-pill px-4" id="btnLuuChiSoTay">Lưu chỉ số</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="/js/fixed-page-layout.js?v=5" defer></script>
+    <script src="/js/mayin-quanly.js?v=20260918n"></script>
+}
