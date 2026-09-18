@@ -239,15 +239,24 @@
                 + '<code>appsettings.json</code> → <code>MayIn:SpecTheoModel</code>.</div>');
         }
 
+        // Hãng không công bố đủ 3 chỉ tiêu cho mọi dòng máy, ô nào thiếu thì nói thẳng là
+        // thiếu chứ không điền số đoán.
+        function dongSpec(nhan, thang, ngay) {
+            if (thang === null || thang === undefined) {
+                return '<tr><td class="small">' + nhan + '</td>'
+                    + '<td class="mayin-cot-so small text-muted" colspan="2">hãng không công bố</td></tr>';
+            }
+            return '<tr><td class="small">' + nhan + '</td>'
+                + '<td class="mayin-cot-so small">' + dinhDangSo(thang) + '</td>'
+                + '<td class="mayin-cot-so small">' + (ngay === null || ngay === undefined ? '—' : '~' + dinhDangSo(ngay)) + '</td></tr>';
+        }
+
         var bang = '<table class="table table-sm mayin-bang mb-1">'
             + '<thead><tr><th></th><th class="mayin-cot-so">Mỗi tháng</th><th class="mayin-cot-so">Mỗi ngày</th></tr></thead>'
             + '<tbody>'
-            + '<tr><td class="small">Khuyến nghị</td><td class="mayin-cot-so small">' + dinhDangSo(cs.ampvKhuyenNghi)
-            + '</td><td class="mayin-cot-so small">~' + dinhDangSo(cs.ngayKhuyenNghi) + '</td></tr>'
-            + '<tr><td class="small">Tối đa</td><td class="mayin-cot-so small">' + dinhDangSo(cs.ampvToiDa)
-            + '</td><td class="mayin-cot-so small">~' + dinhDangSo(cs.ngayToiDa) + '</td></tr>'
-            + '<tr><td class="small">Duty cycle</td><td class="mayin-cot-so small">' + dinhDangSo(cs.dutyCycle)
-            + '</td><td class="mayin-cot-so small text-muted">—</td></tr>'
+            + dongSpec('Khuyến nghị', cs.ampvKhuyenNghi, cs.ngayKhuyenNghi)
+            + dongSpec('Tối đa', cs.ampvToiDa, cs.ngayToiDa)
+            + dongSpec('Duty cycle', cs.dutyCycle, null)
             + '</tbody></table>';
 
         var tuoiTho = '';
@@ -262,7 +271,8 @@
             (cs.ten ? '<div class="small text-muted mb-1">' + escapeHtml(cs.ten) + '</div>' : '')
             + bang + tuoiTho
             + '<div class="text-muted" style="font-size:0.72rem;">Quy đổi theo '
-            + cs.soNgayLamViec + ' ngày làm việc mỗi tháng.</div>');
+            + cs.soNgayLamViec + ' ngày làm việc mỗi tháng.'
+            + (cs.nguon ? '<br>Nguồn số: ' + escapeHtml(cs.nguon) : '') + '</div>');
     }
 
     function veLichSuLoi(ds) {
@@ -401,7 +411,8 @@
         $('#ctHoSo').html('<span class="text-muted small">Đang tải...</span>');
         $('#ctLichSu').empty();
 
-        $.getJSON('/QLMayIn/ChiTiet/' + id)
+        // Lấy cả năm: nhật ký lỗi nạp về có mốc cũ hàng tháng, cắt 30 ngày thì bảng chốt theo kỳ trống
+        $.getJSON('/QLMayIn/ChiTiet/' + id, { soNgay: 365 })
             .done(function (res) {
                 if (!res.thanhCong) {
                     $('#ctHoSo').html('<span class="text-danger small">' + escapeHtml(res.thongBao) + '</span>');
@@ -416,11 +427,12 @@
                 $('#ctPhuDe').text([m.boPhan, m.viTri, m.diaChiIp || 'không có IP'].filter(Boolean).join(' · '));
 
                 // Máy cắm USB không quét được qua mạng nên ẩn luôn nút cho khỏi bấm nhầm
-                $('#btnQuetThietBi, #btnDocChiSo').toggle(!!m.diaChiIp);
+                $('#btnQuetThietBi, #btnDocChiSo, #btnNapLichSu').toggle(!!m.diaChiIp);
 
                 veTheSo(res.thongKe);
                 veHoSo(m, res.thongKe);
-                veBieuDo(res.theoNgay);
+                veBieuDo(res.theoNgay, res.ngayChotThang);
+                veChotThang(res.chotThang, res.ngayChotThang);
                 veLichSu(res.lichSu);
             })
             .fail(function () {
@@ -428,7 +440,7 @@
             });
     }
 
-    function veBieuDo(theoNgay) {
+    function veBieuDo(theoNgay, ngayChot) {
         var ctx = document.getElementById('ctBieuDo');
         if (!ctx || typeof Chart === 'undefined') return;
 
@@ -439,9 +451,12 @@
             data: {
                 labels: theoNgay.map(function (x) { return x.ngay; }),
                 datasets: [{
-                    label: 'Trang in giữa hai lần đọc',
-                    data: theoNgay.map(function (x) { return x.soTrang; }),
-                    backgroundColor: '#0ea5e9'
+                    label: 'Tổng số trang đã in',
+                    data: theoNgay.map(function (x) { return x.counterTong; }),
+                    // Cột rơi đúng ngày chốt sổ tô cam cho dễ dóng với bảng "Chốt theo kỳ" bên dưới
+                    backgroundColor: theoNgay.map(function (x) {
+                        return parseInt(x.ngay.substring(0, 2), 10) === ngayChot ? '#ea580c' : '#0ea5e9';
+                    })
                 }]
             },
             options: {
@@ -450,17 +465,58 @@
                     legend: { display: false },
                     tooltip: {
                         callbacks: {
-                            // Máy không đọc được vài ngày thì một cột gộp nhiều ngày — nói rõ để khỏi hiểu nhầm
+                            label: function (item) {
+                                return 'Đồng hồ tổng: ' + dinhDangSo(theoNgay[item.dataIndex].counterTong) + ' trang';
+                            },
+                            // Nhịp in giữa hai lần đọc; máy không đọc được vài ngày thì nói rõ là gộp
                             afterLabel: function (item) {
-                                var cach = theoNgay[item.dataIndex].soNgayCach;
-                                return cach > 1 ? 'Gộp ' + cach + ' ngày' : '';
+                                var m = theoNgay[item.dataIndex];
+                                if (m.soTrang === null || m.soTrang === undefined) return 'Mốc đầu tiên, chưa có gì để so';
+
+                                var dong = 'In thêm ' + dinhDangSo(m.soTrang) + ' trang kể từ lần đọc trước';
+                                return m.soNgayCach > 1 ? [dong, 'Cách ' + m.soNgayCach + ' ngày'] : dong;
                             }
                         }
                     }
                 },
-                scales: { y: { beginAtZero: true } }
+                // Đồng hồ tổng là số lớn và chỉ tăng: ép trục về 0 thì cột nào cũng cao bằng nhau,
+                // nhìn không ra máy in nhiều hay ít nên để Chart.js tự chọn khoảng.
+                scales: { y: { beginAtZero: false } }
             }
         });
+    }
+
+    /// Bảng chốt theo kỳ: mỗi tháng một dòng, lấy chỉ số tại ngày chốt sổ của bộ phận IT.
+    function veChotThang(chotThang, ngayChot) {
+        $('#ctChotThangMoTa').text('chỉ số tại ngày ' + ngayChot + ' hằng tháng');
+
+        if (!chotThang || chotThang.length === 0) {
+            $('#ctChotThang').html('<tr><td colspan="7" class="text-center text-muted py-3">'
+                + 'Chưa có kỳ nào được chốt. Mỗi tháng có ít nhất một lần đọc là bảng này tự có dòng.</td></tr>');
+            return;
+        }
+
+        var html = chotThang.map(function (k) {
+            // Đọc lệch ngày chốt thì nói rõ lệch mấy ngày, đừng để người dùng tưởng là số đúng ngày 20
+            var ngay = escapeHtml(k.ngayDoc);
+            if (!k.dungNgayChot) {
+                var lech = k.soNgayLech > 0 ? 'sau ' + k.soNgayLech + ' ngày' : 'trước ' + Math.abs(k.soNgayLech) + ' ngày';
+                ngay += ' <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis" title="'
+                    + 'Ngày chốt không đọc được nên lấy lần đọc gần nhất trong tháng">' + lech + '</span>';
+            }
+
+            return '<tr>'
+                + '<td class="small fw-bold">' + escapeHtml(k.ky) + '</td>'
+                + '<td class="small">' + ngay + '</td>'
+                + '<td class="mayin-cot-so small fw-bold">' + dinhDangSo(k.counterTong) + '</td>'
+                + '<td class="mayin-cot-so small">' + dinhDangSo(k.counterIn) + '</td>'
+                + '<td class="mayin-cot-so small">' + dinhDangSo(k.counterCopy) + '</td>'
+                + '<td class="mayin-cot-so small">' + dinhDangSo(k.trangInTrongKy) + '</td>'
+                + '<td class="small text-muted">' + escapeHtml(k.nguon) + '</td>'
+                + '</tr>';
+        }).join('');
+
+        $('#ctChotThang').html(html);
     }
 
     /// Ô mực/trống trong bảng lịch sử: hiện số thấp nhất, máy màu thì rê chuột ra đủ từng màu.
@@ -537,6 +593,30 @@
             })
             .always(function () {
                 $nut.prop('disabled', false).html('<i class="fa fa-rotate me-1"></i> Đọc chỉ số ngay');
+            });
+    }
+
+
+    /// Nạp chỉ số quá khứ từ nhật ký lỗi của máy. Máy giữ 40 mốc lỗi gần nhất, mỗi mốc có kèm
+    /// số trang đã in lúc đó — đủ để dựng lại lịch sử trước ngày hệ thống bắt đầu theo dõi.
+    function napLichSu() {
+        var $nut = $('#btnNapLichSu');
+        $nut.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Đang nạp...');
+
+        $.post('/QLMayIn/NapLichSu/' + idDangXem)
+            .done(function (res) {
+                $('#ctKetQuaDoc')
+                    .removeClass('text-success text-danger')
+                    .addClass(res.thanhCong ? 'text-success' : 'text-danger')
+                    .text(res.thongBao);
+
+                if (res.thanhCong) moChiTiet(idDangXem);
+            })
+            .fail(function () {
+                $('#ctKetQuaDoc').removeClass('text-success').addClass('text-danger').text('Lỗi kết nối máy chủ.');
+            })
+            .always(function () {
+                $nut.prop('disabled', false).html('<i class="fa fa-clock-rotate-left me-1"></i> Nạp lịch sử');
             });
     }
 
@@ -652,6 +732,7 @@
         $('#btnDongTab').on('click', dongTab);
         $('#btnDocChiSo').on('click', docChiSo);
         $('#btnQuetThietBi').on('click', quetThietBi);
+        $('#btnNapLichSu').on('click', napLichSu);
         $('#btnSuaMay').on('click', moFormSua);
         $('#btnLuuMay').on('click', luuMay);
         $('#btnNhapTay').on('click', moFormChiSoTay);

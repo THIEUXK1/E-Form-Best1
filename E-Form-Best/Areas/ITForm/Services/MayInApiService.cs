@@ -75,7 +75,17 @@ namespace E_Form_Best.Areas.ITForm.Services
             {
                 // Máy dùng chứng thư tự ký nên phải đi HTTPS với handler bỏ kiểm chứng thư
                 // (cấu hình ở Program.cs). Cổng 80 cũng mở nhưng chuyển hướng sang HTTPS.
-                var counter = await LayJsonAsync(client, $"https://{diaChiIp}/home/api/billing-counter", ct);
+                // Phần lớn máy Apeos đời mới ép HTTPS, nhưng có máy (Apeos C3570 ở 10.0.59.128) chỉ
+                // mở API trên cổng 80 — thử HTTPS trước rồi mới hạ xuống HTTP.
+                var goc = $"https://{diaChiIp}";
+                var counter = await LayJsonAsync(client, $"{goc}/home/api/billing-counter", ct);
+
+                if (counter is null)
+                {
+                    goc = $"http://{diaChiIp}";
+                    counter = await LayJsonAsync(client, $"{goc}/home/api/billing-counter", ct);
+                }
+
                 if (counter is null)
                 {
                     // Máy đời cũ chạy CentreWare: không có /home/api nhưng trang trạng thái vẫn có đồng hồ.
@@ -121,7 +131,7 @@ namespace E_Form_Best.Areas.ITForm.Services
                 // Tổng = in + copy, đúng cách tính cột "trang in" của bảng theo dõi Excel cũ
                 ketQua.CounterTong = (ketQua.CounterIn ?? 0) + (ketQua.CounterCopy ?? 0);
 
-                var vatTu = await LayJsonAsync(client, $"https://{diaChiIp}/home/api/supplies-info", ct);
+                var vatTu = await LayJsonAsync(client, $"{goc}/home/api/supplies-info", ct);
                 if (vatTu is not null
                     && vatTu.Value.TryGetProperty("Supplies", out var dsVatTu)
                     && dsVatTu.ValueKind == JsonValueKind.Array)
@@ -145,7 +155,7 @@ namespace E_Form_Best.Areas.ITForm.Services
                     }
                 }
 
-                var about = await LayJsonAsync(client, $"https://{diaChiIp}/home/api/about", ct);
+                var about = await LayJsonAsync(client, $"{goc}/home/api/about", ct);
                 if (about is not null)
                 {
                     ketQua.TrangThaiThietBi = about.Value.TryGetProperty("DeviceStatus", out var ds) ? ds.GetString() : null;
@@ -213,6 +223,140 @@ namespace E_Form_Best.Areas.ITForm.Services
             await _context.SaveChangesAsync(ct);
             return ketQua;
         }
+
+        /// <summary>Kết quả nạp lịch sử quá khứ từ nhật ký lỗi của máy.</summary>
+        public class KetQuaNapLichSu
+        {
+            public bool ThanhCong { get; set; }
+            public string ThongBao { get; set; } = "";
+            public int SoMocDocDuoc { get; set; }
+            public int SoNgayThemMoi { get; set; }
+            public DateOnly? NgayCuNhat { get; set; }
+            public DateOnly? NgayMoiNhat { get; set; }
+        }
+
+        /// <summary>
+        /// Nạp chỉ số QUÁ KHỨ từ nhật ký lỗi của máy (/home/api/faulthistory). Mỗi lần máy báo lỗi
+        /// (kẹt giấy, hết giấy, mở nắp...) nó ghi lại thời điểm kèm số trang đã in lúc đó, giữ được
+        /// 40 mốc gần nhất — tức là một chuỗi chỉ số theo thời gian có sẵn trong máy.
+        ///
+        /// Độ sâu tuỳ máy: máy ít lỗi giữ được cả năm, máy hay kẹt giấy thì 40 mốc chỉ trong một ngày.
+        ///
+        /// Chỉ THÊM ngày còn trống, không ghi đè dòng đã có (đọc trực tiếp / Excel / nhập tay luôn
+        /// đáng tin hơn số suy ra từ nhật ký lỗi). Ngày có nhiều mốc thì lấy mốc muộn nhất trong ngày.
+        /// </summary>
+        public async Task<KetQuaNapLichSu> NapLichSuTuMayAsync(MayIn mayIn, CancellationToken ct = default)
+        {
+            var ketQua = new KetQuaNapLichSu();
+
+            if (string.IsNullOrWhiteSpace(mayIn.DiaChiIp))
+            {
+                ketQua.ThongBao = "Máy in chưa có địa chỉ IP";
+                return ketQua;
+            }
+
+            var client = _httpClientFactory.CreateClient(TenHttpClient);
+            JsonElement? nhatKy;
+
+            try
+            {
+                // Thử HTTPS trước, máy nào chỉ mở API trên cổng 80 thì hạ xuống HTTP
+                nhatKy = await LayJsonAsync(client, $"https://{mayIn.DiaChiIp}/home/api/faulthistory", ct)
+                         ?? await LayJsonAsync(client, $"http://{mayIn.DiaChiIp}/home/api/faulthistory", ct);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+            {
+                ketQua.ThongBao = "Không đọc được nhật ký lỗi: " + ex.Message;
+                return ketQua;
+            }
+
+            if (nhatKy is null
+                || !nhatKy.Value.TryGetProperty("FaultHistory", out var ds)
+                || ds.ValueKind != JsonValueKind.Array)
+            {
+                ketQua.ThongBao = "Máy không có nhật ký lỗi (dòng đời cũ chạy CentreWare không hỗ trợ)";
+                return ketQua;
+            }
+
+            // Gom theo ngày, giữ mốc muộn nhất trong ngày vì đó là số trang cuối ngày hôm đó
+            var theoNgay = new Dictionary<DateOnly, (DateTime ThoiDiem, int Volume)>();
+
+            foreach (var muc in ds.EnumerateArray())
+            {
+                if (!muc.TryGetProperty("Volume", out var v) || v.ValueKind != JsonValueKind.Number) continue;
+                var volume = v.GetInt32();
+                if (volume <= 0) continue;
+
+                var nam = LaySo(muc, "Year");
+                var thang = LaySo(muc, "Month");
+                var ngay = LaySo(muc, "Day");
+                if (nam is null or < 2000 || thang is null or < 1 or > 12 || ngay is null or < 1 or > 31) continue;
+
+                DateTime thoiDiem;
+                try
+                {
+                    thoiDiem = new DateTime(nam.Value, thang.Value, ngay.Value,
+                        Math.Clamp(LaySo(muc, "Hour") ?? 0, 0, 23),
+                        Math.Clamp(LaySo(muc, "Minute") ?? 0, 0, 59), 0);
+                }
+                catch (ArgumentOutOfRangeException) { continue; }
+
+                if (thoiDiem > DateTime.Now) continue;
+
+                var khoa = DateOnly.FromDateTime(thoiDiem);
+                if (!theoNgay.TryGetValue(khoa, out var dangCo) || thoiDiem > dangCo.ThoiDiem)
+                    theoNgay[khoa] = (thoiDiem, volume);
+            }
+
+            ketQua.SoMocDocDuoc = theoNgay.Count;
+
+            if (theoNgay.Count == 0)
+            {
+                ketQua.ThanhCong = true;
+                ketQua.ThongBao = "Máy chưa ghi mốc lỗi nào nên không có lịch sử để nạp";
+                return ketQua;
+            }
+
+            var dsNgay = theoNgay.Keys.ToList();
+            var daCo = await _context.MayInChiSos
+                .Where(c => c.IdMayIn == mayIn.IdMayIn && dsNgay.Contains(c.NgayChot))
+                .Select(c => c.NgayChot)
+                .ToListAsync(ct);
+
+            var boDaCo = daCo.ToHashSet();
+
+            foreach (var (ngayChot, moc) in theoNgay)
+            {
+                if (boDaCo.Contains(ngayChot)) continue;
+
+                _context.MayInChiSos.Add(new MayInChiSo
+                {
+                    IdMayIn = mayIn.IdMayIn,
+                    NgayChot = ngayChot,
+                    ThoiDiemDoc = moc.ThoiDiem,
+                    CounterTong = moc.Volume,
+                    Nguon = "LichSuLoi",
+                    GhiChu = "Suy ra từ nhật ký lỗi của máy, không phải số đọc trực tiếp"
+                });
+
+                ketQua.SoNgayThemMoi++;
+            }
+
+            if (ketQua.SoNgayThemMoi > 0) await _context.SaveChangesAsync(ct);
+
+            ketQua.ThanhCong = true;
+            ketQua.NgayCuNhat = theoNgay.Keys.Min();
+            ketQua.NgayMoiNhat = theoNgay.Keys.Max();
+            ketQua.ThongBao = ketQua.SoNgayThemMoi == 0
+                ? $"Máy có {theoNgay.Count} ngày trong nhật ký lỗi, tất cả đã có sẵn trong lịch sử"
+                : $"Đã thêm {ketQua.SoNgayThemMoi} ngày từ nhật ký lỗi "
+                  + $"({ketQua.NgayCuNhat:dd/MM/yyyy} → {ketQua.NgayMoiNhat:dd/MM/yyyy})";
+
+            return ketQua;
+        }
+
+        private static int? LaySo(JsonElement goc, string khoa)
+            => goc.TryGetProperty(khoa, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : null;
 
         /// <summary>
         /// Gói danh sách vật tư thành JSON để lưu một cột. Cột chỉ có 1000 ký tự nên máy nào báo
@@ -383,17 +527,43 @@ namespace E_Form_Best.Areas.ITForm.Services
                 return null;
             }
         }
+        /// <summary>
+        /// Gọi một endpoint JSON, KHÔNG ném lỗi kết nối ra ngoài mà trả null.
+        ///
+        /// Đây là chỗ từng làm hỏng cả nhóm máy đời cũ: máy DocuPrint/ApeosPort không mở cổng 443
+        /// nên lệnh gọi HTTPS đầu tiên ném HttpRequestException (từ chối / reset) hoặc treo tới hết
+        /// thời gian chờ. Lỗi đó thoát thẳng ra khối try ngoài cùng và hàm trả về "Không kết nối
+        /// được" ngay, nên hai đường dự phòng CentreWare và PJL không bao giờ được chạy tới.
+        ///
+        /// Riêng việc người dùng đóng trang (ct bị huỷ) vẫn phải ném ra để dừng hẳn, không nuốt.
+        /// </summary>
         private static async Task<JsonElement?> LayJsonAsync(HttpClient client, string url, CancellationToken ct)
         {
-            using var phanHoi = await client.GetAsync(url, ct);
-            if (!phanHoi.IsSuccessStatusCode) return null;
+            try
+            {
+                using var phanHoi = await client.GetAsync(url, ct);
+                if (!phanHoi.IsSuccessStatusCode) return null;
 
-            var noiDung = await phanHoi.Content.ReadAsStringAsync(ct);
-            // Máy đời cũ trả về trang HTML "FAILED" với mã 200 — không phải JSON thì bỏ qua
-            if (string.IsNullOrWhiteSpace(noiDung) || noiDung.TrimStart().StartsWith('<')) return null;
+                var noiDung = await phanHoi.Content.ReadAsStringAsync(ct);
+                // Máy đời cũ trả về trang HTML "FAILED" với mã 200 — không phải JSON thì bỏ qua
+                if (string.IsNullOrWhiteSpace(noiDung) || noiDung.TrimStart().StartsWith('<')) return null;
 
-            using var tep = JsonDocument.Parse(noiDung);
-            return tep.RootElement.Clone();
+                using var tep = JsonDocument.Parse(noiDung);
+                return tep.RootElement.Clone();
+            }
+            catch (HttpRequestException)
+            {
+                return null;
+            }
+            catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+            {
+                // Hết thời gian chờ của riêng request này, không phải người dùng huỷ
+                return null;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
         }
     }
 }

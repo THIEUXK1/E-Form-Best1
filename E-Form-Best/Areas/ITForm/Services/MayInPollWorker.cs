@@ -5,15 +5,22 @@ using Microsoft.EntityFrameworkCore;
 namespace E_Form_Best.Areas.ITForm.Services
 {
     /// <summary>
-    /// Job nền chốt chỉ số máy in mỗi ngày một lần (giờ đặt ở appsettings: MayIn:GioChotHangNgay).
+    /// Job nền tự đọc chỉ số máy in theo chu kỳ (mặc định mỗi giờ, đặt ở MayIn:ChuKyDocPhut),
+    /// không cần ai bấm nút. Ngoài ra mỗi ngày một lần nạp nhật ký lỗi của máy để lấp những ngày
+    /// máy tắt không đọc được (MayIn:GioNapLichSu).
     ///
-    /// Idempotent: mỗi máy mỗi ngày chỉ có một dòng trong MayIn_ChiSo, nên app khởi động lại
-    /// giữa chừng hay chạy lại trong ngày đều chỉ cập nhật dòng của ngày hôm đó.
+    /// Idempotent: mỗi máy mỗi ngày chỉ có một dòng trong MayIn_ChiSo, nên chạy lại bao nhiêu lần
+    /// trong ngày cũng chỉ cập nhật dòng của ngày hôm đó — số cuối cùng trong ngày là số chốt.
+    /// Nhờ vậy app restart giữa chừng cũng không mất hay nhân bản dữ liệu, và không cần cơ chế
+    /// "chốt bù" riêng như trước: lượt chạy kế tiếp tự lo.
     /// </summary>
     public class MayInPollWorker : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
+
+        /// <summary>Ngày đã nạp nhật ký lỗi gần nhất, để mỗi ngày chỉ nạp một lần.</summary>
+        private DateOnly? _ngayDaNapLichSu;
 
         public MayInPollWorker(IServiceScopeFactory scopeFactory, IConfiguration configuration)
         {
@@ -23,102 +30,117 @@ namespace E_Form_Best.Areas.ITForm.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var gioChot = _configuration.GetValue<int?>("MayIn:GioChotHangNgay") ?? 23;
+            var chuKyPhut = _configuration.GetValue<int?>("MayIn:ChuKyDocPhut") ?? 60;
+            if (chuKyPhut < 5) chuKyPhut = 5;      // dưới 5 phút là quấy máy in vô ích
+            if (chuKyPhut > 1440) chuKyPhut = 1440;
 
-            await ChotBuNeuThieuAsync(gioChot, stoppingToken);
+            var gioNapLichSu = _configuration.GetValue<int?>("MayIn:GioNapLichSu") ?? 5;
+
+            // Nhường app khởi động xong (nạp cấu hình, mở kết nối) rồi mới đi đọc gần trăm máy
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+            }
+            catch (TaskCanceledException)
+            {
+                return;
+            }
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                var now = DateTime.Now;
-                var lanChay = now.Date.AddHours(gioChot);
-                if (lanChay <= now) lanChay = lanChay.AddDays(1);
-
-                Console.WriteLine($"[MayIn] Chờ {(lanChay - now).TotalHours:F2} giờ, chốt chỉ số lúc {lanChay:dd/MM/yyyy HH:mm}");
-
                 try
                 {
-                    await Task.Delay(lanChay - now, stoppingToken);
+                    var (tong, thanhCong) = await ChotChiSoAsync(stoppingToken);
+                    Console.WriteLine($"[MayIn] Đọc {thanhCong}/{tong} máy lúc {DateTime.Now:dd/MM/yyyy HH:mm}");
+
+                    await NapLichSuHangNgayAsync(gioNapLichSu, stoppingToken);
                 }
                 catch (TaskCanceledException)
                 {
                     return; // app đang tắt
                 }
+                catch (Exception ex)
+                {
+                    // Một lượt hỏng không được làm chết job nền, lượt sau chạy tiếp
+                    Console.WriteLine($"[MayIn Error]: {ex.Message}");
+                }
+
+                var lanSau = DateTime.Now.AddMinutes(chuKyPhut);
+                Console.WriteLine($"[MayIn] Lượt đọc kế tiếp lúc {lanSau:dd/MM/yyyy HH:mm}");
 
                 try
                 {
-                    var (tong, thanhCong) = await ChotChiSoAsync(stoppingToken);
-                    Console.WriteLine($"[MayIn] Đã chốt {thanhCong}/{tong} máy lúc {DateTime.Now:dd/MM/yyyy HH:mm}");
+                    await Task.Delay(TimeSpan.FromMinutes(chuKyPhut), stoppingToken);
                 }
-                catch (Exception ex)
+                catch (TaskCanceledException)
                 {
-                    Console.WriteLine($"[MayIn Error]: {ex.Message}");
+                    return;
                 }
             }
         }
-
 
         /// <summary>
-        /// Chốt bù ngay sau khi app khởi động, cho trường hợp máy chủ tắt/restart đúng lúc giờ chốt
-        /// và cả ngày hôm đó không ai ghi được chỉ số nào. Bỏ một ngày là biểu đồ trang in gãy một
-        /// đoạn và không suy lại được, nên thà đọc muộn còn hơn mất.
-        ///
-        /// Chỉ chạy khi đã qua giờ chốt và hôm nay chưa có bản đọc tự động nào — mốc nhập tay hay
-        /// mốc nạp từ Excel không tính là đã chốt.
+        /// Mỗi ngày một lần, sau giờ đã hẹn, đọc nhật ký lỗi của máy để lấp những ngày trong quá khứ
+        /// chưa có chỉ số (máy tắt, mạng đứt, app dừng). Chỉ thêm ngày còn trống nên chạy lại vô hại.
         /// </summary>
-        private async Task ChotBuNeuThieuAsync(int gioChot, CancellationToken ct)
+        private async Task NapLichSuHangNgayAsync(int gioNapLichSu, CancellationToken ct)
         {
-            if (DateTime.Now.Hour < gioChot) return;
+            var homNay = DateOnly.FromDateTime(DateTime.Now);
+            if (_ngayDaNapLichSu == homNay) return;
+            if (DateTime.Now.Hour < gioNapLichSu) return;
 
-            try
-            {
-                // Nhường app khởi động xong (nạp cấu hình, mở kết nối) rồi mới đi đọc gần trăm máy
-                await Task.Delay(TimeSpan.FromSeconds(30), ct);
+            var (tong, soNgayThem) = await NapLichSuAsync(ct);
+            _ngayDaNapLichSu = homNay;
 
-                using var scope = _scopeFactory.CreateScope();
-                var context = scope.ServiceProvider.GetRequiredService<ITFormContext>();
-
-                var homNay = DateOnly.FromDateTime(DateTime.Now);
-                var daChot = await context.MayInChiSos
-                    .AnyAsync(c => c.NgayChot == homNay && c.Nguon != "Excel" && c.Nguon != "NhapTay", ct);
-
-                if (daChot) return;
-
-                Console.WriteLine($"[MayIn] Hôm nay chưa chốt chỉ số, chốt bù lúc {DateTime.Now:dd/MM/yyyy HH:mm}");
-                var (tong, thanhCong) = await ChotChiSoAsync(ct);
-                Console.WriteLine($"[MayIn] Chốt bù xong {thanhCong}/{tong} máy");
-            }
-            catch (TaskCanceledException)
-            {
-                // App tắt giữa chừng
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[MayIn Error] Chốt bù thất bại: {ex.Message}");
-            }
+            Console.WriteLine($"[MayIn] Nạp nhật ký lỗi: thêm {soNgayThem} ngày chỉ số từ {tong} máy");
         }
+
         /// <summary>Đọc toàn bộ máy đang bật theo dõi. Trả về (số máy đã thử, số máy đọc được).</summary>
         public async Task<(int Tong, int ThanhCong)> ChotChiSoAsync(CancellationToken ct)
         {
-            using var scope = _scopeFactory.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<ITFormContext>();
-
-            var dsMay = await context.MayIns
-                .Where(m => m.TheoDoiTuDong && m.DiaChiIp != null && m.TrangThai == "HoatDong")
-                .ToListAsync(ct);
-
-            var soSongSong = _configuration.GetValue<int?>("MayIn:SoMayDocSongSong") ?? 8;
+            var dsMay = await LayDanhSachMayAsync(ct);
             var thanhCong = 0;
 
             // Chia lô thay vì bắn 100 request cùng lúc: mạng nhà máy và Kestrel đều không cần chịu tải đó.
-            foreach (var lo in ChiaLo(dsMay, soSongSong))
+            foreach (var lo in ChiaLo(dsMay, LaySoSongSong()))
             {
                 // Mỗi máy một scope riêng vì DbContext không an toàn khi dùng song song
-                var congViec = lo.Select(m => DocMotMayAsync(m.IdMayIn, ct)).ToList();
-                var ketQua = await Task.WhenAll(congViec);
+                var ketQua = await Task.WhenAll(lo.Select(m => DocMotMayAsync(m.IdMayIn, ct)));
                 thanhCong += ketQua.Count(x => x);
             }
 
             return (dsMay.Count, thanhCong);
+        }
+
+        /// <summary>Nạp nhật ký lỗi toàn bộ máy. Trả về (số máy đã thử, tổng số ngày thêm mới).</summary>
+        public async Task<(int Tong, int SoNgayThem)> NapLichSuAsync(CancellationToken ct)
+        {
+            var dsMay = await LayDanhSachMayAsync(ct);
+            var soNgayThem = 0;
+
+            foreach (var lo in ChiaLo(dsMay, LaySoSongSong()))
+            {
+                var ketQua = await Task.WhenAll(lo.Select(m => NapLichSuMotMayAsync(m.IdMayIn, ct)));
+                soNgayThem += ketQua.Sum();
+            }
+
+            return (dsMay.Count, soNgayThem);
+        }
+
+        private async Task<List<MayIn>> LayDanhSachMayAsync(CancellationToken ct)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ITFormContext>();
+
+            return await context.MayIns
+                .Where(m => m.TheoDoiTuDong && m.DiaChiIp != null && m.TrangThai == "HoatDong")
+                .ToListAsync(ct);
+        }
+
+        private int LaySoSongSong()
+        {
+            var so = _configuration.GetValue<int?>("MayIn:SoMayDocSongSong") ?? 8;
+            return so < 1 ? 1 : so;
         }
 
         private async Task<bool> DocMotMayAsync(int idMayIn, CancellationToken ct)
@@ -140,6 +162,27 @@ namespace E_Form_Best.Areas.ITForm.Services
                 // Một máy hỏng không được làm hỏng cả lượt chốt
                 Console.WriteLine($"[MayIn] Lỗi đọc máy {idMayIn}: {ex.Message}");
                 return false;
+            }
+        }
+
+        private async Task<int> NapLichSuMotMayAsync(int idMayIn, CancellationToken ct)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ITFormContext>();
+            var apiService = scope.ServiceProvider.GetRequiredService<MayInApiService>();
+
+            var may = await context.MayIns.FirstOrDefaultAsync(m => m.IdMayIn == idMayIn, ct);
+            if (may is null) return 0;
+
+            try
+            {
+                var ketQua = await apiService.NapLichSuTuMayAsync(may, ct);
+                return ketQua.SoNgayThemMoi;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[MayIn] Lỗi nạp lịch sử máy {idMayIn}: {ex.Message}");
+                return 0;
             }
         }
 

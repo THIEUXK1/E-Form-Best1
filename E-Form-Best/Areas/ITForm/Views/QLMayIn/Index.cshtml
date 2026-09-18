@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 @* Dự án không đăng ký Tag Helper nên "~/" không phân giải được — dùng đường dẫn tuyệt đối + tự đánh version *@
 <link rel="stylesheet" href="/css/fixed-page-layout.css?v=5">
-<link rel="stylesheet" href="/css/mayin-quanly.css?v=20260918n">
+<link rel="stylesheet" href="/css/mayin-quanly.css?v=20260918t">
 
 <div class="main-card" data-fp-card>
 
@@ -49,9 +49,18 @@
             <option value="">Tất cả trạng thái</option>
         </select>
 
-        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" id="btnDocTatCa">
-            <i class="fa fa-rotate me-1"></i> Đọc chỉ số
+        @* Hai nút đồng bộ hàng loạt: máy chủ đọc song song 8 máy một lượt, kết quả hiện ở #kqDongBo *@
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" id="btnDocTatCa"
+                title="Đọc chỉ số hiện tại của tất cả máy đang bật đọc tự động">
+            <i class="fa fa-rotate me-1"></i> Đọc chỉ số tất cả
         </button>
+
+        <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3" id="btnNapLichSuTatCa"
+                title="Đọc nhật ký lỗi của tất cả máy để lấy lại chỉ số những ngày trước khi hệ thống theo dõi">
+            <i class="fa fa-clock-rotate-left me-1"></i> Nạp lịch sử tất cả
+        </button>
+
+        <span class="small" id="kqDongBo"></span>
 
         <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" id="btnThemMay">
             <i class="fa fa-plus me-1"></i> Thêm máy
@@ -214,5 +223,5 @@
 
 @section Scripts {
     <script src="/js/fixed-page-layout.js?v=5" defer></script>
-    <script src="/js/mayin-quanly.js?v=20260918n"></script>
+    <script src="/js/mayin-quanly.js?v=20260918t"></script>
 }

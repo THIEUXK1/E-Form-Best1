@@ -41,13 +41,27 @@ namespace E_Form_Best.Areas.ITForm.Services
             var mang = await QuetMangAsync(diaChiIp, ct);
             var client = _httpClientFactory.CreateClient(MayInApiService.TenHttpClient);
 
-            var about = await LayJsonAsync(client, $"https://{diaChiIp}/home/api/about", ct);
-            var cauHinh = await LayJsonAsync(client, $"https://{diaChiIp}/home/api/device-configuration", ct);
-            var khayGiay = await LayJsonAsync(client, $"https://{diaChiIp}/home/api/paper-tray", ct);
-            var vatTu = await LayJsonAsync(client, $"https://{diaChiIp}/home/api/supplies-info", ct);
-            var counter = await LayJsonAsync(client, $"https://{diaChiIp}/home/api/billing-counter", ct);
-            var tietKiemDien = await LayJsonAsync(client, $"https://{diaChiIp}/home/api/power-saver-status", ct);
-            var lichSuLoi = await LayJsonAsync(client, $"https://{diaChiIp}/home/api/faulthistory", ct);
+            // Đa số máy ép HTTPS nhưng có máy chỉ mở API trên cổng 80 — dò một lần rồi dùng chung
+            // cho cả nhóm endpoint, khỏi phải thử hai lần ở từng cái.
+            var goc = $"https://{diaChiIp}";
+            var counter = await LayJsonAsync(client, $"{goc}/home/api/billing-counter", ct);
+            if (counter is null)
+            {
+                var gocHttp = $"http://{diaChiIp}";
+                var thuHttp = await LayJsonAsync(client, $"{gocHttp}/home/api/billing-counter", ct);
+                if (thuHttp is not null)
+                {
+                    goc = gocHttp;
+                    counter = thuHttp;
+                }
+            }
+
+            var about = await LayJsonAsync(client, $"{goc}/home/api/about", ct);
+            var cauHinh = await LayJsonAsync(client, $"{goc}/home/api/device-configuration", ct);
+            var khayGiay = await LayJsonAsync(client, $"{goc}/home/api/paper-tray", ct);
+            var vatTu = await LayJsonAsync(client, $"{goc}/home/api/supplies-info", ct);
+            var tietKiemDien = await LayJsonAsync(client, $"{goc}/home/api/power-saver-status", ct);
+            var lichSuLoi = await LayJsonAsync(client, $"{goc}/home/api/faulthistory", ct);
 
             var thietBi = DocThietBi(about, cauHinh);
             var soDem = DocCounter(counter);
@@ -367,7 +381,8 @@ namespace E_Form_Best.Areas.ITForm.Services
             int? NgayToiDa,
             int SoNgayLamViec,
             int? DaDung,
-            double? PhanTramTuoiTho);
+            double? PhanTramTuoiTho,
+            string? Nguon);
 
         /// <summary>
         /// Tra công suất trong appsettings theo Model (bảng MayIn) rồi tới tên máy tự khai qua API.
@@ -397,7 +412,9 @@ namespace E_Form_Best.Areas.ITForm.Services
                 counterTong,
                 counterTong is null || tuoiTho is null or 0
                     ? null
-                    : Math.Round(counterTong.Value * 100.0 / tuoiTho.Value, 1));
+                    : Math.Round(counterTong.Value * 100.0 / tuoiTho.Value, 1),
+                // Ghi rõ số lấy từ đâu để người dùng đối chiếu datasheet, khỏi tin suông
+                spec.GetValue<string>("Nguon"));
         }
 
         private static IConfigurationSection? TimSpec(IConfigurationSection bang, string? khoa)

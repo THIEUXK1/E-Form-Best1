@@ -7,7 +7,7 @@
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="stylesheet" href="/css/mayin-quanly.css?v=20260918n">
+<link rel="stylesheet" href="/css/mayin-quanly.css?v=20260918t">
 
 @* Thẻ body nằm ở layout nên gắn id máy vào đây rồi JS tự đọc lên *@
 <div id="mayInGoc" data-id-may-in="@idMayIn"></div>
@@ -33,6 +33,12 @@
 
         <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" id="btnDocChiSo">
             <i class="fa fa-rotate me-1"></i> Đọc chỉ số ngay
+        </button>
+
+        @* Nạp lại chỉ số quá khứ từ nhật ký lỗi lưu trong máy *@
+        <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3" id="btnNapLichSu"
+                title="Đọc nhật ký lỗi của máy để lấy lại chỉ số những ngày trước khi hệ thống theo dõi">
+            <i class="fa fa-clock-rotate-left me-1"></i> Nạp lịch sử
         </button>
 
         <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3" id="btnNhapTay">
@@ -67,8 +73,35 @@
     </div>
 
     <div class="bg-white border rounded-4 p-3 mb-2">
-        <div class="mayin-khoi-tieude mb-2"><i class="fa fa-chart-column me-1"></i> Trang in theo ngày</div>
+        <div class="mayin-khoi-tieude mb-2">
+            <i class="fa fa-chart-column me-1"></i> Tổng số trang đã in theo ngày
+            <span class="small text-muted fw-normal ms-1">— đồng hồ tổng của máy tại mỗi lần đọc, rê chuột xem in thêm bao nhiêu</span>
+        </div>
         <canvas id="ctBieuDo" height="80"></canvas>
+    </div>
+
+    @* Chốt sổ hằng tháng: chỉ số tại ngày chốt (mặc định 20) để đối chiếu bảng theo dõi của IT *@
+    <div class="bg-white border rounded-4 p-3 mb-2">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <div class="mayin-khoi-tieude mb-0"><i class="fa fa-calendar-check me-1"></i> Chốt theo kỳ</div>
+            <span class="small text-muted" id="ctChotThangMoTa"></span>
+        </div>
+        <div class="table-responsive" style="max-height:300px; overflow:auto;">
+            <table class="table table-sm mayin-bang mb-0">
+                <thead>
+                    <tr>
+                        <th>Kỳ</th>
+                        <th>Ngày đọc thật</th>
+                        <th class="mayin-cot-so">Chỉ số tổng</th>
+                        <th class="mayin-cot-so">In</th>
+                        <th class="mayin-cot-so">Copy</th>
+                        <th class="mayin-cot-so">Trang in trong kỳ</th>
+                        <th>Nguồn</th>
+                    </tr>
+                </thead>
+                <tbody id="ctChotThang"></tbody>
+            </table>
+        </div>
     </div>
 
     <div class="bg-white border rounded-4 p-3">
@@ -198,5 +231,5 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/js/mayin-chitiet.js?v=20260918n"></script>
+    <script src="/js/mayin-chitiet.js?v=20260918t"></script>
 }

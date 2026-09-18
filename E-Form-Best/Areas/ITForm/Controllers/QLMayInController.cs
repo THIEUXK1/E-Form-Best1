@@ -17,12 +17,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         private readonly ITFormContext _context;
         private readonly MayInApiService _mayInApiService;
         private readonly MayInQuetService _mayInQuetService;
+        private readonly IConfiguration _configuration;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public QLMayInController(ITFormContext context, MayInApiService mayInApiService, MayInQuetService mayInQuetService)
+        public QLMayInController(ITFormContext context, MayInApiService mayInApiService,
+            MayInQuetService mayInQuetService, IConfiguration configuration, IServiceScopeFactory scopeFactory)
         {
             _context = context;
             _mayInApiService = mayInApiService;
             _mayInQuetService = mayInQuetService;
+            _configuration = configuration;
+            _scopeFactory = scopeFactory;
         }
 
         // Quyền "All" và "AdminIT" được vào (nhóm menu "Máy in & CCDC" dùng chung hai quyền này).
@@ -299,31 +304,82 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 })
                 .ToListAsync();
 
-            // Biểu đồ vẽ số trang in MỖI NGÀY, tính bằng chênh lệch counter giữa hai lần đọc
-            // liên tiếp. Ngày không đọc được thì không có điểm, không tự bịa số 0.
+            // Biểu đồ vẽ ĐỒNG HỒ TỔNG của máy theo thời gian (số trang đã in từ lúc xuất xưởng),
+            // kèm theo chênh lệch với lần đọc trước để xem nhịp in. Ngày không đọc được thì không
+            // có điểm, không tự bịa số 0 và cũng không nối ngang cho đẹp.
             var theoNgay = new List<object>();
             var tongTrangKhoang = 0;
             var tongNgayKhoang = 0;
-            for (var i = 1; i < lichSu.Count; i++)
+            var cacMoc = lichSu.Where(c => c.CounterTong != null).ToList();
+
+            for (var i = 0; i < cacMoc.Count; i++)
             {
-                var truoc = lichSu[i - 1];
-                var sau = lichSu[i];
-                if (truoc.CounterTong is null || sau.CounterTong is null) continue;
+                var hienTai = cacMoc[i];
+                var truoc = i > 0 ? cacMoc[i - 1] : null;
 
-                var chenh = sau.CounterTong.Value - truoc.CounterTong.Value;
-                if (chenh < 0) continue;
+                int? chenh = null;
+                int? soNgayCach = null;
 
-                var soNgayCach = sau.NgayChot.DayNumber - truoc.NgayChot.DayNumber;
-                tongTrangKhoang += chenh;
-                tongNgayKhoang += soNgayCach;
+                if (truoc is not null)
+                {
+                    var d = hienTai.CounterTong!.Value - truoc.CounterTong!.Value;
+                    if (d >= 0)
+                    {
+                        chenh = d;
+                        soNgayCach = hienTai.NgayChot.DayNumber - truoc.NgayChot.DayNumber;
+                        tongTrangKhoang += d;
+                        tongNgayKhoang += soNgayCach.Value;
+                    }
+                }
 
                 theoNgay.Add(new
                 {
-                    ngay = sau.NgayChot.ToString("dd/MM"),
+                    ngay = hienTai.NgayChot.ToString("dd/MM"),
+                    counterTong = hienTai.CounterTong,
                     soTrang = chenh,
                     soNgayCach
                 });
             }
+
+            // Chốt theo kỳ: mỗi tháng lấy chỉ số đọc được tại ngày chốt (mặc định 20) để đối chiếu
+            // với bảng theo dõi trang in của bộ phận IT. Ngày đó máy tắt / không đọc được thì lấy
+            // lần đọc gần ngày chốt nhất trong cùng tháng và ghi rõ ngày thật, không nội suy.
+            var ngayChotThang = _configuration.GetValue<int?>("MayIn:NgayChotThang") ?? 20;
+            if (ngayChotThang < 1 || ngayChotThang > 28) ngayChotThang = 20;
+
+            var moiKy = lichSu
+                .Where(c => c.CounterTong != null)
+                .GroupBy(c => new { c.NgayChot.Year, c.NgayChot.Month })
+                .Select(g => g.OrderBy(c => Math.Abs(c.NgayChot.Day - ngayChotThang))
+                              .ThenByDescending(c => c.NgayChot)
+                              .First())
+                .OrderBy(c => c.NgayChot)
+                .ToList();
+
+            var chotThang = new List<object>();
+            for (var i = 0; i < moiKy.Count; i++)
+            {
+                var ky = moiKy[i];
+                var truocKy = i > 0 ? moiKy[i - 1] : null;
+                var trongKy = truocKy?.CounterTong is null
+                    ? (int?)null
+                    : ky.CounterTong!.Value - truocKy.CounterTong.Value;
+
+                chotThang.Add(new
+                {
+                    ky = ky.NgayChot.ToString("MM/yyyy"),
+                    ngayDoc = ky.NgayChot.ToString("dd/MM/yyyy"),
+                    dungNgayChot = ky.NgayChot.Day == ngayChotThang,
+                    soNgayLech = ky.NgayChot.Day - ngayChotThang,
+                    counterTong = ky.CounterTong,
+                    counterIn = ky.CounterIn,
+                    counterCopy = ky.CounterCopy,
+                    trangInTrongKy = trongKy < 0 ? null : trongKy,
+                    nguon = ky.Nguon
+                });
+            }
+
+            chotThang.Reverse();
 
             // Thống kê gọn cho phần đầu trang chi tiết: lấy từ chính lịch sử vừa đọc, không gọi DB thêm
             var moiNhat = lichSu.LastOrDefault(c => c.CounterTong != null);
@@ -396,7 +452,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     vatTu = PhanTichVatTu(c.VatTuJson),
                     thoiDiem = c.ThoiDiemDoc.ToString("dd/MM/yyyy HH:mm")
                 }),
-                theoNgay
+                theoNgay,
+                chotThang,
+                ngayChotThang
             });
         }
 
@@ -472,6 +530,65 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             });
         }
 
+        /// <summary>
+        /// Nạp chỉ số quá khứ từ nhật ký lỗi của máy — cách duy nhất lấy lại được số liệu trước
+        /// ngày hệ thống bắt đầu theo dõi. Chỉ thêm ngày còn trống, không đè số đã có.
+        /// </summary>
+        [HttpPost("/QLMayIn/NapLichSu/{id:int}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> NapLichSu(int id)
+        {
+            var chan = KiemQuyen();
+            if (chan != null) return chan;
+
+            var may = await _context.MayIns.FirstOrDefaultAsync(m => m.IdMayIn == id);
+            if (may is null) return Json(new { thanhCong = false, thongBao = "Không tìm thấy máy in" });
+
+            var ketQua = await _mayInApiService.NapLichSuTuMayAsync(may, HttpContext.RequestAborted);
+
+            return Json(new
+            {
+                thanhCong = ketQua.ThanhCong,
+                thongBao = ketQua.ThongBao,
+                duLieu = new { ketQua.SoMocDocDuoc, ketQua.SoNgayThemMoi }
+            });
+        }
+
+        /// <summary>Nạp nhật ký lỗi của toàn bộ máy đang bật đọc tự động, chạy tuần tự.</summary>
+        [HttpPost("/QLMayIn/NapLichSuTatCa")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> NapLichSuTatCa()
+        {
+            var chan = KiemQuyen();
+            if (chan != null) return chan;
+
+            var dsMay = await _context.MayIns
+                .Where(m => m.TheoDoiTuDong && m.DiaChiIp != null && m.TrangThai == "HoatDong")
+                .ToListAsync();
+
+            var soMayCoLichSu = 0;
+            var tongNgayThem = 0;
+            var khoa = new object();
+
+            await ChayHangLoatAsync(dsMay, async (dichVu, may, ct) =>
+            {
+                var ketQua = await dichVu.NapLichSuTuMayAsync(may, ct);
+                if (!ketQua.ThanhCong || ketQua.SoNgayThemMoi == 0) return;
+
+                lock (khoa)
+                {
+                    soMayCoLichSu++;
+                    tongNgayThem += ketQua.SoNgayThemMoi;
+                }
+            });
+
+            return Json(new
+            {
+                thanhCong = true,
+                thongBao = $"Đã nạp thêm {tongNgayThem} ngày chỉ số từ nhật ký lỗi của {soMayCoLichSu}/{dsMay.Count} máy"
+            });
+        }
+
         [HttpPost("/QLMayIn/DocTatCa")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DocTatCa()
@@ -486,20 +603,55 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var thanhCong = 0;
             var loi = new List<string>();
 
-            // Chạy tuần tự: bấm tay thì ưu tiên không làm nghẽn mạng nhà máy, số máy đọc được
-            // (khoảng chục máy Apeos đời mới) không đủ nhiều để cần chạy song song.
-            foreach (var may in dsMay)
+            await ChayHangLoatAsync(dsMay, async (dichVu, may, ct) =>
             {
-                var ketQua = await _mayInApiService.DocVaLuuAsync(may, HttpContext.RequestAborted);
-                if (ketQua.ThanhCong) thanhCong++;
-                else if (loi.Count < 10) loi.Add($"{may.Serial} ({may.DiaChiIp}): {ketQua.ThongBao}");
-            }
+                var ketQua = await dichVu.DocVaLuuAsync(may, ct);
+                lock (loi)
+                {
+                    if (ketQua.ThanhCong) thanhCong++;
+                    else if (loi.Count < 10) loi.Add($"{may.Serial} ({may.DiaChiIp}): {ketQua.ThongBao}");
+                }
+            });
 
             return Json(new
             {
                 thanhCong = true,
                 thongBao = $"Đọc được {thanhCong}/{dsMay.Count} máy",
                 duLieu = new { tong = dsMay.Count, doc = thanhCong, loi }
+            });
+        }
+
+        /// <summary>
+        /// Chạy một việc trên nhiều máy in cùng lúc. Mỗi máy được một scope DI riêng vì
+        /// <see cref="ITFormContext"/> không dùng song song được trên cùng một thực thể — dùng chung
+        /// sẽ ném "A second operation was started on this context" ngay lần thứ hai.
+        ///
+        /// Số luồng lấy theo MayIn:SoMayDocSongSong (mặc định 8) như job nền, để một cú bấm không
+        /// bắn vài chục request cùng lúc vào mạng nhà máy.
+        /// </summary>
+        private async Task ChayHangLoatAsync(IReadOnlyCollection<MayIn> dsMay,
+            Func<MayInApiService, MayIn, CancellationToken, Task> viec)
+        {
+            var soLuong = _configuration.GetValue<int?>("MayIn:SoMayDocSongSong") ?? 8;
+            if (soLuong < 1) soLuong = 1;
+
+            var tuyChon = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = soLuong,
+                CancellationToken = HttpContext.RequestAborted
+            };
+
+            await Parallel.ForEachAsync(dsMay, tuyChon, async (may, ct) =>
+            {
+                using var pham = _scopeFactory.CreateScope();
+                var dichVu = pham.ServiceProvider.GetRequiredService<MayInApiService>();
+
+                // Thực thể lấy từ context của controller không thuộc context mới nên nạp lại theo id
+                var context = pham.ServiceProvider.GetRequiredService<ITFormContext>();
+                var mayTrongScope = await context.MayIns.FirstOrDefaultAsync(m => m.IdMayIn == may.IdMayIn, ct);
+                if (mayTrongScope is null) return;
+
+                await viec(dichVu, mayTrongScope, ct);
             });
         }
 

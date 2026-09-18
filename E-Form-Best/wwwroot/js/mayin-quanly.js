@@ -69,6 +69,37 @@
         return thanhMuc(phanTram) + '<div class="d-flex gap-1 mt-1">' + cham + '</div>';
     }
 
+    /// Chạy một lệnh đồng bộ hàng loạt: khoá cả hai nút (máy chủ chạy tuần tự qua vài chục máy,
+    /// bấm chồng lên nhau chỉ làm nghẽn), hiện kết quả tại chỗ rồi tải lại danh sách.
+    function dongBoTatCa($nut, duongDan, chuDangChay, chuBanDau) {
+        var $cacNut = $('#btnDocTatCa, #btnNapLichSuTatCa');
+        var batDau = Date.now();
+
+        $cacNut.prop('disabled', true);
+        $nut.html('<i class="fa fa-spinner fa-spin me-1"></i> ' + chuDangChay);
+        $('#kqDongBo').removeClass('text-success text-danger').addClass('text-muted')
+            .text('Đang chạy, mỗi máy mất vài giây — đừng đóng trang.');
+
+        $.post(duongDan)
+            .done(function (res) {
+                var giay = Math.round((Date.now() - batDau) / 1000);
+                $('#kqDongBo')
+                    .removeClass('text-muted text-success text-danger')
+                    .addClass(res.thanhCong ? 'text-success' : 'text-danger')
+                    .text((res.thongBao || '') + ' (' + giay + ' giây)');
+
+                taiDanhSach();
+            })
+            .fail(function () {
+                $('#kqDongBo').removeClass('text-muted text-success').addClass('text-danger')
+                    .text('Lỗi kết nối máy chủ.');
+            })
+            .always(function () {
+                $cacNut.prop('disabled', false);
+                $nut.html(chuBanDau);
+            });
+    }
+
     function taiDanhSach() {
         var thamSo = {
             tuKhoa: $('#filterTuKhoa').val(),
@@ -375,17 +406,13 @@
         $('#btnLuuChiSoTay').on('click', luuChiSoTay);
 
         $('#btnDocTatCa').on('click', function () {
-            var $nut = $(this);
-            $nut.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Đang đọc...');
+            dongBoTatCa($(this), '/QLMayIn/DocTatCa',
+                'Đang đọc từng máy...', '<i class="fa fa-rotate me-1"></i> Đọc chỉ số tất cả');
+        });
 
-            $.post('/QLMayIn/DocTatCa')
-                .done(function (res) {
-                    taiDanhSach();
-                    if (res.thongBao) $nut.attr('title', res.thongBao);
-                })
-                .always(function () {
-                    $nut.prop('disabled', false).html('<i class="fa fa-rotate me-1"></i> Đọc chỉ số');
-                });
+        $('#btnNapLichSuTatCa').on('click', function () {
+            dongBoTatCa($(this), '/QLMayIn/NapLichSuTatCa',
+                'Đang nạp nhật ký lỗi...', '<i class="fa fa-clock-rotate-left me-1"></i> Nạp lịch sử tất cả');
         });
     });
 })();
