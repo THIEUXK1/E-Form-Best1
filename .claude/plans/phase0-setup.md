@@ -24,7 +24,7 @@ cd E-Form-Best && dotnet watch run
   (tương đương cờ `--clearScreen false` của Vite; `dotnet watch` không có cờ này).
 - **Bọc supervisor** (vòng lặp chạy lại khi tiến trình chết) — SDK .NET 10 có lúc làm
   `dotnet watch` tự thoát sau một rude edit.
-- Chi tiết cờ thu gọn output: [`../rules/coding-standards.md`](../rules/coding-standards.md) mục 6.
+- Chi tiết cờ thu gọn output: [`../rules/core.md`](../rules/core.md) mục 7.
 - Development: `https://localhost:7200` / `http://localhost:5200`; RuntimeCompilation bật nên
   sửa `.cshtml` chỉ cần F5.
 - Kiểm tra nhanh: `GET /health` (app sống), `GET /health/ready` (nối được SQL Server).
@@ -49,7 +49,7 @@ UseForwardedHeaders  →  ExceptionHandler/HSTS (non-Dev)  →  UseHttpsRedirect
 ## 4. CSDL — hợp đồng và việc còn lại
 
 **Mô hình: DB-first, KHÔNG có `Migrations/`.** Chi tiết quy trình đổi schema:
-[`../rules/database-safety.md`](../rules/database-safety.md).
+[`../docs/database-safety.md`](../docs/database-safety.md).
 
 Quy ước entity (bắt buộc theo, xem `Models/ITForm/KkThietBi.cs` làm mẫu):
 - `namespace E_Form_Best.Models.ITForm;`, `public partial class`
@@ -60,10 +60,11 @@ Quy ước entity (bắt buộc theo, xem `Models/ITForm/KkThietBi.cs` làm mẫ
 
 Việc **còn lại** của Phase 0:
 
-- [ ] **B2** — Tạo tài khoản SQL riêng quyền tối thiểu thay `sa`; đưa connection string ra biến môi
-      trường / user-secrets, bỏ khỏi `appsettings.json` đã commit. *(Lưu ý: `ITFormContext.OnConfiguring`
-      hiện đọc thẳng `appsettings.json` vì các controller `new ITFormContext()` ngoài DI — sửa chỗ này
-      phải xử lý cả đường đó.)*
+- [x] **B2 (phần secret)** — Connection string đã ra `.env`, nạp ở đầu `Program.cs` trước
+      `CreateBuilder`; `.env.example` giữ khoá mẫu, `.gitignore` chặn `.env` (`c3d22a1`).
+      Thêm biến nhạy cảm mới → theo [`../docs/coding-standards.md`](../docs/coding-standards.md) mục 8.
+- [ ] **B2 (phần còn lại)** — Tạo tài khoản SQL riêng quyền tối thiểu thay `sa` và đổi mật khẩu `sa`
+      (mật khẩu cũ vẫn nằm trong lịch sử git).
 - [ ] **B3** — Trỏ uptime check vào `/health/ready`.
 - [ ] Thiết lập backup định kỳ + **restore test** cho CSDL production (~1 GB).
 - [ ] Bổ sung `.gitignore` cho `watch_log.txt`, `dotnet-watch*.log` ở gốc repo.

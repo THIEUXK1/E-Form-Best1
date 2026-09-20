@@ -14,8 +14,11 @@
 - ⚠️ Không chắc là production hay không → **coi như production**.
 - ❌ Không đụng `10.0.55.3` (chi nhánh) bằng bất cứ lệnh ghi nào — quan hệ là **đồng bộ một chiều,
   chỉ đọc từ đó về**.
-- ❌ **Không commit connection string / mật khẩu** vào repo.
-  *(Hiện trạng đang vi phạm: `appsettings.json` chứa tài khoản `sa` của cả 2 server — blocker B2.)*
+- ❌ **Không commit connection string / mật khẩu** vào repo. Thông tin kết nối lấy **hoàn toàn**
+  qua biến môi trường trong `.env` (`ConnectionStrings__DefaultConnection`,
+  `ConnectionStrings__ChiNhanhConnection`) — xem [`coding-standards.md`](coding-standards.md) mục 8.
+  `appsettings.json` chỉ giữ cấu hình không nhạy cảm; thêm biến mới phải khai mẫu trong `.env.example`.
+  *(Còn lại của blocker B2: tài khoản đang dùng vẫn là `sa`, cần cấp user quyền tối thiểu.)*
 
 ## 2. Repo KHÔNG dùng EF Migrations
 

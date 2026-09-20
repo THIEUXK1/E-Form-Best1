@@ -2,27 +2,9 @@
 
 ## 1. Kiến trúc chung
 
-ASP.NET Core MVC monolith, chia theo **Areas**. Một CSDL SQL Server, một `DbContext`.
-Chi tiết stack: [`../plans/00-master-plan.md`](../plans/00-master-plan.md).
-
-```
-E-Form-Best/
-├─ Program.cs              ← DI, middleware pipeline, route. Sửa cẩn thận, thứ tự có chủ đích
-├─ appsettings.json        ← config + hằng số nghiệp vụ (vd BanQuyenWindows:MakKeyCongTy)
-├─ Context/ITFormContext.cs← DbContext DUY NHẤT. Thêm bảng = thêm DbSet ở đây
-├─ Models/ITForm/          ← entity EF (DB-first). MỘT file = MỘT bảng
-├─ Areas/<Ten>/
-│  ├─ Controllers/         ← business logic + action
-│  ├─ Services/            ← background worker / logic tái sử dụng (hiện chỉ ITForm có)
-│  └─ Views/
-│     ├─ <Controller>/     ← view của Area
-│     └─ Shared/_Layout.cshtml  ← layout riêng từng Area
-└─ wwwroot/
-   ├─ js/, css/            ← JS/CSS tự viết
-   ├─ lib/                 ← thư viện bên thứ ba — KHÔNG sửa tay
-   ├─ FileIT/, HuongDanIT/ ← file người dùng upload / tài liệu
-   └─ sw.js                ← service worker (Web Push)
-```
+ASP.NET Core MVC monolith (.NET 10), chia theo **Areas**. Một CSDL SQL Server, một `DbContext`.
+Cây thư mục, phụ thuộc, quy ước và cạm bẫy: [`dotnet-architecture.md`](dotnet-architecture.md).
+Lộ trình theo phase: [`../plans/00-master-plan.md`](../plans/00-master-plan.md).
 
 ## 2. QUY TẮC PHÂN BỔ FILE — bắt buộc
 

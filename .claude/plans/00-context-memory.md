@@ -1,86 +1,78 @@
 # Bộ nhớ bối cảnh — cập nhật liên tục
 
-> File này là **trạng thái sống**. Sửa trực tiếp mỗi khi đổi việc / gặp blocker / chốt quyết định.
-> Giữ ngắn: phần "Đang làm" tối đa vài dòng, mục cũ chuyển xuống Decision Log hoặc xoá.
+> File này là **trạng thái sống**, tự nạp mỗi phiên → giữ ngắn.
+> Sửa trực tiếp mỗi khi đổi việc / gặp blocker / chốt quyết định.
+> Decision Log chỉ giữ **5 dòng gần nhất**, cũ hơn đẩy xuống [`decision-log.md`](decision-log.md).
 > **Luôn ghi ngày tuyệt đối (dd/mm/yyyy)**, không viết "tuần trước", "hôm qua".
 
 ---
 
-## Đang làm (cập nhật: 21/08/2026)
+## Đang làm (cập nhật: 17/09/2026)
 
-**Việc:** Module chặn thiết bị trong Kiểm kê IT — ẩn máy khỏi mọi danh sách/thống kê
-(`KK_ThietBi` + `TSCN_ThongTinMay`) và chặn đồng bộ/thêm mới trở lại, đối chiếu theo Serial
-(ưu tiên) hoặc Tên máy khi Serial rỗng.
+**Việc:** Kiểm kê IT — bộ lọc vị trí địa lý / nhu cầu cài Office, bổ sung dữ liệu WKNA, và dán ảnh
+vào bình luận đơn IT.
 
-**File đang chạm (theo `git status`):**
+**File đang chạm (theo `git status` ngày 17/09/2026):**
 
 | File | Trạng thái |
 |---|---|
-| `E-Form-Best/Models/ITForm/KkThietBiChan.cs` | mới |
-| `E-Form-Best/wwwroot/js/kiemke-chan-thietbi.js` | mới |
-| `E-Form-Best/Context/ITFormContext.cs` | sửa (đăng ký DbSet) |
-| `E-Form-Best/Areas/ITForm/Controllers/ITFormController.cs` | sửa |
+| `.claude/plans/sql/kk-wkna-bosung-20260917.sql` + `-rollback.sql` | mới — **chưa chạy**, chờ duyệt |
+| `.claude/plans/sql/kk-capnhat-vitri-office-20260917*` (`.sql`, `.csv`) | sửa |
+| `E-Form-Best/wwwroot/js/kiemke-loc-can-cai-office.js` | mới |
+| `E-Form-Best/wwwroot/js/formit-binhluan-dan-anh.js` | mới |
+| `E-Form-Best/wwwroot/js/kiemke-loc-vitri-dialy.js` | sửa |
 | `E-Form-Best/Areas/ITForm/Views/ITForm/IndexThietBi.cshtml` | sửa |
-| `E-Form-Best/Areas/ITForm/Views/ITForm/ViewDanhSachTatCaMayTinh.cshtml` | sửa |
+| `E-Form-Best/Areas/ITForm/Views/ITForm/ChiTiet.cshtml` | sửa |
+| `watch-supervisor.ps1` | mới — supervisor cho `dotnet watch` |
 
-**Nhánh:** `master` (commit gần nhất `4653ff5` — layout cố định + nút thu gọn sidebar).
+**Nhánh:** `master` (commit gần nhất `fe78d82` — lọc vị trí địa lý, đổi đơn vị đơn IT,
+bắt phiên hết hạn sớm).
 
 ---
 
 ## Blockers
 
-| # | Vấn đề | Ảnh hưởng | Cần ai/ cái gì để gỡ |
+| # | Vấn đề | Ảnh hưởng | Cần ai/cái gì để gỡ |
 |---|---|---|---|
-| B1 | Bảng `KK_ThietBiChan` phải được tạo **thủ công** trên SQL Server production trước khi deploy — repo không có Migration | Deploy code mà chưa chạy DDL → lỗi runtime khi mở trang Kiểm kê | Người có quyền trên `10.0.60.33`; script DDL phải được duyệt trước (xem `../rules/database-safety.md`) |
-| B2 | `appsettings.json` đang commit connection string tài khoản `sa` của cả 2 server | Rủi ro bảo mật; đổi mật khẩu là phải sửa file trong repo | Cấp tài khoản SQL riêng quyền tối thiểu + chuyển secret sang biến môi trường |
+| B1 | Bảng `KK_ThietBiChan` phải được tạo **thủ công** trên SQL Server production trước khi deploy — repo không có Migration | Deploy code mà chưa chạy DDL → lỗi runtime khi mở trang Kiểm kê | Người có quyền trên `10.0.60.33`; script DDL phải được duyệt trước ([`../docs/database-safety.md`](../docs/database-safety.md)) |
+| B2 | Connection string **đã** ra `.env` (`c3d22a1`), nhưng tài khoản dùng vẫn là `sa` | Lộ file `.env` = toàn quyền ghi trên cả 2 server SQL | Cấp tài khoản SQL riêng quyền tối thiểu, đổi mật khẩu `sa` (đã từng nằm trong lịch sử git) |
 | B3 | Không có công cụ giám sát production; `/health/ready` đã có nhưng chưa có gì gọi nó | Sự cố chỉ biết khi người dùng báo | Cấu hình uptime check trỏ vào `/health/ready` |
-| ~~B4~~ | ~~Bảng `IT_ThietKeTemIn_9` chưa được tạo trên production~~ | **ĐÃ GỠ 27/08/2026** | DDL đã chạy trên `10.0.60.33`; đối soát trước 0/0/0 → sau 1/1/1, bảng 0 đơn, FK `FK_ITThietKeTemIn_FormIT` (SET_NULL) đã có |
+
+*(B4 — bảng `IT_ThietKeTemIn_9` — đã gỡ 27/08/2026: DDL đã chạy trên `10.0.60.33`, đối soát
+0/0/0 → 1/1/1, FK `FK_ITThietKeTemIn_FormIT` SET_NULL đã có.)*
 
 ---
 
-## Decision Log
+## Decision Log — 5 quyết định gần nhất
 
-Mỗi dòng: **ngày — quyết định — vì sao — hệ quả**. Chỉ ghi quyết định còn ảnh hưởng tới code hôm nay.
+Cũ hơn: [`decision-log.md`](decision-log.md).
 
 | Ngày | Quyết định | Lý do | Hệ quả |
 |---|---|---|---|
-| — (từ trước) | Dùng **EF Core DB-first**, không dùng `Migrations/` | Schema có sẵn/được quản trên SQL Server; nhiều bảng dùng chung với hệ thống khác | Mọi thay đổi schema là DDL thủ công + sửa model tay. Không chạy `dotnet ef migrations` |
-| — (từ trước) | Một `ITFormContext` duy nhất cho cả 5 Area | Chung một CSDL, tránh trùng entity | Context rất lớn; thêm bảng = thêm `DbSet` vào đúng file này |
-| — (từ trước) | Route bằng **attribute tuyệt đối** (`[HttpGet("/FormIT/...")]`) thay vì convention | URL nghiệp vụ không khớp `{area}/{controller}/{action}` | Đổi URL = sửa attribute; route convention trong `Program.cs` chỉ là fallback |
-| 22/07/2026 (`8cdfa54`) | Cache dropdown Công ty/Bộ phận bằng `IMemoryCache`; cache static file 7 ngày, riêng `sw.js` `no-cache` | Giảm truy vấn lặp và tải lại file tĩnh | Sửa danh mục Công ty/Bộ phận **không hiện ngay** — phải chờ cache hết hạn hoặc invalidate |
-| (`f56705c`) | Bật `UseForwardedHeaders`, xoá `KnownProxies/KnownIPNetworks` | nginx nằm máy khác nên không thuộc loopback tin cậy | An toàn **chỉ khi** Kestrel không mở trực tiếp ra Internet — giữ nguyên ràng buộc này |
-| (`f56705c`) | Quy ước bản quyền Windows: chỉ MAK công ty + OEM là Đạt chuẩn; GVLK/Retail generic không tính | Quy định nội bộ | Mua key MAK mới → thêm 5 ký tự cuối vào `BanQuyenWindows:MakKeyCongTy` trong `appsettings.json`, **không sửa code** |
-| (`599ba5f`) | Bật Razor RuntimeCompilation **chỉ ở Development** | Sửa `.cshtml` thấy ngay khi F5 | Production vẫn phải build lại khi đổi view |
-| 27/08/2026 | Thêm đơn số 9 **Thiết kế tem in** (`IT_ThietKeTemIn_9`), nhân sự phụ trách là V200887 (Nguyễn Văn Phúc, `CongViecIT.id=1026`) | Nghiệp vụ mới của IT; bám đúng khuôn `FormIt + chi tiết + LichSu + NguoiHoTro` | Đổi người phụ trách = sửa dòng `CongViecIT` có `Ten = N'Thiết kế tem in'`, **không sửa code**. Đây là đơn đầu tiên đạt chuẩn không-reload ngay từ đầu |
-| 27/08/2026 | Cho phép Claude chạy `sqlcmd` qua `.claude/settings.local.json` (không commit) | Chạy DDL đã duyệt mà không bị auto mode chặn | Quyền này là **toàn quyền ghi** trên CSDL bằng tài khoản `sa` — gắn liền với blocker B2. Gỡ quyền = xoá file đó |
-| 27/08/2026 | Thêm đơn số 10 **Cài đặt phần mềm** (`IT_CaiDatPhanMem_10`), bộ trường gọn 8 cột, phụ trách V200887 (`CongViecIT.id=1027`) | Nghiệp vụ IT còn thiếu; chọn bộ gọn để phát hành nhanh, phần bản quyền/nguồn cài gộp vào ô Ghi chú | Muốn tách riêng bản quyền/nguồn cài về sau thì phải `ALTER TABLE` thêm cột, không sửa được bằng cấu hình |
-| 27/08/2026 | **Nơi đăng ký loại đơn IT là `ITFormController.DangKyDon()`**, không phải submenu trong `_Layout` | Từ commit `a019bd6` menu sidebar bỏ danh sách con, gom về trang thẻ chọn `/FormIT/DangKyDon` | Thêm đơn mới = thêm 1 dòng `LoaiDonIt` (Stt/Ten/Icon/Mau/Url/MoTa) + thêm action vào `itSubPages` ở `_Layout` dòng 22. Sửa submenu trong layout là sai chỗ |
-| 27/08/2026 | Thêm đơn số 11 **Lập trình ứng dụng** (`IT_LapTrinhUngDung_11`), bộ đầy đủ 15 cột, phụ trách V240298 (`CongViecIT.id=1028`) | Nhu cầu viết tool/macro/dashboard nội bộ; đơn này cần mô tả kỹ đầu vào–đầu ra nên chọn bộ đầy đủ | JS bắt buộc `MoTaYeuCau` tối thiểu 30 ký tự — mô tả sơ sài là nguồn gốc của hỏi lại nhiều vòng |
-| 27/08/2026 | **Không ghép code tiếng Việt vào file bằng `Get-Content` của PowerShell 5.1** | PS 5.1 đọc file UTF-8 **không BOM** như ANSI → hằng số `"Cài đặt phần mềm"` thành `"C脿i 膽岷穞..."`, build vẫn 0 lỗi nhưng lọc sai ở runtime (đơn 10 hiện "không có nhân sự") | Dùng `[System.IO.File]::ReadAllText/WriteAllLines` với `UTF8Encoding` tường minh. Sau mỗi lần ghép, quét `[一-鿿]`: controller chỉ được có **163** ký tự CJK (tiếng Trung hợp lệ), nhiều hơn là hỏng mã |
-| 07/09/2026 | Thêm đơn số 12 **Trả thiết bị** (`IT_TraThietBi_12`), 12 cột, gán **cả 3** nhân sự V200887 + V200888 + V210817 (`CongViecIT.id` 1032–1034) | Thiết bị hỏng trả về cần cả tổ IT cùng nắm | Controller **bỏ qua** `SelectedCongViecIds`, luôn gán toàn bộ người đảm nhận "Trả thiết bị". Checkbox trên form chỉ để người tạo xác nhận đã đọc danh sách — có dòng chú thích nói rõ điều này |
-| 27/08/2026 | Bảng màu thẻ đơn IT đã dùng 10 hue: 21°, 43°, 78°, 142°, 189°, 221°, 245°, 258°, 293°, 333° | Mỗi đơn một màu riêng để phân biệt trên trang thẻ chọn | **Sắp hết chỗ**: khoảng hở lớn nhất còn lại chỉ ~64° (giữa 78° và 142°, vùng xanh lá). Đơn 11 trở đi nên phân biệt bằng độ đậm/icon thay vì tìm hue mới |
+| 18/09/2026 | Module **Quản lý máy in** (`/QLMayIn`, quyền `All`): 2 bảng mới `MayIn` + `MayIn_ChiSo`, mỗi máy mỗi ngày **một** dòng chỉ số, job nền `MayInPollWorker` chốt lúc 23h | Số hoá bảng Excel "Print out information2026.xlsx"; ràng buộc 1 dòng/ngày làm việc đọc lại nhiều lần trong ngày vẫn idempotent | Chỉ **24/83** máy có IP trả lời `/home/api/*` (dòng Apeos đời mới) — số còn lại là Fuji Xerox cũ, SNMP tắt, phải nhập chỉ số tay. Trang in theo ngày = chênh lệch `counter_tong`, counter tụt (thay main board) bị bỏ qua |
+| 17/09/2026 | `.claude/rules/` rút còn **một** file `core.md`; 4 file dài chuyển sang `.claude/docs/`, decision log cũ tách ra `plans/decision-log.md` | `rules/` bị tự nạp mỗi phiên — 34 KB rules + 10 KB context-memory tốn ngữ cảnh cho cả task không chạm tới | Thêm quy tắc mới: ngắn & áp dụng mọi task → `core.md`; dài/chuyên đề → `docs/` rồi thêm dòng vào bảng lazy-load mục 9 của `core.md` |
+| 07/09/2026 | Thêm đơn số 12 **Trả thiết bị** (`IT_TraThietBi_12`), 12 cột, gán **cả 3** nhân sự V200887 + V200888 + V210817 (`CongViecIT.id` 1032–1034) | Thiết bị hỏng trả về cần cả tổ IT cùng nắm | Controller **bỏ qua** `SelectedCongViecIds`, luôn gán toàn bộ người đảm nhận "Trả thiết bị". Checkbox trên form chỉ để người tạo xác nhận đã đọc danh sách |
+| 27/08/2026 | **Không ghép code tiếng Việt vào file bằng `Get-Content` của PowerShell 5.1** | PS 5.1 đọc file UTF-8 **không BOM** như ANSI → hằng số `"Cài đặt phần mềm"` thành `"C脿i 膽岷穞..."`, build 0 lỗi nhưng lọc sai ở runtime | Dùng `[System.IO.File]::ReadAllText/WriteAllLines` với `UTF8Encoding` tường minh. Sau mỗi lần ghép, quét `[一-鿿]`: controller chỉ được có **163** ký tự CJK hợp lệ, nhiều hơn là hỏng mã |
+| 27/08/2026 | Thêm đơn số 11 **Lập trình ứng dụng** (`IT_LapTrinhUngDung_11`), bộ đầy đủ 15 cột, phụ trách V240298 (`CongViecIT.id=1028`) | Nhu cầu viết tool/macro/dashboard nội bộ; đơn này cần mô tả kỹ đầu vào–đầu ra | JS bắt buộc `MoTaYeuCau` tối thiểu 30 ký tự — mô tả sơ sài là nguồn gốc của hỏi lại nhiều vòng |
+| 27/08/2026 | **Nơi đăng ký loại đơn IT là `ITFormController.DangKyDon()`**, không phải submenu trong `_Layout` | Từ `a019bd6` menu sidebar bỏ danh sách con, gom về trang thẻ chọn `/FormIT/DangKyDon` | Thêm đơn mới = thêm 1 dòng `LoaiDonIt` (Stt/Ten/Icon/Mau/Url/MoTa) + thêm action vào `itSubPages` ở `_Layout` dòng 22. Sửa submenu trong layout là sai chỗ |
+
+**Lưu ý còn hiệu lực:** bảng màu thẻ đơn IT đã dùng 10 hue (21°, 43°, 78°, 142°, 189°, 221°, 245°,
+258°, 293°, 333°) — khoảng hở lớn nhất chỉ còn ~64° (giữa 78° và 142°); đơn mới nên phân biệt bằng
+độ đậm/icon thay vì tìm hue mới.
 
 ---
 
 ## Ghi chú vận hành
 
-- Chạy dự án: `cd E-Form-Best && dotnet watch run` (không dùng `dotnet run` trần).
-- Log của `dotnet watch` đổ ra `watch_log.txt`, `dotnet-watch.log`, `dotnet-watch.err.log` ở gốc repo —
+- Cách chạy dự án + quy tắc hot reload: [`../rules/core.md`](../rules/core.md) mục 8.
+- Log `dotnet watch` đổ ra `watch_log.txt`, `dotnet-watch.log`, `dotnet-watch.err.log` ở gốc repo —
   **file rác, đã nằm trong `.claudeignore`, đừng commit.**
+- Chạy file `.sql` tiếng Việt bằng `sqlcmd` phải thêm `-f 65001`, không thì dữ liệu vào DB lỗi font.
+- Deploy: production ở `10.0.60.39`, IIS `C:\inetpub\wed\E-Form-Best`, dùng `app_offline` + `robocopy /E`.
+- Ràng buộc thường trực (view là Dumb UI, không reload trang, JS ra file riêng, secret trong `.env`)
+  nằm ở [`../rules/core.md`](../rules/core.md) mục 3–4 — **không chép lại ở đây**.
 
----
+## Ghi chú cho phiên sau
 
-## Ràng buộc thường trực (không được quên giữa các phiên)
-
-1. **View chỉ là View.** `.cshtml` không chứa business logic, không truy vấn EF, không tính toán
-   nặng, không gọi API trực tiếp. Dữ liệu vào view qua Model/ViewBag do Controller/Service chuẩn bị.
-2. **Thao tác trên web tuyệt đối không load lại trang** — xử lý 100% bằng JavaScript
-   (`fetch`/Ajax + DOM), luôn `event.preventDefault()`, server trả JSON, cập nhật UI cục bộ.
-   Ngoại lệ: đăng nhập/đăng xuất, mở trang chi tiết có URL riêng, tải file xuất.
-3. **JS mới luôn nằm ở file riêng** `wwwroot/js/<ten-tinh-nang>.js`, không inline trong view.
-
-Chi tiết: [`../rules/architecture-workflow.md`](../rules/architecture-workflow.md) mục 5 và
-[`../rules/coding-standards.md`](../rules/coding-standards.md) mục 7.
-
-> **Tuyệt đối, không trừ view cũ.** Chạm view nào còn submit đồng bộ → chuyển view đó sang AJAX
-> ngay trong lần sửa. Danh sách form còn vi phạm: [`00-master-plan.md`](00-master-plan.md) mục 4.
+- `kk-wkna-bosung-20260917.sql` **chưa chạy** — cần duyệt rồi chạy tay; đã có file rollback kèm theo.
+- Danh sách form còn submit đồng bộ (phải về 0): [`00-master-plan.md`](00-master-plan.md) mục 4.

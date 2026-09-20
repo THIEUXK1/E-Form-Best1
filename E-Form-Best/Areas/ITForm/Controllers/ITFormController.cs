@@ -7443,6 +7443,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     model.WinLicense = model.WinLicense;
                     model.OfficeLicense = model.OfficeLicense;
 
+                    // Có trả lời câu hỏi Office thì đóng dấu thời điểm trả lời, bỏ trống nghĩa là chưa hỏi
+                    model.NgayTraLoiOffice = model.CanCaiOffice.HasValue ? DateTime.Now : null;
+
                     _context.KkThietBis.Add(model);
                 }
                 else
@@ -7468,6 +7471,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         existing.HanBaoHanh = model.HanBaoHanh;
                         existing.WinLicense = model.WinLicense;
                         existing.OfficeLicense = model.OfficeLicense;
+                        existing.IdViTriDiaLy = model.IdViTriDiaLy;
+
+                        // Chỉ đổi mốc ngày trả lời khi câu trả lời Office thực sự thay đổi, để không xoá dấu vết đợt hỏi cũ
+                        if (existing.CanCaiOffice != model.CanCaiOffice)
+                        {
+                            existing.CanCaiOffice = model.CanCaiOffice;
+                            existing.NgayTraLoiOffice = model.CanCaiOffice.HasValue ? DateTime.Now : null;
+                        }
 
                         // Chỉ cập nhật DuongDanAnh nếu có ảnh mới upload lên
                         if (newImageFileName != null)
@@ -7503,7 +7514,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     if (bp != null) tenBoPhan = bp.TenBoPhan ?? "Chưa gắn";
                 }
 
-                string chiTietLog = $"Vị trí: {model.TenViTri} | Máy tính: {model.TenMayTinh} | Trạng thái: {statusName} | Account: {model.TenDangNhap} | N.Dùng: {tenNguoiDung} | B.Phận: {tenBoPhan} | Loại: {model.LoaiThietBi} | Quy cách: {model.QuyCach}";
+                string tenViTriDiaLy = "Chưa xác định";
+                if (model.IdViTriDiaLy.HasValue)
+                {
+                    var vt = _context.KkViTriDiaLies.Find(model.IdViTriDiaLy.Value);
+                    if (vt != null) tenViTriDiaLy = vt.TenViTriDiaLy;
+                }
+
+                string traLoiOffice = model.CanCaiOffice == true ? "Cần" : (model.CanCaiOffice == false ? "Không cần" : "Chưa trả lời");
+
+                string chiTietLog = $"Vị trí: {model.TenViTri} | Máy tính: {model.TenMayTinh} | Trạng thái: {statusName} | Account: {model.TenDangNhap} | N.Dùng: {tenNguoiDung} | B.Phận: {tenBoPhan} | Loại: {model.LoaiThietBi} | Quy cách: {model.QuyCach} | Vị trí địa lý: {tenViTriDiaLy} | Cần cài Office: {traLoiOffice}";
                 GhiLichSu(action, "Thiết Bị", objId, chiTietLog);
 
                 return Json(new { success = true, message = "Lưu thiết bị thành công!" });
@@ -10564,6 +10584,151 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
                 return Json(new { success = false, message = $"Không gỡ được liên kết: {chiTietLoi}" });
+            }
+        }
+
+        // 4d. DANH SÁCH THIẾT BỊ KIỂM KÊ để chọn liên kết ở trang chi tiết máy.
+        // Liệt kê đúng như trang /QLKiemKe/ThietBi (mọi thiết bị chưa xóa mềm), KỂ CẢ thiết bị đang gắn máy khác -
+        // kèm tên máy đang gắn để người chọn biết mình sắp chuyển liên kết chứ không tưởng là thiết bị trống.
+        [HttpGet("/QLKiemKe/ThietBiKiemKeDeLienKet")]
+        public async Task<IActionResult> ThietBiKiemKeDeLienKet(string? tuKhoa)
+        {
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
+            try
+            {
+                var truyVan = _context.KkThietBis.Where(x => x.NgayXoa == null);
+
+                if (!string.IsNullOrWhiteSpace(tuKhoa))
+                {
+                    string tk = tuKhoa.Trim();
+                    truyVan = truyVan.Where(x =>
+                        (x.TenMayTinh != null && x.TenMayTinh.Contains(tk)) ||
+                        (x.Seribacode != null && x.Seribacode.Contains(tk)) ||
+                        (x.TenViTri != null && x.TenViTri.Contains(tk)) ||
+                        (x.TenDangNhap != null && x.TenDangNhap.Contains(tk)));
+                }
+
+                // Giới hạn 50 dòng: danh sách thiết bị hàng nghìn bản ghi, đổ hết ra select sẽ treo trình duyệt.
+                // Thiết bị còn trống xếp lên đầu để đỡ phải cuộn qua đám đã gắn máy.
+                var ds = await truyVan
+                    .OrderBy(x => x.IdMay == null ? 0 : 1)
+                    .ThenBy(x => x.TenMayTinh)
+                    .Take(50)
+                    .Select(x => new
+                    {
+                        idThietBi = x.IdThietBi,
+                        tenMayTinh = x.TenMayTinh,
+                        tenViTri = x.TenViTri,
+                        seribacode = x.Seribacode,
+                        tenDangNhap = x.TenDangNhap,
+                        idMayDangGan = x.IdMay,
+                        tenMayDangGan = x.IdMayNavigation != null ? x.IdMayNavigation.TenMay : null
+                    })
+                    .ToListAsync();
+
+                int tongSo = await truyVan.CountAsync();
+                return Json(new { success = true, data = ds, tongSo });
+            }
+            catch (Exception ex)
+            {
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = $"Lỗi khi tải danh sách thiết bị kiểm kê: {chiTietLoi}" });
+            }
+        }
+
+        // 4e. GẮN LIÊN KẾT một thiết bị kiểm kê vào máy (ngược lại với GoLienKetThietBiKiemKe)
+        public class LienKetThietBiRequest
+        {
+            public int IdMay { get; set; }
+            public int IdThietBi { get; set; }
+            // Thiết bị đang gắn máy khác: client phải hỏi lại người dùng rồi gửi cờ này mới được chuyển,
+            // tránh bấm nhầm một phát là cướp liên kết của máy khác.
+            public bool ChuyenLienKet { get; set; }
+        }
+
+        [HttpPost("/QLKiemKe/LienKetThietBiKiemKe")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> LienKetThietBiKiemKe([FromBody] LienKetThietBiRequest? req)
+        {
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
+            if (req == null || req.IdMay <= 0 || req.IdThietBi <= 0)
+            {
+                return Json(new { success = false, message = "Thiếu mã máy hoặc mã thiết bị cần liên kết." });
+            }
+
+            try
+            {
+                var may = await _context.TscnThongTinMays.FirstOrDefaultAsync(m => m.IdMay == req.IdMay);
+                if (may == null)
+                {
+                    return Json(new { success = false, message = "Máy này không còn trong hệ thống." });
+                }
+
+                var thietBi = await _context.KkThietBis.FirstOrDefaultAsync(x => x.IdThietBi == req.IdThietBi);
+                if (thietBi == null || thietBi.NgayXoa != null)
+                {
+                    return Json(new { success = false, message = "Thiết bị kiểm kê không tồn tại hoặc đã nằm trong thùng rác." });
+                }
+
+                // Bấm hai lần / hai người cùng gắn: lần sau coi như đã xong, tránh báo lỗi đỏ vô cớ (idempotency)
+                if (thietBi.IdMay == req.IdMay)
+                {
+                    return Json(new { success = true, message = "Thiết bị này đã liên kết sẵn với máy." });
+                }
+
+                // Mỗi thiết bị chỉ trỏ được một máy. Đang gắn máy khác thì chỉ chuyển khi người dùng đã xác nhận,
+                // lần gọi đầu trả canChuyenLienKet để client hỏi lại rồi gọi lại kèm cờ ChuyenLienKet.
+                int? idMayCu = thietBi.IdMay;
+                string? tenMayCu = null;
+                if (idMayCu != null)
+                {
+                    tenMayCu = await _context.TscnThongTinMays
+                        .Where(m => m.IdMay == idMayCu)
+                        .Select(m => m.TenMay)
+                        .FirstOrDefaultAsync();
+
+                    if (!req.ChuyenLienKet)
+                    {
+                        return Json(new
+                        {
+                            success = false,
+                            canChuyenLienKet = true,
+                            idMayCu,
+                            tenMayCu,
+                            message = $"Thiết bị #{thietBi.IdThietBi} đang liên kết với máy '{tenMayCu ?? ("#" + idMayCu)}'."
+                        });
+                    }
+                }
+
+                thietBi.IdMay = req.IdMay;
+                thietBi.NgayCapNhat = DateTime.Now;
+                await _context.SaveChangesAsync();
+
+                string tenThietBi = thietBi.TenMayTinh ?? ("#" + thietBi.IdThietBi);
+                if (idMayCu != null)
+                {
+                    // Ghi cả hai phía để máy cũ cũng có dấu vết vì sao mất thiết bị
+                    GhiLichSu("Chuyển liên kết", "Máy tính (TSCN)", idMayCu.Value,
+                        $"Thiết bị kiểm kê '{tenThietBi}' (#{thietBi.IdThietBi}) đã chuyển sang máy '{may.TenMay ?? "không rõ"}' (#{may.IdMay}).");
+                    GhiLichSu("Chuyển liên kết", "Máy tính (TSCN)", req.IdMay,
+                        $"Đã nhận thiết bị kiểm kê '{tenThietBi}' (#{thietBi.IdThietBi}) từ máy '{tenMayCu ?? ("#" + idMayCu)}'.");
+
+                    return Json(new { success = true, message = $"Đã chuyển thiết bị #{thietBi.IdThietBi} từ máy '{tenMayCu ?? ("#" + idMayCu)}' sang máy '{may.TenMay ?? "không rõ"}'." });
+                }
+
+                GhiLichSu("Liên kết", "Máy tính (TSCN)", req.IdMay,
+                    $"Đã liên kết thiết bị kiểm kê '{tenThietBi}' (#{thietBi.IdThietBi}) với máy '{may.TenMay ?? "không rõ"}'.");
+
+                return Json(new { success = true, message = $"Đã liên kết thiết bị #{thietBi.IdThietBi} với máy '{may.TenMay ?? "không rõ"}'." });
+            }
+            catch (Exception ex)
+            {
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = $"Không liên kết được: {chiTietLoi}" });
             }
         }
 

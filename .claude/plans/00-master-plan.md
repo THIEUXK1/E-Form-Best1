@@ -45,7 +45,7 @@ Ngoài ra: `Areas/ITForm/Services/AutoRatingWorker.cs` — `IHostedService` ch�
 3. **`new ITFormContext()` ngoài DI** — mỗi controller đều có, buộc `OnConfiguring` phải tự nạp
    `appsettings.json`. Vòng đời context không do DI quản lý.
 4. **Không dùng Migration của EF Core** — schema thay đổi bằng SQL thủ công trên DB rồi mới sửa model.
-   Xem [`../rules/database-safety.md`](../rules/database-safety.md).
+   Xem [`../docs/database-safety.md`](../docs/database-safety.md).
 5. **Connection string chứa tài khoản `sa` nằm trong `appsettings.json` đã commit vào git.**
 6. **Bus factor = 1** — toàn bộ lịch sử commit do một người.
 
@@ -62,7 +62,7 @@ Kế thừa roadmap trong báo cáo tổng kết, cụ thể hoá theo góc kỹ
 
 Nguyên tắc xuyên suốt: **không đổi stack** (không thêm SPA framework, không đổi ORM, không chia
 microservice) trừ khi có quyết định tường minh của người dùng — xem
-[`../rules/project-scope.md`](../rules/project-scope.md).
+[`../docs/project-scope.md`](../docs/project-scope.md).
 
 ## 5. Trạng thái hiện tại
 
@@ -70,7 +70,7 @@ microservice) trừ khi có quyết định tường minh của người dùng �
 
 ## 6. Backlog Phase 2 — Chuyển form đồng bộ sang AJAX (bắt buộc về 0)
 
-Ràng buộc: [`../rules/architecture-workflow.md`](../rules/architecture-workflow.md) mục 5.
+Ràng buộc: [`../docs/architecture-workflow.md`](../docs/architecture-workflow.md) mục 5.
 Khảo sát 27/08/2026: 79 view / 35 thẻ `<form>`; ~537 điểm trả JSON so với **24** `RedirectToAction`
 — codebase đã gần như AJAX toàn bộ, phần vi phạm còn lại là **22 form tạo đơn** cùng một khuôn
 (`<form method="post" action="/FormXX/...">` → action POST → `RedirectToAction("DonCho")`,

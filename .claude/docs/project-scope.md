@@ -38,6 +38,9 @@ và kiểm kê tài sản CNTT. Chi tiết: [`../plans/phase1-core-features.md`]
 ### Dữ liệu
 - ❌ Tự chạy DDL/DML trên production hoặc trên chi nhánh `10.0.55.3`.
 - ❌ Ghi ngược lên `10.0.55.3` — quan hệ là đồng bộ **một chiều, chỉ đọc**.
+- ❌ **Commit file `.env` thật lên git** (chỉ `.env.example` với giá trị giả được commit), hoặc
+  hardcode mật khẩu/API key vào source, `appsettings.json`, script `.sql`.
+- ❌ Đưa secret backend ra phía client (`.cshtml`, `data-*`, file trong `wwwroot/`).
 - ❌ Xoá cứng dữ liệu nghiệp vụ cần truy vết.
 - ❌ Sửa/xoá bản ghi trong các bảng `LichSu*`.
 

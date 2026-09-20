@@ -64,70 +64,11 @@ Ngắn gọn, dạng bảng. Quy ước của repo **thắng** sở thích cá n
 | Cookie Auth + `SecurityStamp` | Đổi stamp trong DB = đá toàn bộ phiên của user đó |
 | **Chưa có** Service/Repository layer | Logic nằm trong controller. Code mới **nên** tách sang `Areas/<Area>/Services/` khi đủ lớn |
 
-## 6. Terminal Output — bắt buộc (tiết kiệm token)
+## 6. Terminal Output, Zero-Fluff & Lazy-Loading
 
-Mọi lệnh build/lint/test/chạy phải **thu gọn output**, không đổ nguyên log ra phiên làm việc.
-
-| Việc | Dùng | Không dùng |
-|---|---|---|
-| Build | `dotnet build -v quiet --nologo` | `dotnet build` trần |
-| Chỉ xem lỗi | `dotnet build -v quiet --nologo \| grep -E "error\|Error"` | đọc toàn bộ log |
-| Restore | `dotnet restore --nologo -v quiet` | |
-| Chạy app | `cd E-Form-Best && dotnet watch run` (**nền/background**, đừng stream log vào context) | chạy foreground rồi đọc hết log |
-| Log dài (`watch_log.txt`, `dotnet-watch.log`) | `tail -n 30 <file>` hoặc `grep -E "error\|fail\|Exception" <file> \| tail -20` | `cat` cả file |
-| Liệt kê file | `ls`, `find ... \| head -40` | `ls -R` toàn repo |
-| Đọc file lớn | `sed -n 'a,bp'`, `head`, `grep -n` | `cat` file 3000 dòng |
-| Git | `git log --oneline -20`, `git diff --stat` | `git log -p`, `git diff` toàn bộ |
-
-Nguyên tắc: **luôn ưu tiên cờ `--quiet`/`-v quiet`/`--nologo`/`--silent`, hoặc lọc chỉ dòng
-`FAILED`/`ERROR`/`Exception`.** Chỉ đọc log đầy đủ khi bản thu gọn không đủ để chẩn đoán.
-
-**Output Clamping — bắt buộc kẹp số dòng.** Mọi lệnh có thể trả về output dài (`grep`, `find`,
-`cat`, `ls`, `git`, `dotnet build`) phải đi kèm pipe giới hạn dòng, mặc định `| head -n 20`:
-
-```bash
-grep -rn "TenHam" E-Form-Best/Areas | head -n 20
-find E-Form-Best/wwwroot/js -name "*.js" | head -n 20
-cat watch_log.txt | tail -n 20          # log: lấy phần cuối, không cat cả file
-git status --short | head -n 20
-dotnet build -v quiet --nologo | grep -E "error|Error" | head -n 20
-```
-
-Không có lệnh nào được phép "xả" nguyên output vào phiên làm việc. Cần xem thêm thì tăng dần
-(`head -n 50`), không bỏ pipe.
-
-### 6.1. Chạy server hot reload — bắt buộc
-
-- Web **phải auto chạy hot reload**: `cd E-Form-Best && dotnet watch run` (không dùng `dotnet run` trần).
-  Chạy ở **nền**, ghi output ra `watch_log.txt` / `watch_err.txt`, đọc lại bằng `tail -n 30` —
-  không stream log vào phiên làm việc.
-- **Luôn kèm cờ/cấu hình không xoá lịch sử terminal.** Trình chạy nào có cờ đó thì phải bật:
-  Vite → `vite --clearScreen false`; công cụ khác → cờ tương đương (`--no-clear`, `--preserve-output`).
-  `dotnet watch` không có cờ này, nên **bù bằng cách ghi log ra file** (log không bị xoá,
-  vẫn tra cứu được lỗi của lần chạy trước).
-- `dotnet watch` của SDK .NET 10 thỉnh thoảng tự chết khi hot-reload → **bọc bằng supervisor**
-  (vòng lặp tự chạy lại) thay vì để app tắt im lặng.
-- Không tự ý thêm build step frontend (Vite/Node) vào dự án này — xem
-  [`project-scope.md`](project-scope.md). Mục Vite ở trên chỉ là quy ước áp dụng **nếu** dự án có.
-
-**Bảng tra công cụ hot reload theo ngôn ngữ** (nhận diện từ file manifest — `*.csproj`,
-`package.json`, `go.mod`, `composer.json`, `pyproject.toml`, `Cargo.toml` — rồi chọn đúng dòng;
-với repo này luôn là dòng .NET):
-
-| Stack | Lệnh dev bắt buộc | Cờ giữ lịch sử terminal |
-|---|---|---|
-| **.NET (repo này)** | `dotnet watch run` | không có cờ → **ghi log ra file** `watch_log.txt` |
-| JS/TS + Vite | `vite --clearScreen false` | `--clearScreen false` |
-| Node/Express | `nodemon --exec ...` | không tự clear; tránh `console.clear()` |
-| Next.js | `next dev` | ghi log ra file nếu cần giữ |
-| Python FastAPI | `uvicorn app:app --reload` | `--no-use-colors` nếu log khó đọc; không clear |
-| Python khác | `watchfiles`/`watchdog` | — |
-| PHP/Laravel | `php artisan serve` + `npm run dev` (Vite) | `--clearScreen false` cho Vite |
-| Go | `air` | `-c .air.toml` với `clear_on_rebuild = false` |
-| Rust | `cargo watch -x run` | `--no-clear` (mặc định `cargo watch` có clear) |
-
-Nguyên tắc chung: **không bao giờ chạy server dev ở chế độ không hot reload**, và **không bao giờ
-để công cụ xoá màn hình terminal** — log của lần chạy trước là dữ liệu debug.
+Ba nhóm quy tắc tiết kiệm token chỉ viết ở **một** chỗ:
+[`../rules/core.md`](../rules/core.md) — mục 6 zero-fluff, mục 7 output clamping,
+mục 8 hot reload, mục 9 bảng "task nào đọc file nào".
 
 ## 7. JavaScript & tương tác không reload trang
 
@@ -147,29 +88,18 @@ Chi tiết ràng buộc: [`architecture-workflow.md`](architecture-workflow.md) 
 | Chống CSRF cho POST AJAX | Gửi kèm token nếu action yêu cầu `[ValidateAntiForgeryToken]` |
 | Đổi nội dung file JS cũ | Cache tĩnh 7 ngày — cân nhắc thêm query version |
 
-## 8. Zero-Fluff & Diff Output — cách trả lời
+## 8. Bảo mật Secrets & biến môi trường (`.env`)
+
+Mọi giá trị nhạy cảm **bắt buộc** nằm trong `.env` (đặt tại `E-Form-Best/` khi dev, cạnh
+`E-Form-Best.dll` khi chạy IIS), nạp vào cấu hình ngay đầu `Program.cs` trước `CreateBuilder`.
 
 | Quy tắc | Cụ thể |
 |---|---|
-| Trả lời trực diện | Không chào hỏi, không mở bài, không tóm tắt lại yêu cầu vừa nhận. Vào thẳng kết quả/kết luận |
-| Chỉ xuất phần thay đổi | Khi sửa code, in **đoạn code đã đổi** hoặc diff, kèm đường dẫn + số dòng. Không in lại cả file, không in lại hàm không bị ảnh hưởng |
-| Không lặp lại code vừa ghi | File đã sửa bằng công cụ edit thì **không dán lại nội dung** vào câu trả lời — chỉ nói đã đổi gì, ở đâu |
-| Không tự thêm phần thừa | Không viết changelog, không viết doc, không format lại file, không "dọn dẹp" nếu không được yêu cầu |
-| Báo cáo đúng sự thật | Cái gì đã build/chạy thử thì nói rõ; cái gì chưa kiểm thì ghi "chưa kiểm", không suy đoán thành khẳng định |
-| Độ dài bám việc | Việc nhỏ → vài dòng. Không dàn trang mục lục, bảng biểu cho một sửa đổi một dòng |
-
-## 9. Context Lazy-Loading — chỉ đọc rule khi cần
-
-Không nạp toàn bộ `.claude/rules/` cho mọi task. Đọc **đúng file liên quan** tới việc đang làm:
-
-| Task đang làm | File rule bắt buộc đọc |
-|---|---|
-| Chạm schema, viết DDL, truy vấn `KkThietBi`, nhập liệu hàng loạt | [`database-safety.md`](database-safety.md) |
-| Sửa `.cshtml`, JS, layout, chuyển form sang AJAX | [`architecture-workflow.md`](architecture-workflow.md) mục 5 |
-| Tạo file mới, đặt tên, chọn thư mục, Git flow | [`architecture-workflow.md`](architecture-workflow.md) mục 2–3 |
-| Nghi ngờ việc được giao vượt phạm vi / đổi stack / thêm package | [`project-scope.md`](project-scope.md) |
-| Viết code C#/Razor/JS thông thường | file này |
-| Cần biết đang vướng gì, đã quyết gì | [`../plans/00-context-memory.md`](../plans/00-context-memory.md) |
-
-Nguyên tắc: **một task chạm mấy miền thì đọc bấy nhiêu file**, không đọc thừa. Đọc rồi thì
-không đọc lại trong cùng phiên.
+| Danh mục bắt buộc vào `.env` | Connection string + mật khẩu DB, API key bên thứ ba, khoá VAPID/Web Push, secret JWT/session, OAuth client secret, thông tin tài khoản mail, mọi loại token |
+| **TUYỆT ĐỐI không hardcode** | Không để mật khẩu/khoá trong `.cs`, `.cshtml`, `.js`, `appsettings.json`, script `.sql`, hay comment |
+| Đặt tên biến | Theo cú pháp cấu hình .NET: `Section__Key` (vd `ConnectionStrings__DefaultConnection`) để `AddEnvironmentVariables()` map đúng |
+| Luôn duy trì `.env.example` | Mỗi khi thêm biến mới vào `.env` phải thêm **cùng key** vào `.env.example` với giá trị giả (`<mat-khau>`), để người clone không thiếu cấu hình |
+| Không commit `.env` thật | `.gitignore` đã chặn `.env`, `.env.local` và giữ lại `.env.example`. Kiểm `git status` trước khi commit |
+| Không phơi secret ra client | Không đưa key backend vào `.cshtml`, `data-*`, hay file trong `wwwroot/`. Client chỉ nhận khoá công khai (vd VAPID public key) |
+| Biến môi trường máy chủ thắng `.env` | IIS/hệ thống đã đặt sẵn biến cùng tên thì `.env` bị bỏ qua — khi đổi giá trị nhớ kiểm cả hai nơi |
+| Lỡ commit secret | Coi như đã lộ: **đổi mật khẩu/khoá ngay**, rồi mới dọn lịch sử git |

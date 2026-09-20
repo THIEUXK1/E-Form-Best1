@@ -1,5 +1,5 @@
 ﻿-- Rollback cho kk-capnhat-vitri-office-20260917.sql
--- Tra ve dung gia tri id_vi_tri_dia_ly / can_cai_office / ngay_tra_loi_office da doc tu DB luc 17/09/2026 truoc khi chay script up.
+-- Tra ve dung gia tri doc tu DB ngay 17/09/2026 truoc khi chay script up.
 -- CHI CHAY NEU chua co ai sua tay cac thiet bi nay sau do.
 
 SET NOCOUNT ON;
@@ -589,7 +589,7 @@ INSERT INTO @cu (id_thiet_bi, id_vi_tri_dia_ly, can_cai_office, ngay_tra_loi_off
 (906,NULL,NULL,NULL) /* VN-TMC003 */,
 (907,1,1,'2026-09-16 11:51:31.370') /* VN-TL002 */,
 (908,1,1,'2026-09-16 11:52:30.767') /* VN-TL003 */,
-(909,NULL,NULL,NULL) /* VN-TL001 */,
+(909,1,1,'2026-09-17 11:10:20.720') /* VN-TL001 */,
 (910,1,1,'2026-09-16 14:08:09.320') /* VN-HR025 */,
 (911,NULL,NULL,NULL) /* VN-DH023 */,
 (912,NULL,NULL,NULL) /* VN-AC017 */,
@@ -967,11 +967,8 @@ INSERT INTO @cu (id_thiet_bi, id_vi_tri_dia_ly, can_cai_office, ngay_tra_loi_off
 (2404,NULL,NULL,NULL) /* VN-AC034 */,
 (2405,NULL,NULL,NULL) /* VN-QC088 */;
 
-UPDATE tb
-SET tb.id_vi_tri_dia_ly    = c.id_vi_tri_dia_ly,
-    tb.can_cai_office      = c.can_cai_office,
-    tb.ngay_tra_loi_office = c.ngay_tra_loi_office,
-    tb.ngay_cap_nhat       = GETDATE()
+UPDATE tb SET tb.id_vi_tri_dia_ly = c.id_vi_tri_dia_ly, tb.can_cai_office = c.can_cai_office,
+              tb.ngay_tra_loi_office = c.ngay_tra_loi_office, tb.ngay_cap_nhat = GETDATE()
 FROM KK_ThietBi tb JOIN @cu c ON c.id_thiet_bi = tb.id_thiet_bi;
 PRINT N'So dong da tra lai: ' + CAST(@@ROWCOUNT AS varchar);
 

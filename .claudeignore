@@ -115,3 +115,24 @@ LICENSE.*
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# --- Bí mật & biến môi trường (KHÔNG nạp vào context) ---
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+*.pfx
+*.key
+*.pem
+secrets.json
+!.env.example
+!**/.env.example
+
+# --- Them 17/09/2026 ---
+.vscode/
+tmp/
+*.swp
+*.sql.gz
+.env.example.local

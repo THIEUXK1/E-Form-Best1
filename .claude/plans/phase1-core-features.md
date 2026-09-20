@@ -58,7 +58,7 @@ Danh mục dùng chung: `DmCongTy`, `DmBoPhan`, `DmLoaiDon`, `DmNguoiXacNhan*`, 
 
 ## Checklist khi thêm một loại phiếu mới
 
-1. Tạo bảng chi tiết trên SQL Server (DDL thủ công, xem `../rules/database-safety.md`) + thêm bản ghi `DmLoaiDon`.
+1. Tạo bảng chi tiết trên SQL Server (DDL thủ công, xem `../docs/database-safety.md`) + thêm bản ghi `DmLoaiDon`.
 2. Thêm model vào `Models/ITForm/` theo đúng quy ước `[Table]/[Column]`.
 3. Thêm `DbSet` vào `Context/ITFormContext.cs` **và** cấu hình trong `OnModelCreating` nếu cần.
 4. Thêm action GET (form) + POST (lưu) vào controller của Area, route tuyệt đối, đặt **trên** route `homeActions`.

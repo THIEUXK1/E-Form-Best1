@@ -189,6 +189,30 @@
                     <div class="text-muted small">Đang kiểm tra liên kết...</div>
                 </div>
 
+                @* Chọn thêm thiết bị kiểm kê để gắn vào máy này - chỉ hiện thiết bị chưa gắn máy nào *@
+                <div id="vungChonThietBiLienKet" class="ct-box mb-2">
+                    <h6 class="fw-bold text-dark"><i class="fa fa-plus-circle me-2 text-success"></i>Chọn máy tính (thiết bị kiểm kê) để liên kết</h6>
+                    <div class="row g-2 align-items-center">
+                        <div class="col-lg-4">
+                            <input type="text" id="txtTimThietBiLienKet" class="form-control form-control-sm" placeholder="Tìm theo tên máy / serial / vị trí / user..." autocomplete="off" />
+                        </div>
+                        <div class="col-lg-5">
+                            <select id="selThietBiChuaLienKet" class="form-select form-select-sm" disabled>
+                                <option value="">Đang tải danh sách...</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-3 d-flex gap-2">
+                            <button type="button" id="btnLienKetThietBi" class="btn btn-sm btn-success flex-grow-1" disabled>
+                                <i class="fa fa-link"></i> Liên kết
+                            </button>
+                            <button type="button" id="btnTaiLaiThietBiTrong" class="btn btn-sm btn-outline-secondary" title="Tải lại danh sách">
+                                <i class="fa fa-refresh"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="ttChonThietBiLienKet" class="text-muted small mt-1"></div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -196,6 +220,9 @@
 
 @section Scripts {
     <script src="~/js/kiemke-chitiet-tab.js"></script>
+    @* ?v= đổi tay mỗi lần sửa file: dự án không bật TagHelper nên không dùng được asp-append-version,
+       không có nó trình duyệt giữ bản JS cũ và gọi vào route đã đổi tên *@
+    <script src="~/js/kiemke-lienket-thietbi.js?v=2"></script>
     <script>
         $(document).ready(function () {
         var urlParams = new URLSearchParams(window.location.search);
@@ -325,6 +352,11 @@
         });
         }
 
+        // kiemke-lienket-thietbi.js gắn xong một thiết bị thì báo về đây để vẽ lại bảng đang liên kết
+        $(document).on("kiemke:lienket-thaydoi", function () {
+        loadThietBiKiemKeLienKet();
+        });
+
         // Gỡ liên kết một thiết bị: chỉ xóa mối nối id_may, bản ghi thiết bị kiểm kê vẫn còn nguyên
         $(document).on("click", ".btn-go-lien-ket", function () {
         var $nut = $(this);
@@ -350,6 +382,8 @@
         success: function (res) {
         if (res.success) {
         loadThietBiKiemKeLienKet();
+        // Thiết bị vừa gỡ trở thành "trống" nên phải làm mới ô chọn liên kết
+        $(document).trigger("kiemke:go-lien-ket-xong");
         Swal.fire({ icon: 'success', title: 'Đã gỡ liên kết', text: res.message || '' });
         } else {
         $nut.prop("disabled", false).html('<i class="fa fa-unlink"></i> Gỡ liên kết');

@@ -966,6 +966,21 @@
                         </select>
                     </div>
 
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold" style="color: #0ea5e9;"><i class="fas fa-location-dot me-1"></i>Vị trí địa lý thực tế</label>
+                        <select id="tb_IdViTriDiaLy" class="form-select rounded-3" style="border: 1px solid #0ea5e9; height: 45px;">
+                            <option value="">-- Chưa xác định vị trí --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold" style="color: #16a34a;"><i class="fas fa-file-word me-1"></i>Trạng thái cần cài Office</label>
+                        <select id="tb_CanCaiOffice" class="form-select rounded-3" style="border: 1px solid #16a34a; height: 45px;">
+                            <option value="">⚠ Chưa trả lời</option>
+                            <option value="true">✅ Cần cài Office</option>
+                            <option value="false">🚫 Không cần Office</option>
+                        </select>
+                    </div>
+
                     <div class="col-md-8">
                         <label class="form-label fw-bold" style="color: #2563eb;">Quy cách (Cấu hình chi tiết)</label>
                         <input type="text" id="tb_QuyCach" class="form-control rounded-3" placeholder="VD: Core i7 13700H, RAM 16GB, SSD 512GB..." style="border: 1px solid #2563eb; height: 45px;" />
@@ -1230,6 +1245,7 @@
     @* File tĩnh được cache 7 ngày, đổi nội dung phải nâng số v để trình duyệt tải lại *@
     <script src="/js/kiemke-loc-vitri-dialy.js?v=2"></script>
     <script src="/js/kiemke-loc-can-cai-office.js?v=1"></script>
+    <script src="/js/kiemke-form-vitri-office.js?v=1"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
@@ -1413,7 +1429,7 @@
         applyFilters();
         });
 
-        $('#tb_LoaiThietBi, #tb_IdTrangThai, #tb_IdCongTy, #tb_IdBoPhan, #tb_IdNguoiDung, #tb_WinLicense, #tb_OfficeLicense').on('change', function() {
+        $('#tb_LoaiThietBi, #tb_IdTrangThai, #tb_IdViTriDiaLy, #tb_CanCaiOffice, #tb_IdCongTy, #tb_IdBoPhan, #tb_IdNguoiDung, #tb_WinLicense, #tb_OfficeLicense').on('change', function() {
         if (parseInt($('#tb_Id').val()) === 0) { localStorage.setItem('add_form_' + this.id, $(this).val() || ''); }
         });
         $('#tb_TenViTri, #tb_QuyCach, #tb_TenMayTinh, #tb_TenDangNhap, #tb_GhiChu, #tb_Seribacode, #tb_HanBaoHanh').on('keyup input change', function() {
@@ -1640,6 +1656,8 @@
         $('#tb_HanBaoHanh').val(localStorage.getItem('add_form_tb_HanBaoHanh') || '');
         $('#tb_WinLicense').val(localStorage.getItem('add_form_tb_WinLicense') || '');
         $('#tb_OfficeLicense').val(localStorage.getItem('add_form_tb_OfficeLicense') || '');
+        let savedOffice = localStorage.getItem('add_form_tb_CanCaiOffice') || '';
+        FormViTriOfficeKiemKe.dat(localStorage.getItem('add_form_tb_IdViTriDiaLy') || '', savedOffice === 'true' ? true : (savedOffice === 'false' ? false : null));
 
         let savedCT = localStorage.getItem('add_form_tb_IdCongTy') || '';
         $('#tb_IdCongTy').val(savedCT).trigger('change');
@@ -1666,6 +1684,8 @@
         localStorage.removeItem('add_form_tb_HanBaoHanh');
         localStorage.removeItem('add_form_tb_WinLicense');
         localStorage.removeItem('add_form_tb_OfficeLicense');
+        localStorage.removeItem('add_form_tb_IdViTriDiaLy');
+        localStorage.removeItem('add_form_tb_CanCaiOffice');
         }
 
         function changeTab(tabName, element) {
@@ -1696,6 +1716,7 @@
         fillSelectCongTy('#tb_IdCongTy');
         fillSelectBoPhan('#tb_IdBoPhan');
         fillSelectTrangThai('#tb_IdTrangThai');
+        FormViTriOfficeKiemKe.datMacDinh();
         khoiPhucDuLieuFormAdd();
         $('#modalThietBi').modal('show');
         }
@@ -1775,6 +1796,7 @@
         $.get('/QLKiemKe/GetKkCongTys', function(res) { if(res.success) { listCongTyCache = res.data; renderFilterCongTy(); } });
         $.get('/QLKiemKe/GetKkBoPhans', function(res) { if(res.success) { listBoPhanCache = res.data; renderFilterBoPhan(); } });
         LocViTriDiaLyKiemKe.taiDanhSach();
+        FormViTriOfficeKiemKe.taiDanhMuc();
         napGoiYBanQuyen();
         renderFilterLicenses();
         loadThietBi();
@@ -3019,6 +3041,7 @@
         $('#tb_Id').val(item.idThietBi);
         $('#btnSaveAsNew').show();
         fillSelectTrangThai('#tb_IdTrangThai', item.idTrangThai || '');
+        FormViTriOfficeKiemKe.dat(item.idViTriDiaLy || '', item.canCaiOffice);
         fillSelectCongTy('#tb_IdCongTy', item.idcongTy || '');
 
         fillSelectBoPhan('#tb_IdBoPhan', item.idboPhan || '', item.idcongTy || '');
@@ -3074,6 +3097,7 @@
         formData.append("HanBaoHanh", $('#tb_HanBaoHanh').val());
         formData.append("WinLicense", $('#tb_WinLicense').val());
         formData.append("OfficeLicense", $('#tb_OfficeLicense').val());
+        FormViTriOfficeKiemKe.ghepVaoFormData(formData);
 
         if($('#tb_IdNguoiDung').val()) formData.append("IdNguoiDung", parseInt($('#tb_IdNguoiDung').val()));
         if($('#tb_IdCongTy').val()) formData.append("IdcongTy", parseInt($('#tb_IdCongTy').val()));
@@ -3123,6 +3147,8 @@
         localStorage.removeItem('add_form_tb_HanBaoHanh');
         localStorage.removeItem('add_form_tb_WinLicense');
         localStorage.removeItem('add_form_tb_OfficeLicense');
+        localStorage.removeItem('add_form_tb_IdViTriDiaLy');
+        localStorage.removeItem('add_form_tb_CanCaiOffice');
         }
 
         function xacNhanCheckThietBi(id) {
