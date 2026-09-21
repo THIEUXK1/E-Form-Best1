@@ -35,6 +35,18 @@ public partial class MayInChiSo
     [Column("counter_tong")]
     public int? CounterTong { get; set; }
 
+    /// <summary>
+    /// Đồng hồ tích luỹ số tờ IN MÀU (PRINT_TOTAL_COLOR_IMPRESSION). Chỉ máy đọc được qua
+    /// /home/api/billing-counter mới có; máy đọc qua CentreWare cũ / PJL và dòng nhập tay để null.
+    /// Số tờ in màu trong kỳ = chênh lệch giữa hai lần chốt, giống cách tính <see cref="CounterTong"/>.
+    /// </summary>
+    [Column("counter_in_mau")]
+    public int? CounterInMau { get; set; }
+
+    /// <summary>Đồng hồ tích luỹ số tờ IN ĐEN TRẮNG (PRINT_TOTAL_BW_IMPRESSION).</summary>
+    [Column("counter_in_den_trang")]
+    public int? CounterInDenTrang { get; set; }
+
     /// <summary>Mực còn lại, tính theo mực THẤP NHẤT nếu máy có nhiều màu (TONER_C/M/Y/K).</summary>
     [Column("toner_phan_tram")]
     public int? TonerPhanTram { get; set; }

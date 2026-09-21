@@ -371,6 +371,25 @@
         return s ? s : '<span class="text-muted">' + (khiTrong || 'chưa có') + '</span>';
     }
 
+    // Đồng hồ tách màu chỉ có ở máy đọc được qua /home/api/billing-counter. Máy đọc qua CentreWare
+    // cũ hoặc PJL không trả hai số này — ẩn hẳn khối thay vì hiện "—" gây hiểu nhầm là máy in 0 tờ.
+    function veTachMau(tk) {
+        var coSo = tk.counterInMau !== null && tk.counterInMau !== undefined
+                || tk.counterInDenTrang !== null && tk.counterInDenTrang !== undefined;
+        if (!coSo) return '';
+
+        function keo(nhan, tong, trongKy, mau) {
+            var phu = (trongKy === null || trongKy === undefined)
+                ? ''
+                : ' <span class="text-muted small">(30 ngày: ' + dinhDangSo(trongKy) + ' tờ)</span>';
+            return dongThongTin(nhan, '<span style="color:' + mau + '; font-weight:600;">'
+                + dinhDangSo(tong) + '</span>' + phu);
+        }
+
+        return keo('Trong đó: in màu', tk.counterInMau, tk.trangMau30Ngay, '#af1e78')
+             + keo('Trong đó: in đen trắng', tk.counterInDenTrang, tk.trangDenTrang30Ngay, '#404040');
+    }
+
     function veHoSo(m, tk) {
         var danhTinh = dongThongTin('Tên máy in', trong(m.tenHangDoi, 'chưa có trên print server'))
             + dongThongTin('Model', trong(m.model))
@@ -391,6 +410,7 @@
             + dongThongTin('Chỉ số in', dinhDangSo(tk.counterIn))
             + dongThongTin('Chỉ số copy', dinhDangSo(tk.counterCopy))
             + dongThongTin('Chỉ số scan', dinhDangSo(tk.counterScan))
+            + veTachMau(tk)
             + dongThongTin('Chốt ngày', trong(tk.ngayChiSo) + (tk.nguonMoiNhat ? ' <span class="text-muted">(' + escapeHtml(tk.nguonMoiNhat) + ')</span>' : ''));
 
         var hoSo = dongThongTin('Ghi chú', trong(m.ghiChu, 'không có'))
@@ -491,7 +511,7 @@
         $('#ctChotThangMoTa').text('chỉ số tại ngày ' + ngayChot + ' hằng tháng');
 
         if (!chotThang || chotThang.length === 0) {
-            $('#ctChotThang').html('<tr><td colspan="7" class="text-center text-muted py-3">'
+            $('#ctChotThang').html('<tr><td colspan="9" class="text-center text-muted py-3">'
                 + 'Chưa có kỳ nào được chốt. Mỗi tháng có ít nhất một lần đọc là bảng này tự có dòng.</td></tr>');
             return;
         }
@@ -512,6 +532,8 @@
                 + '<td class="mayin-cot-so small">' + dinhDangSo(k.counterIn) + '</td>'
                 + '<td class="mayin-cot-so small">' + dinhDangSo(k.counterCopy) + '</td>'
                 + '<td class="mayin-cot-so small">' + dinhDangSo(k.trangInTrongKy) + '</td>'
+                + '<td class="mayin-cot-so small" style="color:#af1e78;">' + dinhDangSo(k.trangMauTrongKy) + '</td>'
+                + '<td class="mayin-cot-so small">' + dinhDangSo(k.trangDenTrangTrongKy) + '</td>'
                 + '<td class="small text-muted">' + escapeHtml(k.nguon) + '</td>'
                 + '</tr>';
         }).join('');

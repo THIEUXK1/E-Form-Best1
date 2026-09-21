@@ -415,14 +415,14 @@
                 'Đang nạp nhật ký lỗi...', '<i class="fa fa-clock-rotate-left me-1"></i> Nạp lịch sử tất cả');
         });
 
-        // Xuất báo cáo theo đúng bộ lọc đang chọn. Tải file là ngoại lệ được phép điều hướng,
+        // Xuất báo cáo theo bộ lọc đang chọn, TRỪ trạng thái: file xuất luôn có đủ cả máy Tạm dừng
+        // và Báo phế (máy chủ tự gom thành nhóm riêng). Tải file là ngoại lệ được phép điều hướng,
         // nhưng vẫn mở ở tab ẩn để trang danh sách không bị rời đi.
         $('#btnXuatExcel').on('click', function () {
             var thamSo = $.param({
                 tuKhoa: $('#filterTuKhoa').val() || '',
                 boPhan: $('#filterBoPhan').val() || '',
-                model: $('#filterModel').val() || '',
-                trangThai: $('#filterTrangThai').val() || ''
+                model: $('#filterModel').val() || ''
             });
 
             var $nut = $(this);

@@ -9060,6 +9060,57 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // ============================================================
+        // PHÂN LOẠI MÁY IN MÀU / ĐEN TRẮNG CHO BIÊN BẢN KIỂM KÊ
+        // Bảng KK_ThietBi không có trường nào đánh dấu máy in màu, nên căn cứ duy nhất là từ khoá
+        // trong Quy cách / Loại TB do IT gõ. Không thấy từ khoá màu thì mặc định xếp đen trắng,
+        // vì phần lớn máy in trong nhà máy là máy đen trắng.
+        // ============================================================
+
+        /// <summary>Hạ về chữ thường không dấu để so từ khoá, vì Quy cách mỗi người gõ một kiểu.</summary>
+        private static string BoDauTiengViet(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "";
+
+            var tachDau = raw.Normalize(NormalizationForm.FormD);
+            var sb = new StringBuilder(tachDau.Length);
+            foreach (var c in tachDau)
+            {
+                // Bỏ toàn bộ dấu thanh/dấu mũ, giữ lại chữ cái gốc
+                if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)
+                    != System.Globalization.UnicodeCategory.NonSpacingMark) sb.Append(c);
+            }
+
+            // "đ" không tách dấu được bằng FormD nên phải đổi tay
+            return sb.ToString().Normalize(NormalizationForm.FormC)
+                     .Replace('đ', 'd').Replace('Đ', 'D')
+                     .ToLowerInvariant();
+        }
+
+        private static bool LaMayIn(string? loaiThietBi)
+        {
+            string l = BoDauTiengViet(loaiThietBi);
+            return l.Contains("may in") || l.Contains("printer");
+        }
+
+        /// <summary>
+        /// True = máy in màu. Xét từ khoá đen trắng TRƯỚC để quy cách kiểu "Màu: đen trắng"
+        /// không bị hiểu nhầm thành máy in màu.
+        /// </summary>
+        private static bool LaMayInMau(string? quyCach, string? loaiThietBi)
+        {
+            string text = BoDauTiengViet($"{quyCach} {loaiThietBi}");
+
+            string[] tuKhoaDenTrang = { "den trang", "trang den", "black and white", "black & white", "mono", "monochrome", "b/w" };
+            if (tuKhoaDenTrang.Any(k => text.Contains(k))) return false;
+
+            string[] tuKhoaMau = { "color", "colour", "cmyk", "in mau", "da mau" };
+            if (tuKhoaMau.Any(k => text.Contains(k))) return true;
+
+            // "mau" phải đứng thành từ riêng mới tính, tránh dính vào chuỗi khác có chứa ba chữ này
+            return System.Text.RegularExpressions.Regex.IsMatch(text, @"(?<![a-z0-9])mau(?![a-z0-9])");
+        }
+
+        // ============================================================
         // BUILD BIÊN BẢN DẠNG EXCEL (.xlsx) - cùng nội dung bản in nhưng sửa được, có sẵn cột trống để bộ phận ghi chú khi đối chiếu
         // ============================================================
         private byte[] BuildExcelBienBanTaiSanBoPhan(string tenNguoiLap, List<BienBanThietBiRow> danhSach, bool songNgu = false)
@@ -9125,30 +9176,72 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 .Alignment.SetVertical(ClosedXML.Excel.XLAlignmentVerticalValues.Center);
             if (songNgu) ws.Row(hangTieuDe).Height = 34;
 
-            int hang = hangTieuDe + 1;
-            int stt = 1;
-            foreach (var item in danhSach)
-            {
-                string userInfo = !string.IsNullOrEmpty(item.TenNguoiDung)
-                    ? item.TenNguoiDung + (!string.IsNullOrEmpty(item.Tk) ? $" ({item.Tk})" : "")
-                    : Nhan("Chưa xác nhận người dùng", "未确认使用人");
+            // Tách máy in màu / máy in đen trắng thành nhóm riêng, thiết bị khác giữ nguyên thứ tự cũ.
+            // Danh sách không có máy in nào thì dựng bảng phẳng y như trước, không chèn dòng nhóm.
+            var dsMayIn = danhSach.Where(x => LaMayIn(x.LoaiThietBi)).ToList();
+            var dsKhac = danhSach.Where(x => !LaMayIn(x.LoaiThietBi)).ToList();
+            var dsInMau = dsMayIn.Where(x => LaMayInMau(x.QuyCach, x.LoaiThietBi)).ToList();
+            var dsInDenTrang = dsMayIn.Where(x => !LaMayInMau(x.QuyCach, x.LoaiThietBi)).ToList();
 
-                // Bản song ngữ: kèm tên tiếng Trung của nhân sự nếu hồ sơ có lưu
-                if (songNgu && !string.IsNullOrWhiteSpace(item.TenTiengTrung))
+            var cacNhom = new List<(string TieuDe, List<BienBanThietBiRow> Ds)>();
+            if (dsMayIn.Count == 0)
+            {
+                cacNhom.Add(("", danhSach));
+            }
+            else
+            {
+                if (dsKhac.Count > 0) cacNhom.Add((Nhan("THIẾT BỊ KHÁC", "其他设备"), dsKhac));
+                if (dsInMau.Count > 0) cacNhom.Add((Nhan("MÁY IN MÀU", "彩色打印机"), dsInMau));
+                if (dsInDenTrang.Count > 0) cacNhom.Add((Nhan("MÁY IN ĐEN TRẮNG", "黑白打印机"), dsInDenTrang));
+            }
+
+            int hang = hangTieuDe + 1;
+            foreach (var (tieuDeNhom, dsNhom) in cacNhom)
+            {
+                if (!string.IsNullOrEmpty(tieuDeNhom))
                 {
-                    userInfo += "\n" + item.TenTiengTrung.Trim();
+                    ws.Cell(hang, 1).Value = tieuDeNhom + $" ({dsNhom.Count})";
+                    ws.Range(hang, 1, hang, soCot).Merge().Style
+                        .Font.SetBold()
+                        .Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(221, 235, 247))
+                        .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Left);
+                    hang++;
                 }
 
-                ws.Cell(hang, 1).Value = stt++;
-                ws.Cell(hang, 2).Value = item.TenCongTy + " - " + item.TenBoPhan;
-                ws.Cell(hang, 3).Value = item.TenViTri ?? "Chưa rõ";
-                ws.Cell(hang, 4).Value = item.TenMayTinh ?? "N/A";
-                ws.Cell(hang, 5).Value = item.LoaiThietBi ?? "Khác";
-                ws.Cell(hang, 6).Value = item.QuyCach ?? "-";
-                ws.Cell(hang, 7).Value = item.Seribacode ?? "-";
-                ws.Cell(hang, 8).Value = userInfo;
-                ws.Cell(hang, 9).Value = item.TenTrangThai ?? "Chưa rõ";
-                hang++;
+                // Mỗi nhóm đánh số lại từ 1 để bộ phận đếm từng loại cho nhanh
+                int stt = 1;
+                foreach (var item in dsNhom)
+                {
+                    string userInfo = !string.IsNullOrEmpty(item.TenNguoiDung)
+                        ? item.TenNguoiDung + (!string.IsNullOrEmpty(item.Tk) ? $" ({item.Tk})" : "")
+                        : Nhan("Chưa xác nhận người dùng", "未确认使用人");
+
+                    // Bản song ngữ: kèm tên tiếng Trung của nhân sự nếu hồ sơ có lưu
+                    if (songNgu && !string.IsNullOrWhiteSpace(item.TenTiengTrung))
+                    {
+                        userInfo += "\n" + item.TenTiengTrung.Trim();
+                    }
+
+                    ws.Cell(hang, 1).Value = stt++;
+                    ws.Cell(hang, 2).Value = item.TenCongTy + " - " + item.TenBoPhan;
+                    ws.Cell(hang, 3).Value = item.TenViTri ?? "Chưa rõ";
+                    ws.Cell(hang, 4).Value = item.TenMayTinh ?? "N/A";
+                    ws.Cell(hang, 5).Value = item.LoaiThietBi ?? "Khác";
+                    ws.Cell(hang, 6).Value = item.QuyCach ?? "-";
+                    ws.Cell(hang, 7).Value = item.Seribacode ?? "-";
+                    ws.Cell(hang, 8).Value = userInfo;
+                    ws.Cell(hang, 9).Value = item.TenTrangThai ?? "Chưa rõ";
+                    hang++;
+                }
+
+                if (!string.IsNullOrEmpty(tieuDeNhom))
+                {
+                    ws.Cell(hang, 1).Value = Nhan("Cộng", "小计") + $": {dsNhom.Count}";
+                    ws.Range(hang, 1, hang, soCot).Merge().Style
+                        .Font.SetBold().Font.SetItalic()
+                        .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Left);
+                    hang++;
+                }
             }
 
             int hangCuoiBang = Math.Max(hang - 1, hangTieuDe);
@@ -9161,9 +9254,19 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // Cột Serial để dạng chữ, tránh Excel tự đổi các mã toàn số sang dạng số/khoa học
             ws.Column(7).Style.NumberFormat.SetFormat("@");
 
-            ws.Cell(hang + 1, 1).Value = songNgu
+            string dongTong = songNgu
                 ? $"Tổng cộng: {danhSach.Count} thiết bị / 合计：{danhSach.Count} 台设备"
                 : $"Tổng cộng: {danhSach.Count} thiết bị";
+
+            // Có máy in thì ghi luôn số lượng từng loại vào dòng tổng, khỏi phải đếm lại trên bảng
+            if (dsMayIn.Count > 0)
+            {
+                dongTong += songNgu
+                    ? $" — máy in màu / 彩色打印机: {dsInMau.Count}; máy in đen trắng / 黑白打印机: {dsInDenTrang.Count}; thiết bị khác / 其他设备: {dsKhac.Count}"
+                    : $" — máy in màu: {dsInMau.Count}; máy in đen trắng: {dsInDenTrang.Count}; thiết bị khác: {dsKhac.Count}";
+            }
+
+            ws.Cell(hang + 1, 1).Value = dongTong;
             ws.Range(hang + 1, 1, hang + 1, soCot).Merge().Style.Font.SetBold();
 
             ws.Cell(hang + 3, 1).Value = Nhan(

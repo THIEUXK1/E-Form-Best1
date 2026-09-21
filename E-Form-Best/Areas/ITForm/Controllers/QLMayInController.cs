@@ -74,6 +74,29 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             public int PhanTram { get; set; }
         }
 
+        /// <summary>
+        /// Máy in màu hay đen trắng. Căn cứ chắc chắn nhất là vật tư đọc được từ chính máy: có
+        /// TONER/DRUM màu (_C, _M, _Y) là máy màu, chỉ có _K là máy đen trắng. Máy chưa đọc được
+        /// vật tư thì dò từ khoá trong model / ghi chú; không đủ căn cứ thì trả "Chưa rõ" chứ
+        /// không đoán bừa — biên bản mà ghi sai loại máy còn phiền hơn để trống.
+        /// </summary>
+        private static string PhanLoaiMau(List<VatTuHienThi>? vatTu, string? model, string? ghiChu)
+        {
+            if (vatTu is { Count: > 0 })
+            {
+                var ten = vatTu.Select(v => (v.Ten ?? "").ToUpperInvariant()).ToList();
+                if (ten.Any(t => t.EndsWith("_C") || t.EndsWith("_M") || t.EndsWith("_Y"))) return "Màu";
+                if (ten.Any(t => t.EndsWith("_K"))) return "Đen trắng";
+            }
+
+            var chu = ((model ?? "") + " " + (ghiChu ?? "")).ToLowerInvariant();
+            if (chu.Contains("đen trắng") || chu.Contains("den trang")
+                || chu.Contains("mono") || chu.Contains("b/w")) return "Đen trắng";
+            if (chu.Contains("color") || chu.Contains("colour") || chu.Contains("màu")) return "Màu";
+
+            return "Chưa rõ";
+        }
+
         #region View
 
         [HttpGet("/QLMayIn")]
@@ -272,10 +295,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #region Xuất Excel báo cáo trang in
 
         /// <summary>
-        /// Xuất báo cáo chỉ số trang in hiện tại của các máy đang xem (dùng đúng bộ lọc trên màn hình).
+        /// Xuất báo cáo chỉ số trang in hiện tại của các máy đang xem.
         /// Máy nào không có chỉ số chuẩn lấy qua IP — cắm USB, chưa bật đọc tự động, số liệu cũ,
         /// nhập tay — thì đánh dấu "Cần lấy trực tiếp" kèm lý do, và gom sang sheet thứ hai làm
         /// phiếu đi đọc tay tại máy.
+        ///
+        /// KHÁC với bảng trên màn hình: file xuất luôn có đủ cả máy Tạm dừng và Báo phế, bất kể
+        /// màn hình đang lọc trạng thái nào, vì báo cáo dùng để đối chiếu tài sản — thiếu máy báo
+        /// phế là thiếu số liệu. Tham số trangThai vẫn nhận cho tương thích URL cũ nhưng không lọc.
+        ///
         /// Đây là hành động tải file xuống nên được phép điều hướng thật, không trả JSON.
         /// </summary>
         [HttpGet("/QLMayIn/XuatExcel")]
@@ -298,7 +326,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             if (!string.IsNullOrWhiteSpace(boPhan)) truyVan = truyVan.Where(m => m.BoPhan == boPhan);
             if (!string.IsNullOrWhiteSpace(model)) truyVan = truyVan.Where(m => m.Model == model);
-            if (!string.IsNullOrWhiteSpace(trangThai)) truyVan = truyVan.Where(m => m.TrangThai == trangThai);
+            // Cố ý KHÔNG lọc theo trangThai — xem phần mô tả ở đầu hàm
 
             var dsMay = await truyVan
                 .OrderBy(m => m.BoPhan).ThenBy(m => m.ViTri).ThenBy(m => m.Model).ThenBy(m => m.Serial)
@@ -316,7 +344,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // Lấy một lượt chỉ số 60 ngày gần nhất của cả danh sách để tính chênh lệch 1/7/30 ngày
             var lichSu = await _context.MayInChiSos.AsNoTracking()
                 .Where(c => dsId.Contains(c.IdMayIn) && c.NgayChot >= tuNgay && c.CounterTong != null)
-                .Select(c => new { c.IdMayIn, c.NgayChot, c.CounterTong, c.TonerPhanTram, c.DrumPhanTram, c.Nguon })
+                .Select(c => new { c.IdMayIn, c.NgayChot, c.CounterTong, c.CounterInMau, c.CounterInDenTrang,
+                                   c.TonerPhanTram, c.DrumPhanTram, c.Nguon, c.VatTuJson })
                 .ToListAsync();
 
             var theoMay = lichSu.GroupBy(c => c.IdMayIn)
@@ -335,7 +364,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 var dongCu = await _context.MayInChiSos.AsNoTracking()
                     .Where(c => idThieu.Contains(c.IdMayIn) && ngayMax.Contains(c.NgayChot) && c.CounterTong != null)
-                    .Select(c => new { c.IdMayIn, c.NgayChot, c.CounterTong, c.TonerPhanTram, c.DrumPhanTram, c.Nguon })
+                    .Select(c => new { c.IdMayIn, c.NgayChot, c.CounterTong, c.CounterInMau, c.CounterInDenTrang,
+                                       c.TonerPhanTram, c.DrumPhanTram, c.Nguon, c.VatTuJson })
                     .ToListAsync();
 
                 foreach (var nhom in dongCu.GroupBy(c => c.IdMayIn))
@@ -361,6 +391,27 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     return d < 0 ? null : d; // counter tụt = thay main board / reset, không quy ra số trang
                 }
 
+                // Số tờ màu / đen trắng trong kỳ — cùng cách tính với tổng, nhưng chỉ chạy trên
+                // những mốc THẬT SỰ có số tách màu. Máy đọc qua CentreWare cũ / PJL không có hai
+                // chỉ số này nên trả null, không suy ngược từ tổng.
+                // ls sắp xếp giảm dần theo ngày nên phần tử đầu là mốc mới nhất.
+                int? ChenhMau(int soNgayLui, bool laMau)
+                {
+                    var dsCo = ls?.Where(x => (laMau ? x.CounterInMau : x.CounterInDenTrang) != null).ToList();
+                    if (dsCo is null || dsCo.Count < 2) return null;
+
+                    var mocNay = dsCo[0];
+                    var mocTruoc = dsCo.FirstOrDefault(x => x.NgayChot <= homNay.AddDays(-soNgayLui)) ?? dsCo[^1];
+                    if (mocTruoc.NgayChot == mocNay.NgayChot) return null;
+
+                    var nay = laMau ? mocNay.CounterInMau : mocNay.CounterInDenTrang;
+                    var truoc = laMau ? mocTruoc.CounterInMau : mocTruoc.CounterInDenTrang;
+                    if (nay is null || truoc is null) return null;
+
+                    var d = nay.Value - truoc.Value;
+                    return d < 0 ? null : d;
+                }
+
                 // Gom mọi lý do khiến con số không đáng tin, để người đi đọc tay biết vì sao phải đi
                 var lyDo = new List<string>();
                 if (string.IsNullOrWhiteSpace(m.DiaChiIp)) lyDo.Add("Không có IP (cắm USB)");
@@ -383,9 +434,27 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     && !m.KetQuaDocCuoi.StartsWith("OK", StringComparison.OrdinalIgnoreCase))
                     lyDo.Add($"Lần đọc cuối: {m.KetQuaDocCuoi}");
 
+                // Lấy bản đọc gần nhất CÓ vật tư để đoán màu; bản mới nhất đôi khi là dòng nhập tay
+                // không kèm vật tư, lùi lại vài ngày vẫn ra đúng loại máy.
+                var vatTu = ls?.Select(x => PhanTichVatTu(x.VatTuJson)).FirstOrDefault(v => v != null);
+
+                // Đồng hồ tách màu gần nhất đọc được. Đây là số có NGAY từ lần chốt đầu tiên,
+                // khác với cột chênh lệch 30 ngày phải đợi đủ hai mốc mới ra số.
+                var mocTachMau = ls?.FirstOrDefault(x => x.CounterInMau != null || x.CounterInDenTrang != null);
+
+                // Máy nào báo được đồng hồ in màu thì chắc chắn là máy màu, kể cả khi số đang là 0
+                // (máy có khả năng in màu nhưng chưa ai in) — căn cứ này chắc hơn cả vật tư.
+                var color = mocTachMau?.CounterInMau != null
+                    ? "Màu"
+                    : PhanLoaiMau(vatTu, m.Model, m.GhiChu);
+
                 return new
                 {
                     m.BoPhan, m.Model, m.Serial, m.DiaChiIp, m.TenHangDoi, m.ViTri,
+                    Color = color,
+                    CounterInMau = mocTachMau?.CounterInMau,
+                    CounterInDenTrang = mocTachMau?.CounterInDenTrang,
+                    TrangThaiGoc = m.TrangThai,
                     TrangThai = m.TrangThai switch
                     {
                         "TamDung" => "Tạm dừng",
@@ -398,37 +467,67 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     TrangInHomNay = Chenh(1),
                     TrangIn7Ngay = Chenh(7),
                     TrangIn30Ngay = Chenh(30),
+                    TrangMau30Ngay = ChenhMau(30, true),
+                    TrangDenTrang30Ngay = ChenhMau(30, false),
                     Toner = moiNhat?.TonerPhanTram,
                     Drum = moiNhat?.DrumPhanTram,
                     CanLayTrucTiep = lyDo.Count > 0,
                     LyDo = string.Join("; ", lyDo)
                 };
             })
-            // Máy lấy được chỉ số qua IP xếp trước; máy phải đọc tay dồn xuống cuối bảng
+            // Máy lấy được chỉ số qua IP xếp trước; máy phải đọc tay dồn xuống cuối từng nhóm
             .OrderBy(x => x.CanLayTrucTiep)
             .ThenBy(x => x.BoPhan).ThenBy(x => x.ViTri).ThenBy(x => x.Model).ThenBy(x => x.Serial)
             .ToList();
 
             var soCanLayTay = dong.Count(x => x.CanLayTrucTiep);
+            var soMau = dong.Count(x => x.Color == "Màu");
+            var soDenTrang = dong.Count(x => x.Color == "Đen trắng");
+            var soTachDuoc = dong.Count(x => x.CounterInMau != null || x.CounterInDenTrang != null);
+
+            // Máy ngừng dùng gom riêng xuống dưới để không lẫn vào số liệu máy đang chạy,
+            // nhưng vẫn phải có mặt đủ trong file.
+            var thuTuTrangThai = new[] { "HoatDong", "TamDung", "BaoPhe" };
+            var cacNhom = thuTuTrangThai
+                .Select(tt => (
+                    Ten: tt switch { "TamDung" => "MÁY TẠM DỪNG", "BaoPhe" => "MÁY BÁO PHẾ", _ => "MÁY ĐANG HOẠT ĐỘNG" },
+                    Ds: dong.Where(x => x.TrangThaiGoc == tt).ToList()))
+                .Where(n => n.Ds.Count > 0)
+                .ToList();
+
+            // Trạng thái lạ (dữ liệu cũ ghi khác ba giá trị chuẩn) vẫn phải xuất, gom vào nhóm cuối
+            var dsLac = dong.Where(x => !thuTuTrangThai.Contains(x.TrangThaiGoc)).ToList();
+            if (dsLac.Count > 0) cacNhom.Add(("TRẠNG THÁI KHÁC", dsLac));
 
             using var wb = new ClosedXML.Excel.XLWorkbook();
             var ws = wb.Worksheets.Add("Trang in");
 
             var tieuDe = new[]
             {
-                "STT", "Bộ phận", "Model", "Serial", "Tên máy in", "IP", "Vị trí", "Trạng thái",
-                "Chỉ số hiện tại", "Ngày đọc", "Nguồn", "Hôm nay", "7 ngày", "30 ngày",
+                "STT", "Bộ phận", "Model", "Color", "Serial", "Tên máy in", "IP", "Vị trí", "Trạng thái",
+                "Chỉ số hiện tại", "Chỉ số in màu", "Chỉ số in đen trắng",
+                "Ngày đọc", "Nguồn", "Hôm nay", "7 ngày", "30 ngày",
+                "Màu 30 ngày", "Đen trắng 30 ngày",
                 "Mực (%)", "Trống (%)", "Cần lấy trực tiếp", "Lý do / ghi chú"
             };
+
+            const int cotColor = 4;
+            const int cotChiSo = 10;
+            const int cotMau = 11;        // đồng hồ tích luỹ, có ngay từ lần chốt đầu tiên
+            const int cotDenTrang = 12;
+            const int cotLyDo = 23;
 
             ws.Cell(1, 1).Value = "BÁO CÁO CHỈ SỐ TRANG IN HIỆN TẠI";
             ws.Range(1, 1, 1, tieuDe.Length).Merge().Style.Font.SetBold().Font.SetFontSize(14)
               .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
 
-            ws.Cell(2, 1).Value = $"Xuất lúc {DateTime.Now:dd/MM/yyyy HH:mm} — {dong.Count} máy, "
+            ws.Cell(2, 1).Value = $"Xuất lúc {DateTime.Now:dd/MM/yyyy HH:mm} — {dong.Count} máy "
+                               + $"(máy in màu: {soMau}, đen trắng: {soDenTrang}), "
                                + $"{soCanLayTay} máy cần lấy chỉ số trực tiếp tại máy. "
                                + "Cột \"Chỉ số hiện tại\": xanh = đọc được qua IP, "
-                               + "cam = số cũ / nhập tay (chỉ tham khảo), xám = chưa có chỉ số.";
+                               + "cam = số cũ / nhập tay (chỉ tham khảo), xám = chưa có chỉ số. "
+                               + $"Chỉ {soTachDuoc}/{dong.Count} máy báo được đồng hồ tách màu; "
+                               + "hai cột \"… 30 ngày\" chỉ có số khi máy đã có từ 2 lần chốt trở lên.";
             ws.Range(2, 1, 2, tieuDe.Length).Merge().Style.Font.SetItalic()
               .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
 
@@ -439,63 +538,107 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             // "Chỉ số hiện tại" là con số người ta mở file ra để xem, nên đánh dấu riêng cả tiêu đề
             // lẫn từng ô: xanh = số đọc được qua IP, cam = số cũ / nhập tay chỉ để tham khảo.
-            const int cotChiSo = 9;
             ws.Cell(4, cotChiSo).Style.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(31, 78, 121))
               .Font.SetFontColor(ClosedXML.Excel.XLColor.White);
 
+            // Hai cột đồng hồ tách màu: tô đúng bộ màu đang dùng cho cột Color
+            ws.Cell(4, cotMau).Style.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(175, 30, 120))
+              .Font.SetFontColor(ClosedXML.Excel.XLColor.White);
+            ws.Cell(4, cotDenTrang).Style.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(64, 64, 64))
+              .Font.SetFontColor(ClosedXML.Excel.XLColor.White);
+
             var r = 5;
-            foreach (var d in dong)
+            foreach (var (tenNhom, dsNhom) in cacNhom)
             {
-                ws.Cell(r, 1).Value = r - 4;
-                ws.Cell(r, 2).Value = d.BoPhan;
-                ws.Cell(r, 3).Value = d.Model;
-                ws.Cell(r, 4).Value = d.Serial;
-                ws.Cell(r, 5).Value = d.TenHangDoi;
-                ws.Cell(r, 6).Value = d.DiaChiIp;
-                ws.Cell(r, 7).Value = d.ViTri;
-                ws.Cell(r, 8).Value = d.TrangThai;
-
-                if (d.CounterTong.HasValue) ws.Cell(r, cotChiSo).Value = d.CounterTong.Value;
-                else ws.Cell(r, cotChiSo).Value = "—";
-                if (d.NgayChiSo.HasValue) ws.Cell(r, 10).Value = d.NgayChiSo.Value.ToString("dd/MM/yyyy");
-                ws.Cell(r, 11).Value = d.Nguon;
-                if (d.TrangInHomNay.HasValue) ws.Cell(r, 12).Value = d.TrangInHomNay.Value;
-                if (d.TrangIn7Ngay.HasValue) ws.Cell(r, 13).Value = d.TrangIn7Ngay.Value;
-                if (d.TrangIn30Ngay.HasValue) ws.Cell(r, 14).Value = d.TrangIn30Ngay.Value;
-                if (d.Toner.HasValue) ws.Cell(r, 15).Value = d.Toner.Value;
-                if (d.Drum.HasValue) ws.Cell(r, 16).Value = d.Drum.Value;
-
-                ws.Cell(r, 17).Value = d.CanLayTrucTiep ? "X" : "";
-                ws.Cell(r, 18).Value = d.LyDo;
-
-                // Tô vàng cả dòng để lúc in ra giấy vẫn thấy ngay máy nào phải đi đọc tay
-                if (d.CanLayTrucTiep)
-                    ws.Range(r, 1, r, tieuDe.Length).Style.Fill
-                      .SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(255, 242, 204));
-
-                // Tô ô chỉ số SAU nền cả dòng, nếu không màu vàng của dòng sẽ đè mất
-                var oChiSo = ws.Cell(r, cotChiSo).Style;
-                oChiSo.Font.SetBold().Alignment
-                      .SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Right);
-
-                if (!d.CounterTong.HasValue)
+                // Chỉ có đúng một nhóm thì khỏi chèn dòng tiêu đề cho đỡ rối
+                if (cacNhom.Count > 1)
                 {
-                    oChiSo.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(242, 242, 242));
-                    oChiSo.Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(128, 128, 128));
-                    oChiSo.Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
-                }
-                else if (d.CanLayTrucTiep)
-                {
-                    oChiSo.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(252, 228, 214));
-                    oChiSo.Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(192, 80, 0));
-                }
-                else
-                {
-                    oChiSo.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(226, 240, 217));
-                    oChiSo.Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(0, 97, 0));
+                    ws.Cell(r, 1).Value = $"{tenNhom} ({dsNhom.Count})";
+                    ws.Range(r, 1, r, tieuDe.Length).Merge().Style
+                      .Font.SetBold()
+                      .Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(221, 235, 247))
+                      .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Left);
+                    r++;
                 }
 
-                r++;
+                var stt = 1;
+                foreach (var d in dsNhom)
+                {
+                    ws.Cell(r, 1).Value = stt++;
+                    ws.Cell(r, 2).Value = d.BoPhan;
+                    ws.Cell(r, 3).Value = d.Model;
+                    ws.Cell(r, cotColor).Value = d.Color;
+                    ws.Cell(r, 5).Value = d.Serial;
+                    ws.Cell(r, 6).Value = d.TenHangDoi;
+                    ws.Cell(r, 7).Value = d.DiaChiIp;
+                    ws.Cell(r, 8).Value = d.ViTri;
+                    ws.Cell(r, 9).Value = d.TrangThai;
+
+                    if (d.CounterTong.HasValue) ws.Cell(r, cotChiSo).Value = d.CounterTong.Value;
+                    else ws.Cell(r, cotChiSo).Value = "—";
+                    // Máy không tách được màu để trống hẳn, khác hẳn với máy tách được mà in 0 tờ màu
+                    if (d.CounterInMau.HasValue) ws.Cell(r, cotMau).Value = d.CounterInMau.Value;
+                    if (d.CounterInDenTrang.HasValue) ws.Cell(r, cotDenTrang).Value = d.CounterInDenTrang.Value;
+                    if (d.NgayChiSo.HasValue) ws.Cell(r, 13).Value = d.NgayChiSo.Value.ToString("dd/MM/yyyy");
+                    ws.Cell(r, 14).Value = d.Nguon;
+                    if (d.TrangInHomNay.HasValue) ws.Cell(r, 15).Value = d.TrangInHomNay.Value;
+                    if (d.TrangIn7Ngay.HasValue) ws.Cell(r, 16).Value = d.TrangIn7Ngay.Value;
+                    if (d.TrangIn30Ngay.HasValue) ws.Cell(r, 17).Value = d.TrangIn30Ngay.Value;
+                    if (d.TrangMau30Ngay.HasValue) ws.Cell(r, 18).Value = d.TrangMau30Ngay.Value;
+                    if (d.TrangDenTrang30Ngay.HasValue) ws.Cell(r, 19).Value = d.TrangDenTrang30Ngay.Value;
+                    if (d.Toner.HasValue) ws.Cell(r, 20).Value = d.Toner.Value;
+                    if (d.Drum.HasValue) ws.Cell(r, 21).Value = d.Drum.Value;
+
+                    ws.Cell(r, 22).Value = d.CanLayTrucTiep ? "X" : "";
+                    ws.Cell(r, cotLyDo).Value = d.LyDo;
+
+                    // Tô vàng cả dòng để lúc in ra giấy vẫn thấy ngay máy nào phải đi đọc tay
+                    if (d.CanLayTrucTiep)
+                        ws.Range(r, 1, r, tieuDe.Length).Style.Fill
+                          .SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(255, 242, 204));
+
+                    // Hai ô đánh dấu tô SAU nền cả dòng, nếu không màu vàng của dòng sẽ đè mất
+                    var oColor = ws.Cell(r, cotColor).Style;
+                    oColor.Font.SetBold()
+                          .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+                    if (d.Color == "Màu")
+                    {
+                        oColor.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(255, 230, 246));
+                        oColor.Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(175, 30, 120));
+                    }
+                    else if (d.Color == "Đen trắng")
+                    {
+                        oColor.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(235, 235, 235));
+                        oColor.Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(64, 64, 64));
+                    }
+                    else
+                    {
+                        oColor.Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(150, 150, 150));
+                    }
+
+                    var oChiSo = ws.Cell(r, cotChiSo).Style;
+                    oChiSo.Font.SetBold().Alignment
+                          .SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Right);
+
+                    if (!d.CounterTong.HasValue)
+                    {
+                        oChiSo.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(242, 242, 242));
+                        oChiSo.Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(128, 128, 128));
+                        oChiSo.Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+                    }
+                    else if (d.CanLayTrucTiep)
+                    {
+                        oChiSo.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(252, 228, 214));
+                        oChiSo.Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(192, 80, 0));
+                    }
+                    else
+                    {
+                        oChiSo.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(226, 240, 217));
+                        oChiSo.Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(0, 97, 0));
+                    }
+
+                    r++;
+                }
             }
 
             if (r > 5)
@@ -503,16 +646,21 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var vung = ws.Range(4, 1, r - 1, tieuDe.Length);
                 vung.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
                 vung.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
-                ws.Range(5, 9, r - 1, 16).Style.NumberFormat.SetFormat("#,##0");
-                vung.SetAutoFilter();
+                ws.Range(5, cotChiSo, r - 1, 21).Style.NumberFormat.SetFormat("#,##0");
+                // Có dòng tiêu đề nhóm (ô merge) thì không bật AutoFilter, lọc sẽ giấu mất dòng nhóm
+                if (cacNhom.Count <= 1) vung.SetAutoFilter();
                 ws.SheetView.FreezeRows(4);
             }
 
             ws.Columns(1, tieuDe.Length).AdjustToContents();
-            ws.Column(18).Width = 45;
-            ws.Column(18).Style.Alignment.SetWrapText(true);
+            ws.Column(cotLyDo).Width = 45;
+            ws.Column(cotLyDo).Style.Alignment.SetWrapText(true);
 
-            // Sheet 2: phiếu đi đọc tay — chỉ máy không lấy được số chuẩn qua IP, chừa cột trống để ghi
+            // Sheet 2: phiếu đi đọc tay — chỉ máy không lấy được số chuẩn qua IP, chừa cột trống để ghi.
+            // Máy Tạm dừng / Báo phế không đưa vào đây vì không ai phải đi đọc chỉ số máy đã ngừng dùng;
+            // số liệu của chúng vẫn nằm đủ ở sheet 1.
+            var dsDiDoc = dong.Where(x => x.CanLayTrucTiep && x.TrangThaiGoc == "HoatDong").ToList();
+
             var ws2 = wb.Worksheets.Add("Cần lấy trực tiếp");
 
             var tieuDe2 = new[]
@@ -525,7 +673,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             ws2.Cell(1, 1).Value = "DANH SÁCH MÁY CẦN ĐỌC CHỈ SỐ TRỰC TIẾP TẠI MÁY";
             ws2.Range(1, 1, 1, tieuDe2.Length).Merge().Style.Font.SetBold().Font.SetFontSize(14)
                .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
-            ws2.Cell(2, 1).Value = $"Xuất lúc {DateTime.Now:dd/MM/yyyy HH:mm} — {soCanLayTay} máy";
+            ws2.Cell(2, 1).Value = $"Xuất lúc {DateTime.Now:dd/MM/yyyy HH:mm} — {dsDiDoc.Count} máy đang hoạt động";
             ws2.Range(2, 1, 2, tieuDe2.Length).Merge().Style.Font.SetItalic()
                .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
 
@@ -542,7 +690,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                .Font.SetFontColor(ClosedXML.Excel.XLColor.White);
 
             var r2 = 5;
-            foreach (var d in dong.Where(x => x.CanLayTrucTiep))
+            foreach (var d in dsDiDoc)
             {
                 ws2.Cell(r2, 1).Value = r2 - 4;
                 ws2.Cell(r2, 2).Value = d.BoPhan;
@@ -571,7 +719,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             else
             {
-                ws2.Cell(5, 1).Value = "Tất cả máy trong bộ lọc đều lấy được chỉ số qua IP.";
+                ws2.Cell(5, 1).Value = "Tất cả máy đang hoạt động trong bộ lọc đều lấy được chỉ số qua IP.";
             }
 
             ws2.Columns(1, tieuDe2.Length).AdjustToContents();
@@ -620,6 +768,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 .Select(c => new
                 {
                     c.NgayChot, c.CounterIn, c.CounterCopy, c.CounterScan, c.CounterTong,
+                    c.CounterInMau, c.CounterInDenTrang,
                     c.TonerPhanTram, c.DrumPhanTram, c.VatTuJson, c.Nguon, c.ThoiDiemDoc
                 })
                 .ToListAsync();
@@ -685,6 +834,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     ? (int?)null
                     : ky.CounterTong!.Value - truocKy.CounterTong.Value;
 
+                // Số tờ màu / đen trắng trong kỳ tính y hệt tổng: hiệu hai mốc chốt. Kỳ nào thiếu
+                // một trong hai mốc (máy cũ chưa lưu tách màu) thì để null chứ không suy ra từ tổng.
+                int? ChenhKy(int? nay, int? truoc)
+                {
+                    if (nay is null || truoc is null) return null;
+                    var d = nay.Value - truoc.Value;
+                    return d < 0 ? null : d;
+                }
+
                 chotThang.Add(new
                 {
                     ky = ky.NgayChot.ToString("MM/yyyy"),
@@ -695,6 +853,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     counterIn = ky.CounterIn,
                     counterCopy = ky.CounterCopy,
                     trangInTrongKy = trongKy < 0 ? null : trongKy,
+                    trangMauTrongKy = ChenhKy(ky.CounterInMau, truocKy?.CounterInMau),
+                    trangDenTrangTrongKy = ChenhKy(ky.CounterInDenTrang, truocKy?.CounterInDenTrang),
                     nguon = ky.Nguon
                 });
             }
@@ -734,6 +894,33 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return chenh < 0 ? null : chenh;
             }
 
+            // Số tờ màu / đen trắng trong N ngày. Chỉ tính khi CẢ hai mốc đều có số tách màu —
+            // máy đọc qua CentreWare cũ / PJL không trả về hai chỉ số này nên phải để null,
+            // không được suy ngược từ tổng.
+            var moiNhatMau = lichSu.LastOrDefault(c => c.CounterInMau != null || c.CounterInDenTrang != null);
+
+            int? ChenhMau(int soNgayLui, bool laMau)
+            {
+                // lichSu đã sắp xếp tăng dần theo ngày nên phần tử cuối là mốc mới nhất
+                var dsCo = lichSu.Where(c => (laMau ? c.CounterInMau : c.CounterInDenTrang) != null).ToList();
+                if (dsCo.Count < 2) return null;
+
+                var mocNay = dsCo[^1];
+                var mocTruoc = dsCo.Where(c => c.NgayChot <= homNay.AddDays(-soNgayLui))
+                                   .OrderByDescending(c => c.NgayChot)
+                                   .FirstOrDefault()
+                              ?? dsCo[0];
+
+                if (mocTruoc.NgayChot == mocNay.NgayChot) return null;
+
+                var nay = laMau ? mocNay.CounterInMau : mocNay.CounterInDenTrang;
+                var truoc = laMau ? mocTruoc.CounterInMau : mocTruoc.CounterInDenTrang;
+                if (nay is null || truoc is null) return null;
+
+                var d = nay.Value - truoc.Value;
+                return d < 0 ? null : d;
+            }
+
             return Json(new
             {
                 thanhCong = true,
@@ -759,6 +946,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     trangInHomNay = TrangInHomNay(),
                     trangIn7Ngay = ChenhTuMoc(7),
                     trangIn30Ngay = ChenhTuMoc(30),
+                    // Đồng hồ tách màu mới nhất + số tờ màu/đen trắng trong 30 ngày.
+                    // Máy không tách được màu thì cả bốn giá trị này là null, giao diện tự ẩn.
+                    counterInMau = moiNhatMau?.CounterInMau,
+                    counterInDenTrang = moiNhatMau?.CounterInDenTrang,
+                    trangMau30Ngay = ChenhMau(30, true),
+                    trangDenTrang30Ngay = ChenhMau(30, false),
                     trungBinhMoiNgay = tongNgayKhoang > 0 ? Math.Round((double)tongTrangKhoang / tongNgayKhoang, 1) : (double?)null,
                     soLanDoc = lichSu.Count,
                     soNgayTheoDoi = soNgay
@@ -768,6 +961,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     ngay = c.NgayChot.ToString("dd/MM/yyyy"),
                     c.CounterIn, c.CounterCopy, c.CounterScan, c.CounterTong,
+                    c.CounterInMau, c.CounterInDenTrang,
                     c.TonerPhanTram, c.DrumPhanTram, c.Nguon,
                     vatTu = PhanTichVatTu(c.VatTuJson),
                     thoiDiem = c.ThoiDiemDoc.ToString("dd/MM/yyyy HH:mm")

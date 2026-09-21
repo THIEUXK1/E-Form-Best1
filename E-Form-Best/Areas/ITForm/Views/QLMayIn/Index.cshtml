@@ -1,4 +1,4 @@
-@{
+﻿@{
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "Quản lý máy in";
 
@@ -42,11 +42,12 @@
             }
         </select>
 
+        @* Mặc định hiện TẤT CẢ trạng thái để máy Tạm dừng / Báo phế không bị khuất khi vừa mở trang *@
         <select class="form-select form-select-sm" id="filterTrangThai" style="max-width:150px;">
+            <option value="" selected>Tất cả trạng thái</option>
             <option value="HoatDong">Đang hoạt động</option>
             <option value="TamDung">Tạm dừng</option>
             <option value="BaoPhe">Báo phế</option>
-            <option value="">Tất cả trạng thái</option>
         </select>
 
         @* Hai nút đồng bộ hàng loạt: máy chủ đọc song song 8 máy một lượt, kết quả hiện ở #kqDongBo *@
@@ -229,5 +230,5 @@
 
 @section Scripts {
     <script src="/js/fixed-page-layout.js?v=5" defer></script>
-    <script src="/js/mayin-quanly.js?v=20260921a"></script>
+    <script src="/js/mayin-quanly.js?v=20260921b"></script>
 }

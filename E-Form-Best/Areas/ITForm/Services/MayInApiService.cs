@@ -43,6 +43,12 @@ namespace E_Form_Best.Areas.ITForm.Services
             public int? CounterCopy { get; set; }
             public int? CounterScan { get; set; }
             public int? CounterTong { get; set; }
+
+            /// <summary>Số tờ in màu tích luỹ; chỉ nhóm máy có /home/api/billing-counter mới trả về.</summary>
+            public int? CounterInMau { get; set; }
+
+            /// <summary>Số tờ in đen trắng tích luỹ; null nghĩa là máy không tách được màu.</summary>
+            public int? CounterInDenTrang { get; set; }
             /// <summary>Mực thấp nhất trong các TONER_* — máy đen trắng thì chính là TONER_K.</summary>
             public int? TonerPhanTram { get; set; }
 
@@ -111,13 +117,16 @@ namespace E_Form_Best.Areas.ITForm.Services
                         if (!muc.TryGetProperty("Count", out var c) || c.ValueKind != JsonValueKind.Number) continue;
                         var soLuong = c.GetInt32();
 
-                        // Chỉ lấy dòng TOTAL_IMPRESSION; các dòng COLOR/BW là thành phần con của nó,
-                        // cộng thêm là đếm trùng.
+                        // CounterTong chỉ cộng từ dòng TOTAL_IMPRESSION; hai dòng COLOR/BW là thành
+                        // phần con của PRINT_TOTAL_IMPRESSION nên lưu riêng để tách màu, tuyệt đối
+                        // không cộng vào tổng (sẽ đếm trùng).
                         switch (ten)
                         {
                             case "PRINT_TOTAL_IMPRESSION": ketQua.CounterIn = soLuong; break;
                             case "COPY_TOTAL_IMPRESSION": ketQua.CounterCopy = soLuong; break;
                             case "SCAN_TOTAL_IMPRESSION": ketQua.CounterScan = soLuong; break;
+                            case "PRINT_TOTAL_COLOR_IMPRESSION": ketQua.CounterInMau = soLuong; break;
+                            case "PRINT_TOTAL_BW_IMPRESSION": ketQua.CounterInDenTrang = soLuong; break;
                         }
                     }
                 }
@@ -213,6 +222,10 @@ namespace E_Form_Best.Areas.ITForm.Services
                 chiSo.CounterCopy = ketQua.CounterCopy;
                 chiSo.CounterScan = ketQua.CounterScan;
                 chiSo.CounterTong = ketQua.CounterTong;
+                // Máy không tách được màu trả null — không ghi đè số cũ bằng null để khỏi mất
+                // dữ liệu đã chốt được trong ngày bởi một lần đọc trước đó
+                if (ketQua.CounterInMau.HasValue) chiSo.CounterInMau = ketQua.CounterInMau;
+                if (ketQua.CounterInDenTrang.HasValue) chiSo.CounterInDenTrang = ketQua.CounterInDenTrang;
                 chiSo.TonerPhanTram = ketQua.TonerPhanTram;
                 chiSo.DrumPhanTram = ketQua.DrumPhanTram;
                 chiSo.VatTuJson = GoiVatTuJson(ketQua.VatTu);
