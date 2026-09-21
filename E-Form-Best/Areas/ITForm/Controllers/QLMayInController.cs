@@ -269,6 +269,326 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
+        #region Xuất Excel báo cáo trang in
+
+        /// <summary>
+        /// Xuất báo cáo chỉ số trang in hiện tại của các máy đang xem (dùng đúng bộ lọc trên màn hình).
+        /// Máy nào không có chỉ số chuẩn lấy qua IP — cắm USB, chưa bật đọc tự động, số liệu cũ,
+        /// nhập tay — thì đánh dấu "Cần lấy trực tiếp" kèm lý do, và gom sang sheet thứ hai làm
+        /// phiếu đi đọc tay tại máy.
+        /// Đây là hành động tải file xuống nên được phép điều hướng thật, không trả JSON.
+        /// </summary>
+        [HttpGet("/QLMayIn/XuatExcel")]
+        public async Task<IActionResult> XuatExcel(string? tuKhoa, string? boPhan, string? model, string? trangThai)
+        {
+            var chan = KiemQuyen();
+            if (chan != null) return chan;
+
+            var truyVan = _context.MayIns.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(tuKhoa))
+            {
+                var tk = tuKhoa.Trim();
+                truyVan = truyVan.Where(m => m.Serial.Contains(tk)
+                                          || m.Model.Contains(tk)
+                                          || (m.ViTri != null && m.ViTri.Contains(tk))
+                                          || (m.TenHangDoi != null && m.TenHangDoi.Contains(tk))
+                                          || (m.DiaChiIp != null && m.DiaChiIp.Contains(tk)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(boPhan)) truyVan = truyVan.Where(m => m.BoPhan == boPhan);
+            if (!string.IsNullOrWhiteSpace(model)) truyVan = truyVan.Where(m => m.Model == model);
+            if (!string.IsNullOrWhiteSpace(trangThai)) truyVan = truyVan.Where(m => m.TrangThai == trangThai);
+
+            var dsMay = await truyVan
+                .OrderBy(m => m.BoPhan).ThenBy(m => m.ViTri).ThenBy(m => m.Model).ThenBy(m => m.Serial)
+                .Select(m => new
+                {
+                    m.IdMayIn, m.BoPhan, m.Model, m.Serial, m.DiaChiIp, m.TenHangDoi, m.ViTri,
+                    m.TrangThai, m.TheoDoiTuDong, m.LanDocCuoi, m.KetQuaDocCuoi, m.GhiChu
+                })
+                .ToListAsync();
+
+            var dsId = dsMay.Select(m => m.IdMayIn).ToList();
+            var homNay = DateOnly.FromDateTime(DateTime.Now);
+            var tuNgay = homNay.AddDays(-60);
+
+            // Lấy một lượt chỉ số 60 ngày gần nhất của cả danh sách để tính chênh lệch 1/7/30 ngày
+            var lichSu = await _context.MayInChiSos.AsNoTracking()
+                .Where(c => dsId.Contains(c.IdMayIn) && c.NgayChot >= tuNgay && c.CounterTong != null)
+                .Select(c => new { c.IdMayIn, c.NgayChot, c.CounterTong, c.TonerPhanTram, c.DrumPhanTram, c.Nguon })
+                .ToListAsync();
+
+            var theoMay = lichSu.GroupBy(c => c.IdMayIn)
+                                .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.NgayChot).ToList());
+
+            // Máy đã lâu không đọc được (bản ghi cuối cũ hơn 60 ngày) vẫn phải hiện số cũ để đối chiếu,
+            // nên lấy bù bản ghi cuối cùng của riêng nhóm này.
+            var idThieu = dsId.Where(id => !theoMay.ContainsKey(id)).ToList();
+            if (idThieu.Count > 0)
+            {
+                var ngayMax = await _context.MayInChiSos.AsNoTracking()
+                    .Where(c => idThieu.Contains(c.IdMayIn) && c.CounterTong != null)
+                    .GroupBy(c => c.IdMayIn)
+                    .Select(g => g.Max(x => x.NgayChot))
+                    .ToListAsync();
+
+                var dongCu = await _context.MayInChiSos.AsNoTracking()
+                    .Where(c => idThieu.Contains(c.IdMayIn) && ngayMax.Contains(c.NgayChot) && c.CounterTong != null)
+                    .Select(c => new { c.IdMayIn, c.NgayChot, c.CounterTong, c.TonerPhanTram, c.DrumPhanTram, c.Nguon })
+                    .ToListAsync();
+
+                foreach (var nhom in dongCu.GroupBy(c => c.IdMayIn))
+                    theoMay[nhom.Key] = nhom.OrderByDescending(x => x.NgayChot).ToList();
+            }
+
+            // Chỉ số đọc trong vòng ngần này ngày vẫn coi là "hiện tại"; job nền chốt mỗi ngày nên
+            // mặc định cho lệch 1 ngày (buổi sáng có thể mới chỉ có số của hôm qua).
+            var soNgayConTinCay = _configuration.GetValue<int?>("MayIn:SoNgayChiSoConTinCay") ?? 1;
+            if (soNgayConTinCay < 0) soNgayConTinCay = 0;
+
+            var dong = dsMay.Select(m =>
+            {
+                theoMay.TryGetValue(m.IdMayIn, out var ls);
+                var moiNhat = ls?.FirstOrDefault();
+
+                int? Chenh(int soNgayLui)
+                {
+                    if (ls == null || moiNhat?.CounterTong == null) return null;
+                    var moc = ls.FirstOrDefault(x => x.NgayChot <= homNay.AddDays(-soNgayLui)) ?? ls.LastOrDefault();
+                    if (moc?.CounterTong == null || moc.NgayChot == moiNhat.NgayChot) return null;
+                    var d = moiNhat.CounterTong.Value - moc.CounterTong.Value;
+                    return d < 0 ? null : d; // counter tụt = thay main board / reset, không quy ra số trang
+                }
+
+                // Gom mọi lý do khiến con số không đáng tin, để người đi đọc tay biết vì sao phải đi
+                var lyDo = new List<string>();
+                if (string.IsNullOrWhiteSpace(m.DiaChiIp)) lyDo.Add("Không có IP (cắm USB)");
+                else if (!m.TheoDoiTuDong) lyDo.Add("Chưa bật đọc tự động");
+
+                if (moiNhat is null)
+                {
+                    lyDo.Add("Chưa có chỉ số nào");
+                }
+                else
+                {
+                    var soNgayCu = homNay.DayNumber - moiNhat.NgayChot.DayNumber;
+                    if (soNgayCu > soNgayConTinCay)
+                        lyDo.Add($"Chỉ số cũ {soNgayCu} ngày (máy tắt hoặc không phản hồi)");
+                    if (moiNhat.Nguon != "API")
+                        lyDo.Add($"Nguồn {moiNhat.Nguon}, không đọc qua IP");
+                }
+
+                if (lyDo.Count > 0 && !string.IsNullOrWhiteSpace(m.KetQuaDocCuoi)
+                    && !m.KetQuaDocCuoi.StartsWith("OK", StringComparison.OrdinalIgnoreCase))
+                    lyDo.Add($"Lần đọc cuối: {m.KetQuaDocCuoi}");
+
+                return new
+                {
+                    m.BoPhan, m.Model, m.Serial, m.DiaChiIp, m.TenHangDoi, m.ViTri,
+                    TrangThai = m.TrangThai switch
+                    {
+                        "TamDung" => "Tạm dừng",
+                        "BaoPhe" => "Báo phế",
+                        _ => "Hoạt động"
+                    },
+                    CounterTong = moiNhat?.CounterTong,
+                    NgayChiSo = moiNhat?.NgayChot,
+                    Nguon = moiNhat?.Nguon,
+                    TrangInHomNay = Chenh(1),
+                    TrangIn7Ngay = Chenh(7),
+                    TrangIn30Ngay = Chenh(30),
+                    Toner = moiNhat?.TonerPhanTram,
+                    Drum = moiNhat?.DrumPhanTram,
+                    CanLayTrucTiep = lyDo.Count > 0,
+                    LyDo = string.Join("; ", lyDo)
+                };
+            })
+            // Máy lấy được chỉ số qua IP xếp trước; máy phải đọc tay dồn xuống cuối bảng
+            .OrderBy(x => x.CanLayTrucTiep)
+            .ThenBy(x => x.BoPhan).ThenBy(x => x.ViTri).ThenBy(x => x.Model).ThenBy(x => x.Serial)
+            .ToList();
+
+            var soCanLayTay = dong.Count(x => x.CanLayTrucTiep);
+
+            using var wb = new ClosedXML.Excel.XLWorkbook();
+            var ws = wb.Worksheets.Add("Trang in");
+
+            var tieuDe = new[]
+            {
+                "STT", "Bộ phận", "Model", "Serial", "Tên máy in", "IP", "Vị trí", "Trạng thái",
+                "Chỉ số hiện tại", "Ngày đọc", "Nguồn", "Hôm nay", "7 ngày", "30 ngày",
+                "Mực (%)", "Trống (%)", "Cần lấy trực tiếp", "Lý do / ghi chú"
+            };
+
+            ws.Cell(1, 1).Value = "BÁO CÁO CHỈ SỐ TRANG IN HIỆN TẠI";
+            ws.Range(1, 1, 1, tieuDe.Length).Merge().Style.Font.SetBold().Font.SetFontSize(14)
+              .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            ws.Cell(2, 1).Value = $"Xuất lúc {DateTime.Now:dd/MM/yyyy HH:mm} — {dong.Count} máy, "
+                               + $"{soCanLayTay} máy cần lấy chỉ số trực tiếp tại máy. "
+                               + "Cột \"Chỉ số hiện tại\": xanh = đọc được qua IP, "
+                               + "cam = số cũ / nhập tay (chỉ tham khảo), xám = chưa có chỉ số.";
+            ws.Range(2, 1, 2, tieuDe.Length).Merge().Style.Font.SetItalic()
+              .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            for (var i = 0; i < tieuDe.Length; i++) ws.Cell(4, i + 1).Value = tieuDe[i];
+            ws.Range(4, 1, 4, tieuDe.Length).Style.Font.SetBold()
+              .Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray)
+              .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            // "Chỉ số hiện tại" là con số người ta mở file ra để xem, nên đánh dấu riêng cả tiêu đề
+            // lẫn từng ô: xanh = số đọc được qua IP, cam = số cũ / nhập tay chỉ để tham khảo.
+            const int cotChiSo = 9;
+            ws.Cell(4, cotChiSo).Style.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(31, 78, 121))
+              .Font.SetFontColor(ClosedXML.Excel.XLColor.White);
+
+            var r = 5;
+            foreach (var d in dong)
+            {
+                ws.Cell(r, 1).Value = r - 4;
+                ws.Cell(r, 2).Value = d.BoPhan;
+                ws.Cell(r, 3).Value = d.Model;
+                ws.Cell(r, 4).Value = d.Serial;
+                ws.Cell(r, 5).Value = d.TenHangDoi;
+                ws.Cell(r, 6).Value = d.DiaChiIp;
+                ws.Cell(r, 7).Value = d.ViTri;
+                ws.Cell(r, 8).Value = d.TrangThai;
+
+                if (d.CounterTong.HasValue) ws.Cell(r, cotChiSo).Value = d.CounterTong.Value;
+                else ws.Cell(r, cotChiSo).Value = "—";
+                if (d.NgayChiSo.HasValue) ws.Cell(r, 10).Value = d.NgayChiSo.Value.ToString("dd/MM/yyyy");
+                ws.Cell(r, 11).Value = d.Nguon;
+                if (d.TrangInHomNay.HasValue) ws.Cell(r, 12).Value = d.TrangInHomNay.Value;
+                if (d.TrangIn7Ngay.HasValue) ws.Cell(r, 13).Value = d.TrangIn7Ngay.Value;
+                if (d.TrangIn30Ngay.HasValue) ws.Cell(r, 14).Value = d.TrangIn30Ngay.Value;
+                if (d.Toner.HasValue) ws.Cell(r, 15).Value = d.Toner.Value;
+                if (d.Drum.HasValue) ws.Cell(r, 16).Value = d.Drum.Value;
+
+                ws.Cell(r, 17).Value = d.CanLayTrucTiep ? "X" : "";
+                ws.Cell(r, 18).Value = d.LyDo;
+
+                // Tô vàng cả dòng để lúc in ra giấy vẫn thấy ngay máy nào phải đi đọc tay
+                if (d.CanLayTrucTiep)
+                    ws.Range(r, 1, r, tieuDe.Length).Style.Fill
+                      .SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(255, 242, 204));
+
+                // Tô ô chỉ số SAU nền cả dòng, nếu không màu vàng của dòng sẽ đè mất
+                var oChiSo = ws.Cell(r, cotChiSo).Style;
+                oChiSo.Font.SetBold().Alignment
+                      .SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Right);
+
+                if (!d.CounterTong.HasValue)
+                {
+                    oChiSo.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(242, 242, 242));
+                    oChiSo.Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(128, 128, 128));
+                    oChiSo.Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+                }
+                else if (d.CanLayTrucTiep)
+                {
+                    oChiSo.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(252, 228, 214));
+                    oChiSo.Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(192, 80, 0));
+                }
+                else
+                {
+                    oChiSo.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(226, 240, 217));
+                    oChiSo.Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(0, 97, 0));
+                }
+
+                r++;
+            }
+
+            if (r > 5)
+            {
+                var vung = ws.Range(4, 1, r - 1, tieuDe.Length);
+                vung.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                vung.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                ws.Range(5, 9, r - 1, 16).Style.NumberFormat.SetFormat("#,##0");
+                vung.SetAutoFilter();
+                ws.SheetView.FreezeRows(4);
+            }
+
+            ws.Columns(1, tieuDe.Length).AdjustToContents();
+            ws.Column(18).Width = 45;
+            ws.Column(18).Style.Alignment.SetWrapText(true);
+
+            // Sheet 2: phiếu đi đọc tay — chỉ máy không lấy được số chuẩn qua IP, chừa cột trống để ghi
+            var ws2 = wb.Worksheets.Add("Cần lấy trực tiếp");
+
+            var tieuDe2 = new[]
+            {
+                "STT", "Bộ phận", "Model", "Serial", "Vị trí", "IP",
+                "Chỉ số hệ thống đang có", "Ngày của chỉ số đó", "Lý do phải đọc tay",
+                "Chỉ số đọc tay (điền)"
+            };
+
+            ws2.Cell(1, 1).Value = "DANH SÁCH MÁY CẦN ĐỌC CHỈ SỐ TRỰC TIẾP TẠI MÁY";
+            ws2.Range(1, 1, 1, tieuDe2.Length).Merge().Style.Font.SetBold().Font.SetFontSize(14)
+               .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+            ws2.Cell(2, 1).Value = $"Xuất lúc {DateTime.Now:dd/MM/yyyy HH:mm} — {soCanLayTay} máy";
+            ws2.Range(2, 1, 2, tieuDe2.Length).Merge().Style.Font.SetItalic()
+               .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            for (var i = 0; i < tieuDe2.Length; i++) ws2.Cell(4, i + 1).Value = tieuDe2[i];
+            ws2.Range(4, 1, 4, tieuDe2.Length).Style.Font.SetBold()
+               .Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray)
+               .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            // Cùng bộ màu với sheet 1: cột chỉ số hệ thống đang có (cam = chỉ để tham khảo),
+            // cột chỉ số đọc tay để trống cho người đi đọc điền vào
+            ws2.Cell(4, 7).Style.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(192, 80, 0))
+               .Font.SetFontColor(ClosedXML.Excel.XLColor.White);
+            ws2.Cell(4, 10).Style.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(31, 78, 121))
+               .Font.SetFontColor(ClosedXML.Excel.XLColor.White);
+
+            var r2 = 5;
+            foreach (var d in dong.Where(x => x.CanLayTrucTiep))
+            {
+                ws2.Cell(r2, 1).Value = r2 - 4;
+                ws2.Cell(r2, 2).Value = d.BoPhan;
+                ws2.Cell(r2, 3).Value = d.Model;
+                ws2.Cell(r2, 4).Value = d.Serial;
+                ws2.Cell(r2, 5).Value = d.ViTri;
+                ws2.Cell(r2, 6).Value = string.IsNullOrWhiteSpace(d.DiaChiIp) ? "Cắm USB" : d.DiaChiIp;
+                if (d.CounterTong.HasValue) ws2.Cell(r2, 7).Value = d.CounterTong.Value;
+                if (d.NgayChiSo.HasValue) ws2.Cell(r2, 8).Value = d.NgayChiSo.Value.ToString("dd/MM/yyyy");
+                ws2.Cell(r2, 9).Value = d.LyDo;
+                r2++;
+            }
+
+            if (r2 > 5)
+            {
+                var vung2 = ws2.Range(4, 1, r2 - 1, tieuDe2.Length);
+                vung2.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                vung2.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                ws2.Range(5, 7, r2 - 1, 7).Style.NumberFormat.SetFormat("#,##0");
+                ws2.Range(5, 7, r2 - 1, 7).Style.Font.SetBold()
+                   .Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(192, 80, 0))
+                   .Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(252, 228, 214));
+                ws2.Range(5, 10, r2 - 1, 10).Style.Fill
+                   .SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(221, 235, 247));
+                ws2.SheetView.FreezeRows(4);
+            }
+            else
+            {
+                ws2.Cell(5, 1).Value = "Tất cả máy trong bộ lọc đều lấy được chỉ số qua IP.";
+            }
+
+            ws2.Columns(1, tieuDe2.Length).AdjustToContents();
+            ws2.Column(9).Width = 45;
+            ws2.Column(9).Style.Alignment.SetWrapText(true);
+            ws2.Column(10).Width = 22;
+
+            using var luong = new MemoryStream();
+            wb.SaveAs(luong);
+
+            return File(luong.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"BaoCaoTrangIn_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
+        }
+
+        #endregion
+
         #region API chi tiết
 
         [HttpGet("/QLMayIn/ChiTiet/{id:int}")]

@@ -414,5 +414,31 @@
             dongBoTatCa($(this), '/QLMayIn/NapLichSuTatCa',
                 'Đang nạp nhật ký lỗi...', '<i class="fa fa-clock-rotate-left me-1"></i> Nạp lịch sử tất cả');
         });
+
+        // Xuất báo cáo theo đúng bộ lọc đang chọn. Tải file là ngoại lệ được phép điều hướng,
+        // nhưng vẫn mở ở tab ẩn để trang danh sách không bị rời đi.
+        $('#btnXuatExcel').on('click', function () {
+            var thamSo = $.param({
+                tuKhoa: $('#filterTuKhoa').val() || '',
+                boPhan: $('#filterBoPhan').val() || '',
+                model: $('#filterModel').val() || '',
+                trangThai: $('#filterTrangThai').val() || ''
+            });
+
+            var $nut = $(this);
+            var chuCu = $nut.html();
+            $nut.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Đang xuất...');
+
+            var khung = document.createElement('iframe');
+            khung.style.display = 'none';
+            khung.src = '/QLMayIn/XuatExcel?' + thamSo;
+            document.body.appendChild(khung);
+
+            // Không có sự kiện nào báo "đã tải xong" cho iframe tải file, nên mở khoá nút theo thời gian
+            setTimeout(function () {
+                $nut.prop('disabled', false).html(chuCu);
+                if (khung.parentNode) khung.parentNode.removeChild(khung);
+            }, 4000);
+        });
     });
 })();
