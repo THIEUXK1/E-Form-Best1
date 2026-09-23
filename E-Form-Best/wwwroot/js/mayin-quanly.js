@@ -418,20 +418,19 @@
         // Xuất báo cáo theo bộ lọc đang chọn, TRỪ trạng thái: file xuất luôn có đủ cả máy Tạm dừng
         // và Báo phế (máy chủ tự gom thành nhóm riêng). Tải file là ngoại lệ được phép điều hướng,
         // nhưng vẫn mở ở tab ẩn để trang danh sách không bị rời đi.
-        $('#btnXuatExcel').on('click', function () {
-            var thamSo = $.param({
+        function taiFileXuat($nut, duongDan, themThamSo) {
+            var thamSo = $.extend({
                 tuKhoa: $('#filterTuKhoa').val() || '',
                 boPhan: $('#filterBoPhan').val() || '',
                 model: $('#filterModel').val() || ''
-            });
+            }, themThamSo || {});
 
-            var $nut = $(this);
             var chuCu = $nut.html();
             $nut.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Đang xuất...');
 
             var khung = document.createElement('iframe');
             khung.style.display = 'none';
-            khung.src = '/QLMayIn/XuatExcel?' + thamSo;
+            khung.src = duongDan + '?' + $.param(thamSo);
             document.body.appendChild(khung);
 
             // Không có sự kiện nào báo "đã tải xong" cho iframe tải file, nên mở khoá nút theo thời gian
@@ -439,6 +438,17 @@
                 $nut.prop('disabled', false).html(chuCu);
                 if (khung.parentNode) khung.parentNode.removeChild(khung);
             }, 4000);
+        }
+
+        $('#btnXuatExcel').on('click', function () {
+            taiFileXuat($(this), '/QLMayIn/XuatExcel');
+        });
+
+        // Bảng theo tháng: mỗi tháng hai cột đen trắng / màu, xuất trọn năm đang chọn
+        $('#btnXuatTheoThang').on('click', function () {
+            taiFileXuat($(this), '/QLMayIn/XuatExcelTheoThang', {
+                nam: $('#filterNamXuat').val() || ''
+            });
         });
     });
 })();

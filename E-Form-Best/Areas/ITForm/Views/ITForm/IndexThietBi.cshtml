@@ -1246,6 +1246,7 @@
     <script src="/js/kiemke-loc-vitri-dialy.js?v=2"></script>
     <script src="/js/kiemke-loc-can-cai-office.js?v=1"></script>
     <script src="/js/kiemke-form-vitri-office.js?v=1"></script>
+    <script src="/js/kiemke-goi-y-thiet-bi.js?v=1"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
@@ -1905,7 +1906,7 @@
         renderThongKe();
         renderUIThietBi();
         renderUIDaXoa();
-        capNhatGoiYTenViTri();
+        GoiYThietBiKiemKe.capNhat(allThietBiCache);
         } else {
         $('#tbodyThietBi').html(`<tr><td colspan="7" class="text-center text-danger py-4">Lỗi tải dữ liệu từ Server: ${res.message}</td></tr>`);
         }
@@ -2111,21 +2112,6 @@
         $('#ketQuaImportSwitchExcel').html('<div class="alert alert-danger mb-0">Lỗi kết nối đến Server khi tải file lên.</div>').show();
         }
         });
-        }
-
-        function capNhatGoiYTenViTri() {
-        if (!allThietBiCache || allThietBiCache.length === 0) return;
-        let uniqueNames = [];
-        allThietBiCache.forEach(item => {
-        if (item.tenViTri && item.tenViTri.trim() !== "") {
-        let nameUpper = item.tenViTri.trim().toUpperCase();
-        if (!uniqueNames.includes(nameUpper)) { uniqueNames.push(nameUpper); }
-        }
-        });
-        uniqueNames.sort();
-        let htmlOptions = '';
-        uniqueNames.forEach(name => { htmlOptions += `<option value="${name}"></option>`; });
-        $('#suggestTenViTri').html(htmlOptions);
         }
 
         function renderFilterTrangThai() {

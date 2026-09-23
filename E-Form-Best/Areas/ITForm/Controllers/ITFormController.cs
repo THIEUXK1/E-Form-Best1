@@ -7084,7 +7084,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // Các máy nằm trong bảng KK_ThietBiChan bị coi như "không tồn tại" với hệ thống kiểm kê:
         // không hiện ở trang Thiết bị, Danh sách tất cả máy tính, Thống kê, Tài sản bộ phận, biên bản...
         // và cũng không được đồng bộ/import thêm mới trở lại.
-        // Đối chiếu ưu tiên theo Serial; Serial rỗng hoặc thuộc nhóm rác (SeriRacKhongDoiChieu) thì đối chiếu theo Tên máy.
+        // Bản ghi chặn có ĐỦ cả Serial lẫn Tên máy thì phải khớp CẢ HAI mới bị chặn — tránh việc các máy
+        // trùng tên (ví dụ nhiều máy cùng tên DESKTOP-...) bị chặn lây khi chỉ định chặn đúng một máy.
+        // Bản ghi thiếu một vế thì đối chiếu theo vế còn lại. Serial rỗng hoặc thuộc nhóm rác
+        // (SeriRacKhongDoiChieu) được coi như không có Serial.
         private const string CacheKeyThietBiChan = "KkThietBiChan_All";
 
         private static string KhoaChan(string? s) => (s ?? string.Empty).Trim().ToLowerInvariant();
@@ -7099,20 +7102,36 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // Tập khóa dùng để lọc nhanh trong bộ nhớ (gọi 1 lần cho mỗi request danh sách)
-        private (HashSet<string> Seri, HashSet<string> TenMay) TapKhoaChan()
+        // - Cap   : bản ghi có cả Serial lẫn Tên máy → khóa ghép "seri|tenmay", phải khớp cả hai
+        // - Seri  : bản ghi chỉ có Serial  → đối chiếu theo Serial
+        // - TenMay: bản ghi chỉ có Tên máy → đối chiếu theo Tên máy
+        private (HashSet<string> Cap, HashSet<string> Seri, HashSet<string> TenMay) TapKhoaChan()
         {
             var ds = LayDanhSachChan();
-            var seri = new HashSet<string>(ds.Select(x => KhoaChan(x.Seri))
-                .Where(s => s.Length > 0 && !SeriRacKhongDoiChieu.Contains(s)));
-            var ten = new HashSet<string>(ds.Select(x => KhoaChan(x.TenMay)).Where(s => s.Length > 0));
-            return (seri, ten);
+            var cap = new HashSet<string>();
+            var seri = new HashSet<string>();
+            var ten = new HashSet<string>();
+
+            foreach (var x in ds)
+            {
+                var s = KhoaChan(x.Seri);
+                if (SeriRacKhongDoiChieu.Contains(s)) s = string.Empty;
+                var t = KhoaChan(x.TenMay);
+
+                if (s.Length > 0 && t.Length > 0) cap.Add(s + "|" + t);
+                else if (s.Length > 0) seri.Add(s);
+                else if (t.Length > 0) ten.Add(t);
+            }
+            return (cap, seri, ten);
         }
 
-        private static bool BiChan((HashSet<string> Seri, HashSet<string> TenMay) tap, string? seri, string? tenMay)
+        private static bool BiChan((HashSet<string> Cap, HashSet<string> Seri, HashSet<string> TenMay) tap, string? seri, string? tenMay)
         {
             var s = KhoaChan(seri);
             var t = KhoaChan(tenMay);
-            return (s.Length > 0 && tap.Seri.Contains(s)) || (t.Length > 0 && tap.TenMay.Contains(t));
+            if (s.Length > 0 && t.Length > 0 && tap.Cap.Contains(s + "|" + t)) return true;
+            if (s.Length > 0 && tap.Seri.Contains(s)) return true;
+            return t.Length > 0 && tap.TenMay.Contains(t);
         }
 
         private bool BiChan(string? seri, string? tenMay) => BiChan(TapKhoaChan(), seri, tenMay);

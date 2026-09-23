@@ -75,6 +75,28 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         /// <summary>
+        /// Danh sách máy in màu IT khai tay trong appsettings (nguồn: file Print out information
+        /// của bộ phận IT). Khoá "BoPhan|Serial", bỏ dấu cách và không phân biệt hoa thường;
+        /// dòng chỉ ghi serial thì khớp mọi bộ phận.
+        /// </summary>
+        private HashSet<string> LayKhoaMayMau()
+        {
+            var ds = _configuration.GetSection("MayIn:SerialMayMau").Get<string[]>() ?? Array.Empty<string>();
+            return ds.Where(x => !string.IsNullOrWhiteSpace(x))
+                     .Select(x => x.Replace(" ", "").ToUpperInvariant())
+                     .ToHashSet();
+        }
+
+        /// <summary>Máy có nằm trong danh sách máy màu khai tay không.</summary>
+        private static bool TrongDanhSachMayMau(HashSet<string> khoa, string? boPhan, string? serial)
+        {
+            if (string.IsNullOrWhiteSpace(serial)) return false;
+            var s = serial.Replace(" ", "").ToUpperInvariant();
+            return khoa.Contains(s)
+                || khoa.Contains(((boPhan ?? "").Replace(" ", "") + "|" + s).ToUpperInvariant());
+        }
+
+        /// <summary>
         /// Máy in màu hay đen trắng. Căn cứ chắc chắn nhất là vật tư đọc được từ chính máy: có
         /// TONER/DRUM màu (_C, _M, _Y) là máy màu, chỉ có _K là máy đen trắng. Máy chưa đọc được
         /// vật tư thì dò từ khoá trong model / ghi chú; không đủ căn cứ thì trả "Chưa rõ" chứ
@@ -377,6 +399,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var soNgayConTinCay = _configuration.GetValue<int?>("MayIn:SoNgayChiSoConTinCay") ?? 1;
             if (soNgayConTinCay < 0) soNgayConTinCay = 0;
 
+            var khoaMayMau = LayKhoaMayMau();
+
             var dong = dsMay.Select(m =>
             {
                 theoMay.TryGetValue(m.IdMayIn, out var ls);
@@ -444,9 +468,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 // Máy nào báo được đồng hồ in màu thì chắc chắn là máy màu, kể cả khi số đang là 0
                 // (máy có khả năng in màu nhưng chưa ai in) — căn cứ này chắc hơn cả vật tư.
+                // Máy chưa đọc được tách màu thì tra danh sách IT khai tay trước khi đoán theo vật tư.
                 var color = mocTachMau?.CounterInMau != null
                     ? "Màu"
-                    : PhanLoaiMau(vatTu, m.Model, m.GhiChu);
+                    : TrongDanhSachMayMau(khoaMayMau, m.BoPhan, m.Serial)
+                        ? "Màu"
+                        : PhanLoaiMau(vatTu, m.Model, m.GhiChu);
 
                 return new
                 {
@@ -475,8 +502,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     LyDo = string.Join("; ", lyDo)
                 };
             })
-            // Máy lấy được chỉ số qua IP xếp trước; máy phải đọc tay dồn xuống cuối từng nhóm
-            .OrderBy(x => x.CanLayTrucTiep)
+            // Máy màu lên đầu (số ít, hay phải tra), rồi tới máy lấy được chỉ số qua IP;
+            // máy phải đọc tay dồn xuống cuối từng nhóm
+            .OrderByDescending(x => x.Color == "Màu")
+            .ThenBy(x => x.CanLayTrucTiep)
             .ThenBy(x => x.BoPhan).ThenBy(x => x.ViTri).ThenBy(x => x.Model).ThenBy(x => x.Serial)
             .ToList();
 
@@ -527,7 +556,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                + "Cột \"Chỉ số hiện tại\": xanh = đọc được qua IP, "
                                + "cam = số cũ / nhập tay (chỉ tham khảo), xám = chưa có chỉ số. "
                                + $"Chỉ {soTachDuoc}/{dong.Count} máy báo được đồng hồ tách màu; "
-                               + "hai cột \"… 30 ngày\" chỉ có số khi máy đã có từ 2 lần chốt trở lên.";
+                               + "hai cột \"… 30 ngày\" chỉ có số khi máy đã có từ 2 lần chốt trở lên. "
+                               + "Máy màu chưa đọc được đồng hồ tách màu (IT khai trong file Print out "
+                               + "information) ghi \"?\" ở cột chỉ số in màu; máy màu xếp lên đầu mỗi nhóm.";
             ws.Range(2, 1, 2, tieuDe.Length).Merge().Style.Font.SetItalic()
               .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
 
@@ -577,7 +608,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     if (d.CounterTong.HasValue) ws.Cell(r, cotChiSo).Value = d.CounterTong.Value;
                     else ws.Cell(r, cotChiSo).Value = "—";
                     // Máy không tách được màu để trống hẳn, khác hẳn với máy tách được mà in 0 tờ màu
+                    // Riêng máy ĐÃ BIẾT là máy màu (IT khai trong file) mà chưa đọc được đồng hồ tách
+                    // màu thì ghi "?" để khỏi đọc nhầm thành máy đen trắng — số của nó nằm gộp trong
+                    // cột "Chỉ số hiện tại".
                     if (d.CounterInMau.HasValue) ws.Cell(r, cotMau).Value = d.CounterInMau.Value;
+                    else if (d.Color == "Màu")
+                    {
+                        ws.Cell(r, cotMau).Value = "?";
+                        ws.Cell(r, cotMau).Style.Font.SetBold()
+                          .Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(150, 20, 100))
+                          .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+                    }
                     if (d.CounterInDenTrang.HasValue) ws.Cell(r, cotDenTrang).Value = d.CounterInDenTrang.Value;
                     if (d.NgayChiSo.HasValue) ws.Cell(r, 13).Value = d.NgayChiSo.Value.ToString("dd/MM/yyyy");
                     ws.Cell(r, 14).Value = d.Nguon;
@@ -733,6 +774,302 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return File(luong.ToArray(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 $"BaoCaoTrangIn_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
+        }
+
+        /// <summary>
+        /// Xuất bảng theo dõi trang in theo tháng, dựng đúng kiểu file Excel IT đang dùng tay:
+        /// mỗi tháng chiếm HAI cột — cột 1 đen trắng, cột 2 màu — mỗi dòng là một máy.
+        ///
+        /// Số của một tháng là chỉ số chốt CUỐI CÙNG đọc được trong tháng đó (đồng hồ tích luỹ,
+        /// không phải số tờ in trong tháng). Máy không có đồng hồ tách màu thì cột đen trắng lấy
+        /// counter tổng (máy đen trắng thì tổng chính là đen trắng) và được in nghiêng để biết là
+        /// số suy ra, cột màu để trống.
+        ///
+        /// Cũng như XuatExcel: không lọc theo trạng thái, máy Tạm dừng / Báo phế vẫn phải có mặt
+        /// đủ trong file để đối chiếu tài sản. Đây là hành động tải file nên trả file, không JSON.
+        /// </summary>
+        [HttpGet("/QLMayIn/XuatExcelTheoThang")]
+        public async Task<IActionResult> XuatExcelTheoThang(int? nam, string? tuKhoa, string? boPhan, string? model)
+        {
+            var chan = KiemQuyen();
+            if (chan != null) return chan;
+
+            var namXuat = nam ?? DateTime.Now.Year;
+            if (namXuat < 2000 || namXuat > DateTime.Now.Year + 1) namXuat = DateTime.Now.Year;
+
+            var truyVan = _context.MayIns.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(tuKhoa))
+            {
+                var tk = tuKhoa.Trim();
+                truyVan = truyVan.Where(m => m.Serial.Contains(tk)
+                                          || m.Model.Contains(tk)
+                                          || (m.ViTri != null && m.ViTri.Contains(tk))
+                                          || (m.TenHangDoi != null && m.TenHangDoi.Contains(tk))
+                                          || (m.DiaChiIp != null && m.DiaChiIp.Contains(tk)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(boPhan)) truyVan = truyVan.Where(m => m.BoPhan == boPhan);
+            if (!string.IsNullOrWhiteSpace(model)) truyVan = truyVan.Where(m => m.Model == model);
+
+            var dsMay = await truyVan
+                .OrderBy(m => m.BoPhan).ThenBy(m => m.ViTri).ThenBy(m => m.Model).ThenBy(m => m.Serial)
+                .Select(m => new
+                {
+                    m.IdMayIn, m.BoPhan, m.Model, m.Serial, m.DiaChiIp, m.TenHangDoi, m.ViTri,
+                    m.TrangThai, m.GhiChu
+                })
+                .ToListAsync();
+
+            var dsId = dsMay.Select(m => m.IdMayIn).ToList();
+            var dauNam = new DateOnly(namXuat, 1, 1);
+            var cuoiNam = new DateOnly(namXuat, 12, 31);
+
+            var chiSoNam = await _context.MayInChiSos.AsNoTracking()
+                .Where(c => dsId.Contains(c.IdMayIn) && c.NgayChot >= dauNam && c.NgayChot <= cuoiNam
+                         && (c.CounterTong != null || c.CounterInMau != null || c.CounterInDenTrang != null))
+                .Select(c => new { c.IdMayIn, c.NgayChot, c.CounterTong, c.CounterInMau, c.CounterInDenTrang })
+                .ToListAsync();
+
+            // (id máy, tháng) -> (đen trắng, màu, đen trắng có phải suy từ tổng không)
+            var oTheoThang = new Dictionary<(int IdMayIn, int Thang), (int? DenTrang, int? Mau, bool SuyTuTong)>();
+
+            foreach (var nhom in chiSoNam.GroupBy(c => (c.IdMayIn, c.NgayChot.Month)))
+            {
+                // Bản chốt cuối tháng đôi khi là dòng nhập tay không kèm số tách màu, nên mỗi cột
+                // tự lùi tìm mốc mới nhất CÓ số của chính nó thay vì dùng chung một bản ghi.
+                var theoNgay = nhom.OrderByDescending(c => c.NgayChot).ToList();
+                var mocDen = theoNgay.FirstOrDefault(c => c.CounterInDenTrang != null);
+                var mocMau = theoNgay.FirstOrDefault(c => c.CounterInMau != null);
+                var mocTong = theoNgay.FirstOrDefault(c => c.CounterTong != null);
+
+                int? denTrang = mocDen?.CounterInDenTrang;
+                var suyTuTong = false;
+
+                if (denTrang == null && mocMau == null && mocTong != null)
+                {
+                    denTrang = mocTong.CounterTong;
+                    suyTuTong = true;
+                }
+
+                oTheoThang[(nhom.Key.IdMayIn, nhom.Key.Month)] = (denTrang, mocMau?.CounterInMau, suyTuTong);
+            }
+
+            // Năm đang chạy thì chỉ dựng tới tháng hiện tại, khỏi kéo ngang qua mấy cột rỗng
+            var soThang = namXuat == DateTime.Now.Year ? DateTime.Now.Month : 12;
+
+            using var wb = new ClosedXML.Excel.XLWorkbook();
+            var ws = wb.Worksheets.Add($"Trang in {namXuat}");
+
+            // Máy nào là máy màu: chắc nhất là chính máy báo được đồng hồ in màu trong năm; máy chưa
+            // đọc được thì tra danh sách IT khai tay trong appsettings (nguồn: file Print out
+            // information), cuối cùng mới đoán theo model / ghi chú.
+            var khoaMayMau = LayKhoaMayMau();
+            var idCoDongHoMau = chiSoNam.Where(c => c.CounterInMau != null)
+                                        .Select(c => c.IdMayIn).ToHashSet();
+
+            string LoaiMay(int idMayIn, string? boPhan, string? serial, string? model, string? ghiChu)
+                => idCoDongHoMau.Contains(idMayIn) || TrongDanhSachMayMau(khoaMayMau, boPhan, serial)
+                    ? "Màu"
+                    : PhanLoaiMau(null, model, ghiChu);
+
+            var tieuDeCoDinh = new[] { "Bộ phận", "Model", "Serial No", "IP add", "Tên máy / Vị trí", "Loại" };
+            const int cotLoai = 6;
+            const int cotDauThang = 7;
+            var cotCuoi = cotDauThang + soThang * 2 - 1;
+
+            ws.Cell(1, 1).Value = $"BẢNG THEO DÕI TRANG IN {namXuat}";
+            ws.Range(1, 1, 1, cotCuoi).Merge().Style.Font.SetBold().Font.SetFontSize(14)
+              .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            ws.Cell(2, 1).Value = $"Xuất lúc {DateTime.Now:dd/MM/yyyy HH:mm} — {dsMay.Count} máy. "
+                               + "Mỗi tháng gồm 2 cột: cột 1 đen trắng, cột 2 màu. "
+                               + "Số hiển thị là chỉ số đồng hồ chốt lần cuối trong tháng đó (tích luỹ), "
+                               + "không phải số tờ in riêng trong tháng. "
+                               + "Số in nghiêng là máy không có đồng hồ tách màu, lấy tạm counter tổng. "
+                               + "Cột \"Loại\": máy tự báo đồng hồ in màu, hoặc nằm trong danh sách máy màu "
+                               + "IT khai trong file Print out information — cả hai đều tính là máy màu. "
+                               + "Máy màu chưa đọc được đồng hồ tách màu thì cột màu ghi \"?\", "
+                               + "số ở cột đen trắng khi đó là counter tổng (gồm cả tờ màu).";
+            ws.Range(2, 1, 2, cotCuoi).Merge().Style.Font.SetItalic()
+              .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            // Hai dòng tiêu đề: dòng 4 tên tháng (merge 2 cột), dòng 5 "Đen trắng" / "Màu"
+            for (var i = 0; i < tieuDeCoDinh.Length; i++)
+            {
+                ws.Range(4, i + 1, 5, i + 1).Merge();
+                ws.Cell(4, i + 1).Value = tieuDeCoDinh[i];
+            }
+
+            for (var t = 1; t <= soThang; t++)
+            {
+                var cotDen = cotDauThang + (t - 1) * 2;
+                var cotMauT = cotDen + 1;
+
+                ws.Range(4, cotDen, 4, cotMauT).Merge();
+                ws.Cell(4, cotDen).Value = $"Tháng {t}/{namXuat}";
+                ws.Cell(5, cotDen).Value = "Đen trắng";
+                ws.Cell(5, cotMauT).Value = "Màu";
+
+                ws.Cell(5, cotDen).Style.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(64, 64, 64))
+                  .Font.SetFontColor(ClosedXML.Excel.XLColor.White);
+                ws.Cell(5, cotMauT).Style.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(175, 30, 120))
+                  .Font.SetFontColor(ClosedXML.Excel.XLColor.White);
+
+                // Tháng chẵn / lẻ tô nền khác nhau để mắt không lạc cột khi kéo ngang
+                if (t % 2 == 0)
+                    ws.Cell(4, cotDen).Style.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(221, 235, 247));
+            }
+
+            ws.Range(4, 1, 5, cotCuoi).Style.Font.SetBold()
+              .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center)
+              .Alignment.SetVertical(ClosedXML.Excel.XLAlignmentVerticalValues.Center);
+            ws.Range(4, 1, 4, cotDauThang - 1).Style.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGray);
+
+            // Máy đang chạy lên trên, Tạm dừng rồi Báo phế dồn xuống cuối, mỗi nhóm một dòng nhãn —
+            // số liệu máy đã ngừng dùng không lẫn vào phần đang theo dõi nhưng vẫn có mặt đủ trong file.
+            // Loại máy tính sẵn một lần: vừa để đổ ra cột "Loại", vừa để xếp máy màu lên đầu mỗi nhóm.
+            var dsMayLoai = dsMay
+                .Select(m => new { May = m, Loai = LoaiMay(m.IdMayIn, m.BoPhan, m.Serial, m.Model, m.GhiChu) })
+                .ToList();
+
+            // Trong từng nhóm trạng thái: máy màu lên trên cùng (số ít, hay phải tra), rồi tới đen
+            // trắng / chưa rõ; OrderBy của LINQ ổn định nên thứ tự Bộ phận → Vị trí → Model → Serial
+            // lấy từ CSDL vẫn được giữ nguyên bên trong mỗi loại.
+            var thuTuTrangThai = new[] { "HoatDong", "TamDung", "BaoPhe" };
+            var cacNhom = thuTuTrangThai
+                .Select(tt => (
+                    Ten: tt switch { "TamDung" => "MÁY TẠM DỪNG", "BaoPhe" => "MÁY BÁO PHẾ", _ => "MÁY ĐANG HOẠT ĐỘNG" },
+                    Ds: dsMayLoai.Where(x => x.May.TrangThai == tt)
+                                 .OrderByDescending(x => x.Loai == "Màu").ToList()))
+                .Where(n => n.Ds.Count > 0)
+                .ToList();
+
+            // Trạng thái lạ (dữ liệu cũ ghi khác ba giá trị chuẩn) vẫn phải xuất, gom vào nhóm cuối
+            var dsLac = dsMayLoai.Where(x => !thuTuTrangThai.Contains(x.May.TrangThai))
+                                 .OrderByDescending(x => x.Loai == "Màu").ToList();
+            if (dsLac.Count > 0) cacNhom.Add(("TRẠNG THÁI KHÁC", dsLac));
+
+            var r = 6;
+            foreach (var (tenNhom, dsNhom) in cacNhom)
+            {
+                // Chỉ có đúng một nhóm thì khỏi chèn dòng nhãn cho đỡ rối
+                if (cacNhom.Count > 1)
+                {
+                    ws.Cell(r, 1).Value = $"{tenNhom} ({dsNhom.Count})";
+                    ws.Range(r, 1, r, cotCuoi).Merge().Style
+                      .Font.SetBold()
+                      .Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(221, 235, 247))
+                      .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Left);
+                    r++;
+                }
+
+                foreach (var (m, loai) in dsNhom.Select(x => (x.May, x.Loai)))
+                {
+                    ws.Cell(r, 1).Value = m.BoPhan;
+                    ws.Cell(r, 2).Value = m.Model;
+                    ws.Cell(r, 3).Value = m.Serial;
+                    ws.Cell(r, 4).Value = string.IsNullOrWhiteSpace(m.DiaChiIp) ? "Cắm USB" : m.DiaChiIp;
+                    ws.Cell(r, 5).Value = string.IsNullOrWhiteSpace(m.TenHangDoi) ? m.ViTri : m.TenHangDoi;
+
+                    ws.Cell(r, cotLoai).Value = loai;
+                    var oLoai = ws.Cell(r, cotLoai).Style;
+                    oLoai.Font.SetBold()
+                         .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+                    if (loai == "Màu")
+                    {
+                        oLoai.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(255, 230, 246));
+                        oLoai.Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(150, 20, 100));
+                    }
+                    else if (loai == "Đen trắng")
+                    {
+                        oLoai.Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.FromArgb(235, 235, 235));
+                        oLoai.Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(50, 50, 50));
+                    }
+                    else
+                    {
+                        oLoai.Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(120, 120, 120));
+                    }
+
+                    // Máy đã ngừng dùng: tháng nào không có số thì ghi thẳng trạng thái như file làm tay
+                    var chuTrangThai = m.TrangThai switch
+                    {
+                        "TamDung" => "Tạm dừng",
+                        "BaoPhe" => "Báo phế",
+                        _ => null
+                    };
+
+                    for (var t = 1; t <= soThang; t++)
+                    {
+                        var cotDen = cotDauThang + (t - 1) * 2;
+                        var cotMauT = cotDen + 1;
+
+                        oTheoThang.TryGetValue((m.IdMayIn, t), out var o);
+
+                        if (o.DenTrang.HasValue)
+                        {
+                            ws.Cell(r, cotDen).Value = o.DenTrang.Value;
+                            // Con số là thứ người ta mở file ra để đọc nên luôn đậm và đậm màu;
+                            // số suy từ counter tổng chỉ phân biệt bằng in nghiêng, không làm mờ đi.
+                            ws.Cell(r, cotDen).Style.Font.SetBold()
+                              .Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(33, 33, 33));
+                            if (o.SuyTuTong) ws.Cell(r, cotDen).Style.Font.SetItalic();
+                        }
+                        else if (chuTrangThai != null)
+                        {
+                            ws.Cell(r, cotDen).Value = chuTrangThai;
+                            ws.Cell(r, cotDen).Style.Font.SetItalic()
+                              .Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(110, 110, 110))
+                              .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+                        }
+
+                        // Cột màu để TRỐNG hẳn khi máy không tách được màu, khác với máy tách được mà in 0 tờ
+                        if (o.Mau.HasValue)
+                        {
+                            ws.Cell(r, cotMauT).Value = o.Mau.Value;
+                            ws.Cell(r, cotMauT).Style.Font.SetBold()
+                              .Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(150, 20, 100));
+                        }
+                        else if (loai == "Màu" && o.DenTrang.HasValue)
+                        {
+                            // Máy IT khai là máy màu nhưng chưa đọc được đồng hồ tách màu: đánh dấu
+                            // "?" để không bị đọc nhầm thành máy đen trắng, số tổng nằm ở cột bên trái.
+                            ws.Cell(r, cotMauT).Value = "?";
+                            ws.Cell(r, cotMauT).Style.Font.SetBold()
+                              .Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(150, 20, 100))
+                              .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+                        }
+                    }
+
+                    r++;
+                }
+            }
+
+            if (r > 6)
+            {
+                var vung = ws.Range(4, 1, r - 1, cotCuoi);
+                vung.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                vung.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+                ws.Range(6, cotDauThang, r - 1, cotCuoi).Style.NumberFormat.SetFormat("#,##0");
+                ws.Range(6, cotDauThang, r - 1, cotCuoi).Style.Alignment
+                  .SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Right);
+                // Giữ nguyên 5 cột nhận diện máy khi kéo ngang qua 12 tháng
+                ws.SheetView.Freeze(5, 5);
+            }
+            else
+            {
+                ws.Cell(6, 1).Value = "Không có máy nào khớp bộ lọc.";
+            }
+
+            ws.Columns(1, cotCuoi).AdjustToContents();
+            ws.Column(5).Width = 28;
+
+            using var luong = new MemoryStream();
+            wb.SaveAs(luong);
+
+            return File(luong.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"BangTheoDoiTrangIn_{namXuat}.xlsx");
         }
 
         #endregion

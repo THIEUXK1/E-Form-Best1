@@ -67,6 +67,22 @@
             <i class="fa fa-file-excel me-1"></i> Xuất Excel
         </button>
 
+        @* Bảng theo dõi theo tháng: mỗi tháng 2 cột (đen trắng / màu), đúng kiểu file IT làm tay.
+           Chọn năm ngay trên nút vì file này luôn xuất trọn một năm. *@
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="btnXuatTheoThang"
+                    title="Xuất bảng theo dõi trang in theo tháng: cột 1 đen trắng, cột 2 màu">
+                <i class="fa fa-table-columns me-1"></i> Xuất theo tháng
+            </button>
+            <select class="form-select form-select-sm rounded-pill ms-1" id="filterNamXuat" style="width:auto;"
+                    title="Năm của bảng theo dõi theo tháng">
+                @for (var n = DateTime.Now.Year; n >= DateTime.Now.Year - 2; n--)
+                {
+                    <option value="@n">@n</option>
+                }
+            </select>
+        </div>
+
         <span class="small" id="kqDongBo"></span>
 
         <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" id="btnThemMay">
@@ -230,5 +246,6 @@
 
 @section Scripts {
     <script src="/js/fixed-page-layout.js?v=5" defer></script>
-    <script src="/js/mayin-quanly.js?v=20260921b"></script>
+    <script src="/js/mayin-quanly.js?v=20260923a"></script>
 }
+
