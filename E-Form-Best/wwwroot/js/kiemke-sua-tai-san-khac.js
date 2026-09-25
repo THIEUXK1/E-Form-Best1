@@ -98,6 +98,78 @@
         bootstrap.Modal.getOrCreateInstance(document.getElementById('modalSuaTaiSanKhac')).show();
     });
 
+    // ===== Xoá (vào thùng rác) - bắt buộc lý do, server ghi lịch sử kèm thông tin thiết bị trước khi xoá =====
+    var $dongDangXoa = null;
+
+    function hienLoiXoa(thongBao) {
+        var box = document.getElementById('loiXoaTaiSanKhac');
+        box.textContent = thongBao;
+        box.style.display = thongBao ? '' : 'none';
+    }
+
+    function khoaNutXoa(dangGui) {
+        var btn = document.getElementById('btnXacNhanXoaTaiSanKhac');
+        btn.disabled = dangGui;
+        btn.innerHTML = dangGui
+            ? '<span class="spinner-border spinner-border-sm" style="margin-right: 4px;"></span> Đang xoá...'
+            : '<i class="fa fa-trash" style="margin-right: 4px;"></i> Xoá';
+    }
+
+    $(document).on('click', '#lblTaiSanKhacDiKem .btn-xoa-tsk', function () {
+        $dongDangXoa = $(this).closest('.item-tai-san-khac');
+        var ts = $dongDangXoa.data('ts') || {};
+
+        hienLoiXoa('');
+        khoaNutXoa(false);
+        document.getElementById('hidXoaTskId').value = ts.idThietBi;
+        document.getElementById('lblXoaTskId').textContent = '#' + ts.idThietBi;
+        document.getElementById('lblXoaTskMoTa').textContent = window.moTaTaiSanKhac(ts);
+        document.getElementById('txtXoaTskLyDo').value = '';
+
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalXoaTaiSanKhac')).show();
+    });
+
+    $(document).on('submit', '#formXoaTaiSanKhac', function (e) {
+        e.preventDefault();
+        hienLoiXoa('');
+
+        var lyDo = document.getElementById('txtXoaTskLyDo').value.trim();
+        if (lyDo.length < 5) { hienLoiXoa('Vui lòng ghi rõ lý do xoá (ít nhất 5 ký tự).'); return; }
+
+        var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        var fd = new FormData();
+        fd.append('idThietBi', document.getElementById('hidXoaTskId').value);
+        fd.append('lyDo', lyDo);
+        fd.append('__RequestVerificationToken', tokenInput ? tokenInput.value : '');
+
+        khoaNutXoa(true);
+        fetch('/QLKiemKe/XoaTaiSanKhac', { method: 'POST', body: fd })
+            .then(function (res) {
+                if (!res.ok) throw new Error('Máy chủ trả lỗi ' + res.status + '. Vui lòng thử lại.');
+                return res.json();
+            })
+            .then(function (res) {
+                if (!res.thanhCong) {
+                    hienLoiXoa(res.thongBao || res.message || 'Xoá không thành công.');
+                    khoaNutXoa(false);
+                    return;
+                }
+
+                // Gỡ đúng dòng vừa xoá; hết dòng thì hiện trạng thái trống như lúc tra cứu không có tài sản
+                if ($dongDangXoa && $dongDangXoa.length) $dongDangXoa.remove();
+                var $ds = $('#lblTaiSanKhacDiKem');
+                if ($ds.find('.item-tai-san-khac').length === 0) $ds.text('Không có');
+
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('modalXoaTaiSanKhac')).hide();
+                khoaNutXoa(false);
+                if (window.Swal) Swal.fire({ icon: 'success', title: res.thongBao, timer: 2000, showConfirmButton: false });
+            })
+            .catch(function (err) {
+                hienLoiXoa(err.message || 'Lỗi kết nối khi xoá thiết bị.');
+                khoaNutXoa(false);
+            });
+    });
+
     $(document).on('submit', '#formSuaTaiSanKhac', function (e) {
         e.preventDefault();
         hienLoi('');

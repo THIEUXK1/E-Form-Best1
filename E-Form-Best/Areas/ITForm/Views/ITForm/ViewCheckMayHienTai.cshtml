@@ -775,6 +775,34 @@
         @* Quy tắc trùng theo loại (appsettings KiemKe:TrungTaiSanKhac) cho wwwroot/js/kiemke-trung-tai-san-khac.js *@
         <div id="cfgQuyTacTrungTaiSanKhac" data-quy-tac="@ViewBag.QuyTacTrungTaiSanKhac" hidden></div>
 
+        @* Xoá 1 dòng "Tài sản khác đi kèm" (vào thùng rác, bắt buộc lý do) - logic ở wwwroot/js/kiemke-sua-tai-san-khac.js *@
+        <div class="modal fade" id="modalXoaTaiSanKhac" data-bs-backdrop="static" tabindex="-1" aria-labelledby="modalXoaTaiSanKhacLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="modalXoaTaiSanKhacLabel"><i class="fa fa-trash" style="margin-right: 8px;"></i>Xoá tài sản <span id="lblXoaTskId"></span></h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="formXoaTaiSanKhac" novalidate>
+                        <div class="modal-body">
+                            <div id="loiXoaTaiSanKhac" class="alert alert-danger py-2 small" style="display: none;"></div>
+                            <input type="hidden" id="hidXoaTskId" />
+                            <p class="mb-2 fw-semibold" id="lblXoaTskMoTa"></p>
+                            <label class="form-label small fw-bold mb-1" for="txtXoaTskLyDo">Lý do xoá <span class="text-danger">*</span></label>
+                            <textarea id="txtXoaTskLyDo" class="form-control form-control-sm" rows="3" maxlength="500" placeholder="VD: Khai trùng với thiết bị #123 / Thiết bị đã thanh lý / Nhập nhầm loại..."></textarea>
+                            <div class="form-text">Thiết bị vào thùng rác, khôi phục được trong 1 tháng ở trang Thiết bị. Lý do, người xoá và thông tin thiết bị được lưu vào lịch sử.</div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" id="btnXacNhanXoaTaiSanKhac" class="btn btn-danger">
+                                <i class="fa fa-trash" style="margin-right: 4px;"></i> Xoá
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         @* Sửa thông tin 1 dòng "Tài sản khác đi kèm" - logic ở wwwroot/js/kiemke-sua-tai-san-khac.js *@
         <div class="modal fade" id="modalSuaTaiSanKhac" data-bs-backdrop="static" tabindex="-1" aria-labelledby="modalSuaTaiSanKhacLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
@@ -1481,6 +1509,7 @@
             if (coQuyenSuaAnhNguoiKhac) $row.append('<button type="button" class="btn btn-sm btn-outline-primary btn-sua-tsk" title="Sửa ảnh"><i class="fa fa-camera"></i></button>');
             // Nút sửa thông tin: xử lý ở wwwroot/js/kiemke-sua-tai-san-khac.js (event delegation)
             if (ts.duocSua) $row.append('<button type="button" class="btn btn-sm btn-outline-success btn-sua-tt-tsk" title="Sửa thông tin"><i class="fa fa-pencil"></i> Sửa</button>');
+            if (ts.duocSua) $row.append('<button type="button" class="btn btn-sm btn-outline-danger btn-xoa-tsk" title="Xoá (bắt buộc ghi lý do)"><i class="fa fa-trash"></i> Xoá</button>');
             $ds.append($row);
             });
 
@@ -2273,6 +2302,6 @@
             });
         </script>
         <script src="~/js/kiemke-trung-tai-san-khac.js?v=20260925"></script>
-        <script src="~/js/kiemke-sua-tai-san-khac.js?v=20260925b"></script>
+        <script src="~/js/kiemke-sua-tai-san-khac.js?v=20260925c"></script>
     }
 }

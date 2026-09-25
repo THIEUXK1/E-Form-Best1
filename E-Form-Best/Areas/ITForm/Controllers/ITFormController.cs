@@ -9976,6 +9976,71 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             public string? GhiChu { get; set; }
         }
 
+        // Xoá (vào thùng rác) 1 dòng "Tài sản khác đi kèm" trên trang ViewCheckMayHienTai. Bắt buộc lý do; nhật ký chụp lại
+        // toàn bộ thông tin thiết bị + người xoá + IP máy xoá, vì thùng rác tự huỷ bản ghi sau 1 tháng mà vẫn cần tra được bất thường.
+        // Tra cứu: KK_LichSuThaoTac WHERE ChiTiet LIKE N'[Xóa tài sản khác]%'
+        [HttpPost("/QLKiemKe/XoaTaiSanKhac")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> XoaTaiSanKhac([FromForm] int idThietBi, [FromForm] string? lyDo)
+        {
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
+            try
+            {
+                string lyDoChuan = (lyDo ?? "").Trim();
+                if (lyDoChuan.Length < 5)
+                    return Json(new { thanhCong = false, thongBao = "Vui lòng ghi rõ lý do xoá (ít nhất 5 ký tự)." });
+                if (lyDoChuan.Length > 500)
+                    return Json(new { thanhCong = false, thongBao = "Lý do xoá tối đa 500 ký tự." });
+
+                var thietBi = await _context.KkThietBis
+                    .Include(x => x.IdNguoiDungNavigation)
+                    .Include(x => x.IdboPhanNavigation)
+                    .FirstOrDefaultAsync(x => x.IdThietBi == idThietBi);
+                if (thietBi == null)
+                    return Json(new { thanhCong = false, thongBao = "Thiết bị không tồn tại." });
+                // Bấm xoá hai lần / hai người cùng xoá: lần sau coi như đã xong (idempotency)
+                if (thietBi.NgayXoa != null)
+                    return Json(new { thanhCong = true, thongBao = "Thiết bị này đã nằm trong thùng rác." });
+
+                int? idNguoiDangNhap = LayIdNguoiDangNhap();
+                bool laChuSoHuu = idNguoiDangNhap != null && thietBi.IdNguoiDung == idNguoiDangNhap;
+                if (!laChuSoHuu && !CoQuyenSuaMoiTaiSanKhac())
+                    return Json(new { thanhCong = false, thongBao = "Bạn chỉ được xoá tài sản đang đứng tên mình." });
+
+                var statusXoa = await _context.KkTrangThais.FirstOrDefaultAsync(x => x.TenTrangThai != null && x.TenTrangThai.ToLower() == "xóa");
+                if (statusXoa == null)
+                {
+                    statusXoa = new KkTrangThai { TenTrangThai = "Xóa", MoTa = "Đã xóa (Chờ hủy 30 ngày)" };
+                    _context.KkTrangThais.Add(statusXoa);
+                    await _context.SaveChangesAsync();
+                }
+
+                string anhChup = $"Loại: {thietBi.LoaiThietBi} | Serial: {thietBi.Seribacode} | IP: {thietBi.Ip} | Quy cách: {thietBi.QuyCach} | Vị trí: {thietBi.TenViTri}"
+                    + $" | Người dùng: {thietBi.IdNguoiDungNavigation?.Tk} - {thietBi.IdNguoiDungNavigation?.HoTen} | Bộ phận: {thietBi.IdboPhanNavigation?.TenBoPhan}"
+                    + $" | Ngày tạo: {thietBi.NgayTao:dd/MM/yyyy HH:mm} | Kiểm kê gần nhất: {thietBi.ThoiGianCheck:dd/MM/yyyy HH:mm} | Ảnh: {thietBi.DuongDanAnh}";
+                string nguoiXoa = $"{User.FindFirst("MaNv")?.Value} ({(laChuSoHuu ? "chủ sở hữu" : "quản lý")})";
+                string ipMayXoa = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
+
+                thietBi.IdTrangThai = statusXoa.IdTrangThai;
+                thietBi.NgayXoa = DateTime.Now;
+                thietBi.LyDoXoa = lyDoChuan;
+                thietBi.NgayCapNhat = DateTime.Now;
+                await _context.SaveChangesAsync();
+
+                GhiLichSu("Xóa (Tạm)", "Thiết Bị", thietBi.IdThietBi,
+                    $"[Xóa tài sản khác] Lý do: {lyDoChuan} | Người xoá: {nguoiXoa} | IP máy xoá: {ipMayXoa} | Trước khi xoá: {anhChup} | Chờ hủy sau 1 tháng.");
+
+                return Json(new { thanhCong = true, thongBao = "Đã chuyển thiết bị vào thùng rác (khôi phục được trong 1 tháng ở trang Thiết bị)." });
+            }
+            catch (Exception ex)
+            {
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { thanhCong = false, thongBao = "Lỗi hệ thống khi xoá thiết bị: " + chiTietLoi });
+            }
+        }
+
         // Sửa thông tin 1 dòng "Tài sản khác đi kèm" ngay trên trang ViewCheckMayHienTai.
         // Người đứng tên thiết bị tự sửa được tài sản của mình; sửa của người khác phải thuộc nhóm CoQuyenSuaMoiTaiSanKhac.
         // Chặn trùng Serial + Loại: luồng Tài sản khác gộp theo đúng cặp này, để trùng là lần kiểm kê sau đè mất thiết bị.
