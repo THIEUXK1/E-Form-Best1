@@ -7380,8 +7380,19 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     model.IdThietBi = 0;
                 }
 
+                model.Ip = string.IsNullOrWhiteSpace(model.Ip) ? null : model.Ip.Trim();
+
+                // Loại nhận diện bằng IP (máy in - xem KiemKe:TrungTaiSanKhac): serial/hostname người nhập hay điền sai → chỉ kiểm trùng IP
+                bool laMayIn = LayQuyTacTrung(model.LoaiThietBi) == TrungTheoIp;
+                if (laMayIn)
+                {
+                    var trungIp = await TimTaiSanKhacTrung(model.LoaiThietBi!, null, model.Ip, model.IdThietBi);
+                    if (trungIp != null)
+                        return Json(new { success = false, message = $"IP '{model.Ip}' đã được gán cho {trungIp.LoaiThietBi} #{trungIp.IdThietBi}{(string.IsNullOrWhiteSpace(trungIp.TenViTri) ? "" : " - " + trungIp.TenViTri)}. Vui lòng kiểm tra lại!" });
+                }
+
                 bool isDuplicate = false;
-                if (!string.IsNullOrWhiteSpace(model.TenMayTinh))
+                if (!laMayIn && !string.IsNullOrWhiteSpace(model.TenMayTinh))
                 {
                     string trimmedTarget = model.TenMayTinh.Trim().ToLower(); // Chuyển target về chữ thường để so sánh
                     string currentLoai = (model.LoaiThietBi ?? "").Trim().ToLower();
@@ -7491,6 +7502,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         existing.WinLicense = model.WinLicense;
                         existing.OfficeLicense = model.OfficeLicense;
                         existing.IdViTriDiaLy = model.IdViTriDiaLy;
+                        // Luồng chụp ảnh nhanh không gửi ô IP → không có field thì giữ nguyên, tránh xoá IP (Switch/Máy in)
+                        if (Request.Form.ContainsKey("Ip")) existing.Ip = model.Ip;
 
                         // Chỉ đổi mốc ngày trả lời khi câu trả lời Office thực sự thay đổi, để không xoá dấu vết đợt hỏi cũ
                         if (existing.CanCaiOffice != model.CanCaiOffice)
@@ -7553,14 +7566,137 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         public class ThemNhanhTaiSanRow
         {
             public string? Serial { get; set; }
+            public string? Ip { get; set; }
             public string? LoaiThietBi { get; set; }
             public string? QuyCach { get; set; }
             public string? TenViTri { get; set; }
             public IFormFile? Anh { get; set; }
+            // Id thiết bị trùng mà người nhập đã xác nhận "đúng máy này" ở hộp thoại hỏi ghi đè
+            public int? IdGhiDe { get; set; }
+        }
+
+        // Quy tắc nhận diện trùng của "Tài sản khác" theo từng loại, khai ở appsettings.json mục KiemKe:TrungTaiSanKhac:
+        //   "Serial"    : trùng Serial + Loại (mặc định)
+        //   "Ip"        : trùng IP + Loại (máy in: serial hay bị điền nhầm tên model)
+        //   "KhongKiem" : không kiểm, luôn thêm mới (PDA)
+        private const string TrungTheoSerial = "Serial", TrungTheoIp = "Ip", TrungKhongKiem = "KhongKiem";
+
+        private string LayQuyTacTrung(string? loai)
+        {
+            var theoLoai = _config.GetSection("KiemKe:TrungTaiSanKhac:TheoLoai").GetChildren()
+                .FirstOrDefault(x => string.Equals(x.Key.Trim(), (loai ?? "").Trim(), StringComparison.OrdinalIgnoreCase));
+            var quyTac = theoLoai?.Value ?? _config["KiemKe:TrungTaiSanKhac:MacDinh"] ?? TrungTheoSerial;
+            return quyTac is TrungTheoIp or TrungKhongKiem ? quyTac : TrungTheoSerial;
+        }
+
+        private string MoTaKhoaTrung(string loai, string? serial, string? ip)
+            => LayQuyTacTrung(loai) == TrungTheoIp ? $"IP: {ip}" : $"Serial: {serial}";
+
+        // Tìm thiết bị (chưa xoá mềm) trùng với dòng Tài sản khác theo quy tắc của loại đó; null = không trùng / loại không kiểm trùng
+        private async Task<KkThietBi?> TimTaiSanKhacTrung(string loai, string? serial, string? ip, int boQuaId = 0)
+        {
+            string quyTac = LayQuyTacTrung(loai);
+            if (quyTac == TrungKhongKiem) return null;
+
+            string khoa = ((quyTac == TrungTheoIp ? ip : serial) ?? "").Trim().ToLower();
+            if (khoa.Length == 0) return null;
+            string loaiThuong = loai.Trim().ToLower();
+
+            var q = _context.KkThietBis.Where(x => x.NgayXoa == null && x.IdThietBi != boQuaId
+                                                && x.LoaiThietBi != null && x.LoaiThietBi.Trim().ToLower() == loaiThuong);
+            q = quyTac == TrungTheoIp
+                ? q.Where(x => x.Ip != null && x.Ip.Trim().ToLower() == khoa)
+                : q.Where(x => x.Seribacode != null && x.Seribacode.Trim().ToLower() == khoa);
+            return await q.OrderBy(x => x.IdThietBi).FirstOrDefaultAsync();
+        }
+
+        // Kiểm các trường bắt buộc theo quy tắc từng loại + trùng khoá giữa các dòng trong cùng một lần gửi.
+        // Trả về thông báo lỗi, null = hợp lệ.
+        private string? KiemTraLoTaiSanKhac(List<ThemNhanhTaiSanRow> rows)
+        {
+            var daGap = new Dictionary<string, int>();
+            for (int i = 0; i < rows.Count; i++)
+            {
+                string loai = (rows[i].LoaiThietBi ?? "").Trim();
+                if (loai.Length == 0) return $"Dòng {i + 1}: Vui lòng chọn Loại thiết bị.";
+
+                string quyTac = LayQuyTacTrung(loai);
+                string? khoa = quyTac == TrungTheoIp ? rows[i].Ip?.Trim() : rows[i].Serial?.Trim();
+                if (quyTac == TrungTheoIp && string.IsNullOrEmpty(khoa)) return $"Dòng {i + 1}: {loai} nhận diện theo IP, vui lòng nhập IP.";
+                if (quyTac != TrungTheoIp && string.IsNullOrWhiteSpace(rows[i].Serial)) return $"Dòng {i + 1}: Vui lòng nhập Serial.";
+                if (quyTac == TrungKhongKiem) continue;
+
+                string k = loai.ToLower() + "|" + khoa!.ToLower();
+                if (daGap.TryGetValue(k, out int dongTruoc))
+                    return $"Dòng {dongTruoc + 1} và dòng {i + 1} cùng {MoTaKhoaTrung(loai, khoa, khoa)} ({loai}) — mỗi thiết bị chỉ khai một dòng.";
+                daGap[k] = i;
+            }
+            return null;
+        }
+
+        // Gọi TRƯỚC khi gửi form Xác nhận tài sản: trả danh sách dòng Tài sản khác trùng thiết bị đã có để client hỏi người nhập
+        // có ghi đè không. Thiết bị đang đứng tên đúng người dùng (theo mã NV) là kiểm kê lại → đánh dấu cungNguoiDung, không cần hỏi.
+        [HttpPost("/QLKiemKe/KiemTraTrungTaiSanKhac")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> KiemTraTrungTaiSanKhac([FromForm] List<ThemNhanhTaiSanRow> rows, string? maNhanVien = null)
+        {
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
+            try
+            {
+                if (rows == null || rows.Count == 0) return Json(new { thanhCong = true, duLieu = Array.Empty<object>() });
+
+                var loiLo = KiemTraLoTaiSanKhac(rows);
+                if (loiLo != null) return Json(new { thanhCong = false, thongBao = loiLo });
+
+                int? idNguoiDung = string.IsNullOrWhiteSpace(maNhanVien) ? null : (await TimNguoiDungTheoMaNhanVien(maNhanVien))?.IdNguoiDung;
+
+                var dsTrung = new List<object>();
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    string loai = rows[i].LoaiThietBi!.Trim();
+                    var khop = await TimTaiSanKhacTrung(loai, rows[i].Serial, rows[i].Ip);
+                    if (khop == null) continue;
+
+                    var chiTiet = await _context.KkThietBis.Where(x => x.IdThietBi == khop.IdThietBi)
+                        .Select(x => new
+                        {
+                            TenNguoiDung = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.HoTen : null,
+                            Tk = x.IdNguoiDungNavigation != null ? x.IdNguoiDungNavigation.Tk : null,
+                            TenBoPhan = x.IdboPhanNavigation != null ? x.IdboPhanNavigation.TenBoPhan : null
+                        })
+                        .FirstAsync();
+
+                    dsTrung.Add(new
+                    {
+                        viTriDong = i,
+                        khop.IdThietBi,
+                        khop.LoaiThietBi,
+                        khoa = MoTaKhoaTrung(loai, khop.Seribacode, khop.Ip),
+                        khop.QuyCach,
+                        khop.TenViTri,
+                        khop.DuongDanAnh,
+                        khop.ThoiGianCheck,
+                        chiTiet.TenNguoiDung,
+                        chiTiet.Tk,
+                        chiTiet.TenBoPhan,
+                        cungNguoiDung = idNguoiDung != null && khop.IdNguoiDung == idNguoiDung
+                    });
+                }
+
+                return Json(new { thanhCong = true, duLieu = dsTrung });
+            }
+            catch (Exception ex)
+            {
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { thanhCong = false, thongBao = "Lỗi hệ thống khi kiểm tra trùng: " + chiTietLoi });
+            }
         }
 
         // HÀM THÊM NHANH TÀI SẢN KHÁC (Súng bắn mã vạch, Điện thoại bàn, Máy chiếu, PDA, ...) TỪ TRANG XÁC NHẬN TÀI SẢN
-        // Dùng chung Tài khoản/Công ty/Bộ phận đã nhập ở form Xác nhận tài sản. Ghép trùng theo Serial + Loại thiết bị: có rồi thì Cập nhật, chưa có thì Thêm mới.
+        // Dùng chung Tài khoản/Công ty/Bộ phận đã nhập ở form Xác nhận tài sản. Nhận diện trùng theo quy tắc từng loại (LayQuyTacTrung):
+        // trùng thì chỉ Cập nhật khi thiết bị đang đứng tên đúng người này hoặc người nhập đã xác nhận (IdGhiDe); không trùng thì Thêm mới.
         [HttpPost("/QLKiemKe/ThemNhanhTaiSanKhac")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ThemNhanhTaiSanKhac(string taikhoan, string matkhau, int? idCongTy, int? idBoPhan, [FromForm] List<ThemNhanhTaiSanRow> rows, string? maNhanVien = null, int? idViTriDiaLy = null)
@@ -7605,12 +7741,19 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     return Json(new { success = false, message = $"Không tìm thấy nhân viên đang làm việc với mã '{maNhanVien.Trim()}'." });
                 }
 
+                // Kiểm cả lô TRƯỚC khi ghi dòng nào: lô có dòng lỗi/trùng chưa xác nhận thì không ghi gì, tránh lưu dở dang
+                var loiLo = KiemTraLoTaiSanKhac(rows);
+                if (loiLo != null) return Json(new { success = false, message = loiLo });
+
+                var dsKhop = new List<KkThietBi?>();
                 for (int i = 0; i < rows.Count; i++)
                 {
-                    if (string.IsNullOrWhiteSpace(rows[i].Serial))
-                        return Json(new { success = false, message = $"Dòng {i + 1}: Vui lòng nhập Serial." });
-                    if (string.IsNullOrWhiteSpace(rows[i].LoaiThietBi))
-                        return Json(new { success = false, message = $"Dòng {i + 1}: Vui lòng chọn Loại thiết bị." });
+                    var khop = await TimTaiSanKhacTrung(rows[i].LoaiThietBi!.Trim(), rows[i].Serial, rows[i].Ip);
+                    // Thiết bị đang đứng tên đúng người này = kiểm kê lại → ghi đè không cần hỏi.
+                    // Đứng tên người khác thì chỉ ghi đè khi client đã hỏi và người nhập xác nhận đúng id đó.
+                    if (khop != null && khop.IdNguoiDung != nguoiSuDung.IdNguoiDung && rows[i].IdGhiDe != khop.IdThietBi)
+                        return Json(new { success = false, message = $"Dòng {i + 1}: trùng thiết bị #{khop.IdThietBi} ({MoTaKhoaTrung(rows[i].LoaiThietBi!.Trim(), khop.Seribacode, khop.Ip)}) nhưng chưa được xác nhận ghi đè. Vui lòng bấm Gửi lại." });
+                    dsKhop.Add(khop);
                 }
 
                 string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\AnhKiemKe";
@@ -7622,14 +7765,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .Select(x => (int?)x.IdTrangThai)
                     .FirstOrDefault();
 
-                foreach (var row in rows)
+                for (int iRow = 0; iRow < rows.Count; iRow++)
                 {
-                    string serialTrim = row.Serial!.Trim();
+                    var row = rows[iRow];
+                    string? serialTrim = string.IsNullOrWhiteSpace(row.Serial) ? null : row.Serial.Trim();
+                    string? ipTrim = string.IsNullOrWhiteSpace(row.Ip) ? null : row.Ip.Trim();
                     string loaiTrim = row.LoaiThietBi!.Trim();
 
-                    var existing = _context.KkThietBis.FirstOrDefault(x =>
-                        x.Seribacode != null && x.Seribacode.Trim().ToLower() == serialTrim.ToLower() &&
-                        x.LoaiThietBi != null && x.LoaiThietBi.Trim().ToLower() == loaiTrim.ToLower());
+                    var existing = dsKhop[iRow];
 
                     string? tenFileAnhMoi = null;
                     if (row.Anh != null && row.Anh.Length > 0)
@@ -7656,6 +7799,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     {
                         if (!string.IsNullOrWhiteSpace(row.TenViTri)) existing.TenViTri = row.TenViTri.Trim();
                         if (!string.IsNullOrWhiteSpace(row.QuyCach)) existing.QuyCach = row.QuyCach.Trim();
+                        // Khoá khớp là IP (máy in) thì serial gửi lên có thể là serial thật mới bổ sung; khoá là Serial thì bổ sung IP nếu có
+                        if (serialTrim != null) existing.Seribacode = serialTrim;
+                        if (ipTrim != null) existing.Ip = ipTrim;
                         existing.IdcongTy = idCongTy;
                         existing.IdboPhan = idBoPhan;
                         if (idViTriDiaLy.HasValue) existing.IdViTriDiaLy = idViTriDiaLy;
@@ -7675,6 +7821,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             LoaiThietBi = loaiTrim,
                             QuyCach = row.QuyCach?.Trim(),
                             Seribacode = serialTrim,
+                            Ip = ipTrim,
                             TenDangNhap = nguoiSuDung.Tk,
                             IdNguoiDung = nguoiSuDung.IdNguoiDung,
                             IdcongTy = idCongTy,
@@ -7702,7 +7849,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     _context.SaveChanges();
 
                     GhiLichSu(laCapNhat ? "Cập nhật" : "Thêm mới", "Thiết Bị", thietBi.IdThietBi,
-                        $"[Tài sản khác] Serial: {serialTrim} | Loại: {loaiTrim} | Vị trí: {row.TenViTri} | Người dùng: {nguoiSuDung.MaNhanVien} - {nguoiSuDung.HoTen} | Xác thực bởi: {taikhoan}");
+                        $"[Tài sản khác] Serial: {serialTrim}{(ipTrim != null ? " | IP: " + ipTrim : "")} | Loại: {loaiTrim} | Vị trí: {row.TenViTri} | Người dùng: {nguoiSuDung.MaNhanVien} - {nguoiSuDung.HoTen} | Xác thực bởi: {taikhoan}"
+                        + (laCapNhat ? $" | Ghi đè theo quy tắc '{LayQuyTacTrung(loaiTrim)}'" : ""));
                 }
 
                 return Json(new { success = true, message = $"Đã xử lý {rows.Count} thiết bị (Thêm mới: {soThem}, Cập nhật: {soCapNhat})." });
@@ -8810,6 +8958,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // Điền sẵn ô Tài khoản ở modal Xác nhận tài sản bằng tài khoản đang đăng nhập (claim "MaNv" lưu User.Tk),
             // người kiểm kê chỉ cần gõ mật khẩu; vẫn cho sửa nếu người đứng máy là người khác.
             ViewBag.TaiKhoanDangNhap = User.FindFirst("MaNv")?.Value ?? "";
+            // Loại nào kiểm trùng theo IP / không kiểm - JS dòng Tài sản khác dùng để hiện ô IP và bắt buộc đúng trường
+            ViewBag.QuyTacTrungTaiSanKhac = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                macDinh = LayQuyTacTrung(null),
+                theoLoai = _config.GetSection("KiemKe:TrungTaiSanKhac:TheoLoai").GetChildren()
+                    .ToDictionary(x => x.Key.Trim(), x => LayQuyTacTrung(x.Key))
+            });
             return View();
         }
 
@@ -9741,6 +9896,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             x.IdThietBi,
                             x.LoaiThietBi,
                             x.Seribacode,
+                            x.Ip,
                             x.QuyCach,
                             x.TenViTri,
                             x.GhiChu,
@@ -9814,6 +9970,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             public int IdThietBi { get; set; }
             public string? LoaiThietBi { get; set; }
             public string? Seribacode { get; set; }
+            public string? Ip { get; set; }
             public string? QuyCach { get; set; }
             public string? TenViTri { get; set; }
             public string? GhiChu { get; set; }
@@ -9841,43 +9998,43 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     return Json(new { thanhCong = false, thongBao = "Bạn chỉ được sửa tài sản đang đứng tên mình." });
 
                 string loai = (req.LoaiThietBi ?? "").Trim();
-                string serial = (req.Seribacode ?? "").Trim();
+                string? serial = string.IsNullOrWhiteSpace(req.Seribacode) ? null : req.Seribacode.Trim();
+                string? ip = string.IsNullOrWhiteSpace(req.Ip) ? null : req.Ip.Trim();
                 if (loai.Length == 0)
                     return Json(new { thanhCong = false, thongBao = "Vui lòng chọn Loại thiết bị." });
-                if (serial.Length == 0)
-                    return Json(new { thanhCong = false, thongBao = "Vui lòng nhập Serial." });
                 if (!await _context.KkLoaiThietBis.AnyAsync(x => x.TenLoai == loai))
                     return Json(new { thanhCong = false, thongBao = $"Loại thiết bị '{loai}' không có trong danh mục." });
 
-                string serialThuong = serial.ToLower();
-                string loaiThuong = loai.ToLower();
-                var trung = await _context.KkThietBis
-                    .Where(x => x.IdThietBi != thietBi.IdThietBi && x.NgayXoa == null
-                             && x.Seribacode != null && x.Seribacode.Trim().ToLower() == serialThuong
-                             && x.LoaiThietBi != null && x.LoaiThietBi.Trim().ToLower() == loaiThuong)
-                    .Select(x => new { x.IdThietBi, x.TenViTri })
-                    .FirstOrDefaultAsync();
-                if (trung != null)
-                    return Json(new { thanhCong = false, thongBao = $"Serial '{serial}' ({loai}) đã có ở thiết bị #{trung.IdThietBi}{(string.IsNullOrWhiteSpace(trung.TenViTri) ? "" : " - " + trung.TenViTri)}. Kiểm tra lại Serial thật trên tem thiết bị." });
+                // Cùng quy tắc trùng theo loại với luồng Tài sản khác (KiemKe:TrungTaiSanKhac)
+                string quyTac = LayQuyTacTrung(loai);
+                if (quyTac == TrungTheoIp && ip == null)
+                    return Json(new { thanhCong = false, thongBao = $"{loai} nhận diện theo IP, vui lòng nhập IP." });
+                if (quyTac != TrungTheoIp && serial == null)
+                    return Json(new { thanhCong = false, thongBao = "Vui lòng nhập Serial." });
 
-                string truoc = $"Loại: {thietBi.LoaiThietBi} | Serial: {thietBi.Seribacode} | Quy cách: {thietBi.QuyCach} | Vị trí: {thietBi.TenViTri} | Ghi chú: {thietBi.GhiChu}";
+                var trung = await TimTaiSanKhacTrung(loai, serial, ip, thietBi.IdThietBi);
+                if (trung != null)
+                    return Json(new { thanhCong = false, thongBao = $"{MoTaKhoaTrung(loai, serial, ip)} ({loai}) đã có ở thiết bị #{trung.IdThietBi}{(string.IsNullOrWhiteSpace(trung.TenViTri) ? "" : " - " + trung.TenViTri)}. Kiểm tra lại thông tin trên tem thiết bị." });
+
+                string truoc = $"Loại: {thietBi.LoaiThietBi} | Serial: {thietBi.Seribacode} | IP: {thietBi.Ip} | Quy cách: {thietBi.QuyCach} | Vị trí: {thietBi.TenViTri} | Ghi chú: {thietBi.GhiChu}";
 
                 thietBi.LoaiThietBi = loai;
                 thietBi.Seribacode = serial;
+                thietBi.Ip = ip;
                 thietBi.QuyCach = string.IsNullOrWhiteSpace(req.QuyCach) ? null : req.QuyCach.Trim();
                 thietBi.TenViTri = (req.TenViTri ?? "").Trim();
                 thietBi.GhiChu = string.IsNullOrWhiteSpace(req.GhiChu) ? null : req.GhiChu.Trim();
                 thietBi.NgayCapNhat = DateTime.Now;
                 await _context.SaveChangesAsync();
 
-                string sau = $"Loại: {thietBi.LoaiThietBi} | Serial: {thietBi.Seribacode} | Quy cách: {thietBi.QuyCach} | Vị trí: {thietBi.TenViTri} | Ghi chú: {thietBi.GhiChu}";
+                string sau = $"Loại: {thietBi.LoaiThietBi} | Serial: {thietBi.Seribacode} | IP: {thietBi.Ip} | Quy cách: {thietBi.QuyCach} | Vị trí: {thietBi.TenViTri} | Ghi chú: {thietBi.GhiChu}";
                 GhiLichSu("Cập nhật", "Thiết Bị", thietBi.IdThietBi, $"[Sửa tài sản khác] Trước: {truoc} → Sau: {sau}");
 
                 return Json(new
                 {
                     thanhCong = true,
                     thongBao = "Đã lưu thông tin thiết bị.",
-                    duLieu = new { thietBi.IdThietBi, thietBi.LoaiThietBi, thietBi.Seribacode, thietBi.QuyCach, thietBi.TenViTri, thietBi.GhiChu }
+                    duLieu = new { thietBi.IdThietBi, thietBi.LoaiThietBi, thietBi.Seribacode, thietBi.Ip, thietBi.QuyCach, thietBi.TenViTri, thietBi.GhiChu }
                 });
             }
             catch (Exception ex)

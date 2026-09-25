@@ -7,6 +7,7 @@
     window.moTaTaiSanKhac = function (ts) {
         return (ts.loaiThietBi || 'Thiết bị')
             + (ts.seribacode ? ' - S/N: ' + ts.seribacode : '')
+            + (ts.ip ? ' - IP: ' + ts.ip : '')
             + (ts.quyCach ? ' - Quy cách: ' + ts.quyCach : '')
             + (ts.tenViTri ? ' (' + ts.tenViTri + ')' : '');
     };
@@ -49,6 +50,19 @@
         sel.value = loaiHienTai || '';
     }
 
+    // Loại nhận diện theo IP (máy in) bắt buộc IP, còn lại bắt buộc Serial - quy tắc lấy từ kiemke-trung-tai-san-khac.js
+    function theoIp(loai) {
+        return !!(window.QuyTacTrungTaiSanKhac && window.QuyTacTrungTaiSanKhac.layQuyTac(loai) === 'Ip');
+    }
+
+    function danhDauBatBuoc() {
+        var ip = theoIp(document.getElementById('ddlSuaTskLoai').value);
+        document.getElementById('batBuocSuaTskIp').classList.toggle('d-none', !ip);
+        document.querySelector('label[for="txtSuaTskSerial"] .text-danger').classList.toggle('d-none', ip);
+    }
+
+    $(document).on('change', '#ddlSuaTskLoai', danhDauBatBuoc);
+
     function hienLoi(thongBao) {
         var box = document.getElementById('loiSuaTaiSanKhac');
         box.textContent = thongBao;
@@ -72,12 +86,13 @@
         document.getElementById('hidSuaTskId').value = ts.idThietBi;
         document.getElementById('lblSuaTskId').textContent = '#' + ts.idThietBi;
         document.getElementById('txtSuaTskSerial').value = ts.seribacode || '';
+        document.getElementById('txtSuaTskIp').value = ts.ip || '';
         document.getElementById('txtSuaTskQuyCach').value = ts.quyCach || '';
         document.getElementById('txtSuaTskViTri').value = ts.tenViTri || '';
         document.getElementById('txtSuaTskGhiChu').value = ts.ghiChu || '';
 
         napDanhMucLoai()
-            .then(function () { veDropdownLoai(ts.loaiThietBi); })
+            .then(function () { veDropdownLoai(ts.loaiThietBi); danhDauBatBuoc(); })
             .catch(function (err) { hienLoi(err.message); });
 
         bootstrap.Modal.getOrCreateInstance(document.getElementById('modalSuaTaiSanKhac')).show();
@@ -89,14 +104,17 @@
 
         var loai = document.getElementById('ddlSuaTskLoai').value.trim();
         var serial = document.getElementById('txtSuaTskSerial').value.trim();
+        var ip = document.getElementById('txtSuaTskIp').value.trim();
         if (!loai) { hienLoi('Vui lòng chọn Loại thiết bị.'); return; }
-        if (!serial) { hienLoi('Vui lòng nhập Serial.'); return; }
+        if (theoIp(loai) && !ip) { hienLoi(loai + ' nhận diện theo IP, vui lòng nhập IP.'); return; }
+        if (!theoIp(loai) && !serial) { hienLoi('Vui lòng nhập Serial.'); return; }
 
         var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
         var fd = new FormData();
         fd.append('IdThietBi', document.getElementById('hidSuaTskId').value);
         fd.append('LoaiThietBi', loai);
         fd.append('Seribacode', serial);
+        fd.append('Ip', ip);
         fd.append('QuyCach', document.getElementById('txtSuaTskQuyCach').value.trim());
         fd.append('TenViTri', document.getElementById('txtSuaTskViTri').value.trim());
         fd.append('GhiChu', document.getElementById('txtSuaTskGhiChu').value.trim());

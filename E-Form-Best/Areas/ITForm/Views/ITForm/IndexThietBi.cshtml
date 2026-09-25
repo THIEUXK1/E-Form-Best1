@@ -989,6 +989,10 @@
                         <label class="form-label fw-bold">Số Serial / Barcode</label>
                         <input type="text" id="tb_Seribacode" class="form-control rounded-3" placeholder="Nhập Serial hoặc Barcode..." style="border: 1px solid #e2e8f0; height: 45px;" />
                     </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold" for="tb_Ip">Địa chỉ IP <small class="text-muted fw-normal">(máy in kiểm trùng theo IP)</small></label>
+                        <input type="text" id="tb_Ip" class="form-control rounded-3" maxlength="50" placeholder="VD: 10.0.60.120" style="border: 1px solid #e2e8f0; height: 45px;" />
+                    </div>
 
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Tên máy tính (Hostname)</label>
@@ -1654,6 +1658,7 @@
         $('#tb_TenDangNhap').val(localStorage.getItem('add_form_tb_TenDangNhap') || '');
         $('#tb_GhiChu').val(localStorage.getItem('add_form_tb_GhiChu') || '');
         $('#tb_Seribacode').val(localStorage.getItem('add_form_tb_Seribacode') || '');
+        $('#tb_Ip').val(''); // IP là duy nhất theo từng máy in, không nhớ lại từ lần thêm trước
         $('#tb_HanBaoHanh').val(localStorage.getItem('add_form_tb_HanBaoHanh') || '');
         $('#tb_WinLicense').val(localStorage.getItem('add_form_tb_WinLicense') || '');
         $('#tb_OfficeLicense').val(localStorage.getItem('add_form_tb_OfficeLicense') || '');
@@ -3040,6 +3045,7 @@
         $('#tb_GhiChu').val(item.ghiChu || '');
 
         $('#tb_Seribacode').val(item.seribacode || '');
+        $('#tb_Ip').val(item.ip || '');
         $('#tb_WinLicense').val(item.winLicense || '');
         $('#tb_OfficeLicense').val(item.officeLicense || '');
 
@@ -3080,6 +3086,7 @@
         formData.append("saveAsNew", saveAsNew);
 
         formData.append("Seribacode", $('#tb_Seribacode').val().trim());
+        formData.append("Ip", $('#tb_Ip').val().trim());
         formData.append("HanBaoHanh", $('#tb_HanBaoHanh').val());
         formData.append("WinLicense", $('#tb_WinLicense').val());
         formData.append("OfficeLicense", $('#tb_OfficeLicense').val());

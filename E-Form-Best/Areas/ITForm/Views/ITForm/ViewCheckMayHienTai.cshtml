@@ -772,6 +772,9 @@
             </div>
         </div>
 
+        @* Quy tắc trùng theo loại (appsettings KiemKe:TrungTaiSanKhac) cho wwwroot/js/kiemke-trung-tai-san-khac.js *@
+        <div id="cfgQuyTacTrungTaiSanKhac" data-quy-tac="@ViewBag.QuyTacTrungTaiSanKhac" hidden></div>
+
         @* Sửa thông tin 1 dòng "Tài sản khác đi kèm" - logic ở wwwroot/js/kiemke-sua-tai-san-khac.js *@
         <div class="modal fade" id="modalSuaTaiSanKhac" data-bs-backdrop="static" tabindex="-1" aria-labelledby="modalSuaTaiSanKhacLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
@@ -790,7 +793,11 @@
                             </div>
                             <div class="mb-2">
                                 <label class="form-label small fw-bold mb-1" for="txtSuaTskSerial">Serial <span class="text-danger">*</span></label>
-                                <input type="text" id="txtSuaTskSerial" class="form-control form-control-sm" maxlength="255" required placeholder="Serial thật trên tem thiết bị, không phải tên model" />
+                                <input type="text" id="txtSuaTskSerial" class="form-control form-control-sm" maxlength="255" placeholder="Serial thật trên tem thiết bị, không phải tên model" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold mb-1" for="txtSuaTskIp">Địa chỉ IP <span class="text-danger d-none" id="batBuocSuaTskIp">*</span></label>
+                                <input type="text" id="txtSuaTskIp" class="form-control form-control-sm" maxlength="50" placeholder="Máy in nhận diện theo IP, VD: 10.0.60.120" />
                             </div>
                             <div class="mb-2">
                                 <label class="form-label small fw-bold mb-1" for="txtSuaTskQuyCach">Quy cách</label>
@@ -1897,6 +1904,20 @@
             }
             }
 
+            // Khoá nút trong lúc gửi: bấm nhiều lần từng làm 1 máy in sinh 4 bằng chứng kiểm kê trong vài giây
+            var $btnGui = $("#btnSubmitXacNhanTaiSan");
+            if ($btnGui.data('dangGui')) return;
+            $btnGui.data('dangGui', true).prop('disabled', true);
+            var moKhoaNutGui = function () { $btnGui.data('dangGui', false).prop('disabled', false); };
+
+            // Hỏi ghi đè các dòng Tài sản khác trùng thiết bị đã có TRƯỚC khi gửi gì lên server (kiemke-trung-tai-san-khac.js)
+            window.kiemTraTrungTaiSanKhac(taiSanKhacInfo.rows, maNhanVienInput).then(function (kqTrung) {
+            if (!kqTrung.tiepTuc) {
+            moKhoaNutGui();
+            if (kqTrung.thongBao) hienLoiNoiGiua("#modalTaiSanAlertError", kqTrung.thongBao);
+            return;
+            }
+
             // Chuẩn bị toàn bộ dữ liệu phần cứng cần thiết để có thể INSERT khi thiết bị chưa tồn tại
             var fd = new FormData();
             fd.append('taikhoan', taikhoanInput);
@@ -1941,6 +1962,7 @@
             if (res.success) {
             // Gửi tiếp các dòng "Tài sản khác" (nếu có) dùng chung Tài khoản/Công ty/Bộ phận vừa xác nhận, rồi mới đóng modal & báo thành công
             guiTaiSanKhac(taikhoanInput, matkhauInput, idCongTyInput, idBoPhanInput, taiSanKhacInfo.rows, maNhanVienInput, idViTriDiaLyInput, function (resTaiSanKhac) {
+            moKhoaNutGui();
 
             // Đóng modal xác nhận tài sản khi hoàn tất thành công
             var modalElement = document.getElementById('modalXacNhanTaiSan');
@@ -1980,12 +2002,18 @@
             });
 
             } else {
+            moKhoaNutGui();
             hienLoiNoiGiua("#modalTaiSanAlertError", res.message);
             }
             },
             error: function () {
+            moKhoaNutGui();
             hienLoiNoiGiua("#modalTaiSanAlertError", "Đã xảy ra lỗi kết nối đường truyền xác thực với máy chủ website.");
             }
+            });
+            }).catch(function (err) {
+            moKhoaNutGui();
+            hienLoiNoiGiua("#modalTaiSanAlertError", (err && err.message) || "Không kiểm tra được trùng Tài sản khác.");
             });
             });
 
@@ -2023,6 +2051,8 @@
             '    <div class="col-6 col-md-2">' +
             '      <label class="form-label small fw-bold mb-1">Serial <span class="text-danger">*</span></label>' +
             '      <input type="text" class="form-control form-control-sm input-serial-tskhac" placeholder="Nhập Serial..." />' +
+            // Chỉ hiện với loại nhận diện theo IP (máy in) - bật/tắt ở kiemke-trung-tai-san-khac.js
+            '      <input type="text" class="form-control form-control-sm input-ip-tskhac mt-1 d-none" maxlength="50" placeholder="IP máy in * (VD: 10.0.60.120)" />' +
             '    </div>' +
             '    <div class="col-6 col-md-2">' +
             '      <label class="form-label small fw-bold mb-1">Quy cách</label>' +
@@ -2114,17 +2144,21 @@
             $("#dsRowTaiSanKhac .dong-tai-san-khac").each(function (i) {
             var loai = $(this).find('.select-loai-tskhac').val();
             var serial = $(this).find('.input-serial-tskhac').val().trim();
+            var ip = $(this).find('.input-ip-tskhac').val().trim();
             var quyCach = $(this).find('.input-quycach-tskhac').val().trim();
             var viTri = $(this).find('.input-vitri-tskhac').val().trim();
             // Ưu tiên ảnh dán/kéo-thả (lưu qua .data('anhBlob')) vì input file gốc không giữ được Blob thô không tên
             var file = $(this).data('anhBlob') || $(this).find('.input-anh-tskhac')[0].files[0];
 
-            if (!serial && !loai && !quyCach && !viTri && !file) return; // Dòng bỏ trống hoàn toàn -> bỏ qua, không tính là lỗi
+            if (!serial && !ip && !loai && !quyCach && !viTri && !file) return; // Dòng bỏ trống hoàn toàn -> bỏ qua, không tính là lỗi
 
-            if (!serial) { error = 'Tài sản khác - Dòng ' + (i + 1) + ': Vui lòng nhập Serial.'; return false; }
             if (!loai) { error = 'Tài sản khác - Dòng ' + (i + 1) + ': Vui lòng chọn Loại thiết bị.'; return false; }
+            // Loại nhận diện theo IP (máy in) bắt buộc IP thay cho Serial
+            var theoIp = window.QuyTacTrungTaiSanKhac && window.QuyTacTrungTaiSanKhac.layQuyTac(loai) === 'Ip';
+            if (theoIp && !ip) { error = 'Tài sản khác - Dòng ' + (i + 1) + ': ' + loai + ' nhận diện theo IP, vui lòng nhập IP.'; return false; }
+            if (!theoIp && !serial) { error = 'Tài sản khác - Dòng ' + (i + 1) + ': Vui lòng nhập Serial.'; return false; }
 
-            rows.push({ loai: loai, serial: serial, quyCach: quyCach, viTri: viTri, file: file });
+            rows.push({ loai: loai, serial: serial, ip: theoIp ? ip : '', quyCach: quyCach, viTri: viTri, file: file });
             });
             return { rows: rows, error: error };
             }
@@ -2143,6 +2177,8 @@
             fd.append('__RequestVerificationToken', layTokenChongGiaMao()); // Action này có [ValidateAntiForgeryToken]
             rows.forEach(function (r, i) {
             fd.append('rows[' + i + '].Serial', r.serial);
+            fd.append('rows[' + i + '].Ip', r.ip || '');
+            if (r.idGhiDe) fd.append('rows[' + i + '].IdGhiDe', r.idGhiDe); // Đã xác nhận ghi đè thiết bị trùng (kiemke-trung-tai-san-khac.js)
             fd.append('rows[' + i + '].LoaiThietBi', r.loai);
             fd.append('rows[' + i + '].QuyCach', r.quyCach || '');
             fd.append('rows[' + i + '].TenViTri', r.viTri);
@@ -2236,6 +2272,7 @@
             });
             });
         </script>
-        <script src="~/js/kiemke-sua-tai-san-khac.js?v=20260925"></script>
+        <script src="~/js/kiemke-trung-tai-san-khac.js?v=20260925"></script>
+        <script src="~/js/kiemke-sua-tai-san-khac.js?v=20260925b"></script>
     }
 }
