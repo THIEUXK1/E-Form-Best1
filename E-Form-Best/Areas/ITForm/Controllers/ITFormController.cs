@@ -9730,8 +9730,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (idNguoiDungChuMay.HasValue)
                 {
                     string seriMayChuan = (seriMay ?? "").Trim().ToLower();
+                    // Cờ DuocSua chỉ để hiện/ẩn nút Sửa; SuaThongTinTaiSanKhac vẫn kiểm lại quyền ở server
+                    bool coQuyenQuanLy = CoQuyenSuaMoiTaiSanKhac();
+                    int? idNguoiDangNhap = LayIdNguoiDangNhap();
                     dsTaiSanKhac = _context.KkThietBis
-                        .Where(x => x.IdNguoiDung == idNguoiDungChuMay &&
+                        .Where(x => x.IdNguoiDung == idNguoiDungChuMay && x.NgayXoa == null &&
                                     (x.Seribacode == null || x.Seribacode.Trim().ToLower() != seriMayChuan))
                         .Select(x => new
                         {
@@ -9740,7 +9743,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             x.Seribacode,
                             x.QuyCach,
                             x.TenViTri,
-                            x.DuongDanAnh
+                            x.GhiChu,
+                            x.DuongDanAnh,
+                            DuocSua = coQuyenQuanLy || (idNguoiDangNhap != null && x.IdNguoiDung == idNguoiDangNhap)
                         })
                         .ToList<object>();
                 }
@@ -9794,6 +9799,91 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex)
             {
                 return Json(new { success = false, message = "Lỗi Server: " + ex.Message });
+            }
+        }
+
+        // Nhóm được sửa Tài sản khác của bất kỳ ai: quản lý tài sản bộ phận, nhóm kiểm kê và IT
+        private bool CoQuyenSuaMoiTaiSanKhac()
+            => User.IsInRole("XemTSCN") || User.IsInRole("All") || User.IsInRole("AdminIT") || User.IsInRole("KKTS-PFVN");
+
+        private int? LayIdNguoiDangNhap()
+            => int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out int id) ? id : null;
+
+        public class SuaTaiSanKhacRequest
+        {
+            public int IdThietBi { get; set; }
+            public string? LoaiThietBi { get; set; }
+            public string? Seribacode { get; set; }
+            public string? QuyCach { get; set; }
+            public string? TenViTri { get; set; }
+            public string? GhiChu { get; set; }
+        }
+
+        // Sửa thông tin 1 dòng "Tài sản khác đi kèm" ngay trên trang ViewCheckMayHienTai.
+        // Người đứng tên thiết bị tự sửa được tài sản của mình; sửa của người khác phải thuộc nhóm CoQuyenSuaMoiTaiSanKhac.
+        // Chặn trùng Serial + Loại: luồng Tài sản khác gộp theo đúng cặp này, để trùng là lần kiểm kê sau đè mất thiết bị.
+        [HttpPost("/QLKiemKe/SuaThongTinTaiSanKhac")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SuaThongTinTaiSanKhac([FromForm] SuaTaiSanKhacRequest req)
+        {
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
+            try
+            {
+                var thietBi = await _context.KkThietBis.FirstOrDefaultAsync(x => x.IdThietBi == req.IdThietBi && x.NgayXoa == null);
+                if (thietBi == null)
+                    return Json(new { thanhCong = false, thongBao = "Thiết bị không tồn tại hoặc đã nằm trong thùng rác." });
+
+                int? idNguoiDangNhap = LayIdNguoiDangNhap();
+                bool laChuSoHuu = idNguoiDangNhap != null && thietBi.IdNguoiDung == idNguoiDangNhap;
+                if (!laChuSoHuu && !CoQuyenSuaMoiTaiSanKhac())
+                    return Json(new { thanhCong = false, thongBao = "Bạn chỉ được sửa tài sản đang đứng tên mình." });
+
+                string loai = (req.LoaiThietBi ?? "").Trim();
+                string serial = (req.Seribacode ?? "").Trim();
+                if (loai.Length == 0)
+                    return Json(new { thanhCong = false, thongBao = "Vui lòng chọn Loại thiết bị." });
+                if (serial.Length == 0)
+                    return Json(new { thanhCong = false, thongBao = "Vui lòng nhập Serial." });
+                if (!await _context.KkLoaiThietBis.AnyAsync(x => x.TenLoai == loai))
+                    return Json(new { thanhCong = false, thongBao = $"Loại thiết bị '{loai}' không có trong danh mục." });
+
+                string serialThuong = serial.ToLower();
+                string loaiThuong = loai.ToLower();
+                var trung = await _context.KkThietBis
+                    .Where(x => x.IdThietBi != thietBi.IdThietBi && x.NgayXoa == null
+                             && x.Seribacode != null && x.Seribacode.Trim().ToLower() == serialThuong
+                             && x.LoaiThietBi != null && x.LoaiThietBi.Trim().ToLower() == loaiThuong)
+                    .Select(x => new { x.IdThietBi, x.TenViTri })
+                    .FirstOrDefaultAsync();
+                if (trung != null)
+                    return Json(new { thanhCong = false, thongBao = $"Serial '{serial}' ({loai}) đã có ở thiết bị #{trung.IdThietBi}{(string.IsNullOrWhiteSpace(trung.TenViTri) ? "" : " - " + trung.TenViTri)}. Kiểm tra lại Serial thật trên tem thiết bị." });
+
+                string truoc = $"Loại: {thietBi.LoaiThietBi} | Serial: {thietBi.Seribacode} | Quy cách: {thietBi.QuyCach} | Vị trí: {thietBi.TenViTri} | Ghi chú: {thietBi.GhiChu}";
+
+                thietBi.LoaiThietBi = loai;
+                thietBi.Seribacode = serial;
+                thietBi.QuyCach = string.IsNullOrWhiteSpace(req.QuyCach) ? null : req.QuyCach.Trim();
+                thietBi.TenViTri = (req.TenViTri ?? "").Trim();
+                thietBi.GhiChu = string.IsNullOrWhiteSpace(req.GhiChu) ? null : req.GhiChu.Trim();
+                thietBi.NgayCapNhat = DateTime.Now;
+                await _context.SaveChangesAsync();
+
+                string sau = $"Loại: {thietBi.LoaiThietBi} | Serial: {thietBi.Seribacode} | Quy cách: {thietBi.QuyCach} | Vị trí: {thietBi.TenViTri} | Ghi chú: {thietBi.GhiChu}";
+                GhiLichSu("Cập nhật", "Thiết Bị", thietBi.IdThietBi, $"[Sửa tài sản khác] Trước: {truoc} → Sau: {sau}");
+
+                return Json(new
+                {
+                    thanhCong = true,
+                    thongBao = "Đã lưu thông tin thiết bị.",
+                    duLieu = new { thietBi.IdThietBi, thietBi.LoaiThietBi, thietBi.Seribacode, thietBi.QuyCach, thietBi.TenViTri, thietBi.GhiChu }
+                });
+            }
+            catch (Exception ex)
+            {
+                var chiTietLoi = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { thanhCong = false, thongBao = "Lỗi hệ thống khi lưu thiết bị: " + chiTietLoi });
             }
         }
 

@@ -771,6 +771,50 @@
                 </div>
             </div>
         </div>
+
+        @* Sửa thông tin 1 dòng "Tài sản khác đi kèm" - logic ở wwwroot/js/kiemke-sua-tai-san-khac.js *@
+        <div class="modal fade" id="modalSuaTaiSanKhac" data-bs-backdrop="static" tabindex="-1" aria-labelledby="modalSuaTaiSanKhacLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="modalSuaTaiSanKhacLabel"><i class="fa fa-pencil" style="margin-right: 8px;"></i>Sửa thông tin tài sản <span id="lblSuaTskId"></span></h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="formSuaTaiSanKhac" novalidate>
+                        <div class="modal-body">
+                            <div id="loiSuaTaiSanKhac" class="alert alert-danger py-2 small" style="display: none;"></div>
+                            <input type="hidden" id="hidSuaTskId" />
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold mb-1" for="ddlSuaTskLoai">Loại thiết bị <span class="text-danger">*</span></label>
+                                <select id="ddlSuaTskLoai" class="form-select form-select-sm" required></select>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold mb-1" for="txtSuaTskSerial">Serial <span class="text-danger">*</span></label>
+                                <input type="text" id="txtSuaTskSerial" class="form-control form-control-sm" maxlength="255" required placeholder="Serial thật trên tem thiết bị, không phải tên model" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold mb-1" for="txtSuaTskQuyCach">Quy cách</label>
+                                <input type="text" id="txtSuaTskQuyCach" class="form-control form-control-sm" placeholder="VD: IDATA 50P, TTP-244 Pro..." />
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold mb-1" for="txtSuaTskViTri">Vị trí</label>
+                                <input type="text" id="txtSuaTskViTri" class="form-control form-control-sm" placeholder="VD: Tầng 3 - Phòng Kế toán..." />
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label small fw-bold mb-1" for="txtSuaTskGhiChu">Ghi chú</label>
+                                <textarea id="txtSuaTskGhiChu" class="form-control form-control-sm" rows="2"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" id="btnLuuSuaTaiSanKhac" class="btn btn-success">
+                                <i class="fa fa-save" style="margin-right: 4px;"></i> Lưu
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     }
     else
     {
@@ -1417,16 +1461,21 @@
 
             // Dòng "Tài sản khác đi kèm" - liệt kê toàn bộ thiết bị khác cùng chủ sở hữu với máy này, kèm ảnh từng thiết bị
             if (res.taiSanKhac && res.taiSanKhac.length > 0) {
-            var htmlParts = res.taiSanKhac.map(function (ts) {
-            var thongTin = (ts.loaiThietBi || 'Thiết bị') + (ts.seribacode ? ' - S/N: ' + ts.seribacode : '') + (ts.quyCach ? ' - Quy cách: ' + ts.quyCach : '') + (ts.tenViTri ? ' (' + ts.tenViTri + ')' : '');
-            return '<div class="d-flex align-items-center gap-2 mb-2 item-tai-san-khac" data-id="' + ts.idThietBi + '" data-anh="' + (ts.duongDanAnh || '') + '">' +
-            '<div class="avatar-mini-wrapper-sm"><img class="img-tsk" src="/QLKiemKe/GetEvidenceImage?fileName=' + encodeURIComponent(ts.duongDanAnh || '') + '" onerror="this.style.visibility=\'hidden\';" /></div>' +
-            '<span>' + thongTin + '</span>' +
-            '<button type="button" class="btn btn-sm btn-outline-secondary btn-xem-tsk"><i class="fa fa-eye"></i></button>' +
-            (coQuyenSuaAnhNguoiKhac ? '<button type="button" class="btn btn-sm btn-outline-primary btn-sua-tsk"><i class="fa fa-pencil"></i></button>' : '') +
-            '</div>';
+            // Dựng bằng DOM + text(): Serial/Vị trí do người dùng tự gõ (và giờ sửa được), không nối thẳng vào HTML
+            var $ds = $("#lblTaiSanKhacDiKem").empty();
+            res.taiSanKhac.forEach(function (ts) {
+            var $row = $('<div class="d-flex align-items-center gap-2 mb-2 item-tai-san-khac"></div>')
+            .attr('data-id', ts.idThietBi).attr('data-anh', ts.duongDanAnh || '').data('ts', ts);
+            var $img = $('<img class="img-tsk" />').attr('src', '/QLKiemKe/GetEvidenceImage?fileName=' + encodeURIComponent(ts.duongDanAnh || ''))
+            .on('error', function () { this.style.visibility = 'hidden'; });
+            $row.append($('<div class="avatar-mini-wrapper-sm"></div>').append($img));
+            $row.append($('<span class="txt-tsk"></span>').text(window.moTaTaiSanKhac ? window.moTaTaiSanKhac(ts) : (ts.loaiThietBi || 'Thiết bị')));
+            $row.append('<button type="button" class="btn btn-sm btn-outline-secondary btn-xem-tsk" title="Xem ảnh"><i class="fa fa-eye"></i></button>');
+            if (coQuyenSuaAnhNguoiKhac) $row.append('<button type="button" class="btn btn-sm btn-outline-primary btn-sua-tsk" title="Sửa ảnh"><i class="fa fa-camera"></i></button>');
+            // Nút sửa thông tin: xử lý ở wwwroot/js/kiemke-sua-tai-san-khac.js (event delegation)
+            if (ts.duocSua) $row.append('<button type="button" class="btn btn-sm btn-outline-success btn-sua-tt-tsk" title="Sửa thông tin"><i class="fa fa-pencil"></i> Sửa</button>');
+            $ds.append($row);
             });
-            $("#lblTaiSanKhacDiKem").html(htmlParts.join(''));
 
             // Gắn sự kiện Xem ảnh / Sửa ảnh cho từng dòng Tài sản khác vừa render
             $("#lblTaiSanKhacDiKem .img-tsk, #lblTaiSanKhacDiKem .btn-xem-tsk").off('click').on('click', function () {
@@ -2187,5 +2236,6 @@
             });
             });
         </script>
+        <script src="~/js/kiemke-sua-tai-san-khac.js?v=20260925"></script>
     }
 }
