@@ -688,11 +688,16 @@
         if (!sapQuaHanItems || sapQuaHanItems.length === 0) return '';
         return sapQuaHanItems.map(item => {
         const tenViec = item.ten || item.tenForm || 'Công việc chỉ định';
+        // Tên người do người dùng nhập → escape trước khi ghép vào HTML
+        const dsPhuTrach = (item.nguoiPhuTrach && item.nguoiPhuTrach.length) ? item.nguoiPhuTrach.join(', ') : 'Chưa phân công';
+        const phuTrachDiv = document.createElement('div');
+        phuTrachDiv.textContent = dsPhuTrach;
         return `<a href="/FormCongViec/ChiTiet/${item.id}" data-sapquahan-pin="1" style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:2px solid #fecaca; background: #fef2f2; color: inherit;">
         <div style="width: 44px; height: 44px; border-radius: 12px; background: #ef4444; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.1rem;"><i class="fa fa-exclamation-triangle"></i></div>
         <div style="flex:1;">
         <div style="font-size: 0.7rem; font-weight: 900; color: #dc2626; text-transform: uppercase; letter-spacing: 0.5px;">Sắp quá hạn</div>
         <div style="font-size: 0.88rem; font-weight: 800; color: #1e293b;">${tenViec}</div>
+        <div style="font-size: 0.75rem; color: #334155; font-weight: 600; margin-top: 3px; word-break: break-word;" title="Người chịu trách nhiệm"><i class="fa fa-user-circle"></i> Phụ trách: ${phuTrachDiv.innerHTML}</div>
         <div style="font-size: 0.75rem; color: #dc2626; font-weight: 700; margin-top: 4px;"><i class="fa fa-clock-o"></i> <span class="sqh-countdown" data-sqh-id="${item.id}">${tinhThoiGianConLai(item)}</span> - cần xử lý gấp!</div>
         </div></a>`;
         }).join('');

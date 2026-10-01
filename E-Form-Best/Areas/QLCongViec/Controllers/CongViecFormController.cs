@@ -1859,12 +1859,26 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                     f.Id,
                     TenForm = (f.TenForm ?? "").Replace("[ĐÃ HỦY]", "").Trim(),
                     Ten = f.CvCongViecOrder1s.OrderBy(o => o.ThoiHanHoanThanh).Select(o => o.Ten).FirstOrDefault(),
-                    ThoiHanHoanThanh = f.CvCongViecOrder1s.OrderBy(o => o.ThoiHanHoanThanh).Select(o => o.ThoiHanHoanThanh).FirstOrDefault()
+                    ThoiHanHoanThanh = f.CvCongViecOrder1s.OrderBy(o => o.ThoiHanHoanThanh).Select(o => o.ThoiHanHoanThanh).FirstOrDefault(),
+                    // Đủ danh sách người thực hiện theo thứ tự gán — cùng nguồn với panel trang Lịch công việc
+                    NguoiPhuTrach = f.FormCongViecNguoiLienQuans
+                        .OrderBy(x => x.Id)
+                        .Select(x => x.IdNguoiDungNavigation.HoTen)
+                        .ToList()
                 })
                 .OrderBy(x => x.ThoiHanHoanThanh)
                 .ToListAsync();
 
-            return Ok(new { success = true, count = danhSach.Count, data = danhSach });
+            var data = danhSach.Select(x => new
+            {
+                x.Id,
+                x.TenForm,
+                x.Ten,
+                x.ThoiHanHoanThanh,
+                NguoiPhuTrach = x.NguoiPhuTrach.Where(t => !string.IsNullOrWhiteSpace(t)).Distinct().ToList()
+            }).ToList();
+
+            return Ok(new { success = true, count = data.Count, data });
         }
 
         #endregion
@@ -2707,6 +2721,10 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                     query = query.Where(x => x.TimeNguoiDuyet <= endOfToDate);
                 }
 
+                // Mốc "quá hạn": chưa hoàn tất (IdAdmin null), chưa hủy, hạn hoàn thành sớm nhất đã trôi qua.
+                // Cùng tiêu chí với chuông cảnh báo "Đã trễ" (so tới từng giây, không làm tròn ngày).
+                var bayGio = DateTime.Now;
+
                 // Sử dụng Select Projection trực tiếp tối ưu câu lệnh sinh SQL sạch của EF Core
                 var data = await query
                     .Select(x => new
@@ -2718,7 +2736,10 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                         x.IdNguoiDuyet,
                         x.IdAdmin,
                         x.TenForm,
-                        IsRated = _context.DanhGiaFormCongViecs.Any(dg => dg.IdFormCongViec == x.Id) // Kiểm tra đánh giá từ bảng độc lập
+                        IsRated = _context.DanhGiaFormCongViecs.Any(dg => dg.IdFormCongViec == x.Id), // Kiểm tra đánh giá từ bảng độc lập
+                        QuaHan = x.IdAdmin == null
+                                 && (x.TenForm == null || !x.TenForm.Contains("[ĐÃ HỦY]"))
+                                 && x.CvCongViecOrder1s.Any(o => o.ThoiHanHoanThanh != null && o.ThoiHanHoanThanh < bayGio)
                     })
                     .ToListAsync();
 
@@ -2750,6 +2771,8 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                     query = query.Where(x => x.IdFormCongViecNavigation != null && x.IdFormCongViecNavigation.TimeNguoiDuyet <= endOfToDate);
                 }
 
+                var bayGio = DateTime.Now; // cùng tiêu chí quá hạn với GetDataThongKe
+
                 // Chiếu dữ liệu thô (Raw Projection) rút gọn dải cột kéo từ SQL Server về RAM trước khi GroupBy
                 var rawData = await query
                     .Select(x => new
@@ -2763,7 +2786,10 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                         IdNguoiDuyet = x.IdFormCongViecNavigation != null ? x.IdFormCongViecNavigation.IdNguoiDuyet : null,
                         TimeAdmin = x.IdFormCongViecNavigation != null ? x.IdFormCongViecNavigation.TimeAdmin : null,
                         TimeNguoiDuyet = x.IdFormCongViecNavigation != null ? x.IdFormCongViecNavigation.TimeNguoiDuyet : null,
-                        HasRating = x.IdFormCongViecNavigation != null && _context.DanhGiaFormCongViecs.Any(dg => dg.IdFormCongViec == x.IdFormCongViec)
+                        HasRating = x.IdFormCongViecNavigation != null && _context.DanhGiaFormCongViecs.Any(dg => dg.IdFormCongViec == x.IdFormCongViec),
+                        QuaHan = x.IdFormCongViecNavigation.IdAdmin == null
+                                 && (x.IdFormCongViecNavigation.TenForm == null || !x.IdFormCongViecNavigation.TenForm.Contains("[ĐÃ HỦY]"))
+                                 && x.IdFormCongViecNavigation.CvCongViecOrder1s.Any(o => o.ThoiHanHoanThanh != null && o.ThoiHanHoanThanh < bayGio)
                     })
                     .ToListAsync();
 
@@ -2789,7 +2815,8 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                                         (top.IdAdmin != null && top.HasRating) ? "HOÀN TẤT" :
                                         (top.IdAdmin != null) ? "ĐÁNH GIÁ" :
                                         (top.IdNguoiDuyet != null) ? "ĐANG XỬ LÝ" : "CHỜ QL",
-                            PhutXuLy = minutes
+                            PhutXuLy = minutes,
+                            QuaHan = top.QuaHan
                         };
                     })
                     .ToList();
@@ -2926,6 +2953,11 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                     f.TenForm,
                     f.TenNguoiTao,
                     f.BoPhan,
+                    // Một việc có thể giao cho nhiều người thực hiện → lấy đủ cả danh sách theo thứ tự gán
+                    NguoiPhuTrach = f.FormCongViecNguoiLienQuans
+                        .OrderBy(x => x.Id)
+                        .Select(x => x.IdNguoiDungNavigation.HoTen)
+                        .ToList(),
                     Ten = f.CvCongViecOrder1s.OrderBy(o => o.ThoiHanHoanThanh).Select(o => o.Ten).FirstOrDefault(),
                     HanChot = f.CvCongViecOrder1s.OrderBy(o => o.ThoiHanHoanThanh).Select(o => o.ThoiHanHoanThanh).FirstOrDefault()
                 })
@@ -2945,6 +2977,11 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                                 : soNgay == 0 ? "Hết hạn hôm nay"
                                 : $"Còn {soNgay} ngày",
                         nguoiTao = x.TenNguoiTao,
+                        // Bỏ trùng phòng khi một người bị gán lại nhiều lần
+                        nguoiPhuTrach = x.NguoiPhuTrach
+                            .Where(t => !string.IsNullOrWhiteSpace(t))
+                            .Distinct()
+                            .ToList(),
                         boPhan = x.BoPhan,
                         url = "/FormCongViec/ChiTiet/" + x.Id
                     };

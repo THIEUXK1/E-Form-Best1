@@ -8,8 +8,8 @@ window.GoiYThietBiKiemKe = (function () {
         { input: '#tb_TenViTri', datalist: 'suggestTenViTri', truong: 'tenViTri', hoa: true },
         { input: '#tb_TenDangNhap', datalist: 'suggestTenDangNhap', truong: 'tenDangNhap', hoa: true },
         { input: '#tb_GhiChu', datalist: 'suggestGhiChu', truong: 'ghiChu' },
-        { input: '#tb_WinLicense', datalist: 'dlWinLicense', truong: 'winLicense' },
-        { input: '#tb_OfficeLicense', datalist: 'dlOfficeLicense', truong: 'officeLicense' }
+        { input: '#tb_WinLicense', datalist: 'dlWinLicense', truong: 'winLicense' }
+        // Bản quyền Office giờ là công tắc Có/Chưa có key (kiemke-key-office.js), không còn ô gõ tự do để gợi ý
     ];
 
     // Datalist quá dài làm trình duyệt lọc chậm và danh sách thả xuống mất trọng tâm

@@ -88,7 +88,10 @@
                 '<div class="lcv-dl-meta">' +
                 '<span class="lcv-badge" style="background:' + mau + '">' + escapeHtml(item.nhanHan) + '</span>' +
                 '<span><i class="fa fa-flag-checkered"></i> ' + escapeHtml(item.hanChotText) + '</span>' +
-                (item.nguoiTao ? '<span><i class="fa fa-user"></i> ' + escapeHtml(item.nguoiTao) + '</span>' : '') +
+                (item.nguoiTao ? '<span title="Người tạo"><i class="fa fa-user"></i> ' + escapeHtml(item.nguoiTao) + '</span>' : '') +
+                '<span class="lcv-dl-phutrach" title="Người chịu trách nhiệm"><i class="fa fa-user-circle"></i> Phụ trách: ' +
+                escapeHtml(item.nguoiPhuTrach && item.nguoiPhuTrach.length
+                    ? item.nguoiPhuTrach.join(', ') : 'Chưa phân công') + '</span>' +
                 '</div>';
             box.appendChild(a);
         });

@@ -255,6 +255,13 @@
     align-items: center;
 }
 
+/* Danh sách người phụ trách chiếm trọn một dòng, xuống dòng tự nhiên khi nhiều người */
+.lcv-dl-phutrach {
+    flex-basis: 100%;
+    word-break: break-word;
+    color: #334155;
+}
+
 .lcv-badge {
     border-radius: 999px;
     padding: 2px 9px;

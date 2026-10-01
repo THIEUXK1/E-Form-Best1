@@ -890,13 +890,15 @@
                             </span>
                         </div>
                         <div class="table-responsive" data-fp-scroll>
-                            <table class="table table-hover align-middle mb-0" id="adminDataTable" style="min-width: 100%;" data-dang-xem="auto">
+                            <table class="table table-hover align-middle mb-0" id="adminDataTable" style="min-width: 100%;" data-dang-xem="auto" data-mak-cong-ty="@ViewBag.MakKeyCongTy">
                                 <thead class="table-light">
                                     <tr>
                                         <th width="60">ID</th>
                                         <th width="70" class="text-center">Ảnh</th>
                                         <th width="120">Loại thiết bị</th>
                                         <th>Thông tin máy tính</th>
+                                        <th width="110" class="text-center">Key Office</th>
+                                        <th width="110" class="text-center">Key Windows</th>
                                         <th>Người dùng & Vị trí</th>
                                         <th>Trạng thái & Kiểm tra</th>
                                         <th width="140" class="text-center">Thao tác</th>
@@ -1021,12 +1023,11 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-bold"><i class="fas fa-file-word text-success me-1"></i> Bản quyền Office</label>
-                        <input type="text" id="tb_OfficeLicense" class="form-control rounded-3" list="dlOfficeLicense" placeholder="VD: Có bản quyền" style="border: 1px solid #e2e8f0; height: 45px;" />
-                        <datalist id="dlOfficeLicense">
-                            <option value="Có bản quyền"></option>
-                            <option value="Không có bản quyền"></option>
-                            <option value="Không xác định"></option>
-                        </datalist>
+                        <input type="hidden" id="tb_OfficeLicense" />
+                        <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0 rounded-3 px-3" style="border: 1px solid #e2e8f0; height: 45px;">
+                            <input class="form-check-input m-0" type="checkbox" role="switch" id="tb_OfficeLicenseSwitch" style="cursor: pointer; width: 40px; height: 20px;">
+                            <label class="form-check-label fw-semibold text-danger m-0" for="tb_OfficeLicenseSwitch" id="tb_OfficeLicenseNhan" style="cursor: pointer;">Chưa có key</label>
+                        </div>
                     </div>
 
                     <div class="col-md-12">
@@ -1250,7 +1251,9 @@
     <script src="/js/kiemke-loc-vitri-dialy.js?v=2"></script>
     <script src="/js/kiemke-loc-can-cai-office.js?v=1"></script>
     <script src="/js/kiemke-form-vitri-office.js?v=1"></script>
-    <script src="/js/kiemke-goi-y-thiet-bi.js?v=1"></script>
+    <script src="/js/kiemke-goi-y-thiet-bi.js?v=2"></script>
+    <script src="/js/kiemke-key-office.js?v=1"></script>
+    <script src="/js/kiemke-key-windows.js?v=1"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
@@ -1661,7 +1664,7 @@
         $('#tb_Ip').val(''); // IP là duy nhất theo từng máy in, không nhớ lại từ lần thêm trước
         $('#tb_HanBaoHanh').val(localStorage.getItem('add_form_tb_HanBaoHanh') || '');
         $('#tb_WinLicense').val(localStorage.getItem('add_form_tb_WinLicense') || '');
-        $('#tb_OfficeLicense').val(localStorage.getItem('add_form_tb_OfficeLicense') || '');
+        KeyOfficeKiemKe.dat(localStorage.getItem('add_form_tb_OfficeLicense') || '');
         let savedOffice = localStorage.getItem('add_form_tb_CanCaiOffice') || '';
         FormViTriOfficeKiemKe.dat(localStorage.getItem('add_form_tb_IdViTriDiaLy') || '', savedOffice === 'true' ? true : (savedOffice === 'false' ? false : null));
 
@@ -1819,12 +1822,7 @@
         $("#dlWinLicense").append($('<option>').val(v));
         }
         });
-
-        (res.dsOffice || []).forEach(function (v) {
-        if ($("#dlOfficeLicense option[value='" + v.replace(/'/g, "\\'") + "']").length === 0) {
-        $("#dlOfficeLicense").append($('<option>').val(v));
-        }
-        });
+        // Bản quyền Office giờ là công tắc Có/Chưa có key nên không còn datalist để nạp dsOffice
         });
         }
 
@@ -1839,6 +1837,28 @@
         'bộ lưu điện', 'máy chiếu', 'switch', 'súng bắn mã vạch', 'máy chấm công', 'thiết bị họp trực tuyến'];
         function khongCoBanQuyen(loai) {
         return loaiKhongCoBanQuyen.includes((loai || '').trim().toLowerCase());
+        }
+
+        // Cột Key Office: OfficeLicense trong DB có nhiều cách ghi cho cùng một nghĩa ("Có bản quyền", "Có (Chưa rõ phiên bản)",
+        // "Chưa có", "Không có bản quyền"...) nên gom về đúng 2 trạng thái. Chỉ nhãn khẳng định có bản quyền mới là Có key;
+        // trống / "Không xác định" không chứng minh được máy có license nên tính là Chưa có key.
+        function badgeKeyOffice(item) {
+        if (khongCoBanQuyen(item.loaiThietBi)) return '<span class="text-muted">—</span>';
+        let gt = (item.officeLicense || '').trim();
+        let tieuDe = thoatThuocTinhChan(gt ? 'Bản quyền Office: ' + gt : 'Chưa có dữ liệu bản quyền Office');
+        if (KeyOfficeKiemKe.laCoKey(gt))
+        return `<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle" title="${tieuDe}"><i class="fas fa-key me-1"></i>Có key</span>`;
+        return `<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle" title="${tieuDe}"><i class="fas fa-times-circle me-1"></i>Chưa có key</span>`;
+        }
+
+        // Cột Key Windows: cùng kiểu 2 trạng thái như Key Office, luật phân loại nằm ở kiemke-key-windows.js
+        function badgeKeyWindows(item) {
+        if (khongCoBanQuyen(item.loaiThietBi)) return '<span class="text-muted">—</span>';
+        let gt = (item.winLicense || '').trim();
+        let tieuDe = thoatThuocTinhChan(gt ? 'Bản quyền Windows: ' + gt : 'Chưa có dữ liệu bản quyền Windows');
+        if (KeyWindowsKiemKe.laCoKey(gt))
+        return `<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle" title="${tieuDe}"><i class="fab fa-windows me-1"></i>Có key</span>`;
+        return `<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle" title="${tieuDe}"><i class="fas fa-times-circle me-1"></i>Chưa có key</span>`;
         }
 
         // Chặn thiết bị (module dùng chung kiemke-chan-thietbi.js): sau khi chặn/bỏ chặn thì nạp lại danh sách
@@ -1913,10 +1933,10 @@
         renderUIDaXoa();
         GoiYThietBiKiemKe.capNhat(allThietBiCache);
         } else {
-        $('#tbodyThietBi').html(`<tr><td colspan="7" class="text-center text-danger py-4">Lỗi tải dữ liệu từ Server: ${res.message}</td></tr>`);
+        $('#tbodyThietBi').html(`<tr><td colspan="9" class="text-center text-danger py-4">Lỗi tải dữ liệu từ Server: ${res.message}</td></tr>`);
         }
         }).fail(function() {
-        $('#tbodyThietBi').html(`<tr><td colspan="7" class="text-center text-danger py-4">Không thể kết nối đến API /QLKiemKe/GetKkThietBis</td></tr>`);
+        $('#tbodyThietBi').html(`<tr><td colspan="9" class="text-center text-danger py-4">Không thể kết nối đến API /QLKiemKe/GetKkThietBis</td></tr>`);
         });
         }
 
@@ -2634,6 +2654,14 @@
         ${dongBanQuyen}
         ${dongGhiChu}
         </td>
+        <td class="d-block d-md-table-cell text-end text-md-center border-0 py-2 align-middle">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px;">Key Office:</span>
+        ${badgeKeyOffice(item)}
+        </td>
+        <td class="d-block d-md-table-cell text-end text-md-center border-0 py-2 align-middle">
+        <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px;">Key Windows:</span>
+        ${badgeKeyWindows(item)}
+        </td>
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2 align-middle">
         <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px;">Người dùng & Vị trí:</span>
         <div class="small">${userStr}</div>
@@ -2657,7 +2685,7 @@
         });
 
         if (filtered.length === 0) {
-        html = `<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-search fs-2 mb-2 d-block opacity-50"></i> Không tìm thấy thiết bị nào phù hợp</td></tr>`;
+        html = `<tr><td colspan="9" class="text-center text-muted py-5"><i class="fas fa-search fs-2 mb-2 d-block opacity-50"></i> Không tìm thấy thiết bị nào phù hợp</td></tr>`;
         }
         $('#tbodyThietBi').html(html);
         vePhanTrangThietBi(tongSoTrang, soLuongPhuHop);
@@ -3047,7 +3075,7 @@
         $('#tb_Seribacode').val(item.seribacode || '');
         $('#tb_Ip').val(item.ip || '');
         $('#tb_WinLicense').val(item.winLicense || '');
-        $('#tb_OfficeLicense').val(item.officeLicense || '');
+        KeyOfficeKiemKe.dat(item.officeLicense || '');
 
         if (item.hanBaoHanh) {
         $('#tb_HanBaoHanh').val(item.hanBaoHanh);

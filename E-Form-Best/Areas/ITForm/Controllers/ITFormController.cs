@@ -7244,6 +7244,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             // Truyền User list sang View để đổ vào Dropdown Người Dùng
             ViewBag.Users = _context.Users.OrderBy(u => u.HoTen).ToList();
+            // 5 ký tự cuối các key MAK công ty - cột Key Windows ở bảng cần để phân biệt MAK công ty với MAK lạ (xem LaKeyDatChuanCongTy)
+            ViewBag.MakKeyCongTy = string.Join(",", _config.GetSection("BanQuyenWindows:MakKeyCongTy").Get<string[]>() ?? Array.Empty<string>());
             return View("IndexThietBi"); // Bạn cần tạo file IndexThietBi.cshtml trong thư mục Views
         }
 

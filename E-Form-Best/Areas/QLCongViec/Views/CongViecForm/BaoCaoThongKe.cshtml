@@ -188,7 +188,7 @@
     /* Dải KPI: 5 ô một hàng, thay 5 thẻ cao ~80px */
     .bc-kpi-strip {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr));
         gap: 10px;
         margin-bottom: 12px;
     }
@@ -508,6 +508,8 @@
         <div class="bc-kpi" style="--kpi-c:#3b82f6;"><span class="bc-kpi-label"><i class="fa fa-cogs" style="margin-right:5px;opacity:.85;"></i>Đang xử lý</span><span class="bc-kpi-value" id="lblProcessing">0</span></div>
         <div class="bc-kpi" style="--kpi-c:#8b5cf6;"><span class="bc-kpi-label"><i class="fa fa-star-o" style="margin-right:5px;opacity:.85;"></i>Chờ đánh giá</span><span class="bc-kpi-value" id="lblWaitRate">0</span></div>
         <div class="bc-kpi" style="--kpi-c:@colorPrimary;"><span class="bc-kpi-label"><i class="fa fa-check-circle" style="margin-right:5px;opacity:.85;"></i>Đã hoàn tất</span><span class="bc-kpi-value" id="lblDone">0</span></div>
+        @* Đếm chồng lên các trạng thái trên (đơn quá hạn vẫn nằm ở Chờ QL/Đang xử lý), không cộng vào Tổng *@
+        <div class="bc-kpi" style="--kpi-c:#dc2626;" title="Đơn chưa hoàn tất, chưa hủy và đã qua hạn hoàn thành"><span class="bc-kpi-label"><i class="fa fa-exclamation-triangle" style="margin-right:5px;opacity:.85;"></i>Đang quá hạn</span><span class="bc-kpi-value" id="lblOverdue" style="color:#dc2626;">0</span></div>
     </div>
 
     @* --- HÀNG BIỂU ĐỒ 1 --- *@
@@ -556,6 +558,7 @@
                         <th>Nhân Sự Thực Hiện</th>
                         <th>Danh Mục Nghiệp Vụ</th>
                         <th style="text-align: center;">Số Đơn Nhận</th>
+                        <th style="text-align: center;">Đang Quá Hạn</th>
                         <th style="text-align: center;">TG Xử Lý Trung Bình</th>
                     </tr>
                 </thead>
@@ -663,6 +666,7 @@
 
     const statusResults = processStatusLogic(displayDataChung);
     updateCounters(statusResults);
+    document.getElementById('lblOverdue').innerText = displayDataChung.filter(x => x.quaHan).length;
 
     const hasDataChung = displayDataChung && displayDataChung.length > 0;
     handleEmptyState(hasDataChung, 'wrapStatus', 'emptyStatus');
@@ -745,9 +749,10 @@
     const summary = displayData.reduce((acc, curr) => {
     const key = `${curr.tenNguoiHoTro}|${curr.danhMuc}`;
     if (!acc[key]) {
-    acc[key] = { name: curr.tenNguoiHoTro, cat: curr.danhMuc, count: 0, totalMin: 0, timeCount: 0 };
+    acc[key] = { name: curr.tenNguoiHoTro, cat: curr.danhMuc, count: 0, overdue: 0, totalMin: 0, timeCount: 0 };
     }
     acc[key].count++;
+    if (curr.quaHan) acc[key].overdue++;
     if (curr.phutXuLy !== null) {
     acc[key].totalMin += curr.phutXuLy;
     acc[key].timeCount++;
@@ -757,7 +762,7 @@
 
     const tbody = document.getElementById('tblStaffBody');
     if (Object.keys(summary).length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:20px;">Không có dữ liệu hiển thị báo cáo</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:20px;">Không có dữ liệu hiển thị báo cáo</td></tr>`;
     return;
     }
 
@@ -768,6 +773,7 @@
     <td style="font-weight: 600;">${item.name}</td>
     <td style="color: #64748b;">${item.cat}</td>
     <td style="text-align: center;"><span class="badge-count">${item.count}</span></td>
+    <td style="text-align: center; font-weight: 700; color: ${item.overdue > 0 ? '#dc2626' : '#94a3b8'};">${item.overdue > 0 ? item.overdue : '-'}</td>
     <td style="text-align: center;" class="badge-time">
     ${item.timeCount > 0 ? formatDuration(item.totalMin / item.timeCount) : '-'}
     </td>
