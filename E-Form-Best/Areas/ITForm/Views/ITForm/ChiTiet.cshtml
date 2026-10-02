@@ -840,7 +840,17 @@
                             <div style="margin-bottom: 25px; position: relative;">
                                 <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: @(isApprovedByManager ? "#d97706" : "#cbd5e1"); border: 3px solid white; box-shadow: 0 0 0 2px @(isApprovedByManager ? "#d97706" : "#cbd5e1");"></div>
                                 <div style="font-weight: 800; font-size: 15px; color: #1e293b;">Quản lý: @(Model.TenNguoiDuyet ?? "---")</div>
-                                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">@(Model.TimeNguoiDuyet?.ToString("HH:mm dd/MM/yyyy") ?? "Đang chờ duyệt...")</div>
+                                <div style="font-size: 13px; color: #64748b; margin-top: 4px;">
+                                    @(Model.TimeNguoiDuyet?.ToString("HH:mm dd/MM/yyyy") ?? "Đang chờ duyệt...")
+                                    @if (Model.TimeNguoiDuyet == null && User.IsInRole("All"))
+                                    {
+                                        <button type="button" class="js-xem-nguoi-duyet" data-id="@Model.Id" title="Xem người có thể duyệt"
+                                                style="background: none; border: none; padding: 0 4px; cursor: pointer; color: #0369a1; font-size: 14px;">
+                                            <i class="fa fa-eye"></i>
+                                        </button>
+                                    }
+                                </div>
+                                <div id="dsNguoiCoTheDuyet" style="display: none; margin-top: 8px; padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 13px; color: #334155;"></div>
                             </div>
 
                             @* HIỂN THỊ ĐỘNG BLOCK TIẾN TRÌNH XÁC NHẬN BỘ PHẬN ĐƠN 8 *@
@@ -1297,3 +1307,4 @@
 </script>
 <script src="~/js/formit-chitiet-doi-donvi.js?v=20260917"></script>
 <script src="~/js/formit-binhluan-dan-anh.js?v=20260917"></script>
+<script src="~/js/formit-nguoi-co-the-duyet.js?v=20261001"></script>

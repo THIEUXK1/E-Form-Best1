@@ -3854,6 +3854,65 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return View(don);
         }
 
+        // Danh sách người có thể duyệt bước Quản lý của đơn — chỉ quyền "All" xem được.
+        // Tái hiện đúng cách đăng nhập dựng Role + cách ChiTiet/Duyet kiểm cùng công ty + cùng bộ phận,
+        // để danh sách khớp với ai thực sự thấy nút Duyệt (không tính người có quyền All).
+        [HttpGet("/FormIT/NguoiCoTheDuyet/{id}")]
+        public async Task<IActionResult> NguoiCoTheDuyet(int id)
+        {
+            if (!User.IsInRole("All"))
+                return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem danh sách này." });
+
+            var don = await _context.FormIts.AsNoTracking()
+                .Where(f => f.Id == id)
+                .Select(f => new { f.TenCongTy, f.BoPhan })
+                .FirstOrDefaultAsync();
+            if (don == null)
+                return Json(new { thanhCong = false, thongBao = "Không tìm thấy đơn." });
+
+            string congTy = don.TenCongTy?.Trim() ?? "";
+            string boPhan = don.BoPhan?.Trim() ?? "";
+            if (congTy == "" || boPhan == "")
+                return Json(new { thanhCong = true, duLieu = new { congTy, boPhan, danhSach = Array.Empty<object>() } });
+
+            const string maQuyenDuyet = "QuanLyDuyetDonIT";
+
+            // Bộ phận được gán quyền duyệt (mô hình mới BoPhanQuyenTrungGian)
+            var boPhanCoQuyen = await _context.BoPhanQuyenTrungGians.AsNoTracking()
+                .Where(x => x.ChoPhep == true && x.IdQuyenNavigation.MaQuyen == maQuyenDuyet)
+                .Select(x => new { x.IdBoPhan, x.IdBoPhanNavigation.TenBoPhan })
+                .ToListAsync();
+            var idBoPhanCoQuyen = boPhanCoQuyen.Select(x => x.IdBoPhan).Distinct().ToList();
+            var tenBoPhanCoQuyen = boPhanCoQuyen.Where(x => x.TenBoPhan != null).Select(x => x.TenBoPhan!).Distinct().ToList();
+
+            // Ứng viên: cùng công ty, còn làm, thuộc bộ phận của đơn (UserBoPhan; nếu chưa gán thì theo cột PhongBan)
+            var ungVien = await _context.Users.AsNoTracking()
+                .Where(u => u.TrangThai != "Đã nghỉ" && u.TenCongTy == congTy
+                    && (u.UserBoPhans.Any(ub => ub.IdBoPhanNavigation.TenBoPhan == boPhan)
+                        || (!u.UserBoPhans.Any() && u.PhongBan == boPhan)))
+                .Select(u => new
+                {
+                    u.IdNguoiDung,
+                    u.HoTen,
+                    u.Tk,
+                    u.PhongBan,
+                    CoUserBoPhan = u.UserBoPhans.Any(),
+                    QuyenTheoBoPhan = u.UserBoPhans.Any(ub => idBoPhanCoQuyen.Contains(ub.IdBoPhan)),
+                    QuyenCaNhan = u.UserQuyens.Select(uq => uq.IdQuyenNavigation.TenQuyen).ToList()
+                })
+                .ToListAsync();
+
+            var danhSach = ungVien
+                .Where(u => u.QuyenTheoBoPhan
+                    || (!u.CoUserBoPhan && u.PhongBan != null && tenBoPhanCoQuyen.Contains(u.PhongBan.Trim(), StringComparer.OrdinalIgnoreCase))
+                    || u.QuyenCaNhan.Any(q => !string.IsNullOrEmpty(q) && ConvertVietnameseToEnglishCode(q) == maQuyenDuyet))
+                .OrderBy(u => u.HoTen)
+                .Select(u => new { u.IdNguoiDung, hoTen = u.HoTen ?? "", taiKhoan = u.Tk ?? "" })
+                .ToList();
+
+            return Json(new { thanhCong = true, duLieu = new { congTy, boPhan, danhSach } });
+        }
+
         #endregion
 
         // --- ACTION DOWNLOAD / XEM FILE (Giữ nguyên 100%) ---
@@ -9125,6 +9184,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             public string? GhiChu { get; set; }
             public bool? CanCaiOffice { get; set; }
             public string? TenViTriDiaLy { get; set; }
+            public string? OfficeLicense { get; set; }
+            public DateTime? NgayTraLoiOffice { get; set; }
         }
 
         // Xuất Biên bản kiểm kê - xác nhận tài sản bộ phận dạng in giấy để ký tay (khác chữ ký điện tử của luồng FormIT).
@@ -9180,7 +9241,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     TenTrangThai = x.IdTrangThaiNavigation != null ? x.IdTrangThaiNavigation.TenTrangThai : "",
                     GhiChu = x.GhiChu,
                     CanCaiOffice = x.CanCaiOffice,
-                    TenViTriDiaLy = x.IdViTriDiaLyNavigation != null ? x.IdViTriDiaLyNavigation.TenViTriDiaLy : null
+                    TenViTriDiaLy = x.IdViTriDiaLyNavigation != null ? x.IdViTriDiaLyNavigation.TenViTriDiaLy : null,
+                    OfficeLicense = x.OfficeLicense,
+                    NgayTraLoiOffice = x.NgayTraLoiOffice
                 })
                 .ToList();
 
@@ -9230,9 +9293,111 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return File(noiDungPhieu, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", tenFilePhieu);
             }
 
+            // Danh sách máy cần / không cần cài Office: chỉ lấy Laptop + Máy tính (câu hỏi Office không áp dụng
+            // cho thiết bị khác). Máy chưa trả lời (CanCaiOffice = null) không thuộc danh sách nào.
+            if (dinhDangChuan == "excel_office_can" || dinhDangChuan == "excel_office_khong")
+            {
+                bool canOffice = dinhDangChuan == "excel_office_can";
+                var dsOffice = danhSach
+                    .Where(x => LaMayTinhHoacLaptop(x.LoaiThietBi) && x.CanCaiOffice == canOffice)
+                    .ToList();
+                var noiDungOffice = BuildExcelDanhSachOffice(tenNguoiLap, dsOffice, canOffice);
+                string tenFileOffice = $"{(canOffice ? "MayCanCaiOffice" : "MayKhongCanOffice")}_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+                return File(noiDungOffice, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", tenFileOffice);
+            }
+
             string htmlContent = BuildHtmlBienBanTaiSanBoPhan(tenNguoiLap, danhSach);
 
             return Content(htmlContent, "text/html", System.Text.Encoding.UTF8);
+        }
+
+        // Cùng tiêu chí với phiếu xác nhận Office: chỉ Laptop và Máy tính mới có câu hỏi cài Office.
+        private static bool LaMayTinhHoacLaptop(string? loai)
+        {
+            string l = (loai ?? "").Trim();
+            return l.Equals("Laptop", StringComparison.OrdinalIgnoreCase)
+                || l.Equals("Máy tính", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private byte[] BuildExcelDanhSachOffice(string tenNguoiLap, List<BienBanThietBiRow> danhSach, bool canOffice)
+        {
+            using var wb = new ClosedXML.Excel.XLWorkbook();
+            var ws = wb.Worksheets.Add(canOffice ? "Can cai Office" : "Khong can Office");
+
+            string[] tieuDe = {
+                "STT", "ID thiết bị", "Công ty", "Bộ phận", "Tên máy (Hostname)", "Loại TB", "Quy cách",
+                "Serial / Barcode", "Người sử dụng", "Tài khoản", "Vị trí địa lý", "Office license",
+                "Ngày trả lời Office", "Ghi chú"
+            };
+            int soCot = tieuDe.Length;
+
+            ws.Cell(1, 1).Value = canOffice ? "DANH SÁCH MÁY CẦN CÀI OFFICE" : "DANH SÁCH MÁY KHÔNG CẦN CÀI OFFICE";
+            ws.Range(1, 1, 1, soCot).Merge().Style
+                .Font.SetBold().Font.SetFontSize(14)
+                .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+            ws.Cell(2, 1).Value = $"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm} - Người xuất: {tenNguoiLap} - Chỉ gồm Laptop và Máy tính";
+            ws.Range(2, 1, 2, soCot).Merge().Style
+                .Font.SetItalic()
+                .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+
+            int hangTieuDe = 4;
+            for (int i = 0; i < soCot; i++) ws.Cell(hangTieuDe, i + 1).Value = tieuDe[i];
+            ws.Range(hangTieuDe, 1, hangTieuDe, soCot).Style.Font.SetBold()
+                .Fill.SetBackgroundColor(canOffice
+                    ? ClosedXML.Excel.XLColor.FromArgb(226, 239, 218)
+                    : ClosedXML.Excel.XLColor.FromArgb(242, 242, 242))
+                .Alignment.SetWrapText(true)
+                .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center)
+                .Alignment.SetVertical(ClosedXML.Excel.XLAlignmentVerticalValues.Center);
+
+            // Serial và tài khoản để dạng chữ, tránh Excel đổi mã toàn số sang dạng số/khoa học
+            ws.Column(8).Style.NumberFormat.SetFormat("@");
+            ws.Column(10).Style.NumberFormat.SetFormat("@");
+
+            int hang = hangTieuDe + 1;
+            int stt = 1;
+            foreach (var item in danhSach)
+            {
+                ws.Cell(hang, 1).Value = stt++;
+                ws.Cell(hang, 2).Value = item.IdThietBi;
+                ws.Cell(hang, 3).Value = item.TenCongTy;
+                ws.Cell(hang, 4).Value = item.TenBoPhan;
+                ws.Cell(hang, 5).Value = item.TenMayTinh ?? "";
+                ws.Cell(hang, 6).Value = item.LoaiThietBi ?? "";
+                ws.Cell(hang, 7).Value = item.QuyCach ?? "";
+                ws.Cell(hang, 8).Value = item.Seribacode ?? "";
+                ws.Cell(hang, 9).Value = item.TenNguoiDung ?? "";
+                ws.Cell(hang, 10).Value = item.Tk ?? "";
+                ws.Cell(hang, 11).Value = item.TenViTriDiaLy ?? "Chưa xác định";
+                ws.Cell(hang, 12).Value = item.OfficeLicense ?? "";
+                if (item.NgayTraLoiOffice.HasValue)
+                {
+                    ws.Cell(hang, 13).Value = item.NgayTraLoiOffice.Value;
+                    ws.Cell(hang, 13).Style.DateFormat.SetFormat("dd/MM/yyyy HH:mm");
+                }
+                ws.Cell(hang, 14).Value = item.GhiChu ?? "";
+                hang++;
+            }
+
+            int hangCuoi = Math.Max(hang - 1, hangTieuDe);
+            var vungBang = ws.Range(hangTieuDe, 1, hangCuoi, soCot);
+            vungBang.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+            vungBang.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
+            ws.Range(hangTieuDe, 1, hangCuoi, 2).Style.Alignment
+                .SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
+            if (hangCuoi > hangTieuDe) ws.Range(hangTieuDe, 1, hangCuoi, soCot).SetAutoFilter();
+            ws.SheetView.FreezeRows(hangTieuDe);
+
+            ws.Cell(hang + 1, 1).Value = $"Tổng cộng: {danhSach.Count} máy";
+            ws.Range(hang + 1, 1, hang + 1, soCot).Merge().Style.Font.SetBold();
+
+            ws.Columns(1, soCot).AdjustToContents(hangTieuDe, hangCuoi);
+            ws.Column(7).Width = Math.Min(ws.Column(7).Width, 40);
+            ws.Column(14).Width = Math.Min(ws.Column(14).Width, 50);
+
+            using var ms = new MemoryStream();
+            wb.SaveAs(ms);
+            return ms.ToArray();
         }
 
         // ============================================================
