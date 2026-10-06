@@ -95,6 +95,22 @@ namespace E_Form_Best.Areas.ITForm.Services
         /// <summary>Các địa chỉ gốc để gọi ISAPI của một đầu ghi, cổng theo inventory đứng trước (cache 10 phút).</summary>
         private async Task<List<string>> DsDiaChiNvrAsync(string nvrIp, CancellationToken ct)
         {
+            var bang = await BangDiaChiNvrAsync(ct);
+
+            var ds = new List<string>();
+            if (bang.TryGetValue(nvrIp, out var goc)) ds.Add(goc);
+            var macDinh = $"http://{nvrIp}:80";
+            if (!ds.Contains(macDinh, StringComparer.OrdinalIgnoreCase)) ds.Add(macDinh);
+            return ds;
+        }
+
+        /// <summary>
+        /// IP đầu ghi -> địa chỉ gốc web/ISAPI ("https://10.0.29.254:8003") theo inventory ISAPI (cache 10 phút).
+        /// Chỉ chứa giao thức + IP + cổng, không có tài khoản — trả ra trình duyệt được (link mở trang đầu ghi).
+        /// Hệ thống ISAPI sập thì trả bảng rỗng.
+        /// </summary>
+        public async Task<Dictionary<string, string>> BangDiaChiNvrAsync(CancellationToken ct)
+        {
             const string khoa = "CameraXem:CongNvr";
             if (!_cache.TryGetValue(khoa, out Dictionary<string, string>? bang) || bang is null)
             {
@@ -119,12 +135,7 @@ namespace E_Form_Best.Areas.ITForm.Services
                     // Hệ thống ISAPI sập: vẫn thử http:80 như trước, không cache để lần sau đọc lại
                 }
             }
-
-            var ds = new List<string>();
-            if (bang.TryGetValue(nvrIp, out var goc)) ds.Add(goc);
-            var macDinh = $"http://{nvrIp}:80";
-            if (!ds.Contains(macDinh, StringComparer.OrdinalIgnoreCase)) ds.Add(macDinh);
-            return ds;
+            return bang;
         }
 
         /// <summary>

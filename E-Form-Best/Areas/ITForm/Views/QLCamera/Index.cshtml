@@ -15,7 +15,7 @@
 @* Dùng lại khung bảng của trang CCDC (cùng nhóm menu, cùng kiểu bảng cột cố định) *@
 <link rel="stylesheet" href="/css/ccdc-quanly.css?v=20260825e">
 <link rel="stylesheet" href="/css/fixed-page-layout.css?v=5">
-<link rel="stylesheet" href="/css/camera-quanly.css?v=20261006h">
+<link rel="stylesheet" href="/css/camera-quanly.css?v=20261006k">
 
 <div class="content-header pt-0 pb-0" style="margin-top: -25px;">
     <div class="container-fluid">
@@ -61,11 +61,11 @@
                         <div class="alert alert-danger py-2 small d-none" id="gsLoi"></div>
 
                         <div class="cam-tiles mb-2">
-                            <div class="cam-tile"><div class="cam-tile-nhan">Tổng camera</div><div class="cam-tile-so" id="gsTong">–</div></div>
-                            <div class="cam-tile cam-tile-up"><div class="cam-tile-nhan">Hoạt động</div><div class="cam-tile-so" id="gsUp">–</div></div>
-                            <div class="cam-tile cam-tile-down"><div class="cam-tile-nhan">Mất kết nối</div><div class="cam-tile-so" id="gsDown">–</div><div class="cam-tile-phu" id="gsTyLe"></div></div>
+                            <div class="cam-tile cam-tile-loc" data-loc="tat-ca" title="Bấm để xem tất cả camera"><div class="cam-tile-nhan">Tổng camera</div><div class="cam-tile-so" id="gsTong">–</div></div>
+                            <div class="cam-tile cam-tile-up cam-tile-loc" data-loc="UP" title="Bấm để chỉ xem camera đang hoạt động"><div class="cam-tile-nhan">Hoạt động</div><div class="cam-tile-so" id="gsUp">–</div></div>
+                            <div class="cam-tile cam-tile-down cam-tile-loc" data-loc="DOWN" title="Bấm để chỉ xem camera mất kết nối"><div class="cam-tile-nhan">Mất kết nối</div><div class="cam-tile-so" id="gsDown">–</div><div class="cam-tile-phu" id="gsTyLe"></div></div>
                             <div class="cam-tile"><div class="cam-tile-nhan">Đầu ghi sẵn sàng</div><div class="cam-tile-so" id="gsNvr">–</div><div class="cam-tile-phu" id="gsNvrLoi"></div></div>
-                            <div class="cam-tile"><div class="cam-tile-nhan">Đã loại trừ / Chú ý</div><div class="cam-tile-so" id="gsLoaiTru">–</div></div>
+                            <div class="cam-tile cam-tile-loc" data-loc="chu-y" title="Bấm để chỉ xem camera chú ý"><div class="cam-tile-nhan">Đã loại trừ / Chú ý</div><div class="cam-tile-so" id="gsLoaiTru">–</div></div>
                             <div class="cam-tile"><div class="cam-tile-nhan">Kiểm tra gần nhất</div><div class="cam-tile-so cam-tile-so-nho" id="gsLanCuoi">–</div><div class="cam-tile-phu" id="gsLanCuoiTrangThai"></div></div>
                         </div>
 
@@ -672,7 +672,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/fixed-page-layout.js?v=5" defer></script>
     <script src="/js/camera-quanly.js?v=20261006b"></script>
-    <script src="/js/camera-giam-sat.js?v=20261006k"></script>
-    <script src="/js/camera-lich-su.js?v=20261006"></script>
+    <script src="/js/camera-giam-sat.js?v=20261006o"></script>
+    <script src="/js/camera-lich-su.js?v=20261006c"></script>
     <script src="/js/camera-dau-ghi.js?v=20261006"></script>
 }

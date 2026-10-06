@@ -234,3 +234,21 @@ html.fp-lock .fp-chain > *:not(.fp-grow) {
 .cam-ghim.cam-ghim-bat { color: #7c3aed; transform: none; }
 .ccdc-table > tbody > tr.cam-da-ghim > td { background: #f5f3ff; }
 .ccdc-table > tbody > tr.cam-da-ghim.cam-down > td { background: #fdf2f8; }
+
+/* Ô số liệu bấm được để lọc danh sách camera */
+.cam-tile-loc { cursor: pointer; transition: box-shadow .15s, transform .15s; }
+.cam-tile-loc:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(15, 23, 42, .08); }
+.cam-tile-loc.cam-tile-chon { box-shadow: 0 0 0 2px #7c3aed; }
+
+/* IP camera bấm được: mở trang cài đặt camera ở tab mới */
+.cam-ip-link { color: #2563eb; text-decoration: none; }
+.cam-ip-link:hover { text-decoration: underline; }
+.cam-ip-link i { font-size: 10px; opacity: .6; }
+
+/* Cột "Đầu ghi" bảng giám sát: luôn hiện đủ tên + IP, không cắt bằng dấu "..." */
+.ccdc-table > tbody > tr > td.cam-o-dau-ghi {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    word-break: break-word;
+}

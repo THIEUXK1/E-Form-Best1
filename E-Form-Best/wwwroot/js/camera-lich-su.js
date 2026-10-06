@@ -55,6 +55,33 @@
         return '<td class="' + (className || '') + '" title="' + s + '">' + s + '</td>';
     }
 
+    // Địa chỉ web từng đầu ghi theo đúng cổng/https (server trả), lỗi thì dùng http://IP/
+    var dsDiaChiDauGhi = {};
+    var LA_IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/;
+
+    function taiDiaChiDauGhi() {
+        return $.getJSON('/QLCamera/GiamSat/DiaChiDauGhi').done(function (res) {
+            if (res.thanhCong && res.duLieu) dsDiaChiDauGhi = res.duLieu;
+        });
+    }
+
+    // IP camera: mở trang cài đặt camera ở tab mới; chỉ dựng link khi đúng dạng IPv4
+    function oIpCamera(ip) {
+        var s = escapeHtml(ip);
+        if (!LA_IPV4.test(ip || '')) return '<td class="small font-monospace" title="' + s + '">' + s + '</td>';
+        return '<td class="small font-monospace"><a class="cam-ip-link" href="http://' + s + '/" target="_blank" rel="noopener"'
+            + ' title="Mở trang cài đặt camera ' + s + ' ở tab mới">' + s + ' <i class="fas fa-up-right-from-square"></i></a></td>';
+    }
+
+    function linkDauGhi(ip) {
+        var s = escapeHtml(ip);
+        if (!LA_IPV4.test(ip || '')) return s;
+        var goc = dsDiaChiDauGhi[ip];
+        var url = /^https?:\/\/[\d.]+(:\d+)?$/.test(goc || '') ? goc + '/' : 'http://' + ip + '/';
+        return '<a class="cam-ip-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener"'
+            + ' title="Mở trang đầu ghi ' + escapeHtml(url) + ' ở tab mới">' + s + ' <i class="fas fa-up-right-from-square"></i></a>';
+    }
+
     function dongTrangThai(noiDung, className) {
         $('#lsBody').html('<tr><td colspan="' + COT + '" class="ccdc-trangthai ' + className + ' py-4">' + escapeHtml(noiDung) + '</td></tr>');
     }
@@ -94,8 +121,10 @@
                         + '<td class="small">' + ngayGio(x.thoiGian) + '</td>'
                         + oSuKien(x)
                         + o(x.tenCamera, 'ccdc-ten')
-                        + o(x.ipCamera, 'small font-monospace')
-                        + o((x.tenDauGhi || '') + ' (' + x.nvrIp + ')', 'small')
+                        + oIpCamera(x.ipCamera)
+                        // Hai dòng tên / IP, cho xuống dòng để luôn hiện đủ (giống tab Giám sát)
+                        + '<td class="small cam-o-dau-ghi"><div>' + escapeHtml(x.tenDauGhi || '') + '</div>'
+                        + '<div class="font-monospace" style="font-size:11px;">' + linkDauGhi(x.nvrIp) + '</div></td>'
                         + o(x.khuVuc, 'small')
                         + '<td class="ccdc-num small">' + escapeHtml(x.kenh) + '</td>'
                         + '<td class="small">' + (x.sangTrangThai === 'UP' ? escapeHtml(thoiLuong(x.thoiLuongGiay)) : '') + '</td>'
@@ -135,7 +164,8 @@
             if (daTai) { taiDanhSach(); return; }   // mở lại tab thì lấy sự kiện mới nhất
             daTai = true;
             taiDauGhi();
-            taiDanhSach();
+            // Đợi bảng địa chỉ đầu ghi (lỗi cũng đi tiếp) để link đầu ghi ra đúng cổng ngay lần đầu
+            taiDiaChiDauGhi().always(taiDanhSach);
         });
     });
 })();

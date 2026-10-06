@@ -121,7 +121,7 @@
             var down = soDown[n.nvr_ip] || 0;
             return '<tr data-ip="' + escapeHtml(n.nvr_ip) + '"' + (n.nvr_ip === dangLoc ? ' class="cam-dang-loc"' : '') + '>'
                 + '<td title="' + escapeHtml(n.nvr_ip) + '"><div class="fw-bold">' + escapeHtml(n.nvr_name) + '</div>'
-                + '<div class="text-muted font-monospace" style="font-size:11px;">' + escapeHtml(n.nvr_ip) + '</div></td>'
+                + '<div class="font-monospace" style="font-size:11px;">' + linkDauGhi(n.nvr_ip, n.nvr_ip) + '</div></td>'
                 + '<td>' + escapeHtml(n.zone) + '</td>'
                 + '<td class="text-end">' + escapeHtml(n.channel_count) + '</td>'
                 + '<td class="text-end ' + (down ? 'text-danger fw-bold' : 'text-muted') + '">' + down + '</td>'
@@ -208,8 +208,10 @@
                 + (i + 1) + '</td>'
                 + '<td class="small">' + oTrangThai(c.status) + '</td>'
                 + '<td class="ccdc-ten" title="' + escapeHtml(c.name) + '">' + ten + '</td>'
-                + o(c.ip, 'small font-monospace')
-                + o(c.nvr_name + ' (' + c.nvr_ip + ')', 'small')
+                + oIpCamera(c.ip)
+                // Hai dòng (tên / IP) và cho xuống dòng: tên đầu ghi dài + link IP không bị cắt "..."
+                + '<td class="small cam-o-dau-ghi"><div>' + escapeHtml(c.nvr_name) + '</div>'
+                + '<div class="font-monospace" style="font-size:11px;">' + linkDauGhi(c.nvr_ip, c.nvr_ip) + '</div></td>'
                 + o(c.zone, 'small')
                 + '<td class="ccdc-num small">' + escapeHtml(c.cam_id) + '</td>'
                 + '<td class="small">' + matKetNoi + '</td>'
@@ -219,6 +221,33 @@
         }).join('');
         var $body = $('#gsCameraBody').html(html);
         $body.find('tr').each(function (i) { $(this).data('cam', loc[i]); });
+    }
+
+    // Ô IP: bấm là mở trang web cài đặt của camera ở tab mới (không mở cửa sổ xem).
+    // Chỉ dựng link khi đúng dạng IPv4 để dữ liệu lạ từ API không chèn được href tuỳ ý.
+    function oIpCamera(ip) {
+        var s = escapeHtml(ip);
+        if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip || '')) return '<td class="small font-monospace" title="' + s + '">' + s + '</td>';
+        return '<td class="small font-monospace"><a class="cam-ip-link" href="http://' + s + '/" target="_blank" rel="noopener"'
+            + ' title="Mở trang cài đặt camera ' + s + ' ở tab mới">' + s + ' <i class="fas fa-up-right-from-square"></i></a></td>';
+    }
+
+    // Địa chỉ web từng đầu ghi (đúng cổng/https: 10.0.28.254:8001, https 10.0.29.254:8003...), server trả
+    var dsDiaChiDauGhi = {};
+
+    function taiDiaChiDauGhi() {
+        return lay('/QLCamera/GiamSat/DiaChiDauGhi').then(function (d) { dsDiaChiDauGhi = d || {}; },
+            function () { return $.Deferred().resolve().promise(); });   // lỗi thì dùng http://IP/
+    }
+
+    // Link mở trang web đầu ghi ở tab mới; chỉ dựng khi đúng dạng IPv4
+    function linkDauGhi(ip, chu) {
+        var s = escapeHtml(chu);
+        if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip || '')) return s;
+        var goc = dsDiaChiDauGhi[ip];
+        var url = /^https?:\/\/[\d.]+(:\d+)?$/.test(goc || '') ? goc + '/' : 'http://' + ip + '/';
+        return '<a class="cam-ip-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener"'
+            + ' title="Mở trang đầu ghi ' + escapeHtml(url) + ' ở tab mới">' + s + ' <i class="fas fa-up-right-from-square"></i></a>';
     }
 
     // ---------------- Ghi chú (sửa tại chỗ) ----------------
@@ -629,9 +658,9 @@
         var gc = dsGhiChu[khoaGhiChu(cam)];
         $('#xemGhiChu').val(gc ? gc.ghiChu : '').removeClass('cam-da-luu');
         xem.modal.show();
-        // Mặc định ảnh 1 giây/lần: nhẹ cho đầu ghi và máy chủ (không mở RTSP, không chuyển mã);
-        // cần video thì người dùng tự bấm nút "Video"
-        cheDoAnh();
+        // Mặc định ảnh lưu sẵn: mở ra là có hình ngay, không gọi đầu ghi (máy chủ không thông mạng
+        // camera vẫn xem được); cần hình mới thì người dùng tự bấm "Ảnh (1 giây/lần)" hoặc "Video"
+        cheDoAnhLuu();
     }
 
     // ---------------- Xu hướng ----------------
@@ -694,7 +723,7 @@
         });
         var pDauGhi = lay('/QLCamera/GiamSat/DauGhi');
 
-        $.when(pTongQuan, pCamera, pDauGhi, taiGhiChu())
+        $.when(pTongQuan, pCamera, pDauGhi, taiGhiChu(), taiDiaChiDauGhi())
             .done(function (tongQuan, camera, dauGhi) {
                 hienLoi(null);
                 veTongQuan(tongQuan);
@@ -715,6 +744,19 @@
         taiXuHuong();
     }
 
+    // Tô viền ô số liệu đang khớp bộ lọc hiện tại (bộ lọc đổi từ dropdown cũng cập nhật theo)
+    function danhDauOLoc() {
+        var trangThai = $('#gsTrangThai').val();
+        var chuY = $('#gsChiChuY').is(':checked');
+        $('.cam-tile-loc').each(function () {
+            var loc = $(this).data('loc');
+            var khop = loc === 'chu-y' ? chuY
+                : loc === 'tat-ca' ? (!trangThai && !chuY)
+                : trangThai === loc;
+            $(this).toggleClass('cam-tile-chon', khop);
+        });
+    }
+
     function datTuLamMoi() {
         clearInterval(timerTuLamMoi);
         if (!$('#gsTuLamMoi').is(':checked')) return;
@@ -727,8 +769,29 @@
 
     $(function () {
         $('#gsBtnTaiLai').on('click', taiTatCa);
-        $('#gsChiChuY, #gsGomLoaiTru').on('change', taiTatCa);   // hai bộ lọc này lọc ở phía API
-        $('#gsTrangThai, #gsKhuVuc').on('change', veCamera);
+        $('#gsChiChuY, #gsGomLoaiTru').on('change', function () { taiTatCa(); danhDauOLoc(); });   // hai bộ lọc này lọc ở phía API
+        $('#gsTrangThai, #gsKhuVuc').on('change', function () { veCamera(); danhDauOLoc(); });
+
+        // Bấm ô số liệu phía trên = lọc danh sách theo ô đó; bấm lại ô đang chọn thì bỏ lọc
+        $('.cam-tile-loc').on('click', function () {
+            var loc = $(this).data('loc');
+            var dangChon = $(this).hasClass('cam-tile-chon');
+            var $chuY = $('#gsChiChuY');
+
+            if (loc === 'chu-y') {
+                // Lọc chú ý đi qua API (tải lại), không đụng bộ lọc trạng thái
+                $chuY.prop('checked', !dangChon).trigger('change');
+                return;
+            }
+
+            $('#gsTrangThai').val(dangChon || loc === 'tat-ca' ? '' : loc);
+            if (loc === 'tat-ca' && $chuY.is(':checked')) $chuY.prop('checked', false).trigger('change');
+            veCamera();
+            danhDauOLoc();
+            // Đưa bảng về dòng đầu để thấy ngay kết quả lọc
+            var bang = document.getElementById('gsCameraBody');
+            if (bang) bang.closest('.ccdc-table-wrap').scrollTop = 0;
+        });
         $('#gsNvrLoc').on('change', function () {
             veCamera();
             var ip = $(this).val();
@@ -758,6 +821,8 @@
             e.stopPropagation();
             batDauSuaGhiChu($(this));
         });
+        // Link IP tự mở tab mới; chặn lan lên dòng để không mở thêm cửa sổ xem
+        $('#gsCameraBody, #gsNvrBody').on('click', 'a.cam-ip-link', function (e) { e.stopPropagation(); });
         $('#gsCameraBody').on('click', 'tr', function () { moXem($(this).data('cam')); });
         $('#xemCheDoVideo').on('click', cheDoVideo);
         $('#xemCheDoAnh').on('click', cheDoAnh);
@@ -791,5 +856,6 @@
 
         taiTatCa();
         datTuLamMoi();
+        danhDauOLoc();
     });
 })();

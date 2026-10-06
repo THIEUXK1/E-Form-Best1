@@ -77,6 +77,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         public Task<IActionResult> GiamSatCamera(string? trangThai, string? nvrIp, string? khuVuc, bool gomDaLoaiTru = false, bool chiCanChuY = false)
             => DocGiamSatAsync(ct => _giamSat.DanhSachCameraAsync(trangThai, nvrIp, khuVuc, gomDaLoaiTru, chiCanChuY, ct));
 
+        /// <summary>Địa chỉ trang web của từng đầu ghi (đúng cổng/https theo inventory) để mở ở tab mới.</summary>
+        [HttpGet("/QLCamera/GiamSat/DiaChiDauGhi")]
+        public async Task<IActionResult> GiamSatDiaChiDauGhi([FromServices] CameraXemTrucTiepService xem)
+        {
+            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            var duLieu = await xem.BangDiaChiNvrAsync(HttpContext.RequestAborted);
+            return Json(new { thanhCong = true, duLieu });
+        }
+
         [HttpGet("/QLCamera/GiamSat/LichSu")]
         public Task<IActionResult> GiamSatLichSu(int soLan = 72)
             => DocGiamSatAsync(ct => _giamSat.LichSuKiemTraAsync(soLan, ct));
