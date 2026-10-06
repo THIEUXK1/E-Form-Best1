@@ -127,6 +127,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLCamera/GhiChu/Luu")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> GhiChuLuu(string? nvrIp, int kenh, string? tenCamera, string? ghiChu,
             [FromServices] CameraXemTrucTiepService xem)
         {
@@ -258,6 +259,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLCamera/GhiChuMau/Them")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> GhiChuMauThem(string? noiDung)
         {
             if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
@@ -288,6 +290,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLCamera/GhiChuMau/Xoa")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> GhiChuMauXoa(int id)
         {
             if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
@@ -446,6 +449,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLCamera/DauGhi/Save")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DauGhiSave(KkDauGhi model)
         {
             if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
@@ -514,6 +518,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLCamera/DauGhi/Delete")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DauGhiDelete(int id, string? lyDo)
         {
             if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
@@ -629,6 +634,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // Tham số KHÔNG được đặt tên "model": KkCamera có thuộc tính Model, binder sẽ coi ô "Model" của form
         // là tiền tố "model." và bỏ trống mọi trường còn lại.
         [HttpPost("/QLCamera/Save")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Save(KkCamera camera)
         {
             if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
@@ -709,6 +715,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         [HttpPost("/QLCamera/Delete")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id, string? lyDo)
         {
             if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
