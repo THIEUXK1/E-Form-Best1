@@ -11,6 +11,8 @@
 - ✅ Đọc thì tự do: `SELECT`, `EXPLAIN`, xem schema, đọc model.
 - ⚠️ **Luôn hỏi xác nhận trước mọi thao tác ghi.** Trước khi hỏi phải nêu rõ: **lệnh gì**,
   **chạm bảng/số hàng nào**, **có rollback không**.
+- ⚠️ Allow rule trong `.claude/settings*.json` chỉ để công cụ không chặn — **không** thay cho xác
+  nhận: mọi lệnh ghi lên production (DB, SSH/SCP tới máy deploy) vẫn hỏi người dùng **từng lần**.
 - ⚠️ Không chắc là production hay không → **coi như production**.
 - ❌ Không đụng `10.0.55.3` (chi nhánh) bằng bất cứ lệnh ghi nào — quan hệ là **đồng bộ một chiều,
   chỉ đọc từ đó về**.

@@ -79,3 +79,18 @@ grep -E "error|fail|Exception" watch_log.txt | tail -n 20
 ```
 
 Health check: `/health/ready` (chưa có uptime monitor nào gọi — blocker B3).
+
+## 6. Máy deploy & SSH
+
+Chỉ xác thực bằng SSH key, không bao giờ đưa mật khẩu vào lệnh. Allow rule nằm ở
+`.claude/settings.local.json` và chỉ khớp khi gõ **nguyên văn** đường dẫn key (không qua biến `$K`).
+
+| Máy | Lệnh SSH | Thư mục app | Ghi chú |
+|---|---|---|---|
+| `10.0.60.39` (VN-WEB) | `ssh -i ~/.ssh/id_ed25519_vnsuperman 'BESTPACIFIC\vnsuperman@10.0.60.39'` | `C:\inetpub\wed\E-Form-Best` (`wed`) | shell mặc định cmd |
+| `10.0.60.52` | `ssh -i ~/.ssh/df_server_key 'BESTPACIFIC\vnsuperman@10.0.60.52'` | `C:\inetpub\Web\E-Form-Best` (`Web`) | nuốt dấu nháy trong `powershell -Command` → `scp` file `.ps1` rồi `-File` |
+
+Cả hai binding `:8002` — kiểm bằng `http://<host>:8002/` (port 80 của `.39` là app khác).
+Deploy: `app_offline.htm` + `robocopy /E`, **không bao giờ `/MIR`**; backup trước khi chép đè.
+Mọi lệnh **ghi** lên các máy này vẫn phải hỏi xác nhận từng lần — xem
+[`database-safety.md`](database-safety.md) mục 1.
