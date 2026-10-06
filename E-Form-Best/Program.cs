@@ -103,6 +103,9 @@ builder.Services.AddHttpClient(CameraXemTrucTiepService.TenClientNvr, client =>
 })
 .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
 {
+    // Một số đầu ghi chỉ mở ISAPI qua https (10.0.29.254:8003...) bằng chứng thư tự ký;
+    // phạm vi bỏ kiểm chỉ trong HttpClient "CameraNvr", giống client "MayIn" ở trên
+    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
     Credentials = new System.Net.NetworkCredential(
         builder.Configuration["CameraNvr:TaiKhoan"] ?? "",
         builder.Configuration["CameraNvr:MatKhau"] ?? "")
@@ -112,6 +115,8 @@ builder.Services.AddHttpClient(CameraXemTrucTiepService.TenClientGo2rtc, client 
     client.Timeout = Timeout.InfiniteTimeSpan;
 });
 builder.Services.AddScoped<CameraXemTrucTiepService>();
+// Chụp ảnh lưu sẵn theo giờ (chỉ bật ở máy gọi được đầu ghi: CameraNvr__ChupAnhLuu=true)
+builder.Services.AddHostedService<CameraAnhLuuWorker>();
 
 // Cache trong bộ nhớ cho dữ liệu tra cứu ít thay đổi (Công ty, Bộ phận...) để giảm truy vấn DB lặp lại
 builder.Services.AddMemoryCache();

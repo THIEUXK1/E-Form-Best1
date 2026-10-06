@@ -58,13 +58,73 @@ namespace E_Form_Best.Areas.ITForm.Services
             return ds.Contains(nvrIp.Trim());
         }
 
-        /// <summary>Lấy 1 ảnh JPEG luồng phụ. Trả null nếu đầu ghi không trả ảnh.</summary>
+        /// <summary>
+        /// Lấy 1 ảnh JPEG luồng phụ. Thử cổng/giao thức của đầu ghi theo inventory ISAPI trước
+        /// (10.0.28.254 dùng http:8001, 10.0.29.254 dùng https:8003...), không được thì lùi về http:80.
+        /// Trả null nếu không cách nào lấy được ảnh.
+        /// </summary>
         public async Task<byte[]?> LayAnhChupAsync(string nvrIp, int kenh, CancellationToken ct)
         {
             var client = _httpClientFactory.CreateClient(TenClientNvr);
-            using var traLoi = await client.GetAsync($"http://{nvrIp}/ISAPI/Streaming/channels/{kenh}02/picture", ct);
-            if (!traLoi.IsSuccessStatusCode) return null;
-            return await traLoi.Content.ReadAsByteArrayAsync(ct);
+
+            foreach (var goc in await DsDiaChiNvrAsync(nvrIp, ct))
+            {
+                // Firmware NVR cũ (DS-7732NI-K4 V4.30 ở 10.0.28.5) trả 400 "Invalid XML Content" cho
+                // /Streaming/channels/.../picture, chỉ chụp được qua /ContentMgmt/StreamingProxy/...
+                foreach (var duongDan in new[]
+                {
+                    $"/ISAPI/Streaming/channels/{kenh}02/picture",
+                    $"/ISAPI/ContentMgmt/StreamingProxy/channels/{kenh}02/picture"
+                })
+                {
+                    try
+                    {
+                        using var traLoi = await client.GetAsync(goc + duongDan, ct);
+                        if (traLoi.IsSuccessStatusCode) return await traLoi.Content.ReadAsByteArrayAsync(ct);
+                        // 4xx/5xx: đầu ghi có trả lời -> thử đường dẫn kế tiếp trên cùng cổng
+                    }
+                    catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !ct.IsCancellationRequested))
+                    {
+                        break; // cổng này không trả lời -> bỏ các đường dẫn còn lại, thử cổng kế tiếp
+                    }
+                }
+            }
+            return null;
+        }
+
+        /// <summary>Các địa chỉ gốc để gọi ISAPI của một đầu ghi, cổng theo inventory đứng trước (cache 10 phút).</summary>
+        private async Task<List<string>> DsDiaChiNvrAsync(string nvrIp, CancellationToken ct)
+        {
+            const string khoa = "CameraXem:CongNvr";
+            if (!_cache.TryGetValue(khoa, out Dictionary<string, string>? bang) || bang is null)
+            {
+                bang = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                try
+                {
+                    var kho = await _giamSat.KhoDauGhiAsync(ct);
+                    if (kho.TryGetProperty("nvrs", out var nvrs) && nvrs.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var n in nvrs.EnumerateArray())
+                        {
+                            if (!n.TryGetProperty("ip", out var ipEl) || ipEl.GetString() is not { } ip) continue;
+                            var https = n.TryGetProperty("https", out var h) && h.ValueKind == JsonValueKind.True;
+                            var cong = n.TryGetProperty("api_port", out var p) && p.TryGetInt32(out var so) ? so : (https ? 443 : 80);
+                            bang[ip] = $"{(https ? "https" : "http")}://{ip}:{cong}";
+                        }
+                    }
+                    _cache.Set(khoa, bang, TimeSpan.FromMinutes(10));
+                }
+                catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException && !ct.IsCancellationRequested)
+                {
+                    // Hệ thống ISAPI sập: vẫn thử http:80 như trước, không cache để lần sau đọc lại
+                }
+            }
+
+            var ds = new List<string>();
+            if (bang.TryGetValue(nvrIp, out var goc)) ds.Add(goc);
+            var macDinh = $"http://{nvrIp}:80";
+            if (!ds.Contains(macDinh, StringComparer.OrdinalIgnoreCase)) ds.Add(macDinh);
+            return ds;
         }
 
         /// <summary>

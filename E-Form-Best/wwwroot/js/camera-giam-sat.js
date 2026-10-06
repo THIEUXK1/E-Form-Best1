@@ -457,8 +457,7 @@
     function cheDoVideo() {
         dungXem();
         xem.cheDo = 'video';
-        $('#xemCheDoVideo').addClass('active');
-        $('#xemCheDoAnh').removeClass('active');
+        datNutCheDo('#xemCheDoVideo');
 
         var video = document.getElementById('xemVideo');
         var anh = document.getElementById('xemAnh');
@@ -497,8 +496,7 @@
     function cheDoAnh() {
         dungXem();
         xem.cheDo = 'anh';
-        $('#xemCheDoAnh').addClass('active');
-        $('#xemCheDoVideo').removeClass('active');
+        datNutCheDo('#xemCheDoAnh');
         $('#xemVideo').hide();
 
         var anh = document.getElementById('xemAnh');
@@ -560,6 +558,55 @@
         }
 
         taiAnh();
+    }
+
+    function datNutCheDo(nut) {
+        $('#xemCheDoVideo, #xemCheDoAnh, #xemCheDoAnhLuu').removeClass('active');
+        $(nut).addClass('active');
+    }
+
+    // Chế độ "Ảnh lưu sẵn": ảnh do job CameraAnhLuuWorker chụp theo giờ định kỳ. Không gọi đầu ghi,
+    // nên mở được cả khi máy chủ không kết nối được dải camera. 60 giây kiểm lại một lần xem có ảnh mới.
+    function cheDoAnhLuu() {
+        dungXem();
+        xem.cheDo = 'anhluu';
+        datNutCheDo('#xemCheDoAnhLuu');
+        $('#xemVideo').hide();
+
+        var anh = document.getElementById('xemAnh');
+        var cam = xem.cam;
+        $(anh).show();
+        nhanXem('Đang tải ảnh lưu...');
+
+        function tai() {
+            if (xem.cheDo !== 'anhluu' || xem.cam !== cam) return;
+            fetch(urlXem('AnhLuu', cam), { credentials: 'same-origin' })
+                .then(function (res) {
+                    if (res.status === 404) return null;
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    var luc = res.headers.get('X-Chup-Luc');
+                    return res.blob().then(function (b) { return { blob: b, luc: luc }; });
+                })
+                .then(function (kq) {
+                    if (xem.cheDo !== 'anhluu' || xem.cam !== cam) return;
+                    if (!kq) {
+                        anh.removeAttribute('src');
+                        nhanXem('Chưa có ảnh lưu cho camera này');
+                    } else {
+                        thuHoiAnhLuu();
+                        xem.urlAnhLuu = URL.createObjectURL(kq.blob);
+                        anh.src = xem.urlAnhLuu;
+                        nhanXem('Ảnh lưu lúc ' + dinhDangGioChup(kq.luc));
+                    }
+                    xem.timerAnh = setTimeout(tai, 60000);
+                })
+                .catch(function () {
+                    if (xem.cheDo !== 'anhluu' || xem.cam !== cam) return;
+                    nhanXem('Không đọc được ảnh lưu, đang thử lại...');
+                    xem.timerAnh = setTimeout(tai, 10000);
+                });
+        }
+        tai();
     }
 
     function thuHoiAnhLuu() {
@@ -714,6 +761,7 @@
         $('#gsCameraBody').on('click', 'tr', function () { moXem($(this).data('cam')); });
         $('#xemCheDoVideo').on('click', cheDoVideo);
         $('#xemCheDoAnh').on('click', cheDoAnh);
+        $('#xemCheDoAnhLuu').on('click', cheDoAnhLuu);
         $('#xemToanManHinh').on('click', function () {
             var khung = document.getElementById('xemKhung');
             if (khung.requestFullscreen) khung.requestFullscreen();

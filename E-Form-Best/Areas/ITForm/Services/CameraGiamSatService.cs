@@ -34,6 +34,12 @@ namespace E_Form_Best.Areas.ITForm.Services
         // Dùng /api/nvrs thay vì /api/nvr-inventory: bản inventory có kèm user + tên biến mật khẩu đầu ghi
         public Task<JsonElement> DanhSachDauGhiAsync(CancellationToken ct) => GetAsync("/api/nvrs", ct);
 
+        /// <summary>
+        /// Bản inventory có cổng API + https của từng đầu ghi (một số đầu ghi không dùng cổng 80).
+        /// Có kèm user / tên biến mật khẩu nên CHỈ dùng phía server, không trả ra trình duyệt.
+        /// </summary>
+        public Task<JsonElement> KhoDauGhiAsync(CancellationToken ct) => GetAsync("/api/nvr-inventory", ct);
+
         public Task<JsonElement> DanhSachCameraAsync(string? trangThai, string? nvrIp, string? khuVuc,
             bool gomDaLoaiTru, bool chiCanChuY, CancellationToken ct)
         {
