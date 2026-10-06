@@ -10,7 +10,7 @@
 # Task Scheduler gọi đúng lệnh trên (08:30 và 14:00 mỗi ngày).
 
 param(
-    [int]$SoLuong = 10,        # số camera chụp song song
+    [int]$SoLuong = 6,         # số camera chụp song song (10 thì đầu ghi 10.0.21.251 bắt đầu trả 403)
     [int]$TimeoutMs = 8000
 )
 
@@ -51,34 +51,70 @@ try {
 } finally { $cn.Close() }
 GhiLog ("Bat dau chup " + $dsCamera.Count + " camera")
 
+# ---- Cổng/giao thức ISAPI của từng đầu ghi (giống CameraXemTrucTiepService.DsDiaChiNvrAsync) ----
+# Vài đầu ghi không mở cổng 80: 10.0.28.254 dùng http:8001, 10.0.29.254 dùng https:8003.
+# Lấy từ inventory của hệ thống giám sát; lỗi thì chỉ thử http:80 như cũ.
+$gocNvr = @{}
+try {
+    $isapi = $cauHinh['CameraIsapi__BaseUrl'].TrimEnd('/')
+    $dangNhap = @{ username = $cauHinh['CameraIsapi__TaiKhoan']; password = $cauHinh['CameraIsapi__MatKhau'] } | ConvertTo-Json
+    $token = (Invoke-RestMethod -Method Post -Uri "$isapi/auth/login" -Body $dangNhap -ContentType 'application/json' -TimeoutSec 15).access_token
+    $kho = Invoke-RestMethod -Uri "$isapi/api/nvr-inventory" -Headers @{ Authorization = "Bearer $token" } -TimeoutSec 15
+    foreach ($n in $kho.nvrs) {
+        if (-not $n.ip) { continue }
+        $https = ($n.https -eq $true)
+        $cong = if ($n.api_port) { [int]$n.api_port } elseif ($https) { 443 } else { 80 }
+        $gocNvr[[string]$n.ip] = $(if ($https) { 'https' } else { 'http' }) + "://$($n.ip):$cong"
+    }
+    GhiLog ("Inventory: " + $gocNvr.Count + " dau ghi")
+} catch { GhiLog ("Khong doc duoc inventory, chi thu cong 80: " + $_.Exception.Message) }
+
 # ---- Chụp song song ----
 $chup = {
-    param($nvr, $kenh, $tk, $mk, $thuMuc, $timeout)
-    try {
-        $req = [Net.HttpWebRequest]::Create("http://$nvr/ISAPI/Streaming/channels/${kenh}02/picture")
-        $req.Credentials = New-Object Net.NetworkCredential($tk, $mk)   # đầu ghi Hikvision dùng Digest
-        $req.Timeout = $timeout
-        $req.ReadWriteTimeout = $timeout
-        $res = $req.GetResponse()
-        try {
-            if ($res.ContentType -notlike 'image/*') { return "LOI $nvr k$kenh content-type=$($res.ContentType)" }
-            $ms = New-Object IO.MemoryStream
-            $res.GetResponseStream().CopyTo($ms)
-        } finally { $res.Close() }
-        if ($ms.Length -lt 1000) { return "LOI $nvr k$kenh anh qua nho" }
-        # Ghi file tạm rồi đổi tên: lỗi giữa chừng thì ảnh cũ vẫn nguyên
-        $dich = Join-Path $thuMuc "${nvr}_${kenh}.jpg"
-        $tam = "$dich.tmp"
-        [IO.File]::WriteAllBytes($tam, $ms.ToArray())
-        Move-Item $tam $dich -Force
-        return 'OK'
-    } catch { return "LOI $nvr k$kenh $($_.Exception.Message)" }
+    param($nvr, $kenh, $tk, $mk, $thuMuc, $timeout, $dsGoc)
+    # Đầu ghi https dùng chứng thư tự ký, firmware cũ chỉ có TLS 1.0/1.1 — chỉ trong tiến trình script này
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]'Tls,Tls11,Tls12'
+    [Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+    $loiCuoi = 'khong co dia chi'
+    foreach ($goc in $dsGoc) {
+        # Firmware NVR cũ (10.0.28.5) trả 400 cho /Streaming/..., chỉ chụp được qua /ContentMgmt/StreamingProxy/...
+        foreach ($duong in "/ISAPI/Streaming/channels/${kenh}02/picture", "/ISAPI/ContentMgmt/StreamingProxy/channels/${kenh}02/picture") {
+            try {
+                $req = [Net.HttpWebRequest]::Create("$goc$duong")
+                $req.Credentials = New-Object Net.NetworkCredential($tk, $mk)   # đầu ghi Hikvision dùng Digest
+                $req.Timeout = $timeout
+                $req.ReadWriteTimeout = $timeout
+                $res = $req.GetResponse()
+                try {
+                    if ($res.ContentType -notlike 'image/*') { $loiCuoi = "content-type=$($res.ContentType)"; continue }
+                    $ms = New-Object IO.MemoryStream
+                    $res.GetResponseStream().CopyTo($ms)
+                } finally { $res.Close() }
+                if ($ms.Length -lt 1000) { $loiCuoi = 'anh qua nho'; continue }
+                # Ghi file tạm rồi đổi tên: lỗi giữa chừng thì ảnh cũ vẫn nguyên
+                $dich = Join-Path $thuMuc "${nvr}_${kenh}.jpg"
+                $tam = "$dich.tmp"
+                [IO.File]::WriteAllBytes($tam, $ms.ToArray())
+                Move-Item $tam $dich -Force
+                return 'OK'
+            } catch {
+                $we = $_.Exception.InnerException
+                $loiCuoi = "$goc $($_.Exception.Message)"
+                # Đầu ghi có trả lời (4xx/5xx) -> thử đường dẫn kế tiếp; không trả lời -> bỏ cổng này
+                if (-not ($we -is [Net.WebException] -and $we.Response)) { break }
+            }
+        }
+    }
+    return "LOI $nvr k$kenh $loiCuoi"
 }
 
 $pool = [RunspaceFactory]::CreateRunspacePool(1, $SoLuong)
 $pool.Open()
 $viec = foreach ($c in $dsCamera) {
-    $ps = [PowerShell]::Create().AddScript($chup).AddArgument($c.Nvr).AddArgument($c.Kenh).AddArgument($taiKhoan).AddArgument($matKhau).AddArgument($thuMucAnh).AddArgument($TimeoutMs)
+    $dsGoc = @()
+    if ($gocNvr.ContainsKey($c.Nvr)) { $dsGoc += $gocNvr[$c.Nvr] }
+    if ($dsGoc -notcontains "http://$($c.Nvr):80") { $dsGoc += "http://$($c.Nvr):80" }
+    $ps = [PowerShell]::Create().AddScript($chup).AddArgument($c.Nvr).AddArgument($c.Kenh).AddArgument($taiKhoan).AddArgument($matKhau).AddArgument($thuMucAnh).AddArgument($TimeoutMs).AddArgument($dsGoc)
     $ps.RunspacePool = $pool
     [pscustomobject]@{ Ps = $ps; Kq = $ps.BeginInvoke() }
 }
