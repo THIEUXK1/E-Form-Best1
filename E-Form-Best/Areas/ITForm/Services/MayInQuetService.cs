@@ -94,10 +94,13 @@ namespace E_Form_Best.Areas.ITForm.Services
         /// Kết quả giữ trong bộ nhớ 60 giây: mỗi lần đổi bộ lọc là một lần gọi danh sách, ping lại
         /// gần trăm máy mỗi lần thì trang ì và mạng nhà máy lãnh đủ. Máy in bật/tắt không đổi theo
         /// từng giây nên 60 giây là đủ tươi.
+        ///
+        /// Trang camera dùng chung hàm này nhưng truyền khoá cache riêng, không thì hai trang
+        /// thay nhau ghi đè cache của nhau và lần nào cũng phải ping lại từ đầu.
         /// </summary>
-        public async Task<Dictionary<string, bool>> PingNhieuAsync(IReadOnlyCollection<string> dsIp, CancellationToken ct = default)
+        public async Task<Dictionary<string, bool>> PingNhieuAsync(IReadOnlyCollection<string> dsIp, CancellationToken ct = default,
+            string khoaCache = "MayIn:TrangThaiPing")
         {
-            const string khoaCache = "MayIn:TrangThaiPing";
 
             if (_cache.TryGetValue(khoaCache, out Dictionary<string, bool>? daCo)
                 && daCo is not null

@@ -1,0 +1,675 @@
+@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Quản lý camera";
+
+    @* Kiểu tường minh thay cho dynamic: view chạy ở assembly khác khi bật runtime compilation *@
+    var dsCongTy = ViewBag.DsCongTy as IEnumerable<E_Form_Best.Models.ITForm.KkCongTy>
+                   ?? Enumerable.Empty<E_Form_Best.Models.ITForm.KkCongTy>();
+    var dsBoPhan = ViewBag.DsBoPhan as IEnumerable<E_Form_Best.Models.ITForm.KkBoPhan>
+                   ?? Enumerable.Empty<E_Form_Best.Models.ITForm.KkBoPhan>();
+    var dsTinhTrang = ViewBag.DsTinhTrang as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var dsTrangThaiDauGhi = ViewBag.DsTrangThaiDauGhi as IEnumerable<string> ?? Enumerable.Empty<string>();
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+@* Dùng lại khung bảng của trang CCDC (cùng nhóm menu, cùng kiểu bảng cột cố định) *@
+<link rel="stylesheet" href="/css/ccdc-quanly.css?v=20260825e">
+<link rel="stylesheet" href="/css/fixed-page-layout.css?v=5">
+<link rel="stylesheet" href="/css/camera-quanly.css?v=20261006h">
+
+<div class="content-header pt-0 pb-0" style="margin-top: -25px;">
+    <div class="container-fluid">
+        <div class="dash-topbar">
+            <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-video"></i></span>Camera</h4>
+
+            <ul class="nav nav-pills nav-pills-ccdc mb-0" id="cameraTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tabGiamSatBtn" data-bs-toggle="pill" data-bs-target="#paneGiamSat" type="button" role="tab">
+                        <i class="fas fa-heart-pulse me-1"></i> Giám sát
+                        <span class="badge rounded-pill bg-danger ms-1 d-none" id="badgeMatKetNoi">0</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tabLichSuBtn" data-bs-toggle="pill" data-bs-target="#paneLichSu" type="button" role="tab">
+                        <i class="fas fa-clock-rotate-left me-1"></i> Lịch sử
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tabDauGhiBtn" data-bs-toggle="pill" data-bs-target="#paneDauGhi" type="button" role="tab">
+                        <i class="fas fa-server me-1"></i> Đầu ghi chi nhánh
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tabTaiSanBtn" data-bs-toggle="pill" data-bs-target="#paneTaiSan" type="button" role="tab">
+                        <i class="fas fa-tags me-1"></i> Tài sản camera
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card border-0 shadow-sm bg-white" style="border-radius: 15px;">
+            <div class="card-body p-2 p-md-3">
+                <div class="tab-content">
+
+                    @* ================= TAB GIÁM SÁT (đọc từ hệ thống ISAPI) ================= *@
+                    <div class="tab-pane fade show active" id="paneGiamSat" role="tabpanel">
+
+                        <div class="alert alert-danger py-2 small d-none" id="gsLoi"></div>
+
+                        <div class="cam-tiles mb-2">
+                            <div class="cam-tile"><div class="cam-tile-nhan">Tổng camera</div><div class="cam-tile-so" id="gsTong">–</div></div>
+                            <div class="cam-tile cam-tile-up"><div class="cam-tile-nhan">Hoạt động</div><div class="cam-tile-so" id="gsUp">–</div></div>
+                            <div class="cam-tile cam-tile-down"><div class="cam-tile-nhan">Mất kết nối</div><div class="cam-tile-so" id="gsDown">–</div><div class="cam-tile-phu" id="gsTyLe"></div></div>
+                            <div class="cam-tile"><div class="cam-tile-nhan">Đầu ghi sẵn sàng</div><div class="cam-tile-so" id="gsNvr">–</div><div class="cam-tile-phu" id="gsNvrLoi"></div></div>
+                            <div class="cam-tile"><div class="cam-tile-nhan">Đã loại trừ / Chú ý</div><div class="cam-tile-so" id="gsLoaiTru">–</div></div>
+                            <div class="cam-tile"><div class="cam-tile-nhan">Kiểm tra gần nhất</div><div class="cam-tile-so cam-tile-so-nho" id="gsLanCuoi">–</div><div class="cam-tile-phu" id="gsLanCuoiTrangThai"></div></div>
+                        </div>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-lg-7">
+                                <div class="cam-khung">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="fw-bold small text-muted"><i class="fas fa-chart-line me-1"></i> Xu hướng theo các lần kiểm tra</span>
+                                        <select id="gsKhoangXuHuong" class="form-select form-select-sm w-auto ms-auto">
+                                            <option value="72">6 giờ gần nhất</option>
+                                            <option value="288">24 giờ</option>
+                                            <option value="864">3 ngày</option>
+                                        </select>
+                                    </div>
+                                    <div class="cam-bieu-do"><canvas id="gsBieuDo"></canvas></div>
+                                </div>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="cam-khung">
+                                    <div class="fw-bold small text-muted mb-1"><i class="fas fa-server me-1"></i> Đầu ghi BPVN (bấm để lọc camera)</div>
+                                    <div class="cam-bang-nvr">
+                                        <table class="table table-sm table-hover align-middle mb-0 small">
+                                            <thead>
+                                                <tr><th>Đầu ghi</th><th>Khu</th><th class="text-end">Kênh</th><th class="text-end">Mất KN</th><th>Trạng thái</th></tr>
+                                            </thead>
+                                            <tbody id="gsNvrBody">
+                                                <tr><td colspan="5" class="text-center text-muted py-3">Đang tải...</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <input type="text" id="gsTuKhoa" class="form-control form-control-sm" style="max-width:280px;"
+                                   placeholder="Tìm tên camera, IP, đầu ghi, khu vực...">
+                            <select id="gsTrangThai" class="form-select form-select-sm w-auto">
+                                <option value="">-- Mọi trạng thái --</option>
+                                <option value="UP">Hoạt động</option>
+                                <option value="DOWN">Mất kết nối</option>
+                            </select>
+                            <select id="gsNvrLoc" class="form-select form-select-sm w-auto">
+                                <option value="">-- Mọi đầu ghi --</option>
+                            </select>
+                            <select id="gsKhuVuc" class="form-select form-select-sm w-auto">
+                                <option value="">-- Mọi khu vực --</option>
+                            </select>
+                            <div class="form-check form-switch mb-0" title="Ghim lưu riêng trên máy/trình duyệt này">
+                                <input class="form-check-input" type="checkbox" id="gsChiGhim">
+                                <label class="form-check-label small" for="gsChiGhim"><i class="fas fa-thumbtack"></i> Chỉ camera đã ghim</label>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="gsChiChuY">
+                                <label class="form-check-label small" for="gsChiChuY">★ Chỉ camera chú ý</label>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="gsGomLoaiTru">
+                                <label class="form-check-label small" for="gsGomLoaiTru">Gồm camera đã loại trừ</label>
+                            </div>
+                            <span class="flex-grow-1"></span>
+                            <span class="small text-muted" id="gsDemCamera"></span>
+                            <div class="form-check form-switch mb-0" title="Hệ thống ISAPI kiểm tra khoảng 5 phút một lần">
+                                <input class="form-check-input" type="checkbox" id="gsTuLamMoi" checked>
+                                <label class="form-check-label small" for="gsTuLamMoi">Tự làm mới 60 giây</label>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-light border" id="gsBtnTaiLai" title="Tải lại"><i class="fas fa-rotate"></i></button>
+                        </div>
+
+                        <div class="ccdc-table-wrap" data-fp-scroll>
+                            <table class="table table-hover align-middle mb-0 ccdc-table cam-table-gs">
+                                <colgroup>
+                                    <col style="width:78px;">
+                                    <col style="width:120px;">
+                                    <col style="width:230px;">
+                                    <col style="width:130px;">
+                                    <col style="width:190px;">
+                                    <col style="width:90px;">
+                                    <col style="width:60px;">
+                                    <col style="width:170px;">
+                                    <col style="width:150px;">
+                                    <col style="width:280px;">
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Trạng thái</th>
+                                        <th>Tên camera</th>
+                                        <th>IP</th>
+                                        <th>Đầu ghi</th>
+                                        <th>Khu vực</th>
+                                        <th class="ccdc-num">Kênh</th>
+                                        <th>Mất kết nối từ</th>
+                                        <th>Đổi trạng thái lúc</th>
+                                        <th>Ghi chú <span class="fw-normal text-muted">(bấm để sửa)</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="gsCameraBody">
+                                    <tr><td colspan="10" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    @* ================= TAB LỊCH SỬ ĐỔI TRẠNG THÁI (KK_CameraLichSu) ================= *@
+                    <div class="tab-pane fade" id="paneLichSu" role="tabpanel">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <label class="small text-muted mb-0">Từ</label>
+                            <input type="date" id="lsTuNgay" class="form-control form-control-sm w-auto">
+                            <label class="small text-muted mb-0">đến</label>
+                            <input type="date" id="lsDenNgay" class="form-control form-control-sm w-auto">
+                            <select id="lsLoai" class="form-select form-select-sm w-auto">
+                                <option value="">-- Mọi sự kiện --</option>
+                                <option value="DOWN">Hoạt động → Mất kết nối</option>
+                                <option value="UP">Mất kết nối → Hoạt động</option>
+                            </select>
+                            <select id="lsNvr" class="form-select form-select-sm w-auto">
+                                <option value="">-- Mọi đầu ghi --</option>
+                            </select>
+                            <input type="text" id="lsTuKhoa" class="form-control form-control-sm" style="max-width:240px;"
+                                   placeholder="Tìm tên camera, IP, đầu ghi...">
+                            <button type="button" class="btn btn-sm btn-light border" id="lsBtnTaiLai" title="Tải lại"><i class="fas fa-rotate"></i></button>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-3 mb-2 small text-muted fw-bold">
+                            <span>Sự kiện: <span id="lsTong">0</span></span>
+                            <span class="text-danger"><i class="fas fa-arrow-down me-1"></i>Mất kết nối: <span id="lsDown">0</span></span>
+                            <span class="text-success"><i class="fas fa-arrow-up me-1"></i>Hoạt động lại: <span id="lsUp">0</span></span>
+                            <span>Số camera: <span id="lsSoCamera">0</span></span>
+                            <span class="fw-normal" id="lsGhiChu"></span>
+                        </div>
+
+                        <div class="ccdc-table-wrap" data-fp-scroll>
+                            <table class="table table-hover align-middle mb-0 ccdc-table cam-table-ls">
+                                <colgroup>
+                                    <col style="width:48px;">
+                                    <col style="width:150px;">
+                                    <col style="width:200px;">
+                                    <col style="width:230px;">
+                                    <col style="width:130px;">
+                                    <col style="width:200px;">
+                                    <col style="width:90px;">
+                                    <col style="width:60px;">
+                                    <col style="width:150px;">
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Thời gian</th>
+                                        <th>Sự kiện</th>
+                                        <th>Tên camera</th>
+                                        <th>IP</th>
+                                        <th>Đầu ghi</th>
+                                        <th>Khu vực</th>
+                                        <th class="ccdc-num">Kênh</th>
+                                        <th>Đã mất kết nối</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lsBody">
+                                    <tr><td colspan="9" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    @* ================= TAB ĐẦU GHI CHI NHÁNH (KK_DauGhi) ================= *@
+                    <div class="tab-pane fade" id="paneDauGhi" role="tabpanel">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <input type="text" id="dgTuKhoa" class="form-control form-control-sm" style="max-width:280px;"
+                                   placeholder="Tìm địa điểm, IP, ghi chú...">
+                            <select id="dgTrangThai" class="form-select form-select-sm w-auto">
+                                <option value="">-- Mọi trạng thái --</option>
+                                @foreach (var tt in dsTrangThaiDauGhi)
+                                {
+                                    <option value="@tt">@tt</option>
+                                }
+                            </select>
+                            <span class="small text-muted fw-bold ms-2">
+                                Số đầu ghi: <span id="dgTongDong">0</span> · Tổng camera khai báo: <span id="dgDemCamera">0</span>
+                            </span>
+                            <span class="flex-grow-1"></span>
+                            <span class="small text-muted"><i class="fas fa-lock me-1"></i>Không lưu mật khẩu đầu ghi trên web</span>
+                            <button type="button" class="btn btn-sm text-white rounded-3 px-3" style="background-color:#7c3aed;" id="btnThemDauGhi">
+                                <i class="fas fa-plus me-1"></i> Thêm đầu ghi
+                            </button>
+                        </div>
+
+                        <div class="ccdc-table-wrap" data-fp-scroll>
+                            <table class="table table-hover align-middle mb-0 ccdc-table cam-table-dg">
+                                <colgroup>
+                                    <col style="width:48px;">
+                                    <col style="width:210px;">
+                                    <col style="width:220px;">
+                                    <col style="width:140px;">
+                                    <col style="width:80px;">
+                                    <col style="width:80px;">
+                                    <col style="width:80px;">
+                                    <col style="width:90px;">
+                                    <col style="width:110px;">
+                                    <col style="width:280px;">
+                                    <col style="width:90px;">
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Địa điểm</th>
+                                        <th>IP public / tên miền</th>
+                                        <th>IP local</th>
+                                        <th class="ccdc-num">Port SV</th>
+                                        <th class="ccdc-num">Port web</th>
+                                        <th class="ccdc-num">Số cam</th>
+                                        <th>RAID</th>
+                                        <th>Trạng thái</th>
+                                        <th>Ghi chú</th>
+                                        <th class="ccdc-thaotac">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dgBody">
+                                    <tr><td colspan="11" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    @* ================= TAB TÀI SẢN CAMERA (KK_Camera, nhập tay) ================= *@
+                    <div class="tab-pane fade" id="paneTaiSan" role="tabpanel">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <input type="text" id="filterTuKhoa" class="form-control form-control-sm" style="max-width:260px;"
+                                   placeholder="Tìm tên, mã, IP, đầu ghi, model, vị trí...">
+
+                            <select id="filterCongTy" class="form-select form-select-sm w-auto" title="Lọc theo công ty">
+                                <option value="">-- Tất cả công ty --</option>
+                                @foreach (var ct in dsCongTy)
+                                {
+                                    <option value="@ct.IdcongTy">@ct.TenCongTy</option>
+                                }
+                            </select>
+
+                            <select id="filterBoPhan" class="form-select form-select-sm w-auto" title="Lọc theo bộ phận">
+                                <option value="">-- Tất cả bộ phận --</option>
+                                @foreach (var bp in dsBoPhan)
+                                {
+                                    <option value="@bp.IdboPhan" data-congty="@bp.IdcongTy">@bp.TenBoPhan</option>
+                                }
+                            </select>
+
+                            <select id="filterTinhTrang" class="form-select form-select-sm w-auto" title="Lọc theo tình trạng">
+                                <option value="">-- Tất cả tình trạng --</option>
+                                @foreach (var tt in dsTinhTrang)
+                                {
+                                    <option value="@tt">@tt</option>
+                                }
+                            </select>
+
+                            <select id="filterTrucTuyen" class="form-select form-select-sm w-auto" title="Lọc theo kết nối">
+                                <option value="">-- Online + Offline --</option>
+                                <option value="online">Đang online</option>
+                                <option value="offline">Mất kết nối</option>
+                            </select>
+
+                            <span class="small text-muted fw-bold ms-2">
+                                Số camera: <span id="tongDong">0</span> ·
+                                <span class="text-success">Online: <span id="tongOnline">0</span></span> ·
+                                <span class="text-danger">Mất KN: <span id="tongOffline">0</span></span>
+                            </span>
+
+                            <span class="flex-grow-1"></span>
+
+                            <button type="button" class="btn btn-sm btn-light border" id="btnTaiLai" title="Tải lại danh sách"><i class="fas fa-rotate"></i></button>
+                            <button type="button" class="btn btn-sm text-white rounded-3 px-3" style="background-color:#7c3aed;" id="btnThemCamera">
+                                <i class="fas fa-plus me-1"></i> Thêm camera
+                            </button>
+                        </div>
+
+                        <div class="ccdc-table-wrap" data-fp-scroll>
+                            <table class="table table-hover align-middle mb-0 ccdc-table">
+                                <colgroup>
+                                    <col style="width:48px;">
+                                    <col style="width:110px;">
+                                    <col style="width:110px;">
+                                    <col style="width:220px;">
+                                    <col style="width:130px;">
+                                    <col style="width:170px;">
+                                    <col style="width:60px;">
+                                    <col style="width:170px;">
+                                    <col style="width:150px;">
+                                    <col style="width:150px;">
+                                    <col style="width:180px;">
+                                    <col style="width:130px;">
+                                    <col style="width:110px;">
+                                    <col style="width:90px;">
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Kết nối</th>
+                                        <th>Mã</th>
+                                        <th>Tên camera</th>
+                                        <th>IP</th>
+                                        <th>Đầu ghi</th>
+                                        <th class="ccdc-num">Kênh</th>
+                                        <th>Hãng / Model</th>
+                                        <th>Công ty</th>
+                                        <th>Bộ phận</th>
+                                        <th>Vị trí</th>
+                                        <th>Tình trạng</th>
+                                        <th>Hạn BH</th>
+                                        <th class="ccdc-thaotac">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cameraTableBody">
+                                    <tr><td colspan="14" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>@* /tab-content *@
+            </div>
+        </div>
+    </div>
+</section>
+
+@* ------- Modal xem trực tiếp (mở khi bấm 1 camera ở tab Giám sát) ------- *@
+<div class="modal fade" id="modalXemCamera" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0"><i class="fas fa-video me-2" style="color:#7c3aed;"></i><span id="xemTen"></span></h5>
+                    <div class="small text-muted" id="xemThongTin"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <div class="cam-xem-khung" id="xemKhung">
+                    <video id="xemVideo" autoplay muted playsinline></video>
+                    <img id="xemAnh" alt="Ảnh camera">
+                    <div class="cam-xem-nhan" id="xemNhan">Đang kết nối...</div>
+                    @* Chỉ hiện khi đang toàn màn hình (CSS :fullscreen) *@
+                    <button type="button" class="cam-xem-thoat" id="xemThoatToanManHinh" title="Thoát toàn màn hình (Esc)">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <div class="btn-group btn-group-sm me-auto" role="group">
+                    <button type="button" class="btn btn-outline-primary" id="xemCheDoVideo"><i class="fas fa-film me-1"></i> Video</button>
+                    <button type="button" class="btn btn-outline-primary" id="xemCheDoAnh"><i class="fas fa-image me-1"></i> Ảnh (1 giây/lần)</button>
+                </div>
+
+                @* Ghi chú của camera đang xem: chọn câu có sẵn (▾) hoặc gõ rồi Lưu; "+" lưu câu đang gõ thành có sẵn *@
+                <div class="input-group input-group-sm cam-xem-ghi-chu">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            data-bs-auto-close="outside" title="Chọn ghi chú có sẵn">
+                        <i class="fas fa-list"></i>
+                    </button>
+                    <ul class="dropdown-menu cam-ds-mau" id="xemDsMau"></ul>
+                    <input type="text" class="form-control" id="xemGhiChu" maxlength="1000" placeholder="Ghi chú cho camera này...">
+                    <button class="btn btn-outline-secondary" type="button" id="xemThemMau" title="Thêm câu đang gõ vào ghi chú có sẵn">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="btn btn-primary" type="button" id="xemLuuGhiChu" title="Lưu ghi chú (Enter)">
+                        <i class="fas fa-save"></i>
+                    </button>
+                </div>
+
+                <a class="btn btn-sm btn-light border" id="xemTaiAnh" target="_blank" rel="noopener"><i class="fas fa-camera me-1"></i> Mở ảnh chụp</a>
+                <button type="button" class="btn btn-sm btn-light border" id="xemToanManHinh"><i class="fas fa-expand me-1"></i> Toàn màn hình</button>
+                <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ------- Modal thêm / sửa camera (tài sản) ------- *@
+<div class="modal fade" id="modalCamera" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="modalCameraTitle">Thêm camera</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCamera" class="row g-3">
+                    <input type="hidden" id="IdCamera" name="IdCamera" value="0" />
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Mã camera</label>
+                        <input type="text" class="form-control" id="MaCamera" name="MaCamera" maxlength="100">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small fw-bold text-muted">Tên camera <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="TenCamera" name="TenCamera" maxlength="255" required
+                               placeholder="VD: Cổng chính, Kho thành phẩm góc trái">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Địa chỉ IP</label>
+                        <input type="text" class="form-control" id="DiaChiIp" name="DiaChiIp" maxlength="50" placeholder="192.168.1.64">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold text-muted">Đầu ghi (NVR/DVR)</label>
+                        <input type="text" class="form-control" id="DauGhi" name="DauGhi" maxlength="255" placeholder="Tên hoặc IP đầu ghi">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted">Kênh</label>
+                        <input type="number" class="form-control" id="Kenh" name="Kenh" min="0">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Hãng</label>
+                        <input type="text" class="form-control" id="HangSanXuat" name="HangSanXuat" maxlength="100" placeholder="Hikvision, Dahua...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Model</label>
+                        <input type="text" class="form-control" id="Model" name="Model" maxlength="100">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Serial</label>
+                        <input type="text" class="form-control" id="Serial" name="Serial" maxlength="100">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Công ty</label>
+                        <select class="form-select" id="IdcongTy" name="IdcongTy">
+                            <option value="">-- Chọn công ty --</option>
+                            @foreach (var ct in dsCongTy)
+                            {
+                                <option value="@ct.IdcongTy">@ct.TenCongTy</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Bộ phận</label>
+                        <select class="form-select" id="IdboPhan" name="IdboPhan">
+                            <option value="">-- Chọn bộ phận --</option>
+                            @foreach (var bp in dsBoPhan)
+                            {
+                                <option value="@bp.IdboPhan" data-congty="@bp.IdcongTy">@bp.TenBoPhan</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold text-muted">Vị trí lắp đặt</label>
+                        <input type="text" class="form-control" id="ViTri" name="ViTri" maxlength="500">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Tình trạng</label>
+                        <select class="form-select" id="TinhTrang" name="TinhTrang">
+                            @foreach (var tt in dsTinhTrang)
+                            {
+                                <option value="@tt">@tt</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Ngày lắp đặt</label>
+                        <input type="date" class="form-control" id="NgayLapDat" name="NgayLapDat">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Hạn bảo hành</label>
+                        <input type="date" class="form-control" id="HanBaoHanh" name="HanBaoHanh">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-muted">Ghi chú</label>
+                        <textarea class="form-control" id="GhiChu" name="GhiChu" rows="2"></textarea>
+                    </div>
+                </form>
+                <div class="alert alert-danger py-2 small mt-3 mb-0 d-none" id="cameraLoi"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn text-white rounded-pill px-4" style="background-color:#7c3aed;" id="btnLuuCamera">
+                    <i class="fas fa-save me-1"></i> Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ------- Modal xoá camera (xoá mềm, ghi lý do vào lịch sử) ------- *@
+<div class="modal fade" id="modalXoaCamera" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger"><i class="fas fa-trash me-2"></i> Xoá camera</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="xoaIdCamera" value="0">
+                <p class="mb-2">Xoá <strong id="xoaTenCamera"></strong>?</p>
+                <label class="form-label small fw-bold text-muted">Lý do xoá</label>
+                <input type="text" class="form-control" id="xoaLyDo" maxlength="500" placeholder="Ví dụ: hỏng đã tháo, thay camera mới...">
+                <div class="alert alert-danger py-2 small mt-3 mb-0 d-none" id="xoaLoi"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Huỷ</button>
+                <button type="button" class="btn btn-danger rounded-pill px-4" id="btnXacNhanXoaCamera">Xoá</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ------- Modal thêm / sửa đầu ghi chi nhánh ------- *@
+<div class="modal fade" id="modalDauGhi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="modalDauGhiTitle">Thêm đầu ghi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formDauGhi" class="row g-3">
+                    <input type="hidden" id="IdDauGhi" name="IdDauGhi" value="0" />
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Địa điểm <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="dgDiaDiem" name="DiaDiem" maxlength="255" placeholder="Gia Lộc, Sembcorp HD...">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Trạng thái</label>
+                        <select class="form-select" id="dgTrangThaiSua" name="TrangThai">
+                            @foreach (var tt in dsTrangThaiDauGhi)
+                            {
+                                <option value="@tt">@tt</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">IP public / tên miền DDNS</label>
+                        <input type="text" class="form-control" id="dgIpPublic" name="IpPublic" maxlength="255">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">IP local</label>
+                        <input type="text" class="form-control" id="dgIpLocal" name="IpLocal" maxlength="50">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted">Port SV</label>
+                        <input type="number" class="form-control" id="dgPortSv" name="PortSv" min="1" max="65535" placeholder="8000">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted">Port web</label>
+                        <input type="number" class="form-control" id="dgPortWeb" name="PortWeb" min="1" max="65535" placeholder="80">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted">Số camera</label>
+                        <input type="number" class="form-control" id="dgTongCamera" name="TongCamera" min="0">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted">RAID</label>
+                        <input type="text" class="form-control" id="dgRaid" name="Raid" maxlength="50" placeholder="RAID 5">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-muted">Ghi chú</label>
+                        <textarea class="form-control" id="dgGhiChu" name="GhiChu" rows="2" placeholder="Đường dẫn web xem camera, nhà mạng... KHÔNG ghi mật khẩu vào đây"></textarea>
+                    </div>
+                </form>
+                <div class="alert alert-danger py-2 small mt-3 mb-0 d-none" id="dauGhiLoi"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn text-white rounded-pill px-4" style="background-color:#7c3aed;" id="btnLuuDauGhi">
+                    <i class="fas fa-save me-1"></i> Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ------- Modal xoá đầu ghi ------- *@
+<div class="modal fade" id="modalXoaDauGhi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger"><i class="fas fa-trash me-2"></i> Xoá đầu ghi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="xoaIdDauGhi" value="0">
+                <p class="mb-2">Xoá <strong id="xoaTenDauGhi"></strong>?</p>
+                <label class="form-label small fw-bold text-muted">Lý do xoá</label>
+                <input type="text" class="form-control" id="xoaLyDoDauGhi" maxlength="500" placeholder="Ví dụ: đã tháo, gộp đầu ghi...">
+                <div class="alert alert-danger py-2 small mt-3 mb-0 d-none" id="xoaDauGhiLoi"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Huỷ</button>
+                <button type="button" class="btn btn-danger rounded-pill px-4" id="btnXacNhanXoaDauGhi">Xoá</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/js/fixed-page-layout.js?v=5" defer></script>
+    <script src="/js/camera-quanly.js?v=20261006b"></script>
+    <script src="/js/camera-giam-sat.js?v=20261006i"></script>
+    <script src="/js/camera-lich-su.js?v=20261006"></script>
+    <script src="/js/camera-dau-ghi.js?v=20261006"></script>
+}

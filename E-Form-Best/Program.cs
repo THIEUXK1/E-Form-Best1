@@ -86,6 +86,33 @@ builder.Services.AddScoped<MayInApiService>();
 builder.Services.AddScoped<MayInQuetService>();
 builder.Services.AddHostedService<MayInPollWorker>();
 
+// --- 2c. GIÁM SÁT CAMERA: chỉ đọc API của hệ thống BPVN Camera ISAPI (cấu hình CameraIsapi__* trong .env) ---
+builder.Services.AddHttpClient(CameraGiamSatService.TenHttpClient, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+builder.Services.AddScoped<CameraGiamSatService>();
+// Ghi lịch sử camera đổi trạng thái (tắt bằng CameraIsapi__GhiLichSu=false)
+builder.Services.AddHostedService<CameraLichSuWorker>();
+
+// Xem trực tiếp: ảnh chụp gọi thẳng đầu ghi (Digest, tài khoản CameraNvr__* trong .env),
+// video đi qua go2rtc chạy cùng máy. Client go2rtc không có timeout vì luồng video mở lâu.
+builder.Services.AddHttpClient(CameraXemTrucTiepService.TenClientNvr, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(8);
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    Credentials = new System.Net.NetworkCredential(
+        builder.Configuration["CameraNvr:TaiKhoan"] ?? "",
+        builder.Configuration["CameraNvr:MatKhau"] ?? "")
+});
+builder.Services.AddHttpClient(CameraXemTrucTiepService.TenClientGo2rtc, client =>
+{
+    client.Timeout = Timeout.InfiniteTimeSpan;
+});
+builder.Services.AddScoped<CameraXemTrucTiepService>();
+
 // Cache trong bộ nhớ cho dữ liệu tra cứu ít thay đổi (Công ty, Bộ phận...) để giảm truy vấn DB lặp lại
 builder.Services.AddMemoryCache();
 

@@ -1,0 +1,236 @@
+/* Trang /QLCamera — phần riêng; khung bảng dùng chung ccdc-quanly.css */
+
+.dash-topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+.dash-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #1e293b;
+    white-space: nowrap;
+    margin: 0;
+}
+
+.dash-title-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 15px;
+    background: linear-gradient(135deg, #a78bfa, #6d28d9);
+}
+
+html.fp-lock .content-header {
+    margin-top: 0 !important;
+}
+
+/* flex-shrink mặc định = 1 sẽ bóp các khối trên bảng thấp hơn nội dung rồi tràn đè lên nhau */
+html.fp-lock .content-header,
+html.fp-lock .fp-chain > *:not(.fp-grow) {
+    flex: 0 0 auto;
+}
+
+/* Bảng 9–11 cột, không cần bề rộng tối thiểu 1620px như bảng CCDC */
+.ccdc-table.cam-table-gs { min-width: 1380px; }
+.ccdc-table.cam-table-dg { min-width: 1250px; }
+
+/* Ô số liệu tổng quan */
+.cam-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+}
+
+.cam-tile {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 8px 12px;
+    background: #f8fafc;
+}
+
+.cam-tile-nhan {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.cam-tile-so {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1.2;
+}
+
+.cam-tile-so-nho {
+    font-size: 1rem;
+    padding-top: 6px;
+}
+
+.cam-tile-phu {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.cam-tile-up { background: #f0fdf4; border-color: #bbf7d0; }
+.cam-tile-up .cam-tile-so { color: #15803d; }
+.cam-tile-down { background: #fef2f2; border-color: #fecaca; }
+.cam-tile-down .cam-tile-so { color: #b91c1c; }
+
+.cam-khung {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 8px 10px;
+    height: 100%;
+}
+
+.cam-bieu-do {
+    position: relative;
+    height: 190px;
+}
+
+.cam-bang-nvr {
+    max-height: 200px;
+    overflow: auto;
+}
+
+.cam-bang-nvr tbody tr { cursor: pointer; }
+.cam-bang-nvr tbody tr.cam-dang-loc > td { background: #ede9fe; }
+
+/* Chấm trạng thái */
+.cam-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.cam-sao { color: #f59e0b; margin-left: 4px; }
+
+.ccdc-table > tbody > tr.cam-down > td { background: #fff5f5; }
+.ccdc-table > tbody > tr.cam-loai-tru > td { opacity: .55; }
+
+/* Cửa sổ xem trực tiếp: khung 16:9, video và ảnh chồng lên nhau, chỉ hiện một cái */
+.cam-table-gs tbody tr { cursor: pointer; }
+
+.cam-xem-khung {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #0f172a;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.cam-xem-khung video,
+.cam-xem-khung img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.cam-xem-nhan {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(15, 23, 42, .65);
+}
+
+.cam-xem-nhan.cam-xem-live { background: #dc2626; }
+
+/* Nút đóng khi xem toàn màn hình: ẩn lúc bình thường, chỉ hiện khi khung xem đang fullscreen */
+.cam-xem-thoat {
+    display: none;
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 2;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 50%;
+    font-size: 20px;
+    color: #fff;
+    background: rgba(15, 23, 42, .7);
+    cursor: pointer;
+}
+
+.cam-xem-thoat:hover { background: #dc2626; }
+
+.cam-xem-khung:fullscreen { border-radius: 0; }
+.cam-xem-khung:fullscreen .cam-xem-thoat { display: block; }
+
+/* Ô ghi chú sửa tại chỗ ở tab Giám sát */
+.cam-ghi-chu { cursor: text; }
+.cam-ghi-chu:hover { outline: 1px dashed #a78bfa; outline-offset: -3px; }
+.cam-ghi-chu-trong { color: #cbd5e1; font-style: italic; }
+.cam-ghi-chu .input-group { min-width: 100%; }
+.cam-ghi-chu .form-control { font-size: 13px; }
+
+/* Ô ghi chú trong cửa sổ xem trực tiếp (nằm trái nút "Mở ảnh chụp") */
+.cam-xem-ghi-chu { width: 380px; max-width: 100%; }
+
+.cam-ds-mau {
+    max-height: 280px;
+    overflow-y: auto;
+    min-width: 300px;
+}
+
+.cam-ds-mau .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: normal;
+}
+
+.cam-ds-mau .cam-mau-chu { flex: 1; }
+
+.cam-ds-mau .cam-mau-xoa {
+    color: #94a3b8;
+    padding: 0 4px;
+    border-radius: 4px;
+}
+
+.cam-ds-mau .cam-mau-xoa:hover { color: #fff; background: #dc2626; }
+
+.cam-xem-ghi-chu .form-control.cam-da-luu { border-color: #22c55e; box-shadow: 0 0 0 .15rem rgba(34, 197, 94, .25); }
+.ccdc-table.cam-table-ls { min-width: 1250px; }
+
+/* Nút ghim camera lên đầu (lưu localStorage từng máy) */
+.cam-ghim {
+    border: 0;
+    background: transparent;
+    padding: 0 6px 0 0;
+    color: #cbd5e1;
+    transform: rotate(45deg);
+    transition: color .15s, transform .15s;
+}
+
+.cam-ghim:hover { color: #7c3aed; }
+.cam-ghim.cam-ghim-bat { color: #7c3aed; transform: none; }
+.ccdc-table > tbody > tr.cam-da-ghim > td { background: #f5f3ff; }
+.ccdc-table > tbody > tr.cam-da-ghim.cam-down > td { background: #fdf2f8; }

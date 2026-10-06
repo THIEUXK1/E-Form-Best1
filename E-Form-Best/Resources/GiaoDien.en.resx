@@ -61,6 +61,9 @@
   <data name="Thống kê MAC Wi-Fi" xml:space="preserve">
     <value>Wi-Fi MAC statistics</value>
   </data>
+  <data name="Quản lý camera" xml:space="preserve">
+    <value>Camera management</value>
+  </data>
   <data name="Quản lý CCDC" xml:space="preserve">
     <value>Tools &amp; equipment</value>
   </data>
