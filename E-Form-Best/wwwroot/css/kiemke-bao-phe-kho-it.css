@@ -1,0 +1,30 @@
+/* Bảng Thiết bị: dòng báo phế (trạng thái Hỏng) nền đỏ, dòng ở Kho IT nền xanh — đi cùng kiemke-bao-phe-kho-it.js.
+   Dòng có sẵn class bg-white (!important) và Bootstrap tô nền ở từng ô, nên phải phủ cả tr lẫn td. */
+
+#adminDataTable tr.tb-dong-bao-phe,
+#adminDataTable tr.tb-dong-bao-phe > td {
+    background-color: #fde2e2 !important;
+    --bs-table-bg: #fde2e2;
+    --bs-table-hover-bg: #fbd0d0;
+}
+
+#adminDataTable tr.tb-dong-bao-phe > td:first-child { box-shadow: inset 4px 0 0 #dc3545; }
+
+#adminDataTable tr.tb-dong-kho-it,
+#adminDataTable tr.tb-dong-kho-it > td {
+    background-color: #dcf5e7 !important;
+    --bs-table-bg: #dcf5e7;
+    --bs-table-hover-bg: #c8eed9;
+}
+
+#adminDataTable tr.tb-dong-kho-it > td:first-child { box-shadow: inset 4px 0 0 #198754; }
+
+:root[data-theme="dark"] #adminDataTable tr.tb-dong-bao-phe,
+:root[data-theme="dark"] #adminDataTable tr.tb-dong-bao-phe > td {
+    background-color: rgba(220, 53, 69, 0.22) !important;
+}
+
+:root[data-theme="dark"] #adminDataTable tr.tb-dong-kho-it,
+:root[data-theme="dark"] #adminDataTable tr.tb-dong-kho-it > td {
+    background-color: rgba(25, 135, 84, 0.25) !important;
+}

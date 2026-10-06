@@ -7,6 +7,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 @* Khoá cuộn toàn trang, chỉ bảng dữ liệu được cuộn (module dùng chung fixed-page-layout) *@
 <link rel="stylesheet" href="~/css/fixed-page-layout.css?v=5" />
+<link rel="stylesheet" href="/css/kiemke-tong-quan.css?v=1" />
+<link rel="stylesheet" href="/css/kiemke-bao-phe-kho-it.css?v=1" />
 
 <style>
     body {
@@ -865,24 +867,9 @@
 
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade" id="thongke" role="tabpanel">
-                        <div class="row g-3 mb-4" id="boxThongKeCards"></div>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
-                                    <div class="card-header bg-white border-0 fw-bold pt-3 pb-0"><i class="fas fa-chart-bar text-primary me-1"></i> Số lượng theo Loại thiết bị</div>
-                                    <div class="card-body">
-                                        <canvas id="chartLoaiThietBi" style="max-height: 300px;"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
-                                    <div class="card-header bg-white border-0 fw-bold pt-3 pb-0"><i class="fas fa-chart-pie text-success me-1"></i> Tỷ lệ theo Trạng thái</div>
-                                    <div class="card-body d-flex justify-content-center">
-                                        <canvas id="chartTrangThai" style="max-height: 300px;"></canvas>
-                                    </div>
-                                </div>
-                            </div>
+                        @* Nội dung do wwwroot/js/kiemke-tong-quan.js vẽ *@
+                        <div id="tqTongQuan">
+                            <div class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin me-1"></i> Đang tải số liệu...</div>
                         </div>
                     </div>
 
@@ -1258,6 +1245,9 @@
     <script src="/js/kiemke-key-office.js?v=1"></script>
     <script src="/js/kiemke-key-windows.js?v=1"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/js/kiemke-tong-quan.js?v=2"></script>
+    <script src="/js/kiemke-nho-tab.js?v=2"></script>
+    <script src="/js/kiemke-bao-phe-kho-it.js?v=1"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <script>
@@ -1271,9 +1261,6 @@
         let dsThietBiTheoBoLoc = [];
         let trangHienTaiThietBi = 1; // trang đang xem của bảng Thiết bị (phân trang phía client)
         let allThietBiCache = [];
-
-        let chartLoai = null;
-        let chartTT = null;
 
         let currentStream = null;
         let capturedPhotoBlob = null;
@@ -2329,83 +2316,10 @@
         }
 
         function renderThongKe() {
-        let activeDevices = allThietBiCache.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
-
-        let total = activeDevices.length;
-        let dangHoatDong = activeDevices.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('hoạt động')).length;
-        let hongHoc = activeDevices.filter(x => x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('hỏng')).length;
-        let chuaCapPhat = activeDevices.filter(x => !x.idNguoiDung).length;
-
-        $('#boxThongKeCards').html(`
-        <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-primary text-white border-0 shadow-sm h-100" style="border-radius:15px">
-        <div class="card-body d-flex align-items-center">
-        <div class="me-3"><i class="fas fa-boxes fa-3x" style="opacity: 0.7;"></i></div>
-        <div><h3 class="mb-0 fw-bold">${total}</h3><div class="small">Tổng Thiết Bị (Thực tế)</div></div>
-        </div>
-        </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-success text-white border-0 shadow-sm h-100" style="border-radius:15px">
-        <div class="card-body d-flex align-items-center">
-        <div class="me-3"><i class="fas fa-check-circle fa-3x" style="opacity: 0.7;"></i></div>
-        <div><h3 class="mb-0 fw-bold">${dangHoatDong}</h3><div class="small">Đang Hoạt Động</div></div>
-        </div>
-        </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-danger text-white border-0 shadow-sm h-100" style="border-radius:15px">
-        <div class="card-body d-flex align-items-center">
-        <div class="me-3"><i class="fas fa-tools fa-3x" style="opacity: 0.7;"></i></div>
-        <div><h3 class="mb-0 fw-bold">${hongHoc}</h3><div class="small">Hỏng / Cần sửa</div></div>
-        </div>
-        </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card bg-warning text-dark border-0 shadow-sm h-100" style="border-radius:15px">
-        <div class="card-body d-flex align-items-center">
-        <div class="me-3"><i class="fas fa-user-slash fa-3x" style="opacity: 0.7;"></i></div>
-        <div><h3 class="mb-0 fw-bold">${chuaCapPhat}</h3><div class="small">Chưa Cấp Phát N.Dùng</div></div>
-        </div>
-        </div>
-        </div>
-        `);
-
-        let countLoai = {};
-        activeDevices.forEach(d => { let loai = d.loaiThietBi || 'Chưa rõ'; countLoai[loai] = (countLoai[loai] || 0) + 1; });
-
-        if(chartLoai) chartLoai.destroy();
-        let chartElementLoai = document.getElementById('chartLoaiThietBi');
-        if(chartElementLoai) {
-        chartLoai = new Chart(chartElementLoai.getContext('2d'), {
-        type: 'bar',
-        data: {
-        labels: Object.keys(countLoai),
-        datasets: [{ label: 'Số lượng thiết bị', data: Object.values(countLoai), backgroundColor: '#2a78d6', borderRadius: 5 }]
-        },
-        options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, grid: { color: '#e1e0d9' }, ticks: { color: '#898781' } }, x: { grid: { display: false }, ticks: { color: '#52514e' } } }
-        }
-        });
-        }
-
-        let countTT = {};
-        activeDevices.forEach(d => { let tt = d.tenTrangThai || 'Chưa rõ'; countTT[tt] = (countTT[tt] || 0) + 1; });
-
-        if(chartTT) chartTT.destroy();
-        let chartElementTT = document.getElementById('chartTrangThai');
-        if(chartElementTT) {
-        chartTT = new Chart(chartElementTT.getContext('2d'), {
-        type: 'doughnut',
-        data: {
-        labels: Object.keys(countTT),
-        datasets: [{ data: Object.values(countTT), backgroundColor: Object.keys(countTT).map(getStatusColor), borderColor: '#fff', borderWidth: 2 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#475569', font: { weight: '600' } } } } }
-        });
-        }
+        // Tab Tổng quan tách ra wwwroot/js/kiemke-tong-quan.js
+        // Lỗi ở Tổng quan không được chặn việc vẽ bảng thiết bị phía sau
+        try { if (window.TongQuanKiemKe) TongQuanKiemKe.render(allThietBiCache); }
+        catch (e) { console.error('Lỗi vẽ Tổng quan:', e); }
         }
 
         function renderUIThietBi() {
@@ -2426,6 +2340,8 @@
         let fTìnhTrangCheck = $('#filterTìnhTrangCheck').val();
 
         let filtered = allThietBiCache.filter(x => !(x.tenTrangThai && x.tenTrangThai.toLowerCase().includes('xóa')));
+        // Mục menu "Kho IT" / "Tài sản báo phế" (?xem=...) chỉ giữ thiết bị đúng trạng thái đó
+        filtered = BaoPheKhoITKiemKe.loc(filtered);
 
         // Công ty/Bộ phận hỗ trợ 2 chiều: mặc định "chỉ lấy mục đã chọn", bật switch "Loại trừ" thì lấy tất cả TRỪ mục đã chọn
         if (selectedCompanies.length > 0) {
@@ -2594,6 +2510,7 @@
         if (ttLower.includes("hoạt động")) badgeClass = "success";
         else if (ttLower.includes("hỏng")) badgeClass = "danger";
         else if (ttLower.includes("bảo trì")) badgeClass = "warning text-dark";
+        else if (ttLower.trim() === "kho it") badgeClass = "info text-dark";
 
         let imgHtml = item.duongDanAnh
         ? `<div class="position-relative d-inline-block">
@@ -2623,6 +2540,7 @@
         <button class="btn btn-sm btn-outline-primary px-2" onclick='xemChiTietThietBi(${JSON.stringify(item).replace(/'/g, "&#39;")})' title="Xem chi tiết"><i class="fas fa-circle-info"></i></button>
         <button class="btn btn-sm btn-outline-info text-info px-2" onclick="openLichSuCheckThietBi(${item.idThietBi}, '${item.tenMayTinh || ''}', '${item.tenViTri || ''}')" title="Lịch sử & bằng chứng check"><i class="fas fa-history"></i></button>
         <button class="btn btn-sm btn-outline-dark px-2" onclick='editThietBi(${JSON.stringify(item).replace(/'/g, "&#39;")})' title="Sửa thiết bị"><i class="fas fa-edit"></i></button>
+        ${BaoPheKhoITKiemKe.nut(item)}
         <button class="btn btn-sm btn-outline-danger px-2" onclick="deleteThietBi(${item.idThietBi})" title="Xoá thiết bị"><i class="fas fa-trash"></i></button>
         <button class="btn btn-sm btn-outline-secondary px-2 btn-chan-thiet-bi" title="Chặn: ẩn thiết bị này khỏi toàn bộ hệ thống kiểm kê" data-seri="${thoatThuocTinhChan(item.seribacode)}" data-ten="${thoatThuocTinhChan(item.tenMayTinh)}"><i class="fas fa-ban"></i></button>`;
 
@@ -2646,7 +2564,7 @@
         : '';
 
         html += `
-        <tr class="d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative">
+        <tr class="${BaoPheKhoITKiemKe.lopDong(item)} d-block d-md-table-row bg-white border border-md-0 rounded-4 rounded-md-0 mb-3 mb-md-0 p-3 p-md-0 shadow-sm shadow-md-none position-relative">
         <td class="d-block d-md-table-cell text-end text-md-start border-0 py-2 align-middle">
         <span class="d-md-none fw-bold text-muted float-start text-uppercase" style="font-size: 11px;">ID:</span> #${item.idThietBi}
         </td>

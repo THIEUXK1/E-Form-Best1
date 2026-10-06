@@ -6678,6 +6678,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 return Redirect("/DonXetDuyet/DangNhap");
             }
+            // Trang cấu hình danh mục chỉ dành cho quyền All
+            if (!User.IsInRole("All"))
+            {
+                return Forbid();
+            }
             return View("IndexKiemKe");
         }
 
@@ -8402,6 +8407,57 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     GhiLichSu("Khôi phục", "Thiết Bị", id, $"Đã khôi phục thiết bị: {item.TenMayTinh}");
                 }
                 return Json(new { success = true, message = "Khôi phục thiết bị thành công!" });
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        // NÚT "BÁO PHẾ" / "KHO IT" ở bảng thiết bị: đổi nhanh trạng thái sang "Hỏng" hoặc "Kho IT".
+        // Trạng thái tra theo TÊN trong KK_TrangThai; "Kho IT" phải được thêm vào danh mục trước (không tự tạo ở đây).
+        [HttpPost("/QLKiemKe/DoiTrangThaiNhanhThietBi")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DoiTrangThaiNhanhThietBi(int id, string loai)
+        {
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+            if (!User.IsInRole("KKTS-PFVN") && !User.IsInRole("AdminIT") && !User.IsInRole("All"))
+                return Json(new { success = false, message = "Bạn không có quyền thao tác thiết bị." });
+
+            string? tenTrangThai = loai switch { "baoPhe" => "hỏng", "khoIT" => "kho it", _ => null };
+            if (tenTrangThai == null)
+                return Json(new { success = false, message = "Thao tác không hợp lệ." });
+
+            try
+            {
+                var item = await _context.KkThietBis.FirstOrDefaultAsync(x => x.IdThietBi == id && x.NgayXoa == null);
+                if (item == null)
+                    return Json(new { success = false, message = "Không tìm thấy thiết bị (có thể đã bị xoá)." });
+
+                var trangThai = await _context.KkTrangThais
+                    .FirstOrDefaultAsync(x => x.TenTrangThai != null && x.TenTrangThai.Trim().ToLower() == tenTrangThai);
+                if (trangThai == null)
+                    return Json(new { success = false, message = loai == "khoIT"
+                        ? "Danh mục chưa có trạng thái \"Kho IT\". Vào Cấu hình Danh mục > Trạng thái để thêm trước."
+                        : "Danh mục chưa có trạng thái \"Hỏng\"." });
+
+                // Bấm lặp (double click, 2 tab) thì không ghi thêm lịch sử
+                if (item.IdTrangThai == trangThai.IdTrangThai)
+                    return Json(new { success = true, message = $"Thiết bị đã ở trạng thái \"{trangThai.TenTrangThai}\".", idTrangThai = trangThai.IdTrangThai, tenTrangThai = trangThai.TenTrangThai });
+
+                var tenCu = await _context.KkTrangThais.Where(x => x.IdTrangThai == item.IdTrangThai).Select(x => x.TenTrangThai).FirstOrDefaultAsync();
+                item.IdTrangThai = trangThai.IdTrangThai;
+                item.NgayCapNhat = DateTime.Now;
+                await _context.SaveChangesAsync();
+
+                GhiLichSu(loai == "baoPhe" ? "Báo phế" : "Chuyển Kho IT", "Thiết Bị", id,
+                    $"Đổi trạng thái \"{tenCu ?? "Chưa gắn"}\" → \"{trangThai.TenTrangThai}\". Tên máy tính: {item.TenMayTinh}");
+
+                return Json(new
+                {
+                    success = true,
+                    message = loai == "baoPhe" ? "Đã báo phế thiết bị." : "Đã xác nhận thiết bị ở Kho IT.",
+                    idTrangThai = trangThai.IdTrangThai,
+                    tenTrangThai = trangThai.TenTrangThai
+                });
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
@@ -10728,6 +10784,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 return Redirect("/DonXetDuyet/DangNhap");
             }
+            // Danh sách tài sản chỉ dành cho quyền All
+            if (!User.IsInRole("All"))
+            {
+                return Forbid();
+            }
             return View();
         }
 
@@ -10736,6 +10797,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLKiemKe/DanhSachTatCaMayTinh")]
         public IActionResult DanhSachTatCaMayTinh()
         {
+            if (!User.IsInRole("All"))
+                return Json(new { success = false, message = "Bạn không có quyền xem dữ liệu này." });
+
             try
             {
                 var danhSachMay = _context.TscnThongTinMays

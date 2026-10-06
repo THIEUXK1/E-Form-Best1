@@ -1,0 +1,131 @@
+/* Tab "Tổng quan" trang Quản lý Thiết bị — đi cùng wwwroot/js/kiemke-tong-quan.js.
+   Màu nền/viền lấy biến của che-do-toi.css để chế độ tối tự ăn theo. */
+
+#tqTongQuan .tq-mo { color: var(--chu-mo, #64748b); }
+
+#tqTongQuan .tq-thanh-cong-cu {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+#tqTongQuan .tq-the {
+    background: var(--nen-mat, #fff);
+    border: 1px solid var(--vien-nhat, #eef0f4);
+    border-radius: 14px;
+    box-shadow: 0 2px 10px -6px rgba(15, 23, 42, 0.18);
+    overflow: hidden;
+}
+
+#tqTongQuan .tq-the-tieude {
+    font-weight: 700;
+    font-size: 0.92rem;
+    padding: 12px 16px 4px;
+}
+
+#tqTongQuan .tq-the-than {
+    position: relative;
+    padding: 8px 14px 14px;
+}
+
+/* ----- Ô KPI ----- */
+#tqTongQuan .tq-kpi {
+    position: relative;
+    height: 100%;
+    padding: 14px 14px 12px;
+    border-radius: 14px;
+    background: var(--nen-mat, #fff);
+    border: 1px solid var(--vien-nhat, #eef0f4);
+    border-left: 4px solid var(--tq-mau);
+    box-shadow: 0 2px 10px -6px rgba(15, 23, 42, 0.18);
+}
+
+#tqTongQuan .tq-kpi-icon {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    color: var(--tq-mau);
+    background: color-mix(in srgb, var(--tq-mau) 14%, transparent);
+}
+
+#tqTongQuan .tq-kpi-so {
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+#tqTongQuan .tq-kpi-nhan {
+    font-weight: 700;
+    font-size: 0.82rem;
+    margin-top: 2px;
+}
+
+#tqTongQuan .tq-kpi-phu {
+    font-size: 0.74rem;
+    color: var(--chu-mo, #64748b);
+    margin-top: 4px;
+}
+
+#tqTongQuan .tq-tiendo {
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: var(--nen-mat, #fff);
+    border: 1px solid var(--vien-nhat, #eef0f4);
+}
+
+/* ----- Bảng ----- */
+#tqTongQuan .tq-bang-wrap { max-height: 520px; overflow: auto; }
+
+#tqTongQuan .tq-bang { font-size: 0.82rem; }
+
+#tqTongQuan .tq-bang thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--nen-mat-2, #f8fafc);
+    white-space: nowrap;
+    font-size: 0.76rem;
+}
+
+#tqTongQuan .tq-bang td { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+#tqTongQuan .tq-dong-tong td {
+    position: sticky;
+    bottom: 0;
+    background: var(--nen-mat-2, #f1f5f9);
+    font-weight: 700;
+}
+
+/* ----- Nút chọn nhóm cảnh báo ----- */
+#tqTongQuan .tq-chip {
+    border: 1px solid color-mix(in srgb, var(--tq-mau) 40%, transparent);
+    background: transparent;
+    color: var(--tq-mau);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+#tqTongQuan .tq-chip.is-active,
+#tqTongQuan .tq-chip:hover {
+    background: var(--tq-mau);
+    color: #fff;
+}
+
+#tqTongQuan .tq-chip-so {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: color-mix(in srgb, currentColor 18%, transparent);
+}
