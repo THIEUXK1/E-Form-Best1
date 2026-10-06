@@ -451,6 +451,7 @@
         video.removeAttribute('src');
         video.load();
         document.getElementById('xemAnh').onload = document.getElementById('xemAnh').onerror = null;
+        thuHoiAnhLuu();
     }
 
     function cheDoVideo() {
@@ -512,13 +513,63 @@
         };
         anh.onerror = function () {
             loiLienTiep++;
-            nhanXem(loiLienTiep >= 3 ? 'Không lấy được ảnh từ đầu ghi' : 'Đang thử lại...');
+            // Lỗi ngay lần đầu thì hiện ảnh lưu sẵn luôn: máy chủ không thông mạng tới đầu ghi thì
+            // mỗi lần thử lại đều phải chờ hết timeout, người xem nhìn khung đen rất lâu
+            if (loiLienTiep === 1) { hienAnhLuu(); return; }
+            nhanXem(loiLienTiep >= 3 ? 'Không lấy được ảnh từ đầu ghi, chưa có ảnh lưu' : 'Đang thử lại...');
             xem.timerAnh = setTimeout(taiAnh, loiLienTiep >= 3 ? 5000 : 1500);
         };
         function taiAnh() {
             if (xem.cheDo === 'anh') anh.src = urlXem('AnhChup', xem.cam);
         }
+
+        // fetch thay vì gán src để đọc được header X-Chup-Luc (giờ chụp ảnh lưu)
+        function hienAnhLuu() {
+            var cam = xem.cam;
+            fetch(urlXem('AnhLuu', cam), { credentials: 'same-origin' })
+                .then(function (res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    var luc = res.headers.get('X-Chup-Luc');
+                    return res.blob().then(function (b) { return { blob: b, luc: luc }; });
+                })
+                .then(function (kq) {
+                    if (xem.cheDo !== 'anh' || xem.cam !== cam) return;
+                    anh.onload = anh.onerror = null;
+                    thuHoiAnhLuu();
+                    xem.urlAnhLuu = URL.createObjectURL(kq.blob);
+                    anh.src = xem.urlAnhLuu;
+                    nhanXem('Ảnh lưu lúc ' + dinhDangGioChup(kq.luc) + ' — máy chủ không kết nối trực tiếp được tới đầu ghi');
+                    xem.timerAnh = setTimeout(thuLaiTrucTiep, 60000);
+                })
+                .catch(function () {
+                    if (xem.cheDo !== 'anh' || xem.cam !== cam) return;
+                    nhanXem('Đang thử lại...');
+                    xem.timerAnh = setTimeout(taiAnh, 1500);
+                });
+        }
+
+        // Thử ảnh trực tiếp bằng Image ẩn, được thì mới quay lại chế độ ảnh 1 giây/lần,
+        // không thì giữ nguyên ảnh lưu đang hiện (gán thẳng vào #xemAnh sẽ ra ảnh vỡ khi lỗi)
+        function thuLaiTrucTiep() {
+            if (xem.cheDo !== 'anh') return;
+            var cam = xem.cam;
+            var thu = new Image();
+            thu.onload = function () { if (xem.cheDo === 'anh' && xem.cam === cam) cheDoAnh(); };
+            thu.onerror = function () { if (xem.cheDo === 'anh' && xem.cam === cam) xem.timerAnh = setTimeout(thuLaiTrucTiep, 60000); };
+            thu.src = urlXem('AnhChup', cam);
+        }
+
         taiAnh();
+    }
+
+    function thuHoiAnhLuu() {
+        if (xem.urlAnhLuu) { URL.revokeObjectURL(xem.urlAnhLuu); xem.urlAnhLuu = null; }
+    }
+
+    // "2026-10-06T15:30:00" -> "15:30 06/10/2026"
+    function dinhDangGioChup(luc) {
+        var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(luc || '');
+        return m ? m[4] + ':' + m[5] + ' ' + m[3] + '/' + m[2] + '/' + m[1] : '(không rõ giờ)';
     }
 
     function moXem(cam) {

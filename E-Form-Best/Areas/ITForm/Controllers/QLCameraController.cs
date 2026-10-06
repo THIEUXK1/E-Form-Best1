@@ -337,6 +337,34 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         /// <summary>
+        /// Ảnh lưu sẵn — dùng khi máy chủ không gọi thẳng được đầu ghi. Thời điểm chụp trả qua header
+        /// X-Chup-Luc để giao diện ghi rõ đây là ảnh cũ, không phải hình trực tiếp.
+        /// </summary>
+        [HttpGet("/QLCamera/Xem/AnhLuu")]
+        public async Task<IActionResult> XemAnhLuu(string? nvrIp, int kenh, [FromServices] CameraXemTrucTiepService xem)
+        {
+            if (!CoQuyen()) return StatusCode(403);
+            if (kenh < 1 || kenh > 512) return BadRequest();
+
+            try
+            {
+                var ct = HttpContext.RequestAborted;
+                if (!await xem.LaDauGhiHopLeAsync(nvrIp, ct)) return NotFound();
+
+                var luu = await xem.LayAnhLuuAsync(nvrIp!.Trim(), kenh, ct);
+                if (luu == null) return NotFound();
+
+                Response.Headers.CacheControl = "no-store";
+                Response.Headers["X-Chup-Luc"] = luu.Value.chupLuc.ToString("yyyy-MM-ddTHH:mm:ss");
+                return File(luu.Value.anh, "image/jpeg");
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or IOException)
+            {
+                return StatusCode(502);
+            }
+        }
+
+        /// <summary>
         /// Chuyển tiếp luồng fMP4 của go2rtc cho thẻ &lt;video&gt;. Luồng chạy tới khi người dùng đóng
         /// cửa sổ xem (RequestAborted) — go2rtc tự ngắt RTSP khi không còn ai xem.
         /// </summary>

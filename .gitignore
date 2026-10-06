@@ -372,3 +372,6 @@ watch_err.txt
 .env
 .env.local
 !.env.example
+
+# Anh camera chup tu may trong mang camera (tools/chup-anh-camera.ps1)
+tools/anh-camera/

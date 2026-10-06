@@ -68,6 +68,26 @@ namespace E_Form_Best.Areas.ITForm.Services
         }
 
         /// <summary>
+        /// Ảnh lưu sẵn của camera: máy chủ E-Form không thông mạng tới dải đầu ghi, nên một máy trong
+        /// mạng camera chụp định kỳ rồi đẩy file "{nvrIp}_{kênh}.jpg" vào thư mục CameraNvr:ThuMucAnhLuu.
+        /// Trả null khi chưa có ảnh. nvrIp đã được kiểm nằm trong danh sách đầu ghi trước khi gọi tới đây.
+        /// </summary>
+        public async Task<(byte[] anh, DateTime chupLuc)?> LayAnhLuuAsync(string nvrIp, int kenh, CancellationToken ct)
+        {
+            var thuMuc = _configuration["CameraNvr:ThuMucAnhLuu"];
+            if (string.IsNullOrWhiteSpace(thuMuc)) return null;
+
+            // Tên file chỉ ghép từ IPv4 + số kênh, không cho ký tự đường dẫn lọt vào
+            if (!System.Net.IPAddress.TryParse(nvrIp, out var ip)
+                || ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) return null;
+
+            var duongDan = Path.Combine(thuMuc, $"{ip}_{kenh}.jpg");
+            if (!File.Exists(duongDan)) return null;
+
+            return (await File.ReadAllBytesAsync(duongDan, ct), File.GetLastWriteTime(duongDan));
+        }
+
+        /// <summary>
         /// Mở luồng fMP4 từ go2rtc (đã khai nguồn RTSP). Người gọi chịu trách nhiệm Dispose response.
         /// Trả null khi go2rtc không mở được luồng sau một lần khai lại.
         /// </summary>
