@@ -30,6 +30,10 @@
     string[] reportPages = { "BaoCaoThongKe", "ThongKeMacWifi", "BaoCaoGanttTimeline" }; // Bạn có thể thêm các Action báo cáo khác vào đây sau này
     bool isReportActive = reportPages.Contains(currentAction);
 
+    // Nhóm menu camera: công ty đang xem lấy từ route /QLCamera/{PFVN|MEGA}, không có thì là BPVN
+    bool isCameraActive = currentController == "QLCamera";
+    string cameraCongTy = (ViewContext.RouteData.Values["congTy"] as string)?.ToUpperInvariant() ?? "BPVN";
+
     // Route /QLKiemKe/* được khai bằng attribute routing NGAY TRÊN ITFormController, nên
     // RouteData["controller"] luôn là "ITForm" — không được so với "QLKiemKe", phải so theo action.
     string[] kiemKePages = { "IndexKiemKe", "IndexThietBi", "ViewDanhSachTatCaMayTinh", "ThongKeKiemKe" };
@@ -515,8 +519,8 @@
                         }
                     }
 
-                    @* Nhóm "Máy in & CCDC": quyền AdminIT và All đều thấy cả ba mục —
-                       quyền được kiểm lại ở QLMayInController, QLCCDCController và QLCameraController *@
+                    @* Nhóm "Máy in & CCDC": quyền AdminIT và All đều thấy cả hai mục —
+                       quyền được kiểm lại ở QLMayInController, QLCCDCController *@
                     @if (User.IsInRole("AdminIT") || User.IsInRole("All"))
                     {
                         <div class="nav-divider"></div>
@@ -532,11 +536,35 @@
                             <i class="fa fa-wrench nav-ico" style="color:#fb923c;"></i>
                             <span class="lang-text" data-key="ccdc_manage">@L["Quản lý CCDC"]</span>
                         </a>
+                    }
 
-                        <a href="/QLCamera" class="nav-link-item @(currentController == "QLCamera" ? "active" : "")" aria-current="@(currentController == "QLCamera" ? "page" : null)">
-                            <i class="fa fa-video-camera nav-ico" style="color:#a78bfa;"></i>
-                            <span class="lang-text" data-key="camera_manage">@L["Quản lý camera"]</span>
+                    @* Camera chia theo công ty: "All" thấy cả 3, "CamBPVN"/"CamPFVN"/"CamMEGA" chỉ thấy công ty được cấp.
+                       Quyền kiểm lại ở QLCameraController (CoQuyenXem / CoQuyenSua) *@
+                    var dsCameraDuocXem = new[] { ("BPVN", "/QLCamera"), ("PFVN", "/QLCamera/PFVN"), ("MEGA", "/QLCamera/MEGA") }
+                        .Where(x => User.IsInRole("All") || User.IsInRole("Cam" + x.Item1)).ToList();
+                    if (dsCameraDuocXem.Count > 0)
+                    {
+                        <div class="nav-divider"></div>
+                        <a data-bs-toggle="collapse" href="#collapseCamera" role="button" aria-expanded="@(isCameraActive ? "true" : "false")" aria-controls="collapseCamera" class="nav-link-item @(isCameraActive ? "active" : "")" style="justify-content: space-between; cursor: pointer;">
+                            <span style="display:flex; align-items:center;">
+                                <i class="fa fa-video-camera nav-ico" style="color:#a78bfa;"></i>
+                                <span class="lang-text" data-key="camera_manage">@L["Quản lý camera"]</span>
+                            </span>
+                            <i class="fa fa-angle-down menu-arrow"></i>
                         </a>
+
+                        <div class="collapse @(isCameraActive ? "show" : "")" id="collapseCamera">
+                            <div style="display: flex; flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
+                                @foreach (var (congTyCam, urlCam) in dsCameraDuocXem)
+                                {
+                                    var dangOCam = isCameraActive && cameraCongTy == congTyCam;
+                                    <a href="@urlCam" class="submenu-link @(dangOCam ? "active" : "")" aria-current="@(dangOCam ? "page" : null)">
+                                        <i class="fa fa-building-o sub-ico" style="color: #a78bfa;"></i>
+                                        <span>@congTyCam</span>
+                                    </a>
+                                }
+                            </div>
+                        </div>
                     }
                 }
             </nav>

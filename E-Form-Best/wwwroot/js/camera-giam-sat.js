@@ -8,6 +8,8 @@
     var dsGhiChu = {};          // ghi chú người dùng (KK_CameraGhiChu), khoá "nvrIp|kenh"
     var dsAnhLuu = null;        // kênh đã có ảnh lưu sẵn, khoá "nvrIp|kenh"; null = không biết (không đánh dấu)
     var dangSuaGhiChu = false;  // đang gõ ghi chú thì tự làm mới không được vẽ lại bảng (mất chữ đang gõ)
+    // Quyền CamBPVN chỉ xem: không mở ô sửa ghi chú (server cũng chặn lưu)
+    var chiXem = document.querySelector('section.content[data-chi-xem]') !== null;
 
     function khoaGhiChu(c) { return c.nvr_ip + '|' + c.cam_id; }
 
@@ -834,6 +836,7 @@
         });
         $('#gsChiGhim').on('change', veCamera);
         $('#gsCameraBody').on('click', 'td.cam-ghi-chu', function (e) {
+            if (chiXem) return; // để lan lên dòng -> mở cửa sổ xem như bấm ô khác
             e.stopPropagation();
             batDauSuaGhiChu($(this));
         });
@@ -851,7 +854,7 @@
         $('#xemLuuGhiChu').on('click', luuGhiChuXem);
         $('#xemThemMau').on('click', themMau);
         $('#xemGhiChu').on('keydown', function (e) {
-            if (e.key === 'Enter') { e.preventDefault(); luuGhiChuXem(); }
+            if (e.key === 'Enter' && !chiXem) { e.preventDefault(); luuGhiChuXem(); }
         });
         $('#xemDsMau').on('click', 'a.dropdown-item', function (e) {
             e.preventDefault();

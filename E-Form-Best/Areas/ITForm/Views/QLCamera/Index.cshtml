@@ -9,18 +9,20 @@
                    ?? Enumerable.Empty<E_Form_Best.Models.ITForm.KkBoPhan>();
     var dsTinhTrang = ViewBag.DsTinhTrang as IEnumerable<string> ?? Enumerable.Empty<string>();
     var dsTrangThaiDauGhi = ViewBag.DsTrangThaiDauGhi as IEnumerable<string> ?? Enumerable.Empty<string>();
+    // Chỉ quyền "All" được thêm/sửa/xoá; CamBPVN chỉ xem (server vẫn chặn lại ở từng action)
+    var coQuyenSua = ViewBag.CoQuyenSua as bool? ?? false;
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 @* Dùng lại khung bảng của trang CCDC (cùng nhóm menu, cùng kiểu bảng cột cố định) *@
 <link rel="stylesheet" href="/css/ccdc-quanly.css?v=20260825e">
 <link rel="stylesheet" href="/css/fixed-page-layout.css?v=5">
-<link rel="stylesheet" href="/css/camera-quanly.css?v=20261007a">
+<link rel="stylesheet" href="/css/camera-quanly.css?v=20261007c">
 
 <div class="content-header pt-0 pb-0" style="margin-top: -25px;">
     <div class="container-fluid">
         <div class="dash-topbar">
-            <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-video"></i></span>Camera</h4>
+            <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-video"></i></span>Camera BPVN</h4>
 
             <ul class="nav nav-pills nav-pills-ccdc mb-0" id="cameraTab" role="tablist">
                 <li class="nav-item" role="presentation">
@@ -49,7 +51,7 @@
     </div>
 </div>
 
-<section class="content">
+<section class="content @(coQuyenSua ? "" : "cam-chi-xem")" data-chi-xem="@(coQuyenSua ? null : "1")">
     <div class="container-fluid">
         <div class="card border-0 shadow-sm bg-white" style="border-radius: 15px;">
             <div class="card-body p-2 p-md-3">
@@ -248,9 +250,12 @@
                             </span>
                             <span class="flex-grow-1"></span>
                             <span class="small text-muted"><i class="fas fa-lock me-1"></i>Không lưu mật khẩu đầu ghi trên web</span>
-                            <button type="button" class="btn btn-sm text-white rounded-3 px-3" style="background-color:#7c3aed;" id="btnThemDauGhi">
-                                <i class="fas fa-plus me-1"></i> Thêm đầu ghi
-                            </button>
+                            @if (coQuyenSua)
+                            {
+                                <button type="button" class="btn btn-sm text-white rounded-3 px-3" style="background-color:#7c3aed;" id="btnThemDauGhi">
+                                    <i class="fas fa-plus me-1"></i> Thêm đầu ghi
+                                </button>
+                            }
                         </div>
 
                         <div class="ccdc-table-wrap" data-fp-scroll>
@@ -335,9 +340,12 @@
                             <span class="flex-grow-1"></span>
 
                             <button type="button" class="btn btn-sm btn-light border" id="btnTaiLai" title="Tải lại danh sách"><i class="fas fa-rotate"></i></button>
-                            <button type="button" class="btn btn-sm text-white rounded-3 px-3" style="background-color:#7c3aed;" id="btnThemCamera">
-                                <i class="fas fa-plus me-1"></i> Thêm camera
-                            </button>
+                            @if (coQuyenSua)
+                            {
+                                <button type="button" class="btn btn-sm text-white rounded-3 px-3" style="background-color:#7c3aed;" id="btnThemCamera">
+                                    <i class="fas fa-plus me-1"></i> Thêm camera
+                                </button>
+                            }
                         </div>
 
                         <div class="ccdc-table-wrap" data-fp-scroll>
@@ -422,18 +430,25 @@
 
                 @* Ghi chú của camera đang xem: chọn câu có sẵn (▾) hoặc gõ rồi Lưu; "+" lưu câu đang gõ thành có sẵn *@
                 <div class="input-group input-group-sm cam-xem-ghi-chu">
-                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
-                            data-bs-auto-close="outside" title="Chọn ghi chú có sẵn">
-                        <i class="fas fa-list"></i>
-                    </button>
-                    <ul class="dropdown-menu cam-ds-mau" id="xemDsMau"></ul>
-                    <input type="text" class="form-control" id="xemGhiChu" maxlength="1000" placeholder="Ghi chú cho camera này...">
-                    <button class="btn btn-outline-secondary" type="button" id="xemThemMau" title="Thêm câu đang gõ vào ghi chú có sẵn">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                    <button class="btn btn-primary" type="button" id="xemLuuGhiChu" title="Lưu ghi chú (Enter)">
-                        <i class="fas fa-save"></i>
-                    </button>
+                    @if (coQuyenSua)
+                    {
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                                data-bs-auto-close="outside" title="Chọn ghi chú có sẵn">
+                            <i class="fas fa-list"></i>
+                        </button>
+                        <ul class="dropdown-menu cam-ds-mau" id="xemDsMau"></ul>
+                        <input type="text" class="form-control" id="xemGhiChu" maxlength="1000" placeholder="Ghi chú cho camera này...">
+                        <button class="btn btn-outline-secondary" type="button" id="xemThemMau" title="Thêm câu đang gõ vào ghi chú có sẵn">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button class="btn btn-primary" type="button" id="xemLuuGhiChu" title="Lưu ghi chú (Enter)">
+                            <i class="fas fa-save"></i>
+                        </button>
+                    }
+                    else
+                    {
+                        <input type="text" class="form-control" id="xemGhiChu" readonly placeholder="Chưa có ghi chú">
+                    }
                 </div>
 
                 <a class="btn btn-sm btn-light border" id="xemTaiAnh" target="_blank" rel="noopener"><i class="fas fa-camera me-1"></i> Mở ảnh chụp</a>
@@ -672,7 +687,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/fixed-page-layout.js?v=5" defer></script>
     <script src="/js/camera-quanly.js?v=20261006b"></script>
-    <script src="/js/camera-giam-sat.js?v=20261007a"></script>
+    <script src="/js/camera-giam-sat.js?v=20261007b"></script>
     <script src="/js/camera-lich-su.js?v=20261006c"></script>
     <script src="/js/camera-dau-ghi.js?v=20261006"></script>
 }

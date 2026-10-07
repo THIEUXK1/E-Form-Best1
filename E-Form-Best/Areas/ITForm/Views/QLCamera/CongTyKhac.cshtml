@@ -1,0 +1,122 @@
+@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    var congTy = ViewBag.CongTy as string ?? "";
+    ViewData["Title"] = "Camera " + congTy;
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="/css/ccdc-quanly.css?v=20260825e">
+<link rel="stylesheet" href="/css/fixed-page-layout.css?v=5">
+<link rel="stylesheet" href="/css/camera-quanly.css?v=20261007b">
+
+<div class="content-header pt-0 pb-0" style="margin-top: -25px;">
+    <div class="container-fluid">
+        <div class="dash-topbar">
+            <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-video"></i></span>Camera @congTy</h4>
+        </div>
+    </div>
+</div>
+
+<section class="content" id="camCongTy" data-cong-ty="@congTy">
+    <div class="container-fluid">
+        <div class="card border-0 shadow-sm bg-white" style="border-radius: 15px;">
+            <div class="card-body p-2 p-md-3">
+
+                <div class="alert alert-danger py-2 small d-none" id="ctLoi"></div>
+
+                @* Chưa có dữ liệu (chưa có script chụp ảnh nào đẩy về cho công ty này) *@
+                <div class="text-center py-5 text-muted d-none" id="ctChuaKetNoi">
+                    <i class="fas fa-plug-circle-xmark fa-3x mb-3" style="color:#a78bfa;"></i>
+                    <h5 class="fw-bold text-dark mb-2">Chưa kết nối camera @congTy</h5>
+                    <p class="mb-0">Chưa có đầu ghi của @congTy được chụp ảnh và đẩy về E-Form.</p>
+                </div>
+
+                <div id="ctNoiDung" class="d-none">
+                    <div class="cam-tiles mb-2">
+                        <div class="cam-tile cam-tile-loc" data-loc="" title="Bấm để xem tất cả camera"><div class="cam-tile-nhan">Tổng camera</div><div class="cam-tile-so" id="ctTong">–</div></div>
+                        <div class="cam-tile cam-tile-up cam-tile-loc" data-loc="UP" title="Bấm để chỉ xem camera đang hoạt động"><div class="cam-tile-nhan">Hoạt động</div><div class="cam-tile-so" id="ctUp">–</div></div>
+                        <div class="cam-tile cam-tile-down cam-tile-loc" data-loc="DOWN" title="Bấm để chỉ xem camera mất kết nối"><div class="cam-tile-nhan">Mất kết nối</div><div class="cam-tile-so" id="ctDown">–</div></div>
+                        <div class="cam-tile cam-tile-loc" data-loc="CHUA_ANH" title="Bấm để chỉ xem camera chưa có ảnh"><div class="cam-tile-nhan">Chưa có ảnh</div><div class="cam-tile-so" id="ctChuaAnh">–</div></div>
+                        <div class="cam-tile"><div class="cam-tile-nhan">Đầu ghi</div><div class="cam-tile-so" id="ctSoDauGhi">–</div></div>
+                        <div class="cam-tile"><div class="cam-tile-nhan">Chụp ảnh gần nhất</div><div class="cam-tile-so cam-tile-so-nho" id="ctCapNhat">–</div></div>
+                    </div>
+
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <input type="text" id="ctTuKhoa" class="form-control form-control-sm" style="max-width:280px;"
+                               placeholder="Tìm tên camera, IP, kênh...">
+                        <select id="ctTrangThai" class="form-select form-select-sm" style="max-width:170px;">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="UP">Hoạt động</option>
+                            <option value="DOWN">Mất kết nối</option>
+                            <option value="CHUA_ANH">Chưa có ảnh</option>
+                        </select>
+                        <select id="ctDauGhi" class="form-select form-select-sm" style="max-width:170px;">
+                            <option value="">Tất cả đầu ghi</option>
+                        </select>
+                        <span class="flex-grow-1"></span>
+                        <span class="small text-muted" id="ctDem"></span>
+                        <button type="button" class="btn btn-sm btn-light border" id="ctBtnTaiLai" title="Tải lại"><i class="fas fa-rotate"></i></button>
+                    </div>
+
+                    <div class="ccdc-table-wrap" data-fp-scroll>
+                        <table class="table table-hover align-middle mb-0 ccdc-table">
+                            <colgroup>
+                                <col style="width:60px;">
+                                <col style="width:130px;">
+                                <col style="width:280px;">
+                                <col style="width:140px;">
+                                <col style="width:130px;">
+                                <col style="width:70px;">
+                                <col style="width:220px;">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Trạng thái</th>
+                                    <th>Tên camera</th>
+                                    <th>IP camera</th>
+                                    <th>Đầu ghi</th>
+                                    <th class="ccdc-num">Kênh</th>
+                                    <th>Ảnh lưu lúc</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ctBody">
+                                <tr><td colspan="7" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+@* ------- Modal xem ảnh lưu sẵn (bấm 1 dòng camera) ------- *@
+<div class="modal fade" id="modalXemAnhLuu" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0"><i class="fas fa-video me-2" style="color:#7c3aed;"></i><span id="ctXemTen"></span></h5>
+                    <div class="small text-muted" id="ctXemThongTin"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <div class="cam-xem-khung">
+                    <img id="ctXemAnh" alt="Ảnh camera">
+                    <div class="cam-xem-nhan" id="ctXemNhan">Đang tải ảnh...</div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="/js/fixed-page-layout.js?v=5" defer></script>
+    <script src="/js/camera-cong-ty.js?v=20261007a"></script>
+}

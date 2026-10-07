@@ -143,9 +143,9 @@ namespace E_Form_Best.Areas.ITForm.Services
         /// mạng camera chụp định kỳ rồi đẩy file "{nvrIp}_{kênh}.jpg" vào thư mục CameraNvr:ThuMucAnhLuu.
         /// Trả null khi chưa có ảnh. nvrIp đã được kiểm nằm trong danh sách đầu ghi trước khi gọi tới đây.
         /// </summary>
-        public async Task<(byte[] anh, DateTime chupLuc)?> LayAnhLuuAsync(string nvrIp, int kenh, CancellationToken ct)
+        public async Task<(byte[] anh, DateTime chupLuc)?> LayAnhLuuAsync(string nvrIp, int kenh, CancellationToken ct, string? congTy = null)
         {
-            var thuMuc = _configuration["CameraNvr:ThuMucAnhLuu"];
+            var thuMuc = congTy == null ? _configuration["CameraNvr:ThuMucAnhLuu"] : ThuMucAnhLuuCongTy(congTy);
             if (string.IsNullOrWhiteSpace(thuMuc)) return null;
 
             // Tên file chỉ ghép từ IPv4 + số kênh, không cho ký tự đường dẫn lọt vào
@@ -156,6 +156,60 @@ namespace E_Form_Best.Areas.ITForm.Services
             if (!File.Exists(duongDan)) return null;
 
             return (await File.ReadAllBytesAsync(duongDan, ct), File.GetLastWriteTime(duongDan));
+        }
+
+        /// <summary>Công ty có camera lấy qua ảnh lưu sẵn (không có hệ thống giám sát ISAPI như BPVN).</summary>
+        public static readonly string[] DsCongTyAnhLuu = { "PFVN", "MEGA" };
+
+        /// <summary>Một kênh camera của PFVN/MEGA, đọc từ "_kenh.json" do script chụp ảnh trên máy bên đó ghi.</summary>
+        public class KenhCongTy
+        {
+            public string Nvr { get; set; } = "";
+            public string? TenDauGhi { get; set; }
+            public int Kenh { get; set; }
+            public string? Ten { get; set; }
+            public string? IpCamera { get; set; }
+            public bool Online { get; set; }
+            /// <summary>OK (chụp trực tiếp) · PLAYBACK / BOQUA (ảnh từ bản ghi) · KHONG / LOI (không lấy được).</summary>
+            public string? KetQua { get; set; }
+            /// <summary>Giờ của ảnh lưu (giờ file); null = chưa có ảnh nào.</summary>
+            public DateTime? AnhLuc { get; set; }
+        }
+
+        /// <summary>Thư mục ảnh lưu của PFVN/MEGA: thư mục con "{công ty}" trong CameraNvr:ThuMucAnhLuu.</summary>
+        private string? ThuMucAnhLuuCongTy(string congTy)
+        {
+            var thuMuc = _configuration["CameraNvr:ThuMucAnhLuu"];
+            var ten = DsCongTyAnhLuu.FirstOrDefault(x => x.Equals(congTy, StringComparison.OrdinalIgnoreCase));
+            return string.IsNullOrWhiteSpace(thuMuc) || ten == null ? null : Path.Combine(thuMuc, ten);
+        }
+
+        /// <summary>
+        /// Danh sách kênh camera của PFVN/MEGA kèm giờ ảnh lưu. Script chup-anh-camera-pfvn.ps1 (chạy ở máy
+        /// thông mạng đầu ghi bên đó) ghi "_kenh.json"; máy dev kéo về rồi đẩy lên máy chủ. Trả (null, rỗng)
+        /// khi công ty chưa có dữ liệu — trang hiện "chưa kết nối".
+        /// </summary>
+        public async Task<(DateTime? capNhat, List<KenhCongTy> kenh)> DanhSachKenhCongTyAsync(string congTy, CancellationToken ct)
+        {
+            var thuMuc = ThuMucAnhLuuCongTy(congTy);
+            var file = thuMuc == null ? null : Path.Combine(thuMuc, "_kenh.json");
+            if (file == null || !File.Exists(file)) return (null, new List<KenhCongTy>());
+
+            await using var luong = File.OpenRead(file);
+            using var doc = await JsonDocument.ParseAsync(luong, cancellationToken: ct);
+            var goc = doc.RootElement;
+
+            DateTime? capNhat = goc.TryGetProperty("capNhat", out var cn) && DateTime.TryParse(cn.GetString(), out var gio) ? gio : null;
+            var ds = goc.TryGetProperty("kenh", out var dsKenh) && dsKenh.ValueKind == JsonValueKind.Array
+                ? dsKenh.Deserialize<List<KenhCongTy>>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new()
+                : new List<KenhCongTy>();
+
+            foreach (var k in ds)
+            {
+                var anh = Path.Combine(thuMuc!, $"{k.Nvr}_{k.Kenh}.jpg");
+                k.AnhLuc = System.Net.IPAddress.TryParse(k.Nvr, out _) && File.Exists(anh) ? File.GetLastWriteTime(anh) : null;
+            }
+            return (capNhat, ds.OrderBy(x => x.Nvr).ThenBy(x => x.Kenh).ToList());
         }
 
         /// <summary>

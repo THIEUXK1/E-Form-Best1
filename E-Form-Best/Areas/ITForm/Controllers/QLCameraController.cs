@@ -30,8 +30,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             _giamSat = giamSat;
         }
 
-        // Cùng quyền với nhóm menu "Máy in & CCDC". Ẩn nút ở UI không phải phân quyền nên mọi action đều phải gọi.
-        private bool CoQuyen() => User.IsInRole("AdminIT") || User.IsInRole("All");
+        // "All" toàn quyền camera cả 3 công ty; "CamBPVN" / "CamPFVN" / "CamMEGA" chỉ được xem camera công ty đó.
+        // AdminIT không còn tự có quyền camera. Ẩn nút ở UI không phải phân quyền nên mọi action đều phải gọi.
+        private bool CoQuyenXem(string congTy) => User.IsInRole("All") || User.IsInRole("Cam" + congTy.ToUpperInvariant());
+        private bool CoQuyenSua() => User.IsInRole("All");
 
         #region View
 
@@ -41,7 +43,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (User?.Identity?.IsAuthenticated != true)
                 return Redirect("/DonXetDuyet/DangNhap");
 
-            if (!CoQuyen())
+            if (!CoQuyenXem("BPVN"))
                 return Forbid();
 
             // Chiếu vào entity public, không dùng anonymous type (xem ghi chú ở QLCCDCController.Index)
@@ -57,8 +59,69 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             ViewBag.DsTinhTrang = DsTinhTrang;
             ViewBag.DsTrangThaiDauGhi = DsTrangThaiDauGhi;
+            ViewBag.CoQuyenSua = CoQuyenSua();
 
             return View();
+        }
+
+        /// <summary>
+        /// Camera PFVN / MEGA: chưa có đầu ghi và hệ thống giám sát nối vào E-Form, tạm hiện khung chờ.
+        /// Hệ thống giám sát ISAPI hiện tại (CameraIsapi) chỉ theo dõi đầu ghi BPVN.
+        /// </summary>
+        [HttpGet("/QLCamera/{congTy:regex(^(PFVN|MEGA)$)}")]
+        public IActionResult CongTyKhac(string congTy)
+        {
+            if (User?.Identity?.IsAuthenticated != true)
+                return Redirect("/DonXetDuyet/DangNhap");
+
+            if (!CoQuyenXem(congTy))
+                return Forbid();
+
+            ViewBag.CongTy = congTy.ToUpperInvariant();
+            return View("CongTyKhac");
+        }
+
+        /// <summary>Danh sách kênh camera PFVN/MEGA kèm giờ ảnh lưu (đọc "_kenh.json" trong thư mục ảnh lưu của công ty).</summary>
+        [HttpGet("/QLCamera/{congTy:regex(^(PFVN|MEGA)$)}/DanhSach")]
+        public async Task<IActionResult> CongTyKhacDanhSach(string congTy, [FromServices] CameraXemTrucTiepService xem)
+        {
+            if (!CoQuyenXem(congTy)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            try
+            {
+                var (capNhat, kenh) = await xem.DanhSachKenhCongTyAsync(congTy, HttpContext.RequestAborted);
+                return Json(new { thanhCong = true, duLieu = new { capNhat, kenh } });
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+            {
+                return Json(new { thanhCong = false, thongBao = "Không đọc được dữ liệu camera " + congTy.ToUpperInvariant() + ": " + ex.Message });
+            }
+        }
+
+        /// <summary>Ảnh lưu sẵn của 1 kênh PFVN/MEGA; giờ chụp trả qua header X-Chup-Luc.</summary>
+        [HttpGet("/QLCamera/{congTy:regex(^(PFVN|MEGA)$)}/AnhLuu")]
+        public async Task<IActionResult> CongTyKhacAnhLuu(string congTy, string? nvrIp, int kenh, [FromServices] CameraXemTrucTiepService xem)
+        {
+            if (!CoQuyenXem(congTy)) return StatusCode(403);
+            if (kenh < 1 || kenh > 512 || string.IsNullOrWhiteSpace(nvrIp)) return BadRequest();
+
+            try
+            {
+                var ct = HttpContext.RequestAborted;
+                // Chỉ phục vụ kênh có trong danh sách của công ty — không cho đoán tên file tuỳ ý
+                var (_, ds) = await xem.DanhSachKenhCongTyAsync(congTy, ct);
+                if (!ds.Any(x => x.Nvr == nvrIp.Trim() && x.Kenh == kenh)) return NotFound();
+
+                var luu = await xem.LayAnhLuuAsync(nvrIp.Trim(), kenh, ct, congTy);
+                if (luu == null) return NotFound();
+
+                Response.Headers.CacheControl = "no-store";
+                Response.Headers["X-Chup-Luc"] = luu.Value.chupLuc.ToString("yyyy-MM-ddTHH:mm:ss");
+                return File(luu.Value.anh, "image/jpeg");
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+            {
+                return StatusCode(502);
+            }
         }
 
         #endregion
@@ -81,7 +144,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLCamera/GiamSat/DiaChiDauGhi")]
         public async Task<IActionResult> GiamSatDiaChiDauGhi([FromServices] CameraXemTrucTiepService xem)
         {
-            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
             var duLieu = await xem.BangDiaChiNvrAsync(HttpContext.RequestAborted);
             return Json(new { thanhCong = true, duLieu });
         }
@@ -90,7 +153,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLCamera/GiamSat/DsAnhLuu")]
         public IActionResult GiamSatDsAnhLuu([FromServices] CameraXemTrucTiepService xem)
         {
-            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
             try
             {
                 return Json(new { thanhCong = true, duLieu = xem.DanhSachKenhCoAnhLuu() });
@@ -111,7 +174,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         /// </summary>
         private async Task<IActionResult> DocGiamSatAsync(Func<CancellationToken, Task<System.Text.Json.JsonElement>> doc)
         {
-            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
 
             try
             {
@@ -137,7 +200,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLCamera/GhiChu/DanhSach")]
         public async Task<IActionResult> GhiChuDanhSach()
         {
-            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
 
             try
             {
@@ -155,7 +218,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         public async Task<IActionResult> GhiChuLuu(string? nvrIp, int kenh, string? tenCamera, string? ghiChu,
             [FromServices] CameraXemTrucTiepService xem)
         {
-            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
             if (kenh < 1 || kenh > 512) return Json(new { thanhCong = false, thongBao = "Kênh không hợp lệ." });
 
             ghiChu = string.IsNullOrWhiteSpace(ghiChu) ? null : ghiChu.Trim();
@@ -204,7 +267,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLCamera/LichSu/DanhSach")]
         public async Task<IActionResult> LichSuDanhSach(DateTime? tuNgay, DateTime? denNgay, string? loai, string? nvrIp, string? tuKhoa)
         {
-            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
 
             const int toiDa = 2000;
             try
@@ -268,7 +331,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLCamera/GhiChuMau/DanhSach")]
         public async Task<IActionResult> GhiChuMauDanhSach()
         {
-            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
 
             try
             {
@@ -286,7 +349,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GhiChuMauThem(string? noiDung)
         {
-            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
 
             noiDung = noiDung?.Trim();
             if (string.IsNullOrEmpty(noiDung)) return Json(new { thanhCong = false, thongBao = "Gõ nội dung ghi chú trước rồi bấm +." });
@@ -317,7 +380,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GhiChuMauXoa(int id)
         {
-            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
 
             try
             {
@@ -342,7 +405,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLCamera/Xem/AnhChup")]
         public async Task<IActionResult> XemAnhChup(string? nvrIp, int kenh, [FromServices] CameraXemTrucTiepService xem)
         {
-            if (!CoQuyen()) return StatusCode(403);
+            if (!CoQuyenXem("BPVN")) return StatusCode(403);
             if (kenh < 1 || kenh > 512) return BadRequest();
 
             try
@@ -370,7 +433,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLCamera/Xem/AnhLuu")]
         public async Task<IActionResult> XemAnhLuu(string? nvrIp, int kenh, [FromServices] CameraXemTrucTiepService xem)
         {
-            if (!CoQuyen()) return StatusCode(403);
+            if (!CoQuyenXem("BPVN")) return StatusCode(403);
             if (kenh < 1 || kenh > 512) return BadRequest();
 
             try
@@ -400,7 +463,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             var ct = HttpContext.RequestAborted;
 
-            if (!CoQuyen()) { Response.StatusCode = 403; return; }
+            if (!CoQuyenXem("BPVN")) { Response.StatusCode = 403; return; }
             if (kenh < 1 || kenh > 512) { Response.StatusCode = 400; return; }
 
             HttpResponseMessage? luong = null;
@@ -441,7 +504,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLCamera/DauGhi/GetDanhSach")]
         public async Task<IActionResult> DauGhiGetDanhSach(string? tuKhoa, string? trangThai)
         {
-            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
 
             try
             {
@@ -476,7 +539,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DauGhiSave(KkDauGhi model)
         {
-            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
 
             model.DiaDiem = model.DiaDiem?.Trim() ?? "";
             if (model.DiaDiem.Length == 0)
@@ -545,7 +608,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DauGhiDelete(int id, string? lyDo)
         {
-            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
 
             try
             {
@@ -570,7 +633,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLCamera/GetDanhSach")]
         public async Task<IActionResult> GetDanhSach(string? tuKhoa, int? idCongTy, int? idBoPhan, string? tinhTrang, string? trucTuyen)
         {
-            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
 
             try
             {
@@ -591,6 +654,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
 
                 if (idCongTy.HasValue && idCongTy > 0) query = query.Where(x => x.IdcongTy == idCongTy);
+                // Người chỉ có CamBPVN không được thấy tài sản camera của công ty khác
+                if (!CoQuyenSua()) query = query.Where(x => x.IdcongTyNavigation != null && x.IdcongTyNavigation.TenCongTy == "BPVN");
                 if (idBoPhan.HasValue && idBoPhan > 0) query = query.Where(x => x.IdboPhan == idBoPhan);
                 if (!string.IsNullOrWhiteSpace(tinhTrang)) query = query.Where(x => x.TinhTrang == tinhTrang);
 
@@ -661,7 +726,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Save(KkCamera camera)
         {
-            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
 
             camera.TenCamera = camera.TenCamera?.Trim() ?? "";
             if (camera.TenCamera.Length == 0)
@@ -742,7 +807,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id, string? lyDo)
         {
-            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
 
             try
             {

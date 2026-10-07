@@ -253,3 +253,10 @@ html.fp-lock .fp-chain > *:not(.fp-grow) {
     text-overflow: clip;
     word-break: break-word;
 }
+
+/* Quyền CamBPVN chỉ xem: ẩn nút sửa/xoá vẽ bằng JS và gợi ý "+ ghi chú" (server vẫn chặn lưu) */
+.cam-chi-xem .btn-sua,
+.cam-chi-xem .btn-xoa,
+.cam-chi-xem .btn-sua-dg,
+.cam-chi-xem .btn-xoa-dg,
+.cam-chi-xem .cam-ghi-chu-trong { display: none !important; }
