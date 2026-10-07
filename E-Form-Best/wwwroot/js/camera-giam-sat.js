@@ -10,6 +10,11 @@
     var dangSuaGhiChu = false;  // đang gõ ghi chú thì tự làm mới không được vẽ lại bảng (mất chữ đang gõ)
     // Quyền CamBPVN chỉ xem: không mở ô sửa ghi chú (server cũng chặn lưu)
     var chiXem = document.querySelector('section.content[data-chi-xem]') !== null;
+    // PFVN/MEGA dùng chung trang: dữ liệu giám sát do server dựng từ ảnh lưu của công ty (cùng khuôn JSON),
+    // không có xu hướng/xem trực tiếp
+    var congTy = ($('section.content[data-cong-ty]').attr('data-cong-ty') || 'BPVN').toUpperCase();
+    var laBpvn = congTy === 'BPVN';
+    function urlGs(loai) { return laBpvn ? '/QLCamera/GiamSat/' + loai : '/QLCamera/' + congTy + '/GiamSat/' + loai; }
 
     function khoaGhiChu(c) { return c.nvr_ip + '|' + c.cam_id; }
 
@@ -233,7 +238,7 @@
     // Chỉ dựng link khi đúng dạng IPv4 để dữ liệu lạ từ API không chèn được href tuỳ ý.
     function oIpCamera(ip) {
         var s = escapeHtml(ip);
-        if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip || '')) return '<td class="small font-monospace" title="' + s + '">' + s + '</td>';
+        if (!laBpvn || !/^\d{1,3}(\.\d{1,3}){3}$/.test(ip || '')) return '<td class="small font-monospace" title="' + s + '">' + s + '</td>';
         return '<td class="small font-monospace"><a class="cam-ip-link" href="http://' + s + '/" target="_blank" rel="noopener"'
             + ' title="Mở trang cài đặt camera ' + s + ' ở tab mới">' + s + ' <i class="fas fa-up-right-from-square"></i></a></td>';
     }
@@ -242,14 +247,15 @@
     var dsDiaChiDauGhi = {};
 
     function taiDiaChiDauGhi() {
-        return lay('/QLCamera/GiamSat/DiaChiDauGhi').then(function (d) { dsDiaChiDauGhi = d || {}; },
+        return lay(urlGs('DiaChiDauGhi')).then(function (d) { dsDiaChiDauGhi = d || {}; },
             function () { return $.Deferred().resolve().promise(); });   // lỗi thì dùng http://IP/
     }
 
     // Link mở trang web đầu ghi ở tab mới; chỉ dựng khi đúng dạng IPv4
     function linkDauGhi(ip, chu) {
         var s = escapeHtml(chu);
-        if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip || '')) return s;
+        // Đầu ghi PFVN/MEGA không mở được từ mạng BPVN -> chỉ hiện chữ
+        if (!laBpvn || !/^\d{1,3}(\.\d{1,3}){3}$/.test(ip || '')) return s;
         var goc = dsDiaChiDauGhi[ip];
         var url = /^https?:\/\/[\d.]+(:\d+)?$/.test(goc || '') ? goc + '/' : 'http://' + ip + '/';
         return '<a class="cam-ip-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener"'
@@ -265,7 +271,7 @@
 
     function taiGhiChu() {
         // Lỗi ghi chú không được làm hỏng phần giám sát: lỗi thì coi như chưa có ghi chú nào
-        return lay('/QLCamera/GhiChu/DanhSach').then(function (ds) {
+        return lay('/QLCamera/GhiChu/DanhSach', { congTy: congTy }).then(function (ds) {
             var map = {};
             (ds || []).forEach(function (g) { map[g.nvrIp + '|' + g.kenh] = g; });
             dsGhiChu = map;
@@ -275,7 +281,7 @@
 
     function taiAnhLuu() {
         // Lỗi đọc thư mục ảnh không được làm hỏng phần giám sát: lỗi thì không đánh dấu camera nào
-        return lay('/QLCamera/GiamSat/DsAnhLuu').then(function (ds) {
+        return lay(urlGs('DsAnhLuu')).then(function (ds) {
             var map = null;
             if (ds) {
                 map = {};
@@ -290,7 +296,7 @@
      * Trả promise: resolve khi lưu được, reject(thongBao) khi lỗi.
      */
     function guiGhiChu(cam, moi) {
-        return $.post('/QLCamera/GhiChu/Luu', { nvrIp: cam.nvr_ip, kenh: cam.cam_id, tenCamera: cam.name, ghiChu: moi })
+        return $.post('/QLCamera/GhiChu/Luu', { nvrIp: cam.nvr_ip, kenh: cam.cam_id, tenCamera: cam.name, ghiChu: moi, congTy: congTy })
             .then(function (res) {
                 if (!res.thanhCong) return $.Deferred().reject(res.thongBao || 'Không lưu được ghi chú.').promise();
                 var k = khoaGhiChu(cam);
@@ -377,7 +383,7 @@
     var dsMau = [];
 
     function taiMau() {
-        return lay('/QLCamera/GhiChuMau/DanhSach').done(function (ds) {
+        return lay('/QLCamera/GhiChuMau/DanhSach', { congTy: congTy }).done(function (ds) {
             dsMau = ds || [];
             veMau();
         });
@@ -480,6 +486,12 @@
     var xem = { cam: null, cheDo: null, timerAnh: null, timerCho: null, timerBam: null, modal: null };
 
     function urlXem(loai, cam) {
+        // PFVN/MEGA: ảnh lưu ở thư mục của công ty; ảnh/video trực tiếp qua go2rtc bên công ty đó
+        if (!laBpvn) {
+            return '/QLCamera/' + congTy + (loai === 'AnhLuu' ? '/AnhLuu' : '/Xem/' + loai)
+                + '?nvrIp=' + encodeURIComponent(cam.nvr_ip)
+                + '&kenh=' + encodeURIComponent(cam.cam_id) + '&t=' + Date.now();
+        }
         return '/QLCamera/Xem/' + loai + '?nvrIp=' + encodeURIComponent(cam.nvr_ip)
             + '&kenh=' + encodeURIComponent(cam.cam_id) + '&t=' + Date.now();
     }
@@ -723,6 +735,7 @@
     }
 
     function taiXuHuong() {
+        if (!laBpvn) return;   // PFVN/MEGA không có lịch sử các lần kiểm tra
         lay('/QLCamera/GiamSat/LichSu', { soLan: $('#gsKhoangXuHuong').val() })
             .done(function (d) { veBieuDo(d.runs || []); })
             .fail(hienLoi);
@@ -734,12 +747,12 @@
         dangTai = true;
         var $btn = $('#gsBtnTaiLai').prop('disabled', true);
 
-        var pTongQuan = lay('/QLCamera/GiamSat/TongQuan');
-        var pCamera = lay('/QLCamera/GiamSat/Camera', {
+        var pTongQuan = lay(urlGs('TongQuan'));
+        var pCamera = lay(urlGs('Camera'), {
             gomDaLoaiTru: $('#gsGomLoaiTru').is(':checked'),
             chiCanChuY: $('#gsChiChuY').is(':checked')
         });
-        var pDauGhi = lay('/QLCamera/GiamSat/DauGhi');
+        var pDauGhi = lay(urlGs('DauGhi'));
 
         $.when(pTongQuan, pCamera, pDauGhi, taiGhiChu(), taiDiaChiDauGhi(), taiAnhLuu())
             .done(function (tongQuan, camera, dauGhi) {

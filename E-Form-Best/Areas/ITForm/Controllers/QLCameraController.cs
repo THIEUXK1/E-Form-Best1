@@ -35,6 +35,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         private bool CoQuyenXem(string congTy) => User.IsInRole("All") || User.IsInRole("Cam" + congTy.ToUpperInvariant());
         private bool CoQuyenSua() => User.IsInRole("All");
 
+        /// <summary>Công ty gửi lên từ trang camera; giá trị lạ / bỏ trống coi là BPVN.</summary>
+        private static string CongTyHopLe(string? congTy)
+            => CameraXemTrucTiepService.DsCongTyAnhLuu.FirstOrDefault(x => x.Equals(congTy, StringComparison.OrdinalIgnoreCase)) ?? "BPVN";
+
         #region View
 
         [HttpGet("/QLCamera")]
@@ -65,11 +69,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         /// <summary>
-        /// Camera PFVN / MEGA: chưa có đầu ghi và hệ thống giám sát nối vào E-Form, tạm hiện khung chờ.
-        /// Hệ thống giám sát ISAPI hiện tại (CameraIsapi) chỉ theo dõi đầu ghi BPVN.
+        /// Camera PFVN / MEGA: dùng chung giao diện trang BPVN (tab Giám sát) nhưng dữ liệu là danh sách kênh
+        /// + ảnh lưu do script chụp ảnh bên đó đẩy về (không có hệ thống giám sát ISAPI, không xem trực tiếp
+        /// được vì máy chủ không thông mạng đầu ghi). Công ty chưa có dữ liệu thì hiện khung chờ.
         /// </summary>
         [HttpGet("/QLCamera/{congTy:regex(^(PFVN|MEGA)$)}")]
-        public IActionResult CongTyKhac(string congTy)
+        public async Task<IActionResult> CongTyKhac(string congTy, [FromServices] CameraXemTrucTiepService xem)
         {
             if (User?.Identity?.IsAuthenticated != true)
                 return Redirect("/DonXetDuyet/DangNhap");
@@ -77,9 +82,93 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (!CoQuyenXem(congTy))
                 return Forbid();
 
-            ViewBag.CongTy = congTy.ToUpperInvariant();
-            return View("CongTyKhac");
+            var cty = CongTyHopLe(congTy);
+            ViewBag.CongTy = cty;
+
+            var (capNhat, kenh) = await xem.DanhSachKenhCongTyAsync(cty, HttpContext.RequestAborted);
+            if (capNhat == null && kenh.Count == 0) return View("CongTyKhac");
+
+            ViewBag.CoQuyenSua = CoQuyenSua();
+            ViewBag.CoXemTrucTiep = xem.CoXemTrucTiepCongTy(cty);
+            return View("Index");
         }
+
+        /// <summary>
+        /// Dữ liệu tab Giám sát cho PFVN/MEGA, dựng từ "_kenh.json" theo đúng khuôn JSON của hệ thống giám sát
+        /// BPVN (snake_case) để camera-giam-sat.js dùng lại nguyên cách vẽ. Trạng thái là lúc chụp ảnh gần nhất.
+        /// </summary>
+        [HttpGet("/QLCamera/{congTy:regex(^(PFVN|MEGA)$)}/GiamSat/{loai:regex(^(TongQuan|Camera|DauGhi|DsAnhLuu|DiaChiDauGhi)$)}")]
+        public async Task<IActionResult> CongTyKhacGiamSat(string congTy, string loai, [FromServices] CameraXemTrucTiepService xem)
+        {
+            var cty = CongTyHopLe(congTy);
+            if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+
+            try
+            {
+                var (capNhat, ds) = await xem.DanhSachKenhCongTyAsync(cty, HttpContext.RequestAborted);
+                var dsDauGhi = ds.GroupBy(x => x.Nvr).Select(g => new
+                {
+                    nvr_ip = g.Key,
+                    // Tên đầu ghi để mặc định "Network Video Recorder" thì đặt theo công ty + đuôi IP cho dễ phân biệt
+                    nvr_name = TenDauGhi(cty, g.Key, g.First().TenDauGhi),
+                    zone = (string?)null,
+                    channel_count = g.Count(),
+                    readiness = "READY",
+                    last_error = (string?)null,
+                    last_poll_at = capNhat
+                }).ToList();
+
+                object duLieu = loai switch
+                {
+                    "TongQuan" => new
+                    {
+                        total = ds.Count,
+                        up = ds.Count(x => x.Online),
+                        down = ds.Count(x => !x.Online),
+                        nvrs_ready = dsDauGhi.Count,
+                        nvr_total = dsDauGhi.Count,
+                        nvr_errors = 0,
+                        excluded_count = 0,
+                        watchlist_count = 0,
+                        last_poll_at = capNhat,
+                        last_poll_status = "ok"
+                    },
+                    "DauGhi" => new { nvrs = dsDauGhi },
+                    "Camera" => new
+                    {
+                        cameras = ds.Select(x => new
+                        {
+                            nvr_ip = x.Nvr,
+                            nvr_name = TenDauGhi(cty, x.Nvr, x.TenDauGhi),
+                            cam_id = x.Kenh,
+                            name = string.IsNullOrWhiteSpace(x.Ten) ? $"Kênh {x.Kenh}" : x.Ten,
+                            ip = x.IpCamera,
+                            status = x.Online ? "UP" : "DOWN",
+                            zone = (string?)null,
+                            // Không theo dõi liên tục nên không biết lúc rớt; ảnh lấy từ bản ghi = khung hình cuối
+                            // camera còn ghi được, dùng làm mốc "mất kết nối từ"
+                            down_since_at = !x.Online && x.KetQua is "PLAYBACK" or "BOQUA" ? x.AnhLuc : null,
+                            status_changed_at = (DateTime?)null,
+                            excluded = false,
+                            is_watchlist = false
+                        })
+                    },
+                    "DsAnhLuu" => ds.Where(x => x.AnhLuc != null).Select(x => x.Nvr + "|" + x.Kenh).ToList(),
+                    // Trang web đầu ghi bên đó không mở được từ mạng BPVN -> không dựng link
+                    _ => new Dictionary<string, string>()
+                };
+                return Json(new { thanhCong = true, duLieu });
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+            {
+                return Json(new { thanhCong = false, thongBao = "Không đọc được dữ liệu camera " + cty + ": " + ex.Message });
+            }
+        }
+
+        private static string TenDauGhi(string congTy, string ip, string? ten)
+            => string.IsNullOrWhiteSpace(ten) || ten == "Network Video Recorder"
+                ? $"{congTy} .{ip.Split('.').Last()}"
+                : ten;
 
         /// <summary>Danh sách kênh camera PFVN/MEGA kèm giờ ảnh lưu (đọc "_kenh.json" trong thư mục ảnh lưu của công ty).</summary>
         [HttpGet("/QLCamera/{congTy:regex(^(PFVN|MEGA)$)}/DanhSach")]
@@ -198,9 +287,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         /// <summary>Toàn bộ ghi chú đang có, JS ghép vào danh sách camera theo "nvrIp|kenh".</summary>
         [HttpGet("/QLCamera/GhiChu/DanhSach")]
-        public async Task<IActionResult> GhiChuDanhSach()
+        public async Task<IActionResult> GhiChuDanhSach(string? congTy)
         {
-            if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            // Ghi chú dùng chung bảng cho mọi công ty (khoá nvrIp|kênh, IP đầu ghi các công ty không trùng nhau)
+            if (!CoQuyenXem(CongTyHopLe(congTy))) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
 
             try
             {
@@ -216,8 +306,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpPost("/QLCamera/GhiChu/Luu")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GhiChuLuu(string? nvrIp, int kenh, string? tenCamera, string? ghiChu,
-            [FromServices] CameraXemTrucTiepService xem)
+            [FromServices] CameraXemTrucTiepService xem, string? congTy = null)
         {
+            var cty = CongTyHopLe(congTy);
             if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
             if (kenh < 1 || kenh > 512) return Json(new { thanhCong = false, thongBao = "Kênh không hợp lệ." });
 
@@ -226,8 +317,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             try
             {
-                // Chỉ nhận đầu ghi có thật trong hệ thống giám sát, không cho ghi rác theo IP tuỳ ý
-                if (!await xem.LaDauGhiHopLeAsync(nvrIp, HttpContext.RequestAborted))
+                // Chỉ nhận đầu ghi có thật (BPVN: hệ thống giám sát; PFVN/MEGA: danh sách kênh của công ty),
+                // không cho ghi rác theo IP tuỳ ý
+                var hopLe = cty == "BPVN"
+                    ? await xem.LaDauGhiHopLeAsync(nvrIp, HttpContext.RequestAborted)
+                    : !string.IsNullOrWhiteSpace(nvrIp) && (await xem.DanhSachKenhCongTyAsync(cty, HttpContext.RequestAborted)).kenh
+                        .Any(x => x.Nvr == nvrIp.Trim() && x.Kenh == kenh);
+                if (!hopLe)
                     return Json(new { thanhCong = false, thongBao = "Đầu ghi không có trong hệ thống giám sát." });
                 nvrIp = nvrIp!.Trim();
 
@@ -329,9 +425,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #region Ghi chú có sẵn (KK_CameraGhiChuMau, dùng chung)
 
         [HttpGet("/QLCamera/GhiChuMau/DanhSach")]
-        public async Task<IActionResult> GhiChuMauDanhSach()
+        public async Task<IActionResult> GhiChuMauDanhSach(string? congTy)
         {
-            if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            if (!CoQuyenXem(CongTyHopLe(congTy))) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
 
             try
             {
@@ -474,20 +570,86 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 luong = await xem.MoLuongVideoAsync(nvrIp!.Trim(), kenh, ct);
                 if (luong == null) { Response.StatusCode = 502; return; }
 
-                Response.ContentType = luong.Content.Headers.ContentType?.ToString() ?? "video/mp4";
-                Response.Headers.CacheControl = "no-store";
-                // nginx mặc định gom đệm response -> video đứng hình; header này bảo nginx đẩy thẳng
-                Response.Headers["X-Accel-Buffering"] = "no";
-                HttpContext.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>()?.DisableBuffering();
-
-                await using var nguon = await luong.Content.ReadAsStreamAsync(ct);
-                await nguon.CopyToAsync(Response.Body, ct);
+                await ChuyenTiepVideoAsync(luong, ct);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
                 // Người dùng đóng cửa sổ xem — kết thúc bình thường
             }
             catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
+            {
+                if (!Response.HasStarted) Response.StatusCode = 502;
+            }
+            finally
+            {
+                luong?.Dispose();
+            }
+        }
+
+        /// <summary>Đẩy nguyên luồng fMP4 của go2rtc xuống trình duyệt tới khi người dùng đóng cửa sổ xem.</summary>
+        private async Task ChuyenTiepVideoAsync(HttpResponseMessage luong, CancellationToken ct)
+        {
+            Response.ContentType = luong.Content.Headers.ContentType?.ToString() ?? "video/mp4";
+            Response.Headers.CacheControl = "no-store";
+            // nginx mặc định gom đệm response -> video đứng hình; header này bảo nginx đẩy thẳng
+            Response.Headers["X-Accel-Buffering"] = "no";
+            HttpContext.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>()?.DisableBuffering();
+
+            await using var nguon = await luong.Content.ReadAsStreamAsync(ct);
+            await nguon.CopyToAsync(Response.Body, ct);
+        }
+
+        /// <summary>Kênh có trong danh sách camera của công ty không — chặn gọi go2rtc bên đó với kênh tuỳ ý.</summary>
+        private static async Task<bool> LaKenhCongTyAsync(CameraXemTrucTiepService xem, string congTy, string? nvrIp, int kenh, CancellationToken ct)
+            => !string.IsNullOrWhiteSpace(nvrIp) && kenh >= 1 && kenh <= 512
+               && (await xem.DanhSachKenhCongTyAsync(congTy, ct)).kenh.Any(x => x.Nvr == nvrIp.Trim() && x.Kenh == kenh);
+
+        /// <summary>Ảnh trực tiếp camera PFVN/MEGA qua go2rtc đặt ở máy bên công ty đó.</summary>
+        [HttpGet("/QLCamera/{congTy:regex(^(PFVN|MEGA)$)}/Xem/AnhChup")]
+        public async Task<IActionResult> CongTyKhacAnhChup(string congTy, string? nvrIp, int kenh, [FromServices] CameraXemTrucTiepService xem)
+        {
+            var cty = CongTyHopLe(congTy);
+            if (!CoQuyenXem(cty)) return StatusCode(403);
+            var ct = HttpContext.RequestAborted;
+
+            try
+            {
+                if (!await LaKenhCongTyAsync(xem, cty, nvrIp, kenh, ct)) return NotFound();
+                var anh = await xem.LayAnhChupCongTyAsync(cty, nvrIp!.Trim(), kenh, ct);
+                if (anh == null) return StatusCode(502);
+
+                Response.Headers.CacheControl = "no-store";
+                return File(anh, "image/jpeg");
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or IOException)
+            {
+                return StatusCode(502);
+            }
+        }
+
+        /// <summary>Video trực tiếp camera PFVN/MEGA (fMP4) qua go2rtc đặt ở máy bên công ty đó.</summary>
+        [HttpGet("/QLCamera/{congTy:regex(^(PFVN|MEGA)$)}/Xem/Video")]
+        public async Task CongTyKhacVideo(string congTy, string? nvrIp, int kenh, [FromServices] CameraXemTrucTiepService xem)
+        {
+            var cty = CongTyHopLe(congTy);
+            var ct = HttpContext.RequestAborted;
+            if (!CoQuyenXem(cty)) { Response.StatusCode = 403; return; }
+
+            HttpResponseMessage? luong = null;
+            try
+            {
+                if (!await LaKenhCongTyAsync(xem, cty, nvrIp, kenh, ct)) { Response.StatusCode = 404; return; }
+
+                luong = await xem.MoLuongVideoCongTyAsync(cty, nvrIp!.Trim(), kenh, ct);
+                if (luong == null) { Response.StatusCode = 502; return; }
+
+                await ChuyenTiepVideoAsync(luong, ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                // Người dùng đóng cửa sổ xem — kết thúc bình thường
+            }
+            catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or IOException)
             {
                 if (!Response.HasStarted) Response.StatusCode = 502;
             }

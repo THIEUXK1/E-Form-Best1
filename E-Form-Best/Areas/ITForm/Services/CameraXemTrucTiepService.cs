@@ -176,6 +176,61 @@ namespace E_Form_Best.Areas.ITForm.Services
             public DateTime? AnhLuc { get; set; }
         }
 
+        /// <summary>
+        /// go2rtc đặt ở máy thông mạng đầu ghi của công ty (PFVN: ZPVN-WEBSRV 10.0.193.240:1984), khai trong .env:
+        /// Camera{CÔNG TY}__Go2rtcUrl / __Go2rtcTaiKhoan / __Go2rtcMatKhau. Luồng đã khai sẵn trong go2rtc.yaml bên đó
+        /// (tools/cai-go2rtc-pfvn.ps1) tên "{công ty}_{ip}_{kênh}" — E-Form không cần mật khẩu đầu ghi.
+        /// Chưa khai thì trả null: trang công ty đó chỉ có ảnh lưu sẵn.
+        /// </summary>
+        private (string url, string taiKhoan, string matKhau)? Go2rtcCongTy(string congTy)
+        {
+            var ten = DsCongTyAnhLuu.FirstOrDefault(x => x.Equals(congTy, StringComparison.OrdinalIgnoreCase));
+            if (ten == null) return null;
+            var url = _configuration[$"Camera{ten}:Go2rtcUrl"];
+            var tk = _configuration[$"Camera{ten}:Go2rtcTaiKhoan"];
+            var mk = _configuration[$"Camera{ten}:Go2rtcMatKhau"];
+            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(tk) || string.IsNullOrWhiteSpace(mk)) return null;
+            return (url.TrimEnd('/'), tk, mk);
+        }
+
+        public bool CoXemTrucTiepCongTy(string congTy) => Go2rtcCongTy(congTy) != null;
+
+        private HttpRequestMessage YeuCauGo2rtcCongTy(string congTy, string duongDan)
+        {
+            var cfg = Go2rtcCongTy(congTy) ?? throw new InvalidOperationException($"Chưa cấu hình go2rtc cho {congTy}.");
+            var yeuCau = new HttpRequestMessage(HttpMethod.Get, cfg.url + duongDan);
+            yeuCau.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic",
+                Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(cfg.taiKhoan + ":" + cfg.matKhau)));
+            return yeuCau;
+        }
+
+        private static string TenLuongCongTy(string congTy, string nvrIp, int kenh)
+            => $"{congTy.ToLowerInvariant()}_{nvrIp.Replace('.', '_')}_{kenh}";
+
+        /// <summary>1 ảnh JPEG trực tiếp của kênh PFVN/MEGA qua go2rtc bên công ty đó (go2rtc giải mã 1 khung hình).</summary>
+        public async Task<byte[]?> LayAnhChupCongTyAsync(string congTy, string nvrIp, int kenh, CancellationToken ct)
+        {
+            // Client go2rtc không giới hạn thời gian (dùng chung cho video) -> tự đặt 20 giây cho ảnh
+            using var hetGio = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            hetGio.CancelAfter(TimeSpan.FromSeconds(20));
+            var client = _httpClientFactory.CreateClient(TenClientGo2rtc);
+            using var yeuCau = YeuCauGo2rtcCongTy(congTy, $"/api/frame.jpeg?src={Uri.EscapeDataString(TenLuongCongTy(congTy, nvrIp, kenh))}");
+            using var traLoi = await client.SendAsync(yeuCau, hetGio.Token);
+            return traLoi.IsSuccessStatusCode ? await traLoi.Content.ReadAsByteArrayAsync(hetGio.Token) : null;
+        }
+
+        /// <summary>Luồng fMP4 (H.264) của kênh PFVN/MEGA qua go2rtc bên công ty đó. Người gọi Dispose response.</summary>
+        public async Task<HttpResponseMessage?> MoLuongVideoCongTyAsync(string congTy, string nvrIp, int kenh, CancellationToken ct)
+        {
+            var client = _httpClientFactory.CreateClient(TenClientGo2rtc);
+            using var yeuCau = YeuCauGo2rtcCongTy(congTy,
+                $"/api/stream.mp4?src={Uri.EscapeDataString(TenLuongCongTy(congTy, nvrIp, kenh))}&video=h264");
+            var traLoi = await client.SendAsync(yeuCau, HttpCompletionOption.ResponseHeadersRead, ct);
+            if (traLoi.IsSuccessStatusCode) return traLoi;
+            traLoi.Dispose();
+            return null;
+        }
+
         /// <summary>Thư mục ảnh lưu của PFVN/MEGA: thư mục con "{công ty}" trong CameraNvr:ThuMucAnhLuu.</summary>
         private string? ThuMucAnhLuuCongTy(string congTy)
         {
