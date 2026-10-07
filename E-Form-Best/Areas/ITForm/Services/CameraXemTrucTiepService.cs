@@ -159,6 +159,234 @@ namespace E_Form_Best.Areas.ITForm.Services
         }
 
         /// <summary>
+        /// Các kênh đã có ảnh lưu sẵn, khoá "nvrIp|kênh" — để danh sách đánh dấu camera chưa lấy được ảnh nào
+        /// (chụp trực tiếp lẫn playback đều không được). Chưa cấu hình / không mở được thư mục thì trả null,
+        /// giao diện khi đó không đánh dấu gì thay vì báo nhầm mọi camera đều thiếu ảnh.
+        /// </summary>
+        public HashSet<string>? DanhSachKenhCoAnhLuu()
+        {
+            var thuMuc = _configuration["CameraNvr:ThuMucAnhLuu"];
+            if (string.IsNullOrWhiteSpace(thuMuc) || !Directory.Exists(thuMuc)) return null;
+
+            var ds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var file in Directory.EnumerateFiles(thuMuc, "*.jpg"))
+            {
+                var m = System.Text.RegularExpressions.Regex.Match(Path.GetFileName(file), @"^(\d{1,3}(?:\.\d{1,3}){3})_(\d+)\.jpg$");
+                if (m.Success) ds.Add(m.Groups[1].Value + "|" + m.Groups[2].Value);
+            }
+            return ds;
+        }
+
+        /// <summary>
+        /// Đoạn ghi hình cuối cùng của một kênh trên đầu ghi (ISAPI ContentMgmt/search) — dùng cho ảnh lưu
+        /// sẵn của camera mất kết nối: lấy khung hình cuối camera còn ghi được. Dò lùi theo từng khoảng
+        /// (1 ngày, 7, 30, 90, 365 ngày) để camera mới rớt chỉ tốn 1-2 lượt gọi. Không có bản ghi trong
+        /// 1 năm thì trả null. Giờ đầu ghi trả có đuôi "Z" nhưng thực chất là giờ VN (đã đối chiếu với
+        /// down_since_at của hệ thống giám sát), nên đọc nguyên giá trị, không đổi múi giờ.
+        /// </summary>
+        public async Task<(DateTime batDau, DateTime ketThuc)?> TimGhiHinhCuoiAsync(string nvrIp, int kenh, CancellationToken ct)
+        {
+            var client = _httpClientFactory.CreateClient(TenClientNvr);
+            var dsGoc = await DsDiaChiNvrAsync(nvrIp, ct);
+            var bayGio = DateTime.Now;
+            (DateTime, DateTime)? ketQua = null;
+
+            var moc = new[] { 0, 1, 7, 30, 90, 365 };
+            for (var i = 1; i < moc.Length && ketQua == null; i++)
+            {
+                ketQua = await TimTrongKhoangAsync(client, dsGoc, kenh, bayGio.AddDays(-moc[i]), bayGio.AddDays(-moc[i - 1]), ct);
+            }
+            return ketQua;
+        }
+
+        private async Task<(DateTime, DateTime)?> TimTrongKhoangAsync(HttpClient client, List<string> dsGoc, int kenh,
+            DateTime tu, DateTime den, CancellationToken ct)
+        {
+            (DateTime, DateTime)? cuoi = null;
+            var viTri = 0;
+
+            // Đầu ghi trả kết quả tăng dần theo thời gian, mỗi trang tối đa 50 đoạn. Biết tổng số thì
+            // nhảy thẳng tới trang cuối; giới hạn 20 trang để firmware lạ không làm vòng lặp chạy mãi
+            for (var trang = 0; trang < 20; trang++)
+            {
+                var xml = await GoiTimKiemAsync(client, dsGoc, kenh, tu, den, viTri, ct);
+                if (xml == null) return cuoi;
+
+                var ns = xml.Root!.GetDefaultNamespace();
+                foreach (var muc in xml.Descendants(ns + "searchMatchItem"))
+                {
+                    var khung = muc.Element(ns + "timeSpan");
+                    if (!DocGioDauGhi(khung?.Element(ns + "startTime")?.Value, out var bd)
+                        || !DocGioDauGhi(khung?.Element(ns + "endTime")?.Value, out var kt)) continue;
+                    if (cuoi == null || kt > cuoi.Value.Item2) cuoi = (bd, kt);
+                }
+
+                var trangThai = xml.Root.Element(ns + "responseStatusStrg")?.Value;
+                if (!string.Equals(trangThai, "MORE", StringComparison.OrdinalIgnoreCase)) return cuoi;
+
+                int.TryParse(xml.Root.Element(ns + "numOfMatches")?.Value, out var soTrongTrang);
+                int.TryParse(xml.Root.Element(ns + "totalMatches")?.Value, out var tong);
+                if (soTrongTrang <= 0) return cuoi;
+                viTri = tong > viTri + soTrongTrang ? Math.Max(viTri + soTrongTrang, tong - 50) : viTri + soTrongTrang;
+            }
+            return cuoi;
+        }
+
+        private static async Task<System.Xml.Linq.XDocument?> GoiTimKiemAsync(HttpClient client, List<string> dsGoc, int kenh,
+            DateTime tu, DateTime den, int viTri, CancellationToken ct)
+        {
+            // Track {kênh}01 = luồng chính được ghi; "searchResultPostion" là đúng chính tả của Hikvision
+            var noiDung = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><CMSearchDescription>"
+                + $"<searchID>{Guid.NewGuid():D}</searchID>"
+                + $"<trackList><trackID>{kenh}01</trackID></trackList>"
+                + $"<timeSpanList><timeSpan><startTime>{tu:yyyy-MM-ddTHH:mm:ss}Z</startTime><endTime>{den:yyyy-MM-ddTHH:mm:ss}Z</endTime></timeSpan></timeSpanList>"
+                + $"<maxResults>50</maxResults><searchResultPostion>{viTri}</searchResultPostion>"
+                + "<metadataList><metadataDescriptor>//recordType.meta.std-cgi.com</metadataDescriptor></metadataList>"
+                + "</CMSearchDescription>";
+
+            foreach (var goc in dsGoc)
+            {
+                try
+                {
+                    // Đầu ghi 10.0.21.251 hay trả 403 khi đang bị gọi dồn (lượt chụp, ffmpeg khác đang kéo) -> thử lại 3 lần
+                    for (var lan = 0; lan < 3; lan++)
+                    {
+                        if (lan > 0) await Task.Delay(TimeSpan.FromSeconds(3), ct);
+                        using var traLoi = await client.PostAsync(goc + "/ISAPI/ContentMgmt/search",
+                            new StringContent(noiDung, System.Text.Encoding.UTF8, "application/xml"), ct);
+                        if (traLoi.StatusCode == System.Net.HttpStatusCode.Forbidden) continue;
+                        if (!traLoi.IsSuccessStatusCode) break;
+                        return System.Xml.Linq.XDocument.Parse(await traLoi.Content.ReadAsStringAsync(ct));
+                    }
+                }
+                catch (Exception ex) when (ex is HttpRequestException || ex is System.Xml.XmlException
+                    || (ex is TaskCanceledException && !ct.IsCancellationRequested))
+                {
+                    // cổng này không trả lời / trả rác -> thử cổng kế tiếp
+                }
+            }
+            return null;
+        }
+
+        private static bool DocGioDauGhi(string? s, out DateTime gio)
+            => DateTime.TryParseExact(s?.TrimEnd('Z', 'z'), "yyyy-MM-ddTHH:mm:ss",
+                System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out gio);
+
+        // Mỗi lần lấy khung hình là một tiến trình ffmpeg kéo playback từ đầu ghi: giới hạn 2 cái cùng lúc
+        private static readonly SemaphoreSlim _gioiHanFfmpeg = new(2, 2);
+
+        /// <summary>Giờ của khung hình sẽ lấy từ đoạn ghi: lùi 10 giây khỏi điểm kết thúc, sát mép đầu ghi hay trả luồng rỗng.</summary>
+        public static DateTime GioKhungHinhPlayback(DateTime batDau, DateTime ketThuc)
+            => ketThuc.AddSeconds(-10) < batDau ? batDau : ketThuc.AddSeconds(-10);
+
+        /// <summary>
+        /// Khung hình JPEG ở cuối đoạn ghi (ffmpeg đọc RTSP playback của đầu ghi, ~6-10 giây/lần).
+        /// Dùng cho ảnh lưu sẵn khi chụp trực tiếp không được (camera mất kết nối).
+        /// Trả null khi đầu ghi không trả được hình.
+        /// </summary>
+        public async Task<(byte[] anh, DateTime gio)?> ChupKhungHinhPlaybackAsync(string nvrIp, int kenh,
+            DateTime batDau, DateTime ketThuc, CancellationToken ct)
+        {
+            if (!System.Net.IPAddress.TryParse(nvrIp, out var ip)
+                || ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) return null;
+
+            var ffmpeg = _configuration["CameraNvr:FfmpegPath"];
+            if (string.IsNullOrWhiteSpace(ffmpeg)) ffmpeg = @"C:\go2rtc\ffmpeg.exe";
+            if (!File.Exists(ffmpeg))
+                throw new InvalidOperationException("Không tìm thấy ffmpeg, khai CameraNvr__FfmpegPath trong .env.");
+
+            var (taiKhoan, matKhau) = TaiKhoanNvr();
+            var cong = await CongRtspAsync(nvrIp, ct);
+
+            await _gioiHanFfmpeg.WaitAsync(ct);
+            try
+            {
+                // Luồng H.265 đang ghi dở đôi khi hỏng ở đoạn sát cuối (ffmpeg INVALIDDATA) -> thử lại ở 60 giây trước điểm kết thúc
+                foreach (var tu in new[] { GioKhungHinhPlayback(batDau, ketThuc), ketThuc.AddSeconds(-60) < batDau ? batDau : ketThuc.AddSeconds(-60) })
+                {
+                    var rtsp = $"rtsp://{Uri.EscapeDataString(taiKhoan)}:{Uri.EscapeDataString(matKhau)}@{ip}:{cong}"
+                        + $"/Streaming/tracks/{kenh}01?starttime={tu:yyyyMMddTHHmmss}Z&endtime={ketThuc:yyyyMMddTHHmmss}Z";
+                    var anh = await ChayFfmpegAsync(ffmpeg, rtsp, ct);
+                    if (anh != null && anh.Length >= 1000) return (anh, tu);
+                }
+                return null;
+            }
+            finally { _gioiHanFfmpeg.Release(); }
+        }
+
+        /// <summary>
+        /// Cổng RTSP thật của đầu ghi (10.0.28.254 dùng 8002, không mở 554) hỏi qua ISAPI adminAccesses,
+        /// cache 1 giờ. Hỏi không được thì dùng CameraNvr:RtspPort (mặc định 554).
+        /// </summary>
+        private async Task<int> CongRtspAsync(string nvrIp, CancellationToken ct)
+        {
+            var khoa = $"CameraXem:CongRtsp:{nvrIp}";
+            if (_cache.TryGetValue(khoa, out int daCo)) return daCo;
+
+            var cong = _configuration.GetValue<int?>("CameraNvr:RtspPort") ?? 554;
+            var client = _httpClientFactory.CreateClient(TenClientNvr);
+            foreach (var goc in await DsDiaChiNvrAsync(nvrIp, ct))
+            {
+                try
+                {
+                    using var traLoi = await client.GetAsync(goc + "/ISAPI/Security/adminAccesses", ct);
+                    if (!traLoi.IsSuccessStatusCode) continue;
+                    var xml = System.Xml.Linq.XDocument.Parse(await traLoi.Content.ReadAsStringAsync(ct));
+                    var ns = xml.Root!.GetDefaultNamespace();
+                    var rtsp = xml.Descendants(ns + "AdminAccessProtocol")
+                        .FirstOrDefault(p => string.Equals(p.Element(ns + "protocol")?.Value, "RTSP", StringComparison.OrdinalIgnoreCase));
+                    if (int.TryParse(rtsp?.Element(ns + "portNo")?.Value, out var so) && so > 0) cong = so;
+                    _cache.Set(khoa, cong, TimeSpan.FromHours(1));
+                    break;
+                }
+                catch (Exception ex) when (ex is HttpRequestException || ex is System.Xml.XmlException
+                    || (ex is TaskCanceledException && !ct.IsCancellationRequested))
+                {
+                    // cổng này không trả lời -> thử cổng kế tiếp
+                }
+            }
+            return cong;
+        }
+
+        private static async Task<byte[]?> ChayFfmpegAsync(string ffmpeg, string rtsp, CancellationToken ct)
+        {
+            var thongTin = new System.Diagnostics.ProcessStartInfo(ffmpeg)
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            // ArgumentList: từng tham số tách riêng, không qua shell. Ảnh luồng chính 2688x1520 nên thu về 1280 ngang
+            foreach (var thamSo in new[] { "-hide_banner", "-loglevel", "error", "-rtsp_transport", "tcp", "-timeout", "10000000",
+                "-i", rtsp, "-frames:v", "1", "-vf", "scale='min(1280,iw)':-2", "-q:v", "4", "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1" })
+                thongTin.ArgumentList.Add(thamSo);
+
+            using var tienTrinh = System.Diagnostics.Process.Start(thongTin)
+                ?? throw new InvalidOperationException("Không chạy được ffmpeg.");
+            using var hetGio = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            hetGio.CancelAfter(TimeSpan.FromSeconds(30));
+            try
+            {
+                using var bo = new MemoryStream();
+                var docLoi = tienTrinh.StandardError.ReadToEndAsync(hetGio.Token);
+                await tienTrinh.StandardOutput.BaseStream.CopyToAsync(bo, hetGio.Token);
+                await tienTrinh.WaitForExitAsync(hetGio.Token);
+                await docLoi;
+                return tienTrinh.ExitCode == 0 ? bo.ToArray() : null;
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                // Quá 30 giây (đầu ghi treo luồng playback): coi như không lấy được
+                return null;
+            }
+            finally
+            {
+                if (!tienTrinh.HasExited) tienTrinh.Kill(true);
+            }
+        }
+
+        /// <summary>
         /// Mở luồng fMP4 từ go2rtc (đã khai nguồn RTSP). Người gọi chịu trách nhiệm Dispose response.
         /// Trả null khi go2rtc không mở được luồng sau một lần khai lại.
         /// </summary>

@@ -151,6 +151,8 @@
         ProcessImage(ct.DuongDanAnh, ct.Anh);
         chiTietNoiDung += RenderInfoRow("🛠️", "Loại yêu cầu", "Sửa chữa / Cấp thiết bị", "#fef2f2", "#991b1b");
         chiTietNoiDung += RenderInfoRow("📦", "Tên thiết bị/Sự cố", ct.Ten, "#f0f9ff", "#075985");
+        chiTietNoiDung += RenderInfoRow("📍", "Vị trí", ct.ViTriMay, "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("🖥️", "Tên máy tính", ct.TenMayTinh, "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("💬", "Mô tả lỗi/Yêu cầu", ct.GhiChu, "#f8fafc", "#0f172a");
     }
     else if (Model.ItDangKiSuDungWifi3s != null && Model.ItDangKiSuDungWifi3s.Any())

@@ -2012,11 +2012,29 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim))
             {
-                if (modeHoTro == "Mode2") return Json(new { success = false, message = "Hết phiên đăng nhập." });
-                return Redirect("/DonXetDuyet/DangNhap");
+                return Json(new { success = false, message = "Hết phiên đăng nhập." });
             }
 
             int userId = int.Parse(userIdClaim);
+
+            // Chốt idempotency: form gửi bằng AJAX không còn lá chắn POST-Redirect-GET,
+            // cùng người + cùng tiêu đề trong 15 giây coi là bấm trùng, không tạo đơn thứ hai
+            var tieuDeGui = itOrder?.Ten?.Trim();
+            var mocTrung = DateTime.Now.AddSeconds(-15);
+            bool daGuiTrung = await _context.FormIts.AnyAsync(f =>
+                f.IdNguoiTao == userId && f.IdForm == "IT_OrderIT_2" && f.TimeNguoiTao >= mocTrung
+                && f.ItOrderIt2s.Any(o => o.Ten == tieuDeGui));
+            if (daGuiTrung)
+            {
+                return Json(new { success = false, message = "Đơn này vừa được gửi, vui lòng không bấm gửi lại." });
+            }
+
+            if (itOrder != null)
+            {
+                itOrder.ViTriMay = string.IsNullOrWhiteSpace(itOrder.ViTriMay) ? null : itOrder.ViTriMay.Trim();
+                itOrder.TenMayTinh = string.IsNullOrWhiteSpace(itOrder.TenMayTinh) ? null : itOrder.TenMayTinh.Trim();
+            }
+
             var userName = User.Identity?.Name ?? "";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
@@ -2176,12 +2194,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         ? $"Thời hạn hoàn thành: {itOrder.ThoiHanHoanThanh.Value:dd/MM/yyyy HH:mm}"
                         : "Thời hạn: Không chỉ định";
                     string anhLog = string.IsNullOrEmpty(itOrder?.DuongDanAnh) ? "Không có ảnh" : $"Ảnh: {itOrder.DuongDanAnh}";
+                    string mayLog = $"Vị trí: {itOrder?.ViTriMay ?? "N/A"} | Tên máy: {itOrder?.TenMayTinh ?? "N/A"}";
 
                     var lichSu = new LichSuFormIt
                     {
                         IdFormIt = form.Id,
                         TieuDe = "Khởi tạo yêu cầu",
-                        Mota = $"[Cty: {tenCongTy}] Người tạo: {userName}. {supporterLog}. {deadlineLog}. {fileLog}. {anhLog}",
+                        Mota = $"[Cty: {tenCongTy}] Người tạo: {userName}. {supporterLog}. {mayLog}. {deadlineLog}. {fileLog}. {anhLog}",
                         Time = DateTime.Now
                     };
                     _context.LichSuFormIts.Add(lichSu);
@@ -2189,27 +2208,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    if (modeHoTro == "Mode2")
-                    {
-                        return Json(new { success = true, message = "Gửi yêu cầu hỗ trợ đến các nhân viên IT thành công!" });
-                    }
-
-                    TempData["Success"] = "Gửi yêu cầu hỗ trợ IT thành công!";
-                    return Redirect("/FormIT/DonCho");
+                    return Json(new { success = true, message = "Gửi yêu cầu hỗ trợ IT thành công!" });
                 }
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    ViewBag.CongViecList = await _context.CongViecIts.OrderBy(x => x.Ten).ToListAsync();
-                    ViewBag.NguoiHoTroList = await _context.ItNguoiHoTros.OrderBy(x => x.Ten).ToListAsync();
-
-                    if (modeHoTro == "Mode2")
-                    {
-                        return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
-                    }
-
-                    ModelState.AddModelError("", "Lỗi: " + ex.Message);
-                    return View(form);
+                    return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
                 }
             }
         }
@@ -4095,6 +4099,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     worksheet.Range(currentRow, 1, currentRow, 2).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(ClosedXML.Excel.XLColor.LightGreen);
                     currentRow++;
                     worksheet.Cell(currentRow, 1).Value = "Tên thiết bị / Nội dung:"; worksheet.Cell(currentRow, 2).Value = ct.Ten; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Vị trí:"; worksheet.Cell(currentRow, 2).Value = ct.ViTriMay; currentRow++;
+                    worksheet.Cell(currentRow, 1).Value = "Tên máy tính:"; worksheet.Cell(currentRow, 2).Value = ct.TenMayTinh; currentRow++;
                     worksheet.Cell(currentRow, 1).Value = "Ghi chú chi tiết:"; worksheet.Cell(currentRow, 2).Value = ct.GhiChu; currentRow++;
                 }
                 else if (don.ItDangKiSuDungWifi3s.Any())
@@ -4347,6 +4353,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var ct = don.ItOrderIt2s.First();
                 sb.Append($"<tr><th>Loại dịch vụ IT</th><td style='font-weight:bold;'>Yêu cầu cấp phát vật tư / Linh kiện thiết bị IT (Form 2)</td></tr>");
                 sb.Append($"<tr><th>Tên hạng mục thiết bị yêu cầu</th><td>{ct.Ten}</td></tr>");
+                sb.Append($"<tr><th>Vị trí</th><td>{System.Net.WebUtility.HtmlEncode(ct.ViTriMay)}</td></tr>");
+                sb.Append($"<tr><th>Tên máy tính</th><td>{System.Net.WebUtility.HtmlEncode(ct.TenMayTinh)}</td></tr>");
                 sb.Append($"<tr><th>Nội dung ghi chú chi tiết</th><td>{ct.GhiChu}</td></tr>");
             }
             else if (don.ItDangKiSuDungWifi3s.Any())

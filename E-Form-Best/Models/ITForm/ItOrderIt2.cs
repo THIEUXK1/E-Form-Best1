@@ -31,6 +31,15 @@ public partial class ItOrderIt2
     [StringLength(50)]
     public string? MucDoUuTien { get; set; }
 
+    // Vị trí đặt máy + tên máy tính để IT đến đúng chỗ, khỏi gọi hỏi lại người tạo đơn
+    [Column("ViTriMay")]
+    [StringLength(200)]
+    public string? ViTriMay { get; set; }
+
+    [Column("TenMayTinh")]
+    [StringLength(100)]
+    public string? TenMayTinh { get; set; }
+
     [ForeignKey("IdFormIt")]
     [InverseProperty("ItOrderIt2s")]
     public virtual FormIt? IdFormItNavigation { get; set; }

@@ -98,31 +98,80 @@ namespace E_Form_Best.Areas.ITForm.Services
 
             Directory.CreateDirectory(thuMuc);
             var duoc = 0;
+            var chuaDuoc = new System.Collections.Concurrent.ConcurrentBag<(string nvr, int kenh)>();
 
             // 6 ảnh song song: đủ nhanh (~319 ảnh trong vài chục giây) mà không dồn ép một đầu ghi
             await Parallel.ForEachAsync(dsKenh, new ParallelOptions { MaxDegreeOfParallelism = 6, CancellationToken = ct },
                 async (muc, token) =>
                 {
+                    var dich = Path.Combine(thuMuc, $"{muc.nvr}_{muc.kenh}.jpg");
                     try
                     {
                         var anh = await xem.LayAnhChupAsync(muc.nvr, muc.kenh, token);
-                        if (anh == null || anh.Length == 0) return;
+                        if (anh == null || anh.Length == 0)
+                        {
+                            if (await LayAnhTuPlaybackAsync(xem, muc.nvr, muc.kenh, dich, token)) Interlocked.Increment(ref duoc);
+                            else chuaDuoc.Add(muc);
+                            return;
+                        }
 
-                        // Ghi ra file tạm rồi đổi tên đè: người xem không bao giờ đọc phải ảnh ghi dở
-                        var dich = Path.Combine(thuMuc, $"{muc.nvr}_{muc.kenh}.jpg");
-                        var tam = dich + ".tmp";
-                        await File.WriteAllBytesAsync(tam, anh, token);
-                        File.Move(tam, dich, true);
+                        await GhiAnhAsync(dich, anh, null, token);
                         Interlocked.Increment(ref duoc);
                     }
-                    catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
+                    catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or InvalidOperationException)
                     {
-                        // Camera mất kết nối / đầu ghi chậm: giữ ảnh cũ của kênh đó
+                        // Camera mất kết nối / đầu ghi chậm / thiếu ffmpeg: giữ ảnh cũ của kênh đó
                         if (ct.IsCancellationRequested) throw;
+                        chuaDuoc.Add(muc);
                     }
                 });
 
+            // Lỗi lượt song song phần lớn do đầu ghi đang bị gọi dồn (10.0.21.251, 10.0.29.254 trả 403/luồng hỏng):
+            // lấy lại từ playback lần lượt từng kênh. Kênh không có bản ghi chỉ tốn thêm vài lượt tìm kiếm.
+            foreach (var muc in chuaDuoc)
+            {
+                try
+                {
+                    if (await LayAnhTuPlaybackAsync(xem, muc.nvr, muc.kenh, Path.Combine(thuMuc, $"{muc.nvr}_{muc.kenh}.jpg"), ct))
+                        duoc++;
+                }
+                catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or InvalidOperationException)
+                {
+                    if (ct.IsCancellationRequested) throw;
+                }
+            }
+
             return (dsKenh.Count, duoc);
+        }
+
+        /// <summary>
+        /// Chụp trực tiếp không được (camera mất kết nối, đầu ghi trả 403): lấy khung hình cuối của đoạn
+        /// ghi cuối trên đầu ghi làm ảnh lưu. Giờ file đặt đúng giờ khung hình để /QLCamera ghi
+        /// "Ảnh lưu lúc ..." đúng thời điểm; ảnh lưu đã mới bằng/hơn thì bỏ qua, khỏi chạy ffmpeg lại.
+        /// </summary>
+        private static async Task<bool> LayAnhTuPlaybackAsync(CameraXemTrucTiepService xem, string nvr, int kenh,
+            string dich, CancellationToken ct)
+        {
+            var doan = await xem.TimGhiHinhCuoiAsync(nvr, kenh, ct);
+            if (doan == null) return false;
+
+            var gioKhung = CameraXemTrucTiepService.GioKhungHinhPlayback(doan.Value.batDau, doan.Value.ketThuc);
+            if (File.Exists(dich) && File.GetLastWriteTime(dich) >= gioKhung) return false;
+
+            var khung = await xem.ChupKhungHinhPlaybackAsync(nvr, kenh, doan.Value.batDau, doan.Value.ketThuc, ct);
+            if (khung == null) return false;
+
+            await GhiAnhAsync(dich, khung.Value.anh, khung.Value.gio, ct);
+            return true;
+        }
+
+        // Ghi ra file tạm rồi đổi tên đè: người xem không bao giờ đọc phải ảnh ghi dở
+        private static async Task GhiAnhAsync(string dich, byte[] anh, DateTime? gioFile, CancellationToken ct)
+        {
+            var tam = dich + ".tmp";
+            await File.WriteAllBytesAsync(tam, anh, ct);
+            if (gioFile != null) File.SetLastWriteTime(tam, gioFile.Value);
+            File.Move(tam, dich, true);
         }
 
         private static List<TimeSpan> DocGioChup(string cauHinh)

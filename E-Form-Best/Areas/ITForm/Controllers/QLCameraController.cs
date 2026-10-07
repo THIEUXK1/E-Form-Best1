@@ -86,6 +86,21 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return Json(new { thanhCong = true, duLieu });
         }
 
+        /// <summary>Kênh nào đã có ảnh lưu sẵn (khoá "nvrIp|kênh"); null khi máy chủ chưa có thư mục ảnh lưu.</summary>
+        [HttpGet("/QLCamera/GiamSat/DsAnhLuu")]
+        public IActionResult GiamSatDsAnhLuu([FromServices] CameraXemTrucTiepService xem)
+        {
+            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            try
+            {
+                return Json(new { thanhCong = true, duLieu = xem.DanhSachKenhCoAnhLuu() });
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return Json(new { thanhCong = false, thongBao = "Không đọc được thư mục ảnh lưu: " + ex.Message });
+            }
+        }
+
         [HttpGet("/QLCamera/GiamSat/LichSu")]
         public Task<IActionResult> GiamSatLichSu(int soLan = 72)
             => DocGiamSatAsync(ct => _giamSat.LichSuKiemTraAsync(soLan, ct));

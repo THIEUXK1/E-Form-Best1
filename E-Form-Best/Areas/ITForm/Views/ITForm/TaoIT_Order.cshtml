@@ -270,6 +270,17 @@
                     <input type="text" name="itOrder.Ten" id="TieuDe" required placeholder="VD: Lỗi máy in, Không vào được mạng..." class="input-hover" style="@inputBase" />
                 </div>
 
+                <div class="grid-responsive-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <label style="@labelBase">Vị trí</label>
+                        <input type="text" name="itOrder.ViTriMay" id="ViTriMay" maxlength="200" placeholder="VD: Xưởng 2 - Line 3, Văn phòng tầng 1..." class="input-hover" style="@inputBase" />
+                    </div>
+                    <div>
+                        <label style="@labelBase">Tên máy tính</label>
+                        <input type="text" name="itOrder.TenMayTinh" id="TenMayTinh" maxlength="100" placeholder="VD: BPVN-PC123" class="input-hover" style="@inputBase" />
+                    </div>
+                </div>
+
                 <div style="margin-bottom: 25px;">
                     <label style="@labelBase">Nội dung chi tiết <span style="color:red">*</span></label>
                     <textarea name="itOrder.GhiChu" id="GhiChu" required placeholder="Vui lòng mô tả chi tiết lỗi thiết bị của bạn tại đây..."
@@ -439,10 +450,8 @@
             btn.style.opacity = '0.7';
             btn.style.pointerEvents = 'none';
 
-            if (mode === "Mode1") {
-                document.getElementById("itOrderForm").submit();
-            } else {
-                // Chế độ 2: Gửi bằng AJAX (không chuyển trang)
+            {
+                // Cả 2 chế độ đều gửi bằng AJAX (không chuyển trang)
                 const formElement = document.getElementById("itOrderForm");
                 const formData = new FormData(formElement);
 
@@ -450,7 +459,10 @@
                     method: "POST",
                     body: formData
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) throw new Error("HTTP " + response.status);
+                    return response.json();
+                })
                 .then(data => {
                     btn.innerHTML = originalBtnHtml;
                     btn.style.opacity = '1';

@@ -6,6 +6,7 @@
 
     var dsCamera = [];          // toàn bộ camera của lần tải gần nhất, lọc trạng thái/NVR/khu/từ khoá ở client
     var dsGhiChu = {};          // ghi chú người dùng (KK_CameraGhiChu), khoá "nvrIp|kenh"
+    var dsAnhLuu = null;        // kênh đã có ảnh lưu sẵn, khoá "nvrIp|kenh"; null = không biết (không đánh dấu)
     var dangSuaGhiChu = false;  // đang gõ ghi chú thì tự làm mới không được vẽ lại bảng (mất chữ đang gõ)
 
     function khoaGhiChu(c) { return c.nvr_ip + '|' + c.cam_id; }
@@ -196,7 +197,10 @@
             var lop = (c.status === 'DOWN' ? 'cam-down ' : '') + (c.excluded ? 'cam-loai-tru ' : '') + (ghim ? 'cam-da-ghim' : '');
             var ten = escapeHtml(c.name)
                 + (c.is_watchlist ? '<i class="fas fa-star cam-sao" title="Camera chú ý' + (c.note ? ': ' + escapeHtml(c.note) : '') + '"></i>' : '')
-                + (c.excluded ? ' <span class="badge bg-secondary">Loại trừ</span>' : '');
+                + (c.excluded ? ' <span class="badge bg-secondary">Loại trừ</span>' : '')
+                + (dsAnhLuu && !dsAnhLuu[khoaGhiChu(c)]
+                    ? '<i class="fas fa-circle-exclamation cam-chua-anh" title="Chưa có ảnh lưu: chụp trực tiếp và lấy từ playback đầu ghi đều không được"></i>'
+                    : '');
             var matKetNoi = c.status === 'DOWN' && c.down_since_at
                 ? '<span class="text-danger fw-bold">' + khoangThoiGian(c.down_since_at) + '</span>'
                   + '<div class="text-muted" style="font-size:11px;">từ ' + ngayGio(c.down_since_at) + '</div>'
@@ -265,6 +269,18 @@
             dsGhiChu = map;
             veMau();
         }, function () { return $.Deferred().resolve().promise(); });
+    }
+
+    function taiAnhLuu() {
+        // Lỗi đọc thư mục ảnh không được làm hỏng phần giám sát: lỗi thì không đánh dấu camera nào
+        return lay('/QLCamera/GiamSat/DsAnhLuu').then(function (ds) {
+            var map = null;
+            if (ds) {
+                map = {};
+                ds.forEach(function (k) { map[k] = true; });
+            }
+            dsAnhLuu = map;
+        }, function () { dsAnhLuu = null; return $.Deferred().resolve().promise(); });
     }
 
     /**
@@ -723,7 +739,7 @@
         });
         var pDauGhi = lay('/QLCamera/GiamSat/DauGhi');
 
-        $.when(pTongQuan, pCamera, pDauGhi, taiGhiChu(), taiDiaChiDauGhi())
+        $.when(pTongQuan, pCamera, pDauGhi, taiGhiChu(), taiDiaChiDauGhi(), taiAnhLuu())
             .done(function (tongQuan, camera, dauGhi) {
                 hienLoi(null);
                 veTongQuan(tongQuan);

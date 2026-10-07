@@ -123,6 +123,7 @@ html.fp-lock .fp-chain > *:not(.fp-grow) {
 }
 
 .cam-sao { color: #f59e0b; margin-left: 4px; }
+.cam-chua-anh { color: #dc2626; margin-left: 4px; }
 
 .ccdc-table > tbody > tr.cam-down > td { background: #fff5f5; }
 .ccdc-table > tbody > tr.cam-loai-tru > td { opacity: .55; }
