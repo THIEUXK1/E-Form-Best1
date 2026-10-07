@@ -2,6 +2,9 @@
 (function () {
     'use strict';
 
+    // PFVN/MEGA dùng chung tab: đầu ghi lọc theo công ty của trang (server gán công ty khi thêm mới)
+    var congTy = ($('section.content[data-cong-ty]').attr('data-cong-ty') || 'BPVN').toUpperCase();
+
     var modalDauGhi, modalXoa;
     var timerTimKiem = null;
     var daTai = false;
@@ -17,6 +20,23 @@
     function o(giaTri, className) {
         var s = escapeHtml(giaTri);
         return '<td class="' + (className || '') + '" title="' + s + '">' + s + '</td>';
+    }
+
+    // Ô IP bấm được, mở trang web đầu ghi ở tab mới: giữ nguyên nếu đã nhập sẵn http(s)://,
+    // còn IP/tên miền trần thì ghép cổng web (443 → https). Giá trị lạ (có khoảng trắng, ghi chú...) để chữ thường.
+    function oIp(giaTri, portWeb) {
+        var s = $.trim(giaTri || '');
+        var url = null;
+        if (/^https?:\/\/[A-Za-z0-9.\-]+(:\d{1,5})?\/?$/i.test(s)) url = s;
+        else if (/^[A-Za-z0-9.\-]+(:\d{1,5})?$/.test(s)) {
+            var coCong = s.indexOf(':') > 0;
+            var cong = coCong ? Number(s.split(':')[1]) : Number(portWeb);
+            url = (cong === 443 ? 'https://' : 'http://') + s + (!coCong && cong && cong !== 80 && cong !== 443 ? ':' + cong : '');
+        }
+        if (!url) return o(giaTri, 'small font-monospace');
+        var e = escapeHtml(s);
+        return '<td class="small font-monospace" title="' + escapeHtml(url) + '"><a href="' + escapeHtml(url)
+            + '" target="_blank" rel="noopener noreferrer">' + e + '</a></td>';
     }
 
     function dongTrangThai(noiDung, className) {
@@ -37,7 +57,7 @@
     function taiDanhSach() {
         dongTrangThai('Đang tải dữ liệu...', 'text-muted');
 
-        $.getJSON('/QLCamera/DauGhi/GetDanhSach', { tuKhoa: $('#dgTuKhoa').val(), trangThai: $('#dgTrangThai').val() })
+        $.getJSON('/QLCamera/DauGhi/GetDanhSach', { tuKhoa: $('#dgTuKhoa').val(), trangThai: $('#dgTrangThai').val(), congTy: congTy })
             .done(function (res) {
                 if (!res.thanhCong) { dongTrangThai(res.thongBao || 'Không tải được dữ liệu.', 'text-danger'); return; }
                 veBang(res.duLieu);
@@ -54,8 +74,8 @@
             return '<tr>'
                 + '<td class="text-muted small">' + (i + 1) + '</td>'
                 + o(x.diaDiem, 'ccdc-ten')
-                + o(x.ipPublic, 'small font-monospace')
-                + o(x.ipLocal, 'small font-monospace')
+                + oIp(x.ipPublic, x.portWeb)
+                + oIp(x.ipLocal, x.portWeb)
                 + '<td class="ccdc-num small">' + escapeHtml(x.portSv) + '</td>'
                 + '<td class="ccdc-num small">' + escapeHtml(x.portWeb) + '</td>'
                 + '<td class="ccdc-num small">' + escapeHtml(x.tongCamera) + '</td>'
@@ -102,7 +122,7 @@
         anLoi($loi);
         var $btn = $('#btnLuuDauGhi').prop('disabled', true); // chặn double-submit
 
-        $.post('/QLCamera/DauGhi/Save', $('#formDauGhi').serialize())
+        $.post('/QLCamera/DauGhi/Save', $('#formDauGhi').serialize() + '&congTy=' + encodeURIComponent(congTy))
             .done(function (res) {
                 if (res.thanhCong) { modalDauGhi.hide(); taiDanhSach(); }
                 else hienLoi($loi, res.thongBao || 'Lưu không thành công.');
@@ -116,7 +136,7 @@
         anLoi($loi);
         var $btn = $('#btnXacNhanXoaDauGhi').prop('disabled', true);
 
-        $.post('/QLCamera/DauGhi/Delete', { id: $('#xoaIdDauGhi').val(), lyDo: $('#xoaLyDoDauGhi').val() })
+        $.post('/QLCamera/DauGhi/Delete', { id: $('#xoaIdDauGhi').val(), lyDo: $('#xoaLyDoDauGhi').val(), congTy: congTy })
             .done(function (res) {
                 if (res.thanhCong) { modalXoa.hide(); taiDanhSach(); }
                 else hienLoi($loi, res.thongBao || 'Xoá không thành công.');

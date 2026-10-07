@@ -16,7 +16,9 @@
     var congTy = ViewBag.CongTy as string ?? "BPVN";
     var laBpvn = congTy == "BPVN";
     // Xem trực tiếp: BPVN luôn có; PFVN/MEGA có khi đã khai go2rtc bên công ty đó (Camera{CÔNG TY}__Go2rtcUrl)
+    // hoặc đầu ghi máy chủ gọi thẳng được (Camera{CÔNG TY}__DauGhi__N — chỉ có ảnh, không có video)
     var coXemTrucTiep = laBpvn || (ViewBag.CoXemTrucTiep as bool? ?? false);
+    var coVideo = laBpvn || (ViewBag.CoVideo as bool? ?? false);
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -37,8 +39,6 @@
                         <span class="badge rounded-pill bg-danger ms-1 d-none" id="badgeMatKetNoi">0</span>
                     </button>
                 </li>
-                @if (laBpvn)
-                {
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="tabLichSuBtn" data-bs-toggle="pill" data-bs-target="#paneLichSu" type="button" role="tab">
                         <i class="fas fa-clock-rotate-left me-1"></i> Lịch sử
@@ -49,6 +49,8 @@
                         <i class="fas fa-server me-1"></i> Đầu ghi chi nhánh
                     </button>
                 </li>
+                @if (laBpvn)
+                {
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="tabTaiSanBtn" data-bs-toggle="pill" data-bs-target="#paneTaiSan" type="button" role="tab">
                         <i class="fas fa-tags me-1"></i> Tài sản camera
@@ -80,7 +82,7 @@
                             {
                             <div class="cam-tile cam-tile-loc" data-loc="chu-y" title="Bấm để chỉ xem camera chú ý"><div class="cam-tile-nhan">Đã loại trừ / Chú ý</div><div class="cam-tile-so" id="gsLoaiTru">–</div></div>
                             }
-                            <div class="cam-tile"><div class="cam-tile-nhan">@(laBpvn ? "Kiểm tra gần nhất" : "Chụp ảnh gần nhất")</div><div class="cam-tile-so cam-tile-so-nho" id="gsLanCuoi">–</div><div class="cam-tile-phu" id="gsLanCuoiTrangThai"></div></div>
+                            <div class="cam-tile"><div class="cam-tile-nhan">Kiểm tra gần nhất</div><div class="cam-tile-so cam-tile-so-nho" id="gsLanCuoi">–</div><div class="cam-tile-phu" id="gsLanCuoiTrangThai"></div></div>
                         </div>
 
                         <div class="row g-2 mb-2">
@@ -148,19 +150,10 @@
                             }
                             <span class="flex-grow-1"></span>
                             <span class="small text-muted" id="gsDemCamera"></span>
-                            @if (laBpvn)
-                            {
-                            <div class="form-check form-switch mb-0" title="Hệ thống ISAPI kiểm tra khoảng 5 phút một lần">
+                            <div class="form-check form-switch mb-0" title="@(laBpvn ? "Hệ thống ISAPI kiểm tra khoảng 5 phút một lần" : "Trạng thái kiểm tra 5 phút/lần; ảnh lưu chụp lúc 08:30 và 14:00")">
                                 <input class="form-check-input" type="checkbox" id="gsTuLamMoi" checked>
                                 <label class="form-check-label small" for="gsTuLamMoi">Tự làm mới 60 giây</label>
                             </div>
-                            }
-                            else
-                            {
-                            <span class="small text-muted" title="Trạng thái và ảnh cập nhật theo lượt chụp ảnh 08:30 và 14:00, không theo dõi liên tục">
-                                <i class="fas fa-circle-info"></i> Cập nhật theo lượt chụp ảnh
-                            </span>
-                            }
                             <button type="button" class="btn btn-sm btn-light border" id="gsBtnTaiLai" title="Tải lại"><i class="fas fa-rotate"></i></button>
                         </div>
 
@@ -199,8 +192,6 @@
                         </div>
                     </div>
 
-                    @if (laBpvn)
-                    {
                     @* ================= TAB LỊCH SỬ ĐỔI TRẠNG THÁI (KK_CameraLichSu) ================= *@
                     <div class="tab-pane fade" id="paneLichSu" role="tabpanel">
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
@@ -324,6 +315,8 @@
                         </div>
                     </div>
 
+                    @if (laBpvn)
+                    {
                     @* ================= TAB TÀI SẢN CAMERA (KK_Camera, nhập tay) ================= *@
                     <div class="tab-pane fade" id="paneTaiSan" role="tabpanel">
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
@@ -453,7 +446,10 @@
                 <div class="btn-group btn-group-sm me-auto" role="group">
                     @if (coXemTrucTiep)
                     {
+                    if (coVideo)
+                    {
                     <button type="button" class="btn btn-outline-primary" id="xemCheDoVideo"><i class="fas fa-film me-1"></i> Video</button>
+                    }
                     <button type="button" class="btn btn-outline-primary" id="xemCheDoAnh"><i class="fas fa-image me-1"></i> Ảnh (1 giây/lần)</button>
                     }
                     <button type="button" class="btn btn-outline-primary" id="xemCheDoAnhLuu" title="Ảnh chụp sẵn theo giờ định kỳ, mở được cả khi không kết nối được đầu ghi">
@@ -726,10 +722,7 @@
     {
     <script src="/js/camera-quanly.js?v=20261006b"></script>
     }
-    <script src="/js/camera-giam-sat.js?v=20261007d"></script>
-    @if (laBpvn)
-    {
-    <script src="/js/camera-lich-su.js?v=20261006c"></script>
-    <script src="/js/camera-dau-ghi.js?v=20261006"></script>
-    }
+    <script src="/js/camera-giam-sat.js?v=20261007f"></script>
+    <script src="/js/camera-lich-su.js?v=20261007b"></script>
+    <script src="/js/camera-dau-ghi.js?v=20261007b"></script>
 }

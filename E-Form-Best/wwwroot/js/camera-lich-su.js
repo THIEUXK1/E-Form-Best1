@@ -6,6 +6,9 @@
     var COT = 9;
     var daTai = false;
     var timerTimKiem = null;
+    // PFVN/MEGA dùng chung tab: lịch sử lọc theo đầu ghi của công ty, đầu ghi lấy từ API giám sát của công ty đó
+    var congTy = ($('section.content[data-cong-ty]').attr('data-cong-ty') || 'BPVN').toUpperCase();
+    function urlGs(loai) { return congTy === 'BPVN' ? '/QLCamera/GiamSat/' + loai : '/QLCamera/' + congTy + '/GiamSat/' + loai; }
 
     function escapeHtml(v) {
         if (v === null || v === undefined) return '';
@@ -60,7 +63,7 @@
     var LA_IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/;
 
     function taiDiaChiDauGhi() {
-        return $.getJSON('/QLCamera/GiamSat/DiaChiDauGhi').done(function (res) {
+        return $.getJSON(urlGs('DiaChiDauGhi')).done(function (res) {
             if (res.thanhCong && res.duLieu) dsDiaChiDauGhi = res.duLieu;
         });
     }
@@ -95,7 +98,8 @@
             denNgay: $('#lsDenNgay').val(),
             loai: $('#lsLoai').val(),
             nvrIp: $('#lsNvr').val(),
-            tuKhoa: $('#lsTuKhoa').val()
+            tuKhoa: $('#lsTuKhoa').val(),
+            congTy: congTy
         })
             .done(function (res) {
                 if (!res.thanhCong) { dongTrangThai(res.thongBao || 'Không tải được lịch sử.', 'text-danger'); return; }
@@ -137,7 +141,7 @@
 
     // Danh sách đầu ghi cho bộ lọc lấy từ hệ thống giám sát (cùng nguồn với tab Giám sát)
     function taiDauGhi() {
-        $.getJSON('/QLCamera/GiamSat/DauGhi').done(function (res) {
+        $.getJSON(urlGs('DauGhi')).done(function (res) {
             if (!res.thanhCong || !res.duLieu || !res.duLieu.nvrs) return;
             var $s = $('#lsNvr');
             res.duLieu.nvrs.forEach(function (n) {

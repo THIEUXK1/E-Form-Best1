@@ -30,7 +30,12 @@ namespace E_Form_Best.Areas.ITForm.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            if (!(_configuration.GetValue<bool?>("CameraNvr:ChupAnhLuu") ?? false)) return;
+            var chupBpvn = _configuration.GetValue<bool?>("CameraNvr:ChupAnhLuu") ?? false;
+            // Công ty có đầu ghi máy chủ gọi thẳng được (MEGA) thì máy nào cũng tự chụp vào thư mục của mình,
+            // không phụ thuộc cờ ChupAnhLuu của BPVN
+            var dsCongTy = CameraXemTrucTiepService.DsCongTyAnhLuu
+                .Where(c => CameraXemTrucTiepService.CoDauGhiTrucTiepCongTy(_configuration, c)).ToList();
+            if (!chupBpvn && dsCongTy.Count == 0) return;
 
             var thuMuc = _configuration["CameraNvr:ThuMucAnhLuu"];
             if (string.IsNullOrWhiteSpace(thuMuc))
@@ -46,22 +51,49 @@ namespace E_Form_Best.Areas.ITForm.Services
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                try
+                var mocGanNhat = MocDaQuaGanNhat(dsGio, DateTime.Now);
+                if (chupBpvn)
                 {
-                    var mocGanNhat = MocDaQuaGanNhat(dsGio, DateTime.Now);
-                    var lanCuoi = DocMoc(thuMuc);
-                    if (lanCuoi == null || lanCuoi < mocGanNhat)
+                    try
                     {
-                        var (tong, duoc) = await ChupMotLuotAsync(thuMuc, stoppingToken);
-                        GhiMoc(thuMuc, tong, duoc);
-                        Console.WriteLine($"[CameraAnhLuu] Chụp {duoc}/{tong} camera vào {thuMuc} lúc {DateTime.Now:dd/MM/yyyy HH:mm}");
+                        var lanCuoi = DocMoc(thuMuc);
+                        if (lanCuoi == null || lanCuoi < mocGanNhat)
+                        {
+                            var (tong, duoc) = await ChupMotLuotAsync(thuMuc, stoppingToken);
+                            GhiMoc(thuMuc, tong, duoc);
+                            Console.WriteLine($"[CameraAnhLuu] Chụp {duoc}/{tong} camera vào {thuMuc} lúc {DateTime.Now:dd/MM/yyyy HH:mm}");
+                        }
+                    }
+                    catch (TaskCanceledException) { return; }
+                    catch (Exception ex)
+                    {
+                        // Mất mạng tới ISAPI / thư mục chia sẻ: lượt kiểm tra sau thử lại
+                        Console.WriteLine($"[CameraAnhLuu Error]: {ex.Message}");
                     }
                 }
-                catch (TaskCanceledException) { return; }
-                catch (Exception ex)
+
+                // Mốc lượt chụp từng công ty nằm trong thư mục con của công ty đó
+                foreach (var congTy in dsCongTy)
                 {
-                    // Mất mạng tới ISAPI / thư mục chia sẻ: lượt kiểm tra sau thử lại
-                    Console.WriteLine($"[CameraAnhLuu Error]: {ex.Message}");
+                    var thuMucCty = Path.Combine(thuMuc, congTy);
+                    try
+                    {
+                        var lanCuoi = DocMoc(thuMucCty);
+                        if (lanCuoi == null || lanCuoi < mocGanNhat)
+                        {
+                            using var scope = _scopeFactory.CreateScope();
+                            var (tong, duoc) = await scope.ServiceProvider.GetRequiredService<CameraXemTrucTiepService>()
+                                .ChupAnhLuuTrucTiepAsync(congTy, stoppingToken);
+                            Directory.CreateDirectory(thuMucCty);
+                            GhiMoc(thuMucCty, tong, duoc);
+                            Console.WriteLine($"[CameraAnhLuu {congTy}] Chụp {duoc}/{tong} camera lúc {DateTime.Now:dd/MM/yyyy HH:mm}");
+                        }
+                    }
+                    catch (TaskCanceledException) { return; }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[CameraAnhLuu {congTy} Error]: {ex.Message}");
+                    }
                 }
 
                 // Ngủ tới mốc kế tiếp, nhưng tối đa 30 phút để còn kịp nhận ra thư mục/mạng đã sống lại

@@ -55,10 +55,38 @@ namespace E_Form_Best.Areas.ITForm.Services
                     Console.WriteLine($"[CameraLichSu Error]: {ex.Message}");
                 }
 
+                // PFVN/MEGA đọc file trạng thái riêng — lỗi bên này không ảnh hưởng BPVN và ngược lại
+                foreach (var congTy in CameraXemTrucTiepService.DsCongTyAnhLuu)
+                {
+                    try
+                    {
+                        // Đầu ghi máy chủ gọi thẳng được (MEGA): tự làm mới file trạng thái trước khi đối chiếu
+                        if (CameraXemTrucTiepService.CoDauGhiTrucTiepCongTy(_configuration, congTy))
+                        {
+                            using var scope = _scopeFactory.CreateScope();
+                            await scope.ServiceProvider.GetRequiredService<CameraXemTrucTiepService>()
+                                .CapNhatTrangThaiTrucTiepAsync(congTy, stoppingToken);
+                        }
+
+                        var soSuKien = await DoiChieuCongTyAsync(congTy, stoppingToken);
+                        if (soSuKien > 0)
+                            Console.WriteLine($"[CameraLichSu {congTy}] Ghi {soSuKien} sự kiện đổi trạng thái lúc {DateTime.Now:dd/MM/yyyy HH:mm}");
+                    }
+                    catch (TaskCanceledException) { return; }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[CameraLichSu {congTy} Error]: {ex.Message}");
+                    }
+                }
+
                 try { await Task.Delay(TimeSpan.FromSeconds(chuKyGiay), stoppingToken); }
                 catch (TaskCanceledException) { return; }
             }
         }
+
+        /// <summary>Trạng thái hiện tại của 1 camera, gom từ hệ thống giám sát BPVN hoặc file trạng thái PFVN/MEGA.</summary>
+        private record CameraHienTai(string NvrIp, int Kenh, string TrangThai, string? Ten, string? Ip,
+            string? TenDauGhi, string? KhuVuc, DateTime? DoiLuc);
 
         private async Task<int> DoiChieuAsync(CancellationToken ct)
         {
@@ -71,6 +99,40 @@ namespace E_Form_Best.Areas.ITForm.Services
             if (!duLieu.TryGetProperty("cameras", out var cameras) || cameras.ValueKind != JsonValueKind.Array)
                 return 0;
 
+            var ds = new List<CameraHienTai>();
+            foreach (var c in cameras.EnumerateArray())
+            {
+                var nvrIp = Chuoi(c, "nvr_ip");
+                var trangThai = Chuoi(c, "status");
+                if (nvrIp == null || trangThai == null || !int.TryParse(Chuoi(c, "cam_id"), out var kenh)) continue;
+                ds.Add(new CameraHienTai(nvrIp, kenh, trangThai, Chuoi(c, "name"), Chuoi(c, "ip"),
+                    Chuoi(c, "nvr_name"), Chuoi(c, "zone"), Ngay(Chuoi(c, "status_changed_at"))));
+            }
+            return await GhiThayDoiAsync(db, ds, ct);
+        }
+
+        /// <summary>
+        /// PFVN/MEGA: không có hệ thống giám sát, trạng thái là file "_trang-thai.json" máy dev đẩy lên 5 phút/lần
+        /// (tools/dong-bo-trang-thai-pfvn.ps1). Thời điểm đổi = giờ của file đó, giống nhau trên 2 máy chủ nên
+        /// unique (nvr_ip, kenh, thoi_gian, sang_trang_thai) vẫn chặn được ghi đôi.
+        /// </summary>
+        private async Task<int> DoiChieuCongTyAsync(string congTy, CancellationToken ct)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ITFormContext>();
+            var xem = scope.ServiceProvider.GetRequiredService<CameraXemTrucTiepService>();
+
+            var (capNhat, dsKenh) = await xem.TrangThaiCongTyAsync(congTy, ct);
+            if (capNhat == null || dsKenh.Count == 0) return 0;
+
+            var ds = dsKenh.Select(k => new CameraHienTai(k.Nvr, k.Kenh, k.Online ? "UP" : "DOWN", k.Ten, k.IpCamera,
+                CameraXemTrucTiepService.TenDauGhiCongTy(congTy, k.Nvr, k.TenDauGhi), congTy, capNhat)).ToList();
+            return await GhiThayDoiAsync(db, ds, ct);
+        }
+
+        /// <summary>So trạng thái hiện tại với KK_CameraTrangThai, khác thì ghi 1 dòng KK_CameraLichSu.</summary>
+        private static async Task<int> GhiThayDoiAsync(ITFormContext db, List<CameraHienTai> ds, CancellationToken ct)
+        {
             var daLuu = (await db.KkCameraTrangThais.ToListAsync(ct))
                 .ToDictionary(x => (x.NvrIp, x.Kenh));
 
@@ -80,16 +142,16 @@ namespace E_Form_Best.Areas.ITForm.Services
             // chỉ lấy lần đầu, không thì 2 bản ghi khác trạng thái sẽ sinh sự kiện đảo qua đảo lại mỗi lượt
             var daXet = new HashSet<(string, int)>();
 
-            foreach (var c in cameras.EnumerateArray())
+            foreach (var c in ds)
             {
-                var nvrIp = Chuoi(c, "nvr_ip");
-                var trangThai = Chuoi(c, "status");
-                if (nvrIp == null || trangThai == null || !int.TryParse(Chuoi(c, "cam_id"), out var kenh)) continue;
+                var nvrIp = c.NvrIp;
+                var kenh = c.Kenh;
+                var trangThai = c.TrangThai;
                 if (!daXet.Add((nvrIp, kenh))) continue;
 
-                var ten = Cat(Chuoi(c, "name"), 255);
-                var ip = Cat(Chuoi(c, "ip"), 50);
-                var doiLuc = Ngay(Chuoi(c, "status_changed_at"));
+                var ten = Cat(c.Ten, 255);
+                var ip = Cat(c.Ip, 50);
+                var doiLuc = c.DoiLuc;
 
                 if (!daLuu.TryGetValue((nvrIp, kenh), out var cu))
                 {
@@ -116,8 +178,8 @@ namespace E_Form_Best.Areas.ITForm.Services
                     {
                         ThoiGian = thoiGian,
                         NvrIp = nvrIp,
-                        TenDauGhi = Cat(Chuoi(c, "nvr_name"), 255),
-                        KhuVuc = Cat(Chuoi(c, "zone"), 100),
+                        TenDauGhi = Cat(c.TenDauGhi, 255),
+                        KhuVuc = Cat(c.KhuVuc, 100),
                         Kenh = kenh,
                         TenCamera = ten,
                         IpCamera = ip,

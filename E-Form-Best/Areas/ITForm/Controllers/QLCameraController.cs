@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using E_Form_Best.Areas.ITForm.Services;
 using E_Form_Best.Context;
 using E_Form_Best.Models.ITForm;
@@ -90,6 +90,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             ViewBag.CoQuyenSua = CoQuyenSua();
             ViewBag.CoXemTrucTiep = xem.CoXemTrucTiepCongTy(cty);
+            ViewBag.CoVideo = xem.CoVideoCongTy(cty);
             return View("Index");
         }
 
@@ -106,17 +107,27 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             try
             {
                 var (capNhat, ds) = await xem.DanhSachKenhCongTyAsync(cty, HttpContext.RequestAborted);
+                // Mốc đổi trạng thái do job CameraLichSuWorker ghi (KK_CameraTrangThai), giống BPVN
+                var dsIp = ds.Select(x => x.Nvr).Distinct().ToList();
+                var doiLuc = loai == "Camera"
+                    ? (await _context.KkCameraTrangThais.Where(x => dsIp.Contains(x.NvrIp))
+                        .Select(x => new { x.NvrIp, x.Kenh, x.DoiLuc }).ToListAsync())
+                        .ToDictionary(x => (x.NvrIp, x.Kenh), x => x.DoiLuc)
+                    : new Dictionary<(string, int), DateTime?>();
                 var dsDauGhi = ds.GroupBy(x => x.Nvr).Select(g => new
                 {
                     nvr_ip = g.Key,
                     // Tên đầu ghi để mặc định "Network Video Recorder" thì đặt theo công ty + đuôi IP cho dễ phân biệt
-                    nvr_name = TenDauGhi(cty, g.Key, g.First().TenDauGhi),
+                    nvr_name = CameraXemTrucTiepService.TenDauGhiCongTy(cty, g.Key, g.First().TenDauGhi),
                     zone = (string?)null,
                     channel_count = g.Count(),
                     readiness = "READY",
                     last_error = (string?)null,
                     last_poll_at = capNhat
                 }).ToList();
+
+                // Địa chỉ web đầu ghi theo đúng cổng/https (script bên đó gửi kèm trong file trạng thái)
+                var diaChi = loai == "DiaChiDauGhi" ? await xem.DiaChiDauGhiCongTyAsync(cty, HttpContext.RequestAborted) : null;
 
                 object duLieu = loai switch
                 {
@@ -139,23 +150,23 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         cameras = ds.Select(x => new
                         {
                             nvr_ip = x.Nvr,
-                            nvr_name = TenDauGhi(cty, x.Nvr, x.TenDauGhi),
+                            nvr_name = CameraXemTrucTiepService.TenDauGhiCongTy(cty, x.Nvr, x.TenDauGhi),
                             cam_id = x.Kenh,
                             name = string.IsNullOrWhiteSpace(x.Ten) ? $"Kênh {x.Kenh}" : x.Ten,
                             ip = x.IpCamera,
                             status = x.Online ? "UP" : "DOWN",
                             zone = (string?)null,
-                            // Không theo dõi liên tục nên không biết lúc rớt; ảnh lấy từ bản ghi = khung hình cuối
-                            // camera còn ghi được, dùng làm mốc "mất kết nối từ"
-                            down_since_at = !x.Online && x.KetQua is "PLAYBACK" or "BOQUA" ? x.AnhLuc : null,
-                            status_changed_at = (DateTime?)null,
+                            // Mốc rớt theo lần kiểm tra 5 phút; chưa có (job chưa thấy đổi) mà ảnh lấy từ bản ghi
+                            // thì dùng giờ khung hình ghi cuối
+                            down_since_at = x.Online ? null
+                                : doiLuc.GetValueOrDefault((x.Nvr, x.Kenh)) ?? (x.KetQua is "PLAYBACK" or "BOQUA" ? x.AnhLuc : null),
+                            status_changed_at = doiLuc.GetValueOrDefault((x.Nvr, x.Kenh)),
                             excluded = false,
                             is_watchlist = false
                         })
                     },
                     "DsAnhLuu" => ds.Where(x => x.AnhLuc != null).Select(x => x.Nvr + "|" + x.Kenh).ToList(),
-                    // Trang web đầu ghi bên đó không mở được từ mạng BPVN -> không dựng link
-                    _ => new Dictionary<string, string>()
+                    _ => diaChi!
                 };
                 return Json(new { thanhCong = true, duLieu });
             }
@@ -165,10 +176,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
-        private static string TenDauGhi(string congTy, string ip, string? ten)
-            => string.IsNullOrWhiteSpace(ten) || ten == "Network Video Recorder"
-                ? $"{congTy} .{ip.Split('.').Last()}"
-                : ten;
 
         /// <summary>Danh sách kênh camera PFVN/MEGA kèm giờ ảnh lưu (đọc "_kenh.json" trong thư mục ảnh lưu của công ty).</summary>
         [HttpGet("/QLCamera/{congTy:regex(^(PFVN|MEGA)$)}/DanhSach")]
@@ -361,9 +368,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #region Lịch sử đổi trạng thái (KK_CameraLichSu, do CameraLichSuWorker ghi)
 
         [HttpGet("/QLCamera/LichSu/DanhSach")]
-        public async Task<IActionResult> LichSuDanhSach(DateTime? tuNgay, DateTime? denNgay, string? loai, string? nvrIp, string? tuKhoa)
+        public async Task<IActionResult> LichSuDanhSach(DateTime? tuNgay, DateTime? denNgay, string? loai, string? nvrIp, string? tuKhoa,
+            string? congTy, [FromServices] CameraXemTrucTiepService xem)
         {
-            if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            var cty = CongTyHopLe(congTy);
+            if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
 
             const int toiDa = 2000;
             try
@@ -371,7 +380,18 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var tu = (tuNgay ?? DateTime.Today.AddDays(-6)).Date;
                 var den = (denNgay ?? DateTime.Today).Date.AddDays(1);   // gồm trọn ngày cuối
 
-                var query = _context.KkCameraLichSus.Where(x => x.ThoiGian >= tu && x.ThoiGian < den);
+                // KK_CameraLichSu dùng chung mọi công ty, tách theo IP đầu ghi: PFVN/MEGA lấy đúng đầu ghi của mình,
+                // BPVN thì bỏ đầu ghi của các công ty kia
+                var ipCongTy = new Dictionary<string, List<string>>();
+                foreach (var c in CameraXemTrucTiepService.DsCongTyAnhLuu)
+                    ipCongTy[c] = (await xem.DanhSachKenhCongTyAsync(c, HttpContext.RequestAborted)).kenh.Select(x => x.Nvr).Distinct().ToList();
+                var ipKhac = ipCongTy.Where(x => x.Key != cty).SelectMany(x => x.Value).ToList();
+                var ipCuaCongTy = cty == "BPVN" ? new List<string>() : ipCongTy[cty];
+
+                var goc = cty == "BPVN"
+                    ? _context.KkCameraLichSus.Where(x => !ipKhac.Contains(x.NvrIp))
+                    : _context.KkCameraLichSus.Where(x => ipCuaCongTy.Contains(x.NvrIp));
+                var query = goc.Where(x => x.ThoiGian >= tu && x.ThoiGian < den);
                 if (!string.IsNullOrWhiteSpace(loai)) query = query.Where(x => x.SangTrangThai == loai);
                 if (!string.IsNullOrWhiteSpace(nvrIp)) query = query.Where(x => x.NvrIp == nvrIp);
                 if (!string.IsNullOrWhiteSpace(tuKhoa))
@@ -405,7 +425,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .ToListAsync();
 
                 // Mốc sự kiện sớm nhất: lịch sử chỉ có từ lúc job nền bắt đầu chạy, không có quá khứ
-                var dauTien = await _context.KkCameraLichSus.MinAsync(x => (DateTime?)x.ThoiGian);
+                var dauTien = await goc.MinAsync(x => (DateTime?)x.ThoiGian);
 
                 return Json(new
                 {
@@ -664,13 +684,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #region Đầu ghi chi nhánh (KK_DauGhi, nhập tay — không lưu mật khẩu)
 
         [HttpGet("/QLCamera/DauGhi/GetDanhSach")]
-        public async Task<IActionResult> DauGhiGetDanhSach(string? tuKhoa, string? trangThai)
+        public async Task<IActionResult> DauGhiGetDanhSach(string? tuKhoa, string? trangThai, string? congTy)
         {
-            if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            var cty = CongTyHopLe(congTy);
+            if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
 
             try
             {
-                var query = _context.KkDauGhis.Where(x => x.NgayXoa == null);
+                var query = await LocDauGhiCongTyAsync(_context.KkDauGhis.Where(x => x.NgayXoa == null), cty);
 
                 if (!string.IsNullOrWhiteSpace(tuKhoa))
                 {
@@ -699,8 +720,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         [HttpPost("/QLCamera/DauGhi/Save")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DauGhiSave(KkDauGhi model)
+        public async Task<IActionResult> DauGhiSave(KkDauGhi model, string? congTy)
         {
+            var cty = CongTyHopLe(congTy);
             if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
 
             model.DiaDiem = model.DiaDiem?.Trim() ?? "";
@@ -737,11 +759,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     model.NguoiTao = User.Identity?.Name;
                     model.NgayXoa = null;
                     model.LyDoXoa = null;
+                    // Công ty lấy theo trang đang mở, không nhận giá trị client gửi lên
+                    model.IdcongTy = await _context.KkCongTies.Where(x => x.TenCongTy == cty)
+                        .Select(x => (int?)x.IdcongTy).FirstOrDefaultAsync();
                     _context.KkDauGhis.Add(model);
                 }
                 else
                 {
-                    var db = await _context.KkDauGhis.FirstOrDefaultAsync(x => x.IdDauGhi == model.IdDauGhi && x.NgayXoa == null);
+                    // Chỉ sửa được đầu ghi thuộc công ty của trang đang mở (id lấy từ client)
+                    var db = await (await LocDauGhiCongTyAsync(_context.KkDauGhis, cty))
+                        .FirstOrDefaultAsync(x => x.IdDauGhi == model.IdDauGhi && x.NgayXoa == null);
                     if (db == null)
                         return Json(new { thanhCong = false, thongBao = "Không tìm thấy đầu ghi cần cập nhật." });
 
@@ -768,13 +795,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         [HttpPost("/QLCamera/DauGhi/Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DauGhiDelete(int id, string? lyDo)
+        public async Task<IActionResult> DauGhiDelete(int id, string? lyDo, string? congTy)
         {
             if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
 
             try
             {
-                var item = await _context.KkDauGhis.FirstOrDefaultAsync(x => x.IdDauGhi == id && x.NgayXoa == null);
+                // Chỉ xoá được đầu ghi thuộc công ty của trang đang mở (id lấy từ client)
+                var item = await (await LocDauGhiCongTyAsync(_context.KkDauGhis, CongTyHopLe(congTy)))
+                    .FirstOrDefaultAsync(x => x.IdDauGhi == id && x.NgayXoa == null);
                 if (item == null)
                     return Json(new { thanhCong = false, thongBao = "Không tìm thấy đầu ghi cần xoá." });
 
@@ -789,6 +818,19 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         #endregion
+
+        /// <summary>
+        /// Đầu ghi chi nhánh của một công ty (cột IDCongTy). BPVN gồm cả dòng chưa gán (NULL) — dữ liệu
+        /// trước khi tách công ty và dòng thêm tay ngoài web.
+        /// </summary>
+        private async Task<IQueryable<KkDauGhi>> LocDauGhiCongTyAsync(IQueryable<KkDauGhi> query, string congTy)
+        {
+            var idCongTy = await _context.KkCongTies.Where(x => x.TenCongTy == congTy)
+                .Select(x => (int?)x.IdcongTy).FirstOrDefaultAsync();
+            return congTy == "BPVN"
+                ? query.Where(x => x.IdcongTy == null || x.IdcongTy == idCongTy)
+                : query.Where(x => x.IdcongTy != null && x.IdcongTy == idCongTy);
+        }
 
         #region API danh sách
 

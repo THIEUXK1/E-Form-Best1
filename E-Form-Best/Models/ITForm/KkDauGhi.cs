@@ -50,6 +50,10 @@ public partial class KkDauGhi
     [Column("ghi_chu")]
     public string? GhiChu { get; set; }
 
+    /// <summary>Công ty sở hữu đầu ghi (KK_CongTy). NULL = BPVN (dòng cũ trước khi tách công ty).</summary>
+    [Column("IDCongTy")]
+    public int? IdcongTy { get; set; }
+
     [Column("nguoi_tao")]
     [StringLength(255)]
     public string? NguoiTao { get; set; }

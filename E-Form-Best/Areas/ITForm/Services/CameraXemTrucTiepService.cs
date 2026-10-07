@@ -65,6 +65,10 @@ namespace E_Form_Best.Areas.ITForm.Services
         /// </summary>
         public async Task<byte[]?> LayAnhChupAsync(string nvrIp, int kenh, CancellationToken ct)
         {
+            // Máy chủ không thông ISAPI đầu ghi (10.0.60.39) -> lấy ảnh qua go2rtc ở máy thông mạng (10.0.60.238)
+            if (_configuration.GetValue<bool?>("CameraNvr:AnhQuaGo2rtc") ?? false)
+                return await LayAnhQuaGo2rtcAsync(nvrIp, kenh, ct);
+
             var client = _httpClientFactory.CreateClient(TenClientNvr);
 
             foreach (var goc in await DsDiaChiNvrAsync(nvrIp, ct))
@@ -193,7 +197,203 @@ namespace E_Form_Best.Areas.ITForm.Services
             return (url.TrimEnd('/'), tk, mk);
         }
 
-        public bool CoXemTrucTiepCongTy(string congTy) => Go2rtcCongTy(congTy) != null;
+        /// <summary>Có xem trực tiếp (ít nhất ảnh 1 giây/lần): qua go2rtc bên công ty hoặc gọi thẳng đầu ghi.</summary>
+        public bool CoXemTrucTiepCongTy(string congTy) => Go2rtcCongTy(congTy) != null || CoDauGhiTrucTiepCongTy(_configuration, congTy);
+
+        /// <summary>Có video: chỉ khi có go2rtc (gọi thẳng đầu ghi qua ISAPI chỉ lấy được ảnh).</summary>
+        public bool CoVideoCongTy(string congTy) => Go2rtcCongTy(congTy) != null;
+
+        /// <summary>
+        /// Đầu ghi công ty mà máy chủ E-Form gọi THẲNG được (MEGA: IP public, ISAPI qua https:443), khai trong .env
+        /// Camera{CÔNG TY}__DauGhi__N=gốc|tài khoản|mật khẩu. Có thì E-Form tự đọc trạng thái, chụp ảnh lưu và ảnh trực
+        /// tiếp, không cần máy trung gian như PFVN. Khoá = IP trong gốc (cũng là "nvr" trong file trạng thái/ảnh).
+        /// </summary>
+        private static Dictionary<string, (string goc, string taiKhoan, string matKhau)> DauGhiTrucTiepCongTy(IConfiguration cfg, string congTy)
+        {
+            var kq = new Dictionary<string, (string, string, string)>(StringComparer.OrdinalIgnoreCase);
+            var ten = DsCongTyAnhLuu.FirstOrDefault(x => x.Equals(congTy, StringComparison.OrdinalIgnoreCase));
+            if (ten == null) return kq;
+
+            foreach (var muc in cfg.GetSection($"Camera{ten}:DauGhi").GetChildren())
+            {
+                var p = (muc.Value ?? "").Split('|');
+                // Chỉ nhận IPv4: IP là khoá tên file ảnh "{ip}_{kênh}.jpg"
+                if (p.Length < 3 || !Uri.TryCreate(p[0].Trim().TrimEnd('/'), UriKind.Absolute, out var goc)
+                    || goc.Scheme is not ("http" or "https") || goc.HostNameType != UriHostNameType.IPv4) continue;
+                kq[goc.Host] = (goc.GetLeftPart(UriPartial.Authority), p[1].Trim(), string.Join('|', p[2..]));
+            }
+            return kq;
+        }
+
+        public static bool CoDauGhiTrucTiepCongTy(IConfiguration cfg, string congTy) => DauGhiTrucTiepCongTy(cfg, congTy).Count > 0;
+
+        // Mỗi đầu ghi một HttpClient riêng mang Digest của nó (tài khoản khác nhau theo đầu ghi, không dùng chung
+        // client "CameraNvr" của BPVN). Chứng thư tự ký -> bỏ kiểm, chỉ trong client này.
+        private static readonly ConcurrentDictionary<string, HttpClient> _clientDauGhi = new();
+
+        private static HttpClient ClientDauGhi((string goc, string taiKhoan, string matKhau) dg)
+            => _clientDauGhi.GetOrAdd(dg.goc + "|" + dg.taiKhoan + "|" + dg.matKhau, _ => new HttpClient(new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+                Credentials = new System.Net.NetworkCredential(dg.taiKhoan, dg.matKhau)
+            }) { Timeout = TimeSpan.FromSeconds(10) });
+
+        /// <summary>1 ảnh JPEG luồng phụ qua ISAPI; null nếu đầu ghi không trả ảnh (camera mất kết nối...).</summary>
+        private static async Task<byte[]?> ChupIsapiAsync((string goc, string taiKhoan, string matKhau) dg, int kenh, CancellationToken ct)
+        {
+            var client = ClientDauGhi(dg);
+            foreach (var duongDan in new[]
+            {
+                $"/ISAPI/Streaming/channels/{kenh}02/picture",
+                $"/ISAPI/ContentMgmt/StreamingProxy/channels/{kenh}02/picture"
+            })
+            {
+                using var traLoi = await client.GetAsync(dg.goc + duongDan, ct);
+                if (!traLoi.IsSuccessStatusCode) continue;
+                var anh = await traLoi.Content.ReadAsByteArrayAsync(ct);
+                // Có firmware trả 200 kèm XML báo lỗi: chỉ nhận đúng JPEG (FF D8)
+                if (anh.Length > 2 && anh[0] == 0xFF && anh[1] == 0xD8) return anh;
+            }
+            return null;
+        }
+
+        private static string? Con(System.Xml.Linq.XElement e, string ten)
+            => e.Elements().FirstOrDefault(x => x.Name.LocalName == ten)?.Value;
+
+        /// <summary>Kênh + online của một đầu ghi gọi thẳng (InputProxy/channels + /status), tuỳ chọn kèm tên đầu ghi.</summary>
+        private static async Task<List<KenhCongTy>> DocKenhIsapiAsync(string ip, (string goc, string taiKhoan, string matKhau) dg,
+            bool layTenDauGhi, CancellationToken ct)
+        {
+            var client = ClientDauGhi(dg);
+            async Task<System.Xml.Linq.XDocument> Doc(string duongDan)
+            {
+                using var traLoi = await client.GetAsync(dg.goc + duongDan, ct);
+                traLoi.EnsureSuccessStatusCode();
+                return System.Xml.Linq.XDocument.Parse(await traLoi.Content.ReadAsStringAsync(ct));
+            }
+
+            var online = new Dictionary<string, bool>();
+            foreach (var e in (await Doc("/ISAPI/ContentMgmt/InputProxy/channels/status")).Descendants()
+                         .Where(x => x.Name.LocalName == "InputProxyChannelStatus"))
+                online[Con(e, "id") ?? ""] = Con(e, "online") == "true";
+
+            var dsKenh = await Doc("/ISAPI/ContentMgmt/InputProxy/channels");
+
+            string? tenDauGhi = null;
+            if (layTenDauGhi)
+            {
+                try { tenDauGhi = Con((await Doc("/ISAPI/System/deviceInfo")).Root!, "deviceName"); }
+                catch (HttpRequestException) { /* thiếu tên đầu ghi thì hiện theo công ty + IP */ }
+            }
+
+            return dsKenh.Descendants().Where(x => x.Name.LocalName == "InputProxyChannel")
+                .Select(e => new KenhCongTy
+                {
+                    Nvr = ip,
+                    TenDauGhi = tenDauGhi,
+                    Kenh = int.TryParse(Con(e, "id"), out var so) ? so : 0,
+                    Ten = Con(e, "name"),
+                    IpCamera = e.Descendants().FirstOrDefault(x => x.Name.LocalName == "ipAddress")?.Value,
+                    Online = online.TryGetValue(Con(e, "id") ?? "", out var on) && on
+                })
+                .Where(k => k.Kenh > 0)
+                .ToList();
+        }
+
+        private static readonly JsonSerializerOptions _jsonCamel = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+        // Ghi ra file tạm rồi đổi tên đè: trang đang đọc không bao giờ gặp file ghi dở
+        private static async Task GhiFileAsync(string dich, byte[] noiDung, CancellationToken ct)
+        {
+            var tam = dich + ".tmp";
+            await File.WriteAllBytesAsync(tam, noiDung, ct);
+            File.Move(tam, dich, true);
+        }
+
+        /// <summary>
+        /// Đầu ghi gọi thẳng được: đọc trạng thái kênh rồi ghi "_trang-thai.json" đúng định dạng script PFVN
+        /// (tools/trang-thai-camera-pfvn.ps1) để phần đọc/lịch sử dùng chung. Không cấu hình thì trả false.
+        /// </summary>
+        public async Task<bool> CapNhatTrangThaiTrucTiepAsync(string congTy, CancellationToken ct)
+        {
+            var dsDauGhi = DauGhiTrucTiepCongTy(_configuration, congTy);
+            var thuMuc = ThuMucAnhLuuCongTy(congTy);
+            if (dsDauGhi.Count == 0 || thuMuc == null) return false;
+
+            var kenh = new List<object>();
+            var dauGhi = new List<object>();
+            foreach (var (ip, dg) in dsDauGhi)
+            {
+                try
+                {
+                    kenh.AddRange((await DocKenhIsapiAsync(ip, dg, false, ct))
+                        .Select(k => new { nvr = ip, kenh = k.Kenh, ten = k.Ten, ipCamera = k.IpCamera, online = k.Online }));
+                    dauGhi.Add(new { nvr = ip, goc = dg.goc, loi = (string?)null });
+                }
+                catch (Exception ex) when (ex is HttpRequestException or System.Xml.XmlException
+                                           || (ex is TaskCanceledException && !ct.IsCancellationRequested))
+                {
+                    // Đầu ghi không trả lời: ghi lỗi, phần đọc tự coi các kênh của nó là mất kết nối
+                    dauGhi.Add(new { nvr = ip, goc = dg.goc, loi = ex.Message });
+                }
+            }
+
+            Directory.CreateDirectory(thuMuc);
+            await GhiFileAsync(Path.Combine(thuMuc, "_trang-thai.json"), JsonSerializer.SerializeToUtf8Bytes(
+                new { capNhat = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"), dauGhi, kenh }, _jsonCamel), ct);
+            return true;
+        }
+
+        /// <summary>
+        /// Một lượt chụp ảnh lưu cho đầu ghi gọi thẳng được: "{ip}_{kênh}.jpg" + "_kenh.json" (như script PFVN).
+        /// Kênh không chụp được thì giữ ảnh cũ — đầu ghi MEGA không mở RTSP ra ngoài nên không lấy được playback.
+        /// </summary>
+        public async Task<(int tong, int duoc)> ChupAnhLuuTrucTiepAsync(string congTy, CancellationToken ct)
+        {
+            var dsDauGhi = DauGhiTrucTiepCongTy(_configuration, congTy);
+            var thuMuc = ThuMucAnhLuuCongTy(congTy);
+            if (dsDauGhi.Count == 0 || thuMuc == null) return (0, 0);
+            Directory.CreateDirectory(thuMuc);
+
+            var tatCa = new List<KenhCongTy>();
+            var duoc = 0;
+            foreach (var (ip, dg) in dsDauGhi)
+            {
+                List<KenhCongTy> ds;
+                try { ds = await DocKenhIsapiAsync(ip, dg, true, ct); }
+                catch (Exception ex) when (ex is HttpRequestException or System.Xml.XmlException
+                                           || (ex is TaskCanceledException && !ct.IsCancellationRequested))
+                {
+                    Console.WriteLine($"[CameraAnhLuu {congTy}] Đầu ghi {ip} không trả lời: {ex.Message}");
+                    continue;
+                }
+
+                // 3 ảnh song song: đường internet công cộng, không dồn ép đầu ghi
+                await Parallel.ForEachAsync(ds, new ParallelOptions { MaxDegreeOfParallelism = 3, CancellationToken = ct },
+                    async (k, token) =>
+                    {
+                        byte[]? anh = null;
+                        try { anh = await ChupIsapiAsync(dg, k.Kenh, token); }
+                        catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !ct.IsCancellationRequested)) { }
+
+                        if (anh == null) { k.KetQua = "KHONG"; return; }
+                        await GhiFileAsync(Path.Combine(thuMuc, $"{ip}_{k.Kenh}.jpg"), anh, token);
+                        k.KetQua = "OK";
+                        Interlocked.Increment(ref duoc);
+                    });
+                tatCa.AddRange(ds);
+            }
+
+            if (tatCa.Count > 0)
+            {
+                await GhiFileAsync(Path.Combine(thuMuc, "_kenh.json"), JsonSerializer.SerializeToUtf8Bytes(new
+                {
+                    capNhat = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    kenh = tatCa.Select(k => new { nvr = k.Nvr, tenDauGhi = k.TenDauGhi, kenh = k.Kenh, ten = k.Ten, ipCamera = k.IpCamera, online = k.Online, ketQua = k.KetQua })
+                }, _jsonCamel), ct);
+            }
+            return (tatCa.Count, duoc);
+        }
 
         private HttpRequestMessage YeuCauGo2rtcCongTy(string congTy, string duongDan)
         {
@@ -210,6 +410,10 @@ namespace E_Form_Best.Areas.ITForm.Services
         /// <summary>1 ảnh JPEG trực tiếp của kênh PFVN/MEGA qua go2rtc bên công ty đó (go2rtc giải mã 1 khung hình).</summary>
         public async Task<byte[]?> LayAnhChupCongTyAsync(string congTy, string nvrIp, int kenh, CancellationToken ct)
         {
+            // Đầu ghi gọi thẳng được (MEGA) -> ISAPI, không qua go2rtc
+            if (DauGhiTrucTiepCongTy(_configuration, congTy).TryGetValue(nvrIp, out var dg))
+                return await ChupIsapiAsync(dg, kenh, ct);
+
             // Client go2rtc không giới hạn thời gian (dùng chung cho video) -> tự đặt 20 giây cho ảnh
             using var hetGio = CancellationTokenSource.CreateLinkedTokenSource(ct);
             hetGio.CancelAfter(TimeSpan.FromSeconds(20));
@@ -247,8 +451,40 @@ namespace E_Form_Best.Areas.ITForm.Services
         public async Task<(DateTime? capNhat, List<KenhCongTy> kenh)> DanhSachKenhCongTyAsync(string congTy, CancellationToken ct)
         {
             var thuMuc = ThuMucAnhLuuCongTy(congTy);
-            var file = thuMuc == null ? null : Path.Combine(thuMuc, "_kenh.json");
-            if (file == null || !File.Exists(file)) return (null, new List<KenhCongTy>());
+            if (thuMuc == null) return (null, new List<KenhCongTy>());
+            var (capNhat, ds) = await DanhSachKenhLuotChupAsync(thuMuc, ct);
+
+            // Trạng thái 5 phút/lần (_trang-thai.json) mới hơn lượt chụp ảnh thì lấy trạng thái đó; kênh mới thêm
+            // trên đầu ghi (chưa có trong lượt chụp) vẫn hiện, chỉ là chưa có ảnh
+            var (gioTrangThai, dsTrangThai) = await TrangThaiCongTyAsync(congTy, ct);
+            if (gioTrangThai != null && (capNhat == null || gioTrangThai > capNhat))
+            {
+                var theoKhoa = ds.ToDictionary(x => (x.Nvr, x.Kenh));
+                foreach (var t in dsTrangThai)
+                {
+                    if (theoKhoa.TryGetValue((t.Nvr, t.Kenh), out var k))
+                    {
+                        k.Online = t.Online;
+                        if (!string.IsNullOrWhiteSpace(t.Ten)) k.Ten = t.Ten;
+                    }
+                    else ds.Add(t);
+                }
+                capNhat = gioTrangThai;
+            }
+
+            foreach (var k in ds)
+            {
+                var anh = Path.Combine(thuMuc!, $"{k.Nvr}_{k.Kenh}.jpg");
+                k.AnhLuc = System.Net.IPAddress.TryParse(k.Nvr, out _) && File.Exists(anh) ? File.GetLastWriteTime(anh) : null;
+            }
+            return (capNhat, ds.OrderBy(x => x.Nvr).ThenBy(x => x.Kenh).ToList());
+        }
+
+        /// <summary>Danh sách kênh theo lượt chụp ảnh gần nhất ("_kenh.json" do script chụp ảnh ghi).</summary>
+        private static async Task<(DateTime? capNhat, List<KenhCongTy> kenh)> DanhSachKenhLuotChupAsync(string thuMuc, CancellationToken ct)
+        {
+            var file = Path.Combine(thuMuc, "_kenh.json");
+            if (!File.Exists(file)) return (null, new List<KenhCongTy>());
 
             await using var luong = File.OpenRead(file);
             using var doc = await JsonDocument.ParseAsync(luong, cancellationToken: ct);
@@ -258,14 +494,76 @@ namespace E_Form_Best.Areas.ITForm.Services
             var ds = goc.TryGetProperty("kenh", out var dsKenh) && dsKenh.ValueKind == JsonValueKind.Array
                 ? dsKenh.Deserialize<List<KenhCongTy>>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new()
                 : new List<KenhCongTy>();
-
-            foreach (var k in ds)
-            {
-                var anh = Path.Combine(thuMuc!, $"{k.Nvr}_{k.Kenh}.jpg");
-                k.AnhLuc = System.Net.IPAddress.TryParse(k.Nvr, out _) && File.Exists(anh) ? File.GetLastWriteTime(anh) : null;
-            }
-            return (capNhat, ds.OrderBy(x => x.Nvr).ThenBy(x => x.Kenh).ToList());
+            return (capNhat, ds);
         }
+
+        /// <summary>
+        /// Trạng thái online/offline mới nhất của PFVN/MEGA ("_trang-thai.json", máy dev đẩy lên 5 phút/lần).
+        /// Kênh của đầu ghi không trả lời lượt đó coi là mất kết nối. Chưa có file thì trả (null, rỗng).
+        /// </summary>
+        public async Task<(DateTime? capNhat, List<KenhCongTy> kenh)> TrangThaiCongTyAsync(string congTy, CancellationToken ct)
+        {
+            var thuMuc = ThuMucAnhLuuCongTy(congTy);
+            var file = thuMuc == null ? null : Path.Combine(thuMuc, "_trang-thai.json");
+            if (file == null || !File.Exists(file)) return (null, new List<KenhCongTy>());
+
+            await using var luong = File.OpenRead(file);
+            using var doc = await JsonDocument.ParseAsync(luong, cancellationToken: ct);
+            var goc = doc.RootElement;
+            var tuyChon = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            DateTime? capNhat = goc.TryGetProperty("capNhat", out var cn) && DateTime.TryParse(cn.GetString(), out var gio) ? gio : null;
+            var ds = goc.TryGetProperty("kenh", out var dsKenh) && dsKenh.ValueKind == JsonValueKind.Array
+                ? dsKenh.Deserialize<List<KenhCongTy>>(tuyChon) ?? new()
+                : new List<KenhCongTy>();
+
+            // Đầu ghi lỗi lượt này: script không liệt kê được kênh của nó -> lấy kênh từ lượt chụp ảnh, đánh mất kết nối
+            if (goc.TryGetProperty("dauGhi", out var dsDauGhi) && dsDauGhi.ValueKind == JsonValueKind.Array)
+            {
+                var loi = dsDauGhi.EnumerateArray()
+                    .Where(d => d.TryGetProperty("loi", out var l) && l.ValueKind == JsonValueKind.String)
+                    .Select(d => d.GetProperty("nvr").GetString())
+                    .ToHashSet();
+                if (loi.Count > 0)
+                {
+                    var (_, theoAnh) = await DanhSachKenhLuotChupAsync(thuMuc!, ct);
+                    ds.AddRange(theoAnh.Where(x => loi.Contains(x.Nvr)).Select(x => { x.Online = false; return x; }));
+                }
+            }
+            return (capNhat, ds);
+        }
+
+        /// <summary>
+        /// IP đầu ghi -> địa chỉ gốc web ("https://10.0.200.251", "http://10.0.200.252:8005") của PFVN/MEGA, lấy từ
+        /// "_trang-thai.json" (script bên đó đọc từ .env, không có mật khẩu). Chỉ nhận đúng dạng http(s)://IPv4[:cổng].
+        /// </summary>
+        public async Task<Dictionary<string, string>> DiaChiDauGhiCongTyAsync(string congTy, CancellationToken ct)
+        {
+            var kq = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var thuMuc = ThuMucAnhLuuCongTy(congTy);
+            var file = thuMuc == null ? null : Path.Combine(thuMuc, "_trang-thai.json");
+            if (file == null || !File.Exists(file)) return kq;
+
+            await using var luong = File.OpenRead(file);
+            using var doc = await JsonDocument.ParseAsync(luong, cancellationToken: ct);
+            if (!doc.RootElement.TryGetProperty("dauGhi", out var ds) || ds.ValueKind != JsonValueKind.Array) return kq;
+
+            foreach (var d in ds.EnumerateArray())
+            {
+                var ip = d.TryGetProperty("nvr", out var n) ? n.GetString() : null;
+                var goc = d.TryGetProperty("goc", out var g) ? g.GetString()?.TrimEnd('/') : null;
+                if (ip != null && goc != null
+                    && System.Text.RegularExpressions.Regex.IsMatch(goc, @"^https?://\d{1,3}(\.\d{1,3}){3}(:\d{1,5})?$"))
+                    kq[ip] = goc;
+            }
+            return kq;
+        }
+
+        /// <summary>Tên đầu ghi hiển thị: tên mặc định ("Network Video Recorder", "DeepinMind") thì đặt theo công ty + đuôi IP.</summary>
+        public static string TenDauGhiCongTy(string congTy, string ip, string? ten)
+            => string.IsNullOrWhiteSpace(ten) || ten is "Network Video Recorder" or "DeepinMind"
+                ? $"{congTy} .{ip.Split('.').Last()}"
+                : ten;
 
         /// <summary>
         /// Các kênh đã có ảnh lưu sẵn, khoá "nvrIp|kênh" — để danh sách đánh dấu camera chưa lấy được ảnh nào
@@ -446,7 +744,7 @@ namespace E_Form_Best.Areas.ITForm.Services
                         .FirstOrDefault(p => string.Equals(p.Element(ns + "protocol")?.Value, "RTSP", StringComparison.OrdinalIgnoreCase));
                     if (int.TryParse(rtsp?.Element(ns + "portNo")?.Value, out var so) && so > 0) cong = so;
                     _cache.Set(khoa, cong, TimeSpan.FromHours(1));
-                    break;
+                    return cong;
                 }
                 catch (Exception ex) when (ex is HttpRequestException || ex is System.Xml.XmlException
                     || (ex is TaskCanceledException && !ct.IsCancellationRequested))
@@ -454,6 +752,8 @@ namespace E_Form_Best.Areas.ITForm.Services
                     // cổng này không trả lời -> thử cổng kế tiếp
                 }
             }
+            // Không hỏi được (máy chủ không thông ISAPI đầu ghi): nhớ cổng mặc định 10 phút, khỏi lần nào cũng chờ hết giờ
+            _cache.Set(khoa, cong, TimeSpan.FromMinutes(10));
             return cong;
         }
 
@@ -514,7 +814,7 @@ namespace E_Form_Best.Areas.ITForm.Services
 
                 // video=h264: trình duyệt nào cũng giải mã được. Camera vốn H.264 thì go2rtc lấy thẳng nguồn RTSP,
                 // camera H.265 thì go2rtc tự rơi xuống nguồn ffmpeg chuyển mã (xem KhaiLuongAsync)
-                var yeuCau = new HttpRequestMessage(HttpMethod.Get, $"{go2rtc}/api/stream.mp4?src={Uri.EscapeDataString(ten)}&video=h264");
+                using var yeuCau = YeuCauGo2rtc(HttpMethod.Get, $"{go2rtc}/api/stream.mp4?src={Uri.EscapeDataString(ten)}&video=h264");
                 var traLoi = await client.SendAsync(yeuCau, HttpCompletionOption.ResponseHeadersRead, ct);
                 if (traLoi.IsSuccessStatusCode) return traLoi;
 
@@ -525,21 +825,68 @@ namespace E_Form_Best.Areas.ITForm.Services
             return null;
         }
 
+        /// <summary>
+        /// Ảnh trực tiếp qua go2rtc (go2rtc giải mã 1 khung hình) — dùng khi máy chủ E-Form không gọi thẳng được
+        /// ISAPI đầu ghi nhưng go2rtc (10.0.60.238) thì được: bật bằng CameraNvr__AnhQuaGo2rtc=true.
+        /// </summary>
+        private async Task<byte[]?> LayAnhQuaGo2rtcAsync(string nvrIp, int kenh, CancellationToken ct)
+        {
+            var go2rtc = DiaChiGo2rtc();
+            var client = _httpClientFactory.CreateClient(TenClientGo2rtc);
+            var ten = $"nvr_{nvrIp.Replace('.', '_')}_{kenh}";
+            // Client go2rtc không giới hạn thời gian (dùng chung cho video) -> tự đặt 20 giây cho ảnh
+            using var hetGio = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            hetGio.CancelAfter(TimeSpan.FromSeconds(20));
+
+            for (var lan = 0; lan < 2; lan++)
+            {
+                if (lan > 0 || !_daKhai.ContainsKey(ten))
+                {
+                    await KhaiLuongAsync(client, go2rtc, ten, nvrIp, kenh, hetGio.Token);
+                }
+
+                using var yeuCau = YeuCauGo2rtc(HttpMethod.Get, $"{go2rtc}/api/frame.jpeg?src={Uri.EscapeDataString(ten)}");
+                using var traLoi = await client.SendAsync(yeuCau, hetGio.Token);
+                if (traLoi.IsSuccessStatusCode) return await traLoi.Content.ReadAsByteArrayAsync(hetGio.Token);
+                _daKhai.TryRemove(ten, out _);
+            }
+            return null;
+        }
+
         private async Task KhaiLuongAsync(HttpClient client, string go2rtc, string ten, string nvrIp, int kenh, CancellationToken ct)
         {
             var (taiKhoan, matKhau) = TaiKhoanNvr();
-            var cong = _configuration.GetValue<int?>("CameraNvr:RtspPort") ?? 554;
+            // Cổng RTSP theo từng đầu ghi (10.0.28.254 dùng 8002), không phải lúc nào cũng 554
+            var cong = await CongRtspAsync(nvrIp, ct);
             var rtsp = $"rtsp://{Uri.EscapeDataString(taiKhoan)}:{Uri.EscapeDataString(matKhau)}@{nvrIp}:{cong}/Streaming/Channels/{kenh}02";
 
             // Hai nguồn: RTSP gốc + bản ffmpeg chuyển H.264. Luồng phụ nhiều camera BPVN là H.265, Chrome/Edge
             // không có giải mã phần cứng thì không phát được. go2rtc chỉ bật ffmpeg khi nguồn gốc không phải H.264.
             var ffmpeg = $"ffmpeg:{ten}#video=h264";
-            using var traLoi = await client.PutAsync(
-                $"{go2rtc}/api/streams?name={Uri.EscapeDataString(ten)}&src={Uri.EscapeDataString(rtsp)}&src={Uri.EscapeDataString(ffmpeg)}", null, ct);
+            using var yeuCau = YeuCauGo2rtc(HttpMethod.Put,
+                $"{go2rtc}/api/streams?name={Uri.EscapeDataString(ten)}&src={Uri.EscapeDataString(rtsp)}&src={Uri.EscapeDataString(ffmpeg)}");
+            using var traLoi = await client.SendAsync(yeuCau, ct);
             if (!traLoi.IsSuccessStatusCode)
                 throw new InvalidOperationException($"go2rtc từ chối khai luồng (HTTP {(int)traLoi.StatusCode}).");
 
             _daKhai[ten] = true;
+        }
+
+        /// <summary>
+        /// Request tới go2rtc của BPVN; go2rtc đặt ở máy khác (10.0.60.238) thì có tài khoản API
+        /// (CameraNvr__Go2rtcTaiKhoan / __Go2rtcMatKhau). go2rtc cùng máy (127.0.0.1) thì để trống.
+        /// </summary>
+        private HttpRequestMessage YeuCauGo2rtc(HttpMethod phuongThuc, string url)
+        {
+            var yeuCau = new HttpRequestMessage(phuongThuc, url);
+            var tk = _configuration["CameraNvr:Go2rtcTaiKhoan"];
+            var mk = _configuration["CameraNvr:Go2rtcMatKhau"];
+            if (!string.IsNullOrWhiteSpace(tk) && !string.IsNullOrWhiteSpace(mk))
+            {
+                yeuCau.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic",
+                    Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(tk + ":" + mk)));
+            }
+            return yeuCau;
         }
 
         private string DiaChiGo2rtc()

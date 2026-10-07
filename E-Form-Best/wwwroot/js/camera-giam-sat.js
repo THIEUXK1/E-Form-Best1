@@ -238,7 +238,7 @@
     // Chỉ dựng link khi đúng dạng IPv4 để dữ liệu lạ từ API không chèn được href tuỳ ý.
     function oIpCamera(ip) {
         var s = escapeHtml(ip);
-        if (!laBpvn || !/^\d{1,3}(\.\d{1,3}){3}$/.test(ip || '')) return '<td class="small font-monospace" title="' + s + '">' + s + '</td>';
+        if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip || '')) return '<td class="small font-monospace" title="' + s + '">' + s + '</td>';
         return '<td class="small font-monospace"><a class="cam-ip-link" href="http://' + s + '/" target="_blank" rel="noopener"'
             + ' title="Mở trang cài đặt camera ' + s + ' ở tab mới">' + s + ' <i class="fas fa-up-right-from-square"></i></a></td>';
     }
@@ -254,8 +254,7 @@
     // Link mở trang web đầu ghi ở tab mới; chỉ dựng khi đúng dạng IPv4
     function linkDauGhi(ip, chu) {
         var s = escapeHtml(chu);
-        // Đầu ghi PFVN/MEGA không mở được từ mạng BPVN -> chỉ hiện chữ
-        if (!laBpvn || !/^\d{1,3}(\.\d{1,3}){3}$/.test(ip || '')) return s;
+        if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip || '')) return s;
         var goc = dsDiaChiDauGhi[ip];
         var url = /^https?:\/\/[\d.]+(:\d+)?$/.test(goc || '') ? goc + '/' : 'http://' + ip + '/';
         return '<a class="cam-ip-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener"'
