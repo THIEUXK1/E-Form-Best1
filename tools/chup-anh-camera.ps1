@@ -1,4 +1,4 @@
-# Chụp ảnh tất cả camera rồi đẩy lên 2 máy chủ E-Form.
+﻿# Chụp ảnh tất cả camera rồi đẩy lên 2 máy chủ E-Form.
 #
 # Vì sao có script này: máy chủ E-Form (10.0.60.39 / 10.0.60.52) không thông mạng tới dải đầu ghi
 # (10.0.21.x, 10.0.28.x... cổng 80/554 bị chặn), nên trang /QLCamera không tự lấy ảnh trực tiếp được.
@@ -116,17 +116,164 @@ $viec = foreach ($c in $dsCamera) {
     if ($dsGoc -notcontains "http://$($c.Nvr):80") { $dsGoc += "http://$($c.Nvr):80" }
     $ps = [PowerShell]::Create().AddScript($chup).AddArgument($c.Nvr).AddArgument($c.Kenh).AddArgument($taiKhoan).AddArgument($matKhau).AddArgument($thuMucAnh).AddArgument($TimeoutMs).AddArgument($dsGoc)
     $ps.RunspacePool = $pool
-    [pscustomobject]@{ Ps = $ps; Kq = $ps.BeginInvoke() }
+    [pscustomobject]@{ Ps = $ps; Kq = $ps.BeginInvoke(); Cam = $c }
 }
 $ok = 0; $loi = New-Object System.Collections.Generic.List[string]
+$dsLoi = New-Object System.Collections.Generic.List[object]
 foreach ($v in $viec) {
     $kq = [string]($v.Ps.EndInvoke($v.Kq) | Select-Object -Last 1)
     $v.Ps.Dispose()
-    if ($kq -eq 'OK') { $ok++ } else { $loi.Add($kq) }
+    if ($kq -eq 'OK') { $ok++ } else { $loi.Add($kq); $dsLoi.Add($v.Cam) }
 }
 $pool.Close()
 GhiLog ("Chup xong: OK=$ok LOI=" + $loi.Count)
 $loi | Select-Object -First 10 | ForEach-Object { GhiLog ("  " + $_) }
+
+# ---- Kênh chụp trực tiếp không được (camera mất kết nối, đầu ghi trả 403...): lấy khung hình cuối từ playback ----
+# Hỏi đầu ghi đoạn ghi cuối của kênh (ISAPI ContentMgmt/search), rồi ffmpeg đọc 10 giây cuối đoạn đó lấy 1 khung hình.
+# Giờ file đặt đúng giờ khung hình (scp -p giữ nguyên) để trang /QLCamera ghi "Ảnh lưu lúc ..." đúng thời điểm.
+# Ảnh lưu đã mới bằng/hơn đoạn ghi cuối thì bỏ qua, nên camera rớt lâu chỉ tốn ffmpeg ở lượt đầu.
+$ffmpeg = $cauHinh['CameraNvr__FfmpegPath']
+if (-not $ffmpeg) { $ffmpeg = 'C:\go2rtc\ffmpeg.exe' }
+$congRtsp = if ($cauHinh['CameraNvr__RtspPort']) { [int]$cauHinh['CameraNvr__RtspPort'] } else { 554 }
+
+$chupPlayback = {
+    param($nvr, $kenh, $tk, $mk, $thuMuc, $dsGoc, $ffmpeg, $congRtsp)
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]'Tls,Tls11,Tls12'
+    [Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+
+    # Một trang kết quả tìm kiếm; giờ đầu ghi có đuôi Z nhưng thực chất là giờ VN -> giữ nguyên, không đổi múi giờ
+    function TimKiem($goc, $tu, $den, $viTri) {
+        $xml = '<?xml version="1.0" encoding="UTF-8"?><CMSearchDescription>' +
+            "<searchID>$([guid]::NewGuid())</searchID><trackList><trackID>${kenh}01</trackID></trackList>" +
+            "<timeSpanList><timeSpan><startTime>$($tu.ToString('yyyy-MM-ddTHH:mm:ss'))Z</startTime><endTime>$($den.ToString('yyyy-MM-ddTHH:mm:ss'))Z</endTime></timeSpan></timeSpanList>" +
+            "<maxResults>50</maxResults><searchResultPostion>$viTri</searchResultPostion>" +
+            '<metadataList><metadataDescriptor>//recordType.meta.std-cgi.com</metadataDescriptor></metadataList></CMSearchDescription>'
+        $req = [Net.HttpWebRequest]::Create("$goc/ISAPI/ContentMgmt/search")
+        $req.Method = 'POST'; $req.ContentType = 'application/xml'; $req.Timeout = 15000
+        $req.Credentials = New-Object Net.NetworkCredential($tk, $mk)
+        $b = [Text.Encoding]::UTF8.GetBytes($xml)
+        $s = $req.GetRequestStream(); $s.Write($b, 0, $b.Length); $s.Close()
+        $res = $req.GetResponse()
+        try { $doc = New-Object Xml.XmlDocument; $doc.Load($res.GetResponseStream()); return $doc } finally { $res.Close() }
+    }
+
+    # Dò lùi từng khoảng (1, 7, 30, 90, 365 ngày): camera mới rớt chỉ tốn 1-2 lượt gọi
+    $cuoi = $null; $gocDung = $null
+    $bayGio = Get-Date
+    $moc = 0, 1, 7, 30, 90, 365
+    # Đầu ghi 10.0.21.251 hay trả 403 khi đang bị gọi dồn (lượt chụp vừa xong, ffmpeg khác đang kéo) -> thử lại 3 lần
+    for ($lan = 0; $lan -lt 3 -and -not $gocDung; $lan++) {
+        if ($lan -gt 0) { Start-Sleep -Seconds 3 }
+        $cuoi = $null
+        foreach ($goc in $dsGoc) {
+            try {
+                for ($i = 1; $i -lt $moc.Count -and -not $cuoi; $i++) {
+                    $viTri = 0
+                    for ($trang = 0; $trang -lt 20; $trang++) {
+                        $doc = TimKiem $goc ($bayGio.AddDays(-$moc[$i])) ($bayGio.AddDays(-$moc[$i - 1])) $viTri
+                        foreach ($m in $doc.GetElementsByTagName('searchMatchItem')) {
+                            $bd = [datetime]::ParseExact($m.timeSpan.startTime.TrimEnd('Z'), 'yyyy-MM-ddTHH:mm:ss', $null)
+                            $kt = [datetime]::ParseExact($m.timeSpan.endTime.TrimEnd('Z'), 'yyyy-MM-ddTHH:mm:ss', $null)
+                            if (-not $cuoi -or $kt -gt $cuoi.KetThuc) { $cuoi = @{ BatDau = $bd; KetThuc = $kt } }
+                        }
+                        $goc0 = $doc.DocumentElement
+                        if ($goc0.responseStatusStrg -ne 'MORE') { break }
+                        $soTrang = [int]$goc0.numOfMatches; $tong = [int]$goc0.totalMatches
+                        if ($soTrang -le 0) { break }
+                        # Kết quả tăng dần theo giờ: biết tổng thì nhảy thẳng trang cuối
+                        $viTri = if ($tong -gt $viTri + $soTrang) { [Math]::Max($viTri + $soTrang, $tong - 50) } else { $viTri + $soTrang }
+                    }
+                }
+                $gocDung = $goc
+                break
+            } catch { continue }   # cổng này không trả lời -> thử cổng kế tiếp
+        }
+    }
+    if (-not $gocDung) { return "LOI $nvr k$kenh khong tim duoc ban ghi" }
+    if (-not $cuoi) { return "KHONG $nvr k$kenh dau ghi khong con ban ghi trong 1 nam" }
+
+    # Lùi 10 giây khỏi điểm kết thúc: sát mép đoạn ghi đầu ghi hay trả luồng rỗng
+    $tu = $cuoi.KetThuc.AddSeconds(-10)
+    if ($tu -lt $cuoi.BatDau) { $tu = $cuoi.BatDau }
+    $dich = Join-Path $thuMuc "${nvr}_${kenh}.jpg"
+    if ((Test-Path $dich) -and (Get-Item $dich).LastWriteTime -ge $tu) { return "BOQUA" }
+
+    # Cổng RTSP thật của từng đầu ghi (10.0.28.254 dùng 8002, không mở 554); hỏi không được thì dùng cổng cấu hình
+    try {
+        $wc = New-Object Net.WebClient
+        $wc.Credentials = New-Object Net.NetworkCredential($tk, $mk)
+        $dsCong = ([xml]$wc.DownloadString("$gocDung/ISAPI/Security/adminAccesses")).AdminAccessProtocolList.AdminAccessProtocol
+        $rtspCong = $dsCong | Where-Object { $_.protocol -eq 'RTSP' } | Select-Object -First 1
+        if ($rtspCong -and [int]$rtspCong.portNo -gt 0) { $congRtsp = [int]$rtspCong.portNo }
+    } catch { }
+
+    $tam = Join-Path $thuMuc "${nvr}_${kenh}.pb.tmp"
+    $loi = ''
+    # Luồng H.265 đang ghi dở đôi khi hỏng ở đoạn sát cuối (ffmpeg INVALIDDATA) -> thử lại ở 60 giây trước điểm kết thúc
+    foreach ($lui in 10, 60) {
+        $tuThu = $cuoi.KetThuc.AddSeconds(-$lui)
+        if ($tuThu -lt $cuoi.BatDau) { $tuThu = $cuoi.BatDau }
+        $rtsp = "rtsp://$([Uri]::EscapeDataString($tk)):$([Uri]::EscapeDataString($mk))@${nvr}:$congRtsp" +
+            "/Streaming/tracks/${kenh}01?starttime=$($tuThu.ToString('yyyyMMddTHHmmss'))Z&endtime=$($cuoi.KetThuc.ToString('yyyyMMddTHHmmss'))Z"
+        $pi = New-Object Diagnostics.ProcessStartInfo $ffmpeg
+        # Luồng chính 2688x1520 -> thu về tối đa 1280 ngang cho nhẹ; không ghi URL (có mật khẩu) ra log
+        $pi.Arguments = "-hide_banner -loglevel error -rtsp_transport tcp -timeout 10000000 -i `"$rtsp`" -frames:v 1 " +
+            "-vf `"scale='min(1280,iw)':-2`" -q:v 4 -f image2 -vcodec mjpeg -y `"$tam`""
+        $pi.UseShellExecute = $false; $pi.CreateNoWindow = $true
+        $pi.RedirectStandardError = $true; $pi.RedirectStandardOutput = $true
+        $p = [Diagnostics.Process]::Start($pi)
+        [void]$p.StandardError.ReadToEndAsync()   # đọc bỏ stderr để ffmpeg không nghẽn vì đầy bộ đệm
+        if (-not $p.WaitForExit(40000)) { $p.Kill(); $loi = 'ffmpeg qua 40 giay'; continue }
+        if ($p.ExitCode -ne 0 -or -not (Test-Path $tam) -or (Get-Item $tam).Length -lt 1000) {
+            Remove-Item $tam -ErrorAction SilentlyContinue
+            $loi = "ffmpeg exit=$($p.ExitCode)"
+            continue
+        }
+        Move-Item $tam $dich -Force
+        (Get-Item $dich).LastWriteTime = $tuThu
+        return "OK"
+    }
+    return "LOI $nvr k$kenh $loi"
+}
+
+if ($dsLoi.Count -gt 0 -and -not (Test-Path $ffmpeg)) {
+    GhiLog "Bo qua lay anh tu playback: khong co ffmpeg ($ffmpeg)"
+} elseif ($dsLoi.Count -gt 0) {
+    $pbOk = 0; $pbBoQua = 0; $pbKhac = New-Object System.Collections.Generic.List[string]
+    $conLoi = $dsLoi
+    # Lượt 1: 3 ffmpeg song song (mỗi cái kéo 1 luồng playback luồng chính, nhiều hơn dễ bị đầu ghi trả 403).
+    # Lượt 2: kênh còn LOI chạy lần lượt từng kênh — lỗi lượt 1 phần lớn do đầu ghi (10.0.21.251, 10.0.29.254)
+    # đang bị gọi dồn, chạy riêng lại thì lấy được. KHONG (đầu ghi không có bản ghi) thì không thử lại.
+    foreach ($soLuong in 3, 1) {
+        if ($conLoi.Count -eq 0) { break }
+        $pool = [RunspaceFactory]::CreateRunspacePool(1, $soLuong)
+        $pool.Open()
+        $viec = foreach ($c in $conLoi) {
+            $dsGoc = @()
+            if ($gocNvr.ContainsKey($c.Nvr)) { $dsGoc += $gocNvr[$c.Nvr] }
+            if ($dsGoc -notcontains "http://$($c.Nvr):80") { $dsGoc += "http://$($c.Nvr):80" }
+            $ps = [PowerShell]::Create().AddScript($chupPlayback).AddArgument($c.Nvr).AddArgument($c.Kenh).AddArgument($taiKhoan).AddArgument($matKhau).AddArgument($thuMucAnh).AddArgument($dsGoc).AddArgument($ffmpeg).AddArgument($congRtsp)
+            $ps.RunspacePool = $pool
+            [pscustomobject]@{ Ps = $ps; Kq = $ps.BeginInvoke(); Cam = $c }
+        }
+        $conLoi = New-Object System.Collections.Generic.List[object]
+        $pbLoi = New-Object System.Collections.Generic.List[string]
+        foreach ($v in $viec) {
+            $kq = [string]($v.Ps.EndInvoke($v.Kq) | Select-Object -Last 1)
+            $v.Ps.Dispose()
+            if ($kq -eq 'OK') { $pbOk++ }
+            elseif ($kq -eq 'BOQUA') { $pbBoQua++ }
+            elseif ($kq -like 'LOI *') { $pbLoi.Add($kq); $conLoi.Add($v.Cam) }
+            else { $pbKhac.Add($kq) }
+        }
+        $pool.Close()
+    }
+    # Chỉ LOI của lượt cuối mới là không lấy được thật
+    $pbKhac.AddRange($pbLoi)
+    GhiLog ("Playback: lay moi=$pbOk da co=$pbBoQua khong duoc=" + $pbKhac.Count)
+    $pbKhac | ForEach-Object { GhiLog ("  " + $_) }
+}
 
 # ---- Đẩy lên 2 máy chủ (scp -p giữ giờ chụp làm "Ảnh lưu lúc ...") ----
 $mayChu = @(
