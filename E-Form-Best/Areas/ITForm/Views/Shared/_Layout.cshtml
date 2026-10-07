@@ -542,7 +542,8 @@
                        Quyền kiểm lại ở QLCameraController (CoQuyenXem / CoQuyenSua) *@
                     var dsCameraDuocXem = new[] { ("BPVN", "/QLCamera"), ("PFVN", "/QLCamera/PFVN"), ("MEGA", "/QLCamera/MEGA") }
                         .Where(x => User.IsInRole("All") || User.IsInRole("Cam" + x.Item1)).ToList();
-                    if (dsCameraDuocXem.Count > 0)
+                    // Tổng quan 3 công ty: AdminIT xem được kể cả khi chưa có quyền camera công ty nào
+                    if (dsCameraDuocXem.Count > 0 || User.IsInRole("AdminIT"))
                     {
                         <div class="nav-divider"></div>
                         <a data-bs-toggle="collapse" href="#collapseCamera" role="button" aria-expanded="@(isCameraActive ? "true" : "false")" aria-controls="collapseCamera" class="nav-link-item @(isCameraActive ? "active" : "")" style="justify-content: space-between; cursor: pointer;">
@@ -555,9 +556,14 @@
 
                         <div class="collapse @(isCameraActive ? "show" : "")" id="collapseCamera">
                             <div style="display: flex; flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
+                                @{ var dangOTongQuanCam = isCameraActive && currentAction == "TongQuan"; }
+                                <a href="/QLCamera/TongQuan" class="submenu-link @(dangOTongQuanCam ? "active" : "")" aria-current="@(dangOTongQuanCam ? "page" : null)">
+                                    <i class="fa fa-pie-chart sub-ico" style="color: #a78bfa;"></i>
+                                    <span>Tổng quan</span>
+                                </a>
                                 @foreach (var (congTyCam, urlCam) in dsCameraDuocXem)
                                 {
-                                    var dangOCam = isCameraActive && cameraCongTy == congTyCam;
+                                    var dangOCam = isCameraActive && !dangOTongQuanCam && cameraCongTy == congTyCam;
                                     <a href="@urlCam" class="submenu-link @(dangOCam ? "active" : "")" aria-current="@(dangOCam ? "page" : null)">
                                         <i class="fa fa-building-o sub-ico" style="color: #a78bfa;"></i>
                                         <span>@congTyCam</span>

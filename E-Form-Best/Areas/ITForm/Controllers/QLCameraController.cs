@@ -94,6 +94,100 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return View("Index");
         }
 
+        #endregion
+
+        #region Tổng quan 3 công ty (báo cáo định kỳ)
+
+        /// <summary>
+        /// Công ty có trong báo cáo, thứ tự cố định BPVN → PFVN → MEGA.
+        ///  - Không chỉ định công ty (Tổng quan): AdminIT xem cả 3 (chỉ số liệu tổng hợp; trang chi tiết từng công ty
+        ///    vẫn cần CamBPVN/CamPFVN/CamMEGA hoặc All), người khác xem các công ty mình có quyền.
+        ///  - Báo cáo riêng 1 công ty (nút "Báo cáo" ở trang công ty): cần quyền xem công ty đó hoặc AdminIT.
+        /// Trả null khi công ty gửi lên không hợp lệ.
+        /// </summary>
+        private List<string>? DsCongTyBaoCao(string? congTy)
+        {
+            var laAdminIt = User.IsInRole("AdminIT");
+            if (string.IsNullOrWhiteSpace(congTy))
+                return laAdminIt ? CameraBaoCaoService.DsCongTy.ToList() : CameraBaoCaoService.DsCongTy.Where(CoQuyenXem).ToList();
+
+            var cty = CameraBaoCaoService.DsCongTy.FirstOrDefault(x => x.Equals(congTy.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (cty == null) return null;
+            return laAdminIt || CoQuyenXem(cty) ? new List<string> { cty } : new List<string>();
+        }
+
+        /// <summary>Kỳ báo cáo: mặc định 7 ngày gần nhất; tối đa 366 ngày cho nhẹ truy vấn lịch sử.</summary>
+        private static (DateTime tu, DateTime den) KyBaoCao(DateTime? tuNgay, DateTime? denNgay)
+        {
+            var den = (denNgay ?? DateTime.Today).Date;
+            var tu = (tuNgay ?? den.AddDays(-6)).Date;
+            if (tu > den) (tu, den) = (den, tu);
+            if ((den - tu).TotalDays > 366) tu = den.AddDays(-366);
+            return (tu, den);
+        }
+
+        /// <summary>Tổng quan 3 công ty, hoặc báo cáo riêng 1 công ty khi có ?congTy= (URL bookmark được).</summary>
+        [HttpGet("/QLCamera/TongQuan")]
+        public IActionResult TongQuan(string? congTy)
+        {
+            if (User?.Identity?.IsAuthenticated != true)
+                return Redirect("/DonXetDuyet/DangNhap");
+
+            var ds = DsCongTyBaoCao(congTy);
+            if (ds == null) return NotFound();
+            if (ds.Count == 0) return Forbid();
+
+            ViewBag.CongTyBaoCao = string.IsNullOrWhiteSpace(congTy) ? null : ds[0];
+            return View();
+        }
+
+        [HttpGet("/QLCamera/TongQuan/DuLieu")]
+        public async Task<IActionResult> TongQuanDuLieu(DateTime? tuNgay, DateTime? denNgay, string? congTy, [FromServices] CameraBaoCaoService baoCao)
+        {
+            var dsCongTy = DsCongTyBaoCao(congTy);
+            if (dsCongTy == null || dsCongTy.Count == 0) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+
+            try
+            {
+                var (tu, den) = KyBaoCao(tuNgay, denNgay);
+                var duLieu = await baoCao.TaoAsync(dsCongTy, tu, den, HttpContext.RequestAborted);
+                // Công ty mở được trang chi tiết — thẻ công ty khác chỉ hiện số, không thành link
+                var moDuoc = CameraBaoCaoService.DsCongTy.Where(CoQuyenXem).ToList();
+                return Json(new { thanhCong = true, duLieu, moDuoc });
+            }
+            catch (Exception ex) when (ex is SqlException or InvalidOperationException)
+            {
+                return Json(new { thanhCong = false, thongBao = "Không tạo được báo cáo: " + ex.Message });
+            }
+        }
+
+        [HttpGet("/QLCamera/TongQuan/XuatExcel")]
+        public async Task<IActionResult> TongQuanXuatExcel(DateTime? tuNgay, DateTime? denNgay, string? congTy, [FromServices] CameraBaoCaoService baoCao)
+        {
+            var dsCongTy = DsCongTyBaoCao(congTy);
+            if (dsCongTy == null) return NotFound();
+            if (dsCongTy.Count == 0) return StatusCode(403);
+
+            var (tu, den) = KyBaoCao(tuNgay, denNgay);
+            try
+            {
+                var bc = await baoCao.TaoAsync(dsCongTy, tu, den, HttpContext.RequestAborted);
+                var motCongTy = string.IsNullOrWhiteSpace(congTy) ? null : dsCongTy[0];
+                var tenNguoiLap = User.Identity?.Name;
+                var file = CameraBaoCaoExcel.Tao(bc, motCongTy, tenNguoiLap);
+                return File(file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"BaoCaoCamera_{motCongTy ?? "TongQuan"}_{tu:yyyyMMdd}-{den:yyyyMMdd}.xlsx");
+            }
+            catch (SqlException ex)
+            {
+                return Content("Không tạo được báo cáo: " + ex.Message);
+            }
+        }
+
+        #endregion
+
+        #region Dữ liệu PFVN/MEGA
+
         /// <summary>
         /// Dữ liệu tab Giám sát cho PFVN/MEGA, dựng từ "_kenh.json" theo đúng khuôn JSON của hệ thống giám sát
         /// BPVN (snake_case) để camera-giam-sat.js dùng lại nguyên cách vẽ. Trạng thái là lúc chụp ảnh gần nhất.

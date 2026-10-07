@@ -1,0 +1,151 @@
+@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    // null = tổng quan 3 công ty; "BPVN"/"PFVN"/"MEGA" = báo cáo riêng công ty đó (mở từ nút "Báo cáo" ở trang công ty)
+    var congTyBaoCao = ViewBag.CongTyBaoCao as string;
+    var tieuDe = congTyBaoCao == null ? "Tổng quan camera" : "Báo cáo camera " + congTyBaoCao;
+    ViewData["Title"] = tieuDe;
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="/css/ccdc-quanly.css?v=20260825e">
+<link rel="stylesheet" href="/css/camera-quanly.css?v=20261007c">
+<link rel="stylesheet" href="/css/camera-tong-quan.css?v=20261007b">
+
+<div class="content-header pt-0 pb-0" style="margin-top: -25px;">
+    <div class="container-fluid">
+        <div class="dash-topbar">
+            <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-chart-pie"></i></span>@tieuDe</h4>
+            @if (congTyBaoCao != null)
+            {
+                <a class="btn btn-sm btn-light border" href="@(congTyBaoCao == "BPVN" ? "/QLCamera" : "/QLCamera/" + congTyBaoCao)">
+                    <i class="fas fa-arrow-left me-1"></i> Về trang camera @congTyBaoCao
+                </a>
+            }
+
+            <div class="d-flex flex-wrap align-items-center gap-2 ms-auto bc-thanh-loc">
+                <select id="bcKy" class="form-select form-select-sm w-auto" title="Kỳ báo cáo">
+                    <option value="7">7 ngày gần nhất</option>
+                    <option value="30">30 ngày gần nhất</option>
+                    <option value="thang-nay">Tháng này</option>
+                    <option value="thang-truoc">Tháng trước</option>
+                    <option value="tuy-chon">Tuỳ chọn...</option>
+                </select>
+                <input type="date" id="bcTuNgay" class="form-control form-control-sm w-auto" title="Từ ngày">
+                <span class="text-muted small">→</span>
+                <input type="date" id="bcDenNgay" class="form-control form-control-sm w-auto" title="Đến ngày">
+                <button type="button" class="btn btn-sm btn-primary" id="bcXem"><i class="fas fa-rotate me-1"></i> Xem</button>
+                <button type="button" class="btn btn-sm btn-light border" id="bcIn"><i class="fas fa-print me-1"></i> In</button>
+                <a class="btn btn-sm btn-success" id="bcExcel" href="#"><i class="fas fa-file-excel me-1"></i> Xuất Excel</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content" data-cong-ty="@congTyBaoCao">
+    <div class="container-fluid">
+        <div class="card border-0 shadow-sm bg-white" style="border-radius: 15px;">
+            <div class="card-body p-2 p-md-3" id="bcVungIn">
+
+                @* Dải tiêu đề chỉ hiện khi in (trên màn hình đã có thanh tiêu đề trang) *@
+                <div class="bc-tieu-de-in">
+                    <div class="bc-in-bang-ten">
+                        <div>
+                            <div class="bc-in-nhan">BÁO CÁO ĐỊNH KỲ</div>
+                            <div class="bc-in-ten">@(congTyBaoCao == null ? "Tình trạng camera — BPVN · PFVN · MEGA" : "Tình trạng camera " + congTyBaoCao)</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="bc-in-ky" id="bcKyIn"></div>
+                            <div class="bc-in-nguoi">Người lập: @User.Identity?.Name</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-danger py-2 small d-none" id="bcLoi"></div>
+                <div class="alert alert-warning py-2 small d-none" id="bcCanhBao"></div>
+
+                <div class="bc-cards" id="bcCards">
+                    <div class="text-center text-muted py-4 w-100">Đang tải báo cáo...</div>
+                </div>
+
+                @* Báo cáo riêng 1 công ty: bảng này chỉ còn 1 dòng trùng với thẻ số liệu nên ẩn *@
+                <div class="cam-khung mt-3 @(congTyBaoCao != null ? "d-none" : "")">
+                    <div class="fw-bold small text-muted mb-1"><i class="fas fa-table me-1"></i> Tổng hợp theo công ty</div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0 small bc-bang">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2">Công ty</th>
+                                    <th colspan="6" class="text-center">Hiện tại</th>
+                                    <th colspan="4" class="text-center">Trong kỳ</th>
+                                </tr>
+                                <tr>
+                                    <th class="text-end">Tổng</th><th class="text-end">Hoạt động</th><th class="text-end">Mất KN</th>
+                                    <th class="text-end">% hoạt động</th><th class="text-end">Đầu ghi</th><th class="text-end">Chưa có ảnh</th>
+                                    <th class="text-end">Lần mất KN</th><th class="text-end">Camera bị mất</th>
+                                    <th class="text-end">Tổng giờ mất</th><th class="text-end">% hoạt động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bcBangTongHop"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="cam-khung mt-3">
+                    <div class="fw-bold small text-muted mb-1"><i class="fas fa-server me-1"></i> Theo đầu ghi</div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0 small bc-bang">
+                            <thead>
+                                <tr>
+                                    <th>Công ty</th><th>Đầu ghi</th><th>IP</th>
+                                    <th class="text-end">Tổng</th><th class="text-end">Hoạt động</th><th class="text-end">Mất KN</th>
+                                    <th style="min-width:160px;">% hoạt động</th>
+                                    <th class="text-end">Lần mất KN (kỳ)</th><th class="text-end">Giờ mất (kỳ)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bcBangDauGhi"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-0">
+                    <div class="col-xl-7">
+                        <div class="cam-khung">
+                            <div class="fw-bold small text-muted mb-1">
+                                <i class="fas fa-triangle-exclamation text-danger me-1"></i> Camera đang mất kết nối
+                                <span class="badge rounded-pill bg-danger ms-1" id="bcDemDangMat">0</span>
+                            </div>
+                            <div class="table-responsive bc-cuon">
+                                <table class="table table-sm table-hover align-middle mb-0 small bc-bang">
+                                    <thead>
+                                        <tr><th>Công ty</th><th>Đầu ghi</th><th class="text-end">Kênh</th><th>Camera</th><th>IP</th><th>Mất từ</th><th>Đã mất</th><th>Ghi chú</th></tr>
+                                    </thead>
+                                    <tbody id="bcBangDangMat"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-5">
+                        <div class="cam-khung">
+                            <div class="fw-bold small text-muted mb-1"><i class="fas fa-ranking-star me-1"></i> Mất kết nối nhiều nhất trong kỳ (top 20)</div>
+                            <div class="table-responsive bc-cuon">
+                                <table class="table table-sm table-hover align-middle mb-0 small bc-bang">
+                                    <thead>
+                                        <tr><th>Công ty</th><th>Camera</th><th>Đầu ghi</th><th class="text-end">Lần</th><th class="text-end">Giờ mất</th></tr>
+                                    </thead>
+                                    <tbody id="bcBangMatNhieu"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="small text-muted mt-2" id="bcChuThich">
+                    Hiện tại: BPVN theo hệ thống giám sát (không tính camera đã loại trừ), PFVN/MEGA theo lần kiểm tra trạng thái gần nhất.
+                    Trong kỳ: tính từ lịch sử đổi trạng thái; % hoạt động trong kỳ = 1 − tổng thời gian mất / (số camera × độ dài kỳ).
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script src="/js/camera-tong-quan.js?v=20261007c"></script>

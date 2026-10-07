@@ -1,0 +1,118 @@
+/* /QLCamera/TongQuan — báo cáo tổng quan camera 3 công ty */
+
+.bc-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.bc-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #fff;
+    color: inherit;
+    text-decoration: none;
+    transition: box-shadow .15s, transform .15s;
+}
+a.bc-card:hover { color: inherit; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(15, 23, 42, .08); }
+.bc-card-tong { background: #f5f3ff; border-color: #ddd6fe; }
+
+.bc-card-dau { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.bc-card-ten { font-weight: 700; font-size: 1.05rem; color: #4c1d95; }
+
+.bc-vong {
+    width: 112px;
+    height: 112px;
+    border-radius: 50%;
+    margin: 0 auto;
+    display: grid;
+    place-items: center;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+.bc-vong-trong {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.bc-vong-so { font-weight: 700; font-size: 1.05rem; line-height: 1.1; }
+.bc-vong-nhan { font-size: .7rem; color: #64748b; }
+
+.bc-card-so { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 6px; }
+.bc-o { background: #f8fafc; border-radius: 8px; padding: 6px 8px; }
+.bc-card-tong .bc-o { background: #fff; }
+.bc-o-nhan { font-size: .7rem; color: #64748b; }
+.bc-o-so { font-weight: 700; font-size: 1.05rem; }
+
+.bc-card-ky { font-size: .8rem; color: #475569; border-top: 1px dashed #e2e8f0; padding-top: 8px; }
+
+.bc-xanh { color: #15803d; }
+.bc-do { color: #b91c1c; }
+
+.bc-bang th { white-space: nowrap; background: #f8fafc; }
+.bc-cuon { max-height: 460px; overflow-y: auto; }
+
+/* Thanh % hoạt động trong bảng đầu ghi */
+.bc-thanh {
+    position: relative;
+    height: 18px;
+    border-radius: 9px;
+    background: #fee2e2;
+    overflow: hidden;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+.bc-thanh-day { height: 100%; border-radius: 9px; }
+.bc-thanh-so {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .72rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+/* Dải tiêu đề chỉ hiện khi in */
+.bc-tieu-de-in { display: none; }
+.bc-in-bang-ten {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #5b21b6, #7c3aed);
+    color: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+.bc-in-nhan { font-size: .7rem; letter-spacing: .12em; opacity: .85; }
+.bc-in-ten { font-size: 1.35rem; font-weight: 700; }
+.bc-in-ky { font-weight: 600; }
+.bc-in-nguoi { font-size: .75rem; opacity: .85; }
+
+@media print {
+    @page { size: A4 landscape; margin: 10mm; }
+    body * { visibility: hidden; }
+    #bcVungIn, #bcVungIn * { visibility: visible; }
+    #bcVungIn { position: absolute; left: 0; top: 0; width: 100%; padding: 0 !important; }
+    #bcVungIn, #bcVungIn * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .bc-tieu-de-in { display: block; margin-bottom: 12px; }
+    .bc-bang th { background: #ede9fe !important; }
+    .bc-bang thead { display: table-header-group; }   /* bảng dài sang trang mới vẫn có tiêu đề cột */
+    .bc-cuon { max-height: none; overflow: visible; }
+    .bc-card { break-inside: avoid; box-shadow: none; }
+    .bc-cards { grid-template-columns: repeat(4, 1fr); }
+    tr { break-inside: avoid; }
+}

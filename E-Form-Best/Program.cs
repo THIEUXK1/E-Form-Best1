@@ -115,6 +115,8 @@ builder.Services.AddHttpClient(CameraXemTrucTiepService.TenClientGo2rtc, client 
     client.Timeout = Timeout.InfiniteTimeSpan;
 });
 builder.Services.AddScoped<CameraXemTrucTiepService>();
+// Báo cáo tổng quan camera 3 công ty (/QLCamera/TongQuan)
+builder.Services.AddScoped<CameraBaoCaoService>();
 // Chụp ảnh lưu sẵn theo giờ (chỉ bật ở máy gọi được đầu ghi: CameraNvr__ChupAnhLuu=true)
 builder.Services.AddHostedService<CameraAnhLuuWorker>();
 
