@@ -69,6 +69,14 @@ try {
     GhiLog ("Inventory: " + $gocNvr.Count + " dau ghi")
 } catch { GhiLog ("Khong doc duoc inventory, chi thu cong 80: " + $_.Exception.Message) }
 
+# KK_CameraTrangThai giờ có cả kênh PFVN (job lịch sử ghi chung bảng) — chỉ chụp kênh của đầu ghi BPVN
+# trong inventory; PFVN chụp riêng qua ZPVN-WEBSRV ở dưới. Không đọc được inventory thì giữ nguyên danh sách.
+if ($gocNvr.Count -gt 0) {
+    $truocLoc = $dsCamera.Count
+    $dsCamera = @($dsCamera | Where-Object { $gocNvr.ContainsKey($_.Nvr) })
+    if ($dsCamera.Count -ne $truocLoc) { GhiLog ("Bo " + ($truocLoc - $dsCamera.Count) + " kenh khong thuoc dau ghi BPVN") }
+}
+
 # ---- Chụp song song ----
 $chup = {
     param($nvr, $kenh, $tk, $mk, $thuMuc, $timeout, $dsGoc)
