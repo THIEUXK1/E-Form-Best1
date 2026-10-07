@@ -275,6 +275,23 @@ if ($dsLoi.Count -gt 0 -and -not (Test-Path $ffmpeg)) {
     $pbKhac | ForEach-Object { GhiLog ("  " + $_) }
 }
 
+# ---- PFVN: đầu ghi 10.0.200.x chỉ thông từ máy ZPVN-WEBSRV (10.0.193.240) ----
+# Chạy C:\EForm-Camera\chup-anh-camera-pfvn.ps1 trên máy đó qua SSH (mật khẩu đầu ghi nằm ở .env bên đó),
+# rồi kéo thư mục anh\ về đây để đẩy lên máy chủ cùng ảnh BPVN. Lỗi PFVN không làm hỏng phần BPVN.
+$thuMucPfvn = Join-Path $PSScriptRoot 'anh-camera-pfvn'
+$coPfvn = $false
+& {
+    # ssh/scp ghi cảnh báo ra stderr: để Stop thì PowerShell 5.1 coi là lỗi và dừng cả script
+    $ErrorActionPreference = 'Continue'
+    $mayPfvn = 'Administrator@10.0.193.240'
+    $keyPfvn = Join-Path $env:USERPROFILE '.ssh\id_ed25519_10_0_193_240'
+    $kq = & ssh -i $keyPfvn -o BatchMode=yes -o ConnectTimeout=15 $mayPfvn 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\EForm-Camera\chup-anh-camera-pfvn.ps1' 2>&1
+    $kq | ForEach-Object { [string]$_ } | Where-Object { $_ -match 'Chup xong|LOI|KHONG' } | ForEach-Object { GhiLog ("PFVN " + ($_ -replace '^\S+ \S+ ', '')) }
+    New-Item -ItemType Directory -Force $thuMucPfvn | Out-Null
+    & scp -i $keyPfvn -o BatchMode=yes -o ConnectTimeout=15 -q -p "${mayPfvn}:C:/EForm-Camera/anh/*" "$thuMucPfvn\" 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) { GhiLog 'PFVN keo anh ve: OK'; $script:coPfvn = $true } else { GhiLog "PFVN keo anh ve: LOI scp exit=$LASTEXITCODE" }
+}
+
 # ---- Đẩy lên 2 máy chủ (scp -p giữ giờ chụp làm "Ảnh lưu lúc ...") ----
 $mayChu = @(
     @{ Ip = '10.0.60.39'; Key = 'id_ed25519_vnsuperman' },
@@ -286,6 +303,16 @@ foreach ($m in $mayChu) {
     $dichScp = "BESTPACIFIC\vnsuperman@$($m.Ip):C:/inetpub/CameraAnhLuu/"
     & scp -i $key -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=15 -q -p "$thuMucAnh\*.jpg" $dichScp 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) { GhiLog "Day len $($m.Ip): OK" } else { GhiLog "Day len $($m.Ip): LOI scp exit=$LASTEXITCODE"; $coLoi = $true }
+
+    # Ảnh PFVN vào thư mục con PFVN (trang /QLCamera/PFVN đọc ở đó); scp không tự tạo thư mục nên tạo trước
+    if ($coPfvn) {
+        & {
+            $ErrorActionPreference = 'Continue'
+            & ssh -i $key -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=15 "BESTPACIFIC\vnsuperman@$($m.Ip)" 'powershell -NoProfile -Command New-Item -ItemType Directory -Force C:\inetpub\CameraAnhLuu\PFVN' 2>&1 | Out-Null
+            & scp -i $key -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=15 -q -p "$thuMucPfvn\*" "BESTPACIFIC\vnsuperman@$($m.Ip):C:/inetpub/CameraAnhLuu/PFVN/" 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) { GhiLog "Day PFVN len $($m.Ip): OK" } else { GhiLog "Day PFVN len $($m.Ip): LOI scp exit=$LASTEXITCODE"; $script:coLoi = $true }
+        }
+    }
 }
 
 # Giữ log gọn: 500 dòng cuối
