@@ -134,11 +134,16 @@
                 + escapeHtml(x.tinhTrang || 'Chưa rõ') + '</span></td>'
                 + '<td class="ccdc-num small">' + dinhDangSo(x.giaTri) + '</td>'
                 + '<td class="ccdc-thaotac">'
-                + '<button type="button" class="btn btn-sm btn-light border me-1 btn-cho-muon" title="Cho mượn"'
-                + (x.conLai <= 0 ? ' disabled' : '') + '><i class="fas fa-hand-holding-hand" style="color:#0ea5e9;"></i></button>'
+                // CCDC của người khác (quyền chỉ xem): chỉ còn nút xem phiếu mượn
+                + (x.coTheSua
+                    ? '<button type="button" class="btn btn-sm btn-light border me-1 btn-cho-muon" title="Cho mượn"'
+                      + (x.conLai <= 0 ? ' disabled' : '') + '><i class="fas fa-hand-holding-hand" style="color:#0ea5e9;"></i></button>'
+                    : '')
                 + '<button type="button" class="btn btn-sm btn-light border me-1 btn-phieu-muon" title="Phiếu mượn / nhận trả"><i class="fas fa-clipboard-list" style="color:#7c3aed;"></i></button>'
-                + '<button type="button" class="btn btn-sm btn-light border me-1 btn-sua" title="Sửa"><i class="fas fa-pen text-primary"></i></button>'
-                + '<button type="button" class="btn btn-sm btn-light border btn-xoa" title="Xoá"><i class="fas fa-trash text-danger"></i></button>'
+                + (x.coTheSua
+                    ? '<button type="button" class="btn btn-sm btn-light border me-1 btn-sua" title="Sửa"><i class="fas fa-pen text-primary"></i></button>'
+                      + '<button type="button" class="btn btn-sm btn-light border btn-xoa" title="Xoá"><i class="fas fa-trash text-danger"></i></button>'
+                    : '<span class="small text-muted" title="Người tạo">' + escapeHtml(x.nguoiTao || '') + '</span>')
                 + '</td>'
                 + '</tr>';
         }).join('');
@@ -331,7 +336,8 @@
                         + '<td class="small">' + (daDong ? dinhDangNgayGio(p.ngayTra) : '<span class="badge bg-warning text-dark">Đang mượn</span>') + '</td>'
                         + '<td class="text-center">'
                         + (daDong ? '<span class="text-muted small">Đã xong</span>'
-                                  : '<button type="button" class="btn btn-sm btn-success btn-nhan-tra">Nhận trả</button>')
+                                  : res.coTheSua ? '<button type="button" class="btn btn-sm btn-success btn-nhan-tra">Nhận trả</button>'
+                                  : '<span class="badge bg-warning text-dark">Đang mượn</span>')
                         + '</td>'
                         + '</tr>';
                 }).join('');
@@ -389,7 +395,7 @@
                         + '<td class="small">' + (chuanHoaNgay(p.ngayHenTra) || '—') + '</td>'
                         + '<td>' + nhanHanTra(p) + '</td>'
                         + '<td class="ccdc-thaotac">'
-                        + '<button type="button" class="btn btn-sm btn-success btn-nhan-tra-dm">Nhận trả</button>'
+                        + (p.coTheSua ? '<button type="button" class="btn btn-sm btn-success btn-nhan-tra-dm">Nhận trả</button>' : '')
                         + '</td>'
                         + '</tr>';
                 }).join('');

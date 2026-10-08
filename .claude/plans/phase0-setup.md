@@ -18,8 +18,8 @@ Phase này phần lớn **đã xong** (dự án đang chạy production); phần
 cd E-Form-Best && dotnet watch run
 ```
 
-- Quy tắc hot reload (chạy nền, log ra file, supervisor, khi nào restart): [`../rules/core.md`](../rules/core.md) mục 8.
-- Cờ thu gọn output: [`../rules/core.md`](../rules/core.md) mục 7.
+- Quy tắc hot reload (chạy nền, log ra file, supervisor, khi nào restart): [`../rules/core.md`](../rules/core.md) mục 6.
+- Cờ thu gọn output: `~/.claude/CLAUDE.md` mục "Tiết kiệm token".
 - Development: `https://localhost:7200` / `http://localhost:5200`; RuntimeCompilation bật nên
   sửa `.cshtml` chỉ cần F5.
 - Kiểm tra nhanh: `GET /health` (app sống), `GET /health/ready` (nối được SQL Server).

@@ -67,8 +67,8 @@ Ngắn gọn, dạng bảng. Quy ước của repo **thắng** sở thích cá n
 ## 6. Terminal Output, Zero-Fluff & Lazy-Loading
 
 Ba nhóm quy tắc tiết kiệm token chỉ viết ở **một** chỗ:
-[`../rules/core.md`](../rules/core.md) — mục 6 zero-fluff, mục 7 output clamping,
-mục 8 hot reload, mục 9 bảng "task nào đọc file nào".
+zero-fluff + output clamping ở `~/.claude/CLAUDE.md`; hot reload + bảng "task nào đọc file nào"
+ở [`../rules/core.md`](../rules/core.md) mục 6–7.
 
 ## 7. JavaScript & tương tác không reload trang
 

@@ -165,6 +165,10 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<KkCameraLichSu> KkCameraLichSus { get; set; }
 
+    public virtual DbSet<KkAccessPoint> KkAccessPoints { get; set; }
+
+    public virtual DbSet<KkAccessPointLichSu> KkAccessPointLichSus { get; set; }
+
     public virtual DbSet<KkCcdcMuonTra> KkCcdcMuonTras { get; set; }
 
     public virtual DbSet<KkCongCuDungCu> KkCongCuDungCus { get; set; }

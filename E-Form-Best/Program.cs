@@ -120,6 +120,25 @@ builder.Services.AddScoped<CameraBaoCaoService>();
 // Chụp ảnh lưu sẵn theo giờ (chỉ bật ở máy gọi được đầu ghi: CameraNvr__ChupAnhLuu=true)
 builder.Services.AddHostedService<CameraAnhLuuWorker>();
 
+// --- 2d. AP WI-FI 3 CÔNG TY (/QLAP): job ping theo dõi online/offline + báo cáo theo kỳ ---
+// Tắt job bằng AccessPoint__GhiLichSu=false; máy không thông mạng công ty nào thì bỏ khỏi AccessPoint__CongTyPing
+builder.Services.AddScoped<AccessPointBaoCaoService>();
+// AP controller (Huawei AC PFVN...) dùng chứng thư tự ký; cookie phiên tự gắn tay nên tắt CookieContainer,
+// tắt redirect để nhận ra AC đá về login.html khi phiên hết hạn
+builder.Services.AddHttpClient(AccessPointControllerService.TenHttpClient, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+    UseCookies = false,
+    AllowAutoRedirect = false,
+    AutomaticDecompression = System.Net.DecompressionMethods.All
+});
+builder.Services.AddSingleton<AccessPointControllerService>();
+builder.Services.AddHostedService<AccessPointPingWorker>();
+
 // Cache trong bộ nhớ cho dữ liệu tra cứu ít thay đổi (Công ty, Bộ phận...) để giảm truy vấn DB lặp lại
 builder.Services.AddMemoryCache();
 

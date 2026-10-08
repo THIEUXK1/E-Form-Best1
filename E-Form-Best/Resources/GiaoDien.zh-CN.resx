@@ -61,6 +61,9 @@
   <data name="Thống kê MAC Wi-Fi" xml:space="preserve">
     <value>Wi-Fi MAC 统计</value>
   </data>
+  <data name="Quản lý AP" xml:space="preserve">
+    <value>AP 管理</value>
+  </data>
   <data name="Quản lý camera" xml:space="preserve">
     <value>摄像头管理</value>
   </data>

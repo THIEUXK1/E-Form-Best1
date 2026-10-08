@@ -21,7 +21,23 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // Quyền xem/sửa CCDC đi cùng nhóm "Quản trị IT" trên menu.
         // Ẩn nút ở UI không phải là phân quyền nên mọi action đều phải gọi hàm này.
-        private bool CoQuyen() => User.IsInRole("AdminIT") || User.IsInRole("All");
+        private bool CoQuyen() => User.IsInRole("AdminIT") || User.IsInRole("All") || User.IsInRole("XemAllCCDC");
+
+        // CCDC thuộc về người tạo (NguoiTao): mỗi người chỉ thấy và quản lý đồ của mình.
+        // "All" thấy + sửa tất cả; "XemAllCCDC" thấy tất cả nhưng chỉ sửa được đồ của mình.
+        private bool XemTatCa() => User.IsInRole("All") || User.IsInRole("XemAllCCDC");
+        private bool SuaTatCa() => User.IsInRole("All");
+        private string TenDangNhap => User.Identity?.Name ?? "";
+
+        private bool CoTheSua(string? nguoiTao) =>
+            SuaTatCa() || string.Equals(nguoiTao, TenDangNhap, StringComparison.OrdinalIgnoreCase);
+
+        private IQueryable<KkCongCuDungCu> PhamViXem(IQueryable<KkCongCuDungCu> query)
+        {
+            if (XemTatCa()) return query;
+            var ten = TenDangNhap;
+            return query.Where(x => x.NguoiTao == ten);
+        }
 
         #region View
 
@@ -63,7 +79,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             try
             {
                 // Bắt buộc lọc soft-delete, giống quy ước của KK_ThietBi
-                var query = _context.KkCongCuDungCus.Where(x => x.NgayXoa == null);
+                var query = PhamViXem(_context.KkCongCuDungCus.Where(x => x.NgayXoa == null));
 
                 if (!string.IsNullOrWhiteSpace(tuKhoa))
                 {
@@ -103,6 +119,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         x.GhiChu,
                         x.NgayTao,
                         x.NgayCapNhat,
+                        x.NguoiTao,
                         // Số đang nằm ngoài = tổng chưa trả của các phiếu mượn còn mở
                         DangMuon = _context.KkCcdcMuonTras
                             .Where(m => m.IdCcdc == x.IdCcdc && m.NgayTra == null)
@@ -115,8 +132,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     x.IdCcdc, x.MaCcdc, x.TenCcdc, x.LoaiCcdc, x.DonViTinh, x.SoLuong,
                     x.IdcongTy, x.TenCongTy, x.IdboPhan, x.TenBoPhan,
                     x.NguoiQuanLy, x.ViTri, x.TinhTrang, x.NgayMua, x.GiaTri, x.HanBaoHanh,
-                    x.GhiChu, x.NgayTao, x.NgayCapNhat, x.DangMuon,
-                    ConLai = x.SoLuong - x.DangMuon
+                    x.GhiChu, x.NgayTao, x.NgayCapNhat, x.DangMuon, x.NguoiTao,
+                    ConLai = x.SoLuong - x.DangMuon,
+                    // Chỉ để UI ẩn nút; server vẫn kiểm lại ở từng action ghi
+                    CoTheSua = CoTheSua(x.NguoiTao)
                 }).ToList();
 
                 var tongSoLuong = data.Sum(x => x.SoLuong);
@@ -160,6 +179,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         .FirstOrDefaultAsync(x => x.IdCcdc == model.IdCcdc && x.NgayXoa == null);
                     if (db == null)
                         return Json(new { success = false, message = "Không tìm thấy CCDC cần cập nhật." });
+                    if (!CoTheSua(db.NguoiTao))
+                        return Json(new { success = false, message = "Bạn chỉ được sửa công cụ dụng cụ do mình tạo." });
 
                     db.MaCcdc = model.MaCcdc;
                     db.TenCcdc = model.TenCcdc;
@@ -196,6 +217,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var item = await _context.KkCongCuDungCus.FirstOrDefaultAsync(x => x.IdCcdc == id && x.NgayXoa == null);
                 if (item == null)
                     return Json(new { success = false, message = "Không tìm thấy CCDC cần xoá." });
+                if (!CoTheSua(item.NguoiTao))
+                    return Json(new { success = false, message = "Bạn chỉ được xoá công cụ dụng cụ do mình tạo." });
 
                 // Còn người đang mượn thì không cho xoá, tránh mất dấu món đồ đang nằm ngoài
                 var dangMuon = await _context.KkCcdcMuonTras
@@ -260,6 +283,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             try
             {
+                // idCcdc đến từ client: chỉ trả phiếu của CCDC nằm trong phạm vi được xem (chặn IDOR)
+                var ccdc = await PhamViXem(_context.KkCongCuDungCus)
+                    .Where(x => x.IdCcdc == idCcdc)
+                    .Select(x => new { x.NguoiTao })
+                    .FirstOrDefaultAsync();
+                if (ccdc == null)
+                    return Json(new { success = false, message = "Không tìm thấy công cụ dụng cụ." });
+
                 var query = _context.KkCcdcMuonTras.Where(m => m.IdCcdc == idCcdc);
                 if (!tatCa) query = query.Where(m => m.NgayTra == null);
 
@@ -295,7 +326,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     SoNgayTre = TinhSoNgayTre(m.NgayHenTra, m.NgayTra)
                 });
 
-                return Json(new { success = true, data = ketQua });
+                return Json(new { success = true, data = ketQua, coTheSua = CoTheSua(ccdc.NguoiTao) });
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
@@ -312,7 +343,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             try
             {
                 var query = from m in _context.KkCcdcMuonTras
-                            join c in _context.KkCongCuDungCus on m.IdCcdc equals c.IdCcdc
+                            join c in PhamViXem(_context.KkCongCuDungCus) on m.IdCcdc equals c.IdCcdc
                             where m.NgayTra == null && c.NgayXoa == null
                             select new { m, c };
 
@@ -349,7 +380,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         ConNo = x.m.SoLuongMuon - x.m.SoLuongDaTra,
                         x.m.NgayMuon,
                         x.m.NgayHenTra,
-                        x.m.GhiChu
+                        x.m.GhiChu,
+                        x.c.NguoiTao
                     })
                     .ToListAsync();
 
@@ -360,7 +392,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         m.MaNhanVien, m.HoTen, m.BoPhan, m.TenCongTy,
                         m.SoLuongMuon, m.SoLuongDaTra, m.ConNo,
                         m.NgayMuon, m.NgayHenTra, m.GhiChu,
-                        SoNgayTre = TinhSoNgayTre(m.NgayHenTra, null)
+                        SoNgayTre = TinhSoNgayTre(m.NgayHenTra, null),
+                        CoTheSua = CoTheSua(m.NguoiTao)
                     })
                     .Where(m => !chiQuaHan || m.SoNgayTre > 0)
                     .ToList();
@@ -406,6 +439,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .FirstOrDefaultAsync(x => x.IdCcdc == idCcdc && x.NgayXoa == null);
                 if (ccdc == null)
                     return Json(new { success = false, message = "Không tìm thấy công cụ dụng cụ." });
+                if (!CoTheSua(ccdc.NguoiTao))
+                    return Json(new { success = false, message = "Bạn chỉ được cho mượn công cụ dụng cụ do mình tạo." });
 
                 var dangMuon = await _context.KkCcdcMuonTras
                     .Where(m => m.IdCcdc == idCcdc && m.NgayTra == null)
@@ -463,6 +498,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var phieu = await _context.KkCcdcMuonTras.FirstOrDefaultAsync(m => m.IdMuon == idMuon);
                 if (phieu == null)
                     return Json(new { success = false, message = "Không tìm thấy phiếu mượn." });
+
+                // Quyền nhận trả theo chủ CCDC của phiếu (không lọc NgayXoa: chỉ cần biết ai sở hữu)
+                var nguoiTaoCcdc = await _context.KkCongCuDungCus
+                    .Where(c => c.IdCcdc == phieu.IdCcdc)
+                    .Select(c => c.NguoiTao)
+                    .FirstOrDefaultAsync();
+                if (!CoTheSua(nguoiTaoCcdc))
+                    return Json(new { success = false, message = "Bạn chỉ được nhận trả công cụ dụng cụ do mình tạo." });
 
                 if (phieu.NgayTra != null)
                     return Json(new { success = false, message = "Phiếu này đã trả xong trước đó." });

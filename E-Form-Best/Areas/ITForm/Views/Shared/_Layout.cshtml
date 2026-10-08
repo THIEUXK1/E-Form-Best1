@@ -14,11 +14,11 @@
     var requestCulture = Context.Features.Get<IRequestCultureFeature>();
     var cultureCode = requestCulture?.RequestCulture.Culture.Name ?? "vi-VN";
 
-    // QLCCDC / QLMayIn / QLCamera là module IT nhưng tên controller không chứa chữ "IT" nên phải liệt kê
+    // QLCCDC / QLMayIn / QLCamera / QLAP là module IT nhưng tên controller không chứa chữ "IT" nên phải liệt kê
     // tường minh, nếu không trang sẽ hiển thị nhầm giao diện HR (màu xanh lá, logo "HR SERVICE").
     bool isITSystem = currentController.Contains("IT") || currentController == "Mail"
                       || currentController.Contains("Order") || currentController == "QLCCDC"
-                      || currentController == "QLMayIn" || currentController == "QLCamera";
+                      || currentController == "QLMayIn" || currentController == "QLCamera" || currentController == "QLAP";
 
     // Các trang thuộc nhóm "Đăng ký đơn" — dùng để tô sáng mục menu, kể cả khi đang ở trang chọn loại đơn
     string[] itSubPages = { "DangKyDon", "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi", "DonCapQuyenOChung", "DonThietKeTemIn", "DonCaiDatPhanMem", "DonLapTrinhUngDung", "DonTraThietBi" }; bool isITSubActive = itSubPages.Contains(currentAction);
@@ -33,6 +33,8 @@
     // Nhóm menu camera: công ty đang xem lấy từ route /QLCamera/{PFVN|MEGA}, không có thì là BPVN
     bool isCameraActive = currentController == "QLCamera";
     string cameraCongTy = (ViewContext.RouteData.Values["congTy"] as string)?.ToUpperInvariant() ?? "BPVN";
+    // Nhóm menu AP Wi-Fi: công ty đang xem cũng lấy từ route /QLAP/{congTy} (dùng chung cameraCongTy)
+    bool isApActive = currentController == "QLAP";
 
     // Route /QLKiemKe/* được khai bằng attribute routing NGAY TRÊN ITFormController, nên
     // RouteData["controller"] luôn là "ITForm" — không được so với "QLKiemKe", phải so theo action.
@@ -519,17 +521,20 @@
                         }
                     }
 
-                    @* Nhóm "Máy in & CCDC": quyền AdminIT và All đều thấy cả hai mục —
+                    @* Nhóm "Máy in & CCDC": máy in cho AdminIT/All; CCDC thêm cả XemAllCCDC —
                        quyền được kiểm lại ở QLMayInController, QLCCDCController *@
-                    @if (User.IsInRole("AdminIT") || User.IsInRole("All"))
+                    @if (User.IsInRole("AdminIT") || User.IsInRole("All") || User.IsInRole("XemAllCCDC"))
                     {
                         <div class="nav-divider"></div>
                         <div class="lang-text nav-section-title" data-key="printer_sec">@L["Máy in & CCDC"]</div>
 
-                        <a href="/QLMayIn" class="nav-link-item @(currentController == "QLMayIn" ? "active" : "")" aria-current="@(currentController == "QLMayIn" ? "page" : null)">
-                            <i class="fa fa-print nav-ico" style="color:#0ea5e9;"></i>
-                            <span class="lang-text" data-key="printer_manage">@L["Quản lý máy in"]</span>
-                        </a>
+                        @if (User.IsInRole("AdminIT") || User.IsInRole("All"))
+                        {
+                            <a href="/QLMayIn" class="nav-link-item @(currentController == "QLMayIn" ? "active" : "")" aria-current="@(currentController == "QLMayIn" ? "page" : null)">
+                                <i class="fa fa-print nav-ico" style="color:#0ea5e9;"></i>
+                                <span class="lang-text" data-key="printer_manage">@L["Quản lý máy in"]</span>
+                            </a>
+                        }
 
                         @* CCDC = công cụ dụng cụ, xử lý ở QLCCDCController *@
                         <a href="/QLCCDC" class="nav-link-item @(currentController == "QLCCDC" ? "active" : "")" aria-current="@(currentController == "QLCCDC" ? "page" : null)">
@@ -567,6 +572,44 @@
                                     <a href="@urlCam" class="submenu-link @(dangOCam ? "active" : "")" aria-current="@(dangOCam ? "page" : null)">
                                         <i class="fa fa-building-o sub-ico" style="color: #a78bfa;"></i>
                                         <span>@congTyCam</span>
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @* AP Wi-Fi chia theo công ty như camera: "All" thấy cả 3, "ApBPVN"/"ApPFVN"/"ApMEGA" chỉ thấy công ty được cấp.
+                       Quyền kiểm lại ở QLAPController (CoQuyenXem / CoQuyenSua) *@
+                    var dsApDuocXem = new[] { "BPVN", "PFVN", "MEGA" }
+                        .Where(x => User.IsInRole("All") || User.IsInRole("Ap" + x)).ToList();
+                    if (dsApDuocXem.Count > 0 || User.IsInRole("AdminIT"))
+                    {
+                        // Nhóm camera đã có vạch ngăn ở trên; không hiện camera thì AP tự mở nhóm mới
+                        if (dsCameraDuocXem.Count == 0 && !User.IsInRole("AdminIT"))
+                        {
+                            <div class="nav-divider"></div>
+                        }
+                        <a data-bs-toggle="collapse" href="#collapseAp" role="button" aria-expanded="@(isApActive ? "true" : "false")" aria-controls="collapseAp" class="nav-link-item @(isApActive ? "active" : "")" style="justify-content: space-between; cursor: pointer;">
+                            <span style="display:flex; align-items:center;">
+                                <i class="fa fa-wifi nav-ico" style="color:#22d3ee;"></i>
+                                <span class="lang-text" data-key="ap_manage">@L["Quản lý AP"]</span>
+                            </span>
+                            <i class="fa fa-angle-down menu-arrow"></i>
+                        </a>
+
+                        <div class="collapse @(isApActive ? "show" : "")" id="collapseAp">
+                            <div style="display: flex; flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
+                                @{ var dangOTongQuanAp = isApActive && currentAction == "TongQuan"; }
+                                <a href="/QLAP/TongQuan" class="submenu-link @(dangOTongQuanAp ? "active" : "")" aria-current="@(dangOTongQuanAp ? "page" : null)">
+                                    <i class="fa fa-pie-chart sub-ico" style="color: #22d3ee;"></i>
+                                    <span>Tổng quan</span>
+                                </a>
+                                @foreach (var congTyAp in dsApDuocXem)
+                                {
+                                    var dangOAp = isApActive && !dangOTongQuanAp && cameraCongTy == congTyAp;
+                                    <a href="/QLAP/@congTyAp" class="submenu-link @(dangOAp ? "active" : "")" aria-current="@(dangOAp ? "page" : null)">
+                                        <i class="fa fa-building-o sub-ico" style="color: #22d3ee;"></i>
+                                        <span>@congTyAp</span>
                                     </a>
                                 }
                             </div>

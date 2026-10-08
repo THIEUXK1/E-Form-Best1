@@ -56,19 +56,19 @@ Thêm gói mới phải hỏi trước — xem [`project-scope.md`](project-scop
 
 | Cạm bẫy | Biểu hiện | Cách tránh |
 |---|---|---|
-| Hot reload **không** cập nhật model EF | Thêm cột vào entity rồi hot reload → EF vẫn ghi theo model cũ, không báo lỗi | **Restart app** sau mỗi lần đổi entity, không đoán |
+| Hot reload **không** cập nhật model EF | Thêm cột vào entity rồi hot reload → EF vẫn ghi theo model cũ, không báo lỗi | **Restart app** sau mỗi lần đổi `Models/ITForm/`/`ITFormContext.cs`: `(Get-NetTCPConnection -LocalPort 5274 -State Listen).OwningProcess \| Stop-Process -Force` (supervisor bật lại ~3 s). Kiểm bằng ghi thử rồi `SELECT` cột mới |
 | PowerShell 5.1 ghép code tiếng Việt | `Get-Content` đọc UTF-8 không BOM như ANSI → `"Cài đặt phần mềm"` thành `"C脿i 膽岷穞…"`, build 0 lỗi nhưng lọc sai lúc chạy | `[System.IO.File]::ReadAllText/WriteAllLines` với `UTF8Encoding` tường minh; quét lại `[一-鿿]` sau khi ghép |
 | `sqlcmd` với file `.sql` tiếng Việt | Dữ liệu vào DB lỗi font | Luôn thêm `-f 65001` |
 | Truy vấn EF không dịch được sang SQL | Nổ **runtime**, build vẫn sạch (đã dính ở `355993a`) | Tránh hàm .NET lạ trong `Where`; cẩn thận `Contains` trên list ngoài |
 | `IMemoryCache` cho dropdown Công ty/Bộ phận | Sửa danh mục **không hiện ngay** | Chờ cache hết hạn hoặc invalidate tường minh |
 | Cache file tĩnh 7 ngày | Sửa `.js`/`.css` cũ mà trình duyệt vẫn dùng bản cũ | Thêm query version hoặc đổi tên file |
 | `UseForwardedHeaders` đã xoá `KnownProxies` | An toàn **chỉ khi** Kestrel không mở thẳng ra Internet | Giữ nguyên nginx đứng trước; không đổi cấu hình này |
-| `dotnet watch` .NET 10 tự chết khi hot-reload | App tắt im lặng, tưởng vẫn chạy | Bọc `watch-supervisor.ps1`, log ra `watch_log.txt` |
+| `dotnet watch` .NET 10 tự chết khi hot-reload | Thêm file mới khi đang watch → `InvalidOperationException ... HotReloadMSBuildWorkspace.cs`, app chết. Kiểu 2: app thoát nhưng watch vẫn sống ở `Waiting for a file to change` | Bọc `watch-supervisor.ps1` chạy tách khỏi phiên (`Start-Process ... -WindowStyle Hidden`), canh **cổng 5274** chứ không chỉ tiến trình; trước khi bật lại dọn supervisor cũ + `dotnet.exe` có `E-Form-Best` trong command line. Log ra `watch_log.txt`. `.cshtml` tự refresh nhờ RuntimeCompilation |
 | Quên lọc soft-delete `KkThietBi` | Thiết bị đã xoá hiện lại trong danh sách/thống kê/export | Mọi truy vấn chạm bảng này lọc `NgayXoa == null` — [`database-safety.md`](database-safety.md) |
 
 ## 5. Lệnh hay dùng
 
-Luôn kẹp output theo [`../rules/core.md`](../rules/core.md) mục 7.
+Luôn kẹp output theo `~/.claude/CLAUDE.md` mục "Tiết kiệm token".
 
 ```bash
 dotnet build -v quiet --nologo | grep -E "error|Error" | head -n 20
