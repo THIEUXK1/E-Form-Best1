@@ -4,6 +4,7 @@
     var congTyBaoCao = ViewBag.CongTyBaoCao as string;
     var tieuDe = congTyBaoCao == null ? "Tổng quan camera" : "Báo cáo camera " + congTyBaoCao;
     ViewData["Title"] = tieuDe;
+    var dsCongTyChon = ViewBag.DsCongTyChon as List<string> ?? new List<string>();
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,15 +15,20 @@
 <div class="content-header pt-0 pb-0" style="margin-top: -25px;">
     <div class="container-fluid">
         <div class="dash-topbar">
-            <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-chart-pie"></i></span>@tieuDe</h4>
-            @if (congTyBaoCao != null)
-            {
-                <a class="btn btn-sm btn-light border" href="@(congTyBaoCao == "BPVN" ? "/QLCamera" : "/QLCamera/" + congTyBaoCao)">
-                    <i class="fas fa-arrow-left me-1"></i> Về trang camera @congTyBaoCao
-                </a>
-            }
+            <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-chart-pie"></i></span><span id="bcTieuDe">@tieuDe</span></h4>
 
             <div class="d-flex flex-wrap align-items-center gap-2 ms-auto bc-thanh-loc">
+                @* Phạm vi báo cáo: tổng các công ty được xem hoặc 1 công ty — áp dụng cho cả trang, bản in và Excel *@
+                <select id="bcCongTy" class="form-select form-select-sm w-auto fw-bold" title="Phạm vi báo cáo">
+                    @if (dsCongTyChon.Count > 1)
+                    {
+                        <option value="" selected="@(congTyBaoCao == null)">Tổng @dsCongTyChon.Count công ty</option>
+                    }
+                    @foreach (var c in dsCongTyChon)
+                    {
+                        <option value="@c" selected="@(congTyBaoCao == c)">@c</option>
+                    }
+                </select>
                 <select id="bcKy" class="form-select form-select-sm w-auto" title="Kỳ báo cáo">
                     <option value="7">7 ngày gần nhất</option>
                     <option value="30">30 ngày gần nhất</option>
@@ -35,7 +41,24 @@
                 <input type="date" id="bcDenNgay" class="form-control form-control-sm w-auto" title="Đến ngày">
                 <button type="button" class="btn btn-sm btn-primary" id="bcXem"><i class="fas fa-rotate me-1"></i> Xem</button>
                 <button type="button" class="btn btn-sm btn-light border" id="bcIn"><i class="fas fa-print me-1"></i> In</button>
-                <a class="btn btn-sm btn-success" id="bcExcel" href="#"><i class="fas fa-file-excel me-1"></i> Xuất Excel</a>
+                @* Bấm Xuất Excel rồi mới chọn phạm vi file: tổng hoặc 1 công ty (theo kỳ đang chọn) *@
+                <div class="dropdown">
+                    <button type="button" class="btn btn-sm btn-success dropdown-toggle" id="bcExcel" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-file-excel me-1"></i> Xuất Excel
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="bcExcel">
+                        <li><h6 class="dropdown-header">Xuất báo cáo cho</h6></li>
+                        @if (dsCongTyChon.Count > 1)
+                        {
+                            <li><a class="dropdown-item bc-xuat-excel fw-bold" href="#" data-cong-ty=""><i class="fas fa-layer-group me-2 text-success"></i>Tổng @dsCongTyChon.Count công ty</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                        }
+                        @foreach (var c in dsCongTyChon)
+                        {
+                            <li><a class="dropdown-item bc-xuat-excel" href="#" data-cong-ty="@c"><i class="fas fa-building me-2 text-success"></i>@c</a></li>
+                        }
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
@@ -51,7 +74,7 @@
                     <div class="bc-in-bang-ten">
                         <div>
                             <div class="bc-in-nhan">BÁO CÁO ĐỊNH KỲ</div>
-                            <div class="bc-in-ten">@(congTyBaoCao == null ? "Tình trạng camera — BPVN · PFVN · MEGA" : "Tình trạng camera " + congTyBaoCao)</div>
+                            <div class="bc-in-ten" id="bcInTen"></div>
                         </div>
                         <div class="text-end">
                             <div class="bc-in-ky" id="bcKyIn"></div>
@@ -68,7 +91,7 @@
                 </div>
 
                 @* Báo cáo riêng 1 công ty: bảng này chỉ còn 1 dòng trùng với thẻ số liệu nên ẩn *@
-                <div class="cam-khung mt-3 @(congTyBaoCao != null ? "d-none" : "")">
+                <div class="cam-khung mt-3 @(congTyBaoCao != null ? "d-none" : "")" id="bcKhungTongHop">
                     <div class="fw-bold small text-muted mb-1"><i class="fas fa-table me-1"></i> Tổng hợp theo công ty</div>
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered align-middle mb-0 small bc-bang">
@@ -148,4 +171,4 @@
     </div>
 </section>
 
-<script src="/js/camera-tong-quan.js?v=20261007c"></script>
+<script src="/js/camera-tong-quan.js?v=20261007e"></script>

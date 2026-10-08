@@ -9,11 +9,11 @@ window.BaoPheKhoITKiemKe = (function () {
     function laHong(item) { return (item.tenTrangThai || '').toLowerCase().includes('hỏng'); }
     function laKhoIT(item) { return (item.tenTrangThai || '').trim().toLowerCase() === 'kho it'; }
 
-    // Lọc theo mục menu đang mở; danh sách chính (không có ?xem) giữ nguyên toàn bộ
+    // Lọc theo mục menu đang mở; thiết bị đã báo phế chỉ nằm ở ?xem=bao-phe, rời khỏi danh sách chính
     function loc(ds) {
         if (CHE_DO === 'kho-it') return ds.filter(laKhoIT);
         if (CHE_DO === 'bao-phe') return ds.filter(laHong);
-        return ds;
+        return ds.filter(x => !laHong(x));
     }
 
     function lopDong(item) {

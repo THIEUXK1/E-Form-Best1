@@ -59,10 +59,26 @@
         $id('bcDenNgay').value = ngayInput(den);
     }
 
-    // Báo cáo riêng 1 công ty (mở từ nút "Báo cáo" ở trang công ty); rỗng = tổng quan 3 công ty
+    // Phạm vi báo cáo: "" = tổng các công ty được xem, "BPVN"/"PFVN"/"MEGA" = riêng công ty đó
     function congTy() {
-        var el = document.querySelector('section.content[data-cong-ty]');
-        return el ? el.getAttribute('data-cong-ty') || '' : '';
+        var el = $id('bcCongTy');
+        return el ? el.value || '' : '';
+    }
+
+    // Đổi phạm vi: cập nhật tiêu đề + URL (bookmark/gửi link được) rồi tải lại số liệu, không reload trang
+    function apPhamVi() {
+        var cty = congTy();
+        var ten = cty ? 'Báo cáo camera ' + cty : 'Tổng quan camera';
+        $id('bcTieuDe').textContent = ten;
+        document.title = ten;
+        var dsTen = Array.prototype.map.call($id('bcCongTy').options, function (o) { return o.value; })
+            .filter(function (v) { return v; });
+        $id('bcInTen').textContent = 'Tình trạng camera ' + (cty || dsTen.join(' · '));
+        // Báo cáo 1 công ty: bảng "Tổng hợp theo công ty" chỉ còn 1 dòng trùng thẻ số liệu
+        $id('bcKhungTongHop').classList.toggle('d-none', !!cty);
+        try {
+            history.replaceState(null, '', '/QLCamera/TongQuan' + (cty ? '?congTy=' + encodeURIComponent(cty) : ''));
+        } catch (e) { /* trình duyệt chặn đổi URL: vẫn xem được, chỉ không bookmark đúng phạm vi */ }
     }
 
     function thamSo() {
@@ -82,7 +98,6 @@
         var nut = $id('bcXem');
         nut.disabled = true;
         hienLoi('');
-        $id('bcExcel').href = '/QLCamera/TongQuan/XuatExcel?' + thamSo();
 
         fetch('/QLCamera/TongQuan/DuLieu?' + thamSo(), { credentials: 'same-origin' })
             .then(function (res) {
@@ -241,12 +256,26 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         datKy('7');
+        apPhamVi();
+        $id('bcCongTy').addEventListener('change', function () { apPhamVi(); tai(); });
         $id('bcKy').addEventListener('change', function () { datKy(this.value); if (this.value !== 'tuy-chon') tai(); });
         ['bcTuNgay', 'bcDenNgay'].forEach(function (id) {
             $id(id).addEventListener('change', function () { $id('bcKy').value = 'tuy-chon'; });
         });
         $id('bcXem').addEventListener('click', function (e) { e.preventDefault(); tai(); });
         $id('bcIn').addEventListener('click', function (e) { e.preventDefault(); window.print(); });
+
+        // Xuất Excel: chọn phạm vi trong menu (tổng / 1 công ty), kỳ lấy theo ô ngày đang chọn.
+        // Tải file là điều hướng hợp lệ (trình duyệt giữ nguyên trang, chỉ tải file về)
+        document.addEventListener('click', function (e) {
+            var muc = e.target.closest('.bc-xuat-excel');
+            if (!muc) return;
+            e.preventDefault();
+            var cty = muc.getAttribute('data-cong-ty') || '';
+            window.location.href = '/QLCamera/TongQuan/XuatExcel?tuNgay=' + encodeURIComponent($id('bcTuNgay').value)
+                + '&denNgay=' + encodeURIComponent($id('bcDenNgay').value)
+                + (cty ? '&congTy=' + encodeURIComponent(cty) : '');
+        });
         tai();
     });
 })();

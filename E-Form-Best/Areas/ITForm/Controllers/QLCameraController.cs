@@ -138,6 +138,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (ds.Count == 0) return Forbid();
 
             ViewBag.CongTyBaoCao = string.IsNullOrWhiteSpace(congTy) ? null : ds[0];
+            // Công ty chọn được trong ô "Phạm vi" (tổng hoặc 1 công ty); server vẫn kiểm lại ở DuLieu/XuatExcel
+            ViewBag.DsCongTyChon = DsCongTyBaoCao(null) ?? new List<string>();
             return View();
         }
 
