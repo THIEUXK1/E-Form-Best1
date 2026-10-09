@@ -192,6 +192,33 @@
             .catch(function (e) { hienLoi("Lỗi tải sơ đồ: " + e.message); });
     }
 
+    // Bấm giữ chuột trái rồi kéo để cuộn sơ đồ (pan) — sơ đồ rộng hơn màn hình
+    // nên kéo trực tiếp tiện hơn dùng thanh cuộn ngang/dọc.
+    (function ganKeoSoDo() {
+        var dangKeo = false, x0 = 0, y0 = 0, sl0 = 0, st0 = 0;
+        wrap.addEventListener("pointerdown", function (e) {
+            if (e.button !== 0 || e.pointerType === "touch") return; // cảm ứng đã tự cuộn được
+            dangKeo = true;
+            x0 = e.clientX; y0 = e.clientY; sl0 = wrap.scrollLeft; st0 = wrap.scrollTop;
+            wrap.setPointerCapture(e.pointerId);
+            wrap.classList.add("dang-keo");
+            e.preventDefault(); // không bôi đen chữ trong SVG khi kéo
+        });
+        wrap.addEventListener("pointermove", function (e) {
+            if (!dangKeo) return;
+            wrap.scrollLeft = sl0 - (e.clientX - x0);
+            wrap.scrollTop = st0 - (e.clientY - y0);
+        });
+        function thaKeo(e) {
+            if (!dangKeo) return;
+            dangKeo = false;
+            wrap.classList.remove("dang-keo");
+            if (wrap.hasPointerCapture(e.pointerId)) wrap.releasePointerCapture(e.pointerId);
+        }
+        wrap.addEventListener("pointerup", thaKeo);
+        wrap.addEventListener("pointercancel", thaKeo);
+    })();
+
     var btn = document.getElementById("sodoLamMoi");
     if (btn) btn.addEventListener("click", tai);
     tai();

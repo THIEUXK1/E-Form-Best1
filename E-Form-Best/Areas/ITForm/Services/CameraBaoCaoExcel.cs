@@ -23,7 +23,7 @@ namespace E_Form_Best.Areas.ITForm.Services
         {
             using var wb = new XLWorkbook();
             var tenBaoCao = congTy == null ? "BÁO CÁO TỔNG QUAN CAMERA" : "BÁO CÁO CAMERA " + congTy;
-            var phuDe = $"Kỳ báo cáo: {bc.TuNgay:dd/MM/yyyy} – {bc.DenNgay:dd/MM/yyyy}   ·   Lập lúc: {bc.TaoLuc:HH:mm dd/MM/yyyy}"
+            var phuDe = $"Kỳ báo cáo: {bc.TuNgay:dd/MM/yyyy} – {bc.DenNgay:dd/MM/yyyy} (so với {bc.KyTruocTu:dd/MM} – {bc.KyTruocDen:dd/MM/yyyy})   ·   Lập lúc: {bc.TaoLuc:HH:mm dd/MM/yyyy}"
                         + (string.IsNullOrWhiteSpace(nguoiLap) ? "" : "   ·   Người lập: " + nguoiLap);
 
             TrangBaoCao(wb.Worksheets.Add("Báo cáo"), bc, tenBaoCao, phuDe, congTy == null);
@@ -72,6 +72,36 @@ namespace E_Form_Best.Areas.ITForm.Services
             The(ws, r, 9, "Chưa có ảnh lưu", chuaCoAnh, null, chuaCoAnh > 0 ? MauDo : MauXanh);
             r += 3;
 
+            // So với kỳ trước (CameraBaoCaoService.KyTruoc): mỗi công ty 1 dòng + dòng Toàn bộ khi nhiều công ty
+            r = TieuDeMuc(ws, r, $"SO VỚI KỲ TRƯỚC ({bc.KyTruocTu:dd/MM/yyyy} – {bc.KyTruocDen:dd/MM/yyyy})", SoCot);
+            var dongSoSanh = ok.Select(c => DongSoSanh(c.CongTy, c.SoLanMat, c.SoLanMatTruoc, c.SoCameraBiMat, c.SoCameraBiMatTruoc,
+                c.GiayMat, c.GiayMatTruoc, c.TyLeTrongKy, c.TyLeTruoc)).ToList();
+            if (ok.Count > 1)
+            {
+                // Cùng độ dài kỳ cho mọi công ty nên % gộp = trung bình có trọng số theo số camera
+                var coTyLe = ok.Where(x => x.TyLeTrongKy != null && x.TyLeTruoc != null && x.Tong > 0).ToList();
+                var tongCam = coTyLe.Sum(x => x.Tong);
+                dongSoSanh.Add(DongSoSanh("Toàn bộ", ok.Sum(x => x.SoLanMat), ok.Sum(x => x.SoLanMatTruoc),
+                    ok.Sum(x => x.SoCameraBiMat), ok.Sum(x => x.SoCameraBiMatTruoc), ok.Sum(x => x.GiayMat), ok.Sum(x => x.GiayMatTruoc),
+                    tongCam > 0 ? coTyLe.Sum(x => x.TyLeTrongKy!.Value * x.Tong) / tongCam : null,
+                    tongCam > 0 ? coTyLe.Sum(x => x.TyLeTruoc!.Value * x.Tong) / tongCam : null));
+            }
+            var dongDauSoSanh = r;
+            r = Bang(ws, r,
+                new[] { "Công ty", "Lần mất KN", "Kỳ trước", "± lần", "Camera bị mất", "Kỳ trước", "Giờ mất KN", "Kỳ trước", "% HĐ trong kỳ", "Kỳ trước" },
+                dongSoSanh,
+                new[] { null, "#,##0", "#,##0", "+#,##0;-#,##0;0", "#,##0", "#,##0", "#,##0.0", "#,##0.0", "0.00%", "0.00%" },
+                tyLeCot: new[] { 9, 10 }, doCot: 0);
+            // Cột "± lần": tăng là xấu (đỏ), giảm là tốt (xanh)
+            for (var i = 1; i <= dongSoSanh.Count; i++)
+            {
+                var o = ws.Cell(dongDauSoSanh + i, 4);
+                if (dongSoSanh[i - 1][3] is int d && d != 0) o.Style.Font.SetBold().Font.SetFontColor(d > 0 ? MauDo : MauXanh);
+            }
+            if (bc.LichSuTu != null && bc.LichSuTu > bc.KyTruocTu && bc.LichSuTu <= bc.TuNgay)
+                r = GhiChu(ws, r, $"⚠ Lịch sử chỉ có từ {bc.LichSuTu:HH:mm dd/MM/yyyy} — kỳ trước chưa đủ dữ liệu, phần so sánh chỉ để tham khảo.", MauVang);
+            r++;
+
             if (nhieuCongTy)
             {
                 r = TieuDeMuc(ws, r, "THEO CÔNG TY", SoCot);
@@ -89,12 +119,12 @@ namespace E_Form_Best.Areas.ITForm.Services
 
             r = TieuDeMuc(ws, r, "THEO ĐẦU GHI", SoCot);
             r = Bang(ws, r,
-                new[] { "Công ty", "Đầu ghi", "IP đầu ghi", "Tổng", "Hoạt động", "Mất KN", "% hoạt động", "Lần mất KN", "Giờ mất KN", "" },
+                new[] { "Công ty", "Đầu ghi", "IP đầu ghi", "Tổng", "Hoạt động", "Mất KN", "% hoạt động", "Lần mất KN", "Lần mất kỳ trước", "Giờ mất KN" },
                 bc.DauGhi.Select(d => new object?[] { d.CongTy, d.Ten ?? d.NvrIp, d.NvrIp, d.Tong, d.HoatDong, d.MatKetNoi,
-                                                      d.Tong > 0 ? (double)d.HoatDong / d.Tong : null, d.SoLanMat,
-                                                      Math.Round(d.GiayMat / 3600.0, 1), null }).ToList(),
-                new[] { null, null, null, "#,##0", "#,##0", "#,##0", "0.0%", "#,##0", "#,##0.0", null },
-                tyLeCot: new[] { 7 }, doCot: 6, soCotThat: 9);
+                                                      d.Tong > 0 ? (double)d.HoatDong / d.Tong : null, d.SoLanMat, d.SoLanMatTruoc,
+                                                      Math.Round(d.GiayMat / 3600.0, 1) }).ToList(),
+                new[] { null, null, null, "#,##0", "#,##0", "#,##0", "0.0%", "#,##0", "#,##0", "#,##0.0" },
+                tyLeCot: new[] { 7 }, doCot: 6);
             r++;
 
             foreach (var c in bc.CongTy.Where(x => x.Loi != null))
@@ -106,6 +136,11 @@ namespace E_Form_Best.Areas.ITForm.Services
 
             ThietLapIn(ws, 3);
         }
+
+        private static object?[] DongSoSanh(string ten, int lan, int lanTruoc, int cam, int camTruoc, long giay, long giayTruoc,
+            double? tyLe, double? tyLeTruoc)
+            => new object?[] { ten, lan, lanTruoc, lan - lanTruoc, cam, camTruoc,
+                               Math.Round(giay / 3600.0, 1), Math.Round(giayTruoc / 3600.0, 1), tyLe / 100, tyLeTruoc / 100 };
 
         // ---------------- Trang danh sách camera ----------------
 

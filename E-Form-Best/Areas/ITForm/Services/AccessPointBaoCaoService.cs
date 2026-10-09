@@ -18,6 +18,9 @@ namespace E_Form_Best.Areas.ITForm.Services
             public DateTime TuNgay { get; set; }
             public DateTime DenNgay { get; set; }
             public DateTime TaoLuc { get; set; }
+            /// <summary>Kỳ đem ra so sánh (CameraBaoCaoService.KyTruoc).</summary>
+            public DateTime KyTruocTu { get; set; }
+            public DateTime KyTruocDen { get; set; }
             /// <summary>Sự kiện sớm nhất đang có — kỳ bắt đầu trước mốc này thì số liệu trong kỳ chưa đủ.</summary>
             public DateTime? LichSuTu { get; set; }
             public List<CongTyDong> CongTy { get; set; } = new();
@@ -43,6 +46,11 @@ namespace E_Form_Best.Areas.ITForm.Services
             public int SoApBiMat { get; set; }
             public long GiayMat { get; set; }
             public double? TyLeTrongKy { get; set; }
+            // Cùng các chỉ số ở kỳ trước để so sánh tăng/giảm
+            public int SoLanMatTruoc { get; set; }
+            public int SoApBiMatTruoc { get; set; }
+            public long GiayMatTruoc { get; set; }
+            public double? TyLeTruoc { get; set; }
         }
 
         public class BoPhanDong
@@ -54,6 +62,8 @@ namespace E_Form_Best.Areas.ITForm.Services
             public int MatKetNoi { get; set; }
             public int SoLanMat { get; set; }
             public long GiayMat { get; set; }
+            public int SoLanMatTruoc { get; set; }
+            public long GiayMatTruoc { get; set; }
         }
 
         public class ApDong
@@ -68,6 +78,7 @@ namespace E_Form_Best.Areas.ITForm.Services
             public DateTime? MatTu { get; set; }
             public int SoLan { get; set; }
             public long GiayMat { get; set; }
+            public int SoLanTruoc { get; set; }
         }
 
         /// <param name="tuNgay">Ngày đầu kỳ (gồm trọn ngày).</param>
@@ -80,7 +91,11 @@ namespace E_Form_Best.Areas.ITForm.Services
             // Kỳ chưa hết thì chỉ tính tới hiện tại
             var cuoiKy = den < bayGio ? den : bayGio;
             var homNay = DateOnly.FromDateTime(bayGio);
-            var bc = new BaoCao { TuNgay = tu, DenNgay = denNgay.Date, TaoLuc = bayGio };
+            var (tuTruoc, denTruoc) = CameraBaoCaoService.KyTruoc(tu, denNgay);
+            // Kỳ này chưa hết thì kỳ trước cũng chỉ tính tới cùng mốc, để số lần mất so được với nhau
+            var cuoiTruoc = denTruoc.AddDays(1);
+            if (cuoiKy < den && tuTruoc + (cuoiKy - tu) < cuoiTruoc) cuoiTruoc = tuTruoc + (cuoiKy - tu);
+            var bc = new BaoCao { TuNgay = tu, DenNgay = denNgay.Date, TaoLuc = bayGio, KyTruocTu = tuTruoc, KyTruocDen = denTruoc };
 
             var dsAp = await _context.KkAccessPoints
                 .Where(x => x.NgayXoa == null && x.IdcongTyNavigation != null && dsCongTy.Contains(x.IdcongTyNavigation.TenCongTy))
@@ -100,42 +115,55 @@ namespace E_Form_Best.Areas.ITForm.Services
 
             // Sự kiện DOWN trong kỳ -> số lần mất. Sự kiện UP từ đầu kỳ trở đi (kể cả sau kỳ) mang thời lượng mất
             // -> cắt phần nằm trong kỳ: AP rớt trước kỳ và lên lại sau kỳ vẫn được tính đủ.
+            // Đọc một lần từ đầu kỳ trước, rồi chia cho từng kỳ.
             var suKien = await _context.KkAccessPointLichSus
-                .Where(x => dsId.Contains(x.IdAp) && x.ThoiGian >= tu
+                .Where(x => dsId.Contains(x.IdAp) && x.ThoiGian >= tuTruoc
                             && ((x.SangTrangThai == "DOWN" && x.ThoiGian < den) || (x.SangTrangThai == "UP" && x.ThoiLuongGiay != null)))
                 .Select(x => new { x.IdAp, x.ThoiGian, x.SangTrangThai, x.ThoiLuongGiay })
                 .ToListAsync(ct);
             bc.LichSuTu = dsId.Count == 0 ? null
                 : await _context.KkAccessPointLichSus.Where(x => dsId.Contains(x.IdAp)).MinAsync(x => (DateTime?)x.ThoiGian, ct);
 
-            var thongKe = new Dictionary<int, (int soLan, long giay)>();
-            void Cong(int idAp, int lan, long giay)
+            Dictionary<int, (int soLan, long giay)> ThongKeKy(DateTime kyTu, DateTime kyCuoi)
             {
-                var cu = thongKe.GetValueOrDefault(idAp);
-                thongKe[idAp] = (cu.soLan + lan, cu.giay + giay);
-            }
-            long GiayTrongKy(DateTime batDau, DateTime ketThuc)
-            {
-                var a = batDau < tu ? tu : batDau;
-                var b = ketThuc > cuoiKy ? cuoiKy : ketThuc;
-                return b > a ? (long)(b - a).TotalSeconds : 0;
+                var kq = new Dictionary<int, (int soLan, long giay)>();
+                void Cong(int idAp, int lan, long giay)
+                {
+                    var cu = kq.GetValueOrDefault(idAp);
+                    kq[idAp] = (cu.soLan + lan, cu.giay + giay);
+                }
+                long GiayTrongKy(DateTime batDau, DateTime ketThuc)
+                {
+                    var a = batDau < kyTu ? kyTu : batDau;
+                    var b = ketThuc > kyCuoi ? kyCuoi : ketThuc;
+                    return b > a ? (long)(b - a).TotalSeconds : 0;
+                }
+
+                foreach (var s in suKien)
+                {
+                    if (s.SangTrangThai == "DOWN") { if (s.ThoiGian >= kyTu && s.ThoiGian < kyCuoi) Cong(s.IdAp, 1, 0); }
+                    else Cong(s.IdAp, 0, GiayTrongKy(s.ThoiGian.AddSeconds(-s.ThoiLuongGiay!.Value), s.ThoiGian));
+                }
+                // Đang mất kết nối: chưa có sự kiện UP nên tính từ lúc rớt tới cuối kỳ
+                foreach (var ap in theoDoi.Where(x => x.TrangThaiKetNoi == "DOWN" && x.DoiTrangThaiLuc != null))
+                    Cong(ap.IdAp, 0, GiayTrongKy(ap.DoiTrangThaiLuc!.Value, bayGio));
+                return kq;
             }
 
-            foreach (var s in suKien)
-            {
-                if (s.SangTrangThai == "DOWN") Cong(s.IdAp, 1, 0);
-                else Cong(s.IdAp, 0, GiayTrongKy(s.ThoiGian.AddSeconds(-s.ThoiLuongGiay!.Value), s.ThoiGian));
-            }
-            // Đang mất kết nối: chưa có sự kiện UP nên tính từ lúc rớt tới cuối kỳ
-            foreach (var ap in theoDoi.Where(x => x.TrangThaiKetNoi == "DOWN" && x.DoiTrangThaiLuc != null))
-                Cong(ap.IdAp, 0, GiayTrongKy(ap.DoiTrangThaiLuc!.Value, bayGio));
+            var thongKe = ThongKeKy(tu, cuoiKy);
+            var thongKeTruoc = ThongKeKy(tuTruoc, cuoiTruoc);
 
+            // Cả 2 kỳ dùng chung danh sách AP đang theo dõi làm mẫu số
+            double? TyLe(int tong, long giayMat, double giayKy)
+                => tong > 0 && giayKy > 0 ? Math.Round(100 * Math.Max(0, 1 - giayMat / (tong * giayKy)), 2) : null;
             var giayKy = Math.Max(0, (cuoiKy - tu).TotalSeconds);
+            var giayKyTruoc = Math.Max(0, (cuoiTruoc - tuTruoc).TotalSeconds);
             foreach (var cty in dsCongTy)
             {
                 var cuaCty = dsAp.Where(x => x.CongTy == cty).ToList();
                 var tdCty = theoDoi.Where(x => x.CongTy == cty).ToList();
                 var tk = tdCty.Select(x => thongKe.GetValueOrDefault(x.IdAp)).ToList();
+                var tkTruoc = tdCty.Select(x => thongKeTruoc.GetValueOrDefault(x.IdAp)).ToList();
                 var dong = new CongTyDong
                 {
                     CongTy = cty,
@@ -149,11 +177,13 @@ namespace E_Form_Best.Areas.ITForm.Services
                     HetBaoHanh = cuaCty.Count(x => x.HanBaoHanh != null && x.HanBaoHanh < homNay),
                     SoLanMat = tk.Sum(x => x.soLan),
                     SoApBiMat = tk.Count(x => x.soLan > 0 || x.giay > 0),
-                    GiayMat = tk.Sum(x => x.giay)
+                    GiayMat = tk.Sum(x => x.giay),
+                    SoLanMatTruoc = tkTruoc.Sum(x => x.soLan),
+                    SoApBiMatTruoc = tkTruoc.Count(x => x.soLan > 0 || x.giay > 0),
+                    GiayMatTruoc = tkTruoc.Sum(x => x.giay)
                 };
-                dong.TyLeTrongKy = dong.Tong > 0 && giayKy > 0
-                    ? Math.Round(100 * Math.Max(0, 1 - dong.GiayMat / (dong.Tong * giayKy)), 2)
-                    : null;
+                dong.TyLeTrongKy = TyLe(dong.Tong, dong.GiayMat, giayKy);
+                dong.TyLeTruoc = TyLe(dong.Tong, dong.GiayMatTruoc, giayKyTruoc);
                 bc.CongTy.Add(dong);
             }
 
@@ -162,12 +192,14 @@ namespace E_Form_Best.Areas.ITForm.Services
                 .Select(g =>
                 {
                     var tk = g.Select(x => thongKe.GetValueOrDefault(x.IdAp)).ToList();
+                    var tkTruoc = g.Select(x => thongKeTruoc.GetValueOrDefault(x.IdAp)).ToList();
                     return new BoPhanDong
                     {
                         CongTy = g.Key.CongTy, BoPhan = g.Key.BoPhan,
                         Tong = g.Count(), HoatDong = g.Count(x => x.TrangThaiKetNoi == "UP"),
                         MatKetNoi = g.Count(x => x.TrangThaiKetNoi == "DOWN"),
-                        SoLanMat = tk.Sum(x => x.soLan), GiayMat = tk.Sum(x => x.giay)
+                        SoLanMat = tk.Sum(x => x.soLan), GiayMat = tk.Sum(x => x.giay),
+                        SoLanMatTruoc = tkTruoc.Sum(x => x.soLan), GiayMatTruoc = tkTruoc.Sum(x => x.giay)
                     };
                 })
                 .OrderBy(x => Array.IndexOf(AccessPointPingWorker.DsCongTy, x.CongTy)).ThenByDescending(x => x.MatKetNoi).ThenBy(x => x.BoPhan)
@@ -180,7 +212,7 @@ namespace E_Form_Best.Areas.ITForm.Services
                 {
                     IdAp = x.IdAp, CongTy = x.CongTy, Ten = x.TenAp, Ip = x.DiaChiIp, BoPhan = x.BoPhan, ViTri = x.ViTri,
                     MatTu = x.TrangThaiKetNoi == "DOWN" ? x.DoiTrangThaiLuc : null,
-                    SoLan = tk.soLan, GiayMat = tk.giay
+                    SoLan = tk.soLan, GiayMat = tk.giay, SoLanTruoc = thongKeTruoc.GetValueOrDefault(x.IdAp).soLan
                 };
             }).ToList();
 

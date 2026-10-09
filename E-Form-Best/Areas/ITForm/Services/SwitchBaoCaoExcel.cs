@@ -24,7 +24,7 @@ namespace E_Form_Best.Areas.ITForm.Services
         {
             using var wb = new XLWorkbook();
             var tieuDe = congTy == null ? "BÁO CÁO TỔNG QUAN SWITCH" : "BÁO CÁO SWITCH " + congTy;
-            var phuDe = PhuDe($"Kỳ báo cáo: {bc.TuNgay:dd/MM/yyyy} – {bc.DenNgay:dd/MM/yyyy}   ·   Lập lúc: {bc.TaoLuc:HH:mm dd/MM/yyyy}", nguoiLap);
+            var phuDe = PhuDe($"Kỳ báo cáo: {bc.TuNgay:dd/MM/yyyy} – {bc.DenNgay:dd/MM/yyyy} (so với {bc.KyTruocTu:dd/MM} – {bc.KyTruocDen:dd/MM/yyyy})   ·   Lập lúc: {bc.TaoLuc:HH:mm dd/MM/yyyy}", nguoiLap);
 
             var ws = TrangMoi(wb, "Báo cáo", new[] { 14, 11, 11, 11, 11, 12, 12, 12, 12, 12, 13, 14 });
             var r = DauTrang(ws, tieuDe, phuDe, 12);
@@ -38,16 +38,39 @@ namespace E_Form_Best.Areas.ITForm.Services
                 new[] { null, "#,##0", "#,##0", "#,##0", "#,##0", "#,##0", "#,##0", "#,##0", "#,##0", "#,##0", "#,##0.0", "0.00%" });
             r++;
 
+            // So với kỳ trước (CameraBaoCaoService.KyTruoc); nhiều công ty thì thêm dòng Toàn bộ
+            r = TieuDeMuc(ws, r, $"SO VỚI KỲ TRƯỚC ({bc.KyTruocTu:dd/MM/yyyy} – {bc.KyTruocDen:dd/MM/yyyy})", 12);
+            var dongSoSanh = bc.CongTy.Select(c => DongSoSanh(c.CongTy, c.SoLanMat, c.SoLanMatTruoc, c.SoSwitchBiMat, c.SoSwitchBiMatTruoc,
+                c.GiayMat, c.GiayMatTruoc, c.TyLeTrongKy, c.TyLeTruoc)).ToList();
+            if (bc.CongTy.Count > 1)
+            {
+                // Cùng độ dài kỳ cho mọi công ty nên % gộp = trung bình có trọng số theo số switch theo dõi
+                var coTyLe = bc.CongTy.Where(x => x.TyLeTrongKy != null && x.TyLeTruoc != null && x.Tong > 0).ToList();
+                var tongSw = coTyLe.Sum(x => x.Tong);
+                dongSoSanh.Add(DongSoSanh("Toàn bộ", bc.CongTy.Sum(x => x.SoLanMat), bc.CongTy.Sum(x => x.SoLanMatTruoc),
+                    bc.CongTy.Sum(x => x.SoSwitchBiMat), bc.CongTy.Sum(x => x.SoSwitchBiMatTruoc), bc.CongTy.Sum(x => x.GiayMat), bc.CongTy.Sum(x => x.GiayMatTruoc),
+                    tongSw > 0 ? coTyLe.Sum(x => x.TyLeTrongKy!.Value * x.Tong) / tongSw : null,
+                    tongSw > 0 ? coTyLe.Sum(x => x.TyLeTruoc!.Value * x.Tong) / tongSw : null));
+            }
+            r = Bang(ws, r,
+                new[] { "Công ty", "Lần mất KN", "Kỳ trước", "± lần", "Switch bị mất", "Kỳ trước", "Giờ mất KN", "Kỳ trước",
+                        "% HĐ trong kỳ", "Kỳ trước", "± điểm %" },
+                dongSoSanh,
+                new[] { null, "#,##0", "#,##0", "+#,##0;-#,##0;0", "#,##0", "#,##0", "#,##0.0", "#,##0.0", "0.00%", "0.00%", "+0.00;-0.00;0" });
+            r++;
+
             r = TieuDeMuc(ws, r, "THEO BỘ PHẬN", 12);
             r = Bang(ws, r,
-                new[] { "Công ty", "Bộ phận", "Tổng", "Hoạt động", "Mất KN", "Lần mất KN", "Giờ mất KN" },
-                bc.BoPhan.Select(b => new object?[] { b.CongTy, b.BoPhan, b.Tong, b.HoatDong, b.MatKetNoi, b.SoLanMat,
+                new[] { "Công ty", "Bộ phận", "Tổng", "Hoạt động", "Mất KN", "Lần mất KN", "Lần mất kỳ trước", "Giờ mất KN" },
+                bc.BoPhan.Select(b => new object?[] { b.CongTy, b.BoPhan, b.Tong, b.HoatDong, b.MatKetNoi, b.SoLanMat, b.SoLanMatTruoc,
                                                       Math.Round(b.GiayMat / 3600.0, 1) }).ToList(),
-                new[] { null, null, "#,##0", "#,##0", "#,##0", "#,##0", "#,##0.0" });
+                new[] { null, null, "#,##0", "#,##0", "#,##0", "#,##0", "#,##0", "#,##0.0" });
             r++;
 
             if (bc.LichSuTu != null && bc.LichSuTu > bc.TuNgay)
                 r = GhiChu(ws, r, $"⚠ Lịch sử đổi trạng thái chỉ có từ {bc.LichSuTu:HH:mm dd/MM/yyyy} — số liệu trong kỳ trước mốc này chưa đầy đủ.", MauVang);
+            else if (bc.LichSuTu != null && bc.LichSuTu > bc.KyTruocTu)
+                r = GhiChu(ws, r, $"⚠ Lịch sử chỉ có từ {bc.LichSuTu:HH:mm dd/MM/yyyy} — kỳ trước chưa đủ dữ liệu, phần so sánh chỉ để tham khảo.", MauVang);
             r = GhiChu(ws, r, "Theo dõi = switch có IP và không ở tình trạng Ngừng sử dụng / Trong kho. Hiện tại theo lần ping gần nhất.", MauChuPhu);
             GhiChu(ws, r, "% hoạt động trong kỳ = 1 − tổng thời gian mất kết nối / (số switch theo dõi × độ dài kỳ).", MauChuPhu);
             ThietLapIn(ws, null);
@@ -62,13 +85,13 @@ namespace E_Form_Best.Areas.ITForm.Services
                 new[] { null, null, null, null, null, "dd/MM/yyyy HH:mm", "#,##0.0" }, locDuoc: true);
             ThietLapIn(wsMat, r);
 
-            var wsNhieu = TrangMoi(wb, "Mất KN nhiều nhất", new[] { 10, 30, 15, 22, 30, 12, 14 });
-            r = DauTrang(wsNhieu, "SWITCH MẤT KẾT NỐI NHIỀU NHẤT TRONG KỲ (TOP 20)", phuDe, 7);
+            var wsNhieu = TrangMoi(wb, "Mất KN nhiều nhất", new[] { 10, 30, 15, 22, 30, 12, 12, 14 });
+            r = DauTrang(wsNhieu, "SWITCH MẤT KẾT NỐI NHIỀU NHẤT TRONG KỲ (TOP 20)", phuDe, 8);
             Bang(wsNhieu, r,
-                new[] { "Công ty", "Tên switch", "IP", "Bộ phận", "Vị trí", "Lần mất KN", "Giờ mất KN" },
-                bc.MatNhieu.Select(a => new object?[] { a.CongTy, a.Ten, a.Ip, a.BoPhan, a.ViTri, a.SoLan,
+                new[] { "Công ty", "Tên switch", "IP", "Bộ phận", "Vị trí", "Lần mất KN", "Lần kỳ trước", "Giờ mất KN" },
+                bc.MatNhieu.Select(a => new object?[] { a.CongTy, a.Ten, a.Ip, a.BoPhan, a.ViTri, a.SoLan, a.SoLanTruoc,
                                                         Math.Round(a.GiayMat / 3600.0, 1) }).ToList(),
-                new[] { null, null, null, null, null, "#,##0", "#,##0.0" }, locDuoc: true);
+                new[] { null, null, null, null, null, "#,##0", "#,##0", "#,##0.0" }, locDuoc: true);
             ThietLapIn(wsNhieu, r);
 
             return Luu(wb);
@@ -92,6 +115,12 @@ namespace E_Form_Best.Areas.ITForm.Services
             ThietLapIn(ws, r);
             return Luu(wb);
         }
+
+        private static object?[] DongSoSanh(string ten, int lan, int lanTruoc, int biMat, int biMatTruoc, long giay, long giayTruoc,
+            double? tyLe, double? tyLeTruoc)
+            => new object?[] { ten, lan, lanTruoc, lan - lanTruoc, biMat, biMatTruoc,
+                               Math.Round(giay / 3600.0, 1), Math.Round(giayTruoc / 3600.0, 1), tyLe / 100, tyLeTruoc / 100,
+                               tyLe != null && tyLeTruoc != null ? Math.Round(tyLe.Value - tyLeTruoc.Value, 2) : null };
 
         // ---------------- Dựng trang ----------------
 

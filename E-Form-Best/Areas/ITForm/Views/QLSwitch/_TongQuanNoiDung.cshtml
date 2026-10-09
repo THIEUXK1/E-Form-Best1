@@ -24,6 +24,8 @@
                     }
                 </select>
                 <select id="bcKy" class="form-select form-select-sm w-auto" title="Kỳ báo cáo">
+                    <option value="tuan-nay">Tuần này</option>
+                    <option value="tuan-truoc">Tuần trước</option>
                     <option value="7">7 ngày gần nhất</option>
                     <option value="30">30 ngày gần nhất</option>
                     <option value="thang-nay">Tháng này</option>
@@ -83,6 +85,33 @@
                     <div class="text-center text-muted py-4 w-100">Đang tải báo cáo...</div>
                 </div>
 
+                @* So sánh các chỉ số theo kỳ với kỳ trước tương ứng; bao-cao-so-sanh.js vẽ và tô ▲▼ theo tốt/xấu *@
+                <div class="cam-khung mt-3">
+                    <div class="fw-bold small text-muted mb-1">
+                        <i class="fas fa-code-compare me-1"></i> So với kỳ trước <span class="fw-normal" id="bcKyTruoc"></span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0 small bc-bang">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2">Công ty</th>
+                                    <th colspan="3" class="text-center">Lần mất KN</th>
+                                    <th colspan="3" class="text-center">Switch bị mất</th>
+                                    <th colspan="3" class="text-center">Tổng giờ mất</th>
+                                    <th colspan="3" class="text-center">% hoạt động</th>
+                                </tr>
+                                <tr>
+                                    <th class="text-end">Kỳ này</th><th class="text-end">Kỳ trước</th><th class="text-end">Thay đổi</th>
+                                    <th class="text-end">Kỳ này</th><th class="text-end">Kỳ trước</th><th class="text-end">Thay đổi</th>
+                                    <th class="text-end">Kỳ này</th><th class="text-end">Kỳ trước</th><th class="text-end">Thay đổi</th>
+                                    <th class="text-end">Kỳ này</th><th class="text-end">Kỳ trước</th><th class="text-end">Thay đổi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bcBangSoSanh"></tbody>
+                        </table>
+                    </div>
+                </div>
+
                 @* Báo cáo riêng 1 công ty: bảng này chỉ còn 1 dòng trùng với thẻ số liệu nên ẩn *@
                 <div class="cam-khung mt-3 @(congTyBaoCao != null ? "d-none" : "")" id="bcKhungTongHop">
                     <div class="fw-bold small text-muted mb-1"><i class="fas fa-table me-1"></i> Tổng hợp theo công ty</div>
@@ -116,7 +145,7 @@
                                     <th>Công ty</th><th>Bộ phận</th>
                                     <th class="text-end">Tổng</th><th class="text-end">Hoạt động</th><th class="text-end">Mất KN</th>
                                     <th style="min-width:160px;">% hoạt động</th>
-                                    <th class="text-end">Lần mất KN (kỳ)</th><th class="text-end">Giờ mất (kỳ)</th>
+                                    <th class="text-end">Lần mất KN (kỳ)</th><th class="text-end">So kỳ trước</th><th class="text-end">Giờ mất (kỳ)</th>
                                 </tr>
                             </thead>
                             <tbody id="bcBangBoPhan"></tbody>
@@ -147,7 +176,7 @@
                             <div class="table-responsive bc-cuon">
                                 <table class="table table-sm table-hover align-middle mb-0 small bc-bang">
                                     <thead>
-                                        <tr><th>Công ty</th><th>Tên switch</th><th>IP</th><th class="text-end">Lần</th><th class="text-end">Giờ mất</th></tr>
+                                        <tr><th>Công ty</th><th>Tên switch</th><th>IP</th><th class="text-end">Lần</th><th class="text-end">Kỳ trước</th><th class="text-end">Giờ mất</th></tr>
                                     </thead>
                                     <tbody id="bcBangMatNhieu"></tbody>
                                 </table>
@@ -159,6 +188,7 @@
                 <div class="small text-muted mt-2">
                     Theo dõi = switch có IP và không ở tình trạng Ngừng sử dụng / Trong kho. Hiện tại theo lần ping gần nhất của job nền.
                     Trong kỳ: tính từ lịch sử đổi trạng thái; % hoạt động trong kỳ = 1 − tổng thời gian mất / (số switch theo dõi × độ dài kỳ).
+                    Kỳ trước: tuần so với cùng các ngày tuần trước, tháng so với cùng khoảng ngày tháng trước; cả 2 kỳ tính trên danh sách switch đang theo dõi.
                 </div>
             </div>
         </div>

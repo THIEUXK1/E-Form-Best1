@@ -47,6 +47,35 @@
         <div class="text-center text-muted py-5">Đang tải báo cáo...</div>
     </div>
 
+    @* "So với kỳ trước" cho 3 tab Thiết bị / Đơn IT / Công việc — trang thống kê cũ không có phần này nên gắn ở đây,
+       số liệu từ /BaoCaoDinhKy/SoSanh, bao-cao-dinh-ky.js vẽ. Kỳ chọn riêng (trang nhúng có bộ lọc ngày của nó). *@
+    <div id="bcSoSanhKhac" class="container-fluid pt-3 d-none">
+        <div class="cam-khung">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <span class="fw-bold small text-muted">
+                    <i class="fas fa-code-compare me-1"></i> So với kỳ trước <span class="fw-normal" id="bcSsKyTruoc"></span>
+                </span>
+                <div class="d-flex flex-wrap align-items-center gap-2 ms-auto">
+                    <select id="bcSsKy" class="form-select form-select-sm w-auto" title="Kỳ so sánh">
+                        <option value="tuan-nay">Tuần này</option>
+                        <option value="tuan-truoc">Tuần trước</option>
+                        <option value="7">7 ngày gần nhất</option>
+                        <option value="30">30 ngày gần nhất</option>
+                        <option value="thang-nay">Tháng này</option>
+                        <option value="thang-truoc">Tháng trước</option>
+                        <option value="tuy-chon">Tuỳ chọn...</option>
+                    </select>
+                    <input type="date" id="bcSsTuNgay" class="form-control form-control-sm w-auto" title="Từ ngày">
+                    <span class="text-muted small">→</span>
+                    <input type="date" id="bcSsDenNgay" class="form-control form-control-sm w-auto" title="Đến ngày">
+                    <button type="button" class="btn btn-sm btn-primary" id="bcSsXem"><i class="fas fa-rotate me-1"></i> Xem</button>
+                </div>
+            </div>
+            <div class="alert alert-danger py-2 small d-none" id="bcSsLoi"></div>
+            <div id="bcSsNoiDung"><div class="text-center text-muted py-3">Đang tải...</div></div>
+        </div>
+    </div>
+
     <div id="bcPaneThietBi" class="bc-pane d-none">
         <div class="container-fluid pt-3">
             @* Nội dung do wwwroot/js/kiemke-tong-quan.js vẽ *@
@@ -63,8 +92,9 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/kiemke-tong-quan.js?v=2"></script>
-    <script src="/js/camera-tong-quan.js?v=20261009a"></script>
-    <script src="/js/ap-tong-quan.js?v=20261009a"></script>
-    <script src="/js/switch-tong-quan.js?v=20261009a"></script>
-    <script src="/js/bao-cao-dinh-ky.js?v=20261009c"></script>
+    <script src="/js/bao-cao-so-sanh.js?v=2"></script>
+    <script src="/js/camera-tong-quan.js?v=20261009c"></script>
+    <script src="/js/ap-tong-quan.js?v=20261009b"></script>
+    <script src="/js/switch-tong-quan.js?v=20261009b"></script>
+    <script src="/js/bao-cao-dinh-ky.js?v=20261009e"></script>
 }

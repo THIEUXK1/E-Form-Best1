@@ -44,7 +44,10 @@
     function datKy(loai) {
         var homNay = new Date(); homNay.setHours(0, 0, 0, 0);
         var tu, den = new Date(homNay);
-        if (loai === '7' || loai === '30') {
+        var tuan = BaoCaoSoSanh.kyTuan(loai, homNay);
+        if (tuan) {
+            tu = tuan.tu; den = tuan.den;
+        } else if (loai === '7' || loai === '30') {
             tu = new Date(homNay); tu.setDate(tu.getDate() - (Number(loai) - 1));
         } else if (loai === 'thang-nay') {
             tu = new Date(homNay.getFullYear(), homNay.getMonth(), 1);
@@ -110,21 +113,24 @@
     }
 
     function ve(bc) {
-        $id('bcKyIn').textContent = 'Kỳ ' + ngay(bc.tuNgay) + ' – ' + ngay(bc.denNgay) + ' · lập lúc ' + gio(bc.taoLuc);
+        var kyTruoc = BaoCaoSoSanh.kyTruoc(bc);
+        $id('bcKyIn').textContent = 'Kỳ ' + ngay(bc.tuNgay) + ' – ' + ngay(bc.denNgay) + ' (so với ' + kyTruoc + ') · lập lúc ' + gio(bc.taoLuc);
+        $id('bcKyTruoc').textContent = '(' + kyTruoc + ')';
 
         var canhBao = $id('bcCanhBao');
-        var thieuLichSu = bc.lichSuTu && bc.lichSuTu > bc.tuNgay;
-        canhBao.textContent = thieuLichSu
-            ? 'Lịch sử đổi trạng thái chỉ có từ ' + gio(bc.lichSuTu) + ' — số liệu "trong kỳ" trước mốc này chưa đầy đủ.'
-            : '';
-        canhBao.classList.toggle('d-none', !thieuLichSu);
+        canhBao.textContent = BaoCaoSoSanh.canhBaoLichSu(bc, gio);
+        canhBao.classList.toggle('d-none', !canhBao.textContent);
 
         veCards(bc.congTy);
+        BaoCaoSoSanh.veBang($id('bcBangSoSanh'), bc.congTy, 'soSwitchBiMat');
         veTongHop(bc.congTy);
         veBoPhan(bc.boPhan || []);
         veDangMat(bc.dangMat || []);
         veMatNhieu(bc.matNhieu || []);
     }
+
+    // ▲/▼ so với kỳ trước (bao-cao-so-sanh.js)
+    function chenh(nay, truoc, tangLaXau, kieu) { return BaoCaoSoSanh.chenh(nay, truoc, tangLaXau, kieu); }
 
     function oSo(nhan, giaTri, lop) {
         return '<div class="bc-o"><div class="bc-o-nhan">' + esc(nhan) + '</div><div class="bc-o-so ' + (lop || '') + '">' + esc(giaTri) + '</div></div>';
@@ -181,7 +187,8 @@
                 + oSo('Chưa có IP', so(c.chuaKhaiIp), c.chuaKhaiIp ? 'bc-do' : '') + oSo('Hết BH', so(c.hetBaoHanh), c.hetBaoHanh ? 'bc-do' : '')
                 + '</div>'
                 + '<div class="bc-card-ky">Trong kỳ: <b>' + so(c.soLanMat) + '</b> lần mất KN · <b>' + so(c.soSwitchBiMat) + '</b> switch · '
-                + '<b>' + gioMat(c.giayMat) + '</b> · hoạt động <b style="color:' + mauTyLe(c.tyLeTrongKy) + '">' + phanTram(c.tyLeTrongKy) + '</b></div>'
+                + '<b>' + gioMat(c.giayMat) + '</b> · hoạt động <b style="color:' + mauTyLe(c.tyLeTrongKy) + '">' + phanTram(c.tyLeTrongKy) + '</b>'
+                + '<br>So kỳ trước: lần mất ' + chenh(c.soLanMat, c.soLanMatTruoc, true) + ' · hoạt động ' + chenh(c.tyLeTrongKy, c.tyLeTruoc, false, 'diem') + '</div>'
                 + '</' + the + '>';
         });
         $id('bcCards').innerHTML = html;
@@ -218,8 +225,9 @@
                 + '<td><div class="bc-thanh"><div class="bc-thanh-day" style="width:' + (t || 0) + '%;background:' + mauTyLe(t) + '"></div>'
                 + '<span class="bc-thanh-so">' + phanTram(t === null ? null : Math.round(t * 10) / 10) + '</span></div></td>'
                 + '<td class="text-end">' + so(d.soLanMat) + '</td>'
+                + '<td class="text-end">' + chenh(d.soLanMat, d.soLanMatTruoc, true) + '</td>'
                 + '<td class="text-end">' + gioMat(d.giayMat) + '</td></tr>';
-        }).join('') : '<tr><td colspan="8" class="text-center text-muted py-3">Chưa có switch nào đang theo dõi.</td></tr>';
+        }).join('') : '<tr><td colspan="9" class="text-center text-muted py-3">Chưa có switch nào đang theo dõi.</td></tr>';
     }
 
     function veDangMat(ds) {
@@ -243,8 +251,9 @@
                 + '<td>' + esc(a.ten) + (a.matTu ? ' <span class="badge bg-danger-subtle text-danger">đang mất</span>' : '') + '</td>'
                 + '<td class="font-monospace">' + esc(a.ip) + '</td>'
                 + '<td class="text-end fw-bold">' + so(a.soLan) + '</td>'
+                + '<td class="text-end text-muted">' + so(a.soLanTruoc) + '</td>'
                 + '<td class="text-end">' + gioMat(a.giayMat) + '</td></tr>';
-        }).join('') : '<tr><td colspan="5" class="text-center text-muted py-3">Không có switch nào mất kết nối trong kỳ.</td></tr>';
+        }).join('') : '<tr><td colspan="6" class="text-center text-muted py-3">Không có switch nào mất kết nối trong kỳ.</td></tr>';
     }
 
     // Gắn sự kiện lên khung báo cáo đang có trong DOM rồi tải số liệu. Trang "Báo cáo định kì" gọi lại mỗi lần

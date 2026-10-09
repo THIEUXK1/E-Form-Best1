@@ -51,9 +51,12 @@
     .sodo-wrap { width:100%; overflow:auto; border:1px solid #eef0f3; border-radius:12px; background:
         linear-gradient(90deg,#fafbfc 1px,transparent 1px) 0 0/22px 22px,
         linear-gradient(#fafbfc 1px,transparent 1px) 0 0/22px 22px, #fff; }
+    /* Giới hạn chiều cao để kéo dọc cuộn trong khung, không cuộn cả trang */
+    .sodo-wrap { max-height:calc(100vh - 260px); min-height:320px; cursor:grab; user-select:none; }
+    .sodo-wrap.dang-keo { cursor:grabbing; }
     #sodoSvg { display:block; }
-    .sodo-node { cursor:default; }
+    .sodo-node { cursor:inherit; }
     .sodo-node text { font-family:inherit; }
 </style>
 
-<script src="/js/so-do.js?v=20261009"></script>
+<script src="/js/so-do.js?v=20261009b"></script>

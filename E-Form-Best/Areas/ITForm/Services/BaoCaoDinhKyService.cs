@@ -105,12 +105,100 @@ namespace E_Form_Best.Areas.ITForm.Services
             return kq;
         }
 
-        /// <summary>Đơn IT có thời điểm quản lý duyệt trong kỳ (cùng mốc TimeNguoiDuyet với trang /FormIT/BaoCaoThongKe).</summary>
-        public async Task<ThongKeDon> DonItAsync(DateTime tuNgay, DateTime denNgay, CancellationToken ct)
+        /// <summary>Kỳ này và kỳ trước (CameraBaoCaoService.KyTruoc) của cùng một loại số liệu.</summary>
+        public class SoSanh<T>
         {
-            var tu = tuNgay.Date;
-            var den = denNgay.Date.AddDays(1);
+            public DateTime TuNgay { get; set; }
+            public DateTime DenNgay { get; set; }
+            public DateTime KyTruocTu { get; set; }
+            public DateTime KyTruocDen { get; set; }
+            public T Nay { get; set; } = default!;
+            public T Truoc { get; set; } = default!;
+        }
 
+        /// <summary>Biến động thiết bị trong một kỳ — chỉ các số có mốc thời gian lưu trên KK_ThietBi.</summary>
+        public class BienDongThietBi
+        {
+            public string CongTy { get; set; } = "";
+            /// <summary>Thêm mới (NgayTao trong kỳ).</summary>
+            public int ThemMoi { get; set; }
+            /// <summary>Xoá (NgayXoa trong kỳ).</summary>
+            public int DaXoa { get; set; }
+            /// <summary>Lần kiểm kê gần nhất rơi vào kỳ — máy kiểm lại ở kỳ sau thì không còn tính cho kỳ trước.</summary>
+            public int DaKiem { get; set; }
+        }
+
+        private static SoSanh<T> TaoSoSanh<T>(DateTime tuNgay, DateTime denNgay, T nay, T truoc)
+        {
+            var (tuTruoc, denTruoc) = CameraBaoCaoService.KyTruoc(tuNgay, denNgay);
+            return new SoSanh<T> { TuNgay = tuNgay.Date, DenNgay = denNgay.Date, KyTruocTu = tuTruoc, KyTruocDen = denTruoc, Nay = nay, Truoc = truoc };
+        }
+
+        // Chạy tuần tự: dùng chung một ITFormContext (scoped)
+        public async Task<SoSanh<ThongKeDon>> SoSanhDonItAsync(DateTime tuNgay, DateTime denNgay, CancellationToken ct)
+        {
+            var m = CameraBaoCaoService.MocSoSanh(tuNgay, denNgay, DateTime.Now);
+            var nay = await DonItTheoMocAsync(m.tu, denNgay.Date.AddDays(1), ct);
+            var truoc = await DonItTheoMocAsync(m.tuTruoc, m.cuoiTruoc, ct);
+            return TaoSoSanh(tuNgay, denNgay, nay, truoc);
+        }
+
+        public async Task<SoSanh<ThongKeDon>> SoSanhDonCongViecAsync(DateTime tuNgay, DateTime denNgay, CancellationToken ct)
+        {
+            var m = CameraBaoCaoService.MocSoSanh(tuNgay, denNgay, DateTime.Now);
+            var nay = await DonCongViecTheoMocAsync(m.tu, denNgay.Date.AddDays(1), ct);
+            var truoc = await DonCongViecTheoMocAsync(m.tuTruoc, m.cuoiTruoc, ct);
+            return TaoSoSanh(tuNgay, denNgay, nay, truoc);
+        }
+
+        public async Task<SoSanh<List<BienDongThietBi>>> SoSanhThietBiAsync(DateTime tuNgay, DateTime denNgay, CancellationToken ct)
+        {
+            var m = CameraBaoCaoService.MocSoSanh(tuNgay, denNgay, DateTime.Now);
+            var ds = await BienDongThietBiAsync(m.tuTruoc, m.cuoi, ct);
+            List<BienDongThietBi> Dem(DateTime tu, DateTime cuoi) => ds
+                .GroupBy(x => x.CongTy)
+                .Select(g => new BienDongThietBi
+                {
+                    CongTy = g.Key,
+                    ThemMoi = g.Count(x => x.NgayTao >= tu && x.NgayTao < cuoi),
+                    DaXoa = g.Count(x => x.NgayXoa >= tu && x.NgayXoa < cuoi),
+                    DaKiem = g.Count(x => x.NgayXoa == null && x.ThoiGianCheck >= tu && x.ThoiGianCheck < cuoi),
+                })
+                .OrderBy(x => x.CongTy)
+                .ToList();
+            // Cả 2 kỳ liệt kê cùng danh sách công ty để ghép dòng
+            return TaoSoSanh(tuNgay, denNgay, Dem(m.tu, m.cuoi), Dem(m.tuTruoc, m.cuoiTruoc));
+        }
+
+        private record ThietBiMoc(string CongTy, DateTime? NgayTao, DateTime? NgayXoa, DateTime? ThoiGianCheck);
+
+        /// <summary>Thiết bị có ngày tạo / xoá / kiểm kê trong [tu, cuoi), bỏ thiết bị trong danh sách chặn (giống ThietBiAsync).</summary>
+        private async Task<List<ThietBiMoc>> BienDongThietBiAsync(DateTime tu, DateTime cuoi, CancellationToken ct)
+        {
+            var ds = await _context.KkThietBis.AsNoTracking()
+                .Where(x => (x.NgayTao >= tu && x.NgayTao < cuoi) || (x.NgayXoa >= tu && x.NgayXoa < cuoi)
+                            || (x.ThoiGianCheck >= tu && x.ThoiGianCheck < cuoi))
+                .Select(x => new
+                {
+                    x.TenMayTinh, x.Seribacode, x.NgayTao, x.NgayXoa, x.ThoiGianCheck,
+                    CongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : null,
+                })
+                .ToListAsync(ct);
+            var biChan = await HamBiChanAsync(ct);
+            return ds.Where(x => !biChan(x.Seribacode, x.TenMayTinh))
+                .Select(x => new ThietBiMoc(string.IsNullOrWhiteSpace(x.CongTy) ? "Chưa xác định" : x.CongTy.Trim(),
+                    x.NgayTao, x.NgayXoa, x.ThoiGianCheck))
+                .ToList();
+        }
+
+        /// <summary>Đơn IT có thời điểm quản lý duyệt trong kỳ (cùng mốc TimeNguoiDuyet với trang /FormIT/BaoCaoThongKe).</summary>
+        public Task<ThongKeDon> DonItAsync(DateTime tuNgay, DateTime denNgay, CancellationToken ct)
+            => DonItTheoMocAsync(tuNgay.Date, denNgay.Date.AddDays(1), ct);
+
+        /// <param name="tu">Mốc đầu (gồm).</param>
+        /// <param name="den">Mốc cuối (loại trừ).</param>
+        private async Task<ThongKeDon> DonItTheoMocAsync(DateTime tu, DateTime den, CancellationToken ct)
+        {
             var don = await _context.FormIts.AsNoTracking()
                 .Where(x => x.TimeNguoiDuyet >= tu && x.TimeNguoiDuyet < den)
                 .Select(x => new DonTho(x.Id, x.IdForm, x.Danhmuc, x.BoPhan, x.TenForm, x.IdNguoiDuyet, x.IdAdmin,
@@ -129,10 +217,13 @@ namespace E_Form_Best.Areas.ITForm.Services
         }
 
         /// <summary>Đơn công việc duyệt trong kỳ (cùng cách tính với /FormCongViec/BaoCaoThongKeCongViec).</summary>
-        public async Task<ThongKeDon> DonCongViecAsync(DateTime tuNgay, DateTime denNgay, CancellationToken ct)
+        public Task<ThongKeDon> DonCongViecAsync(DateTime tuNgay, DateTime denNgay, CancellationToken ct)
+            => DonCongViecTheoMocAsync(tuNgay.Date, denNgay.Date.AddDays(1), ct);
+
+        /// <param name="tu">Mốc đầu (gồm).</param>
+        /// <param name="den">Mốc cuối (loại trừ).</param>
+        private async Task<ThongKeDon> DonCongViecTheoMocAsync(DateTime tu, DateTime den, CancellationToken ct)
         {
-            var tu = tuNgay.Date;
-            var den = denNgay.Date.AddDays(1);
             var bayGio = DateTime.Now;
 
             var don = await _context.FormCongViecs.AsNoTracking()
@@ -160,6 +251,155 @@ namespace E_Form_Best.Areas.ITForm.Services
         private static readonly string[] SeriRac = { "to be filled by o.e.m.", "default string", "system serial number", "none", "0" };
         private static string KhoaChan(string? s) => (s ?? "").Trim().ToLowerInvariant();
 
+        // ---------- Bản chụp hằng ngày (KK_ThietBiChotNgay): bản quyền Windows / Office / Cần cài Office / trạng thái ----------
+
+        public const string ChiTieuWin = "win", ChiTieuOffice = "office", ChiTieuCanCaiOffice = "can_cai_office", ChiTieuTrangThai = "trang_thai";
+
+        // Bản quyền chỉ có nghĩa với máy tính — cùng danh sách loại với chức năng nhập nhanh Key Office từ Excel
+        private static readonly string[] LoaiMayTinh = { "máy tính", "laptop" };
+
+        /// <summary>
+        /// Gom giá trị bản quyền về 4 nhóm. Windows lưu dạng "Professional - Có bản quyền" (TrichPhienBanWindows),
+        /// Office dạng "Có bản quyền"/"Chưa có bản quyền"/"Không xác định" — để nguyên thì mỗi phiên bản Windows thành 1 dòng.
+        /// Xét "chưa có" trước vì "có bản quyền" nằm trong "chưa có bản quyền".
+        /// </summary>
+        public static string NhomBanQuyen(string? giaTri)
+        {
+            var s = (giaTri ?? "").Trim().ToLowerInvariant();
+            if (s.Length == 0) return "Trống / Chưa rõ";
+            if (s.Contains("chưa có bản quyền")) return "Chưa có bản quyền";
+            if (s.Contains("có bản quyền")) return "Có bản quyền";
+            return "Không xác định";
+        }
+
+        public record DongChot(string CongTy, string ChiTieu, string GiaTri, int SoLuong);
+
+        /// <summary>
+        /// Số liệu tại thời điểm gọi, cùng tập thiết bị với ThietBiAsync (bỏ đã xoá, bị chặn, trạng thái "xóa").
+        /// win / office / can_cai_office chỉ tính Máy tính/Laptop; trang_thai tính mọi thiết bị.
+        /// </summary>
+        public async Task<List<DongChot>> TinhChotAsync(CancellationToken ct)
+        {
+            var ds = await _context.KkThietBis.AsNoTracking()
+                .Where(x => x.NgayXoa == null)
+                .Select(x => new
+                {
+                    x.TenMayTinh, x.Seribacode, x.LoaiThietBi, x.WinLicense, x.OfficeLicense, x.CanCaiOffice,
+                    CongTy = x.IdcongTyNavigation != null ? x.IdcongTyNavigation.TenCongTy : null,
+                    TrangThai = x.IdTrangThaiNavigation != null ? x.IdTrangThaiNavigation.TenTrangThai : null,
+                })
+                .ToListAsync(ct);
+            var biChan = await HamBiChanAsync(ct);
+
+            var dong = ds
+                .Where(x => !biChan(x.Seribacode, x.TenMayTinh))
+                .Where(x => !(x.TrangThai ?? "").ToLowerInvariant().Contains("xóa"))
+                .Select(x => new
+                {
+                    CongTy = string.IsNullOrWhiteSpace(x.CongTy) ? "Chưa xác định" : x.CongTy.Trim(),
+                    LaMayTinh = LoaiMayTinh.Contains((x.LoaiThietBi ?? "").Trim().ToLowerInvariant()),
+                    x.WinLicense, x.OfficeLicense, x.CanCaiOffice,
+                    TrangThai = NhomTrangThai(x.TrangThai)
+                })
+                .ToList();
+
+            var kq = new List<DongChot>();
+            void Dem(string chiTieu, IEnumerable<(string CongTy, string GiaTri)> ds2)
+                => kq.AddRange(ds2.GroupBy(x => x).Select(g => new DongChot(g.Key.CongTy, chiTieu, g.Key.GiaTri, g.Count())));
+
+            var mayTinh = dong.Where(x => x.LaMayTinh).ToList();
+            Dem(ChiTieuWin, mayTinh.Select(x => (x.CongTy, NhomBanQuyen(x.WinLicense))));
+            Dem(ChiTieuOffice, mayTinh.Select(x => (x.CongTy, NhomBanQuyen(x.OfficeLicense))));
+            Dem(ChiTieuCanCaiOffice, mayTinh.Select(x => (x.CongTy, x.CanCaiOffice == true ? "Cần cài" : x.CanCaiOffice == false ? "Không cần" : "Chưa trả lời")));
+            Dem(ChiTieuTrangThai, dong.Select(x => (x.CongTy, x.TrangThai)));
+            return kq;
+        }
+
+        // Cùng cách nhóm với ThietBiAsync / kiemke-tong-quan.js
+        private static string NhomTrangThai(string? trangThai)
+        {
+            var tt = (trangThai ?? "").ToLowerInvariant();
+            return tt.Contains("hoạt động") ? "Hoạt động" : tt.Contains("hỏng") ? "Hỏng"
+                : tt.Contains("bảo trì") ? "Bảo trì" : tt.Trim() == "kho it" ? "Kho IT" : "Khác";
+        }
+
+        /// <summary>So sánh bản quyền / Office / trạng thái: kỳ này và kỳ trước, mỗi kỳ lấy 1 bản chụp.</summary>
+        public class SoSanhChot
+        {
+            /// <summary>Kỳ này chưa hết: số tính trực tiếp lúc xem, không lấy bản chụp.</summary>
+            public bool NayLaHienTai { get; set; }
+            /// <summary>Ngày của bản chụp kỳ này (kỳ đã qua); null khi NayLaHienTai hoặc kỳ không có bản chụp nào.</summary>
+            public DateOnly? NgayNay { get; set; }
+            /// <summary>Ngày của bản chụp kỳ trước; null = chưa có bản chụp nào trong kỳ trước.</summary>
+            public DateOnly? NgayTruoc { get; set; }
+            /// <summary>Bản chụp sớm nhất đang có (null = chưa chụp lần nào).</summary>
+            public DateOnly? ChupTu { get; set; }
+            public List<DongChot> Nay { get; set; } = new();
+            public List<DongChot>? Truoc { get; set; }
+        }
+
+        /// <summary>
+        /// Kỳ chưa hết → số hiện tại; kỳ đã qua → bản chụp ngày cuối cùng trong kỳ. Kỳ không có bản chụp nào → null
+        /// (không lấy bản chụp trước đầu kỳ: số đó không phải của kỳ này).
+        /// </summary>
+        public async Task<SoSanhChot> SoSanhChotAsync(DateTime tuNgay, DateTime denNgay, CancellationToken ct)
+        {
+            var homNay = DateOnly.FromDateTime(DateTime.Today);
+            var (tuTruoc, denTruoc) = CameraBaoCaoService.KyTruoc(tuNgay, denNgay);
+            var kq = new SoSanhChot
+            {
+                ChupTu = await _context.KkThietBiChotNgays.MinAsync(x => (DateOnly?)x.Ngay, ct)
+            };
+
+            async Task<(DateOnly? ngay, List<DongChot>? ds)> BanChupAsync(DateTime tu, DateTime den)
+            {
+                DateOnly a = DateOnly.FromDateTime(tu), b = DateOnly.FromDateTime(den);
+                var ngay = await _context.KkThietBiChotNgays.Where(x => x.Ngay >= a && x.Ngay <= b)
+                    .MaxAsync(x => (DateOnly?)x.Ngay, ct);
+                if (ngay == null) return (null, null);
+                var ds = await _context.KkThietBiChotNgays.AsNoTracking().Where(x => x.Ngay == ngay)
+                    .Select(x => new DongChot(x.CongTy, x.ChiTieu, x.GiaTri, x.SoLuong)).ToListAsync(ct);
+                return (ngay, ds);
+            }
+
+            if (DateOnly.FromDateTime(denNgay) >= homNay)
+            {
+                kq.NayLaHienTai = true;
+                kq.Nay = await TinhChotAsync(ct);
+            }
+            else
+            {
+                var (ngay, ds) = await BanChupAsync(tuNgay, denNgay);
+                kq.NgayNay = ngay;
+                kq.Nay = ds ?? new List<DongChot>();
+            }
+            (kq.NgayTruoc, kq.Truoc) = await BanChupAsync(tuTruoc, denTruoc);
+            return kq;
+        }
+
+        /// <summary>Danh sách chặn: bản ghi đủ Serial + Tên máy phải khớp cả hai (cùng quy tắc ITFormController.BiChan).</summary>
+        private async Task<Func<string?, string?, bool>> HamBiChanAsync(CancellationToken ct)
+        {
+            var chan = await _context.KkThietBiChans.AsNoTracking().Select(x => new { x.Seri, x.TenMay }).ToListAsync(ct);
+            var cap = new HashSet<string>(); var seri = new HashSet<string>(); var ten = new HashSet<string>();
+            foreach (var c in chan)
+            {
+                var s = KhoaChan(c.Seri);
+                if (SeriRac.Contains(s)) s = "";
+                var t = KhoaChan(c.TenMay);
+                if (s.Length > 0 && t.Length > 0) cap.Add(s + "|" + t);
+                else if (s.Length > 0) seri.Add(s);
+                else if (t.Length > 0) ten.Add(t);
+            }
+            return (sr, tm) =>
+            {
+                var s = KhoaChan(sr); var t = KhoaChan(tm);
+                if (s.Length > 0 && t.Length > 0 && cap.Contains(s + "|" + t)) return true;
+                if (s.Length > 0 && seri.Contains(s)) return true;
+                return t.Length > 0 && ten.Contains(t);
+            };
+        }
+
         private const int SapHetBhNgay = 90;    // cùng ngưỡng kiemke-tong-quan.js
         private const int LauChuaKiemNgay = 30;
 
@@ -185,29 +425,11 @@ namespace E_Form_Best.Areas.ITForm.Services
                 })
                 .ToListAsync(ct);
 
-            // Danh sách chặn: bản ghi đủ Serial + Tên máy phải khớp cả hai (cùng quy tắc ITFormController.BiChan)
-            var chan = await _context.KkThietBiChans.AsNoTracking().Select(x => new { x.Seri, x.TenMay }).ToListAsync(ct);
-            var cap = new HashSet<string>(); var seri = new HashSet<string>(); var ten = new HashSet<string>();
-            foreach (var c in chan)
-            {
-                var s = KhoaChan(c.Seri);
-                if (SeriRac.Contains(s)) s = "";
-                var t = KhoaChan(c.TenMay);
-                if (s.Length > 0 && t.Length > 0) cap.Add(s + "|" + t);
-                else if (s.Length > 0) seri.Add(s);
-                else if (t.Length > 0) ten.Add(t);
-            }
-            bool BiChan(string? sr, string? tm)
-            {
-                var s = KhoaChan(sr); var t = KhoaChan(tm);
-                if (s.Length > 0 && t.Length > 0 && cap.Contains(s + "|" + t)) return true;
-                if (s.Length > 0 && seri.Contains(s)) return true;
-                return t.Length > 0 && ten.Contains(t);
-            }
+            var biChan = await HamBiChanAsync(ct);
 
             var homNay = DateTime.Today;
             var dong = ds
-                .Where(x => !BiChan(x.Seribacode, x.TenMayTinh))
+                .Where(x => !biChan(x.Seribacode, x.TenMayTinh))
                 .Where(x => !(x.TrangThai ?? "").ToLowerInvariant().Contains("xóa"))
                 .Select(x =>
                 {
