@@ -1,0 +1,166 @@
+@* Phần thân báo cáo Tổng quan (thanh lọc + số liệu). Dùng chung cho trang TongQuan và tab trên trang "Báo cáo định kì" (/BaoCaoDinhKy nạp qua AJAX) *@
+@{
+    // null = tổng quan các công ty; "BPVN"/"PFVN"/"MEGA" = báo cáo riêng công ty đó (mở từ nút "Báo cáo" ở trang công ty)
+    var congTyBaoCao = ViewBag.CongTyBaoCao as string;
+    var tieuDe = congTyBaoCao == null ? "Tổng quan AP Wi-Fi" : "Báo cáo AP " + congTyBaoCao;
+    var dsCongTyChon = ViewBag.DsCongTyChon as List<string> ?? new List<string>();
+}
+
+<div class="content-header pt-0 pb-0" style="margin-top: -25px;">
+    <div class="container-fluid">
+        <div class="dash-topbar">
+            <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-wifi"></i></span><span id="bcTieuDe">@tieuDe</span></h4>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 ms-auto bc-thanh-loc">
+                @* Phạm vi báo cáo: tổng các công ty được xem hoặc 1 công ty — áp dụng cho cả trang, bản in và Excel *@
+                <select id="bcCongTy" class="form-select form-select-sm w-auto fw-bold" title="Phạm vi báo cáo">
+                    @if (dsCongTyChon.Count > 1)
+                    {
+                        <option value="" selected="@(congTyBaoCao == null)">Tổng @dsCongTyChon.Count công ty</option>
+                    }
+                    @foreach (var c in dsCongTyChon)
+                    {
+                        <option value="@c" selected="@(congTyBaoCao == c)">@c</option>
+                    }
+                </select>
+                <select id="bcKy" class="form-select form-select-sm w-auto" title="Kỳ báo cáo">
+                    <option value="7">7 ngày gần nhất</option>
+                    <option value="30">30 ngày gần nhất</option>
+                    <option value="thang-nay">Tháng này</option>
+                    <option value="thang-truoc">Tháng trước</option>
+                    <option value="tuy-chon">Tuỳ chọn...</option>
+                </select>
+                <input type="date" id="bcTuNgay" class="form-control form-control-sm w-auto" title="Từ ngày">
+                <span class="text-muted small">→</span>
+                <input type="date" id="bcDenNgay" class="form-control form-control-sm w-auto" title="Đến ngày">
+                <button type="button" class="btn btn-sm btn-primary" id="bcXem"><i class="fas fa-rotate me-1"></i> Xem</button>
+                <button type="button" class="btn btn-sm btn-light border" id="bcIn"><i class="fas fa-print me-1"></i> In</button>
+                <div class="dropdown">
+                    <button type="button" class="btn btn-sm btn-success dropdown-toggle" id="bcExcel" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-file-excel me-1"></i> Xuất Excel
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="bcExcel">
+                        <li><h6 class="dropdown-header">Xuất báo cáo cho</h6></li>
+                        @if (dsCongTyChon.Count > 1)
+                        {
+                            <li><a class="dropdown-item bc-xuat-excel fw-bold" href="#" data-cong-ty=""><i class="fas fa-layer-group me-2 text-success"></i>Tổng @dsCongTyChon.Count công ty</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                        }
+                        @foreach (var c in dsCongTyChon)
+                        {
+                            <li><a class="dropdown-item bc-xuat-excel" href="#" data-cong-ty="@c"><i class="fas fa-building me-2 text-success"></i>@c</a></li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card border-0 shadow-sm bg-white" style="border-radius: 15px;">
+            <div class="card-body p-2 p-md-3" id="bcVungIn">
+
+                @* Dải tiêu đề chỉ hiện khi in (trên màn hình đã có thanh tiêu đề trang) *@
+                <div class="bc-tieu-de-in">
+                    <div class="bc-in-bang-ten">
+                        <div>
+                            <div class="bc-in-nhan">BÁO CÁO ĐỊNH KỲ</div>
+                            <div class="bc-in-ten" id="bcInTen"></div>
+                        </div>
+                        <div class="text-end">
+                            <div class="bc-in-ky" id="bcKyIn"></div>
+                            <div class="bc-in-nguoi">Người lập: @User.Identity?.Name</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-danger py-2 small d-none" id="bcLoi"></div>
+                <div class="alert alert-warning py-2 small d-none" id="bcCanhBao"></div>
+
+                <div class="bc-cards" id="bcCards">
+                    <div class="text-center text-muted py-4 w-100">Đang tải báo cáo...</div>
+                </div>
+
+                @* Báo cáo riêng 1 công ty: bảng này chỉ còn 1 dòng trùng với thẻ số liệu nên ẩn *@
+                <div class="cam-khung mt-3 @(congTyBaoCao != null ? "d-none" : "")" id="bcKhungTongHop">
+                    <div class="fw-bold small text-muted mb-1"><i class="fas fa-table me-1"></i> Tổng hợp theo công ty</div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0 small bc-bang">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2">Công ty</th>
+                                    <th colspan="7" class="text-center">Hiện tại</th>
+                                    <th colspan="4" class="text-center">Trong kỳ</th>
+                                </tr>
+                                <tr>
+                                    <th class="text-end">Tổng AP</th><th class="text-end">Theo dõi</th><th class="text-end">Hoạt động</th>
+                                    <th class="text-end">Mất KN</th><th class="text-end">% hoạt động</th><th class="text-end">Chưa có IP</th>
+                                    <th class="text-end">Hết BH</th>
+                                    <th class="text-end">Lần mất KN</th><th class="text-end">AP bị mất</th>
+                                    <th class="text-end">Tổng giờ mất</th><th class="text-end">% hoạt động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bcBangTongHop"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="cam-khung mt-3">
+                    <div class="fw-bold small text-muted mb-1"><i class="fas fa-sitemap me-1"></i> Theo bộ phận</div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0 small bc-bang">
+                            <thead>
+                                <tr>
+                                    <th>Công ty</th><th>Bộ phận</th>
+                                    <th class="text-end">Tổng</th><th class="text-end">Hoạt động</th><th class="text-end">Mất KN</th>
+                                    <th style="min-width:160px;">% hoạt động</th>
+                                    <th class="text-end">Lần mất KN (kỳ)</th><th class="text-end">Giờ mất (kỳ)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bcBangBoPhan"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-0">
+                    <div class="col-xl-7">
+                        <div class="cam-khung">
+                            <div class="fw-bold small text-muted mb-1">
+                                <i class="fas fa-triangle-exclamation text-danger me-1"></i> AP đang mất kết nối
+                                <span class="badge rounded-pill bg-danger ms-1" id="bcDemDangMat">0</span>
+                            </div>
+                            <div class="table-responsive bc-cuon">
+                                <table class="table table-sm table-hover align-middle mb-0 small bc-bang">
+                                    <thead>
+                                        <tr><th>Công ty</th><th>Tên AP</th><th>IP</th><th>Bộ phận</th><th>Vị trí</th><th>Mất từ</th><th>Đã mất</th></tr>
+                                    </thead>
+                                    <tbody id="bcBangDangMat"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-5">
+                        <div class="cam-khung">
+                            <div class="fw-bold small text-muted mb-1"><i class="fas fa-ranking-star me-1"></i> Mất kết nối nhiều nhất trong kỳ (top 20)</div>
+                            <div class="table-responsive bc-cuon">
+                                <table class="table table-sm table-hover align-middle mb-0 small bc-bang">
+                                    <thead>
+                                        <tr><th>Công ty</th><th>Tên AP</th><th>IP</th><th class="text-end">Lần</th><th class="text-end">Giờ mất</th></tr>
+                                    </thead>
+                                    <tbody id="bcBangMatNhieu"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="small text-muted mt-2">
+                    Theo dõi = AP có IP và không ở tình trạng Ngừng sử dụng / Trong kho. Hiện tại theo lần ping gần nhất của job nền.
+                    Trong kỳ: tính từ lịch sử đổi trạng thái; % hoạt động trong kỳ = 1 − tổng thời gian mất / (số AP theo dõi × độ dài kỳ).
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

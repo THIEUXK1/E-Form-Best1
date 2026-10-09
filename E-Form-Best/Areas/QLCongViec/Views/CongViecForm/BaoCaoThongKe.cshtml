@@ -2,7 +2,8 @@
 
 @{
     ViewData["Title"] = "Thống kê & Báo cáo Công việc";
-    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+    // ?nhung=1: mở trong tab iframe của "Báo cáo định kì" (/BaoCaoDinhKy) nên bỏ sidebar
+    Layout = Context.Request.Query["nhung"] == "1" ? "~/Areas/ITForm/Views/Shared/_LayoutNhung.cshtml" : "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
 
     // Khai báo hệ màu chủ đạo xanh lá cỏ non đồng bộ hệ thống 2026
     string colorPrimary = "#65a30d";

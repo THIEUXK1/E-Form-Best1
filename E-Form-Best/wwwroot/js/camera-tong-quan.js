@@ -4,6 +4,8 @@
 
     var URL_CONG_TY = { BPVN: '/QLCamera', PFVN: '/QLCamera/PFVN', MEGA: '/QLCamera/MEGA' };
     var dangTai = false;
+    var phien = 0;      // tăng mỗi lần khởi tạo lại (đổi tab): kết quả của lượt tải cũ bị bỏ
+    var urlTrang = function (cty) { return '/QLCamera/TongQuan' + (cty ? '?congTy=' + encodeURIComponent(cty) : ''); };
     var moDuoc = [];   // công ty người xem mở được trang chi tiết (AdminIT chỉ có tổng quan)
 
     function $id(id) { return document.getElementById(id); }
@@ -77,7 +79,7 @@
         // Báo cáo 1 công ty: bảng "Tổng hợp theo công ty" chỉ còn 1 dòng trùng thẻ số liệu
         $id('bcKhungTongHop').classList.toggle('d-none', !!cty);
         try {
-            history.replaceState(null, '', '/QLCamera/TongQuan' + (cty ? '?congTy=' + encodeURIComponent(cty) : ''));
+            history.replaceState(null, '', urlTrang(cty));
         } catch (e) { /* trình duyệt chặn đổi URL: vẫn xem được, chỉ không bookmark đúng phạm vi */ }
     }
 
@@ -95,6 +97,7 @@
     function tai() {
         if (dangTai) return;
         dangTai = true;
+        var p = phien;
         var nut = $id('bcXem');
         nut.disabled = true;
         hienLoi('');
@@ -105,12 +108,13 @@
                 return res.json();
             })
             .then(function (res) {
+                if (p !== phien) return;
                 if (!res.thanhCong) { hienLoi(res.thongBao || 'Không tải được báo cáo.'); return; }
                 moDuoc = res.moDuoc || [];
                 ve(res.duLieu);
             })
             .catch(function (e) { hienLoi('Lỗi kết nối máy chủ (' + e.message + ').'); })
-            .then(function () { dangTai = false; nut.disabled = false; });
+            .then(function () { if (p === phien) { dangTai = false; nut.disabled = false; } });
     }
 
     function ve(bc) {
@@ -254,8 +258,14 @@
         }).join('') : '<tr><td colspan="5" class="text-center text-muted py-3">Không có camera nào mất kết nối trong kỳ.</td></tr>';
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        datKy('7');
+    // Gắn sự kiện lên khung báo cáo đang có trong DOM rồi tải số liệu. Trang "Báo cáo định kì" gọi lại mỗi lần
+    // nạp tab (khung cũ bị thay nên listener cũ đi theo); tuyChon.giuKy = giữ kỳ/phạm vi đã chép từ tab trước.
+    function khoiTao(tuyChon) {
+        tuyChon = tuyChon || {};
+        phien++;
+        dangTai = false;
+        if (tuyChon.urlTrang) urlTrang = tuyChon.urlTrang;
+        if (!tuyChon.giuKy) datKy('7');
         apPhamVi();
         $id('bcCongTy').addEventListener('change', function () { apPhamVi(); tai(); });
         $id('bcKy').addEventListener('change', function () { datKy(this.value); if (this.value !== 'tuy-chon') tai(); });
@@ -267,7 +277,7 @@
 
         // Xuất Excel: chọn phạm vi trong menu (tổng / 1 công ty), kỳ lấy theo ô ngày đang chọn.
         // Tải file là điều hướng hợp lệ (trình duyệt giữ nguyên trang, chỉ tải file về)
-        document.addEventListener('click', function (e) {
+        $id('bcExcel').parentElement.addEventListener('click', function (e) {
             var muc = e.target.closest('.bc-xuat-excel');
             if (!muc) return;
             e.preventDefault();
@@ -277,5 +287,13 @@
                 + (cty ? '&congTy=' + encodeURIComponent(cty) : '');
         });
         tai();
+    }
+
+    window.BaoCaoTongQuan = window.BaoCaoTongQuan || {};
+    window.BaoCaoTongQuan.camera = khoiTao;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Trên trang "Báo cáo định kì" để bao-cao-dinh-ky.js khởi tạo theo tab
+        if (!document.getElementById('bcDinhKy')) khoiTao();
     });
 })();

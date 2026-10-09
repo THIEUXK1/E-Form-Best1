@@ -38,6 +38,7 @@
     bool isApActive = currentController == "QLAP";
     bool isSwitchActive = currentController == "QLSwitch";
     bool isSoDoActive = currentController == "SoDo";
+    bool isBaoCaoDinhKyActive = currentController == "BaoCaoDinhKy";
 
     // Route /QLKiemKe/* được khai bằng attribute routing NGAY TRÊN ITFormController, nên
     // RouteData["controller"] luôn là "ITForm" — không được so với "QLKiemKe", phải so theo action.
@@ -684,6 +685,16 @@
                                 }
                             </div>
                         </div>
+                    }
+
+                    @* Báo cáo định kì: chỉ AdminIT / All — một trang gộp 3 tab Tổng quan Camera, AP, Switch.
+                       Quyền kiểm lại ở BaoCaoDinhKyController và controller từng module *@
+                    if (User.IsInRole("AdminIT") || User.IsInRole("All"))
+                    {
+                        <a href="/BaoCaoDinhKy" class="nav-link-item @(isBaoCaoDinhKyActive ? "active" : "")" aria-current="@(isBaoCaoDinhKyActive ? "page" : null)">
+                            <i class="fa fa-calendar-check-o nav-ico" style="color:#f472b6;"></i>
+                            <span class="lang-text" data-key="periodic_report">@L["Báo cáo định kì"]</span>
+                        </a>
                     }
                 }
             </nav>

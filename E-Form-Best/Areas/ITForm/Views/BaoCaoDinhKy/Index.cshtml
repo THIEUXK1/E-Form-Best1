@@ -1,0 +1,70 @@
+@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Báo cáo định kì";
+    var loai = ViewBag.Loai as string ?? "camera";
+    // Kieu: tong-quan = partial _TongQuanNoiDung nạp AJAX vào #bcDinhKy · thiet-bi = vẽ bằng kiemke-tong-quan.js
+    //       iframe = trang thống kê sẵn có mở với ?nhung=1 (script inline + trùng id nên phải tách tài liệu)
+    var dsTab = new[]
+    {
+        (Ma: "camera", Ten: "Camera", Icon: "fa-video", Kieu: "tong-quan", Url: "/QLCamera/TongQuan"),
+        (Ma: "ap", Ten: "AP Wi-Fi", Icon: "fa-wifi", Kieu: "tong-quan", Url: "/QLAP/TongQuan"),
+        (Ma: "switch", Ten: "Switch", Icon: "fa-network-wired", Kieu: "tong-quan", Url: "/QLSwitch/TongQuan"),
+        (Ma: "thiet-bi", Ten: "Thiết bị", Icon: "fa-laptop", Kieu: "thiet-bi", Url: "/QLKiemKe/GetKkThietBis"),
+        (Ma: "don-it", Ten: "Thống kê đơn IT", Icon: "fa-file-lines", Kieu: "iframe", Url: "/FormIT/BaoCaoThongKe?nhung=1"),
+        (Ma: "cong-viec", Ten: "Thống kê công việc", Icon: "fa-list-check", Kieu: "iframe", Url: "/FormCongViec/BaoCaoThongKeCongViec?nhung=1"),
+    };
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="/css/ccdc-quanly.css?v=20260825e">
+<link rel="stylesheet" href="/css/camera-quanly.css?v=20261007c">
+<link rel="stylesheet" href="/css/camera-tong-quan.css?v=20261009b">
+<link rel="stylesheet" href="/css/kiemke-tong-quan.css?v=1">
+
+<div class="bc-dinh-ky">
+    <div class="container-fluid">
+        <ul class="nav nav-tabs bc-dinh-ky-tabs" role="tablist">
+            @foreach (var t in dsTab)
+            {
+                <li class="nav-item" role="presentation">
+                    <button type="button" class="nav-link bc-tab @(t.Ma == loai ? "active" : "")" role="tab"
+                            aria-selected="@(t.Ma == loai ? "true" : "false")" data-loai="@t.Ma" data-kieu="@t.Kieu" data-url="@t.Url" data-ten="@t.Ten">
+                        <i class="fas @t.Icon me-1"></i>@t.Ten
+                    </button>
+                </li>
+            }
+            @* Một file Excel gồm tất cả các tab; kỳ + phạm vi công ty lấy theo bộ lọc Camera/AP/Switch đang chọn *@
+            <li class="nav-item ms-auto d-flex align-items-center pb-1">
+                <button type="button" class="btn btn-sm btn-success" id="bcXuatTongHop" title="Xuất toàn bộ các mục vào một file Excel">
+                    <i class="fas fa-file-excel me-1"></i> Xuất báo cáo tổng hợp
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    @* Camera / AP / Switch dùng chung id phần tử nên chung một khung, đổi tab là thay nội dung *@
+    <div id="bcDinhKy" class="bc-pane" data-loai="@loai" data-cong-ty="@ViewBag.CongTy">
+        <div class="text-center text-muted py-5">Đang tải báo cáo...</div>
+    </div>
+
+    <div id="bcPaneThietBi" class="bc-pane d-none">
+        <div class="container-fluid pt-3">
+            @* Nội dung do wwwroot/js/kiemke-tong-quan.js vẽ *@
+            <div id="tqTongQuan">
+                <div class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin me-1"></i> Đang tải số liệu...</div>
+            </div>
+        </div>
+    </div>
+
+    @* Mỗi tab iframe một khung riêng, tạo khi mở tab lần đầu và giữ lại khi chuyển tab *@
+    <div id="bcPaneIframe" class="bc-pane d-none"></div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/js/kiemke-tong-quan.js?v=2"></script>
+    <script src="/js/camera-tong-quan.js?v=20261009a"></script>
+    <script src="/js/ap-tong-quan.js?v=20261009a"></script>
+    <script src="/js/switch-tong-quan.js?v=20261009a"></script>
+    <script src="/js/bao-cao-dinh-ky.js?v=20261009c"></script>
+}

@@ -143,6 +143,9 @@ builder.Services.AddHostedService<AccessPointPingWorker>();
 builder.Services.AddScoped<SwitchBaoCaoService>();
 builder.Services.AddHostedService<SwitchPingWorker>();
 
+// Báo cáo định kì (/BaoCaoDinhKy): số liệu đơn IT / công việc / thiết bị cho file Excel tổng hợp
+builder.Services.AddScoped<BaoCaoDinhKyService>();
+
 // Cache trong bộ nhớ cho dữ liệu tra cứu ít thay đổi (Công ty, Bộ phận...) để giảm truy vấn DB lặp lại
 builder.Services.AddMemoryCache();
 

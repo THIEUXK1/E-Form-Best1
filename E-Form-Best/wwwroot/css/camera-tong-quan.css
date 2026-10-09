@@ -102,6 +102,15 @@ a.bc-card:hover { color: inherit; transform: translateY(-1px); box-shadow: 0 6px
 .bc-in-ky { font-weight: 600; }
 .bc-in-nguoi { font-size: .75rem; opacity: .85; }
 
+/* /BaoCaoDinhKy — 3 tab Camera / AP / Switch; phần thân tab là partial Tổng quan nên bỏ margin âm của nó */
+.bc-dinh-ky { margin-top: -25px; }
+.bc-dinh-ky #bcDinhKy .content-header { margin-top: 0 !important; padding-top: 12px !important; }
+.bc-dinh-ky-tabs .nav-link { font-weight: 600; color: #64748b; }
+.bc-dinh-ky-tabs .nav-link.active { color: #4f46e5; }
+#bcDinhKy[aria-busy="true"] { opacity: .55; pointer-events: none; transition: opacity .15s; }
+.bc-dinh-ky .bc-iframe { display: block; width: 100%; min-height: 70vh; border: 0; }
+.bc-dinh-ky.bc-dinh-ky [data-tq-sua] { display: none; }   /* nút sửa thiết bị cần modal của trang Quản lý Thiết bị */
+
 @media print {
     @page { size: A4 landscape; margin: 10mm; }
     body * { visibility: hidden; }

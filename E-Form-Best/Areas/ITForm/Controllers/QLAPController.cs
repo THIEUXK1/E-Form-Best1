@@ -475,6 +475,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             ViewBag.CongTyBaoCao = string.IsNullOrWhiteSpace(congTy) ? null : ds[0];
             // Công ty chọn được trong ô "Phạm vi"; server vẫn kiểm lại ở DuLieu/XuatExcel
             ViewBag.DsCongTyChon = DsCongTyBaoCao(null) ?? new List<string>();
+            // Trang "Báo cáo định kì" nạp phần thân làm 1 tab (fetch kèm X-Requested-With), không kèm layout
+            if (Request.Headers.XRequestedWith == "XMLHttpRequest") return PartialView("_TongQuanNoiDung");
             return View();
         }
 

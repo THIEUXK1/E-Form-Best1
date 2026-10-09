@@ -2,7 +2,8 @@
 
 @{
     ViewData["Title"] = "Thống kê & Báo cáo IT";
-    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    // ?nhung=1: mở trong tab iframe của "Báo cáo định kì" (/BaoCaoDinhKy) nên bỏ sidebar
+    Layout = Context.Request.Query["nhung"] == "1" ? "~/Areas/ITForm/Views/Shared/_LayoutNhung.cshtml" : "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
 }
 
 <style>
