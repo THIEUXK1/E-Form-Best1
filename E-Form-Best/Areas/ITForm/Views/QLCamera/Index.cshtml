@@ -25,7 +25,7 @@
 @* Dùng lại khung bảng của trang CCDC (cùng nhóm menu, cùng kiểu bảng cột cố định) *@
 <link rel="stylesheet" href="/css/ccdc-quanly.css?v=20260825e">
 <link rel="stylesheet" href="/css/fixed-page-layout.css?v=5">
-<link rel="stylesheet" href="/css/camera-quanly.css?v=20261007c">
+<link rel="stylesheet" href="/css/camera-quanly.css?v=20261009a">
 
 <div class="content-header pt-0 pb-0" style="margin-top: -25px;">
     <div class="container-fluid">
@@ -37,6 +37,11 @@
                     <button class="nav-link active" id="tabGiamSatBtn" data-bs-toggle="pill" data-bs-target="#paneGiamSat" type="button" role="tab">
                         <i class="fas fa-heart-pulse me-1"></i> Giám sát
                         <span class="badge rounded-pill bg-danger ms-1 d-none" id="badgeMatKetNoi">0</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tabLuoiBtn" data-bs-toggle="pill" data-bs-target="#paneLuoi" type="button" role="tab">
+                        <i class="fas fa-table-cells me-1"></i> Lưới ảnh
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -194,6 +199,40 @@
                                     <tr><td colspan="10" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+
+                    @* ================= TAB LƯỚI ẢNH (ảnh lưu sẵn + thông tin, dữ liệu dùng chung tab Giám sát) ================= *@
+                    <div class="tab-pane fade" id="paneLuoi" role="tabpanel">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <input type="text" id="luoiTuKhoa" class="form-control form-control-sm" style="max-width:280px;"
+                                   placeholder="Tìm tên camera, IP, đầu ghi, ghi chú...">
+                            <select id="luoiTrangThai" class="form-select form-select-sm w-auto">
+                                <option value="">-- Mọi trạng thái --</option>
+                                <option value="UP">Hoạt động</option>
+                                <option value="DOWN">Mất kết nối</option>
+                            </select>
+                            <select id="luoiNvr" class="form-select form-select-sm w-auto">
+                                <option value="">-- Mọi đầu ghi --</option>
+                            </select>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="luoiChiGhim">
+                                <label class="form-check-label small" for="luoiChiGhim"><i class="fas fa-thumbtack"></i> Chỉ camera đã ghim</label>
+                            </div>
+                            <span class="flex-grow-1"></span>
+                            <span class="small text-muted" id="luoiDem"></span>
+                            <select id="luoiCo" class="form-select form-select-sm w-auto" title="Cỡ ô ảnh">
+                                <option value="nho">Ô nhỏ</option>
+                                <option value="vua" selected>Ô vừa</option>
+                                <option value="lon">Ô lớn</option>
+                            </select>
+                            <button type="button" class="btn btn-sm btn-light border" id="luoiBtnTaiLai" title="Tải lại dữ liệu và ảnh"><i class="fas fa-rotate"></i></button>
+                        </div>
+                        <div class="small text-muted mb-2"><i class="fas fa-circle-info me-1"></i>Ảnh lưu sẵn chụp định kỳ (08:30 và 14:00), không phải hình trực tiếp. Bấm 1 ô để mở cửa sổ xem.</div>
+                        <div class="cam-luoi-cuon" data-fp-scroll>
+                            <div class="cam-luoi cam-luoi-vua" id="luoiKhung">
+                                <div class="cam-luoi-trong text-muted">Đang tải dữ liệu...</div>
+                            </div>
                         </div>
                     </div>
 
@@ -727,7 +766,8 @@
     {
     <script src="/js/camera-quanly.js?v=20261006b"></script>
     }
-    <script src="/js/camera-giam-sat.js?v=20261007f"></script>
+    <script src="/js/camera-giam-sat.js?v=20261009a"></script>
+    <script src="/js/camera-luoi.js?v=20261009a"></script>
     <script src="/js/camera-lich-su.js?v=20261007b"></script>
     <script src="/js/camera-dau-ghi.js?v=20261007b"></script>
 }

@@ -139,6 +139,10 @@ builder.Services.AddHttpClient(AccessPointControllerService.TenHttpClient, clien
 builder.Services.AddSingleton<AccessPointControllerService>();
 builder.Services.AddHostedService<AccessPointPingWorker>();
 
+// Quản lý Switch (/QLSwitch): cùng khuôn AP, chỉ ping. Tắt job bằng Switch__GhiLichSu=false
+builder.Services.AddScoped<SwitchBaoCaoService>();
+builder.Services.AddHostedService<SwitchPingWorker>();
+
 // Cache trong bộ nhớ cho dữ liệu tra cứu ít thay đổi (Công ty, Bộ phận...) để giảm truy vấn DB lặp lại
 builder.Services.AddMemoryCache();
 

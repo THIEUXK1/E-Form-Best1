@@ -14,11 +14,12 @@
     var requestCulture = Context.Features.Get<IRequestCultureFeature>();
     var cultureCode = requestCulture?.RequestCulture.Culture.Name ?? "vi-VN";
 
-    // QLCCDC / QLMayIn / QLCamera / QLAP là module IT nhưng tên controller không chứa chữ "IT" nên phải liệt kê
+    // QLCCDC / QLMayIn / QLCamera / QLAP / QLSwitch là module IT nhưng tên controller không chứa chữ "IT" nên phải liệt kê
     // tường minh, nếu không trang sẽ hiển thị nhầm giao diện HR (màu xanh lá, logo "HR SERVICE").
     bool isITSystem = currentController.Contains("IT") || currentController == "Mail"
                       || currentController.Contains("Order") || currentController == "QLCCDC"
-                      || currentController == "QLMayIn" || currentController == "QLCamera" || currentController == "QLAP";
+                      || currentController == "QLMayIn" || currentController == "QLCamera" || currentController == "QLAP"
+                      || currentController == "QLSwitch" || currentController == "SoDo";
 
     // Các trang thuộc nhóm "Đăng ký đơn" — dùng để tô sáng mục menu, kể cả khi đang ở trang chọn loại đơn
     string[] itSubPages = { "DangKyDon", "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi", "DonCapQuyenOChung", "DonThietKeTemIn", "DonCaiDatPhanMem", "DonLapTrinhUngDung", "DonTraThietBi" }; bool isITSubActive = itSubPages.Contains(currentAction);
@@ -35,6 +36,8 @@
     string cameraCongTy = (ViewContext.RouteData.Values["congTy"] as string)?.ToUpperInvariant() ?? "BPVN";
     // Nhóm menu AP Wi-Fi: công ty đang xem cũng lấy từ route /QLAP/{congTy} (dùng chung cameraCongTy)
     bool isApActive = currentController == "QLAP";
+    bool isSwitchActive = currentController == "QLSwitch";
+    bool isSoDoActive = currentController == "SoDo";
 
     // Route /QLKiemKe/* được khai bằng attribute routing NGAY TRÊN ITFormController, nên
     // RouteData["controller"] luôn là "ITForm" — không được so với "QLKiemKe", phải so theo action.
@@ -610,6 +613,73 @@
                                     <a href="/QLAP/@congTyAp" class="submenu-link @(dangOAp ? "active" : "")" aria-current="@(dangOAp ? "page" : null)">
                                         <i class="fa fa-building-o sub-ico" style="color: #22d3ee;"></i>
                                         <span>@congTyAp</span>
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @* Switch chia theo công ty như AP: "All" thấy cả 3, "SwBPVN"/"SwPFVN"/"SwMEGA" chỉ thấy công ty được cấp.
+                       Quyền kiểm lại ở QLSwitchController (CoQuyenXem / CoQuyenSua) *@
+                    var dsSwitchDuocXem = new[] { "BPVN", "PFVN", "MEGA" }
+                        .Where(x => User.IsInRole("All") || User.IsInRole("Sw" + x)).ToList();
+                    if (dsSwitchDuocXem.Count > 0 || User.IsInRole("AdminIT"))
+                    {
+                        // Camera / AP đã mở nhóm có vạch ngăn; không hiện cả hai thì Switch tự mở nhóm mới
+                        if (dsCameraDuocXem.Count == 0 && dsApDuocXem.Count == 0 && !User.IsInRole("AdminIT"))
+                        {
+                            <div class="nav-divider"></div>
+                        }
+                        <a data-bs-toggle="collapse" href="#collapseSwitch" role="button" aria-expanded="@(isSwitchActive ? "true" : "false")" aria-controls="collapseSwitch" class="nav-link-item @(isSwitchActive ? "active" : "")" style="justify-content: space-between; cursor: pointer;">
+                            <span style="display:flex; align-items:center;">
+                                <i class="fa fa-sitemap nav-ico" style="color:#a3e635;"></i>
+                                <span class="lang-text" data-key="switch_manage">@L["Quản lý Switch"]</span>
+                            </span>
+                            <i class="fa fa-angle-down menu-arrow"></i>
+                        </a>
+
+                        <div class="collapse @(isSwitchActive ? "show" : "")" id="collapseSwitch">
+                            <div style="display: flex; flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
+                                @{ var dangOTongQuanSw = isSwitchActive && currentAction == "TongQuan"; }
+                                <a href="/QLSwitch/TongQuan" class="submenu-link @(dangOTongQuanSw ? "active" : "")" aria-current="@(dangOTongQuanSw ? "page" : null)">
+                                    <i class="fa fa-pie-chart sub-ico" style="color: #a3e635;"></i>
+                                    <span>Tổng quan</span>
+                                </a>
+                                @foreach (var congTySw in dsSwitchDuocXem)
+                                {
+                                    var dangOSw = isSwitchActive && !dangOTongQuanSw && cameraCongTy == congTySw;
+                                    <a href="/QLSwitch/@congTySw" class="submenu-link @(dangOSw ? "active" : "")" aria-current="@(dangOSw ? "page" : null)">
+                                        <i class="fa fa-building-o sub-ico" style="color: #a3e635;"></i>
+                                        <span>@congTySw</span>
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @* Sơ đồ mạng từng công ty: xem được nếu có quyền xem bất kỳ module IT (Switch/AP/Camera) của công ty đó.
+                       Quyền kiểm lại ở SoDoController (CoQuyenXem) *@
+                    var dsSoDoDuocXem = new[] { "BPVN", "PFVN", "MEGA" }
+                        .Where(x => User.IsInRole("All") || User.IsInRole("Sw" + x) || User.IsInRole("Ap" + x) || User.IsInRole("Cam" + x)).ToList();
+                    if (dsSoDoDuocXem.Count > 0 || User.IsInRole("AdminIT"))
+                    {
+                        if (dsSoDoDuocXem.Count == 0) { dsSoDoDuocXem = new List<string> { "BPVN", "PFVN", "MEGA" }; }
+                        <a data-bs-toggle="collapse" href="#collapseSoDo" role="button" aria-expanded="@(isSoDoActive ? "true" : "false")" aria-controls="collapseSoDo" class="nav-link-item @(isSoDoActive ? "active" : "")" style="justify-content: space-between; cursor: pointer;">
+                            <span style="display:flex; align-items:center;">
+                                <i class="fa fa-share-alt nav-ico" style="color:#fb923c;"></i>
+                                <span class="lang-text" data-key="sodo_manage">@L["Sơ đồ"]</span>
+                            </span>
+                            <i class="fa fa-angle-down menu-arrow"></i>
+                        </a>
+
+                        <div class="collapse @(isSoDoActive ? "show" : "")" id="collapseSoDo">
+                            <div style="display: flex; flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
+                                @foreach (var congTySoDo in dsSoDoDuocXem)
+                                {
+                                    var dangOSoDo = isSoDoActive && cameraCongTy == congTySoDo;
+                                    <a href="/SoDo/@congTySoDo" class="submenu-link @(dangOSoDo ? "active" : "")" aria-current="@(dangOSoDo ? "page" : null)">
+                                        <i class="fa fa-building-o sub-ico" style="color: #fb923c;"></i>
+                                        <span>@congTySoDo</span>
                                     </a>
                                 }
                             </div>

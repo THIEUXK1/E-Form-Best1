@@ -1,0 +1,356 @@
+@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    var congTy = ViewBag.CongTy as string ?? "BPVN";
+    ViewData["Title"] = "Quản lý Switch " + congTy;
+
+    @* Kiểu tường minh thay cho dynamic: view chạy ở assembly khác khi bật runtime compilation *@
+    var dsBoPhan = ViewBag.DsBoPhan as IEnumerable<E_Form_Best.Models.ITForm.KkBoPhan>
+                   ?? Enumerable.Empty<E_Form_Best.Models.ITForm.KkBoPhan>();
+    var dsTinhTrang = ViewBag.DsTinhTrang as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var dsVaiTro = ViewBag.DsVaiTro as IEnumerable<string> ?? Enumerable.Empty<string>();
+    // Chỉ quyền "All" được thêm/sửa/xoá; Sw{CÔNG TY} chỉ xem (server vẫn chặn lại ở từng action)
+    var coQuyenSua = ViewBag.CoQuyenSua as bool? ?? false;
+    var coCongTy = ViewBag.CoCongTy as bool? ?? false;
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+@* Dùng lại khung bảng của trang CCDC / camera (cùng nhóm menu, cùng kiểu bảng cột cố định) *@
+<link rel="stylesheet" href="/css/ccdc-quanly.css?v=20260825e">
+<link rel="stylesheet" href="/css/fixed-page-layout.css?v=5">
+<link rel="stylesheet" href="/css/camera-quanly.css?v=20261007c">
+
+<div class="content-header pt-0 pb-0" style="margin-top: -25px;">
+    <div class="container-fluid">
+        <div class="dash-topbar">
+            <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-network-wired"></i></span>Switch @congTy</h4>
+
+            <ul class="nav nav-pills nav-pills-ccdc mb-0" id="swTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tabDanhSachBtn" data-bs-toggle="pill" data-bs-target="#paneDanhSach" type="button" role="tab">
+                        <i class="fas fa-list me-1"></i> Danh sách switch
+                        <span class="badge rounded-pill bg-danger ms-1 d-none" id="badgeMatKetNoi">0</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tabLichSuBtn" data-bs-toggle="pill" data-bs-target="#paneLichSu" type="button" role="tab">
+                        <i class="fas fa-clock-rotate-left me-1"></i> Lịch sử
+                    </button>
+                </li>
+            </ul>
+
+            @* Báo cáo định kỳ riêng công ty này: dùng chung trang Tổng quan, lọc 1 công ty *@
+            <a class="btn btn-sm btn-primary ms-auto" href="/QLSwitch/TongQuan?congTy=@congTy" title="Báo cáo định kỳ switch @congTy: in / xuất Excel">
+                <i class="fas fa-file-lines me-1"></i> Báo cáo
+            </a>
+        </div>
+    </div>
+</div>
+
+<section class="content @(coQuyenSua ? "" : "cam-chi-xem")" id="swTrang" data-cong-ty="@congTy" data-chi-xem="@(coQuyenSua ? null : "1")">
+    <div class="container-fluid">
+        <div class="card border-0 shadow-sm bg-white" style="border-radius: 15px;">
+            <div class="card-body p-2 p-md-3">
+                @if (!coCongTy)
+                {
+                    <div class="alert alert-warning py-2 small">Danh mục công ty chưa có "@congTy" — chưa thêm được switch cho công ty này.</div>
+                }
+                <div class="alert alert-warning py-2 small d-none" id="swCanhBaoPing"></div>
+
+                <div class="tab-content">
+
+                    @* ================= TAB DANH SÁCH switch (KK_Switch) ================= *@
+                    <div class="tab-pane fade show active" id="paneDanhSach" role="tabpanel">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <input type="text" id="filterTuKhoa" class="form-control form-control-sm" style="max-width:260px;"
+                                   placeholder="Tìm tên, mã, IP, MAC, model, vai trò, vị trí...">
+
+                            <select id="filterBoPhan" class="form-select form-select-sm w-auto" title="Lọc theo bộ phận">
+                                <option value="">-- Tất cả bộ phận --</option>
+                                @foreach (var bp in dsBoPhan)
+                                {
+                                    <option value="@bp.IdboPhan">@bp.TenBoPhan</option>
+                                }
+                            </select>
+
+                            <select id="filterTinhTrang" class="form-select form-select-sm w-auto" title="Lọc theo tình trạng">
+                                <option value="">-- Tất cả tình trạng --</option>
+                                @foreach (var tt in dsTinhTrang)
+                                {
+                                    <option value="@tt">@tt</option>
+                                }
+                            </select>
+
+                            <select id="filterKetNoi" class="form-select form-select-sm w-auto" title="Lọc theo kết nối">
+                                <option value="">-- Online + Offline --</option>
+                                <option value="online">Đang online</option>
+                                <option value="offline">Mất kết nối</option>
+                            </select>
+
+                            <span class="small text-muted fw-bold ms-2">
+                                Số switch: <span id="tongDong">0</span> ·
+                                <span class="text-success">Online: <span id="tongOnline">0</span></span> ·
+                                <span class="text-danger">Mất KN: <span id="tongOffline">0</span></span>                            </span>
+                            <span class="small text-muted" id="kiemTraGanNhat"></span>
+
+                            <span class="flex-grow-1"></span>
+
+                            <button type="button" class="btn btn-sm btn-light border" id="btnTaiLai" title="Tải lại danh sách"><i class="fas fa-rotate"></i></button>
+                            <button type="button" class="btn btn-sm btn-success" id="btnXuatExcel" title="Xuất danh sách đang lọc ra Excel">
+                                <i class="fas fa-file-excel me-1"></i> Excel
+                            </button>
+                            @if (coQuyenSua && coCongTy)
+                            {
+                                <button type="button" class="btn btn-sm text-white rounded-3 px-3" style="background-color:#0e7490;" id="btnThemSw">
+                                    <i class="fas fa-plus me-1"></i> Thêm switch
+                                </button>
+                            }
+                        </div>
+
+                        <div class="ccdc-table-wrap" data-fp-scroll>
+                            <table class="table table-hover align-middle mb-0 ccdc-table">
+                                <colgroup>
+                                    <col style="width:48px;">
+                                    <col style="width:130px;">
+                                    <col style="width:100px;">
+                                    <col style="width:220px;">
+                                    <col style="width:130px;">
+                                    <col style="width:150px;">
+                                    <col style="width:170px;">
+                                    <col style="width:80px;">
+                                    <col style="width:130px;">
+                                    <col style="width:170px;">
+                                    <col style="width:150px;">
+                                    <col style="width:180px;">
+                                    <col style="width:130px;">
+                                    <col style="width:110px;">
+                                    <col style="width:90px;">
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Kết nối</th>
+                                        <th>Mã</th>
+                                        <th>Tên switch</th>
+                                        <th>IP</th>
+                                        <th>MAC</th>
+                                        <th>Hãng / Model</th>
+                                        <th>Số cổng</th>
+                                        <th>Vai trò</th>
+                                        <th>Firmware</th>
+                                        <th>Bộ phận</th>
+                                        <th>Vị trí</th>
+                                        <th>Tình trạng</th>
+                                        <th>Hạn BH</th>
+                                        <th class="ccdc-thaotac">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="swTableBody">
+                                    <tr><td colspan="15" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    @* ================= TAB LỊCH SỬ ONLINE/OFFLINE (KK_SwitchLichSu) ================= *@
+                    <div class="tab-pane fade" id="paneLichSu" role="tabpanel">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <label class="small text-muted mb-0">Từ</label>
+                            <input type="date" id="lsTuNgay" class="form-control form-control-sm w-auto">
+                            <label class="small text-muted mb-0">đến</label>
+                            <input type="date" id="lsDenNgay" class="form-control form-control-sm w-auto">
+                            <select id="lsLoai" class="form-select form-select-sm w-auto">
+                                <option value="">-- Mọi sự kiện --</option>
+                                <option value="DOWN">Hoạt động → Mất kết nối</option>
+                                <option value="UP">Mất kết nối → Hoạt động</option>
+                            </select>
+                            <input type="text" id="lsTuKhoa" class="form-control form-control-sm" style="max-width:240px;"
+                                   placeholder="Tìm tên switch, IP...">
+                            <button type="button" class="btn btn-sm btn-light border" id="lsBtnTaiLai" title="Tải lại"><i class="fas fa-rotate"></i></button>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-3 mb-2 small text-muted fw-bold">
+                            <span>Sự kiện: <span id="lsTong">0</span></span>
+                            <span class="text-danger"><i class="fas fa-arrow-down me-1"></i>Mất kết nối: <span id="lsDown">0</span></span>
+                            <span class="text-success"><i class="fas fa-arrow-up me-1"></i>Hoạt động lại: <span id="lsUp">0</span></span>
+                            <span>Số switch: <span id="lsSoSwitch">0</span></span>
+                            <span class="fw-normal" id="lsGhiChu"></span>
+                        </div>
+
+                        <div class="ccdc-table-wrap" data-fp-scroll>
+                            <table class="table table-hover align-middle mb-0 ccdc-table">
+                                <colgroup>
+                                    <col style="width:48px;">
+                                    <col style="width:150px;">
+                                    <col style="width:200px;">
+                                    <col style="width:260px;">
+                                    <col style="width:140px;">
+                                    <col style="width:160px;">
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Thời gian</th>
+                                        <th>Sự kiện</th>
+                                        <th>Tên switch</th>
+                                        <th>IP</th>
+                                        <th>Đã mất kết nối</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lsBody">
+                                    <tr><td colspan="6" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>@* /tab-content *@
+            </div>
+        </div>
+    </div>
+</section>
+
+@if (coQuyenSua)
+{
+@* ------- Modal thêm / sửa switch ------- *@
+<div class="modal fade" id="modalSw" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="modalSwTitle">Thêm Switch</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formSw" class="row g-3">
+                    <input type="hidden" id="IdSwitch" name="IdSwitch" value="0" />
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Mã switch</label>
+                        <input type="text" class="form-control" id="MaSwitch" name="MaSwitch" maxlength="100">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small fw-bold text-muted">Tên switch <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="TenSwitch" name="TenSwitch" maxlength="255" required
+                               placeholder="VD: SW-X1-Core">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Địa chỉ IP</label>
+                        <input type="text" class="form-control" id="DiaChiIp" name="DiaChiIp" maxlength="50" placeholder="Để trống = không ping">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Địa chỉ MAC</label>
+                        <input type="text" class="form-control" id="DiaChiMac" name="DiaChiMac" maxlength="20" placeholder="AA:BB:CC:DD:EE:FF">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Vai trò</label>
+                        <select class="form-select" id="VaiTro" name="VaiTro">
+                            <option value="">-- Chọn vai trò --</option>
+                            @foreach (var vt in dsVaiTro)
+                            {
+                                <option value="@vt">@vt</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Hãng</label>
+                        <input type="text" class="form-control" id="HangSanXuat" name="HangSanXuat" maxlength="100" placeholder="Huawei, Cisco, Aruba...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Model</label>
+                        <input type="text" class="form-control" id="Model" name="Model" maxlength="100">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Serial</label>
+                        <input type="text" class="form-control" id="Serial" name="Serial" maxlength="100">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted">Số cổng</label>
+                        <input type="number" class="form-control" id="SoCong" name="SoCong" min="1" max="1000" placeholder="24, 48...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Firmware</label>
+                        <input type="text" class="form-control" id="PhienBan" name="PhienBan" maxlength="100">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold text-muted">Bộ phận</label>
+                        <select class="form-select" id="IdboPhan" name="IdboPhan">
+                            <option value="">-- Chọn bộ phận --</option>
+                            @foreach (var bp in dsBoPhan)
+                            {
+                                <option value="@bp.IdboPhan">@bp.TenBoPhan</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold text-muted">Vị trí lắp đặt</label>
+                        <input type="text" class="form-control" id="ViTri" name="ViTri" maxlength="500" placeholder="Phòng / tủ rack">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Tình trạng</label>
+                        <select class="form-select" id="TinhTrang" name="TinhTrang">
+                            @foreach (var tt in dsTinhTrang)
+                            {
+                                <option value="@tt">@tt</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Ngày lắp đặt</label>
+                        <input type="date" class="form-control" id="NgayLapDat" name="NgayLapDat">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Hạn bảo hành</label>
+                        <input type="date" class="form-control" id="HanBaoHanh" name="HanBaoHanh">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-muted">Ghi chú</label>
+                        <textarea class="form-control" id="GhiChu" name="GhiChu" rows="2"></textarea>
+                    </div>
+                </form>
+                <div class="small text-muted mt-2">"Ngừng sử dụng" / "Trong kho" hoặc không có IP thì không ping, không tính vào % hoạt động.</div>
+                <div class="alert alert-danger py-2 small mt-3 mb-0 d-none" id="swLoi"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn text-white rounded-pill px-4" style="background-color:#0e7490;" id="btnLuuSw">
+                    <i class="fas fa-save me-1"></i> Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ------- Modal xoá switch (xoá mềm, ghi lý do vào lịch sử) ------- *@
+<div class="modal fade" id="modalXoaSw" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger"><i class="fas fa-trash me-2"></i> Xoá switch</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="xoaIdSwitch" value="0">
+                <p class="mb-2">Xoá <strong id="xoaTenSwitch"></strong>?</p>
+                <label class="form-label small fw-bold text-muted">Lý do xoá</label>
+                <input type="text" class="form-control" id="xoaLyDo" maxlength="500" placeholder="Ví dụ: hỏng đã tháo, thay switch mới...">
+                <div class="alert alert-danger py-2 small mt-3 mb-0 d-none" id="xoaLoi"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Huỷ</button>
+                <button type="button" class="btn btn-danger rounded-pill px-4" id="btnXacNhanXoaSw">Xoá</button>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+@* Phải nằm trong section Scripts: layout nạp jQuery ở cuối trang, script đặt trong thân trang chạy trước jQuery *@
+@section Scripts {
+    <script src="/js/fixed-page-layout.js?v=5" defer></script>
+    <script src="/js/switch-quanly.js?v=20261008b"></script>
+}

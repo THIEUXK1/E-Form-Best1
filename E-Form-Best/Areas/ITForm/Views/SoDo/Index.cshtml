@@ -1,0 +1,59 @@
+@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    var congTy = ViewBag.CongTy as string ?? "BPVN";
+    ViewData["Title"] = "Sơ đồ mạng " + congTy;
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="/css/fixed-page-layout.css?v=5">
+
+<div class="content-header pt-0 pb-0" style="margin-top: -25px;">
+    <div class="container-fluid">
+        <div class="dash-topbar">
+            <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-diagram-project"></i></span>Sơ đồ mạng @congTy</h4>
+
+            <div class="ms-auto d-flex align-items-center" style="gap:10px; flex-wrap:wrap;">
+                <span class="sodo-chip"><i class="fas fa-circle" style="color:#22c55e"></i> Online <b id="sodoUp">0</b></span>
+                <span class="sodo-chip"><i class="fas fa-circle" style="color:#ef4444"></i> Mất KN <b id="sodoDown">0</b></span>
+                <span class="sodo-chip"><i class="fas fa-circle" style="color:#9ca3af"></i> Không theo dõi / chưa kiểm</span>
+                <button class="btn btn-sm btn-outline-secondary" id="sodoLamMoi" title="Tải lại sơ đồ"><i class="fas fa-rotate"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card border-0 shadow-sm bg-white" style="border-radius:15px;">
+            <div class="card-body p-2 p-md-3">
+                <div class="alert alert-info py-2 small mb-2">
+                    Sơ đồ <b>logic</b> tự sinh từ dữ liệu đang quản lý (Switch · AP · Camera). Hệ thống chưa lưu đấu nối cổng vật lý,
+                    nên các nhánh xếp theo tầng: Core → Phân phối → Truy cập, kèm cụm AP theo controller và cụm Camera theo đầu ghi.
+                </div>
+                <div class="alert alert-warning py-2 small d-none" id="sodoLoi"></div>
+
+                <div id="sodoTrang" data-cong-ty="@congTy" data-url="/SoDo/@congTy/DuLieu">
+                    <div class="text-center text-muted py-5" id="sodoDangTai">
+                        <i class="fas fa-spinner fa-spin me-2"></i> Đang dựng sơ đồ…
+                    </div>
+                    <div class="sodo-wrap d-none" id="sodoWrap">
+                        <svg id="sodoSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .sodo-chip { font-size:.82rem; color:#374151; white-space:nowrap; }
+    .sodo-chip b { margin-left:3px; }
+    .sodo-wrap { width:100%; overflow:auto; border:1px solid #eef0f3; border-radius:12px; background:
+        linear-gradient(90deg,#fafbfc 1px,transparent 1px) 0 0/22px 22px,
+        linear-gradient(#fafbfc 1px,transparent 1px) 0 0/22px 22px, #fff; }
+    #sodoSvg { display:block; }
+    .sodo-node { cursor:default; }
+    .sodo-node text { font-family:inherit; }
+</style>
+
+<script src="/js/so-do.js?v=20261009"></script>

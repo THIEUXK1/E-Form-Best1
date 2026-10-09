@@ -35,6 +35,7 @@
         if (dsGhim[k]) delete dsGhim[k]; else dsGhim[k] = Date.now();
         luuGhim();
         veCamera();
+        phatDuLieu();
     }
     var bieuDo = null;
     var timerTuLamMoi = null;
@@ -318,6 +319,12 @@
             var c = $(this).data('cam');
             if (c && khoaGhiChu(c) === k) $(this).find('td.cam-ghi-chu').replaceWith(oGhiChu(dsGhiChu[k]));
         });
+        phatDuLieu();
+    }
+
+    // Tab "Lưới ảnh" (camera-luoi.js) dùng chung dữ liệu lần tải này, không gọi API lần nữa
+    function phatDuLieu() {
+        $(document).trigger('camgs:duLieu', [{ dsCamera: dsCamera, dsGhiChu: dsGhiChu, dsAnhLuu: dsAnhLuu, dsGhim: dsGhim }]);
     }
 
     function batDauSuaGhiChu($td) {
@@ -762,6 +769,7 @@
                 dsCamera = camera.cameras || [];
                 veDauGhi(dauGhi.nvrs || []);
                 veCamera();
+                phatDuLieu();
             })
             .fail(function (loi) {
                 hienLoi(loi);
@@ -792,10 +800,18 @@
         if (!$('#gsTuLamMoi').is(':checked')) return;
         timerTuLamMoi = setInterval(function () {
             // Không gọi khi tab trình duyệt bị ẩn hoặc người dùng đang ở tab khác của trang
-            if (document.hidden || !$('#paneGiamSat').hasClass('active')) return;
+            if (document.hidden || !$('#paneGiamSat, #paneLuoi').hasClass('active')) return;
             taiTatCa();
         }, 60000);
     }
+
+    // Cho tab "Lưới ảnh": mở cùng cửa sổ xem, lấy URL ảnh lưu, yêu cầu tải lại
+    window.camGiamSat = {
+        moXem: moXem,
+        urlAnhLuu: function (cam) { return urlXem('AnhLuu', cam); },
+        doiGhim: doiGhim,
+        taiLai: taiTatCa
+    };
 
     $(function () {
         $('#gsBtnTaiLai').on('click', taiTatCa);
