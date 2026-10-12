@@ -8180,7 +8180,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         if (!string.IsNullOrWhiteSpace(may.DongMay)) existing.QuyCach = may.DongMay.Trim();
                         if (may.IdNguoiDung.HasValue) existing.IdNguoiDung = may.IdNguoiDung;
                         if (req.IdTrangThai.HasValue) existing.IdTrangThai = req.IdTrangThai;
-                        if (!string.IsNullOrWhiteSpace(may.BanQuyenWin)) existing.WinLicense = TrichPhienBanWindows(may.BanQuyenWin);
+                        // Agent không trả loại key → giữ nhãn đã xác minh MAK/OEM/kết luận 280926, nếu không báo cáo bản quyền mất phân loại
+                        if (!string.IsNullOrWhiteSpace(may.BanQuyenWin) && !Services.BaoCaoDinhKyService.LaNhanWinDaXacMinh(existing.WinLicense))
+                            existing.WinLicense = TrichPhienBanWindows(may.BanQuyenWin);
                         // Không đụng vào existing.OfficeLicense - trường này chỉ được cập nhật qua chức năng nhập nhanh Excel riêng
                         existing.LoaiThietBi = loaiThietBiChuan;
                         existing.IdMay = may.IdMay;

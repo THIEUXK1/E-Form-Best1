@@ -274,16 +274,22 @@
 
     // ---- Bản quyền Windows / Office / Cần cài Office / trạng thái: từ bản chụp hằng ngày (KK_ThietBiChotNgay) ----
     var banQuyenGanNhat = null;   // giữ để đổi ô công ty thì vẽ lại, không gọi lại máy chủ
+    // Nhóm Windows / Office đặt tên như báo cáo bản quyền BPVN 280926 (BaoCaoDinhKyService.NhomWindows / NhomOffice)
     var CHI_TIEU = [
-        ['win', 'Bản quyền Windows (máy tính)'], ['office', 'Bản quyền Office (máy tính)'],
-        ['can_cai_office', 'Cần cài Office (máy tính)'], ['trang_thai', 'Trạng thái thiết bị']
+        ['win', 'Windows (máy tính, laptop)'], ['office', 'Office (máy tính, laptop)'], ['trang_thai', 'Trạng thái thiết bị']
     ];
-    var THU_TU_GIA_TRI = ['Có bản quyền', 'Chưa có bản quyền', 'Không xác định', 'Trống / Chưa rõ', 'Cần cài', 'Không cần',
-        'Chưa trả lời', 'Hoạt động', 'Hỏng', 'Bảo trì', 'Kho IT', 'Khác'];
+    var THU_TU_GIA_TRI = ['Đạt - MAK công ty', 'Đạt - OEM Pro theo máy', 'Không cần (macOS / Linux)',
+        'Gốc Home - mua key nâng cấp Pro', 'Cần mua key Windows Pro', 'Chưa xác minh loại key',
+        'Cần Office - đã có key', 'Cần Office - chưa có key (cần mua)', 'Không cần Office - đang có key',
+        'Không cần Office - không có key', 'Chưa trả lời cần Office - có key', 'Chưa trả lời cần Office - không có key',
+        'Hoạt động', 'Hỏng', 'Bảo trì', 'Kho IT', 'Khác'];
     // true = tăng là xấu, false = tăng là tốt, không có = trung tính
     var XAU_KHI_TANG_TB = {
-        'Có bản quyền': false, 'Chưa có bản quyền': true, 'Không xác định': true, 'Trống / Chưa rõ': true,
-        'Chưa trả lời': true, 'Hoạt động': false, 'Hỏng': true
+        'Đạt - MAK công ty': false, 'Đạt - OEM Pro theo máy': false, 'Gốc Home - mua key nâng cấp Pro': true,
+        'Cần mua key Windows Pro': true, 'Chưa xác minh loại key': true,
+        'Cần Office - đã có key': false, 'Cần Office - chưa có key (cần mua)': true,
+        'Chưa trả lời cần Office - có key': true, 'Chưa trả lời cần Office - không có key': true,
+        'Hoạt động': false, 'Hỏng': true
     };
 
     function veBanQuyen() {
@@ -297,14 +303,45 @@
                 .reduce(function (t, x) { return t + x.soLuong; }, 0);
         };
         var tatCa = bq.nay.concat(bq.truoc || []);
-        khung.innerHTML = '<div class="row g-3">' + CHI_TIEU.map(function (ct) {
+        // Cần mua như mục I báo cáo 280926: từng công ty trừ key còn trống của chính công ty đó, âm thì tính 0
+        var keyTrong = bq.keyTrong || {};
+        var dsCty = tatCa.map(function (x) { return x.congTy; })
+            .filter(function (v, i, a) { return a.indexOf(v) === i && (!cty || v === cty); });
+        var canMua = function (ds) {
+            if (!ds) return null;
+            var kq = { office: 0, home: 0, pro: 0 };
+            dsCty.forEach(function (c) {
+                var k = keyTrong[c] || {};
+                var demCt = function (chiTieu, giaTri) {
+                    return ds.filter(function (x) { return x.congTy === c && x.chiTieu === chiTieu && x.giaTri === giaTri; })
+                        .reduce(function (t, x) { return t + x.soLuong; }, 0);
+                };
+                kq.office += Math.max(0, demCt('office', 'Cần Office - chưa có key (cần mua)') - (k.office || 0));
+                kq.home += demCt('win', 'Gốc Home - mua key nâng cấp Pro');
+                kq.pro += Math.max(0, demCt('win', 'Cần mua key Windows Pro') - (k.windows || 0));
+            });
+            return kq;
+        };
+        var mNay = canMua(bq.nay), mTruoc = canMua(bq.truoc);
+        var lay = function (m, f) { return m ? f(m) : null; };
+        var bangMua = khungBang('Cần mua (đã trừ key còn trống)', 'Hạng mục',
+            dongSs('Office - key Office', mNay.office, lay(mTruoc, function (m) { return m.office; }), true)
+            + dongSs('Windows - key nâng cấp Home lên Pro', mNay.home, lay(mTruoc, function (m) { return m.home; }), true)
+            + dongSs('Windows - key Windows Pro', mNay.pro, lay(mTruoc, function (m) { return m.pro; }), true)
+            + dongSs('Tổng Windows cần mua', mNay.home + mNay.pro, lay(mTruoc, function (m) { return m.home + m.pro; }), true, true));
+        var ghiChuKey = dsCty.filter(function (c) { return keyTrong[c]; }).map(function (c) {
+            return c + ': ' + (keyTrong[c].office || 0) + ' key Office, ' + (keyTrong[c].windows || 0) + ' key MAK Windows';
+        }).join(' · ');
+        khung.innerHTML = '<div class="row g-3 mb-3"><div class="col-xl-4 col-md-6">' + bangMua
+            + '<div class="small text-muted mt-1">Key còn trống đã trừ: ' + esc(ghiChuKey || 'không có') + '.</div></div></div>'
+            + '<div class="row g-3">' + CHI_TIEU.map(function (ct) {
             var dsGiaTri = tatCa.filter(function (x) { return x.chiTieu === ct[0]; }).map(function (x) { return x.giaTri; })
                 .filter(function (v, i, a) { return a.indexOf(v) === i; })
                 .sort(function (a, b) {
                     var ia = THU_TU_GIA_TRI.indexOf(a), ib = THU_TU_GIA_TRI.indexOf(b);
                     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
                 });
-            return '<div class="col-xl-3 col-md-6">' + khungBang(ct[1], 'Giá trị', dsGiaTri.map(function (gt) {
+            return '<div class="col-xl-4 col-md-6">' + khungBang(ct[1], 'Giá trị', dsGiaTri.map(function (gt) {
                 return dongSs(gt, dem(bq.nay, ct[0], gt), dem(bq.truoc, ct[0], gt),
                     XAU_KHI_TANG_TB.hasOwnProperty(gt) ? XAU_KHI_TANG_TB[gt] : null);
             }).join('')) + '</div>';
@@ -313,7 +350,7 @@
 
     function khungBanQuyen(d) {
         banQuyenGanNhat = d.banQuyen;
-        var html = '<div class="fw-bold small text-muted mb-1 mt-3"><i class="fas fa-key me-1"></i> Bản quyền · Office · Trạng thái</div>';
+        var html = '<div class="fw-bold small text-muted mb-1 mt-3"><i class="fas fa-key me-1"></i> Windows · Office · Trạng thái</div>';
         if (d.banQuyenLoi) return html + '<div class="alert alert-warning py-2 small mb-0">' + esc(d.banQuyenLoi) + '</div>';
         var bq = d.banQuyen;
         if (!bq) return html;
@@ -330,7 +367,10 @@
             + '<span class="small text-muted">Kỳ này: ' + esc(nguonNay) + ' · Kỳ trước: ' + esc(nguonTruoc) + '</span></div>'
             + (bq.ngayTruoc ? '' : '<div class="alert alert-info py-2 small">Chưa có số kỳ trước để so sánh — '
                 + 'hệ thống mới bắt đầu chụp số liệu bản quyền/Office mỗi ngày.</div>')
-            + '<div id="bcSsBanQuyen"></div>';
+            + '<div id="bcSsBanQuyen"></div>'
+            + '<div class="small text-muted mt-2">Phân loại như báo cáo bản quyền 280926: chỉ MAK công ty / OEM theo máy là đạt. '
+            + 'Kết luận từng máy BPVN lấy từ file 280926; đồng bộ agent không ghi đè nhãn này. '
+            + '"Chưa xác minh loại key" = máy chưa có kết luận/nhãn MAK-OEM — nhập Key Windows từ Excel để kết luận.</div>';
         return html;
     }
 

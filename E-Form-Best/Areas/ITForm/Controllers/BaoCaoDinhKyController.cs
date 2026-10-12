@@ -15,7 +15,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // Phải khớp data-loai của các tab trong Views/BaoCaoDinhKy/Index.cshtml
         private static readonly string[] DsLoai = { "camera", "ap", "switch", "thiet-bi", "don-it", "cong-viec" };
 
-        private bool CoQuyen() => User.IsInRole("AdminIT") || User.IsInRole("All");
+        // "BaoCaoDinhKy": quyền chỉ xem trang này, cấp cho người ngoài IT mà không phải trao AdminIT
+        private bool CoQuyen() => User.IsInRole("AdminIT") || User.IsInRole("All") || User.IsInRole("BaoCaoDinhKy");
 
         [HttpGet("/BaoCaoDinhKy")]
         public IActionResult Index(string? loai, string? congTy)

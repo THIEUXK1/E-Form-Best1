@@ -58,7 +58,9 @@ Thêm gói mới phải hỏi trước — xem [`project-scope.md`](project-scop
 |---|---|---|
 | Hot reload **không** cập nhật model EF | Thêm cột vào entity rồi hot reload → EF vẫn ghi theo model cũ, không báo lỗi | **Restart app** sau mỗi lần đổi `Models/ITForm/`/`ITFormContext.cs`: `(Get-NetTCPConnection -LocalPort 5274 -State Listen).OwningProcess \| Stop-Process -Force` (supervisor bật lại ~3 s). Kiểm bằng ghi thử rồi `SELECT` cột mới |
 | PowerShell 5.1 ghép code tiếng Việt | `Get-Content` đọc UTF-8 không BOM như ANSI → `"Cài đặt phần mềm"` thành `"C脿i 膽岷穞…"`, build 0 lỗi nhưng lọc sai lúc chạy | `[System.IO.File]::ReadAllText/WriteAllLines` với `UTF8Encoding` tường minh; quét lại `[一-鿿]` sau khi ghép |
-| `sqlcmd` với file `.sql` tiếng Việt | Dữ liệu vào DB lỗi font | Luôn thêm `-f 65001` |
+| `sqlcmd` với file `.sql` tiếng Việt | Dữ liệu vào DB lỗi font (console cũng mojibake nên tưởng chỉ lỗi hiển thị) | Luôn thêm `-f 65001`; kiểm `SELECT COUNT(*) ... WHERE <cot> LIKE N'%' + NCHAR(195) + N'%'` = 0 |
+| `sqlcmd` + filtered index | `QUOTED_IDENTIFIER OFF` mặc định → Msg 1934 giữa chừng (bảng tạo rồi, index chưa) | Script mở đầu `SET QUOTED_IDENTIFIER ON; SET ANSI_NULLS ON; GO` hoặc cờ `-I` |
+| Mật khẩu trên dòng lệnh `sqlcmd -P` | Harness chặn (Credential Leakage) | Script PS đọc connection string từ `.env`/`appsettings.json`, chạy bằng `System.Data.SqlClient`, tự tách batch `GO`, đọc file `Get-Content -Encoding UTF8`. Bẫy: lọc dòng `//` trước `ConvertFrom-Json`; đổi `Trust Server Certificate` → `TrustServerCertificate` |
 | Truy vấn EF không dịch được sang SQL | Nổ **runtime**, build vẫn sạch (đã dính ở `355993a`) | Tránh hàm .NET lạ trong `Where`; cẩn thận `Contains` trên list ngoài |
 | `IMemoryCache` cho dropdown Công ty/Bộ phận | Sửa danh mục **không hiện ngay** | Chờ cache hết hạn hoặc invalidate tường minh |
 | Cache file tĩnh 7 ngày | Sửa `.js`/`.css` cũ mà trình duyệt vẫn dùng bản cũ | Thêm query version hoặc đổi tên file |
@@ -91,6 +93,18 @@ Chỉ xác thực bằng SSH key, không bao giờ đưa mật khẩu vào lện
 | `10.0.60.52` | `ssh -i ~/.ssh/df_server_key 'BESTPACIFIC\vnsuperman@10.0.60.52'` | `C:\inetpub\Web\E-Form-Best` (`Web`) | nuốt dấu nháy trong `powershell -Command` → `scp` file `.ps1` rồi `-File` |
 
 Cả hai binding `:8002` — kiểm bằng `http://<host>:8002/` (port 80 của `.39` là app khác).
-Deploy: `app_offline.htm` + `robocopy /E`, **không bao giờ `/MIR`**; backup trước khi chép đè.
+`10.0.193.240` **không** chạy E-Form-Best (máy của TongHopEST, NhaAnPFVN…) — đừng đẩy nhầm.
+
+Deploy (`app_offline.htm` + `robocopy /E`, **không bao giờ `/MIR`** — xoá dữ liệu người dùng):
+1. `dotnet publish -c Release -o <scratchpad>\pub-<ts>` (thư mục mới, không xoá bản cũ — deny `Remove-Item -Recurse`).
+   View biên dịch vào `E-Form-Best.dll` → sửa view cũng phải publish.
+2. Backup: `robocopy <app> <root>\_backup\E-Form-Best_<ts> /E /XD FileIT FileHR HuongDanIT Identity`.
+3. `scp -r` gói lên `<root>\_deploy\E-Form-Best_<ts>\publish`.
+4. `echo ... > app_offline.htm` → `robocopy <stage> <app> /E /XF appsettings.Development.json app_offline.htm .env .env.example`
+   → `del app_offline.htm.bak` (còn sót thì `ren` lỗi im lặng, site kẹt offline) → `ren app_offline.htm app_offline.htm.bak`.
+   ERROR 32 trên `E-Form-Best.dll` lần đầu là bình thường (app pool chưa nhả, tự retry 30 s).
+5. Kiểm `http://<host>:8002/` trả 302 về đăng nhập. Rollback: `robocopy <root>\_backup\E-Form-Best_<ts> <app> /E`.
+
+`appsettings.json` deploy bình thường (từ 23/09/2026); cấu hình riêng từng máy chủ → `.env` (`Section__Key`).
 Mọi lệnh **ghi** lên các máy này vẫn phải hỏi xác nhận từng lần — xem
 [`database-safety.md`](database-safety.md) mục 1.

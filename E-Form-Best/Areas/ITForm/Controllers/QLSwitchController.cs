@@ -65,6 +65,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             ViewBag.DsTinhTrang = DsTinhTrang;
             ViewBag.DsVaiTro = DsVaiTro;
             ViewBag.CoQuyenSua = CoQuyenSua();
+            // Công ty có cấu hình dải quét máy chủ thì hiện thêm tab "Máy chủ"
+            ViewBag.DaiQuet = QuetIpWorker.DsDaiQuet(_configuration).GetValueOrDefault(cty);
             return View();
         }
 
@@ -403,6 +405,142 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
+        #region Máy chủ (quét dải IP)
+
+        /// <summary>
+        /// IP trong dải quét của công ty (KK_QuetIp, do QuetIpWorker ghi) kèm đối chiếu khai báo:
+        /// IP đó đã có trong Switch / AP / thiết bị kiểm kê chưa — IP sống mà "Chưa khai báo" là máy lạ cần rà.
+        /// </summary>
+        [HttpGet("/QLSwitch/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/MayChu/DanhSach")]
+        public async Task<IActionResult> MayChuDanhSach(string congTy, string? tuKhoa, string? ketNoi, string? khaiBao)
+        {
+            var cty = CongTyHopLe(congTy)!;
+            if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+
+            var dai = QuetIpWorker.DsDaiQuet(_configuration).GetValueOrDefault(cty);
+            if (dai == null) return Json(new { thanhCong = false, thongBao = $"Chưa cấu hình dải quét máy chủ cho {cty} (QuetIp:DaiMang)." });
+
+            try
+            {
+                var idCongTy = await IdCongTyAsync(cty);
+                var tienTo = dai + ".";
+
+                var ds = await _context.KkQuetIps
+                    .Where(x => x.IdcongTy == idCongTy && x.DaiMang == dai)
+                    .Select(x => new { x.IdQuetIp, x.DiaChiIp, x.TenMay, x.TrangThaiKetNoi, x.DoiTrangThaiLuc, x.KiemTraLuc, x.LanDauThay, x.LanCuoiSong })
+                    .ToListAsync();
+
+                // Đối chiếu khai báo: dải chỉ 254 IP nên kéo hết về rồi ghép trong bộ nhớ
+                var khaiBaoTheoIp = new Dictionary<string, List<string>>();
+                void Them(string? ip, string nhan)
+                {
+                    if (string.IsNullOrWhiteSpace(ip)) return;
+                    // Cột ip thiết bị có thể chứa nhiều IP ("a, b") -> tách ra so khớp đúng từng IP
+                    foreach (var mot in ip.Split(new[] { ',', ';', ' ', '|' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        if (!mot.StartsWith(tienTo)) continue;
+                        if (!khaiBaoTheoIp.TryGetValue(mot, out var l)) khaiBaoTheoIp[mot] = l = new List<string>();
+                        if (!l.Contains(nhan)) l.Add(nhan);
+                    }
+                }
+
+                foreach (var x in await _context.KkSwitches
+                             .Where(x => x.NgayXoa == null && x.IdcongTy == idCongTy && x.DiaChiIp != null && x.DiaChiIp.StartsWith(tienTo))
+                             .Select(x => new { x.DiaChiIp, x.TenSwitch }).ToListAsync())
+                    Them(x.DiaChiIp, "Switch: " + x.TenSwitch);
+                foreach (var x in await _context.KkAccessPoints
+                             .Where(x => x.NgayXoa == null && x.IdcongTy == idCongTy && x.DiaChiIp != null && x.DiaChiIp.StartsWith(tienTo))
+                             .Select(x => new { x.DiaChiIp, x.TenAp }).ToListAsync())
+                    Them(x.DiaChiIp, "AP: " + x.TenAp);
+                foreach (var x in await _context.KkThietBis
+                             .Where(x => x.NgayXoa == null && x.Ip != null && x.Ip.Contains(tienTo))
+                             .Select(x => new { x.Ip, x.TenMayTinh, x.LoaiThietBi }).ToListAsync())
+                    Them(x.Ip, (string.IsNullOrWhiteSpace(x.LoaiThietBi) ? "Thiết bị" : x.LoaiThietBi) + ": " + (x.TenMayTinh ?? ""));
+
+                var duLieu = ds
+                    .Select(x => new
+                    {
+                        x.IdQuetIp, x.DiaChiIp, x.TenMay, KetNoi = x.TrangThaiKetNoi, x.DoiTrangThaiLuc, x.KiemTraLuc, x.LanDauThay, x.LanCuoiSong,
+                        KhaiBao = khaiBaoTheoIp.TryGetValue(x.DiaChiIp, out var l) ? string.Join(" · ", l) : null,
+                        SoCuoi = int.TryParse(x.DiaChiIp[(x.DiaChiIp.LastIndexOf('.') + 1)..], out var n) ? n : 0
+                    })
+                    .OrderBy(x => x.SoCuoi)
+                    .ToList();
+
+                // Tổng đếm trên cả dải, bộ lọc chỉ áp vào bảng
+                var tongDong = duLieu.Count;
+                var tongOnline = duLieu.Count(x => x.KetNoi == "UP");
+                var tongOffline = duLieu.Count(x => x.KetNoi == "DOWN");
+                var tongChuaKhaiBao = duLieu.Count(x => x.KhaiBao == null);
+
+                if (ketNoi == "UP" || ketNoi == "DOWN") duLieu = duLieu.Where(x => x.KetNoi == ketNoi).ToList();
+                if (khaiBao == "co") duLieu = duLieu.Where(x => x.KhaiBao != null).ToList();
+                else if (khaiBao == "chua") duLieu = duLieu.Where(x => x.KhaiBao == null).ToList();
+                if (!string.IsNullOrWhiteSpace(tuKhoa))
+                {
+                    var kw = tuKhoa.Trim();
+                    duLieu = duLieu.Where(x => x.DiaChiIp.Contains(kw, StringComparison.OrdinalIgnoreCase)
+                                               || (x.TenMay?.Contains(kw, StringComparison.OrdinalIgnoreCase) ?? false)
+                                               || (x.KhaiBao?.Contains(kw, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
+                }
+
+                return Json(new
+                {
+                    thanhCong = true,
+                    duLieu,
+                    daiMang = dai,
+                    tongDong, tongOnline, tongOffline, tongChuaKhaiBao,
+                    kiemTraGanNhat = ds.Max(x => x.KiemTraLuc),
+                    chuKyGiay = QuetIpWorker.ChuKyGiay(_configuration)
+                });
+            }
+            catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
+        [HttpGet("/QLSwitch/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/MayChu/LichSu")]
+        public async Task<IActionResult> MayChuLichSu(string congTy, DateTime? tuNgay, DateTime? denNgay, string? loai, string? tuKhoa)
+        {
+            var cty = CongTyHopLe(congTy)!;
+            if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+
+            try
+            {
+                var (tu, den) = KyBaoCao(tuNgay, denNgay);
+                var denHet = den.AddDays(1);
+                var idCongTy = await IdCongTyAsync(cty);
+
+                var query = _context.KkQuetIpLichSus
+                    .Where(x => x.IdcongTy == idCongTy && x.ThoiGian >= tu && x.ThoiGian < denHet);
+                if (loai == "UP" || loai == "DOWN") query = query.Where(x => x.SangTrangThai == loai);
+                if (!string.IsNullOrWhiteSpace(tuKhoa))
+                {
+                    var kw = tuKhoa.Trim();
+                    query = query.Where(x => (x.TenMay != null && x.TenMay.Contains(kw)) || (x.DiaChiIp != null && x.DiaChiIp.Contains(kw)));
+                }
+
+                const int toiDa = 2000;
+                var duLieu = await query
+                    .OrderByDescending(x => x.ThoiGian).ThenByDescending(x => x.IdLichSu)
+                    .Take(toiDa)
+                    .Select(x => new { x.ThoiGian, x.IdQuetIp, x.TenMay, x.DiaChiIp, x.TuTrangThai, x.SangTrangThai, x.ThoiLuongGiay })
+                    .ToListAsync();
+
+                return Json(new
+                {
+                    thanhCong = true,
+                    duLieu,
+                    tong = duLieu.Count,
+                    soDown = duLieu.Count(x => x.SangTrangThai == "DOWN"),
+                    soUp = duLieu.Count(x => x.SangTrangThai == "UP"),
+                    soMay = duLieu.Select(x => x.IdQuetIp).Distinct().Count(),
+                    biCat = duLieu.Count == toiDa
+                });
+            }
+            catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
+        #endregion
+
         #region Tổng quan / báo cáo
 
         /// <summary>
@@ -413,7 +551,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         /// </summary>
         private List<string>? DsCongTyBaoCao(string? congTy)
         {
-            var laAdminIt = User.IsInRole("AdminIT");
+            // Quyền "BaoCaoDinhKy" xem tổng quan cả 3 công ty như AdminIT (tab Switch của /BaoCaoDinhKy)
+            var laAdminIt = User.IsInRole("AdminIT") || User.IsInRole("BaoCaoDinhKy");
             if (string.IsNullOrWhiteSpace(congTy))
                 return SwitchPingWorker.DsCongTy.Where(x => laAdminIt || CoQuyenXem(x)).ToList();
 

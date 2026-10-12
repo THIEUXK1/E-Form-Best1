@@ -11,8 +11,13 @@ namespace E_Form_Best.Areas.ITForm.Services
     public class BaoCaoDinhKyService
     {
         private readonly ITFormContext _context;
+        private readonly IConfiguration _configuration;
 
-        public BaoCaoDinhKyService(ITFormContext context) => _context = context;
+        public BaoCaoDinhKyService(ITFormContext context, IConfiguration configuration)
+        {
+            _context = context;
+            _configuration = configuration;
+        }
 
         // Thứ tự trạng thái giống biểu đồ trên trang thống kê
         public static readonly string[] DsTrangThaiDon = { "CHỜ QL", "ĐANG XỬ LÝ", "ĐÁNH GIÁ", "HOÀN TẤT", "HỦY" };
@@ -253,23 +258,82 @@ namespace E_Form_Best.Areas.ITForm.Services
 
         // ---------- Bản chụp hằng ngày (KK_ThietBiChotNgay): bản quyền Windows / Office / Cần cài Office / trạng thái ----------
 
-        public const string ChiTieuWin = "win", ChiTieuOffice = "office", ChiTieuCanCaiOffice = "can_cai_office", ChiTieuTrangThai = "trang_thai";
+        public const string ChiTieuWin = "win", ChiTieuOffice = "office", ChiTieuTrangThai = "trang_thai";
 
         // Bản quyền chỉ có nghĩa với máy tính — cùng danh sách loại với chức năng nhập nhanh Key Office từ Excel
         private static readonly string[] LoaiMayTinh = { "máy tính", "laptop" };
 
+        // Nhóm Windows / Office đặt tên đúng như báo cáo bản quyền BPVN đã gửi (BPVN_BaoCao_BanQuyen_Office_Windows_280926.xlsx)
+        public const string WinMak = "Đạt - MAK công ty", WinOem = "Đạt - OEM Pro theo máy", WinKhongCan = "Không cần (macOS / Linux)",
+            WinHome = "Gốc Home - mua key nâng cấp Pro", WinCanMua = "Cần mua key Windows Pro", WinChuaXacMinh = "Chưa xác minh loại key";
+
+        private static readonly string[] NhanKetLuanWin = { WinMak, WinOem, WinHome, WinCanMua };
+
+        private static readonly System.Text.RegularExpressions.Regex KeyCuoiNhan =
+            new(@"\(\s*([A-Za-z]+)\s*-\s*([^)]+?)\s*\)\s*$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
         /// <summary>
-        /// Gom giá trị bản quyền về 4 nhóm. Windows lưu dạng "Professional - Có bản quyền" (TrichPhienBanWindows),
-        /// Office dạng "Có bản quyền"/"Chưa có bản quyền"/"Không xác định" — để nguyên thì mỗi phiên bản Windows thành 1 dòng.
-        /// Xét "chưa có" trước vì "có bản quyền" nằm trong "chưa có bản quyền".
+        /// win_license đã biết loại key — nhãn "(MAK-xxxxx)"/"(OEM-xxxxx)" của nhập Key Windows từ Excel hoặc kết luận báo cáo 280926.
+        /// Đồng bộ agent chỉ trả về "Professional - Có bản quyền" nên không được ghi đè lên các nhãn này.
         /// </summary>
-        public static string NhomBanQuyen(string? giaTri)
+        public static bool LaNhanWinDaXacMinh(string? winLicense)
         {
-            var s = (giaTri ?? "").Trim().ToLowerInvariant();
-            if (s.Length == 0) return "Trống / Chưa rõ";
-            if (s.Contains("chưa có bản quyền")) return "Chưa có bản quyền";
-            if (s.Contains("có bản quyền")) return "Có bản quyền";
-            return "Không xác định";
+            var v = (winLicense ?? "").Trim();
+            return KeyCuoiNhan.IsMatch(v) || NhanKetLuanWin.Any(x => x.Equals(v, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Kết luận bản quyền Windows của 1 máy — cùng quy ước công ty với ImportWinLicenseExcel / LaKeyDatChuanCongTy:
+        /// chỉ key MAK công ty mua (BanQuyenWindows:MakKeyCongTy) hoặc OEM gắn theo máy mới là đạt; GVLK/Retail/MAK lạ là
+        /// key công khai → cần mua. Máy gốc Home không dùng được MAK (license nâng cấp) → mua key nâng cấp Home lên Pro.
+        /// Nhãn "Professional - Có bản quyền" do đồng bộ máy ghi (TrichPhienBanWindows) không còn loại key → "Chưa xác minh",
+        /// không tự coi là đạt (báo cáo 280926 phải quét key mới kết luận được).
+        /// </summary>
+        public static string NhomWindows(string? winLicense, IReadOnlyCollection<string> makKeyCongTy)
+        {
+            var v = (winLicense ?? "").Trim();
+            // Kết luận đã ghi thẳng từ báo cáo 280926 (plans/sql/kk-ban-quyen-280926-20261012.sql) — giữ nguyên nhóm
+            var nhan = NhanKetLuanWin.FirstOrDefault(x => x.Equals(v, StringComparison.OrdinalIgnoreCase));
+            if (nhan != null) return nhan;
+            var low = v.ToLowerInvariant();
+            if (low.Contains("macos") || low.Contains("mac os") || low.Contains("os x") || low.Contains("linux")) return WinKhongCan;
+            var m = KeyCuoiNhan.Match(v);
+            // Xét edition ở phần trước "(LOẠI-KEY)" để 5 ký tự key không bị nhầm thành chữ "core"
+            var edition = (m.Success ? v[..m.Index] : v).ToLowerInvariant();
+            var laHome = edition.Contains("home") || edition.Contains("core") || edition.Contains("single language");
+
+            if (m.Success)
+            {
+                var loaiKey = m.Groups[1].Value.ToUpperInvariant();
+                var key5 = m.Groups[2].Value.Trim();
+                if (laHome) return WinHome;
+                if (loaiKey == "OEM") return WinOem;
+                if (loaiKey == "MAK" && makKeyCongTy.Any(k => k.Equals(key5, StringComparison.OrdinalIgnoreCase))) return WinMak;
+                return WinCanMua;   // GVLK, Retail generic, MAK lạ, OTHER-N/A
+            }
+            if (laHome) return WinHome;
+            // PFVN nhập tay "Chưa có" (không kèm "bản quyền")
+            if (v.Length == 0 || low.Contains("chưa có") || low.Contains("không có")) return WinCanMua;
+            return WinChuaXacMinh;
+        }
+
+        /// <summary>
+        /// Office theo nhu cầu cài (can_cai_office) × có key — như mục "Tình trạng Office theo máy" của báo cáo 280926.
+        /// Có key = "Có bản quyền", tên bản Office, hoặc Notification (báo cáo 280926 tính Notification là đã có key).
+        /// </summary>
+        public static string NhomOffice(string? officeLicense, bool? canCaiOffice)
+        {
+            var low = (officeLicense ?? "").Trim().ToLowerInvariant();
+            var coKey = !low.Contains("chưa có") && !low.Contains("không có")
+                        && (low.Contains("có bản quyền") || low.Contains("notification") || low.Contains("professional plus")
+                            || low.Contains("standard") || low.Contains("microsoft 365") || low.Contains("home & business")
+                            || low.Contains("home & student") || low.Contains("apps for"));
+            return canCaiOffice switch
+            {
+                true => coKey ? "Cần Office - đã có key" : "Cần Office - chưa có key (cần mua)",
+                false => coKey ? "Không cần Office - đang có key" : "Không cần Office - không có key",
+                _ => coKey ? "Chưa trả lời cần Office - có key" : "Chưa trả lời cần Office - không có key",
+            };
         }
 
         public record DongChot(string CongTy, string ChiTieu, string GiaTri, int SoLuong);
@@ -307,10 +371,11 @@ namespace E_Form_Best.Areas.ITForm.Services
             void Dem(string chiTieu, IEnumerable<(string CongTy, string GiaTri)> ds2)
                 => kq.AddRange(ds2.GroupBy(x => x).Select(g => new DongChot(g.Key.CongTy, chiTieu, g.Key.GiaTri, g.Count())));
 
+            var makKey = (_configuration.GetSection("BanQuyenWindows:MakKeyCongTy").Get<string[]>() ?? Array.Empty<string>())
+                .Where(k => !string.IsNullOrWhiteSpace(k)).Select(k => k.Trim()).ToList();
             var mayTinh = dong.Where(x => x.LaMayTinh).ToList();
-            Dem(ChiTieuWin, mayTinh.Select(x => (x.CongTy, NhomBanQuyen(x.WinLicense))));
-            Dem(ChiTieuOffice, mayTinh.Select(x => (x.CongTy, NhomBanQuyen(x.OfficeLicense))));
-            Dem(ChiTieuCanCaiOffice, mayTinh.Select(x => (x.CongTy, x.CanCaiOffice == true ? "Cần cài" : x.CanCaiOffice == false ? "Không cần" : "Chưa trả lời")));
+            Dem(ChiTieuWin, mayTinh.Select(x => (x.CongTy, NhomWindows(x.WinLicense, makKey))));
+            Dem(ChiTieuOffice, mayTinh.Select(x => (x.CongTy, NhomOffice(x.OfficeLicense, x.CanCaiOffice))));
             Dem(ChiTieuTrangThai, dong.Select(x => (x.CongTy, x.TrangThai)));
             return kq;
         }
@@ -336,6 +401,14 @@ namespace E_Form_Best.Areas.ITForm.Services
             public DateOnly? ChupTu { get; set; }
             public List<DongChot> Nay { get; set; } = new();
             public List<DongChot>? Truoc { get; set; }
+            /// <summary>Key còn trống theo công ty (BanQuyenKeyTrong) — trừ vào số cần mua.</summary>
+            public Dictionary<string, KeyTrong> KeyTrong { get; set; } = new();
+        }
+
+        public class KeyTrong
+        {
+            public int Office { get; set; }
+            public int Windows { get; set; }
         }
 
         /// <summary>
@@ -348,7 +421,8 @@ namespace E_Form_Best.Areas.ITForm.Services
             var (tuTruoc, denTruoc) = CameraBaoCaoService.KyTruoc(tuNgay, denNgay);
             var kq = new SoSanhChot
             {
-                ChupTu = await _context.KkThietBiChotNgays.MinAsync(x => (DateOnly?)x.Ngay, ct)
+                ChupTu = await _context.KkThietBiChotNgays.MinAsync(x => (DateOnly?)x.Ngay, ct),
+                KeyTrong = _configuration.GetSection("BanQuyenKeyTrong").Get<Dictionary<string, KeyTrong>>() ?? new()
             };
 
             async Task<(DateOnly? ngay, List<DongChot>? ds)> BanChupAsync(DateTime tu, DateTime den)

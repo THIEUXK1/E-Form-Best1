@@ -547,14 +547,43 @@
                         </a>
                     }
 
-                    @* Camera chia theo công ty: "All" thấy cả 3, "CamBPVN"/"CamPFVN"/"CamMEGA" chỉ thấy công ty được cấp.
-                       Quyền kiểm lại ở QLCameraController (CoQuyenXem / CoQuyenSua) *@
+                    @* Nhóm "Hạ tầng mạng": gộp Camera / AP / Switch / Sơ đồ / Báo cáo định kì vào 1 mục cha thu gọn được.
+                       Mỗi mục con vẫn chia theo công ty; quyền kiểm lại ở controller từng module *@
+                    // Camera: "All" thấy cả 3, "CamBPVN"/"CamPFVN"/"CamMEGA" chỉ thấy công ty được cấp (QLCameraController)
                     var dsCameraDuocXem = new[] { ("BPVN", "/QLCamera"), ("PFVN", "/QLCamera/PFVN"), ("MEGA", "/QLCamera/MEGA") }
                         .Where(x => User.IsInRole("All") || User.IsInRole("Cam" + x.Item1)).ToList();
-                    // Tổng quan 3 công ty: AdminIT xem được kể cả khi chưa có quyền camera công ty nào
-                    if (dsCameraDuocXem.Count > 0 || User.IsInRole("AdminIT"))
+                    // AP / Switch: "Ap{CÔNG TY}" / "Sw{CÔNG TY}" (QLAPController, QLSwitchController)
+                    var dsApDuocXem = new[] { "BPVN", "PFVN", "MEGA" }
+                        .Where(x => User.IsInRole("All") || User.IsInRole("Ap" + x)).ToList();
+                    var dsSwitchDuocXem = new[] { "BPVN", "PFVN", "MEGA" }
+                        .Where(x => User.IsInRole("All") || User.IsInRole("Sw" + x)).ToList();
+                    // Sơ đồ: có quyền xem bất kỳ module IT nào của công ty đó (SoDoController)
+                    var dsSoDoDuocXem = new[] { "BPVN", "PFVN", "MEGA" }
+                        .Where(x => User.IsInRole("All") || User.IsInRole("Sw" + x) || User.IsInRole("Ap" + x) || User.IsInRole("Cam" + x)).ToList();
+                    // AdminIT xem Tổng quan / Sơ đồ cả 3 công ty kể cả khi chưa được cấp quyền module nào
+                    var laAdminItMenu = User.IsInRole("AdminIT");
+                    if (dsSoDoDuocXem.Count == 0 && laAdminItMenu) { dsSoDoDuocXem = new List<string> { "BPVN", "PFVN", "MEGA" }; }
+                    var coBaoCaoDinhKy = laAdminItMenu || User.IsInRole("All") || User.IsInRole("BaoCaoDinhKy");
+                    var coHaTang = laAdminItMenu || coBaoCaoDinhKy || dsCameraDuocXem.Count > 0 || dsApDuocXem.Count > 0
+                                   || dsSwitchDuocXem.Count > 0 || dsSoDoDuocXem.Count > 0;
+                    var isHaTangActive = isCameraActive || isApActive || isSwitchActive || isSoDoActive || isBaoCaoDinhKyActive;
+
+                    if (coHaTang)
                     {
                         <div class="nav-divider"></div>
+                        <a data-bs-toggle="collapse" href="#collapseHaTang" role="button" aria-expanded="@(isHaTangActive ? "true" : "false")" aria-controls="collapseHaTang" class="nav-link-item @(isHaTangActive ? "active" : "")" style="justify-content: space-between; cursor: pointer;">
+                            <span style="display:flex; align-items:center;">
+                                <i class="fa fa-server nav-ico" style="color:#38bdf8;"></i>
+                                <span class="lang-text" data-key="network_infra">@L["Hạ tầng mạng"]</span>
+                            </span>
+                            <i class="fa fa-angle-down menu-arrow"></i>
+                        </a>
+
+                        <div class="collapse @(isHaTangActive ? "show" : "")" id="collapseHaTang">
+                            <div style="display: flex; flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
+
+                        @if (dsCameraDuocXem.Count > 0 || laAdminItMenu)
+                        {
                         <a data-bs-toggle="collapse" href="#collapseCamera" role="button" aria-expanded="@(isCameraActive ? "true" : "false")" aria-controls="collapseCamera" class="nav-link-item @(isCameraActive ? "active" : "")" style="justify-content: space-between; cursor: pointer;">
                             <span style="display:flex; align-items:center;">
                                 <i class="fa fa-video-camera nav-ico" style="color:#a78bfa;"></i>
@@ -580,19 +609,10 @@
                                 }
                             </div>
                         </div>
-                    }
-
-                    @* AP Wi-Fi chia theo công ty như camera: "All" thấy cả 3, "ApBPVN"/"ApPFVN"/"ApMEGA" chỉ thấy công ty được cấp.
-                       Quyền kiểm lại ở QLAPController (CoQuyenXem / CoQuyenSua) *@
-                    var dsApDuocXem = new[] { "BPVN", "PFVN", "MEGA" }
-                        .Where(x => User.IsInRole("All") || User.IsInRole("Ap" + x)).ToList();
-                    if (dsApDuocXem.Count > 0 || User.IsInRole("AdminIT"))
-                    {
-                        // Nhóm camera đã có vạch ngăn ở trên; không hiện camera thì AP tự mở nhóm mới
-                        if (dsCameraDuocXem.Count == 0 && !User.IsInRole("AdminIT"))
-                        {
-                            <div class="nav-divider"></div>
                         }
+
+                        @if (dsApDuocXem.Count > 0 || laAdminItMenu)
+                        {
                         <a data-bs-toggle="collapse" href="#collapseAp" role="button" aria-expanded="@(isApActive ? "true" : "false")" aria-controls="collapseAp" class="nav-link-item @(isApActive ? "active" : "")" style="justify-content: space-between; cursor: pointer;">
                             <span style="display:flex; align-items:center;">
                                 <i class="fa fa-wifi nav-ico" style="color:#22d3ee;"></i>
@@ -618,19 +638,10 @@
                                 }
                             </div>
                         </div>
-                    }
-
-                    @* Switch chia theo công ty như AP: "All" thấy cả 3, "SwBPVN"/"SwPFVN"/"SwMEGA" chỉ thấy công ty được cấp.
-                       Quyền kiểm lại ở QLSwitchController (CoQuyenXem / CoQuyenSua) *@
-                    var dsSwitchDuocXem = new[] { "BPVN", "PFVN", "MEGA" }
-                        .Where(x => User.IsInRole("All") || User.IsInRole("Sw" + x)).ToList();
-                    if (dsSwitchDuocXem.Count > 0 || User.IsInRole("AdminIT"))
-                    {
-                        // Camera / AP đã mở nhóm có vạch ngăn; không hiện cả hai thì Switch tự mở nhóm mới
-                        if (dsCameraDuocXem.Count == 0 && dsApDuocXem.Count == 0 && !User.IsInRole("AdminIT"))
-                        {
-                            <div class="nav-divider"></div>
                         }
+
+                        @if (dsSwitchDuocXem.Count > 0 || laAdminItMenu)
+                        {
                         <a data-bs-toggle="collapse" href="#collapseSwitch" role="button" aria-expanded="@(isSwitchActive ? "true" : "false")" aria-controls="collapseSwitch" class="nav-link-item @(isSwitchActive ? "active" : "")" style="justify-content: space-between; cursor: pointer;">
                             <span style="display:flex; align-items:center;">
                                 <i class="fa fa-sitemap nav-ico" style="color:#a3e635;"></i>
@@ -656,15 +667,10 @@
                                 }
                             </div>
                         </div>
-                    }
+                        }
 
-                    @* Sơ đồ mạng từng công ty: xem được nếu có quyền xem bất kỳ module IT (Switch/AP/Camera) của công ty đó.
-                       Quyền kiểm lại ở SoDoController (CoQuyenXem) *@
-                    var dsSoDoDuocXem = new[] { "BPVN", "PFVN", "MEGA" }
-                        .Where(x => User.IsInRole("All") || User.IsInRole("Sw" + x) || User.IsInRole("Ap" + x) || User.IsInRole("Cam" + x)).ToList();
-                    if (dsSoDoDuocXem.Count > 0 || User.IsInRole("AdminIT"))
-                    {
-                        if (dsSoDoDuocXem.Count == 0) { dsSoDoDuocXem = new List<string> { "BPVN", "PFVN", "MEGA" }; }
+                        @if (dsSoDoDuocXem.Count > 0)
+                        {
                         <a data-bs-toggle="collapse" href="#collapseSoDo" role="button" aria-expanded="@(isSoDoActive ? "true" : "false")" aria-controls="collapseSoDo" class="nav-link-item @(isSoDoActive ? "active" : "")" style="justify-content: space-between; cursor: pointer;">
                             <span style="display:flex; align-items:center;">
                                 <i class="fa fa-share-alt nav-ico" style="color:#fb923c;"></i>
@@ -685,16 +691,19 @@
                                 }
                             </div>
                         </div>
-                    }
+                        }
 
-                    @* Báo cáo định kì: chỉ AdminIT / All — một trang gộp 3 tab Tổng quan Camera, AP, Switch.
-                       Quyền kiểm lại ở BaoCaoDinhKyController và controller từng module *@
-                    if (User.IsInRole("AdminIT") || User.IsInRole("All"))
-                    {
+                        @* Báo cáo định kì: chỉ AdminIT / All — một trang gộp 3 tab Tổng quan Camera, AP, Switch *@
+                        @if (coBaoCaoDinhKy)
+                        {
                         <a href="/BaoCaoDinhKy" class="nav-link-item @(isBaoCaoDinhKyActive ? "active" : "")" aria-current="@(isBaoCaoDinhKyActive ? "page" : null)">
                             <i class="fa fa-calendar-check-o nav-ico" style="color:#f472b6;"></i>
                             <span class="lang-text" data-key="periodic_report">@L["Báo cáo định kì"]</span>
                         </a>
+                        }
+
+                            </div>
+                        </div>
                     }
                 }
             </nav>

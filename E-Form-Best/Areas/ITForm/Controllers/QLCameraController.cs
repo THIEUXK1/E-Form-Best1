@@ -107,7 +107,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         /// </summary>
         private List<string>? DsCongTyBaoCao(string? congTy)
         {
-            var laAdminIt = User.IsInRole("AdminIT");
+            // Quyền "BaoCaoDinhKy" xem tổng quan cả 3 công ty như AdminIT (tab Camera của /BaoCaoDinhKy)
+            var laAdminIt = User.IsInRole("AdminIT") || User.IsInRole("BaoCaoDinhKy");
             if (string.IsNullOrWhiteSpace(congTy))
                 return laAdminIt ? CameraBaoCaoService.DsCongTy.ToList() : CameraBaoCaoService.DsCongTy.Where(CoQuyenXem).ToList();
 
@@ -260,7 +261,20 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                 : doiLuc.GetValueOrDefault((x.Nvr, x.Kenh)) ?? (x.KetQua is "PLAYBACK" or "BOQUA" ? x.AnhLuc : null),
                             status_changed_at = doiLuc.GetValueOrDefault((x.Nvr, x.Kenh)),
                             excluded = false,
-                            is_watchlist = false
+                            is_watchlist = false,
+                            // Switch / cổng camera cắm (dò SNMP bên công ty); BPVN không có trường này
+                            sw = x.CongSwitch == null ? null : new
+                            {
+                                ten = x.CongSwitch.SwitchTen,
+                                ip = x.CongSwitch.SwitchIp,
+                                cong = x.CongSwitch.Cong,
+                                vlan = x.CongSwitch.Vlan,
+                                mac = x.CongSwitch.Mac,
+                                chac_chan = x.CongSwitch.ChacChan,
+                                so_mac = x.CongSwitch.SoMacTrenCong,
+                                duong_di = x.CongSwitch.DuongDi.Select(d => (d.Ten ?? d.Ip) + " " + d.Cong).ToList(),
+                                do_luc = x.CongSwitch.DoLuc
+                            }
                         })
                     },
                     "DsAnhLuu" => ds.Where(x => x.AnhLuc != null).Select(x => x.Nvr + "|" + x.Kenh).ToList(),

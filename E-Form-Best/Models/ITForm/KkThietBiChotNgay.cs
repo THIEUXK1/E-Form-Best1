@@ -24,7 +24,7 @@ public partial class KkThietBiChotNgay
     [StringLength(255)]
     public string CongTy { get; set; } = null!;
 
-    /// <summary>win / office / can_cai_office / trang_thai</summary>
+    /// <summary>win / office / trang_thai</summary>
     [Column("chi_tieu")]
     [StringLength(30)]
     [Unicode(false)]

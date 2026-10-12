@@ -35,7 +35,8 @@ Mô hình là **DB-first**: schema được quản trực tiếp trên SQL Serve
 4. **Sau khi DDL đã chạy xong**, mới sửa/thêm model trong `Models/ITForm/` cho khớp
    (`[Table]`, `[Column]`, `[StringLength]`, `[Key]` tường minh).
 5. Thêm `DbSet<T>` vào `Context/ITFormContext.cs`, cấu hình thêm trong `OnModelCreating` nếu cần.
-6. Ghi vào Decision Log của [`../plans/00-context-memory.md`](../plans/00-context-memory.md).
+6. Ghi vào "5 quyết định gần nhất" của [`../plans/00-context-memory.md`](../plans/00-context-memory.md)
+   (quá 5 → đẩy xuống [`../plans/decision-log.md`](../plans/decision-log.md)).
 
 > ⚠️ **Sai thứ tự = production nổ:** deploy code có model mới trước khi bảng tồn tại → mọi trang
 > chạm bảng đó lỗi runtime. Đây chính là blocker **B1** hiện tại với `KK_ThietBiChan`.

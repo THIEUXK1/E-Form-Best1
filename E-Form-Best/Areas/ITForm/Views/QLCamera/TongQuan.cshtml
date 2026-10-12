@@ -11,7 +11,8 @@
 <link rel="stylesheet" href="/css/camera-quanly.css?v=20261007c">
 <link rel="stylesheet" href="/css/camera-tong-quan.css?v=20261009a">
 
-<partial name="_TongQuanNoiDung" />
+@* Area ITForm không có _ViewImports nên tag helper <partial> không chạy -> dùng Html.PartialAsync *@
+@await Html.PartialAsync("_TongQuanNoiDung")
 
 <script src="/js/bao-cao-so-sanh.js?v=2"></script>
 <script src="/js/camera-tong-quan.js?v=20261009c"></script>

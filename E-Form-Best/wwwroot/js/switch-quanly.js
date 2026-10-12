@@ -290,6 +290,141 @@
             .fail(function () { dongTrangThai($body, 6, 'Lỗi kết nối máy chủ.', 'text-danger'); });
     }
 
+    // ---------------- Máy chủ (quét dải IP) ----------------
+
+    function oKetNoiMc(x) {
+        var tu = x.doiTrangThaiLuc ? 'Từ ' + gio(x.doiTrangThaiLuc) : '';
+        if (x.ketNoi === 'UP') return '<td class="small text-success fw-bold" title="' + esc(tu) + '"><span class="cam-dot" style="background:#22c55e;"></span>Online</td>';
+        var da = x.doiTrangThaiLuc ? thoiLuong((Date.now() - new Date(x.doiTrangThaiLuc).getTime()) / 1000) : '';
+        return '<td class="small text-danger fw-bold" title="' + esc(tu) + '"><span class="cam-dot" style="background:#ef4444;"></span>Mất KN'
+            + (da ? ' <span class="fw-normal">· ' + esc(da) + '</span>' : '') + '</td>';
+    }
+
+    function taiMayChu() {
+        var $body = $('#mcBody');
+        dongTrangThai($body, 7, 'Đang tải dữ liệu...', 'text-muted');
+
+        $.getJSON(goc + '/MayChu/DanhSach', { tuKhoa: $('#mcTuKhoa').val(), ketNoi: $('#mcKetNoi').val(), khaiBao: $('#mcKhaiBao').val() })
+            .done(function (res) {
+                if (!res.thanhCong) {
+                    dongTrangThai($body, 7, res.thongBao || 'Không tải được dữ liệu.', 'text-danger');
+                    return;
+                }
+                $('#mcTong').text(res.tongDong);
+                $('#mcOnline').text(res.tongOnline);
+                $('#mcOffline').text(res.tongOffline);
+                $('#mcChuaKhaiBao').text(res.tongChuaKhaiBao);
+                $('#badgeMcMatKetNoi').text(res.tongOffline).toggleClass('d-none', !res.tongOffline);
+
+                var kt = res.kiemTraGanNhat;
+                var cu = kt && (Date.now() - new Date(kt).getTime()) > 3 * res.chuKyGiay * 1000;
+                $('#mcKiemTra').text(kt ? '(quét lúc ' + gio(kt) + ', ' + Math.round(res.chuKyGiay / 60) + ' phút/lần)' : '');
+                var canhBao = !res.tongDong ? 'Chưa có lần quét nào — job quét dải ' + res.daiMang + '.x chưa chạy (vài phút sau khi khởi động) hoặc đang tắt (QuetIp:Bat).'
+                    : cu ? 'Lần quét gần nhất lúc ' + gio(kt) + ' — trạng thái có thể đã cũ (job quét dải đang tắt hoặc lỗi).' : '';
+                $('#mcCanhBao').text(canhBao).toggleClass('d-none', !canhBao);
+
+                if (!res.duLieu.length) {
+                    dongTrangThai($body, 7, res.tongDong ? 'Không có IP nào khớp bộ lọc.' : 'Chưa phát hiện IP nào trong dải.', 'text-muted');
+                    return;
+                }
+                $body.html(res.duLieu.map(function (x, i) {
+                    return '<tr>'
+                        + '<td class="text-muted small">' + (i + 1) + '</td>'
+                        + oKetNoiMc(x)
+                        + o(x.diaChiIp, 'small font-monospace')
+                        + o(x.tenMay, 'small')
+                        + (x.khaiBao ? o(x.khaiBao, 'small')
+                            : '<td class="small text-warning fw-bold" title="IP chưa có trong Switch / AP / thiết bị kiểm kê">Chưa khai báo</td>')
+                        + '<td class="small text-nowrap">' + esc(gio(x.lanCuoiSong)) + '</td>'
+                        + '<td class="small text-nowrap text-muted">' + esc(gio(x.lanDauThay)) + '</td>'
+                        + '</tr>';
+                }).join(''));
+            })
+            .fail(function () { dongTrangThai($body, 7, 'Lỗi kết nối máy chủ.', 'text-danger'); });
+    }
+
+    function taiMayChuLichSu() {
+        var $body = $('#mcLsBody');
+        dongTrangThai($body, 6, 'Đang tải dữ liệu...', 'text-muted');
+
+        $.getJSON(goc + '/MayChu/LichSu', {
+            tuNgay: $('#mcLsTuNgay').val(),
+            denNgay: $('#mcLsDenNgay').val(),
+            loai: $('#mcLsLoai').val(),
+            tuKhoa: $('#mcLsTuKhoa').val()
+        })
+            .done(function (res) {
+                if (!res.thanhCong) {
+                    dongTrangThai($body, 6, res.thongBao || 'Không tải được lịch sử.', 'text-danger');
+                    return;
+                }
+                $('#mcLsTong').text(res.tong);
+                $('#mcLsDown').text(res.soDown);
+                $('#mcLsUp').text(res.soUp);
+                $('#mcLsSoMay').text(res.soMay);
+                $('#mcLsGhiChu').text(res.biCat ? '(chỉ hiện ' + res.tong + ' sự kiện mới nhất, thu hẹp khoảng ngày để xem đủ)' : '');
+
+                if (!res.duLieu.length) {
+                    dongTrangThai($body, 6, 'Không có sự kiện đổi trạng thái nào trong khoảng này.', 'text-muted');
+                    return;
+                }
+                $body.html(res.duLieu.map(function (x, i) {
+                    var xuong = x.sangTrangThai === 'DOWN';
+                    return '<tr>'
+                        + '<td class="text-muted small">' + (i + 1) + '</td>'
+                        + '<td class="small text-nowrap">' + esc(gio(x.thoiGian)) + '</td>'
+                        + (xuong
+                            ? '<td class="small text-danger fw-bold"><i class="fas fa-arrow-down me-1"></i>Mất kết nối</td>'
+                            : '<td class="small text-success fw-bold"><i class="fas fa-arrow-up me-1"></i>Hoạt động lại</td>')
+                        + o(x.diaChiIp, 'small font-monospace')
+                        + o(x.tenMay, 'small')
+                        + '<td class="small">' + (x.thoiLuongGiay ? esc(thoiLuong(x.thoiLuongGiay)) : '') + '</td>'
+                        + '</tr>';
+                }).join(''));
+            })
+            .fail(function () { dongTrangThai($body, 6, 'Lỗi kết nối máy chủ.', 'text-danger'); });
+    }
+
+    function ganMayChu() {
+        if (!document.getElementById('paneMayChu')) return; // công ty không cấu hình dải quét
+
+        var timerMc = null, timerMcLs = null, daTaiMc = false, daTaiMcLs = false;
+        var cheDoLs = function () { return !$('#mcKhungLs').hasClass('d-none'); };
+
+        $('#mcLsTuNgay').val($('#lsTuNgay').val());
+        $('#mcLsDenNgay').val($('#lsDenNgay').val());
+
+        $('#tabMayChuBtn').on('shown.bs.tab', function () {
+            if (!daTaiMc) { daTaiMc = true; taiMayChu(); }
+        });
+        $(document).on('click', '#paneMayChu [data-mc-che-do]', function () {
+            var ls = $(this).attr('data-mc-che-do') === 'ls';
+            $('#paneMayChu [data-mc-che-do]').removeClass('active');
+            $(this).addClass('active');
+            $('#mcKhungDs').toggleClass('d-none', ls);
+            $('#mcKhungLs').toggleClass('d-none', !ls);
+            if (ls && !daTaiMcLs) { daTaiMcLs = true; taiMayChuLichSu(); }
+        });
+
+        $('#mcKetNoi, #mcKhaiBao').on('change', taiMayChu);
+        $('#mcBtnTaiLai').on('click', taiMayChu);
+        $('#mcTuKhoa').on('input', function () {
+            clearTimeout(timerMc);
+            timerMc = setTimeout(taiMayChu, 350);
+        });
+        $('#mcLsTuNgay, #mcLsDenNgay, #mcLsLoai').on('change', taiMayChuLichSu);
+        $('#mcLsBtnTaiLai').on('click', taiMayChuLichSu);
+        $('#mcLsTuKhoa').on('input', function () {
+            clearTimeout(timerMcLs);
+            timerMcLs = setTimeout(taiMayChuLichSu, 350);
+        });
+
+        // Job quét 5 phút/lần: làm mới theo nhịp đó khi đang xem danh sách IP
+        setInterval(function () {
+            if (!document.hidden && $('#paneMayChu').hasClass('active') && !cheDoLs()) taiMayChu();
+        }, 300000);
+    }
+
     $(function () {
         var trang = document.getElementById('swTrang');
         congTy = trang.getAttribute('data-cong-ty');
@@ -350,6 +485,7 @@
             timerLs = setTimeout(taiLichSu, 350);
         });
 
+        ganMayChu();
         taiDanhSach();
         // Trạng thái do job nền ping 2 phút/lần: tự làm mới danh sách theo nhịp đó khi tab đang mở
         setInterval(function () {

@@ -173,6 +173,10 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<KkSwitchLichSu> KkSwitchLichSus { get; set; }
 
+    public virtual DbSet<KkQuetIp> KkQuetIps { get; set; }
+
+    public virtual DbSet<KkQuetIpLichSu> KkQuetIpLichSus { get; set; }
+
     public virtual DbSet<KkCcdcMuonTra> KkCcdcMuonTras { get; set; }
 
     public virtual DbSet<KkCongCuDungCu> KkCongCuDungCus { get; set; }

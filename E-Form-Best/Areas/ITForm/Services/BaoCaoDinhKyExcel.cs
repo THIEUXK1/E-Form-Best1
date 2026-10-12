@@ -159,17 +159,18 @@ namespace E_Form_Best.Areas.ITForm.Services
 
         private static readonly Dictionary<string, string> TenChiTieu = new()
         {
-            [BaoCaoDinhKyService.ChiTieuWin] = "Bản quyền Windows",
-            [BaoCaoDinhKyService.ChiTieuOffice] = "Bản quyền Office",
-            [BaoCaoDinhKyService.ChiTieuCanCaiOffice] = "Cần cài Office",
+            [BaoCaoDinhKyService.ChiTieuWin] = "Windows",
+            [BaoCaoDinhKyService.ChiTieuOffice] = "Office",
             [BaoCaoDinhKyService.ChiTieuTrangThai] = "Trạng thái thiết bị",
         };
 
-        // Thứ tự giá trị cố định cho dễ đọc; giá trị lạ xếp cuối theo tên
+        // Thứ tự giá trị như báo cáo bản quyền 280926; giá trị lạ xếp cuối theo tên
         private static readonly string[] ThuTuGiaTri =
         {
-            "Có bản quyền", "Chưa có bản quyền", "Không xác định", "Trống / Chưa rõ",
-            "Cần cài", "Không cần", "Chưa trả lời",
+            BaoCaoDinhKyService.WinMak, BaoCaoDinhKyService.WinOem, BaoCaoDinhKyService.WinKhongCan,
+            BaoCaoDinhKyService.WinHome, BaoCaoDinhKyService.WinCanMua, BaoCaoDinhKyService.WinChuaXacMinh,
+            "Cần Office - đã có key", "Cần Office - chưa có key (cần mua)", "Không cần Office - đang có key",
+            "Không cần Office - không có key", "Chưa trả lời cần Office - có key", "Chưa trả lời cần Office - không có key",
             "Hoạt động", "Hỏng", "Bảo trì", "Kho IT", "Khác"
         };
 
@@ -204,7 +205,8 @@ namespace E_Form_Best.Areas.ITForm.Services
             var nguonTruoc = bq.NgayTruoc != null ? $"bản chụp {bq.NgayTruoc:dd/MM/yyyy}"
                 : bq.ChupTu != null ? $"chưa có bản chụp trong kỳ trước (bắt đầu chụp từ {bq.ChupTu:dd/MM/yyyy})"
                 : "chưa có bản chụp nào (job chụp hằng ngày chưa chạy)";
-            return GhiChu(ws, r, $"Kỳ này: {nguonNay} · Kỳ trước: {nguonTruoc}. Bản quyền/Office chỉ tính Máy tính/Laptop.");
+            r = GhiChu(ws, r, $"Kỳ này: {nguonNay} · Kỳ trước: {nguonTruoc}. Windows/Office chỉ tính Máy tính/Laptop, phân loại như báo cáo bản quyền 280926.");
+            return GhiChu(ws, r, "\"Chưa xác minh loại key\" = máy đã đồng bộ lại từ agent nên mất nhãn MAK/OEM — cần nhập lại Key Windows từ Excel để kết luận.");
         }
 
         private static void SheetThietBi(XLWorkbook wb, BaoCaoDinhKyService.ThongKeThietBi tb,
@@ -213,15 +215,14 @@ namespace E_Form_Best.Areas.ITForm.Services
             var ws = TrangMoi(wb, "Thiết bị", new[] { 24, 26, 10, 11, 9, 9, 9, 9, 11, 10, 11, 11, 13 });
             var r = DauTrang(ws, "TỔNG QUAN THIẾT BỊ (HIỆN TRẠNG LÚC XUẤT)", phuDe, 13);
 
-            var tatCaChiTieu = new[] { BaoCaoDinhKyService.ChiTieuWin, BaoCaoDinhKyService.ChiTieuOffice,
-                                       BaoCaoDinhKyService.ChiTieuCanCaiOffice, BaoCaoDinhKyService.ChiTieuTrangThai };
-            r = TieuDeMuc(ws, r, $"BẢN QUYỀN · OFFICE · TRẠNG THÁI — TOÀN BỘ (so với {bd.KyTruocTu:dd/MM/yyyy} – {bd.KyTruocDen:dd/MM/yyyy})", 13);
+            var tatCaChiTieu = new[] { BaoCaoDinhKyService.ChiTieuWin, BaoCaoDinhKyService.ChiTieuOffice, BaoCaoDinhKyService.ChiTieuTrangThai };
+            r = TieuDeMuc(ws, r, $"WINDOWS · OFFICE · TRẠNG THÁI — TOÀN BỘ (so với {bd.KyTruocTu:dd/MM/yyyy} – {bd.KyTruocDen:dd/MM/yyyy})", 13);
             r = BangBanQuyen(ws, r, bq, null, tatCaChiTieu);
             r++;
             // Từng công ty (theo danh sách có trong bản chụp)
             foreach (var cty in (bq?.Nay ?? new()).Concat(bq?.Truoc ?? new()).Select(x => x.CongTy).Distinct().OrderBy(x => x))
             {
-                r = TieuDeMuc(ws, r, "BẢN QUYỀN · OFFICE · TRẠNG THÁI — " + cty, 13);
+                r = TieuDeMuc(ws, r, "WINDOWS · OFFICE · TRẠNG THÁI — " + cty, 13);
                 r = BangBanQuyen(ws, r, bq, cty, tatCaChiTieu);
                 r++;
             }

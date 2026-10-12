@@ -171,7 +171,8 @@
             if (khuVuc && c.zone !== khuVuc) return false;
             if (tuKhoa) {
                 var gc = dsGhiChu[khoaGhiChu(c)];
-                var chuoi = [c.name, c.ip, c.nvr_name, c.nvr_ip, c.zone, c.note, gc ? gc.ghiChu : ''].join(' ').toLowerCase();
+                var chuoi = [c.name, c.ip, c.nvr_name, c.nvr_ip, c.zone, c.note, gc ? gc.ghiChu : '',
+                    c.sw ? [c.sw.ten, c.sw.ip, c.sw.cong, c.sw.mac].join(' ') : ''].join(' ').toLowerCase();
                 if (chuoi.indexOf(tuKhoa) < 0) return false;
             }
             return true;
@@ -220,7 +221,7 @@
                 + (i + 1) + '</td>'
                 + '<td class="small">' + oTrangThai(c.status) + '</td>'
                 + '<td class="ccdc-ten" title="' + escapeHtml(c.name) + '">' + ten + '</td>'
-                + oIpCamera(c.ip)
+                + oIpCamera(c.ip, c.sw)
                 // Hai dòng (tên / IP) và cho xuống dòng: tên đầu ghi dài + link IP không bị cắt "..."
                 + '<td class="small cam-o-dau-ghi"><div>' + escapeHtml(c.nvr_name) + '</div>'
                 + '<div class="font-monospace" style="font-size:11px;">' + linkDauGhi(c.nvr_ip, c.nvr_ip) + '</div></td>'
@@ -237,11 +238,29 @@
 
     // Ô IP: bấm là mở trang web cài đặt của camera ở tab mới (không mở cửa sổ xem).
     // Chỉ dựng link khi đúng dạng IPv4 để dữ liệu lạ từ API không chèn được href tuỳ ý.
-    function oIpCamera(ip) {
+    function oIpCamera(ip, sw) {
         var s = escapeHtml(ip);
-        if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip || '')) return '<td class="small font-monospace" title="' + s + '">' + s + '</td>';
+        if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip || '')) return '<td class="small font-monospace" title="' + s + '">' + s + dongSwitch(sw) + '</td>';
         return '<td class="small font-monospace"><a class="cam-ip-link" href="http://' + s + '/" target="_blank" rel="noopener"'
-            + ' title="Mở trang cài đặt camera ' + s + ' ở tab mới">' + s + ' <i class="fas fa-up-right-from-square"></i></a></td>';
+            + ' title="Mở trang cài đặt camera ' + s + ' ở tab mới">' + s + ' <i class="fas fa-up-right-from-square"></i></a>'
+            + dongSwitch(sw) + '</td>';
+    }
+
+    // Dòng phụ dưới IP: switch + cổng camera cắm (PFVN dò SNMP); rê chuột xem VLAN, MAC, đường đi qua các switch.
+    // Cổng còn dấu hiệu là đường trục (nhiều MAC / có LLDP) thì kèm dấu "?" — chỉ để tham khảo.
+    function dongSwitch(sw) {
+        if (!sw || !sw.cong) return '';
+        var chiTiet = [
+            'Switch: ' + (sw.ten || '') + (sw.ip ? ' (' + sw.ip + ')' : ''),
+            'Cổng: ' + sw.cong + (sw.vlan != null ? ' · VLAN ' + sw.vlan : '') + (sw.so_mac ? ' · ' + sw.so_mac + ' MAC trên cổng' : ''),
+            sw.mac ? 'MAC camera: ' + sw.mac : '',
+            sw.duong_di && sw.duong_di.length > 1 ? 'Đường đi: ' + sw.duong_di.join(' → ') : '',
+            sw.chac_chan ? '' : 'Chưa chắc chắn: cổng này vẫn thấy nhiều MAC / có switch nối sau',
+            sw.do_luc ? 'Dò lúc ' + ngayGio(sw.do_luc) : ''
+        ].filter(Boolean).join('\n');
+        return '<div class="text-muted" style="font-size:11px;" title="' + escapeHtml(chiTiet) + '">'
+            + '<i class="fas fa-sitemap me-1"></i>' + escapeHtml(sw.ten || sw.ip || '') + ' · ' + escapeHtml(sw.cong)
+            + (sw.chac_chan ? '' : ' ?') + '</div>';
     }
 
     // Địa chỉ web từng đầu ghi (đúng cổng/https: 10.0.28.254:8001, https 10.0.29.254:8003...), server trả

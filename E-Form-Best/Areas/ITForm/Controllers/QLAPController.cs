@@ -443,7 +443,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         /// </summary>
         private List<string>? DsCongTyBaoCao(string? congTy)
         {
-            var laAdminIt = User.IsInRole("AdminIT");
+            // Quyền "BaoCaoDinhKy" xem tổng quan cả 3 công ty như AdminIT (tab AP của /BaoCaoDinhKy)
+            var laAdminIt = User.IsInRole("AdminIT") || User.IsInRole("BaoCaoDinhKy");
             if (string.IsNullOrWhiteSpace(congTy))
                 return AccessPointPingWorker.DsCongTy.Where(x => laAdminIt || CoQuyenXem(x)).ToList();
 

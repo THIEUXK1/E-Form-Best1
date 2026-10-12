@@ -178,6 +178,30 @@ namespace E_Form_Best.Areas.ITForm.Services
             public string? KetQua { get; set; }
             /// <summary>Giờ của ảnh lưu (giờ file); null = chưa có ảnh nào.</summary>
             public DateTime? AnhLuc { get; set; }
+            /// <summary>Switch / cổng camera cắm, theo lượt dò SNMP gần nhất (do-cong-switch-pfvn.ps1); null = chưa dò ra.</summary>
+            public CongSwitchCamera? CongSwitch { get; set; }
+        }
+
+        /// <summary>Kết quả dò 1 camera trong "congSwitch" của "_trang-thai.json".</summary>
+        public class CongSwitchCamera
+        {
+            public string? Mac { get; set; }
+            public int? Vlan { get; set; }
+            public string? SwitchIp { get; set; }
+            public string? SwitchTen { get; set; }
+            public string? Cong { get; set; }
+            public int? SoMacTrenCong { get; set; }
+            /// <summary>false = cổng tìm được vẫn có dấu hiệu là đường trục (nhiều MAC / có LLDP), chỉ để tham khảo.</summary>
+            public bool ChacChan { get; set; }
+            public List<ChangSwitch> DuongDi { get; set; } = new();
+            public DateTime? DoLuc { get; set; }
+        }
+
+        public class ChangSwitch
+        {
+            public string? Ip { get; set; }
+            public string? Ten { get; set; }
+            public string? Cong { get; set; }
         }
 
         /// <summary>
@@ -469,15 +493,52 @@ namespace E_Form_Best.Areas.ITForm.Services
                     }
                     else ds.Add(t);
                 }
+                // Kênh đã xoá khỏi đầu ghi sau lượt chụp: đầu ghi đó vừa trả đủ danh sách kênh mà không còn kênh này
+                // thì bỏ luôn, không giữ trạng thái cũ tới lượt chụp sau. Đầu ghi lỗi không có kênh nào trong
+                // trạng thái nên không bị đụng tới.
+                var nvrCoTrangThai = dsTrangThai.Select(x => x.Nvr).ToHashSet();
+                var conTrenDauGhi = dsTrangThai.Select(x => (x.Nvr, x.Kenh)).ToHashSet();
+                ds.RemoveAll(x => nvrCoTrangThai.Contains(x.Nvr) && !conTrenDauGhi.Contains((x.Nvr, x.Kenh)));
                 capNhat = gioTrangThai;
             }
 
+            var congSwitch = await CongSwitchCongTyAsync(thuMuc, ct);
             foreach (var k in ds)
             {
+                k.CongSwitch = congSwitch.GetValueOrDefault((k.Nvr, k.Kenh));
                 var anh = Path.Combine(thuMuc!, $"{k.Nvr}_{k.Kenh}.jpg");
                 k.AnhLuc = System.Net.IPAddress.TryParse(k.Nvr, out _) && File.Exists(anh) ? File.GetLastWriteTime(anh) : null;
             }
             return (capNhat, ds.OrderBy(x => x.Nvr).ThenBy(x => x.Kenh).ToList());
+        }
+
+        /// <summary>
+        /// Switch / cổng từng camera: mục "congSwitch" mà ghi-trang-thai.ps1 (máy bên công ty) gắn vào "_trang-thai.json".
+        /// Chưa có (chưa cấu hình SNMP / file cũ) thì trả rỗng, trang chỉ không hiện dòng switch.
+        /// </summary>
+        private static async Task<Dictionary<(string, int), CongSwitchCamera>> CongSwitchCongTyAsync(string thuMuc, CancellationToken ct)
+        {
+            var kq = new Dictionary<(string, int), CongSwitchCamera>();
+            var file = Path.Combine(thuMuc, "_trang-thai.json");
+            if (!File.Exists(file)) return kq;
+
+            await using var luong = File.OpenRead(file);
+            using var doc = await JsonDocument.ParseAsync(luong, cancellationToken: ct);
+            if (!doc.RootElement.TryGetProperty("congSwitch", out var cs) || cs.ValueKind != JsonValueKind.Object) return kq;
+            DateTime? doLuc = cs.TryGetProperty("capNhat", out var cn) && DateTime.TryParse(cn.GetString(), out var gio) ? gio : null;
+            if (!cs.TryGetProperty("camera", out var dsCam) || dsCam.ValueKind != JsonValueKind.Array) return kq;
+
+            var tuyChon = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            foreach (var c in dsCam.EnumerateArray())
+            {
+                var nvr = c.TryGetProperty("nvr", out var n) ? n.GetString() : null;
+                if (nvr == null || !c.TryGetProperty("kenh", out var k) || !k.TryGetInt32(out var kenh)) continue;
+                var mot = c.Deserialize<CongSwitchCamera>(tuyChon);
+                if (mot?.Cong == null) continue;   // không tìm ra cổng thì coi như chưa dò
+                mot.DoLuc = doLuc;
+                kq[(nvr, kenh)] = mot;
+            }
+            return kq;
         }
 
         /// <summary>Danh sách kênh theo lượt chụp ảnh gần nhất ("_kenh.json" do script chụp ảnh ghi).</summary>

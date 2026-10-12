@@ -11,6 +11,8 @@
     // Chỉ quyền "All" được thêm/sửa/xoá; Sw{CÔNG TY} chỉ xem (server vẫn chặn lại ở từng action)
     var coQuyenSua = ViewBag.CoQuyenSua as bool? ?? false;
     var coCongTy = ViewBag.CoCongTy as bool? ?? false;
+    // Dải quét máy chủ (3 octet đầu) của công ty này; null = không có tab Máy chủ
+    var daiQuet = ViewBag.DaiQuet as string;
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -36,6 +38,16 @@
                         <i class="fas fa-clock-rotate-left me-1"></i> Lịch sử
                     </button>
                 </li>
+                @if (daiQuet != null)
+                {
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tabMayChuBtn" data-bs-toggle="pill" data-bs-target="#paneMayChu" type="button" role="tab"
+                                title="Quét ping dải @(daiQuet).1–254">
+                            <i class="fas fa-server me-1"></i> Máy chủ @(daiQuet).x
+                            <span class="badge rounded-pill bg-danger ms-1 d-none" id="badgeMcMatKetNoi">0</span>
+                        </button>
+                    </li>
+                }
             </ul>
 
             @* Báo cáo định kỳ riêng công ty này: dùng chung trang Tổng quan, lọc 1 công ty *@
@@ -203,6 +215,121 @@
                         </div>
                     </div>
 
+                    @if (daiQuet != null)
+                    {
+                    @* ================= TAB MÁY CHỦ — QUÉT DẢI IP (KK_QuetIp / KK_QuetIpLichSu) ================= *@
+                    <div class="tab-pane fade" id="paneMayChu" role="tabpanel" data-dai="@daiQuet">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary active" data-mc-che-do="ds">Danh sách IP</button>
+                                <button type="button" class="btn btn-outline-secondary" data-mc-che-do="ls">Lịch sử</button>
+                            </div>
+                            <span class="small text-muted" id="mcKiemTra"></span>
+                        </div>
+                        <div class="alert alert-warning py-2 small d-none" id="mcCanhBao"></div>
+
+                        @* --- Danh sách IP đang theo dõi --- *@
+                        <div id="mcKhungDs">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                <input type="text" id="mcTuKhoa" class="form-control form-control-sm" style="max-width:240px;" placeholder="Tìm IP, tên máy, khai báo...">
+                                <select id="mcKetNoi" class="form-select form-select-sm w-auto" title="Lọc theo kết nối">
+                                    <option value="">-- Mọi kết nối --</option>
+                                    <option value="UP">Online</option>
+                                    <option value="DOWN">Mất kết nối</option>
+                                </select>
+                                <select id="mcKhaiBao" class="form-select form-select-sm w-auto" title="IP đã có trong Switch / AP / thiết bị kiểm kê chưa">
+                                    <option value="">-- Mọi IP --</option>
+                                    <option value="co">Đã khai báo</option>
+                                    <option value="chua">Chưa khai báo</option>
+                                </select>
+                                <span class="small text-muted fw-bold">
+                                    Số IP: <span id="mcTong">0</span> ·
+                                    <span class="text-success">Online: <span id="mcOnline">0</span></span> ·
+                                    <span class="text-danger">Mất KN: <span id="mcOffline">0</span></span> ·
+                                    <span class="text-warning">Chưa khai báo: <span id="mcChuaKhaiBao">0</span></span>
+                                </span>
+                                <button type="button" class="btn btn-sm btn-light border ms-auto" id="mcBtnTaiLai" title="Tải lại"><i class="fas fa-rotate"></i></button>
+                            </div>
+                            <div class="ccdc-table-wrap" data-fp-scroll>
+                                <table class="table table-hover align-middle mb-0 ccdc-table">
+                                    <colgroup>
+                                        <col style="width:48px;">
+                                        <col style="width:170px;">
+                                        <col style="width:130px;">
+                                        <col style="width:220px;">
+                                        <col style="width:300px;">
+                                        <col style="width:140px;">
+                                        <col style="width:140px;">
+                                    </colgroup>
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Kết nối</th>
+                                            <th>IP</th>
+                                            <th>Tên máy (DNS)</th>
+                                            <th>Khai báo</th>
+                                            <th>Lần cuối online</th>
+                                            <th>Phát hiện lúc</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="mcBody">
+                                        <tr><td colspan="7" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        @* --- Lịch sử đổi trạng thái --- *@
+                        <div id="mcKhungLs" class="d-none">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                <label class="small text-muted mb-0">Từ</label>
+                                <input type="date" id="mcLsTuNgay" class="form-control form-control-sm w-auto">
+                                <label class="small text-muted mb-0">đến</label>
+                                <input type="date" id="mcLsDenNgay" class="form-control form-control-sm w-auto">
+                                <select id="mcLsLoai" class="form-select form-select-sm w-auto">
+                                    <option value="">-- Mọi sự kiện --</option>
+                                    <option value="DOWN">Hoạt động → Mất kết nối</option>
+                                    <option value="UP">Mất kết nối → Hoạt động</option>
+                                </select>
+                                <input type="text" id="mcLsTuKhoa" class="form-control form-control-sm" style="max-width:240px;" placeholder="Tìm IP, tên máy...">
+                                <button type="button" class="btn btn-sm btn-light border" id="mcLsBtnTaiLai" title="Tải lại"><i class="fas fa-rotate"></i></button>
+                            </div>
+                            <div class="d-flex flex-wrap gap-3 mb-2 small text-muted fw-bold">
+                                <span>Sự kiện: <span id="mcLsTong">0</span></span>
+                                <span class="text-danger"><i class="fas fa-arrow-down me-1"></i>Mất kết nối: <span id="mcLsDown">0</span></span>
+                                <span class="text-success"><i class="fas fa-arrow-up me-1"></i>Hoạt động lại: <span id="mcLsUp">0</span></span>
+                                <span>Số máy: <span id="mcLsSoMay">0</span></span>
+                                <span class="fw-normal" id="mcLsGhiChu"></span>
+                            </div>
+                            <div class="ccdc-table-wrap" data-fp-scroll>
+                                <table class="table table-hover align-middle mb-0 ccdc-table">
+                                    <colgroup>
+                                        <col style="width:48px;">
+                                        <col style="width:150px;">
+                                        <col style="width:200px;">
+                                        <col style="width:140px;">
+                                        <col style="width:260px;">
+                                        <col style="width:160px;">
+                                    </colgroup>
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Thời gian</th>
+                                            <th>Sự kiện</th>
+                                            <th>IP</th>
+                                            <th>Tên máy</th>
+                                            <th>Đã mất kết nối</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="mcLsBody">
+                                        <tr><td colspan="6" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    }
+
                 </div>@* /tab-content *@
             </div>
         </div>
@@ -352,5 +479,5 @@
 @* Phải nằm trong section Scripts: layout nạp jQuery ở cuối trang, script đặt trong thân trang chạy trước jQuery *@
 @section Scripts {
     <script src="/js/fixed-page-layout.js?v=5" defer></script>
-    <script src="/js/switch-quanly.js?v=20261008b"></script>
+    <script src="/js/switch-quanly.js?v=20261012a"></script>
 }
