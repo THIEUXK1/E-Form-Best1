@@ -31,9 +31,9 @@ namespace E_Form_Best.Areas.ITForm.Services
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             var chupBpvn = _configuration.GetValue<bool?>("CameraNvr:ChupAnhLuu") ?? false;
-            // Công ty có đầu ghi máy chủ gọi thẳng được (MEGA) thì máy nào cũng tự chụp vào thư mục của mình,
-            // không phụ thuộc cờ ChupAnhLuu của BPVN
-            var dsCongTy = CameraXemTrucTiepService.DsCongTyAnhLuu
+            // Công ty có đầu ghi máy chủ gọi thẳng được (MEGA, đầu ghi BPVN ngoài hệ thống ISAPI) thì máy nào cũng
+            // tự chụp vào thư mục con của công ty, không phụ thuộc cờ ChupAnhLuu của BPVN
+            var dsCongTy = CameraXemTrucTiepService.DsCongTyGoiThang
                 .Where(c => CameraXemTrucTiepService.CoDauGhiTrucTiepCongTy(_configuration, c)).ToList();
             if (!chupBpvn && dsCongTy.Count == 0) return;
 

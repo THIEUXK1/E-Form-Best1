@@ -11,7 +11,7 @@ namespace E_Form_Best.Areas.ITForm.Services
 {
     /// <summary>
     /// Job nền quét dải IP máy chủ (tab "Máy chủ" trên /QLSwitch/{công ty}): mỗi chu kỳ (QuetIp:ChuKyGiay,
-    /// mặc định 300 giây) ping .1–.254 của từng dải trong QuetIp:DaiMang (mặc định "PFVN=10.0.193").
+    /// mặc định 300 giây) ping .1–.254 của từng dải trong QuetIp:DaiMang (mặc định "PFVN=10.0.193;BPVN=10.0.63").
     ///  - IP lạ vừa trả lời: thêm 1 dòng KK_QuetIp (kèm tên DNS ngược) rồi theo dõi từ đó.
     ///  - IP đã biết: đổi UP ⇄ DOWN thì ghi KK_QuetIpLichSu (append-only), cùng cách SwitchPingWorker.
     /// Dải không có danh mục nào để đối chiếu nên "từng trả lời ping" là định nghĩa máy cần theo dõi.
@@ -23,7 +23,8 @@ namespace E_Form_Best.Areas.ITForm.Services
     /// </summary>
     public class QuetIpWorker : BackgroundService
     {
-        private const string DaiMacDinh = "PFVN=10.0.193";
+        // BPVN 10.0.63.0/24 là dải switch + máy chủ
+        private const string DaiMacDinh = "PFVN=10.0.193;BPVN=10.0.63";
 
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;

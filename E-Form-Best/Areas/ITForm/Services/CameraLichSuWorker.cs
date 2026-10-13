@@ -55,9 +55,12 @@ namespace E_Form_Best.Areas.ITForm.Services
                     Console.WriteLine($"[CameraLichSu Error]: {ex.Message}");
                 }
 
-                // PFVN/MEGA đọc file trạng thái riêng — lỗi bên này không ảnh hưởng BPVN và ngược lại
-                foreach (var congTy in CameraXemTrucTiepService.DsCongTyAnhLuu)
+                // PFVN/MEGA (và đầu ghi BPVN ngoài ISAPI) đọc file trạng thái riêng — lỗi bên này không ảnh hưởng
+                // hệ thống ISAPI và ngược lại
+                foreach (var congTy in CameraXemTrucTiepService.DsCongTyGoiThang)
                 {
+                    // BPVN chỉ có file trạng thái riêng khi có khai đầu ghi gọi thẳng; bỏ khai thì thôi đọc file cũ
+                    if (congTy == "BPVN" && !CameraXemTrucTiepService.CoDauGhiTrucTiepCongTy(_configuration, congTy)) continue;
                     try
                     {
                         // Đầu ghi máy chủ gọi thẳng được (MEGA): tự làm mới file trạng thái trước khi đối chiếu

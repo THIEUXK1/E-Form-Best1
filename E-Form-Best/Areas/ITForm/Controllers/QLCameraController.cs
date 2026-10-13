@@ -337,16 +337,80 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #region Giám sát (đọc từ hệ thống ISAPI 10.0.60.238:3005)
 
         [HttpGet("/QLCamera/GiamSat/TongQuan")]
-        public Task<IActionResult> GiamSatTongQuan()
-            => DocGiamSatAsync(ct => _giamSat.TongQuanAsync(ct));
+        public Task<IActionResult> GiamSatTongQuan([FromServices] CameraXemTrucTiepService xem)
+            => DocGiamSatAsync(ct => _giamSat.TongQuanAsync(ct), async (goc, ct) =>
+            {
+                var tt = await DauGhiBpvnTrucTiepAsync(xem, false, ct);
+                if (tt.Kenh.Count == 0) return goc;
+                var o = System.Text.Json.Nodes.JsonNode.Parse(goc.GetRawText())!.AsObject();
+                var soDauGhi = tt.Kenh.Select(x => x.Nvr).Distinct().Count();
+                CongSo(o, "total", tt.Kenh.Count);
+                CongSo(o, "up", tt.Kenh.Count(x => x.Online));
+                CongSo(o, "down", tt.Kenh.Count(x => !x.Online));
+                CongSo(o, "nvr_total", soDauGhi);
+                CongSo(o, "nvrs_ready", soDauGhi);
+                return o;
+            });
 
         [HttpGet("/QLCamera/GiamSat/DauGhi")]
-        public Task<IActionResult> GiamSatDauGhi()
-            => DocGiamSatAsync(ct => _giamSat.DanhSachDauGhiAsync(ct));
+        public Task<IActionResult> GiamSatDauGhi([FromServices] CameraXemTrucTiepService xem)
+            => DocGiamSatAsync(ct => _giamSat.DanhSachDauGhiAsync(ct), async (goc, ct) =>
+            {
+                var tt = await DauGhiBpvnTrucTiepAsync(xem, false, ct);
+                if (tt.Kenh.Count == 0) return goc;
+                var o = System.Text.Json.Nodes.JsonNode.Parse(goc.GetRawText())!.AsObject();
+                if (o["nvrs"] is not System.Text.Json.Nodes.JsonArray mang) o["nvrs"] = mang = new System.Text.Json.Nodes.JsonArray();
+                foreach (var g in tt.Kenh.GroupBy(x => x.Nvr))
+                    mang.Add(System.Text.Json.JsonSerializer.SerializeToNode(new
+                    {
+                        nvr_ip = g.Key,
+                        nvr_name = tt.TenDauGhi(g.Key, g.First().TenDauGhi),
+                        zone = tt.KhuVuc(g.Key),
+                        channel_count = g.Count(),
+                        readiness = "READY",
+                        last_error = (string?)null,
+                        last_poll_at = tt.CapNhat
+                    }));
+                return o;
+            });
 
         [HttpGet("/QLCamera/GiamSat/Camera")]
-        public Task<IActionResult> GiamSatCamera(string? trangThai, string? nvrIp, string? khuVuc, bool gomDaLoaiTru = false, bool chiCanChuY = false)
-            => DocGiamSatAsync(ct => _giamSat.DanhSachCameraAsync(trangThai, nvrIp, khuVuc, gomDaLoaiTru, chiCanChuY, ct));
+        public Task<IActionResult> GiamSatCamera([FromServices] CameraXemTrucTiepService xem,
+            string? trangThai, string? nvrIp, string? khuVuc, bool gomDaLoaiTru = false, bool chiCanChuY = false)
+            => DocGiamSatAsync(ct => _giamSat.DanhSachCameraAsync(trangThai, nvrIp, khuVuc, gomDaLoaiTru, chiCanChuY, ct), async (goc, ct) =>
+            {
+                // Đầu ghi gọi thẳng không có danh sách "cần chú ý" như hệ thống ISAPI
+                if (chiCanChuY) return goc;
+                var tt = await DauGhiBpvnTrucTiepAsync(xem, true, ct);
+                var them = tt.Kenh.Where(x =>
+                    (string.IsNullOrWhiteSpace(trangThai) || string.Equals(trangThai, x.Online ? "UP" : "DOWN", StringComparison.OrdinalIgnoreCase))
+                    && (string.IsNullOrWhiteSpace(nvrIp) || x.Nvr == nvrIp.Trim())
+                    && (string.IsNullOrWhiteSpace(khuVuc) || string.Equals(khuVuc.Trim(), tt.KhuVuc(x.Nvr), StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
+                if (them.Count == 0) return goc;
+
+                var o = System.Text.Json.Nodes.JsonNode.Parse(goc.GetRawText())!.AsObject();
+                if (o["cameras"] is not System.Text.Json.Nodes.JsonArray mang) o["cameras"] = mang = new System.Text.Json.Nodes.JsonArray();
+                foreach (var x in them)
+                {
+                    var doiLuc = tt.DoiLuc.GetValueOrDefault((x.Nvr, x.Kenh));
+                    mang.Add(System.Text.Json.JsonSerializer.SerializeToNode(new
+                    {
+                        nvr_ip = x.Nvr,
+                        nvr_name = tt.TenDauGhi(x.Nvr, x.TenDauGhi),
+                        cam_id = x.Kenh,
+                        name = string.IsNullOrWhiteSpace(x.Ten) ? $"Kênh {x.Kenh}" : x.Ten,
+                        ip = x.IpCamera,
+                        status = x.Online ? "UP" : "DOWN",
+                        zone = tt.KhuVuc(x.Nvr),
+                        down_since_at = x.Online ? null : doiLuc,
+                        status_changed_at = doiLuc,
+                        excluded = false,
+                        is_watchlist = false
+                    }));
+                }
+                return o;
+            });
 
         /// <summary>Địa chỉ trang web của từng đầu ghi (đúng cổng/https theo inventory) để mở ở tab mới.</summary>
         [HttpGet("/QLCamera/GiamSat/DiaChiDauGhi")]
@@ -354,19 +418,25 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
             var duLieu = await xem.BangDiaChiNvrAsync(HttpContext.RequestAborted);
+            // Đầu ghi gọi thẳng: chỉ giao thức + IP + cổng lấy từ .env, không kèm tài khoản
+            foreach (var (ip, goc) in xem.DiaChiDauGhiTrucTiep("BPVN")) duLieu[ip] = goc;
             return Json(new { thanhCong = true, duLieu });
         }
 
         /// <summary>Kênh nào đã có ảnh lưu sẵn (khoá "nvrIp|kênh"); null khi máy chủ chưa có thư mục ảnh lưu.</summary>
         [HttpGet("/QLCamera/GiamSat/DsAnhLuu")]
-        public IActionResult GiamSatDsAnhLuu([FromServices] CameraXemTrucTiepService xem)
+        public async Task<IActionResult> GiamSatDsAnhLuu([FromServices] CameraXemTrucTiepService xem)
         {
             if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
             try
             {
-                return Json(new { thanhCong = true, duLieu = xem.DanhSachKenhCoAnhLuu() });
+                var duLieu = xem.DanhSachKenhCoAnhLuu();
+                var tt = await DauGhiBpvnTrucTiepAsync(xem, false, HttpContext.RequestAborted);
+                if (duLieu != null)
+                    foreach (var x in tt.Kenh.Where(x => x.AnhLuc != null)) duLieu.Add(x.Nvr + "|" + x.Kenh);
+                return Json(new { thanhCong = true, duLieu });
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
             {
                 return Json(new { thanhCong = false, thongBao = "Không đọc được thư mục ảnh lưu: " + ex.Message });
             }
@@ -380,13 +450,24 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         /// Bọc chung: kiểm quyền + đổi lỗi mạng/HTTP của hệ thống bên kia thành thông báo dễ hiểu,
         /// để trang vẫn hiện tab tài sản / đầu ghi chi nhánh khi hệ thống giám sát đang sập.
         /// </summary>
-        private async Task<IActionResult> DocGiamSatAsync(Func<CancellationToken, Task<System.Text.Json.JsonElement>> doc)
+        private async Task<IActionResult> DocGiamSatAsync(Func<CancellationToken, Task<System.Text.Json.JsonElement>> doc,
+            Func<System.Text.Json.JsonElement, CancellationToken, Task<object>>? gop = null)
         {
             if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
 
             try
             {
-                var duLieu = await doc(HttpContext.RequestAborted);
+                var goc = await doc(HttpContext.RequestAborted);
+                object duLieu = goc;
+                if (gop != null)
+                {
+                    // Lỗi đọc dữ liệu đầu ghi gọi thẳng không được làm hỏng phần của hệ thống ISAPI
+                    try { duLieu = await gop(goc, HttpContext.RequestAborted); }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+                    {
+                        Console.WriteLine($"[QLCamera] Không đọc được dữ liệu đầu ghi BPVN gọi thẳng: {ex.Message}");
+                    }
+                }
                 return Json(new { thanhCong = true, duLieu });
             }
             catch (HttpRequestException)
@@ -398,6 +479,54 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Json(new { thanhCong = false, thongBao = "Hệ thống giám sát camera không phản hồi (quá thời gian chờ)." });
             }
             catch (InvalidOperationException ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
+        /// <summary>Kênh của đầu ghi BPVN gọi thẳng kèm tên hiển thị / khu vực / mốc đổi trạng thái để gộp vào dữ liệu ISAPI.</summary>
+        private sealed class DuLieuDauGhiTrucTiep
+        {
+            public DateTime? CapNhat { get; init; }
+            public List<CameraXemTrucTiepService.KenhCongTy> Kenh { get; init; } = new();
+            public Dictionary<string, string> DiaDiem { get; init; } = new();
+            public Dictionary<(string, int), DateTime?> DoiLuc { get; init; } = new();
+
+            /// <summary>Tên theo tab "Đầu ghi chi nhánh" (khớp IP public) — dễ nhận hơn tên mặc định của đầu ghi.</summary>
+            public string TenDauGhi(string ip, string? tenThietBi)
+                => DiaDiem.GetValueOrDefault(ip) ?? CameraXemTrucTiepService.TenDauGhiCongTy("BPVN", ip, tenThietBi);
+
+            public string? KhuVuc(string ip) => DiaDiem.GetValueOrDefault(ip);
+        }
+
+        /// <summary>
+        /// Đầu ghi BPVN ngoài hệ thống ISAPI (CameraBPVN__DauGhi__N trong .env): kênh + online đọc từ thư mục con "BPVN"
+        /// do CameraLichSuWorker / CameraAnhLuuWorker ghi. Chỉ lấy đầu ghi còn khai trong .env; chưa khai thì rỗng.
+        /// </summary>
+        private async Task<DuLieuDauGhiTrucTiep> DauGhiBpvnTrucTiepAsync(CameraXemTrucTiepService xem, bool layDoiLuc, CancellationToken ct)
+        {
+            var dsKhai = xem.DiaChiDauGhiTrucTiep("BPVN");
+            if (dsKhai.Count == 0) return new DuLieuDauGhiTrucTiep();
+
+            var (capNhat, ds) = await xem.DanhSachKenhCongTyAsync("BPVN", ct);
+            ds = ds.Where(x => dsKhai.ContainsKey(x.Nvr)).ToList();
+            var dsIp = ds.Select(x => x.Nvr).Distinct().ToList();
+
+            var diaDiem = (await _context.KkDauGhis
+                    .Where(x => x.NgayXoa == null && x.IpPublic != null && dsIp.Contains(x.IpPublic))
+                    .Select(x => new { x.IpPublic, x.DiaDiem }).ToListAsync(ct))
+                .GroupBy(x => x.IpPublic!).ToDictionary(g => g.Key, g => g.First().DiaDiem);
+
+            var doiLuc = layDoiLuc
+                ? (await _context.KkCameraTrangThais.Where(x => dsIp.Contains(x.NvrIp))
+                    .Select(x => new { x.NvrIp, x.Kenh, x.DoiLuc }).ToListAsync(ct))
+                    .ToDictionary(x => (x.NvrIp, x.Kenh), x => x.DoiLuc)
+                : new Dictionary<(string, int), DateTime?>();
+
+            return new DuLieuDauGhiTrucTiep { CapNhat = capNhat, Kenh = ds, DiaDiem = diaDiem, DoiLuc = doiLuc };
+        }
+
+        /// <summary>Cộng thêm vào một trường số của tổng quan ISAPI (trường không có / không phải số thì bỏ qua).</summary>
+        private static void CongSo(System.Text.Json.Nodes.JsonObject o, string ten, int them)
+        {
+            if (o[ten] is System.Text.Json.Nodes.JsonValue v && v.TryGetValue<int>(out var so)) o[ten] = so + them;
         }
 
         #endregion
@@ -436,10 +565,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             try
             {
-                // Chỉ nhận đầu ghi có thật (BPVN: hệ thống giám sát; PFVN/MEGA: danh sách kênh của công ty),
-                // không cho ghi rác theo IP tuỳ ý
+                // Chỉ nhận đầu ghi có thật (BPVN: hệ thống giám sát hoặc đầu ghi gọi thẳng đã khai; PFVN/MEGA:
+                // danh sách kênh của công ty), không cho ghi rác theo IP tuỳ ý
                 var hopLe = cty == "BPVN"
-                    ? await xem.LaDauGhiHopLeAsync(nvrIp, HttpContext.RequestAborted)
+                    ? xem.LaDauGhiTrucTiep("BPVN", nvrIp) || await xem.LaDauGhiHopLeAsync(nvrIp, HttpContext.RequestAborted)
                     : !string.IsNullOrWhiteSpace(nvrIp) && (await xem.DanhSachKenhCongTyAsync(cty, HttpContext.RequestAborted)).kenh
                         .Any(x => x.Nvr == nvrIp.Trim() && x.Kenh == kenh);
                 if (!hopLe)
@@ -639,9 +768,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             try
             {
                 var ct = HttpContext.RequestAborted;
-                if (!await xem.LaDauGhiHopLeAsync(nvrIp, ct)) return NotFound();
-
-                var anh = await xem.LayAnhChupAsync(nvrIp!.Trim(), kenh, ct);
+                byte[]? anh;
+                // Đầu ghi BPVN gọi thẳng (khai .env): ISAPI bằng tài khoản riêng của nó, không qua hệ thống giám sát
+                if (xem.LaDauGhiTrucTiep("BPVN", nvrIp))
+                    anh = await xem.LayAnhChupCongTyAsync("BPVN", nvrIp!.Trim(), kenh, ct);
+                else
+                {
+                    if (!await xem.LaDauGhiHopLeAsync(nvrIp, ct)) return NotFound();
+                    anh = await xem.LayAnhChupAsync(nvrIp!.Trim(), kenh, ct);
+                }
                 if (anh == null) return StatusCode(502);
 
                 // Ảnh trực tiếp: không cho trình duyệt/nginx giữ cache, mỗi lần tải là một ảnh mới
@@ -667,9 +802,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             try
             {
                 var ct = HttpContext.RequestAborted;
-                if (!await xem.LaDauGhiHopLeAsync(nvrIp, ct)) return NotFound();
+                // Ảnh của đầu ghi BPVN gọi thẳng nằm ở thư mục con "BPVN"
+                var trucTiep = xem.LaDauGhiTrucTiep("BPVN", nvrIp);
+                if (!trucTiep && !await xem.LaDauGhiHopLeAsync(nvrIp, ct)) return NotFound();
 
-                var luu = await xem.LayAnhLuuAsync(nvrIp!.Trim(), kenh, ct);
+                var luu = await xem.LayAnhLuuAsync(nvrIp!.Trim(), kenh, ct, trucTiep ? "BPVN" : null);
                 if (luu == null) return NotFound();
 
                 Response.Headers.CacheControl = "no-store";
@@ -693,6 +830,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             if (!CoQuyenXem("BPVN")) { Response.StatusCode = 403; return; }
             if (kenh < 1 || kenh > 512) { Response.StatusCode = 400; return; }
+
+            // Đầu ghi BPVN gọi thẳng qua internet không mở RTSP -> không có video, giao diện tự lùi về ảnh
+            if (xem.LaDauGhiTrucTiep("BPVN", nvrIp)) { Response.StatusCode = 502; return; }
 
             HttpResponseMessage? luong = null;
             try

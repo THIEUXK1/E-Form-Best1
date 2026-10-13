@@ -165,6 +165,12 @@ namespace E_Form_Best.Areas.ITForm.Services
         /// <summary>Công ty có camera lấy qua ảnh lưu sẵn (không có hệ thống giám sát ISAPI như BPVN).</summary>
         public static readonly string[] DsCongTyAnhLuu = { "PFVN", "MEGA" };
 
+        /// <summary>
+        /// Công ty được khai đầu ghi gọi thẳng (Camera{CÔNG TY}__DauGhi__N trong .env). BPVN chỉ dùng cho đầu ghi
+        /// NGOÀI hệ thống ISAPI (chi nhánh qua IP public) — dữ liệu nằm ở thư mục con "BPVN", gộp vào trang BPVN.
+        /// </summary>
+        public static readonly string[] DsCongTyGoiThang = { "BPVN", "PFVN", "MEGA" };
+
         /// <summary>Một kênh camera của PFVN/MEGA, đọc từ "_kenh.json" do script chụp ảnh trên máy bên đó ghi.</summary>
         public class KenhCongTy
         {
@@ -235,7 +241,7 @@ namespace E_Form_Best.Areas.ITForm.Services
         private static Dictionary<string, (string goc, string taiKhoan, string matKhau)> DauGhiTrucTiepCongTy(IConfiguration cfg, string congTy)
         {
             var kq = new Dictionary<string, (string, string, string)>(StringComparer.OrdinalIgnoreCase);
-            var ten = DsCongTyAnhLuu.FirstOrDefault(x => x.Equals(congTy, StringComparison.OrdinalIgnoreCase));
+            var ten = DsCongTyGoiThang.FirstOrDefault(x => x.Equals(congTy, StringComparison.OrdinalIgnoreCase));
             if (ten == null) return kq;
 
             foreach (var muc in cfg.GetSection($"Camera{ten}:DauGhi").GetChildren())
@@ -250,6 +256,14 @@ namespace E_Form_Best.Areas.ITForm.Services
         }
 
         public static bool CoDauGhiTrucTiepCongTy(IConfiguration cfg, string congTy) => DauGhiTrucTiepCongTy(cfg, congTy).Count > 0;
+
+        /// <summary>IP có phải đầu ghi gọi thẳng đã khai của công ty không (BPVN: đầu ghi ngoài hệ thống ISAPI).</summary>
+        public bool LaDauGhiTrucTiep(string congTy, string? nvrIp)
+            => !string.IsNullOrWhiteSpace(nvrIp) && DauGhiTrucTiepCongTy(_configuration, congTy).ContainsKey(nvrIp.Trim());
+
+        /// <summary>IP -> địa chỉ gốc web (giao thức + IP + cổng, không tài khoản) của đầu ghi gọi thẳng — trả ra trình duyệt được.</summary>
+        public Dictionary<string, string> DiaChiDauGhiTrucTiep(string congTy)
+            => DauGhiTrucTiepCongTy(_configuration, congTy).ToDictionary(x => x.Key, x => x.Value.goc, StringComparer.OrdinalIgnoreCase);
 
         // Mỗi đầu ghi một HttpClient riêng mang Digest của nó (tài khoản khác nhau theo đầu ghi, không dùng chung
         // client "CameraNvr" của BPVN). Chứng thư tự ký -> bỏ kiểm, chỉ trong client này.
@@ -459,11 +473,14 @@ namespace E_Form_Best.Areas.ITForm.Services
             return null;
         }
 
-        /// <summary>Thư mục ảnh lưu của PFVN/MEGA: thư mục con "{công ty}" trong CameraNvr:ThuMucAnhLuu.</summary>
+        /// <summary>
+        /// Thư mục ảnh lưu của PFVN/MEGA (và đầu ghi gọi thẳng của BPVN): thư mục con "{công ty}" trong
+        /// CameraNvr:ThuMucAnhLuu. Ảnh BPVN qua hệ thống ISAPI vẫn nằm ở thư mục gốc.
+        /// </summary>
         private string? ThuMucAnhLuuCongTy(string congTy)
         {
             var thuMuc = _configuration["CameraNvr:ThuMucAnhLuu"];
-            var ten = DsCongTyAnhLuu.FirstOrDefault(x => x.Equals(congTy, StringComparison.OrdinalIgnoreCase));
+            var ten = DsCongTyGoiThang.FirstOrDefault(x => x.Equals(congTy, StringComparison.OrdinalIgnoreCase));
             return string.IsNullOrWhiteSpace(thuMuc) || ten == null ? null : Path.Combine(thuMuc, ten);
         }
 
