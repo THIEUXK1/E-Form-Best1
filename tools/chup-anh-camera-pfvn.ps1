@@ -88,9 +88,11 @@ $xuLy = {
     [Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
     $dich = Join-Path $thuMuc "$($k.Nvr)_$($k.Kenh).jpg"
 
-    # Camera đang mất kết nối thì đầu ghi trả ảnh "No Video"/lỗi -> bỏ qua chụp, sang thẳng playback
+    # Camera đang mất kết nối thì đầu ghi trả ảnh "No Video"/lỗi -> bỏ qua chụp, sang thẳng playback.
+    # Luồng phụ trước (ảnh nhẹ); camera tắt luồng phụ (10.0.200.254 k6 trả 403) thì lấy ảnh luồng chính
     if ($k.Online) {
-        foreach ($duong in "/ISAPI/Streaming/channels/$($k.Kenh)02/picture", "/ISAPI/ContentMgmt/StreamingProxy/channels/$($k.Kenh)02/picture") {
+        foreach ($duong in "/ISAPI/Streaming/channels/$($k.Kenh)02/picture", "/ISAPI/ContentMgmt/StreamingProxy/channels/$($k.Kenh)02/picture",
+                           "/ISAPI/Streaming/channels/$($k.Kenh)01/picture") {
             try {
                 $req = [Net.HttpWebRequest]::Create("$($k.Goc)$duong")
                 $req.Credentials = New-Object Net.NetworkCredential($k.Tk, $k.Mk)   # đầu ghi Hikvision dùng Digest

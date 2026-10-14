@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Net;
+using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using E_Form_Best.Context;
@@ -13,7 +15,8 @@ namespace E_Form_Best.Areas.ITForm.Services
     /// <summary>
     /// Đọc danh sách AP từ AP controller của từng công ty (chỉ ĐỌC, không gửi lệnh cấu hình nào).
     /// Cấu hình ở .env theo công ty: AccessPointController__{CÔNG TY}__Loai / __Url / __TaiKhoan / __MatKhau.
-    /// Hiện hỗ trợ Huawei WLAN AC (web V200R0xx — PFVN 10.0.198.199); hãng khác thêm nhánh ở DanhSachAsync.
+    /// Hiện hỗ trợ Loai=HuaweiAC (web V200R0xx — PFVN 10.0.198.199) và Loai=WlcApi (collector REST của WLC BPVN,
+    /// dùng __ApiKey thay tài khoản); hãng khác thêm nhánh ở DanhSachAsync.
     ///
     /// Singleton: giữ 1 phiên đăng nhập / công ty và dùng lại giữa các lượt (AC giới hạn số phiên web,
     /// đăng nhập mỗi 2 phút sẽ đầy nhật ký AC). Phiên hết hạn thì tự đăng nhập lại 1 lần.
@@ -27,7 +30,7 @@ namespace E_Form_Best.Areas.ITForm.Services
 
         /// <summary>Một AP như controller thấy. Mac dạng "AA:BB:CC:DD:EE:FF".</summary>
         public record ApController(string Mac, string Ten, string? Ip, string? Nhom, string? Model, string? PhienBan,
-            string? Serial, string TrangThai, bool Online, int? SoClient, long? ThoiGianChayGiay);
+            string? Serial, string TrangThai, bool Online, int? SoClient, long? ThoiGianChayGiay, string? Ssid = null);
 
         public record KetQuaDongBo(int TongTrenController, int ThemMoi, int CapNhat);
 
@@ -55,8 +58,18 @@ namespace E_Form_Best.Areas.ITForm.Services
             return Uri.TryCreate(url, UriKind.Absolute, out var u) ? $"{loai} {u.Host}" : url;
         }
 
+        private bool LaWlcApi(string congTy) => (CauHinh(congTy, "Loai") ?? "").Equals("WlcApi", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// WLC collector chỉ liệt kê AP đang join controller: AP đã đồng bộ mà không còn trong danh sách là mất kết nối.
+        /// AC Huawei liệt kê cả AP offline nên AP biến mất ở đó là bị xoá khỏi AC, không suy ra trạng thái.
+        /// </summary>
+        public bool MatKhoiDanhSachLaMatKetNoi(string congTy) => LaWlcApi(congTy);
+
         public async Task<List<ApController>> DanhSachAsync(string congTy, CancellationToken ct)
         {
+            if (LaWlcApi(congTy)) return await WlcApiDanhSachAsync(congTy, ct);
+
             var loai = CauHinh(congTy, "Loai") ?? "HuaweiAC";
             if (!loai.Equals("HuaweiAC", StringComparison.OrdinalIgnoreCase))
                 throw new NotSupportedException($"Chưa hỗ trợ loại controller \"{loai}\".");
@@ -90,6 +103,8 @@ namespace E_Form_Best.Areas.ITForm.Services
             var idCongTy = await db.KkCongTies.Where(x => x.TenCongTy == congTy).Select(x => (int?)x.IdcongTy).FirstOrDefaultAsync(ct)
                            ?? throw new InvalidOperationException($"Chưa có công ty {congTy} trong danh mục công ty.");
             var tenController = TenController(congTy);
+            // Collector WLC không trả hãng, không đoán; AC Huawei thì AP chắc chắn là Huawei
+            var hang = LaWlcApi(congTy) ? null : "Huawei";
             var dsMac = dsAc.Select(x => x.Mac).ToList();
 
             // Unique MAC ở DB tính trên mọi công ty: AP chuyển công ty thì không tự cướp, để người dùng xử lý
@@ -123,7 +138,7 @@ namespace E_Form_Best.Areas.ITForm.Services
                     }
                     ap.Model = ac.Model ?? ap.Model;
                     ap.Serial = ac.Serial ?? ap.Serial;
-                    ap.HangSanXuat ??= "Huawei";
+                    ap.HangSanXuat ??= hang;
                     ap.TenController = tenController;
                     GhiCotController(ap, ac);
                     if (db.Entry(ap).State == EntityState.Modified)
@@ -139,7 +154,7 @@ namespace E_Form_Best.Areas.ITForm.Services
                         TenAp = Cat(ac.Ten, 255)!,
                         DiaChiIp = ip,
                         DiaChiMac = ac.Mac,
-                        HangSanXuat = "Huawei",
+                        HangSanXuat = hang,
                         Model = Cat(ac.Model, 100),
                         Serial = Cat(ac.Serial, 100),
                         TenController = tenController,
@@ -175,6 +190,65 @@ namespace E_Form_Best.Areas.ITForm.Services
             ap.PhienBan = Cat(ac.PhienBan, 100);
             ap.SoClient = ac.SoClient;
             ap.ThoiGianChayGiay = ac.ThoiGianChayGiay;
+            // Chỉ ghi khi controller có trả (WLC); AC Huawei không đọc SSID nên giữ giá trị người dùng nhập tay
+            if (!string.IsNullOrWhiteSpace(ac.Ssid)) ap.Ssid = Cat(ac.Ssid, 255);
+        }
+
+        // ---------------- WLC collector API (BPVN 10.0.60.90:8000) ----------------
+
+        private record WlcAp(
+            [property: JsonPropertyName("ap_name")] string? ApName,
+            [property: JsonPropertyName("ap_mac")] string? ApMac,
+            [property: JsonPropertyName("ap_ip")] string? ApIp,
+            [property: JsonPropertyName("model")] string? Model,
+            [property: JsonPropertyName("serial")] string? Serial,
+            [property: JsonPropertyName("software_version")] string? SoftwareVersion,
+            [property: JsonPropertyName("status")] string? Status,
+            [property: JsonPropertyName("client_count")] int? ClientCount,
+            [property: JsonPropertyName("ap_policy_tag")] string? PolicyTag,
+            [property: JsonPropertyName("slots")] List<WlcSlot>? Slots);
+
+        private record WlcSlot([property: JsonPropertyName("ssids")] List<WlcSsid>? Ssids);
+
+        private record WlcSsid([property: JsonPropertyName("ssid")] string? Ssid);
+
+        /// <summary>GET /api/wlc/aps, xác thực bằng header X-API-Key (AccessPointController__{CÔNG TY}__ApiKey).</summary>
+        private async Task<List<ApController>> WlcApiDanhSachAsync(string congTy, CancellationToken ct)
+        {
+            var apiKey = CauHinh(congTy, "ApiKey");
+            if (string.IsNullOrWhiteSpace(apiKey))
+                throw new InvalidOperationException($"Chưa cấu hình AccessPointController__{congTy}__ApiKey.");
+
+            using var req = new HttpRequestMessage(HttpMethod.Get, GocUrl(congTy) + "/api/wlc/aps");
+            req.Headers.TryAddWithoutValidation("X-API-Key", apiKey);
+            req.Headers.TryAddWithoutValidation("Accept", "application/json");
+            // Collector hỏi WLC trực tiếp khi cache hết hạn: lần đầu mất ~40 giây (đo 13/10/2026), vượt 30 giây mặc định
+            var http = _httpFactory.CreateClient(TenHttpClient);
+            http.Timeout = TimeSpan.FromSeconds(90);
+            using var res = await http.SendAsync(req, ct);
+            if (!res.IsSuccessStatusCode)
+                throw new InvalidOperationException($"WLC collector trả HTTP {(int)res.StatusCode}.");
+
+            var ds = await res.Content.ReadFromJsonAsync<List<WlcAp>>(ct) ?? new();
+            return ds
+                .Select(x => (Ap: x, Mac: ChuanHoaMac(x.ApMac)))
+                .Where(x => x.Mac != null)
+                .Select(x =>
+                {
+                    var ip = x.Ap.ApIp != null && IPAddress.TryParse(x.Ap.ApIp, out _) && x.Ap.ApIp != "0.0.0.0" ? x.Ap.ApIp : null;
+                    var trangThai = string.IsNullOrWhiteSpace(x.Ap.Status) ? "unknown" : x.Ap.Status.Trim();
+                    // SSID phát trên mọi radio (2.4/5 GHz thường trùng nhau) gộp thành 1 chuỗi
+                    var ssid = string.Join(", ", (x.Ap.Slots ?? new())
+                        .SelectMany(s => s.Ssids ?? new()).Select(s => s.Ssid?.Trim())
+                        .Where(s => !string.IsNullOrEmpty(s)).Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(s => s, StringComparer.OrdinalIgnoreCase));
+                    return new ApController(x.Mac!, string.IsNullOrWhiteSpace(x.Ap.ApName) ? x.Mac! : x.Ap.ApName.Trim(), ip,
+                        string.IsNullOrWhiteSpace(x.Ap.PolicyTag) ? null : x.Ap.PolicyTag.Trim(),
+                        x.Ap.Model, x.Ap.SoftwareVersion, x.Ap.Serial, trangThai,
+                        trangThai.Equals("online", StringComparison.OrdinalIgnoreCase), x.Ap.ClientCount, null,
+                        ssid.Length == 0 ? null : ssid);
+                })
+                .GroupBy(x => x.Mac).Select(g => g.First()).ToList();
         }
 
         // ---------------- Huawei WLAN AC ----------------

@@ -99,7 +99,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var aps = await _context.KkAccessPoints
                     .Where(x => x.NgayXoa == null && x.IdcongTy == idCongTy)
                     .OrderBy(x => x.TenAp)
-                    .Select(x => new { x.IdAp, x.TenAp, x.DiaChiIp, x.TenController, x.TinhTrang, x.TrangThaiKetNoi })
+                    .Select(x => new { x.IdAp, x.TenAp, x.DiaChiIp, x.TenController, x.TinhTrang, x.TrangThaiKetNoi, x.NguonTrangThai })
                     .ToListAsync();
 
                 var apNhom = aps
@@ -113,7 +113,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                             id = "ap" + x.IdAp,
                             ten = x.TenAp,
                             ip = x.DiaChiIp,
-                            tt = TrangThai(x.DiaChiIp, x.TinhTrang, x.TrangThaiKetNoi)
+                            // AP không IP nhưng controller báo trạng thái theo MAC (WLC BPVN) vẫn tính là đang theo dõi
+                            tt = x.DiaChiIp == null && x.NguonTrangThai == "AC"
+                                ? TrangThai("AC", x.TinhTrang, x.TrangThaiKetNoi)
+                                : TrangThai(x.DiaChiIp, x.TinhTrang, x.TrangThaiKetNoi)
                         }).ToList()
                     }).ToList();
 

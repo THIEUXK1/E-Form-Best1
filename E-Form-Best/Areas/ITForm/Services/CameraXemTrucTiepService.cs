@@ -280,10 +280,12 @@ namespace E_Form_Best.Areas.ITForm.Services
         private static async Task<byte[]?> ChupIsapiAsync((string goc, string taiKhoan, string matKhau) dg, int kenh, CancellationToken ct)
         {
             var client = ClientDauGhi(dg);
+            // Camera tắt luồng phụ thì đầu ghi trả 403 cho ...02/picture -> lùi về ảnh luồng chính
             foreach (var duongDan in new[]
             {
                 $"/ISAPI/Streaming/channels/{kenh}02/picture",
-                $"/ISAPI/ContentMgmt/StreamingProxy/channels/{kenh}02/picture"
+                $"/ISAPI/ContentMgmt/StreamingProxy/channels/{kenh}02/picture",
+                $"/ISAPI/Streaming/channels/{kenh}01/picture"
             })
             {
                 using var traLoi = await client.GetAsync(dg.goc + duongDan, ct);
@@ -419,6 +421,32 @@ namespace E_Form_Best.Areas.ITForm.Services
                         k.KetQua = "OK";
                         Interlocked.Increment(ref duoc);
                     });
+
+                // Camera mất kết nối: lấy khung đầu đoạn ghi cuối trên đầu ghi, lần lượt từng kênh (mỗi kênh tải ~4 MB)
+                foreach (var k in ds.Where(x => x.KetQua == "KHONG" && !x.Online))
+                {
+                    var dich = Path.Combine(thuMuc, $"{ip}_{k.Kenh}.jpg");
+                    try
+                    {
+                        var khung = await ChupKhungDauDoanGhiCuoiTrucTiepAsync(congTy, ip, k.Kenh,
+                            File.Exists(dich) ? File.GetLastWriteTime(dich) : null, ct);
+                        if (khung == null)
+                        {
+                            // Ảnh playback đã có từ lượt trước (đoạn ghi cuối không đổi) thì vẫn tính là có ảnh
+                            if (File.Exists(dich)) { k.KetQua = "BOQUA"; duoc++; }
+                            continue;
+                        }
+                        await GhiFileAsync(dich, khung.Value.anh, ct);
+                        File.SetLastWriteTime(dich, khung.Value.gio);   // "Ảnh lưu lúc ..." = giờ khung hình thật
+                        k.KetQua = "PLAYBACK";
+                        duoc++;
+                    }
+                    catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidOperationException
+                                               or System.Xml.XmlException || (ex is TaskCanceledException && !ct.IsCancellationRequested))
+                    {
+                        Console.WriteLine($"[CameraAnhLuu {congTy}] Playback {ip} k{k.Kenh}: {ex.Message}");
+                    }
+                }
                 tatCa.AddRange(ds);
             }
 
@@ -672,9 +700,16 @@ namespace E_Form_Best.Areas.ITForm.Services
         public async Task<(DateTime batDau, DateTime ketThuc)?> TimGhiHinhCuoiAsync(string nvrIp, int kenh, CancellationToken ct)
         {
             var client = _httpClientFactory.CreateClient(TenClientNvr);
-            var dsGoc = await DsDiaChiNvrAsync(nvrIp, ct);
+            var kq = await TimDoanGhiCuoiAsync(client, await DsDiaChiNvrAsync(nvrIp, ct), kenh, ct);
+            return kq == null ? null : (kq.Value.batDau, kq.Value.ketThuc);
+        }
+
+        /// <summary>Đoạn ghi cuối của kênh kèm playbackURI (dò lùi 1, 7, 30, 90, 365 ngày như TimGhiHinhCuoiAsync).</summary>
+        private static async Task<(DateTime batDau, DateTime ketThuc, string? uri)?> TimDoanGhiCuoiAsync(HttpClient client,
+            List<string> dsGoc, int kenh, CancellationToken ct)
+        {
             var bayGio = DateTime.Now;
-            (DateTime, DateTime)? ketQua = null;
+            (DateTime, DateTime, string?)? ketQua = null;
 
             var moc = new[] { 0, 1, 7, 30, 90, 365 };
             for (var i = 1; i < moc.Length && ketQua == null; i++)
@@ -684,10 +719,10 @@ namespace E_Form_Best.Areas.ITForm.Services
             return ketQua;
         }
 
-        private async Task<(DateTime, DateTime)?> TimTrongKhoangAsync(HttpClient client, List<string> dsGoc, int kenh,
+        private static async Task<(DateTime, DateTime, string?)?> TimTrongKhoangAsync(HttpClient client, List<string> dsGoc, int kenh,
             DateTime tu, DateTime den, CancellationToken ct)
         {
-            (DateTime, DateTime)? cuoi = null;
+            (DateTime, DateTime, string?)? cuoi = null;
             var viTri = 0;
 
             // Đầu ghi trả kết quả tăng dần theo thời gian, mỗi trang tối đa 50 đoạn. Biết tổng số thì
@@ -703,7 +738,8 @@ namespace E_Form_Best.Areas.ITForm.Services
                     var khung = muc.Element(ns + "timeSpan");
                     if (!DocGioDauGhi(khung?.Element(ns + "startTime")?.Value, out var bd)
                         || !DocGioDauGhi(khung?.Element(ns + "endTime")?.Value, out var kt)) continue;
-                    if (cuoi == null || kt > cuoi.Value.Item2) cuoi = (bd, kt);
+                    if (cuoi == null || kt > cuoi.Value.Item2)
+                        cuoi = (bd, kt, muc.Descendants(ns + "playbackURI").FirstOrDefault()?.Value);
                 }
 
                 var trangThai = xml.Root.Element(ns + "responseStatusStrg")?.Value;
@@ -835,7 +871,77 @@ namespace E_Form_Best.Areas.ITForm.Services
             return cong;
         }
 
-        private static async Task<byte[]?> ChayFfmpegAsync(string ffmpeg, string rtsp, CancellationToken ct)
+        /// <summary>
+        /// Camera mất kết nối của đầu ghi gọi thẳng (BPVN chi nhánh, MEGA): đầu ghi không mở RTSP ra ngoài, còn
+        /// /ISAPI/ContentMgmt/download luôn trả NGUYÊN file đoạn ghi (vài trăm MB, bỏ qua mốc cắt lẫn Range) — nên chỉ
+        /// tải ~4 MB đầu đoạn ghi cuối rồi ngắt, ffmpeg lấy khung hình đầu. Giờ ảnh = giờ bắt đầu đoạn ghi cuối.
+        /// daCoLuc: giờ ảnh lưu hiện có — đã mới bằng/hơn đoạn ghi cuối thì bỏ qua, khỏi tải lại mỗi lượt.
+        /// Trả null khi không có bản ghi / thiếu ffmpeg / đầu ghi không trả được.
+        /// </summary>
+        public async Task<(byte[] anh, DateTime gio)?> ChupKhungDauDoanGhiCuoiTrucTiepAsync(string congTy, string nvrIp, int kenh,
+            DateTime? daCoLuc, CancellationToken ct)
+        {
+            if (!DauGhiTrucTiepCongTy(_configuration, congTy).TryGetValue(nvrIp, out var dg)) return null;
+
+            var ffmpeg = _configuration["CameraNvr:FfmpegPath"];
+            if (string.IsNullOrWhiteSpace(ffmpeg)) ffmpeg = @"C:\go2rtc\ffmpeg.exe";
+            if (!File.Exists(ffmpeg))
+            {
+                Console.WriteLine($"[CameraAnhLuu {congTy}] Không có ffmpeg ở {ffmpeg} — bỏ qua ảnh playback (khai CameraNvr__FfmpegPath).");
+                return null;
+            }
+
+            var client = ClientDauGhi(dg);
+            var doan = await TimDoanGhiCuoiAsync(client, new List<string> { dg.goc }, kenh, ct);
+            if (doan?.uri == null)
+            {
+                Console.WriteLine($"[CameraAnhLuu {congTy}] Playback {nvrIp} k{kenh}: không tìm thấy đoạn ghi trong 1 năm.");
+                return null;
+            }
+            if (daCoLuc != null && daCoLuc >= doan.Value.batDau) return null;
+
+            var tam = Path.Combine(Path.GetTempPath(), $"eform-playback-{Guid.NewGuid():N}.bin");
+            await _gioiHanFfmpeg.WaitAsync(ct);
+            // Client đầu ghi chỉ chờ 10 giây tới lúc có header; phần tải thân đặt giới hạn riêng cho đường internet chậm
+            using var hetGio = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            hetGio.CancelAfter(TimeSpan.FromSeconds(90));
+            try
+            {
+                var noiDung = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><downloadRequest><playbackURI>"
+                    + System.Security.SecurityElement.Escape(doan.Value.uri) + "</playbackURI></downloadRequest>";
+                using (var yeuCau = new HttpRequestMessage(HttpMethod.Post, dg.goc + "/ISAPI/ContentMgmt/download")
+                       { Content = new StringContent(noiDung, System.Text.Encoding.UTF8, "application/xml") })
+                using (var traLoi = await client.SendAsync(yeuCau, HttpCompletionOption.ResponseHeadersRead, ct))
+                {
+                    if (!traLoi.IsSuccessStatusCode) return null;
+                    await using var nguon = await traLoi.Content.ReadAsStreamAsync(hetGio.Token);
+                    await using var dich = File.Create(tam);
+                    // 4 MB đủ chứa khung hình khoá đầu tiên (đã thử luồng 2688x1520 H.265); đọc đủ thì bỏ phần còn lại
+                    var bo = new byte[81920];
+                    long daDoc = 0;
+                    int n;
+                    while (daDoc < 4 * 1024 * 1024 && (n = await nguon.ReadAsync(bo, hetGio.Token)) > 0)
+                    {
+                        await dich.WriteAsync(bo.AsMemory(0, n), hetGio.Token);
+                        daDoc += n;
+                    }
+                }
+
+                var anh = await ChayFfmpegAsync(ffmpeg, tam, ct, false);
+                return anh != null && anh.Length >= 1000 ? (anh, doan.Value.batDau) : null;
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                return null;   // đường truyền quá chậm: lượt sau thử lại
+            }
+            finally
+            {
+                _gioiHanFfmpeg.Release();
+                try { File.Delete(tam); } catch (IOException) { }
+            }
+        }
+
+        private static async Task<byte[]?> ChayFfmpegAsync(string ffmpeg, string nguon, CancellationToken ct, bool laRtsp = true)
         {
             var thongTin = new System.Diagnostics.ProcessStartInfo(ffmpeg)
             {
@@ -844,9 +950,12 @@ namespace E_Form_Best.Areas.ITForm.Services
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-            // ArgumentList: từng tham số tách riêng, không qua shell. Ảnh luồng chính 2688x1520 nên thu về 1280 ngang
-            foreach (var thamSo in new[] { "-hide_banner", "-loglevel", "error", "-rtsp_transport", "tcp", "-timeout", "10000000",
-                "-i", rtsp, "-frames:v", "1", "-vf", "scale='min(1280,iw)':-2", "-q:v", "4", "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1" })
+            // ArgumentList: từng tham số tách riêng, không qua shell. Ảnh luồng chính 2688x1520 nên thu về 1280 ngang.
+            // Nguồn là file tải về (playback đầu ghi gọi thẳng) thì bỏ các tham số RTSP
+            var dsThamSo = new List<string> { "-hide_banner", "-loglevel", "error" };
+            if (laRtsp) dsThamSo.AddRange(new[] { "-rtsp_transport", "tcp", "-timeout", "10000000" });
+            dsThamSo.AddRange(new[] { "-i", nguon, "-frames:v", "1", "-vf", "scale='min(1280,iw)':-2", "-q:v", "4", "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1" });
+            foreach (var thamSo in dsThamSo)
                 thongTin.ArgumentList.Add(thamSo);
 
             using var tienTrinh = System.Diagnostics.Process.Start(thongTin)

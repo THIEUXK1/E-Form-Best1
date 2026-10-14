@@ -96,8 +96,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     x.IdAp, x.MaAp, x.TenAp, x.DiaChiIp, x.DiaChiMac, x.HangSanXuat, x.Model, x.Serial, x.Ssid,
                     x.TenController, x.IdboPhan, x.TenBoPhan, x.ViTri, x.TinhTrang, x.NgayLapDat, x.HanBaoHanh, x.GhiChu,
-                    TheoDoi = TheoDoi(x.DiaChiIp, x.TinhTrang),
-                    KetNoi = TheoDoi(x.DiaChiIp, x.TinhTrang) ? x.TrangThaiKetNoi : null,
+                    TheoDoi = TheoDoi(x.DiaChiIp, x.NguonTrangThai, x.TinhTrang),
+                    KetNoi = TheoDoi(x.DiaChiIp, x.NguonTrangThai, x.TinhTrang) ? x.TrangThaiKetNoi : null,
                     x.DoiTrangThaiLuc, x.KiemTraLuc,
                     x.NguonTrangThai, x.TrangThaiController, x.NhomAp, x.PhienBan, x.SoClient, x.ThoiGianChayGiay
                 }).ToList();
@@ -120,17 +120,22 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         /// <summary>Danh sách AP 1 công ty ra Excel, theo đúng bộ lọc đang chọn trên trang.</summary>
         [HttpGet("/QLAP/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/XuatExcel")]
-        public async Task<IActionResult> XuatExcel(string congTy, string? tuKhoa, int? idBoPhan, string? tinhTrang, string? ketNoi)
+        public async Task<IActionResult> XuatExcel(string congTy, string? tuKhoa, int? idBoPhan, string? tinhTrang, string? ketNoi, string? nhomAp)
         {
             var cty = CongTyHopLe(congTy)!;
             if (!CoQuyenXem(cty)) return StatusCode(403);
 
-            var ds = await TruyVanDanhSach(await IdCongTyAsync(cty), tuKhoa, idBoPhan, tinhTrang, ketNoi)
+            var query = TruyVanDanhSach(await IdCongTyAsync(cty), tuKhoa, idBoPhan, tinhTrang, ketNoi);
+            // Nhóm AP lọc ở trình duyệt trên trang; Excel lọc lại ở đây cho khớp ("__trong" = AP chưa có nhóm)
+            if (nhomAp == "__trong") query = query.Where(x => x.NhomAp == null || x.NhomAp == "");
+            else if (!string.IsNullOrWhiteSpace(nhomAp)) query = query.Where(x => x.NhomAp == nhomAp);
+
+            var ds = await query
                 .Select(x => new
                 {
                     x.MaAp, x.TenAp, x.DiaChiIp, x.DiaChiMac, x.HangSanXuat, x.Model, x.Serial, x.Ssid, x.TenController,
                     TenBoPhan = x.IdboPhanNavigation != null ? x.IdboPhanNavigation.TenBoPhan : null,
-                    x.ViTri, x.TinhTrang, x.TrangThaiKetNoi, x.KiemTraLuc, x.NgayLapDat, x.HanBaoHanh, x.GhiChu
+                    x.ViTri, x.TinhTrang, x.TrangThaiKetNoi, x.NguonTrangThai, x.KiemTraLuc, x.NgayLapDat, x.HanBaoHanh, x.GhiChu
                 })
                 .ToListAsync();
 
@@ -138,7 +143,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 x.MaAp, x.TenAp, x.DiaChiIp, x.DiaChiMac,
                 string.Join(" / ", new[] { x.HangSanXuat, x.Model }.Where(s => !string.IsNullOrWhiteSpace(s))),
                 x.Serial, x.Ssid, x.TenController, x.TenBoPhan, x.ViTri, x.TinhTrang,
-                !TheoDoi(x.DiaChiIp, x.TinhTrang) ? "Không theo dõi"
+                !TheoDoi(x.DiaChiIp, x.NguonTrangThai, x.TinhTrang) ? "Không theo dõi"
                     : x.TrangThaiKetNoi == "UP" ? "Online" : x.TrangThaiKetNoi == "DOWN" ? "Mất KN" : "Chưa kiểm",
                 x.KiemTraLuc, x.NgayLapDat, x.HanBaoHanh, x.GhiChu)).ToList();
 
@@ -169,12 +174,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (idBoPhan > 0) query = query.Where(x => x.IdboPhan == idBoPhan);
             if (!string.IsNullOrWhiteSpace(tinhTrang)) query = query.Where(x => x.TinhTrang == tinhTrang);
 
-            // Lọc kết nối chỉ xét AP đang theo dõi (có IP, không trong kho / ngừng dùng)
+            // Lọc kết nối chỉ xét AP đang theo dõi (có IP hoặc controller báo trạng thái, không trong kho / ngừng dùng)
             var khongTheoDoi = AccessPointPingWorker.DsTinhTrangKhongTheoDoi;
             if (ketNoi == "online" || ketNoi == "offline")
             {
                 var tt = ketNoi == "online" ? "UP" : "DOWN";
-                query = query.Where(x => x.DiaChiIp != null && x.TrangThaiKetNoi == tt
+                query = query.Where(x => (x.DiaChiIp != null || x.NguonTrangThai == "AC") && x.TrangThaiKetNoi == tt
                                          && (x.TinhTrang == null || !khongTheoDoi.Contains(x.TinhTrang)));
             }
 
@@ -182,8 +187,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 .ThenBy(x => x.ViTri).ThenBy(x => x.TenAp);
         }
 
-        private static bool TheoDoi(string? ip, string? tinhTrang)
-            => !string.IsNullOrWhiteSpace(ip) && (tinhTrang == null || !AccessPointPingWorker.DsTinhTrangKhongTheoDoi.Contains(tinhTrang));
+        /// <summary>
+        /// Có IP để ping, hoặc trạng thái do AP controller báo theo MAC (nguồn "AC" — vd WLC BPVN không trả IP AP).
+        /// </summary>
+        private static bool TheoDoi(string? ip, string? nguonTrangThai, string? tinhTrang)
+            => (!string.IsNullOrWhiteSpace(ip) || nguonTrangThai == "AC")
+               && (tinhTrang == null || !AccessPointPingWorker.DsTinhTrangKhongTheoDoi.Contains(tinhTrang));
 
         #endregion
 
@@ -371,7 +380,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 });
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException
-                                           or NotSupportedException or System.Xml.XmlException or DbUpdateException or SqlException)
+                                           or NotSupportedException or System.Xml.XmlException or System.Text.Json.JsonException
+                                           or DbUpdateException or SqlException)
             {
                 return Json(new { thanhCong = false, thongBao = "Không đồng bộ được từ controller: " + ex.Message });
             }
@@ -388,6 +398,66 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #endregion
 
         #region Lịch sử online/offline
+
+        /// <summary>
+        /// Số AP online / mất kết nối theo thời gian cho biểu đồ xu hướng. Không có bảng chụp định kỳ nên dựng lại
+        /// từ trạng thái hiện tại rồi lùi dần theo KK_AccessPointLichSu (hoàn tác từng sự kiện xảy ra sau mốc).
+        /// Chỉ tính AP đang theo dõi hiện nay: AP mới thêm / đã xoá trong khoảng xem có thể làm lệch nhẹ.
+        /// </summary>
+        [HttpGet("/QLAP/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/XuHuong")]
+        public async Task<IActionResult> XuHuong(string congTy, int? gio)
+        {
+            var cty = CongTyHopLe(congTy)!;
+            if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+
+            try
+            {
+                var soGio = gio is 6 or 24 or 72 or 168 ? gio.Value : 24;
+                var den = DateTime.Now;
+                var tu = den.AddHours(-soGio);
+                var idCongTy = await IdCongTyAsync(cty);
+
+                var dsAp = await _context.KkAccessPoints
+                    .Where(x => x.NgayXoa == null && x.IdcongTy == idCongTy)
+                    .Select(x => new { x.IdAp, x.DiaChiIp, x.NguonTrangThai, x.TinhTrang, x.TrangThaiKetNoi })
+                    .ToListAsync();
+                // null = chưa có trạng thái tại mốc đang xét (chưa được kiểm lần nào) -> không đếm
+                var trangThai = dsAp
+                    .Where(x => TheoDoi(x.DiaChiIp, x.NguonTrangThai, x.TinhTrang) && (x.TrangThaiKetNoi == "UP" || x.TrangThaiKetNoi == "DOWN"))
+                    .ToDictionary(x => x.IdAp, x => (string?)x.TrangThaiKetNoi);
+
+                var suKien = await _context.KkAccessPointLichSus
+                    .Where(x => x.IdcongTy == idCongTy && x.ThoiGian > tu)
+                    .OrderByDescending(x => x.ThoiGian).ThenByDescending(x => x.IdLichSu)
+                    .Select(x => new { x.IdAp, x.ThoiGian, x.TuTrangThai })
+                    .ToListAsync();
+
+                const int soDiem = 72;
+                var buoc = TimeSpan.FromTicks((den - tu).Ticks / soDiem);
+                var diem = new List<object>(soDiem + 1);
+                var i = 0;
+                for (var k = 0; k <= soDiem; k++)
+                {
+                    var t = den - buoc * k;
+                    while (i < suKien.Count && suKien[i].ThoiGian > t)
+                    {
+                        var s = suKien[i++];
+                        if (trangThai.ContainsKey(s.IdAp))
+                            trangThai[s.IdAp] = s.TuTrangThai == "UP" || s.TuTrangThai == "DOWN" ? s.TuTrangThai : null;
+                    }
+                    diem.Add(new
+                    {
+                        thoiGian = t,
+                        up = trangThai.Values.Count(v => v == "UP"),
+                        down = trangThai.Values.Count(v => v == "DOWN")
+                    });
+                }
+                diem.Reverse();
+
+                return Json(new { thanhCong = true, duLieu = diem });
+            }
+            catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
 
         [HttpGet("/QLAP/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/LichSu")]
         public async Task<IActionResult> LichSu(string congTy, DateTime? tuNgay, DateTime? denNgay, string? loai, string? tuKhoa)

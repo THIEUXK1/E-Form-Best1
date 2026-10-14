@@ -55,10 +55,10 @@ namespace E_Form_Best.Areas.ITForm.Services
                     if (soSuKien > 0)
                         Console.WriteLine($"[AccessPoint] Ghi {soSuKien} sự kiện đổi trạng thái lúc {DateTime.Now:dd/MM/yyyy HH:mm}");
                 }
-                catch (TaskCanceledException) { return; }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
                 catch (Exception ex)
                 {
-                    // Mất kết nối DB / lỗi tạm thời: bỏ lượt này, lượt sau chạy tiếp
+                    // Mất kết nối DB / lỗi tạm thời / timeout: bỏ lượt này, lượt sau chạy tiếp
                     Console.WriteLine($"[AccessPoint Error]: {ex.Message}");
                 }
 
@@ -97,16 +97,31 @@ namespace E_Form_Best.Areas.ITForm.Services
                     if (kq.ThemMoi > 0)
                         Console.WriteLine($"[AccessPoint] {cty}: thêm {kq.ThemMoi} AP mới từ controller");
                     foreach (var ap in dsAc) trangThaiAc[ap.Mac] = ap.Online;
+
+                    if (_controller.MatKhoiDanhSachLaMatKetNoi(cty))
+                    {
+                        var dsMacAc = dsAc.Select(x => x.Mac).ToList();
+                        var dsMacMat = await db.KkAccessPoints
+                            .Where(x => x.NgayXoa == null && x.DiaChiMac != null && !dsMacAc.Contains(x.DiaChiMac)
+                                        && x.IdcongTyNavigation != null && x.IdcongTyNavigation.TenCongTy == cty)
+                            .Select(x => x.DiaChiMac!).ToListAsync(ct);
+                        foreach (var mac in dsMacMat) trangThaiAc[mac] = false;
+                    }
                 }
-                catch (Exception ex) when (ex is not OperationCanceledException)
+                // HttpClient hết thời gian chờ cũng ném TaskCanceledException: chỉ coi là dừng app khi ct thật sự bị huỷ,
+                // không thì lỗi lan ra vòng ngoài và job AP tắt luôn tới lần khởi động sau
+                catch (Exception ex) when (!ct.IsCancellationRequested)
                 {
                     db.ChangeTracker.Clear();
                     Console.WriteLine($"[AccessPoint Error] Đọc controller {cty}: {ex.Message}");
                 }
             }
 
+            // AP không có IP vẫn theo dõi được nếu controller biết nó theo MAC (collector WLC không trả IP AP)
+            var dsMacTheoDoi = trangThaiAc.Keys.ToList();
             var ds = await db.KkAccessPoints
-                .Where(x => x.NgayXoa == null && x.DiaChiIp != null
+                .Where(x => x.NgayXoa == null
+                            && (x.DiaChiIp != null || (x.DiaChiMac != null && dsMacTheoDoi.Contains(x.DiaChiMac)))
                             && (x.TinhTrang == null || !DsTinhTrangKhongTheoDoi.Contains(x.TinhTrang))
                             && x.IdcongTyNavigation != null && dsCongTy.Contains(x.IdcongTyNavigation.TenCongTy))
                 .Select(x => new { x.IdAp, x.IdcongTy, x.TenAp, x.DiaChiIp, x.DiaChiMac, x.TrangThaiKetNoi, x.DoiTrangThaiLuc })

@@ -60,9 +60,18 @@ foreach ($d in $dsDauGhi) {
         if ($c -and [int]$c.portNo -gt 0) { $congRtsp = [int]$c.portNo }
     } catch { }
     $kenh = ([xml]$wc.DownloadString("$($d.Goc)/ISAPI/ContentMgmt/InputProxy/channels")).InputProxyChannelList.InputProxyChannel
+    # Luồng đầu ghi thật sự cấp: kênh không có luồng phụ (10.0.200.254 k6: đầu ghi cũ không nhận sub-stream,
+    # 602 trả 403 notSupport) thì kéo luồng chính. Không đọc được danh sách thì giữ luồng phụ như trước
+    $dsLuong = @()
+    try {
+        $dsLuong = @(([xml]$wc.DownloadString("$($d.Goc)/ISAPI/ContentMgmt/StreamingProxy/channels")).StreamingChannelList.StreamingChannel |
+            ForEach-Object { [string]$_.id })
+    } catch { }
     foreach ($k in $kenh) {
         $ten = "pfvn_$($d.Ip.Replace('.', '_'))_$($k.id)"
-        $rtsp = "rtsp://$([Uri]::EscapeDataString($d.Tk)):$([Uri]::EscapeDataString($d.Mk))@$($d.Ip):$congRtsp/Streaming/Channels/$($k.id)02"
+        $luong = if ($dsLuong.Count -gt 0 -and $dsLuong -notcontains "$($k.id)02" -and $dsLuong -contains "$($k.id)01") { '01' } else { '02' }
+        if ($luong -eq '01') { Write-Output "Dau ghi $($d.Ip) kenh $($k.id): khong co luong phu, dung luong chinh" }
+        $rtsp = "rtsp://$([Uri]::EscapeDataString($d.Tk)):$([Uri]::EscapeDataString($d.Mk))@$($d.Ip):$congRtsp/Streaming/Channels/$($k.id)$luong"
         $dong.Add("  ${ten}:")
         $dong.Add("    - $(Yaml $rtsp)")
         # Luồng phụ nhiều camera là H.265, trình duyệt không phát được -> go2rtc tự dùng nguồn ffmpeg khi cần

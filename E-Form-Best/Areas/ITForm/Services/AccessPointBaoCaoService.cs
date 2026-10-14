@@ -102,15 +102,16 @@ namespace E_Form_Best.Areas.ITForm.Services
                 .Select(x => new
                 {
                     x.IdAp, x.TenAp, x.DiaChiIp, x.ViTri, x.TinhTrang, x.HanBaoHanh,
-                    x.TrangThaiKetNoi, x.DoiTrangThaiLuc, x.KiemTraLuc,
+                    x.TrangThaiKetNoi, x.DoiTrangThaiLuc, x.KiemTraLuc, x.NguonTrangThai,
                     CongTy = x.IdcongTyNavigation!.TenCongTy,
                     BoPhan = x.IdboPhanNavigation != null ? x.IdboPhanNavigation.TenBoPhan : null
                 })
                 .ToListAsync(ct);
 
-            bool TheoDoi(string? ip, string? tinhTrang)
-                => ip != null && (tinhTrang == null || !AccessPointPingWorker.DsTinhTrangKhongTheoDoi.Contains(tinhTrang));
-            var theoDoi = dsAp.Where(x => TheoDoi(x.DiaChiIp, x.TinhTrang)).ToList();
+            // Có IP để ping, hoặc controller báo trạng thái theo MAC (nguồn "AC", vd WLC BPVN không trả IP AP)
+            bool TheoDoi(string? ip, string? nguon, string? tinhTrang)
+                => (ip != null || nguon == "AC") && (tinhTrang == null || !AccessPointPingWorker.DsTinhTrangKhongTheoDoi.Contains(tinhTrang));
+            var theoDoi = dsAp.Where(x => TheoDoi(x.DiaChiIp, x.NguonTrangThai, x.TinhTrang)).ToList();
             var dsId = theoDoi.Select(x => x.IdAp).ToList();
 
             // Sự kiện DOWN trong kỳ -> số lần mất. Sự kiện UP từ đầu kỳ trở đi (kể cả sau kỳ) mang thời lượng mất
@@ -173,7 +174,7 @@ namespace E_Form_Best.Areas.ITForm.Services
                     HoatDong = tdCty.Count(x => x.TrangThaiKetNoi == "UP"),
                     MatKetNoi = tdCty.Count(x => x.TrangThaiKetNoi == "DOWN"),
                     ChuaKiemTra = tdCty.Count(x => x.TrangThaiKetNoi == null),
-                    ChuaKhaiIp = cuaCty.Count(x => x.DiaChiIp == null),
+                    ChuaKhaiIp = cuaCty.Count(x => x.DiaChiIp == null && x.NguonTrangThai != "AC"),
                     HetBaoHanh = cuaCty.Count(x => x.HanBaoHanh != null && x.HanBaoHanh < homNay),
                     SoLanMat = tk.Sum(x => x.soLan),
                     SoApBiMat = tk.Count(x => x.soLan > 0 || x.giay > 0),
