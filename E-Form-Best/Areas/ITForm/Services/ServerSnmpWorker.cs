@@ -171,7 +171,7 @@ namespace E_Form_Best.Areas.ITForm.Services
             // boDem lưu lại để lượt sau tính tốc độ; dsSuKien = nhật ký thiết bị (MSA)
             var duLieu = kq == null ? null : JsonSerializer.Serialize(new
             {
-                kq.Nguon, kq.GhiChu, kq.ThoiGianChay, dsMuc = kq.DsMuc, dsSuKien = kq.DsSuKien, boDem = kq.DsBoDem
+                kq.Nguon, kq.GhiChu, kq.ThoiGianChay, thongTin = kq.ThongTin, dsMuc = kq.DsMuc, dsSuKien = kq.DsSuKien, boDem = kq.DsBoDem
             }, JsonOpt);
 
             if (cu == null)

@@ -148,6 +148,16 @@
     }
     var MUC_DO = { LOI: 0, CANH_BAO: 1, KHONG_RO: 2, OK: 3 };
 
+    // Thông tin tĩnh đọc qua SNMP (firmware, BIOS, vị trí, load, phiên kết nối...) — không mang trạng thái
+    function veThongTinSnmp(tt) {
+        var ds = tt ? Object.keys(tt) : [];
+        if (!ds.length) return '';
+        return '<div class="sv-sk-nhom mb-3"><div class="sv-sk-nhom-dau"><span><i class="fas fa-tower-broadcast me-2"></i>Thông tin đọc từ SNMP</span></div>'
+            + '<div class="sv-tt-luoi">' + ds.map(function (k) {
+                return '<div><span class="text-muted">' + esc(k) + '</span><span class="fw-semibold">' + esc(tt[k]) + '</span></div>';
+            }).join('') + '</div></div>';
+    }
+
     // Khối "Thông tin thiết bị" đầu cửa sổ chi tiết: lấy từ dòng danh sách (đã có đủ trường), chỉ hiện ô có dữ liệu
     function veThongTin(x) {
         if (!x) return '';
@@ -207,6 +217,7 @@
             + '</div>';
         if (sk.loi) html += '<div class="alert alert-warning py-2 small">' + esc(sk.loi) + (dsMuc.length ? ' — đang hiện số liệu lần đọc được gần nhất.' : '') + '</div>';
         if (dl && dl.ghiChu) html += '<div class="small text-muted mb-2"><i class="fas fa-circle-info me-1"></i>' + esc(dl.ghiChu) + '</div>';
+        html += veThongTinSnmp(dl && dl.thongTin);
 
         // Gom theo nhóm, mục bất thường lên đầu
         var theoNhom = {};
