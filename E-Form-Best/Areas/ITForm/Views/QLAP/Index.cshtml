@@ -16,7 +16,7 @@
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 @* Dùng lại khung bảng của trang CCDC / camera (cùng nhóm menu, cùng kiểu bảng cột cố định) *@
-<link rel="stylesheet" href="/css/ccdc-quanly.css?v=20260825e">
+<link rel="stylesheet" href="/css/ccdc-quanly.css?v=20261014a">
 <link rel="stylesheet" href="/css/fixed-page-layout.css?v=5">
 <link rel="stylesheet" href="/css/camera-quanly.css?v=20261007c">
 
@@ -61,6 +61,47 @@
 
                     @* ================= TAB DANH SÁCH AP (KK_AccessPoint) ================= *@
                     <div class="tab-pane fade show active" id="paneDanhSach" role="tabpanel">
+                        @* Ô số liệu tính trên các AP khớp ô tìm / bộ phận / tình trạng; bấm ô = lọc bảng theo kết nối *@
+                        <div class="cam-tiles mb-2">
+                            <div class="cam-tile cam-tile-loc" data-loc="" title="Bấm để xem tất cả AP"><div class="cam-tile-nhan">Tổng AP</div><div class="cam-tile-so" id="apTongAp">–</div><div class="cam-tile-phu" id="apKhongTheoDoi"></div></div>
+                            <div class="cam-tile cam-tile-up cam-tile-loc" data-loc="online" title="Bấm để chỉ xem AP đang online"><div class="cam-tile-nhan">Online</div><div class="cam-tile-so" id="tongOnline">–</div><div class="cam-tile-phu" id="apTiLeOnline"></div></div>
+                            <div class="cam-tile cam-tile-down cam-tile-loc" data-loc="offline" title="Bấm để chỉ xem AP mất kết nối"><div class="cam-tile-nhan">Mất kết nối</div><div class="cam-tile-so" id="tongOffline">–</div><div class="cam-tile-phu" id="apMatLauNhat"></div></div>
+                            <div class="cam-tile" title="Tổng thiết bị đang kết nối Wi-Fi qua các AP online (theo controller)"><div class="cam-tile-nhan">Client Wi-Fi</div><div class="cam-tile-so" id="tongClient">–</div><div class="cam-tile-phu" id="apClientNhieuNhat"></div></div>
+                            <div class="cam-tile"><div class="cam-tile-nhan">Kiểm tra gần nhất</div><div class="cam-tile-so cam-tile-so-nho" id="apLanCuoi">–</div><div class="cam-tile-phu" id="kiemTraGanNhat"></div></div>
+                        </div>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-lg-7">
+                                <div class="cam-khung">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="fw-bold small text-muted"><i class="fas fa-chart-line me-1"></i> Xu hướng online / mất kết nối</span>
+                                        <select id="apKhoangXuHuong" class="form-select form-select-sm w-auto ms-auto">
+                                            <option value="6">6 giờ gần nhất</option>
+                                            <option value="24" selected>24 giờ</option>
+                                            <option value="72">3 ngày</option>
+                                            <option value="168">7 ngày</option>
+                                        </select>
+                                    </div>
+                                    <div class="cam-bieu-do"><canvas id="apBieuDo"></canvas></div>
+                                </div>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="cam-khung">
+                                    <div class="fw-bold small text-muted mb-1"><i class="fas fa-layer-group me-1"></i> Nhóm AP @congTy (bấm để lọc AP)</div>
+                                    <div class="cam-bang-nvr">
+                                        <table class="table table-sm table-hover align-middle mb-0 small">
+                                            <thead>
+                                                <tr><th>Nhóm AP</th><th class="text-end">Số AP</th><th class="text-end">Online</th><th class="text-end">Mất KN</th><th class="text-end">Client</th></tr>
+                                            </thead>
+                                            <tbody id="apNhomBody">
+                                                <tr><td colspan="5" class="text-center text-muted py-3">Đang tải...</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                             <input type="text" id="filterTuKhoa" class="form-control form-control-sm" style="max-width:260px;"
                                    placeholder="Tìm tên, mã, IP, MAC, SSID, model, vị trí...">
@@ -87,16 +128,22 @@
                                 <option value="offline">Mất kết nối</option>
                             </select>
 
-                            <span class="small text-muted fw-bold ms-2">
-                                Số AP: <span id="tongDong">0</span> ·
-                                <span class="text-success">Online: <span id="tongOnline">0</span></span> ·
-                                <span class="text-danger">Mất KN: <span id="tongOffline">0</span></span> ·
-                                <span class="text-primary" title="Tổng thiết bị đang kết nối Wi-Fi qua các AP online">Client: <span id="tongClient">0</span></span>
-                            </span>
-                            <span class="small text-muted" id="kiemTraGanNhat"></span>
+                            <select id="filterNhom" class="form-select form-select-sm w-auto" title="Lọc theo nhóm AP (AP group trên controller)">
+                                <option value="">-- Mọi nhóm AP --</option>
+                            </select>
+
+                            <div class="form-check form-switch mb-0" title="Ghim lưu riêng trên máy/trình duyệt này">
+                                <input class="form-check-input" type="checkbox" id="filterChiGhim">
+                                <label class="form-check-label small" for="filterChiGhim"><i class="fas fa-thumbtack"></i> Chỉ AP đã ghim</label>
+                            </div>
 
                             <span class="flex-grow-1"></span>
+                            <span class="small text-muted" id="apDem"></span>
 
+                            <div class="form-check form-switch mb-0" title="Job nền kiểm AP khoảng 2 phút một lần">
+                                <input class="form-check-input" type="checkbox" id="apTuLamMoi" checked>
+                                <label class="form-check-label small" for="apTuLamMoi">Tự làm mới 60 giây</label>
+                            </div>
                             <button type="button" class="btn btn-sm btn-light border" id="btnTaiLai" title="Tải lại danh sách"><i class="fas fa-rotate"></i></button>
                             <button type="button" class="btn btn-sm btn-success" id="btnXuatExcel" title="Xuất danh sách đang lọc ra Excel">
                                 <i class="fas fa-file-excel me-1"></i> Excel
@@ -119,7 +166,7 @@
                         <div class="ccdc-table-wrap" data-fp-scroll>
                             <table class="table table-hover align-middle mb-0 ccdc-table">
                                 <colgroup>
-                                    <col style="width:48px;">
+                                    <col style="width:64px;">
                                     <col style="width:130px;">
                                     <col style="width:100px;">
                                     <col style="width:220px;">
@@ -351,6 +398,8 @@
 
 @* Phải nằm trong section Scripts: layout nạp jQuery ở cuối trang, script đặt trong thân trang chạy trước jQuery *@
 @section Scripts {
+    @* Cùng Chart.js với trang camera (dùng lại cache trình duyệt); CDN lỗi thì chỉ mất biểu đồ *@
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/fixed-page-layout.js?v=5" defer></script>
-    <script src="/js/ap-quanly.js?v=20261008b"></script>
+    <script src="/js/ap-quanly.js?v=20261014b"></script>
 }

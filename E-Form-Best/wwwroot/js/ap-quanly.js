@@ -96,40 +96,155 @@
 
     // ---------------- Danh sách ----------------
 
+    // AP ghim lên đầu: sở thích riêng từng máy nên lưu localStorage (giống trang camera), không lên DB.
+    // Giá trị là mốc lúc ghim để AP ghim trước đứng trước. Trình duyệt chặn storage thì chỉ ghim trong phiên.
+    var dsGhim = {};
+    function khoaGhim() { return 'qlap.ghim.' + congTy; }
+    function napGhim() {
+        try { dsGhim = JSON.parse(localStorage.getItem(khoaGhim()) || '{}') || {}; } catch (e) { dsGhim = {}; }
+    }
+    function doiGhim(x) {
+        if (dsGhim[x.idAp]) delete dsGhim[x.idAp]; else dsGhim[x.idAp] = Date.now();
+        try { localStorage.setItem(khoaGhim(), JSON.stringify(dsGhim)); } catch (e) { /* bỏ qua */ }
+        veBang();
+    }
+
+    // Dữ liệu lần tải gần nhất: tìm / bộ phận / tình trạng lọc ở server; kết nối / nhóm / ghim lọc tại chỗ
+    // để ô số liệu và khung nhóm luôn đếm trên toàn bộ AP, bấm lọc không phải gọi lại server
+    var dsAp = [];
+    var NHOM_TRONG = '__trong';
+
+    // Tham số Excel: gửi đủ bộ lọc đang chọn để file khớp đúng bảng đang xem
     function thamSoLoc() {
         return {
             tuKhoa: $('#filterTuKhoa').val(),
             idBoPhan: $('#filterBoPhan').val(),
             tinhTrang: $('#filterTinhTrang').val(),
-            ketNoi: $('#filterKetNoi').val()
+            ketNoi: $('#filterKetNoi').val(),
+            nhomAp: $('#filterNhom').val()
         };
     }
 
     function taiDanhSach() {
         var $body = $('#apTableBody');
-        dongTrangThai($body, COT, 'Đang tải dữ liệu...', 'text-muted');
+        if (!dsAp.length) dongTrangThai($body, COT, 'Đang tải dữ liệu...', 'text-muted');
+        var $btn = $('#btnTaiLai').prop('disabled', true);
 
-        $.getJSON(goc + '/DanhSach', thamSoLoc())
+        $.getJSON(goc + '/DanhSach', {
+            tuKhoa: $('#filterTuKhoa').val(),
+            idBoPhan: $('#filterBoPhan').val(),
+            tinhTrang: $('#filterTinhTrang').val()
+        })
             .done(function (res) {
                 if (!res.thanhCong) {
                     dongTrangThai($body, COT, res.thongBao || 'Không tải được dữ liệu.', 'text-danger');
                     return;
                 }
-                veBang(res.duLieu);
-                $('#tongDong').text(res.tongDong);
-                $('#tongOnline').text(res.tongOnline);
-                $('#tongOffline').text(res.tongOffline);
-                $('#tongClient').text(res.tongClient || 0);
+                dsAp = res.duLieu || [];
+                veTongQuan(res);
+                veNhom();
+                veBang();
                 $('#badgeMatKetNoi').text(res.tongOffline).toggleClass('d-none', !res.tongOffline);
-                veTinhTrangPing(res.kiemTraGanNhat, res.chuKyGiay, res.duLieu);
+                veTinhTrangPing(res.kiemTraGanNhat, res.chuKyGiay, dsAp);
             })
-            .fail(function () { dongTrangThai($body, COT, 'Lỗi kết nối máy chủ.', 'text-danger'); });
+            .fail(function () { dongTrangThai($body, COT, 'Lỗi kết nối máy chủ.', 'text-danger'); })
+            .always(function () { $btn.prop('disabled', false); });
+    }
+
+    function veTongQuan(res) {
+        var theoDoi = dsAp.filter(function (x) { return x.theoDoi; }).length;
+        var khong = dsAp.length - theoDoi;
+        $('#apTongAp').text(dsAp.length);
+        $('#apKhongTheoDoi').text(khong ? khong + ' AP không theo dõi' : 'đều đang theo dõi');
+        $('#tongOnline').text(res.tongOnline);
+        $('#apTiLeOnline').text(theoDoi ? Math.round(res.tongOnline * 100 / theoDoi) + '% AP theo dõi' : '');
+        $('#tongOffline').text(res.tongOffline);
+
+        // AP mất lâu nhất: thấy ngay cái cần đi kiểm trước
+        var lauNhat = dsAp.filter(function (x) { return x.ketNoi === 'DOWN' && x.doiTrangThaiLuc; })
+            .sort(function (a, b) { return String(a.doiTrangThaiLuc).localeCompare(String(b.doiTrangThaiLuc)); })[0];
+        $('#apMatLauNhat').text(lauNhat ? 'lâu nhất: ' + lauNhat.tenAp + ' · ' + thoiLuong((Date.now() - new Date(lauNhat.doiTrangThaiLuc).getTime()) / 1000) : '')
+            .attr('title', lauNhat ? lauNhat.tenAp : '');
+
+        $('#tongClient').text(res.tongClient || 0);
+        var dongNhat = dsAp.filter(function (x) { return x.ketNoi === 'UP' && x.soClient; })
+            .sort(function (a, b) { return b.soClient - a.soClient; })[0];
+        $('#apClientNhieuNhat').text(dongNhat ? 'đông nhất: ' + dongNhat.tenAp + ' (' + dongNhat.soClient + ')' : '')
+            .attr('title', dongNhat ? dongNhat.tenAp : '');
+
+        var m = /T(\d{2}):(\d{2})/.exec(res.kiemTraGanNhat || '');
+        $('#apLanCuoi').text(m ? m[1] + ':' + m[2] : '–');
+        $('#kiemTraGanNhat').text(res.kiemTraGanNhat ? gio(res.kiemTraGanNhat).substring(6) + ' · chu kỳ ' + Math.round(res.chuKyGiay / 60) + ' phút' : 'chưa kiểm lần nào');
+    }
+
+    function khoaNhom(x) { return x.nhomAp ? x.nhomAp : NHOM_TRONG; }
+
+    // Khung "Nhóm AP": đếm theo AP group trên controller, bấm 1 dòng = lọc bảng theo nhóm đó
+    function veNhom() {
+        var nhom = {};
+        dsAp.forEach(function (x) {
+            var k = khoaNhom(x);
+            var n = nhom[k] || (nhom[k] = { khoa: k, ten: x.nhomAp || '(Chưa có nhóm)', so: 0, up: 0, down: 0, client: 0 });
+            n.so++;
+            if (x.ketNoi === 'UP') { n.up++; n.client += x.soClient || 0; }
+            if (x.ketNoi === 'DOWN') n.down++;
+        });
+        // Nhóm có AP mất kết nối lên đầu, sau đó theo tên; "chưa có nhóm" luôn cuối
+        var ds = Object.keys(nhom).map(function (k) { return nhom[k]; }).sort(function (a, b) {
+            if ((a.khoa === NHOM_TRONG) !== (b.khoa === NHOM_TRONG)) return a.khoa === NHOM_TRONG ? 1 : -1;
+            return (b.down > 0) - (a.down > 0) || a.ten.localeCompare(b.ten);
+        });
+
+        var dangLoc = $('#filterNhom').val();
+        $('#apNhomBody').html(!ds.length
+            ? '<tr><td colspan="5" class="text-center text-muted py-3">Chưa có AP nào.</td></tr>'
+            : ds.map(function (n) {
+                return '<tr data-nhom="' + esc(n.khoa) + '"' + (n.khoa === dangLoc ? ' class="cam-dang-loc"' : '') + '>'
+                    + '<td class="fw-bold' + (n.khoa === NHOM_TRONG ? ' text-muted fst-italic' : '') + '">' + esc(n.ten) + '</td>'
+                    + '<td class="text-end">' + n.so + '</td>'
+                    + '<td class="text-end text-success">' + n.up + '</td>'
+                    + '<td class="text-end ' + (n.down ? 'text-danger fw-bold' : 'text-muted') + '">' + n.down + '</td>'
+                    + '<td class="text-end text-primary">' + n.client + '</td>'
+                    + '</tr>';
+            }).join(''));
+
+        // Dropdown nhóm dựng theo dữ liệu thật, giữ lựa chọn đang có
+        var $sel = $('#filterNhom');
+        $sel.find('option:not(:first)').remove();
+        ds.forEach(function (n) { $sel.append($('<option>').val(n.khoa).text(n.ten + ' (' + n.so + ')')); });
+        if (dangLoc && !nhom[dangLoc]) $sel.append($('<option>').val(dangLoc).text(dangLoc === NHOM_TRONG ? '(Chưa có nhóm)' : dangLoc));
+        $sel.val(dangLoc);
+    }
+
+    function locTaiCho() {
+        var ketNoi = $('#filterKetNoi').val(), nhomLoc = $('#filterNhom').val(), chiGhim = $('#filterChiGhim').is(':checked');
+        var loc = dsAp.filter(function (x) {
+            if (ketNoi === 'online' && x.ketNoi !== 'UP') return false;
+            if (ketNoi === 'offline' && x.ketNoi !== 'DOWN') return false;
+            if (nhomLoc && khoaNhom(x) !== nhomLoc) return false;
+            if (chiGhim && !dsGhim[x.idAp]) return false;
+            return true;
+        });
+        // AP đã ghim lên đầu theo thứ tự ghim; còn lại giữ thứ tự server (bộ phận / vị trí / tên)
+        return loc.map(function (x, i) { return { x: x, i: i }; }).sort(function (a, b) {
+            var ga = dsGhim[a.x.idAp], gb = dsGhim[b.x.idAp];
+            if (ga && gb) return ga - gb;
+            if (ga || gb) return ga ? -1 : 1;
+            return a.i - b.i;
+        }).map(function (p) { return p.x; });
+    }
+
+    // Tô viền ô số liệu khớp bộ lọc kết nối hiện tại (đổi từ dropdown cũng cập nhật theo)
+    function danhDauOLoc() {
+        var ketNoi = $('#filterKetNoi').val();
+        $('.cam-tile-loc').each(function () { $(this).toggleClass('cam-tile-chon', String($(this).data('loc') || '') === ketNoi); });
+        var nhomLoc = $('#filterNhom').val();
+        $('#apNhomBody tr').each(function () { $(this).toggleClass('cam-dang-loc', !!nhomLoc && String($(this).data('nhom')) === nhomLoc); });
     }
 
     // Lần ping gần nhất quá 3 chu kỳ: job nền không chạy ở máy chủ này -> trạng thái đang hiện là cũ
     function veTinhTrangPing(kiemTra, chuKyGiay, ds) {
         var $canhBao = $('#apCanhBaoPing');
-        $('#kiemTraGanNhat').text(kiemTra ? '(kiểm lúc ' + gio(kiemTra) + ')' : '');
         var coTheoDoi = (ds || []).some(function (x) { return x.theoDoi; });
         var cu = kiemTra && (Date.now() - new Date(kiemTra).getTime()) > 3 * chuKyGiay * 1000;
         var noiDung = !coTheoDoi ? ''
@@ -139,17 +254,25 @@
         $canhBao.text(noiDung).toggleClass('d-none', !noiDung);
     }
 
-    function veBang(data) {
+    function veBang() {
         var $body = $('#apTableBody');
-        if (!data || data.length === 0) {
-            dongTrangThai($body, COT, 'Chưa có AP nào khớp bộ lọc.', 'text-muted');
+        var data = locTaiCho();
+        var soGhim = Object.keys(dsGhim).length;
+        $('#apDem').text('Đang hiện ' + data.length + ' / ' + dsAp.length + ' AP' + (soGhim ? ' · đã ghim ' + soGhim : ''));
+        danhDauOLoc();
+        if (data.length === 0) {
+            dongTrangThai($body, COT, dsAp.length ? 'Không có AP nào khớp bộ lọc.' : 'Chưa có AP nào khớp bộ lọc.', 'text-muted');
             return;
         }
 
         $body.html(data.map(function (x, i) {
             var hangModel = [x.hangSanXuat, x.model].filter(Boolean).join(' / ');
-            return '<tr>'
-                + '<td class="text-muted small">' + (i + 1) + '</td>'
+            var ghim = !!dsGhim[x.idAp];
+            return '<tr class="' + (x.ketNoi === 'DOWN' ? 'cam-down ' : '') + (ghim ? 'cam-da-ghim' : '') + '">'
+                + '<td class="text-muted small text-nowrap">'
+                + '<button type="button" class="cam-ghim' + (ghim ? ' cam-ghim-bat' : '') + '" title="'
+                + (ghim ? 'Bỏ ghim' : 'Ghim lên đầu danh sách (chỉ trên máy này)') + '"><i class="fas fa-thumbtack"></i></button>'
+                + (i + 1) + '</td>'
                 + oKetNoi(x)
                 + o(x.maAp, 'small')
                 + o(x.tenAp, 'ccdc-ten')
@@ -159,7 +282,8 @@
                 // Số client chỉ có nghĩa khi AP đang online
                 + o(x.ketNoi === 'UP' && x.soClient !== null && x.soClient !== undefined ? x.soClient : '', 'small text-end')
                 + o(x.nhomAp, 'small text-muted')
-                + o(x.ssid, 'small')
+                // SSID nhiều mạng cách dấu phẩy: thêm khoảng trắng để trình duyệt ngắt dòng đúng chỗ
+                + o((x.ssid || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean).join(', '), 'small ccdc-xuongdong')
                 + o(x.tenBoPhan, 'small')
                 + o(x.viTri, 'small text-muted')
                 + '<td><span class="badge rounded-pill" style="' + mauTinhTrang(x.tinhTrang) + '">'
@@ -175,6 +299,55 @@
 
         // Gắn dữ liệu bằng .data() thay vì nhét JSON vào thuộc tính HTML
         $body.find('tr').each(function (i) { $(this).data('ap', data[i]); });
+    }
+
+    // ---------------- Xu hướng ----------------
+
+    var bieuDo = null;
+
+    function veBieuDo(diem) {
+        if (typeof Chart === 'undefined') return; // CDN Chart.js không tải được thì bỏ biểu đồ, phần khác vẫn chạy
+        var soGio = +$('#apKhoangXuHuong').val();
+        // Khoảng ngắn chỉ cần giờ:phút; nhiều ngày thì kèm ngày/tháng
+        var nhan = diem.map(function (d) { var g = gio(d.thoiGian); return soGio > 24 ? g.substring(0, 11) : g.substring(0, 5); });
+        var up = diem.map(function (d) { return d.up; });
+        var down = diem.map(function (d) { return d.down; });
+
+        if (bieuDo) {
+            bieuDo.data.labels = nhan;
+            bieuDo.data.datasets[0].data = up;
+            bieuDo.data.datasets[1].data = down;
+            bieuDo.update('none');
+            return;
+        }
+
+        bieuDo = new Chart(document.getElementById('apBieuDo'), {
+            type: 'line',
+            data: {
+                labels: nhan,
+                datasets: [
+                    { label: 'Online', data: up, borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.08)', fill: true, pointRadius: 0, tension: .25, yAxisID: 'y' },
+                    { label: 'Mất kết nối', data: down, borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,.08)', fill: true, pointRadius: 0, tension: .25, yAxisID: 'y1' }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+                scales: {
+                    x: { ticks: { maxTicksLimit: 8, autoSkip: true } },
+                    // Hai trục riêng: số AP online lớn, mất kết nối vài cái, chung trục thì đường đỏ dẹt sát đáy
+                    y: { position: 'left', title: { display: true, text: 'Online' }, ticks: { precision: 0 } },
+                    y1: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'Mất kết nối' }, ticks: { precision: 0 } }
+                }
+            }
+        });
+    }
+
+    function taiXuHuong() {
+        $.getJSON(goc + '/XuHuong', { gio: $('#apKhoangXuHuong').val() })
+            .done(function (res) { if (res.thanhCong) veBieuDo(res.duLieu || []); });
     }
 
     // ---------------- Thêm / sửa / xoá ----------------
@@ -334,8 +507,30 @@
             $('#formAp').on('submit', function (e) { e.preventDefault(); luuAp(); });
         }
 
-        $('#btnTaiLai').on('click', taiDanhSach);
-        $('#filterBoPhan, #filterTinhTrang, #filterKetNoi').on('change', taiDanhSach);
+        $('#btnTaiLai').on('click', function () { taiDanhSach(); taiXuHuong(); });
+        $('#filterBoPhan, #filterTinhTrang').on('change', taiDanhSach);
+        // Kết nối / nhóm / ghim lọc tại chỗ trên dữ liệu đã tải
+        $('#filterKetNoi, #filterChiGhim').on('change', veBang);
+        $('#filterNhom').on('change', veBang);
+        $('#apKhoangXuHuong').on('change', taiXuHuong);
+
+        // Bấm ô số liệu = lọc theo kết nối của ô đó; bấm lại ô đang chọn thì bỏ lọc
+        $('.cam-tile-loc').on('click', function () {
+            var loc = String($(this).data('loc') || '');
+            $('#filterKetNoi').val($(this).hasClass('cam-tile-chon') ? '' : loc);
+            veBang();
+            var bang = document.getElementById('apTableBody');
+            if (bang) bang.closest('.ccdc-table-wrap').scrollTop = 0;
+        });
+        // Bấm 1 nhóm trong khung Nhóm AP = lọc theo nhóm đó; bấm lại thì bỏ lọc
+        $('#apNhomBody').on('click', 'tr[data-nhom]', function () {
+            var nhom = String($(this).data('nhom'));
+            $('#filterNhom').val($('#filterNhom').val() === nhom ? '' : nhom);
+            veBang();
+        });
+        $('#apTableBody').on('click', 'button.cam-ghim', function () {
+            doiGhim($(this).closest('tr').data('ap'));
+        });
         // Gõ tới đâu lọc tới đó, hoãn 350ms cho đỡ dội request
         $('#filterTuKhoa').on('input', function () {
             clearTimeout(timerTimKiem);
@@ -378,10 +573,22 @@
             timerLs = setTimeout(taiLichSu, 350);
         });
 
+        napGhim();
         taiDanhSach();
-        // Trạng thái do job nền ping 2 phút/lần: tự làm mới danh sách theo nhịp đó khi tab đang mở
-        setInterval(function () {
-            if (!document.hidden && $('#paneDanhSach').hasClass('active') && !$('.modal.show').length) taiDanhSach();
-        }, 120000);
+        taiXuHuong();
+
+        // Tự làm mới 60 giây (tắt được): bỏ qua khi tab trình duyệt ẩn, đang ở tab Lịch sử hoặc đang mở modal
+        var timerTuLamMoi = null;
+        function datTuLamMoi() {
+            clearInterval(timerTuLamMoi);
+            if (!$('#apTuLamMoi').is(':checked')) return;
+            timerTuLamMoi = setInterval(function () {
+                if (document.hidden || !$('#paneDanhSach').hasClass('active') || $('.modal.show').length) return;
+                taiDanhSach();
+                taiXuHuong();
+            }, 60000);
+        }
+        $('#apTuLamMoi').on('change', datTuLamMoi);
+        datTuLamMoi();
     });
 })();

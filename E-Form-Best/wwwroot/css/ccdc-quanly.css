@@ -159,6 +159,12 @@
     background: #fee2e2;
 }
 
+/* Ô cần đọc đủ (vd SSID nhiều mạng): xuống dòng thay vì cắt ba chấm */
+.ccdc-table td.ccdc-xuongdong {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
 /* Dòng trạng thái (đang tải / rỗng / lỗi) trải hết bảng, không áp ellipsis */
 .ccdc-table td.ccdc-trangthai {
     white-space: normal;
