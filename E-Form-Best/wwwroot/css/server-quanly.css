@@ -48,6 +48,27 @@ button.sv-sk:hover { filter: brightness(.95); }
 .sv-sk-cham.sv-sk-xam { background: #94a3b8; }
 .sv-sk-ten { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sv-sk-gt { flex: 0 1 auto; text-align: right; color: #475569; }
+.sv-sk-muc { border-top: 1px dashed #eef2f7; }
+.sv-sk-muc:first-of-type { border-top: 0; }
+.sv-sk-muc .sv-sk-dong { border-top: 0; }
+.sv-sk-mo-duoc { cursor: pointer; }
+.sv-sk-mo-duoc:hover { background: #f8fafc; }
+.sv-sk-mui { transition: transform .15s; color: #94a3b8; }
+.sv-sk-mo-duoc.mo .sv-sk-mui { transform: rotate(90deg); }
+.sv-sk-chi-tiet {
+    margin: 2px 0 6px 17px; padding: 6px 10px; border-radius: 8px; background: #f8fafc;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2px 16px; font-size: .78rem;
+}
+.sv-sk-chi-tiet > div { display: flex; justify-content: space-between; gap: 8px; }
+.sv-sk-su-kien { max-height: 320px; overflow-y: auto; }
+
+/* Bấm cả dòng để mở chi tiết */
+#svTableBody tr { cursor: pointer; }
+
+/* Lưới "Thông tin thiết bị" trong cửa sổ chi tiết */
+.sv-tt-luoi { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 4px 20px; }
+.sv-tt-luoi > div { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px dashed #eef2f7; }
+.sv-tt-luoi > div > span:last-child { text-align: right; overflow-wrap: anywhere; }
 
 /* ---------- Tổng quan ---------- */
 .sv-the-cty {

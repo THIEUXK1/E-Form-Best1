@@ -158,15 +158,21 @@ namespace E_Form_Best.Areas.ITForm.Services
             }
 
             var bayGio = DateTime.Now;
+            var cu = await db.KkServerSucKhoes.AsNoTracking().Where(x => x.IdServer == idServer)
+                .Select(x => new { x.TrangThai, x.DocDuocLuc, x.Nguon, x.TenHeThong, x.MoTa, x.DuLieu, x.IpSnmp }).FirstOrDefaultAsync(ct);
+
+            if (kq != null && cu?.DocDuocLuc != null) TinhTocDo(kq, cu.DuLieu, (bayGio - cu.DocDuocLuc.Value).TotalSeconds);
+
             var trangThai = kq == null ? ServerSnmpService.KhongDocDuoc : ServerSnmpService.TrangThaiTong(kq.DsMuc);
             var tomTat = kq == null ? loi
                 : Cat(string.Join("; ", kq.DsMuc.Where(x => x.TrangThai is ServerSnmpService.Loi or ServerSnmpService.CanhBao)
                     .Select(x => $"{x.Nhom} {x.Ten}" + (string.IsNullOrWhiteSpace(x.GiaTri) ? "" : $": {x.GiaTri}"))), 1000);
             if (string.IsNullOrWhiteSpace(tomTat)) tomTat = null;
-            var duLieu = kq == null ? null : JsonSerializer.Serialize(new { kq.Nguon, kq.GhiChu, dsMuc = kq.DsMuc }, JsonOpt);
-
-            var cu = await db.KkServerSucKhoes.AsNoTracking().Where(x => x.IdServer == idServer)
-                .Select(x => new { x.TrangThai, x.DocDuocLuc, x.Nguon, x.TenHeThong, x.MoTa, x.DuLieu, x.IpSnmp }).FirstOrDefaultAsync(ct);
+            // boDem lưu lại để lượt sau tính tốc độ; dsSuKien = nhật ký thiết bị (MSA)
+            var duLieu = kq == null ? null : JsonSerializer.Serialize(new
+            {
+                kq.Nguon, kq.GhiChu, kq.ThoiGianChay, dsMuc = kq.DsMuc, dsSuKien = kq.DsSuKien, boDem = kq.DsBoDem
+            }, JsonOpt);
 
             if (cu == null)
             {
@@ -224,6 +230,48 @@ namespace E_Form_Best.Areas.ITForm.Services
 
             return cu != null && cu.TrangThai != trangThai;
         }
+
+        /// <summary>
+        /// Tốc độ = (bộ đếm lần này - lần trước) / số giây giữa 2 lần đọc được. Bỏ qua khi khoảng cách quá ngắn
+        /// (bấm "Kiểm tra ngay" liền nhau, số không ổn định) hoặc quá dài, và khi bộ đếm bị reset (thiết bị khởi động lại).
+        /// </summary>
+        private static void TinhTocDo(ServerSnmpService.KetQua kq, string? duLieuCu, double giay)
+        {
+            if (giay < 30 || giay > 3600 || string.IsNullOrWhiteSpace(duLieuCu) || kq.DsBoDem.Count == 0) return;
+
+            Dictionary<string, (ulong vao, ulong ra)> truoc;
+            try
+            {
+                using var doc = JsonDocument.Parse(duLieuCu);
+                if (!doc.RootElement.TryGetProperty("boDem", out var mang) || mang.ValueKind != JsonValueKind.Array) return;
+                truoc = mang.EnumerateArray()
+                    .Where(x => x.TryGetProperty("khoa", out _))
+                    .GroupBy(x => x.GetProperty("khoa").GetString() ?? "")
+                    .ToDictionary(g => g.Key, g => (g.First().GetProperty("vao").GetUInt64(), g.First().GetProperty("ra").GetUInt64()));
+            }
+            catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException) { return; }
+
+            var tocDo = new Dictionary<string, (double vao, double ra, string loai)>();
+            foreach (var b in kq.DsBoDem)
+                if (truoc.TryGetValue(b.Khoa, out var c) && b.Vao >= c.vao && b.Ra >= c.ra)
+                    tocDo[b.Khoa] = ((b.Vao - c.vao) / giay, (b.Ra - c.ra) / giay, b.Loai);
+
+            for (var i = 0; i < kq.DsMuc.Count; i++)
+            {
+                var m = kq.DsMuc[i];
+                if (m.Khoa == null || !tocDo.TryGetValue(m.Khoa, out var t)) continue;
+                if (t.loai == "mang")
+                    kq.DsMuc[i] = m with { GiaTri = $"{m.GiaTri} · ↓ {Bit(t.vao * 8)} ↑ {Bit(t.ra * 8)}" };
+                else
+                {
+                    var ct = new Dictionary<string, string>(m.ChiTiet ?? new()) { ["Đọc"] = Byte(t.vao) + "/s", ["Ghi"] = Byte(t.ra) + "/s" };
+                    kq.DsMuc[i] = m with { ChiTiet = ct };
+                }
+            }
+        }
+
+        private static string Bit(double bps) => bps >= 1e9 ? $"{bps / 1e9:0.##} Gbps" : bps >= 1e6 ? $"{bps / 1e6:0.#} Mbps" : $"{bps / 1e3:0} Kbps";
+        private static string Byte(double b) => b >= 1048576 ? $"{b / 1048576:0.#} MB" : $"{b / 1024:0} KB";
 
         private static string? Cat(string? s, int toiDa) => s == null ? null : s.Length > toiDa ? s[..toiDa] : s;
     }

@@ -5,7 +5,7 @@
 
     var COT = 16;
     var congTy, chiXem, goc, nhom = '', nguongDay = 0.85;
-    var modalSv, modalXoa, modalSk, idSkDangMo = 0, cheDoLs = 'ketnoi';
+    var modalSv, modalXoa, modalSk, idSkDangMo = 0, xDangMo = null, cheDoLs = 'ketnoi';
     var timerTimKiem = null, timerLs = null;
 
     function esc(v) {
@@ -114,23 +114,77 @@
     }
 
     // Thứ tự nhóm trong bảng chi tiết; nhóm lạ xếp cuối
-    var THU_TU_NHOM = ['Tổng thể', 'Ổ cứng', 'RAID', 'Dung lượng', 'RAM', 'CPU', 'Quạt', 'Nguồn', 'Nhiệt độ', 'Điện áp', 'Tụ cache', 'Thiết bị', 'Khác'];
+    var THU_TU_NHOM = ['Tổng thể', 'Nhật ký', 'Ổ cứng', 'RAID', 'Dung lượng', 'Phần mềm', 'RAM', 'CPU', 'Cổng mạng', 'Cổng host',
+        'Quạt', 'Nguồn', 'Nhiệt độ', 'Điện áp', 'Tụ cache', 'Thiết bị', 'Khác'];
     var ICON_NHOM = {
         'Tổng thể': 'fa-heart-pulse', 'Ổ cứng': 'fa-hard-drive', 'RAID': 'fa-layer-group', 'Dung lượng': 'fa-database',
         'RAM': 'fa-memory', 'CPU': 'fa-microchip', 'Quạt': 'fa-fan', 'Nguồn': 'fa-plug', 'Nhiệt độ': 'fa-temperature-half',
-        'Điện áp': 'fa-bolt', 'Tụ cache': 'fa-car-battery', 'Thiết bị': 'fa-gears'
+        'Điện áp': 'fa-bolt', 'Tụ cache': 'fa-car-battery', 'Thiết bị': 'fa-gears', 'Phần mềm': 'fa-download',
+        'Cổng mạng': 'fa-ethernet', 'Cổng host': 'fa-plug-circle-check', 'Nhật ký': 'fa-list-check'
     };
+
+    // Giây -> "86 ngày 3 giờ"
+    function thoiGianChay(giay) {
+        if (!giay && giay !== 0) return '';
+        return 'chạy liên tục ' + thoiLuong(giay);
+    }
+
+    function veSuKien(ds) {
+        if (!ds || !ds.length) return '';
+        var lop = { 'Lỗi': 'text-danger fw-bold', 'Cảnh báo': 'text-warning fw-bold' };
+        return '<div class="sv-sk-nhom mt-3"><div class="sv-sk-nhom-dau"><span><i class="fas fa-scroll me-2"></i>Nhật ký thiết bị</span>'
+            + '<span class="small text-muted">' + ds.length + ' sự kiện gần nhất</span></div>'
+            + '<div class="sv-sk-su-kien">' + ds.map(function (s) {
+                return '<div class="sv-sk-dong"><span class="text-nowrap text-muted small" style="width:110px;flex:0 0 auto;">' + esc(gio(s.thoiGian)) + '</span>'
+                    + '<span class="small ' + (lop[s.mucDo] || 'text-muted') + '" style="width:70px;flex:0 0 auto;">' + esc(s.mucDo) + '</span>'
+                    + '<span class="sv-sk-ten small" title="' + esc(s.noiDung) + '" style="white-space:normal;">' + esc(s.noiDung) + '</span></div>';
+            }).join('') + '</div></div>';
+    }
+
+    function veChiTietMuc(ct) {
+        return '<div class="sv-sk-chi-tiet d-none">' + Object.keys(ct).map(function (k) {
+            return '<div><span>' + esc(k) + '</span><span class="fw-bold">' + esc(ct[k]) + '</span></div>';
+        }).join('') + '</div>';
+    }
     var MUC_DO = { LOI: 0, CANH_BAO: 1, KHONG_RO: 2, OK: 3 };
+
+    // Khối "Thông tin thiết bị" đầu cửa sổ chi tiết: lấy từ dòng danh sách (đã có đủ trường), chỉ hiện ô có dữ liệu
+    function veThongTin(x) {
+        if (!x) return '';
+        var ketNoi = !x.theoDoi ? (x.diaChiIp ? 'Không theo dõi (' + (x.tinhTrang || '') + ')' : 'Chưa khai IP')
+            : x.ketNoi === 'UP' ? 'Online' + (x.doiTrangThaiLuc ? ' từ ' + gio(x.doiTrangThaiLuc) : '')
+            : x.ketNoi === 'DOWN' ? 'Mất kết nối' + (x.doiTrangThaiLuc ? ' từ ' + gio(x.doiTrangThaiLuc) : '')
+            : 'Chưa kiểm';
+        var dungLuong = x.dungLuongTb ? (x.daDungTb != null ? soTb(x.daDungTb) + ' / ' : '') + soTb(x.dungLuongTb) + ' TB'
+            + (x.daDungTb != null ? ' (' + Math.round(x.daDungTb / x.dungLuongTb * 100) + '%)' : '') : '';
+        var o = [
+            ['Loại', x.loai], ['Mã tài sản', x.maServer], ['Chức năng', x.chucNang],
+            ['Kết nối', ketNoi], ['IP', x.diaChiIp], ['IP quản trị', x.ipQuanTri],
+            ['Hãng / Model', [x.hangSanXuat, x.model].filter(Boolean).join(' / ')], ['Serial', x.serial],
+            ['Hệ điều hành', x.heDieuHanh], ['CPU', x.cpu], ['RAM', x.ramGb ? x.ramGb + ' GB' : ''],
+            ['Dung lượng', dungLuong], ['RAID', x.raid],
+            ['Bộ phận', x.tenBoPhan], ['Vị trí', x.viTri], ['Tình trạng', x.tinhTrang],
+            ['Ngày lắp đặt', dinhDangNgay(x.ngayLapDat)], ['Hạn bảo hành', dinhDangNgay(x.hanBaoHanh)]
+        ].filter(function (d) { return d[1]; });
+        return '<div class="sv-sk-nhom mb-3"><div class="sv-sk-nhom-dau"><span><i class="fas fa-circle-info me-2"></i>Thông tin thiết bị</span></div>'
+            + '<div class="sv-tt-luoi">' + o.map(function (d) {
+                return '<div><span class="text-muted">' + esc(d[0]) + '</span><span class="fw-semibold">' + esc(d[1]) + '</span></div>';
+            }).join('') + '</div>'
+            + (x.ghiChu ? '<div class="small mt-2"><span class="text-muted">Ghi chú: </span>' + esc(x.ghiChu) + '</div>' : '')
+            + '</div>'
+            + '<h6 class="fw-bold mb-2"><i class="fas fa-stethoscope me-1"></i>Sức khoẻ phần cứng (SNMP)</h6>';
+    }
 
     function veSucKhoe(res) {
         var tb = res.thietBi, sk = res.sucKhoe;
-        $('#skTieuDe').text('Sức khoẻ phần cứng · ' + tb.tenServer);
+        $('#skTieuDe').text('Chi tiết · ' + tb.tenServer);
         $('#skPhuDe').text([tb.loai, tb.diaChiIp, tb.ipQuanTri ? 'quản trị ' + tb.ipQuanTri : ''].filter(Boolean).join(' · '));
         var $nd = $('#skNoiDung');
+        var thongTin = veThongTin(xDangMo);
 
         if (!sk) {
             $('#skThoiGian').text('');
-            $nd.html('<div class="text-muted py-3">Chưa có lần đọc SNMP nào. '
+            $nd.html(thongTin + '<div class="text-muted py-3">Chưa có lần đọc SNMP nào. '
                 + (res.coCommunity ? 'Job đọc ' + Math.round(res.chuKyGiay / 60) + ' phút/lần — chờ lượt tiếp theo hoặc bấm "Kiểm tra ngay".'
                     : 'Chưa cấu hình community SNMP cho nhóm thiết bị này trong .env (ServerSnmp__Community__...).') + '</div>');
             return;
@@ -145,10 +199,11 @@
         try { dl = sk.duLieu ? JSON.parse(sk.duLieu) : null; } catch (e) { dl = null; }
         var dsMuc = dl && dl.dsMuc ? dl.dsMuc : [];
 
-        var html = '<div class="d-flex flex-wrap align-items-center gap-2 mb-3">'
+        var html = thongTin + '<div class="d-flex flex-wrap align-items-center gap-2 mb-3">'
             + '<span class="sv-sk sv-sk-lon ' + n.lop + '"><i class="fas ' + n.icon + ' me-1"></i>' + esc(n.nhan) + '</span>'
             + '<span class="fw-bold">' + esc(sk.tenHeThong || '') + '</span>'
             + '<span class="text-muted">' + esc([sk.nguon, sk.moTa].filter(Boolean).join(' · ')) + '</span>'
+            + (dl && dl.thoiGianChay != null ? '<span class="badge bg-light text-dark border"><i class="fas fa-clock me-1"></i>' + esc(thoiGianChay(dl.thoiGianChay)) + '</span>' : '')
             + '</div>';
         if (sk.loi) html += '<div class="alert alert-warning py-2 small">' + esc(sk.loi) + (dsMuc.length ? ' — đang hiện số liệu lần đọc được gần nhất.' : '') + '</div>';
         if (dl && dl.ghiChu) html += '<div class="small text-muted mb-2"><i class="fas fa-circle-info me-1"></i>' + esc(dl.ghiChu) + '</div>';
@@ -169,21 +224,28 @@
                 + '<span class="small ' + (soXau ? 'text-danger fw-bold' : 'text-muted') + '">' + (soXau ? soXau + ' bất thường / ' : '') + ds.length + '</span></div>'
                 + ds.map(function (m) {
                     var nm = nhanSk(m.trangThai);
-                    return '<div class="sv-sk-dong"><span class="sv-sk-cham ' + nm.lop + '" title="' + esc(nm.nhan) + '"></span>'
-                        + '<span class="sv-sk-ten" title="' + esc(m.ten) + '">' + esc(m.ten) + '</span>'
+                    var coCt = m.chiTiet && Object.keys(m.chiTiet).length;
+                    // Mục có bảng phụ (SMART / IO từng ổ): bấm dòng để mở
+                    return '<div class="sv-sk-muc' + (coCt ? ' sv-sk-mo-duoc' : '') + '"' + (coCt ? ' title="Bấm để xem SMART / IO"' : '') + '>'
+                        + '<div class="sv-sk-dong"><span class="sv-sk-cham ' + nm.lop + '" title="' + esc(nm.nhan) + '"></span>'
+                        + '<span class="sv-sk-ten" title="' + esc(m.ten) + '">' + (coCt ? '<i class="fas fa-angle-right sv-sk-mui me-1"></i>' : '') + esc(m.ten) + '</span>'
                         + '<span class="sv-sk-gt ' + (m.trangThai === 'LOI' ? 'text-danger fw-bold' : m.trangThai === 'CANH_BAO' ? 'text-warning fw-bold' : '') + '">'
-                        + esc(m.giaTri || nm.nhan) + '</span></div>';
+                        + esc(m.giaTri || nm.nhan) + '</span></div>'
+                        + (coCt ? veChiTietMuc(m.chiTiet) : '')
+                        + '</div>';
                 }).join('')
                 + '</div></div>';
         }).join('') + '</div>';
 
+        html += veSuKien(dl && dl.dsSuKien);
         if (!dsMuc.length && !sk.loi) html += '<div class="text-muted">Thiết bị trả lời SNMP nhưng không có mục nào đọc được.</div>';
         $nd.html(html);
     }
 
     function moSucKhoe(x) {
         idSkDangMo = x.idServer;
-        $('#skTieuDe').text('Sức khoẻ phần cứng · ' + x.tenServer);
+        xDangMo = x;
+        $('#skTieuDe').text('Chi tiết · ' + x.tenServer);
         $('#skPhuDe, #skThoiGian').text('');
         $('#skLoi').addClass('d-none').text('');
         $('#skNoiDung').html('<div class="text-muted py-3">Đang tải...</div>');
@@ -531,10 +593,23 @@
         });
 
         modalSk = new bootstrap.Modal(document.getElementById('modalSucKhoe'));
-        $(document).on('click', '#svTableBody .btn-suc-khoe', function () {
-            moSucKhoe($(this).closest('tr').data('sv'));
+        // Bấm vào dòng (hoặc ô Sức khoẻ) mở cửa sổ chi tiết; nút Sửa / Xoá giữ việc riêng của nó
+        $(document).on('click', '#svTableBody tr', function (e) {
+            if ($(e.target).closest('.btn-sua, .btn-xoa, a').length || window.getSelection().toString()) return;
+            var x = $(this).data('sv');
+            if (x) moSucKhoe(x);
+        });
+        // Từ cửa sổ chi tiết chuyển sang sửa
+        $('#btnSuaTuChiTiet').on('click', function () {
+            if (!xDangMo || chiXem) return;
+            var x = xDangMo;
+            $('#modalSucKhoe').one('hidden.bs.modal', function () { moModalSua(x); });
+            modalSk.hide();
         });
         $('#btnKiemTraSk').on('click', kiemTraSucKhoe);
+        $(document).on('click', '#skNoiDung .sv-sk-mo-duoc', function () {
+            $(this).toggleClass('mo').find('.sv-sk-chi-tiet').toggleClass('d-none');
+        });
 
         $(document).on('click', '#paneLichSu [data-ls-che-do]', function () {
             cheDoLs = $(this).attr('data-ls-che-do');

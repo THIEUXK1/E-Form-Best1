@@ -16,7 +16,18 @@ namespace E_Form_Best.Areas.ITForm.Services
     {
         public const string Ok = "OK", CanhBao = "CANH_BAO", Loi = "LOI", KhongRo = "KHONG_RO", KhongDocDuoc = "KHONG_DOC_DUOC";
 
-        public record Muc(string Nhom, string Ten, string TrangThai, string? GiaTri);
+        /// <summary>
+        /// Một mục sức khoẻ. ChiTiet: bảng phụ khi bấm mở (SMART từng ổ...). Khoa: gắn với bộ đếm lưu lượng
+        /// để ServerSnmpWorker tính tốc độ so với lần đọc trước.
+        /// </summary>
+        public record Muc(string Nhom, string Ten, string TrangThai, string? GiaTri,
+            Dictionary<string, string>? ChiTiet = null, string? Khoa = null);
+
+        /// <summary>Bộ đếm cộng dồn (byte) của cổng mạng / ổ đĩa — tốc độ = chênh lệch giữa 2 lần đọc.</summary>
+        public record BoDem(string Khoa, string Loai, ulong Vao, ulong Ra);
+
+        /// <summary>Sự kiện trong nhật ký thiết bị (MSA). MucDo: Lỗi / Cảnh báo / Thông tin.</summary>
+        public record SuKien(DateTime? ThoiGian, string MucDo, string NoiDung);
 
         public class KetQua
         {
@@ -24,7 +35,11 @@ namespace E_Form_Best.Areas.ITForm.Services
             public string? Nguon { get; set; }
             public string? TenHeThong { get; set; }
             public string? MoTa { get; set; }
+            /// <summary>Thời gian chạy liên tục (giây) từ lần khởi động gần nhất.</summary>
+            public long? ThoiGianChay { get; set; }
             public List<Muc> DsMuc { get; } = new();
+            public List<BoDem> DsBoDem { get; } = new();
+            public List<SuKien> DsSuKien { get; } = new();
             /// <summary>Dung lượng đọc được (TB nhị phân, như DSM / Windows hiển thị); null = thiết bị không cung cấp.</summary>
             public decimal? DungLuongTb { get; set; }
             public decimal? DaDungTb { get; set; }
@@ -32,6 +47,7 @@ namespace E_Form_Best.Areas.ITForm.Services
         }
 
         private const string SysDescr = "1.3.6.1.2.1.1.1.0", SysObjectId = "1.3.6.1.2.1.1.2.0", SysName = "1.3.6.1.2.1.1.5.0";
+        private const string SysUpTime = "1.3.6.1.2.1.1.3.0", HrUptime = "1.3.6.1.2.1.25.1.1.0";
         private const string SynoTrangThai = "1.3.6.1.4.1.6574.1.1.0";
         private const string HpeDieuKien = "1.3.6.1.4.1.232.6.1.3.0";
         private const string DellTrangThai = "1.3.6.1.4.1.674.10892.5.2.1.0";
@@ -58,7 +74,7 @@ namespace E_Form_Best.Areas.ITForm.Services
             try
             {
                 nen = await SnmpClient.GetAsync(ip, community,
-                    new[] { SysDescr, SysObjectId, SysName, SynoTrangThai, HpeDieuKien, DellTrangThai }, 2500, 2, ct);
+                    new[] { SysDescr, SysObjectId, SysName, SynoTrangThai, HpeDieuKien, DellTrangThai, SysUpTime, HrUptime }, 2500, 2, ct);
             }
             catch (TimeoutException) { return null; }
             catch (System.Net.Sockets.SocketException) { return null; }
@@ -67,7 +83,9 @@ namespace E_Form_Best.Areas.ITForm.Services
             {
                 Ip = ip,
                 TenHeThong = SnmpClient.Chuoi(nen.GetValueOrDefault(SysName)),
-                MoTa = Cat(SnmpClient.Chuoi(nen.GetValueOrDefault(SysDescr)), 500)
+                MoTa = Cat(SnmpClient.Chuoi(nen.GetValueOrDefault(SysDescr)), 500),
+                // hrSystemUptime là thời gian chạy của máy; sysUpTime chỉ là của dịch vụ SNMP (reset khi restart snmpd)
+                ThoiGianChay = (SnmpClient.So(nen.GetValueOrDefault(HrUptime)) ?? SnmpClient.So(nen.GetValueOrDefault(SysUpTime))) / 100
             };
 
             if (SnmpClient.So(nen.GetValueOrDefault(SynoTrangThai)) != null) await SynologyAsync(kq, ip, community, ct);
@@ -87,7 +105,7 @@ namespace E_Form_Best.Areas.ITForm.Services
             const string g = "1.3.6.1.4.1.6574.1.";
             var ht = await SnmpClient.GetAsync(ip, com, new[]
             {
-                g + "1.0", g + "2.0", g + "3.0", g + "4.1.0", g + "4.2.0", g + "5.1.0", g + "5.2.0", g + "5.3.0",
+                g + "1.0", g + "2.0", g + "3.0", g + "4.1.0", g + "4.2.0", g + "5.1.0", g + "5.2.0", g + "5.3.0", g + "5.4.0",
                 "1.3.6.1.4.1.2021.4.5.0", "1.3.6.1.4.1.2021.4.6.0", "1.3.6.1.4.1.2021.4.14.0", "1.3.6.1.4.1.2021.4.15.0",
                 "1.3.6.1.4.1.2021.11.11.0"
             }, 2500, 2, ct);
@@ -120,11 +138,30 @@ namespace E_Form_Best.Areas.ITForm.Services
             if (cpuRanh != null)
                 kq.DsMuc.Add(new Muc("CPU", "Tải CPU", 100 - cpuRanh >= 90 ? CanhBao : Ok, $"{100 - cpuRanh}%"));
 
+            // Phiên bản DSM: upgradeAvailable 1 = có bản mới, 2 = đã mới nhất (3-5: không kiểm được)
+            var capNhat = SnmpClient.So(ht.GetValueOrDefault(g + "5.4.0"));
+            var phienBan = SnmpClient.Chuoi(ht.GetValueOrDefault(g + "5.3.0")) ?? "DSM";
+            kq.DsMuc.Add(new Muc("Phần mềm", phienBan, capNhat == 1 ? CanhBao : capNhat == 2 ? Ok : KhongRo,
+                capNhat switch { 1 => "Có bản cập nhật DSM mới", 2 => "Đã là bản mới nhất", 3 => "Đang kiểm tra cập nhật", _ => "Không kiểm tra được cập nhật" }));
+
+            // SMART từng ổ (bảng 6574.5): 2 thiết bị "/dev/sataN", 3 tên chỉ số, 4 id, 8 giá trị thô, 9 trạng thái
+            var smart = await BangAsync(ip, com, "1.3.6.1.4.1.6574.5.1.1", new[] { 2, 3, 4, 8, 9 }, ct);
+            var smartTheoO = smart.Values
+                .GroupBy(c => SoTrongChuoi(SnmpClient.Chuoi(c.GetValueOrDefault(2))))
+                .ToDictionary(x => x.Key, x => x.ToList());
+            // Tải IO từng ổ (bảng 6574.101): 2 thiết bị "sataN", 8 tải %, 12 / 13 byte đọc / ghi cộng dồn
+            var io = await BangAsync(ip, com, "1.3.6.1.4.1.6574.101.1.1", new[] { 2, 8, 12, 13 }, ct);
+            var ioTheoO = io.Values
+                .GroupBy(c => SoTrongChuoi(SnmpClient.Chuoi(c.GetValueOrDefault(2))))
+                .ToDictionary(x => x.Key, x => x.First());
+
             // Ổ cứng: 2 id, 3 model, 5 status, 6 nhiệt độ, 9 bad sector, 11 tuổi thọ còn lại, 13 sức khoẻ
             var o = await BangAsync(ip, com, "1.3.6.1.4.1.6574.2.1.1", new[] { 2, 3, 5, 6, 9, 11, 13 }, ct);
             foreach (var (_, c) in o.OrderBy(x => SoTrongChuoi(SnmpClient.Chuoi(x.Value.GetValueOrDefault(2)))))
             {
                 var ten = SnmpClient.Chuoi(c.GetValueOrDefault(2)) ?? "Ổ";
+                // "Disk 5" ứng với /dev/sata5 (SMART) và sata5 (IO) — cùng số khe
+                var soKhe = SoTrongChuoi(ten);
                 var tinhTrang = SnmpClient.So(c.GetValueOrDefault(5));     // 1 Normal 2 Initialized 3 NotInit 4 SysPartFailed 5 Crashed
                 var sucKhoe = SnmpClient.So(c.GetValueOrDefault(13));      // 1 Normal 2 Warning 3 Critical 4 Failing
                 var bad = SnmpClient.So(c.GetValueOrDefault(9)) ?? 0;
@@ -139,7 +176,38 @@ namespace E_Form_Best.Areas.ITForm.Services
                 if (tuoiTho >= 0) giaTri.Add($"tuổi thọ còn {tuoiTho}%");
                 if (sucKhoe is 2 or 3 or 4) giaTri.Add(sucKhoe == 2 ? "SMART cảnh báo" : sucKhoe == 3 ? "SMART nghiêm trọng" : "Sắp hỏng");
                 if (tinhTrang is 3 or 4 or 5) giaTri.Add(tinhTrang == 3 ? "chưa khởi tạo" : tinhTrang == 4 ? "lỗi phân vùng hệ thống" : "hỏng");
-                kq.DsMuc.Add(new Muc("Ổ cứng", ten, tt, Noi(giaTri)));
+
+                // Bảng phụ: chỉ số SMART quan trọng + chỉ số nào ổ tự báo khác "OK" + tải IO
+                var chiTiet = new Dictionary<string, string>();
+                if (smartTheoO.TryGetValue(soKhe, out var dsSmart))
+                {
+                    foreach (var s in dsSmart.OrderBy(s => SnmpClient.So(s.GetValueOrDefault(4)) ?? 0))
+                    {
+                        var id = SnmpClient.So(s.GetValueOrDefault(4)) ?? 0;
+                        var stSmart = SnmpClient.Chuoi(s.GetValueOrDefault(9)) ?? "";
+                        var tho = SnmpClient.Chuoi(s.GetValueOrDefault(8)) ?? "";
+                        var khongOk = stSmart.Length > 0 && !stSmart.Equals("OK", StringComparison.OrdinalIgnoreCase);
+                        if (!SmartQuanTrong.TryGetValue(id, out var tenViet) && !khongOk) continue;
+                        tenViet ??= SnmpClient.Chuoi(s.GetValueOrDefault(3)) ?? ("SMART " + id);
+                        chiTiet[tenViet] = tho + (khongOk ? $" ({stSmart})" : "");
+                        // Sector chờ xử lý / không sửa được > 0 là dấu hiệu ổ sắp hỏng, nặng hơn sector đã thay thế
+                        if (id is 197 or 198 && long.TryParse(tho, out var n) && n > 0 && tt == Ok) tt = CanhBao;
+                        if (khongOk && tt == Ok) tt = CanhBao;
+                    }
+                }
+                string? khoaIo = null;
+                if (ioTheoO.TryGetValue(soKhe, out var dongIo))
+                {
+                    if (SnmpClient.So(dongIo.GetValueOrDefault(8)) is long taiIo) chiTiet["Tải IO"] = taiIo + "%";
+                    var doc = SnmpClient.So(dongIo.GetValueOrDefault(12));
+                    var ghi = SnmpClient.So(dongIo.GetValueOrDefault(13));
+                    if (doc != null && ghi != null)
+                    {
+                        khoaIo = "o:" + ten;
+                        kq.DsBoDem.Add(new BoDem(khoaIo, "o", (ulong)doc.Value, (ulong)ghi.Value));
+                    }
+                }
+                kq.DsMuc.Add(new Muc("Ổ cứng", ten, tt, Noi(giaTri), chiTiet.Count > 0 ? chiTiet : null, khoaIo));
             }
 
             // Volume / Storage pool: 2 tên, 3 trạng thái, 4 trống (byte), 5 tổng (byte)
@@ -179,6 +247,64 @@ namespace E_Form_Best.Areas.ITForm.Services
                 else kq.DsMuc.Add(new Muc("RAID", ten, tt, tenTt ?? "Bình thường"));
             }
             if (tong > 0) { kq.DungLuongTb = Math.Round(tong / MotTb, 2); kq.DaDungTb = Math.Round(dung / MotTb, 2); }
+
+            await CongMangAsync(kq, ip, com, ct);
+        }
+
+        /// <summary>Chỉ số SMART đáng xem (id ATA) -> tên hiển thị.</summary>
+        private static readonly Dictionary<long, string> SmartQuanTrong = new()
+        {
+            [5] = "Sector đã thay thế (5)",
+            [9] = "Số giờ chạy (9)",
+            [12] = "Số lần bật nguồn (12)",
+            [187] = "Lỗi không sửa được (187)",
+            [188] = "Lệnh quá hạn (188)",
+            [194] = "Nhiệt độ (194)",
+            [197] = "Sector chờ xử lý (197)",
+            [198] = "Sector không đọc được (198)",
+            [199] = "Lỗi CRC cáp (199)"
+        };
+
+        // ================= Cổng mạng (IF-MIB) =================
+
+        /// <summary>
+        /// Cổng mạng vật lý / bond: trạng thái, tốc độ; lưu lượng tính ở worker từ bộ đếm 64-bit.
+        /// Cổng bật mà không cắm dây hiện "Không kết nối" (xám), không tính là lỗi — nhiều máy để thừa cổng.
+        /// </summary>
+        private static async Task CongMangAsync(KetQua kq, string ip, string com, CancellationToken ct)
+        {
+            // ifXTable: 1 tên, 6 / 10 byte vào / ra (64-bit), 15 tốc độ Mbps, 18 alias
+            var x = await BangAsync(ip, com, "1.3.6.1.2.1.31.1.1.1", new[] { 1, 6, 10, 15, 18 }, ct);
+            if (x.Count == 0) return;
+            // ifTable: 7 admin, 8 oper (1 up, 2 down)
+            var t = await BangAsync(ip, com, "1.3.6.1.2.1.2.2.1", new[] { 7, 8 }, ct);
+
+            foreach (var (chiSo, c) in x.OrderBy(v => SnmpClient.Chuoi(v.Value.GetValueOrDefault(1))))
+            {
+                var ten = SnmpClient.Chuoi(c.GetValueOrDefault(1)) ?? ("if" + chiSo);
+                if (Regex.IsMatch(ten, @"^(lo|sit|docker|veth|br-|virbr|ovs|tun|tap|teql|ip6|gre|dummy|vmk|Loopback|isatap|Teredo)", RegexOptions.IgnoreCase)
+                    || ten.Contains("Pseudo", StringComparison.OrdinalIgnoreCase) || ten.Contains("Filter", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var tt = t.GetValueOrDefault(chiSo);
+                var admin = SnmpClient.So(tt?.GetValueOrDefault(7));
+                var oper = SnmpClient.So(tt?.GetValueOrDefault(8));
+                var mbps = SnmpClient.So(c.GetValueOrDefault(15)) ?? 0;
+                var alias = SnmpClient.Chuoi(c.GetValueOrDefault(18));
+
+                string trangThai, moTa;
+                if (admin == 2) { trangThai = KhongRo; moTa = "Tắt"; }
+                else if (oper == 1) { trangThai = Ok; moTa = mbps >= 1000 ? $"{mbps / 1000d:0.#} Gbps" : $"{mbps} Mbps"; }
+                else { trangThai = KhongRo; moTa = "Không kết nối"; }
+
+                string? khoa = null;
+                if (oper == 1 && SnmpClient.So(c.GetValueOrDefault(6)) is long vao && SnmpClient.So(c.GetValueOrDefault(10)) is long ra)
+                {
+                    khoa = "mang:" + ten;
+                    kq.DsBoDem.Add(new BoDem(khoa, "mang", (ulong)vao, (ulong)ra));
+                }
+                kq.DsMuc.Add(new Muc("Cổng mạng", string.IsNullOrWhiteSpace(alias) ? ten : $"{ten} ({alias})", trangThai, moTa, null, khoa));
+            }
         }
 
         // ================= HPE MSA (FC-MGMT) =================
@@ -209,6 +335,57 @@ namespace E_Form_Best.Areas.ITForm.Services
                 if (!daCo.Add(ten + "|" + giaTri + "|" + SnmpClient.So(c.GetValueOrDefault(4)))) continue;
                 kq.DsMuc.Add(new Muc(nhom, ten, TrangThaiFc(SnmpClient.So(c.GetValueOrDefault(4))), giaTri));
             }
+
+            // Cổng host (connUnitPortTable): 6 state (2 online, 3 offline), 7 status (2 unused, 3 ready, 4 warning, 5 failure), 17 tên
+            foreach (var (_, c) in (await BangAsync(ip, com, "1.3.6.1.3.94.1.10.1", new[] { 6, 7, 17 }, ct)).OrderBy(x => SoCuoi(x.Key)))
+            {
+                var st = SnmpClient.So(c.GetValueOrDefault(7));
+                var state = SnmpClient.So(c.GetValueOrDefault(6));
+                var (tt, moTa) = st switch
+                {
+                    2 => (KhongRo, "Không dùng"),
+                    3 when state == 2 => (Ok, "Hoạt động"),
+                    3 => (CanhBao, "Sẵn sàng nhưng offline"),
+                    4 => (CanhBao, "Cảnh báo"),
+                    5 => (Loi, "Lỗi"),
+                    6 => (KhongRo, "Không tham gia"),
+                    7 => (CanhBao, "Đang khởi tạo"),
+                    _ => (KhongRo, "Trạng thái " + st)
+                };
+                kq.DsMuc.Add(new Muc("Cổng host", (SnmpClient.Chuoi(c.GetValueOrDefault(17)) ?? "Cổng").Replace("hostport_", "Cổng "), tt, moTa));
+            }
+
+            await NhatKyMsaAsync(kq, ip, com, ct);
+        }
+
+        /// <summary>
+        /// Nhật ký sự kiện MSA (connUnitEventTable, ~40 dòng mới nhất): 4 thời gian "ddMMyyyy HHmmss", 6 mức độ, 9 nội dung.
+        /// Lỗi / nghiêm trọng trong 24 giờ -> LOI; cảnh báo hoặc cổng host rớt ≥ 3 lần trong 24 giờ -> CANH_BAO.
+        /// </summary>
+        private static async Task NhatKyMsaAsync(KetQua kq, string ip, string com, CancellationToken ct)
+        {
+            var bang = await BangAsync(ip, com, "1.3.6.1.3.94.1.11.1", new[] { 4, 6, 9 }, ct);
+            var moc24h = DateTime.Now.AddHours(-24);
+
+            foreach (var (_, c) in bang.OrderByDescending(x => SoCuoi(x.Key)))
+            {
+                DateTime? luc = DateTime.TryParseExact(SnmpClient.Chuoi(c.GetValueOrDefault(4)), "ddMMyyyy HHmmss",
+                    System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d) ? d : null;
+                // connUnitEventSeverity: 2 emergency 3 alert 4 critical 5 error 6 warning 7 notify 8 info 9 debug
+                var mucDo = SnmpClient.So(c.GetValueOrDefault(6)) switch { >= 2 and <= 5 => "Lỗi", 6 => "Cảnh báo", _ => "Thông tin" };
+                kq.DsSuKien.Add(new SuKien(luc, mucDo, SnmpClient.Chuoi(c.GetValueOrDefault(9)) ?? ""));
+            }
+
+            var gan = kq.DsSuKien.Where(x => x.ThoiGian >= moc24h).ToList();
+            var soLoi = gan.Count(x => x.MucDo == "Lỗi");
+            var soCanhBao = gan.Count(x => x.MucDo == "Cảnh báo");
+            kq.DsMuc.Add(new Muc("Nhật ký", "Sự kiện 24 giờ qua", soLoi > 0 ? Loi : soCanhBao > 0 ? CanhBao : Ok,
+                soLoi + soCanhBao == 0 ? "Không có lỗi / cảnh báo" : $"{soLoi} lỗi · {soCanhBao} cảnh báo"));
+
+            // "Host link down. (port: 3)" lặp nhiều lần = cổng chập chờn (cáp / SFP / switch phía host)
+            foreach (var g in gan.Select(x => Regex.Match(x.NoiDung, @"Host link down\. \(port: (\d+)\)"))
+                         .Where(m => m.Success).GroupBy(m => m.Groups[1].Value).Where(g => g.Count() >= 3))
+                kq.DsMuc.Add(new Muc("Nhật ký", $"Cổng host {g.Key} chập chờn", CanhBao, $"rớt kết nối {g.Count()} lần / 24 giờ"));
         }
 
         private static string TrangThaiFc(long? v) => v switch { 3 => Ok, 4 => CanhBao, 5 => Loi, _ => KhongRo };
@@ -420,6 +597,7 @@ namespace E_Form_Best.Areas.ITForm.Services
                     kq.DsMuc.Add(new Muc("RAM", "Bộ nhớ", tyLe >= 0.95 ? CanhBao : Ok, $"{DinhDangByte(t)} · dùng {tyLe:P0}"));
             }
             if (tong > 0) { kq.DungLuongTb = Math.Round(tong / MotTb, 2); kq.DaDungTb = Math.Round(dung / MotTb, 2); }
+            await CongMangAsync(kq, ip, com, ct);
             if (chiDungLuong) return;
 
             // Tải CPU trung bình (hrProcessorLoad)
