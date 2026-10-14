@@ -473,8 +473,12 @@ namespace E_Form_Best.Areas.ITForm.Services
             {
                 g + "6.1.3.0", g + "2.2.4.2.0", g + "2.2.2.1.0", g + "6.2.14.4.0", g + "6.2.9.1.0", g + "6.2.6.4.0", g + "6.2.6.1.0", g + "3.1.3.0",
                 // mã sản phẩm, BIOS (cpqSeSysRomVer), firmware iLO (cpqSm2CntlrRomRevision), công suất hiện tại W (cpqHePowerMeterCurrReading)
-                g + "2.2.2.6.0", g + "1.2.6.1.0", g + "9.2.2.2.0", g + "6.2.15.3.0"
+                g + "2.2.2.6.0", g + "1.2.6.1.0", g + "9.2.2.2.0", g + "6.2.15.3.0",
+                // cpqHoName / cpqHoOsName: hostname + hệ điều hành — chỉ có khi OS cài Agentless Management Service
+                g + "11.2.2.12.0", g + "11.2.2.1.0"
             }, 2500, 2, ct);
+            ThemTt(kq, "Hostname hệ điều hành", SnmpClient.Chuoi(ht.GetValueOrDefault(g + "11.2.2.12.0")));
+            ThemTt(kq, "Hệ điều hành", SnmpClient.Chuoi(ht.GetValueOrDefault(g + "11.2.2.1.0")));
             var model = SnmpClient.Chuoi(ht.GetValueOrDefault(g + "2.2.4.2.0"));
             var serial = SnmpClient.Chuoi(ht.GetValueOrDefault(g + "2.2.2.1.0"));
             if (!string.IsNullOrWhiteSpace(model)) kq.MoTa = Noi(new[] { model, string.IsNullOrWhiteSpace(serial) ? null : "SN " + serial });
