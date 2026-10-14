@@ -14,12 +14,14 @@
     var requestCulture = Context.Features.Get<IRequestCultureFeature>();
     var cultureCode = requestCulture?.RequestCulture.Culture.Name ?? "vi-VN";
 
-    // QLCCDC / QLMayIn / QLCamera / QLAP / QLSwitch là module IT nhưng tên controller không chứa chữ "IT" nên phải liệt kê
-    // tường minh, nếu không trang sẽ hiển thị nhầm giao diện HR (màu xanh lá, logo "HR SERVICE").
+    // QLCCDC / QLMayIn / QLCamera / QLAP / QLSwitch / SoDo / BaoCaoDinhKy là module IT nhưng tên controller không chứa chữ "IT"
+    // nên phải liệt kê tường minh, nếu không trang sẽ hiển thị nhầm giao diện HR (màu xanh lá, logo "HR SERVICE").
+    // Thêm controller IT mới → nhớ thêm vào đây.
     bool isITSystem = currentController.Contains("IT") || currentController == "Mail"
                       || currentController.Contains("Order") || currentController == "QLCCDC"
                       || currentController == "QLMayIn" || currentController == "QLCamera" || currentController == "QLAP"
-                      || currentController == "QLSwitch" || currentController == "SoDo";
+                      || currentController == "QLSwitch" || currentController == "QLServer" || currentController == "SoDo"
+                      || currentController == "BaoCaoDinhKy";
 
     // Các trang thuộc nhóm "Đăng ký đơn" — dùng để tô sáng mục menu, kể cả khi đang ở trang chọn loại đơn
     string[] itSubPages = { "DangKyDon", "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi", "DonCapQuyenOChung", "DonThietKeTemIn", "DonCaiDatPhanMem", "DonLapTrinhUngDung", "DonTraThietBi" }; bool isITSubActive = itSubPages.Contains(currentAction);
@@ -37,6 +39,7 @@
     // Nhóm menu AP Wi-Fi: công ty đang xem cũng lấy từ route /QLAP/{congTy} (dùng chung cameraCongTy)
     bool isApActive = currentController == "QLAP";
     bool isSwitchActive = currentController == "QLSwitch";
+    bool isServerActive = currentController == "QLServer";
     bool isSoDoActive = currentController == "SoDo";
     bool isBaoCaoDinhKyActive = currentController == "BaoCaoDinhKy";
 
@@ -557,6 +560,9 @@
                         .Where(x => User.IsInRole("All") || User.IsInRole("Ap" + x)).ToList();
                     var dsSwitchDuocXem = new[] { "BPVN", "PFVN", "MEGA" }
                         .Where(x => User.IsInRole("All") || User.IsInRole("Sw" + x)).ToList();
+                    // Server và lưu trữ: "Sv{CÔNG TY}" (QLServerController)
+                    var dsServerDuocXem = new[] { "BPVN", "PFVN", "MEGA" }
+                        .Where(x => User.IsInRole("All") || User.IsInRole("Sv" + x)).ToList();
                     // Sơ đồ: có quyền xem bất kỳ module IT nào của công ty đó (SoDoController)
                     var dsSoDoDuocXem = new[] { "BPVN", "PFVN", "MEGA" }
                         .Where(x => User.IsInRole("All") || User.IsInRole("Sw" + x) || User.IsInRole("Ap" + x) || User.IsInRole("Cam" + x)).ToList();
@@ -565,8 +571,8 @@
                     if (dsSoDoDuocXem.Count == 0 && laAdminItMenu) { dsSoDoDuocXem = new List<string> { "BPVN", "PFVN", "MEGA" }; }
                     var coBaoCaoDinhKy = laAdminItMenu || User.IsInRole("All") || User.IsInRole("BaoCaoDinhKy");
                     var coHaTang = laAdminItMenu || coBaoCaoDinhKy || dsCameraDuocXem.Count > 0 || dsApDuocXem.Count > 0
-                                   || dsSwitchDuocXem.Count > 0 || dsSoDoDuocXem.Count > 0;
-                    var isHaTangActive = isCameraActive || isApActive || isSwitchActive || isSoDoActive || isBaoCaoDinhKyActive;
+                                   || dsSwitchDuocXem.Count > 0 || dsServerDuocXem.Count > 0 || dsSoDoDuocXem.Count > 0;
+                    var isHaTangActive = isCameraActive || isApActive || isSwitchActive || isServerActive || isSoDoActive || isBaoCaoDinhKyActive;
 
                     if (coHaTang)
                     {
@@ -663,6 +669,35 @@
                                     <a href="/QLSwitch/@congTySw" class="submenu-link @(dangOSw ? "active" : "")" aria-current="@(dangOSw ? "page" : null)">
                                         <i class="fa fa-building-o sub-ico" style="color: #a3e635;"></i>
                                         <span>@congTySw</span>
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                        }
+
+                        @if (dsServerDuocXem.Count > 0 || laAdminItMenu)
+                        {
+                        <a data-bs-toggle="collapse" href="#collapseServer" role="button" aria-expanded="@(isServerActive ? "true" : "false")" aria-controls="collapseServer" class="nav-link-item @(isServerActive ? "active" : "")" style="justify-content: space-between; cursor: pointer;">
+                            <span style="display:flex; align-items:center;">
+                                <i class="fa fa-hdd-o nav-ico" style="color:#818cf8;"></i>
+                                <span class="lang-text" data-key="server_manage">@L["Server và lưu trữ"]</span>
+                            </span>
+                            <i class="fa fa-angle-down menu-arrow"></i>
+                        </a>
+
+                        <div class="collapse @(isServerActive ? "show" : "")" id="collapseServer">
+                            <div style="display: flex; flex-direction: column; padding-left: 8px; margin: 5px 0; gap: 2px;">
+                                @{ var dangOTongQuanSv = isServerActive && currentAction == "TongQuan"; }
+                                <a href="/QLServer/TongQuan" class="submenu-link @(dangOTongQuanSv ? "active" : "")" aria-current="@(dangOTongQuanSv ? "page" : null)">
+                                    <i class="fa fa-pie-chart sub-ico" style="color: #818cf8;"></i>
+                                    <span>Tổng quan</span>
+                                </a>
+                                @foreach (var congTySv in dsServerDuocXem)
+                                {
+                                    var dangOSv = isServerActive && !dangOTongQuanSv && cameraCongTy == congTySv;
+                                    <a href="/QLServer/@congTySv" class="submenu-link @(dangOSv ? "active" : "")" aria-current="@(dangOSv ? "page" : null)">
+                                        <i class="fa fa-building-o sub-ico" style="color: #818cf8;"></i>
+                                        <span>@congTySv</span>
                                     </a>
                                 }
                             </div>

@@ -42,6 +42,12 @@ window.TongQuanKiemKe = (function () {
         return isNaN(d) ? null : Math.floor((homNay - d) / NGAY_MS);
     }
 
+    // Khớp LaMayTinhHoacLaptop phía server (ITFormController)
+    function laMayTinhHoacLaptop(loai) {
+        const l = (loai || '').trim().toLowerCase();
+        return l === 'laptop' || l === 'máy tính';
+    }
+
     // Gắn sẵn các cờ tính toán cho từng thiết bị để các phần bên dưới chỉ việc đếm
     function chuanHoa(ds) {
         const homNay = new Date(); homNay.setHours(0, 0, 0, 0);
@@ -65,7 +71,8 @@ window.TongQuanKiemKe = (function () {
                 office: rong(x.officeLicense) ? 'Trống / Chưa rõ' : x.officeLicense.trim(),
                 version: rong(x.version) ? 'Chưa có agent' : x.version.trim(),
                 coNguoiDung: !!x.idNguoiDung,
-                thieuHost: rong(x.tenMayTinh),
+                // Chỉ Máy tính / Laptop mới có hostname; máy in, màn hình... bỏ trống là bình thường
+                thieuHost: laMayTinhHoacLaptop(x.loaiThietBi) && rong(x.tenMayTinh),
                 thieuSerial: rong(x.seribacode),
                 coAgent: x.idMay != null,
                 loiAgent: !rong(x.error)

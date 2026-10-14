@@ -1,0 +1,77 @@
+/* Server và lưu trữ (/QLServer): phần riêng ngoài khung bảng dùng chung ccdc-quanly.css / camera-quanly.css */
+
+.sv-nut-chinh { background-color: #4338ca; border-color: #4338ca; }
+.sv-nut-chinh:hover, .sv-nut-chinh:focus { background-color: #3730a3; border-color: #3730a3; color: #fff; }
+
+.sv-dem {
+    display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px;
+    border-radius: 10px; background: rgba(100, 116, 139, .15); font-size: .75rem; font-weight: 700;
+}
+.btn.active .sv-dem { background: rgba(255, 255, 255, .25); }
+
+.sv-loai {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    background: #eef2ff; color: #3730a3; font-weight: 600; white-space: nowrap;
+}
+.sv-loai-luutru { background: #fef3c7; color: #92400e; }
+
+/* Thanh % dung lượng đã dùng */
+.sv-thanh { height: 6px; margin-top: 3px; border-radius: 3px; background: #e2e8f0; overflow: hidden; }
+.sv-thanh-dung { height: 100%; background: #22c55e; }
+.sv-thanh-vua { background: #f59e0b; }
+.sv-thanh-day { background: #ef4444; }
+
+/* ---------- Sức khoẻ phần cứng (SNMP) ---------- */
+.sv-sk {
+    display: inline-block; padding: 1px 8px; border-radius: 10px; border: 0;
+    font-size: .75rem; font-weight: 700; line-height: 1.6; white-space: nowrap;
+}
+button.sv-sk:hover { filter: brightness(.95); }
+.sv-sk-lon { font-size: .9rem; padding: 3px 12px; }
+.sv-sk-ok { background: #dcfce7; color: #166534; }
+.sv-sk-canh-bao { background: #fef3c7; color: #92400e; }
+.sv-sk-loi { background: #fee2e2; color: #991b1b; }
+.sv-sk-xam { background: #e2e8f0; color: #475569; }
+.sv-sk-tom-tat {
+    margin-top: 2px; font-size: .72rem; color: #92400e;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.sv-sk-nhom { border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; height: 100%; }
+.sv-sk-nhom-dau { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 6px; color: #1e293b; }
+.sv-sk-dong { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-top: 1px dashed #eef2f7; font-size: .84rem; }
+.sv-sk-dong:first-of-type { border-top: 0; }
+.sv-sk-cham { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; padding: 0; }
+.sv-sk-cham.sv-sk-ok { background: #22c55e; }
+.sv-sk-cham.sv-sk-canh-bao { background: #f59e0b; }
+.sv-sk-cham.sv-sk-loi { background: #ef4444; }
+.sv-sk-cham.sv-sk-xam { background: #94a3b8; }
+.sv-sk-ten { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sv-sk-gt { flex: 0 1 auto; text-align: right; color: #475569; }
+
+/* ---------- Tổng quan ---------- */
+.sv-the-cty {
+    border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 16px; height: 100%; background: #fff;
+}
+.sv-the-cty-dau { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.sv-the-cty-ten { font-size: 1.1rem; font-weight: 800; color: #1e293b; text-decoration: none; }
+a.sv-the-cty-ten:hover { color: #4338ca; text-decoration: underline; }
+.sv-the-cty-tong { font-size: 1.6rem; font-weight: 800; color: #4338ca; line-height: 1; }
+
+.sv-chi-so { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.sv-chi-so > div { background: #f8fafc; border-radius: 10px; padding: 6px 8px; }
+.sv-chi-so .nhan { font-size: .72rem; color: #64748b; }
+.sv-chi-so .so { font-size: 1.05rem; font-weight: 700; color: #1e293b; }
+
+.sv-hang { display: flex; justify-content: space-between; font-size: .85rem; padding: 3px 0; border-top: 1px dashed #e2e8f0; }
+.sv-hang:first-of-type { border-top: 0; }
+
+.sv-ly-do {
+    display: inline-block; margin: 1px 4px 1px 0; padding: 1px 8px; border-radius: 10px;
+    font-size: .75rem; font-weight: 600; background: #fef3c7; color: #92400e;
+}
+.sv-ly-do-do { background: #fee2e2; color: #991b1b; }
+
+@media (max-width: 576px) {
+    .sv-the-cty { padding: 12px; }
+}

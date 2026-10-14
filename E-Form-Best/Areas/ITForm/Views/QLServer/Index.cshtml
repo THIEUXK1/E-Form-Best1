@@ -1,0 +1,456 @@
+@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    var congTy = ViewBag.CongTy as string ?? "BPVN";
+    ViewData["Title"] = "Server và lưu trữ " + congTy;
+
+    @* Kiểu tường minh thay cho dynamic: view chạy ở assembly khác khi bật runtime compilation *@
+    var dsBoPhan = ViewBag.DsBoPhan as IEnumerable<E_Form_Best.Models.ITForm.KkBoPhan>
+                   ?? Enumerable.Empty<E_Form_Best.Models.ITForm.KkBoPhan>();
+    var dsTinhTrang = ViewBag.DsTinhTrang as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var dsLoai = ViewBag.DsLoai as IEnumerable<string> ?? Enumerable.Empty<string>();
+    // Chỉ quyền "All" được thêm/sửa/xoá; Sv{CÔNG TY} chỉ xem (server vẫn chặn lại ở từng action)
+    var coQuyenSua = ViewBag.CoQuyenSua as bool? ?? false;
+    var coCongTy = ViewBag.CoCongTy as bool? ?? false;
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+@* Dùng lại khung bảng của trang CCDC / camera / switch *@
+<link rel="stylesheet" href="/css/ccdc-quanly.css?v=20260825e">
+<link rel="stylesheet" href="/css/fixed-page-layout.css?v=5">
+<link rel="stylesheet" href="/css/camera-quanly.css?v=20261007c">
+<link rel="stylesheet" href="/css/server-quanly.css?v=20261014b">
+
+<div class="content-header pt-0 pb-0" style="margin-top: -25px;">
+    <div class="container-fluid">
+        <div class="dash-topbar">
+            <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-server"></i></span>Server và lưu trữ @congTy</h4>
+
+            <ul class="nav nav-pills nav-pills-ccdc mb-0" id="svTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tabDanhSachBtn" data-bs-toggle="pill" data-bs-target="#paneDanhSach" type="button" role="tab">
+                        <i class="fas fa-list me-1"></i> Danh sách
+                        <span class="badge rounded-pill bg-danger ms-1 d-none" id="badgeMatKetNoi">0</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tabLichSuBtn" data-bs-toggle="pill" data-bs-target="#paneLichSu" type="button" role="tab">
+                        <i class="fas fa-clock-rotate-left me-1"></i> Lịch sử
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<section class="content @(coQuyenSua ? "" : "cam-chi-xem")" id="svTrang" data-cong-ty="@congTy" data-chi-xem="@(coQuyenSua ? null : "1")">
+    <div class="container-fluid">
+        <div class="card border-0 shadow-sm bg-white" style="border-radius: 15px;">
+            <div class="card-body p-2 p-md-3">
+                @if (!coCongTy)
+                {
+                    <div class="alert alert-warning py-2 small">Danh mục công ty chưa có "@congTy" — chưa thêm được thiết bị cho công ty này.</div>
+                }
+                <div class="alert alert-warning py-2 small d-none" id="svCanhBaoPing"></div>
+
+                <div class="tab-content">
+
+                    @* ================= TAB DANH SÁCH (KK_Server) ================= *@
+                    <div class="tab-pane fade show active" id="paneDanhSach" role="tabpanel">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            @* Nhóm: Server (server + máy ảo) / Lưu trữ (NAS + SAN) *@
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Nhóm thiết bị">
+                                <button type="button" class="btn btn-outline-secondary active" data-sv-nhom="">Tất cả <span class="sv-dem" id="demTatCa">0</span></button>
+                                <button type="button" class="btn btn-outline-secondary" data-sv-nhom="server"><i class="fas fa-server me-1"></i>Server <span class="sv-dem" id="demServer">0</span></button>
+                                <button type="button" class="btn btn-outline-secondary" data-sv-nhom="luutru"><i class="fas fa-hard-drive me-1"></i>Lưu trữ <span class="sv-dem" id="demLuuTru">0</span></button>
+                            </div>
+
+                            <input type="text" id="filterTuKhoa" class="form-control form-control-sm" style="max-width:240px;"
+                                   placeholder="Tìm tên, mã, IP, chức năng, model, HĐH...">
+
+                            <select id="filterLoai" class="form-select form-select-sm w-auto" title="Lọc theo loại">
+                                <option value="">-- Mọi loại --</option>
+                                @foreach (var lo in dsLoai)
+                                {
+                                    <option value="@lo">@lo</option>
+                                }
+                            </select>
+
+                            <select id="filterBoPhan" class="form-select form-select-sm w-auto" title="Lọc theo bộ phận">
+                                <option value="">-- Tất cả bộ phận --</option>
+                                @foreach (var bp in dsBoPhan)
+                                {
+                                    <option value="@bp.IdboPhan">@bp.TenBoPhan</option>
+                                }
+                            </select>
+
+                            <select id="filterTinhTrang" class="form-select form-select-sm w-auto" title="Lọc theo tình trạng">
+                                <option value="">-- Tất cả tình trạng --</option>
+                                @foreach (var tt in dsTinhTrang)
+                                {
+                                    <option value="@tt">@tt</option>
+                                }
+                            </select>
+
+                            <select id="filterKetNoi" class="form-select form-select-sm w-auto" title="Lọc theo kết nối">
+                                <option value="">-- Online + Offline --</option>
+                                <option value="online">Đang online</option>
+                                <option value="offline">Mất kết nối</option>
+                            </select>
+
+                            <span class="small text-muted fw-bold ms-1">
+                                <span class="text-success">Online: <span id="tongOnline">0</span></span> ·
+                                <span class="text-danger">Mất KN: <span id="tongOffline">0</span></span>
+                            </span>
+                            <span class="small text-muted" id="kiemTraGanNhat"></span>
+
+                            <span class="flex-grow-1"></span>
+
+                            <button type="button" class="btn btn-sm btn-light border" id="btnTaiLai" title="Tải lại danh sách"><i class="fas fa-rotate"></i></button>
+                            <button type="button" class="btn btn-sm btn-success" id="btnXuatExcel" title="Xuất danh sách đang lọc ra Excel">
+                                <i class="fas fa-file-excel me-1"></i> Excel
+                            </button>
+                            @if (coQuyenSua && coCongTy)
+                            {
+                                <button type="button" class="btn btn-sm text-white rounded-3 px-3 sv-nut-chinh" id="btnThemSv">
+                                    <i class="fas fa-plus me-1"></i> Thêm thiết bị
+                                </button>
+                            }
+                        </div>
+
+                        <div class="ccdc-table-wrap" data-fp-scroll>
+                            <table class="table table-hover align-middle mb-0 ccdc-table">
+                                <colgroup>
+                                    <col style="width:48px;">
+                                    <col style="width:130px;">
+                                    <col style="width:170px;">
+                                    <col style="width:90px;">
+                                    <col style="width:200px;">
+                                    <col style="width:180px;">
+                                    <col style="width:130px;">
+                                    <col style="width:130px;">
+                                    <col style="width:170px;">
+                                    <col style="width:180px;">
+                                    <col style="width:200px;">
+                                    <col style="width:190px;">
+                                    <col style="width:170px;">
+                                    <col style="width:130px;">
+                                    <col style="width:110px;">
+                                    <col style="width:90px;">
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Kết nối</th>
+                                        <th title="Sức khoẻ phần cứng đọc qua SNMP: ổ cứng, RAM, CPU, quạt, nguồn, dung lượng">Sức khoẻ</th>
+                                        <th>Loại</th>
+                                        <th>Tên</th>
+                                        <th>Chức năng</th>
+                                        <th>IP</th>
+                                        <th>IP quản trị</th>
+                                        <th>Hãng / Model</th>
+                                        <th>Hệ điều hành</th>
+                                        <th>CPU / RAM</th>
+                                        <th>Dung lượng</th>
+                                        <th>Vị trí</th>
+                                        <th>Tình trạng</th>
+                                        <th>Hạn BH</th>
+                                        <th class="ccdc-thaotac">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="svTableBody">
+                                    <tr><td colspan="16" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    @* ================= TAB LỊCH SỬ ONLINE/OFFLINE (KK_ServerLichSu) ================= *@
+                    <div class="tab-pane fade" id="paneLichSu" role="tabpanel">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Loại lịch sử">
+                                <button type="button" class="btn btn-outline-secondary active" data-ls-che-do="ketnoi">Kết nối</button>
+                                <button type="button" class="btn btn-outline-secondary" data-ls-che-do="suckhoe">Sức khoẻ phần cứng</button>
+                            </div>
+                            <label class="small text-muted mb-0" for="lsTuNgay">Từ</label>
+                            <input type="date" id="lsTuNgay" class="form-control form-control-sm w-auto">
+                            <label class="small text-muted mb-0" for="lsDenNgay">đến</label>
+                            <input type="date" id="lsDenNgay" class="form-control form-control-sm w-auto">
+                            <select id="lsLoai" class="form-select form-select-sm w-auto">
+                                <option value="">-- Mọi sự kiện --</option>
+                                <option value="DOWN">Hoạt động → Mất kết nối</option>
+                                <option value="UP">Mất kết nối → Hoạt động</option>
+                            </select>
+                            <input type="text" id="lsTuKhoa" class="form-control form-control-sm" style="max-width:240px;"
+                                   placeholder="Tìm tên, IP...">
+                            <button type="button" class="btn btn-sm btn-light border" id="lsBtnTaiLai" title="Tải lại"><i class="fas fa-rotate"></i></button>
+                        </div>
+
+                        <div id="lsKhungKetNoi">
+                        <div class="d-flex flex-wrap gap-3 mb-2 small text-muted fw-bold">
+                            <span>Sự kiện: <span id="lsTong">0</span></span>
+                            <span class="text-danger"><i class="fas fa-arrow-down me-1"></i>Mất kết nối: <span id="lsDown">0</span></span>
+                            <span class="text-success"><i class="fas fa-arrow-up me-1"></i>Hoạt động lại: <span id="lsUp">0</span></span>
+                            <span>Số thiết bị: <span id="lsSoThietBi">0</span></span>
+                            <span class="fw-normal" id="lsGhiChu"></span>
+                        </div>
+
+                        <div class="ccdc-table-wrap" data-fp-scroll>
+                            <table class="table table-hover align-middle mb-0 ccdc-table">
+                                <colgroup>
+                                    <col style="width:48px;">
+                                    <col style="width:150px;">
+                                    <col style="width:200px;">
+                                    <col style="width:260px;">
+                                    <col style="width:140px;">
+                                    <col style="width:160px;">
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Thời gian</th>
+                                        <th>Sự kiện</th>
+                                        <th>Tên</th>
+                                        <th>IP</th>
+                                        <th>Đã mất kết nối</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lsBody">
+                                    <tr><td colspan="6" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        </div>
+
+                        @* --- Lịch sử đổi trạng thái sức khoẻ phần cứng (KK_ServerSucKhoeLichSu) --- *@
+                        <div id="lsKhungSucKhoe" class="d-none">
+                            <div class="d-flex flex-wrap gap-3 mb-2 small text-muted fw-bold">
+                                <span>Sự kiện: <span id="lsSkTong">0</span></span>
+                                <span class="fw-normal" id="lsSkGhiChu"></span>
+                            </div>
+                            <div class="ccdc-table-wrap" data-fp-scroll>
+                                <table class="table table-hover align-middle mb-0 ccdc-table">
+                                    <colgroup>
+                                        <col style="width:48px;">
+                                        <col style="width:150px;">
+                                        <col style="width:220px;">
+                                        <col style="width:220px;">
+                                        <col style="width:480px;">
+                                    </colgroup>
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Thời gian</th>
+                                            <th>Tên</th>
+                                            <th>Đổi trạng thái</th>
+                                            <th>Chi tiết</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lsSkBody">
+                                        <tr><td colspan="5" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>@* /tab-content *@
+            </div>
+        </div>
+    </div>
+</section>
+
+@* ------- Modal sức khoẻ phần cứng (SNMP) — ai xem được trang đều mở được ------- *@
+<div class="modal fade" id="modalSucKhoe" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title fw-bold" id="skTieuDe">Sức khoẻ phần cứng</h5>
+                    <div class="small text-muted" id="skPhuDe"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger py-2 small d-none" id="skLoi"></div>
+                <div id="skNoiDung" class="text-muted small">Đang tải...</div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <span class="small text-muted me-auto" id="skThoiGian"></span>
+                @if (coQuyenSua)
+                {
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" id="btnKiemTraSk"
+                            title="Đọc SNMP ngay từ máy chủ web đang mở trang (máy đó phải thông mạng tới thiết bị)">
+                        <i class="fas fa-stethoscope me-1"></i> Kiểm tra ngay
+                    </button>
+                }
+                <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (coQuyenSua)
+{
+@* ------- Modal thêm / sửa ------- *@
+<div class="modal fade" id="modalSv" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="modalSvTitle">Thêm thiết bị</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formSv" class="row g-3">
+                    <input type="hidden" id="IdServer" name="IdServer" value="0" />
+
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted" for="Loai">Loại <span class="text-danger">*</span></label>
+                        <select class="form-select" id="Loai" name="Loai" required>
+                            @foreach (var lo in dsLoai)
+                            {
+                                <option value="@lo">@lo</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted" for="MaServer">Mã tài sản</label>
+                        <input type="text" class="form-control" id="MaServer" name="MaServer" maxlength="100">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted" for="TenServer">Tên / hostname <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="TenServer" name="TenServer" maxlength="255" required placeholder="VD: SRV-AD01, NAS-BACKUP">
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold text-muted" for="ChucNang">Chức năng</label>
+                        <input type="text" class="form-control" id="ChucNang" name="ChucNang" maxlength="255" placeholder="AD/DNS, File server, ERP, Backup camera...">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted" for="DiaChiIp">IP</label>
+                        <input type="text" class="form-control" id="DiaChiIp" name="DiaChiIp" maxlength="50" placeholder="Để trống = không ping">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted" for="IpQuanTri">IP quản trị</label>
+                        <input type="text" class="form-control" id="IpQuanTri" name="IpQuanTri" maxlength="50" placeholder="iDRAC / iLO / IPMI">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted" for="Serial">Serial</label>
+                        <input type="text" class="form-control" id="Serial" name="Serial" maxlength="100">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted" for="HangSanXuat">Hãng</label>
+                        <input type="text" class="form-control" id="HangSanXuat" name="HangSanXuat" maxlength="100" placeholder="Dell, HPE, Synology, QNAP...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted" for="Model">Model</label>
+                        <input type="text" class="form-control" id="Model" name="Model" maxlength="100">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted" for="HeDieuHanh">Hệ điều hành</label>
+                        <input type="text" class="form-control" id="HeDieuHanh" name="HeDieuHanh" maxlength="150" placeholder="Windows Server 2022, ESXi 8, DSM 7...">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted" for="Cpu">CPU</label>
+                        <input type="text" class="form-control" id="Cpu" name="Cpu" maxlength="150" placeholder="2 x Xeon Silver 4314">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold text-muted" for="RamGb">RAM (GB)</label>
+                        <input type="number" class="form-control" id="RamGb" name="RamGb" min="1" max="65536">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted" for="Raid">RAID</label>
+                        <input type="text" class="form-control" id="Raid" name="Raid" maxlength="100" placeholder="RAID 1 / 5 / 6 / 10">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted" for="DungLuongTb">Dung lượng (TB)</label>
+                        <input type="number" class="form-control" id="DungLuongTb" name="DungLuongTb" min="0" step="0.01" placeholder="Khả dụng">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted" for="DaDungTb">Đã dùng (TB)</label>
+                        <input type="number" class="form-control" id="DaDungTb" name="DaDungTb" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted" for="IdboPhan">Bộ phận</label>
+                        <select class="form-select" id="IdboPhan" name="IdboPhan">
+                            <option value="">-- Chọn bộ phận --</option>
+                            @foreach (var bp in dsBoPhan)
+                            {
+                                <option value="@bp.IdboPhan">@bp.TenBoPhan</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold text-muted" for="ViTri">Vị trí lắp đặt</label>
+                        <input type="text" class="form-control" id="ViTri" name="ViTri" maxlength="500" placeholder="Phòng máy / tủ rack / U">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted" for="TinhTrang">Tình trạng</label>
+                        <select class="form-select" id="TinhTrang" name="TinhTrang">
+                            @foreach (var tt in dsTinhTrang)
+                            {
+                                <option value="@tt">@tt</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted" for="NgayLapDat">Ngày lắp đặt</label>
+                        <input type="date" class="form-control" id="NgayLapDat" name="NgayLapDat">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted" for="HanBaoHanh">Hạn bảo hành</label>
+                        <input type="date" class="form-control" id="HanBaoHanh" name="HanBaoHanh">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-muted" for="GhiChu">Ghi chú</label>
+                        <textarea class="form-control" id="GhiChu" name="GhiChu" rows="2"></textarea>
+                    </div>
+                </form>
+                <div class="small text-muted mt-2">"Ngừng sử dụng" / "Trong kho" hoặc không có IP thì không ping. Dung lượng nhập tay, cập nhật khi kiểm tra định kỳ.</div>
+                <div class="alert alert-danger py-2 small mt-3 mb-0 d-none" id="svLoi"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn text-white rounded-pill px-4 sv-nut-chinh" id="btnLuuSv">
+                    <i class="fas fa-save me-1"></i> Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ------- Modal xoá (xoá mềm, ghi lý do vào lịch sử) ------- *@
+<div class="modal fade" id="modalXoaSv" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger"><i class="fas fa-trash me-2"></i> Xoá thiết bị</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="xoaIdServer" value="0">
+                <p class="mb-2">Xoá <strong id="xoaTenServer"></strong>?</p>
+                <label class="form-label small fw-bold text-muted" for="xoaLyDo">Lý do xoá</label>
+                <input type="text" class="form-control" id="xoaLyDo" maxlength="500" placeholder="Ví dụ: thanh lý, thay thiết bị mới...">
+                <div class="alert alert-danger py-2 small mt-3 mb-0 d-none" id="xoaLoi"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Huỷ</button>
+                <button type="button" class="btn btn-danger rounded-pill px-4" id="btnXacNhanXoaSv">Xoá</button>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+@* Phải nằm trong section Scripts: layout nạp jQuery ở cuối trang *@
+@section Scripts {
+    <script src="/js/fixed-page-layout.js?v=5" defer></script>
+    <script src="/js/server-quanly.js?v=20261014b"></script>
+}

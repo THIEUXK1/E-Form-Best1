@@ -144,6 +144,10 @@ builder.Services.AddScoped<SwitchBaoCaoService>();
 builder.Services.AddHostedService<SwitchPingWorker>();
 // Quét dải IP máy chủ (tab "Máy chủ" trang Switch, mặc định PFVN 10.0.193.x). Tắt bằng QuetIp__Bat=false
 builder.Services.AddHostedService<QuetIpWorker>();
+// Server và lưu trữ (/QLServer): cùng khuôn Switch, chỉ ping. Tắt job bằng Server__GhiLichSu=false
+builder.Services.AddHostedService<ServerPingWorker>();
+// Sức khoẻ phần cứng server / lưu trữ qua SNMP (ổ cứng, RAM, quạt, nguồn, dung lượng). Tắt bằng ServerSnmp__Bat=false
+builder.Services.AddHostedService<ServerSnmpWorker>();
 
 // Báo cáo định kì (/BaoCaoDinhKy): số liệu đơn IT / công việc / thiết bị cho file Excel tổng hợp
 builder.Services.AddScoped<BaoCaoDinhKyService>();
