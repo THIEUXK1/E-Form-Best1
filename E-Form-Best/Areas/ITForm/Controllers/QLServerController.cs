@@ -50,6 +50,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         private static bool TheoDoi(string? ip, string? tinhTrang)
             => !string.IsNullOrWhiteSpace(ip) && (tinhTrang == null || !ServerPingWorker.DsTinhTrangKhongTheoDoi.Contains(tinhTrang));
 
+        // Máy nạp hàng loạt mang tên mặc định "Server <IP>" (iLO chưa có AMS nên không có hostname):
+        // hiện sysName SNMP (1.3.6.1.2.1.1.5.0, job lưu vào KK_ServerSucKhoe.ten_he_thong) thay thế.
+        // Chỉ đổi lúc hiển thị — tên đặt tay không bị đè; mở Sửa rồi Lưu thì tên này thành tên thật.
+        private static string TenHienThi(string ten, string? ip, string? tenHeThong)
+            => !string.IsNullOrWhiteSpace(tenHeThong) && (ten == "Server " + ip || ten == ip) ? tenHeThong.Trim() : ten;
+
         #region View
 
         [HttpGet("/QLServer/{congTy:regex(^(BPVN|PFVN|MEGA)$)}")]
@@ -98,14 +104,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         x.ViTri, x.TinhTrang, x.NgayLapDat, x.HanBaoHanh, x.GhiChu,
                         x.TrangThaiKetNoi, x.DoiTrangThaiLuc, x.KiemTraLuc,
                         SucKhoe = _context.KkServerSucKhoes.Where(s => s.IdServer == x.IdServer)
-                            .Select(s => new { s.TrangThai, s.TomTat, s.KiemTraLuc, s.Nguon }).FirstOrDefault()
+                            .Select(s => new { s.TrangThai, s.TomTat, s.KiemTraLuc, s.Nguon, s.TenHeThong }).FirstOrDefault()
                     })
                     .ToListAsync();
 
                 // Thiết bị không ping (chưa khai IP / trong kho / ngừng dùng) hiện "Không theo dõi" thay vì trạng thái cũ
                 var duLieu = ds.Select(x => new
                 {
-                    x.IdServer, x.MaServer, x.TenServer, x.Loai, x.ChucNang, x.DiaChiIp, x.IpQuanTri, x.HangSanXuat, x.Model, x.Serial,
+                    x.IdServer, x.MaServer, TenServer = TenHienThi(x.TenServer, x.DiaChiIp, x.SucKhoe?.TenHeThong), x.Loai, x.ChucNang, x.DiaChiIp, x.IpQuanTri, x.HangSanXuat, x.Model, x.Serial,
                     x.HeDieuHanh, x.Cpu, x.RamGb, x.DungLuongTb, x.DaDungTb, x.Raid, x.IdboPhan, x.TenBoPhan,
                     x.ViTri, x.TinhTrang, x.NgayLapDat, x.HanBaoHanh, x.GhiChu,
                     TheoDoi = TheoDoi(x.DiaChiIp, x.TinhTrang),
@@ -478,7 +484,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return new
             {
                 thanhCong = true,
-                thietBi = sv,
+                thietBi = sv with { TenServer = TenHienThi(sv.TenServer, sv.DiaChiIp, sk?.TenHeThong) },
                 // du_lieu là JSON do job ghi: trả nguyên chuỗi, trình duyệt tự JSON.parse
                 sucKhoe = sk == null ? null : new { sk.KiemTraLuc, sk.DocDuocLuc, sk.IpSnmp, sk.Nguon, sk.TenHeThong, sk.MoTa, sk.TrangThai, sk.TomTat, sk.Loi, sk.DuLieu },
                 chuKyGiay = ServerSnmpWorker.ChuKyGiay(_configuration),
@@ -570,9 +576,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         x.IdServer, CongTy = x.IdcongTyNavigation!.TenCongTy, x.TenServer, x.Loai, x.ChucNang, x.DiaChiIp,
                         x.TinhTrang, x.DungLuongTb, x.DaDungTb, x.HanBaoHanh, x.TrangThaiKetNoi, x.DoiTrangThaiLuc,
                         SucKhoe = _context.KkServerSucKhoes.Where(s => s.IdServer == x.IdServer)
-                            .Select(s => new { s.TrangThai, s.TomTat }).FirstOrDefault()
+                            .Select(s => new { s.TrangThai, s.TomTat, s.TenHeThong }).FirstOrDefault()
                     })
                     .ToListAsync();
+                ds = ds.Select(x => x with { TenServer = TenHienThi(x.TenServer, x.DiaChiIp, x.SucKhoe?.TenHeThong) }).ToList();
 
                 var suKien = await _context.KkServerLichSus
                     .Where(x => x.ThoiGian >= moc7Ngay && x.SangTrangThai == "DOWN")

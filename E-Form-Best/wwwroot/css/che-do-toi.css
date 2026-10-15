@@ -272,7 +272,10 @@
 :root[data-theme="dark"] #zoomDropdown,
 :root[data-theme="dark"] #notiBell,
 :root[data-theme="dark"] #notificationDropdown,
-:root[data-theme="dark"] #notiList > * {
+:root[data-theme="dark"] #notiList > *,
+:root[data-theme="dark"] #notiChat,
+:root[data-theme="dark"] #chatDropdown,
+:root[data-theme="dark"] #chatList > * {
     background: var(--nen-mat) !important;
     color: var(--chu) !important;
     border-color: var(--vien) !important;

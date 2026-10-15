@@ -300,7 +300,7 @@
                     display: block !important;
                 }
 
-                #notificationDropdown {
+                #notificationDropdown, #chatDropdown {
                     width: 300px !important;
                     right: -20px !important;
                 }
@@ -518,7 +518,7 @@
                 </div>
 
                 <div style="position: relative; display: flex; align-items: center; gap: 15px;">
-                    <div id="latestNotiTag" style="display: none; position: absolute; right: 65px; white-space: nowrap; background: linear-gradient(135deg, #071e3d 0%, #0b3c5d 100%); color: white; padding: 10px 16px; border-radius: 12px; font-size: 0.85rem; box-shadow: 0 10px 20px rgba(11, 60, 93, 0.2); z-index: 1001; border-left: 4px solid #fff; align-items: center; gap: 10px;">
+                    <div id="latestNotiTag" style="display: none; position: absolute; right: 128px; white-space: nowrap; background: linear-gradient(135deg, #071e3d 0%, #0b3c5d 100%); color: white; padding: 10px 16px; border-radius: 12px; font-size: 0.85rem; box-shadow: 0 10px 20px rgba(11, 60, 93, 0.2); z-index: 1001; border-left: 4px solid #fff; align-items: center; gap: 10px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i class="fa fa-info-circle"></i>
                             <div style="display: flex; flex-direction: column; line-height: 1.2;">
@@ -532,6 +532,19 @@
                     <div id="sapQuaHanBanner" onclick="if (sapQuaHanItems[0]) window.location.href = '/FormCongViec/ChiTiet/' + sapQuaHanItems[0].id;" style="display: none; align-items: center; gap: 10px; white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 0.82rem; font-weight: 700; box-shadow: 0 8px 20px rgba(239,68,68,0.4); cursor: pointer; animation: bannerUrgentPulse 1.4s infinite;">
                         <i class="fa fa-exclamation-triangle"></i>
                         <span id="sapQuaHanBannerText" style="overflow: hidden; text-overflow: ellipsis;">@L["Đơn sắp quá hạn"]</span>
+                    </div>
+
+                    <div id="notiChat" title="@L["Bình luận"]" data-api="/FormCongViec/GetNotifications" data-chi-tiet="/FormCongViec/ChiTiet/" data-truong-id="idFormCongViec" data-khoa-doc="read_cv_notifications" data-khoa-top="lastNotifiedIdCVBinhLuan" style="width: 48px; height: 48px; background: #fff; border-radius: 15px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; color: #64748b; position: relative; transition: 0.2s;">
+                        <i class="fa fa-commenting-o" style="font-size: 1.3rem;"></i>
+                        <span id="notiChatBadge" style="position: absolute; top: -2px; right: -2px; min-width: 20px; height: 20px; background: #ef4444; border-radius: 50%; border: 2px solid #fff; display: none; color: white; font-size: 10px; font-weight: 800; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);">0</span>
+                    </div>
+
+                    <div id="chatDropdown" style="display: none; flex-direction: column; width: 380px; position: absolute; right: 0; top: 60px; background: white; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); overflow: hidden; z-index: 1000; border: 1px solid #f1f5f9;">
+                        <div style="padding: 15px 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fff;">
+                            <span style="font-weight: 800; color: #1e293b; font-size: 1rem; letter-spacing: -0.5px;">@L["Bình luận"]</span>
+                            <button type="button" id="chatDocHet" style="background: #e6f7ff; border: none; color: #00b4d8; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: 0.2s;">@L["Đọc tất cả"]</button>
+                        </div>
+                        <div id="chatList" style="max-height: 450px; overflow-y: auto;"></div>
                     </div>
 
                     <div id="notiBell" style="width: 48px; height: 48px; background: #fff; border-radius: 15px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; color: #64748b; position: relative; transition: 0.2s;">
@@ -625,7 +638,7 @@
         if (!isLoadMore) { currentSkip = 0; hasMoreData = true; }
         try {
         isLoading = true;
-        const res = await fetch(`/FormCongViec/GetNotifications?skip=${currentSkip}&take=${take}`);
+        const res = await fetch(`/FormCongViec/GetNotifications?skip=${currentSkip}&take=${take}&loai=khac`);
         const data = await res.json();
         const listItems = data.dataList || [];
 
@@ -825,6 +838,7 @@
         setInterval(checkSapQuaHanLayout, 60000);
         setInterval(updateSapQuaHanCountdownTick, 1000);
     </script>
+    <script src="~/js/binh-luan-header.js?v=1"></script>
 
     @RenderSection("Scripts", required: false)
     <script src="~/js/dang-xem-don.js?v=3"></script>

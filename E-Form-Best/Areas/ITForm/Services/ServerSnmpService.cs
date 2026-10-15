@@ -29,8 +29,17 @@ namespace E_Form_Best.Areas.ITForm.Services
         /// <summary>Sự kiện trong nhật ký thiết bị (MSA). MucDo: Lỗi / Cảnh báo / Thông tin.</summary>
         public record SuKien(DateTime? ThoiGian, string MucDo, string NoiDung);
 
+        /// <summary>Ổ logic RAID. TrangThai: OK / CANH_BAO / LOI như Muc; MoTa: trạng thái chữ thiết bị trả.</summary>
+        public record ORaid(string Ten, string? MucRaid, string? DungLuong, string TrangThai, string? MoTa);
+
+        /// <summary>Bộ điều khiển RAID kèm các ổ logic — vẽ thành bảng riêng trong chi tiết.</summary>
+        public record BoDieuKhienRaid(string Ten, string? Firmware, string TrangThai, List<ORaid> DsO);
+
         public class KetQua
         {
+            public List<BoDieuKhienRaid> DsRaid { get; } = new();
+            /// <summary>Tóm tắt RAID cho ô "RAID" của hồ sơ — worker chỉ điền khi ô trống.</summary>
+            public string? RaidTomTat { get; set; }
             public string? Ip { get; set; }
             public string? Nguon { get; set; }
             public string? TenHeThong { get; set; }
@@ -46,6 +55,10 @@ namespace E_Form_Best.Areas.ITForm.Services
             public string? CpuTomTat { get; set; }
             public int? RamGb { get; set; }
             public string? HeDieuHanh { get; set; }
+            /// <summary>Hãng / model / serial phần cứng — worker cũng chỉ điền khi ô còn trống.</summary>
+            public string? Hang { get; set; }
+            public string? Model { get; set; }
+            public string? Serial { get; set; }
             /// <summary>Dung lượng đọc được (TB nhị phân, như DSM / Windows hiển thị); null = thiết bị không cung cấp.</summary>
             public decimal? DungLuongTb { get; set; }
             public decimal? DaDungTb { get; set; }
@@ -536,6 +549,9 @@ namespace E_Form_Best.Areas.ITForm.Services
             var model = SnmpClient.Chuoi(ht.GetValueOrDefault(g + "2.2.4.2.0"));
             var serial = SnmpClient.Chuoi(ht.GetValueOrDefault(g + "2.2.2.1.0"));
             if (!string.IsNullOrWhiteSpace(model)) kq.MoTa = Noi(new[] { model, string.IsNullOrWhiteSpace(serial) ? null : "SN " + serial });
+            // cpqSiProductName / cpqSiSysSerialNum — iLO trả cả khi OS chưa cài AMS
+            if (!string.IsNullOrWhiteSpace(model)) { kq.Hang = "HPE"; kq.Model = model.Trim(); }
+            kq.Serial = string.IsNullOrWhiteSpace(serial) ? null : serial.Trim();
             ThemTt(kq, "Mã sản phẩm", SnmpClient.Chuoi(ht.GetValueOrDefault(g + "2.2.2.6.0")));
             ThemTt(kq, "BIOS", SnmpClient.Chuoi(ht.GetValueOrDefault(g + "1.2.6.1.0")));
             ThemTt(kq, "Firmware iLO", SnmpClient.Chuoi(ht.GetValueOrDefault(g + "9.2.2.2.0")));
@@ -616,21 +632,39 @@ namespace E_Form_Best.Areas.ITForm.Services
                     TrangThaiCpq(SnmpClient.So(c.GetValueOrDefault(37))),
                     Noi(new[] { SnmpClient.Chuoi(c.GetValueOrDefault(3))?.Trim(), mb > 0 ? $"{mb / 1024d:0} GB" : null })));
             }
-            // Ổ logic (RAID): cpqDaLogDrvTable 4 trạng thái (2 ok, 3 failed, 7 rebuilding, ...), 9 dung lượng MB, 11 điều kiện
-            foreach (var (k, c) in (await BangAsync(ip, com, g + "3.2.3.1.1", new[] { 4, 9, 11 }, ct)).OrderBy(x => SoCuoi(x.Key)))
+            // Ổ logic (RAID): cpqDaLogDrvTable 3 mức RAID, 4 trạng thái (2 ok, 3 failed, 7 rebuilding, ...), 9 dung lượng MB,
+            // 10 danh sách ID ổ vật lý (mỗi byte 1 ổ), 11 điều kiện. Chỉ số dòng = "<controller>.<ổ logic>"
+            var oLogic = await BangAsync(ip, com, g + "3.2.3.1.1", new[] { 3, 4, 9, 10, 11 }, ct);
+            // Bộ điều khiển Smart Array: cpqDaCntlrTable 2 mã model (enum), 3 firmware, 6 điều kiện, 20 vị trí ("Slot 0")
+            var boDk = await BangAsync(ip, com, g + "3.2.2.1.1", new[] { 2, 3, 6, 20 }, ct);
+
+            foreach (var (k, c) in boDk.OrderBy(x => SoCuoi(x.Key)))
             {
-                var st = SnmpClient.So(c.GetValueOrDefault(4));
-                var mb = SnmpClient.So(c.GetValueOrDefault(9)) ?? 0;
-                kq.DsMuc.Add(new Muc("RAID", "Ổ logic " + SoCuoi(k), TrangThaiCpq(SnmpClient.So(c.GetValueOrDefault(11))),
-                    Noi(new[] { mb > 0 ? $"{mb / 1024d / 1024:0.##} TB" : null,
-                        st switch { 2 => "Bình thường", 3 => "Hỏng", 5 => "Đang phục hồi", 6 => "Chờ rebuild", 7 => "Đang rebuild", 10 => "Đang mở rộng", null => null, _ => "trạng thái " + st } })));
+                var ttDk = TrangThaiCpq(SnmpClient.So(c.GetValueOrDefault(6)));
+                var ten = TenSmartArray(SnmpClient.So(c.GetValueOrDefault(2)), SnmpClient.Chuoi(c.GetValueOrDefault(20)));
+                kq.DsMuc.Add(new Muc("RAID", ten, ttDk, null));
+
+                var dsO = oLogic.Where(x => x.Key.StartsWith(k + ".")).OrderBy(x => SoCuoi(x.Key)).Select(x =>
+                {
+                    var o = x.Value;
+                    var st = SnmpClient.So(o.GetValueOrDefault(4));
+                    var mb = SnmpClient.So(o.GetValueOrDefault(9)) ?? 0;
+                    var soO = o.GetValueOrDefault(10) is byte[] b ? b.Length : 0;
+                    var tt = TrangThaiCpq(SnmpClient.So(o.GetValueOrDefault(11)));
+                    var moTaTt = st switch { 2 => "OK", 3 => "Hỏng", 5 => "Đang phục hồi", 6 => "Chờ rebuild", 7 => "Đang rebuild", 10 => "Đang mở rộng", null => null, _ => "trạng thái " + st };
+                    return new ORaid("Logical Drive " + SoCuoi(x.Key), MucRaidCpq(SnmpClient.So(o.GetValueOrDefault(3)), soO),
+                        mb > 0 ? DungLuongMb(mb) : null, tt, moTaTt);
+                }).ToList();
+                foreach (var o in dsO)
+                    kq.DsMuc.Add(new Muc("RAID", o.Ten, o.TrangThai, Noi(new[] { o.MucRaid, o.DungLuong, o.MoTa })));
+                kq.DsRaid.Add(new BoDieuKhienRaid(ten, SnmpClient.Chuoi(c.GetValueOrDefault(3)), ttDk, dsO));
             }
             if (oVatLy.Count == 0)
                 kq.DsMuc.Add(new Muc("Ổ cứng", "Mảng đĩa", TrangThaiCpq(SnmpClient.So(ht.GetValueOrDefault(g + "3.1.3.0"))), null));
-
-            // Bộ điều khiển Smart Array: cpqDaCntlrTable 6 điều kiện
-            foreach (var (k, c) in (await BangAsync(ip, com, g + "3.2.2.1.1", new[] { 6 }, ct)).OrderBy(x => SoCuoi(x.Key)))
-                kq.DsMuc.Add(new Muc("RAID", "Bộ điều khiển " + SoCuoi(k), TrangThaiCpq(SnmpClient.So(c.GetValueOrDefault(6))), null));
+            // Tóm tắt cho ô RAID của hồ sơ: "P440ar: RAID 1 279 GB, RAID 5 19.6 TB"
+            kq.RaidTomTat = Noi(kq.DsRaid.Where(r => r.DsO.Count > 0).Select(r =>
+                Regex.Replace(r.Ten.Replace("HPE Smart Array ", ""), @"\s*\(.*\)$", "") + ": "
+                + string.Join(", ", r.DsO.Select(o => o.MucRaid + (o.DungLuong != null ? " " + o.DungLuong : "")))));
             // Cache Smart Array: cpqDaAccelTable 6 pin (2 ok, 3 đang sạc, 4 hỏng, 5 suy giảm, 6 không có, 7 tụ hỏng)
             // — pin / tụ hỏng thì controller tắt cache ghi, IO chậm hẳn
             foreach (var (k, c) in (await BangAsync(ip, com, g + "3.2.2.2.1", new[] { 6 }, ct)).OrderBy(x => SoCuoi(x.Key)))
@@ -934,6 +968,35 @@ namespace E_Form_Best.Areas.ITForm.Services
             var load = LaLoad.Select(o => SnmpClient.Chuoi(ht.GetValueOrDefault(o))).ToList();
             if (load.All(x => !string.IsNullOrWhiteSpace(x))) ThemTt(kq, "Load 1 / 5 / 15 phút", string.Join(" / ", load));
         }
+
+        // cpqDaLogDrvFaultTol. "mirroring" là RAID 1 khi 2 ổ, RAID 1+0 khi ≥ 4 ổ; iLO 6 không trả danh sách ổ (soO ≤ 1) -> ghi chung
+        private static string? MucRaidCpq(long? v, int soO) => v switch
+        {
+            2 => "RAID 0", 3 => soO >= 4 ? "RAID 1+0" : soO == 2 ? "RAID 1" : "RAID 1/1+0", 4 => "RAID 4", 5 => "RAID 5",
+            7 => "RAID 6 (ADG)", 8 => "RAID 50", 9 => "RAID 60", 10 => "RAID 1 ADM", 11 => "RAID 10 ADM",
+            12 => "RAID 1 Triple", 13 => "RAID 10 Triple", null => null, _ => "mức " + v
+        };
+
+        // cpqDaCntlrModel (CPQIDA-MIB) — chỉ các đời Gen8 trở lên; mã lạ / "other" (iLO 6, controller MR) thì ghi theo vị trí khe
+        private static readonly Dictionary<long, string> ModelSmartArray = new()
+        {
+            [46] = "P220i", [47] = "P222", [48] = "P420", [49] = "P420i", [50] = "P421", [51] = "B320i", [52] = "P822", [53] = "P721m",
+            [54] = "B120i", [62] = "P230i", [63] = "P430i", [64] = "P430", [65] = "P431", [66] = "P731m", [67] = "P830i", [68] = "P830",
+            [69] = "P831", [70] = "P530", [71] = "P531", [72] = "P244br", [73] = "P246br", [74] = "P440", [75] = "P440ar", [76] = "P441",
+            [77] = "P741m", [78] = "P840", [79] = "P841", [84] = "B140i", [86] = "P240nr", [88] = "P840ar", [89] = "P542D",
+            [90] = "S100i SR Gen10", [91] = "E208i-p SR Gen10", [92] = "E208i-a SR Gen10", [93] = "E208i-c SR Gen10",
+            [94] = "E208e-p SR Gen10", [95] = "P204i-b SR Gen10", [96] = "P204i-c SR Gen10", [97] = "P408i-p SR Gen10",
+            [98] = "P408i-a SR Gen10", [99] = "P408e-p SR Gen10", [100] = "P408i-c SR Gen10", [101] = "P408e-m SR Gen10",
+            [102] = "P416ie-m SR Gen10", [103] = "P816i-a SR Gen10", [104] = "P408i-sb SR Gen10"
+        };
+
+        private static string TenSmartArray(long? model, string? viTri)
+        {
+            var khe = string.IsNullOrWhiteSpace(viTri) ? "" : $" ({viTri.Replace("=", " ")})";
+            return model is long m && ModelSmartArray.TryGetValue(m, out var ten) ? "HPE Smart Array " + ten + khe : "Bộ điều khiển RAID" + khe;
+        }
+
+        private static string DungLuongMb(long mb) => mb >= 1024 * 1024 ? $"{mb / 1024d / 1024:0.##} TB" : $"{mb / 1024d:0} GB";
 
         private static long SoCuoi(string chiSo) => long.TryParse(chiSo[(chiSo.LastIndexOf('.') + 1)..], out var n) ? n : 0;
 

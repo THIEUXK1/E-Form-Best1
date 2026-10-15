@@ -158,6 +158,28 @@
             }).join('') + '</div></div>';
     }
 
+    // RAID: mỗi bộ điều khiển một tiêu đề + bảng ổ logic (mức RAID, dung lượng, trạng thái)
+    function veRaid(ds) {
+        if (!ds || !ds.length) return '';
+        return '<div class="sv-sk-nhom mb-3"><div class="sv-sk-nhom-dau"><span><i class="fas fa-layer-group me-2"></i>RAID</span></div>'
+            + ds.map(function (r) {
+                var nr = nhanSk(r.trangThai);
+                return '<div class="mb-2"><span class="sv-sk-cham ' + nr.lop + ' me-1" title="' + esc(nr.nhan) + '"></span>'
+                    + '<span class="fw-bold">RAID Controller: </span>' + esc(r.ten)
+                    + (r.firmware ? '<span class="small text-muted ms-2">firmware ' + esc(r.firmware) + '</span>' : '') + '</div>'
+                    + (r.dsO && r.dsO.length
+                        ? '<div class="table-responsive"><table class="table table-sm small mb-2 align-middle"><thead><tr>'
+                        + '<th>Logical Drive</th><th>RAID Level</th><th class="text-end">Dung lượng</th><th>Trạng thái</th></tr></thead><tbody>'
+                        + r.dsO.map(function (o) {
+                            var lop = o.trangThai === 'LOI' ? 'text-danger fw-bold' : o.trangThai === 'CANH_BAO' ? 'text-warning fw-bold' : '';
+                            return '<tr><td>' + esc(o.ten) + '</td><td>' + esc(o.mucRaid || '') + '</td>'
+                                + '<td class="text-end text-nowrap">' + esc(o.dungLuong || '') + '</td>'
+                                + '<td class="' + lop + '">' + esc(o.moTa || nhanSk(o.trangThai).nhan) + '</td></tr>';
+                        }).join('') + '</tbody></table></div>'
+                        : '<div class="small text-muted mb-2">Chưa có ổ logic nào.</div>');
+            }).join('') + '</div>';
+    }
+
     // Khối "Thông tin thiết bị" đầu cửa sổ chi tiết: lấy từ dòng danh sách (đã có đủ trường), chỉ hiện ô có dữ liệu
     function veThongTin(x) {
         if (!x) return '';
@@ -218,10 +240,17 @@
         if (sk.loi) html += '<div class="alert alert-warning py-2 small">' + esc(sk.loi) + (dsMuc.length ? ' — đang hiện số liệu lần đọc được gần nhất.' : '') + '</div>';
         if (dl && dl.ghiChu) html += '<div class="small text-muted mb-2"><i class="fas fa-circle-info me-1"></i>' + esc(dl.ghiChu) + '</div>';
         html += veThongTinSnmp(dl && dl.thongTin);
+        var dsRaid = dl && dl.dsRaid ? dl.dsRaid : [];
+        html += veRaid(dsRaid);
 
-        // Gom theo nhóm, mục bất thường lên đầu
+        // Gom theo nhóm, mục bất thường lên đầu; controller / ổ logic đã có bảng RAID riêng thì không lặp lại
+        var daVeRaid = {};
+        dsRaid.forEach(function (r) { daVeRaid[r.ten] = 1; (r.dsO || []).forEach(function (o) { daVeRaid[o.ten] = 1; }); });
         var theoNhom = {};
-        dsMuc.forEach(function (m) { (theoNhom[m.nhom] = theoNhom[m.nhom] || []).push(m); });
+        dsMuc.forEach(function (m) {
+            if (m.nhom === 'RAID' && daVeRaid[m.ten]) return;
+            (theoNhom[m.nhom] = theoNhom[m.nhom] || []).push(m);
+        });
         var dsNhom = Object.keys(theoNhom).sort(function (a, b) {
             var ia = THU_TU_NHOM.indexOf(a), ib = THU_TU_NHOM.indexOf(b);
             return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);

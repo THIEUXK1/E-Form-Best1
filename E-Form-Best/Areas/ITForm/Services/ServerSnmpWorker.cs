@@ -101,7 +101,7 @@ namespace E_Form_Best.Areas.ITForm.Services
         }
 
         /// <summary>
-        /// Điền CPU / RAM / hệ điều hành đọc qua SNMP vào hồ sơ thiết bị — CHỈ ô đang trống, không đè số khai tay.
+        /// Điền CPU / RAM / hệ điều hành / hãng / model / serial / RAID đọc qua SNMP vào hồ sơ thiết bị — CHỈ ô đang trống, không đè số khai tay.
         /// Điều kiện trống nằm trong WHERE nên người dùng vừa lưu tay giữa chừng cũng không bị ghi đè.
         /// </summary>
         private static async Task DienThongTinTrongAsync(ITFormContext db, int idServer, ServerSnmpService.KetQua kq, CancellationToken ct)
@@ -117,6 +117,23 @@ namespace E_Form_Best.Areas.ITForm.Services
             if (!string.IsNullOrWhiteSpace(heDieuHanh))
                 await db.KkServers.Where(x => x.IdServer == idServer && (x.HeDieuHanh == null || x.HeDieuHanh == ""))
                     .ExecuteUpdateAsync(s => s.SetProperty(x => x.HeDieuHanh, heDieuHanh), ct);
+
+            var hang = Cat(kq.Hang, 100);
+            var model = Cat(kq.Model, 100);
+            var serial = Cat(kq.Serial, 100);
+            if (!string.IsNullOrWhiteSpace(hang))
+                await db.KkServers.Where(x => x.IdServer == idServer && (x.HangSanXuat == null || x.HangSanXuat == ""))
+                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.HangSanXuat, hang), ct);
+            if (!string.IsNullOrWhiteSpace(model))
+                await db.KkServers.Where(x => x.IdServer == idServer && (x.Model == null || x.Model == ""))
+                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.Model, model), ct);
+            if (!string.IsNullOrWhiteSpace(serial))
+                await db.KkServers.Where(x => x.IdServer == idServer && (x.Serial == null || x.Serial == ""))
+                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.Serial, serial), ct);
+            var raid = Cat(kq.RaidTomTat, 100);
+            if (!string.IsNullOrWhiteSpace(raid))
+                await db.KkServers.Where(x => x.IdServer == idServer && (x.Raid == null || x.Raid == ""))
+                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.Raid, raid), ct);
         }
 
         /// <summary>Community cho thiết bị: ưu tiên cấu hình riêng công ty, rồi cấu hình chung.</summary>
@@ -192,7 +209,7 @@ namespace E_Form_Best.Areas.ITForm.Services
             // boDem lưu lại để lượt sau tính tốc độ; dsSuKien = nhật ký thiết bị (MSA)
             var duLieu = kq == null ? null : JsonSerializer.Serialize(new
             {
-                kq.Nguon, kq.GhiChu, kq.ThoiGianChay, thongTin = kq.ThongTin, dsMuc = kq.DsMuc, dsSuKien = kq.DsSuKien, boDem = kq.DsBoDem
+                kq.Nguon, kq.GhiChu, kq.ThoiGianChay, thongTin = kq.ThongTin, dsMuc = kq.DsMuc, dsRaid = kq.DsRaid, dsSuKien = kq.DsSuKien, boDem = kq.DsBoDem
             }, JsonOpt);
 
             if (cu == null)

@@ -2602,7 +2602,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
         // --- API: THÔNG BÁO SHD ---
         [HttpGet("/FormSHD/GetNotificationsSHD")]
-        public async Task<IActionResult> GetNotificationsSHD(int skip = 0, int take = 20)
+        public async Task<IActionResult> GetNotificationsSHD(int skip = 0, int take = 20, string? loai = null)
         {
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             // Trả JSON kèm 401 thay vì body rỗng: phía JS đọc thẳng res.json(), body rỗng làm nó
@@ -2646,6 +2646,14 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                         (isQuanLyDuyet && l.IdFormShdNavigation.IdNguoiDuyet == userId)
                     ))
                 );
+
+            // Header tách bình luận sang biểu tượng tin nhắn riêng, chuông chỉ giữ thông báo xử lý đơn.
+            // Nhận diện qua TieuDe do phần bình luận ghi ("BÌNH LUẬN MỚI (SHD)", "XÓA BÌNH LUẬN (SHD)").
+            // Không truyền loai (trang chủ MenuA) thì trả gộp như cũ.
+            if (loai == "binhluan")
+                query = query.Where(l => l.TieuDe != null && l.TieuDe.Contains("BÌNH LUẬN"));
+            else if (loai == "khac")
+                query = query.Where(l => l.TieuDe == null || !l.TieuDe.Contains("BÌNH LUẬN"));
 
             var unreadCount = await query.CountAsync(l => l.IsRead != true);
 

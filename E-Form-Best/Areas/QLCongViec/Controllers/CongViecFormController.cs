@@ -1694,7 +1694,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
         // 3. GET REAL-TIME NOTIFICATIONS FOR LAYOUT BELL
         [HttpGet("/FormCongViec/GetNotifications")]
-        public async Task<IActionResult> GetNotifications(int skip = 0, int take = 20)
+        public async Task<IActionResult> GetNotifications(int skip = 0, int take = 20, string? loai = null)
         {
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             // Trả JSON kèm 401 thay vì body rỗng: phía JS đọc thẳng res.json(), body rỗng làm nó
@@ -1751,6 +1751,14 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                     query = query.Where(l => l.IdFormCongViecNavigation != null && l.IdFormCongViecNavigation.IdNguoiTao == userId);
                 }
             }
+
+            // Header tách bình luận sang biểu tượng tin nhắn riêng, chuông chỉ giữ thông báo xử lý đơn.
+            // Bình luận phiếu công việc ghi TieuDe "THẢO LUẬN MỚI" / "XÓA BÌNH LUẬN THẢO LUẬN".
+            // Không truyền loai (trang chủ MenuA) thì trả gộp như cũ.
+            if (loai == "binhluan")
+                query = query.Where(l => l.TieuDe != null && (l.TieuDe.Contains("BÌNH LUẬN") || l.TieuDe.Contains("THẢO LUẬN")));
+            else if (loai == "khac")
+                query = query.Where(l => l.TieuDe == null || (!l.TieuDe.Contains("BÌNH LUẬN") && !l.TieuDe.Contains("THẢO LUẬN")));
 
             // Tính toán tổng số lượng thông báo mới chưa đọc đổ ra Badge quả chuông
             var unreadCount = await query.CountAsync(l => l.IsRead != true);
