@@ -1,0 +1,82 @@
+@{
+    ViewData["Title"] = "Quản lý nhân viên";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/fixed-page-layout.css" />
+<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=4" />
+
+<div id="qlnv" class="tdg tdg-rong fp-page">
+    <div class="tdg-toolbar">
+        <div class="tdg-head" style="margin:0">
+            <h1 class="tdg-title"><span class="tdg-title-icon"><i class="fa fa-users"></i></span> Quản lý nhân viên</h1>
+            <p class="tdg-sub">Danh sách và tình trạng đánh giá của nhân viên</p>
+        </div>
+        <form class="tdg-them" id="qlnvFormThem" autocomplete="off">
+            <input type="text" class="form-control" id="qlnvMaThem" placeholder="Mã NV, vd V240298" maxlength="20" />
+            <button type="submit" class="btn btn-primary tdg-btn-main" style="min-width:0"><i class="fa fa-user-plus"></i> Thêm</button>
+        </form>
+    </div>
+
+    <section class="tdg-card" data-fp-filter>
+        <div class="tdg-loc">
+            <input type="search" class="form-control" id="qlnvTim" placeholder="Tìm theo tên, mã NV, cấp bậc..." />
+            <select class="form-select" id="qlnvTrangThai">
+                <option value="">Tất cả trạng thái</option>
+                <option value="completed">Hoàn thành</option>
+                <option value="awaiting_manager">Chờ quản lý</option>
+                <option value="awaiting_self">Chờ tự đánh giá</option>
+                <option value="not_started">Chưa đánh giá</option>
+            </select>
+            <select class="form-select" id="qlnvXepLoai">
+                <option value="">Tất cả xếp loại</option>
+                <option value="Vượt chuẩn">Vượt chuẩn</option>
+                <option value="Đạt chuẩn">Đạt chuẩn</option>
+                <option value="Cần cải thiện">Cần cải thiện</option>
+                <option value="Chưa đạt">Chưa đạt</option>
+            </select>
+            <span class="tdg-dem" id="qlnvDem"></span>
+        </div>
+    </section>
+
+    <div class="tdg-cuon" data-fp-scroll>
+        <div id="qlnvTrangThaiTai" class="tdg-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải danh sách nhân viên...</div>
+        <div id="qlnvLuoi" class="tdg-luoi"></div>
+    </div>
+</div>
+
+@* Hộp sửa hồ sơ: cấp bậc, nhóm công việc, KPI giao *@
+<div class="modal fade" id="qlnvModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Hồ sơ đánh giá — <span id="qlnvModalTen"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <div id="qlnvModalTai" class="tdg-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải...</div>
+                <div id="qlnvModalNoiDung" hidden>
+                    <div class="tdg-grid2">
+                        <label class="tdg-field"><span>Cấp bậc</span><select class="form-select" id="qlnvCapBac"></select></label>
+                        <label class="tdg-field"><span>Nhóm công việc</span><select class="form-select" id="qlnvNhom"><option value="">— Chưa gán —</option></select></label>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+                        <b>KPI giao (<span id="qlnvSoKpi">0</span>)</b>
+                        <label class="form-check-label small"><input type="checkbox" class="form-check-input" id="qlnvTatCaNhom" /> Hiện KPI mọi nhóm công việc</label>
+                    </div>
+                    <div class="tdg-kpi-chon" id="qlnvDsKpi"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="tdg-loi me-auto" id="qlnvModalLoi" role="alert"></span>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary tdg-btn-main" id="qlnvLuuHoSo">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/quan-ly-nhan-vien-danh-gia.js?v=3"></script>
+    <script src="~/js/fixed-page-layout.js" defer></script>
+}

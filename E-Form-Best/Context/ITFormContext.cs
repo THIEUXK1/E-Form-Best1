@@ -266,6 +266,27 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<MayInChiSo> MayInChiSos { get; set; }
 
+    // Đánh giá hiệu suất (/QLCongViec/DanhGia) — bảng tạo bằng .claude/plans/sql/dg-danh-gia-20261015.sql
+    public virtual DbSet<DgNhomNangLuc> DgNhomNangLucs { get; set; }
+
+    public virtual DbSet<DgNhomCongViec> DgNhomCongViecs { get; set; }
+
+    public virtual DbSet<DgNangLuc> DgNangLucs { get; set; }
+
+    public virtual DbSet<DgMaTranYeuCau> DgMaTranYeuCaus { get; set; }
+
+    public virtual DbSet<DgHoSoNhanVien> DgHoSoNhanViens { get; set; }
+
+    public virtual DbSet<DgKpiMau> DgKpiMaus { get; set; }
+
+    public virtual DbSet<DgKpiPhanCong> DgKpiPhanCongs { get; set; }
+
+    public virtual DbSet<DgPhieuDanhGia> DgPhieuDanhGias { get; set; }
+
+    public virtual DbSet<DgPhieuNangLuc> DgPhieuNangLucs { get; set; }
+
+    public virtual DbSet<DgPhieuKpi> DgPhieuKpis { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer(GetConnectionStringFromConfig());
 

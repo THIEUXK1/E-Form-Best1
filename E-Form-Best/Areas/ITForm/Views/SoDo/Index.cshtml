@@ -16,6 +16,12 @@
                 <span class="sodo-chip"><i class="fas fa-circle" style="color:#22c55e"></i> Online <b id="sodoUp">0</b></span>
                 <span class="sodo-chip"><i class="fas fa-circle" style="color:#ef4444"></i> Mất KN <b id="sodoDown">0</b></span>
                 <span class="sodo-chip"><i class="fas fa-circle" style="color:#9ca3af"></i> Không theo dõi / chưa kiểm</span>
+                <div class="btn-group btn-group-sm" role="group" aria-label="Phóng to thu nhỏ">
+                    <button type="button" class="btn btn-outline-secondary" id="sodoZoomRa" title="Thu nhỏ"><i class="fas fa-magnifying-glass-minus"></i></button>
+                    <button type="button" class="btn btn-outline-secondary sodo-zoom-pct" id="sodoZoomPct" title="Về 100%">100%</button>
+                    <button type="button" class="btn btn-outline-secondary" id="sodoZoomVao" title="Phóng to"><i class="fas fa-magnifying-glass-plus"></i></button>
+                    <button type="button" class="btn btn-outline-secondary" id="sodoVuaKhung" title="Vừa khung"><i class="fas fa-expand"></i></button>
+                </div>
                 <button class="btn btn-sm btn-outline-secondary" id="sodoLamMoi" title="Tải lại sơ đồ"><i class="fas fa-rotate"></i></button>
             </div>
         </div>
@@ -28,7 +34,7 @@
             <div class="card-body p-2 p-md-3">
                 <div class="alert alert-info py-2 small mb-2">
                     Sơ đồ <b>logic</b> tự sinh từ dữ liệu đang quản lý (Switch · AP · Camera). Hệ thống chưa lưu đấu nối cổng vật lý,
-                    nên các nhánh xếp theo tầng: Core → Phân phối → Truy cập, kèm cụm AP theo controller và cụm Camera theo đầu ghi.
+                    nên các nhánh xếp theo tầng: Core → Phân phối → Truy cập, kèm cụm AP theo controller và cụm Camera theo đầu ghi. Lăn chuột để phóng to/thu nhỏ, giữ chuột trái kéo để di chuyển.
                 </div>
                 <div class="alert alert-warning py-2 small d-none" id="sodoLoi"></div>
 
@@ -48,15 +54,16 @@
 <style>
     .sodo-chip { font-size:.82rem; color:#374151; white-space:nowrap; }
     .sodo-chip b { margin-left:3px; }
-    .sodo-wrap { width:100%; overflow:auto; border:1px solid #eef0f3; border-radius:12px; background:
+    .sodo-wrap { width:100%; border:1px solid #eef0f3; border-radius:12px; background:
         linear-gradient(90deg,#fafbfc 1px,transparent 1px) 0 0/22px 22px,
         linear-gradient(#fafbfc 1px,transparent 1px) 0 0/22px 22px, #fff; }
-    /* Giới hạn chiều cao để kéo dọc cuộn trong khung, không cuộn cả trang */
-    .sodo-wrap { max-height:calc(100vh - 260px); min-height:320px; cursor:grab; user-select:none; }
+    /* Khung cố định, không thanh cuộn: kéo/zoom bằng transform nên di chuyển tự do mọi hướng */
+    .sodo-wrap { height:calc(100vh - 260px); min-height:360px; overflow:hidden; cursor:grab; user-select:none; touch-action:none; }
     .sodo-wrap.dang-keo { cursor:grabbing; }
-    #sodoSvg { display:block; }
+    #sodoSvg { display:block; width:100%; height:100%; }
     .sodo-node { cursor:inherit; }
     .sodo-node text { font-family:inherit; }
+    .sodo-zoom-pct { min-width:58px; font-variant-numeric:tabular-nums; }
 </style>
 
-<script src="/js/so-do.js?v=20261009b"></script>
+<script src="/js/so-do.js?v=20261015b"></script>

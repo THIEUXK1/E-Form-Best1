@@ -220,4 +220,16 @@
   <data name="Phê duyệt cấp cao" xml:space="preserve">
     <value>高层审批</value>
   </data>
+  <data name="Đánh giá" xml:space="preserve">
+    <value>评估</value>
+  </data>
+  <data name="Tự đánh giá" xml:space="preserve">
+    <value>自我评估</value>
+  </data>
+  <data name="Quản lý nhân viên" xml:space="preserve">
+    <value>员工管理</value>
+  </data>
+  <data name="Đánh giá nhân viên" xml:space="preserve">
+    <value>员工评估</value>
+  </data>
 </root>

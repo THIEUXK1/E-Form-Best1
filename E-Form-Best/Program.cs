@@ -142,6 +142,9 @@ builder.Services.AddHostedService<AccessPointPingWorker>();
 // Quản lý Switch (/QLSwitch): cùng khuôn AP, chỉ ping. Tắt job bằng Switch__GhiLichSu=false
 builder.Services.AddScoped<SwitchBaoCaoService>();
 builder.Services.AddHostedService<SwitchPingWorker>();
+// Tự đánh giá hiệu suất (/QLCongViec/DanhGia), bảng DG_*
+builder.Services.AddScoped<E_Form_Best.Areas.QLCongViec.Services.DanhGiaService>();
+builder.Services.AddScoped<E_Form_Best.Areas.QLCongViec.Services.DanhGiaQuanLyService>();
 // Quét dải IP máy chủ (tab "Máy chủ" trang Switch, mặc định PFVN 10.0.193.x). Tắt bằng QuetIp__Bat=false
 builder.Services.AddHostedService<QuetIpWorker>();
 // Server và lưu trữ (/QLServer): cùng khuôn Switch, chỉ ping. Tắt job bằng Server__GhiLichSu=false

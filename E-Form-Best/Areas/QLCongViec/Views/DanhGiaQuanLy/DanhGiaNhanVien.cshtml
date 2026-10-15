@@ -1,0 +1,95 @@
+@{
+    ViewData["Title"] = "Đánh giá nhân viên";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/fixed-page-layout.css" />
+<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=4" />
+
+<div id="dgnv" class="tdg fp-page">
+    <div class="tdg-head">
+        <h1 class="tdg-title"><span class="tdg-title-icon"><i class="fa fa-pencil-square-o"></i></span> Đánh giá nhân viên</h1>
+        <p class="tdg-sub">Đánh giá năng lực và hiệu suất của nhân viên, so sánh với bản tự đánh giá</p>
+    </div>
+
+    <section class="tdg-card">
+        <div class="tdg-chon-nv">
+            <label class="tdg-field"><span>Nhân viên</span><select class="form-select" id="dgnvChon"><option value="">— Đang tải danh sách —</option></select></label>
+            <a class="btn btn-outline-secondary" href="/QLCongViec/DanhGia/NhanVien"><i class="fa fa-users"></i> Danh sách nhân viên</a>
+        </div>
+    </section>
+
+    <div id="dgnvTrangThai" class="tdg-loading" hidden></div>
+
+    <div id="dgnvNoiDung" hidden>
+        <div id="dgnvCanhBao" class="tdg-alert tdg-alert-info" hidden><i class="fa fa-info-circle"></i><div id="dgnvCanhBaoChu"></div></div>
+
+        <ol class="tdg-steps" id="dgnvSteps">
+            <li data-buoc="1"><span class="tdg-step-dot"><i class="fa fa-user"></i></span><span>Thông tin nhân viên</span></li>
+            <li data-buoc="2"><span class="tdg-step-dot"><i class="fa fa-bar-chart"></i></span><span>Đánh giá KPI</span></li>
+            <li data-buoc="3"><span class="tdg-step-dot"><i class="fa fa-check-square-o"></i></span><span>Đánh giá năng lực</span></li>
+            <li data-buoc="4"><span class="tdg-step-dot"><i class="fa fa-flag-checkered"></i></span><span>Hoàn thành</span></li>
+        </ol>
+
+        <div class="tdg-cuon" data-fp-scroll>
+        <section class="tdg-card" data-panel="1">
+            <h2 class="tdg-card-title">Thông tin nhân viên</h2>
+            <p class="tdg-card-desc">Xem lại thông tin trước khi đánh giá</p>
+            <div class="tdg-grid2">
+                <label class="tdg-field"><span>Mã nhân viên</span><input type="text" class="form-control" id="dgnvMa" disabled /></label>
+                <label class="tdg-field"><span>Họ và tên</span><input type="text" class="form-control" id="dgnvTen" disabled /></label>
+                <label class="tdg-field"><span>Cấp bậc</span><input type="text" class="form-control" id="dgnvCapBacHoSo" disabled /></label>
+                <label class="tdg-field"><span>Phòng ban</span><input type="text" class="form-control" id="dgnvPhongBan" disabled /></label>
+                <label class="tdg-field tdg-span2"><span>Nhóm công việc</span><input type="text" class="form-control" id="dgnvNhomHoSo" disabled /></label>
+            </div>
+            <div class="tdg-guide" id="dgnvTinhTrangTu"></div>
+        </section>
+
+        <section class="tdg-card" data-panel="2" hidden>
+            <h2 class="tdg-card-title">Key Performance Index (KPI)</h2>
+            <p class="tdg-card-desc">Xem phần nhân viên tự khai, nhập trọng số và % đánh giá của quản lý. Tổng trọng số tối đa 100.</p>
+            <div id="dgnvDsKpi"></div>
+            <div class="tdg-kpi-foot">Tổng trọng số: <b id="dgnvTongTrongSo">0</b> / 100</div>
+        </section>
+
+        <section class="tdg-card" data-panel="3" hidden>
+            <h2 class="tdg-card-title">Đánh giá năng lực</h2>
+            <p class="tdg-card-desc">Chấm thang 0–10. Nhãn xanh là điểm nhân viên tự chấm.</p>
+            <div class="tdg-grid2 tdg-filter">
+                <label class="tdg-field"><span>Cấp bậc</span><select class="form-select" id="dgnvCapBac"></select></label>
+                <label class="tdg-field"><span>Nhóm công việc</span><select class="form-select" id="dgnvNhomCongViec"><option value="">— Tất cả (năng lực chung) —</option></select></label>
+            </div>
+            <div id="dgnvTongNangLuc" class="tdg-summary-line"></div>
+            <div id="dgnvDsNhomNangLuc"></div>
+        </section>
+
+        <section class="tdg-card" data-panel="4" hidden>
+            <h2 class="tdg-card-title">So sánh & hoàn thành</h2>
+            <p class="tdg-card-desc">Bấm “Hoàn thành” để gửi đánh giá. Khi nhân viên cũng đã gửi tự đánh giá, phiếu được chốt và nhân viên không sửa được nữa.</p>
+            <div id="dgnvDaChot" class="tdg-alert tdg-alert-ok" hidden>
+                <i class="fa fa-check-circle"></i>
+                <div class="flex-grow-1"><b>Phiếu đã hoàn thành.</b> Cần cho nhân viên sửa lại tự đánh giá thì mở lại phiếu.</div>
+                <button type="button" class="btn btn-sm btn-outline-success" id="dgnvMoLai"><i class="fa fa-unlock"></i> Mở lại phiếu</button>
+            </div>
+            <table class="tdg-bang">
+                <thead><tr><th></th><th>Tự đánh giá</th><th>Quản lý (tạm tính)</th></tr></thead>
+                <tbody id="dgnvBangSoSanh"></tbody>
+            </table>
+            <div class="mt-3 d-flex gap-2 flex-wrap">
+                <a class="btn btn-sm btn-outline-success" id="dgnvExcel" href="#"><i class="fa fa-file-excel-o"></i> Xuất Excel</a>
+            </div>
+        </section>
+        </div>
+
+        <div class="tdg-nav">
+            <button type="button" class="btn btn-outline-secondary" id="dgnvQuayLai"><i class="fa fa-arrow-left"></i> Quay lại</button>
+            <span class="tdg-loi" id="dgnvLoi" role="alert"></span>
+            <button type="button" class="btn btn-primary tdg-btn-main" id="dgnvTiepTuc">Tiếp tục <i class="fa fa-arrow-right"></i></button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/danh-gia-nhan-vien.js?v=2"></script>
+    <script src="~/js/fixed-page-layout.js" defer></script>
+}

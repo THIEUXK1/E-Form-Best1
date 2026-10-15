@@ -381,6 +381,24 @@
                             <i class="fa fa-graduation-cap" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text">@L["Đào tạo"]</span>
                         </a>
 
+                        @* Nhóm "Đánh giá" (chuyển từ app evaluation): hiện có trang Tự đánh giá, sau thêm trang quản lý đánh giá vào đây *@
+                        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
+                        <div class="lang-text" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">@L["Đánh giá"]</div>
+
+                        <a href="/QLCongViec/DanhGia/TuDanhGia" class="nav-link-item @(currentController == "DanhGia" && currentAction == "TuDanhGia" ? "active" : "")">
+                            <i class="fa fa-star-half-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#fbbf24;"></i> <span class="lang-text">@L["Tự đánh giá"]</span>
+                        </a>
+
+                        @if (User.IsInRole("DanhGiaQuanLy") || User.IsInRole("All"))
+                        {
+                            <a href="/QLCongViec/DanhGia/NhanVien" class="nav-link-item @(currentController == "DanhGiaQuanLy" && currentAction == "NhanVien" ? "active" : "")">
+                                <i class="fa fa-users" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#38bdf8;"></i> <span class="lang-text">@L["Quản lý nhân viên"]</span>
+                            </a>
+                            <a href="/QLCongViec/DanhGia/DanhGiaNhanVien" class="nav-link-item @(currentController == "DanhGiaQuanLy" && currentAction == "DanhGiaNhanVien" ? "active" : "")">
+                                <i class="fa fa-pencil-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f472b6;"></i> <span class="lang-text">@L["Đánh giá nhân viên"]</span>
+                            </a>
+                        }
+
                         @if (User.Claims.Any(c => c.Type == System.Security.Claims.ClaimTypes.Role) || User.IsInRole("All"))
                         {
                             <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
