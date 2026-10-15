@@ -57,6 +57,45 @@ namespace E_Form_Best.Areas.ITForm.Services
         public Task<JsonElement> LichSuKiemTraAsync(int soLan, CancellationToken ct)
             => GetAsync($"/api/poll-runs/recent?limit={Math.Clamp(soLan, 1, 2000)}", ct);
 
+        /// <summary>Số liệu SNMP 1 switch do hệ thống giám sát tự poll. Ip đã Trim để ghép với KK_Switch.dia_chi_ip.</summary>
+        public record SnmpSwitch(string Ip, string? TrangThai, double? Cpu, double? Ram, double? NhietDo,
+            int? TongCong, int? CongUp, long? ThoiGianChayGiay, DateTime? DocLuc, string? Loi);
+
+        private const string KhoaSnmpSwitch = "CameraIsapi:SnmpSwitch";
+
+        /// <summary>
+        /// Switch BPVN mà hệ thống giám sát poll SNMP (CPU / RAM / nhiệt độ / số cổng up), theo IP.
+        /// Bản gốc /api/switches kèm community SNMP nên chỉ chép ra các trường số liệu — không trả nguyên văn
+        /// ra trình duyệt. Cache 60 giây: trang Switch tải lại danh sách thường xuyên, bên kia poll ~10 phút/lần.
+        /// </summary>
+        public async Task<Dictionary<string, SnmpSwitch>> SnmpSwitchTheoIpAsync(CancellationToken ct)
+        {
+            if (_cache.TryGetValue(KhoaSnmpSwitch, out Dictionary<string, SnmpSwitch>? daCo) && daCo != null) return daCo;
+
+            var goc = await GetAsync("/api/switches", ct);
+            var kq = new Dictionary<string, SnmpSwitch>(StringComparer.OrdinalIgnoreCase);
+            if (goc.ValueKind == JsonValueKind.Array)
+                foreach (var s in goc.EnumerateArray())
+                {
+                    var ip = Chuoi(s, "ip_address")?.Trim();
+                    if (string.IsNullOrEmpty(ip)) continue;
+                    kq[ip] = new SnmpSwitch(ip, Chuoi(s, "status"), So(s, "cpu_usage"), So(s, "ram_usage"), So(s, "temperature"),
+                        (int?)So(s, "total_ports"), (int?)So(s, "up_ports"), (long?)So(s, "uptime_seconds"),
+                        DateTime.TryParse(Chuoi(s, "last_poll_at"), System.Globalization.CultureInfo.InvariantCulture,
+                            System.Globalization.DateTimeStyles.None, out var luc) ? luc : null,
+                        Chuoi(s, "last_error"));
+                }
+
+            _cache.Set(KhoaSnmpSwitch, kq, TimeSpan.FromSeconds(60));
+            return kq;
+        }
+
+        private static string? Chuoi(JsonElement e, string ten)
+            => e.TryGetProperty(ten, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+
+        private static double? So(JsonElement e, string ten)
+            => e.TryGetProperty(ten, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : null;
+
         private async Task<JsonElement> GetAsync(string duongDan, CancellationToken ct)
         {
             var client = TaoClient();

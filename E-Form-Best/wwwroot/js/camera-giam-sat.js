@@ -103,8 +103,10 @@
         $('#gsDown').text(s.down);
         $('#gsTyLe').text(s.total ? ((s.down * 100 / s.total).toFixed(1) + '% tổng camera') : '');
         $('#gsNvr').text(s.nvrs_ready + ' / ' + s.nvr_total);
-        $('#gsNvrLoi').text(s.nvr_errors ? s.nvr_errors + ' đầu ghi lỗi' : 'Không có đầu ghi lỗi')
-            .toggleClass('text-danger fw-bold', !!s.nvr_errors);
+        // hdd_error_nvrs: số đầu ghi có ổ cứng cảnh báo / lỗi (đầu ghi vẫn ghi được nên không tính vào nvr_errors)
+        var loi = [s.nvr_errors ? s.nvr_errors + ' đầu ghi lỗi' : '', s.hdd_error_nvrs ? s.hdd_error_nvrs + ' đầu ghi lỗi ổ cứng' : ''].filter(Boolean);
+        $('#gsNvrLoi').text(loi.length ? loi.join(' · ') : 'Không có đầu ghi lỗi')
+            .toggleClass('text-danger fw-bold', loi.length > 0);
         $('#gsLoaiTru').text(s.excluded_count + ' / ' + s.watchlist_count);
         $('#gsLanCuoi').text(ngayGio(s.last_poll_at, true));
         $('#gsLanCuoiTrangThai').text(s.last_poll_status === 'ok' ? 'Thành công' : (s.last_poll_status || ''))
@@ -113,6 +115,22 @@
     }
 
     // ---------------- Đầu ghi ----------------
+
+    // Ổ cứng đầu ghi (hdd_* do hệ thống ISAPI đọc). Trống 0 GB là bình thường: đầu ghi ghi đè vòng khi đầy.
+    // Đầu ghi BPVN gọi thẳng / PFVN / MEGA không có các trường này -> "–"
+    function oOCung(n) {
+        if (n.hdd_count == null) return '<td class="text-muted">–</td>';
+        var tb = n.hdd_capacity_gb ? (n.hdd_capacity_gb / 1024).toFixed(1) + ' TB' : '';
+        var tieuDe = n.hdd_count + ' ổ' + (tb ? ' · tổng ' + tb : '')
+            + (n.hdd_free_gb != null ? ' · trống ' + (n.hdd_free_gb / 1024).toFixed(1) + ' TB (đầu ghi ghi đè vòng khi đầy)' : '');
+        var nhan = n.hdd_status === 'OK' ? '<span class="badge rounded-pill bg-success-subtle text-success-emphasis">OK</span>'
+            : n.hdd_status === 'WARNING' ? '<span class="badge rounded-pill bg-warning text-dark">Cảnh báo</span>'
+            : n.hdd_status === 'ERROR' ? '<span class="badge rounded-pill bg-danger">Lỗi</span>'
+            : '<span class="badge rounded-pill bg-secondary">' + escapeHtml(n.hdd_status || 'Không rõ') + '</span>';
+        return '<td class="text-nowrap" title="' + escapeHtml(tieuDe) + '">' + nhan
+            + ' <span class="text-muted" style="font-size:11px;">' + n.hdd_count + ' ổ</span></td>';
+    }
+
     function veDauGhi(nvrs) {
         var dangLoc = $('#gsNvrLoc').val();
         var soDown = {};
@@ -121,7 +139,7 @@
         });
 
         if (!nvrs.length) {
-            $('#gsNvrBody').html('<tr><td colspan="5" class="text-center text-muted py-3">Chưa có đầu ghi nào.</td></tr>');
+            $('#gsNvrBody').html('<tr><td colspan="6" class="text-center text-muted py-3">Chưa có đầu ghi nào.</td></tr>');
             return;
         }
 
@@ -134,6 +152,7 @@
                 + '<td>' + escapeHtml(n.zone) + '</td>'
                 + '<td class="text-end">' + escapeHtml(n.channel_count) + '</td>'
                 + '<td class="text-end ' + (down ? 'text-danger fw-bold' : 'text-muted') + '">' + down + '</td>'
+                + oOCung(n)
                 + '<td title="' + escapeHtml(n.last_error || ('Poll lúc ' + ngayGio(n.last_poll_at, true))) + '">'
                 + (sanSang ? '<span class="badge rounded-pill bg-success-subtle text-success-emphasis">Sẵn sàng</span>'
                            : '<span class="badge rounded-pill bg-danger">' + escapeHtml(n.readiness || 'Lỗi') + '</span>')

@@ -75,10 +75,22 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #region Danh sách
 
         [HttpGet("/QLSwitch/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/DanhSach")]
-        public async Task<IActionResult> DanhSach(string congTy, string? tuKhoa, int? idBoPhan, string? tinhTrang, string? ketNoi)
+        public async Task<IActionResult> DanhSach(string congTy, string? tuKhoa, int? idBoPhan, string? tinhTrang, string? ketNoi,
+            [FromServices] CameraGiamSatService giamSat)
         {
             var cty = CongTyHopLe(congTy)!;
             if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+
+            // SNMP switch chỉ BPVN có (hệ thống giám sát 10.0.60.238 poll). Lỗi đọc không làm hỏng danh sách:
+            // trả rỗng + snmpLoi để trang báo nhẹ
+            var snmp = new Dictionary<string, CameraGiamSatService.SnmpSwitch>();
+            string? snmpLoi = null;
+            if (cty == "BPVN")
+            {
+                try { snmp = await giamSat.SnmpSwitchTheoIpAsync(HttpContext.RequestAborted); }
+                catch (Exception ex) when (ex is not OperationCanceledException || !HttpContext.RequestAborted.IsCancellationRequested)
+                { snmpLoi = "Không đọc được số liệu SNMP từ hệ thống giám sát: " + ex.Message; }
+            }
 
             try
             {
@@ -100,13 +112,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     x.SoCong, x.VaiTro, x.PhienBan, x.IdboPhan, x.TenBoPhan, x.ViTri, x.TinhTrang, x.NgayLapDat, x.HanBaoHanh, x.GhiChu,
                     TheoDoi = TheoDoi(x.DiaChiIp, x.TinhTrang),
                     KetNoi = TheoDoi(x.DiaChiIp, x.TinhTrang) ? x.TrangThaiKetNoi : null,
-                    x.DoiTrangThaiLuc, x.KiemTraLuc
+                    x.DoiTrangThaiLuc, x.KiemTraLuc,
+                    Snmp = x.DiaChiIp != null ? snmp.GetValueOrDefault(x.DiaChiIp.Trim()) : null
                 }).ToList();
 
                 return Json(new
                 {
                     thanhCong = true,
                     duLieu,
+                    coSnmp = cty == "BPVN",
+                    snmpLoi,
                     tongDong = duLieu.Count,
                     tongOnline = duLieu.Count(x => x.KetNoi == "UP"),
                     tongOffline = duLieu.Count(x => x.KetNoi == "DOWN"),

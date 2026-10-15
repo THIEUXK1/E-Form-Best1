@@ -67,6 +67,7 @@
                     <div class="alert alert-warning py-2 small">Danh mục công ty chưa có "@congTy" — chưa thêm được switch cho công ty này.</div>
                 }
                 <div class="alert alert-warning py-2 small d-none" id="swCanhBaoPing"></div>
+                <div class="alert alert-secondary py-2 small d-none" id="swSnmpLoi"></div>
 
                 <div class="tab-content">
 
@@ -123,6 +124,10 @@
                                 <colgroup>
                                     <col style="width:48px;">
                                     <col style="width:130px;">
+                                    @if (congTy == "BPVN")
+                                    {
+                                        <col style="width:230px;">
+                                    }
                                     <col style="width:100px;">
                                     <col style="width:220px;">
                                     <col style="width:130px;">
@@ -141,6 +146,10 @@
                                     <tr>
                                         <th>#</th>
                                         <th>Kết nối</th>
+                                        @if (congTy == "BPVN")
+                                        {
+                                            <th title="CPU / RAM / nhiệt độ / số cổng đang up — hệ thống giám sát mạng BPVN (10.0.60.238) poll SNMP">SNMP</th>
+                                        }
                                         <th>Mã</th>
                                         <th>Tên switch</th>
                                         <th>IP</th>
@@ -479,5 +488,5 @@
 @* Phải nằm trong section Scripts: layout nạp jQuery ở cuối trang, script đặt trong thân trang chạy trước jQuery *@
 @section Scripts {
     <script src="/js/fixed-page-layout.js?v=5" defer></script>
-    <script src="/js/switch-quanly.js?v=20261012a"></script>
+    <script src="/js/switch-quanly.js?v=20261015a"></script>
 }

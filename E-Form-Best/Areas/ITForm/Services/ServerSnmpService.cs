@@ -42,6 +42,10 @@ namespace E_Form_Best.Areas.ITForm.Services
             public List<SuKien> DsSuKien { get; } = new();
             /// <summary>Thông tin tĩnh không mang trạng thái (firmware, BIOS, vị trí SNMP, load, phiên kết nối...) — hiện thành khối riêng.</summary>
             public Dictionary<string, string> ThongTin { get; } = new();
+            /// <summary>Tóm tắt CPU / tổng RAM / hệ điều hành — worker điền vào KK_Server khi ô còn trống.</summary>
+            public string? CpuTomTat { get; set; }
+            public int? RamGb { get; set; }
+            public string? HeDieuHanh { get; set; }
             /// <summary>Dung lượng đọc được (TB nhị phân, như DSM / Windows hiển thị); null = thiết bị không cung cấp.</summary>
             public decimal? DungLuongTb { get; set; }
             public decimal? DaDungTb { get; set; }
@@ -142,6 +146,7 @@ namespace E_Form_Best.Areas.ITForm.Services
                 var tyLe = Math.Clamp(1 - (double)trong / ramTong.Value, 0, 1);
                 kq.DsMuc.Add(new Muc("RAM", "Bộ nhớ", tyLe >= 0.95 ? CanhBao : Ok,
                     $"{ramTong.Value / 1024d / 1024:0.#} GB · dùng {tyLe:P0}"));
+                kq.RamGb = (int)Math.Round(ramTong.Value / 1024d / 1024);
             }
             // Swap (KB): dùng nhiều nghĩa là RAM không đủ, NAS sẽ chậm rõ
             var swapTong = SnmpClient.So(ht.GetValueOrDefault("1.3.6.1.4.1.2021.4.3.0"));
@@ -185,22 +190,25 @@ namespace E_Form_Best.Areas.ITForm.Services
             // Ổ cứng: 2 id, 3 model, 4 giao tiếp, 5 status, 6 nhiệt độ, 8 số lần thử lại, 9 bad sector,
             // 10 lỗi nhận diện, 11 tuổi thọ còn lại, 13 sức khoẻ
             var o = await BangAsync(ip, com, "1.3.6.1.4.1.6574.2.1.1", new[] { 2, 3, 4, 5, 6, 8, 9, 10, 11, 13 }, ct);
-            foreach (var (_, c) in o.OrderBy(x => SoTrongChuoi(SnmpClient.Chuoi(x.Value.GetValueOrDefault(2)))))
+            var ghep = GhepOVoiSata(o, smartTheoO);
+            foreach (var (khoaO, c) in o.OrderBy(x => SoTrongChuoi(SnmpClient.Chuoi(x.Value.GetValueOrDefault(2)))))
             {
                 var ten = SnmpClient.Chuoi(c.GetValueOrDefault(2)) ?? "Ổ";
-                // "Disk 5" ứng với /dev/sata5 (SMART) và sata5 (IO) — cùng số khe
-                var soKhe = SoTrongChuoi(ten);
+                // Số sataN của SMART / IO — KHÔNG mặc định bằng số khe "Disk N" (xem GhepOVoiSata)
+                var soKhe = ghep.TryGetValue(khoaO, out var sata) ? sata : -1;
                 var tinhTrang = SnmpClient.So(c.GetValueOrDefault(5));     // 1 Normal 2 Initialized 3 NotInit 4 SysPartFailed 5 Crashed
                 var sucKhoe = SnmpClient.So(c.GetValueOrDefault(13));      // 1 Normal 2 Warning 3 Critical 4 Failing
                 var bad = SnmpClient.So(c.GetValueOrDefault(9)) ?? 0;
                 var tuoiTho = SnmpClient.So(c.GetValueOrDefault(11));
                 var nd = SnmpClient.So(c.GetValueOrDefault(6));
 
+                // Bad sector do DSM tự đếm chỉ hiện số, không cảnh báo: ổ ngoài danh sách hỗ trợ của Synology hay có
+                // bộ đếm này khác 0 dù SMART sạch — cảnh báo dựa vào SMART 5 / 197 / 198 bên dưới
                 var tt = tinhTrang is 4 or 5 || sucKhoe is 3 or 4 ? Loi
-                    : sucKhoe == 2 || bad > 0 || tuoiTho is >= 0 and < 10 ? CanhBao
+                    : sucKhoe == 2 || tuoiTho is >= 0 and < 10 ? CanhBao
                     : tinhTrang is 1 or 2 ? Ok : KhongRo;
                 var giaTri = new List<string?> { SnmpClient.Chuoi(c.GetValueOrDefault(3)), nd != null ? nd + " °C" : null };
-                if (bad > 0) giaTri.Add($"{bad} bad sector");
+                if (bad > 0) giaTri.Add($"{bad} bad sector (DSM)");
                 if (tuoiTho >= 0) giaTri.Add($"tuổi thọ còn {tuoiTho}%");
                 if (sucKhoe is 2 or 3 or 4) giaTri.Add(sucKhoe == 2 ? "SMART cảnh báo" : sucKhoe == 3 ? "SMART nghiêm trọng" : "Sắp hỏng");
                 if (tinhTrang is 3 or 4 or 5) giaTri.Add(tinhTrang == 3 ? "chưa khởi tạo" : tinhTrang == 4 ? "lỗi phân vùng hệ thống" : "hỏng");
@@ -230,7 +238,7 @@ namespace E_Form_Best.Areas.ITForm.Services
                         tenViet ??= SnmpClient.Chuoi(s.GetValueOrDefault(3)) ?? ("SMART " + id);
                         chiTiet[tenViet] = tho + (khongOk ? $" ({stSmart})" : "");
                         // Sector chờ xử lý / không sửa được > 0 là dấu hiệu ổ sắp hỏng, nặng hơn sector đã thay thế
-                        if (id is 197 or 198 && long.TryParse(tho, out var n) && n > 0 && tt == Ok) tt = CanhBao;
+                        if (id is 5 or 197 or 198 && long.TryParse(tho, out var n) && n > 0 && tt == Ok) tt = CanhBao;
                         if (khongOk && tt == Ok) tt = CanhBao;
                     }
                 }
@@ -288,6 +296,51 @@ namespace E_Form_Best.Areas.ITForm.Services
             if (tong > 0) { kq.DungLuongTb = Math.Round(tong / MotTb, 2); kq.DaDungTb = Math.Round(dung / MotTb, 2); }
 
             await CongMangAsync(kq, ip, com, ct);
+        }
+
+        /// <summary>
+        /// Ghép dòng bảng ổ Synology ("Disk N") với thiết bị SMART / IO ("sataN"). Số sataN không luôn trùng khe:
+        /// RS2421+ BPVN-NAS đo 14/10/2026 có Disk 5 = sata11, Disk 11 = sata5. Bảng ổ không có serial nên ghép theo
+        /// dấu vân tay: bad sector DSM = SMART 5 thô (mạnh nhất), nhiệt độ = SMART 194 thô; trùng số chỉ là điểm phụ.
+        /// Gán tham lam theo điểm giảm dần, mỗi sataN dùng 1 lần. Trả: khoá dòng bảng ổ -> số sataN.
+        /// </summary>
+        private static Dictionary<string, int> GhepOVoiSata(Dictionary<string, Dictionary<int, object?>> o,
+            Dictionary<int, List<Dictionary<int, object?>>> smart)
+        {
+            static long? Tho(List<Dictionary<int, object?>> ds, long id) => ds
+                .Where(s => SnmpClient.So(s.GetValueOrDefault(4)) == id)
+                .Select(s => long.TryParse(SnmpClient.Chuoi(s.GetValueOrDefault(8)), out var n) ? n : (long?)null)
+                .FirstOrDefault();
+
+            var dsCap = new List<(string khoa, int sata, int diem)>();
+            foreach (var (khoa, c) in o)
+            {
+                var so = SoTrongChuoi(SnmpClient.Chuoi(c.GetValueOrDefault(2)));
+                var nd = SnmpClient.So(c.GetValueOrDefault(6));
+                var bad = SnmpClient.So(c.GetValueOrDefault(9)) ?? 0;
+                foreach (var (sata, ds) in smart)
+                {
+                    var diem = sata == so ? 2 : 0;
+                    var r5 = Tho(ds, 5);
+                    if (r5 != null)
+                    {
+                        // 2 bảng đọc cách nhau vài giây, bộ đếm có thể nhích: cho lệch ≤ max(5, 10%)
+                        if (bad == 0 && r5 == 0) diem += 1;
+                        else if (bad > 0 && r5 > 0 && Math.Abs(r5.Value - bad) <= Math.Max(5, bad / 10)) diem += 8;
+                        else diem -= 8;
+                    }
+                    // Seagate gói min/max vào các byte cao của 194 thô: lấy byte thấp
+                    if (Tho(ds, 194) is long r194 && nd != null)
+                        diem += Math.Abs((r194 > 255 ? r194 & 0xFF : r194) - nd.Value) <= 1 ? 3 : -2;
+                    dsCap.Add((khoa, sata, diem));
+                }
+            }
+
+            var kq = new Dictionary<string, int>();
+            var daDung = new HashSet<int>();
+            foreach (var (khoa, sata, _) in dsCap.OrderByDescending(x => x.diem))
+                if (!kq.ContainsKey(khoa) && daDung.Add(sata)) kq[khoa] = sata;
+            return kq;
         }
 
         /// <summary>Chỉ số SMART đáng xem (id ATA) -> tên hiển thị.</summary>
@@ -479,6 +532,7 @@ namespace E_Form_Best.Areas.ITForm.Services
             }, 2500, 2, ct);
             ThemTt(kq, "Hostname hệ điều hành", SnmpClient.Chuoi(ht.GetValueOrDefault(g + "11.2.2.12.0")));
             ThemTt(kq, "Hệ điều hành", SnmpClient.Chuoi(ht.GetValueOrDefault(g + "11.2.2.1.0")));
+            kq.HeDieuHanh = SnmpClient.Chuoi(ht.GetValueOrDefault(g + "11.2.2.1.0"))?.Trim();
             var model = SnmpClient.Chuoi(ht.GetValueOrDefault(g + "2.2.4.2.0"));
             var serial = SnmpClient.Chuoi(ht.GetValueOrDefault(g + "2.2.2.1.0"));
             if (!string.IsNullOrWhiteSpace(model)) kq.MoTa = Noi(new[] { model, string.IsNullOrWhiteSpace(serial) ? null : "SN " + serial });
@@ -491,27 +545,34 @@ namespace E_Form_Best.Areas.ITForm.Services
                 kq.DsMuc.Add(new Muc("Nguồn", "Công suất tiêu thụ", Ok, $"{congSuat} W"));
 
             // CPU: cpqSeCpuTable 3 tên, 4 MHz, 6 trạng thái (2 ok, 3 degraded, 4 failed, 5 disabled)
+            var dsCpu = new List<(string ten, long mhz)>();
             foreach (var (_, c) in (await BangAsync(ip, com, g + "1.2.2.1.1", new[] { 3, 4, 6 }, ct)).OrderBy(x => SoCuoi(x.Key)))
             {
                 var st = SnmpClient.So(c.GetValueOrDefault(6));
-                kq.DsMuc.Add(new Muc("CPU", SnmpClient.Chuoi(c.GetValueOrDefault(3)) ?? "CPU",
-                    st switch { 2 => Ok, 3 => CanhBao, 4 => Loi, 5 => CanhBao, _ => KhongRo },
-                    SnmpClient.So(c.GetValueOrDefault(4)) is long mhz and > 0 ? $"{mhz} MHz" : null));
+                var tenCpu = SnmpClient.Chuoi(c.GetValueOrDefault(3)) ?? "CPU";
+                var mhzCpu = SnmpClient.So(c.GetValueOrDefault(4)) ?? 0;
+                dsCpu.Add((tenCpu, mhzCpu));
+                kq.DsMuc.Add(new Muc("CPU", tenCpu, st switch { 2 => Ok, 3 => CanhBao, 4 => Loi, 5 => CanhBao, _ => KhongRo },
+                    mhzCpu > 0 ? $"{mhzCpu} MHz" : null));
             }
+            kq.CpuTomTat = TomTatCpu(dsCpu);
 
             // RAM: cpqHeResMem2ModuleTable 13 vị trí, 6 dung lượng KB, 20 điều kiện; không có bảng thì lấy điều kiện chung
             var ram = await BangAsync(ip, com, g + "6.2.14.13.1", new[] { 6, 13, 20 }, ct);
             var coModule = false;
+            long tongKb = 0;
             foreach (var (_, c) in ram.OrderBy(x => SoCuoi(x.Key)))
             {
                 var kb = SnmpClient.So(c.GetValueOrDefault(6)) ?? 0;
                 if (kb <= 0) continue; // khe trống
                 coModule = true;
+                tongKb += kb;
                 kq.DsMuc.Add(new Muc("RAM", SnmpClient.Chuoi(c.GetValueOrDefault(13)) ?? "DIMM",
                     TrangThaiCpq(SnmpClient.So(c.GetValueOrDefault(20))), $"{kb / 1024d / 1024:0.#} GB"));
             }
             if (!coModule)
                 kq.DsMuc.Add(new Muc("RAM", "Bộ nhớ", TrangThaiCpq(SnmpClient.So(ht.GetValueOrDefault(g + "6.2.14.4.0"))), null));
+            if (tongKb > 0) kq.RamGb = (int)Math.Round(tongKb / 1024d / 1024);
 
             // Quạt: cpqHeFltTolFanTable 3 vị trí, 4 có lắp (2 không, 3 có), 9 điều kiện — Gen10+ có khe quạt trống
             var quat = await BangAsync(ip, com, g + "6.2.6.7.1", new[] { 3, 4, 9 }, ct);
@@ -594,18 +655,33 @@ namespace E_Form_Best.Areas.ITForm.Services
             var tong = await SnmpClient.GetAsync(ip, com, new[] { "1.3.6.1.4.1.232.18.1.3.0" }, 2500, 2, ct);
             var dk = SnmpClient.So(tong.GetValueOrDefault("1.3.6.1.4.1.232.18.1.3.0"));
             if (dk == null) return;
-            kq.DsMuc.Add(new Muc("Cổng mạng", "Card mạng (iLO tổng hợp)", TrangThaiCpq(dk),
-                dk is 3 or 4 ? "iLO báo lỗi card mạng — xem iLO › Network / IML" : null));
 
+            var dsCong = new List<Muc>();
             foreach (var (k, c) in (await BangAsync(ip, com, "1.3.6.1.4.1.232.18.2.3.1.1", new[] { 4, 12, 14 }, ct)).OrderBy(x => SoCuoi(x.Key)))
             {
                 var st = SnmpClient.So(c.GetValueOrDefault(14));
                 var mac = c.GetValueOrDefault(4) is byte[] { Length: 6 } b ? string.Join(":", b.Select(x => x.ToString("X2"))) : null;
                 var tt = st switch { 3 => Loi, 4 => CanhBao, _ => TrangThaiCpq(SnmpClient.So(c.GetValueOrDefault(12))) };
-                kq.DsMuc.Add(new Muc("Cổng mạng", "NIC " + SoCuoi(k) + (mac != null ? $" ({mac})" : ""), tt,
+                dsCong.Add(new Muc("Cổng mạng", "NIC " + SoCuoi(k) + (mac != null ? $" ({mac})" : ""), tt,
                     // điều kiện "other": cổng không dùng / chưa từng có link — xám, không tính lỗi
                     st switch { 3 => "Lỗi card", 4 => "Mất link", _ => tt == KhongRo ? "Không dùng" : null }));
             }
+
+            // Tổng báo lỗi mà mọi cổng đọc được đều không lỗi: lỗi nằm ở card iLO không đọc được trạng thái
+            // (vd. 562FLR-SFP+ 10Gb hiện "Unknown" khi Windows chưa cài HPE AMS) -> không rõ, không báo đỏ oan
+            var ttTong = TrangThaiCpq(dk);
+            string? moTaTong = null;
+            if (dk is 3 or 4)
+            {
+                if (dsCong.Count > 0 && dsCong.All(x => x.TrangThai is Ok or KhongRo))
+                {
+                    ttTong = KhongRo;
+                    moTaTong = "Không rõ — có card iLO không đọc được trạng thái (thường card 10Gb, cần cài HPE AMS trên Windows)";
+                }
+                else moTaTong = "iLO báo lỗi card mạng — xem iLO › Network / IML";
+            }
+            kq.DsMuc.Add(new Muc("Cổng mạng", "Card mạng (iLO tổng hợp)", ttTong, moTaTong));
+            kq.DsMuc.AddRange(dsCong);
         }
 
         /// <summary>
@@ -679,17 +755,25 @@ namespace E_Form_Best.Areas.ITForm.Services
                     kq.DsMuc.Add(new Muc("Nguồn", "Công suất tiêu thụ", TrangThaiDell(SnmpClient.So(c.GetValueOrDefault(5))), $"{w} W"));
 
             // CPU: processorDeviceTable 5 trạng thái, 23 tên
+            var dsCpu = new List<(string ten, long mhz)>();
             foreach (var (k, c) in (await BangAsync(ip, com, g + "4.1100.30.1", new[] { 5, 23 }, ct)).OrderBy(x => SoCuoi(x.Key)))
-                kq.DsMuc.Add(new Muc("CPU", SnmpClient.Chuoi(c.GetValueOrDefault(23))?.Trim() ?? "CPU " + SoCuoi(k),
-                    TrangThaiDell(SnmpClient.So(c.GetValueOrDefault(5))), null));
+            {
+                var tenCpu = SnmpClient.Chuoi(c.GetValueOrDefault(23))?.Trim() ?? "CPU " + SoCuoi(k);
+                dsCpu.Add((tenCpu, 0));
+                kq.DsMuc.Add(new Muc("CPU", tenCpu, TrangThaiDell(SnmpClient.So(c.GetValueOrDefault(5))), null));
+            }
+            kq.CpuTomTat = TomTatCpu(dsCpu);
 
             // RAM: memoryDeviceTable 5 trạng thái, 8 vị trí, 14 dung lượng KB
+            long tongKb = 0;
             foreach (var (_, c) in (await BangAsync(ip, com, g + "4.1100.50.1", new[] { 5, 8, 14 }, ct)).OrderBy(x => SoCuoi(x.Key)))
             {
                 var kb = SnmpClient.So(c.GetValueOrDefault(14)) ?? 0;
+                tongKb += Math.Max(kb, 0);
                 kq.DsMuc.Add(new Muc("RAM", SnmpClient.Chuoi(c.GetValueOrDefault(8)) ?? "DIMM",
                     TrangThaiDell(SnmpClient.So(c.GetValueOrDefault(5))), kb > 0 ? $"{kb / 1024d / 1024:0.#} GB" : null));
             }
+            if (tongKb > 0) kq.RamGb = (int)Math.Round(tongKb / 1024d / 1024);
 
             // Quạt: coolingDeviceTable 5 trạng thái, 6 RPM, 8 vị trí
             foreach (var (_, c) in (await BangAsync(ip, com, g + "4.700.12.1", new[] { 5, 6, 8 }, ct)).OrderBy(x => SoCuoi(x.Key)))
@@ -765,7 +849,10 @@ namespace E_Form_Best.Areas.ITForm.Services
                         $"{DinhDangByte(d)} / {DinhDangByte(t)} ({tyLe:P0})"));
                 }
                 else if (loai == "1.3.6.1.2.1.25.2.1.2" && !chiDungLuong) // hrStorageRam
+                {
                     kq.DsMuc.Add(new Muc("RAM", "Bộ nhớ", tyLe >= 0.95 ? CanhBao : Ok, $"{DinhDangByte(t)} · dùng {tyLe:P0}"));
+                    kq.RamGb ??= (int)Math.Round(t / (1024m * 1024 * 1024));
+                }
             }
             if (tong > 0) { kq.DungLuongTb = Math.Round(tong / MotTb, 2); kq.DaDungTb = Math.Round(dung / MotTb, 2); }
             await CongMangAsync(kq, ip, com, ct);
@@ -787,6 +874,7 @@ namespace E_Form_Best.Areas.ITForm.Services
             {
                 var tb = dsTai.Average();
                 kq.DsMuc.Add(new Muc("CPU", $"{dsTai.Count} nhân", tb >= 90 ? CanhBao : Ok, $"tải {tb:0}%"));
+                kq.CpuTomTat ??= $"{dsTai.Count} nhân";
             }
 
             // hrDeviceTable: 3 mô tả, 5 trạng thái (1 unknown 2 running 3 warning 4 testing 5 down) — chỉ báo thiết bị bất thường
@@ -819,6 +907,19 @@ namespace E_Form_Best.Areas.ITForm.Services
                 }
             }
             return kq;
+        }
+
+        /// <summary>
+        /// "2 × Intel Xeon Silver 4316 @ 2.30GHz" từ danh sách CPU; bỏ (R)/(TM)/"CPU" cho gọn.
+        /// Tên chung chung ("Intel Xeon", iLO Gen9) thì kèm MHz.
+        /// </summary>
+        private static string? TomTatCpu(List<(string ten, long mhz)> ds)
+        {
+            if (ds.Count == 0) return null;
+            var ten = Regex.Replace(ds[0].ten, @"\((R|TM|tm|r)\)|\bCPU\b", "");
+            ten = Regex.Replace(ten, @"\s+", " ").Trim();
+            if (!ten.Contains("GHz", StringComparison.OrdinalIgnoreCase) && ds[0].mhz > 0) ten += $" @ {ds[0].mhz / 1000d:0.00}GHz";
+            return Cat((ds.Count > 1 ? ds.Count + " × " : "") + ten, 150);
         }
 
         private static void ThemTt(KetQua kq, string ten, string? giaTri)

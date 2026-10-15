@@ -32,10 +32,14 @@ button.sv-sk:hover { filter: brightness(.95); }
 .sv-sk-canh-bao { background: #fef3c7; color: #92400e; }
 .sv-sk-loi { background: #fee2e2; color: #991b1b; }
 .sv-sk-xam { background: #e2e8f0; color: #475569; }
-.sv-sk-tom-tat {
-    margin-top: 2px; font-size: .72rem; color: #92400e;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
+/* Bảng danh sách hiện đủ nội dung: cột giãn theo chữ (bỏ table-layout: fixed + "..." của ccdc-table dùng chung),
+   colgroup chỉ còn là bề rộng tối thiểu; bảng rộng hơn màn hình thì cuộn ngang trong .ccdc-table-wrap */
+.ccdc-table.sv-bang-day { table-layout: auto; }
+.ccdc-table.sv-bang-day > tbody > tr > td { overflow: visible; text-overflow: clip; }
+/* Cột Sức khoẻ: tóm tắt lỗi có thể rất dài -> cho xuống dòng trong khung 320–420px thay vì kéo bảng dài vô hạn */
+.ccdc-table th.sv-cot-sk, .ccdc-table td.sv-cot-sk { min-width: 320px; max-width: 420px; }
+.ccdc-table.sv-bang-day > tbody > tr > td.sv-cot-sk { white-space: normal; }
+.sv-sk-tom-tat { margin-top: 2px; font-size: .72rem; color: #92400e; white-space: normal; }
 
 .sv-sk-nhom { border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; height: 100%; }
 .sv-sk-nhom-dau { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 6px; color: #1e293b; }

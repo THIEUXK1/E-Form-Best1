@@ -103,11 +103,11 @@
     function oSucKhoe(x) {
         var sk = x.sucKhoe;
         if (!sk) {
-            return '<td class="small text-muted"><button type="button" class="btn btn-link btn-sm p-0 text-muted btn-suc-khoe" title="Chưa có lần đọc SNMP nào">Chưa đọc</button></td>';
+            return '<td class="small text-muted sv-cot-sk"><button type="button" class="btn btn-link btn-sm p-0 text-muted btn-suc-khoe" title="Chưa có lần đọc SNMP nào">Chưa đọc</button></td>';
         }
         var n = nhanSk(sk.trangThai);
         var tieuDe = (sk.tomTat || n.nhan) + (sk.kiemTraLuc ? '\nĐọc lúc ' + gio(sk.kiemTraLuc) : '');
-        return '<td class="small" title="' + esc(tieuDe) + '">'
+        return '<td class="small sv-cot-sk" title="' + esc(tieuDe) + '">'
             + '<button type="button" class="btn btn-sm sv-sk ' + n.lop + ' btn-suc-khoe"><i class="fas ' + n.icon + ' me-1"></i>' + esc(n.nhan) + '</button>'
             + (sk.tomTat && sk.trangThai !== 'OK' ? '<div class="sv-sk-tom-tat">' + esc(sk.tomTat) + '</div>' : '')
             + '</td>';

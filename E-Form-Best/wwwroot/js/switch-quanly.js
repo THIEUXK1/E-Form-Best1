@@ -4,7 +4,8 @@
     'use strict';
 
     var COT = 15;
-    var congTy, chiXem, goc;
+    // BPVN có thêm cột SNMP (view chỉ dựng cột này cho BPVN) — COT tăng tương ứng lúc khởi tạo
+    var congTy, chiXem, goc, coSnmp = false;
     var modalSw, modalXoa;
     var timerTimKiem = null, timerLs = null;
 
@@ -77,6 +78,28 @@
         return '<td class="small text-muted" title="Job ping chưa kiểm tới switch này"><span class="cam-dot" style="background:#facc15;"></span>Chưa kiểm</td>';
     }
 
+    // Ô SNMP (chỉ BPVN): số liệu hệ thống giám sát mạng poll ~10 phút/lần; ngưỡng CPU 80% / RAM 90% / 60 °C tô vàng
+    function oSnmp(s) {
+        if (!s) return '<td class="small text-muted" title="Hệ thống giám sát mạng chưa theo dõi IP này">–</td>';
+        var docLuc = s.docLuc ? 'Đọc lúc ' + gio(s.docLuc) : '';
+        if (s.cpu == null && s.ram == null && s.nhietDo == null) {
+            var lyDo = s.loi || (s.trangThai === 'OFFLINE' ? 'Không đọc được SNMP' : 'Chưa có số liệu');
+            return '<td class="small text-muted" title="' + esc(lyDo + (docLuc ? '\n' + docLuc : '')) + '">'
+                + '<i class="fas fa-circle-question me-1"></i>' + esc(s.trangThai === 'OFFLINE' ? 'SNMP không trả lời' : 'Chưa có số liệu') + '</td>';
+        }
+        function so(v, donVi, nguong) {
+            if (v == null) return '';
+            var tron = Math.round(v);
+            return '<span class="' + (v >= nguong ? 'text-warning fw-bold' : '') + '">' + tron + donVi + '</span>';
+        }
+        var dong1 = [s.cpu != null ? 'CPU ' + so(s.cpu, '%', 80) : '', s.ram != null ? 'RAM ' + so(s.ram, '%', 90) : '',
+            s.nhietDo != null ? so(s.nhietDo, ' °C', 60) : ''].filter(Boolean).join(' · ');
+        var dong2 = s.tongCong ? (s.congUp || 0) + ' / ' + s.tongCong + ' cổng up' : '';
+        var tieuDe = [docLuc, s.thoiGianChayGiay ? 'Chạy liên tục ' + thoiLuong(s.thoiGianChayGiay) : ''].filter(Boolean).join('\n');
+        return '<td class="small" title="' + esc(tieuDe) + '">' + dong1
+            + (dong2 ? '<div class="text-muted" style="font-size:11px;">' + esc(dong2) + '</div>' : '') + '</td>';
+    }
+
     // Hạn bảo hành đã qua thì tô đỏ để thấy ngay switch nào hết bảo hành
     function oHanBaoHanh(v) {
         if (!v) return '<td></td>';
@@ -107,6 +130,7 @@
                     return;
                 }
                 veBang(res.duLieu);
+                $('#swSnmpLoi').text(res.snmpLoi || '').toggleClass('d-none', !res.snmpLoi);
                 $('#tongDong').text(res.tongDong);
                 $('#tongOnline').text(res.tongOnline);
                 $('#tongOffline').text(res.tongOffline);
@@ -141,6 +165,7 @@
             return '<tr>'
                 + '<td class="text-muted small">' + (i + 1) + '</td>'
                 + oKetNoi(x)
+                + (coSnmp ? oSnmp(x.snmp) : '')
                 + o(x.maSwitch, 'small')
                 + o(x.tenSwitch, 'ccdc-ten')
                 + o(x.diaChiIp, 'small font-monospace')
@@ -430,6 +455,8 @@
         congTy = trang.getAttribute('data-cong-ty');
         chiXem = trang.getAttribute('data-chi-xem') === '1';
         goc = '/QLSwitch/' + encodeURIComponent(congTy);
+        coSnmp = congTy === 'BPVN';
+        if (coSnmp) COT = 16;
 
         if (!chiXem) {
             modalSw = new bootstrap.Modal(document.getElementById('modalSw'));

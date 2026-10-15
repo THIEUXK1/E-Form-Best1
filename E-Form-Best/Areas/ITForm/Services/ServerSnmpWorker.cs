@@ -100,6 +100,25 @@ namespace E_Form_Best.Areas.ITForm.Services
             return doi;
         }
 
+        /// <summary>
+        /// Điền CPU / RAM / hệ điều hành đọc qua SNMP vào hồ sơ thiết bị — CHỈ ô đang trống, không đè số khai tay.
+        /// Điều kiện trống nằm trong WHERE nên người dùng vừa lưu tay giữa chừng cũng không bị ghi đè.
+        /// </summary>
+        private static async Task DienThongTinTrongAsync(ITFormContext db, int idServer, ServerSnmpService.KetQua kq, CancellationToken ct)
+        {
+            var cpu = Cat(kq.CpuTomTat, 150);
+            var heDieuHanh = Cat(kq.HeDieuHanh, 150);
+            if (!string.IsNullOrWhiteSpace(cpu))
+                await db.KkServers.Where(x => x.IdServer == idServer && (x.Cpu == null || x.Cpu == ""))
+                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.Cpu, cpu), ct);
+            if (kq.RamGb > 0)
+                await db.KkServers.Where(x => x.IdServer == idServer && (x.RamGb == null || x.RamGb == 0))
+                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.RamGb, kq.RamGb), ct);
+            if (!string.IsNullOrWhiteSpace(heDieuHanh))
+                await db.KkServers.Where(x => x.IdServer == idServer && (x.HeDieuHanh == null || x.HeDieuHanh == ""))
+                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.HeDieuHanh, heDieuHanh), ct);
+        }
+
         /// <summary>Community cho thiết bị: ưu tiên cấu hình riêng công ty, rồi cấu hình chung.</summary>
         public static string? Community(IConfiguration cfg, string congTy, string loai)
         {
@@ -156,6 +175,8 @@ namespace E_Form_Best.Areas.ITForm.Services
                 }
                 if (kq == null) loi = $"Không đọc được SNMP từ {string.Join(", ", dsIp)} (community sai, chưa bật SNMP hoặc không thông mạng).";
             }
+
+            if (kq != null) await DienThongTinTrongAsync(db, idServer, kq, ct);
 
             var bayGio = DateTime.Now;
             var cu = await db.KkServerSucKhoes.AsNoTracking().Where(x => x.IdServer == idServer)
