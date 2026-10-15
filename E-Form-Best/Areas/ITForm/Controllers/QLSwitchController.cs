@@ -113,7 +113,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     TheoDoi = TheoDoi(x.DiaChiIp, x.TinhTrang),
                     KetNoi = TheoDoi(x.DiaChiIp, x.TinhTrang) ? x.TrangThaiKetNoi : null,
                     x.DoiTrangThaiLuc, x.KiemTraLuc,
-                    Snmp = x.DiaChiIp != null ? snmp.GetValueOrDefault(x.DiaChiIp.Trim()) : null
+                    Snmp = TimSnmp(snmp, x.DiaChiIp, x.GhiChu)
                 }).ToList();
 
                 return Json(new
@@ -131,6 +131,62 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 });
             }
             catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
+        /// <summary>
+        /// Tra thiết bị đang cắm cổng switch nào theo MAC (bảng MAC hệ thống giám sát mạng BPVN).
+        /// Nhận mọi kiểu gõ MAC ("00:9E:1E", "009e.1ee3", "00-9e-1e-e3") -> quy về "aa:bb:cc" mà API bên kia lọc được.
+        /// </summary>
+        [HttpGet("/QLSwitch/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/TraMac")]
+        public async Task<IActionResult> TraMac(string congTy, string? q, [FromServices] CameraGiamSatService giamSat)
+        {
+            var cty = CongTyHopLe(congTy)!;
+            if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            if (cty != "BPVN") return Json(new { thanhCong = false, thongBao = "Chỉ BPVN có bảng MAC từ hệ thống giám sát mạng." });
+
+            var hex = System.Text.RegularExpressions.Regex.Replace(q ?? "", "[^0-9a-fA-F]", "").ToLowerInvariant();
+            if (hex.Length < 4 || hex.Length > 12)
+                return Json(new { thanhCong = false, thongBao = "Nhập từ 4 đến 12 ký tự hex của địa chỉ MAC (vd 00:9e:1e hoặc 009e.1ee3)." });
+            // Số ký tự lẻ thì bỏ ký tự cuối: API lọc theo đoạn "aa:bb", nửa byte không ghép được
+            var doan = string.Join(":", Enumerable.Range(0, hex.Length / 2).Select(i => hex.Substring(i * 2, 2)));
+
+            try
+            {
+                var ds = await giamSat.TraMacAsync(doan, HttpContext.RequestAborted);
+                // Tên switch theo E-Form (đã đặt chuẩn) thay cho hostname SNMP nếu IP khớp
+                var dsIp = ds.Select(x => x.IpSwitch).Where(x => x != null).Distinct().ToList();
+                var idCongTy = await IdCongTyAsync(cty);
+                var tenEForm = (await _context.KkSwitches
+                        .Where(x => x.IdcongTy == idCongTy && x.NgayXoa == null && x.DiaChiIp != null && dsIp.Contains(x.DiaChiIp))
+                        .Select(x => new { x.DiaChiIp, x.TenSwitch }).ToListAsync())
+                    .GroupBy(x => x.DiaChiIp!).ToDictionary(g => g.Key, g => g.First().TenSwitch);
+
+                var duLieu = ds.OrderBy(x => x.Mac).ThenBy(x => x.IpSwitch).Take(300).Select(x => new
+                {
+                    x.Mac, x.Vlan, x.IpSwitch, x.SoCong, x.TenCong, x.ThayLuc,
+                    TenSwitch = (x.IpSwitch != null ? tenEForm.GetValueOrDefault(x.IpSwitch) : null) ?? x.TenSwitch
+                }).ToList();
+                return Json(new { thanhCong = true, doan, duLieu, tongDong = ds.Count });
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException || !HttpContext.RequestAborted.IsCancellationRequested)
+            {
+                return Json(new { thanhCong = false, thongBao = "Không đọc được bảng MAC từ hệ thống giám sát: " + ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Số liệu SNMP của 1 switch: theo IP chính, rồi các IP ghi trong ghi chú ("IP khác: 10.0.16.3, 10.0.5.3").
+        /// Hệ thống giám sát hay poll switch qua IP quản lý khác IP E-Form ping (VSS core: 10.0.5.3 thay vì 10.0.60.3).
+        /// Ưu tiên IP có số liệu thật; không có thì lấy dòng đầu (để hiện "SNMP không trả lời").
+        /// </summary>
+        private static CameraGiamSatService.SnmpSwitch? TimSnmp(Dictionary<string, CameraGiamSatService.SnmpSwitch> snmp,
+            string? ip, string? ghiChu)
+        {
+            if (snmp.Count == 0) return null;
+            var dsIp = new[] { ip?.Trim() }
+                .Concat(System.Text.RegularExpressions.Regex.Matches(ghiChu ?? "", @"\b\d{1,3}(?:\.\d{1,3}){3}\b").Select(m => m.Value));
+            var ds = dsIp.Where(x => !string.IsNullOrEmpty(x)).Select(x => snmp.GetValueOrDefault(x!)).OfType<CameraGiamSatService.SnmpSwitch>().ToList();
+            return ds.FirstOrDefault(x => x.Cpu != null || x.Ram != null || x.NhietDo != null || x.TongCong > 0) ?? ds.FirstOrDefault();
         }
 
         /// <summary>Danh sách switch 1 công ty ra Excel, theo đúng bộ lọc đang chọn trên trang.</summary>

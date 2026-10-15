@@ -190,8 +190,9 @@
             if (khuVuc && c.zone !== khuVuc) return false;
             if (tuKhoa) {
                 var gc = dsGhiChu[khoaGhiChu(c)];
+                var sw = swCamera(c);
                 var chuoi = [c.name, c.ip, c.nvr_name, c.nvr_ip, c.zone, c.note, gc ? gc.ghiChu : '',
-                    c.sw ? [c.sw.ten, c.sw.ip, c.sw.cong, c.sw.mac].join(' ') : ''].join(' ').toLowerCase();
+                    sw ? [sw.ten, sw.ip, sw.cong, sw.mac].join(' ') : ''].join(' ').toLowerCase();
                 if (chuoi.indexOf(tuKhoa) < 0) return false;
             }
             return true;
@@ -240,7 +241,7 @@
                 + (i + 1) + '</td>'
                 + '<td class="small">' + oTrangThai(c.status) + '</td>'
                 + '<td class="ccdc-ten" title="' + escapeHtml(c.name) + '">' + ten + '</td>'
-                + oIpCamera(c.ip, c.sw)
+                + oIpCamera(c.ip, swCamera(c))
                 // Hai dòng (tên / IP) và cho xuống dòng: tên đầu ghi dài + link IP không bị cắt "..."
                 + '<td class="small cam-o-dau-ghi"><div>' + escapeHtml(c.nvr_name) + '</div>'
                 + '<div class="font-monospace" style="font-size:11px;">' + linkDauGhi(c.nvr_ip, c.nvr_ip) + '</div></td>'
@@ -263,6 +264,15 @@
         return '<td class="small font-monospace"><a class="cam-ip-link" href="http://' + s + '/" target="_blank" rel="noopener"'
             + ' title="Mở trang cài đặt camera ' + s + ' ở tab mới">' + s + ' <i class="fas fa-up-right-from-square"></i></a>'
             + dongSwitch(sw) + '</td>';
+    }
+
+    // PFVN trả sẵn object "sw"; BPVN (hệ thống ISAPI 10.0.60.238) trả các trường switch_* phẳng -> quy về cùng dạng.
+    // Hệ thống đó dò cổng qua ARP trên core rồi MAC table, nên coi là chắc chắn.
+    function swCamera(c) {
+        if (c.sw && c.sw.cong) return c.sw;
+        if (!c.switch_port) return null;
+        return { ten: (c.switch_hostname || '').replace(/\.(bpvn\.com|bestpacific\.com)$/i, ''), ip: c.switch_ip,
+                 cong: c.switch_port, vlan: c.switch_vlan, chac_chan: true, do_luc: c.port_last_lookup_at };
     }
 
     // Dòng phụ dưới IP: switch + cổng camera cắm (PFVN dò SNMP); rê chuột xem VLAN, MAC, đường đi qua các switch.

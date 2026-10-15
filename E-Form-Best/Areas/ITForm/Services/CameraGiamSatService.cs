@@ -90,6 +90,43 @@ namespace E_Form_Best.Areas.ITForm.Services
             return kq;
         }
 
+        public record ClientSsid(string Ssid, int SoClient);
+
+        /// <summary>Số thiết bị đang kết nối Wi-Fi BPVN theo SSID (hệ thống giám sát đọc từ WLC), giảm dần.</summary>
+        public async Task<(List<ClientSsid> Ds, DateTime? CapNhat)> ClientTheoSsidAsync(CancellationToken ct)
+        {
+            var goc = await GetAsync("/api/access-points/summary", ct);
+            var ds = new List<ClientSsid>();
+            if (goc.TryGetProperty("wlans", out var wlans) && wlans.ValueKind == JsonValueKind.Array)
+                foreach (var w in wlans.EnumerateArray())
+                    ds.Add(new ClientSsid(Chuoi(w, "ssid") ?? Chuoi(w, "profile_name") ?? "?", (int)(So(w, "client_count") ?? 0)));
+            DateTime? capNhat = DateTime.TryParse(Chuoi(goc, "last_poll_at"), System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var luc) ? luc : null;
+            return (ds.OrderByDescending(x => x.SoClient).ToList(), capNhat);
+        }
+
+        /// <summary>1 dòng bảng MAC switch (hệ thống giám sát đọc FDB qua SNMP).</summary>
+        public record DongMac(string Mac, int? Vlan, string? TenSwitch, string? IpSwitch, int? SoCong, string? TenCong, DateTime? ThayLuc);
+
+        /// <summary>
+        /// Tra bảng MAC theo đoạn MAC dạng "aa:bb:cc" (API bên kia chỉ lọc theo MAC, không theo IP / tên switch).
+        /// </summary>
+        public async Task<List<DongMac>> TraMacAsync(string doanMac, CancellationToken ct)
+        {
+            var goc = await GetAsync("/api/mac-table?q=" + Uri.EscapeDataString(doanMac), ct);
+            var kq = new List<DongMac>();
+            if (goc.ValueKind != JsonValueKind.Array) return kq;
+            foreach (var m in goc.EnumerateArray())
+            {
+                var alias = Chuoi(m, "port_alias");
+                kq.Add(new DongMac(Chuoi(m, "mac_address") ?? "", (int?)So(m, "vlan_id"), Chuoi(m, "switch_name"), Chuoi(m, "switch_ip"),
+                    (int?)So(m, "port_index"), string.IsNullOrWhiteSpace(alias) ? Chuoi(m, "port_name") : alias,
+                    DateTime.TryParse(Chuoi(m, "last_seen"), System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.None, out var luc) ? luc : null));
+            }
+            return kq;
+        }
+
         private static string? Chuoi(JsonElement e, string ten)
             => e.TryGetProperty(ten, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 

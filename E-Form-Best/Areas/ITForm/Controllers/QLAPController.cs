@@ -71,6 +71,24 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #region Danh sách
 
+        /// <summary>Client Wi-Fi theo SSID — chỉ BPVN (hệ thống giám sát mạng 10.0.60.238 đọc từ WLC).</summary>
+        [HttpGet("/QLAP/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/ClientTheoSsid")]
+        public async Task<IActionResult> ClientTheoSsid(string congTy, [FromServices] CameraGiamSatService giamSat)
+        {
+            var cty = CongTyHopLe(congTy)!;
+            if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            if (cty != "BPVN") return Json(new { thanhCong = false, thongBao = "Chỉ BPVN có số liệu SSID." });
+            try
+            {
+                var (ds, capNhat) = await giamSat.ClientTheoSsidAsync(HttpContext.RequestAborted);
+                return Json(new { thanhCong = true, duLieu = ds, capNhat, tong = ds.Sum(x => x.SoClient) });
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException || !HttpContext.RequestAborted.IsCancellationRequested)
+            {
+                return Json(new { thanhCong = false, thongBao = "Không đọc được số liệu SSID: " + ex.Message });
+            }
+        }
+
         [HttpGet("/QLAP/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/DanhSach")]
         public async Task<IActionResult> DanhSach(string congTy, string? tuKhoa, int? idBoPhan, string? tinhTrang, string? ketNoi)
         {

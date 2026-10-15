@@ -107,6 +107,12 @@
 
                             <span class="flex-grow-1"></span>
 
+                            @if (congTy == "BPVN")
+                            {
+                                <button type="button" class="btn btn-sm btn-light border" id="btnTraMac" title="Thiết bị có MAC này đang cắm switch nào, cổng nào">
+                                    <i class="fas fa-magnifying-glass-location me-1"></i> Tra MAC
+                                </button>
+                            }
                             <button type="button" class="btn btn-sm btn-light border" id="btnTaiLai" title="Tải lại danh sách"><i class="fas fa-rotate"></i></button>
                             <button type="button" class="btn btn-sm btn-success" id="btnXuatExcel" title="Xuất danh sách đang lọc ra Excel">
                                 <i class="fas fa-file-excel me-1"></i> Excel
@@ -485,8 +491,38 @@
 </div>
 }
 
+@if (congTy == "BPVN")
+{
+    @* ------- Modal tra MAC: thiết bị đang cắm switch / cổng nào (bảng MAC hệ thống giám sát mạng 10.0.60.238) ------- *@
+    <div class="modal fade" id="modalTraMac" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow" style="border-radius:15px;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-magnifying-glass-location me-2"></i> Tra MAC — thiết bị đang cắm cổng nào</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formTraMac" class="d-flex gap-2 mb-2" autocomplete="off">
+                        <input type="text" class="form-control font-monospace" id="traMacQ" maxlength="40"
+                               placeholder="MAC đầy đủ hoặc một đoạn: 00:9e:1e:e3:6b:60 · 009e.1ee3 · 00-9E-1E">
+                        <button type="submit" class="btn btn-primary text-nowrap" id="btnTraMacTim"><i class="fas fa-magnifying-glass me-1"></i> Tìm</button>
+                    </form>
+                    <div class="small text-muted mb-2" id="traMacTomTat">Bảng MAC do hệ thống giám sát mạng đọc từ switch (~10 phút/lần). Một MAC có thể hiện ở nhiều switch: cổng có ít MAC nhất thường là cổng cắm thật, các cổng còn lại là đường trục.</div>
+                    <div class="alert alert-danger py-2 small d-none" id="traMacLoi"></div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0 small">
+                            <thead><tr><th>MAC</th><th>Switch</th><th>IP switch</th><th>Cổng</th><th class="text-end">VLAN</th><th>Thấy lúc</th></tr></thead>
+                            <tbody id="traMacBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @* Phải nằm trong section Scripts: layout nạp jQuery ở cuối trang, script đặt trong thân trang chạy trước jQuery *@
 @section Scripts {
     <script src="/js/fixed-page-layout.js?v=5" defer></script>
-    <script src="/js/switch-quanly.js?v=20261015a"></script>
+    <script src="/js/switch-quanly.js?v=20261015b"></script>
 }

@@ -151,6 +151,19 @@
             .always(function () { $btn.prop('disabled', false); });
     }
 
+    // Client Wi-Fi theo SSID: chỉ BPVN có (view chỉ dựng #apSsid cho BPVN). Lỗi / rỗng thì ẩn dòng, không báo đỏ
+    function taiSsid() {
+        var $o = $('#apSsid');
+        if (!$o.length) return;
+        $.getJSON(goc + '/ClientTheoSsid').done(function (res) {
+            var ds = res.thanhCong ? (res.duLieu || []).filter(function (x) { return x.soClient > 0; }) : [];
+            if (!ds.length) { $o.addClass('d-none'); return; }
+            $o.html('<i class="fas fa-wifi text-primary me-1"></i><span class="text-muted">Theo SSID:</span> '
+                + ds.map(function (x) { return '<span class="badge rounded-pill bg-light text-dark border me-1">' + esc(x.ssid) + ' <b>' + x.soClient + '</b></span>'; }).join(''))
+              .removeClass('d-none');
+        }).fail(function () { $o.addClass('d-none'); });
+    }
+
     function veTongQuan(res) {
         var theoDoi = dsAp.filter(function (x) { return x.theoDoi; }).length;
         var khong = dsAp.length - theoDoi;
@@ -171,6 +184,7 @@
             .sort(function (a, b) { return b.soClient - a.soClient; })[0];
         $('#apClientNhieuNhat').text(dongNhat ? 'đông nhất: ' + dongNhat.tenAp + ' (' + dongNhat.soClient + ')' : '')
             .attr('title', dongNhat ? dongNhat.tenAp : '');
+        taiSsid();
 
         var m = /T(\d{2}):(\d{2})/.exec(res.kiemTraGanNhat || '');
         $('#apLanCuoi').text(m ? m[1] + ':' + m[2] : '–');

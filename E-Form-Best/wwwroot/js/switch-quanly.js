@@ -100,6 +100,41 @@
             + (dong2 ? '<div class="text-muted" style="font-size:11px;">' + esc(dong2) + '</div>' : '') + '</td>';
     }
 
+    // ---------------- Tra MAC ----------------
+
+    function traMac() {
+        var $nut = $('#btnTraMacTim'), $body = $('#traMacBody'), $loi = $('#traMacLoi');
+        $loi.addClass('d-none').text('');
+        $nut.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Đang tìm');
+
+        $.getJSON(goc + '/TraMac', { q: $('#traMacQ').val() })
+            .done(function (res) {
+                if (!res.thanhCong) {
+                    $loi.text(res.thongBao || 'Không tra được.').removeClass('d-none');
+                    $body.empty();
+                    return;
+                }
+                // Đếm số MAC khớp trên từng cổng (hiện ở title): cổng gom nhiều MAC khớp thường là đường trục
+                var soMacTheoCong = {};
+                res.duLieu.forEach(function (x) { var k = x.ipSwitch + '|' + x.soCong; soMacTheoCong[k] = (soMacTheoCong[k] || 0) + 1; });
+                $('#traMacTomTat').text('Đoạn "' + res.doan + '": ' + res.tongDong + ' dòng'
+                    + (res.tongDong > res.duLieu.length ? ' (hiện ' + res.duLieu.length + ' dòng đầu — gõ MAC dài hơn để thu hẹp)' : '') + '.');
+                $body.html(res.duLieu.length ? res.duLieu.map(function (x) {
+                    return '<tr>'
+                        + '<td class="font-monospace">' + esc(x.mac) + '</td>'
+                        + '<td class="fw-bold">' + esc(x.tenSwitch) + '</td>'
+                        + '<td class="font-monospace text-muted">' + esc(x.ipSwitch) + '</td>'
+                        + '<td title="' + esc('Cổng số ' + (x.soCong == null ? '?' : x.soCong) + ' · ' + soMacTheoCong[x.ipSwitch + '|' + x.soCong] + ' MAC khớp trên cổng này') + '">'
+                        + esc(x.tenCong || ('Cổng ' + x.soCong)) + '</td>'
+                        + '<td class="text-end">' + esc(x.vlan) + '</td>'
+                        + '<td class="text-nowrap text-muted">' + esc(gio(x.thayLuc)) + '</td>'
+                        + '</tr>';
+                }).join('') : '<tr><td colspan="6" class="text-center text-muted py-3">Không thấy MAC này trên switch nào.</td></tr>');
+            })
+            .fail(function () { $loi.text('Lỗi kết nối máy chủ.').removeClass('d-none'); })
+            .always(function () { $nut.prop('disabled', false).html('<i class="fas fa-magnifying-glass me-1"></i> Tìm'); });
+    }
+
     // Hạn bảo hành đã qua thì tô đỏ để thấy ngay switch nào hết bảo hành
     function oHanBaoHanh(v) {
         if (!v) return '<td></td>';
@@ -469,6 +504,16 @@
         }
 
         $('#btnTaiLai').on('click', taiDanhSach);
+
+        // Tra MAC (chỉ BPVN — view chỉ dựng nút + modal cho BPVN)
+        $(document).on('click', '#btnTraMac', function () {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalTraMac')).show();
+            setTimeout(function () { $('#traMacQ').trigger('focus'); }, 300);
+        });
+        $(document).on('submit', '#formTraMac', function (e) {
+            e.preventDefault();
+            traMac();
+        });
         $('#filterBoPhan, #filterTinhTrang, #filterKetNoi').on('change', taiDanhSach);
         // Gõ tới đâu lọc tới đó, hoãn 350ms cho đỡ dội request
         $('#filterTuKhoa').on('input', function () {

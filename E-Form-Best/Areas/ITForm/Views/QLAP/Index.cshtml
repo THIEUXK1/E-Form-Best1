@@ -69,6 +69,11 @@
                             <div class="cam-tile" title="Tổng thiết bị đang kết nối Wi-Fi qua các AP online (theo controller)"><div class="cam-tile-nhan">Client Wi-Fi</div><div class="cam-tile-so" id="tongClient">–</div><div class="cam-tile-phu" id="apClientNhieuNhat"></div></div>
                             <div class="cam-tile"><div class="cam-tile-nhan">Kiểm tra gần nhất</div><div class="cam-tile-so cam-tile-so-nho" id="apLanCuoi">–</div><div class="cam-tile-phu" id="kiemTraGanNhat"></div></div>
                         </div>
+                        @if (congTy == "BPVN")
+                        {
+                            @* Client Wi-Fi theo SSID (hệ thống giám sát mạng 10.0.60.238 đọc từ WLC) — JS điền, lỗi thì ẩn cả dòng *@
+                            <div class="small mb-2 d-none" id="apSsid" title="Số thiết bị đang kết nối theo từng SSID"></div>
+                        }
 
                         <div class="row g-2 mb-2">
                             <div class="col-lg-7">
@@ -401,5 +406,5 @@
     @* Cùng Chart.js với trang camera (dùng lại cache trình duyệt); CDN lỗi thì chỉ mất biểu đồ *@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/fixed-page-layout.js?v=5" defer></script>
-    <script src="/js/ap-quanly.js?v=20261014b"></script>
+    <script src="/js/ap-quanly.js?v=20261015a"></script>
 }
