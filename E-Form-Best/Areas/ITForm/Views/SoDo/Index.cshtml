@@ -30,11 +30,85 @@
 
 <section class="content">
     <div class="container-fluid">
-        <div class="card border-0 shadow-sm bg-white" style="border-radius:15px;">
+        <div class="card border-0 shadow-sm bg-white" id="sodoThe" style="border-radius:15px;">
             <div class="card-body p-2 p-md-3">
                 <div class="alert alert-info py-2 small mb-2">
-                    Sơ đồ <b>logic</b> tự sinh từ dữ liệu đang quản lý (Switch · AP · Camera). Hệ thống chưa lưu đấu nối cổng vật lý,
-                    nên các nhánh xếp theo tầng: Core → Phân phối → Truy cập, kèm cụm AP theo controller và cụm Camera theo đầu ghi. Lăn chuột để phóng to/thu nhỏ, giữ chuột trái kéo để di chuyển.
+                    Sơ đồ <b>logic</b> tự sinh từ dữ liệu đang quản lý (Switch · AP · Camera); hệ thống chưa lưu đấu nối cổng vật lý.
+                    Lăn chuột để phóng to/thu nhỏ, giữ chuột trên nền để di chuyển, <b>kéo một thiết bị</b> để tự sắp xếp (chuyển sang bố cục Thủ công, nhớ trên máy này).
+                </div>
+
+                <div class="sodo-thanh mb-2">
+                    <div class="sodo-o">
+                        <label for="sodoBoCuc">Bố cục</label>
+                        <select id="sodoBoCuc" class="form-select form-select-sm">
+                            <option value="tang">Phân tầng (cổ điển)</option>
+                            <option value="gon">Phân tầng gọn (xuống dòng)</option>
+                            <option value="tron">Hình tròn (toả từ core)</option>
+                            <option value="luc">Lực đẩy (tự giãn)</option>
+                            <option value="tay">Thủ công (kéo thả)</option>
+                        </select>
+                    </div>
+                    <div class="sodo-o">
+                        <label for="sodoKieuCanh">Đường nối</label>
+                        <select id="sodoKieuCanh" class="form-select form-select-sm">
+                            <option value="cong">Cong</option>
+                            <option value="thang">Thẳng</option>
+                            <option value="gap">Gấp khúc</option>
+                        </select>
+                    </div>
+                    <div class="sodo-o">
+                        <label for="sodoKieuCum">Cụm AP / Camera</label>
+                        <select id="sodoKieuCum" class="form-select form-select-sm">
+                            <option value="hop">Hộp danh sách</option>
+                            <option value="gon">Nút gọn (đếm số)</option>
+                        </select>
+                    </div>
+                    <div class="sodo-o">
+                        <label>Loại thiết bị</label>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle sodo-dd" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                <i class="fas fa-filter me-1"></i><span id="sodoLoaiNhan">Tất cả</span>
+                            </button>
+                            <div class="dropdown-menu p-2 sodo-dd-menu">
+                                <div class="d-flex justify-content-between small mb-1">
+                                    <a href="#" data-sodo-loai-tat="1">Chọn hết</a><a href="#" data-sodo-loai-tat="0">Bỏ hết</a>
+                                </div>
+                                <div class="sodo-dd-nhom">Switch</div>
+                                <label class="form-check"><input class="form-check-input" type="checkbox" data-sodo-loai="core"> <span class="form-check-label">Core</span></label>
+                                <label class="form-check"><input class="form-check-input" type="checkbox" data-sodo-loai="pp"> <span class="form-check-label">Phân phối</span></label>
+                                <label class="form-check"><input class="form-check-input" type="checkbox" data-sodo-loai="tc"> <span class="form-check-label">Truy cập / chưa gán</span></label>
+                                <div class="sodo-dd-nhom">Không dây · CCTV</div>
+                                <label class="form-check"><input class="form-check-input" type="checkbox" data-sodo-loai="ap"> <span class="form-check-label">Cụm AP (theo controller)</span></label>
+                                <label class="form-check"><input class="form-check-input" type="checkbox" data-sodo-loai="cam"> <span class="form-check-label">Cụm Camera (theo đầu ghi)</span></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sodo-o">
+                        <label for="sodoLocTt">Trạng thái</label>
+                        <select id="sodoLocTt" class="form-select form-select-sm">
+                            <option value="">Tất cả</option>
+                            <option value="UP">Online</option>
+                            <option value="DOWN">Mất kết nối</option>
+                            <option value="CHUA">Chưa kiểm / không theo dõi</option>
+                        </select>
+                    </div>
+                    <div class="sodo-o sodo-o-tim">
+                        <label for="sodoTim">Tìm thiết bị <span class="text-muted" id="sodoTimKq"></span></label>
+                        <input id="sodoTim" type="search" class="form-control form-control-sm" placeholder="Tên hoặc IP, Enter để nhảy tới">
+                    </div>
+                    <div class="sodo-o sodo-o-nut">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="sodoXepLai" title="Bỏ vị trí kéo tay, về phân tầng cổ điển"><i class="fas fa-wand-magic-sparkles me-1"></i>Xếp lại</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="sodoToanManHinh" title="Toàn màn hình"><i class="fas fa-up-right-and-down-left-from-center"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="sodoTaiSvg" title="Tải sơ đồ (SVG)"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+
+                <div class="sodo-tk mb-2">
+                    <span>Đang hiển thị <b id="sodoTkHien">0</b> thiết bị</span>
+                    <span>Switch <b id="sodoTkSw">0</b></span>
+                    <span>AP <b id="sodoTkAp">0</b></span>
+                    <span>Camera <b id="sodoTkCam">0</b></span>
+                    <span>Cụm <b id="sodoTkCum">0</b></span>
                 </div>
                 <div class="alert alert-warning py-2 small d-none" id="sodoLoi"></div>
 
@@ -64,6 +138,23 @@
     .sodo-node { cursor:inherit; }
     .sodo-node text { font-family:inherit; }
     .sodo-zoom-pct { min-width:58px; font-variant-numeric:tabular-nums; }
+    .sodo-thanh { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:flex-end; }
+    .sodo-o { display:flex; flex-direction:column; gap:2px; min-width:150px; }
+    .sodo-o > label { font-size:.75rem; color:#6b7280; margin:0; white-space:nowrap; }
+    .sodo-o-tim { flex:1 1 220px; }
+    .sodo-o-nut { flex-direction:row; gap:6px; min-width:0; }
+    .sodo-dd { width:100%; text-align:left; background:#fff; }
+    .sodo-dd-menu { min-width:240px; }
+    .sodo-dd-nhom { font-size:.72rem; font-weight:700; color:#6b7280; text-transform:uppercase; margin:6px 0 2px; }
+    .sodo-dd-menu .form-check { display:flex; gap:6px; align-items:center; margin:0; padding:2px 0 2px 1.6em; cursor:pointer; }
+    .sodo-tk { display:flex; flex-wrap:wrap; gap:4px 18px; font-size:.82rem; color:#6b7280; }
+    .sodo-tk b { color:#111827; margin-left:3px; }
+    .sodo-node, .sodo-canh { transition:opacity .15s; }
+    .sodo-mo { opacity:.15; }
+    .sodo-khop .sodo-vien { stroke:#f59e0b; stroke-width:3.5; }
+    .sodo-chip-khop { fill:#b45309; font-weight:700; }
+    #sodoThe:fullscreen { overflow:auto; border-radius:0 !important; }
+    #sodoThe:fullscreen .sodo-wrap { height:calc(100vh - 230px); }
 </style>
 
-<script src="/js/so-do.js?v=20261015b"></script>
+<script src="/js/so-do.js?v=20261015c"></script>
