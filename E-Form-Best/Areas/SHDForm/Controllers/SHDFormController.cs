@@ -2657,6 +2657,10 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
             var unreadCount = await query.CountAsync(l => l.IsRead != true);
 
+            // Bình luận do chính mình viết/xoá vẫn hiện trong danh sách nhưng client không đếm, không kêu.
+            var tenToi = User.Identity?.Name ?? "";
+            var maToi = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+
             var logs = await query.OrderByDescending(l => l.Time)
                                   .Skip(skip)
                                   .Take(take)
@@ -2667,7 +2671,9 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                                       l.TieuDe,
                                       l.Mota,
                                       Time = l.Time.HasValue ? l.Time.Value.ToString("dd/MM HH:mm") : "",
-                                      IsRead = l.IsRead ?? false
+                                      IsRead = l.IsRead ?? false,
+                                      TenDon = l.IdFormShdNavigation != null ? l.IdFormShdNavigation.TenForm : null,
+                                      CuaToi = loai == "binhluan" && E_Form_Best.Areas.ITForm.Services.BinhLuanCuaToi.LaCuaToi(l.Mota, tenToi, maToi)
                                   })
                                   .ToListAsync();
 
