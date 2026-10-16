@@ -331,8 +331,14 @@ function getReadIds() {
 }
 
 function setReadCookie(ids) {
-    // Chỉ giữ 300 id gần nhất, tránh lặp lại tình trạng phình to không giới hạn như cookie cũ.
-    const trimmed = ids.slice(-300);
+    // Chuông và bình luận dùng chung một danh sách: cắt thuần "300 id ghi sau cùng" thì đọc nhiều thông báo
+    // chuông sẽ đẩy văng id bình luận đã đọc từ trước, trong khi bình luận đó vẫn nằm trong 60 tin mới nhất
+    // → hiện lại là chưa đọc. Nên luôn giữ id đang hiển thị ở hai kênh, chỉ cắt bớt id đã trôi khỏi danh sách.
+    const dangHien = new Set();
+    Object.values(kenhThongBao).forEach(k => (k.allFetchedIds || []).forEach(id => dangHien.add(id)));
+    const giu = ids.filter(id => dangHien.has(id));
+    const cu = ids.filter(id => !dangHien.has(id));
+    const trimmed = cu.slice(-Math.max(0, 1000 - giu.length)).concat(giu);
     try { localStorage.setItem('read_notifications', trimmed.join(',')); } catch (e) { }
 }
 
