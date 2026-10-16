@@ -24,7 +24,7 @@
         }
         $khung.html(ds.map(function (c) {
             var ten = moDuoc.indexOf(c.congTy) >= 0
-                ? '<a class="sv-the-cty-ten" href="/QLServer/' + encodeURIComponent(c.congTy) + '">' + esc(c.congTy) + ' <i class="fas fa-arrow-right small"></i></a>'
+                ? '<a class="sv-the-cty-ten" target="_top" href="/QLServer/' + encodeURIComponent(c.congTy) + '">' + esc(c.congTy) + ' <i class="fas fa-arrow-right small"></i></a>'
                 : '<span class="sv-the-cty-ten">' + esc(c.congTy) + '</span>';
 
             var tyLe = c.dungLuongTb > 0 ? c.daDungTb / c.dungLuongTb : null;

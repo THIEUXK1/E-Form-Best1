@@ -7,7 +7,7 @@
     var SO_BUOC = 4;
     var DIEM_NHANH = [0, 2, 4, 6, 8, 10];
 
-    var st = { buoc: 1, ma: '', d: null, diem: {}, diemTu: {}, dsNhom: [], dsKpi: [], chiXem: false, dangLuu: false };
+    var st = { buoc: 1, ma: '', d: null, diem: {}, diemTu: {}, dsNhom: [], dsKpi: [], chiXem: false, dangLuu: false, ds: [] };
 
     function $(id) { return document.getElementById(id); }
 
@@ -70,10 +70,11 @@
                 var sel = $('dgnvChon');
                 sel.textContent = '';
                 sel.appendChild(el('option', { value: '', text: '— Chọn nhân viên để đánh giá —' }));
-                var nhan = { completed: 'Hoàn thành', awaiting_manager: 'Chờ quản lý', awaiting_self: 'Chờ tự đánh giá', not_started: 'Chưa đánh giá' };
-                (kq.duLieu || []).forEach(function (nv) {
-                    sel.appendChild(el('option', { value: nv.maNv, text: nv.maNv + ' — ' + nv.hoTen + ' (' + (nhan[nv.trangThai] || '') + ')' }));
+                st.ds = kq.duLieu || [];
+                st.ds.forEach(function (nv) {
+                    sel.appendChild(el('option', { value: nv.maNv, text: nhanOption(nv) }));
                 });
+                veDsCho();
                 if (maUrl) {
                     sel.value = maUrl;
                     if (sel.value) taiNhanVien(maUrl, false);
@@ -83,10 +84,56 @@
             .catch(function (e) { trangThaiTai(e.message, true); });
     }
 
+    var NHAN_TT = { completed: 'Hoàn thành', awaiting_manager: 'Chờ quản lý', awaiting_self: 'Chờ tự đánh giá', not_started: 'Chưa đánh giá' };
+
+    function nhanOption(nv) { return nv.maNv + ' — ' + nv.hoTen + ' (' + (NHAN_TT[nv.trangThai] || '') + ')'; }
+
+    // Danh sách người quản lý chưa gửi đánh giá (Chờ quản lý + Chưa đánh giá); chỉ hiện khi chưa chọn nhân viên
+    function veDsCho() {
+        var cho = st.ds.filter(function (nv) { return !nv.daQuanLyDanhGia; })
+            .sort(function (a, b) {
+                var ua = a.trangThai === 'awaiting_manager' ? 0 : 1, ub = b.trangThai === 'awaiting_manager' ? 0 : 1;
+                return ua - ub || String(a.maNv).localeCompare(String(b.maNv));
+            });
+        $('dgnvSoCho').textContent = cho.length;
+        var tb = $('dgnvDsCho');
+        tb.textContent = '';
+        if (!cho.length) {
+            tb.appendChild(el('tr', null, [el('td', { colspan: '4', class: 'tdg-cho-trong', text: 'Không còn nhân viên nào cần quản lý đánh giá.' })]));
+        }
+        cho.forEach(function (nv) {
+            tb.appendChild(el('tr', { 'data-chon-nv': nv.maNv }, [
+                el('td', null, [el('b', { text: nv.maNv }), ' — ' + (nv.hoTen || '')]),
+                el('td', { text: nv.phongBan || '' }),
+                el('td', null, [el('span', { class: 'tdg-badge ' + nv.trangThai, text: NHAN_TT[nv.trangThai] || '' })]),
+                el('td', null, [el('span', { class: 'btn btn-sm btn-primary' }, [el('i', { class: 'fa fa-pencil-square-o' }), ' Đánh giá'])])
+            ]));
+        });
+        $('dgnvCho').hidden = !!st.ma;
+    }
+
+    // Cập nhật trạng thái 1 người trong danh sách sau khi lưu / mở lại phiếu (không gọi lại API danh sách)
+    function capNhatTrangThaiDs() {
+        var nv = st.ds.filter(function (x) { return x.maNv === st.ma; })[0];
+        if (!nv || !st.d) return;
+        var daTu = !!(st.d.phieuTu && st.d.phieuTu.ngayNop), daQl = !!(st.d.phieuQuanLy && st.d.phieuQuanLy.ngayNop);
+        nv.daTuDanhGia = daTu;
+        nv.daQuanLyDanhGia = daQl;
+        nv.trangThai = daTu && daQl ? 'completed' : daTu ? 'awaiting_manager' : daQl ? 'awaiting_self' : 'not_started';
+        var opt = $('dgnvChon').querySelector('option[value="' + CSS.escape(nv.maNv) + '"]');
+        if (opt) opt.textContent = nhanOption(nv);
+        veDsCho();
+    }
+
     function taiNhanVien(ma, doiUrl) {
         st.ma = ma;
         $('dgnvNoiDung').hidden = true;
-        if (!ma) { trangThaiTai(''); return; }
+        $('dgnvCho').hidden = !!ma;
+        if (!ma) {
+            trangThaiTai('');
+            if (doiUrl) history.replaceState(null, '', '/QLCongViec/DanhGia/DanhGiaNhanVien');
+            return;
+        }
         if (doiUrl) history.replaceState(null, '', '/QLCongViec/DanhGia/DanhGiaNhanVien?maNv=' + encodeURIComponent(ma));
         trangThaiTai('Đang tải dữ liệu đánh giá...');
         goiApi('/QLCongViec/DanhGia/QuanLy/DuLieuDanhGia?maNv=' + encodeURIComponent(ma))
@@ -412,6 +459,7 @@
                 st.d.phieuTu = kq.duLieu.phieuTu;
                 st.d.phieuQuanLy = kq.duLieu.phieuQuanLy;
                 veThongTin();
+                capNhatTrangThaiDs();
                 if (b === SO_BUOC) {
                     chuyenBuoc(SO_BUOC);
                     Swal.fire({ icon: 'success', title: kq.thongBao, timer: 2000, showConfirmButton: false });
@@ -443,6 +491,7 @@
                     st.d.phieuQuanLy = kq.duLieu.phieuQuanLy;
                     veThongTin();
                     veSoSanh();
+                    capNhatTrangThaiDs();
                     Swal.fire({ icon: 'success', text: kq.thongBao, timer: 1800, showConfirmButton: false });
                 })
                 .catch(function (e) { Swal.fire({ icon: 'error', text: e.message }); })
@@ -456,6 +505,8 @@
         if (t.closest('#dgnvTiepTuc')) { e.preventDefault(); tiepTuc(); return; }
         if (t.closest('#dgnvQuayLai')) { e.preventDefault(); if (st.buoc > 1 && !st.dangLuu) { docKpi(); chuyenBuoc(st.buoc - 1); } return; }
         if (t.closest('#dgnvMoLai')) { moLai(); return; }
+        var chonNv = t.closest('[data-chon-nv]');
+        if (chonNv) { var ma = chonNv.getAttribute('data-chon-nv'); $('dgnvChon').value = ma; taiNhanVien(ma, true); return; }
         var nhanh = t.closest('[data-diem-nhanh]');
         if (nhanh && !st.chiXem) { datDiem(nhanh.getAttribute('data-nl'), nhanh.getAttribute('data-diem-nhanh')); return; }
         var moNhom = t.closest('[data-mo-nhom]');

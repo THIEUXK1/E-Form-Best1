@@ -239,3 +239,20 @@ html.fp-lock .fp-grow[hidden] {
     .tdg-ct-hang, .tdg-ct-hang.tdg-ct-dao { grid-template-columns: 1fr; }
     .tdg-ct-ba { grid-template-columns: 1fr; }
 }
+
+/* Đánh giá nhân viên: danh sách người quản lý chưa đánh giá — cuộn riêng để không đẩy trang */
+.tdg-cho-cuon { max-height: 55vh; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; }
+.tdg-bang-cho thead th { position: sticky; top: 0; z-index: 1; }
+.tdg-bang-cho td, .tdg-bang-cho th { text-align: left; vertical-align: middle; }
+.tdg-bang-cho td:last-child { text-align: right; white-space: nowrap; }
+.tdg-bang-cho tbody tr[data-chon-nv] { cursor: pointer; }
+.tdg-bang-cho tbody tr[data-chon-nv]:hover { background: #f0f9ff; }
+.tdg-cho-trong { text-align: center !important; color: #64748b; padding: 18px !important; }
+.tdg-card-title .tdg-badge { vertical-align: middle; margin-left: 6px; }
+
+/* Quản lý nhân viên: ô thêm nhanh cấp bậc trong hộp hồ sơ */
+.tdg-them-cap { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; border: 1px dashed #93c5fd; border-radius: 10px; background: #f8fafc; font-weight: 400; }
+.tdg-them-cap .form-control, .tdg-them-cap .form-select { flex: 1 1 120px; width: auto; }
+.tdg-them-cap-goi-y { flex-basis: 100%; color: #64748b; }
+.tdg-them-cap .tdg-loi:empty { display: none; }
+.tdg-them-cap .tdg-loi { flex-basis: 100%; }

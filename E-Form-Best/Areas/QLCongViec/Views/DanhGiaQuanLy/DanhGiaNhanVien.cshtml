@@ -4,7 +4,7 @@
 }
 
 <link rel="stylesheet" href="~/css/fixed-page-layout.css" />
-<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=5" />
+<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=6" />
 
 <div id="dgnv" class="tdg fp-page">
     <div class="tdg-head">
@@ -16,6 +16,17 @@
         <div class="tdg-chon-nv">
             <label class="tdg-field"><span>Nhân viên</span><select class="form-select" id="dgnvChon"><option value="">— Đang tải danh sách —</option></select></label>
             <a class="btn btn-outline-secondary" href="/QLCongViec/DanhGia/NhanVien"><i class="fa fa-users"></i> Danh sách nhân viên</a>
+        </div>
+    </section>
+
+    <section class="tdg-card" id="dgnvCho" hidden>
+        <h2 class="tdg-card-title">Cần quản lý đánh giá <span class="tdg-badge awaiting_manager" id="dgnvSoCho">0</span></h2>
+        <p class="tdg-card-desc">Nhân viên quản lý chưa gửi đánh giá — “Chờ quản lý” (nhân viên đã tự đánh giá) xếp trước. Bấm một dòng để đánh giá.</p>
+        <div class="tdg-cho-cuon">
+            <table class="tdg-bang tdg-bang-cho">
+                <thead><tr><th>Nhân viên</th><th>Phòng ban</th><th>Trạng thái</th><th></th></tr></thead>
+                <tbody id="dgnvDsCho"></tbody>
+            </table>
         </div>
     </section>
 
@@ -90,6 +101,6 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/danh-gia-nhan-vien.js?v=3"></script>
+    <script src="~/js/danh-gia-nhan-vien.js?v=4"></script>
     <script src="~/js/fixed-page-layout.js" defer></script>
 }

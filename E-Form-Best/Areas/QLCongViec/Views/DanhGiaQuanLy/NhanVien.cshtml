@@ -4,7 +4,7 @@
 }
 
 <link rel="stylesheet" href="~/css/fixed-page-layout.css" />
-<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=5" />
+<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=6" />
 
 <div id="qlnv" class="tdg tdg-rong fp-page">
     <div class="tdg-toolbar">
@@ -57,7 +57,21 @@
                 <div id="qlnvModalTai" class="tdg-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải...</div>
                 <div id="qlnvModalNoiDung" hidden>
                     <div class="tdg-grid2">
-                        <label class="tdg-field"><span>Cấp bậc</span><select class="form-select" id="qlnvCapBac"></select></label>
+                        <div class="tdg-field">
+                            <span>Cấp bậc</span>
+                            <div class="input-group">
+                                <select class="form-select" id="qlnvCapBac" aria-label="Cấp bậc"></select>
+                                <button type="button" class="btn btn-outline-primary" id="qlnvMoThemCap" title="Thêm nhanh cấp bậc"><i class="fa fa-plus"></i></button>
+                            </div>
+                            <div class="tdg-them-cap" id="qlnvThemCap" hidden>
+                                <input type="text" class="form-control form-control-sm" id="qlnvCapMoi" maxlength="10" placeholder="Mã cấp bậc mới, VD 5A" />
+                                <select class="form-select form-select-sm" id="qlnvCapNguon" title="Sao chép điểm yêu cầu năng lực từ cấp bậc này"></select>
+                                <button type="button" class="btn btn-sm btn-primary" id="qlnvLuuCap">Thêm</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="qlnvHuyCap">Huỷ</button>
+                                <small class="tdg-them-cap-goi-y">Điểm yêu cầu năng lực được sao chép từ cấp bậc đã chọn.</small>
+                                <small class="tdg-loi" id="qlnvCapLoi" role="alert"></small>
+                            </div>
+                        </div>
                         <label class="tdg-field"><span>Nhóm công việc</span><select class="form-select" id="qlnvNhom"><option value="">— Chưa gán —</option></select></label>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
@@ -77,6 +91,6 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/quan-ly-nhan-vien-danh-gia.js?v=3"></script>
+    <script src="~/js/quan-ly-nhan-vien-danh-gia.js?v=4"></script>
     <script src="~/js/fixed-page-layout.js" defer></script>
 }

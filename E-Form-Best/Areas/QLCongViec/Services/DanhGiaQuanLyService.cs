@@ -230,6 +230,44 @@ namespace E_Form_Best.Areas.QLCongViec.Services
         }
 
         /// <summary>
+        /// Thêm nhanh cấp bậc: danh sách cấp bậc lấy từ DG_MaTranYeuCau nên cấp bậc mới phải có ma trận,
+        /// không thì phiếu báo "Chưa có ma trận năng lực" → sao chép điểm yêu cầu từ một cấp bậc có sẵn
+        /// (sửa điểm sau). Đã tồn tại thì coi là thành công — bấm 2 lần không nhân đôi (UNIQUE id_nang_luc + cap_bac).
+        /// Trả (lỗi, đãCó).
+        /// </summary>
+        public async Task<(string? Loi, bool DaCo)> ThemCapBacAsync(string? capBacVao, string? saoChepTuVao)
+        {
+            var capBac = capBacVao?.Trim().ToUpperInvariant();
+            var saoChepTu = saoChepTuVao?.Trim();
+            if (string.IsNullOrEmpty(capBac) || capBac.Length > 10) return ("Nhập mã cấp bậc (tối đa 10 ký tự).", false);
+            if (await _context.DgMaTranYeuCaus.AnyAsync(x => x.CapBac == capBac)) return (null, true);
+            if (string.IsNullOrEmpty(saoChepTu)) return ("Chọn cấp bậc để sao chép điểm yêu cầu.", false);
+
+            var nguon = await _context.DgMaTranYeuCaus.AsNoTracking()
+                .Where(x => x.CapBac == saoChepTu)
+                .Select(x => new { x.IdNangLuc, x.DiemYeuCau })
+                .ToListAsync();
+            if (nguon.Count == 0) return ($"Cấp bậc {saoChepTu} chưa có ma trận để sao chép.", false);
+
+            _context.DgMaTranYeuCaus.AddRange(nguon.Select(x => new DgMaTranYeuCau
+            {
+                IdMaTran = Guid.NewGuid(), IdNangLuc = x.IdNangLuc, CapBac = capBac, DiemYeuCau = x.DiemYeuCau
+            }));
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                // Người khác vừa thêm cùng mã (vướng UNIQUE) → cấp bậc đã có, không phải lỗi
+                _context.ChangeTracker.Clear();
+                if (await _context.DgMaTranYeuCaus.AsNoTracking().AnyAsync(x => x.CapBac == capBac)) return (null, true);
+                throw;
+            }
+            return (null, false);
+        }
+
+        /// <summary>
         /// Lưu cấp bậc / nhóm công việc + bộ KPI được giao. Bỏ giao = chuyển trang_thai 'inactive' (không xoá,
         /// phiếu cũ vẫn tham chiếu KPI mẫu); giao lại thì bật dòng cũ lên — UNIQUE (ma_nhan_vien, id_kpi_mau).
         /// </summary>

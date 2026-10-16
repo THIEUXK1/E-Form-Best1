@@ -52,6 +52,15 @@
     bool isThietBiPage = currentAction == "IndexThietBi";
     string xemThietBi = isThietBiPage ? (Context.Request.Query["xem"].ToString() ?? "") : "";
 
+    // "Kiểm kê tài sản" đặt trong nhóm Kiểm Kê Thiết Bị; AdminIT không có quyền kiểm kê vẫn thấy ở nhánh AdminIT
+    void MenuKiemKeTaiSan()
+    {
+        <a href="/QLKiemKe/ThongKe" class="nav-link-item @(currentAction == "ThongKeKiemKe" ? "active" : "")" aria-current="@(currentAction == "ThongKeKiemKe" ? "page" : null)">
+            <i class="fa fa-pie-chart nav-ico" style="color:#3b82f6;"></i>
+            <span class="lang-text" data-key="inventory_stats">@L["Kiểm kê tài sản"]</span>
+        </a>
+    }
+
     // Menu "Quản lý Thiết bị" xuất hiện ở 2 nhánh quyền khác nhau (chỉ một nhánh được vẽ) nên gom vào một chỗ
     void MenuQuanLyThietBi()
     {
@@ -494,14 +503,10 @@
                                 </a>
                             </div>
                         </div>
-                        <a href="/QLKiemKe/ThongKe" class="nav-link-item @(currentAction == "ThongKeKiemKe" ? "active" : "")" aria-current="@(currentAction == "ThongKeKiemKe" ? "page" : null)">
-                            <i class="fa fa-pie-chart nav-ico" style="color:#3b82f6;"></i>
-                            <span class="lang-text" data-key="inventory_stats">@L["Kiểm kê tài sản"]</span>
-                        </a>
-
-                        @* AdminIT cũng được xem Quản lý Thiết bị; chặn hiện 2 lần khi user có thêm quyền kiểm kê ở khối bên dưới *@
+                        @* AdminIT cũng được xem Kiểm kê tài sản + Quản lý Thiết bị; chặn hiện 2 lần khi user có thêm quyền kiểm kê ở khối bên dưới *@
                         @if (!User.IsInRole("KKTS-PFVN") && !User.IsInRole("All"))
                         {
+                            MenuKiemKeTaiSan();
                             MenuQuanLyThietBi();
                         }
 
@@ -513,6 +518,7 @@
                             Kiểm Kê Thiết Bị @(isKiemKeGroupActive ? "•" : "")
                         </div>
 
+                        MenuKiemKeTaiSan();
                         MenuQuanLyThietBi();
 
                         @* Danh sách tài sản & Cấu hình Danh mục chỉ quyền All — kiểm lại ở action tương ứng *@

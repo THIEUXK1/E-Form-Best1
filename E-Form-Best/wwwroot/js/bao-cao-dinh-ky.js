@@ -429,9 +429,11 @@
             doiUrl(loai);
         }
 
-        // Khối so sánh kỳ trước chỉ cho 3 tab không phải Camera/AP/Switch (3 tab đó đã có sẵn trong nội dung)
-        $id('bcSoSanhKhac').classList.toggle('d-none', kieu === 'tong-quan');
-        if (kieu !== 'tong-quan') {
+        // Khối so sánh kỳ trước chỉ cho Thiết bị / Đơn IT / Công việc: Camera/AP/Switch đã có sẵn trong nội dung,
+        // Server & lưu trữ là số liệu hiện tại (không theo kỳ) nên không có gì để so
+        var coSoSanh = ['thiet-bi', 'don-it', 'cong-viec'].indexOf(loai) >= 0;
+        $id('bcSoSanhKhac').classList.toggle('d-none', !coSoSanh);
+        if (coSoSanh) {
             ++luotSs;   // bỏ lượt so sánh của tab trước còn dở
             $id('bcSsNoiDung').innerHTML = '<div class="text-center text-muted py-3">Đang tải...</div>';
             napSoSanh(loai);

@@ -360,44 +360,30 @@
                     @* CẬP NHẬT: THÊM KIỂM TRA QUYỀN "FORM_CV_VIEW" HOẶC "All" CHO TOÀN BỘ MENU *@
                     @if (User.IsInRole("FORM_CV_VIEW") || User.IsInRole("All"))
                     {
-                        @* Không xổ menu con nữa: bấm vào đây mở trang /FormCongViec/DangKyDon liệt kê các loại đơn dạng thẻ *@
-                        <a id="btnMainMenu" href="/FormCongViec/DangKyDon" class="nav-link-item @(isWorkSubActive ? "active" : "")" aria-current="@(isWorkSubActive ? "page" : null)" style="justify-content: space-between; color:#fff;">
+                        @* Nhóm "Đơn công việc" gộp Đăng ký đơn + Đơn của tôi + Nhật ký hệ thống; đang ở trang con thì mở sẵn.
+                           "Đăng ký đơn" vẫn mở trang /FormCongViec/DangKyDon liệt kê các loại đơn dạng thẻ *@
+                        var isDonCho = currentAction == "DonCho";
+                        var isLichSuCv = currentAction == "LichSuCongViec";
+                        var isDonCvActive = isWorkSubActive || isDonCho || isLichSuCv;
+
+                        <a href="#menuDonCongViec" data-bs-toggle="collapse" role="button" aria-controls="menuDonCongViec" aria-expanded="@(isDonCvActive ? "true" : "false")" class="nav-link-item @(isDonCvActive ? "active" : "")" style="justify-content: space-between;">
                             <span style="display:flex; align-items:center;">
                                 <i class="fa fa-tasks" style="margin-right:12px; width:20px; font-size: 1.1rem; color:@accentColor;"></i>
-                                <span class="lang-text" data-key="reg_form">@L["Đăng ký đơn"]</span>
+                                <span class="lang-text">@L["Đơn công việc"]</span>
                             </span>
-                            <i class="fa fa-angle-right" style="opacity:0.6;"></i>
+                            <i class="fa fa-angle-down menu-arrow" style="opacity:0.6;"></i>
                         </a>
-
-                        <a href="/FormCongViec/DonCho" class="nav-link-item @(currentAction == "DonCho" ? "active" : "")">
-                            <i class="fa fa-align-left" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#34d399;"></i> <span class="lang-text">@L["Đơn của tôi"]</span>
-                        </a>
-
-                        <a href="/FormCongViec/LichSuCongViec" class="nav-link-item @(currentAction == "LichSuCongViec" ? "active" : "")">
-                            <i class="fa fa-history" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#60a5fa;"></i> <span class="lang-text">@L["Nhật ký hệ thống"]</span>
-                        </a>
-
-                        <a href="/FormCongViec/DaoTao" class="nav-link-item @(currentAction == "DaoTao" ? "active" : "")">
-                            <i class="fa fa-graduation-cap" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text">@L["Đào tạo"]</span>
-                        </a>
-
-                        @* Nhóm "Đánh giá" (chuyển từ app evaluation): hiện có trang Tự đánh giá, sau thêm trang quản lý đánh giá vào đây *@
-                        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
-                        <div class="lang-text" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">@L["Đánh giá"]</div>
-
-                        <a href="/QLCongViec/DanhGia/TuDanhGia" class="nav-link-item @(currentController == "DanhGia" && currentAction == "TuDanhGia" ? "active" : "")">
-                            <i class="fa fa-star-half-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#fbbf24;"></i> <span class="lang-text">@L["Tự đánh giá"]</span>
-                        </a>
-
-                        @if (User.IsInRole("DanhGiaQuanLy") || User.IsInRole("All"))
-                        {
-                            <a href="/QLCongViec/DanhGia/NhanVien" class="nav-link-item @(currentController == "DanhGiaQuanLy" && currentAction == "NhanVien" ? "active" : "")">
-                                <i class="fa fa-users" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#38bdf8;"></i> <span class="lang-text">@L["Quản lý nhân viên"]</span>
+                        <div id="menuDonCongViec" class="collapse @(isDonCvActive ? "show" : "")" style="padding-left:14px;">
+                            <a id="btnMainMenu" href="/FormCongViec/DangKyDon" class="submenu-link @(isWorkSubActive ? "active" : "")" aria-current="@(isWorkSubActive ? "page" : null)">
+                                <i class="fa fa-pencil" style="margin-right:12px; width:20px; color:@accentColor;"></i> <span class="lang-text" data-key="reg_form">@L["Đăng ký đơn"]</span>
                             </a>
-                            <a href="/QLCongViec/DanhGia/DanhGiaNhanVien" class="nav-link-item @(currentController == "DanhGiaQuanLy" && currentAction == "DanhGiaNhanVien" ? "active" : "")">
-                                <i class="fa fa-pencil-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#f472b6;"></i> <span class="lang-text">@L["Đánh giá nhân viên"]</span>
+                            <a href="/FormCongViec/DonCho" class="submenu-link @(isDonCho ? "active" : "")">
+                                <i class="fa fa-align-left" style="margin-right:12px; width:20px; color:#34d399;"></i> <span class="lang-text">@L["Đơn của tôi"]</span>
                             </a>
-                        }
+                            <a href="/FormCongViec/LichSuCongViec" class="submenu-link @(isLichSuCv ? "active" : "")">
+                                <i class="fa fa-history" style="margin-right:12px; width:20px; color:#60a5fa;"></i> <span class="lang-text">@L["Nhật ký hệ thống"]</span>
+                            </a>
+                        </div>
 
                         @if (User.Claims.Any(c => c.Type == System.Security.Claims.ClaimTypes.Role) || User.IsInRole("All"))
                         {
@@ -418,14 +404,60 @@
                             <a href="/FormCongViec/BaoCaoThongKeCongViec" class="nav-link-item @(currentAction == "BaoCaoThongKeCongViec" ? "active" : "")">
                                 <i class="fa fa-bar-chart" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#10b981;"></i> <span class="lang-text">@L["Thống kê đơn"]</span>
                             </a>
+                        }
 
-                            @if (User.IsInRole("QuanLyDuyetDonDaoTao") || User.IsInRole("AdminDaoTao") || User.IsInRole("All"))
+                        @* Nhóm "Đào tạo" đặt cuối menu, gộp trang Đào tạo + Duyệt đào tạo; đang ở trang con thì mở sẵn *@
+                        var isDaoTao = currentAction == "DaoTao";
+                        var isDuyetDaoTao = currentAction == "QuanLyXetDuyetDaoTao";
+                        var isDaoTaoActive = isDaoTao || isDuyetDaoTao;
+
+                        @* Nhóm "Đánh giá" gộp thành một mục cha thu gọn, đặt ngay trên "Đào tạo"; đang ở trang con thì mở sẵn *@
+                        var isTuDanhGia = currentController == "DanhGia" && currentAction == "TuDanhGia";
+                        var isQlNhanVien = currentController == "DanhGiaQuanLy" && currentAction == "NhanVien";
+                        var isDgNhanVien = currentController == "DanhGiaQuanLy" && currentAction == "DanhGiaNhanVien";
+                        var isDanhGiaActive = isTuDanhGia || isQlNhanVien || isDgNhanVien;
+
+                        <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
+                        <a href="#menuDanhGia" data-bs-toggle="collapse" role="button" aria-controls="menuDanhGia" aria-expanded="@(isDanhGiaActive ? "true" : "false")" class="nav-link-item @(isDanhGiaActive ? "active" : "")" style="justify-content: space-between;">
+                            <span style="display:flex; align-items:center;">
+                                <i class="fa fa-star-half-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#fbbf24;"></i>
+                                <span class="lang-text">@L["Đánh giá"]</span>
+                            </span>
+                            <i class="fa fa-angle-down menu-arrow" style="opacity:0.6;"></i>
+                        </a>
+                        <div id="menuDanhGia" class="collapse @(isDanhGiaActive ? "show" : "")" style="padding-left:14px;">
+                            <a href="/QLCongViec/DanhGia/TuDanhGia" class="submenu-link @(isTuDanhGia ? "active" : "")">
+                                <i class="fa fa-star-o" style="margin-right:12px; width:20px; color:#fbbf24;"></i> <span class="lang-text">@L["Tự đánh giá"]</span>
+                            </a>
+                            @if (User.IsInRole("DanhGiaQuanLy") || User.IsInRole("All"))
                             {
-                                <a href="/FormCongViec/QuanLyXetDuyetDaoTao" class="nav-link-item @(currentAction == "QuanLyXetDuyetDaoTao" ? "active" : "")">
-                                    <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i> <span class="lang-text">@L["Duyệt đào tạo"]</span>
+                                <a href="/QLCongViec/DanhGia/NhanVien" class="submenu-link @(isQlNhanVien ? "active" : "")">
+                                    <i class="fa fa-users" style="margin-right:12px; width:20px; color:#38bdf8;"></i> <span class="lang-text">@L["Quản lý nhân viên"]</span>
+                                </a>
+                                <a href="/QLCongViec/DanhGia/DanhGiaNhanVien" class="submenu-link @(isDgNhanVien ? "active" : "")">
+                                    <i class="fa fa-pencil-square-o" style="margin-right:12px; width:20px; color:#f472b6;"></i> <span class="lang-text">@L["Đánh giá nhân viên"]</span>
                                 </a>
                             }
-                        }
+                        </div>
+
+                        <a href="#menuDaoTao" data-bs-toggle="collapse" role="button" aria-controls="menuDaoTao" aria-expanded="@(isDaoTaoActive ? "true" : "false")" class="nav-link-item @(isDaoTaoActive ? "active" : "")" style="justify-content: space-between;">
+                            <span style="display:flex; align-items:center;">
+                                <i class="fa fa-graduation-cap" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#a78bfa;"></i>
+                                <span class="lang-text">@L["Đào tạo"]</span>
+                            </span>
+                            <i class="fa fa-angle-down menu-arrow" style="opacity:0.6;"></i>
+                        </a>
+                        <div id="menuDaoTao" class="collapse @(isDaoTaoActive ? "show" : "")" style="padding-left:14px;">
+                            <a href="/FormCongViec/DaoTao" class="submenu-link @(isDaoTao ? "active" : "")">
+                                <i class="fa fa-book" style="margin-right:12px; width:20px; color:#a78bfa;"></i> <span class="lang-text">@L["Đào tạo"]</span>
+                            </a>
+                            @if (User.IsInRole("QuanLyDuyetDonDaoTao") || User.IsInRole("AdminDaoTao") || User.IsInRole("All"))
+                            {
+                                <a href="/FormCongViec/QuanLyXetDuyetDaoTao" class="submenu-link @(isDuyetDaoTao ? "active" : "")">
+                                    <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; color:#c4b5fd;"></i> <span class="lang-text">@L["Duyệt đào tạo"]</span>
+                                </a>
+                            }
+                        </div>
                     }
                 }
             </nav>

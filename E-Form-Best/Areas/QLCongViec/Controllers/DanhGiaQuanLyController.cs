@@ -176,6 +176,31 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             }
         }
 
+        public class ThemCapBacVao { public string? CapBac { get; set; } public string? SaoChepTu { get; set; } }
+
+        [HttpPost("/QLCongViec/DanhGia/QuanLy/ThemCapBac")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ThemCapBac([FromBody] ThemCapBacVao? vao)
+        {
+            if (ChanNeuKhongHopLe() is { } chan) return chan;
+            try
+            {
+                var (loi, daCo) = await _quanLy.ThemCapBacAsync(vao?.CapBac, vao?.SaoChepTu);
+                if (loi != null) return Json(new { thanhCong = false, thongBao = loi });
+                var ma = vao!.CapBac!.Trim().ToUpperInvariant();
+                return Json(new
+                {
+                    thanhCong = true,
+                    thongBao = daCo ? $"Cấp bậc {ma} đã có sẵn." : $"Đã thêm cấp bậc {ma} (điểm yêu cầu sao chép từ {vao.SaoChepTu?.Trim()}).",
+                    duLieu = new { capBac = ma }
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { thanhCong = false, thongBao = "Thêm cấp bậc thất bại: " + ex.Message });
+            }
+        }
+
         /// <summary>Tải file Excel phiếu đánh giá (điều hướng thật được phép: tải file).</summary>
         [HttpGet("/QLCongViec/DanhGia/QuanLy/Excel")]
         public async Task<IActionResult> Excel(string? maNv)

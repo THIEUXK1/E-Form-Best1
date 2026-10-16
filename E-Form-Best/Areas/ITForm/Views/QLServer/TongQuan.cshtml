@@ -1,5 +1,7 @@
 ﻿@{
-    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    // ?nhung=1: mở trong tab iframe "Server & lưu trữ" của Báo cáo tổng hợp (/BaoCaoDinhKy) nên bỏ sidebar
+    var nhung = Context.Request.Query["nhung"] == "1";
+    Layout = nhung ? "~/Areas/ITForm/Views/Shared/_LayoutNhung.cshtml" : "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "Tổng quan Server và lưu trữ";
 }
 
@@ -8,7 +10,7 @@
 <link rel="stylesheet" href="/css/camera-quanly.css?v=20261016a">
 <link rel="stylesheet" href="/css/server-quanly.css?v=20261014b">
 
-<div class="content-header pt-0 pb-0" style="margin-top: -25px;">
+<div class="content-header pt-0 pb-0" style="margin-top: @(nhung ? "0" : "-25px");">
     <div class="container-fluid">
         <div class="dash-topbar">
             <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-server"></i></span>Tổng quan Server và lưu trữ</h4>
@@ -59,5 +61,5 @@
 </section>
 
 @section Scripts {
-    <script src="/js/server-tong-quan.js?v=20261014b"></script>
+    <script src="/js/server-tong-quan.js?v=20261016a"></script>
 }

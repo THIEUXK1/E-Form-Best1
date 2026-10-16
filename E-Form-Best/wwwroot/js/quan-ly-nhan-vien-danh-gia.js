@@ -15,7 +15,7 @@
         not_started: 'Chưa có đánh giá'
     };
 
-    var st = { ds: [], hoSo: null, modal: null };
+    var st = { ds: [], hoSo: null, modal: null, dsCapMaTran: [] };
 
     function $(id) { return document.getElementById(id); }
 
@@ -212,6 +212,8 @@
                 if (d.capBac && dsCap.indexOf(d.capBac) < 0) dsCap.push(d.capBac);
                 dsCap.forEach(function (c) { selCap.appendChild(el('option', { value: c, text: c })); });
                 selCap.value = d.capBac;
+                st.dsCapMaTran = d.dsCapBac || [];
+                dongThemCap();
 
                 var selNhom = $('qlnvNhom');
                 while (selNhom.options.length > 1) selNhom.remove(1);
@@ -249,6 +251,41 @@
         $('qlnvSoKpi').textContent = Object.keys(d.chon).filter(function (id) { return d.chon[id]; }).length;
     }
 
+    // ---------- Thêm nhanh cấp bậc (ô nhập ngay trong modal — SweetAlert trong modal Bootstrap bị giành focus) ----------
+    function moThemCap() {
+        var nguon = $('qlnvCapNguon');
+        nguon.textContent = '';
+        // Chỉ cấp bậc đã có ma trận mới sao chép được (cấp bậc lẻ của hồ sơ cũ thì không)
+        (st.dsCapMaTran || []).forEach(function (c) { nguon.appendChild(el('option', { value: c, text: 'Sao chép từ ' + c })); });
+        if ((st.dsCapMaTran || []).indexOf($('qlnvCapBac').value) >= 0) nguon.value = $('qlnvCapBac').value;
+        $('qlnvCapMoi').value = '';
+        $('qlnvCapLoi').textContent = '';
+        $('qlnvThemCap').hidden = false;
+        $('qlnvCapMoi').focus();
+    }
+
+    function dongThemCap() { $('qlnvThemCap').hidden = true; }
+
+    function luuCapBac() {
+        var ma = $('qlnvCapMoi').value.trim().toUpperCase();
+        if (!ma) { $('qlnvCapLoi').textContent = 'Nhập mã cấp bậc.'; $('qlnvCapMoi').focus(); return; }
+        var nut = $('qlnvLuuCap');
+        nut.disabled = true;
+        $('qlnvCapLoi').textContent = '';
+        goiApi('/QLCongViec/DanhGia/QuanLy/ThemCapBac', { capBac: ma, saoChepTu: $('qlnvCapNguon').value })
+            .then(function (kq) {
+                var cap = kq.duLieu.capBac;
+                var sel = $('qlnvCapBac');
+                if (!sel.querySelector('option[value="' + CSS.escape(cap) + '"]')) sel.appendChild(el('option', { value: cap, text: cap }));
+                if (st.dsCapMaTran.indexOf(cap) < 0) st.dsCapMaTran.push(cap);
+                sel.value = cap;
+                dongThemCap();
+                Swal.fire({ icon: 'success', text: kq.thongBao + ' Bấm "Lưu" để gán cho nhân viên.', timer: 2200, showConfirmButton: false });
+            })
+            .catch(function (e) { $('qlnvCapLoi').textContent = e.message; })
+            .finally(function () { nut.disabled = false; });
+    }
+
     function luuHoSo() {
         var d = st.hoSo;
         if (!d) return;
@@ -277,7 +314,15 @@
         if (sua) { moHoSo(sua.getAttribute('data-sua')); return; }
         var ngung = t.closest('[data-ngung]');
         if (ngung) { ngungDanhGia(ngung); return; }
+        if (t.closest('#qlnvMoThemCap')) { moThemCap(); return; }
+        if (t.closest('#qlnvHuyCap')) { dongThemCap(); return; }
+        if (t.closest('#qlnvLuuCap')) { luuCapBac(); return; }
         if (t.closest('#qlnvLuuHoSo')) luuHoSo();
+    });
+
+    // Enter trong ô mã cấp bậc mới = bấm "Thêm" (không để Enter lọt ra ngoài)
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && e.target.id === 'qlnvCapMoi') { e.preventDefault(); luuCapBac(); }
     });
 
     document.addEventListener('change', function (e) {
