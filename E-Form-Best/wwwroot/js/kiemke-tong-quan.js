@@ -97,6 +97,11 @@ window.TongQuanKiemKe = (function () {
         if (bieuDo[id]) { bieuDo[id].destroy(); delete bieuDo[id]; }
         const el = document.getElementById(id);
         if (!el || typeof Chart === 'undefined') return;
+        // Chữ trên canvas không qua được bộ dịch DOM (dich-offline.js) → dịch nhãn trước khi vẽ
+        if (window.dichGd && cauHinh.data) {
+            if (cauHinh.data.labels) cauHinh.data.labels = cauHinh.data.labels.map(n => typeof n === 'string' ? window.dichGd(n) : n);
+            (cauHinh.data.datasets || []).forEach(d => { if (typeof d.label === 'string') d.label = window.dichGd(d.label); });
+        }
         bieuDo[id] = new Chart(el.getContext('2d'), cauHinh);
     }
 

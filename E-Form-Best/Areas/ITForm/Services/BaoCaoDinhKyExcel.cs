@@ -53,7 +53,7 @@ namespace E_Form_Best.Areas.ITForm.Services
         private static void SheetTongHop(XLWorkbook wb, DauVao d, string phuDe)
         {
             var ws = TrangMoi(wb, "Tổng hợp", new[] { 26, 13, 13, 13, 13, 15, 15 });
-            var r = DauTrang(ws, "BÁO CÁO ĐỊNH KÌ", phuDe, 7);
+            var r = DauTrang(ws, "BÁO CÁO TỔNG HỢP", phuDe, 7);
 
             r = TieuDeMuc(ws, r, "HẠ TẦNG MẠNG & CAMERA", 7);
             var hang = new List<object?[]>

@@ -1,5 +1,6 @@
 using E_Form_Best.Areas.QLCongViec.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 
 namespace E_Form_Best.Areas.QLCongViec.Controllers
 {
@@ -11,9 +12,15 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
     [Area("QLCongViec")]
     public class DanhGiaController : Controller
     {
-        private const string ThuMucAnhMacDinh = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DanhGia";
-        private const long KichThuocAnhToiDa = 5 * 1024 * 1024;
-        private static readonly string[] DuoiAnhHopLe = { ".jpg", ".jpeg", ".png", ".webp" };
+        private const string ThuMucMinhChungMacDinh = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\KPI";
+        // Thư mục cũ (trước 16/10/2026 chỉ nhận ảnh) - giữ để vẫn mở được minh chứng đã tải trước đó
+        private const string ThuMucAnhCu = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DanhGia";
+        private const long KichThuocFileToiDa = 15 * 1024 * 1024;
+        private static readonly string[] DuoiFileHopLe =
+        {
+            ".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp",
+            ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".csv", ".zip", ".rar", ".7z"
+        };
 
         private readonly DanhGiaService _danhGia;
         private readonly IConfiguration _configuration;
@@ -30,7 +37,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
         private string? MaNv() => User.FindFirst("MaNv")?.Value?.Trim();
 
-        private string ThuMucAnh() => _configuration["DanhGia:ThuMucAnh"] ?? ThuMucAnhMacDinh;
+        private string ThuMucMinhChung() => _configuration["DanhGia:ThuMucMinhChung"] ?? ThuMucMinhChungMacDinh;
 
         // Chốt chung cho endpoint AJAX: trả JSON kèm mã lỗi thay vì Redirect vì JS đọc res.json()
         private IActionResult? ChanNeuKhongHopLe(out string maNv)
@@ -147,14 +154,16 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
         [HttpPost("/QLCongViec/DanhGia/AnhKpi/{idKpiMau:guid}")]
         [ValidateAntiForgeryToken]
-        [RequestSizeLimit(6 * 1024 * 1024)]
+        [RequestSizeLimit(16 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 16 * 1024 * 1024)]
         public async Task<IActionResult> TaiAnhKpi(Guid idKpiMau, IFormFile? file)
         {
             if (ChanNeuKhongHopLe(out var maNv) is { } chan) return chan;
-            if (file == null || file.Length == 0) return Json(new { thanhCong = false, thongBao = "Chưa chọn ảnh." });
-            if (file.Length > KichThuocAnhToiDa) return Json(new { thanhCong = false, thongBao = "Ảnh vượt quá 5MB." });
+            if (file == null || file.Length == 0) return Json(new { thanhCong = false, thongBao = "Chưa chọn file." });
+            if (file.Length > KichThuocFileToiDa) return Json(new { thanhCong = false, thongBao = "File vượt quá 15MB." });
             var duoi = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (!DuoiAnhHopLe.Contains(duoi)) return Json(new { thanhCong = false, thongBao = "Chỉ nhận ảnh JPG, PNG, WebP." });
+            if (!DuoiFileHopLe.Contains(duoi))
+                return Json(new { thanhCong = false, thongBao = "Chỉ nhận ảnh hoặc tài liệu (PDF, Word, Excel, PowerPoint, TXT, CSV, ZIP/RAR/7Z)." });
 
             try
             {
@@ -164,7 +173,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                 var dong = await _danhGia.LayHoacTaoDongKpiAsync(maNv, idKpiMau);
                 if (dong == null) return Json(new { thanhCong = false, thongBao = "KPI này không được giao cho bạn." });
 
-                var thuMuc = ThuMucAnh();
+                var thuMuc = ThuMucMinhChung();
                 Directory.CreateDirectory(thuMuc);
                 // Tên file do hệ thống sinh, không dùng tên người dùng gửi lên (chống path traversal)
                 var tenFile = $"KpiDanhGia_{maNv}_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N")[..8]}{duoi}";
@@ -173,11 +182,11 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
                 // File cũ giữ lại trên fileserver để truy vết, chỉ đổi tham chiếu
                 await _danhGia.GanAnhKpiAsync(dong, tenFile);
-                return Json(new { thanhCong = true, thongBao = "Đã tải ảnh minh chứng." });
+                return Json(new { thanhCong = true, thongBao = "Đã tải minh chứng.", duLieu = new { laAnh = DanhGiaService.LaFileAnh(tenFile) } });
             }
             catch (Exception ex)
             {
-                return Json(new { thanhCong = false, thongBao = "Tải ảnh thất bại: " + ex.Message });
+                return Json(new { thanhCong = false, thongBao = "Tải minh chứng thất bại: " + ex.Message });
             }
         }
 
@@ -223,16 +232,15 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             // Tên file trong DB luôn là tên trần do hệ thống sinh; vẫn chặn ký tự phân tách cho chắc
             if (string.IsNullOrEmpty(tenFile) || Path.GetFileName(tenFile) != tenFile) return NotFound();
 
-            var duongDan = Path.Combine(ThuMucAnh(), tenFile);
+            var duongDan = Path.Combine(ThuMucMinhChung(), tenFile);
+            if (!System.IO.File.Exists(duongDan)) duongDan = Path.Combine(ThuMucAnhCu, tenFile);
             if (!System.IO.File.Exists(duongDan)) return NotFound();
 
-            var loai = Path.GetExtension(tenFile).ToLowerInvariant() switch
-            {
-                ".png" => "image/png",
-                ".webp" => "image/webp",
-                _ => "image/jpeg"
-            };
-            return PhysicalFile(duongDan, loai);
+            if (!new FileExtensionContentTypeProvider().TryGetContentType(tenFile, out var loai))
+                loai = "application/octet-stream";
+            // Ảnh, PDF mở thẳng trên trình duyệt; Word/Excel/nén... trả kèm tên file để tải về
+            bool moThang = DanhGiaService.LaFileAnh(tenFile) || tenFile.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
+            return moThang ? PhysicalFile(duongDan, loai) : PhysicalFile(duongDan, loai, tenFile);
         }
 
         #endregion

@@ -232,4 +232,40 @@
   <data name="Đánh giá nhân viên" xml:space="preserve">
     <value>员工评估</value>
   </data>
+  <data name="Báo cáo tổng hợp" xml:space="preserve">
+    <value>综合报告</value>
+  </data>
+  <data name="Bình luận" xml:space="preserve">
+    <value>评论</value>
+  </data>
+  <data name="Hạ tầng mạng" xml:space="preserve">
+    <value>网络基础设施</value>
+  </data>
+  <data name="Kho IT" xml:space="preserve">
+    <value>IT仓库</value>
+  </data>
+  <data name="Máy in &amp; CCDC" xml:space="preserve">
+    <value>打印机与工具</value>
+  </data>
+  <data name="Quản lý máy in" xml:space="preserve">
+    <value>打印机管理</value>
+  </data>
+  <data name="Quản lý Switch" xml:space="preserve">
+    <value>交换机管理</value>
+  </data>
+  <data name="Server và lưu trữ" xml:space="preserve">
+    <value>服务器与存储</value>
+  </data>
+  <data name="Sơ đồ" xml:space="preserve">
+    <value>拓扑图</value>
+  </data>
+  <data name="Tài sản báo phế" xml:space="preserve">
+    <value>报废资产</value>
+  </data>
+  <data name="Tất cả thiết bị" xml:space="preserve">
+    <value>所有设备</value>
+  </data>
+  <data name="Tổng quan" xml:space="preserve">
+    <value>概览</value>
+  </data>
 </root>

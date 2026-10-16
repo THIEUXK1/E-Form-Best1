@@ -177,9 +177,10 @@
         var bang = $('ctnvBangKpi');
         if (!dsKpi.length) bang.appendChild(el('tr', null, [el('td', { colspan: 7, class: 'text-muted', text: 'Chưa có dữ liệu KPI chi tiết' })]));
         dsKpi.forEach(function (k) {
-            var anh = k.coAnh
-                ? el('img', { src: '/QLCongViec/DanhGia/AnhKpi/' + k.idKpiMau + '?maNv=' + encodeURIComponent(d.maNv), alt: 'Ảnh minh chứng', 'data-mo-anh': '1' })
-                : document.createTextNode('—');
+            var urlMc = '/QLCongViec/DanhGia/AnhKpi/' + k.idKpiMau + '?maNv=' + encodeURIComponent(d.maNv);
+            var anh = !k.coAnh ? document.createTextNode('—')
+                : k.laAnh ? el('img', { src: urlMc, alt: 'Ảnh minh chứng', 'data-mo-anh': '1' })
+                : el('a', { href: urlMc, target: '_blank', rel: 'noopener', text: 'Tài liệu' });
             bang.appendChild(el('tr', null, [
                 el('td', { text: k.congViec }),
                 el('td', { text: k.chiSoKpi || '—' }),

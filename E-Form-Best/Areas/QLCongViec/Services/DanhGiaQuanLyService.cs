@@ -53,6 +53,7 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             public string? KetQua { get; set; }
             public decimal? DiemTuDanhGia { get; set; }
             public bool CoAnh { get; set; }
+            public bool LaAnh { get; set; }
             public decimal TrongSo { get; set; }
             public decimal? DiemQuanLy { get; set; }
         }
@@ -348,6 +349,7 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                     KetQua = tu?.KetQua,
                     DiemTuDanhGia = tu?.DiemTuDanhGia,
                     CoAnh = !string.IsNullOrEmpty(tu?.AnhMinhChung),
+                    LaAnh = DanhGiaService.LaFileAnh(tu?.AnhMinhChung),
                     TrongSo = ql?.TrongSo ?? tu?.TrongSo ?? m.TrongSoBoPhan ?? 0,
                     DiemQuanLy = ql?.DiemQuanLy
                 };

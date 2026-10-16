@@ -7,6 +7,8 @@
 
     var SO_BUOC = 4;
     var DIEM_NHANH = [0, 2, 4, 6, 8, 10];
+    // Khớp DuoiFileHopLe ở DanhGiaController
+    var DUOI_HOP_LE = '.jpg,.jpeg,.png,.webp,.gif,.bmp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z';
 
     var st = {
         buoc: 1,
@@ -122,7 +124,7 @@
                 el('label', { class: 'tdg-field' }, [el('span', { text: 'Tự đánh giá (0–120%)' }),
                     el('input', { type: 'number', class: 'form-control', min: 0, max: 120, step: 1, 'data-truong': 'diemTuDanhGia',
                         value: k.diemTuDanhGia === null || k.diemTuDanhGia === undefined ? '' : fmt(so(k.diemTuDanhGia)), disabled: st.khoa })]),
-                el('div', { class: 'tdg-field' }, [el('span', { text: 'Ảnh minh chứng' }), vungAnh(k)])
+                el('div', { class: 'tdg-field' }, [el('span', { text: 'Minh chứng (ảnh / tài liệu)' }), vungAnh(k)])
             ])
         ]);
     }
@@ -137,14 +139,21 @@
         var hop = el('div', { class: 'tdg-anh', 'data-anh': k.idKpiMau });
         var url = '/QLCongViec/DanhGia/AnhKpi/' + k.idKpiMau + '?t=' + Date.now();
         if (k.coAnh) {
-            var img = el('img', { src: url, alt: 'Ảnh minh chứng KPI', 'data-mo-anh': url });
-            hop.appendChild(img);
-            if (!st.khoa) hop.appendChild(el('button', { type: 'button', class: 'btn btn-sm btn-outline-danger', 'data-xoa-anh': k.idKpiMau, text: 'Gỡ ảnh' }));
+            if (k.laAnh) hop.appendChild(el('img', { src: url, alt: 'Ảnh minh chứng KPI', 'data-mo-anh': url }));
+            else hop.appendChild(el('a', { href: url, target: '_blank', rel: 'noopener', class: 'btn btn-sm btn-outline-primary' },
+                [el('i', { class: 'fa fa-file-text-o' }), ' Xem tài liệu minh chứng']));
+            if (!st.khoa) hop.appendChild(el('button', { type: 'button', class: 'btn btn-sm btn-outline-danger', 'data-xoa-anh': k.idKpiMau, text: 'Gỡ' }));
         } else if (st.khoa) {
-            hop.appendChild(el('span', { class: 'text-muted', text: 'Không có ảnh' }));
+            hop.appendChild(el('span', { class: 'text-muted', text: 'Không có minh chứng' }));
         } else {
-            hop.appendChild(el('input', { type: 'file', class: 'form-control form-control-sm', accept: 'image/jpeg,image/png,image/webp', 'data-tai-anh': k.idKpiMau }));
-            hop.appendChild(el('small', { class: 'text-muted', text: 'JPG, PNG, WebP — tối đa 5MB' }));
+            // Ô dán: bấm vào ô rồi Ctrl+V (ảnh chụp màn hình hoặc file copy từ Explorer), kéo-thả, hoặc bấm để chọn file
+            var input = el('input', { type: 'file', hidden: true, accept: DUOI_HOP_LE, 'data-tai-anh': k.idKpiMau });
+            hop.appendChild(el('div', { class: 'tdg-dan', tabindex: 0, 'data-dan-file': k.idKpiMau }, [
+                el('i', { class: 'fa fa-paperclip' }),
+                el('span', { text: ' Bấm để chọn file, hoặc bấm vào đây rồi Ctrl+V / kéo-thả' })
+            ]));
+            hop.appendChild(input);
+            hop.appendChild(el('small', { class: 'text-muted', text: 'Ảnh, PDF, Word, Excel, PowerPoint, TXT, ZIP — tối đa 15MB' }));
         }
         return hop;
     }
@@ -172,29 +181,47 @@
         });
     }
 
-    function taiAnh(input) {
-        var file = input.files && input.files[0];
-        if (!file) return;
-        var idKpi = input.getAttribute('data-tai-anh');
-        if (file.size > 5 * 1024 * 1024) { Swal.fire({ icon: 'warning', text: 'Ảnh vượt quá 5MB.' }); input.value = ''; return; }
+    function taiAnh(idKpi, file) {
+        if (!file || st.khoa) return;
+        var hop = document.querySelector('[data-anh="' + idKpi + '"]');
+        var o = hop && hop.querySelector('[data-dan-file]');
+        if (!o || o.classList.contains('dang-tai')) return;
+        var duoi = (file.name.match(/\.[^.]+$/) || [''])[0].toLowerCase();
+        if (DUOI_HOP_LE.split(',').indexOf(duoi) < 0) { Swal.fire({ icon: 'warning', text: 'Định dạng ' + (duoi || 'này') + ' không được nhận.' }); return; }
+        if (file.size > 15 * 1024 * 1024) { Swal.fire({ icon: 'warning', text: 'File vượt quá 15MB.' }); return; }
         var fd = new FormData();
         fd.append('file', file);
-        input.disabled = true;
-        var hop = input.parentNode;
-        var dang = el('small', { text: ' Đang tải ảnh...' });
-        hop.appendChild(dang);
+        o.classList.add('dang-tai');
+        var nhan = o.querySelector('span');
+        var cu = nhan.textContent;
+        nhan.textContent = ' Đang tải ' + file.name + '...';
         goiApi('/QLCongViec/DanhGia/AnhKpi/' + idKpi, { method: 'POST', body: fd, headers: { 'RequestVerificationToken': token() } })
-            .then(function () {
+            .then(function (kq) {
                 var k = st.dsKpi.find(function (x) { return x.idKpiMau === idKpi; });
-                if (k) k.coAnh = true;
+                if (k) { k.coAnh = true; k.laAnh = !!(kq.duLieu && kq.duLieu.laAnh); }
                 veLaiAnh(idKpi);
             })
             .catch(function (e) {
-                input.disabled = false;
-                input.value = '';
-                dang.remove();
+                o.classList.remove('dang-tai');
+                nhan.textContent = cu;
                 Swal.fire({ icon: 'error', text: e.message });
             });
+    }
+
+    // Ảnh chụp màn hình dán vào thường tên "image.png" -> đặt tên rõ hơn, server vẫn tự sinh tên lưu
+    function fileTuClipboard(dt) {
+        if (!dt) return null;
+        var f = dt.files && dt.files[0];
+        if (!f && dt.items) {
+            for (var i = 0; i < dt.items.length; i++) {
+                if (dt.items[i].kind === 'file') { f = dt.items[i].getAsFile(); break; }
+            }
+        }
+        if (f && !/\.[^.]+$/.test(f.name || '')) {
+            var duoi = (f.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+            f = new File([f], 'dan-' + Date.now() + '.' + duoi, { type: f.type });
+        }
+        return f;
     }
 
     function goAnh(nut) {
@@ -470,6 +497,12 @@
         if (moNhom) { moNhom.parentNode.classList.toggle('dong'); return; }
         var xoa = t.closest('[data-xoa-anh]');
         if (xoa) { goAnh(xoa); return; }
+        var dan = t.closest('[data-dan-file]');
+        if (dan && !dan.classList.contains('dang-tai')) {
+            var chon = dan.parentNode.querySelector('[data-tai-anh]');
+            if (chon) chon.click();
+            return;
+        }
         var anh = t.closest('[data-mo-anh]');
         if (anh) window.open(anh.getAttribute('data-mo-anh'), '_blank', 'noopener');
     });
@@ -482,8 +515,41 @@
     document.addEventListener('change', function (e) {
         var t = e.target;
         if (t.matches('input[data-nl]')) { datDiem(t.getAttribute('data-nl'), t.value); return; }
-        if (t.matches('[data-tai-anh]')) { taiAnh(t); return; }
+        if (t.matches('[data-tai-anh]')) {
+            var f = t.files && t.files[0];
+            t.value = '';
+            taiAnh(t.getAttribute('data-tai-anh'), f);
+            return;
+        }
         if (t.id === 'tdgCapBac' || t.id === 'tdgNhomCongViec') doiBoLoc();
+    });
+
+    // Ctrl+V khi ô dán đang được chọn (focus)
+    document.addEventListener('paste', function (e) {
+        var o = e.target.closest && e.target.closest('[data-dan-file]');
+        if (!o) return;
+        var f = fileTuClipboard(e.clipboardData);
+        if (!f) { Swal.fire({ icon: 'info', text: 'Clipboard không có ảnh hoặc file. Hãy chụp màn hình hoặc copy file rồi dán lại.' }); return; }
+        e.preventDefault();
+        taiAnh(o.getAttribute('data-dan-file'), f);
+    });
+
+    document.addEventListener('dragover', function (e) {
+        var o = e.target.closest && e.target.closest('[data-dan-file]');
+        if (!o) return;
+        e.preventDefault();
+        o.classList.add('keo');
+    });
+    document.addEventListener('dragleave', function (e) {
+        var o = e.target.closest && e.target.closest('[data-dan-file]');
+        if (o) o.classList.remove('keo');
+    });
+    document.addEventListener('drop', function (e) {
+        var o = e.target.closest && e.target.closest('[data-dan-file]');
+        if (!o) return;
+        e.preventDefault();
+        o.classList.remove('keo');
+        taiAnh(o.getAttribute('data-dan-file'), fileTuClipboard(e.dataTransfer));
     });
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', taiDuLieu);

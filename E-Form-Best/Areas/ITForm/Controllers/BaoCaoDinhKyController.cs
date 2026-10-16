@@ -129,7 +129,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     thietBi, bienDongTb, banQuyen, donIt, donCv));
 
                 return File(file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    $"BaoCaoDinhKy_{motCongTy ?? "TatCa"}_{tu:yyyyMMdd}-{den:yyyyMMdd}.xlsx");
+                    $"BaoCaoTongHop_{motCongTy ?? "TatCa"}_{tu:yyyyMMdd}-{den:yyyyMMdd}.xlsx");
             }
             catch (Exception ex) when (ex is SqlException or InvalidOperationException)
             {

@@ -1,6 +1,7 @@
+@inject Microsoft.AspNetCore.Mvc.Localization.IHtmlLocalizer<E_Form_Best.Resources.GiaoDien> L
 @{
     Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Báo cáo định kì";
+    ViewData["Title"] = L["Báo cáo tổng hợp"].Value;
     var loai = ViewBag.Loai as string ?? "camera";
     // Kieu: tong-quan = partial _TongQuanNoiDung nạp AJAX vào #bcDinhKy · thiet-bi = vẽ bằng kiemke-tong-quan.js
     //       iframe = trang thống kê sẵn có mở với ?nhung=1 (script inline + trùng id nên phải tách tài liệu)
@@ -21,7 +22,8 @@
 <link rel="stylesheet" href="/css/camera-tong-quan.css?v=20261009b">
 <link rel="stylesheet" href="/css/kiemke-tong-quan.css?v=1">
 
-<div class="bc-dinh-ky">
+@* Dịch offline bằng dich-offline.js theo ngôn ngữ máy chủ; translate="no" để Google Translate không dịch chồng *@
+<div class="bc-dinh-ky" translate="no" data-dich-offline data-ngon-ngu="@System.Globalization.CultureInfo.CurrentUICulture.Name">
     <div class="container-fluid">
         <ul class="nav nav-tabs bc-dinh-ky-tabs" role="tablist">
             @foreach (var t in dsTab)
@@ -90,8 +92,9 @@
 </div>
 
 @section Scripts {
+    <script src="/js/dich-offline.js?v=20261016a"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/js/kiemke-tong-quan.js?v=3"></script>
+    <script src="/js/kiemke-tong-quan.js?v=4"></script>
     <script src="/js/bao-cao-so-sanh.js?v=2"></script>
     <script src="/js/camera-tong-quan.js?v=20261009c"></script>
     <script src="/js/ap-tong-quan.js?v=20261009b"></script>

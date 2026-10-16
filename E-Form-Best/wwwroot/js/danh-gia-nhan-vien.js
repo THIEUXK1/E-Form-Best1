@@ -152,9 +152,10 @@
     }
 
     function theKpi(k, i) {
-        var anh = k.coAnh
-            ? el('img', { src: '/QLCongViec/DanhGia/AnhKpi/' + k.idKpiMau + '?maNv=' + encodeURIComponent(st.ma) + '&t=' + Date.now(), alt: 'Ảnh minh chứng', 'data-mo-anh': '1' })
-            : el('span', { class: 'text-muted', text: 'Nhân viên chưa tải ảnh' });
+        var urlMc = '/QLCongViec/DanhGia/AnhKpi/' + k.idKpiMau + '?maNv=' + encodeURIComponent(st.ma) + '&t=' + Date.now();
+        var anh = !k.coAnh ? el('span', { class: 'text-muted', text: 'Nhân viên chưa tải minh chứng' })
+            : k.laAnh ? el('img', { src: urlMc, alt: 'Ảnh minh chứng', 'data-mo-anh': '1' })
+            : el('a', { href: urlMc, target: '_blank', rel: 'noopener', class: 'btn btn-sm btn-outline-primary', text: 'Xem tài liệu minh chứng' });
         return el('div', { class: 'tdg-kpi', 'data-kpi': k.idKpiMau }, [
             el('div', { class: 'tdg-kpi-head' }, [el('span', { text: k.congViec }), el('span', { class: 'tdg-kpi-stt', text: '#' + (i + 1) })]),
             el('div', { class: 'tdg-grid2' }, [

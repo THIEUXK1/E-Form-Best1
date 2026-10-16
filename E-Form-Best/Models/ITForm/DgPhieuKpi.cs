@@ -37,7 +37,7 @@ public partial class DgPhieuKpi
     [Column("diem_quan_ly", TypeName = "decimal(5, 2)")]
     public decimal? DiemQuanLy { get; set; }
 
-    /// <summary>Tên file trần trên fileserver (thư mục DanhGia), không lưu đường dẫn.</summary>
+    /// <summary>Tên file trần trên fileserver (thư mục KPI; file cũ trước 16/10/2026 ở DanhGia), không lưu đường dẫn. Ảnh hoặc tài liệu.</summary>
     [Column("anh_minh_chung")]
     [StringLength(260)]
     public string? AnhMinhChung { get; set; }

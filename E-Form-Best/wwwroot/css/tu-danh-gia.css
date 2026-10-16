@@ -46,6 +46,9 @@
 .tdg-kpi-row { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 10px; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0; align-items: end; }
 .tdg-anh { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 0.85rem; }
 .tdg-anh img { max-height: 90px; max-width: 160px; border-radius: 8px; border: 1px solid #e2e8f0; cursor: zoom-in; }
+.tdg-dan { flex: 1 1 100%; padding: 10px 12px; border: 1.5px dashed #94a3b8; border-radius: 8px; background: #f8fafc; color: #475569; font-weight: 500; cursor: pointer; outline: none; }
+.tdg-dan:hover, .tdg-dan:focus, .tdg-dan.keo { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
+.tdg-dan.dang-tai { cursor: progress; opacity: .7; }
 .tdg-kpi-foot { text-align: right; color: #475569; font-size: 0.9rem; }
 .tdg-empty { text-align: center; color: #64748b; padding: 28px 10px; background: #f8fafc; border-radius: 12px; }
 

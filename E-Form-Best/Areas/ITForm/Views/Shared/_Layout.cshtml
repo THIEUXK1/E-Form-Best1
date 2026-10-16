@@ -550,7 +550,7 @@
                         </a>
                     }
 
-                    @* Nhóm "Hạ tầng mạng": gộp Camera / AP / Switch / Sơ đồ / Báo cáo định kì vào 1 mục cha thu gọn được.
+                    @* Nhóm "Hạ tầng mạng": gộp Camera / AP / Switch / Server / Sơ đồ vào 1 mục cha thu gọn được.
                        Mỗi mục con vẫn chia theo công ty; quyền kiểm lại ở controller từng module *@
                     // Camera: "All" thấy cả 3, "CamBPVN"/"CamPFVN"/"CamMEGA" chỉ thấy công ty được cấp (QLCameraController)
                     var dsCameraDuocXem = new[] { ("BPVN", "/QLCamera"), ("PFVN", "/QLCamera/PFVN"), ("MEGA", "/QLCamera/MEGA") }
@@ -570,9 +570,9 @@
                     var laAdminItMenu = User.IsInRole("AdminIT");
                     if (dsSoDoDuocXem.Count == 0 && laAdminItMenu) { dsSoDoDuocXem = new List<string> { "BPVN", "PFVN", "MEGA" }; }
                     var coBaoCaoDinhKy = laAdminItMenu || User.IsInRole("All") || User.IsInRole("BaoCaoDinhKy");
-                    var coHaTang = laAdminItMenu || coBaoCaoDinhKy || dsCameraDuocXem.Count > 0 || dsApDuocXem.Count > 0
+                    var coHaTang = laAdminItMenu || dsCameraDuocXem.Count > 0 || dsApDuocXem.Count > 0
                                    || dsSwitchDuocXem.Count > 0 || dsServerDuocXem.Count > 0 || dsSoDoDuocXem.Count > 0;
-                    var isHaTangActive = isCameraActive || isApActive || isSwitchActive || isServerActive || isSoDoActive || isBaoCaoDinhKyActive;
+                    var isHaTangActive = isCameraActive || isApActive || isSwitchActive || isServerActive || isSoDoActive;
 
                     if (coHaTang)
                     {
@@ -603,7 +603,7 @@
                                 @{ var dangOTongQuanCam = isCameraActive && currentAction == "TongQuan"; }
                                 <a href="/QLCamera/TongQuan" class="submenu-link @(dangOTongQuanCam ? "active" : "")" aria-current="@(dangOTongQuanCam ? "page" : null)">
                                     <i class="fa fa-pie-chart sub-ico" style="color: #a78bfa;"></i>
-                                    <span>Tổng quan</span>
+                                    <span>@L["Tổng quan"]</span>
                                 </a>
                                 @foreach (var (congTyCam, urlCam) in dsCameraDuocXem)
                                 {
@@ -632,7 +632,7 @@
                                 @{ var dangOTongQuanAp = isApActive && currentAction == "TongQuan"; }
                                 <a href="/QLAP/TongQuan" class="submenu-link @(dangOTongQuanAp ? "active" : "")" aria-current="@(dangOTongQuanAp ? "page" : null)">
                                     <i class="fa fa-pie-chart sub-ico" style="color: #22d3ee;"></i>
-                                    <span>Tổng quan</span>
+                                    <span>@L["Tổng quan"]</span>
                                 </a>
                                 @foreach (var congTyAp in dsApDuocXem)
                                 {
@@ -661,7 +661,7 @@
                                 @{ var dangOTongQuanSw = isSwitchActive && currentAction == "TongQuan"; }
                                 <a href="/QLSwitch/TongQuan" class="submenu-link @(dangOTongQuanSw ? "active" : "")" aria-current="@(dangOTongQuanSw ? "page" : null)">
                                     <i class="fa fa-pie-chart sub-ico" style="color: #a3e635;"></i>
-                                    <span>Tổng quan</span>
+                                    <span>@L["Tổng quan"]</span>
                                 </a>
                                 @foreach (var congTySw in dsSwitchDuocXem)
                                 {
@@ -690,7 +690,7 @@
                                 @{ var dangOTongQuanSv = isServerActive && currentAction == "TongQuan"; }
                                 <a href="/QLServer/TongQuan" class="submenu-link @(dangOTongQuanSv ? "active" : "")" aria-current="@(dangOTongQuanSv ? "page" : null)">
                                     <i class="fa fa-pie-chart sub-ico" style="color: #818cf8;"></i>
-                                    <span>Tổng quan</span>
+                                    <span>@L["Tổng quan"]</span>
                                 </a>
                                 @foreach (var congTySv in dsServerDuocXem)
                                 {
@@ -728,17 +728,18 @@
                         </div>
                         }
 
-                        @* Báo cáo định kì: chỉ AdminIT / All — một trang gộp 3 tab Tổng quan Camera, AP, Switch *@
-                        @if (coBaoCaoDinhKy)
-                        {
-                        <a href="/BaoCaoDinhKy" class="nav-link-item @(isBaoCaoDinhKyActive ? "active" : "")" aria-current="@(isBaoCaoDinhKyActive ? "page" : null)">
-                            <i class="fa fa-calendar-check-o nav-ico" style="color:#f472b6;"></i>
-                            <span class="lang-text" data-key="periodic_report">@L["Báo cáo định kì"]</span>
-                        </a>
-                        }
-
                             </div>
                         </div>
+                    }
+
+                    @* Báo cáo tổng hợp là mục cấp 1 riêng (không nằm trong "Hạ tầng mạng") để dễ tìm; quyền AdminIT / All / BaoCaoDinhKy *@
+                    if (coBaoCaoDinhKy)
+                    {
+                        <div class="nav-divider"></div>
+                        <a href="/BaoCaoDinhKy" class="nav-link-item @(isBaoCaoDinhKyActive ? "active" : "")" aria-current="@(isBaoCaoDinhKyActive ? "page" : null)">
+                            <i class="fa fa-calendar-check-o nav-ico" style="color:#f472b6;"></i>
+                            <span class="lang-text" data-key="periodic_report">@L["Báo cáo tổng hợp"]</span>
+                        </a>
                     }
                 }
             </nav>

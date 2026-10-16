@@ -68,6 +68,14 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             public decimal TrongSo { get; set; }
             public decimal? DiemTuDanhGia { get; set; }
             public bool CoAnh { get; set; }
+            public bool LaAnh { get; set; }
+        }
+
+        // Minh chứng KPI nhận cả tài liệu: client dựa vào đây để chọn hiện ảnh thu nhỏ hay link tải
+        public static bool LaFileAnh(string? tenFile)
+        {
+            var duoi = Path.GetExtension(tenFile ?? "").ToLowerInvariant();
+            return duoi is ".jpg" or ".jpeg" or ".png" or ".webp" or ".gif" or ".bmp";
         }
 
         public class PhieuDto
@@ -233,7 +241,8 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                     KetQua = k != null ? k.KetQua : m.KetQuaGoiY,
                     TrongSo = k?.TrongSo ?? m.TrongSoBoPhan ?? 0,
                     DiemTuDanhGia = k?.DiemTuDanhGia,
-                    CoAnh = !string.IsNullOrEmpty(k?.AnhMinhChung)
+                    CoAnh = !string.IsNullOrEmpty(k?.AnhMinhChung),
+                    LaAnh = LaFileAnh(k?.AnhMinhChung)
                 };
             }).ToList();
         }
