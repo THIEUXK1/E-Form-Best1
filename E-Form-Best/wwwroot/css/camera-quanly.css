@@ -47,7 +47,7 @@ html.fp-lock .fp-chain > *:not(.fp-grow) {
 }
 
 /* Bảng 9–11 cột, không cần bề rộng tối thiểu 1620px như bảng CCDC */
-.ccdc-table.cam-table-gs { min-width: 1380px; }
+.ccdc-table.cam-table-gs { min-width: 1560px; }
 .ccdc-table.cam-table-dg { min-width: 1250px; }
 
 /* Ô số liệu tổng quan */

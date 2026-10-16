@@ -217,7 +217,7 @@
             + (soGhim ? ' · đã ghim ' + soGhim : ''));
 
         if (!loc.length) {
-            $('#gsCameraBody').html('<tr><td colspan="10" class="ccdc-trangthai text-muted py-4">Không có camera nào khớp bộ lọc.</td></tr>');
+            $('#gsCameraBody').html('<tr><td colspan="11" class="ccdc-trangthai text-muted py-4">Không có camera nào khớp bộ lọc.</td></tr>');
             return;
         }
 
@@ -241,7 +241,8 @@
                 + (i + 1) + '</td>'
                 + '<td class="small">' + oTrangThai(c.status) + '</td>'
                 + '<td class="ccdc-ten" title="' + escapeHtml(c.name) + '">' + ten + '</td>'
-                + oIpCamera(c.ip, swCamera(c))
+                + oIpCamera(c.ip)
+                + oSwitch(swCamera(c))
                 // Hai dòng (tên / IP) và cho xuống dòng: tên đầu ghi dài + link IP không bị cắt "..."
                 + '<td class="small cam-o-dau-ghi"><div>' + escapeHtml(c.nvr_name) + '</div>'
                 + '<div class="font-monospace" style="font-size:11px;">' + linkDauGhi(c.nvr_ip, c.nvr_ip) + '</div></td>'
@@ -258,12 +259,11 @@
 
     // Ô IP: bấm là mở trang web cài đặt của camera ở tab mới (không mở cửa sổ xem).
     // Chỉ dựng link khi đúng dạng IPv4 để dữ liệu lạ từ API không chèn được href tuỳ ý.
-    function oIpCamera(ip, sw) {
+    function oIpCamera(ip) {
         var s = escapeHtml(ip);
-        if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip || '')) return '<td class="small font-monospace" title="' + s + '">' + s + dongSwitch(sw) + '</td>';
+        if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip || '')) return '<td class="small font-monospace" title="' + s + '">' + s + '</td>';
         return '<td class="small font-monospace"><a class="cam-ip-link" href="http://' + s + '/" target="_blank" rel="noopener"'
-            + ' title="Mở trang cài đặt camera ' + s + ' ở tab mới">' + s + ' <i class="fas fa-up-right-from-square"></i></a>'
-            + dongSwitch(sw) + '</td>';
+            + ' title="Mở trang cài đặt camera ' + s + ' ở tab mới">' + s + ' <i class="fas fa-up-right-from-square"></i></a></td>';
     }
 
     // PFVN trả sẵn object "sw"; BPVN (hệ thống ISAPI 10.0.60.238) trả các trường switch_* phẳng -> quy về cùng dạng.
@@ -275,10 +275,11 @@
                  cong: c.switch_port, vlan: c.switch_vlan, chac_chan: true, do_luc: c.port_last_lookup_at };
     }
 
-    // Dòng phụ dưới IP: switch + cổng camera cắm (PFVN dò SNMP); rê chuột xem VLAN, MAC, đường đi qua các switch.
+    // Cột riêng switch + cổng camera cắm (trước là dòng chữ nhỏ dưới IP, người dùng không nhận ra);
+    // rê chuột xem VLAN, MAC, đường đi qua các switch.
     // Cổng còn dấu hiệu là đường trục (nhiều MAC / có LLDP) thì kèm dấu "?" — chỉ để tham khảo.
-    function dongSwitch(sw) {
-        if (!sw || !sw.cong) return '';
+    function oSwitch(sw) {
+        if (!sw || !sw.cong) return '<td class="small text-muted" title="Hệ thống giám sát chưa dò ra cổng switch của camera này">—</td>';
         var chiTiet = [
             'Switch: ' + (sw.ten || '') + (sw.ip ? ' (' + sw.ip + ')' : ''),
             'Cổng: ' + sw.cong + (sw.vlan != null ? ' · VLAN ' + sw.vlan : '') + (sw.so_mac ? ' · ' + sw.so_mac + ' MAC trên cổng' : ''),
@@ -287,9 +288,9 @@
             sw.chac_chan ? '' : 'Chưa chắc chắn: cổng này vẫn thấy nhiều MAC / có switch nối sau',
             sw.do_luc ? 'Dò lúc ' + ngayGio(sw.do_luc) : ''
         ].filter(Boolean).join('\n');
-        return '<div class="text-muted" style="font-size:11px;" title="' + escapeHtml(chiTiet) + '">'
-            + '<i class="fas fa-sitemap me-1"></i>' + escapeHtml(sw.ten || sw.ip || '') + ' · ' + escapeHtml(sw.cong)
-            + (sw.chac_chan ? '' : ' ?') + '</div>';
+        return '<td class="small" title="' + escapeHtml(chiTiet) + '">'
+            + '<div><i class="fas fa-sitemap me-1 text-muted"></i>' + escapeHtml(sw.ten || sw.ip || '') + '</div>'
+            + '<div class="font-monospace" style="font-size:11px;">' + escapeHtml(sw.cong) + (sw.chac_chan ? '' : ' ?') + '</div></td>';
     }
 
     // Địa chỉ web từng đầu ghi (đúng cổng/https: 10.0.28.254:8001, https 10.0.29.254:8003...), server trả
@@ -822,7 +823,7 @@
             .fail(function (loi) {
                 hienLoi(loi);
                 if (!dsCamera.length) {
-                    $('#gsCameraBody').html('<tr><td colspan="10" class="ccdc-trangthai text-danger py-4">Không tải được dữ liệu giám sát.</td></tr>');
+                    $('#gsCameraBody').html('<tr><td colspan="11" class="ccdc-trangthai text-danger py-4">Không tải được dữ liệu giám sát.</td></tr>');
                 }
             })
             .always(function () { dangTai = false; $btn.prop('disabled', false); });
