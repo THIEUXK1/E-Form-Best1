@@ -277,6 +277,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<DgHoSoNhanVien> DgHoSoNhanViens { get; set; }
 
+    public virtual DbSet<HrmNhanVien> HrmNhanViens { get; set; }
+
     public virtual DbSet<DgKpiMau> DgKpiMaus { get; set; }
 
     public virtual DbSet<DgKpiPhanCong> DgKpiPhanCongs { get; set; }
@@ -1079,6 +1081,14 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdQuyenNavigation).WithMany(p => p.UserQuyens)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_UserQuyen_Quyen_Current");
+        });
+
+        // HRM_AU2 nằm cùng server với ITForm nên đọc chéo database qua cùng kết nối, khỏi cần DbContext thứ hai.
+        // ToSqlQuery khiến EF coi entity là chỉ đọc (SaveChanges trên nó sẽ lỗi) — đúng ý, ITForm không ghi vào HRM.
+        modelBuilder.Entity<HrmNhanVien>(entity =>
+        {
+            entity.ToSqlQuery(@"SELECT employee_code, full_name, dept_name, dept_name_en, job_name, job_grade_code,
+                hire_date, termination_date, is_active, ltd_name FROM HRM_AU2.dbo.hrms_employees");
         });
 
         OnModelCreatingPartial(modelBuilder);

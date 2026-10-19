@@ -81,7 +81,7 @@
         var tt = $('qlnvTrangThai').value;
         var xl = $('qlnvXepLoai').value;
         return st.ds.filter(function (nv) {
-            if (tim && [nv.hoTen, nv.maNv, nv.capBac, nv.tenNhomCongViec].join(' ').toLowerCase().indexOf(tim) < 0) return false;
+            if (tim && [nv.hoTen, nv.maNv, nv.capBac, nv.tenNhomCongViec, nv.chucVu, nv.phongBan].join(' ').toLowerCase().indexOf(tim) < 0) return false;
             if (tt && nv.trangThai !== tt) return false;
             if (xl && nv.xepLoai !== xl) return false;
             return true;
@@ -107,6 +107,17 @@
         return el('div', { class: 'tdg-nv-dong' }, [el('span', { text: nhan }), el('b', { text: giaTri })]);
     }
 
+    // ngayVaoLam dạng "yyyy-MM-dd" (DateOnly từ HRM) → "dd/MM/yyyy (x năm y tháng)"
+    function ngayVaoLam(s) {
+        if (!s) return '—';
+        var p = s.split('-'), nam = +p[0], thang = +p[1], ngay = +p[2];
+        var nay = new Date();
+        var soThang = (nay.getFullYear() - nam) * 12 + (nay.getMonth() + 1 - thang) - (nay.getDate() < ngay ? 1 : 0);
+        var thamNien = soThang < 1 ? 'dưới 1 tháng'
+            : (Math.floor(soThang / 12) ? Math.floor(soThang / 12) + ' năm ' : '') + (soThang % 12 ? (soThang % 12) + ' tháng' : '');
+        return p[2] + '/' + p[1] + '/' + p[0] + ' (' + thamNien.trim() + ')';
+    }
+
     function theNhanVien(nv) {
         var coDiem = nv.diemNangLuc !== null && nv.diemNangLuc !== undefined;
         var gap = so(nv.chenhLech);
@@ -125,7 +136,12 @@
                 el('div', null, [el('div', { class: 'tdg-nv-ten', text: nv.hoTen }), el('div', { class: 'tdg-nv-ma', text: nv.maNv + (nv.phongBan ? ' • ' + nv.phongBan : '') })]),
                 el('span', { class: 'tdg-badge ' + nv.trangThai, text: TEN_TRANG_THAI[nv.trangThai] || nv.trangThai })
             ]),
-            dong('Cấp bậc', nv.capBac + (nv.coHoSo ? '' : ' (mặc định)')),
+            nv.dangLamViec === false ? el('div', { class: 'tdg-loi', text: 'HRM: đã nghỉ việc' }) : null,
+            dong('Chức vụ', nv.chucVu || '—'),
+            dong('Ngày vào làm', ngayVaoLam(nv.ngayVaoLam)),
+            // Cấp bậc đánh giá lấy từ hồ sơ; hiện kèm cấp bậc HRM khi lệch để quản lý biết cần cập nhật hồ sơ
+            dong('Cấp bậc', nv.capBac + (nv.coHoSo ? '' : ' (mặc định)')
+                + (nv.capBacHrm && nv.capBacHrm !== nv.capBac ? ' • HRM: ' + nv.capBacHrm : '')),
             dong('Nhóm công việc', nv.tenNhomCongViec || 'Chưa gán'),
             dong('KPI được giao', String(nv.soKpi)),
             phanDiem,

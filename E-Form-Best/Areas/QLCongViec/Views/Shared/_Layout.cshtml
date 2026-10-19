@@ -415,7 +415,9 @@
                         var isTuDanhGia = currentController == "DanhGia" && currentAction == "TuDanhGia";
                         var isQlNhanVien = currentController == "DanhGiaQuanLy" && currentAction == "NhanVien";
                         var isDgNhanVien = currentController == "DanhGiaQuanLy" && currentAction == "DanhGiaNhanVien";
-                        var isDanhGiaActive = isTuDanhGia || isQlNhanVien || isDgNhanVien;
+                        var isThongKeDg = currentController == "DanhGiaQuanLy" && currentAction == "ThongKe";
+                        var isChuaHoanThanh = currentController == "DanhGiaQuanLy" && currentAction == "ChuaHoanThanh";
+                        var isDanhGiaActive = isTuDanhGia || isQlNhanVien || isDgNhanVien || isThongKeDg || isChuaHoanThanh;
 
                         <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
                         <a href="#menuDanhGia" data-bs-toggle="collapse" role="button" aria-controls="menuDanhGia" aria-expanded="@(isDanhGiaActive ? "true" : "false")" class="nav-link-item @(isDanhGiaActive ? "active" : "")" style="justify-content: space-between;">
@@ -436,6 +438,12 @@
                                 </a>
                                 <a href="/QLCongViec/DanhGia/DanhGiaNhanVien" class="submenu-link @(isDgNhanVien ? "active" : "")">
                                     <i class="fa fa-pencil-square-o" style="margin-right:12px; width:20px; color:#f472b6;"></i> <span class="lang-text">@L["Đánh giá nhân viên"]</span>
+                                </a>
+                                <a href="/QLCongViec/DanhGia/ThongKe" class="submenu-link @(isThongKeDg ? "active" : "")">
+                                    <i class="fa fa-pie-chart" style="margin-right:12px; width:20px; color:#84cc16;"></i> <span class="lang-text">@L["Thống kê đánh giá"]</span>
+                                </a>
+                                <a href="/QLCongViec/DanhGia/ChuaHoanThanh" class="submenu-link @(isChuaHoanThanh ? "active" : "")">
+                                    <i class="fa fa-hourglass-half" style="margin-right:12px; width:20px; color:#f59e0b;"></i> <span class="lang-text">@L["Chưa hoàn thành đánh giá"]</span>
                                 </a>
                             }
                         </div>

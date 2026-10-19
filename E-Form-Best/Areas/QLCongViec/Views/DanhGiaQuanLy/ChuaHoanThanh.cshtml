@@ -1,0 +1,66 @@
+@{
+    ViewData["Title"] = "Nhân viên chưa hoàn thành đánh giá";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/thong-ke-danh-gia.css?v=3" />
+
+<div id="chdg" class="tkdg">
+    <div class="tkdg-header">
+        <div>
+            <h2 class="tkdg-title">
+                <span class="tkdg-title-icon" style="background:linear-gradient(135deg,#fbbf24,#d97706);"><i class="fa fa-hourglass-half"></i></span>
+                NHÂN VIÊN CHƯA HOÀN THÀNH ĐÁNH GIÁ
+            </h2>
+            <p class="tkdg-sub">Ai còn thiếu bước nào để nhắc nhân viên hoặc chấm ngay</p>
+        </div>
+        <button type="button" class="tkdg-btn-reset" id="chdgLamMoi"><i class="fa fa-refresh"></i> Làm mới</button>
+    </div>
+
+    <div class="tkdg-loi" id="chdgLoi" hidden><i class="fa fa-exclamation-triangle"></i> <span id="chdgLoiText"></span></div>
+
+    <div class="tkdg-loc">
+        <div class="tkdg-field">
+            <label for="chdgTim">Tìm kiếm</label>
+            <input type="search" id="chdgTim" class="tkdg-input" placeholder="Tên, mã NV..." />
+        </div>
+        <div class="tkdg-field">
+            <label for="chdgPhongBan">Phòng ban</label>
+            <select id="chdgPhongBan" class="tkdg-input"><option value="">-- Tất cả --</option></select>
+        </div>
+        <div class="tkdg-field">
+            <label for="chdgNhom">Nhóm công việc</label>
+            <select id="chdgNhom" class="tkdg-input"><option value="">-- Tất cả --</option></select>
+        </div>
+        <span class="tkdg-dang-tai" id="chdgDangTai"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</span>
+    </div>
+
+    <div class="tkdg-kpi-strip chdg-kpi-strip">
+        <div class="tkdg-kpi" style="--kpi-c:#dc2626;cursor:default;"><span class="tkdg-kpi-label"><i class="fa fa-exclamation-circle"></i> Chưa hoàn thành</span><span class="tkdg-kpi-value" id="chdgTong">0</span><span class="tkdg-kpi-phu" id="chdgTyLe"></span></div>
+        <div class="tkdg-kpi" style="--kpi-c:#3b82f6;cursor:default;"><span class="tkdg-kpi-label"><i class="fa fa-user-circle"></i> Chờ quản lý</span><span class="tkdg-kpi-value" id="chdgDemChoQl">0</span></div>
+        <div class="tkdg-kpi" style="--kpi-c:#f59e0b;cursor:default;"><span class="tkdg-kpi-label"><i class="fa fa-hourglass-half"></i> Chờ tự đánh giá</span><span class="tkdg-kpi-value" id="chdgDemChoTu">0</span></div>
+        <div class="tkdg-kpi" style="--kpi-c:#94a3b8;cursor:default;"><span class="tkdg-kpi-label"><i class="fa fa-circle-o"></i> Chưa bắt đầu</span><span class="tkdg-kpi-value" id="chdgDemChuaDg">0</span></div>
+    </div>
+
+    <div class="tkdg-chua-xong">
+        <div class="tkdg-cot" style="--cot-c:#3b82f6;">
+            <div class="tkdg-cot-dau"><span><i class="fa fa-user-circle"></i> Chờ quản lý đánh giá</span><b id="chdgBadgeChoQl">0</b></div>
+            <p class="tkdg-cot-mo-ta">Đã tự đánh giá, quản lý cần chấm</p>
+            <ul class="tkdg-ds chdg-ds" id="chdgDsChoQl"></ul>
+        </div>
+        <div class="tkdg-cot" style="--cot-c:#f59e0b;">
+            <div class="tkdg-cot-dau"><span><i class="fa fa-hourglass-half"></i> Chờ tự đánh giá</span><b id="chdgBadgeChoTu">0</b></div>
+            <p class="tkdg-cot-mo-ta">Quản lý đã chấm, nhân viên chưa tự đánh giá</p>
+            <ul class="tkdg-ds chdg-ds" id="chdgDsChoTu"></ul>
+        </div>
+        <div class="tkdg-cot" style="--cot-c:#94a3b8;">
+            <div class="tkdg-cot-dau"><span><i class="fa fa-circle-o"></i> Chưa bắt đầu</span><b id="chdgBadgeChuaDg">0</b></div>
+            <p class="tkdg-cot-mo-ta">Chưa có phiếu tự đánh giá lẫn phiếu quản lý</p>
+            <ul class="tkdg-ds chdg-ds" id="chdgDsChuaDg"></ul>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/nhan-vien-chua-hoan-thanh.js?v=1"></script>
+}

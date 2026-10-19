@@ -232,6 +232,12 @@
   <data name="Đánh giá nhân viên" xml:space="preserve">
     <value>Employee evaluation</value>
   </data>
+  <data name="Thống kê đánh giá" xml:space="preserve">
+    <value>Evaluation statistics</value>
+  </data>
+  <data name="Chưa hoàn thành đánh giá" xml:space="preserve">
+    <value>Incomplete evaluations</value>
+  </data>
   <data name="Báo cáo tổng hợp" xml:space="preserve">
     <value>Summary report</value>
   </data>

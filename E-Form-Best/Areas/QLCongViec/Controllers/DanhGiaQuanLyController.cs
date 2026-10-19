@@ -70,6 +70,24 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             return View();
         }
 
+        /// <summary>Thống kê đánh giá: dữ liệu lấy AJAX từ QuanLy/DanhSach, gom nhóm/vẽ biểu đồ ở client.</summary>
+        [HttpGet("/QLCongViec/DanhGia/ThongKe")]
+        public IActionResult ThongKe()
+        {
+            if (User?.Identity?.IsAuthenticated != true) return Redirect("/DonXetDuyet/DangNhap");
+            if (!CoQuyen()) return Forbid();
+            return View();
+        }
+
+        /// <summary>Nhân viên chưa hoàn thành đánh giá, chia theo bước còn thiếu. Dữ liệu AJAX từ QuanLy/DanhSach.</summary>
+        [HttpGet("/QLCongViec/DanhGia/ChuaHoanThanh")]
+        public IActionResult ChuaHoanThanh()
+        {
+            if (User?.Identity?.IsAuthenticated != true) return Redirect("/DonXetDuyet/DangNhap");
+            if (!CoQuyen()) return Forbid();
+            return View();
+        }
+
         /// <summary>Chi tiết đánh giá 1 nhân viên (bookmark được). Dữ liệu tải AJAX từ DuLieuDanhGia.</summary>
         [HttpGet("/QLCongViec/DanhGia/ChiTiet/{maNv}")]
         public IActionResult ChiTiet(string maNv)

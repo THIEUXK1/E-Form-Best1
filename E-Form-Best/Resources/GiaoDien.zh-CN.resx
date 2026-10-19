@@ -232,6 +232,12 @@
   <data name="Đánh giá nhân viên" xml:space="preserve">
     <value>员工评估</value>
   </data>
+  <data name="Thống kê đánh giá" xml:space="preserve">
+    <value>评估统计</value>
+  </data>
+  <data name="Chưa hoàn thành đánh giá" xml:space="preserve">
+    <value>未完成评估</value>
+  </data>
   <data name="Báo cáo tổng hợp" xml:space="preserve">
     <value>综合报告</value>
   </data>

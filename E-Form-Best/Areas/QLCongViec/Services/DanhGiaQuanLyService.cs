@@ -29,6 +29,11 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             public string MaNv { get; set; } = "";
             public string HoTen { get; set; } = "";
             public string? PhongBan { get; set; }
+            // Lấy từ HRM (HRM_AU2) — null khi mã NV không có trong HRM (vd tài khoản thử nghiệm)
+            public string? ChucVu { get; set; }
+            public string? CapBacHrm { get; set; }
+            public DateOnly? NgayVaoLam { get; set; }
+            public bool? DangLamViec { get; set; }
             public string CapBac { get; set; } = DanhGiaService.CapBacMacDinh;
             public bool CoHoSo { get; set; }
             public Guid? IdNhomCongViec { get; set; }
@@ -116,6 +121,10 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                 .Where(u => u.Tk != null && dsMa.Contains(u.Tk))
                 .Select(u => new { u.Tk, u.HoTen, u.PhongBan })
                 .ToListAsync();
+            var hrm = await _context.HrmNhanViens.AsNoTracking()
+                .Where(x => dsMa.Contains(x.MaNhanVien))
+                .Select(x => new { x.MaNhanVien, x.HoTen, x.PhongBan, x.PhongBanEn, x.ChucVu, x.CapBac, x.NgayVaoLam, x.DangLamViec })
+                .ToListAsync();
             var hoSo = await _context.DgHoSoNhanViens.AsNoTracking().Where(x => dsMa.Contains(x.MaNhanVien)).ToListAsync();
             var nhomCv = await _context.DgNhomCongViecs.AsNoTracking().ToDictionaryAsync(x => x.IdNhomCongViec, x => x.TenNhom);
             var phieu = await _context.DgPhieuDanhGias.AsNoTracking().Where(x => dsMa.Contains(x.MaNhanVien)).ToListAsync();
@@ -128,6 +137,7 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             {
                 var u = nguoiDung.FirstOrDefault(x => string.Equals(x.Tk, ma, StringComparison.OrdinalIgnoreCase));
                 var hs = hoSo.FirstOrDefault(x => string.Equals(x.MaNhanVien, ma, StringComparison.OrdinalIgnoreCase));
+                var h = hrm.FirstOrDefault(x => string.Equals(x.MaNhanVien, ma, StringComparison.OrdinalIgnoreCase));
                 var tu = phieu.FirstOrDefault(x => string.Equals(x.MaNhanVien, ma, StringComparison.OrdinalIgnoreCase) && x.Loai == DanhGiaService.LoaiTuDanhGia);
                 var ql = phieu.FirstOrDefault(x => string.Equals(x.MaNhanVien, ma, StringComparison.OrdinalIgnoreCase) && x.Loai == DanhGiaService.LoaiQuanLy);
                 bool daTu = tu?.NgayNop != null, daQl = ql?.NgayNop != null;
@@ -136,8 +146,13 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                 return new NhanVienTomTat
                 {
                     MaNv = ma,
-                    HoTen = u?.HoTen ?? ma,
-                    PhongBan = u?.PhongBan,
+                    HoTen = u?.HoTen ?? h?.HoTen ?? ma,
+                    // Phòng ban chuẩn theo HRM; tên tiếng Trung là gốc nên ưu tiên bản tiếng Anh cho dễ đọc
+                    PhongBan = h?.PhongBanEn ?? h?.PhongBan ?? u?.PhongBan,
+                    ChucVu = h?.ChucVu,
+                    CapBacHrm = h?.CapBac,
+                    NgayVaoLam = h?.NgayVaoLam,
+                    DangLamViec = h?.DangLamViec,
                     CapBac = string.IsNullOrWhiteSpace(hs?.CapBac) ? DanhGiaService.CapBacMacDinh : hs!.CapBac!,
                     CoHoSo = !string.IsNullOrWhiteSpace(hs?.CapBac),
                     IdNhomCongViec = hs?.IdNhomCongViec,

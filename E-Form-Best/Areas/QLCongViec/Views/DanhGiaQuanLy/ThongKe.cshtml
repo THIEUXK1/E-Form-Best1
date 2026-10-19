@@ -1,0 +1,127 @@
+@{
+    ViewData["Title"] = "Thống kê đánh giá";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/thong-ke-danh-gia.css?v=3" />
+
+<div id="tkdg" class="tkdg">
+    <div class="tkdg-header">
+        <div>
+            <h2 class="tkdg-title">
+                <span class="tkdg-title-icon"><i class="fa fa-pie-chart"></i></span>
+                THỐNG KÊ ĐÁNH GIÁ HIỆU SUẤT
+            </h2>
+            <p class="tkdg-sub">Tiến độ đánh giá, xếp loại và mức đáp ứng yêu cầu của nhân viên</p>
+        </div>
+        <button type="button" class="tkdg-btn-reset" id="tkdgLamMoi"><i class="fa fa-refresh"></i> Làm mới bộ lọc</button>
+    </div>
+
+    <div class="tkdg-loi" id="tkdgLoi" hidden><i class="fa fa-exclamation-triangle"></i> <span id="tkdgLoiText"></span></div>
+
+    <div class="tkdg-loc">
+        <div class="tkdg-field">
+            <label for="tkdgPhongBan">Phòng ban</label>
+            <select id="tkdgPhongBan" class="tkdg-input"><option value="">-- Tất cả --</option></select>
+        </div>
+        <div class="tkdg-field">
+            <label for="tkdgNhom">Nhóm công việc</label>
+            <select id="tkdgNhom" class="tkdg-input"><option value="">-- Tất cả --</option></select>
+        </div>
+        <div class="tkdg-field">
+            <label for="tkdgCapBac">Cấp bậc</label>
+            <select id="tkdgCapBac" class="tkdg-input"><option value="">-- Tất cả --</option></select>
+        </div>
+        <span class="tkdg-dang-tai" id="tkdgDangTai"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</span>
+    </div>
+
+    @* Bấm ô KPI để lọc bảng chi tiết theo trạng thái; "Dưới chuẩn" đếm chồng lên các trạng thái *@
+    <div class="tkdg-kpi-strip">
+        <button type="button" class="tkdg-kpi" data-loc="" style="--kpi-c:#64748b;"><span class="tkdg-kpi-label"><i class="fa fa-users"></i> Tổng nhân viên</span><span class="tkdg-kpi-value" id="tkdgTong">0</span></button>
+        <button type="button" class="tkdg-kpi" data-loc="completed" style="--kpi-c:#65a30d;"><span class="tkdg-kpi-label"><i class="fa fa-check-circle"></i> Hoàn thành</span><span class="tkdg-kpi-value" id="tkdgHoanThanh">0</span><span class="tkdg-kpi-phu" id="tkdgTyLe">0%</span></button>
+        <button type="button" class="tkdg-kpi" data-loc="awaiting_manager" style="--kpi-c:#3b82f6;"><span class="tkdg-kpi-label"><i class="fa fa-user-circle"></i> Chờ quản lý</span><span class="tkdg-kpi-value" id="tkdgChoQl">0</span></button>
+        <button type="button" class="tkdg-kpi" data-loc="awaiting_self" style="--kpi-c:#f59e0b;"><span class="tkdg-kpi-label"><i class="fa fa-hourglass-half"></i> Chờ tự đánh giá</span><span class="tkdg-kpi-value" id="tkdgChoTu">0</span></button>
+        <button type="button" class="tkdg-kpi" data-loc="not_started" style="--kpi-c:#94a3b8;"><span class="tkdg-kpi-label"><i class="fa fa-circle-o"></i> Chưa đánh giá</span><span class="tkdg-kpi-value" id="tkdgChuaDg">0</span></button>
+        <button type="button" class="tkdg-kpi" data-loc="duoi_chuan" style="--kpi-c:#dc2626;" title="Đã có điểm và chênh lệch so với yêu cầu < 0"><span class="tkdg-kpi-label"><i class="fa fa-exclamation-triangle"></i> Dưới chuẩn</span><span class="tkdg-kpi-value" id="tkdgDuoiChuan">0</span></button>
+    </div>
+
+    <div class="tkdg-hang">
+        <div class="tkdg-khung">
+            <div class="tkdg-khung-tieu-de"><i class="fa fa-tasks"></i> Tỉ lệ trạng thái đánh giá</div>
+            <div class="tkdg-canvas"><canvas id="tkdgBdTrangThai"></canvas></div>
+            <div class="tkdg-trong" id="tkdgTrongTrangThai"><i class="fa fa-pie-chart"></i>Không có dữ liệu</div>
+        </div>
+        <div class="tkdg-khung">
+            <div class="tkdg-khung-tieu-de"><i class="fa fa-building"></i> Tiến độ đánh giá theo phòng ban</div>
+            <div class="tkdg-canvas"><canvas id="tkdgBdPhongBan"></canvas></div>
+            <div class="tkdg-trong" id="tkdgTrongPhongBan"><i class="fa fa-bar-chart"></i>Không có dữ liệu</div>
+        </div>
+    </div>
+
+    <div class="tkdg-hang">
+        <div class="tkdg-khung">
+            <div class="tkdg-khung-tieu-de"><i class="fa fa-trophy"></i> Phân bố xếp loại</div>
+            <div class="tkdg-canvas"><canvas id="tkdgBdXepLoai"></canvas></div>
+            <div class="tkdg-trong" id="tkdgTrongXepLoai"><i class="fa fa-pie-chart"></i>Chưa có nhân viên nào có điểm</div>
+        </div>
+        <div class="tkdg-khung">
+            <div class="tkdg-khung-tieu-de"><i class="fa fa-line-chart"></i> Điểm trung bình theo nhóm công việc <span class="tkdg-ghi-chu">(chỉ tính nhân viên đã có điểm)</span></div>
+            <div class="tkdg-canvas"><canvas id="tkdgBdNhom"></canvas></div>
+            <div class="tkdg-trong" id="tkdgTrongNhom"><i class="fa fa-bar-chart"></i>Không có dữ liệu điểm</div>
+        </div>
+    </div>
+
+    @* Ai còn thiếu bước nào: chia theo việc cần làm để quản lý biết nhắc ai / tự chấm ai *@
+    <div class="tkdg-khung">
+        <div class="tkdg-khung-tieu-de"><i class="fa fa-hourglass-half"></i> Nhân viên chưa hoàn thành đánh giá <span class="tkdg-ghi-chu" id="tkdgChuaXongDem"></span></div>
+        <div class="tkdg-chua-xong">
+            <div class="tkdg-cot" style="--cot-c:#3b82f6;">
+                <div class="tkdg-cot-dau"><span><i class="fa fa-user-circle"></i> Chờ quản lý đánh giá</span><b id="tkdgDemChoQl">0</b></div>
+                <p class="tkdg-cot-mo-ta">Đã tự đánh giá, quản lý cần chấm</p>
+                <ul class="tkdg-ds" id="tkdgDsChoQl"></ul>
+            </div>
+            <div class="tkdg-cot" style="--cot-c:#f59e0b;">
+                <div class="tkdg-cot-dau"><span><i class="fa fa-hourglass-half"></i> Chờ tự đánh giá</span><b id="tkdgDemChoTu">0</b></div>
+                <p class="tkdg-cot-mo-ta">Quản lý đã chấm, nhân viên chưa tự đánh giá</p>
+                <ul class="tkdg-ds" id="tkdgDsChoTu"></ul>
+            </div>
+            <div class="tkdg-cot" style="--cot-c:#94a3b8;">
+                <div class="tkdg-cot-dau"><span><i class="fa fa-circle-o"></i> Chưa bắt đầu</span><b id="tkdgDemChuaDg">0</b></div>
+                <p class="tkdg-cot-mo-ta">Chưa có phiếu tự đánh giá lẫn phiếu quản lý</p>
+                <ul class="tkdg-ds" id="tkdgDsChuaDg"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="tkdg-khung">
+        <div class="tkdg-khung-tieu-de tkdg-bang-dau">
+            <span><i class="fa fa-list"></i> Chi tiết nhân viên <span class="tkdg-ghi-chu" id="tkdgMoTaLoc"></span></span>
+            <input type="search" class="tkdg-input" id="tkdgTim" placeholder="Tìm tên, mã NV..." />
+        </div>
+        <div class="tkdg-bang-cuon">
+            <table class="tkdg-bang">
+                <thead>
+                    <tr>
+                        <th>Mã NV</th>
+                        <th>Họ tên</th>
+                        <th>Phòng ban</th>
+                        <th>Nhóm CV / Cấp bậc</th>
+                        <th class="so">KPI</th>
+                        <th class="so">Năng lực</th>
+                        <th class="so">GAP</th>
+                        <th>Xếp loại</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody id="tkdgBangThan"></tbody>
+            </table>
+            <div class="tkdg-bang-trong" id="tkdgBangTrong" hidden>Không có nhân viên phù hợp</div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <script src="~/js/thong-ke-danh-gia.js?v=2"></script>
+}

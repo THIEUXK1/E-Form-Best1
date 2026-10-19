@@ -343,7 +343,11 @@
         }
 
         chiTietNoiDung += RenderInfoRow("📂", "Loại yêu cầu", ct.LoaiYeuCau, "#f5f3ff", "#6d28d9");
-        chiTietNoiDung += RenderInfoRow("📁", "Đường dẫn ổ chung", ct.TenThuMucOchung, "#f0fdf4", "#166534");
+        // Đơn 8 dùng chung cho quyền Internet: nhận biết qua tiền tố "Internet" của LoaiQuyenYeuCau
+        bool laQuyenInternet = ct.LoaiQuyenYeuCau?.StartsWith("Internet", StringComparison.OrdinalIgnoreCase) == true;
+        chiTietNoiDung += laQuyenInternet
+            ? RenderInfoRow("🌐", "Website / phạm vi Internet", ct.TenThuMucOchung, "#f0fdf4", "#166534")
+            : RenderInfoRow("📁", "Đường dẫn ổ chung", ct.TenThuMucOchung, "#f0fdf4", "#166534");
         chiTietNoiDung += RenderInfoRow("🔑", "Quyền đề xuất", ct.LoaiQuyenYeuCau, "#f0f9ff", "#0369a1");
         chiTietNoiDung += RenderInfoRow("👤", "Người sử dụng quyền", ct.NguoiSuDung, "#fff7ed", "#9a3412");
         chiTietNoiDung += RenderInfoRow("💻", "Tên máy tính cấp", ct.TenMayTinh, "#f8fafc", "#0f172a");

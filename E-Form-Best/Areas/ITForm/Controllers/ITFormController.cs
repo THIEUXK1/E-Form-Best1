@@ -3482,15 +3482,38 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         [HttpPost("/FormIT/DonCapQuyenOChung")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DonCapQuyenOChung(FormIt form, [FromForm] ItCapQuyenOchung8 itOChung, string BoPhanDuocChon, int[] SelectedCongViecIds)
+        public async Task<IActionResult> DonCapQuyenOChung(FormIt form, [FromForm] ItCapQuyenOchung8 itOChung, string BoPhanDuocChon, int[] SelectedCongViecIds, string? NhomQuyen)
         {
             // 1. Kiểm tra đăng nhập
             if (User == null || User.Identity == null || !User.Identity.IsAuthenticated)
-                return Redirect("/DonXetDuyet/DangNhap");
+                return Json(new { thanhCong = false, thongBao = "Hết phiên đăng nhập, vui lòng đăng nhập lại." });
 
             // 2. Lấy thông tin User từ Claims
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             int.TryParse(userIdStr, out int userId);
+
+            // Đơn này dùng chung cho quyền ổ chung và quyền Internet; không thêm cột mới,
+            // nhóm Internet nhận biết bằng tiền tố "Internet" của LoaiQuyenYeuCau
+            bool laInternet = NhomQuyen == "Internet";
+            var loaiQuyen = itOChung?.LoaiQuyenYeuCau?.Trim() ?? "";
+            if (laInternet != loaiQuyen.StartsWith("Internet", StringComparison.OrdinalIgnoreCase))
+                return Json(new { thanhCong = false, thongBao = "Loại quyền không khớp với nhóm quyền đã chọn." });
+
+            var duongDan = itOChung?.TenThuMucOchung?.Trim();
+            if (string.IsNullOrEmpty(duongDan) || string.IsNullOrWhiteSpace(itOChung?.NguoiSuDung)
+                || string.IsNullOrWhiteSpace(itOChung?.TenMayTinh) || string.IsNullOrWhiteSpace(itOChung?.MucDich)
+                || string.IsNullOrWhiteSpace(BoPhanDuocChon))
+                return Json(new { thanhCong = false, thongBao = "Vui lòng nhập đủ các mục bắt buộc." });
+
+            // Chốt idempotency: gửi bằng AJAX không còn lá chắn POST-Redirect-GET,
+            // cùng người + cùng đường dẫn/website trong 15 giây coi là bấm trùng
+            var mocTrung = DateTime.Now.AddSeconds(-15);
+            bool daGuiTrung = await _context.FormIts.AnyAsync(f =>
+                f.IdNguoiTao == userId && f.IdForm == "IT_CapQuyenOChung_8" && f.TimeNguoiTao >= mocTrung
+                && f.ItCapQuyenOchung8s.Any(c => c.TenThuMucOchung == duongDan));
+            if (daGuiTrung)
+                return Json(new { thanhCong = false, thongBao = "Đơn này vừa được gửi, vui lòng không bấm gửi lại." });
+            itOChung!.TenThuMucOchung = duongDan;
 
             var userName = User.Identity.Name ?? "";
             var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
@@ -3514,7 +3537,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.TenCongTy = tenCongTy;
                     form.TrangThai = "ChoDuyet";
                     form.IdForm = "IT_CapQuyenOChung_8";
-                    form.TenForm = "Đơn cấp quyền ổ chung";
+                    form.TenForm = laInternet ? "Đơn cấp quyền Internet" : "Đơn cấp quyền ổ chung";
                     form.Danhmuc = "Cấp quyền ổ chung";
 
                     _context.FormIts.Add(form);
@@ -3633,7 +3656,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     // --- BƯỚC 5: LƯU LỊCH SỬ THAY ĐỔI ---
                     string moTaChiTiet = $"[Khởi tạo đơn] Người tạo: {userName} (ID: {userId}) | Bộ phận: {phongBan} | Công ty: {tenCongTy}\n" +
                                          $"- Danh mục: {form.Danhmuc}\n" +
-                                         $"- Thư mục ổ chung: {itOChung?.TenThuMucOchung}\n" +
+                                         $"- {(laInternet ? "Website / phạm vi Internet" : "Thư mục ổ chung")}: {itOChung?.TenThuMucOchung}\n" +
                                          $"- Quyền đề xuất: {itOChung?.LoaiQuyenYeuCau}\n" +
                                          $"- Bộ phận xác nhận được chỉ định: {BoPhanDuocChon}\n" +
                                          $"- File đính kèm: {(string.IsNullOrEmpty(form.FileDinhKem) ? "Không có" : form.FileDinhKem)}\n" +
@@ -3651,37 +3674,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                     await transaction.CommitAsync();
 
-                    TempData["Success"] = "Gửi đơn đăng ký Cấp quyền ổ chung thành công!";
-                    return Redirect("/FormIT/DonCho");
+                    return Json(new
+                    {
+                        thanhCong = true,
+                        thongBao = laInternet ? "Gửi đơn cấp quyền Internet thành công!" : "Gửi đơn cấp quyền ổ chung thành công!",
+                        duLieu = new { id = form.Id }
+                    });
                 }
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-
-                    // Load lại dữ liệu khi lỗi
-                    ViewBag.ListNguoiHoTro = _context.ItNguoiHoTros
-                        .Include(x => x.CongViecIts)
-                        .Where(x => x.BoPhan == "IT")
-                        .Select(x => new E_Form_Best.Models.ITForm.ItNguoiHoTro
-                        {
-                            Id = x.Id,
-                            MaNv = x.MaNv,
-                            Ten = x.Ten,
-                            BoPhan = x.BoPhan,
-                            GhiChu = x.GhiChu,
-                            CongViecIts = x.CongViecIts.Where(cv => cv.Ten == "Cấp quyền ổ chung").ToList()
-                        })
-                        .Where(x => x.CongViecIts.Any())
-                        .ToList();
-
-                    ViewBag.ListPhongBan = _context.Users
-                        .Where(u => !string.IsNullOrEmpty(u.PhongBan))
-                        .Select(u => u.PhongBan)
-                        .Distinct()
-                        .ToList();
-
-                    ModelState.AddModelError("", "Lỗi trong quá trình lưu: " + ex.Message);
-                    return View(form);
+                    return Json(new { thanhCong = false, thongBao = "Lỗi trong quá trình lưu: " + ex.Message });
                 }
             }
         }
