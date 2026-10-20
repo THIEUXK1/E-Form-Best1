@@ -25,6 +25,13 @@
         int.TryParse(userIdStr, out currentUserId);
     }
 
+    // Đơn 8 dùng chung cho quyền Internet nhưng Danhmuc vẫn là "Cấp quyền ổ chung" (để giữ luồng duyệt
+    // và nhân sự IT phụ trách) → chỉ đổi chữ hiển thị
+    string? danhMucHienThi = Model.Danhmuc;
+    if (Model.IdForm == "IT_CapQuyenOChung_8"
+        && Model.ItCapQuyenOchung8s?.FirstOrDefault()?.LoaiQuyenYeuCau?.StartsWith("Internet", StringComparison.OrdinalIgnoreCase) == true)
+        danhMucHienThi = "Cấp quyền Internet (vào từ xa)";
+
     // --- 2. LOGIC TRẠNG THÁI ĐƠN ---
     bool isCancelled = (Model.TenForm != null && Model.TenForm.Contains("[ĐÃ HỦY]")) || Model.TrangThai == "Huy";
     bool isFinished = Model.IdAdmin != null || Model.TrangThai == "HoanTat" || Model.TrangThai == "DaXuLy";
@@ -346,7 +353,7 @@
         // Đơn 8 dùng chung cho quyền Internet: nhận biết qua tiền tố "Internet" của LoaiQuyenYeuCau
         bool laQuyenInternet = ct.LoaiQuyenYeuCau?.StartsWith("Internet", StringComparison.OrdinalIgnoreCase) == true;
         chiTietNoiDung += laQuyenInternet
-            ? RenderInfoRow("🌐", "Website / phạm vi Internet", ct.TenThuMucOchung, "#f0fdf4", "#166534")
+            ? RenderInfoRow("🌐", "Website / phạm vi Internet (vào từ xa)", ct.TenThuMucOchung, "#f0fdf4", "#166534")
             : RenderInfoRow("📁", "Đường dẫn ổ chung", ct.TenThuMucOchung, "#f0fdf4", "#166534");
         chiTietNoiDung += RenderInfoRow("🔑", "Quyền đề xuất", ct.LoaiQuyenYeuCau, "#f0f9ff", "#0369a1");
         chiTietNoiDung += RenderInfoRow("👤", "Người sử dụng quyền", ct.NguoiSuDung, "#fff7ed", "#9a3412");
@@ -580,7 +587,7 @@
                         @if (!string.IsNullOrEmpty(Model.Danhmuc))
                         {
                             <span style="width: 4px; height: 4px; background: white; border-radius: 50%;"></span>
-                            <span style="background: rgba(255,255,255,0.15); padding:6px 12px; border-radius:12px; font-weight:800; font-size:13px;"><i class="fa fa-tags"></i> @Model.Danhmuc</span>
+                            <span style="background: rgba(255,255,255,0.15); padding:6px 12px; border-radius:12px; font-weight:800; font-size:13px;"><i class="fa fa-tags"></i> @danhMucHienThi</span>
                         }
                     </div>
                 </div>
@@ -619,7 +626,7 @@
                             <i class="fa fa-tags" style="color:#0369a1; font-size:18px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:#f0f9ff; border-radius:8px;"></i>
                             <div style="flex:1;">
                                 <small style="display:block; font-weight:800; color:#64748b; font-size:12px; text-transform:uppercase;">Danh mục</small>
-                                <div style="font-weight:700; color:#0f172a; font-size:15px;">@(string.IsNullOrEmpty(Model.Danhmuc) ? "---" : Model.Danhmuc)</div>
+                                <div style="font-weight:700; color:#0f172a; font-size:15px;">@(string.IsNullOrEmpty(danhMucHienThi) ? "---" : danhMucHienThi)</div>
                                 @if (!string.IsNullOrEmpty(Model.TenCongTy) || ViewBag.CoTheDoiDonVi == true)
                                 {
                                     <small style="display:block; margin-top:8px; font-weight:800; color:#64748b; font-size:12px; text-transform:uppercase;">Tên công ty</small>

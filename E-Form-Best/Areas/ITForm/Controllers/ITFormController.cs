@@ -3537,7 +3537,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     form.TenCongTy = tenCongTy;
                     form.TrangThai = "ChoDuyet";
                     form.IdForm = "IT_CapQuyenOChung_8";
-                    form.TenForm = laInternet ? "Đơn cấp quyền Internet" : "Đơn cấp quyền ổ chung";
+                    form.TenForm = laInternet ? "Đơn cấp quyền Internet (vào từ xa)" :"Đơn cấp quyền ổ chung";
                     form.Danhmuc = "Cấp quyền ổ chung";
 
                     _context.FormIts.Add(form);
