@@ -25,13 +25,6 @@
         int.TryParse(userIdStr, out currentUserId);
     }
 
-    // Đơn 8 dùng chung cho quyền Internet nhưng Danhmuc vẫn là "Cấp quyền ổ chung" (để giữ luồng duyệt
-    // và nhân sự IT phụ trách) → chỉ đổi chữ hiển thị
-    string? danhMucHienThi = Model.Danhmuc;
-    if (Model.IdForm == "IT_CapQuyenOChung_8"
-        && Model.ItCapQuyenOchung8s?.FirstOrDefault()?.LoaiQuyenYeuCau?.StartsWith("Internet", StringComparison.OrdinalIgnoreCase) == true)
-        danhMucHienThi = "Cấp quyền Internet (vào từ xa)";
-
     // --- 2. LOGIC TRẠNG THÁI ĐƠN ---
     bool isCancelled = (Model.TenForm != null && Model.TenForm.Contains("[ĐÃ HỦY]")) || Model.TrangThai == "Huy";
     bool isFinished = Model.IdAdmin != null || Model.TrangThai == "HoanTat" || Model.TrangThai == "DaXuLy";
@@ -350,11 +343,7 @@
         }
 
         chiTietNoiDung += RenderInfoRow("📂", "Loại yêu cầu", ct.LoaiYeuCau, "#f5f3ff", "#6d28d9");
-        // Đơn 8 dùng chung cho quyền Internet: nhận biết qua tiền tố "Internet" của LoaiQuyenYeuCau
-        bool laQuyenInternet = ct.LoaiQuyenYeuCau?.StartsWith("Internet", StringComparison.OrdinalIgnoreCase) == true;
-        chiTietNoiDung += laQuyenInternet
-            ? RenderInfoRow("🌐", "Website / phạm vi Internet (vào từ xa)", ct.TenThuMucOchung, "#f0fdf4", "#166534")
-            : RenderInfoRow("📁", "Đường dẫn ổ chung", ct.TenThuMucOchung, "#f0fdf4", "#166534");
+        chiTietNoiDung += RenderInfoRow("📁", "Đường dẫn ổ chung", ct.TenThuMucOchung, "#f0fdf4", "#166534");
         chiTietNoiDung += RenderInfoRow("🔑", "Quyền đề xuất", ct.LoaiQuyenYeuCau, "#f0f9ff", "#0369a1");
         chiTietNoiDung += RenderInfoRow("👤", "Người sử dụng quyền", ct.NguoiSuDung, "#fff7ed", "#9a3412");
         chiTietNoiDung += RenderInfoRow("💻", "Tên máy tính cấp", ct.TenMayTinh, "#f8fafc", "#0f172a");
@@ -432,6 +421,29 @@
         chiTietNoiDung += RenderInfoRow("🎒", "Phụ kiện kèm theo", ct.PhuKienKemTheo, "#f8fafc", "#0f172a");
         chiTietNoiDung += RenderInfoRow("📅", "Ngày trả", ct.NgayTra?.ToString("dd/MM/yyyy"), "#fffbeb", "#92400e");
         chiTietNoiDung += RenderInfoRow("📝", "Ghi chú", ct.GhiChu, "#f8fafc", "#0f172a");
+    }
+
+    else if (Model.ItCapQuyenInternet13s != null && Model.ItCapQuyenInternet13s.Any())
+    {
+        var ct = Model.ItCapQuyenInternet13s.First();
+        // Ô do người dùng tự gõ → mã hoá HTML vì RenderInfoRow chèn thẳng chuỗi vào trang
+        string? MaHoaHtml(string? s) => string.IsNullOrEmpty(s) ? s : System.Net.WebUtility.HtmlEncode(s);
+        ProcessImage(ct.DuongDanAnh, null);
+
+        bool laThuHoi = ct.LoaiYeuCau == "Thu hồi";
+        chiTietNoiDung += RenderInfoRow("📂", "Loại yêu cầu", ct.LoaiYeuCau, laThuHoi ? "#fef2f2" : "#ecfeff", laThuHoi ? "#991b1b" : "#0e7490");
+        chiTietNoiDung += RenderInfoRow("💻", "Tên máy tính / Mã tài sản", MaHoaHtml(ct.TenMayTinh), "#f8fafc", "#0f172a");
+        if (!string.IsNullOrEmpty(ct.DiaChiIp)) chiTietNoiDung += RenderInfoRow("🔢", "Địa chỉ IP", MaHoaHtml(ct.DiaChiIp), "#f8fafc", "#0f172a");
+        chiTietNoiDung += RenderInfoRow("👤", "Người sử dụng máy", MaHoaHtml(ct.NguoiSuDung), "#fff7ed", "#9a3412");
+        if (!laThuHoi)
+        {
+            chiTietNoiDung += RenderInfoRow("🌐", "Phạm vi truy cập", ct.PhamVi, "#f0f9ff", "#0369a1");
+            if (!string.IsNullOrEmpty(ct.DanhSachWebsite)) chiTietNoiDung += RenderInfoRow("🔗", "Website cần mở", MaHoaHtml(ct.DanhSachWebsite)?.Replace("\n", "<br>"), "#f0fdf4", "#166534");
+            chiTietNoiDung += RenderInfoRow("⏳", "Thời hạn",
+                ct.ThoiHan == "Có thời hạn" ? $"Đến {ct.NgayHetHan?.ToString("dd/MM/yyyy")}" : ct.ThoiHan, "#fffbeb", "#92400e");
+        }
+        chiTietNoiDung += RenderInfoRow("🎯", "Lý do", MaHoaHtml(ct.LyDo), "#fff1f2", "#be123c");
+        if (!string.IsNullOrEmpty(ct.GhiChu)) chiTietNoiDung += RenderInfoRow("📝", "Ghi chú", MaHoaHtml(ct.GhiChu), "#f8fafc", "#475569");
     }
 
     void ProcessImage(string? path, byte[]? rawData)
@@ -587,7 +599,7 @@
                         @if (!string.IsNullOrEmpty(Model.Danhmuc))
                         {
                             <span style="width: 4px; height: 4px; background: white; border-radius: 50%;"></span>
-                            <span style="background: rgba(255,255,255,0.15); padding:6px 12px; border-radius:12px; font-weight:800; font-size:13px;"><i class="fa fa-tags"></i> @danhMucHienThi</span>
+                            <span style="background: rgba(255,255,255,0.15); padding:6px 12px; border-radius:12px; font-weight:800; font-size:13px;"><i class="fa fa-tags"></i> @Model.Danhmuc</span>
                         }
                     </div>
                 </div>
@@ -626,7 +638,7 @@
                             <i class="fa fa-tags" style="color:#0369a1; font-size:18px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:#f0f9ff; border-radius:8px;"></i>
                             <div style="flex:1;">
                                 <small style="display:block; font-weight:800; color:#64748b; font-size:12px; text-transform:uppercase;">Danh mục</small>
-                                <div style="font-weight:700; color:#0f172a; font-size:15px;">@(string.IsNullOrEmpty(danhMucHienThi) ? "---" : danhMucHienThi)</div>
+                                <div style="font-weight:700; color:#0f172a; font-size:15px;">@(string.IsNullOrEmpty(Model.Danhmuc) ? "---" : Model.Danhmuc)</div>
                                 @if (!string.IsNullOrEmpty(Model.TenCongTy) || ViewBag.CoTheDoiDonVi == true)
                                 {
                                     <small style="display:block; margin-top:8px; font-weight:800; color:#64748b; font-size:12px; text-transform:uppercase;">Tên công ty</small>

@@ -1,0 +1,335 @@
+@model E_Form_Best.Models.ITForm.FormIt
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Cấp quyền Internet";
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+
+    var tenNguoiNv = User.Identity?.Name ?? "";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+    var emailHienTai = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+    var tenCongTy = User.FindFirst("TenCongTy")?.Value ?? "";
+    var ngayHienThi = DateTime.Now.ToString("dd/MM/yyyy");
+    var ngayToiThieu = DateTime.Now.ToString("yyyy-MM-dd");
+
+    string colorPrimary = "#0891b2";
+    string colorDark = "#164e63";
+    string colorLight = "#cffafe";
+    string colorBorder = "#67e8f9";
+
+    string inputBase = $"width: 100%; padding: 12px; border-radius: 12px; border: 1px solid {colorBorder}; background: #ffffff; font-weight: 600; box-sizing: border-box; font-size: 14px; outline: none; color: {colorDark}; transition: all 0.3s;";
+    string labelBase = $"font-weight: 800; color: {colorDark}; font-size: 11px; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.8px;";
+    string boxDetail = $"background: #ffffff; padding: 25px; border-radius: 24px; border: 1px solid {colorLight}; margin-bottom: 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);";
+    string boxChon = $"margin-bottom: 20px; padding: 18px; background: #f5feff; border: 1px solid {colorBorder}; border-radius: 20px;";
+}
+
+<style>
+    .input-hover:focus {
+        border-color: @colorPrimary !important;
+        box-shadow: 0 0 0 4px rgba(8, 145, 178, 0.1) !important;
+    }
+
+    .btn-grad:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px -5px rgba(8, 145, 178, 0.5) !important;
+        opacity: 0.95;
+    }
+
+    #paste_AnhInternet:hover {
+        border-color: @colorPrimary !important;
+        background: #ecfeff !important;
+    }
+
+    .ho-tro-item:hover {
+        border-color: @colorPrimary !important;
+        background-color: #f8fafc;
+        transform: translateY(-2px);
+    }
+
+    .radio-group label {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 15px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: #ffffff;
+        transition: 0.2s;
+        font-weight: 700;
+        color: @colorDark;
+    }
+
+    .radio-group input[type="radio"]:checked + span {
+        color: @colorPrimary;
+    }
+
+    @@media (max-width: 768px) {
+        .main-container {
+            padding: 20px 10px !important;
+        }
+
+        .form-card {
+            border-radius: 25px !important;
+        }
+
+        .header-section {
+            padding: 30px 15px !important;
+        }
+
+            .header-section h2 {
+                font-size: 20px !important;
+            }
+
+        .body-section {
+            padding: 20px !important;
+        }
+
+        .grid-employee, .grid-config, .grid-attachments {
+            grid-template-columns: 1fr !important;
+            gap: 15px !important;
+        }
+
+        .radio-group {
+            flex-direction: column;
+        }
+
+            .radio-group label {
+                width: 100%;
+            }
+
+        .box-detail-custom {
+            padding: 15px !important;
+            border-radius: 20px !important;
+        }
+
+        .btn-grad {
+            padding: 18px !important;
+            font-size: 16px !important;
+        }
+    }
+</style>
+
+<div class="main-container" style="background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%); padding: 50px 20px; min-height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif;">
+
+    <form id="internetForm" data-url="/FormIT/DonCapQuyenInternet" data-url-don-cho="/FormIT/DonCho" enctype="multipart/form-data" class="form-card"
+          style="max-width: 950px; margin: 0 auto; background: #ffffff; border-radius: 35px; box-shadow: 0 25px 50px -12px rgba(22, 78, 99, 0.15); overflow: hidden; border: 1px solid rgba(255,255,255,0.7);">
+
+        @Html.AntiForgeryToken()
+
+        <div class="header-section" style="background: linear-gradient(135deg, @colorPrimary 0%, #0e7490 100%); padding: 45px 20px; color: #ffffff; text-align: center; position: relative;">
+            <div style="position: absolute; top: 20px; right: 30px; font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 2px;">INTERNET ACCESS</div>
+            <h2 style="margin: 0; font-size: 26px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Phiếu yêu cầu cấp quyền Internet</h2>
+            <div style="margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; background: rgba(255,255,255,0.25); border-radius: 50px; font-size: 13px; backdrop-filter: blur(4px);">
+                <span>📅 Ngày yêu cầu:</span>
+                <span style="font-weight: 800; color: #ffffff;">@ngayHienThi</span>
+            </div>
+        </div>
+
+        <div class="body-section" style="padding: 40px;">
+
+            @* BƯỚC 1: THÔNG TIN NHÂN VIÊN *@
+            <div style="margin-bottom: 40px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 10px rgba(8, 145, 178, 0.3);">1</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Thông tin nhân viên đơn vị</h3>
+                </div>
+
+                <div class="grid-employee" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                    <div style="background: #f5feff; padding: 15px; border-radius: 15px; border: 1px solid @colorLight;">
+                        <label style="@labelBase">Người làm đơn</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@tenNguoiNv</div>
+                    </div>
+                    <div style="background: #f5feff; padding: 15px; border-radius: 15px; border: 1px solid @colorLight;">
+                        <label style="@labelBase">Bộ phận</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@phongBan</div>
+                    </div>
+                    <div style="background: #f5feff; padding: 15px; border-radius: 15px; border: 1px solid @colorLight;">
+                        <label style="@labelBase">Công ty</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px;">@tenCongTy</div>
+                    </div>
+                    <div style="background: #f5feff; padding: 15px; border-radius: 15px; border: 1px solid @colorLight;">
+                        <label style="@labelBase">Email hiện tại</label>
+                        <div style="font-weight: 700; color: @colorDark; font-size: 14px; word-break: break-all;">@emailHienTai</div>
+                    </div>
+                </div>
+            </div>
+
+            @* BƯỚC 2: MÁY TÍNH & QUYỀN INTERNET *@
+            <div class="box-detail-custom" style="@boxDetail">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorDark; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">2</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Máy tính cần cấp quyền Internet</h3>
+                </div>
+
+                <div style="@boxChon">
+                    <label style="@labelBase">Loại yêu cầu <span style="color:red">*</span></label>
+                    <div class="radio-group" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <label>
+                            <input type="radio" name="LoaiYeuCau" value="Cấp mới" checked style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                            <span>Cấp mới quyền</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="LoaiYeuCau" value="Thu hồi" style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                            <span>Thu hồi quyền</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="grid-config" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <label style="@labelBase">Tên máy tính / Mã tài sản <span style="color:red">*</span></label>
+                        <input type="text" name="TenMayTinh" id="TenMayTinh" placeholder="VD: PC-SX-012" maxlength="200" required class="input-hover" style="@inputBase">
+                    </div>
+                    <div>
+                        <label style="@labelBase">Địa chỉ IP (nếu biết)</label>
+                        <input type="text" name="DiaChiIp" id="DiaChiIp" placeholder="VD: 10.0.61.25" maxlength="50" class="input-hover" style="@inputBase">
+                    </div>
+                    <div>
+                        <label style="@labelBase">Người sử dụng máy <span style="color:red">*</span></label>
+                        <input type="text" name="NguoiSuDung" id="NguoiSuDung" value="@tenNguoiNv" placeholder="VD: Nguyễn Văn A - V12345" maxlength="250" required class="input-hover" style="@inputBase">
+                    </div>
+                </div>
+
+                @* Phạm vi + thời hạn chỉ dùng khi cấp mới; JS ẩn đi khi chọn Thu hồi *@
+                <div id="khoiCapMoi">
+                    <div style="@boxChon">
+                        <label style="@labelBase">Phạm vi truy cập <span style="color:red">*</span></label>
+                        <div class="radio-group" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <label>
+                                <input type="radio" name="PhamVi" value="Website cụ thể" checked style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                                <span>Chỉ website cụ thể</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="PhamVi" value="Toàn bộ Internet" style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                                <span>Toàn bộ Internet</span>
+                            </label>
+                        </div>
+                        <div id="khoiWebsite" style="margin-top: 15px;">
+                            <label style="@labelBase">Danh sách website cần mở <span style="color:red">*</span></label>
+                            <textarea name="DanhSachWebsite" id="DanhSachWebsite" class="input-hover"
+                                      placeholder="Mỗi dòng một trang, VD:&#10;mail.google.com&#10;zalo.me&#10;thuvienphapluat.vn"
+                                      style="@inputBase height: 100px; resize: vertical;"></textarea>
+                        </div>
+                    </div>
+
+                    <div style="@boxChon">
+                        <label style="@labelBase">Thời hạn <span style="color:red">*</span></label>
+                        <div class="radio-group" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                            <label>
+                                <input type="radio" name="ThoiHan" value="Vĩnh viễn" checked style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                                <span>Vĩnh viễn</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="ThoiHan" value="Có thời hạn" style="width: 18px; height: 18px; accent-color: @colorPrimary;">
+                                <span>Có thời hạn</span>
+                            </label>
+                            <div id="khoiNgayHetHan" style="display: none; flex: 1; min-width: 200px;">
+                                <input type="date" name="NgayHetHan" id="NgayHetHan" min="@ngayToiThieu" class="input-hover" style="@inputBase" title="Ngày hết hạn">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="@labelBase">Lý do cần truy cập Internet <span style="color:red">*</span></label>
+                    <textarea name="LyDo" id="LyDo" class="input-hover"
+                              placeholder="Vui lòng ghi rõ:&#10;- Dùng Internet để làm việc gì&#10;- Vì sao cần trên máy này"
+                              style="@inputBase height: 110px; resize: none;"></textarea>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="@labelBase">Ghi chú thêm</label>
+                    <input type="text" name="GhiChu" placeholder="Ghi chú thêm (nếu có)..." class="input-hover" style="@inputBase">
+                </div>
+
+                <div class="grid-attachments" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label style="@labelBase">Ảnh minh họa (Dán từ Clipboard)</label>
+                        <div id="paste_AnhInternet" tabindex="0"
+                             style="width: 100%; border: 2px dashed @colorBorder; height: 160px; border-radius: 15px; display: flex; align-items: center; justify-content: center; background: #f5feff; color: @colorDark; cursor: pointer; overflow: hidden; font-size: 12px; font-weight: 700; transition: 0.3s; position: relative; outline: none;">
+                            <div style="text-align:center;"><i style="font-size: 20px; margin-bottom:8px;" class="fa fa-picture-o"></i><br>Bấm vào đây rồi Ctrl+V<br><span style="font-weight: 500;">(VD: ảnh màn hình báo bị chặn)</span></div>
+                        </div>
+                        <input type="file" id="input_Anh" name="Anh" hidden accept="image/*">
+                    </div>
+                    <div>
+                        <label style="@labelBase">File đính kèm (Nếu có)</label>
+                        <div style="border: 2px dashed #e2e8f0; height: 160px; border-radius: 15px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; background: #ffffff; transition: 0.3s;">
+                            <input type="file" name="UploadFile" style="font-size: 12px; width: 100%;">
+                            <p style="font-size: 11px; color: #0e7490; margin-top: 15px; line-height: 1.5;">Hỗ trợ: PDF, Excel, Docx, Zip...<br>Tối đa 10MB</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* BƯỚC 3: CHỌN NHÂN SỰ HỖ TRỢ *@
+            <div class="box-detail-custom" style="@boxDetail">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <span style="background: @colorPrimary; color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; font-weight: 900;">3</span>
+                    <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Chọn nhân sự IT hỗ trợ</h3>
+                </div>
+
+                <div class="grid-employee" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+                    @if (ViewBag.ListNguoiHoTro != null && ((List<E_Form_Best.Models.ITForm.ItNguoiHoTro>)ViewBag.ListNguoiHoTro).Count > 0)
+                    {
+                        foreach (var item in (List<E_Form_Best.Models.ITForm.ItNguoiHoTro>)ViewBag.ListNguoiHoTro)
+                        {
+                            foreach (var cv in item.CongViecIts)
+                            {
+                                <label class="ho-tro-item" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; background: white; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                    <input type="checkbox" name="SelectedCongViecIds" value="@cv.Id" style="width: 20px; height: 20px; accent-color: @colorPrimary;" />
+                                    <span style="flex: 1;">
+                                        <span style="font-weight: 700; color: @colorDark; font-size: 14px;">@item.Ten</span>
+                                        <span style="font-size: 12px; color: #64748b;">Mã NV: @item.MaNv</span>
+                                        <span style="margin-top: 5px; display: inline-block; padding: 2px 8px; background: #ecfeff; color: #0e7490; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                                            @cv.Ten
+                                        </span>
+                                    </span>
+                                </label>
+                            }
+                        }
+                    }
+                    else
+                    {
+                        @* Không có ai đảm nhận thì không bắt chọn; server tự gán khi có người đảm nhận *@
+                        <div id="khongCoNhanSu" style="grid-column: 1/-1; color: #64748b; font-style: italic;">
+                            Chưa có nhân sự IT nào đảm nhận mục "Cấp quyền Internet" — đơn vẫn gửi được, IT sẽ tiếp nhận sau khi chủ quản duyệt.
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* CAM KẾT & GỬI *@
+            <div style="margin-bottom: 30px; background: #f5feff; border: 1px dashed @colorBorder; border-radius: 24px; padding: 25px;">
+                <h3 style="margin: 0 0 20px 0; color: @colorDark; font-size: 15px; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 1px;">
+                    BẢN CAM KẾT SỬ DỤNG INTERNET
+                </h3>
+
+                <div style="max-height: 200px; overflow-y: auto; padding-right: 10px; margin-bottom: 20px; font-size: 13px; line-height: 1.6; color: @colorDark;">
+                    <ol style="margin: 0; padding-left: 20px; display: grid; gap: 10px;">
+                        <li><strong>Mục đích:</strong> Chỉ dùng Internet trên máy này cho công việc của Công ty, không dùng cho mục đích cá nhân.</li>
+                        <li><strong>An toàn thông tin:</strong> Không tải, cài đặt phần mềm lạ; không mở link/tệp đính kèm không rõ nguồn gốc.</li>
+                        <li><strong>Bảo mật dữ liệu:</strong> Không gửi, tải lên dữ liệu của Công ty ra các trang web/dịch vụ bên ngoài khi chưa được phép.</li>
+                        <li><strong>Trách nhiệm:</strong> Chịu trách nhiệm về mọi truy cập phát sinh từ máy được cấp quyền; IT có quyền thu hồi khi phát hiện vi phạm.</li>
+                    </ol>
+                </div>
+
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 12px; background: #ffffff; padding: 18px; border-radius: 15px; border: 1px solid @colorBorder; transition: 0.3s;">
+                    <input type="checkbox" id="chkCamKet" style="width: 22px; height: 22px; cursor: pointer; accent-color: @colorPrimary;">
+                    <span style="font-size: 14px; font-weight: 800; color: @colorDark;">
+                        Tôi đã đọc và cam kết tuân thủ các điều khoản trên.
+                    </span>
+                </label>
+            </div>
+
+            <button type="submit" id="btnSubmit" class="btn-grad"
+                    style="width: 100%; padding: 22px; background: linear-gradient(to right, @colorPrimary, #0e7490); color: #ffffff; border: none; border-radius: 20px; font-weight: 900; font-size: 18px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 25px -5px rgba(8, 145, 178, 0.4); transition: 0.3s;">
+                Gửi yêu cầu phê duyệt
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="/js/don-cap-quyen-internet.js?v=20261020"></script>
+}

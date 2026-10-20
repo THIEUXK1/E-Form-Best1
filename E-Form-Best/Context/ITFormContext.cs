@@ -127,6 +127,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<ItTraThietBi12> ItTraThietBi12s { get; set; }
 
+    public virtual DbSet<ItCapQuyenInternet13> ItCapQuyenInternet13s { get; set; }
+
     public virtual DbSet<ItCtNguoiHoTro> ItCtNguoiHoTros { get; set; }
 
     public virtual DbSet<ItDangKiSuDungDtban4> ItDangKiSuDungDtban4s { get; set; }
@@ -740,6 +742,13 @@ public partial class ITFormContext : DbContext
             entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.ItTraThietBi12s)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_ITTraThietBi_FormIT");
+        });
+
+        modelBuilder.Entity<ItCapQuyenInternet13>(entity =>
+        {
+            entity.HasOne(d => d.IdFormItNavigation).WithMany(p => p.ItCapQuyenInternet13s)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_ITCapQuyenInternet_FormIT");
         });
 
         modelBuilder.Entity<ItNguoiHoTro>(entity =>

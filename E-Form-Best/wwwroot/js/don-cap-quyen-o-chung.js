@@ -1,31 +1,6 @@
-// Đơn cấp quyền ổ chung / Internet (/FormIT/DonCapQuyenOChung): dán ảnh, đổi nhóm quyền, gửi AJAX.
+// Đơn cấp quyền ổ chung (/FormIT/DonCapQuyenOChung): dán ảnh, gửi AJAX.
 (function () {
     const HTML_O_DAN_ANH = '<div style="text-align:center;"><i style="font-size: 20px; margin-bottom:8px;" class="fa fa-picture-o"></i><br>Bấm vào đây rồi Ctrl+V</div>';
-
-    function layNhomQuyen() {
-        const chon = document.querySelector('input[name="NhomQuyen"]:checked');
-        return chon ? chon.value : "OChung";
-    }
-
-    // Đổi nhãn/placeholder và bộ "Loại quyền" theo nhóm; select đang ẩn bị disabled để không gửi lên
-    function capNhatNhomQuyen() {
-        const laInternet = layNhomQuyen() === "Internet";
-        const khoa = laInternet ? "internet" : "oChung";
-
-        const nhan = document.getElementById("nhanDuongDan");
-        if (nhan) nhan.textContent = nhan.dataset[khoa];
-        ["TenThuMucOchung", "MucDich"].forEach(function (id) {
-            const o = document.getElementById(id);
-            if (o) o.placeholder = o.dataset[khoa];
-        });
-
-        const selOChung = document.getElementById("LoaiQuyenOChung");
-        const selInternet = document.getElementById("LoaiQuyenInternet");
-        selOChung.disabled = laInternet;
-        selOChung.style.display = laInternet ? "none" : "";
-        selInternet.disabled = !laInternet;
-        selInternet.style.display = laInternet ? "" : "none";
-    }
 
     function hienLoi(thongBao) {
         const hop = document.getElementById("loiGuiDon");
@@ -46,9 +21,8 @@
     }
 
     function kiemTraForm() {
-        const laInternet = layNhomQuyen() === "Internet";
         if (!document.querySelector('input[name="LoaiYeuCau"]:checked')) { hienLoi("Vui lòng chọn Loại yêu cầu!"); return false; }
-        if (!batBuoc("TenThuMucOchung", laInternet ? "Vui lòng nhập Website / phạm vi truy cập Internet!" : "Vui lòng nhập Tên/Đường dẫn thư mục ổ chung!")) return false;
+        if (!batBuoc("TenThuMucOchung", "Vui lòng nhập Tên/Đường dẫn thư mục ổ chung!")) return false;
         if (!batBuoc("NguoiSuDung", "Vui lòng nhập Tên nhân viên sử dụng quyền!")) return false;
         if (!batBuoc("TenMayTinh", "Vui lòng nhập Tên máy tính cần cấp quyền!")) return false;
         if (!batBuoc("BoPhanDuocChon", "Vui lòng chọn Bộ phận và Công ty xác nhận cho phép!")) return false;
@@ -63,8 +37,7 @@
         if (!kiemTraForm()) return;
 
         const loaiYeuCau = document.querySelector('input[name="LoaiYeuCau"]:checked').value;
-        const tenNhom = layNhomQuyen() === "Internet" ? "quyền Internet" : "quyền ổ chung";
-        if (!confirm("Xác nhận gửi đơn " + loaiYeuCau + " " + tenNhom + " này?")) return;
+        if (!confirm("Xác nhận gửi đơn " + loaiYeuCau + " này?")) return;
 
         const form = document.getElementById("itOChungForm");
         const htmlGoc = btn.innerHTML;
@@ -84,7 +57,6 @@
             alert("🎉 " + kq.thongBao);
             form.reset();
             document.getElementById("paste_AnhOChung").innerHTML = HTML_O_DAN_ANH;
-            capNhatNhomQuyen();
         } catch (err) {
             hienLoi("Lỗi kết nối: " + err.message);
         } finally {
@@ -93,10 +65,6 @@
             btn.style.pointerEvents = "auto";
         }
     }
-
-    document.addEventListener("change", function (e) {
-        if (e.target.name === "NhomQuyen") capNhatNhomQuyen();
-    });
 
     document.addEventListener("click", function (e) {
         const btn = e.target.closest("#btnSubmit");
@@ -124,7 +92,4 @@
             reader.readAsDataURL(blob);
         }
     });
-
-    // Trình duyệt có thể giữ lựa chọn radio khi quay lại trang → đồng bộ giao diện ngay khi tải
-    capNhatNhomQuyen();
 })();

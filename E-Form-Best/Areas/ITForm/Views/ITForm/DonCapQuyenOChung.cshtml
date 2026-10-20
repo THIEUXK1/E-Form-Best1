@@ -160,20 +160,6 @@
                     <h3 style="margin: 0; color: @colorDark; font-size: 16px; font-weight: 800; text-transform: uppercase;">Cấu hình ổ chung cần cấp quyền</h3>
                 </div>
 
-                <div style="margin-bottom: 15px; padding: 18px; background: #faf8ff; border: 1px solid @colorBorder; border-radius: 20px;">
-                    <label style="@labelBase">Nhóm quyền <span style="color:red">*</span></label>
-                    <div class="radio-group" style="display: flex; gap: 15px; flex-wrap: wrap;">
-                        <label>
-                            <input type="radio" name="NhomQuyen" value="OChung" checked style="width: 18px; height: 18px; accent-color: @colorPrimary;">
-                            <span>📁 Quyền ổ chung</span>
-                        </label>
-                        <label>
-                            <input type="radio" name="NhomQuyen" value="Internet" style="width: 18px; height: 18px; accent-color: @colorPrimary;">
-                            <span>🌐 Quyền Internet (vào từ xa)</span>
-                        </label>
-                    </div>
-                </div>
-
                 <div style="margin-bottom: 25px; padding: 18px; background: #faf8ff; border: 1px solid @colorBorder; border-radius: 20px;">
                     <label style="@labelBase">Loại yêu cầu <span style="color:red">*</span></label>
                     <div class="radio-group" style="display: flex; gap: 15px; flex-wrap: wrap;">
@@ -194,20 +180,15 @@
 
                 <div class="grid-config" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                     <div>
-                        <label style="@labelBase"><span id="nhanDuongDan" data-o-chung="Tên/Đường dẫn thư mục ổ chung" data-internet="Website / phạm vi truy cập Internet">Tên/Đường dẫn thư mục ổ chung</span> <span style="color:red">*</span></label>
-                        <input type="text" name="TenThuMucOchung" id="TenThuMucOchung" placeholder="Ví dụ: \\10.0.60.30\Public\IT-Dept" data-o-chung="Ví dụ: \\10.0.60.30\Public\IT-Dept" data-internet="Ví dụ: chatgpt.com, youtube.com hoặc Toàn bộ Internet" required class="input-hover" style="@inputBase">
+                        <label style="@labelBase">Tên/Đường dẫn thư mục ổ chung <span style="color:red">*</span></label>
+                        <input type="text" name="TenThuMucOchung" id="TenThuMucOchung" placeholder="Ví dụ: \\10.0.60.30\Public\IT-Dept" required class="input-hover" style="@inputBase">
                     </div>
                     <div>
                         <label style="@labelBase">Loại quyền yêu cầu <span style="color:red">*</span></label>
-                        @* Hai bộ lựa chọn cùng name; bộ đang ẩn bị disabled nên không gửi lên server *@
-                        <select name="LoaiQuyenYeuCau" id="LoaiQuyenOChung" class="input-hover" style="@inputBase">
+                        <select name="LoaiQuyenYeuCau" class="input-hover" style="@inputBase">
                             <option value="Read">Chỉ đọc (Read)</option>
                             <option value="Read/Write">Đọc / Ghi (Read/Write)</option>
                             <option value="Full Control">Toàn quyền (Full Control)</option>
-                        </select>
-                        <select name="LoaiQuyenYeuCau" id="LoaiQuyenInternet" class="input-hover" style="@inputBase display: none;" disabled>
-                            <option value="Internet - Website cụ thể">Truy cập website cụ thể</option>
-                            <option value="Internet - Toàn bộ">Truy cập toàn bộ Internet</option>
                         </select>
                     </div>
                 </div>
@@ -240,8 +221,6 @@
                     <label style="@labelBase">Mục đích sử dụng / Lý do <span style="color:red">*</span></label>
                     <textarea name="MucDich" id="MucDich" required
                               placeholder="Vui lòng ghi rõ mục đích sử dụng thư mục chung này..."
-                              data-o-chung="Vui lòng ghi rõ mục đích sử dụng thư mục chung này..."
-                              data-internet="Vui lòng ghi rõ cần truy cập Internet/website để làm gì..."
                               class="input-hover"
                               style="@inputBase height: 100px; resize: none;"></textarea>
                 </div>
@@ -338,4 +317,4 @@
     </form>
 </div>
 
-<script src="/js/don-cap-quyen-o-chung.js?v=1"></script>
+<script src="/js/don-cap-quyen-o-chung.js?v=2"></script>
