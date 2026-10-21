@@ -416,6 +416,8 @@ namespace E_Form_Best.Areas.ITForm.Services
                         try { anh = await ChupIsapiAsync(dg, k.Kenh, token); }
                         catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !ct.IsCancellationRequested)) { }
 
+                        // Ảnh hỏng (mảng xanh-hồng) thì không ghi đè ảnh lưu cũ
+                        if (anh != null && await AnhHongAsync(anh, token)) anh = null;
                         if (anh == null) { k.KetQua = "KHONG"; return; }
                         await GhiFileAsync(Path.Combine(thuMuc, $"{ip}_{k.Kenh}.jpg"), anh, token);
                         k.KetQua = "OK";
@@ -822,13 +824,17 @@ namespace E_Form_Best.Areas.ITForm.Services
             await _gioiHanFfmpeg.WaitAsync(ct);
             try
             {
-                // Luồng H.265 đang ghi dở đôi khi hỏng ở đoạn sát cuối (ffmpeg INVALIDDATA) -> thử lại ở 60 giây trước điểm kết thúc
-                foreach (var tu in new[] { GioKhungHinhPlayback(batDau, ketThuc), ketThuc.AddSeconds(-60) < batDau ? batDau : ketThuc.AddSeconds(-60) })
+                // Luồng H.265 đang ghi dở đôi khi hỏng ở đoạn sát cuối (ffmpeg INVALIDDATA / ảnh mảng xanh-hồng) -> lùi dần
+                // 1 phút, 5 phút, 30 phút trong đoạn ghi cuối. Không mốc nào ra ảnh lành thì trả null, nơi gọi giữ ảnh cũ.
+                var dsMoc = new[] { 10, 60, 300, 1800 }
+                    .Select(lui => ketThuc.AddSeconds(-lui) < batDau ? batDau : ketThuc.AddSeconds(-lui))
+                    .Distinct();
+                foreach (var tu in dsMoc)
                 {
                     var rtsp = $"rtsp://{Uri.EscapeDataString(taiKhoan)}:{Uri.EscapeDataString(matKhau)}@{ip}:{cong}"
                         + $"/Streaming/tracks/{kenh}01?starttime={tu:yyyyMMddTHHmmss}Z&endtime={ketThuc:yyyyMMddTHHmmss}Z";
                     var anh = await ChayFfmpegAsync(ffmpeg, rtsp, ct);
-                    if (anh != null && anh.Length >= 1000) return (anh, tu);
+                    if (anh != null && anh.Length >= 1000 && !await AnhHongAsync(anh, ct)) return (anh, tu);
                 }
                 return null;
             }
@@ -928,7 +934,8 @@ namespace E_Form_Best.Areas.ITForm.Services
                 }
 
                 var anh = await ChayFfmpegAsync(ffmpeg, tam, ct, false);
-                return anh != null && anh.Length >= 1000 ? (anh, doan.Value.batDau) : null;
+                // Ảnh hỏng (mảng xanh-hồng) thì trả null để giữ ảnh lưu cũ
+                return anh != null && anh.Length >= 1000 && !await AnhHongAsync(anh, ct) ? (anh, doan.Value.batDau) : null;
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
@@ -954,7 +961,9 @@ namespace E_Form_Best.Areas.ITForm.Services
             // Nguồn là file tải về (playback đầu ghi gọi thẳng) thì bỏ các tham số RTSP
             var dsThamSo = new List<string> { "-hide_banner", "-loglevel", "error" };
             if (laRtsp) dsThamSo.AddRange(new[] { "-rtsp_transport", "tcp", "-timeout", "10000000" });
-            dsThamSo.AddRange(new[] { "-i", nguon, "-frames:v", "1", "-vf", "scale='min(1280,iw)':-2", "-q:v", "4", "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1" });
+            // Playback bắt đầu giữa nhóm khung: khung đầu không phải khung khoá thì H.265 giải ra mảng xám/hồng/xanh
+            // -> chỉ giải mã khung khoá. Đoạn không có khung khoá nào thì ffmpeg ra rỗng, nơi gọi tự thử mốc khác.
+            dsThamSo.AddRange(new[] { "-skip_frame", "nokey", "-i", nguon, "-frames:v", "1", "-vf", "scale='min(1280,iw)':-2", "-q:v", "4", "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1" });
             foreach (var thamSo in dsThamSo)
                 thongTin.ArgumentList.Add(thamSo);
 
@@ -975,6 +984,69 @@ namespace E_Form_Best.Areas.ITForm.Services
             {
                 // Quá 30 giây (đầu ghi treo luồng playback): coi như không lấy được
                 return null;
+            }
+            finally
+            {
+                if (!tienTrinh.HasExited) tienTrinh.Kill(true);
+            }
+        }
+
+        /// <summary>
+        /// Ảnh hỏng do luồng H.265 mất dữ liệu (mảng xanh lá / hồng đặc): ffmpeg thu ảnh về 64x36 điểm rồi đếm điểm có
+        /// một kênh màu lệch hẳn hai kênh kia. Ảnh thật đo được 0%, ảnh hỏng từ ~30% -> ngưỡng 5%.
+        /// Không có ffmpeg / quá giờ thì coi là lành (không chặn ảnh); ffmpeg không đọc nổi ảnh thì coi là hỏng.
+        /// </summary>
+        public async Task<bool> AnhHongAsync(byte[] anh, CancellationToken ct)
+        {
+            var ffmpeg = _configuration["CameraNvr:FfmpegPath"];
+            if (string.IsNullOrWhiteSpace(ffmpeg)) ffmpeg = @"C:\go2rtc\ffmpeg.exe";
+            if (!File.Exists(ffmpeg)) return false;
+
+            var thongTin = new System.Diagnostics.ProcessStartInfo(ffmpeg)
+            {
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            foreach (var thamSo in new[] { "-hide_banner", "-loglevel", "error", "-i", "pipe:0",
+                         "-vf", "scale=64:36:flags=area", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1" })
+                thongTin.ArgumentList.Add(thamSo);
+
+            using var tienTrinh = System.Diagnostics.Process.Start(thongTin)
+                ?? throw new InvalidOperationException("Không chạy được ffmpeg.");
+            using var hetGio = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            hetGio.CancelAfter(TimeSpan.FromSeconds(15));
+            try
+            {
+                // Ghi ảnh vào stdin song song với đọc stdout để hai đầu ống không chờ nhau
+                var ghi = Task.Run(async () =>
+                {
+                    try { await tienTrinh.StandardInput.BaseStream.WriteAsync(anh, hetGio.Token); }
+                    catch (IOException) { }   // ffmpeg đóng ống sớm (ảnh lỗi): kết quả đọc bên dưới tự báo
+                    finally { tienTrinh.StandardInput.Close(); }
+                });
+                var docLoi = tienTrinh.StandardError.ReadToEndAsync(hetGio.Token);
+                using var bo = new MemoryStream();
+                await tienTrinh.StandardOutput.BaseStream.CopyToAsync(bo, hetGio.Token);
+                await ghi;
+                await tienTrinh.WaitForExitAsync(hetGio.Token);
+                await docLoi;
+
+                var px = bo.ToArray();
+                if (px.Length < 3) return true;
+                var lech = 0;
+                for (var i = 0; i + 2 < px.Length; i += 3)
+                {
+                    int r = px[i], g = px[i + 1], b = px[i + 2];
+                    if (g - Math.Max(r, b) > 90 || Math.Min(r, b) - g > 90) lech++;
+                }
+                return lech * 20 >= px.Length / 3;
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                return false;
             }
             finally
             {

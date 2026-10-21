@@ -6,7 +6,7 @@
     var COT = 15;
     // BPVN có thêm cột SNMP (view chỉ dựng cột này cho BPVN) — COT tăng tương ứng lúc khởi tạo
     var congTy, chiXem, goc, coSnmp = false;
-    var modalSw, modalXoa;
+    var modalSw, modalXoa, modalDienSnmp;
     var timerTimKiem = null, timerLs = null;
 
     function esc(v) {
@@ -236,6 +236,7 @@
         $('#formSw')[0].reset();
         $('#IdSwitch').val(0);
         $('#modalSwTitle').text('Thêm Switch ' + congTy);
+        datLaiSnmp('');
         anLoi($('#swLoi'));
         modalSw.show();
     }
@@ -259,6 +260,7 @@
         $('#HanBaoHanh').val(chuanHoaNgay(x.hanBaoHanh));
         $('#GhiChu').val(x.ghiChu || '');
         $('#modalSwTitle').text('Sửa Switch ' + congTy);
+        datLaiSnmp(x.diaChiIp || '');
         anLoi($('#swLoi'));
         modalSw.show();
     }
@@ -285,6 +287,55 @@
             })
             .fail(function () { hienLoi($loi, 'Lỗi kết nối máy chủ.'); })
             .always(function () { $btn.prop('disabled', false); });
+    }
+
+    // ---------------- SNMP: kiểm tra kết nối / điền hàng loạt ----------------
+
+    function datLaiSnmp(ip) {
+        $('#snmpIp').val(ip);
+        $('#snmpCommunity').val('');
+        $('#snmpKetQua').addClass('d-none').text('');
+    }
+
+    // Đọc SNMP 1 switch rồi điền form (chưa lưu): ô nào SNMP trả được thì thay, tên chỉ điền khi đang trống
+    function kiemTraSnmp() {
+        var $kq = $('#snmpKetQua');
+        var ip = $('#snmpIp').val().trim() || $('#DiaChiIp').val().trim();
+        if (!ip) { $kq.removeClass('d-none text-success').addClass('text-danger').text('Nhập IP hoặc hostname.'); return; }
+        var $btn = $('#btnKiemTraSnmp').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang đọc...');
+        $kq.addClass('d-none');
+
+        $.post(goc + '/KiemTraSnmp', { ipHoacTen: ip, community: $('#snmpCommunity').val() })
+            .done(function (res) {
+                if (!res.thanhCong) { $kq.removeClass('d-none text-success').addClass('text-danger').text(res.thongBao || 'Không đọc được SNMP.'); return; }
+                var d = res.duLieu, daDien = [];
+                function dien(id, v, nhan) { if (v !== null && v !== undefined && v !== '') { $('#' + id).val(v); daDien.push(nhan); } }
+                dien('DiaChiIp', d.ip, 'IP');
+                if (!$('#TenSwitch').val().trim()) dien('TenSwitch', d.tenHeThong, 'tên');
+                dien('HangSanXuat', d.hang, 'hãng');
+                dien('Model', d.model, 'model');
+                dien('Serial', d.serial, 'serial');
+                dien('PhienBan', d.firmware, 'firmware');
+                dien('DiaChiMac', d.mac, 'MAC');
+                dien('SoCong', d.soCong, 'số cổng');
+                $kq.removeClass('d-none text-danger').addClass('text-success')
+                    .text(res.thongBao + (d.tenHeThong ? ' ' + d.tenHeThong + '.' : '') + ' Đã điền: ' + daDien.join(', ') + '. Bấm Lưu để ghi.');
+            })
+            .fail(function () { $kq.removeClass('d-none text-success').addClass('text-danger').text('Lỗi kết nối máy chủ.'); })
+            .always(function () { $btn.prop('disabled', false).html('<i class="fas fa-plug me-1"></i> Kiểm tra kết nối'); });
+    }
+
+    function dienTuSnmp() {
+        var $kq = $('#dienSnmpKetQua').addClass('d-none');
+        var $btn = $('#btnXacNhanDienSnmp').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang đọc...');
+        $.ajax({ url: goc + '/DienTuSnmp', method: 'POST', data: { community: $('#dienSnmpCommunity').val() }, timeout: 180000 })
+            .done(function (res) {
+                $kq.removeClass('d-none alert-success alert-danger').addClass(res.thanhCong ? 'alert-success' : 'alert-danger')
+                    .text(res.thongBao || (res.thanhCong ? 'Xong.' : 'Không thành công.'));
+                if (res.thanhCong) taiDanhSach();
+            })
+            .fail(function () { $kq.removeClass('d-none alert-success').addClass('alert-danger').text('Lỗi kết nối máy chủ hoặc quá thời gian chờ.'); })
+            .always(function () { $btn.prop('disabled', false).html('<i class="fas fa-play me-1"></i> Bắt đầu'); });
     }
 
     function xacNhanXoa() {
@@ -499,6 +550,14 @@
             $('#btnThemSw').on('click', moModalThem);
             $('#btnLuuSw').on('click', luuSw);
             $('#btnXacNhanXoaSw').on('click', xacNhanXoa);
+            $('#btnKiemTraSnmp').on('click', kiemTraSnmp);
+            $('#snmpIp, #snmpCommunity').on('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); kiemTraSnmp(); } });
+            var elDienSnmp = document.getElementById('modalDienSnmp');
+            if (elDienSnmp) {
+                modalDienSnmp = new bootstrap.Modal(elDienSnmp);
+                $('#btnDienSnmp').on('click', function () { $('#dienSnmpKetQua').addClass('d-none').text(''); modalDienSnmp.show(); });
+                $('#btnXacNhanDienSnmp').on('click', dienTuSnmp);
+            }
             // Enter trong form không được submit đồng bộ (reload trang)
             $('#formSw').on('submit', function (e) { e.preventDefault(); luuSw(); });
         }

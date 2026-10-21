@@ -18,6 +18,20 @@ namespace E_Form_Best.Areas.ITForm.Services
 
         private static int _reqId = Environment.TickCount & 0x3FFFFFFF;
 
+        /// <summary>IP hoặc hostname -> IPv4 (hostname phân giải DNS trên máy chủ web); không ra được trả null.</summary>
+        public static async Task<string?> PhanGiaiAsync(string ipHoacTen, CancellationToken ct)
+        {
+            var v = ipHoacTen.Trim();
+            if (IPAddress.TryParse(v, out var ip)) return ip.ToString();
+            if (!System.Text.RegularExpressions.Regex.IsMatch(v, @"^[A-Za-z0-9][A-Za-z0-9.\-]{0,252}$")) return null;
+            try
+            {
+                var ds = await Dns.GetHostAddressesAsync(v, ct);
+                return ds.FirstOrDefault(x => x.AddressFamily == AddressFamily.InterNetwork)?.ToString();
+            }
+            catch (SocketException) { return null; }
+        }
+
         /// <summary>GET nhiều OID một lần; OID không có trả null.</summary>
         public static async Task<Dictionary<string, object?>> GetAsync(string ip, string community, IEnumerable<string> oids,
             int timeoutMs = 2000, int soLanThu = 2, CancellationToken ct = default)

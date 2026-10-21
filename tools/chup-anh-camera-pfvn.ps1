@@ -176,8 +176,9 @@ $xuLy = {
         $rtsp = "rtsp://$([Uri]::EscapeDataString($k.Tk)):$([Uri]::EscapeDataString($k.Mk))@$($k.Nvr):$($k.CongRtsp)" +
             "/Streaming/tracks/$($k.Kenh)01?starttime=$($tuThu.ToString('yyyyMMddTHHmmss'))Z&endtime=$($cuoi.KetThuc.ToString('yyyyMMddTHHmmss'))Z"
         $pi = New-Object Diagnostics.ProcessStartInfo $ffmpeg
-        # Thu về tối đa 1280 ngang cho nhẹ; không ghi URL (có mật khẩu) ra log
-        $pi.Arguments = "-hide_banner -loglevel error -rtsp_transport tcp -timeout 10000000 -i `"$rtsp`" -frames:v 1 " +
+        # Thu về tối đa 1280 ngang cho nhẹ; không ghi URL (có mật khẩu) ra log.
+        # -skip_frame nokey: khung đầu playback không phải khung khoá thì giải ra mảng xám/hồng/xanh
+        $pi.Arguments = "-hide_banner -loglevel error -rtsp_transport tcp -timeout 10000000 -skip_frame nokey -i `"$rtsp`" -frames:v 1 " +
             "-vf `"scale='min(1280,iw)':-2`" -q:v 4 -f image2 -vcodec mjpeg -y `"$tam`""
         $pi.UseShellExecute = $false; $pi.CreateNoWindow = $true
         $pi.RedirectStandardError = $true; $pi.RedirectStandardOutput = $true

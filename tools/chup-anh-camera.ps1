@@ -77,9 +77,39 @@ if ($gocNvr.Count -gt 0) {
     if ($dsCamera.Count -ne $truocLoc) { GhiLog ("Bo " + ($truocLoc - $dsCamera.Count) + " kenh khong thuoc dau ghi BPVN") }
 }
 
+$ffmpeg = $cauHinh['CameraNvr__FfmpegPath']
+if (-not $ffmpeg) { $ffmpeg = 'C:\go2rtc\ffmpeg.exe' }
+
+# Ảnh hỏng do luồng H.265 mất dữ liệu: các mảng xanh lá / hồng đặc. Thu ảnh về 64x36 điểm rồi đếm điểm có một kênh
+# màu lệch hẳn hai kênh kia; ảnh thật đo được 0%, ảnh hỏng từ ~30% -> ngưỡng 5%. Ảnh hỏng thì không ghi đè ảnh cũ.
+# Dạng chuỗi vì runspace song song không thấy hàm của script chính -> mỗi khối tự nạp lại.
+$maKiemAnhHong = {
+    function AnhHong([string]$ffmpeg, [string]$duongDan) {
+        if (-not (Test-Path $ffmpeg) -or -not (Test-Path $duongDan)) { return $false }
+        $pi = New-Object Diagnostics.ProcessStartInfo $ffmpeg
+        $pi.Arguments = "-hide_banner -loglevel error -i `"$duongDan`" -vf scale=64:36:flags=area -f rawvideo -pix_fmt rgb24 pipe:1"
+        $pi.UseShellExecute = $false; $pi.CreateNoWindow = $true
+        $pi.RedirectStandardOutput = $true; $pi.RedirectStandardError = $true
+        $p = [Diagnostics.Process]::Start($pi)
+        [void]$p.StandardError.ReadToEndAsync()
+        $ms = New-Object IO.MemoryStream
+        $p.StandardOutput.BaseStream.CopyTo($ms)
+        if (-not $p.WaitForExit(15000)) { $p.Kill(); return $false }
+        $b = $ms.ToArray()
+        if ($b.Length -lt 3) { return $true }   # ffmpeg không đọc nổi ảnh
+        $lech = 0
+        for ($i = 0; $i + 2 -lt $b.Length; $i += 3) {
+            $r = [int]$b[$i]; $g = [int]$b[$i + 1]; $bl = [int]$b[$i + 2]
+            if (($g - [Math]::Max($r, $bl)) -gt 90 -or ([Math]::Min($r, $bl) - $g) -gt 90) { $lech++ }
+        }
+        return ($lech * 20 -ge $b.Length / 3)
+    }
+}.ToString()
+
 # ---- Chụp song song ----
 $chup = {
-    param($nvr, $kenh, $tk, $mk, $thuMuc, $timeout, $dsGoc)
+    param($nvr, $kenh, $tk, $mk, $thuMuc, $timeout, $dsGoc, $ffmpeg, $maKiemAnhHong)
+    . ([scriptblock]::Create($maKiemAnhHong))
     # Đầu ghi https dùng chứng thư tự ký, firmware cũ chỉ có TLS 1.0/1.1 — chỉ trong tiến trình script này
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]'Tls,Tls11,Tls12'
     [Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
@@ -103,6 +133,7 @@ $chup = {
                 $dich = Join-Path $thuMuc "${nvr}_${kenh}.jpg"
                 $tam = "$dich.tmp"
                 [IO.File]::WriteAllBytes($tam, $ms.ToArray())
+                if (AnhHong $ffmpeg $tam) { Remove-Item $tam -ErrorAction SilentlyContinue; $loiCuoi = 'anh hong'; continue }
                 Move-Item $tam $dich -Force
                 return 'OK'
             } catch {
@@ -122,7 +153,7 @@ $viec = foreach ($c in $dsCamera) {
     $dsGoc = @()
     if ($gocNvr.ContainsKey($c.Nvr)) { $dsGoc += $gocNvr[$c.Nvr] }
     if ($dsGoc -notcontains "http://$($c.Nvr):80") { $dsGoc += "http://$($c.Nvr):80" }
-    $ps = [PowerShell]::Create().AddScript($chup).AddArgument($c.Nvr).AddArgument($c.Kenh).AddArgument($taiKhoan).AddArgument($matKhau).AddArgument($thuMucAnh).AddArgument($TimeoutMs).AddArgument($dsGoc)
+    $ps = [PowerShell]::Create().AddScript($chup).AddArgument($c.Nvr).AddArgument($c.Kenh).AddArgument($taiKhoan).AddArgument($matKhau).AddArgument($thuMucAnh).AddArgument($TimeoutMs).AddArgument($dsGoc).AddArgument($ffmpeg).AddArgument($maKiemAnhHong)
     $ps.RunspacePool = $pool
     [pscustomobject]@{ Ps = $ps; Kq = $ps.BeginInvoke(); Cam = $c }
 }
@@ -140,13 +171,12 @@ $loi | Select-Object -First 10 | ForEach-Object { GhiLog ("  " + $_) }
 # ---- Kênh chụp trực tiếp không được (camera mất kết nối, đầu ghi trả 403...): lấy khung hình cuối từ playback ----
 # Hỏi đầu ghi đoạn ghi cuối của kênh (ISAPI ContentMgmt/search), rồi ffmpeg đọc 10 giây cuối đoạn đó lấy 1 khung hình.
 # Giờ file đặt đúng giờ khung hình (scp -p giữ nguyên) để trang /QLCamera ghi "Ảnh lưu lúc ..." đúng thời điểm.
-# Ảnh lưu đã mới bằng/hơn đoạn ghi cuối thì bỏ qua, nên camera rớt lâu chỉ tốn ffmpeg ở lượt đầu.
-$ffmpeg = $cauHinh['CameraNvr__FfmpegPath']
-if (-not $ffmpeg) { $ffmpeg = 'C:\go2rtc\ffmpeg.exe' }
+# Ảnh lưu đã mới bằng/hơn đoạn ghi cuối (và không hỏng) thì bỏ qua, nên camera rớt lâu chỉ tốn ffmpeg ở lượt đầu.
 $congRtsp = if ($cauHinh['CameraNvr__RtspPort']) { [int]$cauHinh['CameraNvr__RtspPort'] } else { 554 }
 
 $chupPlayback = {
-    param($nvr, $kenh, $tk, $mk, $thuMuc, $dsGoc, $ffmpeg, $congRtsp)
+    param($nvr, $kenh, $tk, $mk, $thuMuc, $dsGoc, $ffmpeg, $congRtsp, $maKiemAnhHong)
+    . ([scriptblock]::Create($maKiemAnhHong))
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]'Tls,Tls11,Tls12'
     [Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
 
@@ -205,7 +235,7 @@ $chupPlayback = {
     $tu = $cuoi.KetThuc.AddSeconds(-10)
     if ($tu -lt $cuoi.BatDau) { $tu = $cuoi.BatDau }
     $dich = Join-Path $thuMuc "${nvr}_${kenh}.jpg"
-    if ((Test-Path $dich) -and (Get-Item $dich).LastWriteTime -ge $tu) { return "BOQUA" }
+    if ((Test-Path $dich) -and (Get-Item $dich).LastWriteTime -ge $tu -and -not (AnhHong $ffmpeg $dich)) { return "BOQUA" }
 
     # Cổng RTSP thật của từng đầu ghi (10.0.28.254 dùng 8002, không mở 554); hỏi không được thì dùng cổng cấu hình
     try {
@@ -218,15 +248,21 @@ $chupPlayback = {
 
     $tam = Join-Path $thuMuc "${nvr}_${kenh}.pb.tmp"
     $loi = ''
-    # Luồng H.265 đang ghi dở đôi khi hỏng ở đoạn sát cuối (ffmpeg INVALIDDATA) -> thử lại ở 60 giây trước điểm kết thúc
-    foreach ($lui in 10, 60) {
+    # Luồng H.265 đang ghi dở đôi khi hỏng ở đoạn sát cuối (ffmpeg INVALIDDATA / ảnh mảng xanh-hồng) -> lùi dần
+    # 1 phút, 5 phút, 30 phút trong đoạn ghi cuối. Không mốc nào ra ảnh lành thì giữ nguyên ảnh cũ.
+    $daThu = @{}
+    foreach ($lui in 10, 60, 300, 1800) {
         $tuThu = $cuoi.KetThuc.AddSeconds(-$lui)
         if ($tuThu -lt $cuoi.BatDau) { $tuThu = $cuoi.BatDau }
+        if ($daThu.ContainsKey($tuThu)) { continue }
+        $daThu[$tuThu] = $true
         $rtsp = "rtsp://$([Uri]::EscapeDataString($tk)):$([Uri]::EscapeDataString($mk))@${nvr}:$congRtsp" +
             "/Streaming/tracks/${kenh}01?starttime=$($tuThu.ToString('yyyyMMddTHHmmss'))Z&endtime=$($cuoi.KetThuc.ToString('yyyyMMddTHHmmss'))Z"
         $pi = New-Object Diagnostics.ProcessStartInfo $ffmpeg
-        # Luồng chính 2688x1520 -> thu về tối đa 1280 ngang cho nhẹ; không ghi URL (có mật khẩu) ra log
-        $pi.Arguments = "-hide_banner -loglevel error -rtsp_transport tcp -timeout 10000000 -i `"$rtsp`" -frames:v 1 " +
+        # Luồng chính 2688x1520 -> thu về tối đa 1280 ngang cho nhẹ; không ghi URL (có mật khẩu) ra log.
+        # -skip_frame nokey: playback bắt đầu giữa nhóm khung, khung đầu không phải khung khoá thì H.265 giải ra
+        # mảng xám/hồng/xanh -> chỉ giải mã khung khoá
+        $pi.Arguments = "-hide_banner -loglevel error -rtsp_transport tcp -timeout 10000000 -skip_frame nokey -i `"$rtsp`" -frames:v 1 " +
             "-vf `"scale='min(1280,iw)':-2`" -q:v 4 -f image2 -vcodec mjpeg -y `"$tam`""
         $pi.UseShellExecute = $false; $pi.CreateNoWindow = $true
         $pi.RedirectStandardError = $true; $pi.RedirectStandardOutput = $true
@@ -236,6 +272,11 @@ $chupPlayback = {
         if ($p.ExitCode -ne 0 -or -not (Test-Path $tam) -or (Get-Item $tam).Length -lt 1000) {
             Remove-Item $tam -ErrorAction SilentlyContinue
             $loi = "ffmpeg exit=$($p.ExitCode)"
+            continue
+        }
+        if (AnhHong $ffmpeg $tam) {
+            Remove-Item $tam -ErrorAction SilentlyContinue
+            $loi = 'anh playback hong, giu anh cu'
             continue
         }
         Move-Item $tam $dich -Force
@@ -261,7 +302,7 @@ if ($dsLoi.Count -gt 0 -and -not (Test-Path $ffmpeg)) {
             $dsGoc = @()
             if ($gocNvr.ContainsKey($c.Nvr)) { $dsGoc += $gocNvr[$c.Nvr] }
             if ($dsGoc -notcontains "http://$($c.Nvr):80") { $dsGoc += "http://$($c.Nvr):80" }
-            $ps = [PowerShell]::Create().AddScript($chupPlayback).AddArgument($c.Nvr).AddArgument($c.Kenh).AddArgument($taiKhoan).AddArgument($matKhau).AddArgument($thuMucAnh).AddArgument($dsGoc).AddArgument($ffmpeg).AddArgument($congRtsp)
+            $ps = [PowerShell]::Create().AddScript($chupPlayback).AddArgument($c.Nvr).AddArgument($c.Kenh).AddArgument($taiKhoan).AddArgument($matKhau).AddArgument($thuMucAnh).AddArgument($dsGoc).AddArgument($ffmpeg).AddArgument($congRtsp).AddArgument($maKiemAnhHong)
             $ps.RunspacePool = $pool
             [pscustomobject]@{ Ps = $ps; Kq = $ps.BeginInvoke(); Cam = $c }
         }

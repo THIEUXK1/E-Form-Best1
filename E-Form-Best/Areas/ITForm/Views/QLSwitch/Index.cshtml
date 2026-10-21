@@ -74,7 +74,7 @@
                     @* ================= TAB DANH SÁCH switch (KK_Switch) ================= *@
                     <div class="tab-pane fade show active" id="paneDanhSach" role="tabpanel">
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                            <input type="text" id="filterTuKhoa" class="form-control form-control-sm" style="max-width:260px;"
+                            <input type="search" id="filterTuKhoa" autocomplete="off" class="form-control form-control-sm" style="max-width:260px;"
                                    placeholder="Tìm tên, mã, IP, MAC, model, vai trò, vị trí...">
 
                             <select id="filterBoPhan" class="form-select form-select-sm w-auto" title="Lọc theo bộ phận">
@@ -121,6 +121,9 @@
                             {
                                 <button type="button" class="btn btn-sm text-white rounded-3 px-3" style="background-color:#0e7490;" id="btnThemSw">
                                     <i class="fas fa-plus me-1"></i> Thêm switch
+                                </button>
+                                <button type="button" class="btn btn-sm btn-light border" id="btnDienSnmp" title="Đọc SNMP mọi switch có IP, điền hãng / model / serial / firmware / MAC / số cổng còn trống">
+                                    <i class="fas fa-wand-magic-sparkles me-1"></i> Điền từ SNMP
                                 </button>
                             }
                         </div>
@@ -362,6 +365,25 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <div class="modal-body">
+                @* Ngoài <form>: community không gửi kèm lúc Lưu *@
+                <div class="border rounded-3 p-2 mb-3 bg-light">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label small fw-bold text-muted mb-1" for="snmpIp">IP / hostname</label>
+                            <input type="text" class="form-control form-control-sm" id="snmpIp" maxlength="253" placeholder="10.0.63.203 hoặc tên máy">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-muted mb-1" for="snmpCommunity">SNMP community</label>
+                            <input type="password" class="form-control form-control-sm" id="snmpCommunity" maxlength="100" autocomplete="new-password" placeholder="Trống = theo cấu hình">
+                        </div>
+                        <div class="col-md-3 d-grid">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnKiemTraSnmp">
+                                <i class="fas fa-plug me-1"></i> Kiểm tra kết nối
+                            </button>
+                        </div>
+                    </div>
+                    <div class="small mt-2 d-none" id="snmpKetQua"></div>
+                </div>
                 <form id="formSw" class="row g-3">
                     <input type="hidden" id="IdSwitch" name="IdSwitch" value="0" />
 
@@ -468,6 +490,30 @@
 </div>
 
 @* ------- Modal xoá switch (xoá mềm, ghi lý do vào lịch sử) ------- *@
+<div class="modal fade" id="modalDienSnmp" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="fas fa-wand-magic-sparkles me-2"></i> Điền thông tin từ SNMP</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted">Đọc SNMP mọi switch đang theo dõi (có IP), điền hãng / model / serial / firmware / MAC / số cổng
+                    vào ô <b>còn trống</b> — không ghi đè dữ liệu đã nhập. Có thể mất 1–2 phút.</p>
+                <label class="form-label small fw-bold text-muted" for="dienSnmpCommunity">SNMP community</label>
+                <input type="password" class="form-control" id="dienSnmpCommunity" maxlength="100" autocomplete="new-password" placeholder="Trống = theo cấu hình máy chủ">
+                <div class="alert py-2 small mt-3 mb-0 d-none" id="dienSnmpKetQua"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn text-white rounded-pill px-4" style="background-color:#0e7490;" id="btnXacNhanDienSnmp">
+                    <i class="fas fa-play me-1"></i> Bắt đầu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="modalXoaSw" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow" style="border-radius:15px;">
@@ -524,5 +570,5 @@
 @* Phải nằm trong section Scripts: layout nạp jQuery ở cuối trang, script đặt trong thân trang chạy trước jQuery *@
 @section Scripts {
     <script src="/js/fixed-page-layout.js?v=5" defer></script>
-    <script src="/js/switch-quanly.js?v=20261015b"></script>
+    <script src="/js/switch-quanly.js?v=20261021"></script>
 }

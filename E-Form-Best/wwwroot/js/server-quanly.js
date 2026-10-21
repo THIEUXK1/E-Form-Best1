@@ -448,6 +448,7 @@
         // Đang lọc nhóm Lưu trữ thì mặc định loại NAS cho đỡ chọn lại
         if (nhom === 'luutru') $('#Loai').val('NAS');
         $('#modalSvTitle').text('Thêm thiết bị ' + congTy);
+        datLaiSnmp('');
         anLoi($('#svLoi'));
         modalSv.show();
     }
@@ -467,8 +468,53 @@
         $('#NgayLapDat').val(chuanHoaNgay(x.ngayLapDat));
         $('#HanBaoHanh').val(chuanHoaNgay(x.hanBaoHanh));
         $('#modalSvTitle').text('Sửa ' + x.loai + ' ' + congTy);
+        datLaiSnmp(x.ipQuanTri || x.diaChiIp || '');
         anLoi($('#svLoi'));
         modalSv.show();
+    }
+
+    // ---------------- SNMP: kiểm tra kết nối ----------------
+
+    function datLaiSnmp(ip) {
+        $('#snmpIp').val(ip);
+        $('#snmpCommunity').val('');
+        $('#snmpKetQua').addClass('d-none').text('');
+    }
+
+    // Đọc SNMP rồi điền form (chưa lưu): ô nào SNMP trả được thì thay, tên chỉ điền khi đang trống.
+    // iLO / iDRAC là IP quản trị, còn lại là IP máy — chỉ điền IP khi ô đó trống.
+    function kiemTraSnmp() {
+        var $kq = $('#snmpKetQua');
+        var ip = $('#snmpIp').val().trim() || $('#IpQuanTri').val().trim() || $('#DiaChiIp').val().trim();
+        if (!ip) { $kq.removeClass('d-none text-success').addClass('text-danger').text('Nhập IP hoặc hostname.'); return; }
+        var $btn = $('#btnKiemTraSnmp').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang đọc...');
+        $kq.addClass('d-none');
+
+        $.ajax({ url: goc + '/KiemTraSnmp', method: 'POST', timeout: 100000,
+            data: { ipHoacTen: ip, community: $('#snmpCommunity').val(), loai: $('#Loai').val() } })
+            .done(function (res) {
+                if (!res.thanhCong) { $kq.removeClass('d-none text-success').addClass('text-danger').text(res.thongBao || 'Không đọc được SNMP.'); return; }
+                var d = res.duLieu, daDien = [];
+                function dien(id, v, nhan) { if (v !== null && v !== undefined && v !== '') { $('#' + id).val(v); daDien.push(nhan); } }
+                var laQuanTri = d.nguon === 'HPE ProLiant' || d.nguon === 'Dell iDRAC';
+                var oIp = laQuanTri ? 'IpQuanTri' : 'DiaChiIp';
+                if (!$('#' + oIp).val().trim()) dien(oIp, d.ip, laQuanTri ? 'IP quản trị' : 'IP');
+                if (!$('#TenServer').val().trim()) dien('TenServer', d.tenHeThong, 'tên');
+                dien('HangSanXuat', d.hang, 'hãng');
+                dien('Model', d.model, 'model');
+                dien('Serial', d.serial, 'serial');
+                dien('HeDieuHanh', d.heDieuHanh, 'hệ điều hành');
+                dien('Cpu', d.cpu, 'CPU');
+                dien('RamGb', d.ramGb, 'RAM');
+                dien('Raid', d.raid, 'RAID');
+                dien('DungLuongTb', d.dungLuongTb, 'dung lượng');
+                dien('DaDungTb', d.daDungTb, 'đã dùng');
+                $kq.removeClass('d-none text-danger').addClass('text-success')
+                    .text(res.thongBao + (d.tenHeThong ? ' ' + d.tenHeThong + '.' : '')
+                        + (daDien.length ? ' Đã điền: ' + daDien.join(', ') + '. Bấm Lưu để ghi.' : ' Thiết bị không trả thêm thông tin tài sản.'));
+            })
+            .fail(function () { $kq.removeClass('d-none text-success').addClass('text-danger').text('Lỗi kết nối máy chủ hoặc quá thời gian chờ.'); })
+            .always(function () { $btn.prop('disabled', false).html('<i class="fas fa-plug me-1"></i> Kiểm tra kết nối'); });
     }
 
     function luuSv() {
@@ -607,6 +653,8 @@
             $('#btnThemSv').on('click', moModalThem);
             $('#btnLuuSv').on('click', luuSv);
             $('#btnXacNhanXoaSv').on('click', xacNhanXoa);
+            $('#btnKiemTraSnmp').on('click', kiemTraSnmp);
+            $('#snmpIp, #snmpCommunity').on('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); kiemTraSnmp(); } });
             // Enter trong form không được submit đồng bộ (reload trang)
             $('#formSv').on('submit', function (e) { e.preventDefault(); luuSv(); });
         }

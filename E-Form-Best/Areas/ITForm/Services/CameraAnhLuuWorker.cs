@@ -140,7 +140,8 @@ namespace E_Form_Best.Areas.ITForm.Services
                     try
                     {
                         var anh = await xem.LayAnhChupAsync(muc.nvr, muc.kenh, token);
-                        if (anh == null || anh.Length == 0)
+                        // Ảnh hỏng (mảng xanh-hồng) coi như chụp không được: thử playback, không được thì giữ ảnh cũ
+                        if (anh == null || anh.Length == 0 || await xem.AnhHongAsync(anh, token))
                         {
                             if (await LayAnhTuPlaybackAsync(xem, muc.nvr, muc.kenh, dich, token)) Interlocked.Increment(ref duoc);
                             else chuaDuoc.Add(muc);
@@ -188,7 +189,9 @@ namespace E_Form_Best.Areas.ITForm.Services
             if (doan == null) return false;
 
             var gioKhung = CameraXemTrucTiepService.GioKhungHinhPlayback(doan.Value.batDau, doan.Value.ketThuc);
-            if (File.Exists(dich) && File.GetLastWriteTime(dich) >= gioKhung) return false;
+            // Ảnh lưu hiện có đang hỏng thì vẫn lấy lại dù đã mới bằng đoạn ghi cuối
+            if (File.Exists(dich) && File.GetLastWriteTime(dich) >= gioKhung
+                && !await xem.AnhHongAsync(await File.ReadAllBytesAsync(dich, ct), ct)) return false;
 
             var khung = await xem.ChupKhungHinhPlaybackAsync(nvr, kenh, doan.Value.batDau, doan.Value.ketThuc, ct);
             if (khung == null) return false;

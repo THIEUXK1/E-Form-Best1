@@ -471,6 +471,50 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
         }
 
+        /// <summary>
+        /// Nút "Kiểm tra kết nối" ở form thêm/sửa: đọc SNMP 1 IP/hostname, trả hãng / model / serial / CPU / RAM / HĐH / dung lượng
+        /// để trình duyệt điền form (chưa lưu). Community ô nhập chỉ dùng cho lần đọc này, không lưu, không trả ra trình duyệt;
+        /// để trống thì dùng cấu hình .env theo loại. Job theo dõi sức khoẻ sau đó vẫn đọc bằng community .env.
+        /// </summary>
+        [HttpPost("/QLServer/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/KiemTraSnmp")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> KiemTraSnmp(string congTy, string? ipHoacTen, string? community, string? loai)
+        {
+            var cty = CongTyHopLe(congTy)!;
+            if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            if (string.IsNullOrWhiteSpace(ipHoacTen))
+                return Json(new { thanhCong = false, thongBao = "Nhập IP hoặc hostname của thiết bị." });
+            var com = string.IsNullOrWhiteSpace(community) ? ServerSnmpWorker.Community(_configuration, cty, loai ?? "") : community.Trim();
+            if (string.IsNullOrWhiteSpace(com))
+                return Json(new { thanhCong = false, thongBao = "Nhập community SNMP (máy chủ chưa cấu hình ServerSnmp__Community cho loại này)." });
+
+            using var het = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted);
+            het.CancelAfter(TimeSpan.FromSeconds(90));
+            try
+            {
+                var ip = await SnmpClient.PhanGiaiAsync(ipHoacTen, het.Token);
+                if (ip == null)
+                    return Json(new { thanhCong = false, thongBao = $"Không phân giải được \"{ipHoacTen.Trim()}\" ra địa chỉ IP." });
+
+                var kq = await ServerSnmpService.DocAsync(ip, com, het.Token);
+                if (kq == null)
+                    return Json(new { thanhCong = false, thongBao = $"{ip} không trả lời SNMP: sai community, thiết bị chưa bật SNMP v2c, hoặc máy chủ web ({Environment.MachineName}) không thông mạng tới thiết bị." });
+
+                return Json(new
+                {
+                    thanhCong = true,
+                    thongBao = "Kết nối SNMP thành công" + (kq.Nguon != null ? $" ({kq.Nguon})." : "."),
+                    duLieu = new
+                    {
+                        ip, kq.TenHeThong, kq.MoTa, kq.Nguon, kq.Hang, kq.Model, kq.Serial, Cpu = kq.CpuTomTat, kq.RamGb,
+                        kq.HeDieuHanh, Raid = kq.RaidTomTat, kq.DungLuongTb, kq.DaDungTb
+                    }
+                });
+            }
+            catch (OperationCanceledException) { return Json(new { thanhCong = false, thongBao = "Đọc SNMP quá lâu, thử lại sau." }); }
+            catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
         private async Task<object> DuLieuSucKhoeAsync(string cty, int id)
         {
             var idCongTy = await IdCongTyAsync(cty);

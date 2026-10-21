@@ -430,6 +430,120 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
+        #region SNMP — đọc thông tin tài sản
+
+        /// <summary>Community ô nhập trên form; để trống thì dùng cấu hình .env (SwitchSnmp__BPVN__Community rồi SwitchSnmp__Community).</summary>
+        private string? CommunitySwitch(string cty, string? nhap)
+        {
+            if (!string.IsNullOrWhiteSpace(nhap)) return nhap.Trim();
+            var rieng = _configuration[$"SwitchSnmp:{cty}:Community"];
+            return string.IsNullOrWhiteSpace(rieng) ? _configuration["SwitchSnmp:Community"] : rieng;
+        }
+
+        /// <summary>
+        /// Nút "Kiểm tra kết nối" ở form: đọc SNMP 1 IP/hostname, trả thông tin để trình duyệt điền form (chưa lưu).
+        /// Community chỉ dùng cho lần đọc này, không lưu và không trả ngược ra trình duyệt.
+        /// Chạy trên máy chủ web đang phục vụ — máy đó phải thông mạng tới switch (BPVN 10.0.63.x chỉ 60.52 tới được).
+        /// </summary>
+        [HttpPost("/QLSwitch/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/KiemTraSnmp")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> KiemTraSnmp(string congTy, string? ipHoacTen, string? community)
+        {
+            var cty = CongTyHopLe(congTy)!;
+            if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            if (string.IsNullOrWhiteSpace(ipHoacTen))
+                return Json(new { thanhCong = false, thongBao = "Nhập IP hoặc hostname của switch." });
+            var com = CommunitySwitch(cty, community);
+            if (com == null)
+                return Json(new { thanhCong = false, thongBao = "Nhập community SNMP (máy chủ chưa cấu hình SwitchSnmp__Community)." });
+
+            using var het = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted);
+            het.CancelAfter(TimeSpan.FromSeconds(40));
+            try
+            {
+                var ip = await SnmpClient.PhanGiaiAsync(ipHoacTen, het.Token);
+                if (ip == null)
+                    return Json(new { thanhCong = false, thongBao = $"Không phân giải được \"{ipHoacTen.Trim()}\" ra địa chỉ IP." });
+
+                var tt = await SwitchSnmpService.DocAsync(ip, com, het.Token);
+                if (tt == null)
+                    return Json(new { thanhCong = false, thongBao = $"{ip} không trả lời SNMP: sai community, switch chưa bật SNMP v2c, hoặc máy chủ web ({Environment.MachineName}) không thông mạng tới switch." });
+
+                return Json(new { thanhCong = true, thongBao = "Kết nối SNMP thành công.", duLieu = tt });
+            }
+            catch (OperationCanceledException) { return Json(new { thanhCong = false, thongBao = "Đọc SNMP quá lâu, thử lại sau." }); }
+            catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
+        /// <summary>
+        /// Điền hàng loạt hãng / model / serial / firmware / MAC / số cổng cho switch đang theo dõi, đọc SNMP trực tiếp.
+        /// Chỉ điền ô còn trống (không ghi đè số liệu đã nhập tay). Đọc song song, ghi DB tuần tự (DbContext không an toàn đa luồng).
+        /// </summary>
+        [HttpPost("/QLSwitch/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/DienTuSnmp")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DienTuSnmp(string congTy, string? community)
+        {
+            var cty = CongTyHopLe(congTy)!;
+            if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            var com = CommunitySwitch(cty, community);
+            if (com == null)
+                return Json(new { thanhCong = false, thongBao = "Nhập community SNMP (máy chủ chưa cấu hình SwitchSnmp__Community)." });
+
+            using var het = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted);
+            het.CancelAfter(TimeSpan.FromSeconds(150));
+            try
+            {
+                var idCongTy = await IdCongTyAsync(cty);
+                var khongTheoDoi = SwitchPingWorker.DsTinhTrangKhongTheoDoi;
+                var ds = await _context.KkSwitches
+                    .Where(x => x.IdcongTy == idCongTy && x.NgayXoa == null && x.DiaChiIp != null
+                                && (x.TinhTrang == null || !khongTheoDoi.Contains(x.TinhTrang)))
+                    .ToListAsync(het.Token);
+                if (ds.Count == 0) return Json(new { thanhCong = false, thongBao = "Không có switch nào có IP để đọc." });
+
+                var ketQua = new System.Collections.Concurrent.ConcurrentDictionary<int, SwitchSnmpService.ThongTin>();
+                await Parallel.ForEachAsync(ds, new ParallelOptions { MaxDegreeOfParallelism = 16, CancellationToken = het.Token },
+                    async (sw, ct) =>
+                    {
+                        var tt = await SwitchSnmpService.DocAsync(sw.DiaChiIp!.Trim(), com, ct);
+                        if (tt != null) ketQua[sw.IdSwitch] = tt;
+                    });
+
+                // MAC trùng switch khác (stack / VSS dùng chung MAC bridge) thì bỏ, unique ở trang Lưu cũng chặn trùng
+                var macDaCo = (await _context.KkSwitches.Where(x => x.NgayXoa == null && x.DiaChiMac != null)
+                    .Select(x => x.DiaChiMac!).ToListAsync(het.Token)).ToHashSet();
+                int soCapNhat = 0;
+                foreach (var sw in ds)
+                {
+                    if (!ketQua.TryGetValue(sw.IdSwitch, out var tt)) continue;
+                    var doi = false;
+                    void Dien(string? cu, string? moi, Action<string> gan) { if (string.IsNullOrWhiteSpace(cu) && moi != null) { gan(moi); doi = true; } }
+                    Dien(sw.HangSanXuat, tt.Hang, v => sw.HangSanXuat = v);
+                    Dien(sw.Model, tt.Model, v => sw.Model = v);
+                    Dien(sw.Serial, tt.Serial, v => sw.Serial = v);
+                    Dien(sw.PhienBan, tt.Firmware, v => sw.PhienBan = v);
+                    if (sw.DiaChiMac == null && tt.Mac != null && macDaCo.Add(tt.Mac)) { sw.DiaChiMac = tt.Mac; doi = true; }
+                    if (sw.SoCong == null && tt.SoCong != null) { sw.SoCong = tt.SoCong; doi = true; }
+                    if (doi) { sw.NgayCapNhat = DateTime.Now; soCapNhat++; }
+                }
+                await _context.SaveChangesAsync(het.Token);
+                if (soCapNhat > 0)
+                    await GhiLichSuAsync("Cập nhật", 0, $"Switch {cty}: điền thông tin từ SNMP cho {soCapNhat} switch");
+
+                var khongTraLoi = ds.Count - ketQua.Count;
+                return Json(new
+                {
+                    thanhCong = true,
+                    thongBao = $"Đọc SNMP {ketQua.Count}/{ds.Count} switch, đã điền thêm thông tin cho {soCapNhat} switch."
+                               + (khongTraLoi > 0 ? $" {khongTraLoi} switch không trả lời (sai community / chưa bật SNMP / máy chủ {Environment.MachineName} không thông mạng)." : "")
+                });
+            }
+            catch (OperationCanceledException) { return Json(new { thanhCong = false, thongBao = "Đọc SNMP quá lâu, chưa lưu gì. Thử lại sau." }); }
+            catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
+        #endregion
+
         #region Lịch sử online/offline
 
         [HttpGet("/QLSwitch/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/LichSu")]
