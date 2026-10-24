@@ -35,25 +35,35 @@
         oKetQua.classList.toggle('da-co', !!daCo);
     }
 
-    // MAC đã có trên WLC: hiện từng trường đang lưu để IT so với đơn trước khi quyết định
-    function hienCauHinhDangCo(hienCo) {
-        hienKetQua('⚠️ MAC này đã tồn tại trên WLC — không ghi đè.', true);
-        const bang = document.createElement('table');
-        bang.className = 'them-mac-wlc-bang';
-        [
-            ['MAC', hienCo.mac],
-            ['Tên đang lưu (description)', hienCo.moTa || '(trống)'],
-            ['WLAN profile', hienCo.wlanProfile || '(trống)'],
-            ['AAA attribute list', hienCo.aaaList || '(trống)']
-        ].forEach(function (dong) {
-            const tr = bang.insertRow();
-            tr.insertCell().textContent = dong[0];
-            tr.insertCell().textContent = dong[1];
+    // Mỗi WLC một khối: đã thêm / đã có (kèm các trường đang lưu để IT so với đơn) / chưa có / lỗi
+    function hienKetQuaTungWlc(ds, laTraCuu) {
+        oKetQua.textContent = '';
+        oKetQua.hidden = false;
+        oKetQua.classList.toggle('da-co', ds.some(function (k) { return k.daTonTai; }));
+        ds.forEach(function (k) {
+            const khoi = document.createElement('div');
+            khoi.className = 'them-mac-wlc-mot';
+            const tieuDe = document.createElement('b');
+            const bieuTuong = k.thanhCong ? (laTraCuu ? '🆕' : '✅') : (k.daTonTai ? '⚠️' : '❌');
+            tieuDe.textContent = bieuTuong + ' ' + k.wlc + ' — ' + (k.thanhCong && laTraCuu ? 'Chưa có, có thể thêm.' : k.thongBao);
+            khoi.appendChild(tieuDe);
+            if (k.hienCo) {
+                const bang = document.createElement('table');
+                bang.className = 'them-mac-wlc-bang';
+                [
+                    ['MAC', k.hienCo.mac],
+                    ['Tên đang lưu (description)', k.hienCo.moTa || '(trống)'],
+                    ['WLAN', k.hienCo.wlanProfile || '(trống)'],
+                    ['AAA list / interface', k.hienCo.aaaList || '(trống)']
+                ].forEach(function (dong) {
+                    const tr = bang.insertRow();
+                    tr.insertCell().textContent = dong[0];
+                    tr.insertCell().textContent = dong[1];
+                });
+                khoi.appendChild(bang);
+            }
+            oKetQua.appendChild(khoi);
         });
-        oKetQua.appendChild(bang);
-        const raw = document.createElement('code');
-        raw.textContent = hienCo.dong;
-        oKetQua.appendChild(raw);
     }
 
     function dong() {
@@ -64,11 +74,14 @@
         nutDangChon = null;
     }
 
-    function danhDauNut(nut, daThem, hienCo) {
+    // Chỉ khoá nút khi mọi WLC đều đã có MAC; nút chỉ rộng 1 ký tự nên chi tiết đưa vào tooltip
+    function danhDauNut(nut, ds) {
         nut.disabled = true;
-        nut.textContent = daThem ? '✔ Đã thêm' : '✔ Đã có: ' + (hienCo?.moTa || 'không mô tả');
-        if (hienCo) nut.title = hienCo.dong;
-        nut.style.background = daThem ? '#16a34a' : '#64748b';
+        nut.textContent = '✔';
+        nut.title = ds.map(function (k) {
+            return k.wlc + ': ' + (k.hienCo ? 'đã có — ' + k.hienCo.dong : 'đã thêm');
+        }).join('\n');
+        nut.style.background = ds.some(function (k) { return k.thanhCong; }) ? '#16a34a' : '#64748b';
         nut.style.cursor = 'default';
     }
 
@@ -134,13 +147,11 @@
         const kq = await gui('/FormIT/KiemTraMacWifi', btnKiemTra, 'Đang tra WLC...');
         if (!kq) return;
         const d = kq.data;
-        if (!d.thanhCong) { hienLoi(d.thongBao || 'Tra cứu thất bại.'); oMatKhau.value = ''; oMatKhau.focus(); return; }
-        if (d.duLieu?.daTonTai) {
-            hienCauHinhDangCo(d.duLieu.hienCo);
-            danhDauNut(kq.nut, false, d.duLieu.hienCo);
-        } else {
-            hienKetQua('Chưa có trên WLC — có thể thêm.', false);
-        }
+        const ds = d.duLieu?.ketQua;
+        if (!ds) { hienLoi(d.thongBao || 'Tra cứu thất bại.'); oMatKhau.value = ''; oMatKhau.focus(); return; }
+        hienKetQuaTungWlc(ds, true);
+        if (ds.every(function (k) { return k.daTonTai; })) danhDauNut(kq.nut, ds);
+        if (ds.some(function (k) { return !k.thanhCong && !k.daTonTai; })) { oMatKhau.value = ''; oMatKhau.focus(); }
     });
 
     form.addEventListener('submit', async function (e) {
@@ -148,18 +159,11 @@
         const kq = await gui('/FormIT/ThemMacWifi', btnGui, 'Đang tra & đẩy lệnh lên WLC...');
         if (!kq) return;
         const d = kq.data;
-        if (d.thanhCong) {
-            danhDauNut(kq.nut, true);
-            dong();
-        } else if (d.duLieu?.daTonTai) {
-            // Giữ modal mở để IT đọc dòng cấu hình đang có trên WLC
-            danhDauNut(kq.nut, false, d.duLieu.hienCo);
-            if (d.duLieu.hienCo) hienCauHinhDangCo(d.duLieu.hienCo); else hienKetQua(d.thongBao, true);
-        } else {
-            // Giữ modal mở để sửa mật khẩu/profile rồi gửi lại
-            hienLoi(d.thongBao || 'Thêm MAC thất bại.');
-            oMatKhau.value = '';
-            oMatKhau.focus();
-        }
+        const ds = d.duLieu?.ketQua;
+        if (!ds) { hienLoi(d.thongBao || 'Thêm MAC thất bại.'); oMatKhau.value = ''; oMatKhau.focus(); return; }
+        // Luôn giữ modal mở để IT đọc kết quả từng WLC; WLC nào lỗi thì gửi lại (WLC đã có sẽ không bị ghi đè)
+        hienKetQuaTungWlc(ds, false);
+        if (d.thanhCong) danhDauNut(kq.nut, ds);
+        else { oMatKhau.value = ''; oMatKhau.focus(); }
     });
 })();

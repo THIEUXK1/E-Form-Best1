@@ -164,9 +164,13 @@ foreach ($f in $dsDoi) {
         $cu = @($ms | Where-Object { $vCu -contains $_.Groups[1].Value })
         if ($cu.Count -eq 0) { continue }
         $tenView = $v.FullName.Substring($goc.Length + 1)
-        if ($KhongTuNangV) { Write-Host "  CANH BAO: $tenView van dung $ten?v=$($cu[0].Groups[1].Value)" -ForegroundColor Yellow; continue }
+        if ($KhongTuNangV) { Write-Host "  CANH BAO: $tenView van dung ${ten}?v=$($cu[0].Groups[1].Value)" -ForegroundColor Yellow; continue }
         $coBom = ([IO.File]::ReadAllBytes($v.FullName)[0] -eq 0xEF)
-        [IO.File]::WriteAllText($v.FullName, [regex]::Replace($noiDung, $mau, "$ten?v=$vMoi"), (New-Object Text.UTF8Encoding $coBom))
+        # ${ten} bắt buộc có ngoặc: PowerShell cho phép "?" trong tên biến, "$ten?v" sẽ thành biến rỗng và xoá mất tên file (lỗi 24/10/2026)
+        $thayMoi = "${ten}?v=$vMoi"
+        $noiDungMoi = [regex]::Replace($noiDung, $mau, { param($x) $thayMoi })
+        if (-not $noiDungMoi.Contains($thayMoi)) { Dung "Nang ?v cho $ten trong $tenView khong ra dung chuoi, khong ghi file." }
+        [IO.File]::WriteAllText($v.FullName, $noiDungMoi, (New-Object Text.UTF8Encoding $coBom))
         Write-Host "  Nang $ten -> ?v=$vMoi trong $tenView" -ForegroundColor Yellow
         $soNang++
     }

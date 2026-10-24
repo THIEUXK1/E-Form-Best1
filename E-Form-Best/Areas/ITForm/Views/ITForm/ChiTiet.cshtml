@@ -215,7 +215,7 @@
                         if (cotThemMac)
                         {
                             // Vị trí theo MacTb (không cắt theo count) vì server lấy MAC theo vị trí đó
-                            bangThietBi += $"<td style='padding:8px 10px; text-align:center; white-space:nowrap;'><button type='button' class='btn-them-mac-wlc' data-id-chi-tiet='{ct.Id}' data-vi-tri='{i}' data-mac='{System.Net.WebUtility.HtmlEncode(arrMac[i].Trim())}' data-mo-ta='{System.Net.WebUtility.HtmlEncode(E_Form_Best.Areas.ITForm.Services.WlcMacService.ChuanHoaMoTa(arrMa[i]))}' style='background:#0369a1; color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:13px; font-weight:700; cursor:pointer;'>➕ Thêm lên WLC</button></td>";
+                            bangThietBi += $"<td style='padding:8px 10px; text-align:center; white-space:nowrap;'><button type='button' class='btn-them-mac-wlc' data-id-chi-tiet='{ct.Id}' data-vi-tri='{i}' data-mac='{System.Net.WebUtility.HtmlEncode(arrMac[i].Trim())}' data-mo-ta='{System.Net.WebUtility.HtmlEncode(E_Form_Best.Areas.ITForm.Services.WlcMacService.ChuanHoaMoTa(arrMa[i]))}' title='Thêm MAC lên WLC' aria-label='Thêm MAC lên WLC' style='background:#0369a1; color:#fff; border:none; border-radius:6px; width:28px; height:28px; padding:0; font-size:18px; line-height:28px; font-weight:700; cursor:pointer;'>+</button></td>";
                         }
                         bangThietBi += "</tr>";
                     }
@@ -1340,7 +1340,7 @@
         });
     });
 </script>
-<script src="~/js/=202610241006"></script>
+<script src="~/js/formit-chitiet-doi-donvi.js?v=202610241315"></script>
 <script src="~/js/formit-binhluan-dan-anh.js?v=20260917"></script>
 <script src="~/js/formit-nguoi-co-the-duyet.js?v=20261001"></script>
 
@@ -1349,6 +1349,7 @@
     <div id="modalThemMacWlc" class="them-mac-wlc-nen" hidden data-id-form="@Model.Id">
         <form id="formThemMacWlc" class="them-mac-wlc-hop" autocomplete="off">
             <h3>➕ Thêm MAC lên WLC (@Model.TenCongTy)</h3>
+            <div class="them-mac-wlc-ds">Thêm lần lượt vào: @string.Join(" · ", WlcMac.DsWlc(Model.TenCongTy).Select(w => w.Ten))</div>
             <div class="them-mac-wlc-dong"><span>MAC</span><b id="themMacWlcMac"></b></div>
             <label>WLAN profile
                 <select id="themMacWlcHoSo" required>
@@ -1378,6 +1379,6 @@
             </div>
         </form>
     </div>
-    <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261023d" />
-    <script src="~/js/formit-them-mac-wlc.js?v=20261023f"></script>
+    <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261024b" />
+    <script src="~/js/formit-them-mac-wlc.js?v=20261024b"></script>
 }

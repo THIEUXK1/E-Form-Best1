@@ -71,8 +71,19 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var (loi, congTy, mac, taiKhoan) = await LayThietBiAsync(vao);
             if (loi != null) return Json(new { thanhCong = false, thongBao = loi });
 
-            var kq = await _wlc.KiemTraMacAsync(congTy, mac, taiKhoan, vao!.MatKhau!, HttpContext.RequestAborted);
-            return Json(new { thanhCong = kq.ThanhCong, thongBao = kq.ThongBao, duLieu = new { mac, daTonTai = kq.HienCo != null, hienCo = kq.HienCo } });
+            var ds = await _wlc.KiemTraMacAsync(congTy, mac, taiKhoan, vao!.MatKhau!, HttpContext.RequestAborted);
+            return TraKetQua(mac, ds);
+        }
+
+        /// <summary>
+        /// thanhCong = mọi WLC đều xong (đã thêm hoặc đã có sẵn); ketQua là chi tiết từng WLC để hiện riêng.
+        /// Khi tra cứu, "chưa có" cũng là tra xong nên trả về thông tin, không coi là lỗi.
+        /// </summary>
+        private JsonResult TraKetQua(string mac, List<WlcMacService.KetQuaWlc> ds)
+        {
+            var xong = ds.All(k => k.XongViec);
+            var thongBao = xong ? "Đã xong trên tất cả WLC." : string.Join(" · ", ds.Where(k => !k.XongViec).Select(k => $"{k.Wlc}: {k.ThongBao}"));
+            return Json(new { thanhCong = xong, thongBao, duLieu = new { mac, ketQua = ds } });
         }
 
         [HttpPost("/FormIT/ThemMacWifi")]
@@ -86,23 +97,23 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (hoSo == null) return Json(new { thanhCong = false, thongBao = "Chọn WLAN profile." });
             var moTa = WlcMacService.ChuanHoaMoTa(vao!.MoTa);
 
-            var kq = await _wlc.ThemMacAsync(congTy, mac, hoSo, moTa, taiKhoan, vao.MatKhau!, HttpContext.RequestAborted);
+            var ds = await _wlc.ThemMacAsync(congTy, mac, hoSo, moTa, taiKhoan, vao.MatKhau!, HttpContext.RequestAborted);
 
-            // Ghi lịch sử cả khi đã tồn tại để biết ai đã kiểm; lỗi đăng nhập/kết nối thì không ghi cho đỡ rác.
-            if (kq.ThanhCong || kq.DaTonTai)
+            // Mỗi WLC một dòng lịch sử, ghi cả khi đã tồn tại để biết ai đã kiểm; lỗi đăng nhập/kết nối thì không ghi cho đỡ rác.
+            var nguoiLam = $"{User.FindFirst(ClaimTypes.Name)?.Value} ({User.FindFirst("MaNv")?.Value}), SSH bằng {taiKhoan}";
+            foreach (var k in ds.Where(k => k.XongViec))
             {
                 _context.LichSuFormIts.Add(new LichSuFormIt
                 {
                     IdFormIt = vao.IdFormIt,
-                    TieuDe = kq.ThanhCong ? "Thêm MAC lên WLC" : "MAC đã có trên WLC",
-                    Mota = $"{User.FindFirst(ClaimTypes.Name)?.Value} ({User.FindFirst("MaNv")?.Value}), SSH bằng {taiKhoan}: "
-                           + (kq.ThanhCong ? WlcMacService.LenhThem(mac, hoSo, moTa) : kq.ThongBao),
+                    TieuDe = k.ThanhCong ? "Thêm MAC lên WLC" : "MAC đã có trên WLC",
+                    Mota = $"{nguoiLam} — {k.Wlc}: " + (k.ThanhCong ? k.Lenh : k.HienCo?.Dong ?? k.ThongBao),
                     Time = DateTime.Now
                 });
-                await _context.SaveChangesAsync();
             }
+            if (ds.Any(k => k.XongViec)) await _context.SaveChangesAsync();
 
-            return Json(new { thanhCong = kq.ThanhCong, thongBao = kq.ThongBao, duLieu = new { mac, daTonTai = kq.DaTonTai, hienCo = kq.HienCo } });
+            return TraKetQua(mac, ds);
         }
     }
 }
