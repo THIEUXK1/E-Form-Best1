@@ -846,7 +846,8 @@
 
         const coDuLieu = pageData.length > 0;
         emptyState.style.display = coDuLieu ? "none" : "block";
-        tableWrap.style.display = (coDuLieu && !isCard) ? "block" : "none";
+        // "" thay vì "block": khung bảng là mắt xích flex của fixed-page-layout, gán block sẽ làm vùng cuộn mất chiều cao
+        tableWrap.style.display = (coDuLieu && !isCard) ? "" : "none";
         cardWrap.style.display = (coDuLieu && isCard) ? "block" : "none";
 
         if (coDuLieu) {

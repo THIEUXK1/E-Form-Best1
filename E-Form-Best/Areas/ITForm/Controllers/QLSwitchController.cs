@@ -547,7 +547,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #region Lịch sử online/offline
 
         [HttpGet("/QLSwitch/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/LichSu")]
-        public async Task<IActionResult> LichSu(string congTy, DateTime? tuNgay, DateTime? denNgay, string? loai, string? tuKhoa)
+        public async Task<IActionResult> LichSu(string congTy, DateTime? tuNgay, DateTime? denNgay, string? loai, string? tuKhoa, int? idSwitch)
         {
             var cty = CongTyHopLe(congTy)!;
             if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
@@ -561,6 +561,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var query = _context.KkSwitchLichSus
                     .Where(x => x.IdcongTy == idCongTy && x.ThoiGian >= tu && x.ThoiGian < denHet);
                 if (loai == "UP" || loai == "DOWN") query = query.Where(x => x.SangTrangThai == loai);
+                // Modal chi tiết xem lịch sử 1 switch; vẫn khoá theo công ty ở trên nên id công ty khác trả rỗng
+                if (idSwitch > 0) query = query.Where(x => x.IdSwitch == idSwitch);
                 if (!string.IsNullOrWhiteSpace(tuKhoa))
                 {
                     var kw = tuKhoa.Trim();

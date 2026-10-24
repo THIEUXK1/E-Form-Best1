@@ -46,6 +46,45 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         /// <summary>
+        /// Một lần chốt chỉ số dùng cho bảng danh sách và file xuất. Đặt thành lớp có tên (không
+        /// dùng kiểu ẩn danh) để hàm tính chênh lệch nhận được bộ chọn cột In / Copy / Scan / Tổng.
+        /// </summary>
+        private sealed class ChiSoMoc
+        {
+            public int IdMayIn { get; init; }
+            public DateOnly NgayChot { get; init; }
+            public int? CounterTong { get; init; }
+            public int? CounterIn { get; init; }
+            public int? CounterCopy { get; init; }
+            public int? CounterScan { get; init; }
+            public int? CounterInMau { get; init; }
+            public int? CounterInDenTrang { get; init; }
+            public int? TonerPhanTram { get; init; }
+            public int? DrumPhanTram { get; init; }
+            public string? VatTuJson { get; init; }
+            public string? TrangThaiThietBi { get; init; }
+            public string Nguon { get; init; } = "";
+        }
+
+        /// <summary>
+        /// Số trang trong kỳ của MỘT cột đồng hồ (In / Copy / Scan / màu / đen trắng): chỉ xét
+        /// những mốc thật sự có cột đó, vì dòng nạp lịch sử / nhập tay chỉ có Tổng.
+        /// <paramref name="ls"/> phải sắp giảm dần theo ngày.
+        /// </summary>
+        private static int? ChenhTheoCot(List<ChiSoMoc>? ls, DateOnly homNay, int soNgayLui, Func<ChiSoMoc, int?> lay)
+        {
+            var dsCo = ls?.Where(x => lay(x) != null).ToList();
+            if (dsCo is null || dsCo.Count < 2) return null;
+
+            var mocNay = dsCo[0];
+            var mocTruoc = dsCo.FirstOrDefault(x => x.NgayChot <= homNay.AddDays(-soNgayLui)) ?? dsCo[^1];
+            if (mocTruoc.NgayChot == mocNay.NgayChot) return null;
+
+            var d = lay(mocNay)!.Value - lay(mocTruoc)!.Value;
+            return d < 0 ? null : d; // counter tụt = thay main board / reset
+        }
+
+        /// <summary>
         /// Mở cột vat_tu_json thành danh sách {ten, phanTram} cho giao diện. Dòng chốt cũ và dòng
         /// nhập tay không có cột này nên trả null, giao diện tự lui về hiện hai thanh Mực/Trống.
         /// JSON hỏng thì bỏ qua chứ không làm hỏng cả trang danh sách.
@@ -214,7 +253,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var tuNgay = DateOnly.FromDateTime(DateTime.Now.AddDays(-31));
             var dsChiSo = await _context.MayInChiSos.AsNoTracking()
                 .Where(c => c.NgayChot >= tuNgay && c.CounterTong != null)
-                .Select(c => new { c.IdMayIn, c.NgayChot, c.CounterTong, c.TonerPhanTram, c.DrumPhanTram, c.VatTuJson, c.TrangThaiThietBi })
+                .Select(c => new ChiSoMoc
+                {
+                    IdMayIn = c.IdMayIn, NgayChot = c.NgayChot, CounterTong = c.CounterTong,
+                    CounterIn = c.CounterIn, CounterCopy = c.CounterCopy, CounterScan = c.CounterScan,
+                    TonerPhanTram = c.TonerPhanTram, DrumPhanTram = c.DrumPhanTram,
+                    VatTuJson = c.VatTuJson, TrangThaiThietBi = c.TrangThaiThietBi
+                })
                 .ToListAsync();
 
             var theoMay = dsChiSo.GroupBy(c => c.IdMayIn)
@@ -233,30 +278,43 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 // Trang in trong N ngày = chênh lệch counter giữa bản đọc mới nhất và bản đọc
                 // cũ nhất còn nằm trong khoảng đó. Thiếu mốc cũ thì không suy ra được → null.
-                int? TrangIn(int soNgay)
+                // Chỉ lấy mốc có đúng cột đang tính: dòng nạp lịch sử / nhập tay chỉ có Tổng,
+                // không có In/Copy/Scan, nên không được dùng làm mốc cho các cột tách.
+                int? TrangIn(int soNgay, Func<ChiSoMoc, int?> lay)
                 {
-                    if (lichSu == null || moiNhat?.CounterTong == null) return null;
-                    var moc = lichSu.Where(x => x.NgayChot <= homNay.AddDays(-soNgay))
-                                    .OrderByDescending(x => x.NgayChot)
-                                    .FirstOrDefault()
-                              ?? lichSu.LastOrDefault();
-                    if (moc?.CounterTong == null || moc.NgayChot == moiNhat.NgayChot) return null;
-                    var chenh = moiNhat.CounterTong.Value - moc.CounterTong.Value;
+                    var nay = moiNhat == null ? null : lay(moiNhat);
+                    if (lichSu == null || nay == null) return null;
+                    var coCot = lichSu.Where(x => lay(x) != null).ToList();
+                    var moc = coCot.FirstOrDefault(x => x.NgayChot <= homNay.AddDays(-soNgay))
+                              ?? coCot.LastOrDefault();
+                    if (moc == null || moc.NgayChot == moiNhat!.NgayChot) return null;
+                    var chenh = nay.Value - lay(moc)!.Value;
                     return chenh < 0 ? null : chenh; // counter tụt = thay main board / reset, bỏ qua
                 }
 
                 // Số tờ in trong hôm nay = chỉ số chốt hôm nay trừ chỉ số của lần chốt gần nhất trước đó
-                int? TrangInHomNay()
+                int? TrangInHomNay(Func<ChiSoMoc, int?> lay)
                 {
                     var cuaHomNay = lichSu?.FirstOrDefault(x => x.NgayChot == homNay);
-                    if (cuaHomNay?.CounterTong == null) return null;
+                    var nay = cuaHomNay == null ? null : lay(cuaHomNay);
+                    if (nay == null) return null;
 
-                    var truocDo = lichSu!.FirstOrDefault(x => x.NgayChot < homNay && x.CounterTong != null);
-                    if (truocDo?.CounterTong == null) return null;
+                    var truocDo = lichSu!.FirstOrDefault(x => x.NgayChot < homNay && lay(x) != null);
+                    if (truocDo == null) return null;
 
-                    var chenh = cuaHomNay.CounterTong.Value - truocDo.CounterTong.Value;
+                    var chenh = nay.Value - lay(truocDo)!.Value;
                     return chenh < 0 ? null : chenh;
                 }
+
+                // Tách riêng số trang In / Copy / Scan của một kỳ. Tổng (In + Copy) giữ nguyên ở
+                // các trường TrangIn* vì thẻ tóm tắt và bộ lọc đang dùng; Scan không tính vào tổng
+                // vì không tốn giấy.
+                object TachKy(Func<Func<ChiSoMoc, int?>, int?> tinh) => new
+                {
+                    In = tinh(c => c.CounterIn),
+                    Copy = tinh(c => c.CounterCopy),
+                    Scan = tinh(c => c.CounterScan)
+                };
 
                 return new
                 {
@@ -279,9 +337,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     // Máy in màu: danh sách đầy đủ từng mực/trống để hover lên thanh là thấy màu nào sắp hết
                     VatTu = PhanTichVatTu(moiNhat?.VatTuJson),
                     TrangThaiThietBi = moiNhat?.TrangThaiThietBi,
-                    TrangInHomNay = TrangInHomNay(),
-                    TrangIn7Ngay = TrangIn(7),
-                    TrangIn30Ngay = TrangIn(30),
+                    TrangInHomNay = TrangInHomNay(c => c.CounterTong),
+                    TrangIn7Ngay = TrangIn(7, c => c.CounterTong),
+                    TrangIn30Ngay = TrangIn(30, c => c.CounterTong),
+                    TachChiSo = new { In = moiNhat?.CounterIn, Copy = moiNhat?.CounterCopy, Scan = moiNhat?.CounterScan },
+                    TachHomNay = TachKy(lay => TrangInHomNay(lay)),
+                    Tach7Ngay = TachKy(lay => TrangIn(7, lay)),
+                    Tach30Ngay = TachKy(lay => TrangIn(30, lay)),
                     Online = m.DiaChiIp != null && trangThaiPing.TryGetValue(m.DiaChiIp, out var song) && song
                 };
             })
@@ -366,8 +428,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // Lấy một lượt chỉ số 60 ngày gần nhất của cả danh sách để tính chênh lệch 1/7/30 ngày
             var lichSu = await _context.MayInChiSos.AsNoTracking()
                 .Where(c => dsId.Contains(c.IdMayIn) && c.NgayChot >= tuNgay && c.CounterTong != null)
-                .Select(c => new { c.IdMayIn, c.NgayChot, c.CounterTong, c.CounterInMau, c.CounterInDenTrang,
-                                   c.TonerPhanTram, c.DrumPhanTram, c.Nguon, c.VatTuJson })
+                .Select(c => new ChiSoMoc
+                {
+                    IdMayIn = c.IdMayIn, NgayChot = c.NgayChot, CounterTong = c.CounterTong,
+                    CounterIn = c.CounterIn, CounterCopy = c.CounterCopy, CounterScan = c.CounterScan,
+                    CounterInMau = c.CounterInMau, CounterInDenTrang = c.CounterInDenTrang,
+                    TonerPhanTram = c.TonerPhanTram, DrumPhanTram = c.DrumPhanTram,
+                    Nguon = c.Nguon, VatTuJson = c.VatTuJson
+                })
                 .ToListAsync();
 
             var theoMay = lichSu.GroupBy(c => c.IdMayIn)
@@ -386,8 +454,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 var dongCu = await _context.MayInChiSos.AsNoTracking()
                     .Where(c => idThieu.Contains(c.IdMayIn) && ngayMax.Contains(c.NgayChot) && c.CounterTong != null)
-                    .Select(c => new { c.IdMayIn, c.NgayChot, c.CounterTong, c.CounterInMau, c.CounterInDenTrang,
-                                       c.TonerPhanTram, c.DrumPhanTram, c.Nguon, c.VatTuJson })
+                    .Select(c => new ChiSoMoc
+                    {
+                        IdMayIn = c.IdMayIn, NgayChot = c.NgayChot, CounterTong = c.CounterTong,
+                        CounterIn = c.CounterIn, CounterCopy = c.CounterCopy, CounterScan = c.CounterScan,
+                        CounterInMau = c.CounterInMau, CounterInDenTrang = c.CounterInDenTrang,
+                        TonerPhanTram = c.TonerPhanTram, DrumPhanTram = c.DrumPhanTram,
+                        Nguon = c.Nguon, VatTuJson = c.VatTuJson
+                    })
                     .ToListAsync();
 
                 foreach (var nhom in dongCu.GroupBy(c => c.IdMayIn))
@@ -418,23 +492,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 // Số tờ màu / đen trắng trong kỳ — cùng cách tính với tổng, nhưng chỉ chạy trên
                 // những mốc THẬT SỰ có số tách màu. Máy đọc qua CentreWare cũ / PJL không có hai
                 // chỉ số này nên trả null, không suy ngược từ tổng.
-                // ls sắp xếp giảm dần theo ngày nên phần tử đầu là mốc mới nhất.
-                int? ChenhMau(int soNgayLui, bool laMau)
-                {
-                    var dsCo = ls?.Where(x => (laMau ? x.CounterInMau : x.CounterInDenTrang) != null).ToList();
-                    if (dsCo is null || dsCo.Count < 2) return null;
+                int? ChenhMau(int soNgayLui, bool laMau) =>
+                    ChenhTheoCot(ls, homNay, soNgayLui, x => laMau ? x.CounterInMau : x.CounterInDenTrang);
 
-                    var mocNay = dsCo[0];
-                    var mocTruoc = dsCo.FirstOrDefault(x => x.NgayChot <= homNay.AddDays(-soNgayLui)) ?? dsCo[^1];
-                    if (mocTruoc.NgayChot == mocNay.NgayChot) return null;
-
-                    var nay = laMau ? mocNay.CounterInMau : mocNay.CounterInDenTrang;
-                    var truoc = laMau ? mocTruoc.CounterInMau : mocTruoc.CounterInDenTrang;
-                    if (nay is null || truoc is null) return null;
-
-                    var d = nay.Value - truoc.Value;
-                    return d < 0 ? null : d;
-                }
+                // Đồng hồ In / Copy / Scan mới nhất; dòng nhập tay / nạp lịch sử không có ba cột này
+                // nên lùi về lần chốt gần nhất có số.
+                var mocTach = ls?.FirstOrDefault(x => x.CounterIn != null || x.CounterCopy != null || x.CounterScan != null);
 
                 // Gom mọi lý do khiến con số không đáng tin, để người đi đọc tay biết vì sao phải đi
                 var lyDo = new List<string>();
@@ -489,11 +552,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         _ => "Hoạt động"
                     },
                     CounterTong = moiNhat?.CounterTong,
+                    CounterIn = mocTach?.CounterIn,
+                    CounterCopy = mocTach?.CounterCopy,
+                    CounterScan = mocTach?.CounterScan,
                     NgayChiSo = moiNhat?.NgayChot,
                     Nguon = moiNhat?.Nguon,
                     TrangInHomNay = Chenh(1),
                     TrangIn7Ngay = Chenh(7),
                     TrangIn30Ngay = Chenh(30),
+                    In30Ngay = ChenhTheoCot(ls, homNay, 30, x => x.CounterIn),
+                    Copy30Ngay = ChenhTheoCot(ls, homNay, 30, x => x.CounterCopy),
+                    Scan30Ngay = ChenhTheoCot(ls, homNay, 30, x => x.CounterScan),
                     TrangMau30Ngay = ChenhMau(30, true),
                     TrangDenTrang30Ngay = ChenhMau(30, false),
                     Toner = moiNhat?.TonerPhanTram,
@@ -534,17 +603,35 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var tieuDe = new[]
             {
                 "STT", "Bộ phận", "Model", "Color", "Serial", "Tên máy in", "IP", "Vị trí", "Trạng thái",
-                "Chỉ số hiện tại", "Chỉ số in màu", "Chỉ số in đen trắng",
+                "Chỉ số hiện tại", "Chỉ số In", "Chỉ số Copy", "Chỉ số Scan",
+                "Chỉ số in màu", "Chỉ số in đen trắng",
                 "Ngày đọc", "Nguồn", "Hôm nay", "7 ngày", "30 ngày",
+                "In 30 ngày", "Copy 30 ngày", "Scan 30 ngày",
                 "Màu 30 ngày", "Đen trắng 30 ngày",
                 "Mực (%)", "Trống (%)", "Cần lấy trực tiếp", "Lý do / ghi chú"
             };
 
             const int cotColor = 4;
             const int cotChiSo = 10;
-            const int cotMau = 11;        // đồng hồ tích luỹ, có ngay từ lần chốt đầu tiên
-            const int cotDenTrang = 12;
-            const int cotLyDo = 23;
+            const int cotIn = 11;
+            const int cotCopy = 12;
+            const int cotScan = 13;
+            const int cotMau = 14;        // đồng hồ tích luỹ, có ngay từ lần chốt đầu tiên
+            const int cotDenTrang = 15;
+            const int cotNgayDoc = 16;
+            const int cotNguon = 17;
+            const int cotHomNay = 18;
+            const int cot7Ngay = 19;
+            const int cot30Ngay = 20;
+            const int cotIn30 = 21;
+            const int cotCopy30 = 22;
+            const int cotScan30 = 23;
+            const int cotMau30 = 24;
+            const int cotDenTrang30 = 25;
+            const int cotMuc = 26;
+            const int cotTrong = 27;
+            const int cotCanLay = 28;
+            const int cotLyDo = 29;
 
             ws.Cell(1, 1).Value = "BÁO CÁO CHỈ SỐ TRANG IN HIỆN TẠI";
             ws.Range(1, 1, 1, tieuDe.Length).Merge().Style.Font.SetBold().Font.SetFontSize(14)
@@ -556,7 +643,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                                + "Cột \"Chỉ số hiện tại\": xanh = đọc được qua IP, "
                                + "cam = số cũ / nhập tay (chỉ tham khảo), xám = chưa có chỉ số. "
                                + $"Chỉ {soTachDuoc}/{dong.Count} máy báo được đồng hồ tách màu; "
-                               + "hai cột \"… 30 ngày\" chỉ có số khi máy đã có từ 2 lần chốt trở lên. "
+                               + "Chỉ số hiện tại = In + Copy (Scan không tốn giấy nên không cộng). "
+                               + "Máy đen trắng: cột in đen trắng lấy số bản In (in nghiêng = số suy ra). "
+                               + "Các cột \"… 30 ngày\" chỉ có số khi máy đã có từ 2 lần chốt trở lên. "
                                + "Máy màu chưa đọc được đồng hồ tách màu (IT khai trong file Print out "
                                + "information) ghi \"?\" ở cột chỉ số in màu; máy màu xếp lên đầu mỗi nhóm.";
             ws.Range(2, 1, 2, tieuDe.Length).Merge().Style.Font.SetItalic()
@@ -619,18 +708,39 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                           .Font.SetFontColor(ClosedXML.Excel.XLColor.FromArgb(150, 20, 100))
                           .Alignment.SetHorizontal(ClosedXML.Excel.XLAlignmentHorizontalValues.Center);
                     }
-                    if (d.CounterInDenTrang.HasValue) ws.Cell(r, cotDenTrang).Value = d.CounterInDenTrang.Value;
-                    if (d.NgayChiSo.HasValue) ws.Cell(r, 13).Value = d.NgayChiSo.Value.ToString("dd/MM/yyyy");
-                    ws.Cell(r, 14).Value = d.Nguon;
-                    if (d.TrangInHomNay.HasValue) ws.Cell(r, 15).Value = d.TrangInHomNay.Value;
-                    if (d.TrangIn7Ngay.HasValue) ws.Cell(r, 16).Value = d.TrangIn7Ngay.Value;
-                    if (d.TrangIn30Ngay.HasValue) ws.Cell(r, 17).Value = d.TrangIn30Ngay.Value;
-                    if (d.TrangMau30Ngay.HasValue) ws.Cell(r, 18).Value = d.TrangMau30Ngay.Value;
-                    if (d.TrangDenTrang30Ngay.HasValue) ws.Cell(r, 19).Value = d.TrangDenTrang30Ngay.Value;
-                    if (d.Toner.HasValue) ws.Cell(r, 20).Value = d.Toner.Value;
-                    if (d.Drum.HasValue) ws.Cell(r, 21).Value = d.Drum.Value;
+                    if (d.CounterIn.HasValue) ws.Cell(r, cotIn).Value = d.CounterIn.Value;
+                    if (d.CounterCopy.HasValue) ws.Cell(r, cotCopy).Value = d.CounterCopy.Value;
+                    if (d.CounterScan.HasValue) ws.Cell(r, cotScan).Value = d.CounterScan.Value;
 
-                    ws.Cell(r, 22).Value = d.CanLayTrucTiep ? "X" : "";
+                    // Máy đen trắng không báo đồng hồ tách màu, nhưng mọi bản in của nó đều là đen
+                    // trắng → lấy số bản In (máy chỉ có tổng thì lấy tổng), in nghiêng để biết là số suy ra.
+                    var denTrangSuyRa = !d.CounterInDenTrang.HasValue && d.Color == "Đen trắng";
+                    var chiSoDenTrang = d.CounterInDenTrang ?? (denTrangSuyRa ? d.CounterIn ?? d.CounterTong : null);
+                    var denTrang30 = d.TrangDenTrang30Ngay ?? (denTrangSuyRa ? d.In30Ngay ?? d.TrangIn30Ngay : null);
+                    if (chiSoDenTrang.HasValue)
+                    {
+                        ws.Cell(r, cotDenTrang).Value = chiSoDenTrang.Value;
+                        if (denTrangSuyRa) ws.Cell(r, cotDenTrang).Style.Font.SetItalic();
+                    }
+
+                    if (d.NgayChiSo.HasValue) ws.Cell(r, cotNgayDoc).Value = d.NgayChiSo.Value.ToString("dd/MM/yyyy");
+                    ws.Cell(r, cotNguon).Value = d.Nguon;
+                    if (d.TrangInHomNay.HasValue) ws.Cell(r, cotHomNay).Value = d.TrangInHomNay.Value;
+                    if (d.TrangIn7Ngay.HasValue) ws.Cell(r, cot7Ngay).Value = d.TrangIn7Ngay.Value;
+                    if (d.TrangIn30Ngay.HasValue) ws.Cell(r, cot30Ngay).Value = d.TrangIn30Ngay.Value;
+                    if (d.In30Ngay.HasValue) ws.Cell(r, cotIn30).Value = d.In30Ngay.Value;
+                    if (d.Copy30Ngay.HasValue) ws.Cell(r, cotCopy30).Value = d.Copy30Ngay.Value;
+                    if (d.Scan30Ngay.HasValue) ws.Cell(r, cotScan30).Value = d.Scan30Ngay.Value;
+                    if (d.TrangMau30Ngay.HasValue) ws.Cell(r, cotMau30).Value = d.TrangMau30Ngay.Value;
+                    if (denTrang30.HasValue)
+                    {
+                        ws.Cell(r, cotDenTrang30).Value = denTrang30.Value;
+                        if (denTrangSuyRa) ws.Cell(r, cotDenTrang30).Style.Font.SetItalic();
+                    }
+                    if (d.Toner.HasValue) ws.Cell(r, cotMuc).Value = d.Toner.Value;
+                    if (d.Drum.HasValue) ws.Cell(r, cotTrong).Value = d.Drum.Value;
+
+                    ws.Cell(r, cotCanLay).Value = d.CanLayTrucTiep ? "X" : "";
                     ws.Cell(r, cotLyDo).Value = d.LyDo;
 
                     // Tô vàng cả dòng để lúc in ra giấy vẫn thấy ngay máy nào phải đi đọc tay
@@ -687,7 +797,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var vung = ws.Range(4, 1, r - 1, tieuDe.Length);
                 vung.Style.Border.SetOutsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
                 vung.Style.Border.SetInsideBorder(ClosedXML.Excel.XLBorderStyleValues.Thin);
-                ws.Range(5, cotChiSo, r - 1, 21).Style.NumberFormat.SetFormat("#,##0");
+                ws.Range(5, cotChiSo, r - 1, cotTrong).Style.NumberFormat.SetFormat("#,##0");
                 // Có dòng tiêu đề nhóm (ô merge) thì không bật AutoFilter, lọc sẽ giấu mất dòng nhóm
                 if (cacNhom.Count <= 1) vung.SetAutoFilter();
                 ws.SheetView.FreezeRows(4);

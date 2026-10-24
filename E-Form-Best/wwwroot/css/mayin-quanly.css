@@ -124,6 +124,18 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* Dòng tách In / Copy / Scan dưới số tổng trong bảng danh sách */
+.mayin-tach {
+    font-size: 0.7rem;
+    line-height: 1.25;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+.mayin-tach-nhan {
+    color: #9ca3af;
+}
+
 /* Khi khoá cuộn, .main-card thành flex cột: mọi khối ngoài vùng cuộn phải giữ đúng
    chiều cao thật của nó. flex-shrink mặc định = 1 sẽ bóp thanh lệnh và dải thẻ số
    thấp hơn nội dung -> chữ tràn ra ngoài và đè lên bảng (đúng lỗi đang thấy). */

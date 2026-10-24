@@ -197,7 +197,7 @@
 
         $body.html(data.map(function (x, i) {
             var hangModel = [x.hangSanXuat, x.model].filter(Boolean).join(' / ');
-            return '<tr>'
+            return '<tr class="sw-dong" style="cursor:pointer;" title="Bấm để xem chi tiết">'
                 + '<td class="text-muted small">' + (i + 1) + '</td>'
                 + oKetNoi(x)
                 + (coSnmp ? oSnmp(x.snmp) : '')
@@ -356,6 +356,92 @@
             .always(function () { $btn.prop('disabled', false); });
     }
 
+
+    // ---------------- Chi tiết 1 switch ----------------
+
+    var swDangXem = null;
+
+    function oChiTiet(nhan, giaTri, className) {
+        return '<div class="col-6 col-md-4"><div class="text-muted" style="font-size:11px;">' + esc(nhan) + '</div>'
+            + '<div class="' + (className || '') + '" style="word-break:break-word;">' + (giaTri === '' || giaTri == null ? '<span class="text-muted">–</span>' : giaTri) + '</div></div>';
+    }
+
+    function moChiTiet(x) {
+        swDangXem = x;
+        $('#ctTieuDe').text(x.tenSwitch || x.maSwitch || 'Chi tiết switch');
+
+        // Dùng lại đúng ô trạng thái của bảng để hai nơi hiện giống nhau
+        var $ketNoi = $(oKetNoi(x)), ketNoiHtml = $ketNoi.html() + ($ketNoi.attr('title') ? ' <span class="text-muted fw-normal">(' + esc($ketNoi.attr('title')) + ')</span>' : '');
+        $('#ctTrangThai').html('<span class="' + esc($ketNoi.attr('class')) + '">' + ketNoiHtml + '</span>'
+            + '<span class="badge rounded-pill" style="' + mauTinhTrang(x.tinhTrang) + '">' + esc(x.tinhTrang || 'Chưa rõ') + '</span>');
+
+        var hetHan = x.hanBaoHanh && chuanHoaNgay(x.hanBaoHanh) < ngayInput(new Date());
+        $('#ctThongTin').html([
+            oChiTiet('Mã', esc(x.maSwitch)),
+            oChiTiet('Tên switch', esc(x.tenSwitch), 'fw-bold'),
+            oChiTiet('Vai trò', esc(x.vaiTro)),
+            oChiTiet('Địa chỉ IP', esc(x.diaChiIp), 'font-monospace'),
+            oChiTiet('Địa chỉ MAC', esc(x.diaChiMac), 'font-monospace'),
+            oChiTiet('Số cổng', esc(x.soCong)),
+            oChiTiet('Hãng sản xuất', esc(x.hangSanXuat)),
+            oChiTiet('Model', esc(x.model)),
+            oChiTiet('Serial', esc(x.serial), 'font-monospace'),
+            oChiTiet('Firmware', esc(x.phienBan)),
+            oChiTiet('Bộ phận', esc(x.tenBoPhan)),
+            oChiTiet('Vị trí', esc(x.viTri)),
+            oChiTiet('Ngày lắp đặt', esc(dinhDangNgay(x.ngayLapDat))),
+            oChiTiet('Hạn bảo hành', esc(dinhDangNgay(x.hanBaoHanh)) + (hetHan ? ' <span class="text-danger fw-bold">(đã hết)</span>' : '')),
+            oChiTiet('Ping gần nhất', esc(gio(x.kiemTraLuc))),
+            '<div class="col-12"><div class="text-muted" style="font-size:11px;">Ghi chú</div><div style="white-space:pre-wrap; word-break:break-word;">'
+                + (x.ghiChu ? esc(x.ghiChu) : '<span class="text-muted">–</span>') + '</div></div>'
+        ].join(''));
+
+        var s = x.snmp;
+        $('#ctKhungSnmp').toggleClass('d-none', !coSnmp);
+        if (coSnmp) {
+            $('#ctSnmp').html(!s
+                ? '<div class="col-12 text-muted">Hệ thống giám sát mạng chưa theo dõi IP này.</div>'
+                : [
+                    oChiTiet('Trạng thái', esc(s.trangThai) + (s.loi ? ' <span class="text-danger">· ' + esc(s.loi) + '</span>' : '')),
+                    oChiTiet('CPU', s.cpu != null ? Math.round(s.cpu) + '%' : '', s.cpu >= 80 ? 'text-warning fw-bold' : ''),
+                    oChiTiet('RAM', s.ram != null ? Math.round(s.ram) + '%' : '', s.ram >= 90 ? 'text-warning fw-bold' : ''),
+                    oChiTiet('Nhiệt độ', s.nhietDo != null ? Math.round(s.nhietDo) + ' °C' : '', s.nhietDo >= 60 ? 'text-warning fw-bold' : ''),
+                    oChiTiet('Cổng up', s.tongCong ? (s.congUp || 0) + ' / ' + s.tongCong : ''),
+                    oChiTiet('Chạy liên tục', s.thoiGianChayGiay ? esc(thoiLuong(s.thoiGianChayGiay)) : ''),
+                    oChiTiet('IP SNMP', esc(s.ip), 'font-monospace'),
+                    oChiTiet('Đọc lúc', esc(gio(s.docLuc)))
+                ].join(''));
+        }
+
+        taiLichSuChiTiet(x.idSwitch);
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalChiTietSw')).show();
+    }
+
+    function taiLichSuChiTiet(idSwitch) {
+        var $body = $('#ctLsBody');
+        $('#ctLsTomTat').text('');
+        dongTrangThai($body, 3, 'Đang tải...', 'text-muted');
+        var truoc = new Date(); truoc.setDate(truoc.getDate() - 29);
+
+        $.getJSON(goc + '/LichSu', { idSwitch: idSwitch, tuNgay: ngayInput(truoc), denNgay: ngayInput(new Date()) })
+            .done(function (res) {
+                // Người dùng đã mở switch khác trong lúc chờ -> bỏ kết quả cũ
+                if (!swDangXem || swDangXem.idSwitch !== idSwitch) return;
+                if (!res.thanhCong) { dongTrangThai($body, 3, res.thongBao || 'Không tải được lịch sử.', 'text-danger'); return; }
+                $('#ctLsTomTat').text('(' + res.soDown + ' lần mất kết nối)');
+                if (!res.duLieu.length) { dongTrangThai($body, 3, 'Không có sự kiện đổi trạng thái nào trong 30 ngày.', 'text-muted'); return; }
+                $body.html(res.duLieu.map(function (l) {
+                    return '<tr>'
+                        + '<td class="text-nowrap">' + esc(gio(l.thoiGian)) + '</td>'
+                        + (l.sangTrangThai === 'DOWN'
+                            ? '<td class="text-danger fw-bold"><i class="fas fa-arrow-down me-1"></i>Mất kết nối</td>'
+                            : '<td class="text-success fw-bold"><i class="fas fa-arrow-up me-1"></i>Hoạt động lại</td>')
+                        + '<td>' + (l.thoiLuongGiay ? esc(thoiLuong(l.thoiLuongGiay)) : '') + '</td>'
+                        + '</tr>';
+                }).join(''));
+            })
+            .fail(function () { dongTrangThai($body, 3, 'Lỗi kết nối máy chủ.', 'text-danger'); });
+    }
 
     // ---------------- Lịch sử ----------------
 
@@ -584,6 +670,18 @@
         $('#btnXuatExcel').on('click', function (e) {
             e.preventDefault();
             window.location.href = goc + '/XuatExcel?' + $.param(thamSoLoc());
+        });
+
+        // Bấm vào dòng mở chi tiết; bỏ qua khi bấm nút thao tác hoặc đang bôi đen chữ để copy
+        $(document).on('click', '#swTableBody tr.sw-dong', function (e) {
+            if ($(e.target).closest('.ccdc-thaotac').length || String(window.getSelection() || '')) return;
+            moChiTiet($(this).data('sw'));
+        });
+        $(document).on('click', '#btnCtSua', function () {
+            if (!swDangXem) return;
+            var x = swDangXem;
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalChiTietSw')).hide();
+            moModalSua(x);
         });
 
         $(document).on('click', '#swTableBody .btn-sua', function () {

@@ -23,6 +23,18 @@
         return Number(v).toLocaleString('vi-VN');
     }
 
+    // Dòng tách In / Copy / Scan dưới số tổng. Số tổng = In + Copy (Scan không tốn giấy nên
+    // không cộng vào). Máy đời cũ / nhập tay không có cột tách thì bỏ dòng, chỉ còn số tổng.
+    function oTach(t) {
+        if (!t) return '';
+        var dong = [['In', t.in], ['Copy', t.copy], ['Scan', t.scan]]
+            .filter(function (p) { return p[1] !== null && p[1] !== undefined; })
+            .map(function (p) {
+                return '<div><span class="mayin-tach-nhan">' + p[0] + '</span> ' + dinhDangSo(p[1]) + '</div>';
+            });
+        return dong.length ? '<div class="mayin-tach">' + dong.join('') + '</div>' : '';
+    }
+
     function o(giaTri, className) {
         var s = escapeHtml(giaTri);
         return '<td class="' + (className || '') + '" title="' + s + '">' + s + '</td>';
@@ -186,7 +198,8 @@
 
             var chiSo = x.counterTong === null || x.counterTong === undefined
                 ? '<span class="text-muted small">chưa có</span>'
-                : dinhDangSo(x.counterTong) + '<div class="text-muted" style="font-size:0.7rem;">' + escapeHtml(x.ngayChiSo) + '</div>';
+                : dinhDangSo(x.counterTong) + oTach(x.tachChiSo)
+                  + '<div class="text-muted" style="font-size:0.7rem;">' + escapeHtml(x.ngayChiSo) + '</div>';
 
             var nutDoc = x.diaChiIp
                 ? '<button class="btn btn-sm btn-outline-primary rounded-pill px-2 js-doc" data-id="' + x.idMayIn + '" title="Đọc chỉ số từ máy"><i class="fa fa-rotate"></i></button>'
@@ -201,9 +214,9 @@
                 + '<td class="small">' + ip + '</td>'
                 + o(x.viTri, 'small')
                 + '<td class="mayin-cot-so small">' + chiSo + '</td>'
-                + '<td class="mayin-cot-so small fw-bold">' + dinhDangSo(x.trangInHomNay) + '</td>'
-                + '<td class="mayin-cot-so small">' + dinhDangSo(x.trangIn7Ngay) + '</td>'
-                + '<td class="mayin-cot-so small">' + dinhDangSo(x.trangIn30Ngay) + '</td>'
+                + '<td class="mayin-cot-so small"><span class="fw-bold">' + dinhDangSo(x.trangInHomNay) + '</span>' + oTach(x.tachHomNay) + '</td>'
+                + '<td class="mayin-cot-so small">' + dinhDangSo(x.trangIn7Ngay) + oTach(x.tach7Ngay) + '</td>'
+                + '<td class="mayin-cot-so small">' + dinhDangSo(x.trangIn30Ngay) + oTach(x.tach30Ngay) + '</td>'
                 + '<td>' + oNhomVatTu(x.toner, x.vatTu, 'TONER') + '</td>'
                 + '<td>' + oNhomVatTu(x.drum, x.vatTu, 'DRUM') + '</td>'
                 + '<td class="mayin-trangthai">' + nhanTrangThai(x.trangThai) + '</td>'

@@ -282,7 +282,7 @@
         $body.html(data.map(function (x, i) {
             var hangModel = [x.hangSanXuat, x.model].filter(Boolean).join(' / ');
             var ghim = !!dsGhim[x.idAp];
-            return '<tr class="' + (x.ketNoi === 'DOWN' ? 'cam-down ' : '') + (ghim ? 'cam-da-ghim' : '') + '">'
+            return '<tr class="ap-dong ' + (x.ketNoi === 'DOWN' ? 'cam-down ' : '') + (ghim ? 'cam-da-ghim' : '') + '" style="cursor:pointer;" title="Bấm để xem chi tiết">'
                 + '<td class="text-muted small text-nowrap">'
                 + '<button type="button" class="cam-ghim' + (ghim ? ' cam-ghim-bat' : '') + '" title="'
                 + (ghim ? 'Bỏ ghim' : 'Ghim lên đầu danh sách (chỉ trên máy này)') + '"><i class="fas fa-thumbtack"></i></button>'
@@ -313,6 +313,84 @@
 
         // Gắn dữ liệu bằng .data() thay vì nhét JSON vào thuộc tính HTML
         $body.find('tr').each(function (i) { $(this).data('ap', data[i]); });
+    }
+
+    // ---------------- Chi tiết 1 AP ----------------
+
+    var apDangXem = null;
+
+    function oChiTiet(nhan, giaTri, className) {
+        return '<div class="col-6 col-md-4"><div class="text-muted" style="font-size:11px;">' + esc(nhan) + '</div>'
+            + '<div class="' + (className || '') + '" style="word-break:break-word;">' + (giaTri === '' || giaTri == null ? '<span class="text-muted">–</span>' : giaTri) + '</div></div>';
+    }
+
+    function moChiTiet(x) {
+        apDangXem = x;
+        $('#ctTieuDe').text(x.tenAp || x.maAp || 'Chi tiết AP');
+
+        // Dùng lại đúng ô trạng thái của bảng để hai nơi hiện giống nhau
+        var $ketNoi = $(oKetNoi(x)), ketNoiHtml = $ketNoi.html() + ($ketNoi.attr('title') ? ' <span class="text-muted fw-normal">(' + esc($ketNoi.attr('title')) + ')</span>' : '');
+        $('#ctTrangThai').html('<span class="' + esc($ketNoi.attr('class')) + '">' + ketNoiHtml + '</span>'
+            + '<span class="badge rounded-pill" style="' + mauTinhTrang(x.tinhTrang) + '">' + esc(x.tinhTrang || 'Chưa rõ') + '</span>');
+
+        var hetHan = x.hanBaoHanh && chuanHoaNgay(x.hanBaoHanh) < ngayInput(new Date());
+        var nguon = x.nguonTrangThai === 'AC' ? 'Controller' + (x.trangThaiController ? ' (' + x.trangThaiController + ')' : '')
+            : x.nguonTrangThai === 'PING' ? 'Ping' : '';
+        $('#ctThongTin').html([
+            oChiTiet('Mã', esc(x.maAp)),
+            oChiTiet('Tên AP', esc(x.tenAp), 'fw-bold'),
+            oChiTiet('Nhóm AP', esc(x.nhomAp)),
+            oChiTiet('Địa chỉ IP', esc(x.diaChiIp), 'font-monospace'),
+            oChiTiet('Địa chỉ MAC', esc(x.diaChiMac), 'font-monospace'),
+            oChiTiet('Số client', x.ketNoi === 'UP' && x.soClient != null ? esc(x.soClient) : ''),
+            oChiTiet('Hãng sản xuất', esc(x.hangSanXuat)),
+            oChiTiet('Model', esc(x.model)),
+            oChiTiet('Serial', esc(x.serial), 'font-monospace'),
+            oChiTiet('Firmware', esc(x.phienBan)),
+            oChiTiet('Controller', esc(x.tenController)),
+            oChiTiet('Nguồn trạng thái', esc(nguon)),
+            oChiTiet('Chạy liên tục', x.ketNoi === 'UP' && x.thoiGianChayGiay ? esc(thoiLuong(x.thoiGianChayGiay)) : ''),
+            oChiTiet('Bộ phận', esc(x.tenBoPhan)),
+            oChiTiet('Vị trí', esc(x.viTri)),
+            oChiTiet('Ngày lắp đặt', esc(dinhDangNgay(x.ngayLapDat))),
+            oChiTiet('Hạn bảo hành', esc(dinhDangNgay(x.hanBaoHanh)) + (hetHan ? ' <span class="text-danger fw-bold">(đã hết)</span>' : '')),
+            oChiTiet('Kiểm gần nhất', esc(gio(x.kiemTraLuc))),
+            '<div class="col-12"><div class="text-muted" style="font-size:11px;">SSID</div><div style="word-break:break-word;">'
+                + ((x.ssid || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean).map(function (t) {
+                    return '<span class="badge rounded-pill bg-light text-dark border me-1">' + esc(t) + '</span>';
+                }).join('') || '<span class="text-muted">–</span>') + '</div></div>',
+            '<div class="col-12"><div class="text-muted" style="font-size:11px;">Ghi chú</div><div style="white-space:pre-wrap; word-break:break-word;">'
+                + (x.ghiChu ? esc(x.ghiChu) : '<span class="text-muted">–</span>') + '</div></div>'
+        ].join(''));
+
+        taiLichSuChiTiet(x.idAp);
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalChiTietAp')).show();
+    }
+
+    function taiLichSuChiTiet(idAp) {
+        var $body = $('#ctLsBody');
+        $('#ctLsTomTat').text('');
+        dongTrangThai($body, 3, 'Đang tải...', 'text-muted');
+        var truoc = new Date(); truoc.setDate(truoc.getDate() - 29);
+
+        $.getJSON(goc + '/LichSu', { idAp: idAp, tuNgay: ngayInput(truoc), denNgay: ngayInput(new Date()) })
+            .done(function (res) {
+                // Người dùng đã mở AP khác trong lúc chờ -> bỏ kết quả cũ
+                if (!apDangXem || apDangXem.idAp !== idAp) return;
+                if (!res.thanhCong) { dongTrangThai($body, 3, res.thongBao || 'Không tải được lịch sử.', 'text-danger'); return; }
+                $('#ctLsTomTat').text('(' + res.soDown + ' lần mất kết nối)');
+                if (!res.duLieu.length) { dongTrangThai($body, 3, 'Không có sự kiện đổi trạng thái nào trong 30 ngày.', 'text-muted'); return; }
+                $body.html(res.duLieu.map(function (l) {
+                    return '<tr>'
+                        + '<td class="text-nowrap">' + esc(gio(l.thoiGian)) + '</td>'
+                        + (l.sangTrangThai === 'DOWN'
+                            ? '<td class="text-danger fw-bold"><i class="fas fa-arrow-down me-1"></i>Mất kết nối</td>'
+                            : '<td class="text-success fw-bold"><i class="fas fa-arrow-up me-1"></i>Hoạt động lại</td>')
+                        + '<td>' + (l.thoiLuongGiay ? esc(thoiLuong(l.thoiLuongGiay)) : '') + '</td>'
+                        + '</tr>';
+                }).join(''));
+            })
+            .fail(function () { dongTrangThai($body, 3, 'Lỗi kết nối máy chủ.', 'text-danger'); });
     }
 
     // ---------------- Xu hướng ----------------
@@ -555,6 +633,18 @@
         $('#btnXuatExcel').on('click', function (e) {
             e.preventDefault();
             window.location.href = goc + '/XuatExcel?' + $.param(thamSoLoc());
+        });
+
+        // Bấm vào dòng mở chi tiết; bỏ qua khi bấm nút ghim / thao tác hoặc đang bôi đen chữ để copy
+        $(document).on('click', '#apTableBody tr.ap-dong', function (e) {
+            if ($(e.target).closest('.ccdc-thaotac, button.cam-ghim').length || String(window.getSelection() || '')) return;
+            moChiTiet($(this).data('ap'));
+        });
+        $(document).on('click', '#btnCtSua', function () {
+            if (!apDangXem) return;
+            var x = apDangXem;
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalChiTietAp')).hide();
+            moModalSua(x);
         });
 
         $(document).on('click', '#apTableBody .btn-sua', function () {

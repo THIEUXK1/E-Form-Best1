@@ -3,6 +3,7 @@
 @using System.Collections.Generic
 @using System.Linq
 @using System.Security.Claims
+@inject E_Form_Best.Areas.ITForm.Services.WlcMacService WlcMac
 
 @{
     ViewData["Title"] = "Chi tiết yêu cầu IT";
@@ -162,6 +163,8 @@
 
         int index3 = 1;
         int total3 = Model.ItDangKiSuDungWifi3s.Count();
+        // Nút thêm nhanh MAC lên WLC: chỉ người có quyền và công ty của đơn đã cấu hình WLC
+        bool hienThemMac = E_Form_Best.Areas.ITForm.Controllers.WifiMacController.CoQuyen(User) && WlcMac.CoCauHinh(Model.TenCongTy);
         foreach (var ct in Model.ItDangKiSuDungWifi3s)
         {
             if (total3 > 1)
@@ -170,6 +173,7 @@
             }
 
             bool isHuy = ct.LoaiDon == "Hủy đăng ký của thiết bị" || ct.LoaiDon == "Hủy";
+            bool cotThemMac = hienThemMac && !isHuy;
             string loaiDonColor = isHuy ? "#991b1b" : "#166534";
             string loaiDonBg = isHuy ? "#fef2f2" : "#f0fdf4";
             string badgeBg = isHuy ? "#ef4444" : "#10b981";
@@ -196,6 +200,7 @@
                     bangThietBi += "<th style='padding:12px 10px; color:#475569; width:1%; white-space:nowrap; text-align:center; font-weight:700;'>STT</th>";
                     bangThietBi += "<th style='padding:12px 15px; color:#475569; font-weight:700;'>Mã thiết bị / Định danh</th>";
                     bangThietBi += "<th style='padding:12px 15px; color:#475569; text-align:center; font-weight:700;'>Địa chỉ MAC</th>";
+                    if (cotThemMac) bangThietBi += "<th style='padding:12px 10px; color:#475569; text-align:center; font-weight:700; width:1%; white-space:nowrap;'>WLC</th>";
                     bangThietBi += "</tr>";
                     bangThietBi += "</thead>";
 
@@ -205,8 +210,13 @@
                         string bgRow = (i % 2 == 0) ? "#ffffff" : "#fbfcfd";
                         bangThietBi += $"<tr style='background:{bgRow}; border-bottom:1px solid #f1f5f9;'>";
                         bangThietBi += $"<td style='padding:12px 10px; text-align:center; font-weight:700; color:#94a3b8; width:1%; white-space:nowrap;'>{i + 1}</td>";
-                        bangThietBi += $"<td style='padding:12px 15px; color:#1e293b; font-weight:600;'>{arrMa[i].Trim()}</td>";
-                        bangThietBi += $"<td style='padding:12px 15px; text-align:center; font-weight:800; color:#10b981;'>{arrMac[i].Trim()}</td>";
+                        bangThietBi += $"<td style='padding:12px 15px; color:#1e293b; font-weight:600;'>{System.Net.WebUtility.HtmlEncode(arrMa[i].Trim())}</td>";
+                        bangThietBi += $"<td style='padding:12px 15px; text-align:center; font-weight:800; color:#10b981;'>{System.Net.WebUtility.HtmlEncode(arrMac[i].Trim())}</td>";
+                        if (cotThemMac)
+                        {
+                            // Vị trí theo MacTb (không cắt theo count) vì server lấy MAC theo vị trí đó
+                            bangThietBi += $"<td style='padding:8px 10px; text-align:center; white-space:nowrap;'><button type='button' class='btn-them-mac-wlc' data-id-chi-tiet='{ct.Id}' data-vi-tri='{i}' data-mac='{System.Net.WebUtility.HtmlEncode(arrMac[i].Trim())}' data-mo-ta='{System.Net.WebUtility.HtmlEncode(E_Form_Best.Areas.ITForm.Services.WlcMacService.ChuanHoaMoTa(arrMa[i]))}' style='background:#0369a1; color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:13px; font-weight:700; cursor:pointer;'>➕ Thêm lên WLC</button></td>";
+                        }
                         bangThietBi += "</tr>";
                     }
                     bangThietBi += "</tbody></table></div>";
@@ -1333,3 +1343,41 @@
 <script src="~/js/formit-chitiet-doi-donvi.js?v=20260917"></script>
 <script src="~/js/formit-binhluan-dan-anh.js?v=20260917"></script>
 <script src="~/js/formit-nguoi-co-the-duyet.js?v=20261001"></script>
+
+@if (Model?.ItDangKiSuDungWifi3s?.Any() == true && E_Form_Best.Areas.ITForm.Controllers.WifiMacController.CoQuyen(User) && WlcMac.CoCauHinh(Model.TenCongTy))
+{
+    <div id="modalThemMacWlc" class="them-mac-wlc-nen" hidden data-id-form="@Model.Id">
+        <form id="formThemMacWlc" class="them-mac-wlc-hop" autocomplete="off">
+            <h3>➕ Thêm MAC lên WLC (@Model.TenCongTy)</h3>
+            <div class="them-mac-wlc-dong"><span>MAC</span><b id="themMacWlcMac"></b></div>
+            <label>WLAN profile
+                <select id="themMacWlcHoSo" required>
+                    @foreach (var h in WlcMac.DsHoSo(Model.TenCongTy))
+                    {
+                        <option value="@h.Ma">@h.WlanProfile (@h.AaaList)</option>
+                    }
+                </select>
+            </label>
+            <label>Mô tả (description)
+                <input id="themMacWlcMoTa" type="text" maxlength="60" placeholder="vd WHSophie">
+                <small>Tự bỏ dấu; chỉ giữ chữ, số, . _ - ; khoảng trắng thành _</small>
+            </label>
+            <label>Tài khoản domain
+                <input id="themMacWlcTaiKhoan" type="text" maxlength="64" autocomplete="off" spellcheck="false" required placeholder="vd @(User.FindFirst("MaNv")?.Value)">
+            </label>
+            <label>Mật khẩu domain
+                <input id="themMacWlcMatKhau" type="password" autocomplete="new-password" required>
+                <small>Chỉ dùng để SSH vào WLC lần này, không lưu.</small>
+            </label>
+            <div id="themMacWlcKetQua" class="them-mac-wlc-kq" hidden></div>
+            <div id="themMacWlcLoi" class="them-mac-wlc-loi" hidden></div>
+            <div class="them-mac-wlc-nut">
+                <button type="button" id="btnHuyThemMacWlc">Đóng</button>
+                <button type="button" id="btnKiemTraMacWlc">Kiểm tra</button>
+                <button type="submit" id="btnGuiThemMacWlc">Thêm & lưu WLC</button>
+            </div>
+        </form>
+    </div>
+    <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261023d" />
+    <script src="~/js/formit-them-mac-wlc.js?v=20261023f"></script>
+}

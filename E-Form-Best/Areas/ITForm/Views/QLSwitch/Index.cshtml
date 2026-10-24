@@ -537,6 +537,44 @@
 </div>
 }
 
+@* ------- Modal chi tiết switch: bấm vào dòng trong danh sách (mọi người có quyền xem) ------- *@
+<div class="modal fade" id="modalChiTietSw" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow" style="border-radius:15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="fas fa-network-wired me-2"></i> <span id="ctTieuDe">Chi tiết switch</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3" id="ctTrangThai"></div>
+                <div class="row g-2 small" id="ctThongTin"></div>
+                <div class="mt-3 d-none" id="ctKhungSnmp">
+                    <div class="fw-bold text-muted small text-uppercase mb-2">SNMP (hệ thống giám sát mạng)</div>
+                    <div class="row g-2 small" id="ctSnmp"></div>
+                </div>
+                <div class="mt-3">
+                    <div class="fw-bold text-muted small text-uppercase mb-2">
+                        Lịch sử kết nối 30 ngày <span class="fw-normal text-lowercase" id="ctLsTomTat"></span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0 small">
+                            <thead><tr><th>Thời gian</th><th>Sự kiện</th><th>Đã mất kết nối</th></tr></thead>
+                            <tbody id="ctLsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Đóng</button>
+                @if (coQuyenSua)
+                {
+                    <button type="button" class="btn btn-primary rounded-pill px-4" id="btnCtSua"><i class="fas fa-pen me-1"></i> Sửa</button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
 @if (congTy == "BPVN")
 {
     @* ------- Modal tra MAC: thiết bị đang cắm switch / cổng nào (bảng MAC hệ thống giám sát mạng 10.0.60.238) ------- *@
@@ -570,5 +608,5 @@
 @* Phải nằm trong section Scripts: layout nạp jQuery ở cuối trang, script đặt trong thân trang chạy trước jQuery *@
 @section Scripts {
     <script src="/js/fixed-page-layout.js?v=5" defer></script>
-    <script src="/js/switch-quanly.js?v=20261021"></script>
+    <script src="/js/switch-quanly.js?v=20261021b"></script>
 }
