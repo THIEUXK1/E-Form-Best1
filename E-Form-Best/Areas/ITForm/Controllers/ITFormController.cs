@@ -4131,8 +4131,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .ToListAsync();
             }
 
-            // Chỉ quyền "All" mới được đổi Bộ phận / Tên công ty của đơn -> chuẩn bị sẵn danh mục cho view
-            bool coTheDoiDonVi = User.IsInRole("All");
+            // Chỉ quyền "All" / "AdminIT" mới được đổi Bộ phận / Tên công ty của đơn -> chuẩn bị sẵn danh mục cho view
+            // (phải khớp [Authorize] của DoiDonViDon)
+            bool coTheDoiDonVi = User.IsInRole("All") || User.IsInRole("AdminIT");
             ViewBag.CoTheDoiDonVi = coTheDoiDonVi;
             if (coTheDoiDonVi)
             {
@@ -5333,13 +5334,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // ===================================================================
-        // API: ĐỔI BỘ PHẬN / TÊN CÔNG TY CỦA ĐƠN (chỉ quyền "All")
+        // API: ĐỔI BỘ PHẬN / TÊN CÔNG TY CỦA ĐƠN (quyền "All" hoặc "AdminIT")
         // Đơn bị nhập sai đơn vị sẽ lọt khỏi tầm duyệt của quản lý đúng bộ phận,
-        // nên cần một chỗ sửa lại — nhưng chỉ mở cho quyền cao nhất.
+        // nên cần một chỗ sửa lại — chỉ mở cho quyền cao nhất và quản trị IT.
         // ===================================================================
 
         [HttpPost("/FormIT/DoiDonViDon")]
-        [Authorize(Roles = "All")]
+        [Authorize(Roles = "All,AdminIT")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DoiDonViDon([FromBody] DoiDonViDonRequest req)
         {

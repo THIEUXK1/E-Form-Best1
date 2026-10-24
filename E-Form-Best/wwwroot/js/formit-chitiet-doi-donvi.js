@@ -1,5 +1,5 @@
 // Đổi Bộ phận / Tên công ty của một đơn IT ngay trên trang chi tiết.
-// Khung này chỉ được render cho quyền "All"; server vẫn kiểm quyền lại lần nữa.
+// Khung này chỉ được render cho quyền "All" / "AdminIT"; server vẫn kiểm quyền lại lần nữa.
 (function () {
     'use strict';
 
