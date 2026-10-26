@@ -121,7 +121,7 @@ namespace E_Form_Best.Areas.ITForm.Services
                     if (m.Success) wlan[m.Groups[1].Value] = (m.Groups[2].Value, m.Groups[3].Value.Trim());
                 }
                 ds.Add(new Wlc(muc["Ten"] ?? $"{(laAireOs ? "WLC AireOS" : "WLC 9800")} {ip}", ip!, laAireOs,
-                    muc["DeviceType"] ?? (laAireOs ? "cisco_wlc_ssh" : "cisco_xe"), wlan));
+                    muc["DeviceType"] ?? (laAireOs ? "cisco_aireos" : "cisco_xe"), wlan));
             }
             return ds;
         }
@@ -280,6 +280,35 @@ namespace E_Form_Best.Areas.ITForm.Services
             return new KetQuaWlc(wlc.Ten, wlc.Ip, false, false, DichLoi(loiLenh ?? ra.Message ?? ra.Error ?? "WLC không nhận lệnh."));
         }
 
+        /// <summary>
+        /// Gỡ MAC khỏi đúng 1 WLC (chọn theo IP trong cấu hình công ty, không nhận IP lạ từ client).
+        /// Tra trước: không có thì báo, không gửi lệnh xoá; gỡ xong tra lại để chắc WLC đã bỏ thật.
+        /// </summary>
+        public async Task<KetQuaWlc> GoMacAsync(string congTy, string ip, string mac, string taiKhoanAd, string matKhauAd, CancellationToken ct = default)
+        {
+            var wlc = DsWlc(congTy).FirstOrDefault(w => w.Ip == ip?.Trim());
+            if (wlc == null) return new KetQuaWlc(ip ?? "", ip ?? "", false, false, "WLC không thuộc cấu hình của công ty.");
+
+            var kiemTra = await KiemTraMotWlcAsync(wlc, mac, taiKhoanAd, matKhauAd, ct);
+            if (!kiemTra.ThanhCong) return new KetQuaWlc(wlc.Ten, wlc.Ip, false, false, kiemTra.ThongBao);
+            if (kiemTra.HienCo == null) return new KetQuaWlc(wlc.Ten, wlc.Ip, false, false, "MAC không có trên WLC này, không cần gỡ.");
+
+            var lenh = wlc.LaAireOs ? $"config macfilter delete {MacHaiCham(mac)}" : $"no username {mac}";
+            var (ra, loi) = await GuiAsync(wlc, lenh, true, taiKhoanAd, matKhauAd, ct);
+            if (ra == null) return new KetQuaWlc(wlc.Ten, wlc.Ip, false, true, loi!, kiemTra.HienCo);
+
+            var output = ra.Results?.FirstOrDefault()?.Output ?? "";
+            var loiAireOs = wlc.LaAireOs && Regex.IsMatch(output, @"Incorrect (usage|input)|^\s*Error|Invalid|does not exist", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+            if (!ra.Ok || loiAireOs)
+                return new KetQuaWlc(wlc.Ten, wlc.Ip, false, true,
+                    DichLoi(LoiLenh(ra) ?? (loiAireOs ? output.Trim() : null) ?? ra.Message ?? ra.Error ?? "WLC không nhận lệnh."), kiemTra.HienCo);
+
+            var sau = await KiemTraMotWlcAsync(wlc, mac, taiKhoanAd, matKhauAd, ct);
+            if (sau.ThanhCong && sau.HienCo != null)
+                return new KetQuaWlc(wlc.Ten, wlc.Ip, false, true, "Đã gửi lệnh gỡ nhưng WLC vẫn còn MAC — kiểm tra trực tiếp trên WLC.", sau.HienCo, lenh);
+            return new KetQuaWlc(wlc.Ten, wlc.Ip, true, false, "Đã gỡ và lưu cấu hình.", kiemTra.HienCo, lenh);
+        }
+
         private static string? LoiLenh(ExecRa ra) => ra.Results?.FirstOrDefault(r => !r.Ok)?.Error;
 
         private const string ThongBaoSaiMatKhau = "WLC từ chối đăng nhập SSH: sai mật khẩu domain";
@@ -298,11 +327,66 @@ namespace E_Form_Best.Areas.ITForm.Services
             return loi;
         }
 
+        /// <summary>Các công ty có khai WLC trong .env (khoá con của WlcExec trừ khoá chung).</summary>
+        public List<string> DsCongTyCoCauHinh()
+            => _configuration.GetSection("WlcExec").GetChildren().Select(x => x.Key)
+                .Where(k => k is not ("BaseUrl" or "ApiKey" or "Quet") && CoCauHinh(k))
+                .ToList();
+
+        /// <summary>
+        /// Toàn bộ MAC đang khai trên 1 WLC (1 phiên SSH): 9800 đọc các dòng "username {mac} mac ..." trong running-config,
+        /// AireOS đọc bảng "show macfilter summary". Lỗi trả (null, thông báo) — không được coi là danh sách rỗng.
+        /// </summary>
+        public async Task<(List<CauHinhMac>? Ds, string? Loi)> LayDsMacAsync(Wlc wlc, string taiKhoanAd, string matKhauAd, CancellationToken ct = default)
+        {
+            if (wlc.LaAireOs)
+            {
+                // Tắt phân trang trong phiên này, không thì bảng dài dừng ở "--More--" và MAC phía sau bị coi là đã mất
+                var (raA, loiA) = await GuiAsync(wlc, new[] { "config paging disable", "show macfilter summary" }, false, taiKhoanAd, matKhauAd, ct);
+                if (raA == null) return (null, loiA);
+                var kqA = raA.Results?.LastOrDefault();
+                if (!raA.Ok || kqA == null || !kqA.Ok)
+                    return (null, DichLoi(LoiLenh(raA) ?? raA.Message ?? raA.Error ?? "WLC không trả danh sách MAC."));
+                var outA = kqA.Output ?? "";
+                if (outA.Contains("--More--")) return (null, "Danh sách MAC trên WLC bị phân trang, chưa đọc hết.");
+                if (!outA.Contains("MAC Address", StringComparison.OrdinalIgnoreCase))
+                    return (null, "Không đọc được bảng MAC filter: " + (outA.Length > 200 ? outA[..200] : outA).Trim());
+                var dsA = Regex.Matches(outA, @"^\s*([0-9a-f]{2}(?::[0-9a-f]{2}){5})\s+(\d+)\s+\S+[ \t]*(.*?)\s*$", RegexOptions.IgnoreCase | RegexOptions.Multiline)
+                    .Select(m => new CauHinhMac(m.Groups[1].Value, null, "WLAN " + m.Groups[2].Value,
+                        string.IsNullOrWhiteSpace(m.Groups[3].Value) ? null : m.Groups[3].Value, m.Value.Trim()))
+                    .ToList();
+                return (dsA, null);
+            }
+
+            // Cùng lý do với tra 1 MAC: app có thể đang ở configure terminal (cần "do") hoặc exec mode (không "do")
+            var (ra, loi) = await GuiAsync(wlc, new[] { "do terminal length 0", "do show running-config | include ^username " }, false, taiKhoanAd, matKhauAd, ct);
+            if (ra != null && ra.Results?.Any(r => (r.Error ?? r.Output ?? "").Contains("Invalid input", StringComparison.OrdinalIgnoreCase)) == true)
+                (ra, loi) = await GuiAsync(wlc, new[] { "terminal length 0", "show running-config | include ^username " }, false, taiKhoanAd, matKhauAd, ct);
+            if (ra == null) return (null, loi);
+            var kq = ra.Results?.LastOrDefault();
+            if (!ra.Ok || kq == null || !kq.Ok)
+                return (null, DichLoi(LoiLenh(ra) ?? ra.Message ?? ra.Error ?? "WLC không trả danh sách MAC."));
+            var output = kq.Output ?? "";
+            if (output.Contains("--More--")) return (null, "Danh sách MAC trên WLC bị phân trang, chưa đọc hết.");
+            var ds = output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(d => Regex.IsMatch(d, @"^username\s+[0-9a-f]{12}\s+mac\b", RegexOptions.IgnoreCase))
+                .Select(CauHinhMac.TuDong)
+                .ToList();
+            return (ds, null);
+        }
+
+        public static bool LaLoiSaiMatKhau(string? loi) => loi != null && LaSaiMatKhau(loi);
+
         /// <summary>Gửi 1 lệnh qua app automation; lỗi kết nối/HTTP trả (null, thông báo).</summary>
-        private async Task<(ExecRa? Ra, string? Loi)> GuiAsync(Wlc wlc, string lenh, bool luu,
+        private Task<(ExecRa? Ra, string? Loi)> GuiAsync(Wlc wlc, string lenh, bool luu,
+            string taiKhoanAd, string matKhauAd, CancellationToken ct)
+            => GuiAsync(wlc, new[] { lenh }, luu, taiKhoanAd, matKhauAd, ct);
+
+        /// <summary>Gửi nhiều lệnh trong cùng 1 phiên SSH; lỗi kết nối/HTTP trả (null, thông báo).</summary>
+        private async Task<(ExecRa? Ra, string? Loi)> GuiAsync(Wlc wlc, string[] dsLenh, bool luu,
             string taiKhoanAd, string matKhauAd, CancellationToken ct)
         {
-            var vao = new ExecVao(wlc.Ip, taiKhoanAd, matKhauAd, wlc.DeviceType, new[] { lenh }, luu);
+            var vao = new ExecVao(wlc.Ip, taiKhoanAd, matKhauAd, wlc.DeviceType, dsLenh, luu);
 
             // BaseUrl có thể nhiều máy "url1;url2": máy đầu không kết nối được mới thử máy sau.
             // Timeout thì dừng luôn — lệnh có thể đã tới WLC, gửi tiếp máy khác dễ chạy 2 lần.

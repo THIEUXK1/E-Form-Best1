@@ -1346,7 +1346,7 @@
 
 @if (Model?.ItDangKiSuDungWifi3s?.Any() == true && E_Form_Best.Areas.ITForm.Controllers.WifiMacController.CoQuyen(User) && WlcMac.CoCauHinh(Model.TenCongTy))
 {
-    <div id="modalThemMacWlc" class="them-mac-wlc-nen" hidden data-id-form="@Model.Id">
+    <div id="modalThemMacWlc" class="them-mac-wlc-nen" hidden data-id-form="@Model.Id" data-la-all="@(User.IsInRole("All") ? "1" : "0")">
         <form id="formThemMacWlc" class="them-mac-wlc-hop" autocomplete="off">
             <h3>➕ Thêm MAC lên WLC (@Model.TenCongTy)</h3>
             <div class="them-mac-wlc-ds">Thêm lần lượt vào: @string.Join(" · ", WlcMac.DsWlc(Model.TenCongTy).Select(w => w.Ten))</div>
@@ -1379,6 +1379,6 @@
             </div>
         </form>
     </div>
-    <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261024b" />
-    <script src="~/js/formit-them-mac-wlc.js?v=20261024b"></script>
+    <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261026d" />
+    <script src="~/js/formit-them-mac-wlc.js?v=20261026d"></script>
 }

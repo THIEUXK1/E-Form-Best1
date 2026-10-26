@@ -140,6 +140,9 @@ builder.Services.AddSingleton<AccessPointControllerService>();
 // Thêm MAC Wi-Fi lên WLC qua app automation (SSH + write memory có thể mất vài chục giây)
 builder.Services.AddHttpClient(WlcMacService.TenHttpClient, client => client.Timeout = TimeSpan.FromSeconds(90));
 builder.Services.AddScoped<WlcMacService>();
+// Quét danh sách MAC trên WLC (KK_WlcMac) để nút thêm MAC ở đơn Wi-Fi đánh dấu sẵn. Cần WlcExec__Quet__TaiKhoan/MatKhau
+builder.Services.AddScoped<WlcMacQuetService>();
+builder.Services.AddHostedService<WlcMacQuetWorker>();
 builder.Services.AddHostedService<AccessPointPingWorker>();
 
 // Quản lý Switch (/QLSwitch): cùng khuôn AP, chỉ ping. Tắt job bằng Switch__GhiLichSu=false

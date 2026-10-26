@@ -17,11 +17,58 @@ namespace E_Form_Best.Areas.ITForm.Controllers
     {
         private readonly ITFormContext _context;
         private readonly WlcMacService _wlc;
+        private readonly WlcMacQuetService _quet;
 
-        public WifiMacController(ITFormContext context, WlcMacService wlc)
+        public WifiMacController(ITFormContext context, WlcMacService wlc, WlcMacQuetService quet)
         {
             _context = context;
             _wlc = wlc;
+            _quet = quet;
+        }
+
+        /// <summary>
+        /// Trạng thái MAC từng dòng thiết bị của đơn trên từng WLC, theo bản chụp do job quét / thao tác trước ghi lại,
+        /// để trang chi tiết đánh dấu sẵn nút "+" mà không cần mật khẩu domain.
+        /// </summary>
+        [HttpGet("/FormIT/TrangThaiMacWifi/{idFormIt:int}")]
+        public async Task<IActionResult> TrangThaiMac(int idFormIt)
+        {
+            if (!CoQuyen(User)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem MAC trên WLC." });
+            try
+            {
+                var dsCt = await _context.ItDangKiSuDungWifi3s
+                    .Where(x => x.IdFormIt == idFormIt)
+                    .Select(x => new { x.Id, x.MacTb, x.IdFormItNavigation!.TenCongTy })
+                    .ToListAsync();
+                var congTy = dsCt.FirstOrDefault()?.TenCongTy?.Trim() ?? "";
+                if (dsCt.Count == 0 || !_wlc.CoCauHinh(congTy)) return Json(new { thanhCong = true, duLieu = Array.Empty<object>() });
+
+                var dong = dsCt.SelectMany(ct => (ct.MacTb ?? "").Split('|', StringSplitOptions.RemoveEmptyEntries)
+                        .Select((m, i) => new { idChiTiet = ct.Id, viTri = i, mac = WlcMacService.ChuanHoaMac(m) }))
+                    .Where(x => x.mac != null).ToList();
+                var trangThai = await _quet.TrangThaiAsync(congTy, dong.Select(x => x.mac!));
+                return Json(new
+                {
+                    thanhCong = true,
+                    duLieu = dong.Select(x => new { x.idChiTiet, x.viTri, wlc = trangThai[x.mac!] })
+                });
+            }
+            catch (Exception ex)
+            {
+                // Bảng KK_WlcMac chưa tạo / mất DB: nút vẫn dùng tay được, chỉ không đánh dấu sẵn
+                return Json(new { thanhCong = false, thongBao = "Chưa đọc được bản quét MAC trên WLC: " + ex.Message });
+            }
+        }
+
+        /// <summary>Ghi ngay kết quả tra/thêm vào bản chụp. Tra cứu: ThanhCong = "chưa có"; thêm: ThanhCong = vừa thêm.</summary>
+        private async Task GhiNhanAsync(string mac, List<WlcMacService.KetQuaWlc> ds, bool laTraCuu, WlcMacService.HoSoWlan? hoSo = null, string? moTa = null)
+        {
+            foreach (var k in ds)
+            {
+                if (k.DaTonTai) await _quet.GhiNhanAsync(k.Ip, mac, true, k.HienCo?.WlanProfile, k.HienCo?.AaaList, k.HienCo?.MoTa);
+                else if (k.ThanhCong && laTraCuu) await _quet.GhiNhanAsync(k.Ip, mac, false);
+                else if (k.ThanhCong) await _quet.GhiNhanAsync(k.Ip, mac, true, hoSo?.WlanProfile, hoSo?.AaaList, moTa);
+            }
         }
 
         public static bool CoQuyen(ClaimsPrincipal user) => user.IsInRole("AdminIT") || user.IsInRole("All");
@@ -35,6 +82,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             public string? MoTa { get; set; }
             public string? TaiKhoan { get; set; }
             public string? MatKhau { get; set; }
+            /// <summary>Chỉ dùng khi gỡ: IP WLC cần gỡ, server đối chiếu với cấu hình công ty.</summary>
+            public string? IpWlc { get; set; }
         }
 
         /// <summary>Kiểm quyền + lấy MAC của dòng thiết bị trong đơn. Lỗi trả thông báo, đúng trả công ty/MAC/tài khoản SSH.</summary>
@@ -72,6 +121,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (loi != null) return Json(new { thanhCong = false, thongBao = loi });
 
             var ds = await _wlc.KiemTraMacAsync(congTy, mac, taiKhoan, vao!.MatKhau!, HttpContext.RequestAborted);
+            await GhiNhanAsync(mac, ds, true);
             return TraKetQua(mac, ds);
         }
 
@@ -112,8 +162,35 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 });
             }
             if (ds.Any(k => k.XongViec)) await _context.SaveChangesAsync();
+            await GhiNhanAsync(mac, ds, false, hoSo, moTa);
 
             return TraKetQua(mac, ds);
+        }
+
+        [HttpPost("/FormIT/GoMacWifi")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> GoMac([FromBody] ThemMacVao? vao)
+        {
+            var (loi, congTy, mac, taiKhoan) = await LayThietBiAsync(vao);
+            if (loi != null) return Json(new { thanhCong = false, thongBao = loi });
+
+            var k = await _wlc.GoMacAsync(congTy, vao!.IpWlc ?? "", mac, taiKhoan, vao.MatKhau!, HttpContext.RequestAborted);
+            if (k.Lenh != null)
+            {
+                // Có gửi lệnh xoá thì ghi lịch sử, kể cả khi tra lại thấy WLC vẫn còn MAC
+                var nguoiLam = $"{User.FindFirst(ClaimTypes.Name)?.Value} ({User.FindFirst("MaNv")?.Value}), SSH bằng {taiKhoan}";
+                _context.LichSuFormIts.Add(new LichSuFormIt
+                {
+                    IdFormIt = vao.IdFormIt,
+                    TieuDe = k.ThanhCong ? "Gỡ MAC khỏi WLC" : "Gỡ MAC khỏi WLC (chưa xác nhận)",
+                    Mota = $"{nguoiLam} — {k.Wlc}: {k.Lenh} (trước đó: {k.HienCo?.Dong})",
+                    Time = DateTime.Now
+                });
+                await _context.SaveChangesAsync();
+            }
+            if (k.ThanhCong) await _quet.GhiNhanAsync(k.Ip, mac, false);
+            else if (k.DaTonTai) await _quet.GhiNhanAsync(k.Ip, mac, true, k.HienCo?.WlanProfile, k.HienCo?.AaaList, k.HienCo?.MoTa);
+            return Json(new { thanhCong = k.ThanhCong, thongBao = $"{k.Wlc}: {k.ThongBao}", duLieu = new { mac, ketQua = k } });
         }
     }
 }
