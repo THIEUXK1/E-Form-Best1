@@ -65,7 +65,7 @@ namespace E_Form_Best.Areas.ITForm.Services
                     $"macfilter {mac} wlan {wlan} interface {iface} description {moTa}");
             }
 
-            private static string? NullNeuRong(string s) => string.IsNullOrWhiteSpace(s) ? null : s;
+            internal static string? NullNeuRong(string s) => string.IsNullOrWhiteSpace(s) ? null : s;
         }
 
         private readonly IHttpClientFactory _httpFactory;
@@ -335,26 +335,33 @@ namespace E_Form_Best.Areas.ITForm.Services
 
         /// <summary>
         /// Toàn bộ MAC đang khai trên 1 WLC (1 phiên SSH): 9800 đọc các dòng "username {mac} mac ..." trong running-config,
-        /// AireOS đọc bảng "show macfilter summary". Lỗi trả (null, thông báo) — không được coi là danh sách rỗng.
+        /// AireOS đọc các dòng "macfilter add ..." trong "show run-config commands". Lỗi trả (null, thông báo) — không được coi là danh sách rỗng.
         /// </summary>
         public async Task<(List<CauHinhMac>? Ds, string? Loi)> LayDsMacAsync(Wlc wlc, string taiKhoanAd, string matKhauAd, CancellationToken ct = default)
         {
             if (wlc.LaAireOs)
             {
-                // Tắt phân trang trong phiên này, không thì bảng dài dừng ở "--More--" và MAC phía sau bị coi là đã mất
-                var (raA, loiA) = await GuiAsync(wlc, new[] { "config paging disable", "show macfilter summary" }, false, taiKhoanAd, matKhauAd, ct);
+                // Không dùng "show macfilter summary": dù đã "config paging disable", bảng vẫn hỏi "Would you like to display more
+                // entries? (y/n)" sau ~512 dòng và app automation tự thoát câu hỏi -> chỉ có trang đầu (đo 26/10/2026: 512/1360 MAC
+                // trên WLC5508 10.0.62.254). run-config commands trả đủ một lần, mỗi MAC một dòng:
+                //   macfilter add 00:2b:70:32:e1:df 5 dyn interface wifi staff "NguyenVanBa_V180960"
+                var (raA, loiA) = await GuiAsync(wlc, new[] { "config paging disable", "show run-config commands" }, false, taiKhoanAd, matKhauAd, ct);
                 if (raA == null) return (null, loiA);
                 var kqA = raA.Results?.LastOrDefault();
                 if (!raA.Ok || kqA == null || !kqA.Ok)
                     return (null, DichLoi(LoiLenh(raA) ?? raA.Message ?? raA.Error ?? "WLC không trả danh sách MAC."));
                 var outA = kqA.Output ?? "";
-                if (outA.Contains("--More--")) return (null, "Danh sách MAC trên WLC bị phân trang, chưa đọc hết.");
-                if (!outA.Contains("MAC Address", StringComparison.OrdinalIgnoreCase))
-                    return (null, "Không đọc được bảng MAC filter: " + (outA.Length > 200 ? outA[..200] : outA).Trim());
-                var dsA = Regex.Matches(outA, @"^\s*([0-9a-f]{2}(?::[0-9a-f]{2}){5})\s+(\d+)\s+\S+[ \t]*(.*?)\s*$", RegexOptions.IgnoreCase | RegexOptions.Multiline)
-                    .Select(m => new CauHinhMac(m.Groups[1].Value, null, "WLAN " + m.Groups[2].Value,
-                        string.IsNullOrWhiteSpace(m.Groups[3].Value) ? null : m.Groups[3].Value, m.Value.Trim()))
+                // Thiếu trang thì báo lỗi chứ không nhận danh sách thiếu — không thì MAC phía sau bị đánh dấu là đã mất
+                if (outA.Contains("--More--") || outA.Contains("display more entries", StringComparison.OrdinalIgnoreCase))
+                    return (null, "Danh sách MAC trên WLC bị phân trang, chưa đọc hết.");
+                var dsA = Regex.Matches(outA, @"^\s*macfilter add ([0-9a-f]{2}(?::[0-9a-f]{2}){5}) (\d+) (.+?)(?: ""(.*)"")?\s*$",
+                        RegexOptions.IgnoreCase | RegexOptions.Multiline)
+                    .Select(m => new CauHinhMac(m.Groups[1].Value, CauHinhMac.NullNeuRong(m.Groups[3].Value), "WLAN " + m.Groups[2].Value,
+                        CauHinhMac.NullNeuRong(m.Groups[4].Value), m.Value.Trim()))
                     .ToList();
+                // Cấu hình AireOS luôn có các dòng "macfilter ..." khác (radius-compat, mac-delimiter); không thấy dòng nào là output hỏng
+                if (dsA.Count == 0 && !outA.Contains("macfilter", StringComparison.OrdinalIgnoreCase))
+                    return (null, "Không đọc được cấu hình MAC filter: " + (outA.Length > 200 ? outA[..200] : outA).Trim());
                 return (dsA, null);
             }
 
