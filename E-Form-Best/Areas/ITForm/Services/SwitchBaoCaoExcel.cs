@@ -122,12 +122,12 @@ namespace E_Form_Best.Areas.ITForm.Services
                                Math.Round(giay / 3600.0, 1), Math.Round(giayTruoc / 3600.0, 1), tyLe / 100, tyLeTruoc / 100,
                                tyLe != null && tyLeTruoc != null ? Math.Round(tyLe.Value - tyLeTruoc.Value, 2) : null };
 
-        // ---------------- Dựng trang ----------------
+        // ---------------- Dựng trang (internal: ServerBaoCaoExcel dùng chung) ----------------
 
-        private static string PhuDe(string noiDung, string? nguoiLap)
+        internal static string PhuDe(string noiDung, string? nguoiLap)
             => noiDung + (string.IsNullOrWhiteSpace(nguoiLap) ? "" : "   ·   Người lập: " + nguoiLap);
 
-        private static IXLWorksheet TrangMoi(XLWorkbook wb, string ten, int[] doRong)
+        internal static IXLWorksheet TrangMoi(XLWorkbook wb, string ten, int[] doRong)
         {
             var ws = wb.Worksheets.Add(ten);
             ws.ShowGridLines = false;
@@ -138,7 +138,7 @@ namespace E_Form_Best.Areas.ITForm.Services
         }
 
         /// <summary>Tiêu đề + phụ đề trải ngang soCot cột; trả về dòng kế tiếp.</summary>
-        private static int DauTrang(IXLWorksheet ws, string tieuDe, string phuDe, int soCot)
+        internal static int DauTrang(IXLWorksheet ws, string tieuDe, string phuDe, int soCot)
         {
             var o = ws.Range(1, 1, 1, soCot).Merge();
             o.Value = tieuDe;
@@ -152,7 +152,7 @@ namespace E_Form_Best.Areas.ITForm.Services
             return 4;
         }
 
-        private static int TieuDeMuc(IXLWorksheet ws, int r, string ten, int soCot)
+        internal static int TieuDeMuc(IXLWorksheet ws, int r, string ten, int soCot)
         {
             var o = ws.Range(r, 1, r, soCot).Merge();
             o.Value = ten;
@@ -162,7 +162,7 @@ namespace E_Form_Best.Areas.ITForm.Services
         }
 
         /// <summary>Bảng có dòng tiêu đề đậm, sọc xen kẽ, viền nhạt; trả về dòng ngay dưới bảng.</summary>
-        private static int Bang(IXLWorksheet ws, int r, string[] cot, List<object?[]> dong, string?[] dinhDang, bool locDuoc = false)
+        internal static int Bang(IXLWorksheet ws, int r, string[] cot, List<object?[]> dong, string?[] dinhDang, bool locDuoc = false)
         {
             var dauBang = r;
             for (var c = 0; c < cot.Length; c++)
@@ -217,7 +217,7 @@ namespace E_Form_Best.Areas.ITForm.Services
             }
         }
 
-        private static int GhiChu(IXLWorksheet ws, int r, string noiDung, XLColor mau)
+        internal static int GhiChu(IXLWorksheet ws, int r, string noiDung, XLColor mau)
         {
             ws.Cell(r, 1).Value = noiDung;
             ws.Cell(r, 1).Style.Font.SetFontColor(mau).Font.SetFontSize(9);
@@ -225,7 +225,7 @@ namespace E_Form_Best.Areas.ITForm.Services
         }
 
         /// <summary>A4 ngang, vừa 1 trang ngang, lặp dòng tiêu đề bảng (dongLap) khi in nhiều trang.</summary>
-        private static void ThietLapIn(IXLWorksheet ws, int? dongLap)
+        internal static void ThietLapIn(IXLWorksheet ws, int? dongLap)
         {
             ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
             ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
@@ -234,7 +234,7 @@ namespace E_Form_Best.Areas.ITForm.Services
             if (dongLap != null) ws.PageSetup.SetRowsToRepeatAtTop(dongLap.Value, dongLap.Value);
         }
 
-        private static byte[] Luu(XLWorkbook wb)
+        internal static byte[] Luu(XLWorkbook wb)
         {
             using var ms = new MemoryStream();
             wb.SaveAs(ms);

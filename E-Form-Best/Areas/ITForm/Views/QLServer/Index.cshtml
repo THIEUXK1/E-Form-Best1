@@ -18,7 +18,7 @@
 <link rel="stylesheet" href="/css/ccdc-quanly.css?v=20260825e">
 <link rel="stylesheet" href="/css/fixed-page-layout.css?v=5">
 <link rel="stylesheet" href="/css/camera-quanly.css?v=20261016a">
-<link rel="stylesheet" href="/css/server-quanly.css?v=20261015b">
+<link rel="stylesheet" href="/css/server-quanly.css?v=20261024a">
 
 <div class="content-header pt-0 pb-0" style="margin-top: -25px;">
     <div class="container-fluid">
@@ -38,6 +38,11 @@
                     </button>
                 </li>
             </ul>
+
+            @* Báo cáo định kỳ riêng công ty này: dùng chung trang Tổng quan, lọc 1 công ty (cùng QLSwitch) *@
+            <a class="btn btn-sm btn-primary ms-auto" href="/QLServer/TongQuan?congTy=@congTy" title="Báo cáo định kỳ server & lưu trữ @congTy: in / xuất Excel">
+                <i class="fas fa-file-lines me-1"></i> Báo cáo
+            </a>
         </div>
     </div>
 </div>
@@ -56,6 +61,46 @@
 
                     @* ================= TAB DANH SÁCH (KK_Server) ================= *@
                     <div class="tab-pane fade show active" id="paneDanhSach" role="tabpanel">
+                        @* Ô số liệu: bấm Online / Mất kết nối để lọc bảng theo kết nối *@
+                        <div class="cam-tiles mb-2">
+                            <div class="cam-tile cam-tile-loc" data-loc="" title="Bấm để xem tất cả thiết bị"><div class="cam-tile-nhan">Tổng thiết bị</div><div class="cam-tile-so" id="svTong">–</div></div>
+                            <div class="cam-tile cam-tile-up cam-tile-loc" data-loc="online" title="Bấm để chỉ xem thiết bị đang online"><div class="cam-tile-nhan">Online</div><div class="cam-tile-so" id="tongOnline">–</div></div>
+                            <div class="cam-tile cam-tile-down cam-tile-loc" data-loc="offline" title="Bấm để chỉ xem thiết bị mất kết nối"><div class="cam-tile-nhan">Mất kết nối</div><div class="cam-tile-so" id="tongOffline">–</div></div>
+                            <div class="cam-tile"><div class="cam-tile-nhan">Kiểm tra gần nhất</div><div class="cam-tile-so cam-tile-so-nho" id="svLanCuoi">–</div><div class="cam-tile-phu" id="kiemTraGanNhat"></div></div>
+                        </div>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-lg-7">
+                                <div class="cam-khung">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="fw-bold small text-muted"><i class="fas fa-chart-line me-1"></i> Xu hướng online / mất kết nối</span>
+                                        <select id="svKhoangXuHuong" class="form-select form-select-sm w-auto ms-auto">
+                                            <option value="6">6 giờ gần nhất</option>
+                                            <option value="24" selected>24 giờ</option>
+                                            <option value="72">3 ngày</option>
+                                            <option value="168">7 ngày</option>
+                                        </select>
+                                    </div>
+                                    <div class="cam-bieu-do"><canvas id="svBieuDo"></canvas></div>
+                                </div>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="cam-khung">
+                                    <div class="fw-bold small text-muted mb-1"><i class="fas fa-layer-group me-1"></i> Nhóm theo loại (bấm để lọc thiết bị)</div>
+                                    <div class="cam-bang-nvr">
+                                        <table class="table table-sm table-hover align-middle mb-0 small">
+                                            <thead>
+                                                <tr><th>Loại</th><th class="text-end">Số</th><th class="text-end">Online</th><th class="text-end">Mất KN</th></tr>
+                                            </thead>
+                                            <tbody id="svNhomBody">
+                                                <tr><td colspan="4" class="text-center text-muted py-3">Đang tải...</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                             @* Nhóm: Server (server + máy ảo) / Lưu trữ (NAS + SAN) *@
                             <div class="btn-group btn-group-sm" role="group" aria-label="Nhóm thiết bị">
@@ -96,12 +141,6 @@
                                 <option value="online">Đang online</option>
                                 <option value="offline">Mất kết nối</option>
                             </select>
-
-                            <span class="small text-muted fw-bold ms-1">
-                                <span class="text-success">Online: <span id="tongOnline">0</span></span> ·
-                                <span class="text-danger">Mất KN: <span id="tongOffline">0</span></span>
-                            </span>
-                            <span class="small text-muted" id="kiemTraGanNhat"></span>
 
                             <span class="flex-grow-1"></span>
 
@@ -473,6 +512,8 @@
 
 @* Phải nằm trong section Scripts: layout nạp jQuery ở cuối trang *@
 @section Scripts {
+    @* Cùng Chart.js với trang AP / camera (dùng lại cache trình duyệt); CDN lỗi thì chỉ mất biểu đồ *@
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/fixed-page-layout.js?v=5" defer></script>
-    <script src="/js/server-quanly.js?v=20261021"></script>
+    <script src="/js/server-quanly.js?v=20261026a"></script>
 }

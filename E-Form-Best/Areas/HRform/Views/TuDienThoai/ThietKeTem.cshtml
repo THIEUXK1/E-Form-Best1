@@ -1,0 +1,418 @@
+@{
+    ViewData["Title"] = "Thiết kế tem tủ điện thoại";
+    Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
+}
+
+@* Khoá cuộn toàn trang như các trang HR khác: chỉ vùng vẽ / các bảng bên trong được cuộn *@
+<link rel="stylesheet" href="~/css/fixed-page-layout.css" />
+<link rel="stylesheet" href="~/css/tem-thiet-ke.css?v=8" />
+
+@* Bố cục theo app desktop TemNhan: menu · thanh nút lớn · bảng trái (máy in, khổ nhãn…) · trang + thước + vùng vẽ · bảng thuộc tính.
+   Mọi nút mang data-lenh, tem-thiet-ke.js xử lý bằng delegation. *@
+<div class="tk-trang" id="tkTrang" data-fp-scroll>
+
+    <nav class="tk-menu" id="tkMenu" aria-label="Menu thiết kế tem">
+        <div class="tk-menu-muc">
+            <button type="button" class="tk-menu-nut" data-menu>Tệp</button>
+            <div class="tk-menu-ds" role="menu">
+                <button type="button" data-lenh="moi" role="menuitem"><span>Mới</span></button>
+                <button type="button" data-lenh="mo" role="menuitem"><span>Mở…</span><kbd>Ctrl+O</kbd></button>
+                <div class="tk-menu-con">
+                    <button type="button" role="menuitem" aria-haspopup="true"><span>Mở gần đây</span><i class="fa fa-caret-right"></i></button>
+                    <div class="tk-menu-ds" id="tkGanDay" role="menu"></div>
+                </div>
+                <hr />
+                <button type="button" data-lenh="luu" role="menuitem"><span>Lưu</span><kbd>Ctrl+S</kbd></button>
+                <button type="button" data-lenh="luuThanh" role="menuitem"><span>Lưu thành…</span></button>
+                <button type="button" data-lenh="xoaMau" role="menuitem"><span>Xoá mẫu này</span></button>
+                <hr />
+                <button type="button" data-lenh="nhap" role="menuitem"><span>Nhập file .tnl…</span></button>
+                <div class="tk-menu-con">
+                    <button type="button" role="menuitem" aria-haspopup="true"><span>Xuất</span><i class="fa fa-caret-right"></i></button>
+                    <div class="tk-menu-ds" role="menu">
+                        <button type="button" data-lenh="xuatPng" role="menuitem"><span>Ảnh PNG (nhãn đang xem)…</span></button>
+                        <button type="button" data-lenh="xuatPdf" role="menuitem"><span>PDF…</span></button>
+                        <button type="button" data-lenh="xuat" role="menuitem"><span>File .tnl (mở bằng app TemNhan)…</span></button>
+                    </div>
+                </div>
+                <hr />
+                <button type="button" data-lenh="in" role="menuitem"><span>In…</span><kbd>Ctrl+P</kbd></button>
+                <hr />
+                <a href="/FormHR/QuanLyTuDienThoai" role="menuitem"><span>Thoát (về danh sách tủ)</span></a>
+            </div>
+        </div>
+        <div class="tk-menu-muc">
+            <button type="button" class="tk-menu-nut" data-menu>Sửa</button>
+            <div class="tk-menu-ds" role="menu">
+                <button type="button" data-lenh="hoanTac" role="menuitem"><span>Hoàn tác</span><kbd>Ctrl+Z</kbd></button>
+                <button type="button" data-lenh="lamLai" role="menuitem"><span>Làm lại</span><kbd>Ctrl+Y</kbd></button>
+                <hr />
+                <button type="button" data-lenh="cat" data-can-chon role="menuitem"><span>Cắt</span><kbd>Ctrl+X</kbd></button>
+                <button type="button" data-lenh="chep" data-can-chon role="menuitem"><span>Sao chép</span><kbd>Ctrl+C</kbd></button>
+                <button type="button" data-lenh="dan" role="menuitem"><span>Dán</span><kbd>Ctrl+V</kbd></button>
+                <button type="button" data-lenh="nhanBan" data-can-chon role="menuitem"><span>Nhân bản</span><kbd>Ctrl+D</kbd></button>
+                <button type="button" data-lenh="xoa" data-can-chon role="menuitem"><span>Xoá</span><kbd>Del</kbd></button>
+                <button type="button" data-lenh="chonHet" role="menuitem"><span>Chọn tất cả</span><kbd>Ctrl+A</kbd></button>
+                <hr />
+                <button type="button" data-lenh="doiTenTrang" role="menuitem"><span>Đổi tên trang…</span></button>
+                <button type="button" data-lenh="nhanBanTrang" role="menuitem"><span>Nhân bản trang</span></button>
+                <button type="button" data-lenh="xoaTrang" role="menuitem"><span>Xoá trang</span></button>
+            </div>
+        </div>
+        <div class="tk-menu-muc">
+            <button type="button" class="tk-menu-nut" data-menu>Xem</button>
+            <div class="tk-menu-ds" role="menu">
+                <button type="button" data-lenh="zoom" data-muc="+" role="menuitem"><span>Phóng to</span><kbd>Ctrl+lăn chuột</kbd></button>
+                <button type="button" data-lenh="zoom" data-muc="-" role="menuitem"><span>Thu nhỏ</span></button>
+                <button type="button" data-lenh="zoom" data-muc="100" role="menuitem"><span>100%</span></button>
+                <button type="button" data-lenh="zoom" data-muc="vua" role="menuitem"><span>Vừa màn hình</span></button>
+                <hr />
+                <button type="button" data-lenh="batLuoi" role="menuitemcheckbox"><span>Bắt lưới 0,5 mm</span><i class="fa fa-check tk-dau"></i></button>
+                <button type="button" data-lenh="banTrai" role="menuitemcheckbox"><span>Bảng bên trái</span><i class="fa fa-check tk-dau"></i></button>
+                <button type="button" data-lenh="banPhai" role="menuitemcheckbox"><span>Bảng thuộc tính</span><i class="fa fa-check tk-dau"></i></button>
+            </div>
+        </div>
+        <div class="tk-menu-muc">
+            <button type="button" class="tk-menu-nut" data-menu>Chèn</button>
+            <div class="tk-menu-ds" role="menu">
+                <button type="button" data-lenh="chen" data-loai="text" role="menuitem"><span>Chữ</span></button>
+                <button type="button" data-lenh="chen" data-loai="frame" role="menuitem"><span>Khung</span></button>
+                <button type="button" data-lenh="chen" data-loai="line" role="menuitem"><span>Đường kẻ</span></button>
+                <button type="button" data-lenh="chen" data-loai="image" role="menuitem"><span>Ảnh / logo…</span></button>
+                <button type="button" data-lenh="chen" data-loai="barcode" role="menuitem"><span>Mã vạch</span></button>
+                <button type="button" data-lenh="chen" data-loai="qr" role="menuitem"><span>Mã QR</span></button>
+                <button type="button" data-lenh="chen" data-loai="ngay" role="menuitem"><span>Ngày giờ</span></button>
+                <button type="button" data-lenh="chen" data-loai="so" role="menuitem"><span>Số tự tăng</span></button>
+                <hr />
+                <button type="button" data-lenh="themTrang" role="menuitem"><span>Trang mới</span></button>
+            </div>
+        </div>
+        <div class="tk-menu-muc">
+            <button type="button" class="tk-menu-nut" data-menu>Bố cục</button>
+            <div class="tk-menu-ds" role="menu">
+                <button type="button" data-lenh="nhom" data-can-chon role="menuitem"><span>Nhóm</span><kbd>Ctrl+G</kbd></button>
+                <button type="button" data-lenh="boNhom" data-can-chon role="menuitem"><span>Bỏ nhóm</span><kbd>Ctrl+Shift+G</kbd></button>
+                <hr />
+                <div class="tk-menu-con">
+                    <button type="button" role="menuitem" aria-haspopup="true"><span>Thứ tự</span><i class="fa fa-caret-right"></i></button>
+                    <div class="tk-menu-ds" role="menu">
+                        <button type="button" data-lenh="lop" data-buoc="tren" data-can-chon role="menuitem"><span>Lên trên cùng</span></button>
+                        <button type="button" data-lenh="lop" data-buoc="len" data-can-chon role="menuitem"><span>Lên một lớp</span></button>
+                        <button type="button" data-lenh="lop" data-buoc="xuong" data-can-chon role="menuitem"><span>Xuống một lớp</span></button>
+                        <button type="button" data-lenh="lop" data-buoc="duoi" data-can-chon role="menuitem"><span>Xuống dưới cùng</span></button>
+                    </div>
+                </div>
+                <div class="tk-menu-con">
+                    <button type="button" role="menuitem" aria-haspopup="true"><span>Căn chỉnh</span><i class="fa fa-caret-right"></i></button>
+                    <div class="tk-menu-ds" role="menu">
+                        <button type="button" data-lenh="can" data-huong="trai" data-can-chon role="menuitem"><span>Trái</span></button>
+                        <button type="button" data-lenh="can" data-huong="giuaNgang" data-can-chon role="menuitem"><span>Giữa (ngang)</span></button>
+                        <button type="button" data-lenh="can" data-huong="phai" data-can-chon role="menuitem"><span>Phải</span></button>
+                        <button type="button" data-lenh="can" data-huong="tren" data-can-chon role="menuitem"><span>Trên</span></button>
+                        <button type="button" data-lenh="can" data-huong="giuaDoc" data-can-chon role="menuitem"><span>Giữa (dọc)</span></button>
+                        <button type="button" data-lenh="can" data-huong="duoi" data-can-chon role="menuitem"><span>Dưới</span></button>
+                        <hr />
+                        <button type="button" data-lenh="phanBo" data-truc="ngang" data-can-chon role="menuitem"><span>Phân bố đều theo chiều ngang</span></button>
+                        <button type="button" data-lenh="phanBo" data-truc="doc" data-can-chon role="menuitem"><span>Phân bố đều theo chiều dọc</span></button>
+                    </div>
+                </div>
+                <button type="button" data-lenh="vuaVungIn" data-can-chon role="menuitem"><span>Vừa vùng in</span></button>
+                <hr />
+                <button type="button" data-lenh="xoay" data-goc="-90" data-can-chon role="menuitem"><span>Xoay 90° trái</span></button>
+                <button type="button" data-lenh="xoay" data-goc="90" data-can-chon role="menuitem"><span>Xoay 90° phải</span></button>
+                <div class="tk-menu-con">
+                    <button type="button" role="menuitem" aria-haspopup="true"><span>Đổi cỡ</span><i class="fa fa-caret-right"></i></button>
+                    <div class="tk-menu-ds" role="menu">
+                        <button type="button" data-lenh="doiCo" data-kieu="to" data-can-chon role="menuitem"><span>To hơn</span></button>
+                        <button type="button" data-lenh="doiCo" data-kieu="nho" data-can-chon role="menuitem"><span>Nhỏ hơn</span></button>
+                        <button type="button" data-lenh="doiCo" data-kieu="toiDa" data-can-chon role="menuitem"><span>Tối đa</span></button>
+                        <button type="button" data-lenh="doiCo" data-kieu="toiDaTiLe" data-can-chon role="menuitem"><span>Tối đa, giữ tỉ lệ</span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="tk-menu-muc">
+            <button type="button" class="tk-menu-nut" data-menu>Dữ liệu</button>
+            <div class="tk-menu-ds" role="menu">
+                <button type="button" data-lenh="banDuLieu" role="menuitem"><span>Dữ liệu tủ điện thoại…</span></button>
+                <button type="button" data-lenh="xemDuLieu" role="menuitemcheckbox"><span>Hiện dữ liệu thật trên nhãn</span><i class="fa fa-check tk-dau"></i></button>
+                <button type="button" data-lenh="taiLaiDuLieu" role="menuitem"><span>Tải lại</span></button>
+            </div>
+        </div>
+        <div class="tk-menu-muc">
+            <button type="button" class="tk-menu-nut" data-menu>Trợ giúp</button>
+            <div class="tk-menu-ds" role="menu">
+                <button type="button" data-lenh="phimTat" role="menuitem"><span>Phím tắt</span></button>
+                <button type="button" data-lenh="taiAgent" role="menuitem"><span>Tải bộ cài in tem (Tem in Agent)</span></button>
+                <button type="button" data-lenh="gioiThieu" role="menuitem"><span>Giới thiệu</span></button>
+            </div>
+        </div>
+        <span class="tk-ten-mau" id="tkTenMauHien" title="Mẫu đang mở">Mẫu mới (chưa lưu)</span>
+    </nav>
+
+    @* Thanh nút lớn như app: tệp · chèn · dữ liệu *@
+    <div class="tk-ribbon" role="toolbar" aria-label="Công cụ thiết kế tem">
+        <div class="tk-nhom-nut">
+            <button type="button" class="tk-nut-lon" data-lenh="moi" title="Mẫu mới"><i class="fa fa-file-o"></i><span>Mới</span></button>
+            <button type="button" class="tk-nut-lon" data-lenh="mo" title="Mở mẫu đã lưu (Ctrl+O)"><i class="fa fa-folder-open-o"></i><span>Mở</span></button>
+            <button type="button" class="tk-nut-lon" data-lenh="luu" title="Lưu (Ctrl+S)"><i class="fa fa-floppy-o"></i><span>Lưu</span></button>
+            <button type="button" class="tk-nut-lon" data-lenh="in" title="In (Ctrl+P)"><i class="fa fa-print"></i><span>In</span></button>
+            <button type="button" class="tk-nut-lon" data-lenh="hoanTac" title="Hoàn tác (Ctrl+Z)"><i class="fa fa-undo"></i><span>Hoàn tác</span></button>
+            <button type="button" class="tk-nut-lon" data-lenh="lamLai" title="Làm lại (Ctrl+Y)"><i class="fa fa-repeat"></i><span>Làm lại</span></button>
+            @* Chỉ hiện ở màn hẹp, nơi hai bảng là ngăn kéo *@
+            <button type="button" class="tk-nut-lon tk-chi-hep" data-lenh="banTrai" title="Máy in, khổ nhãn, lề, hướng…"><i class="fa fa-sliders"></i><span>Thiết lập</span></button>
+            <button type="button" class="tk-nut-lon tk-chi-hep" data-lenh="banPhai" title="Thuộc tính đối tượng"><i class="fa fa-list-alt"></i><span>Thuộc tính</span></button>
+        </div>
+        <div class="tk-nhom-nut tk-nhom-giua">
+            <button type="button" class="tk-nut-lon" data-lenh="chen" data-loai="text" title="Chữ"><i class="fa fa-font"></i><span>Chữ</span></button>
+            <button type="button" class="tk-nut-lon" data-lenh="chen" data-loai="frame" title="Khung"><i class="fa fa-square-o"></i><span>Khung</span></button>
+            <button type="button" class="tk-nut-lon" data-lenh="chen" data-loai="line" title="Đường kẻ"><i class="fa fa-arrows-h"></i><span>Đường kẻ</span></button>
+            <button type="button" class="tk-nut-lon" data-lenh="chen" data-loai="barcode" title="Mã vạch"><i class="fa fa-barcode"></i><span>Mã vạch</span></button>
+            <button type="button" class="tk-nut-lon" data-lenh="chen" data-loai="qr" title="Mã QR"><i class="fa fa-qrcode"></i><span>Mã QR</span></button>
+            <button type="button" class="tk-nut-lon" data-lenh="chen" data-loai="image" title="Ảnh / logo"><i class="fa fa-picture-o"></i><span>Ảnh</span></button>
+            <button type="button" class="tk-nut-lon" data-lenh="chen" data-loai="ngay" title="Ngày / giờ lấy lúc in"><i class="fa fa-clock-o"></i><span>Ngày giờ</span></button>
+            <button type="button" class="tk-nut-lon" data-lenh="chen" data-loai="so" title="Số tự tăng 001, 002… mỗi nhãn in ra"><i class="fa fa-hashtag"></i><span>Đánh số</span></button>
+        </div>
+        <div class="tk-nhom-nut tk-nhom-phai">
+            @* Tình trạng hỗ trợ in trên máy đang mở trang (Tem in Agent) — JS tự kiểm tra lại định kỳ *@
+            <button type="button" class="tk-agent tk-agent-cho" data-lenh="kiemAgent" id="tkTinhTrangAgent" title="Đang kiểm tra máy này đã cài hỗ trợ in tem (Tem in Agent) chưa" aria-live="polite">
+                <i class="fa fa-circle" aria-hidden="true"></i><span>Đang kiểm tra hỗ trợ in…</span>
+            </button>
+            <button type="button" class="tk-nut-lon tk-nut-tai" data-lenh="taiAgent" title="Tải bộ cài Tem in Agent (chọn máy in, khổ tem của driver, in thẳng)"><i class="fa fa-download"></i><span>Tải bộ cài</span></button>
+            <button type="button" class="tk-nut-lon" data-lenh="banDuLieu" title="Dữ liệu tủ điện thoại để trộn vào tem"><i class="fa fa-database"></i><span>Dữ liệu</span></button>
+        </div>
+    </div>
+
+    <div class="tk-giua">
+        @* Bảng trái: các mục thu gọn được như app *@
+        <aside class="tk-trai" id="tkTrai" aria-label="Thiết lập nhãn">
+            <div class="tk-trai-cuon">
+                <details class="tk-muc" data-muc="mau" open>
+                    <summary>Mẫu tem</summary>
+                    <label class="tk-dong-nhap tk-dong-doc"><span>Tên mẫu</span><input type="text" id="tkTenMau" class="form-control form-control-sm" maxlength="100" placeholder="Chưa đặt tên" /></label>
+                </details>
+
+                <details class="tk-muc" data-muc="mayIn" open>
+                    <summary>Máy in</summary>
+                    <select id="tkMayIn" class="form-select form-select-sm" aria-label="Máy in">
+                        <option value="">Hộp thoại in của trình duyệt</option>
+                    </select>
+                    <label class="tk-nhan-nho" for="tkKhoMay">Khổ tem của máy in</label>
+                    <select id="tkKhoMay" class="form-select form-select-sm" disabled>
+                        <option value="">-- Khổ tem của máy in --</option>
+                    </select>
+                    <div class="tk-may-in-hinh" aria-hidden="true"><span></span></div>
+                    <button type="button" class="btn btn-sm btn-light border w-100" data-lenh="kiemKhoGiay" title="Hỏi driver máy in xem có nhận đúng khổ nhãn hiện tại không">Kiểm tra khổ giấy</button>
+                    <p class="tk-goi-y" id="tkAgent">Đang tìm Tem in Agent…</p>
+                </details>
+
+                <details class="tk-muc" data-muc="kho" open>
+                    <summary>Khổ nhãn</summary>
+                    <label class="tk-dong-nhap"><span>Rộng</span><input type="number" id="tkRong" class="form-control form-control-sm" step="0.1" min="5" max="1000" /><em>mm</em></label>
+                    <label class="tk-dong-nhap"><span>Cao</span><input type="number" id="tkCao" class="form-control form-control-sm" step="0.1" min="5" max="1000" /><em>mm</em></label>
+                    <span class="tk-nhan-nho">Khổ có sẵn</span>
+                    <div class="tk-kho-san">
+                        <select id="tkKho" class="form-select form-select-sm" aria-label="Khổ có sẵn"></select>
+                        <button type="button" class="btn btn-sm btn-light border" data-lenh="themKho" title="Lưu khổ Rộng × Cao hiện tại vào danh sách"><i class="fa fa-plus"></i></button>
+                        <button type="button" class="btn btn-sm btn-light border" data-lenh="xoaKho" title="Xoá khổ đang chọn khỏi danh sách"><i class="fa fa-times"></i></button>
+                    </div>
+                    <button type="button" class="tk-lien-ket" data-lenh="khoMacDinh">Khôi phục danh sách mặc định</button>
+                </details>
+
+                <details class="tk-muc" data-muc="le" open>
+                    <summary>Lề và độ dài</summary>
+                    <label class="tk-dong-nhap"><span>Lề</span><input type="number" id="tkLe" class="form-control form-control-sm" step="0.5" min="0" max="50" /><em>mm</em></label>
+                    <label class="tk-check"><input type="checkbox" class="form-check-input" id="tkTuDai" /> Độ dài tự động</label>
+                </details>
+
+                <details class="tk-muc" data-muc="huong" open>
+                    <summary>Hướng</summary>
+                    <label class="tk-check"><input type="radio" class="form-check-input" name="tkHuong" value="ngang" /> Ngang (Landscape)</label>
+                    <label class="tk-check"><input type="radio" class="form-check-input" name="tkHuong" value="doc" /> Dọc (Portrait)</label>
+                </details>
+
+                <details class="tk-muc" data-muc="mauGiay" open>
+                    <summary>Màu giấy</summary>
+                    <div class="tk-mau-giay">
+                        <select id="tkMauGiayChon" class="form-select form-select-sm" aria-label="Màu giấy">
+                            <option value="#FFFFFF">Trắng</option>
+                            <option value="#FFE97A">Vàng</option>
+                            <option value="#B7F0B1">Xanh lá</option>
+                            <option value="#A9D7FF">Xanh dương</option>
+                            <option value="#FFB3B3">Đỏ</option>
+                            <option value="#D9D9D9">Bạc</option>
+                            <option value="">Màu khác…</option>
+                        </select>
+                        <input type="color" id="tkMauGiay" class="form-control form-control-sm form-control-color" title="Màu khác" />
+                    </div>
+                    <p class="tk-goi-y">Chỉ để xem trước. Khi in, nền luôn trắng.</p>
+                </details>
+
+                <details class="tk-muc" data-muc="luoi" open>
+                    <summary>Lưới</summary>
+                    <label class="tk-check"><input type="checkbox" class="form-check-input" id="tkBatLuoi" checked /> Bắt lưới 0,5 mm</label>
+                    <p class="tk-goi-y">Giữ Alt khi kéo để tạm tắt.</p>
+                </details>
+            </div>
+            <button type="button" class="tk-an-ban" data-lenh="banTrai"><i class="fa fa-caret-left"></i> Ẩn</button>
+        </aside>
+
+        @* Giữa: tab trang · thước mm · vùng vẽ · zoom nổi *@
+        <section class="tk-giua-ve" aria-label="Vùng thiết kế">
+            <div class="tk-tab-trang" id="tkTabTrang">
+                <button type="button" class="tk-tab-mui" data-lenh="trangTruoc" title="Trang trước"><i class="fa fa-angle-left"></i></button>
+                <button type="button" class="tk-tab-mui" data-lenh="trangSau" title="Trang sau"><i class="fa fa-angle-right"></i></button>
+                <div class="tk-tab-ds" id="tkTabDs" role="tablist"></div>
+                <button type="button" class="tk-tab-them" data-lenh="themTrang" title="Thêm trang nhãn (Sheet) mới"><i class="fa fa-plus"></i></button>
+            </div>
+            <div class="tk-thuoc-khung">
+                <div class="tk-thuoc-goc">mm</div>
+                <canvas class="tk-thuoc-ngang" id="tkThuocNgang" height="22"></canvas>
+                <canvas class="tk-thuoc-doc" id="tkThuocDoc" width="22"></canvas>
+                <div class="tk-vung" id="tkVung">
+                    <div class="tk-khung" id="tkKhung">
+                        <span class="tk-kich-ngang" id="tkKichNgang"></span>
+                        <span class="tk-kich-doc" id="tkKichDoc"></span>
+                        <div class="tk-nhan" id="tkNhan"></div>
+                        <div class="tk-lop" id="tkLop"></div>
+                    </div>
+                </div>
+                <div class="tk-zoom-noi">
+                    <button type="button" data-lenh="zoom" data-muc="-" title="Thu nhỏ">−</button>
+                    <button type="button" data-lenh="zoom" data-muc="vua" id="tkZoomNhan" title="Vừa màn hình">100 %</button>
+                    <button type="button" data-lenh="zoom" data-muc="+" title="Phóng to (Ctrl + lăn chuột)">+</button>
+                </div>
+            </div>
+
+            @* Bảng dữ liệu dưới vùng vẽ (như P-touch): nguồn Tủ điện thoại hoặc file Excel (chọn sheet); kéo tiêu đề cột thả vào nhãn *@
+            <div class="tk-du-lieu" id="tkDuLieu" aria-label="Dữ liệu in">
+                <div class="tk-dl-thanh">
+                    <select id="tkNguonDl" class="form-select form-select-sm" aria-label="Nguồn dữ liệu">
+                        <option value="tu">Tủ điện thoại (hệ thống)</option>
+                        <option value="excel">File Excel / CSV…</option>
+                    </select>
+                    <span class="tk-dl-file" id="tkDlFile" data-lenh="chonFileDl" role="button" tabindex="0" hidden></span>
+                    <select id="tkSheetDl" class="form-select form-select-sm" aria-label="Sheet" hidden></select>
+                    <select id="tkLocBoPhan" class="form-select form-select-sm" aria-label="Lọc bộ phận"><option value="">Tất cả bộ phận</option></select>
+                    <input type="search" id="tkTimTu" class="form-control form-control-sm" placeholder="Tìm trong dữ liệu…" />
+                    <label class="tk-check"><input type="checkbox" class="form-check-input" id="tkXemDuLieu" /> Hiện dữ liệu trên nhãn</label>
+                    <span class="tk-dl-co-san" id="tkCot" title="Trường có sẵn: bấm để chèn, hoặc kéo thả vào nhãn"></span>
+                    <button type="button" class="btn-close ms-auto" data-lenh="banDuLieu" aria-label="Đóng bảng dữ liệu"></button>
+                </div>
+                <div class="tk-dl-luoi">
+                    <table>
+                        <thead id="tkDlDau"></thead>
+                        <tbody id="tkDsDong"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        @* Bảng phải: thuộc tính (tab Chữ/Mã vạch… · Bố cục · Khác) — dựng bằng JS *@
+        <aside class="tk-phai" id="tkPhai" aria-label="Thuộc tính">
+            <div class="tk-phai-cuon" id="tkThuocTinh"></div>
+            <button type="button" class="tk-an-ban tk-an-phai" data-lenh="banPhai">Ẩn <i class="fa fa-caret-right"></i></button>
+        </aside>
+
+        @* Nền mờ khi mở bảng dạng ngăn kéo trên màn nhỏ — bấm để đóng *@
+        <div class="tk-man" data-lenh="dongBan" aria-hidden="true"></div>
+    </div>
+
+    <div class="tk-trang-thai">
+        <span id="tkTrangThai">Sẵn sàng</span>
+        @* Bản ghi đang xem trên nhãn (như "1/104" của P-touch) *@
+        <span class="tk-ban-ghi">
+            <button type="button" data-lenh="dongTruoc" title="Bản ghi trước"><i class="fa fa-angle-left"></i></button>
+            <span id="tkDongSo">0 / 0</span>
+            <button type="button" data-lenh="dongSau" title="Bản ghi sau"><i class="fa fa-angle-right"></i></button>
+        </span>
+        <span id="tkToaDo"></span>
+    </div>
+
+    <input type="file" id="tkFileTnl" accept=".tnl,.json" hidden />
+    <input type="file" id="tkFileAnh" accept="image/*" hidden />
+    <input type="file" id="tkFileDl" accept=".xlsx,.xls,.csv" hidden />
+
+    @* Menu chuột phải (vùng vẽ / tab trang / dòng dữ liệu) — JS dựng nội dung theo chỗ bấm *@
+    <div class="tk-menu-phai" id="tkMenuPhai" role="menu" hidden></div>
+</div>
+
+@* Hộp thoại Mở mẫu (giống Tệp > Mở của app, nhưng mẫu lưu trên hệ thống) *@
+<div class="modal fade" id="tkModalMo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Mở mẫu tem</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="search" id="tkTimMau" class="form-control mb-2" placeholder="Tìm tên mẫu…" />
+                <div class="list-group" id="tkDsMau"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary me-auto" data-lenh="nhap"><i class="fa fa-folder-open-o"></i> Từ file .tnl…</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Huỷ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Hộp thoại In nhãn (giống PrintWindow của app) *@
+<div class="modal fade" id="tkModalIn" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa fa-print"></i> In nhãn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            @* Như hộp thoại Print của P-touch: trái là tuỳ chọn, phải là danh sách xem trước mọi nhãn sẽ in *@
+            <div class="modal-body tk-in-than">
+                <div class="tk-in-hang">
+                    <div class="tk-in-cot">
+                        <h6>Máy in</h6>
+                        <select id="tkInMay" class="form-select form-select-sm"></select>
+                        <label class="tk-check"><input type="checkbox" class="form-check-input" id="tkInXoay" /> Xoay nhãn 90° (khi bản in bị xoay hoặc bị cắt)</label>
+                        <div id="tkInTuyChon" hidden>
+                            <h6>Tuỳ chọn máy in</h6>
+                            <label class="tk-check" data-tinh-nang="autoCut"><input type="checkbox" class="form-check-input" id="tkInTuCat" /> Tự cắt sau mỗi nhãn</label>
+                            <label class="tk-check" data-tinh-nang="halfCut"><input type="checkbox" class="form-check-input" id="tkInCatNua" /> Cắt nửa (cắt băng, giữ lớp đế để nhãn dính liền)</label>
+                            <label class="tk-check" data-tinh-nang="chainPrint"><input type="checkbox" class="form-check-input" id="tkInNoiTiep" /> In nối tiếp (không đẩy băng sau nhãn cuối — tiết kiệm băng)</label>
+                            <label class="tk-check" data-tinh-nang="mirror"><input type="checkbox" class="form-check-input" id="tkInGuong" /> In gương (dán mặt trong kính)</label>
+                            <label class="tk-check" data-tinh-nang="quality"><input type="checkbox" class="form-check-input" id="tkInChatLuong" /> Chất lượng cao (in chậm hơn)</label>
+                        </div>
+                        <label class="tk-dong-nhap mt-2"><span>Số bản mỗi nhãn</span><input type="number" id="tkInSoBan" class="form-control form-control-sm" min="1" max="50" step="1" /></label>
+                        <h6>Dữ liệu cần in</h6>
+                        <label class="tk-check"><input type="radio" class="form-check-input" name="tkInPhamVi" value="tatCa" /> Tất cả bản ghi (<span id="tkInSoTatCa">0</span>)</label>
+                        <label class="tk-check"><input type="radio" class="form-check-input" name="tkInPhamVi" value="daChon" /> Bản ghi đã chọn (<span id="tkInSoDaChon">0</span>)</label>
+                        <div class="tk-in-dong">
+                            <label class="tk-check"><input type="radio" class="form-check-input" name="tkInPhamVi" value="khoang" /> Từ dòng</label>
+                            <input type="number" id="tkInTu" class="form-control form-control-sm" min="1" step="1" />
+                            <span>–</span>
+                            <input type="number" id="tkInDen" class="form-control form-control-sm" min="1" step="1" />
+                        </div>
+                        <label class="tk-check"><input type="radio" class="form-check-input" name="tkInPhamVi" value="dangXem" checked /> Chỉ nhãn đang xem</label>
+                        <h6>Căn chỉnh</h6>
+                        <label class="tk-dong-nhap"><span>Lệch ngang (mm)</span><input type="number" id="tkInLechX" class="form-control form-control-sm" min="-20" max="20" step="0.1" /></label>
+                        <label class="tk-dong-nhap"><span>Lệch dọc (mm)</span><input type="number" id="tkInLechY" class="form-control form-control-sm" min="-20" max="20" step="0.1" /></label>
+                        <p class="tk-goi-y" id="tkInGoiY"></p>
+                    </div>
+                    <div class="tk-in-xem-ds" id="tkInXem" aria-label="Xem trước các nhãn sẽ in"></div>
+                </div>
+                <div class="text-danger small" id="tkInLoi"></div>
+            </div>
+            <div class="modal-footer">
+                <span class="me-auto tk-in-tong">Số nhãn: <strong id="tkInSoNhan">1</strong> <small id="tkInXemChu"></small></span>
+                <button type="button" class="btn btn-primary" id="tkBtnInNgay"><i class="fa fa-print"></i> In</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Huỷ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+    <script src="~/js/tem-nhan.js?v=8"></script>
+    <script src="~/js/tem-thiet-ke.js?v=13"></script>
+    <script src="~/js/fixed-page-layout.js" defer></script>
+}

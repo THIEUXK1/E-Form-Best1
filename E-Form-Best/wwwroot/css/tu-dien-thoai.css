@@ -1,0 +1,142 @@
+/* Trang tủ điện thoại (HR): đầu trang · thẻ thống kê · khung lọc + bảng. Màn hẹp: mỗi tủ thành 1 thẻ. */
+.tdt-trang { --tdt-xanh: #2563eb; --tdt-vien: #e5e7eb; --tdt-mo: #64748b; padding: 4px 2px 12px; color: #0f172a; }
+
+/* Đầu trang */
+.tdt-dau { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.tdt-dau-trai { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.tdt-bieu-tuong { flex: 0 0 auto; width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; font-size: 1.7rem; color: #fff; background: linear-gradient(135deg, #ec4899, #8b5cf6); box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3); }
+.tdt-tieude { font-weight: 800; margin: 0; font-size: 1.45rem; letter-spacing: -0.01em; }
+.tdt-phu-de { margin: 2px 0 0; color: var(--tdt-mo); font-size: 0.88rem; }
+.tdt-nut-dau { display: flex; gap: 8px; flex-wrap: wrap; }
+.tdt-nut-dau .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 10px; padding: 8px 14px; font-weight: 600; font-size: 0.88rem; }
+.tdt-nut-phu { background: #fff; border: 1px solid var(--tdt-vien); color: #334155; }
+.tdt-nut-phu:hover:not(:disabled) { background: #f8fafc; border-color: #cbd5e1; color: #0f172a; }
+.tdt-nut-phu:disabled { opacity: 0.55; }
+.tdt-nut-chinh { box-shadow: 0 6px 14px rgba(37, 99, 235, 0.25); }
+.tdt-dem { min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px; background: #e0e7ff; color: #3730a3; font-size: 0.75rem; display: inline-grid; place-items: center; }
+
+/* Thẻ thống kê */
+.tdt-thong-ke { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.tdt-the { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #fff; border: 1px solid var(--tdt-vien); border-radius: 14px; }
+.tdt-the > .fa { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 1.15rem; flex: 0 0 auto; }
+.tdt-the b { display: block; font-size: 1.45rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tdt-the span { color: var(--tdt-mo); font-size: 0.8rem; }
+.tdt-the-xanh > .fa { background: #dbeafe; color: #1d4ed8; }
+.tdt-the-luc > .fa { background: #dcfce7; color: #15803d; }
+.tdt-the-cam > .fa { background: #ffedd5; color: #c2410c; }
+.tdt-the-tim > .fa { background: #f3e8ff; color: #7e22ce; }
+
+/* Khung lọc + bảng */
+.tdt-khung { background: #fff; border: 1px solid var(--tdt-vien); border-radius: 16px; box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04); overflow: hidden; }
+.tdt-loc { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--tdt-vien); }
+.tdt-tim { position: relative; flex: 1 1 280px; max-width: 420px; }
+.tdt-tim .fa { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+.tdt-tim .form-control { padding-left: 34px; border-radius: 10px; }
+.tdt-loc .form-select { flex: 0 1 240px; border-radius: 10px; }
+.tdt-phan-doan { display: inline-flex; background: #f1f5f9; border-radius: 10px; padding: 3px; margin-left: auto; }
+.tdt-phan-doan button { border: 0; background: none; padding: 5px 12px; border-radius: 8px; font-size: 0.82rem; color: #475569; font-weight: 600; }
+.tdt-phan-doan button.dang-chon { background: #fff; color: #0f172a; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12); }
+
+.tdt-bang-khung { overflow-x: auto; }
+.tdt-bang { width: 100%; border-collapse: collapse; }
+.tdt-bang th { position: sticky; top: 0; z-index: 1; background: #f8fafc; color: var(--tdt-mo); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 14px; border-bottom: 1px solid var(--tdt-vien); white-space: nowrap; }
+.tdt-bang td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.tdt-bang tbody tr { transition: background 0.12s; }
+.tdt-bang tbody tr:hover { background: #f8fafc; }
+.tdt-bang tbody tr.dang-chon { background: #eff6ff; }
+.tdt-bang tbody tr:last-child td { border-bottom: 0; }
+.tdt-cot-chon { width: 44px; }
+
+.tdt-tu { display: flex; align-items: center; gap: 12px; }
+.tdt-tu-icon { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: #eef2ff; color: #4f46e5; font-size: 1.1rem; }
+.tdt-tu-ten { font-weight: 700; }
+.tdt-tu-vi-tri { color: var(--tdt-mo); font-size: 0.8rem; }
+.tdt-tu-vi-tri .fa { margin-right: 4px; color: #94a3b8; }
+
+.tdt-bo-phan { display: inline-block; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
+
+.tdt-nguoi { display: flex; align-items: center; gap: 10px; }
+.tdt-anh { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 0.8rem; }
+.tdt-nguoi-ten { font-weight: 600; }
+.tdt-nguoi-ma { color: var(--tdt-mo); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.tdt-chua-co { color: #94a3b8; font-style: italic; font-size: 0.85rem; }
+
+.tdt-tinh-trang { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+.tdt-tinh-trang::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.tdt-dang-dung { background: #dcfce7; color: #15803d; }
+.tdt-con-trong { background: #ffedd5; color: #c2410c; }
+
+.tdt-thao-tac { display: inline-flex; gap: 4px; }
+.tdt-thao-tac button { width: 34px; height: 34px; border-radius: 9px; border: 1px solid transparent; background: none; color: #64748b; }
+.tdt-thao-tac .tdt-sua:hover { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+.tdt-thao-tac .tdt-xoa:hover { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+
+.tdt-trong { text-align: center; color: #94a3b8; padding: 48px 16px !important; }
+.tdt-trong .fa { display: block; font-size: 2.2rem; margin-bottom: 10px; color: #cbd5e1; }
+.tdt-chan { padding: 10px 16px; color: var(--tdt-mo); font-size: 0.8rem; border-top: 1px solid var(--tdt-vien); background: #fcfcfd; }
+.tdt-chan:empty { display: none; }
+
+/* Excel + thao tác hàng loạt */
+.tdt-xanh-excel { color: #16a34a; }
+.tdt-menu-excel .dropdown-item { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; }
+.tdt-menu-excel .fa { width: 16px; color: #64748b; }
+.tdt-thanh-chon { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 16px; background: #eff6ff; border-bottom: 1px solid #bfdbfe; color: #1e3a8a; font-size: 0.88rem; }
+.tdt-thanh-chon .fa-check-square { margin-right: 6px; }
+.tdt-thanh-chon-nut { display: flex; gap: 6px; flex-wrap: wrap; }
+.tdt-thanh-chon-nut .btn-light { border: 1px solid #bfdbfe; }
+.tdt-excel-chon { display: flex; gap: 8px; }
+.tdt-excel-chon .form-control { flex: 1 1 auto; }
+.tdt-excel-tom-tat { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 10px; }
+.tdt-excel-tom-tat span { padding: 4px 12px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; }
+.tdt-excel-bang { max-height: 50vh; overflow: auto; border: 1px solid var(--tdt-vien, #e5e7eb); border-radius: 10px; }
+.tdt-excel-bang th { position: sticky; top: 0; background: #f8fafc; font-size: 0.75rem; color: #64748b; white-space: nowrap; }
+.tdt-excel-bang td { font-size: 0.84rem; }
+.tdt-kq { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+.tdt-kq-them { background: #dcfce7; color: #15803d; }
+.tdt-kq-sua { background: #dbeafe; color: #1d4ed8; }
+.tdt-kq-giu { background: #f1f5f9; color: #64748b; }
+.tdt-kq-loi { background: #fee2e2; color: #b91c1c; }
+.tdt-dong-loi td { background: #fff7f7; }
+
+/* Hộp thoại In tem */
+.tdt-in-xem { display: flex; align-items: center; justify-content: center; min-height: 170px; padding: 16px; background: #e2e8f0; border-radius: 12px; overflow: hidden; }
+.tdt-in-xem-giay { box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18); background: #fff; }
+.tdt-in-goi-y { font-size: 0.8rem; color: #64748b; margin: 14px 0 0; }
+.tdt-in-agent { font-size: 0.78rem; color: #64748b; margin-top: 4px; white-space: pre-line; }
+.tdt-in-agent.tdt-ok { color: #15803d; }
+.tdt-in-agent.tdt-canh-bao { color: #b45309; }
+
+@media (max-width: 992px) {
+    .tdt-thong-ke { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tdt-phan-doan { margin-left: 0; }
+}
+
+/* Điện thoại: mỗi tủ là 1 thẻ thay vì 1 dòng bảng */
+@media (max-width: 768px) {
+    .tdt-dau { align-items: flex-start; }
+    .tdt-nut-dau { width: 100%; }
+    .tdt-nut-dau .btn { flex: 1 1 auto; justify-content: center; }
+    .tdt-tim, .tdt-loc .form-select { flex: 1 1 100%; max-width: none; }
+    .tdt-phan-doan { width: 100%; }
+    .tdt-phan-doan button { flex: 1 1 0; }
+    .tdt-bang thead { display: none; }
+    .tdt-bang, .tdt-bang tbody { display: block; }
+    .tdt-bang tbody tr { display: grid; grid-template-columns: auto 1fr auto; gap: 8px 10px; padding: 14px 16px; border-bottom: 1px solid #f1f5f9; }
+    .tdt-bang td { display: block; padding: 0; border: 0; }
+    .tdt-bang td.tdt-o-chon { grid-row: 1; grid-column: 1; align-self: center; }
+    .tdt-bang td.tdt-o-tu { grid-row: 1; grid-column: 2; }
+    /* Người chỉ xem (không có ô chọn): tên tủ lấn sang cột đầu, khỏi thụt lề */
+    .tdt-bang tbody tr:not(:has(.tdt-o-chon)) td.tdt-o-tu { grid-column: 1 / 3; }
+    .tdt-bang td.tdt-o-tinh-trang { grid-row: 1; grid-column: 3; justify-self: end; }
+    .tdt-bang td.tdt-o-bo-phan { grid-column: 1 / -1; }
+    .tdt-bang td.tdt-o-nguoi { grid-column: 1 / 3; }
+    .tdt-bang td.tdt-o-thao-tac { grid-column: 3; justify-self: end; align-self: center; }
+    .tdt-bang td.tdt-trong { grid-column: 1 / -1; }
+}
+
+@media (max-width: 576px) {
+    .tdt-thong-ke { gap: 8px; }
+    .tdt-the { padding: 10px 12px; }
+    .tdt-the > .fa { width: 34px; height: 34px; }
+    .tdt-the b { font-size: 1.2rem; }
+}

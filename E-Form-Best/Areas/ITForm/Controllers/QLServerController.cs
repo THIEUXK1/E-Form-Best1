@@ -26,9 +26,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         public static readonly string[] DsLoaiLuuTru = { "NAS", "SAN" };
 
         /// <summary>Ngưỡng % dung lượng đã dùng bị đánh dấu sắp đầy.</summary>
-        private const decimal NguongDay = 0.85m;
+        private const decimal NguongDay = ServerBaoCaoService.NguongDay;
         /// <summary>Bảo hành còn ≤ số ngày này thì đánh dấu sắp hết.</summary>
-        private const int NgaySapHetBh = 90;
+        private const int NgaySapHetBh = ServerBaoCaoService.NgaySapHetBh;
 
         public QLServerController(ITFormContext context, IConfiguration configuration)
         {
@@ -425,6 +425,65 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
         }
 
+        /// <summary>
+        /// Xu hướng số thiết bị online / mất kết nối trong N giờ gần nhất (cho biểu đồ ở tab Danh sách).
+        /// Dựng lại trạng thái từng mốc bằng cách đi ngược sự kiện KK_ServerLichSu (TuTrangThai = trạng thái TRƯỚC khi đổi).
+        /// </summary>
+        [HttpGet("/QLServer/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/XuHuong")]
+        public async Task<IActionResult> XuHuong(string congTy, int? gio)
+        {
+            var cty = CongTyHopLe(congTy)!;
+            if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+
+            try
+            {
+                var soGio = gio is 6 or 24 or 72 or 168 ? gio.Value : 24;
+                var den = DateTime.Now;
+                var tu = den.AddHours(-soGio);
+                var idCongTy = await IdCongTyAsync(cty);
+
+                var dsSv = await _context.KkServers
+                    .Where(x => x.NgayXoa == null && x.IdcongTy == idCongTy)
+                    .Select(x => new { x.IdServer, x.DiaChiIp, x.TinhTrang, x.TrangThaiKetNoi })
+                    .ToListAsync();
+                // null = chưa có trạng thái tại mốc đang xét (chưa kiểm lần nào) -> không đếm
+                var trangThai = dsSv
+                    .Where(x => TheoDoi(x.DiaChiIp, x.TinhTrang) && (x.TrangThaiKetNoi == "UP" || x.TrangThaiKetNoi == "DOWN"))
+                    .ToDictionary(x => x.IdServer, x => (string?)x.TrangThaiKetNoi);
+
+                var suKien = await _context.KkServerLichSus
+                    .Where(x => x.IdcongTy == idCongTy && x.ThoiGian > tu)
+                    .OrderByDescending(x => x.ThoiGian).ThenByDescending(x => x.IdLichSu)
+                    .Select(x => new { x.IdServer, x.ThoiGian, x.TuTrangThai })
+                    .ToListAsync();
+
+                const int soDiem = 72;
+                var buoc = TimeSpan.FromTicks((den - tu).Ticks / soDiem);
+                var diem = new List<object>(soDiem + 1);
+                var i = 0;
+                for (var k = 0; k <= soDiem; k++)
+                {
+                    var t = den - buoc * k;
+                    while (i < suKien.Count && suKien[i].ThoiGian > t)
+                    {
+                        var s = suKien[i++];
+                        if (trangThai.ContainsKey(s.IdServer))
+                            trangThai[s.IdServer] = s.TuTrangThai == "UP" || s.TuTrangThai == "DOWN" ? s.TuTrangThai : null;
+                    }
+                    diem.Add(new
+                    {
+                        thoiGian = t,
+                        up = trangThai.Values.Count(v => v == "UP"),
+                        down = trangThai.Values.Count(v => v == "DOWN")
+                    });
+                }
+                diem.Reverse();
+
+                return Json(new { thanhCong = true, duLieu = diem });
+            }
+            catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
         #endregion
 
         #region Sức khoẻ phần cứng (SNMP)
@@ -582,110 +641,80 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #region Tổng quan
 
-        /// <summary>Công ty được xem ở Tổng quan: công ty có quyền Sv*; AdminIT / BaoCaoDinhKy xem cả 3.</summary>
-        private List<string> DsCongTyTongQuan()
+        /// <summary>
+        /// Công ty được xem ở Tổng quan (cùng QLSwitchController.DsCongTyBaoCao):
+        ///  - không truyền congTy: mọi công ty có quyền Sv*; AdminIT / BaoCaoDinhKy xem cả 3.
+        ///  - 1 công ty: cần quyền xem công ty đó hoặc AdminIT. Trả null khi công ty gửi lên không hợp lệ.
+        /// </summary>
+        private List<string>? DsCongTyBaoCao(string? congTy)
         {
             var laAdminIt = User.IsInRole("AdminIT") || User.IsInRole("BaoCaoDinhKy");
-            return ServerPingWorker.DsCongTy.Where(x => laAdminIt || CoQuyenXem(x)).ToList();
+            if (string.IsNullOrWhiteSpace(congTy))
+                return ServerPingWorker.DsCongTy.Where(x => laAdminIt || CoQuyenXem(x)).ToList();
+
+            var cty = CongTyHopLe(congTy);
+            if (cty == null) return null;
+            return laAdminIt || CoQuyenXem(cty) ? new List<string> { cty } : new List<string>();
         }
 
         [HttpGet("/QLServer/TongQuan")]
-        public IActionResult TongQuan()
+        public IActionResult TongQuan(string? congTy)
         {
             if (User?.Identity?.IsAuthenticated != true)
                 return Redirect("/DonXetDuyet/DangNhap");
-            if (DsCongTyTongQuan().Count == 0) return Forbid();
+
+            var ds = DsCongTyBaoCao(congTy);
+            if (ds == null) return NotFound();
+            if (ds.Count == 0) return Forbid();
+
+            ViewBag.CongTyBaoCao = string.IsNullOrWhiteSpace(congTy) ? null : ds[0];
+            // Công ty chọn được trong ô "Phạm vi"; server vẫn kiểm lại ở DuLieu/XuatExcel
+            ViewBag.DsCongTyChon = DsCongTyBaoCao(null) ?? new List<string>();
+            // Trang "Báo cáo định kì" nạp phần thân làm 1 tab (fetch kèm X-Requested-With), không kèm layout
+            if (Request.Headers.XRequestedWith == "XMLHttpRequest") return PartialView("_TongQuanNoiDung");
             return View();
         }
 
-        /// <summary>
-        /// Số liệu hiện tại theo công ty (không theo kỳ): số thiết bị theo loại, online/offline, dung lượng lưu trữ,
-        /// bảo hành; kèm danh sách cần chú ý (mất kết nối, sắp đầy, hết / sắp hết bảo hành) và số lần mất kết nối 7 ngày.
-        /// </summary>
+        /// <summary>Báo cáo theo kỳ: hiện tại (online, phần cứng, dung lượng, bảo hành) + mất kết nối trong kỳ, so kỳ trước.</summary>
         [HttpGet("/QLServer/TongQuan/DuLieu")]
-        public async Task<IActionResult> TongQuanDuLieu()
+        public async Task<IActionResult> TongQuanDuLieu(DateTime? tuNgay, DateTime? denNgay, string? congTy, [FromServices] ServerBaoCaoService baoCao)
         {
-            var dsCongTy = DsCongTyTongQuan();
-            if (dsCongTy.Count == 0) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            var dsCongTy = DsCongTyBaoCao(congTy);
+            if (dsCongTy == null || dsCongTy.Count == 0) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
 
             try
             {
-                var homNay = DateOnly.FromDateTime(DateTime.Today);
-                var moc7Ngay = DateTime.Today.AddDays(-6);
-
-                var ds = await _context.KkServers
-                    .Where(x => x.NgayXoa == null && x.IdcongTyNavigation != null && dsCongTy.Contains(x.IdcongTyNavigation.TenCongTy))
-                    .Select(x => new
-                    {
-                        x.IdServer, CongTy = x.IdcongTyNavigation!.TenCongTy, x.TenServer, x.Loai, x.ChucNang, x.DiaChiIp,
-                        x.TinhTrang, x.DungLuongTb, x.DaDungTb, x.HanBaoHanh, x.TrangThaiKetNoi, x.DoiTrangThaiLuc,
-                        SucKhoe = _context.KkServerSucKhoes.Where(s => s.IdServer == x.IdServer)
-                            .Select(s => new { s.TrangThai, s.TomTat, s.TenHeThong }).FirstOrDefault()
-                    })
-                    .ToListAsync();
-                ds = ds.Select(x => x with { TenServer = TenHienThi(x.TenServer, x.DiaChiIp, x.SucKhoe?.TenHeThong) }).ToList();
-
-                var suKien = await _context.KkServerLichSus
-                    .Where(x => x.ThoiGian >= moc7Ngay && x.SangTrangThai == "DOWN")
-                    .GroupBy(x => x.IdServer)
-                    .Select(g => new { IdServer = g.Key, SoLan = g.Count() })
-                    .ToDictionaryAsync(x => x.IdServer, x => x.SoLan);
-
-                var theoCongTy = dsCongTy.Select(cty =>
-                {
-                    var l = ds.Where(x => x.CongTy == cty).ToList();
-                    var luuTru = l.Where(x => DsLoaiLuuTru.Contains(x.Loai) && x.DungLuongTb > 0).ToList();
-                    return new
-                    {
-                        congTy = cty,
-                        tong = l.Count,
-                        theoLoai = DsLoai.Select(lo => new { loai = lo, so = l.Count(x => x.Loai == lo) }),
-                        online = l.Count(x => TheoDoi(x.DiaChiIp, x.TinhTrang) && x.TrangThaiKetNoi == "UP"),
-                        offline = l.Count(x => TheoDoi(x.DiaChiIp, x.TinhTrang) && x.TrangThaiKetNoi == "DOWN"),
-                        khongTheoDoi = l.Count(x => !TheoDoi(x.DiaChiIp, x.TinhTrang)),
-                        dungLuongTb = luuTru.Sum(x => x.DungLuongTb ?? 0),
-                        daDungTb = luuTru.Sum(x => x.DaDungTb ?? 0),
-                        hetBaoHanh = l.Count(x => x.HanBaoHanh < homNay),
-                        sapHetBaoHanh = l.Count(x => x.HanBaoHanh >= homNay && x.HanBaoHanh <= homNay.AddDays(NgaySapHetBh)),
-                        matKetNoi7Ngay = l.Sum(x => suKien.GetValueOrDefault(x.IdServer)),
-                        sucKhoeLoi = l.Count(x => x.SucKhoe?.TrangThai == ServerSnmpService.Loi),
-                        sucKhoeCanhBao = l.Count(x => x.SucKhoe?.TrangThai == ServerSnmpService.CanhBao)
-                    };
-                }).ToList();
-
-                // Danh sách cần chú ý: mỗi thiết bị một dòng, gộp các lý do
-                var canChuY = ds
-                    .Select(x =>
-                    {
-                        var lyDo = new List<string>();
-                        if (TheoDoi(x.DiaChiIp, x.TinhTrang) && x.TrangThaiKetNoi == "DOWN") lyDo.Add("Mất kết nối");
-                        if (x.DungLuongTb > 0 && x.DaDungTb != null && x.DaDungTb / x.DungLuongTb >= NguongDay)
-                            lyDo.Add($"Dung lượng {Math.Round(x.DaDungTb.Value / x.DungLuongTb.Value * 100)}%");
-                        if (x.HanBaoHanh < homNay) lyDo.Add("Hết bảo hành");
-                        else if (x.HanBaoHanh <= homNay.AddDays(NgaySapHetBh)) lyDo.Add("Sắp hết bảo hành");
-                        var soLan = suKien.GetValueOrDefault(x.IdServer);
-                        if (soLan >= 3) lyDo.Add($"Mất kết nối {soLan} lần / 7 ngày");
-                        // Phần cứng (SNMP): mỗi mục bất thường thành 1 nhãn; "Lỗi:" / "Cảnh báo:" để giao diện tô màu
-                        if (x.SucKhoe?.TrangThai is ServerSnmpService.Loi or ServerSnmpService.CanhBao && !string.IsNullOrWhiteSpace(x.SucKhoe.TomTat))
-                            lyDo.AddRange(x.SucKhoe.TomTat.Split("; ", StringSplitOptions.RemoveEmptyEntries)
-                                .Select(m => (x.SucKhoe.TrangThai == ServerSnmpService.Loi ? "Lỗi: " : "Cảnh báo: ") + m));
-                        return new
-                        {
-                            x.CongTy, x.TenServer, x.Loai, x.DiaChiIp, x.HanBaoHanh,
-                            DangMatKetNoi = lyDo.Contains("Mất kết nối"), x.DoiTrangThaiLuc,
-                            LyDo = lyDo
-                        };
-                    })
-                    .Where(x => x.LyDo.Count > 0)
-                    .OrderByDescending(x => x.DangMatKetNoi).ThenBy(x => x.CongTy).ThenBy(x => x.TenServer)
-                    .ToList();
-
+                var (tu, den) = KyBaoCao(tuNgay, denNgay);
+                var duLieu = await baoCao.TaoAsync(dsCongTy, tu, den, HttpContext.RequestAborted);
+                // Công ty mở được trang chi tiết — thẻ công ty khác chỉ hiện số, không thành link
                 var moDuoc = ServerPingWorker.DsCongTy.Where(CoQuyenXem).ToList();
-                return Json(new { thanhCong = true, theoCongTy, canChuY, moDuoc, nguongDay = NguongDay, ngaySapHetBh = NgaySapHetBh });
+                return Json(new { thanhCong = true, duLieu, moDuoc });
             }
             catch (Exception ex) when (ex is SqlException or InvalidOperationException)
             {
-                return Json(new { thanhCong = false, thongBao = "Không tải được số liệu: " + ex.Message });
+                return Json(new { thanhCong = false, thongBao = "Không tạo được báo cáo: " + ex.Message });
+            }
+        }
+
+        [HttpGet("/QLServer/TongQuan/XuatExcel")]
+        public async Task<IActionResult> TongQuanXuatExcel(DateTime? tuNgay, DateTime? denNgay, string? congTy, [FromServices] ServerBaoCaoService baoCao)
+        {
+            var dsCongTy = DsCongTyBaoCao(congTy);
+            if (dsCongTy == null) return NotFound();
+            if (dsCongTy.Count == 0) return StatusCode(403);
+
+            var (tu, den) = KyBaoCao(tuNgay, denNgay);
+            try
+            {
+                var bc = await baoCao.TaoAsync(dsCongTy, tu, den, HttpContext.RequestAborted);
+                var motCongTy = string.IsNullOrWhiteSpace(congTy) ? null : dsCongTy[0];
+                var file = ServerBaoCaoExcel.TaoBaoCao(bc, motCongTy, User.Identity?.Name);
+                return File(file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"BaoCaoServer_{motCongTy ?? "TongQuan"}_{tu:yyyyMMdd}-{den:yyyyMMdd}.xlsx");
+            }
+            catch (SqlException ex)
+            {
+                return Content("Không tạo được báo cáo: " + ex.Message);
             }
         }
 

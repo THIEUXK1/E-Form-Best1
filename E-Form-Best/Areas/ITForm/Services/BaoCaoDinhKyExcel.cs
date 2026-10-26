@@ -19,6 +19,7 @@ namespace E_Form_Best.Areas.ITForm.Services
             CameraBaoCaoService.BaoCao Camera, byte[] FileCamera,
             AccessPointBaoCaoService.BaoCao Ap, byte[] FileAp,
             SwitchBaoCaoService.BaoCao Switch, byte[] FileSwitch,
+            ServerBaoCaoService.BaoCao Server, byte[] FileServer,
             BaoCaoDinhKyService.ThongKeThietBi ThietBi,
             BaoCaoDinhKyService.SoSanh<List<BaoCaoDinhKyService.BienDongThietBi>> BienDongThietBi,
             BaoCaoDinhKyService.SoSanhChot? BanQuyen,
@@ -31,13 +32,14 @@ namespace E_Form_Best.Areas.ITForm.Services
         {
             using var wb = new XLWorkbook();
             var phuDe = $"Kỳ báo cáo: {d.TuNgay:dd/MM/yyyy} – {d.DenNgay:dd/MM/yyyy} (so với {d.DonIt.KyTruocTu:dd/MM} – {d.DonIt.KyTruocDen:dd/MM/yyyy})"
-                        + $"   ·   Phạm vi Camera/AP/Switch: {d.CongTy ?? "tất cả công ty"}"
+                        + $"   ·   Phạm vi Camera/AP/Switch/Server: {d.CongTy ?? "tất cả công ty"}"
                         + $"   ·   Lập lúc: {DateTime.Now:HH:mm dd/MM/yyyy}" + (string.IsNullOrWhiteSpace(d.NguoiLap) ? "" : "   ·   Người lập: " + d.NguoiLap);
 
             SheetTongHop(wb, d, phuDe);
             ChepSheet(wb, d.FileCamera, "Camera");
             ChepSheet(wb, d.FileAp, "AP");
             ChepSheet(wb, d.FileSwitch, "Switch");
+            ChepSheet(wb, d.FileServer, "Server");
             SheetThietBi(wb, d.ThietBi, d.BienDongThietBi, d.BanQuyen, phuDe);
             SheetDon(wb, "Đơn IT", "THỐNG KÊ ĐƠN IT", d.DonIt, phuDe);
             SheetDon(wb, "Công việc", "THỐNG KÊ ĐƠN CÔNG VIỆC", d.DonCongViec, phuDe);
@@ -64,6 +66,8 @@ namespace E_Form_Best.Areas.ITForm.Services
                     d.Ap.CongTy.Sum(c => c.SoLanMat), d.Ap.CongTy.Sum(c => c.GiayMat), TyLeKy(d.Ap.CongTy.Select(c => (c.TyLeTrongKy, c.Tong)))),
                 DongHaTang("Switch", d.Switch.CongTy.Sum(c => c.TongTaiSan), d.Switch.CongTy.Sum(c => c.HoatDong), d.Switch.CongTy.Sum(c => c.MatKetNoi),
                     d.Switch.CongTy.Sum(c => c.SoLanMat), d.Switch.CongTy.Sum(c => c.GiayMat), TyLeKy(d.Switch.CongTy.Select(c => (c.TyLeTrongKy, c.Tong)))),
+                DongHaTang("Server & lưu trữ", d.Server.CongTy.Sum(c => c.TongTaiSan), d.Server.CongTy.Sum(c => c.HoatDong), d.Server.CongTy.Sum(c => c.MatKetNoi),
+                    d.Server.CongTy.Sum(c => c.SoLanMat), d.Server.CongTy.Sum(c => c.GiayMat), TyLeKy(d.Server.CongTy.Select(c => (c.TyLeTrongKy, c.Tong)))),
             };
             r = Bang(ws, r, new[] { "Hạng mục", "Tổng", "Hoạt động", "Mất KN", "Lần mất KN (kỳ)", "Giờ mất KN (kỳ)", "% HĐ trong kỳ" },
                 hang, new[] { null, "#,##0", "#,##0", "#,##0", "#,##0", "#,##0.0", "0.00%" });
@@ -108,7 +112,7 @@ namespace E_Form_Best.Areas.ITForm.Services
                 r = GhiChu(ws, r, $"Đơn công việc đang quá hạn: {d.DonCongViec.Nay.QuaHan:#,##0} (kỳ trước: {d.DonCongViec.Truoc.QuaHan:#,##0})");
             r++;
 
-            r = GhiChu(ws, r, "Chi tiết từng mục ở các sheet sau: Camera·…, AP·…, Switch·…, Thiết bị, Đơn IT, Công việc.");
+            r = GhiChu(ws, r, "Chi tiết từng mục ở các sheet sau: Camera·…, AP·…, Switch·…, Server·…, Thiết bị, Đơn IT, Công việc.");
             r = GhiChu(ws, r, "Đơn tính theo thời điểm quản lý duyệt (TimeNguoiDuyet) trong kỳ. Thiết bị (hiện trạng) là số lúc xuất, không theo kỳ.");
             r = GhiChu(ws, r, "Kỳ trước: tuần so với cùng các ngày tuần trước, tháng so với cùng khoảng ngày tháng trước.");
             r = GhiChu(ws, r, "Thiết bị kiểm kê: theo lần kiểm gần nhất — máy kiểm lại ở kỳ này không còn tính cho kỳ trước.");

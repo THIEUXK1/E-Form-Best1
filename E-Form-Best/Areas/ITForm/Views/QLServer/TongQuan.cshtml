@@ -1,65 +1,19 @@
 ﻿@{
-    // ?nhung=1: mở trong tab iframe "Server & lưu trữ" của Báo cáo tổng hợp (/BaoCaoDinhKy) nên bỏ sidebar
-    var nhung = Context.Request.Query["nhung"] == "1";
-    Layout = nhung ? "~/Areas/ITForm/Views/Shared/_LayoutNhung.cshtml" : "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Tổng quan Server và lưu trữ";
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    // null = tổng quan các công ty; "BPVN"/"PFVN"/"MEGA" = báo cáo riêng công ty đó (mở từ nút "Báo cáo" ở trang công ty)
+    var congTyBaoCao = ViewBag.CongTyBaoCao as string;
+    ViewData["Title"] = congTyBaoCao == null ? "Tổng quan Server và lưu trữ" : "Báo cáo Server và lưu trữ " + congTyBaoCao;
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+@* Dùng chung bộ khung báo cáo của camera/switch (thẻ số liệu, vòng %, bảng, bản in) *@
 <link rel="stylesheet" href="/css/ccdc-quanly.css?v=20260825e">
 <link rel="stylesheet" href="/css/camera-quanly.css?v=20261016a">
-<link rel="stylesheet" href="/css/server-quanly.css?v=20261014b">
+<link rel="stylesheet" href="/css/camera-tong-quan.css?v=20261009b">
+<link rel="stylesheet" href="/css/server-quanly.css?v=20261024a">
 
-<div class="content-header pt-0 pb-0" style="margin-top: @(nhung ? "0" : "-25px");">
-    <div class="container-fluid">
-        <div class="dash-topbar">
-            <h4 class="dash-title"><span class="dash-title-icon"><i class="fas fa-server"></i></span>Tổng quan Server và lưu trữ</h4>
-            <button type="button" class="btn btn-sm btn-light border ms-auto" id="tqTaiLai" title="Tải lại"><i class="fas fa-rotate me-1"></i> Tải lại</button>
-        </div>
-    </div>
-</div>
+@* Area ITForm không có _ViewImports nên tag helper <partial> không chạy -> dùng Html.PartialAsync *@
+@await Html.PartialAsync("_TongQuanNoiDung")
 
-<section class="content">
-    <div class="container-fluid">
-        <div class="card border-0 shadow-sm bg-white" style="border-radius: 15px;">
-            <div class="card-body p-2 p-md-3">
-                <div class="alert alert-danger py-2 small d-none" id="tqLoi"></div>
-
-                <div class="row g-3 mb-3" id="tqCongTy">
-                    <div class="col-12 text-muted small py-4 text-center">Đang tải dữ liệu...</div>
-                </div>
-
-                <h6 class="fw-bold mb-2"><i class="fas fa-triangle-exclamation text-warning me-1"></i> Cần chú ý</h6>
-                <div class="ccdc-table-wrap">
-                    <table class="table table-hover align-middle mb-0 ccdc-table">
-                        <colgroup>
-                            <col style="width:48px;">
-                            <col style="width:90px;">
-                            <col style="width:100px;">
-                            <col style="width:220px;">
-                            <col style="width:140px;">
-                            <col style="width:360px;">
-                        </colgroup>
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Công ty</th>
-                                <th>Loại</th>
-                                <th>Tên</th>
-                                <th>IP</th>
-                                <th>Vấn đề</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tqChuY">
-                            <tr><td colspan="6" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-@section Scripts {
-    <script src="/js/server-tong-quan.js?v=20261016a"></script>
-}
+<script src="/js/bao-cao-so-sanh.js?v=2"></script>
+<script src="/js/server-tong-quan.js?v=20261024a"></script>

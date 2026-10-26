@@ -443,6 +443,17 @@
                         <i class="fa fa-shield" style="margin-right:12px; width:20px; font-size: 1.1rem; color:#63b3ed;"></i> <span>@L["Kiểm soát ra vào"]</span>
                     </a>
                 }
+
+                @* Ai đăng nhập cũng thấy: người thường xem tủ của bộ phận mình, AdminHR/AdminIT/All xem và quản lý tất cả (lọc ở TuDienThoaiController) *@
+                @if (User?.Identity?.IsAuthenticated == true)
+                {
+                    <div style="height:1px; background:rgba(255,255,255,0.1); margin:20px 10px;"></div>
+                    <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 1.8px; margin: 0 0 12px 15px; font-weight: 800;">@L["TỦ ĐIỆN THOẠI"]</div>
+
+                    <a href="/FormHR/QuanLyTuDienThoai" class="nav-link-item @(currentAction == "QuanLyTuDienThoai" ? "active" : "")">
+                        <i class="fa fa-mobile" style="margin-right:12px; width:20px; font-size: 1.3rem; color:#f472b6;"></i> <span>@L["Quản lý tủ điện thoại"]</span>
+                    </a>
+                }
             </nav>
 
             <div style="margin-top:20px; padding: 15px; background: rgba(0,0,0,0.25); border-radius: 16px; position:relative; border: 1px solid rgba(255,255,255,0.05);">

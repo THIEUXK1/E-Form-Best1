@@ -1,0 +1,278 @@
+﻿@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["Title"] = "Quản lý tủ điện thoại";
+    Layout = "~/Areas/HRform/Views/Shared/_Layout.cshtml";
+    var boPhans = ViewBag.BoPhans as List<SelectListItem> ?? new List<SelectListItem>();
+    // Admin (AdminHR/AdminIT/All) xem hết + quản lý; người khác chỉ xem tủ bộ phận mình (máy chủ đã lọc)
+    bool laQuanLy = ViewBag.LaQuanLy == true;
+}
+
+<link rel="stylesheet" href="~/css/tu-dien-thoai.css?v=6" />
+
+<div class="tdt-trang" id="tdtTrang" data-la-quan-ly="@(laQuanLy ? "1" : "0")">
+    <div class="tdt-dau">
+        <div class="tdt-dau-trai">
+            <span class="tdt-bieu-tuong" aria-hidden="true"><i class="fa fa-mobile"></i></span>
+            <div>
+                <h4 class="tdt-tieude">Tủ điện thoại</h4>
+                <p class="tdt-phu-de">
+                    @if (laQuanLy)
+                    {
+                        <span>Quản lý tủ gửi điện thoại của tất cả bộ phận</span>
+                    }
+                    else if (boPhans.Count > 0)
+                    {
+                        <span>Tủ của bộ phận: <strong>@string.Join(", ", boPhans.Select(b => b.Text))</strong></span>
+                    }
+                    else
+                    {
+                        <span>Tài khoản chưa được gán bộ phận nên chưa xem được tủ nào — liên hệ HR.</span>
+                    }
+                </p>
+            </div>
+        </div>
+        @if (laQuanLy)
+        {
+            <div class="tdt-nut-dau">
+                <a href="/FormHR/QuanLyTuDienThoai/ThietKeTem" class="btn tdt-nut-phu"><i class="fa fa-paint-brush"></i><span>Thiết kế tem</span></a>
+                <div class="dropdown">
+                    <button type="button" class="btn tdt-nut-phu dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa fa-file-excel-o tdt-xanh-excel"></i><span>Excel</span></button>
+                    <ul class="dropdown-menu dropdown-menu-end tdt-menu-excel">
+                        @* Tải file = điều hướng thật (được phép theo quy tắc), không phải lưu dữ liệu *@
+                        <li><a class="dropdown-item" href="/FormHR/QuanLyTuDienThoai/MauExcel"><i class="fa fa-download"></i> Tải mẫu Excel</a></li>
+                        <li><button type="button" class="dropdown-item" id="tdtBtnNhapExcel"><i class="fa fa-upload"></i> Nhập từ Excel…</button></li>
+                    </ul>
+                </div>
+                <button type="button" class="btn tdt-nut-phu" id="tdtBtnIn" disabled><i class="fa fa-print"></i><span>In tem</span><b class="tdt-dem" id="tdtSoChon">0</b></button>
+                <button type="button" class="btn btn-primary tdt-nut-chinh" id="tdtBtnThem"><i class="fa fa-plus"></i><span>Thêm tủ</span></button>
+            </div>
+        }
+    </div>
+
+    @* Thẻ thống kê theo danh sách đang lọc *@
+    <div class="tdt-thong-ke">
+        <div class="tdt-the tdt-the-xanh"><i class="fa fa-archive"></i><div><b id="tdtTkTong">–</b><span>Tổng số tủ</span></div></div>
+        <div class="tdt-the tdt-the-luc"><i class="fa fa-user"></i><div><b id="tdtTkDangDung">–</b><span>Đang sử dụng</span></div></div>
+        <div class="tdt-the tdt-the-cam"><i class="fa fa-unlock-alt"></i><div><b id="tdtTkTrong">–</b><span>Còn trống</span></div></div>
+        <div class="tdt-the tdt-the-tim"><i class="fa fa-sitemap"></i><div><b id="tdtTkBoPhan">–</b><span>Bộ phận</span></div></div>
+    </div>
+
+    <div class="tdt-khung">
+        <div class="tdt-loc">
+            <div class="tdt-tim">
+                <i class="fa fa-search" aria-hidden="true"></i>
+                <input type="search" id="tdtTuKhoa" class="form-control" placeholder="Tìm tên tủ, vị trí, mã NV, người sử dụng…" aria-label="Tìm tủ" />
+            </div>
+            <select id="tdtLocBoPhan" class="form-select" aria-label="Lọc theo bộ phận" @(boPhans.Count <= 1 ? "hidden" : "")>
+                <option value="">Tất cả bộ phận</option>
+                @foreach (var b in boPhans)
+                {
+                    <option value="@b.Value">@b.Text</option>
+                }
+            </select>
+            <div class="tdt-phan-doan" role="group" aria-label="Lọc theo tình trạng">
+                <button type="button" class="dang-chon" data-trang-thai="">Tất cả</button>
+                <button type="button" data-trang-thai="dung">Đang dùng</button>
+                <button type="button" data-trang-thai="trong">Còn trống</button>
+            </div>
+        </div>
+
+        @if (laQuanLy)
+        {
+            @* Hiện khi đã tích chọn tủ: thao tác hàng loạt *@
+            <div class="tdt-thanh-chon" id="tdtThanhChon" hidden>
+                <span><i class="fa fa-check-square"></i> Đã chọn <b id="tdtSoChon2">0</b> tủ</span>
+                <div class="tdt-thanh-chon-nut">
+                    <button type="button" class="btn btn-sm btn-light" id="tdtBtnIn2"><i class="fa fa-print"></i> In tem</button>
+                    <button type="button" class="btn btn-sm btn-danger" id="tdtBtnXoaNhieu"><i class="fa fa-trash-o"></i> Xoá đã chọn</button>
+                    <button type="button" class="btn btn-sm btn-link" id="tdtBtnBoChon">Bỏ chọn</button>
+                </div>
+            </div>
+        }
+
+        <div class="tdt-bang-khung">
+            <table class="tdt-bang">
+                <thead>
+                    <tr>
+                        @if (laQuanLy)
+                        {
+                            <th class="tdt-cot-chon"><input type="checkbox" class="form-check-input" id="tdtChonTatCa" title="Chọn tất cả để in tem" aria-label="Chọn tất cả" /></th>
+                        }
+                        <th>Tủ</th>
+                        <th>Bộ phận</th>
+                        <th>Người sử dụng</th>
+                        <th>Tình trạng</th>
+                        @if (laQuanLy)
+                        {
+                            <th class="text-end">Thao tác</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody id="tdtBody">
+                    <tr><td colspan="6" class="tdt-trong"><span class="spinner-border spinner-border-sm me-2"></span>Đang tải…</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="tdt-chan" id="tdtChan"></div>
+    </div>
+</div>
+
+@if (laQuanLy)
+{
+@* Modal thêm / sửa tủ *@
+<div class="modal fade" id="tdtModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" id="tdtForm" novalidate>
+            <div class="modal-header">
+                <h5 class="modal-title" id="tdtModalTieuDe">Thêm tủ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="IdTu" id="tdtIdTu" value="0" />
+                <div class="mb-3">
+                    <label class="form-label" for="tdtBoPhan">Bộ phận <span class="text-danger">*</span></label>
+                    <select name="IdBoPhan" id="tdtBoPhan" class="form-select" required>
+                        <option value="">-- Chọn bộ phận --</option>
+                        @foreach (var b in boPhans)
+                        {
+                            <option value="@b.Value">@b.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="tdtTenTu">Tên tủ <span class="text-danger">*</span></label>
+                    <input type="text" name="TenTu" id="tdtTenTu" class="form-control" maxlength="100" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="tdtViTri">Vị trí tủ</label>
+                    <input type="text" name="ViTri" id="tdtViTri" class="form-control" maxlength="200" />
+                </div>
+                <div class="row">
+                    <div class="col-5 mb-3">
+                        <label class="form-label" for="tdtMaNv">Mã NV</label>
+                        <input type="text" name="MaNhanVien" id="tdtMaNv" class="form-control" maxlength="50" />
+                    </div>
+                    <div class="col-7 mb-3">
+                        <label class="form-label" for="tdtNguoiSuDung">Người sử dụng</label>
+                        <input type="text" name="NguoiSuDung" id="tdtNguoiSuDung" class="form-control" maxlength="200" />
+                    </div>
+                </div>
+                <div class="text-danger small" id="tdtLoi"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Huỷ</button>
+                <button type="submit" class="btn btn-primary" id="tdtBtnLuu">Lưu</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* Modal nhập tủ từ Excel: chọn file → Kiểm tra (xem trước từng dòng) → Nhập *@
+<div class="modal fade" id="tdtModalExcel" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa fa-file-excel-o tdt-xanh-excel"></i> Nhập tủ từ Excel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <div class="tdt-excel-chon">
+                    <input type="file" id="tdtFileExcel" class="form-control" accept=".xlsx" />
+                    <button type="button" class="btn btn-outline-primary" id="tdtBtnKiemExcel"><i class="fa fa-search"></i> Kiểm tra</button>
+                </div>
+                <p class="tdt-in-goi-y mt-2 mb-0">
+                    Chưa có file? <a href="/FormHR/QuanLyTuDienThoai/MauExcel">Tải mẫu Excel</a>.
+                    Tủ trùng <b>Bộ phận + Tên tủ</b> sẽ được cập nhật, tủ mới được thêm; tủ không có trong file giữ nguyên.
+                </p>
+                <div id="tdtExcelKetQua" hidden>
+                    <div class="tdt-excel-tom-tat" id="tdtExcelTomTat"></div>
+                    <div class="tdt-excel-bang">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead><tr><th>Dòng</th><th>Kết quả</th><th>Bộ phận</th><th>Tên tủ</th><th>Vị trí</th><th>Mã NV</th><th>Người sử dụng</th></tr></thead>
+                            <tbody id="tdtExcelDong"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="text-danger small mt-2" id="tdtExcelLoi"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-success" id="tdtBtnNhapNgay" disabled><i class="fa fa-upload"></i> Nhập</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Modal in tem cho các tủ đã tích chọn *@
+<div class="modal fade" id="tdtModalIn" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">In tem — <span id="tdtInSoTu">0</span> tủ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label" for="tdtInMau">Mẫu tem</label>
+                        <select id="tdtInMau" class="form-select"></select>
+                        @* Mẫu nhiều trang (như file .tnl): chọn trang nhãn để in *@
+                        <div id="tdtInTrangHop" hidden>
+                            <label class="form-label mt-2" for="tdtInTrang">Trang nhãn</label>
+                            <select id="tdtInTrang" class="form-select"></select>
+                        </div>
+                        <label class="form-label mt-2" for="tdtInMay">Máy in</label>
+                        <select id="tdtInMay" class="form-select">
+                            <option value="">Hộp thoại in của trình duyệt</option>
+                        </select>
+                        <div class="tdt-in-agent" id="tdtInAgent"></div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary mt-1" id="tdtTaiAgent"><i class="fa fa-download"></i> Tải Tem in Agent</button>
+                        <div class="row g-2 mt-1">
+                            <div class="col-6">
+                                <label class="form-label" for="tdtInSoBan">Số bản / tủ</label>
+                                <input type="number" id="tdtInSoBan" class="form-control" min="1" max="50" step="1" />
+                            </div>
+                            <div class="col-6 d-flex align-items-end">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="tdtInXoay" />
+                                    <label class="form-check-label" for="tdtInXoay">Xoay 90°</label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label" for="tdtInLechX">Lệch X (mm)</label>
+                                <input type="number" id="tdtInLechX" class="form-control" min="-20" max="20" step="0.1" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label" for="tdtInLechY">Lệch Y (mm)</label>
+                                <input type="number" id="tdtInLechY" class="form-control" min="-20" max="20" step="0.1" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="form-label">Xem trước (tủ đầu tiên)</div>
+                        <div class="tdt-in-xem" id="tdtInXem"></div>
+                    </div>
+                </div>
+                <p class="tdt-in-goi-y" id="tdtInGoiY">
+                    Trong hộp thoại in: chọn máy in Brother, <b>Lề: Không</b>, <b>Tỷ lệ: 100%</b>.
+                    Tem in lệch thì chỉnh Lệch X/Y; máy in băng nạp dọc thì bật Xoay 90°.
+                </p>
+                <div class="text-danger small" id="tdtInLoi"></div>
+            </div>
+            <div class="modal-footer">
+                <a href="/FormHR/QuanLyTuDienThoai/ThietKeTem" class="btn btn-link me-auto">Sửa / tạo mẫu tem</a>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Huỷ</button>
+                <button type="button" class="btn btn-primary" id="tdtBtnInNgay"><i class="fa fa-print"></i> In</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+    <script src="~/js/tem-nhan.js?v=8"></script>
+    <script src="~/js/tu-dien-thoai.js?v=8"></script>
+}

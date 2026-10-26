@@ -100,3 +100,9 @@ a.sv-the-cty-ten:hover { color: #4338ca; text-decoration: underline; }
 @media (max-width: 576px) {
     .sv-the-cty { padding: 12px; }
 }
+
+/* ---------- Báo cáo Tổng quan (/QLServer/TongQuan, dùng khung bc-* của camera-tong-quan.css) ---------- */
+.sv-bc-chip { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+.sv-bc-chip .sv-sk { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.sv-bc-luu-tru { font-size: .8rem; }
+.sv-bc-luu-tru .sv-thanh { height: 8px; margin-top: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }

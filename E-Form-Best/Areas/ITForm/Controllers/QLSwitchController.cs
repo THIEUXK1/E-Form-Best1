@@ -590,6 +590,65 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
         }
 
+        /// <summary>
+        /// Xu hướng số switch online / mất kết nối trong N giờ gần nhất (cho biểu đồ ở tab Danh sách).
+        /// Dựng lại trạng thái từng mốc bằng cách đi ngược sự kiện KK_SwitchLichSu (TuTrangThai = trạng thái TRƯỚC khi đổi).
+        /// </summary>
+        [HttpGet("/QLSwitch/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/XuHuong")]
+        public async Task<IActionResult> XuHuong(string congTy, int? gio)
+        {
+            var cty = CongTyHopLe(congTy)!;
+            if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+
+            try
+            {
+                var soGio = gio is 6 or 24 or 72 or 168 ? gio.Value : 24;
+                var den = DateTime.Now;
+                var tu = den.AddHours(-soGio);
+                var idCongTy = await IdCongTyAsync(cty);
+
+                var dsSw = await _context.KkSwitches
+                    .Where(x => x.NgayXoa == null && x.IdcongTy == idCongTy)
+                    .Select(x => new { x.IdSwitch, x.DiaChiIp, x.TinhTrang, x.TrangThaiKetNoi })
+                    .ToListAsync();
+                // null = chưa có trạng thái tại mốc đang xét (chưa kiểm lần nào) -> không đếm
+                var trangThai = dsSw
+                    .Where(x => TheoDoi(x.DiaChiIp, x.TinhTrang) && (x.TrangThaiKetNoi == "UP" || x.TrangThaiKetNoi == "DOWN"))
+                    .ToDictionary(x => x.IdSwitch, x => (string?)x.TrangThaiKetNoi);
+
+                var suKien = await _context.KkSwitchLichSus
+                    .Where(x => x.IdcongTy == idCongTy && x.ThoiGian > tu)
+                    .OrderByDescending(x => x.ThoiGian).ThenByDescending(x => x.IdLichSu)
+                    .Select(x => new { x.IdSwitch, x.ThoiGian, x.TuTrangThai })
+                    .ToListAsync();
+
+                const int soDiem = 72;
+                var buoc = TimeSpan.FromTicks((den - tu).Ticks / soDiem);
+                var diem = new List<object>(soDiem + 1);
+                var i = 0;
+                for (var k = 0; k <= soDiem; k++)
+                {
+                    var t = den - buoc * k;
+                    while (i < suKien.Count && suKien[i].ThoiGian > t)
+                    {
+                        var s = suKien[i++];
+                        if (trangThai.ContainsKey(s.IdSwitch))
+                            trangThai[s.IdSwitch] = s.TuTrangThai == "UP" || s.TuTrangThai == "DOWN" ? s.TuTrangThai : null;
+                    }
+                    diem.Add(new
+                    {
+                        thoiGian = t,
+                        up = trangThai.Values.Count(v => v == "UP"),
+                        down = trangThai.Values.Count(v => v == "DOWN")
+                    });
+                }
+                diem.Reverse();
+
+                return Json(new { thanhCong = true, duLieu = diem });
+            }
+            catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
         #endregion
 
         #region Máy chủ (quét dải IP)

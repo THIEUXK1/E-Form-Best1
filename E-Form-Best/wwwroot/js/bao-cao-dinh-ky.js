@@ -1,6 +1,6 @@
 // /BaoCaoDinhKy — gom các báo cáo định kì thành tab trên một trang. 3 kiểu tab (data-kieu):
-//  - tong-quan: Camera / AP / Switch — nạp partial _TongQuanNoiDung qua AJAX vào #bcDinhKy rồi giao cho
-//    camera|ap|switch-tong-quan.js khởi tạo; kỳ và phạm vi công ty đang chọn được chép sang tab mới.
+//  - tong-quan: Camera / AP / Switch / Server — nạp partial _TongQuanNoiDung qua AJAX vào #bcDinhKy rồi giao cho
+//    camera|ap|switch|server-tong-quan.js khởi tạo; kỳ và phạm vi công ty đang chọn được chép sang tab mới.
 //  - thiet-bi: số liệu /QLKiemKe/GetKkThietBis vẽ bằng kiemke-tong-quan.js (cùng tab Tổng quan của trang Quản lý Thiết bị).
 //  - iframe: trang thống kê sẵn có mở với ?nhung=1 (script inline, trùng id giữa các trang nên phải tách tài liệu).
 (function () {
@@ -429,8 +429,7 @@
             doiUrl(loai);
         }
 
-        // Khối so sánh kỳ trước chỉ cho Thiết bị / Đơn IT / Công việc: Camera/AP/Switch đã có sẵn trong nội dung,
-        // Server & lưu trữ là số liệu hiện tại (không theo kỳ) nên không có gì để so
+        // Khối so sánh kỳ trước chỉ cho Thiết bị / Đơn IT / Công việc: Camera/AP/Switch/Server đã có sẵn trong nội dung
         var coSoSanh = ['thiet-bi', 'don-it', 'cong-viec'].indexOf(loai) >= 0;
         $id('bcSoSanhKhac').classList.toggle('d-none', !coSoSanh);
         if (coSoSanh) {
