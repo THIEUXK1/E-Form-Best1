@@ -7,7 +7,7 @@
     bool laQuanLy = ViewBag.LaQuanLy == true;
 }
 
-<link rel="stylesheet" href="~/css/tu-dien-thoai.css?v=6" />
+<link rel="stylesheet" href="~/css/tu-dien-thoai.css?v=7" />
 
 <div class="tdt-trang" id="tdtTrang" data-la-quan-ly="@(laQuanLy ? "1" : "0")">
     <div class="tdt-dau">
@@ -43,6 +43,7 @@
                         <li><button type="button" class="dropdown-item" id="tdtBtnNhapExcel"><i class="fa fa-upload"></i> Nhập từ Excel…</button></li>
                     </ul>
                 </div>
+                <button type="button" class="btn tdt-nut-phu" id="tdtBtnDriver" title="Tải driver máy in tem"><i class="fa fa-download"></i><span>Driver máy in</span></button>
                 <button type="button" class="btn tdt-nut-phu" id="tdtBtnIn" disabled><i class="fa fa-print"></i><span>In tem</span><b class="tdt-dem" id="tdtSoChon">0</b></button>
                 <button type="button" class="btn btn-primary tdt-nut-chinh" id="tdtBtnThem"><i class="fa fa-plus"></i><span>Thêm tủ</span></button>
             </div>
@@ -204,6 +205,28 @@
 </div>
 
 @* Modal in tem cho các tủ đã tích chọn *@
+<div class="modal fade" id="tdtModalDriver" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa fa-download"></i> Tải driver máy in</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label" for="tdtDriverMay">Máy in</label>
+                <select id="tdtDriverMay" class="form-select" disabled>
+                    <option value="">Đang tải…</option>
+                </select>
+                <div class="list-group mt-3" id="tdtDriverDs"></div>
+                <div class="form-text mt-2 tdt-driver-ghi-chu" id="tdtDriverGhiChu"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="tdtModalIn" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -216,6 +239,8 @@
                     <div class="col-md-5">
                         <label class="form-label" for="tdtInMau">Mẫu tem</label>
                         <select id="tdtInMau" class="form-select"></select>
+                        @* Chọn bản đang thiết kế chưa lưu (nháp của trang Thiết kế tem trên trình duyệt này) thì nhắc lưu lên hệ thống *@
+                        <div id="tdtInNhapGhiChu" class="form-text text-warning" hidden></div>
                         @* Mẫu nhiều trang (như file .tnl): chọn trang nhãn để in *@
                         <div id="tdtInTrangHop" hidden>
                             <label class="form-label mt-2" for="tdtInTrang">Trang nhãn</label>
@@ -273,6 +298,6 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-    <script src="~/js/tem-nhan.js?v=8"></script>
-    <script src="~/js/tu-dien-thoai.js?v=8"></script>
+    <script src="~/js/tem-nhan.js?v=9"></script>
+    <script src="~/js/tu-dien-thoai.js?v=12"></script>
 }

@@ -1416,6 +1416,10 @@
     var XLSX_CDN = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
     var nguonDl = 'tu', cotDl = [], dongDl = [], wbDl = null, tenFileDl = '';
     var daChonDong = new Set();          // __id các bản ghi đã tích (in "Bản ghi đã chọn")
+    // Tủ đã tích ở trang quản lý (?tu=1,2,3) → tích sẵn khi tải xong dữ liệu tủ.
+    // Đọc ngay lúc nạp script vì ghiDiaChi() sẽ thay địa chỉ trang.
+    var tuChonTuQl = (new URLSearchParams(location.search).get('tu') || '').split(',')
+        .map(function (v) { return parseInt(v, 10); }).filter(function (v) { return v > 0; });
 
     function cotTu() {
         return T.TRUONG_TU.map(function (t) { return { ten: t.ten, lay: function (r) { return r[t.khoa]; } }; });
@@ -1450,6 +1454,16 @@
         cotDl = cotTu();
         dongDl = dsTu.map(function (t) { return Object.assign({ __id: 't' + t.idTu }, t); });
         daChonDong.clear();
+        if (tuChonTuQl.length) {
+            var coTu = new Set(dsTu.map(function (t) { return t.idTu; }));
+            tuChonTuQl.forEach(function (id) { if (coTu.has(id)) daChonDong.add('t' + id); });
+            tuChonTuQl = []; // chỉ áp 1 lần, tải lại dữ liệu sau đó không tích lại
+            if (daChonDong.size) {
+                $('tkTrang').classList.add('mo-du-lieu');
+                $('tkXemDuLieu').checked = true;
+                capNhatNut();
+            }
+        }
         var sel = $('tkLocBoPhan'), cu = sel.value;
         sel.replaceChildren();
         var op0 = document.createElement('option');
@@ -1786,7 +1800,7 @@
             var bc = await T.agent.taiBoCai();
             trangThai('Đang tải bộ cài TemNhanAgent_CaiDat.msi (' + bc.kichThuocMb + ' MB) — mở file để cài (không cần quyền admin), cài xong trang tự nhận.');
         } catch (ex) {
-            thongBao('error', ex.message + (ex.thuMuc ? '\nLấy bộ cài thủ công tại: ' + ex.thuMuc : ''));
+            thongBao('error', ex.message);
         } finally {
             if (nut) nut.disabled = false;
         }

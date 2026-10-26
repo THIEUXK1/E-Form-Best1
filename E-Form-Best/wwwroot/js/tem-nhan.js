@@ -443,11 +443,7 @@
         var res = await fetch('/FormHR/QuanLyTuDienThoai/TemInAgent/KiemTra');
         if (!res.ok) throw new Error('Máy chủ trả lỗi ' + res.status);
         var kq = await res.json();
-        if (!kq.thanhCong) {
-            var e = new Error(kq.thongBao || 'Không lấy được bộ cài.');
-            e.thuMuc = kq.duLieu && kq.duLieu.thuMuc;
-            throw e;
-        }
+        if (!kq.thanhCong) throw new Error(kq.thongBao || 'Không lấy được bộ cài.');
         var a = document.createElement('a');
         a.href = '/FormHR/QuanLyTuDienThoai/TemInAgent/Tai';
         a.download = 'TemNhanAgent_CaiDat.msi';

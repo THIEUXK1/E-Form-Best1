@@ -549,16 +549,17 @@ namespace E_Form_Best.Areas.HRform.Controllers
             {
                 var file = new FileInfo(Path.Combine(ThuMucAgent, TenFileAgent));
                 if (!file.Exists)
-                    return Json(new { thanhCong = false, thongBao = "Chưa có bộ cài trên file server.", duLieu = new { thuMuc = ThuMucAgent } });
+                    return Json(new { thanhCong = false, thongBao = "Chưa có bộ cài trên file server, liên hệ IT." });
                 return Json(new
                 {
                     thanhCong = true,
-                    duLieu = new { thuMuc = ThuMucAgent, kichThuocMb = Math.Round(file.Length / 1048576.0, 1), ngayCapNhat = file.LastWriteTime }
+                    duLieu = new { kichThuocMb = Math.Round(file.Length / 1048576.0, 1), ngayCapNhat = file.LastWriteTime }
                 });
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                return Json(new { thanhCong = false, thongBao = "Máy chủ không đọc được file server: " + ex.Message, duLieu = new { thuMuc = ThuMucAgent } });
+                // Không trả đường dẫn share / ex.Message (có chứa \\máy\thư mục) về trình duyệt
+                return Json(new { thanhCong = false, thongBao = "Máy chủ không đọc được file server, liên hệ IT." });
             }
         }
 
@@ -570,8 +571,67 @@ namespace E_Form_Best.Areas.HRform.Controllers
             if (!CoQuyenQuanLy()) return Forbid();
 
             var duongDan = Path.Combine(ThuMucAgent, TenFileAgent);
-            if (!System.IO.File.Exists(duongDan)) return NotFound("Chưa có bộ cài Tem in Agent trên file server: " + ThuMucAgent);
+            if (!System.IO.File.Exists(duongDan)) return NotFound("Chưa có bộ cài Tem in Agent trên file server, liên hệ IT.");
             return PhysicalFile(duongDan, "application/x-msi", TenFileAgent, enableRangeProcessing: true);
+        }
+
+        #endregion
+
+        #region Driver máy in tem
+
+        // Mỗi thư mục con trong Driver\ là 1 dòng máy in (vd "TSC TE200", "Brother PT-P900W"), bên trong để file cài.
+        // IT chép thêm thư mục là có ngay trên trang, không cần sửa code.
+        private string ThuMucDriver => _configuration["TemInAgent:ThuMucDriver"] ?? Path.Combine(ThuMucAgent, "Driver");
+
+        [HttpGet("/FormHR/QuanLyTuDienThoai/DriverMayIn/DanhSach")]
+        public IActionResult DanhSachDriverMayIn()
+        {
+            if (!CoQuyenQuanLy()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem." });
+
+            try
+            {
+                var goc = new DirectoryInfo(ThuMucDriver);
+                if (!goc.Exists)
+                    return Json(new { thanhCong = false, thongBao = "Chưa có driver nào trên file server, liên hệ IT." });
+
+                var ds = goc.GetDirectories()
+                    .OrderBy(d => d.Name)
+                    .Select(d => new
+                    {
+                        may = d.Name,
+                        files = d.GetFiles()
+                            .Where(f => (f.Attributes & (FileAttributes.Hidden | FileAttributes.System)) == 0)
+                            .OrderBy(f => f.Name)
+                            .Select(f => new { ten = f.Name, kichThuocMb = Math.Round(f.Length / 1048576.0, 1), ngayCapNhat = f.LastWriteTime })
+                            .ToList()
+                    })
+                    .Where(m => m.files.Count > 0)
+                    .ToList();
+                return Json(new { thanhCong = true, duLieu = new { ds } });
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Như bộ cài Agent: không lộ đường dẫn share ra trình duyệt
+                return Json(new { thanhCong = false, thongBao = "Máy chủ không đọc được file server, liên hệ IT." });
+            }
+        }
+
+        [HttpGet("/FormHR/QuanLyTuDienThoai/DriverMayIn/Tai")]
+        public IActionResult TaiDriverMayIn(string may, string file)
+        {
+            if (User?.Identity?.IsAuthenticated != true)
+                return Redirect("/DonXetDuyet/DangNhap");
+            if (!CoQuyenQuanLy()) return Forbid();
+
+            // Chỉ nhận đúng tên thư mục / tên file — chặn ..\ hay đường dẫn tuyệt đối đọc file ngoài thư mục driver
+            if (string.IsNullOrWhiteSpace(may) || string.IsNullOrWhiteSpace(file)
+                || may.Contains("..") || file.Contains("..")
+                || Path.GetFileName(may) != may || Path.GetFileName(file) != file)
+                return BadRequest("Tên driver không hợp lệ.");
+
+            var duongDan = Path.Combine(ThuMucDriver, may, file);
+            if (!System.IO.File.Exists(duongDan)) return NotFound("Không tìm thấy driver này, liên hệ IT.");
+            return PhysicalFile(duongDan, "application/octet-stream", file, enableRangeProcessing: true);
         }
 
         #endregion

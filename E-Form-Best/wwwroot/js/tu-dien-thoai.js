@@ -306,8 +306,33 @@
 
     var mauDaNapTrang = null;    // idMau đã đổ danh sách trang vào ô "Trang nhãn"
 
+    // Bản đang thiết kế chưa bấm Lưu: trang Thiết kế tem tự ghi nháp vào localStorage của trình duyệt.
+    // Khoá phải trùng KHOA_NHAP trong tem-thiet-ke.js. Lưu xong bên đó tự xoá nháp -> chỉ còn mẫu đã lưu.
+    var KHOA_NHAP_TEM = 'tem-thiet-ke-nhap';
+    var ID_NHAP = 'nhap';
+
+    function docNhapTem() {
+        try {
+            var n = JSON.parse(localStorage.getItem(KHOA_NHAP_TEM) || 'null');
+            if (n && !n.duAn && n.trang) n.duAn = [n.trang]; // nháp bản cũ chỉ có 1 trang
+            return n && Array.isArray(n.duAn) && n.duAn.length ? n : null;
+        } catch (ex) { return null; }
+    }
+
+    function ghiChuNhap() {
+        var o = document.getElementById('tdtInNhapGhiChu');
+        var laNhap = document.getElementById('tdtInMau').value === ID_NHAP;
+        o.hidden = !laNhap;
+        o.textContent = laNhap ? 'Đang dùng bản thiết kế chưa lưu trên trình duyệt này. In được ngay, nhưng máy khác không thấy — bấm "Lưu" ở trang Thiết kế tem để dùng chung.' : '';
+    }
+
     // Trả về trang nhãn đang chọn của mẫu (mẫu lưu dạng nhiều trang như file .tnl)
     async function layMau(idMau) {
+        if (idMau === ID_NHAP && !boNhoMau[idMau]) {
+            var nhap = docNhapTem();
+            if (!nhap) throw new Error('Bản thiết kế chưa lưu không còn — mở lại hộp thoại In.');
+            boNhoMau[idMau] = nhap.duAn.map(window.TemNhan.chuanHoaTrang);
+        }
         if (!boNhoMau[idMau]) {
             var res = await fetch('/FormHR/QuanLyTuDienThoai/MauTem/' + idMau);
             if (!res.ok) throw new Error('Máy chủ trả lỗi ' + res.status);
@@ -400,10 +425,66 @@
             var bc = await window.TemNhan.agent.taiBoCai();
             ghiAgent('Đang tải bộ cài TemNhanAgent_CaiDat.msi (' + bc.kichThuocMb + ' MB). Mở file để cài (không cần quyền admin), cài xong mở lại hộp thoại In tem.', 'ok');
         } catch (ex) {
-            ghiAgent(ex.message + (ex.thuMuc ? '\nLấy bộ cài thủ công tại: ' + ex.thuMuc : ''), 'canh-bao');
+            ghiAgent(ex.message, 'canh-bao');
         } finally {
             nut.disabled = false;
         }
+    }
+
+    // ===== Driver máy in: mỗi thư mục Driver\<máy in> trên file server là 1 lựa chọn =====
+    var dsDriver = [];
+
+    async function moDriver() {
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('tdtModalDriver')).show();
+        var sel = document.getElementById('tdtDriverMay');
+        var ghiChu = document.getElementById('tdtDriverGhiChu');
+        sel.disabled = true;
+        sel.replaceChildren(new Option('Đang tải…', ''));
+        document.getElementById('tdtDriverDs').replaceChildren();
+        ghiChu.textContent = '';
+        try {
+            var res = await fetch('/FormHR/QuanLyTuDienThoai/DriverMayIn/DanhSach');
+            if (!res.ok) throw new Error('Máy chủ trả lỗi ' + res.status);
+            var kq = await res.json();
+            if (!kq.thanhCong) throw new Error(kq.thongBao);
+            dsDriver = kq.duLieu.ds;
+            if (!dsDriver.length) {
+                sel.replaceChildren(new Option('Chưa có driver nào', ''));
+                return;
+            }
+            sel.replaceChildren(new Option('— Chọn máy in —', ''));
+            dsDriver.forEach(function (d) { sel.appendChild(new Option(d.may, d.may)); });
+            sel.disabled = false;
+            if (dsDriver.length === 1) { sel.value = dsDriver[0].may; veDriver(); }
+        } catch (ex) {
+            sel.replaceChildren(new Option('Không tải được', ''));
+            ghiChu.textContent = ex.message;
+        }
+    }
+
+    function veDriver() {
+        var may = document.getElementById('tdtDriverMay').value;
+        var khung = document.getElementById('tdtDriverDs');
+        khung.replaceChildren();
+        var d = dsDriver.find(function (x) { return x.may === may; });
+        if (!d) return;
+        d.files.forEach(function (f) {
+            // Tải file = điều hướng thật (được phép); máy chủ đọc file server rồi trả về
+            var a = document.createElement('a');
+            a.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+            a.href = '/FormHR/QuanLyTuDienThoai/DriverMayIn/Tai?may=' + encodeURIComponent(d.may) + '&file=' + encodeURIComponent(f.ten);
+            var ten = document.createElement('span');
+            var i = document.createElement('i');
+            i.className = 'fa fa-download me-2';
+            ten.appendChild(i);
+            ten.appendChild(document.createTextNode(f.ten));
+            var nho = document.createElement('small');
+            nho.className = 'text-muted ms-2 text-nowrap';
+            nho.textContent = f.kichThuocMb + ' MB · ' + new Date(f.ngayCapNhat).toLocaleDateString('vi-VN');
+            a.appendChild(ten);
+            a.appendChild(nho);
+            khung.appendChild(a);
+        });
     }
 
     // So khổ mẫu với các khổ tem driver của máy in đang chọn
@@ -453,21 +534,32 @@
             var kq = await res.json();
             if (!kq.thanhCong) throw new Error(kq.thongBao || 'Không tải được danh sách mẫu tem.');
             var ds = kq.duLieu || [];
-            if (!ds.length) {
+            var nhap = docNhapTem();
+            if (!ds.length && !nhap) {
                 var op0 = document.createElement('option');
                 op0.value = ''; op0.textContent = '(chưa có mẫu tem)';
                 sel.appendChild(op0);
-                document.getElementById('tdtInLoi').textContent = 'Chưa có mẫu tem nào. Bấm "Sửa / tạo mẫu tem" để thiết kế trước.';
+                document.getElementById('tdtInLoi').textContent = 'Chưa có mẫu tem nào. Bấm "Sửa / tạo mẫu tem" để thiết kế, xong bấm "Lưu".';
+                ghiChuNhap();
                 return;
+            }
+            // Bản đang thiết kế (chưa lưu) đứng đầu và được chọn sẵn: vừa chỉnh xong sang đây in là đúng mẫu vừa chỉnh
+            if (nhap) {
+                var opNhap = document.createElement('option');
+                opNhap.value = ID_NHAP;
+                opNhap.textContent = '✎ Đang thiết kế, chưa lưu' + (nhap.tenMau ? ': ' + nhap.tenMau : '');
+                sel.appendChild(opNhap);
             }
             ds.forEach(function (m) {
                 var op = document.createElement('option');
                 op.value = m.idMau; op.textContent = m.tenMau;
                 sel.appendChild(op);
             });
-            if (c.idMau && ds.some(function (m) { return String(m.idMau) === String(c.idMau); })) sel.value = String(c.idMau);
+            if (nhap) sel.value = ID_NHAP;
+            else if (c.idMau && ds.some(function (m) { return String(m.idMau) === String(c.idMau); })) sel.value = String(c.idMau);
             boNhoMau = {}; // mẫu có thể vừa được sửa ở trang thiết kế
             mauDaNapTrang = null;
+            ghiChuNhap();
             nutIn.disabled = false;
             veXemTruoc();
             await napMayIn(c.mayIn);
@@ -616,7 +708,13 @@
         }
         if (!laQuanLy) return;
         if (e.target.closest('#tdtBtnThem')) { moModal(null); return; }
-        if (e.target.closest('#tdtBtnIn') || e.target.closest('#tdtBtnIn2')) { moIn(); return; }
+        if (e.target.closest('#tdtBtnDriver')) { moDriver(); return; }
+        // In tem → sang trang thiết kế tem, mang theo các tủ đã tích (tích sẵn ở bảng Dữ liệu)
+        if (e.target.closest('#tdtBtnIn') || e.target.closest('#tdtBtnIn2')) {
+            if (!daChon.size) return;
+            window.location.href = '/FormHR/QuanLyTuDienThoai/ThietKeTem?tu=' + Array.from(daChon).join(',');
+            return;
+        }
         var nutXoaNhieu = e.target.closest('#tdtBtnXoaNhieu');
         if (nutXoaNhieu) { xoaNhieu(nutXoaNhieu); return; }
         if (e.target.closest('#tdtBtnBoChon')) { daChon.clear(); veBang(); return; }
@@ -639,6 +737,7 @@
     document.addEventListener('change', function (e) {
         var o = e.target;
         if (o.id === 'tdtLocBoPhan') { taiDanhSach(); return; }
+        if (o.id === 'tdtDriverMay') { veDriver(); return; }
         if (o.id === 'tdtFileExcel') { datLaiExcel(); if (o.files[0]) guiExcel(false); return; } // chọn file xong kiểm tra luôn
         if (o.classList.contains('tdt-chon')) {
             var id = parseInt(o.dataset.id, 10);
@@ -654,6 +753,7 @@
             capNhatChon();
             return;
         }
+        if (o.id === 'tdtInMau') ghiChuNhap();
         if (['tdtInMau', 'tdtInXoay', 'tdtInTrang'].indexOf(o.id) >= 0) veXemTruoc();
         if (o.id === 'tdtInMau' || o.id === 'tdtInMay' || o.id === 'tdtInTrang') kiemKhoMay();
     });

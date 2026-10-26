@@ -140,3 +140,6 @@
     .tdt-the > .fa { width: 34px; height: 34px; }
     .tdt-the b { font-size: 1.2rem; }
 }
+
+/* Hộp thoại driver máy in: thông báo lỗi có xuống dòng (kèm đường dẫn thư mục) */
+.tdt-driver-ghi-chu { white-space: pre-line; word-break: break-all; }
