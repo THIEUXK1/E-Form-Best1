@@ -210,10 +210,11 @@ namespace E_Form_Best.Areas.ITForm.Services
 
         /// <summary>Tra rồi thêm trên từng WLC: con nào đã có MAC thì giữ nguyên (không ghi đè), con nào chưa có thì thêm + lưu.</summary>
         public async Task<List<KetQuaWlc>> ThemMacAsync(string congTy, string mac, HoSoWlan hoSo, string moTa,
-            string taiKhoanAd, string matKhauAd, CancellationToken ct = default)
+            string taiKhoanAd, string matKhauAd, CancellationToken ct = default, string? ipWlc = null)
         {
             var ds = new List<KetQuaWlc>();
-            foreach (var wlc in DsWlc(congTy))
+            // ipWlc có giá trị = chỉ thêm lên đúng 1 WLC (nút riêng từng WLC trong modal)
+            foreach (var wlc in DsWlc(congTy).Where(w => string.IsNullOrWhiteSpace(ipWlc) || w.Ip == ipWlc.Trim()))
             {
                 if (ds.Any(k => LaSaiMatKhau(k.ThongBao))) { ds.Add(BoQuaViSaiMatKhau(wlc)); continue; }
                 ds.Add(await ThemMotWlcAsync(wlc, mac, hoSo, moTa, taiKhoanAd, matKhauAd, ct));

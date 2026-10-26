@@ -13,7 +13,10 @@
     const oMatKhau = document.getElementById('themMacWlcMatKhau');
     const oKetQua = document.getElementById('themMacWlcKetQua');
     const oLoi = document.getElementById('themMacWlcLoi');
-    const btnGui = document.getElementById('btnGuiThemMacWlc');
+    // Mỗi WLC một nút "Thêm lên <WLC>" (data-ip), thêm riêng từng con
+    const dsNutGui = Array.from(modal.querySelectorAll('.btn-gui-them-mac-wlc'));
+    const dsWlcModal = dsNutGui.map(function (b) { return { wlc: b.dataset.wlc, ip: b.dataset.ip, co: null }; });
+    function khoaNutGui(khoa) { dsNutGui.forEach(function (b) { b.disabled = khoa; }); }
     const btnKiemTra = document.getElementById('btnKiemTraMacWlc');
     let nutDangChon = null;
     let dangGui = false;
@@ -156,7 +159,8 @@
         const nut = nutDangChon;
         const chuGoc = nutBam.textContent;
         dangGui = true;
-        btnGui.disabled = btnKiemTra.disabled = nutBam.disabled = true;
+        khoaNutGui(true);
+        btnKiemTra.disabled = nutBam.disabled = true;
         nutBam.textContent = chuCho;
         hienLoi('');
         try {
@@ -184,7 +188,8 @@
             return null;
         } finally {
             dangGui = false;
-            btnGui.disabled = btnKiemTra.disabled = nutBam.disabled = false;
+            khoaNutGui(false);
+            btnKiemTra.disabled = nutBam.disabled = false;
             nutBam.textContent = chuGoc;
         }
     }
@@ -246,16 +251,23 @@
         if (ds.some(function (k) { return !k.thanhCong && !k.daTonTai; })) { oMatKhau.value = ''; oMatKhau.focus(); }
     });
 
-    form.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const kq = await gui('/FormIT/ThemMacWifi', btnGui, 'Đang tra & đẩy lệnh lên WLC...');
+    // Enter trong ô nhập không tự đẩy lệnh lên WLC nào — phải bấm đúng nút của WLC
+    form.addEventListener('submit', function (e) { e.preventDefault(); });
+
+    dsNutGui.forEach(function (nutWlc) { nutWlc.addEventListener('click', async function () {
+        const kq = await gui('/FormIT/ThemMacWifi', nutWlc, 'Đang tra & đẩy lệnh...', nutWlc.dataset.ip);
         if (!kq) return;
         const d = kq.data;
         const ds = d.duLieu?.ketQua;
         if (!ds) { hienLoi(d.thongBao || 'Thêm MAC thất bại.'); oMatKhau.value = ''; oMatKhau.focus(); return; }
-        // Luôn giữ modal mở để IT đọc kết quả từng WLC; WLC nào lỗi thì gửi lại (WLC đã có sẽ không bị ghi đè)
+        // Luôn giữ modal mở để IT đọc kết quả; WLC lỗi thì bấm lại (WLC đã có sẽ không bị ghi đè)
         hienKetQuaTungWlc(ds, false);
-        capNhatNut(kq.nut, trangThaiTuKq(ds, false));
+        // Chỉ thêm 1 WLC: gộp vào trạng thái đã biết của các WLC khác, chưa biết thì để "chưa tra được"
+        const moi = trangThaiTuKq(ds, false);
+        const tt = (kq.nut._trangThai || dsWlcModal).map(function (t) {
+            return moi.find(function (m) { return m.ip === t.ip; }) || t;
+        });
+        capNhatNut(kq.nut, tt);
         if (!d.thanhCong) { oMatKhau.value = ''; oMatKhau.focus(); }
-    });
+    }); });
 })();

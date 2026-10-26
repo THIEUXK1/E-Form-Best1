@@ -13,11 +13,11 @@
 #btnKiemTraMacWlc { background: #f1f5f9; color: #0369a1; border: 1px solid #bae6fd; }
 #btnKiemTraMacWlc:disabled { opacity: .6; cursor: wait; }
 .them-mac-wlc-loi { background: #fef2f2; color: #991b1b; border-radius: 8px; padding: 8px 10px; font-size: 13px; }
-.them-mac-wlc-nut { display: flex; justify-content: flex-end; gap: 8px; }
+.them-mac-wlc-nut { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .them-mac-wlc-nut button { border: none; border-radius: 8px; padding: 8px 14px; font-weight: 700; cursor: pointer; }
 #btnHuyThemMacWlc { background: #e2e8f0; color: #334155; }
-#btnGuiThemMacWlc { background: #0369a1; color: #fff; }
-#btnGuiThemMacWlc:disabled { opacity: .6; cursor: wait; }
+.them-mac-wlc-nut .btn-gui-them-mac-wlc { background: #0369a1; color: #fff; }
+.them-mac-wlc-nut .btn-gui-them-mac-wlc:disabled { opacity: .6; cursor: wait; }
 .them-mac-wlc-bang { width: 100%; border-collapse: collapse; margin-top: 8px; background: #fff; border-radius: 6px; overflow: hidden; }
 .them-mac-wlc-bang td { padding: 5px 8px; border-bottom: 1px solid #fde68a; font-size: 13px; }
 .them-mac-wlc-bang td:first-child { color: #78716c; white-space: nowrap; width: 1%; }

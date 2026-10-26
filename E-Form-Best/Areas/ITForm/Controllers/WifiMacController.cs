@@ -146,8 +146,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var hoSo = _wlc.DsHoSo(congTy).FirstOrDefault(h => h.Ma == vao!.HoSo);
             if (hoSo == null) return Json(new { thanhCong = false, thongBao = "Chọn WLAN profile." });
             var moTa = WlcMacService.ChuanHoaMoTa(vao!.MoTa);
+            if (!string.IsNullOrWhiteSpace(vao.IpWlc) && _wlc.DsWlc(congTy).All(w => w.Ip != vao.IpWlc.Trim()))
+                return Json(new { thanhCong = false, thongBao = "WLC không thuộc cấu hình của công ty." });
 
-            var ds = await _wlc.ThemMacAsync(congTy, mac, hoSo, moTa, taiKhoan, vao.MatKhau!, HttpContext.RequestAborted);
+            var ds = await _wlc.ThemMacAsync(congTy, mac, hoSo, moTa, taiKhoan, vao.MatKhau!, HttpContext.RequestAborted, vao.IpWlc);
 
             // Mỗi WLC một dòng lịch sử, ghi cả khi đã tồn tại để biết ai đã kiểm; lỗi đăng nhập/kết nối thì không ghi cho đỡ rác.
             var nguoiLam = $"{User.FindFirst(ClaimTypes.Name)?.Value} ({User.FindFirst("MaNv")?.Value}), SSH bằng {taiKhoan}";

@@ -1349,7 +1349,7 @@
     <div id="modalThemMacWlc" class="them-mac-wlc-nen" hidden data-id-form="@Model.Id" data-la-all="@(User.IsInRole("All") ? "1" : "0")">
         <form id="formThemMacWlc" class="them-mac-wlc-hop" autocomplete="off">
             <h3>➕ Thêm MAC lên WLC (@Model.TenCongTy)</h3>
-            <div class="them-mac-wlc-ds">Thêm lần lượt vào: @string.Join(" · ", WlcMac.DsWlc(Model.TenCongTy).Select(w => w.Ten))</div>
+            <div class="them-mac-wlc-ds">WLC: @string.Join(" · ", WlcMac.DsWlc(Model.TenCongTy).Select(w => w.Ten)) — thêm riêng từng con bằng nút bên dưới</div>
             <div class="them-mac-wlc-dong"><span>MAC</span><b id="themMacWlcMac"></b></div>
             <label>WLAN profile
                 <select id="themMacWlcHoSo" required>
@@ -1375,10 +1375,13 @@
             <div class="them-mac-wlc-nut">
                 <button type="button" id="btnHuyThemMacWlc">Đóng</button>
                 <button type="button" id="btnKiemTraMacWlc">Kiểm tra</button>
-                <button type="submit" id="btnGuiThemMacWlc">Thêm & lưu WLC</button>
+                @foreach (var w in WlcMac.DsWlc(Model.TenCongTy))
+                {
+                    <button type="button" class="btn-gui-them-mac-wlc" data-ip="@w.Ip" data-wlc="@w.Ten">Thêm lên @w.Ten</button>
+                }
             </div>
         </form>
     </div>
-    <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261026d" />
-    <script src="~/js/formit-them-mac-wlc.js?v=20261026d"></script>
+    <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261026e" />
+    <script src="~/js/formit-them-mac-wlc.js?v=20261026e"></script>
 }
