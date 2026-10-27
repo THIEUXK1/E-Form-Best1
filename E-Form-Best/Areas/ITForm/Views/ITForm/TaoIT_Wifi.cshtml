@@ -268,7 +268,17 @@
                             </div>
                             <div>
                                 <label style="@labelBase">Loại thiết bị <span style="color:red">*</span></label>
-                                <input type="text" name="chiTiet.LoaiThietBi" placeholder="Ví dụ: Laptop, Phone..." required class="input-hover" style="@inputBase">
+                                <input type="text" name="chiTiet.LoaiThietBi" list="dsLoaiThietBiWifi" placeholder="Ví dụ: Laptop, Phone, PDA, Tivi..." required class="input-hover" style="@inputBase">
+                                @* Gợi ý chọn nhanh, vẫn cho gõ loại khác *@
+                                <datalist id="dsLoaiThietBiWifi">
+                                    <option value="Laptop"></option>
+                                    <option value="Điện thoại"></option>
+                                    <option value="Máy tính bảng"></option>
+                                    <option value="PDA"></option>
+                                    <option value="Tivi"></option>
+                                    <option value="Máy in"></option>
+                                    <option value="Camera"></option>
+                                </datalist>
                             </div>
                         </div>
 

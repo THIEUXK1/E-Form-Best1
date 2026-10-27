@@ -1068,9 +1068,23 @@
     }
 
     // ===== Bố cục thích nghi =====
-    // Màn rộng: hai bảng là cột, bật/tắt được (nhớ trong trình duyệt). Màn ≤ 992px: các bảng là ngăn kéo, mở đè lên vùng vẽ.
+    // Khung rộng: hai bảng là cột, bật/tắt được (nhớ trong trình duyệt). Khung hẹp: các bảng là ngăn kéo, mở đè lên vùng vẽ.
+    // Đo bề rộng thật của #tkTrang (không theo cửa sổ): laptop 1366px còn menu trái của trang thì 2 cột 214+250px
+    // chiếm gần hết, vùng vẽ tem chỉ còn ~600px → zoom tem lên là phải cuộn.
 
-    var manHep = window.matchMedia('(max-width: 992px)');
+    var NGUONG_HEP = 1080;               // ≈ 2 cột + vùng vẽ tối thiểu ~600px
+    var manHep = { matches: false };
+
+    function capNhatHep(lanDau) {
+        var tr = $('tkTrang');
+        var hep = tr.clientWidth > 0 && tr.clientWidth < NGUONG_HEP;
+        if (hep === manHep.matches) return;
+        manHep.matches = hep;
+        tr.classList.toggle('tk-hep', hep);
+        if (lanDau === true) return; // lúc khởi tạo tem chưa vẽ, zoomVua chạy sau trong init
+        dongNganKeo();
+        zoomVua();
+    }
 
     function batTatBan(ben) {
         var tr = $('tkTrang');
@@ -1101,14 +1115,28 @@
         capNhatNut();
     }
 
-    // Màn ≤ 768px (fixed-page-layout không khoá): tự khoá cuộn trang và cho khung thiết kế cao vừa phần màn còn lại
+    // Khung thiết kế luôn kéo tới sát đáy cửa sổ, mọi cỡ màn và mọi mức zoom của hệ thống:
+    // khoá cuộn trang rồi đo khoảng trống thật từ mép trên khung tới đáy (CSS calc(100vh - 110px) đoán sai khi header đổi cao / zoom).
+    var CACH_DAY = 4;                    // px màn hình chừa dưới đáy cho thấy viền bo
+
+    function zoomHeThong() {
+        var z = parseFloat(getComputedStyle(document.body).zoom);
+        if (/%$/.test(getComputedStyle(document.body).zoom)) z = z / 100;
+        return z > 0 ? z : 1;
+    }
+
     function coDinhChieuCao() {
         var tr = $('tkTrang');
-        var hep = window.innerWidth <= 768;
-        document.documentElement.classList.toggle('tk-khoa', hep);
-        if (!hep) { tr.style.height = ''; return; }
+        document.documentElement.classList.add('tk-khoa');
         window.scrollTo(0, 0);
-        tr.style.height = Math.max(360, Math.floor(window.innerHeight - tr.getBoundingClientRect().top - 8)) + 'px';
+        var z = zoomHeThong();
+        var r = tr.getBoundingClientRect();
+        // Tuỳ trình duyệt, rect trả theo px màn hình (đã nhân zoom) hoặc px CSS: so với offsetHeight để quy về px màn hình
+        var k = tr.offsetHeight ? r.height / tr.offsetHeight : z;
+        var tren = r.top * (k ? z / k : 1);
+        // px gán vào bị body{zoom} nhân thêm → chia lại
+        tr.style.height = Math.max(360, Math.floor((window.innerHeight - tren - CACH_DAY) / z)) + 'px';
+        tr.style.flex = '0 0 auto';      // chuỗi flex của fixed-page-layout không được co/giãn lại chiều cao đã tính
     }
 
     function khoiTaoBoCuc() {
@@ -1126,14 +1154,26 @@
                 ghiLs(KHOA_MUC, m);
             });
         });
-        manHep.addEventListener('change', function () { dongNganKeo(); zoomVua(); });
+        capNhatHep(true);
         var henCo = 0;
         window.addEventListener('resize', function () {
             clearTimeout(henCo);
-            henCo = setTimeout(coDinhChieuCao, 200);
+            henCo = setTimeout(function () { coDinhChieuCao(); capNhatHep(); }, 200);
         });
-        // Vùng vẽ đổi cỡ (ẩn/hiện bảng, kéo cửa sổ) → vẽ lại thước
-        if (window.ResizeObserver) new ResizeObserver(function () { veThuoc(); }).observe($('tkVung'));
+        if (window.ResizeObserver) {
+            // Vùng vẽ đổi cỡ (ẩn/hiện bảng, kéo cửa sổ) → vẽ lại thước
+            new ResizeObserver(function () { veThuoc(); }).observe($('tkVung'));
+            // Khung đổi bề rộng cả khi cửa sổ không đổi (thu/mở menu trái của trang) → xét lại cột / ngăn kéo
+            new ResizeObserver(function () { capNhatHep(); }).observe($('tkTrang'));
+        }
+        // Đổi % ở menu zoom của hệ thống (gán body.style.zoom) → tính lại chiều cao ngay
+        if (window.MutationObserver) {
+            new MutationObserver(function () { coDinhChieuCao(); capNhatHep(); zoomVua(); })
+                .observe(document.body, { attributes: true, attributeFilter: ['style'] });
+        }
+        // Header / fixed-page-layout dựng xong muộn hơn script này → đo lại vài lần
+        window.addEventListener('load', coDinhChieuCao);
+        [300, 1000, 2500].forEach(function (ms) { setTimeout(coDinhChieuCao, ms); });
     }
 
     // ===== Zoom =====

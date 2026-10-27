@@ -14,7 +14,7 @@ html.fp-lock .tk-trang { height: auto; min-height: 0; overflow: hidden !importan
 /* Màn ≤ 768px: fixed-page-layout không khoá nên trang tự khoá; chiều cao khung do tem-thiet-ke.js tính */
 html.tk-khoa, html.tk-khoa body { height: 100%; overflow: hidden; }
 
-.tk-trang { display: flex; flex-direction: column; height: calc(100vh - 110px); height: calc(100dvh - 110px); min-height: 520px; background: #fff; border: 1px solid var(--tk-vien); border-radius: 10px; overflow: hidden; color: var(--tk-chu); font-size: 0.84rem; }
+.tk-trang { display: flex; flex-direction: column; height: calc(100vh / var(--site-zoom, 1) - 110px); height: calc(100dvh / var(--site-zoom, 1) - 110px); min-height: 520px; background: #fff; border: 1px solid var(--tk-vien); border-radius: 10px; overflow: hidden; color: var(--tk-chu); font-size: 0.84rem; }
 
 /* ===== Menu ===== */
 .tk-menu { display: flex; align-items: center; gap: 2px; padding: 2px 8px; border-bottom: 1px solid #f0f1f3; position: relative; z-index: 40; }
@@ -236,7 +236,7 @@ html.tk-khoa, html.tk-khoa body { height: 100%; overflow: hidden; }
 
 /* Tablet dọc / điện thoại: vùng vẽ chiếm hết, các bảng là ngăn kéo */
 @media (max-width: 992px) {
-    .tk-trang { height: calc(100vh - 90px); height: calc(100dvh - 90px); min-height: 440px; border-radius: 8px; }
+    .tk-trang { height: calc(100vh / var(--site-zoom, 1) - 90px); height: calc(100dvh / var(--site-zoom, 1) - 90px); min-height: 440px; border-radius: 8px; }
     .tk-menu { overflow-x: auto; scrollbar-width: none; }
     .tk-menu-ds { position: fixed; top: auto; left: 8px; right: 8px; max-height: 70vh; overflow-y: auto; }
     .tk-menu-con > .tk-menu-ds { position: static; display: block; box-shadow: none; border: 0; padding-left: 12px; }
@@ -244,19 +244,22 @@ html.tk-khoa, html.tk-khoa body { height: 100%; overflow: hidden; }
     .tk-ribbon { overflow-x: auto; scrollbar-width: none; gap: 4px; padding: 3px 6px; }
     .tk-nhom-giua { justify-content: flex-start; }
     .tk-agent span { display: none; }
-    .tk-nut-lon.tk-chi-hep { display: inline-flex; }
-    .tk-trai, .tk-phai { position: absolute; top: 0; bottom: 0; z-index: 30; width: min(86vw, 320px); box-shadow: 0 0 32px rgba(0, 0, 0, 0.25); transition: transform 0.2s ease; }
-    .tk-trai { left: 0; transform: translateX(-105%); }
-    .tk-phai { right: 0; transform: translateX(105%); }
     .tk-du-lieu { flex-basis: 42%; }
     .tk-dl-thanh .form-control { width: 130px; }
     .tk-in-hang { grid-template-columns: 1fr; }
     .tk-in-hang > .tk-in-cot { max-height: none; border-right: 0; border-bottom: 1px solid var(--tk-vien); }
-    .tk-trang.an-trai .tk-trai, .tk-trang.an-phai .tk-phai { display: flex; }
-    .tk-trang.mo-trai .tk-trai, .tk-trang.mo-phai .tk-phai { transform: none; }
-    .tk-trang.mo-trai .tk-man, .tk-trang.mo-phai .tk-man { display: block; position: absolute; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.35); }
     .tk-khung { margin: 24px 20px 70px; }
 }
+
+/* Khung thiết kế hẹp (màn nhỏ, hoặc màn laptop có menu trái của trang): JS gắn .tk-hep theo bề rộng thật của #tkTrang,
+   không theo cửa sổ — 2 cột cố định chiếm hết chỗ thì vùng vẽ tem còn quá bé, nên chuyển thành ngăn kéo mở đè */
+.tk-trang.tk-hep .tk-nut-lon.tk-chi-hep { display: inline-flex; }
+.tk-trang.tk-hep .tk-trai, .tk-trang.tk-hep .tk-phai { position: absolute; top: 0; bottom: 0; z-index: 30; width: min(86vw, 320px); box-shadow: 0 0 32px rgba(0, 0, 0, 0.25); transition: transform 0.2s ease; }
+.tk-trang.tk-hep .tk-trai { left: 0; transform: translateX(-105%); }
+.tk-trang.tk-hep .tk-phai { right: 0; transform: translateX(105%); }
+.tk-trang.tk-hep.an-trai .tk-trai, .tk-trang.tk-hep.an-phai .tk-phai { display: flex; }
+.tk-trang.tk-hep.mo-trai .tk-trai, .tk-trang.tk-hep.mo-phai .tk-phai { transform: none; }
+.tk-trang.tk-hep.mo-trai .tk-man, .tk-trang.tk-hep.mo-phai .tk-man { display: block; position: absolute; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.35); }
 
 @media (max-width: 576px) {
     .tk-trang { border-radius: 0; border-left: 0; border-right: 0; }

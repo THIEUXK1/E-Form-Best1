@@ -109,7 +109,23 @@
         setFilterState(panels, btn, localStorage.getItem(STORAGE_KEY) === "1");
     }
 
+    /* --- Mức phóng to/thu nhỏ của hệ thống (body{zoom}) → biến CSS --site-zoom ---
+       Trình duyệt nhân cả 100vh với zoom của body: chọn 50% thì khung "cao bằng màn hình" chỉ còn nửa màn.
+       CSS chia lại: height: calc(100vh / var(--site-zoom, 1)). */
+    function syncZoom() {
+        var z = getComputedStyle(document.body).zoom || "1";
+        var v = parseFloat(z);
+        if (/%$/.test(z)) v = v / 100;
+        if (!(v > 0)) v = 1;
+        document.documentElement.style.setProperty("--site-zoom", String(v));
+    }
+
     function init() {
+        syncZoom();
+        // Đổi % ở menu zoom (form-layout-chung.js gán body.style.zoom) → cập nhật ngay, không cần tải lại
+        if (window.MutationObserver) {
+            new MutationObserver(syncZoom).observe(document.body, { attributes: true, attributeFilter: ["style"] });
+        }
         if (applyLayout() && window.innerWidth > MOBILE_MAX) {
             document.documentElement.classList.add("fp-lock");
         }

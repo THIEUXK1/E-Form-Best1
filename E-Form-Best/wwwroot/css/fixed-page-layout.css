@@ -11,8 +11,9 @@ html.fp-lock body {
 }
 
 html.fp-lock main {
-    height: 100vh;
-    min-height: 100vh !important;
+    /* Chia cho zoom của hệ thống (--site-zoom do fixed-page-layout.js gán): body{zoom:50%} làm 100vh chỉ còn nửa màn */
+    height: calc(100vh / var(--site-zoom, 1));
+    min-height: calc(100vh / var(--site-zoom, 1)) !important;
     overflow: hidden;
 }
 
