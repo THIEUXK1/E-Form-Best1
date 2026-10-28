@@ -27,7 +27,7 @@
                 <button type="button" data-lenh="luuThanh" role="menuitem"><span>Lưu thành…</span></button>
                 <button type="button" data-lenh="xoaMau" role="menuitem"><span>Xoá mẫu này</span></button>
                 <hr />
-                <button type="button" data-lenh="nhap" role="menuitem"><span>Nhập file .tnl…</span></button>
+                <button type="button" data-lenh="nhap" role="menuitem"><span>Nhập file .tnl / .lbx (P-touch)…</span></button>
                 <div class="tk-menu-con">
                     <button type="button" role="menuitem" aria-haspopup="true"><span>Xuất</span><i class="fa fa-caret-right"></i></button>
                     <div class="tk-menu-ds" role="menu">
@@ -190,7 +190,9 @@
             <div class="tk-trai-cuon">
                 <details class="tk-muc" data-muc="mau" open>
                     <summary>Mẫu tem</summary>
-                    <label class="tk-dong-nhap tk-dong-doc"><span>Tên mẫu</span><input type="text" id="tkTenMau" class="form-control form-control-sm" maxlength="100" placeholder="Chưa đặt tên" /></label>
+                    @* Mẫu lưu trên hệ thống (DB) — máy nào cũng chọn được; ô Tên mẫu bên dưới để đặt / đổi tên mẫu đang mở *@
+                    <label class="tk-dong-nhap tk-dong-doc"><span>Chọn mẫu</span><select id="tkChonMau" class="form-select form-select-sm" aria-label="Chọn mẫu đã lưu"><option value="">Đang tải…</option></select></label>
+                    <label class="tk-dong-nhap tk-dong-doc"><span>Tên mẫu</span><input type="text" id="tkTenMau" class="form-control form-control-sm" maxlength="100" placeholder="Chưa đặt tên" autocomplete="off" /></label>
                 </details>
 
                 <details class="tk-muc" data-muc="mayIn" open>
@@ -330,7 +332,7 @@
         <span id="tkToaDo"></span>
     </div>
 
-    <input type="file" id="tkFileTnl" accept=".tnl,.json" hidden />
+    <input type="file" id="tkFileTnl" accept=".tnl,.lbx,.json" hidden />
     <input type="file" id="tkFileAnh" accept="image/*" hidden />
     <input type="file" id="tkFileDl" accept=".xlsx,.xls,.csv" hidden />
 
@@ -351,7 +353,7 @@
                 <div class="list-group" id="tkDsMau"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary me-auto" data-lenh="nhap"><i class="fa fa-folder-open-o"></i> Từ file .tnl…</button>
+                <button type="button" class="btn btn-outline-secondary me-auto" data-lenh="nhap"><i class="fa fa-folder-open-o"></i> Từ file .tnl / .lbx…</button>
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Huỷ</button>
             </div>
         </div>
@@ -413,7 +415,7 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-    <script src="~/js/tem-nhan.js?v=9"></script>
-    <script src="~/js/tem-thiet-ke.js?v=19"></script>
+    <script src="~/js/tem-nhan.js?v=12"></script>
+    <script src="~/js/tem-thiet-ke.js?v=23"></script>
     <script src="~/js/fixed-page-layout.js?v=6" defer></script>
 }

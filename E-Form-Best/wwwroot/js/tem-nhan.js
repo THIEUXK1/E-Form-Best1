@@ -11,6 +11,7 @@
     // Các trường của tủ điện thoại chèn được vào mẫu
     var TRUONG_TU = [
         { ten: 'Bộ phận', khoa: 'tenBoPhan' },
+        { ten: 'Mã BP', khoa: 'maBoPhan' },
         { ten: 'Tên tủ', khoa: 'tenTu' },
         { ten: 'Vị trí', khoa: 'viTri' },
         { ten: 'Mã NV', khoa: 'maNhanVien' },
@@ -64,6 +65,11 @@
         TRUONG_TU.forEach(function (t) { dong[boDau(t.ten)] = tu ? (tu[t.khoa] || '') : ''; });
         dong[boDau('Mã nhân viên')] = dong[boDau('Mã NV')];
         dong[boDau('Vị trí tủ')] = dong[boDau('Vị trí')];
+        dong[boDau('Mã bộ phận')] = dong[boDau('Mã BP')];
+        // Tên cột hay dùng trong file P-touch (.lbx) cũ: MA TU / MÃ THẺ / HỌ TÊN
+        dong[boDau('Mã tủ')] = dong[boDau('Tên tủ')];
+        dong[boDau('Mã thẻ')] = dong[boDau('Mã NV')];
+        dong[boDau('Họ tên')] = dong[boDau('Người sử dụng')];
         return dong;
     }
 
@@ -167,6 +173,164 @@
         var ds = goc && Array.isArray(goc.Sheets) ? goc.Sheets : (goc && Array.isArray(goc.Elements) ? [goc] : null);
         if (!ds || !ds.length) throw new Error('File không phải mẫu tem .tnl.');
         return ds.map(chuanHoaTrang);
+    }
+
+    // ===== File mẫu P-touch Editor (.lbx = zip chứa label.xml) — chuyển từ LbxImporter.cs của app TemNhan =====
+
+    // Lấy 1 tệp trong zip (đọc thư mục trung tâm; nén deflate giải bằng DecompressionStream của trình duyệt)
+    async function layTepZip(buf, ten) {
+        var v = new DataView(buf);
+        var eocd = -1;
+        for (var i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65557); i--) {
+            if (v.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+        }
+        if (eocd < 0) throw new Error('File .lbx hỏng (không phải file zip).');
+        var soMuc = v.getUint16(eocd + 10, true), p = v.getUint32(eocd + 16, true);
+        var giaiMa = new TextDecoder('utf-8');
+        for (var k = 0; k < soMuc; k++) {
+            if (v.getUint32(p, true) !== 0x02014b50) break;
+            var kieuNen = v.getUint16(p + 10, true), coNen = v.getUint32(p + 20, true);
+            var dTen = v.getUint16(p + 28, true), dPhu = v.getUint16(p + 30, true), dGhiChu = v.getUint16(p + 32, true);
+            var viTriCuc = v.getUint32(p + 42, true);
+            var tenTep = giaiMa.decode(new Uint8Array(buf, p + 46, dTen));
+            p += 46 + dTen + dPhu + dGhiChu;
+            if (tenTep.toLowerCase() !== ten) continue;
+            var batDau = viTriCuc + 30 + v.getUint16(viTriCuc + 26, true) + v.getUint16(viTriCuc + 28, true);
+            var duLieu = new Uint8Array(buf, batDau, coNen);
+            if (kieuNen === 0) return duLieu.slice();
+            if (kieuNen !== 8) throw new Error('File .lbx nén kiểu lạ (' + kieuNen + ').');
+            if (typeof DecompressionStream === 'undefined') throw new Error('Trình duyệt quá cũ, không giải nén được .lbx — dùng Chrome/Edge bản mới.');
+            var luong = new Blob([duLieu]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+            return new Uint8Array(await new Response(luong).arrayBuffer());
+        }
+        return null;
+    }
+
+    var NS_LBX = {
+        pt: 'http://schemas.brother.info/ptouch/2007/lbx/main',
+        style: 'http://schemas.brother.info/ptouch/2007/lbx/style',
+        text: 'http://schemas.brother.info/ptouch/2007/lbx/text',
+        draw: 'http://schemas.brother.info/ptouch/2007/lbx/draw',
+        barcode: 'http://schemas.brother.info/ptouch/2007/lbx/barcode'
+    };
+
+    // Phần tử con trực tiếp theo namespace + tên
+    function con(el, ns, ten) {
+        if (!el) return null;
+        for (var c = el.firstElementChild; c; c = c.nextElementSibling) {
+            if (c.namespaceURI === NS_LBX[ns] && c.localName === ten) return c;
+        }
+        return null;
+    }
+
+    // "13.6pt" / "5mm" / "1in" → mm (hoặc pt khi raPt)
+    function doDai(el, thuocTinh, raPt) {
+        var s = el && el.getAttribute(thuocTinh);
+        if (!s) return 0;
+        s = s.trim();
+        var heSo = 25.4 / 72, n = s;
+        if (/pt$/.test(s)) n = s.slice(0, -2);
+        else if (/mm$/.test(s)) { n = s.slice(0, -2); heSo = 1; }
+        else if (/in$/.test(s)) { n = s.slice(0, -2); heSo = 25.4; }
+        var x = parseFloat(n);
+        if (!isFinite(x)) return 0;
+        var mm = x * heSo;
+        return raPt ? mm * 72 / 25.4 : mm;
+    }
+
+    function truongTron(os) {
+        var f = (con(os, 'pt', 'expanded') || { getAttribute: function () { return null; } }).getAttribute('dbMergeFieldStyleName');
+        return f && f.trim() ? '{{' + f.trim() + '}}' : null;
+    }
+
+    function docDoiTuongLbx(obj) {
+        var os = con(obj, 'pt', 'objectStyle');
+        if (!os) return null;
+        var ns = obj.namespaceURI, ten = obj.localName, el = null;
+        var but = con(os, 'pt', 'pen'), co = con(os, 'pt', 'brush');
+        var netBut = but && but.getAttribute('style') === 'NULL' ? 0 : doDai(but, 'widthX');
+
+        if (ns === NS_LBX.text && ten === 'text') {
+            var font = con(obj, 'text', 'ptFontInfo'), logFont = con(font, 'text', 'logFont'), ext = con(font, 'text', 'fontExt');
+            var canh = con(obj, 'text', 'textAlign'), dk = con(obj, 'text', 'textControl');
+            var data = con(obj, 'pt', 'data');
+            el = {
+                type: 'text',
+                Text: truongTron(os) || (data ? data.textContent : ''),
+                FontFamily: (logFont && logFont.getAttribute('name')) || 'Arial',
+                Bold: parseInt((logFont && logFont.getAttribute('weight')) || '400', 10) >= 600,
+                Italic: !!logFont && logFont.getAttribute('italic') === 'true',
+                FontSizePt: ext ? doDai(ext, 'size', true) : 12,
+                ShrinkToFit: !dk || dk.getAttribute('shrink') !== 'false',
+                Wrap: !!dk && dk.getAttribute('autoLF') === 'true' && dk.getAttribute('control') !== 'LONGTEXTFIXED',
+                HAlign: { LEFT: 'Left', RIGHT: 'Right' }[canh && canh.getAttribute('horizontalAlignment')] || 'Center',
+                VAlign: { TOP: 'Top', BOTTOM: 'Bottom' }[canh && canh.getAttribute('verticalAlignment')] || 'Center'
+            };
+        } else if (ns === NS_LBX.draw && (ten === 'frame' || ten === 'rect')) {
+            el = {
+                type: 'frame',
+                StrokeMm: netBut,
+                CornerMm: ten === 'rect' ? doDai(con(obj, 'draw', 'rectStyle'), 'roundnessX') : 0,
+                Filled: !!co && co.getAttribute('style') !== 'NULL'
+            };
+        } else if (ns === NS_LBX.draw && (ten === 'line' || ten === 'poly')) {
+            el = {
+                type: 'line',
+                StrokeMm: Math.max(0.1, netBut),
+                Orientation: doDai(os, 'height') > doDai(os, 'width') ? 'Vertical' : 'Horizontal'
+            };
+        } else if (ns === NS_LBX.barcode && ten === 'barcode') {
+            var kieu = con(obj, 'barcode', 'barcodeStyle');
+            var giaoThuc = ((kieu && kieu.getAttribute('protocol')) || '').toUpperCase();
+            var dataMa = con(obj, 'pt', 'data');
+            el = {
+                type: 'barcode',
+                Data: truongTron(os) || (dataMa ? dataMa.textContent : ''),
+                Kind: /QR/.test(giaoThuc) ? 'QrCode' : /DATAMATRIX/.test(giaoThuc) ? 'DataMatrix'
+                    : /EAN13|JAN13/.test(giaoThuc) ? 'Ean13' : /CODE39/.test(giaoThuc) ? 'Code39' : 'Code128',
+                ShowText: !kieu || kieu.getAttribute('humanReadable') !== 'false'
+            };
+        }
+        if (!el) return null;
+        el.X = doDai(os, 'x'); el.Y = doDai(os, 'y');
+        el.W = doDai(os, 'width'); el.H = doDai(os, 'height');
+        el.Rotation = parseFloat(os.getAttribute('angle')) || 0;
+        return chuanHoaDoiTuong(el);
+    }
+
+    // Đọc .lbx → { dsTrang, iMo (trang đang mở trong P-touch), boQua (số đối tượng chưa hỗ trợ: ảnh, bảng…) }
+    async function docLbx(buf) {
+        var xml = await layTepZip(buf, 'label.xml');
+        if (!xml) throw new Error('File .lbx không có label.xml.');
+        var doc = new DOMParser().parseFromString(new TextDecoder('utf-8').decode(xml), 'application/xml');
+        if (doc.getElementsByTagName('parsererror').length) throw new Error('label.xml không đọc được.');
+        var body = con(doc.documentElement, 'pt', 'body');
+        if (!body) throw new Error('label.xml không đúng định dạng P-touch.');
+        var boQua = 0, dsTrang = [], iMo = 0, trangMo = body.getAttribute('currentSheet');
+        for (var sh = body.firstElementChild; sh; sh = sh.nextElementSibling) {
+            if (sh.namespaceURI !== NS_LBX.style || sh.localName !== 'sheet') continue;
+            var t = taoTrang();
+            t.Name = sh.getAttribute('name') || ('Trang ' + (dsTrang.length + 1));
+            t.MarginMm = 0;
+            var giay = con(sh, 'style', 'paper');
+            if (giay) {
+                // Băng P-touch: "width" là bề rộng băng; landscape = nhãn nằm ngang (dài theo chiều chạy băng)
+                var ngang = giay.getAttribute('orientation') === 'landscape';
+                var w = doDai(giay, 'width'), h = doDai(giay, 'height');
+                t.WidthMm = Math.round((ngang ? h : w) * 10) / 10;
+                t.HeightMm = Math.round((ngang ? w : h) * 10) / 10;
+                t.PaperColor = giay.getAttribute('paperColor') || '#FFFFFF';
+            }
+            var dsObj = con(sh, 'pt', 'objects');
+            for (var o = dsObj && dsObj.firstElementChild; o; o = o.nextElementSibling) {
+                var el = docDoiTuongLbx(o);
+                if (el) t.Elements.push(el); else boQua++;
+            }
+            if (t.Name === trangMo) iMo = dsTrang.length;
+            dsTrang.push(chuanHoaTrang(t));
+        }
+        if (!dsTrang.length) throw new Error('File .lbx không có trang nhãn nào.');
+        return { dsTrang: dsTrang, iMo: iMo, boQua: boQua };
     }
 
     // Mẫu lưu trên máy chủ và file .tnl cùng một dạng: { Sheets: [trang, ...] } (nhiều trang như app TemNhan)
@@ -551,6 +715,7 @@
         taoTrangMacDinh: taoTrangMacDinh,
         chuanHoaTrang: chuanHoaTrang,
         docTnl: docTnl,
+        docLbx: docLbx,
         xuatTnl: xuatTnl,
         xuatDuAn: xuatDuAn,
         xuatPng: xuatPng,

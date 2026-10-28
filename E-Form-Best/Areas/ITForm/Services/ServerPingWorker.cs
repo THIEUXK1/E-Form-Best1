@@ -115,7 +115,7 @@ namespace E_Form_Best.Areas.ITForm.Services
             await Parallel.ForEachAsync(
                 ds.Select(x => x.DiaChiIp!).Distinct(),
                 new ParallelOptions { MaxDegreeOfParallelism = 32, CancellationToken = ct },
-                async (ip, token) => { song[ip] = await PingAsync(ip, token); });
+                async (ip, token) => { song[ip] = await PingAsync(ip, token) || await TcpSongAsync(ip, DsCongTcp(_configuration), token); });
 
             var bayGio = DateTime.Now;
             var dsId = ds.Select(x => x.IdServer).ToList();
@@ -187,6 +187,42 @@ namespace E_Form_Best.Areas.ITForm.Services
                 }
             }
             return false;
+        }
+
+        /// <summary>
+        /// Cổng TCP thử khi ping không trả lời (Server:CongTcpDuPhong, mặc định SSH/RDP/SMB/HTTPS/HTTP):
+        /// Windows Server bật firewall mặc định chặn ICMP từ dải khác (vd ZPVN-WEBSRV 10.0.193.240) nên ping hỏng
+        /// không có nghĩa là máy tắt — chỉ ghi DOWN khi cả ping lẫn mọi cổng đều không tới được.
+        /// </summary>
+        private static int[] DsCongTcp(IConfiguration cfg)
+        {
+            var cauHinh = cfg["Server:CongTcpDuPhong"];
+            if (string.IsNullOrWhiteSpace(cauHinh)) cauHinh = "22,3389,445,443,80";
+            return cauHinh.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(x => int.TryParse(x, out var c) ? c : 0).Where(c => c is > 0 and < 65536).Distinct().ToArray();
+        }
+
+        private static async Task<bool> TcpSongAsync(string ip, int[] dsCong, CancellationToken ct)
+        {
+            if (dsCong.Length == 0) return false;
+            var ketQua = await Task.WhenAll(dsCong.Select(async cong =>
+            {
+                using var tcp = new System.Net.Sockets.TcpClient();
+                using var hetGio = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                hetGio.CancelAfter(TimeSpan.FromMilliseconds(1500));
+                try
+                {
+                    await tcp.ConnectAsync(ip, cong, hetGio.Token);
+                    return true;
+                }
+                catch (System.Net.Sockets.SocketException ex) when (ex.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionRefused)
+                {
+                    return true; // máy trả RST = đang bật, chỉ là cổng đóng
+                }
+                catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return false; }
+                catch (System.Net.Sockets.SocketException) { return false; }
+            }));
+            return ketQua.Any(x => x);
         }
     }
 }

@@ -17,6 +17,11 @@ public partial class BoPhan
     [StringLength(255)]
     public string? TenBoPhan { get; set; }
 
+    // Mã ngắn (QC, HR…) — admin tủ điện thoại nhập trên /FormHR/QuanLyTuDienThoai
+    [Column("ma_bo_phan")]
+    [StringLength(20)]
+    public string? MaBoPhan { get; set; }
+
     [Column("mo_ta")]
     [StringLength(500)]
     public string? MoTa { get; set; }

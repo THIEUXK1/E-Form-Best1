@@ -820,30 +820,43 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         /// <summary>
-        /// Chụp lại ảnh lưu sẵn của một camera BPVN ngay (ảnh lượt định kỳ hỏng/cũ). Chỉ chạy được ở máy chủ
-        /// gọi được đầu ghi; không được thì giữ ảnh cũ và báo lại.
+        /// Chụp lại ảnh lưu sẵn của một camera ngay (ảnh lượt định kỳ hỏng/cũ). BPVN: qua đầu ghi; PFVN/MEGA: qua
+        /// go2rtc / ISAPI bên công ty. Không được thì giữ ảnh cũ và báo lại.
         /// </summary>
         [HttpPost("/QLCamera/Xem/ChupLaiAnhLuu")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ChupLaiAnhLuu(string? nvrIp, int kenh, [FromServices] CameraXemTrucTiepService xem,
-            [FromServices] IConfiguration configuration)
+            [FromServices] IConfiguration configuration, string? congTy = null)
         {
+            var cty = CongTyHopLe(congTy);
             if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
             if (kenh < 1 || kenh > 512) return Json(new { thanhCong = false, thongBao = "Kênh không hợp lệ." });
 
             try
             {
                 var ct = HttpContext.RequestAborted;
-                var trucTiep = xem.LaDauGhiTrucTiep("BPVN", nvrIp);
-                if (!trucTiep && !await xem.LaDauGhiHopLeAsync(nvrIp, ct))
-                    return Json(new { thanhCong = false, thongBao = "Đầu ghi không có trong hệ thống giám sát." });
-
-                var thuMuc = trucTiep ? xem.ThuMucAnhLuuCongTy("BPVN") : configuration["CameraNvr:ThuMucAnhLuu"];
+                string? thuMuc;
+                string? chupQuaCongTy;   // null = BPVN qua hệ thống ISAPI
+                if (cty == "BPVN")
+                {
+                    var trucTiep = xem.LaDauGhiTrucTiep("BPVN", nvrIp);
+                    if (!trucTiep && !await xem.LaDauGhiHopLeAsync(nvrIp, ct))
+                        return Json(new { thanhCong = false, thongBao = "Đầu ghi không có trong hệ thống giám sát." });
+                    thuMuc = trucTiep ? xem.ThuMucAnhLuuCongTy("BPVN") : configuration["CameraNvr:ThuMucAnhLuu"];
+                    chupQuaCongTy = trucTiep ? "BPVN" : null;
+                }
+                else
+                {
+                    if (!await LaKenhCongTyAsync(xem, cty, nvrIp, kenh, ct))
+                        return Json(new { thanhCong = false, thongBao = "Kênh không có trong danh sách camera " + cty + "." });
+                    thuMuc = xem.ThuMucAnhLuuCongTy(cty);
+                    chupQuaCongTy = cty;
+                }
                 if (string.IsNullOrWhiteSpace(thuMuc))
                     return Json(new { thanhCong = false, thongBao = "Máy chủ chưa cấu hình thư mục ảnh lưu." });
 
                 // nvrIp đã kiểm có trong danh sách đầu ghi -> tên file chỉ là IP + kênh
-                var duoc = await CameraAnhLuuWorker.ChupLaiMotKenhAsync(xem, thuMuc, nvrIp!.Trim(), kenh, trucTiep, ct);
+                var duoc = await CameraAnhLuuWorker.ChupLaiMotKenhAsync(xem, thuMuc, nvrIp!.Trim(), kenh, chupQuaCongTy, ct);
                 return Json(duoc
                     ? new { thanhCong = true, thongBao = "Đã chụp lại ảnh lưu." }
                     : new { thanhCong = false, thongBao = "Không lấy được ảnh mới từ đầu ghi (camera mất kết nối hoặc máy chủ không thông mạng tới đầu ghi). Giữ ảnh cũ." });

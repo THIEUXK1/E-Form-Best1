@@ -21,7 +21,8 @@ namespace E_Form_Best.Areas.HRform.Services
         // Thứ tự cột của file mẫu; khi đọc thì dò theo tên cột nên người dùng đổi thứ tự cột vẫn được
         private static readonly (string Ten, int Rong, string GhiChu)[] Cot =
         {
-            ("Bộ phận", 34, "Bắt buộc. Chọn trong danh sách (đúng tên bộ phận trên hệ thống)."),
+            ("Mã BP", 10, "Mã ngắn của bộ phận (QC, HR…) — xem sheet BoPhan. Để trống cột Bộ phận thì hệ thống tìm bộ phận theo mã này."),
+            ("Bộ phận", 34, "Chọn trong danh sách (đúng tên bộ phận trên hệ thống). Bắt buộc nếu không ghi Mã BP hoặc mã trùng nhiều bộ phận."),
             ("Tên tủ", 18, "Bắt buộc, tối đa 100 ký tự. Cùng bộ phận không được trùng tên."),
             ("Vị trí tủ", 40, "Không bắt buộc, tối đa 200 ký tự."),
             ("Mã NV", 14, "Mã nhân viên người dùng tủ. Để trống nếu tủ còn trống."),
@@ -29,9 +30,9 @@ namespace E_Form_Best.Areas.HRform.Services
         };
 
         /// <summary>Một dòng đọc từ file (đã gọn khoảng trắng). Dong = số dòng trên Excel để báo lỗi đúng chỗ.</summary>
-        public record DongNhap(int Dong, string? BoPhan, string? TenTu, string? ViTri, string? MaNhanVien, string? NguoiSuDung);
+        public record DongNhap(int Dong, string? MaBoPhan, string? BoPhan, string? TenTu, string? ViTri, string? MaNhanVien, string? NguoiSuDung);
 
-        public static byte[] TaoFileMau(IReadOnlyList<string> dsBoPhan)
+        public static byte[] TaoFileMau(IReadOnlyList<(string Ten, string? Ma)> dsBoPhan)
         {
             using var wb = new XLWorkbook();
 
@@ -50,19 +51,26 @@ namespace E_Form_Best.Areas.HRform.Services
             dau.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
             ws.Row(1).Height = 22;
             ws.SheetView.FreezeRows(1);
-            // Mã NV dạng chữ để không mất số 0 đầu
-            ws.Range(2, 4, SoDongToiDa + 1, 4).Style.NumberFormat.Format = "@";
+            // Mã BP, Mã NV dạng chữ để không mất số 0 đầu
+            ws.Range(2, 1, SoDongToiDa + 1, 1).Style.NumberFormat.Format = "@";
+            ws.Range(2, 5, SoDongToiDa + 1, 5).Style.NumberFormat.Format = "@";
 
             // Danh sách bộ phận ở sheet riêng làm nguồn ô chọn cho cột Bộ phận
             var wsBp = wb.AddWorksheet("BoPhan");
             wsBp.Cell(1, 1).Value = "Bộ phận trên hệ thống";
-            wsBp.Cell(1, 1).Style.Font.Bold = true;
-            wsBp.Cell(1, 1).Style.Fill.BackgroundColor = MauNhat;
-            for (int i = 0; i < dsBoPhan.Count; i++) wsBp.Cell(i + 2, 1).Value = dsBoPhan[i];
+            wsBp.Cell(1, 2).Value = "Mã BP";
+            wsBp.Range(1, 1, 1, 2).Style.Font.Bold = true;
+            wsBp.Range(1, 1, 1, 2).Style.Fill.BackgroundColor = MauNhat;
+            for (int i = 0; i < dsBoPhan.Count; i++)
+            {
+                wsBp.Cell(i + 2, 1).Value = dsBoPhan[i].Ten;
+                wsBp.Cell(i + 2, 2).Value = dsBoPhan[i].Ma ?? "";
+            }
             wsBp.Column(1).Width = 50;
+            wsBp.Column(2).Width = 12;
             if (dsBoPhan.Count > 0)
             {
-                var dv = ws.Range(2, 1, SoDongToiDa + 1, 1).CreateDataValidation();
+                var dv = ws.Range(2, 2, SoDongToiDa + 1, 2).CreateDataValidation();
                 dv.List(wsBp.Range(2, 1, dsBoPhan.Count + 1, 1), true);
                 dv.ErrorTitle = "Bộ phận không có";
                 dv.ErrorMessage = "Chọn bộ phận trong danh sách (sheet BoPhan).";
@@ -74,7 +82,7 @@ namespace E_Form_Best.Areas.HRform.Services
                 "HƯỚNG DẪN NHẬP TỦ ĐIỆN THOẠI",
                 "",
                 "1. Điền mỗi tủ 1 dòng ở sheet \"" + TenSheetDuLieu + "\", bắt đầu từ dòng 2, giữ nguyên dòng tiêu đề.",
-                "2. Cột Bộ phận chọn trong danh sách thả xuống (lấy từ sheet BoPhan).",
+                "2. Cột Bộ phận chọn trong danh sách thả xuống (lấy từ sheet BoPhan). Hoặc chỉ ghi Mã BP (QC, HR…) và để trống Bộ phận — mã trùng nhiều bộ phận thì phải ghi tên Bộ phận.",
                 "3. Tủ đã có (cùng Bộ phận + Tên tủ) sẽ được CẬP NHẬT vị trí / Mã NV / Người sử dụng theo file — ô để trống nghĩa là xoá giá trị cũ (tủ còn trống).",
                 "4. Tủ chưa có sẽ được THÊM MỚI. Tủ không có trong file thì giữ nguyên, không bị xoá.",
                 "5. Trên trang, bấm \"Nhập từ Excel\" → chọn file → \"Kiểm tra\" để xem trước, rồi mới bấm \"Nhập\".",
@@ -93,11 +101,12 @@ namespace E_Form_Best.Areas.HRform.Services
                 hd.Cell(r, c + 1).Style.Font.Bold = true;
                 hd.Cell(r, c + 1).Style.Fill.BackgroundColor = MauNhat;
             }
-            string ten0 = dsBoPhan.Count > 0 ? dsBoPhan[0] : "Kho";
+            var bp0 = dsBoPhan.FirstOrDefault(b => !string.IsNullOrEmpty(b.Ma));
+            if (bp0.Ten == null) bp0 = dsBoPhan.Count > 0 ? dsBoPhan[0] : ("Kho", "KHO");
             object[][] viDu =
             {
-                new object[] { ten0, "Tủ A-01", "Cửa ra vào xưởng số 1", "V123456", "Nguyễn Văn A" },
-                new object[] { ten0, "Tủ A-02", "Cửa ra vào xưởng số 1", "", "" },
+                new object[] { bp0.Ma ?? "", bp0.Ten, "Tủ A-01", "Cửa ra vào xưởng số 1", "V123456", "Nguyễn Văn A" },
+                new object[] { bp0.Ma ?? "", "", "Tủ A-02", "Cửa ra vào xưởng số 1", "", "" },
             };
             foreach (var v in viDu)
             {
@@ -112,7 +121,7 @@ namespace E_Form_Best.Areas.HRform.Services
             hd.Range(dong.Length + 1, 1, r, Cot.Length).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
             hd.Range(dong.Length + 1, 1, r, Cot.Length).Style.Border.OutsideBorderColor = MauVien;
             hd.Range(dong.Length + 1, 1, r, Cot.Length).Style.Border.InsideBorderColor = MauVien;
-            hd.Column(1).Width = 34; hd.Column(2).Width = 14; hd.Column(3).Width = 28; hd.Column(4).Width = 12; hd.Column(5).Width = 22;
+            hd.Column(1).Width = 34; hd.Column(2).Width = 30; hd.Column(3).Width = 14; hd.Column(4).Width = 28; hd.Column(5).Width = 12; hd.Column(6).Width = 22;
 
             ws.SetTabActive();
             using var ms = new MemoryStream();
@@ -147,13 +156,14 @@ namespace E_Form_Best.Areas.HRform.Services
                     if (!viTriCot.ContainsKey(k)) viTriCot[k] = o.Address.ColumnNumber;
                 }
                 int? Tim(params string[] ten) => ten.Select(BoDau).Where(viTriCot.ContainsKey).Select(k => (int?)viTriCot[k]).FirstOrDefault();
+                int? cMaBp = Tim("Mã BP", "Mã bộ phận");
                 int? cBp = Tim("Bộ phận", "Bo phan", "Phòng ban");
                 int? cTen = Tim("Tên tủ", "Ten tu", "Tủ");
                 int? cViTri = Tim("Vị trí tủ", "Vị trí");
                 int? cMa = Tim("Mã NV", "Mã nhân viên", "MSNV");
                 int? cNguoi = Tim("Người sử dụng", "Người dùng", "Họ tên");
-                if (cBp == null || cTen == null)
-                    throw new InvalidDataException("File thiếu cột \"Bộ phận\" hoặc \"Tên tủ\" ở dòng tiêu đề. Hãy dùng file mẫu tải trên trang.");
+                if ((cBp == null && cMaBp == null) || cTen == null)
+                    throw new InvalidDataException("File thiếu cột \"Bộ phận\" (hoặc \"Mã BP\") hay \"Tên tủ\" ở dòng tiêu đề. Hãy dùng file mẫu tải trên trang.");
 
                 int dongDau = dauRange.RowNumber() + 1;
                 int dongCuoi = ws.LastRowUsed()?.RowNumber() ?? dongDau - 1;
@@ -164,8 +174,8 @@ namespace E_Form_Best.Areas.HRform.Services
                 var kq = new List<DongNhap>();
                 for (int d = dongDau; d <= dongCuoi; d++)
                 {
-                    var dn = new DongNhap(d, Doc(d, cBp), Doc(d, cTen), Doc(d, cViTri), Doc(d, cMa), Doc(d, cNguoi));
-                    if (dn.BoPhan == null && dn.TenTu == null && dn.ViTri == null && dn.MaNhanVien == null && dn.NguoiSuDung == null)
+                    var dn = new DongNhap(d, Doc(d, cMaBp), Doc(d, cBp), Doc(d, cTen), Doc(d, cViTri), Doc(d, cMa), Doc(d, cNguoi));
+                    if (dn.MaBoPhan == null && dn.BoPhan == null && dn.TenTu == null && dn.ViTri == null && dn.MaNhanVien == null && dn.NguoiSuDung == null)
                         continue; // dòng trống
                     kq.Add(dn);
                 }

@@ -35,7 +35,7 @@
     function oTrong(text, icon) {
         var tr = document.createElement('tr');
         var td = document.createElement('td');
-        td.colSpan = 6;
+        td.colSpan = 8;
         td.className = 'tdt-trong';
         var i = document.createElement('i');
         i.className = 'fa ' + (icon || 'fa-inbox');
@@ -124,6 +124,10 @@
             tdTu.appendChild(tu);
             tr.appendChild(tdTu);
 
+            var tdMa = taoEl('td', 'tdt-o-ma-bp');
+            tdMa.appendChild(t.maBoPhan ? taoEl('span', 'tdt-ma-bp', t.maBoPhan) : taoEl('span', 'tdt-chua-co', '–'));
+            tr.appendChild(tdMa);
+
             var tdBp = taoEl('td', 'tdt-o-bo-phan');
             var bp = taoEl('span', 'tdt-bo-phan', t.tenBoPhan);
             var h = sacDo(t.tenBoPhan);
@@ -132,6 +136,10 @@
             bp.title = t.tenBoPhan || '';
             tdBp.appendChild(bp);
             tr.appendChild(tdBp);
+
+            var tdMaNv = taoEl('td', 'tdt-o-ma-nv');
+            tdMaNv.appendChild(t.maNhanVien ? taoEl('span', 'tdt-nguoi-ma', t.maNhanVien) : taoEl('span', 'tdt-chua-co', '–'));
+            tr.appendChild(tdMaNv);
 
             var tdNg = taoEl('td', 'tdt-o-nguoi');
             if (coNguoiDung(t)) {
@@ -142,7 +150,6 @@
                 ng.appendChild(anh);
                 var ngChu = taoEl('div');
                 ngChu.appendChild(taoEl('div', 'tdt-nguoi-ten', t.nguoiSuDung || '(chưa ghi tên)'));
-                if (t.maNhanVien) ngChu.appendChild(taoEl('div', 'tdt-nguoi-ma', t.maNhanVien));
                 ng.appendChild(ngChu);
                 tdNg.appendChild(ng);
             } else {
@@ -157,7 +164,7 @@
             if (laQuanLy) {
                 var tdNut = taoEl('td', 'tdt-o-thao-tac text-end');
                 var nhom = taoEl('div', 'tdt-thao-tac');
-                [['tdt-sua', 'fa-pencil', 'Sửa'], ['tdt-xoa', 'fa-trash-o', 'Xoá']].forEach(function (n) {
+                [['tdt-ls-tu', 'fa-history', 'Lịch sử'], ['tdt-sua', 'fa-pencil', 'Sửa'], ['tdt-xoa', 'fa-trash-o', 'Xoá']].forEach(function (n) {
                     var b = taoEl('button', n[0]);
                     b.type = 'button';
                     b.title = n[2] + ' tủ ' + t.tenTu;
@@ -248,7 +255,7 @@
             tdKq.appendChild(kq);
             if (r.loi) tdKq.appendChild(taoEl('div', 'text-danger small', r.loi));
             tr.appendChild(tdKq);
-            [r.boPhan, r.tenTu, r.viTri, r.maNhanVien, r.nguoiSuDung].forEach(function (v) { tr.appendChild(taoEl('td', null, v || '')); });
+            [r.maBoPhan, r.boPhan, r.tenTu, r.viTri, r.maNhanVien, r.nguoiSuDung].forEach(function (v) { tr.appendChild(taoEl('td', null, v || '')); });
             body.appendChild(tr);
         });
         document.getElementById('tdtExcelKetQua').hidden = false;
@@ -625,19 +632,197 @@
         var form = document.getElementById('tdtForm');
         form.reset();
         document.getElementById('tdtLoi').textContent = '';
+        document.getElementById('tdtMaNvGoiY').textContent = '';
+        tenTuDien = '';
         document.getElementById('tdtIdTu').value = tu ? tu.idTu : 0;
         document.getElementById('tdtModalTieuDe').textContent = tu ? 'Sửa tủ' : 'Thêm tủ';
         if (tu) {
             document.getElementById('tdtBoPhan').value = String(tu.idBoPhan);
             document.getElementById('tdtTenTu').value = tu.tenTu || '';
-            document.getElementById('tdtViTri').value = tu.viTri || '';
             document.getElementById('tdtMaNv').value = tu.maNhanVien || '';
             document.getElementById('tdtNguoiSuDung').value = tu.nguoiSuDung || '';
         } else {
             // Thêm mới: lấy sẵn bộ phận đang lọc cho đỡ chọn lại
             document.getElementById('tdtBoPhan').value = document.getElementById('tdtLocBoPhan').value;
         }
+        if (coSelect2()) $('#tdtBoPhan').trigger('change.select2');
+        dongBoMaTuBoPhan();
+        napViTri(tu ? tu.viTri : '');
         modal.show();
+    }
+
+    function coSelect2() { return !!(window.jQuery && jQuery.fn.select2); }
+
+    function chonBoPhanHienTai() {
+        var s = document.getElementById('tdtBoPhan');
+        return s.value ? s.options[s.selectedIndex] : null;
+    }
+
+    // Ô chọn bộ phận / vị trí có ô gõ tìm (không dấu cũng được); thiếu Select2 thì vẫn là select thường
+    function ganTimBoPhan() {
+        if (!coSelect2()) return;
+        var khung = document.getElementById('tdtModal');
+        $('#tdtBoPhan').select2({
+            width: '100%',
+            dropdownParent: $(khung),
+            placeholder: '-- Gõ mã hoặc tên bộ phận --',
+            language: { noResults: function () { return 'Không có bộ phận khớp'; } }
+        });
+        $('#tdtViTri').select2({
+            width: '100%',
+            dropdownParent: $(khung),
+            placeholder: '-- Chọn vị trí --',
+            allowClear: true,
+            language: { noResults: function () { return 'Chưa có vị trí này — bấm + để thêm'; } }
+        });
+        // Thêm tủ mà chưa có bộ phận: mở sẵn ô tìm để gõ ngay
+        khung.addEventListener('shown.bs.modal', function () {
+            if (!document.getElementById('tdtBoPhan').value) $('#tdtBoPhan').select2('open');
+            else document.getElementById('tdtTenTu').focus();
+        });
+        $('#tdtBoPhan').on('change', function () { dongBoMaTuBoPhan(); veViTri(document.getElementById('tdtViTri').value); });
+        // Chọn xong nhảy sang ô Tên tủ
+        $('#tdtBoPhan').on('select2:select', function () { document.getElementById('tdtTenTu').focus(); });
+    }
+
+    // ===== Mã BP trong form: chọn bộ phận → điền mã; gõ mã → chọn bộ phận =====
+
+    function dongBoMaTuBoPhan() {
+        var o = chonBoPhanHienTai();
+        document.getElementById('tdtMaBp').value = o ? (o.dataset.ma || '') : '';
+        document.getElementById('tdtMaBpGoiY').textContent = o && !o.dataset.ma ? 'Bộ phận này chưa có mã — gõ mã vào ô Mã BP để đặt luôn khi lưu.' : '';
+    }
+
+    function goMaBp(o) {
+        var v = o.value.trim().toUpperCase();
+        var goiY = document.getElementById('tdtMaBpGoiY');
+        goiY.textContent = '';
+        if (!v) return;
+        var khop = Array.prototype.filter.call(document.querySelectorAll('#tdtBoPhan option[data-ma]'), function (x) { return (x.dataset.ma || '').toUpperCase() === v; });
+        if (khop.length === 1) {
+            var s = document.getElementById('tdtBoPhan');
+            if (s.value !== khop[0].value) {
+                s.value = khop[0].value;
+                if (coSelect2()) $('#tdtBoPhan').trigger('change.select2');
+                veViTri(document.getElementById('tdtViTri').value);
+            }
+            return;
+        }
+        if (khop.length > 1) { goiY.textContent = 'Mã ' + v + ' dùng cho ' + khop.length + ' bộ phận — chọn đúng ở ô Bộ phận.'; return; }
+        var dangChon = chonBoPhanHienTai();
+        goiY.textContent = dangChon && !dangChon.dataset.ma
+            ? 'Sẽ đặt mã ' + v + ' cho bộ phận đang chọn khi lưu.'
+            : 'Chưa có bộ phận nào mã ' + v + '.';
+    }
+
+    // Đổi mã (hộp thoại Mã bộ phận hoặc đặt khi lưu tủ) thì cập nhật luôn ô chọn, khỏi tải lại trang
+    function capNhatMaTrongChon(dsMoi) {
+        Object.keys(dsMoi).forEach(function (id) {
+            var o = document.querySelector('#tdtBoPhan option[value="' + id + '"]');
+            if (!o) return;
+            o.dataset.ma = dsMoi[id] || '';
+            o.textContent = (dsMoi[id] ? dsMoi[id] + ' · ' : '') + (o.dataset.ten || '');
+        });
+        if (coSelect2()) $('#tdtBoPhan').trigger('change.select2');
+    }
+
+    // ===== Vị trí tủ: chọn vị trí đã dùng, nút + thêm vị trí mới =====
+
+    var dsViTri = null;          // [{viTri, idBoPhan, soTu}] từ máy chủ; null = chưa tải / cần tải lại
+
+    async function napViTri(chon) {
+        veViTri(chon);
+        if (dsViTri) return;
+        try {
+            var res = await fetch('/FormHR/QuanLyTuDienThoai/ViTri');
+            if (!res.ok) throw new Error('Máy chủ trả lỗi ' + res.status);
+            var kq = await res.json();
+            if (!kq.thanhCong) throw new Error(kq.thongBao);
+            dsViTri = kq.duLieu;
+            veViTri(document.getElementById('tdtViTri').value || chon);
+        } catch (ex) {
+            // Không tải được danh sách thì vẫn thêm bằng nút + như thường
+            document.getElementById('tdtLoi').textContent = 'Không tải được danh sách vị trí: ' + ex.message;
+        }
+    }
+
+    // Vị trí của bộ phận đang chọn lên đầu, các vị trí khác xếp sau
+    function veViTri(chon) {
+        var s = document.getElementById('tdtViTri');
+        var idBp = parseInt(document.getElementById('tdtBoPhan').value, 10);
+        var cuaBp = new Set(), khac = new Set();
+        (dsViTri || []).forEach(function (v) { (v.idBoPhan === idBp ? cuaBp : khac).add(v.viTri); });
+        cuaBp.forEach(function (v) { khac.delete(v); });
+        s.replaceChildren(taoEl('option', null, ''));
+        s.firstChild.value = '';
+        function nhom(nhan, tap) {
+            if (!tap.size) return;
+            var g = document.createElement('optgroup');
+            g.label = nhan;
+            Array.from(tap).sort(function (a, b) { return a.localeCompare(b, 'vi'); }).forEach(function (v) {
+                var o = taoEl('option', null, v);
+                o.value = v;
+                g.appendChild(o);
+            });
+            s.appendChild(g);
+        }
+        nhom('Bộ phận này', cuaBp);
+        nhom(cuaBp.size ? 'Vị trí khác' : 'Vị trí đã dùng', khac);
+        if (chon && !cuaBp.has(chon) && !khac.has(chon)) {
+            var o = taoEl('option', null, chon);
+            o.value = chon;
+            s.appendChild(o);
+        }
+        s.value = chon || '';
+        if (coSelect2()) $('#tdtViTri').trigger('change.select2');
+    }
+
+    async function themViTri() {
+        var ten = window.Swal
+            ? (await Swal.fire({ title: 'Thêm vị trí tủ', input: 'text', inputPlaceholder: 'VD: Xưởng dệt ngang — cửa ra vào số 1', inputAttributes: { maxlength: 200 }, showCancelButton: true, confirmButtonText: 'Thêm', cancelButtonText: 'Huỷ',
+                inputValidator: function (v) { return v && v.trim() ? null : 'Nhập tên vị trí.'; } })).value
+            : prompt('Vị trí tủ mới:');
+        ten = (ten || '').trim();
+        if (!ten) return;
+        if (ten.length > 200) ten = ten.slice(0, 200);
+        // Thêm vào danh sách ngay để chọn; lưu tủ xong thì vị trí này có sẵn cho lần sau
+        dsViTri = dsViTri || [];
+        var idBp = parseInt(document.getElementById('tdtBoPhan').value, 10);
+        if (!dsViTri.some(function (v) { return v.viTri === ten && v.idBoPhan === idBp; }))
+            dsViTri.push({ viTri: ten, idBoPhan: idBp, soTu: 0 });
+        veViTri(ten);
+    }
+
+    // ===== Mã NV → tự điền họ tên =====
+
+    var henGioMaNv = null;
+    var tenTuDien = '';          // tên do máy điền lần trước: người dùng chưa sửa tay thì được thay
+    var lanTraNv = 0;
+
+    async function traMaNv() {
+        var ma = document.getElementById('tdtMaNv').value.trim();
+        var goiY = document.getElementById('tdtMaNvGoiY');
+        var oTen = document.getElementById('tdtNguoiSuDung');
+        goiY.className = 'col-12 form-text mt-n2 mb-2';
+        if (!ma) { goiY.textContent = ''; return; }
+        var lan = ++lanTraNv;
+        goiY.textContent = 'Đang tra mã NV…';
+        try {
+            var res = await fetch('/FormHR/QuanLyTuDienThoai/NhanVien?ma=' + encodeURIComponent(ma));
+            if (!res.ok) throw new Error('Máy chủ trả lỗi ' + res.status);
+            var kq = await res.json();
+            if (lan !== lanTraNv) return; // đã gõ tiếp, bỏ kết quả cũ
+            if (!kq.thanhCong) { goiY.textContent = kq.thongBao || 'Không tìm thấy nhân viên.'; goiY.classList.add('text-warning'); return; }
+            var nv = kq.duLieu;
+            if (nv.hoTen && (!oTen.value.trim() || oTen.value === tenTuDien)) {
+                oTen.value = nv.hoTen;
+                tenTuDien = nv.hoTen;
+            }
+            goiY.textContent = '✓ ' + (nv.hoTen || '') + (nv.phongBan ? ' · ' + nv.phongBan : '') + (nv.daNghi ? ' (đã nghỉ việc)' : '');
+            goiY.classList.add(nv.daNghi ? 'text-warning' : 'text-success');
+        } catch (ex) {
+            if (lan === lanTraNv) goiY.textContent = ex.message;
+        }
     }
 
     async function luu(e) {
@@ -655,6 +840,12 @@
             var kq = await goiPost('/FormHR/QuanLyTuDienThoai/Luu', new FormData(e.target));
             if (!kq.thanhCong) { loi.textContent = kq.thongBao || 'Lưu thất bại.'; return; }
             modal.hide();
+            if (kq.duLieu && kq.duLieu.maBoPhanMoi) {
+                var m = {};
+                m[kq.duLieu.idBoPhan] = kq.duLieu.maBoPhanMoi;
+                capNhatMaTrongChon(m);
+            }
+            dsViTri = null; // vị trí vừa thêm đã thành dữ liệu thật → lần mở sau tải lại
             thongBao('success', kq.thongBao);
             taiDanhSach();
         } catch (ex) {
@@ -687,6 +878,250 @@
         }
     }
 
+    // ===== Lịch sử thao tác · khôi phục tủ xoá nhầm =====
+
+    var modalLs = null;
+    var lsIdTu = null;           // đang xem lịch sử 1 tủ (nút trên dòng) hay tất cả
+    var henGioLs = null;
+    var TEN_HD = { Them: ['Thêm', 'tdt-kq-them'], Sua: ['Sửa', 'tdt-kq-sua'], Xoa: ['Xoá', 'tdt-kq-loi'], KhoiPhuc: ['Khôi phục', 'tdt-kq-khoi-phuc'] };
+    var TEN_NGUON = { Excel: 'nhập Excel', XoaNhieu: 'xoá nhiều', DuLieuCu: 'trước khi có lịch sử' };
+    // Khoá trùng AnhChupTu trong TuDienThoaiController
+    var TRUONG_LS = [['idBoPhan', 'Bộ phận'], ['tenTu', 'Tên tủ'], ['viTri', 'Vị trí'], ['maNhanVien', 'Mã NV'], ['nguoiSuDung', 'Người sử dụng']];
+
+    function docJson(s) { try { return s ? JSON.parse(s) : null; } catch (ex) { return null; } }
+
+    function ngayGio(s) {
+        var d = new Date(s);
+        if (isNaN(d)) return s || '';
+        function h(n) { return (n < 10 ? '0' : '') + n; }
+        return h(d.getDate()) + '/' + h(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + h(d.getHours()) + ':' + h(d.getMinutes());
+    }
+
+    function moLichSu(idTu) {
+        lsIdTu = idTu || null;
+        var tu = lsIdTu ? duLieu.find(function (t) { return t.idTu === lsIdTu; }) : null;
+        document.getElementById('tdtLsTieuDe').textContent = tu ? 'Lịch sử tủ ' + tu.tenTu + ' (' + tu.tenBoPhan + ')' : 'Lịch sử thao tác tủ';
+        document.getElementById('tdtLsBoLocTu').hidden = !lsIdTu;
+        document.getElementById('tdtLsTuKhoa').value = '';
+        document.getElementById('tdtLsHanhDong').value = '';
+        modalLs.show();
+        taiLichSu();
+    }
+
+    async function taiLichSu() {
+        var body = document.getElementById('tdtLsBody');
+        body.replaceChildren(oTrong('Đang tải…', 'fa-spinner fa-spin'));
+        document.getElementById('tdtLsChan').textContent = '';
+        var p = new URLSearchParams();
+        if (lsIdTu) p.set('idTu', lsIdTu);
+        var hd = document.getElementById('tdtLsHanhDong').value;
+        if (hd) p.set('hanhDong', hd);
+        var tk = document.getElementById('tdtLsTuKhoa').value.trim();
+        if (tk) p.set('tuKhoa', tk);
+        try {
+            var res = await fetch('/FormHR/QuanLyTuDienThoai/LichSu?' + p.toString());
+            if (!res.ok) throw new Error('Máy chủ trả lỗi ' + res.status);
+            var kq = await res.json();
+            if (!kq.thanhCong) throw new Error(kq.thongBao || 'Không tải được lịch sử.');
+            veLichSu(kq.duLieu);
+        } catch (ex) {
+            body.replaceChildren(oTrong(ex.message, 'fa-exclamation-triangle'));
+        }
+    }
+
+    function tenBoPhanLs(bp, id) {
+        var b = bp[id];
+        if (!b) return '#' + id;
+        return (b.ma ? b.ma + ' · ' : '') + (b.ten || '#' + id);
+    }
+
+    function giaTriLs(bp, khoa, v) {
+        if (khoa === 'idBoPhan') return v == null ? '' : tenBoPhanLs(bp, v);
+        return v == null ? '' : String(v);
+    }
+
+    // Sửa: chỉ các trường đổi (cũ → mới); Thêm/Xoá/Khôi phục: toàn bộ giá trị
+    function veChiTietLs(r, bp) {
+        var cu = docJson(r.duLieuCu), moi = docJson(r.duLieuMoi);
+        var khung = taoEl('div', 'tdt-ls-ct');
+        TRUONG_LS.forEach(function (f) {
+            var a = cu ? giaTriLs(bp, f[0], cu[f[0]]) : null;
+            var b = moi ? giaTriLs(bp, f[0], moi[f[0]]) : null;
+            var dong = taoEl('div');
+            if (cu && moi) {
+                if (a === b) return;
+                dong.appendChild(taoEl('span', 'tdt-ls-nhan', f[1] + ': '));
+                dong.appendChild(taoEl('del', null, a || '(trống)'));
+                dong.appendChild(document.createTextNode(' → '));
+                dong.appendChild(taoEl('b', null, b || '(trống)'));
+            } else {
+                var v = a != null ? a : b;
+                if (!v) return;
+                dong.appendChild(taoEl('span', 'tdt-ls-nhan', f[1] + ': '));
+                dong.appendChild(document.createTextNode(v));
+            }
+            khung.appendChild(dong);
+        });
+        if (!khung.childNodes.length) khung.appendChild(taoEl('span', 'tdt-chua-co', '(không đổi dữ liệu)'));
+        return khung;
+    }
+
+    function veLichSu(d) {
+        var body = document.getElementById('tdtLsBody');
+        body.replaceChildren();
+        if (!d.dong.length) {
+            body.appendChild(oTrong('Chưa có thao tác nào khớp bộ lọc.', 'fa-inbox'));
+            return;
+        }
+        d.dong.forEach(function (r) {
+            var tr = document.createElement('tr');
+            tr.appendChild(taoEl('td', 'text-nowrap', ngayGio(r.ngay)));
+            tr.appendChild(taoEl('td', null, r.nguoi || ''));
+            var tdHd = document.createElement('td');
+            var hd = TEN_HD[r.hanhDong] || [r.hanhDong, 'tdt-kq-giu'];
+            tdHd.appendChild(taoEl('span', 'tdt-kq ' + hd[1], hd[0]));
+            if (TEN_NGUON[r.nguon]) tdHd.appendChild(taoEl('div', 'tdt-ls-nguon', TEN_NGUON[r.nguon]));
+            tr.appendChild(tdHd);
+            var tdTu = document.createElement('td');
+            tdTu.appendChild(taoEl('div', 'fw-semibold', r.tenTuHienTai));
+            tdTu.appendChild(taoEl('div', 'tdt-ls-nguon', tenBoPhanLs(d.boPhan, r.idBoPhanHienTai)));
+            if (r.daXoa) tdTu.appendChild(taoEl('span', 'tdt-kq tdt-kq-loi', 'đang xoá'));
+            tr.appendChild(tdTu);
+            var tdCt = document.createElement('td');
+            tdCt.appendChild(veChiTietLs(r, d.boPhan));
+            tr.appendChild(tdCt);
+            var tdNut = taoEl('td', 'text-end');
+            if (r.hanhDong === 'Xoa' && r.daXoa) {
+                var nut = taoEl('button', 'btn btn-sm btn-outline-success tdt-khoi-phuc');
+                nut.type = 'button';
+                nut.dataset.id = r.idTu;
+                nut.dataset.ten = r.tenTuHienTai;
+                nut.appendChild(taoEl('i', 'fa fa-undo'));
+                nut.appendChild(document.createTextNode(' Khôi phục'));
+                tdNut.appendChild(nut);
+            }
+            tr.appendChild(tdNut);
+            body.appendChild(tr);
+        });
+        document.getElementById('tdtLsChan').textContent = d.conNua
+            ? 'Hiển thị ' + d.dong.length + ' thao tác gần nhất — lọc hoặc tìm để xem cũ hơn.'
+            : d.dong.length + ' thao tác';
+    }
+
+    async function khoiPhuc(nut) {
+        var dongY = window.Swal
+            ? (await Swal.fire({ icon: 'question', text: 'Khôi phục tủ "' + nut.dataset.ten + '"?', showCancelButton: true, confirmButtonText: 'Khôi phục', cancelButtonText: 'Huỷ' })).isConfirmed
+            : confirm('Khôi phục tủ "' + nut.dataset.ten + '"?');
+        if (!dongY) return;
+        nut.disabled = true;
+        try {
+            var fd = new FormData();
+            fd.append('idTu', nut.dataset.id);
+            var kq = await goiPost('/FormHR/QuanLyTuDienThoai/KhoiPhuc', fd);
+            if (!kq.thanhCong) throw new Error(kq.thongBao || 'Khôi phục thất bại.');
+            thongBao('success', kq.thongBao);
+            taiLichSu();
+            taiDanhSach();
+        } catch (ex) {
+            nut.disabled = false;
+            thongBao('error', ex.message);
+        }
+    }
+
+    // ===== Mã bộ phận =====
+
+    var modalMaBp = null;
+    var dsMaBp = [];             // bộ phận máy chủ trả về, kèm mã gốc để biết dòng nào đã sửa
+    var maBpDaSua = {};          // idBoPhan → mã mới đang gõ (giữ khi lọc/tìm vẽ lại bảng)
+
+    async function moMaBp() {
+        maBpDaSua = {};
+        document.getElementById('tdtMaBpLoi').textContent = '';
+        document.getElementById('tdtMaBpTim').value = '';
+        capNhatNutMaBp();
+        var body = document.getElementById('tdtMaBpBody');
+        body.replaceChildren(oTrong('Đang tải…', 'fa-spinner fa-spin'));
+        modalMaBp.show();
+        try {
+            var res = await fetch('/FormHR/QuanLyTuDienThoai/MaBoPhan');
+            if (!res.ok) throw new Error('Máy chủ trả lỗi ' + res.status);
+            var kq = await res.json();
+            if (!kq.thanhCong) throw new Error(kq.thongBao || 'Không tải được bộ phận.');
+            dsMaBp = kq.duLieu;
+            veMaBp();
+        } catch (ex) {
+            body.replaceChildren(oTrong(ex.message, 'fa-exclamation-triangle'));
+        }
+    }
+
+    function veMaBp() {
+        var body = document.getElementById('tdtMaBpBody');
+        body.replaceChildren();
+        var tk = document.getElementById('tdtMaBpTim').value.trim().toLowerCase();
+        var coTu = document.getElementById('tdtMaBpCoTu').checked;
+        var ds = dsMaBp.filter(function (b) {
+            if (coTu && !b.soTu) return false;
+            return !tk || (b.tenBoPhan || '').toLowerCase().indexOf(tk) >= 0 || (b.maBoPhan || '').toLowerCase().indexOf(tk) >= 0;
+        });
+        if (!ds.length) { body.appendChild(oTrong('Không có bộ phận nào khớp.', 'fa-filter')); return; }
+        ds.forEach(function (b) {
+            var tr = document.createElement('tr');
+            tr.appendChild(taoEl('td', null, b.tenBoPhan));
+            tr.appendChild(taoEl('td', 'tdt-ls-nguon', b.moTa || ''));
+            tr.appendChild(taoEl('td', 'text-end', b.soTu));
+            var td = document.createElement('td');
+            var o = document.createElement('input');
+            o.type = 'text';
+            o.className = 'form-control form-control-sm tdt-o-ma';
+            o.maxLength = 20;
+            o.dataset.id = b.idBoPhan;
+            var daSua = b.idBoPhan in maBpDaSua;
+            o.value = daSua ? maBpDaSua[b.idBoPhan] : (b.maBoPhan || '');
+            o.classList.toggle('tdt-o-ma-doi', daSua);
+            o.setAttribute('aria-label', 'Mã bộ phận ' + b.tenBoPhan);
+            td.appendChild(o);
+            tr.appendChild(td);
+            body.appendChild(tr);
+        });
+    }
+
+    function capNhatNutMaBp() {
+        var n = Object.keys(maBpDaSua).length;
+        var nut = document.getElementById('tdtBtnLuuMaBp');
+        nut.disabled = n === 0;
+        nut.lastChild.textContent = n ? ' Lưu ' + n + ' bộ phận' : ' Lưu';
+    }
+
+    function ghiMaBp(o) {
+        var id = parseInt(o.dataset.id, 10);
+        var b = dsMaBp.find(function (x) { return x.idBoPhan === id; });
+        var v = o.value.trim().toUpperCase();
+        if (b && v === (b.maBoPhan || '')) delete maBpDaSua[id]; else maBpDaSua[id] = v;
+        o.classList.toggle('tdt-o-ma-doi', id in maBpDaSua);
+        capNhatNutMaBp();
+    }
+
+    async function luuMaBp(nut) {
+        var ids = Object.keys(maBpDaSua);
+        if (!ids.length) return;
+        var loi = document.getElementById('tdtMaBpLoi');
+        loi.textContent = '';
+        nut.disabled = true;
+        try {
+            var fd = new FormData();
+            ids.forEach(function (id) { fd.append('idBoPhan', id); fd.append('ma', maBpDaSua[id]); });
+            var kq = await goiPost('/FormHR/QuanLyTuDienThoai/MaBoPhan/Luu', fd);
+            if (!kq.thanhCong) throw new Error(kq.thongBao || 'Lưu thất bại.');
+            modalMaBp.hide();
+            capNhatMaTrongChon(maBpDaSua);
+            thongBao('success', kq.thongBao);
+            taiDanhSach();
+        } catch (ex) {
+            loi.textContent = ex.message;
+            nut.disabled = false;
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         laQuanLy = document.getElementById('tdtTrang').dataset.laQuanLy === '1';
         // Hộp thoại thêm/sửa và in tem chỉ có trong trang của admin
@@ -694,6 +1129,9 @@
             modal = new bootstrap.Modal(document.getElementById('tdtModal'));
             modalIn = new bootstrap.Modal(document.getElementById('tdtModalIn'));
             modalExcel = new bootstrap.Modal(document.getElementById('tdtModalExcel'));
+            modalLs = new bootstrap.Modal(document.getElementById('tdtModalLichSu'));
+            modalMaBp = new bootstrap.Modal(document.getElementById('tdtModalMaBp'));
+            ganTimBoPhan();
         }
         taiDanhSach();
     });
@@ -709,6 +1147,15 @@
         if (!laQuanLy) return;
         if (e.target.closest('#tdtBtnThem')) { moModal(null); return; }
         if (e.target.closest('#tdtBtnDriver')) { moDriver(); return; }
+        if (e.target.closest('#tdtBtnLichSu') || e.target.closest('#tdtLsBoLocTu')) { moLichSu(null); return; }
+        var lsTu = e.target.closest('.tdt-ls-tu');
+        if (lsTu) { moLichSu(parseInt(lsTu.dataset.id, 10)); return; }
+        var nutKp = e.target.closest('.tdt-khoi-phuc');
+        if (nutKp) { khoiPhuc(nutKp); return; }
+        if (e.target.closest('#tdtBtnMaBp')) { moMaBp(); return; }
+        if (e.target.closest('#tdtBtnThemViTri')) { themViTri(); return; }
+        var nutLuuMa = e.target.closest('#tdtBtnLuuMaBp');
+        if (nutLuuMa) { luuMaBp(nutLuuMa); return; }
         // In tem → sang trang thiết kế tem, mang theo các tủ đã tích (tích sẵn ở bảng Dữ liệu)
         if (e.target.closest('#tdtBtnIn') || e.target.closest('#tdtBtnIn2')) {
             if (!daChon.size) return;
@@ -738,6 +1185,10 @@
         var o = e.target;
         if (o.id === 'tdtLocBoPhan') { taiDanhSach(); return; }
         if (o.id === 'tdtDriverMay') { veDriver(); return; }
+        if (o.id === 'tdtLsHanhDong') { taiLichSu(); return; }
+        if (o.id === 'tdtMaBpCoTu') { veMaBp(); return; }
+        // Không có Select2 thì đổi bộ phận đi qua sự kiện change thường
+        if (o.id === 'tdtBoPhan' && !coSelect2()) { dongBoMaTuBoPhan(); veViTri(document.getElementById('tdtViTri').value); return; }
         if (o.id === 'tdtFileExcel') { datLaiExcel(); if (o.files[0]) guiExcel(false); return; } // chọn file xong kiểm tra luôn
         if (o.classList.contains('tdt-chon')) {
             var id = parseInt(o.dataset.id, 10);
@@ -759,6 +1210,19 @@
     });
 
     document.addEventListener('input', function (e) {
+        if (e.target.classList.contains('tdt-o-ma')) { ghiMaBp(e.target); return; }
+        if (e.target.id === 'tdtMaBpTim') { veMaBp(); return; }
+        if (e.target.id === 'tdtMaBp') { goMaBp(e.target); return; }
+        if (e.target.id === 'tdtMaNv') {
+            clearTimeout(henGioMaNv);
+            henGioMaNv = setTimeout(traMaNv, 400);
+            return;
+        }
+        if (e.target.id === 'tdtLsTuKhoa') {
+            clearTimeout(henGioLs);
+            henGioLs = setTimeout(taiLichSu, 300);
+            return;
+        }
         if (e.target.id !== 'tdtTuKhoa') return;
         clearTimeout(henGioTim);
         henGioTim = setTimeout(taiDanhSach, 300);

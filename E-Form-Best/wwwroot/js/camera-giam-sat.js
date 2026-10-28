@@ -730,7 +730,7 @@
         if (!cam || $nut.prop('disabled')) return;
         $nut.prop('disabled', true).find('i').addClass('fa-spin');
         nhanXem('Đang chụp lại ảnh lưu (có thể mất ~30 giây)...');
-        $.post('/QLCamera/Xem/ChupLaiAnhLuu', { nvrIp: cam.nvr_ip, kenh: cam.cam_id })
+        $.post('/QLCamera/Xem/ChupLaiAnhLuu', { nvrIp: cam.nvr_ip, kenh: cam.cam_id, congTy: congTy })
             .done(function (res) {
                 if (xem.cam !== cam) return;
                 if (res.thanhCong) {

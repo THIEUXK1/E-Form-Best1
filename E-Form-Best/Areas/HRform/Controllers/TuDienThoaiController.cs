@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace E_Form_Best.Areas.HRform.Controllers
 {
@@ -26,6 +28,22 @@ namespace E_Form_Best.Areas.HRform.Controllers
             && (User.IsInRole("AdminHR") || User.IsInRole("AdminIT") || User.IsInRole("All"));
 
         private static string? Gon(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+        // Giữ nguyên tiếng Việt trong JSON lịch sử để đọc thẳng trên DB được
+        private static readonly JsonSerializerOptions JsonLichSu = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
+        // Ảnh chụp tủ lưu vào lịch sử; khoá phải trùng script hr-tu-dien-thoai-lich-su-20261028.sql và tu-dien-thoai.js
+        private static string AnhChupTu(HrTuDienThoai t) => JsonSerializer.Serialize(new
+        {
+            idBoPhan = t.IdBoPhan,
+            tenTu = t.TenTu,
+            viTri = t.ViTri,
+            maNhanVien = t.MaNhanVien,
+            nguoiSuDung = t.NguoiSuDung
+        }, JsonLichSu);
+
+        private static HrTuDienThoaiLichSu TaoLichSu(int idTu, string hanhDong, string? cu, string? moi, DateTime ngay, string? nguoi, string? nguon = null) =>
+            new() { IdTu = idTu, HanhDong = hanhDong, DuLieuCu = cu, DuLieuMoi = moi, Ngay = ngay, Nguoi = nguoi, Nguon = nguon };
 
         // Người không phải admin chỉ xem tủ của bộ phận mình: lấy theo User_BoPhan; ai chưa gán thì theo PhongBan
         // trong hồ sơ (cùng cách trang IT đang dùng). Trả rỗng = không thuộc bộ phận nào → không thấy tủ nào.
@@ -56,6 +74,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             public string? ViTri { get; set; }
             public string? MaNhanVien { get; set; }
             public string? NguoiSuDung { get; set; }
+            public string? MaBoPhan { get; set; }
         }
 
         // Ai đăng nhập cũng xem được; admin (AdminHR/AdminIT/All) xem hết và mới được thêm/sửa/xoá/in tem
@@ -72,10 +91,13 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 var cuaToi = await BoPhanCuaToiAsync();
                 q = q.Where(b => cuaToi.Contains(b.IdBoPhan));
             }
-            ViewBag.BoPhans = await q
+            var dsBoPhan = await q
                 .OrderBy(b => b.TenBoPhan)
-                .Select(b => new SelectListItem(b.TenBoPhan, b.IdBoPhan.ToString()))
+                .Select(b => new { b.IdBoPhan, b.TenBoPhan, b.MaBoPhan })
                 .ToListAsync();
+            ViewBag.BoPhans = dsBoPhan.Select(b => new SelectListItem(b.TenBoPhan, b.IdBoPhan.ToString())).ToList();
+            // Mã BP ghép vào ô chọn bộ phận ở hộp thoại thêm/sửa để gõ "QC" là tìm ra
+            ViewBag.MaBoPhan = dsBoPhan.Where(b => b.MaBoPhan != null).ToDictionary(b => b.IdBoPhan.ToString(), b => b.MaBoPhan!);
             ViewBag.LaQuanLy = laQuanLy;
             return View();
         }
@@ -101,7 +123,8 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     q = q.Where(t => t.TenTu.Contains(tk)
                         || (t.ViTri != null && t.ViTri.Contains(tk))
                         || (t.MaNhanVien != null && t.MaNhanVien.Contains(tk))
-                        || (t.NguoiSuDung != null && t.NguoiSuDung.Contains(tk)));
+                        || (t.NguoiSuDung != null && t.NguoiSuDung.Contains(tk))
+                        || _context.BoPhans.Any(b => b.IdBoPhan == t.IdBoPhan && b.MaBoPhan != null && b.MaBoPhan.Contains(tk)));
 
                 var duLieu = await (from t in q
                                     join b in _context.BoPhans on t.IdBoPhan equals b.IdBoPhan
@@ -111,6 +134,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                                         t.IdTu,
                                         t.IdBoPhan,
                                         b.TenBoPhan,
+                                        b.MaBoPhan,
                                         t.TenTu,
                                         t.ViTri,
                                         t.MaNhanVien,
@@ -134,8 +158,19 @@ namespace E_Form_Best.Areas.HRform.Controllers
             var tenTu = Gon(input.TenTu);
             if (tenTu == null) return Json(new { thanhCong = false, thongBao = "Vui lòng nhập tên tủ." });
             if (tenTu.Length > 100) return Json(new { thanhCong = false, thongBao = "Tên tủ tối đa 100 ký tự." });
-            if (!await _context.BoPhans.AnyAsync(b => b.IdBoPhan == input.IdBoPhan))
-                return Json(new { thanhCong = false, thongBao = "Vui lòng chọn bộ phận." });
+            var boPhan = await _context.BoPhans.FirstOrDefaultAsync(b => b.IdBoPhan == input.IdBoPhan);
+            if (boPhan == null) return Json(new { thanhCong = false, thongBao = "Vui lòng chọn bộ phận." });
+
+            // Mã BP: bộ phận chưa có mã thì lấy mã gõ ở form làm mã luôn; đã có mã khác thì không đè (mã dùng chung nhiều tủ)
+            var maBp = Gon(input.MaBoPhan)?.ToUpperInvariant();
+            string? maBpMoi = null;
+            if (maBp != null)
+            {
+                if (maBp.Length > 20) return Json(new { thanhCong = false, thongBao = "Mã BP tối đa 20 ký tự." });
+                if (boPhan.MaBoPhan == null) { boPhan.MaBoPhan = maBp; maBpMoi = maBp; }
+                else if (!string.Equals(boPhan.MaBoPhan, maBp, StringComparison.OrdinalIgnoreCase))
+                    return Json(new { thanhCong = false, thongBao = $"Bộ phận này đang dùng mã \"{boPhan.MaBoPhan}\" — đổi mã ở nút Mã bộ phận." });
+            }
 
             var viTri = Gon(input.ViTri);
             var maNv = Gon(input.MaNhanVien);
@@ -151,35 +186,55 @@ namespace E_Form_Best.Areas.HRform.Controllers
             try
             {
                 var nguoi = User.Identity?.Name;
+                var bayGio = DateTime.Now;
                 if (input.IdTu == 0)
                 {
-                    _context.HrTuDienThoais.Add(new HrTuDienThoai
+                    var tuMoi = new HrTuDienThoai
                     {
                         IdBoPhan = input.IdBoPhan,
                         TenTu = tenTu,
                         ViTri = viTri,
                         MaNhanVien = maNv,
                         NguoiSuDung = nguoiSuDung,
-                        NgayTao = DateTime.Now,
+                        NgayTao = bayGio,
                         NguoiTao = nguoi
-                    });
+                    };
+                    // Cần id tủ mới để ghi lịch sử → 2 lần SaveChanges trong 1 giao dịch
+                    await using var gd = await _context.Database.BeginTransactionAsync();
+                    _context.HrTuDienThoais.Add(tuMoi);
+                    await _context.SaveChangesAsync();
+                    _context.HrTuDienThoaiLichSus.Add(TaoLichSu(tuMoi.IdTu, "Them", null, AnhChupTu(tuMoi), bayGio, nguoi));
+                    await _context.SaveChangesAsync();
+                    await gd.CommitAsync();
                 }
                 else
                 {
                     var tu = await _context.HrTuDienThoais.FirstOrDefaultAsync(t => t.IdTu == input.IdTu && t.NgayXoa == null);
                     if (tu == null) return Json(new { thanhCong = false, thongBao = "Không tìm thấy tủ cần sửa (có thể đã bị xoá)." });
 
+                    var cu = AnhChupTu(tu);
                     tu.IdBoPhan = input.IdBoPhan;
                     tu.TenTu = tenTu;
                     tu.ViTri = viTri;
                     tu.MaNhanVien = maNv;
                     tu.NguoiSuDung = nguoiSuDung;
-                    tu.NgaySua = DateTime.Now;
-                    tu.NguoiSua = nguoi;
+                    var moi = AnhChupTu(tu);
+                    // Bấm Lưu mà không đổi gì thì không ghi lịch sử rác
+                    if (moi != cu)
+                    {
+                        tu.NgaySua = bayGio;
+                        tu.NguoiSua = nguoi;
+                        _context.HrTuDienThoaiLichSus.Add(TaoLichSu(tu.IdTu, "Sua", cu, moi, bayGio, nguoi));
+                    }
+                    await _context.SaveChangesAsync();
                 }
 
-                await _context.SaveChangesAsync();
-                return Json(new { thanhCong = true, thongBao = input.IdTu == 0 ? "Đã thêm tủ." : "Đã cập nhật tủ." });
+                return Json(new
+                {
+                    thanhCong = true,
+                    thongBao = input.IdTu == 0 ? "Đã thêm tủ." : "Đã cập nhật tủ.",
+                    duLieu = new { idBoPhan = boPhan.IdBoPhan, maBoPhanMoi = maBpMoi }
+                });
             }
             catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
             {
@@ -206,6 +261,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 // Xoá mềm để còn truy vết ai đã dùng tủ nào
                 tu.NgayXoa = DateTime.Now;
                 tu.NguoiXoa = User.Identity?.Name;
+                _context.HrTuDienThoaiLichSus.Add(TaoLichSu(tu.IdTu, "Xoa", AnhChupTu(tu), null, tu.NgayXoa.Value, tu.NguoiXoa));
                 await _context.SaveChangesAsync();
                 return Json(new { thanhCong = true, thongBao = "Đã xoá tủ." });
             }
@@ -214,6 +270,212 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 return Json(new { thanhCong = false, thongBao = "Lỗi xoá tủ: " + ex.Message });
             }
         }
+
+        #region Lịch sử · khôi phục · mã bộ phận
+
+        // Tra nhân viên theo mã để form tủ tự điền họ tên. Ưu tiên dữ liệu HRM (đủ nhân viên, kể cả người chưa có tài khoản E-Form),
+        // không có thì tìm trong User.
+        [HttpGet("/FormHR/QuanLyTuDienThoai/NhanVien")]
+        public async Task<IActionResult> TimNhanVien(string? ma)
+        {
+            if (!CoQuyenQuanLy()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            var m = Gon(ma);
+            if (m == null || m.Length > 50) return Json(new { thanhCong = false, thongBao = "Mã NV không hợp lệ." });
+
+            try
+            {
+                var hrm = await _context.HrmNhanViens.AsNoTracking()
+                    .Where(n => n.MaNhanVien == m)
+                    .Select(n => new { n.MaNhanVien, n.HoTen, n.PhongBan, n.DangLamViec })
+                    .FirstOrDefaultAsync();
+                if (hrm != null)
+                    return Json(new { thanhCong = true, duLieu = new { hrm.MaNhanVien, hrm.HoTen, hrm.PhongBan, daNghi = hrm.DangLamViec == false } });
+
+                var u = await _context.Users.AsNoTracking()
+                    .Where(x => x.MaNhanVien == m)
+                    .Select(x => new { x.MaNhanVien, x.HoTen, x.PhongBan, x.TrangThai })
+                    .FirstOrDefaultAsync();
+                if (u != null)
+                    return Json(new { thanhCong = true, duLieu = new { u.MaNhanVien, u.HoTen, u.PhongBan, daNghi = u.TrangThai == "Đã nghỉ" } });
+
+                return Json(new { thanhCong = false, thongBao = "Không tìm thấy nhân viên mã này." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { thanhCong = false, thongBao = "Lỗi tra nhân viên: " + ex.Message });
+            }
+        }
+
+        // Vị trí tủ đã dùng (không có bảng riêng: vị trí mới thêm bằng nút + sẽ có trong danh sách sau khi lưu tủ đầu tiên)
+        [HttpGet("/FormHR/QuanLyTuDienThoai/ViTri")]
+        public async Task<IActionResult> DanhSachViTri()
+        {
+            if (!CoQuyenQuanLy()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+
+            try
+            {
+                var duLieu = await _context.HrTuDienThoais
+                    .Where(t => t.NgayXoa == null && t.ViTri != null && t.ViTri != "")
+                    .GroupBy(t => new { t.ViTri, t.IdBoPhan })
+                    .Select(g => new { viTri = g.Key.ViTri, idBoPhan = g.Key.IdBoPhan, soTu = g.Count() })
+                    .ToListAsync();
+                return Json(new { thanhCong = true, duLieu });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { thanhCong = false, thongBao = "Lỗi tải vị trí: " + ex.Message });
+            }
+        }
+
+        // Lịch sử thao tác (mới nhất trước). idTu: lịch sử 1 tủ; tuKhoa: tìm trong tên tủ, dữ liệu trước/sau, người thao tác.
+        [HttpGet("/FormHR/QuanLyTuDienThoai/LichSu")]
+        public async Task<IActionResult> LichSu(int? idTu, string? hanhDong, string? tuKhoa)
+        {
+            if (!CoQuyenQuanLy()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem lịch sử." });
+
+            try
+            {
+                var q = from l in _context.HrTuDienThoaiLichSus
+                        join t in _context.HrTuDienThoais on l.IdTu equals t.IdTu
+                        select new { l, t };
+                if (idTu.HasValue) q = q.Where(x => x.l.IdTu == idTu.Value);
+                var hd = Gon(hanhDong);
+                if (hd != null) q = q.Where(x => x.l.HanhDong == hd);
+                var tk = Gon(tuKhoa);
+                if (tk != null)
+                    q = q.Where(x => x.t.TenTu.Contains(tk)
+                        || (x.l.Nguoi != null && x.l.Nguoi.Contains(tk))
+                        || (x.l.DuLieuCu != null && x.l.DuLieuCu.Contains(tk))
+                        || (x.l.DuLieuMoi != null && x.l.DuLieuMoi.Contains(tk)));
+
+                const int toiDa = 300;
+                var dong = await q.OrderByDescending(x => x.l.Ngay).ThenByDescending(x => x.l.IdLichSu)
+                    .Take(toiDa + 1)
+                    .Select(x => new
+                    {
+                        x.l.IdLichSu,
+                        x.l.IdTu,
+                        x.l.HanhDong,
+                        x.l.Nguon,
+                        x.l.DuLieuCu,
+                        x.l.DuLieuMoi,
+                        x.l.Ngay,
+                        x.l.Nguoi,
+                        tenTuHienTai = x.t.TenTu,
+                        idBoPhanHienTai = x.t.IdBoPhan,
+                        daXoa = x.t.NgayXoa != null
+                    }).ToListAsync();
+
+                // Dữ liệu trước/sau chỉ lưu id bộ phận → gửi kèm bảng tên để hiển thị
+                var boPhan = await _context.BoPhans
+                    .Select(b => new { b.IdBoPhan, b.TenBoPhan, b.MaBoPhan })
+                    .ToDictionaryAsync(b => b.IdBoPhan, b => new { ten = b.TenBoPhan, ma = b.MaBoPhan });
+
+                return Json(new
+                {
+                    thanhCong = true,
+                    duLieu = new { dong = dong.Take(toiDa), conNua = dong.Count > toiDa, boPhan }
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { thanhCong = false, thongBao = "Lỗi tải lịch sử: " + ex.Message });
+            }
+        }
+
+        // Khôi phục tủ đã xoá mềm (xoá nhầm). Bấm 2 lần: lần sau thấy tủ đã hoạt động thì coi như xong.
+        [HttpPost("/FormHR/QuanLyTuDienThoai/KhoiPhuc")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> KhoiPhuc([FromForm] int idTu)
+        {
+            if (!CoQuyenQuanLy()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+
+            try
+            {
+                var tu = await _context.HrTuDienThoais.FirstOrDefaultAsync(t => t.IdTu == idTu);
+                if (tu == null) return Json(new { thanhCong = false, thongBao = "Không tìm thấy tủ." });
+                if (tu.NgayXoa == null) return Json(new { thanhCong = true, thongBao = "Tủ đã được khôi phục." });
+
+                // Sau khi xoá có thể đã tạo tủ mới cùng tên trong bộ phận → không khôi phục chồng
+                bool trung = await _context.HrTuDienThoais.AnyAsync(t =>
+                    t.NgayXoa == null && t.IdBoPhan == tu.IdBoPhan && t.TenTu == tu.TenTu && t.IdTu != tu.IdTu);
+                if (trung) return Json(new { thanhCong = false, thongBao = $"Bộ phận này đang có tủ \"{tu.TenTu}\" khác — đổi tên hoặc xoá tủ đó trước khi khôi phục." });
+
+                var bayGio = DateTime.Now;
+                var nguoi = User.Identity?.Name;
+                tu.NgayXoa = null;
+                tu.NguoiXoa = null;
+                tu.NgaySua = bayGio;
+                tu.NguoiSua = nguoi;
+                _context.HrTuDienThoaiLichSus.Add(TaoLichSu(tu.IdTu, "KhoiPhuc", null, AnhChupTu(tu), bayGio, nguoi));
+                await _context.SaveChangesAsync();
+                return Json(new { thanhCong = true, thongBao = $"Đã khôi phục tủ \"{tu.TenTu}\"." });
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
+            {
+                return Json(new { thanhCong = false, thongBao = "Bộ phận này đang có tủ cùng tên — đổi tên hoặc xoá tủ đó trước khi khôi phục." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { thanhCong = false, thongBao = "Lỗi khôi phục tủ: " + ex.Message });
+            }
+        }
+
+        [HttpGet("/FormHR/QuanLyTuDienThoai/MaBoPhan")]
+        public async Task<IActionResult> DanhSachMaBoPhan()
+        {
+            if (!CoQuyenQuanLy()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+
+            try
+            {
+                var soTu = await _context.HrTuDienThoais.Where(t => t.NgayXoa == null)
+                    .GroupBy(t => t.IdBoPhan).Select(g => new { g.Key, n = g.Count() })
+                    .ToDictionaryAsync(x => x.Key, x => x.n);
+                var duLieu = (await _context.BoPhans.Where(b => b.TenBoPhan != null)
+                        .OrderBy(b => b.TenBoPhan)
+                        .Select(b => new { b.IdBoPhan, b.TenBoPhan, b.MaBoPhan, b.MoTa })
+                        .ToListAsync())
+                    .Select(b => new { b.IdBoPhan, b.TenBoPhan, b.MaBoPhan, b.MoTa, soTu = soTu.GetValueOrDefault(b.IdBoPhan) });
+                return Json(new { thanhCong = true, duLieu });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { thanhCong = false, thongBao = "Lỗi tải bộ phận: " + ex.Message });
+            }
+        }
+
+        // Lưu mã bộ phận: chỉ gửi các dòng đã đổi; mã rỗng = bỏ mã. Gửi lại cùng dữ liệu thì kết quả như nhau.
+        [HttpPost("/FormHR/QuanLyTuDienThoai/MaBoPhan/Luu")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> LuuMaBoPhan([FromForm] int[] idBoPhan, [FromForm] string?[] ma)
+        {
+            if (!CoQuyenQuanLy()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            if (idBoPhan == null || ma == null || idBoPhan.Length != ma.Length) return Json(new { thanhCong = false, thongBao = "Dữ liệu gửi lên không hợp lệ." });
+            if (idBoPhan.Length == 0) return Json(new { thanhCong = true, thongBao = "Không có gì thay đổi." });
+
+            var moi = new Dictionary<int, string?>();
+            for (int i = 0; i < idBoPhan.Length; i++)
+            {
+                var m = Gon(ma[i])?.ToUpperInvariant();
+                if ((m?.Length ?? 0) > 20) return Json(new { thanhCong = false, thongBao = $"Mã \"{m}\" quá dài (tối đa 20 ký tự)." });
+                moi[idBoPhan[i]] = m;
+            }
+
+            try
+            {
+                var ids = moi.Keys.ToList();
+                var ds = await _context.BoPhans.Where(b => ids.Contains(b.IdBoPhan)).ToListAsync();
+                foreach (var b in ds) b.MaBoPhan = moi[b.IdBoPhan];
+                await _context.SaveChangesAsync();
+                return Json(new { thanhCong = true, thongBao = $"Đã lưu mã cho {ds.Count} bộ phận." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { thanhCong = false, thongBao = "Lỗi lưu mã bộ phận: " + ex.Message });
+            }
+        }
+
+        #endregion
 
         #region Excel: tải mẫu, nhập · xoá nhiều
 
@@ -227,9 +489,9 @@ namespace E_Form_Best.Areas.HRform.Controllers
             var dsBoPhan = await _context.BoPhans
                 .Where(b => b.TenBoPhan != null && b.TenBoPhan != "")
                 .OrderBy(b => b.TenBoPhan)
-                .Select(b => b.TenBoPhan!)
+                .Select(b => new { b.TenBoPhan, b.MaBoPhan })
                 .ToListAsync();
-            var file = Services.TuDienThoaiExcel.TaoFileMau(dsBoPhan);
+            var file = Services.TuDienThoaiExcel.TaoFileMau(dsBoPhan.Select(b => (b.TenBoPhan!, b.MaBoPhan)).ToList());
             return File(file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "MauNhapTuDienThoai.xlsx");
         }
 
@@ -266,8 +528,10 @@ namespace E_Form_Best.Areas.HRform.Controllers
             {
                 // Bộ phận: so khớp không dấu / không khoảng trắng; tên chuẩn hoá trùng nhau thì đòi ghi đúng tên
                 var boPhans = await _context.BoPhans.Where(b => b.TenBoPhan != null)
-                    .Select(b => new { b.IdBoPhan, b.TenBoPhan }).ToListAsync();
+                    .Select(b => new { b.IdBoPhan, b.TenBoPhan, b.MaBoPhan }).ToListAsync();
                 var theoKhoa = boPhans.GroupBy(b => Services.TuDienThoaiExcel.BoDau(b.TenBoPhan)).ToDictionary(g => g.Key, g => g.ToList());
+                var theoMa = boPhans.Where(b => !string.IsNullOrWhiteSpace(b.MaBoPhan))
+                    .GroupBy(b => Services.TuDienThoaiExcel.BoDau(b.MaBoPhan)).ToDictionary(g => g.Key, g => g.ToList());
 
                 var tuCu = await _context.HrTuDienThoais.Where(t => t.NgayXoa == null).ToListAsync();
                 var tuTheoKhoa = tuCu.GroupBy(t => (t.IdBoPhan, Services.TuDienThoaiExcel.BoDau(t.TenTu)))
@@ -283,13 +547,26 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 {
                     string? loi = null;
                     int? idBoPhan = null;
-                    if (d.BoPhan == null) loi = "Thiếu bộ phận";
+                    string? tenBoPhan = d.BoPhan, maBoPhan = d.MaBoPhan;
+                    if (d.BoPhan == null && d.MaBoPhan == null) loi = "Thiếu bộ phận (ghi tên Bộ phận hoặc Mã BP)";
+                    else if (d.BoPhan == null)
+                    {
+                        // Chỉ có mã: mã không bắt buộc duy nhất (2 bộ phận QC) → trùng thì đòi ghi tên
+                        theoMa.TryGetValue(Services.TuDienThoaiExcel.BoDau(d.MaBoPhan), out var khopMa);
+                        if (khopMa == null) loi = "Không có bộ phận mã \"" + d.MaBoPhan + "\" (đặt mã ở nút Mã bộ phận trên trang)";
+                        else if (khopMa.Count > 1) loi = "Mã \"" + d.MaBoPhan + "\" dùng cho " + khopMa.Count + " bộ phận, hãy ghi thêm tên Bộ phận";
+                        else { idBoPhan = khopMa[0].IdBoPhan; tenBoPhan = khopMa[0].TenBoPhan; }
+                    }
                     else if (!theoKhoa.TryGetValue(Services.TuDienThoaiExcel.BoDau(d.BoPhan), out var khop)) loi = "Không có bộ phận \"" + d.BoPhan + "\" trên hệ thống";
                     else
                     {
                         var dung = khop.Count == 1 ? khop[0] : khop.FirstOrDefault(b => string.Equals(b.TenBoPhan!.Trim(), d.BoPhan, StringComparison.OrdinalIgnoreCase));
                         if (dung == null) loi = "Tên bộ phận khớp nhiều bộ phận, hãy chọn đúng tên trong danh sách";
-                        else idBoPhan = dung.IdBoPhan;
+                        // Ghi cả 2 mà lệch nhau thì không đoán bên nào đúng; bộ phận chưa đặt mã thì bỏ qua cột mã
+                        else if (d.MaBoPhan != null && dung.MaBoPhan != null
+                                 && Services.TuDienThoaiExcel.BoDau(d.MaBoPhan) != Services.TuDienThoaiExcel.BoDau(dung.MaBoPhan))
+                            loi = "Mã BP \"" + d.MaBoPhan + "\" không khớp bộ phận này (mã trên hệ thống: " + dung.MaBoPhan + ")";
+                        else { idBoPhan = dung.IdBoPhan; maBoPhan = dung.MaBoPhan ?? d.MaBoPhan; }
                     }
                     if (loi == null && d.TenTu == null) loi = "Thiếu tên tủ";
                     if (loi == null && (d.TenTu!.Length > 100 || (d.ViTri?.Length ?? 0) > 200 || (d.MaNhanVien?.Length ?? 0) > 50 || (d.NguoiSuDung?.Length ?? 0) > 200))
@@ -314,7 +591,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
                             MaNhanVien = d.MaNhanVien, NguoiSuDung = d.NguoiSuDung
                         });
                     }
-                    ketQua.Add(new { d.Dong, d.BoPhan, d.TenTu, d.ViTri, d.MaNhanVien, d.NguoiSuDung, trangThai, loi });
+                    ketQua.Add(new { d.Dong, maBoPhan, boPhan = tenBoPhan, d.TenTu, d.ViTri, d.MaNhanVien, d.NguoiSuDung, trangThai, loi });
                 }
 
                 bool daLuu = false;
@@ -325,12 +602,17 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     foreach (var t in canThem) { t.NgayTao = bayGio; t.NguoiTao = nguoi; }
                     foreach (var (tu, d) in canSua)
                     {
+                        var cu = AnhChupTu(tu);
                         tu.ViTri = d.ViTri; tu.MaNhanVien = d.MaNhanVien; tu.NguoiSuDung = d.NguoiSuDung;
                         tu.NgaySua = bayGio; tu.NguoiSua = nguoi;
+                        _context.HrTuDienThoaiLichSus.Add(TaoLichSu(tu.IdTu, "Sua", cu, AnhChupTu(tu), bayGio, nguoi, "Excel"));
                     }
-                    // Một giao dịch: lỗi giữa chừng thì không ghi dở dang
+                    // Một giao dịch: lỗi giữa chừng thì không ghi dở dang; lịch sử tủ mới ghi sau khi có id
                     await using var gd = await _context.Database.BeginTransactionAsync();
                     _context.HrTuDienThoais.AddRange(canThem);
+                    await _context.SaveChangesAsync();
+                    foreach (var t in canThem)
+                        _context.HrTuDienThoaiLichSus.Add(TaoLichSu(t.IdTu, "Them", null, AnhChupTu(t), bayGio, nguoi, "Excel"));
                     await _context.SaveChangesAsync();
                     await gd.CommitAsync();
                     daLuu = true;
@@ -368,7 +650,11 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 // Xoá mềm để còn truy vết ai đã dùng tủ nào; tủ đã xoá trước đó (bấm 2 lần) thì bỏ qua
                 var bayGio = DateTime.Now;
                 var nguoi = User.Identity?.Name;
-                foreach (var t in ds) { t.NgayXoa = bayGio; t.NguoiXoa = nguoi; }
+                foreach (var t in ds)
+                {
+                    t.NgayXoa = bayGio; t.NguoiXoa = nguoi;
+                    _context.HrTuDienThoaiLichSus.Add(TaoLichSu(t.IdTu, "Xoa", AnhChupTu(t), null, bayGio, nguoi, "XoaNhieu"));
+                }
                 await _context.SaveChangesAsync();
                 return Json(new { thanhCong = true, thongBao = $"Đã xoá {ds.Count} tủ.", duLieu = new { soXoa = ds.Count } });
             }

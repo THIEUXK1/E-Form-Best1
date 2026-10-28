@@ -429,7 +429,7 @@
             tr.appendChild(p1);
             tr.appendChild(taoGoiY('Kéo khung trên vùng trống hoặc Ctrl + bấm để chọn nhiều đối tượng.'));
             tr.appendChild(taoGoiY('In hàng loạt: bấm "Dữ liệu", rồi kéo tên cột thả vào chữ / mã vạch.'));
-            tr.appendChild(taoGoiY('Mở mẫu đã lưu bằng nút "Mở"; nhập file .tnl của app TemNhan qua Tệp > Nhập.'));
+            tr.appendChild(taoGoiY('Mở mẫu đã lưu bằng nút "Mở"; nhập file .tnl (app TemNhan) hoặc .lbx (P-touch Editor) qua Tệp > Nhập.'));
             p.appendChild(tr);
             return;
         }
@@ -610,6 +610,7 @@
         o.textContent = (ten || 'Mẫu mới (chưa lưu)') + (duAn.length > 1 ? ' — ' + duAn.length + ' trang' : '');
         o.classList.toggle('chua-luu', daSua);
         o.title = daSua ? 'Có thay đổi chưa lưu' : 'Mẫu đang mở';
+        veChonMau();
     }
 
     function veTatCa() {
@@ -1290,6 +1291,55 @@
         }
     }
 
+    // ===== Ô "Chọn mẫu": các mẫu đã lưu trên hệ thống (DB) — máy nào cũng thấy như nhau =====
+
+    var dsMauLuu = [];           // [{idMau, tenMau, ngayCapNhat}] từ DB
+
+    async function napDsTenMau() {
+        try {
+            dsMauLuu = await layJson(URL_GOC + '/MauTem');
+        } catch (ex) {
+            dsMauLuu = [];
+        }
+        veChonMau();
+        return dsMauLuu;
+    }
+
+    function veChonMau() {
+        var s = $('tkChonMau');
+        if (!s) return;
+        s.replaceChildren();
+        var dau = document.createElement('option');
+        dau.value = '';
+        dau.textContent = idMau ? '— Mẫu mới —' : (dsMauLuu.length ? '— Chưa lưu (chọn mẫu để mở) —' : '— Chưa có mẫu nào trên hệ thống —');
+        s.appendChild(dau);
+        dsMauLuu.forEach(function (m) {
+            var o = document.createElement('option');
+            o.value = m.idMau;
+            o.textContent = m.tenMau + (m.idMau === idMau && daSua ? ' (đang sửa, chưa lưu)' : '');
+            s.appendChild(o);
+        });
+        s.value = idMau ? String(idMau) : '';
+    }
+
+    async function chonMauTuDs(s) {
+        var id = parseInt(s.value, 10) || 0;
+        if (id === idMau) return;
+        if (daSua && !await hoi('Bỏ các thay đổi chưa lưu?', 'Bỏ')) { veChonMau(); return; }
+        if (id) await moMau(id);
+        else napDuAn([T.taoTrangMacDinh()], 0, '');
+        veChonMau();
+    }
+
+    // Máy chưa có nháp / chưa chỉ định mẫu → mở mẫu cập nhật gần nhất trên hệ thống thay vì tem trắng
+    async function moMauMoiNhat() {
+        var ds = await napDsTenMau();
+        if (!ds.length) return;
+        var moiNhat = ds.slice().sort(function (a, b) { return new Date(b.ngayCapNhat) - new Date(a.ngayCapNhat); })[0];
+        await moMau(moiNhat.idMau);
+        veChonMau();
+    }
+
     async function moHopMo() {
         var ds = $('tkDsMau');
         ds.replaceChildren();
@@ -1343,6 +1393,7 @@
             idMau = kq.duLieu.idMau;
             $('tkTenMau').value = kq.duLieu.tenMau;
             daSua = false;
+            napDsTenMau();
             xoaNhap();
             ghiDiaChi();
             themGanDay(idMau, kq.duLieu.tenMau);
@@ -1365,6 +1416,7 @@
             ghiLs(KHOA_GAN_DAY, docLs(KHOA_GAN_DAY, []).filter(function (x) { return x.id !== idMau; }));
             veGanDay();
             napDuAn([T.taoTrangMacDinh()], 0, '');
+            napDsTenMau();
             thongBao('success', kq.thongBao);
         } catch (ex) {
             thongBao('error', ex.message);
@@ -1379,14 +1431,19 @@
 
     // ===== File .tnl / PNG / PDF / ảnh =====
 
+    // Nhập .tnl (app TemNhan) hoặc .lbx (P-touch Editor) — lbx chuyển sang cùng định dạng trang, lưu lại thành mẫu như thường
     async function nhapTnl(file) {
         try {
-            var ds = T.docTnl(await file.text());
-            napDuAn(ds, 0, file.name.replace(/\.[^.]+$/, ''));
+            var laLbx = /\.lbx$/i.test(file.name);
+            var lbx = laLbx ? await T.docLbx(await file.arrayBuffer()) : null;
+            var ds = laLbx ? lbx.dsTrang : T.docTnl(await file.text());
+            napDuAn(ds, 0, file.name.replace(/\.[^.]+$/, ''), laLbx ? lbx.iMo : 0);
             daSua = true;
             ghiNhap();
             capNhatTen();
-            trangThai('Đã nhập "' + file.name + '" (' + ds.length + ' trang) — bấm Lưu để lưu thành mẫu trên hệ thống.');
+            trangThai('Đã nhập "' + file.name + '" (' + ds.length + ' trang)'
+                + (laLbx && lbx.boQua ? ', bỏ qua ' + lbx.boQua + ' đối tượng chưa hỗ trợ (ảnh, bảng…)' : '')
+                + ' — bấm Lưu để lưu thành mẫu trên hệ thống.');
         } catch (ex) {
             thongBao('error', 'Không đọc được file: ' + ex.message);
         }
@@ -2253,7 +2310,8 @@
             trangThai('Đã khôi phục tem đang thiết kế chưa lưu' + (nhap.tenMau ? ' ("' + nhap.tenMau + '")' : '') + ' — bấm Lưu để lưu lên hệ thống.');
             return;
         }
-        if (idUrl) await moMau(idUrl);
+        if (idUrl) { await moMau(idUrl); veChonMau(); return; }
+        await moMauMoiNhat();
     }
 
     async function chayLenh(b) {
@@ -2341,6 +2399,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         khoiTao();
+        napDsTenMau(); // moLaiKhiTai có thể nạp lại lần nữa — rẻ, giữ cho ô Chọn mẫu luôn có dữ liệu
         var vung = $('tkVung');
         vung.addEventListener('pointerdown', batDauKeo);
         vung.addEventListener('pointermove', dangKeo);
@@ -2473,6 +2532,7 @@
         }
         if (o.id === 'tkSheetDl') { iDong = 0; napSheet(o.value); return; }
         if (o.id === 'tkFileDl' && o.files[0]) { var fDl = o.files[0]; o.value = ''; iDong = 0; moFileDl(fDl); return; }
+        if (o.id === 'tkChonMau') { chonMauTuDs(o); return; }
         if (o.id === 'tkInMay') { napTuyChonMay(); return; }
         if (o.id === 'tkInXoay' || o.name === 'tkInPhamVi' || o.id === 'tkInTu' || o.id === 'tkInDen' || o.id === 'tkInSoBan') { veXemIn(); return; }
         if (o.id === 'tkFileTnl' && o.files[0]) {
