@@ -965,9 +965,16 @@
 
     // ===== Chuột: chọn, kéo, đổi cỡ, kéo khung chọn =====
 
+    // clientX và getBoundingClientRect tính theo px màn hình; khi hệ thống zoom (body{zoom:60%}) px màn hình ≠ px CSS
+    // của nhãn → quy về px CSS bằng tỉ lệ rect / offsetWidth, nếu không thì bấm lệch và khung chọn vẽ sai chỗ.
+    function heSoManHinh(el) {
+        var r = el.getBoundingClientRect();
+        return el.offsetWidth ? r.width / el.offsetWidth : zoomHeThong();
+    }
+
     function viTriMm(ev) {
-        var r = $('tkKhung').getBoundingClientRect(), s = tyLe();
-        return { x: (ev.clientX - r.left) / s, y: (ev.clientY - r.top) / s };
+        var khung = $('tkKhung'), r = khung.getBoundingClientRect(), s = tyLe(), k = heSoManHinh(khung) || 1;
+        return { x: (ev.clientX - r.left) / k / s, y: (ev.clientY - r.top) / k / s };
     }
 
     function timDoiTuong(p) {
@@ -1010,6 +1017,8 @@
             }
         }
         $('tkVung').setPointerCapture(ev.pointerId);
+        // Kéo ra ngoài vùng vẽ không được bôi đen chữ ở bảng bên cạnh
+        document.documentElement.classList.add('tk-dang-keo');
         ev.preventDefault();
     }
 
@@ -1051,6 +1060,7 @@
     }
 
     function ketThucKeo(ev) {
+        document.documentElement.classList.remove('tk-dang-keo');
         if (!keo) return;
         var k = keo;
         keo = null;
@@ -2076,10 +2086,13 @@
         m.appendChild(ds);
         m.hidden = false;
         // Đặt tại con trỏ, đẩy vào trong màn hình nếu tràn; menu con mở sang trái khi sát mép phải
+        // Menu nằm trong body bị zoom: left/top gán vào bị nhân zoom → đổi toạ độ con trỏ và cỡ cửa sổ sang px CSS
+        var z = zoomHeThong();
+        var x = ev.clientX / z, y = ev.clientY / z, rongMan = window.innerWidth / z, caoMan = window.innerHeight / z;
         var w = ds.offsetWidth, h = ds.offsetHeight;
-        m.style.left = Math.max(4, Math.min(ev.clientX, window.innerWidth - w - 4)) + 'px';
-        m.style.top = Math.max(4, Math.min(ev.clientY, window.innerHeight - h - 4)) + 'px';
-        m.classList.toggle('mo-trai', ev.clientX + w + 240 > window.innerWidth);
+        m.style.left = Math.max(4, Math.min(x, rongMan - w - 4)) + 'px';
+        m.style.top = Math.max(4, Math.min(y, caoMan - h - 4)) + 'px';
+        m.classList.toggle('mo-trai', x + w + 240 > rongMan);
     }
 
     function dongMenuPhai() { $('tkMenuPhai').hidden = true; }

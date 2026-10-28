@@ -13,6 +13,7 @@
 html.fp-lock .tk-trang { height: auto; min-height: 0; overflow: hidden !important; }
 /* Màn ≤ 768px: fixed-page-layout không khoá nên trang tự khoá; chiều cao khung do tem-thiet-ke.js tính */
 html.tk-khoa, html.tk-khoa body { height: 100%; overflow: hidden; }
+html.tk-dang-keo, html.tk-dang-keo * { user-select: none; -webkit-user-select: none; }
 
 .tk-trang { display: flex; flex-direction: column; height: calc(100vh / var(--site-zoom, 1) - 110px); height: calc(100dvh / var(--site-zoom, 1) - 110px); min-height: 520px; background: #fff; border: 1px solid var(--tk-vien); border-radius: 10px; overflow: hidden; color: var(--tk-chu); font-size: 0.84rem; }
 

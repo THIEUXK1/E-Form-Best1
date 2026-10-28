@@ -842,6 +842,33 @@ namespace E_Form_Best.Areas.ITForm.Services
         }
 
         /// <summary>
+        /// Ảnh JPEG từ luồng phụ trực tiếp qua RTSP của đầu ghi. Đầu ghi 10.0.21.254 trả ảnh /picture cụt (mảng
+        /// xanh/trắng) và luồng chính mất dữ liệu, còn luồng phụ (bitrate thấp) ra ảnh lành — đo 27/10/2026 được 8/9 kênh.
+        /// Trả null khi không lấy được hoặc ảnh vẫn hỏng.
+        /// </summary>
+        public async Task<byte[]?> ChupAnhRtspLuongPhuAsync(string nvrIp, int kenh, CancellationToken ct)
+        {
+            if (!System.Net.IPAddress.TryParse(nvrIp, out var ip)
+                || ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) return null;
+
+            var ffmpeg = _configuration["CameraNvr:FfmpegPath"];
+            if (string.IsNullOrWhiteSpace(ffmpeg)) ffmpeg = @"C:\go2rtc\ffmpeg.exe";
+            if (!File.Exists(ffmpeg)) return null;
+
+            var (taiKhoan, matKhau) = TaiKhoanNvr();
+            var cong = await CongRtspAsync(nvrIp, ct);
+            var rtsp = $"rtsp://{Uri.EscapeDataString(taiKhoan)}:{Uri.EscapeDataString(matKhau)}@{ip}:{cong}/Streaming/Channels/{kenh}02";
+
+            await _gioiHanFfmpeg.WaitAsync(ct);
+            try
+            {
+                var anh = await ChayFfmpegAsync(ffmpeg, rtsp, ct);
+                return anh != null && anh.Length >= 1000 && !await AnhHongAsync(anh, ct) ? anh : null;
+            }
+            finally { _gioiHanFfmpeg.Release(); }
+        }
+
+        /// <summary>
         /// Cổng RTSP thật của đầu ghi (10.0.28.254 dùng 8002, không mở 554) hỏi qua ISAPI adminAccesses,
         /// cache 1 giờ. Hỏi không được thì dùng CameraNvr:RtspPort (mặc định 554).
         /// </summary>
@@ -992,8 +1019,8 @@ namespace E_Form_Best.Areas.ITForm.Services
         }
 
         /// <summary>
-        /// Ảnh hỏng do luồng H.265 mất dữ liệu (mảng xanh lá / hồng đặc): ffmpeg thu ảnh về 64x36 điểm rồi đếm điểm có
-        /// một kênh màu lệch hẳn hai kênh kia. Ảnh thật đo được 0%, ảnh hỏng từ ~30% -> ngưỡng 5%.
+        /// Ảnh hỏng do luồng H.265 mất dữ liệu (mảng xanh lá / hồng đặc, hoặc trắng loang): ffmpeg thu ảnh về 64x36 điểm
+        /// rồi đếm điểm có một kênh màu lệch hẳn hai kênh kia (ảnh thật 0%, ảnh hỏng từ ~30% -> ngưỡng 5%) và điểm gần trắng.
         /// Không có ffmpeg / quá giờ thì coi là lành (không chặn ảnh); ffmpeg không đọc nổi ảnh thì coi là hỏng.
         /// </summary>
         public async Task<bool> AnhHongAsync(byte[] anh, CancellationToken ct)
@@ -1037,12 +1064,17 @@ namespace E_Form_Best.Areas.ITForm.Services
                 var px = bo.ToArray();
                 if (px.Length < 3) return true;
                 var lech = 0;
+                var trang = 0;
                 for (var i = 0; i + 2 < px.Length; i += 3)
                 {
                     int r = px[i], g = px[i + 1], b = px[i + 2];
                     if (g - Math.Max(r, b) > 90 || Math.Min(r, b) - g > 90) lech++;
+                    if (Math.Min(r, Math.Min(g, b)) >= 225) trang++;
                 }
-                return lech * 20 >= px.Length / 3;
+                // Kiểu hỏng thứ hai (đầu ghi 10.0.21.254): mảng trắng loang chấm lưới. Đo 27/10/2026 trên 310 ảnh lưu:
+                // ảnh lành tối đa 14% điểm trắng, ảnh hỏng từ 36% -> ngưỡng 30%
+                var soDiem = px.Length / 3;
+                return lech * 20 >= soDiem || trang * 10 >= soDiem * 3;
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {

@@ -140,10 +140,11 @@ namespace E_Form_Best.Areas.ITForm.Services
                     try
                     {
                         var anh = await xem.LayAnhChupAsync(muc.nvr, muc.kenh, token);
-                        // Ảnh hỏng (mảng xanh-hồng) coi như chụp không được: thử playback, không được thì giữ ảnh cũ
+                        // Ảnh hỏng (mảng xanh-hồng/trắng) coi như chụp không được: thử RTSP luồng phụ, rồi playback,
+                        // không được thì để lượt thử lại bên dưới
                         if (anh == null || anh.Length == 0 || await xem.AnhHongAsync(anh, token))
                         {
-                            if (await LayAnhTuPlaybackAsync(xem, muc.nvr, muc.kenh, dich, token)) Interlocked.Increment(ref duoc);
+                            if (await LayAnhDuPhongAsync(xem, muc.nvr, muc.kenh, dich, token)) Interlocked.Increment(ref duoc);
                             else chuaDuoc.Add(muc);
                             return;
                         }
@@ -163,10 +164,15 @@ namespace E_Form_Best.Areas.ITForm.Services
             // lấy lại từ playback lần lượt từng kênh. Kênh không có bản ghi chỉ tốn thêm vài lượt tìm kiếm.
             foreach (var muc in chuaDuoc)
             {
+                var dich = Path.Combine(thuMuc, $"{muc.nvr}_{muc.kenh}.jpg");
                 try
                 {
-                    if (await LayAnhTuPlaybackAsync(xem, muc.nvr, muc.kenh, Path.Combine(thuMuc, $"{muc.nvr}_{muc.kenh}.jpg"), ct))
+                    if (await LayAnhDuPhongAsync(xem, muc.nvr, muc.kenh, dich, ct))
                         duoc++;
+                    // Không lấy được ảnh mới mà ảnh lưu cũ là ảnh hỏng: bỏ đi để /QLCamera hiện "chưa có ảnh"
+                    // thay vì hình rác (trước đây ảnh hỏng nằm lì nhiều ngày)
+                    else if (File.Exists(dich) && await xem.AnhHongAsync(await File.ReadAllBytesAsync(dich, ct), ct))
+                        File.Delete(dich);
                 }
                 catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or InvalidOperationException)
                 {
@@ -175,6 +181,19 @@ namespace E_Form_Best.Areas.ITForm.Services
             }
 
             return (dsKenh.Count, duoc);
+        }
+
+        /// <summary>Ảnh /picture của đầu ghi không dùng được: chụp RTSP luồng phụ trước, không được mới lấy từ playback.</summary>
+        private static async Task<bool> LayAnhDuPhongAsync(CameraXemTrucTiepService xem, string nvr, int kenh,
+            string dich, CancellationToken ct)
+        {
+            var anh = await xem.ChupAnhRtspLuongPhuAsync(nvr, kenh, ct);
+            if (anh != null)
+            {
+                await GhiAnhAsync(dich, anh, null, ct);
+                return true;
+            }
+            return await LayAnhTuPlaybackAsync(xem, nvr, kenh, dich, ct);
         }
 
         /// <summary>
