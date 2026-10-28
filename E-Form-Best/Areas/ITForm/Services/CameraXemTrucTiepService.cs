@@ -507,7 +507,7 @@ namespace E_Form_Best.Areas.ITForm.Services
         /// Thư mục ảnh lưu của PFVN/MEGA (và đầu ghi gọi thẳng của BPVN): thư mục con "{công ty}" trong
         /// CameraNvr:ThuMucAnhLuu. Ảnh BPVN qua hệ thống ISAPI vẫn nằm ở thư mục gốc.
         /// </summary>
-        private string? ThuMucAnhLuuCongTy(string congTy)
+        public string? ThuMucAnhLuuCongTy(string congTy)
         {
             var thuMuc = _configuration["CameraNvr:ThuMucAnhLuu"];
             var ten = DsCongTyGoiThang.FirstOrDefault(x => x.Equals(congTy, StringComparison.OrdinalIgnoreCase));

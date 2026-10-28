@@ -723,6 +723,27 @@
         tai();
     }
 
+    // Chụp lại ảnh lưu của camera đang xem (ảnh định kỳ hỏng/cũ); xong thì mở lại chế độ ảnh lưu để hiện ảnh mới
+    function chupLaiAnhLuu() {
+        var $nut = $('#xemChupLaiAnhLuu');
+        var cam = xem.cam;
+        if (!cam || $nut.prop('disabled')) return;
+        $nut.prop('disabled', true).find('i').addClass('fa-spin');
+        nhanXem('Đang chụp lại ảnh lưu (có thể mất ~30 giây)...');
+        $.post('/QLCamera/Xem/ChupLaiAnhLuu', { nvrIp: cam.nvr_ip, kenh: cam.cam_id })
+            .done(function (res) {
+                if (xem.cam !== cam) return;
+                if (res.thanhCong) {
+                    if (dsAnhLuu) dsAnhLuu[khoaGhiChu(cam)] = true;
+                    cheDoAnhLuu();
+                } else {
+                    nhanXem(res.thongBao || 'Không chụp lại được.');
+                }
+            })
+            .fail(function () { if (xem.cam === cam) nhanXem('Lỗi kết nối máy chủ, chưa chụp lại được.'); })
+            .always(function () { $nut.prop('disabled', false).find('i').removeClass('fa-spin'); });
+    }
+
     function thuHoiAnhLuu() {
         if (xem.urlAnhLuu) { URL.revokeObjectURL(xem.urlAnhLuu); xem.urlAnhLuu = null; }
     }
@@ -923,6 +944,7 @@
         $('#xemCheDoVideo').on('click', cheDoVideo);
         $('#xemCheDoAnh').on('click', cheDoAnh);
         $('#xemCheDoAnhLuu').on('click', cheDoAnhLuu);
+        $('#xemChupLaiAnhLuu').on('click', chupLaiAnhLuu);
         $('#xemToanManHinh').on('click', function () {
             var khung = document.getElementById('xemKhung');
             if (khung.requestFullscreen) khung.requestFullscreen();

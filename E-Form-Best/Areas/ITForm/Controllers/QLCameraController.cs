@@ -820,6 +820,41 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         /// <summary>
+        /// Chụp lại ảnh lưu sẵn của một camera BPVN ngay (ảnh lượt định kỳ hỏng/cũ). Chỉ chạy được ở máy chủ
+        /// gọi được đầu ghi; không được thì giữ ảnh cũ và báo lại.
+        /// </summary>
+        [HttpPost("/QLCamera/Xem/ChupLaiAnhLuu")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChupLaiAnhLuu(string? nvrIp, int kenh, [FromServices] CameraXemTrucTiepService xem,
+            [FromServices] IConfiguration configuration)
+        {
+            if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            if (kenh < 1 || kenh > 512) return Json(new { thanhCong = false, thongBao = "Kênh không hợp lệ." });
+
+            try
+            {
+                var ct = HttpContext.RequestAborted;
+                var trucTiep = xem.LaDauGhiTrucTiep("BPVN", nvrIp);
+                if (!trucTiep && !await xem.LaDauGhiHopLeAsync(nvrIp, ct))
+                    return Json(new { thanhCong = false, thongBao = "Đầu ghi không có trong hệ thống giám sát." });
+
+                var thuMuc = trucTiep ? xem.ThuMucAnhLuuCongTy("BPVN") : configuration["CameraNvr:ThuMucAnhLuu"];
+                if (string.IsNullOrWhiteSpace(thuMuc))
+                    return Json(new { thanhCong = false, thongBao = "Máy chủ chưa cấu hình thư mục ảnh lưu." });
+
+                // nvrIp đã kiểm có trong danh sách đầu ghi -> tên file chỉ là IP + kênh
+                var duoc = await CameraAnhLuuWorker.ChupLaiMotKenhAsync(xem, thuMuc, nvrIp!.Trim(), kenh, trucTiep, ct);
+                return Json(duoc
+                    ? new { thanhCong = true, thongBao = "Đã chụp lại ảnh lưu." }
+                    : new { thanhCong = false, thongBao = "Không lấy được ảnh mới từ đầu ghi (camera mất kết nối hoặc máy chủ không thông mạng tới đầu ghi). Giữ ảnh cũ." });
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or IOException)
+            {
+                return Json(new { thanhCong = false, thongBao = "Không chụp được: " + ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Chuyển tiếp luồng fMP4 của go2rtc cho thẻ &lt;video&gt;. Luồng chạy tới khi người dùng đóng
         /// cửa sổ xem (RequestAborted) — go2rtc tự ngắt RTSP khi không còn ai xem.
         /// </summary>

@@ -183,6 +183,27 @@ namespace E_Form_Best.Areas.ITForm.Services
             return (dsKenh.Count, duoc);
         }
 
+        /// <summary>
+        /// Nút "Chụp lại ảnh lưu" trong cửa sổ xem camera: chụp lại đúng một kênh theo cùng thứ tự như lượt định kỳ.
+        /// trucTiep = đầu ghi BPVN gọi thẳng (khai .env), chỉ chụp được qua ISAPI riêng của nó. Trả false khi không
+        /// lấy được ảnh lành (ảnh cũ giữ nguyên).
+        /// </summary>
+        public static async Task<bool> ChupLaiMotKenhAsync(CameraXemTrucTiepService xem, string thuMuc, string nvr, int kenh,
+            bool trucTiep, CancellationToken ct)
+        {
+            Directory.CreateDirectory(thuMuc);
+            var dich = Path.Combine(thuMuc, $"{nvr}_{kenh}.jpg");
+            var anh = trucTiep
+                ? await xem.LayAnhChupCongTyAsync("BPVN", nvr, kenh, ct)
+                : await xem.LayAnhChupAsync(nvr, kenh, ct);
+            if (anh != null && anh.Length > 0 && !await xem.AnhHongAsync(anh, ct))
+            {
+                await GhiAnhAsync(dich, anh, null, ct);
+                return true;
+            }
+            return !trucTiep && await LayAnhDuPhongAsync(xem, nvr, kenh, dich, ct);
+        }
+
         /// <summary>Ảnh /picture của đầu ghi không dùng được: chụp RTSP luồng phụ trước, không được mới lấy từ playback.</summary>
         private static async Task<bool> LayAnhDuPhongAsync(CameraXemTrucTiepService xem, string nvr, int kenh,
             string dich, CancellationToken ct)
