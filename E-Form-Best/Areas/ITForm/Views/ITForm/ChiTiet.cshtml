@@ -1375,7 +1375,8 @@
     <div id="modalThemMacWlc" class="them-mac-wlc-nen" hidden data-id-form="@Model.Id" data-la-all="@(User.IsInRole("All") ? "1" : "0")">
         <div class="them-mac-wlc-cum">
         <form id="formThemMacWlc" class="them-mac-wlc-hop" autocomplete="off">
-            <h3>➕ Thêm MAC lên WLC (@Model.TenCongTy)</h3>
+            @* MAC filter trên WLC chỉ dùng cho mạng nhân viên (profile MAC-Staff) → ghi tên mạng cho người đọc dễ hiểu *@
+            <h3>➕ Thêm MAC cho mạng @(Model.TenCongTy)-Staff</h3>
             <div class="them-mac-wlc-ds">WLC: @string.Join(" · ", WlcMac.DsWlc(Model.TenCongTy).Select(w => w.Ten)) — thêm riêng từng con bằng nút bên dưới</div>
             <div class="them-mac-wlc-dong"><span>MAC</span><b id="themMacWlcMac"></b></div>
             <label>WLAN profile
@@ -1404,7 +1405,8 @@
                 <button type="button" id="btnKiemTraMacWlc">Kiểm tra</button>
                 @foreach (var w in WlcMac.DsWlc(Model.TenCongTy))
                 {
-                    <button type="button" class="btn-gui-them-mac-wlc" data-ip="@w.Ip" data-wlc="@w.Ten">Thêm lên @w.Ten</button>
+                    @* Nhãn nút bỏ IP cho gọn (tên mặc định "WLC 9800 10.0.63.210" có kèm IP); data-wlc giữ tên đầy đủ cho thông báo *@
+                    <button type="button" class="btn-gui-them-mac-wlc" data-ip="@w.Ip" data-wlc="@w.Ten" title="@w.Ten">Thêm lên @w.Ten.Replace(w.Ip, "").Trim()</button>
                 }
             </div>
         </form>
