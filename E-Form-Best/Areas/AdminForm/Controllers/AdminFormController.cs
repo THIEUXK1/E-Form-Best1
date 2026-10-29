@@ -1,5 +1,6 @@
 ﻿using E_Form_Best.Context;
 using E_Form_Best.Models.ITForm;
+using E_Form_Best.Areas.ITForm.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -240,13 +241,16 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                 if (user == null)
                     return Json(new { success = false, message = "Người dùng không tồn tại." });
 
-                if (user.MatKhau != oldPassword)
+                if (!MatKhauNguoiDung.KiemTra(user, oldPassword, out _))
                     return Json(new { success = false, message = "Mật khẩu hiện tại không đúng." });
+
+                if (string.IsNullOrWhiteSpace(newPassword))
+                    return Json(new { success = false, message = "Vui lòng nhập mật khẩu mới." });
 
                 if (newPassword != confirmPassword)
                     return Json(new { success = false, message = "Mật khẩu xác nhận không khớp." });
 
-                user.MatKhau = newPassword;
+                MatKhauNguoiDung.Dat(user, newPassword);
                 user.NgayCapNhat = DateTime.Now;
 
                 _context.Users.Update(user);

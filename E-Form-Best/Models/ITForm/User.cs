@@ -25,6 +25,11 @@ public partial class User
     [StringLength(255)]
     public string? MatKhau { get; set; }
 
+    // Bản băm PasswordHasher; có giá trị thì mat_khau = NULL (xem MatKhauNguoiDung)
+    [Column("mat_khau_hash")]
+    [StringLength(255)]
+    public string? MatKhauHash { get; set; }
+
     [Column("so_dien_thoai")]
     [StringLength(20)]
     public string? SoDienThoai { get; set; }

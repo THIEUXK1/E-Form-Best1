@@ -1,5 +1,6 @@
 ﻿﻿﻿using E_Form_Best.Context;
 using E_Form_Best.Models.ITForm;
+using E_Form_Best.Areas.ITForm.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -122,8 +123,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 // Nếu xác thực Domain chưa thành công VÀ Chế độ là 1 (DB Only) hoặc 2 (Hybrid) -> Thử xác thực qua DB
                 if (!isAuthenticated && (domainAuth.LoginMode == 1 || domainAuth.LoginMode == 2))
                 {
-                    // So sánh mật khẩu phân biệt chữ hoa/thường bằng Ordinal (vì password bắt buộc phải khớp chính xác)
-                    if (string.Equals(user.MatKhau, matKhau, StringComparison.Ordinal))
+                    // Kiểm bản băm; tài khoản còn mật khẩu thô thì được băm luôn, lưu ở bước F
+                    if (MatKhauNguoiDung.KiemTra(user, matKhau, out _))
                     {
                         isAuthenticated = true;
                         isDomainAuth = false; // Đánh dấu là đăng nhập bằng Database
@@ -133,7 +134,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             else
             {
                 // User chưa được liên kết Domain -> Chỉ xác thực qua Database
-                if (string.Equals(user.MatKhau, matKhau, StringComparison.Ordinal))
+                if (MatKhauNguoiDung.KiemTra(user, matKhau, out _))
                 {
                     isAuthenticated = true;
                     isDomainAuth = false;
@@ -378,6 +379,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
 
             bool isAuthenticated = false;
+            bool vuaBamMatKhau = false; // tài khoản còn mật khẩu thô vừa được băm -> phải lưu
 
             if (domainAuth != null)
             {
@@ -391,7 +393,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 if (!isAuthenticated && (domainAuth.LoginMode == 1 || domainAuth.LoginMode == 2))
                 {
-                    if (string.Equals(user.MatKhau, matkhau, StringComparison.Ordinal))
+                    if (MatKhauNguoiDung.KiemTra(user, matkhau, out vuaBamMatKhau))
                     {
                         isAuthenticated = true;
                     }
@@ -399,7 +401,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             else
             {
-                if (string.Equals(user.MatKhau, matkhau, StringComparison.Ordinal))
+                if (MatKhauNguoiDung.KiemTra(user, matkhau, out vuaBamMatKhau))
                 {
                     isAuthenticated = true;
                 }
@@ -426,7 +428,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
 
             // Đăng nhập đúng -> gỡ trạng thái khoá.
-            if ((user.FailedAttempts ?? 0) != 0 || user.LockoutEnd != null)
+            if ((user.FailedAttempts ?? 0) != 0 || user.LockoutEnd != null || vuaBamMatKhau)
             {
                 user.FailedAttempts = 0;
                 user.LockoutEnd = null;
