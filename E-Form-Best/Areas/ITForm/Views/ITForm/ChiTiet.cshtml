@@ -211,7 +211,7 @@
                         bangThietBi += $"<tr style='background:{bgRow}; border-bottom:1px solid #f1f5f9;'>";
                         bangThietBi += $"<td style='padding:12px 10px; text-align:center; font-weight:700; color:#94a3b8; width:1%; white-space:nowrap;'>{i + 1}</td>";
                         bangThietBi += $"<td style='padding:12px 15px; color:#1e293b; font-weight:600;'>{System.Net.WebUtility.HtmlEncode(arrMa[i].Trim())}</td>";
-                        bangThietBi += $"<td style='padding:12px 15px; text-align:center; font-weight:800; color:#10b981;'>{System.Net.WebUtility.HtmlEncode(arrMac[i].Trim())}</td>";
+                        bangThietBi += $"<td style='padding:12px 15px; text-align:center; font-weight:800; color:#10b981; white-space:nowrap;'>{System.Net.WebUtility.HtmlEncode(arrMac[i].Trim())}</td>";
                         if (cotThemMac)
                         {
                             // Vị trí theo MacTb (không cắt theo count) vì server lấy MAC theo vị trí đó
@@ -1086,6 +1086,27 @@
                         </div>
                     </div>
 
+                    @if (Model?.ItDangKiSuDungWifi3s?.Any() == true && E_Form_Best.Areas.ITForm.Controllers.WifiMacController.CoQuyen(User) && WlcMac.CoCauHinh(Model.TenCongTy))
+                    {
+                        <div id="bangMacWlc" class="bang-mac-wlc">
+                            <h4><i class="fa fa-wifi"></i> MAC TRÊN WLC <small id="bangMacWlcQuet"></small></h4>
+                            <div class="bang-mac-wlc-cuon">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Thiết bị / MAC</th>
+                                            @foreach (var w in WlcMac.DsWlc(Model.TenCongTy))
+                                            {
+                                                <th data-ip="@w.Ip">@w.Ten</th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody id="bangMacWlcThan"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+
                     <style>
                                             .comment-zoom-active {
                                                 position: fixed !important;
@@ -1382,6 +1403,6 @@
             </div>
         </form>
     </div>
-    <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261026e" />
-    <script src="~/js/formit-them-mac-wlc.js?v=20261026e"></script>
+    <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261029c" />
+    <script src="~/js/formit-them-mac-wlc.js?v=20261029d"></script>
 }

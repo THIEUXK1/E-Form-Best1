@@ -6,6 +6,7 @@
     var dsHien = [];             // duLieu sau khi lọc tình trạng (Đang dùng / Còn trống)
     var locTrangThai = '';
     var laQuanLy = false;        // AdminHR/AdminIT/All: thêm/sửa/xoá/in; người khác chỉ xem
+    var duocGanTra = false;      // admin hoặc người thuộc bộ phận: gán người / trả tủ (máy chủ chặn lại theo bộ phận)
     var modal = null;
     var modalIn = null;
     var henGioTim = null;
@@ -156,7 +157,7 @@
                 ngChu.appendChild(taoEl('div', 'tdt-nguoi-ten', t.nguoiSuDung || '(chưa ghi tên)'));
                 ng.appendChild(ngChu);
                 tdNg.appendChild(ng);
-            } else if (laQuanLy) {
+            } else if (duocGanTra) {
                 // Tủ trống: bấm thẳng vào ô người dùng để gán, khỏi tìm nút trong cột thao tác
                 var nutGan = taoEl('button', 'tdt-gan tdt-gan-o');
                 nutGan.type = 'button';
@@ -173,12 +174,13 @@
             tdTt.appendChild(coNguoiDung(t) ? taoEl('span', 'tdt-tinh-trang tdt-dang-dung', 'Đang dùng') : taoEl('span', 'tdt-tinh-trang tdt-con-trong', 'Còn trống'));
             tr.appendChild(tdTt);
 
-            if (laQuanLy) {
+            if (duocGanTra) {
                 var tdNut = taoEl('td', 'tdt-o-thao-tac text-end');
                 var nhom = taoEl('div', 'tdt-thao-tac');
                 // Nút đầu đổi theo tình trạng: tủ có người → Trả tủ (về còn trống); tủ trống → Thêm người sử dụng
                 var nutTrangThai = coNguoiDung(t) ? ['tdt-tra', 'fa-sign-out', 'Trả tủ (chuyển còn trống)'] : ['tdt-gan', 'fa-user-plus', 'Thêm người sử dụng'];
-                [nutTrangThai, ['tdt-ls-tu', 'fa-history', 'Lịch sử'], ['tdt-sua', 'fa-pencil', 'Sửa'], ['tdt-xoa', 'fa-trash-o', 'Xoá']].forEach(function (n) {
+                var dsNut = laQuanLy ? [nutTrangThai, ['tdt-ls-tu', 'fa-history', 'Lịch sử'], ['tdt-sua', 'fa-pencil', 'Sửa'], ['tdt-xoa', 'fa-trash-o', 'Xoá']] : [nutTrangThai];
+                dsNut.forEach(function (n) {
                     var b = taoEl('button', n[0]);
                     b.type = 'button';
                     b.title = n[2] + ' tủ ' + t.tenTu;
@@ -1190,15 +1192,12 @@
             ds.appendChild(dd);
         });
 
-        if (laQuanLy) {
+        if (duocGanTra) {
             // Dùng lại đúng các lớp nút trên dòng → bộ bắt click chung xử lý, hộp chi tiết tự đóng trước
             var chan = document.getElementById('tdtCtNut');
             chan.replaceChildren();
-            [
-                coNguoiDung(tu) ? ['tdt-tra btn-outline-warning', 'fa-sign-out', 'Trả tủ'] : ['tdt-gan btn-outline-success', 'fa-user-plus', 'Thêm người sử dụng'],
-                ['tdt-ls-tu btn-outline-secondary', 'fa-history', 'Lịch sử'],
-                ['tdt-sua btn-primary', 'fa-pencil', 'Sửa']
-            ].forEach(function (n) {
+            var nutTt = coNguoiDung(tu) ? ['tdt-tra btn-outline-warning', 'fa-sign-out', 'Trả tủ'] : ['tdt-gan btn-outline-success', 'fa-user-plus', 'Thêm người sử dụng'];
+            (laQuanLy ? [nutTt, ['tdt-ls-tu btn-outline-secondary', 'fa-history', 'Lịch sử'], ['tdt-sua btn-primary', 'fa-pencil', 'Sửa']] : [nutTt]).forEach(function (n) {
                 var b = taoEl('button', 'btn btn-sm ' + n[0]);
                 b.type = 'button';
                 b.dataset.id = tu.idTu;
@@ -1206,7 +1205,8 @@
                 b.appendChild(document.createTextNode(n[2]));
                 chan.appendChild(b);
             });
-            taiLsChiTiet(idTu);
+            // Lịch sử tủ chỉ admin xem (máy chủ cũng chặn)
+            if (laQuanLy) taiLsChiTiet(idTu);
         }
         modalCt.show();
     }
@@ -1336,6 +1336,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         laQuanLy = document.getElementById('tdtTrang').dataset.laQuanLy === '1';
+        duocGanTra = document.getElementById('tdtTrang').dataset.duocGanTra === '1';
         modalCt = new bootstrap.Modal(document.getElementById('tdtModalCt'));
         // Hộp thoại thêm/sửa và in tem chỉ có trong trang của admin
         if (laQuanLy) {
@@ -1360,7 +1361,10 @@
         // Bấm vào dòng, trừ nút / ô tích / link bên trong → chi tiết
         var dong = e.target.closest('#tdtBody tr.tdt-dong');
         if (dong && !e.target.closest('button, a, input, label, .tdt-o-chon, .tdt-o-thao-tac')) { moChiTiet(parseInt(dong.dataset.id, 10)); return; }
-        if (!laQuanLy) return;
+        // Ai xem được danh sách thì xuất được (máy chủ lọc phạm vi bộ phận)
+        if (e.target.closest('#tdtBtnXuatExcel')) { xuatExcel(); return; }
+        // Người thuộc bộ phận chỉ có nút gán / trả (các nút admin không được vẽ ra)
+        if (!duocGanTra) return;
         // Nút trong hộp chi tiết mở hộp thoại khác → đóng hẳn chi tiết rồi mới bấm lại nút đó
         // (mở modal mới lúc modal cũ đang chạy hiệu ứng đóng thì Bootstrap để sót lớp nền mờ)
         var nutCt = e.target.closest('#tdtCtNut button');
@@ -1401,7 +1405,6 @@
         if (nutTai) { taiAgent(nutTai); return; }
         var sua = e.target.closest('.tdt-sua');
         if (sua) { moModal(duLieu.find(function (t) { return String(t.idTu) === sua.dataset.id; })); return; }
-        if (e.target.closest('#tdtBtnXuatExcel')) { xuatExcel(); return; }
         var nutGan = e.target.closest('.tdt-gan');
         if (nutGan) { moGan(nutGan.dataset.id); return; }
         var nutTra = e.target.closest('.tdt-tra');

@@ -66,6 +66,10 @@ namespace E_Form_Best.Areas.HRform.Controllers
             return await _context.BoPhans.Where(b => b.TenBoPhan == phongBan).Select(b => b.IdBoPhan).ToListAsync();
         }
 
+        // Gán người / trả tủ: admin mọi tủ; người khác chỉ tủ thuộc bộ phận mình (chống IDOR với idTu gửi lên)
+        private async Task<bool> DuocGanTraAsync(int idBoPhan) =>
+            CoQuyenQuanLy() || (User?.Identity?.IsAuthenticated == true && (await BoPhanCuaToiAsync()).Contains(idBoPhan));
+
         public class TuDienThoaiInput
         {
             public int IdTu { get; set; }
@@ -99,6 +103,8 @@ namespace E_Form_Best.Areas.HRform.Controllers
             // Mã BP ghép vào ô chọn bộ phận ở hộp thoại thêm/sửa để gõ "QC" là tìm ra
             ViewBag.MaBoPhan = dsBoPhan.Where(b => b.MaBoPhan != null).ToDictionary(b => b.IdBoPhan.ToString(), b => b.MaBoPhan!);
             ViewBag.LaQuanLy = laQuanLy;
+            // Người thuộc bộ phận được gán người / trả tủ của bộ phận mình (danh sách bộ phận ở trên đã lọc theo quyền)
+            ViewBag.DuocGanTra = laQuanLy || dsBoPhan.Count > 0;
             return View();
         }
 
@@ -302,7 +308,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GanNguoi([FromForm] int idTu, [FromForm] string? maNhanVien)
         {
-            if (!CoQuyenQuanLy()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            if (User?.Identity?.IsAuthenticated != true) return Json(new { thanhCong = false, thongBao = "Phiên đăng nhập đã hết, vui lòng đăng nhập lại." });
             var ma = Gon(maNhanVien)?.ToUpperInvariant();
             if (ma == null || ma.Length > 50) return Json(new { thanhCong = false, thongBao = "Vui lòng nhập mã NV hợp lệ." });
 
@@ -310,6 +316,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             {
                 var tu = await _context.HrTuDienThoais.FirstOrDefaultAsync(t => t.IdTu == idTu && t.NgayXoa == null);
                 if (tu == null) return Json(new { thanhCong = false, thongBao = "Không tìm thấy tủ (có thể đã bị xoá)." });
+                if (!await DuocGanTraAsync(tu.IdBoPhan)) return Json(new { thanhCong = false, thongBao = "Bạn chỉ được gán tủ của bộ phận mình." });
 
                 // Bấm xác nhận 2 lần: lần sau thấy tủ đã là của người này → coi như xong
                 if (string.Equals(tu.MaNhanVien, ma, StringComparison.OrdinalIgnoreCase))
@@ -346,12 +353,13 @@ namespace E_Form_Best.Areas.HRform.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> TraTu([FromForm] int idTu)
         {
-            if (!CoQuyenQuanLy()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            if (User?.Identity?.IsAuthenticated != true) return Json(new { thanhCong = false, thongBao = "Phiên đăng nhập đã hết, vui lòng đăng nhập lại." });
 
             try
             {
                 var tu = await _context.HrTuDienThoais.FirstOrDefaultAsync(t => t.IdTu == idTu && t.NgayXoa == null);
                 if (tu == null) return Json(new { thanhCong = false, thongBao = "Không tìm thấy tủ (có thể đã bị xoá)." });
+                if (!await DuocGanTraAsync(tu.IdBoPhan)) return Json(new { thanhCong = false, thongBao = "Bạn chỉ được trả tủ của bộ phận mình." });
                 if (tu.MaNhanVien == null && tu.NguoiSuDung == null)
                     return Json(new { thanhCong = true, thongBao = $"Tủ {tu.TenTu} đã trống." });
 
@@ -379,7 +387,9 @@ namespace E_Form_Best.Areas.HRform.Controllers
         [HttpGet("/FormHR/QuanLyTuDienThoai/NhanVien")]
         public async Task<IActionResult> TimNhanVien(string? ma)
         {
-            if (!CoQuyenQuanLy()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            // Hộp gán người dùng chung cho người thuộc bộ phận → ai có bộ phận là tra được, người ngoài thì không
+            if (!CoQuyenQuanLy() && (User?.Identity?.IsAuthenticated != true || (await BoPhanCuaToiAsync()).Count == 0))
+                return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
             var m = Gon(ma);
             if (m == null || m.Length > 50) return Json(new { thanhCong = false, thongBao = "Mã NV không hợp lệ." });
 

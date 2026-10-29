@@ -6,13 +6,15 @@
     var maBoPhan = ViewBag.MaBoPhan as Dictionary<string, string> ?? new Dictionary<string, string>();
     // Admin (AdminHR/AdminIT/All) xem hết + quản lý; người khác chỉ xem tủ bộ phận mình (máy chủ đã lọc)
     bool laQuanLy = ViewBag.LaQuanLy == true;
+    // Người thuộc bộ phận: được gán người / trả tủ của bộ phận mình
+    bool duocGanTra = ViewBag.DuocGanTra == true;
 }
 
 @* Khoá cuộn trang, chỉ vùng bảng (data-fp-scroll) cuộn; màn ≤ 768px trả lại cuộn trang thường *@
 <link rel="stylesheet" href="~/css/fixed-page-layout.css" />
 <link rel="stylesheet" href="~/css/tu-dien-thoai.css?v=17" />
 
-<div class="tdt-trang" id="tdtTrang" data-la-quan-ly="@(laQuanLy ? "1" : "0")">
+<div class="tdt-trang" id="tdtTrang" data-la-quan-ly="@(laQuanLy ? "1" : "0")" data-duoc-gan-tra="@(duocGanTra ? "1" : "0")">
     <div class="tdt-dau">
         <div class="tdt-dau-trai">
             <span class="tdt-bieu-tuong" aria-hidden="true"><i class="fa fa-mobile"></i></span>
@@ -111,7 +113,7 @@
                         <th>Mã NV</th>
                         <th>Người sử dụng</th>
                         <th>Tình trạng</th>
-                        @if (laQuanLy)
+                        @if (duocGanTra)
                         {
                             <th class="text-end">Thao tác</th>
                         }
@@ -142,7 +144,7 @@
                     <div id="tdtCtLs"></div>
                 }
             </div>
-            @if (laQuanLy)
+            @if (duocGanTra)
             {
                 <div class="modal-footer" id="tdtCtNut"></div>
             }
@@ -327,35 +329,6 @@
 </div>
 
 @* Modal in tem cho các tủ đã tích chọn *@
-@* Gán người cho tủ trống: gõ mã NV → máy chủ trả họ tên → Xác nhận *@
-<div class="modal fade" id="tdtModalGan" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <form class="modal-content" id="tdtFormGan" novalidate autocomplete="off">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fa fa-user-plus"></i> Thêm người sử dụng · <span id="tdtGanTenTu"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" name="idTu" id="tdtGanIdTu" />
-                <label class="form-label" for="tdtGanMaNv">Mã nhân viên</label>
-                <input type="text" name="maNhanVien" id="tdtGanMaNv" class="form-control tdt-chu-hoa" maxlength="50" placeholder="VD: V240298" required />
-                <div class="tdt-gan-kq mt-3" id="tdtGanKq" hidden>
-                    <span class="tdt-anh" id="tdtGanAnh" aria-hidden="true"></span>
-                    <div class="min-w-0">
-                        <div class="tdt-nguoi-ten" id="tdtGanHoTen"></div>
-                        <div class="tdt-nguoi-ma" id="tdtGanPhu"></div>
-                    </div>
-                </div>
-                <div class="form-text mt-2" id="tdtGanThongBao"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Huỷ</button>
-                <button type="submit" class="btn btn-primary" id="tdtGanXacNhan" disabled><i class="fa fa-check"></i> Xác nhận</button>
-            </div>
-        </form>
-    </div>
-</div>
-
 <div class="modal fade" id="tdtModalDriver" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -453,10 +426,42 @@
 
 }
 
+@if (duocGanTra)
+{
+@* Gán người cho tủ trống: gõ mã NV → máy chủ trả họ tên → Xác nhận *@
+<div class="modal fade" id="tdtModalGan" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" id="tdtFormGan" novalidate autocomplete="off">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa fa-user-plus"></i> Thêm người sử dụng · <span id="tdtGanTenTu"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="idTu" id="tdtGanIdTu" />
+                <label class="form-label" for="tdtGanMaNv">Mã nhân viên</label>
+                <input type="text" name="maNhanVien" id="tdtGanMaNv" class="form-control tdt-chu-hoa" maxlength="50" placeholder="VD: V240298" required />
+                <div class="tdt-gan-kq mt-3" id="tdtGanKq" hidden>
+                    <span class="tdt-anh" id="tdtGanAnh" aria-hidden="true"></span>
+                    <div class="min-w-0">
+                        <div class="tdt-nguoi-ten" id="tdtGanHoTen"></div>
+                        <div class="tdt-nguoi-ma" id="tdtGanPhu"></div>
+                    </div>
+                </div>
+                <div class="form-text mt-2" id="tdtGanThongBao"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Huỷ</button>
+                <button type="submit" class="btn btn-primary" id="tdtGanXacNhan" disabled><i class="fa fa-check"></i> Xác nhận</button>
+            </div>
+        </form>
+    </div>
+</div>
+}
+
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
     <script src="~/js/tem-nhan.js?v=12"></script>
-    <script src="~/js/tu-dien-thoai.js?v=21"></script>
+    <script src="~/js/tu-dien-thoai.js?v=22"></script>
     <script src="~/js/fixed-page-layout.js" defer></script>
 }
