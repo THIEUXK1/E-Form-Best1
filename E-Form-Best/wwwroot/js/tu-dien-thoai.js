@@ -152,6 +152,14 @@
                 ngChu.appendChild(taoEl('div', 'tdt-nguoi-ten', t.nguoiSuDung || '(chưa ghi tên)'));
                 ng.appendChild(ngChu);
                 tdNg.appendChild(ng);
+            } else if (laQuanLy) {
+                // Tủ trống: bấm thẳng vào ô người dùng để gán, khỏi tìm nút trong cột thao tác
+                var nutGan = taoEl('button', 'tdt-gan tdt-gan-o');
+                nutGan.type = 'button';
+                nutGan.dataset.id = t.idTu;
+                nutGan.appendChild(taoEl('i', 'fa fa-user-plus'));
+                nutGan.appendChild(document.createTextNode('Thêm người sử dụng'));
+                tdNg.appendChild(nutGan);
             } else {
                 tdNg.appendChild(taoEl('span', 'tdt-chua-co', 'Chưa có người dùng'));
             }
@@ -164,7 +172,9 @@
             if (laQuanLy) {
                 var tdNut = taoEl('td', 'tdt-o-thao-tac text-end');
                 var nhom = taoEl('div', 'tdt-thao-tac');
-                [['tdt-ls-tu', 'fa-history', 'Lịch sử'], ['tdt-sua', 'fa-pencil', 'Sửa'], ['tdt-xoa', 'fa-trash-o', 'Xoá']].forEach(function (n) {
+                // Nút đầu đổi theo tình trạng: tủ có người → Trả tủ (về còn trống); tủ trống → Thêm người sử dụng
+                var nutTrangThai = coNguoiDung(t) ? ['tdt-tra', 'fa-sign-out', 'Trả tủ (chuyển còn trống)'] : ['tdt-gan', 'fa-user-plus', 'Thêm người sử dụng'];
+                [nutTrangThai, ['tdt-ls-tu', 'fa-history', 'Lịch sử'], ['tdt-sua', 'fa-pencil', 'Sửa'], ['tdt-xoa', 'fa-trash-o', 'Xoá']].forEach(function (n) {
                     var b = taoEl('button', n[0]);
                     b.type = 'button';
                     b.title = n[2] + ' tủ ' + t.tenTu;
@@ -878,13 +888,131 @@
         }
     }
 
+    // ===== Xuất Excel đúng danh sách đang hiển thị =====
+    // Gửi cùng bộ lọc với taiDanhSach + tình trạng; máy chủ lọc lại (kể cả phạm vi bộ phận theo quyền)
+    function xuatExcel() {
+        if (!dsHien.length) { thongBao('info', 'Không có tủ nào trong danh sách đang hiển thị để xuất.'); return; }
+        var p = new URLSearchParams();
+        var bp = document.getElementById('tdtLocBoPhan').value;
+        var tk = document.getElementById('tdtTuKhoa').value.trim();
+        if (bp) p.set('idBoPhan', bp);
+        if (tk) p.set('tuKhoa', tk);
+        if (locTrangThai) p.set('trangThai', locTrangThai);
+        // Tải file = điều hướng thật (được phép); thẻ a tạm để không rời trang
+        var a = document.createElement('a');
+        a.href = '/FormHR/QuanLyTuDienThoai/XuatExcel?' + p.toString();
+        a.download = '';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+
+    // ===== Gán người cho tủ trống · trả tủ =====
+
+    var modalGan = null;
+    var henGioGan = null;
+    var lanTraGan = 0;
+    var nvGan = null;            // nhân viên tra được cho mã đang gõ; null = chưa được bấm Xác nhận
+
+    function moGan(idTu) {
+        var tu = duLieu.find(function (t) { return String(t.idTu) === String(idTu); });
+        if (!tu) return;
+        document.getElementById('tdtGanIdTu').value = tu.idTu;
+        document.getElementById('tdtGanTenTu').textContent = tu.tenTu;
+        document.getElementById('tdtGanMaNv').value = '';
+        datKqGan(null, '');
+        modalGan = modalGan || bootstrap.Modal.getOrCreateInstance(document.getElementById('tdtModalGan'));
+        modalGan.show();
+    }
+
+    // nv: nhân viên hợp lệ để gán (bật Xác nhận) · chu: dòng thông báo dưới · loai: '', 'text-warning', 'text-danger'
+    function datKqGan(nv, chu, loai, hien) {
+        nvGan = nv;
+        var kq = document.getElementById('tdtGanKq');
+        kq.hidden = !hien;
+        if (hien) {
+            document.getElementById('tdtGanHoTen').textContent = hien.hoTen || '(chưa có tên)';
+            document.getElementById('tdtGanPhu').textContent = hien.maNhanVien + (hien.phongBan ? ' · ' + hien.phongBan : '');
+            var anh = document.getElementById('tdtGanAnh');
+            anh.textContent = chuCaiDau(hien.hoTen || hien.maNhanVien);
+            anh.style.background = 'hsl(' + sacDo(hien.hoTen || hien.maNhanVien) + ' 60% 52%)';
+        }
+        var tb = document.getElementById('tdtGanThongBao');
+        tb.className = 'form-text mt-2 ' + (loai || '');
+        tb.textContent = chu || '';
+        document.getElementById('tdtGanXacNhan').disabled = !nv;
+    }
+
+    async function traMaGan() {
+        var ma = document.getElementById('tdtGanMaNv').value.trim();
+        if (!ma) { datKqGan(null, ''); return; }
+        var lan = ++lanTraGan;
+        datKqGan(null, 'Đang tra mã NV…');
+        try {
+            var res = await fetch('/FormHR/QuanLyTuDienThoai/NhanVien?ma=' + encodeURIComponent(ma));
+            if (!res.ok) throw new Error('Máy chủ trả lỗi ' + res.status);
+            var kq = await res.json();
+            if (lan !== lanTraGan) return; // đã gõ tiếp, bỏ kết quả cũ
+            if (!kq.thanhCong) { datKqGan(null, kq.thongBao || 'Không tìm thấy nhân viên.', 'text-danger'); return; }
+            var nv = kq.duLieu;
+            var giu = nv.tuDangGiu || [];
+            // 1 người 1 tủ: máy chủ cũng chặn, báo sớm ở đây cho đỡ bấm
+            if (giu.length) { datKqGan(null, 'Người này đang dùng tủ ' + giu.join(', ') + ' — trả tủ đó trước.', 'text-danger', nv); return; }
+            datKqGan(nv, nv.daNghi ? 'Lưu ý: nhân viên này đã nghỉ việc.' : 'Bấm Xác nhận (hoặc Enter) để gán tủ.', nv.daNghi ? 'text-warning' : 'text-success', nv);
+        } catch (ex) {
+            if (lan === lanTraGan) datKqGan(null, ex.message, 'text-danger');
+        }
+    }
+
+    async function xacNhanGan(e) {
+        e.preventDefault();
+        var ma = document.getElementById('tdtGanMaNv').value.trim();
+        // Enter khi chưa tra xong → tra ngay, chưa gán
+        if (!nvGan || nvGan.maNhanVien.toUpperCase() !== ma.toUpperCase()) { clearTimeout(henGioGan); traMaGan(); return; }
+
+        var nut = document.getElementById('tdtGanXacNhan');
+        nut.disabled = true;
+        try {
+            var kq = await goiPost('/FormHR/QuanLyTuDienThoai/GanNguoi', new FormData(e.target));
+            if (!kq.thanhCong) { datKqGan(null, kq.thongBao || 'Gán thất bại.', 'text-danger', nvGan); return; }
+            modalGan.hide();
+            thongBao('success', kq.thongBao);
+            taiDanhSach();
+        } catch (ex) {
+            datKqGan(nvGan, ex.message, 'text-danger', nvGan);
+        }
+    }
+
+    async function traTu(nut) {
+        var tu = duLieu.find(function (t) { return String(t.idTu) === nut.dataset.id; });
+        if (!tu) return;
+        var ai = tu.nguoiSuDung || tu.maNhanVien;
+        var hoi = window.Swal
+            ? (await Swal.fire({ icon: 'question', text: 'Trả tủ "' + tu.tenTu + '" của ' + ai + '? Tủ sẽ chuyển sang Còn trống.', showCancelButton: true, confirmButtonText: 'Trả tủ', cancelButtonText: 'Huỷ' })).isConfirmed
+            : confirm('Trả tủ "' + tu.tenTu + '" của ' + ai + '?');
+        if (!hoi) return;
+
+        nut.disabled = true;
+        try {
+            var fd = new FormData();
+            fd.append('idTu', tu.idTu);
+            var kq = await goiPost('/FormHR/QuanLyTuDienThoai/TraTu', fd);
+            if (!kq.thanhCong) throw new Error(kq.thongBao || 'Trả tủ thất bại.');
+            thongBao('success', kq.thongBao);
+            taiDanhSach();
+        } catch (ex) {
+            nut.disabled = false;
+            thongBao('error', ex.message);
+        }
+    }
+
     // ===== Lịch sử thao tác · khôi phục tủ xoá nhầm =====
 
     var modalLs = null;
     var lsIdTu = null;           // đang xem lịch sử 1 tủ (nút trên dòng) hay tất cả
     var henGioLs = null;
     var TEN_HD = { Them: ['Thêm', 'tdt-kq-them'], Sua: ['Sửa', 'tdt-kq-sua'], Xoa: ['Xoá', 'tdt-kq-loi'], KhoiPhuc: ['Khôi phục', 'tdt-kq-khoi-phuc'] };
-    var TEN_NGUON = { Excel: 'nhập Excel', XoaNhieu: 'xoá nhiều', DuLieuCu: 'trước khi có lịch sử' };
+    var TEN_NGUON = { Excel: 'nhập Excel', XoaNhieu: 'xoá nhiều', DuLieuCu: 'trước khi có lịch sử', GanNguoi: 'gán người', TraTu: 'trả tủ' };
     // Khoá trùng AnhChupTu trong TuDienThoaiController
     var TRUONG_LS = [['idBoPhan', 'Bộ phận'], ['tenTu', 'Tên tủ'], ['viTri', 'Vị trí'], ['maNhanVien', 'Mã NV'], ['nguoiSuDung', 'Người sử dụng']];
 
@@ -1173,12 +1301,22 @@
         if (nutTai) { taiAgent(nutTai); return; }
         var sua = e.target.closest('.tdt-sua');
         if (sua) { moModal(duLieu.find(function (t) { return String(t.idTu) === sua.dataset.id; })); return; }
+        if (e.target.closest('#tdtBtnXuatExcel')) { xuatExcel(); return; }
+        var nutGan = e.target.closest('.tdt-gan');
+        if (nutGan) { moGan(nutGan.dataset.id); return; }
+        var nutTra = e.target.closest('.tdt-tra');
+        if (nutTra) { traTu(nutTra); return; }
         var nutXoa = e.target.closest('.tdt-xoa');
         if (nutXoa) xoa(nutXoa);
     });
 
     document.addEventListener('submit', function (e) {
         if (e.target.id === 'tdtForm') luu(e);
+        if (e.target.id === 'tdtFormGan') xacNhanGan(e);
+    });
+
+    document.addEventListener('shown.bs.modal', function (e) {
+        if (e.target.id === 'tdtModalGan') document.getElementById('tdtGanMaNv').focus();
     });
 
     document.addEventListener('change', function (e) {
@@ -1216,6 +1354,13 @@
         if (e.target.id === 'tdtMaNv') {
             clearTimeout(henGioMaNv);
             henGioMaNv = setTimeout(traMaNv, 400);
+            return;
+        }
+        if (e.target.id === 'tdtGanMaNv') {
+            ++lanTraGan; // mã đổi → kết quả tra cũ không còn đúng
+            datKqGan(null, '');
+            clearTimeout(henGioGan);
+            henGioGan = setTimeout(traMaGan, 400);
             return;
         }
         if (e.target.id === 'tdtLsTuKhoa') {

@@ -129,6 +129,63 @@ namespace E_Form_Best.Areas.HRform.Services
             return ms.ToArray();
         }
 
+        public record DongXuat(string? MaBoPhan, string? BoPhan, string TenTu, string? ViTri, string? MaNhanVien, string? NguoiSuDung);
+
+        /// <summary>
+        /// Xuất danh sách tủ. Cùng tên sheet + 6 cột đầu như file mẫu → sửa xong nhập lại được ngay;
+        /// cột "Tình trạng" thêm cuối chỉ để đọc, khi nhập bị bỏ qua.
+        /// </summary>
+        public static byte[] TaoFileXuat(IReadOnlyList<DongXuat> ds)
+        {
+            using var wb = new XLWorkbook();
+            var ws = wb.AddWorksheet(TenSheetDuLieu);
+            int soCot = Cot.Length + 1;
+            for (int c = 0; c < Cot.Length; c++)
+            {
+                ws.Cell(1, c + 1).Value = Cot[c].Ten;
+                ws.Column(c + 1).Width = Cot[c].Rong;
+            }
+            ws.Cell(1, soCot).Value = "Tình trạng";
+            ws.Column(soCot).Width = 14;
+
+            // Mã BP, Mã NV dạng chữ để không mất số 0 đầu
+            ws.Column(1).Style.NumberFormat.Format = "@";
+            ws.Column(5).Style.NumberFormat.Format = "@";
+            for (int i = 0; i < ds.Count; i++)
+            {
+                var d = ds[i];
+                int r = i + 2;
+                bool dangDung = d.MaNhanVien != null || d.NguoiSuDung != null;
+                ws.Cell(r, 1).Value = d.MaBoPhan;
+                ws.Cell(r, 2).Value = d.BoPhan;
+                ws.Cell(r, 3).Value = d.TenTu;
+                ws.Cell(r, 4).Value = d.ViTri;
+                ws.Cell(r, 5).Value = d.MaNhanVien;
+                ws.Cell(r, 6).Value = d.NguoiSuDung;
+                ws.Cell(r, soCot).Value = dangDung ? "Đang dùng" : "Còn trống";
+                ws.Cell(r, soCot).Style.Font.FontColor = dangDung ? XLColor.FromHtml("#15803d") : XLColor.FromHtml("#c2410c");
+            }
+
+            var dau = ws.Range(1, 1, 1, soCot);
+            dau.Style.Font.Bold = true;
+            dau.Style.Font.FontColor = XLColor.White;
+            dau.Style.Fill.BackgroundColor = MauChinh;
+            dau.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            ws.Row(1).Height = 22;
+            ws.SheetView.FreezeRows(1);
+
+            var bang = ws.Range(1, 1, Math.Max(ds.Count, 1) + 1, soCot);
+            bang.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            bang.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            bang.Style.Border.OutsideBorderColor = MauVien;
+            bang.Style.Border.InsideBorderColor = MauVien;
+            if (ds.Count > 0) bang.SetAutoFilter();
+
+            using var ms = new MemoryStream();
+            wb.SaveAs(ms);
+            return ms.ToArray();
+        }
+
         /// <summary>
         /// Đọc sheet dữ liệu (sheet "TuDienThoai", không có thì sheet đầu). Dò cột theo tên ở dòng tiêu đề.
         /// Ném InvalidDataException với thông báo dễ hiểu khi file sai mẫu.

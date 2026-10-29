@@ -35,6 +35,7 @@
 .tdt-loc .form-select { flex: 0 1 240px; border-radius: 10px; }
 .tdt-phan-doan { display: inline-flex; background: #f1f5f9; border-radius: 10px; padding: 3px; margin-left: auto; }
 .tdt-phan-doan button { border: 0; background: none; padding: 5px 12px; border-radius: 8px; font-size: 0.82rem; color: #475569; font-weight: 600; }
+.tdt-nut-xuat { display: inline-flex; align-items: center; gap: 8px; border-radius: 10px; padding: 6px 14px; font-weight: 600; font-size: 0.85rem; }
 .tdt-phan-doan button.dang-chon { background: #fff; color: #0f172a; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12); }
 
 .tdt-bang-khung { overflow-x: auto; }
@@ -75,6 +76,14 @@ html.fp-lock .tdt-thong-ke { margin-bottom: 12px; }
 .tdt-thao-tac { display: inline-flex; gap: 4px; }
 .tdt-thao-tac button { width: 34px; height: 34px; border-radius: 9px; border: 1px solid transparent; background: none; color: #64748b; }
 .tdt-thao-tac .tdt-sua:hover { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+.tdt-thao-tac .tdt-gan:hover { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+.tdt-thao-tac .tdt-tra:hover { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
+/* Ô "người sử dụng" của tủ trống: nút gán người viền đứt */
+.tdt-gan-o { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px dashed #cbd5e1; border-radius: 999px; background: none; color: #64748b; font-size: 0.82rem; }
+.tdt-gan-o:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+/* Hộp thoại gán người: thẻ nhân viên tra được */
+.tdt-gan-kq { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 12px; background: #f8fafc; }
+.tdt-gan-kq .tdt-anh { width: 40px; height: 40px; font-size: 0.9rem; }
 .tdt-thao-tac .tdt-xoa:hover { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
 
 .tdt-trong { text-align: center; color: #94a3b8; padding: 48px 16px !important; }
@@ -135,6 +144,7 @@ html.fp-lock .tdt-thong-ke { margin-bottom: 12px; }
     .tdt-tim, .tdt-loc .form-select { flex: 1 1 100%; max-width: none; }
     .tdt-phan-doan { width: 100%; }
     .tdt-phan-doan button { flex: 1 1 0; }
+    .tdt-nut-xuat { flex: 1 1 100%; justify-content: center; }
     .tdt-loc, .tdt-thanh-chon { padding-left: 12px; padding-right: 12px; }
     .tdt-bang thead { display: none; }
     .tdt-bang, .tdt-bang tbody { display: block; }
