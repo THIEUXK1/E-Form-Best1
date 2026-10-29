@@ -1,6 +1,7 @@
 ﻿﻿﻿using E_Form_Best.Context;
 using E_Form_Best.Models.ITForm;
 using E_Form_Best.Areas.ITForm.Services;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -55,8 +56,19 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         [HttpPost("/DonXetDuyet/DangNhap")]
         [EnableRateLimiting("dang-nhap")] // Chặn tool quét tài khoản: tối đa 10 lần POST/phút cho mỗi IP
-        public async Task<IActionResult> DangNhap(string email, string matKhau, string deviceName, bool rememberMe = false)
+        public async Task<IActionResult> DangNhap(string email, string matKhau, string deviceName, [FromServices] IAntiforgery antiforgery, bool rememberMe = false)
         {
+            // 0. Chống login CSRF: trang lạ không được ngầm POST đăng nhập (gài tài khoản kẻ xấu, hoặc mượn
+            // trình duyệt người khác nhập sai để khoá tài khoản nạn nhân, né giới hạn theo IP).
+            // Kiểm tay thay vì [ValidateAntiForgeryToken] để token hỏng (tab mở qua đêm, xoá cookie,
+            // vừa đăng nhập ở tab khác) hiện lại form kèm thông báo chứ không ra trang 400 trắng.
+            if (!await antiforgery.IsRequestValidAsync(HttpContext))
+            {
+                await NhatKyDangNhapLoi.GhiAsync(_context, HttpContext, email, null, NhatKyDangNhapLoi.TokenLoi, "DangNhap");
+                ViewBag.Error = "Phiên đăng nhập đã hết hạn, vui lòng nhập lại.";
+                return View();
+            }
+
             // 1. Kiểm tra nhập liệu
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(matKhau))
             {
@@ -95,15 +107,17 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // B. Kiểm tra user tồn tại
             if (user == null)
             {
-                ViewBag.Error = "Tài khoản hoặc mật khẩu không đúng.";
+                MatKhauNguoiDung.GiaLapKiemTra(matKhau);
+                await NhatKyDangNhapLoi.GhiAsync(_context, HttpContext, email, null, NhatKyDangNhapLoi.KhongTonTai, "DangNhap");
+                ViewBag.Error = MatKhauNguoiDung.ThongBaoSai;
                 return View();
             }
 
-            // C. Kiểm tra khóa tài khoản (Lockout)
+            // C. Kiểm tra khóa tài khoản (Lockout) — không báo số giây còn lại
             if (user.LockoutEnd.HasValue && user.LockoutEnd > DateTime.Now)
             {
-                var remainingSeconds = (int)(user.LockoutEnd.Value - DateTime.Now).TotalSeconds;
-                ViewBag.Error = $"Tài khoản bị khóa. Vui lòng thử lại sau {remainingSeconds} giây.";
+                await NhatKyDangNhapLoi.GhiAsync(_context, HttpContext, email, user.IdNguoiDung, NhatKyDangNhapLoi.DangKhoa, "DangNhap");
+                ViewBag.Error = MatKhauNguoiDung.ThongBaoKhoa;
                 return View();
             }
 
@@ -149,19 +163,20 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
                 if (user.FailedAttempts >= 5)
                 {
-                    // Tính thời gian khóa: 30 * 2^(n-5)
-                    int multiplier = (int)Math.Pow(2, user.FailedAttempts.Value - 5);
-                    int seconds = 30 * multiplier;
+                    // Tính thời gian khóa: 30 * 2^(n-5), trần 15 phút
+                    int seconds = MatKhauNguoiDung.SoGiayKhoa(user.FailedAttempts.Value);
                     user.LockoutEnd = DateTime.Now.AddSeconds(seconds);
-                    ViewBag.Error = $"Bạn đã nhập sai {user.FailedAttempts} lần. Tài khoản bị khóa {seconds} giây.";
+                    ViewBag.Error = MatKhauNguoiDung.ThongBaoKhoa;
                 }
                 else
                 {
-                    ViewBag.Error = $"Tài khoản hoặc mật khẩu không đúng. (Lần thử {user.FailedAttempts}/5)";
+                    ViewBag.Error = MatKhauNguoiDung.ThongBaoSai;
                 }
 
                 _context.Users.Update(user);
                 await _context.SaveChangesAsync();
+                await NhatKyDangNhapLoi.GhiAsync(_context, HttpContext, email, user.IdNguoiDung,
+                    user.FailedAttempts >= 5 ? NhatKyDangNhapLoi.VuaKhoa : NhatKyDangNhapLoi.SaiMatKhau, "DangNhap");
                 return View();
             }
 
@@ -191,7 +206,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     if (remoteIpAddress != null)
                     {
-                        var hostEntry = System.Net.Dns.GetHostEntry(remoteIpAddress);
+                        // Bất đồng bộ + trần 2 giây: IP không có bản ghi ngược (điện thoại, máy ngoài domain) làm
+                        // Windows chờ DNS/NetBIOS cả chục giây; bản đồng bộ giữ chặt luồng thread pool suốt lúc đó.
+                        var hostEntry = await System.Net.Dns.GetHostEntryAsync(remoteIpAddress)
+                            .WaitAsync(TimeSpan.FromSeconds(2));
                         resolvedComputerName = hostEntry.HostName;
 
                         // Thay đổi phương thức kiểm tra và cắt chuỗi an toàn không tạo mảng char ngầm
@@ -202,8 +220,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 catch { resolvedComputerName = "Không thể xác định tên máy"; }
             }
 
-            // So sánh DeviceFingerprint chạy trên RAM (LINQ to Objects) bằng StringComparison
-            var device = _context.UserDevices.AsEnumerable().FirstOrDefault(d => d.IdNguoiDung == user.IdNguoiDung && string.Equals(d.DeviceFingerprint, userAgent, StringComparison.Ordinal));
+            // Lọc theo người dùng ở SQL (trước đây AsEnumerable() kéo cả bảng UserDevice về RAM mỗi lần đăng nhập),
+            // rồi mới so DeviceFingerprint phân biệt hoa thường trên vài dòng còn lại — SQL collation không phân biệt.
+            var device = (await _context.UserDevices.Where(d => d.IdNguoiDung == user.IdNguoiDung).ToListAsync())
+                .FirstOrDefault(d => string.Equals(d.DeviceFingerprint, userAgent, StringComparison.Ordinal));
             if (device == null)
             {
                 _context.UserDevices.Add(new UserDevice { IdNguoiDung = user.IdNguoiDung, DeviceFingerprint = userAgent, DeviceName = resolvedComputerName, LastLogin = DateTime.Now, IsTrusted = true });
@@ -325,7 +345,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var authProperties = new AuthenticationProperties
             {
                 IsPersistent = rememberMe,
-                ExpiresUtc = rememberMe ? DateTimeOffset.UtcNow.AddDays(365) : null,
+                // Ghi nhớ: 30 ngày; không ghi nhớ: lấy ExpireTimeSpan 12 giờ trong Program.cs. Gia hạn trượt giữ đúng độ dài từng vé.
+                ExpiresUtc = rememberMe ? DateTimeOffset.UtcNow.AddDays(30) : null,
                 AllowRefresh = true
             };
 
@@ -352,7 +373,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // nó (XacThucAdmin, XacNhanTaiSanMaMay, ThemNhanhTaiSanKhac) trở thành cửa sau dò mật khẩu không giới
         // hạn — kể cả dò thẳng mật khẩu Active Directory. Nay áp đúng cơ chế khoá như DangNhap:
         //  - Đang bị khoá  -> trả về ngay, KHÔNG thử mật khẩu (nhờ đó cũng không hammer AD gây khoá nhầm bên AD).
-        //  - Sai            -> tăng FailedAttempts, đủ 5 lần thì khoá theo cấp số nhân 30*2^(n-5) giây.
+        //  - Sai            -> tăng FailedAttempts, đủ 5 lần thì khoá theo cấp số nhân 30*2^(n-5) giây, trần 15 phút.
         //  - Đúng           -> reset trạng thái khoá.
         // Trả về tuple (user, loi): user != null là xác thực thành công; ngược lại loi là thông báo cho người dùng.
         private async Task<(User? user, string? loi)> XacThucTaiKhoanHybrid(string taikhoan, string matkhau)
@@ -368,14 +389,21 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 ? domainAuth.IdNguoiDungNavigation
                 : await _context.Users.FirstOrDefaultAsync(u => u.Tk == taikhoan && u.TrangThai != "Đã nghỉ");
 
+            // Tên action đang gọi (XacThucAdmin, XacNhanTaiSanMaMay...) để biết lần sai đến từ cửa nào
+            string noiGoi = ControllerContext.ActionDescriptor?.ActionName ?? "XacThucHybrid";
+
             if (user == null)
-                return (null, "Tài khoản hoặc mật khẩu không chính xác.");
+            {
+                MatKhauNguoiDung.GiaLapKiemTra(matkhau);
+                await NhatKyDangNhapLoi.GhiAsync(_context, HttpContext, taikhoan, null, NhatKyDangNhapLoi.KhongTonTai, noiGoi);
+                return (null, MatKhauNguoiDung.ThongBaoSai);
+            }
 
             // Đang trong thời gian bị khoá: từ chối ngay, không đụng tới mật khẩu / AD.
             if (user.LockoutEnd.HasValue && user.LockoutEnd > DateTime.Now)
             {
-                int conLai = (int)(user.LockoutEnd.Value - DateTime.Now).TotalSeconds;
-                return (null, $"Tài khoản bị khóa. Vui lòng thử lại sau {conLai} giây.");
+                await NhatKyDangNhapLoi.GhiAsync(_context, HttpContext, taikhoan, user.IdNguoiDung, NhatKyDangNhapLoi.DangKhoa, noiGoi);
+                return (null, MatKhauNguoiDung.ThongBaoKhoa);
             }
 
             bool isAuthenticated = false;
@@ -414,16 +442,18 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 string thongBao;
                 if (user.FailedAttempts >= 5)
                 {
-                    int seconds = 30 * (int)Math.Pow(2, user.FailedAttempts.Value - 5);
+                    int seconds = MatKhauNguoiDung.SoGiayKhoa(user.FailedAttempts.Value);
                     user.LockoutEnd = DateTime.Now.AddSeconds(seconds);
-                    thongBao = $"Bạn đã nhập sai {user.FailedAttempts} lần. Tài khoản bị khóa {seconds} giây.";
+                    thongBao = MatKhauNguoiDung.ThongBaoKhoa;
                 }
                 else
                 {
-                    thongBao = $"Tài khoản hoặc mật khẩu không chính xác. (Lần thử {user.FailedAttempts}/5)";
+                    thongBao = MatKhauNguoiDung.ThongBaoSai;
                 }
                 _context.Users.Update(user);
                 await _context.SaveChangesAsync();
+                await NhatKyDangNhapLoi.GhiAsync(_context, HttpContext, taikhoan, user.IdNguoiDung,
+                    user.FailedAttempts >= 5 ? NhatKyDangNhapLoi.VuaKhoa : NhatKyDangNhapLoi.SaiMatKhau, noiGoi);
                 return (null, thongBao);
             }
 

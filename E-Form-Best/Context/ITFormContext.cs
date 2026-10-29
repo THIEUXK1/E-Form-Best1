@@ -227,6 +227,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<LichSuTruyCap> LichSuTruyCaps { get; set; }
 
+    public virtual DbSet<LichSuDangNhapLoi> LichSuDangNhapLois { get; set; }
+
     public virtual DbSet<PhongHopHr> PhongHopHrs { get; set; }
 
     public virtual DbSet<Quyen> Quyens { get; set; }

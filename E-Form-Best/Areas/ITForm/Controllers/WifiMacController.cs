@@ -51,18 +51,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         .Select((m, i) => new { idChiTiet = ct.Id, viTri = i, mac = WlcMacService.ChuanHoaMac(m) }))
                     .Where(x => x.mac != null).ToList();
                 var trangThai = await _quet.TrangThaiAsync(congTy, dong.Select(x => x.mac!));
-                // App RADIUS không có API tra cứu: chỉ biết MAC đã lên RADIUS qua lịch sử đơn (thêm / báo đã có từ E-Form)
-                var lichSuRadius = await _context.LichSuFormIts
-                    .Where(x => x.IdFormIt == idFormIt && x.TieuDe != null && x.TieuDe.Contains("RADIUS"))
-                    .Select(x => x.Mota)
-                    .ToListAsync();
+                // App RADIUS không có API tra cứu: trạng thái theo dòng lịch sử RADIUS mới nhất của MAC ở mọi đơn
+                // (thêm / báo đã có = có; đánh dấu gỡ tay = không), giống nút Kiểm tra
+                var lichSuRadius = await LichSuRadiusAsync();
                 return Json(new
                 {
                     thanhCong = true,
                     duLieu = dong.Select(x => new
                     {
                         x.idChiTiet, x.viTri, wlc = trangThai[x.mac!],
-                        radius = lichSuRadius.Any(m => m != null && m.Contains(x.mac!))
+                        radius = CoTrenRadius(lichSuRadius, x.mac!)
                     })
                 });
             }
@@ -243,8 +241,28 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return (null, ct.TenCongTy?.Trim() ?? "", mac);
         }
 
+        /// <summary>App RADIUS chưa có API xoá: IT gỡ tay trên DaloRADIUS rồi đánh dấu ở đây, dòng lịch sử này làm MAC thành "không có".</summary>
+        private const string TieuDeGoRadius = "Gỡ MAC khỏi RADIUS (gỡ tay trên DaloRADIUS)";
+
+        public record DongLichSuRadius(int? IdFormIt, string? TieuDe, string? Mota, DateTime? Time);
+
+        /// <summary>Mọi dòng lịch sử RADIUS (ít, chỉ có từ khi có form RADIUS), mới nhất trước.</summary>
+        private Task<List<DongLichSuRadius>> LichSuRadiusAsync(string? mac = null)
+            => _context.LichSuFormIts
+                .Where(x => x.TieuDe != null && x.TieuDe.Contains("RADIUS") && x.Mota != null && (mac == null || x.Mota.Contains(mac)))
+                .OrderByDescending(x => x.Time).ThenByDescending(x => x.Id)
+                .Select(x => new DongLichSuRadius(x.IdFormIt, x.TieuDe, x.Mota, x.Time))
+                .ToListAsync();
+
+        /// <summary>Dòng RADIUS mới nhất của MAC quyết định: thêm / đã có = có, đánh dấu gỡ = không.</summary>
+        private static bool CoTrenRadius(List<DongLichSuRadius> ds, string mac)
+        {
+            var moiNhat = ds.FirstOrDefault(x => x.Mota != null && x.Mota.Contains(mac));
+            return moiNhat != null && moiNhat.TieuDe != TieuDeGoRadius;
+        }
+
         /// <summary>
-        /// App RADIUS chưa có API tra cứu nên "kiểm tra" = tra lịch sử MỌI đơn xem MAC đã từng được đẩy lên RADIUS qua E-Form chưa.
+        /// App RADIUS chưa có API tra cứu nên "kiểm tra" = tra lịch sử MỌI đơn.
         /// Không thấy không có nghĩa là RADIUS chưa có (có thể IT thêm tay trên DaloRADIUS) — bấm Thêm thì app tự báo ALREADY_EXISTS.
         /// </summary>
         [HttpPost("/FormIT/KiemTraMacRadius")]
@@ -254,18 +272,38 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var (loi, _, mac) = await LayMacRadiusAsync(vao);
             if (loi != null) return Json(new { thanhCong = false, thongBao = loi });
 
-            var ds = await _context.LichSuFormIts
-                .Where(x => x.TieuDe != null && x.TieuDe.Contains("RADIUS") && x.Mota != null && x.Mota.Contains(mac))
-                .OrderByDescending(x => x.Time)
-                .Select(x => new { x.IdFormIt, x.TieuDe, x.Mota, x.Time })
-                .Take(5)
-                .ToListAsync();
+            var ds = await LichSuRadiusAsync(mac);
+            var co = CoTrenRadius(ds, mac);
             return Json(new
             {
                 thanhCong = true,
-                thongBao = ds.Count > 0 ? "MAC đã lên RADIUS qua E-Form." : "Chưa thấy MAC này được thêm lên RADIUS qua E-Form.",
-                duLieu = new { mac, coTrenRadius = ds.Count > 0, lichSu = ds }
+                thongBao = co ? "MAC đang có trên RADIUS (theo lịch sử E-Form)."
+                    : ds.Count > 0 ? "MAC đã được gỡ khỏi RADIUS (theo lịch sử E-Form)."
+                    : "Chưa thấy MAC này được thêm lên RADIUS qua E-Form.",
+                duLieu = new { mac, coTrenRadius = co, lichSu = ds.Take(5) }
             });
+        }
+
+        [HttpPost("/FormIT/DanhDauGoMacRadius")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DanhDauGoMacRadius([FromBody] ThemRadiusVao? vao)
+        {
+            var (loi, _, mac) = await LayMacRadiusAsync(vao);
+            if (loi != null) return Json(new { thanhCong = false, thongBao = loi });
+
+            // Đã đánh dấu gỡ rồi (bấm lại / 2 tab) thì không ghi thêm dòng
+            if (CoTrenRadius(await LichSuRadiusAsync(mac), mac))
+            {
+                _context.LichSuFormIts.Add(new LichSuFormIt
+                {
+                    IdFormIt = vao!.IdFormIt,
+                    TieuDe = TieuDeGoRadius,
+                    Mota = $"{User.FindFirst(ClaimTypes.Name)?.Value} ({User.FindFirst("MaNv")?.Value}), xác thực domain {vao.TaiKhoan!.Trim()} — {mac}",
+                    Time = DateTime.Now
+                });
+                await _context.SaveChangesAsync();
+            }
+            return Json(new { thanhCong = true, thongBao = "Đã ghi nhận MAC đã gỡ khỏi RADIUS.", duLieu = new { mac } });
         }
 
         [HttpPost("/FormIT/ThemMacRadius")]

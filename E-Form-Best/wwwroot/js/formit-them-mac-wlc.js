@@ -399,7 +399,34 @@
                 ghiChu.textContent = 'MAC thêm tay trên DaloRADIUS không hiện ở đây; bấm Thêm thì RADIUS tự báo nếu đã có.';
                 oRadKetQua.appendChild(ghiChu);
             }
-            if (ds.length) { kq.nut._radius = true; veBang(); }
+            const co = !!d.duLieu?.coTrenRadius;
+            oRadKetQua.classList.toggle('da-co', co);
+            tieuDe.textContent = (co ? '⚠️ ' : '🆕 ') + d.thongBao;
+            if (co) {
+                const nutGo = document.createElement('button');
+                nutGo.type = 'button';
+                nutGo.className = 'btn-go-mac-wlc';
+                nutGo.id = 'btnDanhDauGoMacRadius';
+                nutGo.textContent = 'Đánh dấu đã gỡ tay';
+                nutGo.title = 'App RADIUS chưa có API xoá: gỡ trên DaloRADIUS trước rồi bấm để E-Form ghi nhận';
+                oRadKetQua.appendChild(nutGo);
+            }
+            kq.nut._radius = co;
+            veBang();
+        });
+
+        // App RADIUS chưa có API xoá: gỡ tay trên DaloRADIUS rồi ghi nhận ở đây để bảng / nút Kiểm tra hiện đúng
+        oRadKetQua.addEventListener('click', async function (e) {
+            const nutGo = e.target.closest('#btnDanhDauGoMacRadius');
+            if (!nutGo || dangGui) return;
+            if (!confirm('Đã gỡ MAC ' + oRadMac.textContent + ' khỏi DaloRADIUS chưa?\nE-Form sẽ ghi nhận MAC không còn trên RADIUS.')) return;
+            const kq = await guiRadius('/FormIT/DanhDauGoMacRadius', nutGo, 'Đang ghi...');
+            if (!kq) return;
+            const d = kq.data;
+            if (!d.thanhCong) { hienRadius(oRadLoi, d.thongBao || 'Ghi nhận thất bại.'); oRadMatKhau.value = ''; oRadMatKhau.focus(); return; }
+            hienRadius(oRadKetQua, '🗑️ ' + d.thongBao);
+            kq.nut._radius = false;
+            veBang();
         });
 
         btnRadius.addEventListener('click', async function () {

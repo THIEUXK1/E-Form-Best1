@@ -254,7 +254,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.Name = "ITForm_Auth_Cookie";
         options.LoginPath = "/DonXetDuyet/DangNhap";
         options.LogoutPath = "/DonXetDuyet/DangXuat";
-        options.ExpireTimeSpan = TimeSpan.FromDays(365);
+        // Hạn vé khi KHÔNG tick "Ghi nhớ" (session cookie); tick thì DangNhap đặt ExpiresUtc 30 ngày
+        options.ExpireTimeSpan = TimeSpan.FromHours(12);
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
         options.Cookie.IsEssential = true;
@@ -276,7 +277,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                 var userId = context.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var stampInCookie = context.Principal.FindFirst("SecurityStamp")?.Value;
 
-                if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(stampInCookie))
+                if (!int.TryParse(userId, out var idNguoiDung) || string.IsNullOrEmpty(stampInCookie))
                 {
                     context.RejectPrincipal();
                     await context.HttpContext.SignOutAsync();
@@ -287,9 +288,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                 var dbContext = context.HttpContext.RequestServices.GetRequiredService<ITFormContext>();
 
                 // 3. Kiểm tra SecurityStamp trong Database
-                // Giả sử bảng User của bạn có khóa chính là id_nguoi_dung (int)
+                // So số với khoá chính để SQL seek index; ToString() trên cột buộc quét cả bảng mỗi request
                 var currentStampInDb = await dbContext.Users
-                    .Where(u => u.IdNguoiDung.ToString() == userId)
+                    .Where(u => u.IdNguoiDung == idNguoiDung)
                     .Select(u => u.SecurityStamp)
                     .FirstOrDefaultAsync();
 
@@ -369,6 +370,23 @@ if (!app.Environment.IsDevelopment())
     // phòng trường hợp có request http lọt thẳng vào Kestrel.
     app.UseHttpsRedirection();
 }
+
+// Header bảo mật cho MỌI phản hồi (cả file tĩnh/upload, cả trang lỗi do ExceptionHandler chạy lại pipeline):
+//  - X-Frame-Options + CSP frame-ancestors: chống clickjacking — chỉ chính E-Form được nhúng E-Form vào iframe.
+//    Cookie SameSite=Lax không đủ vì trình duyệt coi app khác cổng trên cùng IP/tên miền là cùng site.
+//    CHỈ dùng frame-ancestors, chưa bật script-src: view còn nhiều onclick/script inline, bật là vỡ.
+//  - nosniff: file upload .jpg mà ruột là HTML/JS không bị trình duyệt chạy như trang web.
+//  - Referrer-Policy: link ra ngoài không mang theo đường dẫn đầy đủ (id phiếu, query).
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers["X-Frame-Options"] = "SAMEORIGIN";
+    headers["Content-Security-Policy"] = "frame-ancestors 'self'";
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    await next();
+});
+
 app.UseStaticFiles(new StaticFileOptions
 {
     // Cho phép trình duyệt cache lib/css/js 7 ngày, giảm tải lại các file tĩnh không đổi mỗi lần chuyển trang.

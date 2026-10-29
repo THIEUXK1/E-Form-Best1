@@ -251,6 +251,8 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                     return Json(new { success = false, message = "Mật khẩu xác nhận không khớp." });
 
                 MatKhauNguoiDung.Dat(user, newPassword);
+                // Đổi stamp để mọi phiên đang mở (kể cả cookie bị lộ) bị đá ra ở request kế tiếp
+                user.SecurityStamp = Guid.NewGuid().ToString();
                 user.NgayCapNhat = DateTime.Now;
 
                 _context.Users.Update(user);

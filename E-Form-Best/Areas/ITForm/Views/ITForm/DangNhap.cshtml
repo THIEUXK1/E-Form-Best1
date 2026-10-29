@@ -84,6 +84,7 @@
         }
 
         <form method="post" action="/DonXetDuyet/DangNhap" id="loginForm" style="text-align:left;">
+            @Html.AntiForgeryToken()
 
             <input type="hidden" name="deviceName" id="deviceName" value="" />
 
@@ -139,21 +140,6 @@
 
                 document.getElementById('deviceName').value = deviceName;
             };
-
-            // Nếu có lỗi khóa tài khoản (có chứa giây), tự động tải lại trang sau X giây
-            @if (ViewBag.Error != null && ViewBag.Error.ToString().Contains("giây"))
-            {
-                    <text>
-                            var errorMsg = "@ViewBag.Error";
-                            var match = errorMsg.match(/(\d+)\s*giây/);
-                            if (match && match[1]) {
-                                var seconds = parseInt(match[1]);
-                                setTimeout(function() {
-                                    window.location.reload();
-                                }, seconds * 1000);
-                            }
-                    </text>
-            }
     </script>
 </body>
 </html>
