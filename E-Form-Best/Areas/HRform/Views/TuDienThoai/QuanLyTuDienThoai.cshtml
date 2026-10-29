@@ -8,7 +8,9 @@
     bool laQuanLy = ViewBag.LaQuanLy == true;
 }
 
-<link rel="stylesheet" href="~/css/tu-dien-thoai.css?v=12" />
+@* Khoá cuộn trang, chỉ vùng bảng (data-fp-scroll) cuộn; màn ≤ 768px trả lại cuộn trang thường *@
+<link rel="stylesheet" href="~/css/fixed-page-layout.css" />
+<link rel="stylesheet" href="~/css/tu-dien-thoai.css?v=14" />
 
 <div class="tdt-trang" id="tdtTrang" data-la-quan-ly="@(laQuanLy ? "1" : "0")">
     <div class="tdt-dau">
@@ -35,9 +37,9 @@
         @if (laQuanLy)
         {
             <div class="tdt-nut-dau">
-                <a href="/FormHR/QuanLyTuDienThoai/ThietKeTem" class="btn tdt-nut-phu"><i class="fa fa-paint-brush"></i><span>Thiết kế tem</span></a>
+                <a href="/FormHR/QuanLyTuDienThoai/ThietKeTem" class="btn tdt-nut-phu" title="Thiết kế tem"><i class="fa fa-paint-brush"></i><span>Thiết kế tem</span></a>
                 <div class="dropdown">
-                    <button type="button" class="btn tdt-nut-phu dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa fa-file-excel-o tdt-xanh-excel"></i><span>Excel</span></button>
+                    <button type="button" class="btn tdt-nut-phu dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Excel"><i class="fa fa-file-excel-o tdt-xanh-excel"></i><span>Excel</span></button>
                     <ul class="dropdown-menu dropdown-menu-end tdt-menu-excel">
                         @* Tải file = điều hướng thật (được phép theo quy tắc), không phải lưu dữ liệu *@
                         <li><a class="dropdown-item" href="/FormHR/QuanLyTuDienThoai/MauExcel"><i class="fa fa-download"></i> Tải mẫu Excel</a></li>
@@ -47,7 +49,7 @@
                 <button type="button" class="btn tdt-nut-phu" id="tdtBtnLichSu" title="Lịch sử thêm / sửa / xoá tủ, khôi phục tủ xoá nhầm"><i class="fa fa-history"></i><span>Lịch sử</span></button>
                 <button type="button" class="btn tdt-nut-phu" id="tdtBtnMaBp" title="Đặt mã ngắn cho bộ phận (QC, HR…)"><i class="fa fa-tag"></i><span>Mã bộ phận</span></button>
                 <button type="button" class="btn tdt-nut-phu" id="tdtBtnDriver" title="Tải driver máy in tem"><i class="fa fa-download"></i><span>Driver máy in</span></button>
-                <button type="button" class="btn tdt-nut-phu" id="tdtBtnIn" disabled><i class="fa fa-print"></i><span>In tem</span><b class="tdt-dem" id="tdtSoChon">0</b></button>
+                <button type="button" class="btn tdt-nut-phu" id="tdtBtnIn" title="In tem các tủ đã chọn" disabled><i class="fa fa-print"></i><span>In tem</span><b class="tdt-dem" id="tdtSoChon">0</b></button>
                 <button type="button" class="btn btn-primary tdt-nut-chinh" id="tdtBtnThem"><i class="fa fa-plus"></i><span>Thêm tủ</span></button>
             </div>
         }
@@ -94,7 +96,7 @@
             </div>
         }
 
-        <div class="tdt-bang-khung">
+        <div class="tdt-bang-khung" data-fp-scroll>
             <table class="tdt-bang">
                 <thead>
                     <tr>
@@ -192,7 +194,7 @@
 
 @* Modal nhập tủ từ Excel: chọn file → Kiểm tra (xem trước từng dòng) → Nhập *@
 <div class="modal fade" id="tdtModalExcel" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-md-down">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="fa fa-file-excel-o tdt-xanh-excel"></i> Nhập tủ từ Excel</h5>
@@ -228,7 +230,7 @@
 
 @* Lịch sử thao tác tủ (append-only); dòng xoá của tủ còn đang xoá có nút Khôi phục *@
 <div class="modal fade" id="tdtModalLichSu" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-md-down">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="fa fa-history"></i> <span id="tdtLsTieuDe">Lịch sử thao tác tủ</span></h5>
@@ -266,7 +268,7 @@
 
 @* Mã bộ phận (cột ma_bo_phan của BoPhan, dùng chung) *@
 <div class="modal fade" id="tdtModalMaBp" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-md-down">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="fa fa-tag"></i> Mã bộ phận</h5>
@@ -314,6 +316,13 @@
                 </select>
                 <div class="list-group mt-3" id="tdtDriverDs"></div>
                 <div class="form-text mt-2 tdt-driver-ghi-chu" id="tdtDriverGhiChu"></div>
+                @* Lỗi hay gặp: chạy CaiDat.cmd ngay trong zip, hoặc cài lúc máy in chưa cắm → driver nạp nhưng không có máy in *@
+                <ol class="form-text mt-3 mb-0 ps-3">
+                    <li>Bật máy in, cắm cáp USB thẳng vào máy tính. Brother PT-P750W: đèn <b>Editor Lite</b> (xanh) phải tắt — bấm giữ nút đó đến khi tắt.</li>
+                    <li>Chuột phải file zip vừa tải → <b>Extract All / Giải nén tất cả</b> (không chạy thẳng trong zip).</li>
+                    <li>Mở thư mục vừa giải nén, chạy <b>CaiDat.cmd</b>, bấm Yes khi Windows hỏi quyền quản trị.</li>
+                    <li>Cửa sổ báo <b>XONG</b> kèm tên máy in là được; báo khác thì chụp màn hình gửi IT.</li>
+                </ol>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
@@ -323,7 +332,7 @@
 </div>
 
 <div class="modal fade" id="tdtModalIn" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-fullscreen-md-down">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">In tem — <span id="tdtInSoTu">0</span> tủ</h5>
@@ -395,4 +404,5 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
     <script src="~/js/tem-nhan.js?v=12"></script>
     <script src="~/js/tu-dien-thoai.js?v=18"></script>
+    <script src="~/js/fixed-page-layout.js" defer></script>
 }
