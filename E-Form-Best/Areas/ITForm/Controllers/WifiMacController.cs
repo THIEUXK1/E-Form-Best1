@@ -18,12 +18,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         private readonly ITFormContext _context;
         private readonly WlcMacService _wlc;
         private readonly WlcMacQuetService _quet;
+        private readonly RadiusMacService _radius;
 
-        public WifiMacController(ITFormContext context, WlcMacService wlc, WlcMacQuetService quet)
+        public WifiMacController(ITFormContext context, WlcMacService wlc, WlcMacQuetService quet, RadiusMacService radius)
         {
             _context = context;
             _wlc = wlc;
             _quet = quet;
+            _radius = radius;
         }
 
         /// <summary>
@@ -167,6 +169,59 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             await GhiNhanAsync(mac, ds, false, hoSo, moTa);
 
             return TraKetQua(mac, ds);
+        }
+
+        public class ThemRadiusVao
+        {
+            public int IdFormIt { get; set; }
+            public int IdChiTiet { get; set; }
+            public int ViTri { get; set; }
+            public string? Nhom { get; set; }
+            public string? MoTa { get; set; }
+        }
+
+        /// <summary>
+        /// PDA / TV không xác thực qua WLC mà qua RADIUS (MAC auth): form riêng trong cùng modal, không cần tài khoản domain
+        /// vì app RADIUS xác thực bằng API key ở máy chủ. MAC vẫn lấy từ đơn theo vị trí dòng như nút WLC.
+        /// </summary>
+        [HttpPost("/FormIT/ThemMacRadius")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ThemMacRadius([FromBody] ThemRadiusVao? vao)
+        {
+            if (!CoQuyen(User)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thêm MAC lên RADIUS." });
+            if (vao == null) return Json(new { thanhCong = false, thongBao = "Thiếu dữ liệu." });
+
+            var ct = await _context.ItDangKiSuDungWifi3s
+                .Where(x => x.Id == vao.IdChiTiet && x.IdFormIt == vao.IdFormIt)
+                .Select(x => new { x.MacTb, x.IdFormItNavigation!.TenCongTy })
+                .FirstOrDefaultAsync();
+            if (ct == null) return Json(new { thanhCong = false, thongBao = "Không tìm thấy thiết bị trong đơn." });
+
+            var congTy = ct.TenCongTy?.Trim() ?? "";
+            var nhom = _radius.DsNhom(congTy).FirstOrDefault(n => n.Ma == vao.Nhom);
+            if (nhom == null) return Json(new { thanhCong = false, thongBao = $"Chọn loại thiết bị (RADIUS chưa cấu hình cho {congTy} thì không thêm được)." });
+
+            var dsMac = (ct.MacTb ?? "").Split('|', StringSplitOptions.RemoveEmptyEntries);
+            if (vao.ViTri < 0 || vao.ViTri >= dsMac.Length) return Json(new { thanhCong = false, thongBao = "Dòng thiết bị không hợp lệ." });
+            var mac = WlcMacService.ChuanHoaMac(dsMac[vao.ViTri]);
+            if (mac == null) return Json(new { thanhCong = false, thongBao = $"MAC '{dsMac[vao.ViTri].Trim()}' sai định dạng, sửa đơn trước." });
+
+            var moTa = WlcMacService.ChuanHoaMoTa(vao.MoTa);
+            var nguoiLam = $"{User.FindFirst(ClaimTypes.Name)?.Value} ({User.FindFirst("MaNv")?.Value})";
+            var k = await _radius.ThemMacAsync(mac, nhom, moTa, $"E-Form don #{vao.IdFormIt} {nhom.LoaiThietBi} - {User.FindFirst("MaNv")?.Value}", HttpContext.RequestAborted);
+
+            if (k.XongViec)
+            {
+                _context.LichSuFormIts.Add(new LichSuFormIt
+                {
+                    IdFormIt = vao.IdFormIt,
+                    TieuDe = k.ThanhCong ? $"Thêm MAC lên RADIUS ({nhom.LoaiThietBi})" : "MAC đã có trên RADIUS",
+                    Mota = $"{nguoiLam} — {mac} group {nhom.Group}, description {moTa}" + (k.Usernames?.Length > 0 ? $" ({string.Join(", ", k.Usernames)})" : ""),
+                    Time = DateTime.Now
+                });
+                await _context.SaveChangesAsync();
+            }
+            return Json(new { thanhCong = k.XongViec, thongBao = k.ThongBao, duLieu = new { mac, k.Code, k.DaTonTai, k.Usernames } });
         }
 
         [HttpPost("/FormIT/GoMacWifi")]

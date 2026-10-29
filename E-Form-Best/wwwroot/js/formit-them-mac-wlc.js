@@ -18,6 +18,13 @@
     const dsWlcModal = dsNutGui.map(function (b) { return { wlc: b.dataset.wlc, ip: b.dataset.ip, co: null }; });
     function khoaNutGui(khoa) { dsNutGui.forEach(function (b) { b.disabled = khoa; }); }
     const btnKiemTra = document.getElementById('btnKiemTraMacWlc');
+    // Form RADIUS (PDA / TV) cùng modal, chỉ có khi công ty đã cấu hình RadiusMac
+    const oRadMac = document.getElementById('themMacRadiusMac');
+    const oRadNhom = document.getElementById('themMacRadiusNhom');
+    const oRadMoTa = document.getElementById('themMacRadiusMoTa');
+    const oRadKetQua = document.getElementById('themMacRadiusKetQua');
+    const oRadLoi = document.getElementById('themMacRadiusLoi');
+    const btnRadius = document.getElementById('btnGuiThemMacRadius');
     let nutDangChon = null;
     let dangGui = false;
 
@@ -78,11 +85,20 @@
         });
     }
 
+    function hienRadius(oHop, text, daCo) {
+        if (!oHop) return;
+        oHop.textContent = text || '';
+        oHop.hidden = !text;
+        oHop.classList.toggle('da-co', !!daCo);
+    }
+
     function dong() {
         modal.hidden = true;
         oMatKhau.value = '';
         hienLoi('');
         hienKetQua('');
+        hienRadius(oRadKetQua, '');
+        hienRadius(oRadLoi, '');
         nutDangChon = null;
     }
 
@@ -175,6 +191,12 @@
         oMoTa.value = boDau(nut.dataset.moTa);
         hienLoi('');
         hienKetQua('');
+        if (btnRadius) {
+            oRadMac.textContent = nut.dataset.mac || '';
+            oRadMoTa.value = boDau(nut.dataset.moTa);
+            hienRadius(oRadKetQua, '');
+            hienRadius(oRadLoi, '');
+        }
         modal.hidden = false;
         // Tài khoản giữ lại giữa các lần mở trong trang (không phải bí mật), chỉ mật khẩu bị xoá
         (oTaiKhoan.value.trim() ? oMatKhau : oTaiKhoan).focus();
@@ -182,7 +204,7 @@
 
     oMoTa.addEventListener('blur', function () { oMoTa.value = boDau(oMoTa.value).replace(/^_+|_+$/g, ''); });
     document.getElementById('btnHuyThemMacWlc').addEventListener('click', function () { if (!dangGui) dong(); });
-    modal.addEventListener('click', function (e) { if (e.target === modal && !dangGui) dong(); });
+    modal.addEventListener('click', function (e) { if ((e.target === modal || e.target.classList.contains('them-mac-wlc-cum')) && !dangGui) dong(); });
 
     async function gui(url, nutBam, chuCho, ipWlc) {
         if (!nutDangChon || dangGui) return null;
@@ -287,6 +309,49 @@
         capNhatNut(kq.nut, trangThaiTuKq(ds, true));
         if (ds.some(function (k) { return !k.thanhCong && !k.daTonTai; })) { oMatKhau.value = ''; oMatKhau.focus(); }
     });
+
+    // RADIUS: app trả ALREADY_EXISTS khi MAC đã có nên bấm lại không tạo trùng; dùng chung cờ dangGui với WLC
+    if (btnRadius) {
+        document.getElementById('formThemMacRadius').addEventListener('submit', function (e) { e.preventDefault(); });
+        oRadMoTa.addEventListener('blur', function () { oRadMoTa.value = boDau(oRadMoTa.value).replace(/^_+|_+$/g, ''); });
+        btnRadius.addEventListener('click', async function () {
+            if (!nutDangChon || dangGui) return;
+            const nut = nutDangChon;
+            const chuGoc = btnRadius.textContent;
+            dangGui = true;
+            btnRadius.disabled = true;
+            btnRadius.textContent = 'Đang thêm...';
+            hienRadius(oRadLoi, '');
+            hienRadius(oRadKetQua, '');
+            try {
+                const res = await fetch('/FormIT/ThemMacRadius', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: JSON.stringify({
+                        idFormIt: Number(modal.dataset.idForm),
+                        idChiTiet: Number(nut.dataset.idChiTiet),
+                        viTri: Number(nut.dataset.viTri),
+                        nhom: oRadNhom.value,
+                        moTa: boDau(oRadMoTa.value)
+                    })
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const d = await res.json();
+                if (!d.thanhCong) { hienRadius(oRadLoi, d.thongBao || 'Thêm MAC lên RADIUS thất bại.'); return; }
+                const dsTen = d.duLieu?.usernames?.length ? ' (' + d.duLieu.usernames.join(', ') + ')' : '';
+                hienRadius(oRadKetQua, (d.duLieu?.daTonTai ? '⚠️ ' : '✅ ') + d.thongBao + dsTen, d.duLieu?.daTonTai);
+            } catch (err) {
+                hienRadius(oRadLoi, 'Lỗi kết nối máy chủ (' + err.message + ').');
+            } finally {
+                dangGui = false;
+                btnRadius.disabled = false;
+                btnRadius.textContent = chuGoc;
+            }
+        });
+    }
 
     // Enter trong ô nhập không tự đẩy lệnh lên WLC nào — phải bấm đúng nút của WLC
     form.addEventListener('submit', function (e) { e.preventDefault(); });

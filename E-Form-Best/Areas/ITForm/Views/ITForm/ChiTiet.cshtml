@@ -4,6 +4,7 @@
 @using System.Linq
 @using System.Security.Claims
 @inject E_Form_Best.Areas.ITForm.Services.WlcMacService WlcMac
+@inject E_Form_Best.Areas.ITForm.Services.RadiusMacService RadiusMac
 
 @{
     ViewData["Title"] = "Chi tiết yêu cầu IT";
@@ -1368,6 +1369,7 @@
 @if (Model?.ItDangKiSuDungWifi3s?.Any() == true && E_Form_Best.Areas.ITForm.Controllers.WifiMacController.CoQuyen(User) && WlcMac.CoCauHinh(Model.TenCongTy))
 {
     <div id="modalThemMacWlc" class="them-mac-wlc-nen" hidden data-id-form="@Model.Id" data-la-all="@(User.IsInRole("All") ? "1" : "0")">
+        <div class="them-mac-wlc-cum">
         <form id="formThemMacWlc" class="them-mac-wlc-hop" autocomplete="off">
             <h3>➕ Thêm MAC lên WLC (@Model.TenCongTy)</h3>
             <div class="them-mac-wlc-ds">WLC: @string.Join(" · ", WlcMac.DsWlc(Model.TenCongTy).Select(w => w.Ten)) — thêm riêng từng con bằng nút bên dưới</div>
@@ -1402,7 +1404,34 @@
                 }
             </div>
         </form>
+        @if (RadiusMac.CoCauHinh(Model.TenCongTy))
+        {
+            @* PDA / TV xác thực MAC qua RADIUS, không qua WLC: form riêng, không cần tài khoản domain *@
+            <form id="formThemMacRadius" class="them-mac-wlc-hop them-mac-radius" autocomplete="off">
+                <h3>📟 Thêm MAC cho PDA / TV (RADIUS)</h3>
+                <div class="them-mac-wlc-ds">DaloRADIUS — tách riêng với WLC, thêm cả 2 dạng MAC (có / không dấu :)</div>
+                <div class="them-mac-wlc-dong"><span>MAC</span><b id="themMacRadiusMac"></b></div>
+                <label>Loại thiết bị
+                    <select id="themMacRadiusNhom" required>
+                        @foreach (var n in RadiusMac.DsNhom(Model.TenCongTy))
+                        {
+                            <option value="@n.Ma">@n.LoaiThietBi (group @n.Group)</option>
+                        }
+                    </select>
+                </label>
+                <label>Mô tả (firstname trên RADIUS)
+                    <input id="themMacRadiusMoTa" type="text" maxlength="60" placeholder="vd WHSophie">
+                    <small>Tự bỏ dấu như mô tả WLC</small>
+                </label>
+                <div id="themMacRadiusKetQua" class="them-mac-wlc-kq" hidden></div>
+                <div id="themMacRadiusLoi" class="them-mac-wlc-loi" hidden></div>
+                <div class="them-mac-wlc-nut">
+                    <button type="button" id="btnGuiThemMacRadius">Thêm lên RADIUS</button>
+                </div>
+            </form>
+        }
+        </div>
     </div>
-    <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261029c" />
-    <script src="~/js/formit-them-mac-wlc.js?v=20261029d"></script>
+    <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261029e" />
+    <script src="~/js/formit-them-mac-wlc.js?v=20261029e"></script>
 }

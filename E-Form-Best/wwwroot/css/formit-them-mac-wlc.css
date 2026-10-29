@@ -1,6 +1,11 @@
 /* Modal thêm MAC lên WLC — trang chi tiết đơn Wi-Fi */
 .them-mac-wlc-nen { position: fixed; inset: 0; background: rgba(15, 23, 42, .55); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 16px; }
 .them-mac-wlc-nen[hidden] { display: none; }
+/* Form WLC và form RADIUS (PDA/TV) hiện cạnh nhau, màn hẹp thì xếp dọc */
+.them-mac-wlc-cum { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; gap: 16px; max-height: 100%; overflow-y: auto; }
+.them-mac-radius { border-top: 4px solid #7c3aed; }
+.them-mac-wlc-nut #btnGuiThemMacRadius { background: #7c3aed; color: #fff; }
+.them-mac-wlc-nut #btnGuiThemMacRadius:disabled { opacity: .6; cursor: wait; }
 .them-mac-wlc-hop { background: #fff; border-radius: 14px; padding: 20px; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 40px rgba(0, 0, 0, .25); }
 .them-mac-wlc-hop h3 { margin: 0; font-size: 17px; color: #0f172a; }
 .them-mac-wlc-hop label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: #475569; }
