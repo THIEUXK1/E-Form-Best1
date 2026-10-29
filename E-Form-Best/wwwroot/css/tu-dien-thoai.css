@@ -51,6 +51,17 @@ html.fp-lock .tdt-thong-ke { margin-bottom: 12px; }
 .tdt-bang tbody tr { transition: background 0.12s; }
 .tdt-bang tbody tr:hover { background: #f8fafc; }
 .tdt-bang tbody tr.dang-chon { background: #eff6ff; }
+.tdt-bang tbody tr.tdt-dong { cursor: pointer; }
+.tdt-bang tbody tr.tdt-dong:focus-visible { outline: 2px solid #3b82f6; outline-offset: -2px; }
+
+/* Hộp chi tiết tủ */
+.tdt-ct-ds { display: grid; grid-template-columns: 120px 1fr; gap: 8px 12px; margin: 0; }
+.tdt-ct-ds dt { color: #64748b; font-weight: 500; }
+.tdt-ct-ds dd { margin: 0; font-weight: 600; word-break: break-word; }
+.tdt-ct-ls-tieu-de { margin: 16px 0 6px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-weight: 600; font-size: 0.85rem; color: #334155; }
+.tdt-ct-ls-muc { padding: 6px 0; border-bottom: 1px dashed #e5e7eb; }
+.tdt-ct-ls-muc:last-child { border-bottom: 0; }
+.tdt-ct-ls-dau { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 2px; }
 .tdt-bang tbody tr:last-child td { border-bottom: 0; }
 .tdt-cot-chon { width: 44px; }
 

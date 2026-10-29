@@ -93,7 +93,11 @@
         }
         dsHien.forEach(function (t) {
             var tr = document.createElement('tr');
-            if (daChon.has(t.idTu)) tr.className = 'dang-chon';
+            tr.className = 'tdt-dong' + (daChon.has(t.idTu) ? ' dang-chon' : '');
+            // Bấm vào dòng (ngoài nút / ô tích) → hộp chi tiết; tabindex để mở được bằng Enter
+            tr.dataset.id = t.idTu;
+            tr.tabIndex = 0;
+            tr.title = 'Xem chi tiết tủ ' + t.tenTu;
 
             if (laQuanLy) {
                 var tdChon = taoEl('td', 'tdt-o-chon');
@@ -1156,6 +1160,86 @@
         }
     }
 
+    // ===== Chi tiết tủ (bấm vào dòng) =====
+
+    var modalCt = null;
+    var ctIdTu = null;           // tủ đang mở, để bỏ kết quả lịch sử về muộn của tủ đã đóng
+    var SO_LS_CT = 5;
+
+    function moChiTiet(idTu) {
+        var tu = duLieu.find(function (t) { return t.idTu === idTu; });
+        if (!tu) return;
+        ctIdTu = idTu;
+        document.getElementById('tdtCtTenTu').textContent = tu.tenTu;
+
+        var ds = document.getElementById('tdtCtDs');
+        ds.replaceChildren();
+        [
+            ['Tên tủ', tu.tenTu],
+            ['Vị trí', tu.viTri],
+            ['Bộ phận', (tu.maBoPhan ? tu.maBoPhan + ' · ' : '') + (tu.tenBoPhan || '')],
+            ['Mã NV', tu.maNhanVien],
+            ['Người sử dụng', tu.nguoiSuDung],
+            ['Tình trạng', coNguoiDung(tu) ? 'Đang dùng' : 'Còn trống']
+        ].forEach(function (f) {
+            ds.appendChild(taoEl('dt', null, f[0]));
+            var dd = taoEl('dd');
+            if (f[0] === 'Tình trạng') dd.appendChild(taoEl('span', 'tdt-tinh-trang ' + (coNguoiDung(tu) ? 'tdt-dang-dung' : 'tdt-con-trong'), f[1]));
+            else if (f[1]) dd.textContent = f[1];
+            else dd.appendChild(taoEl('span', 'tdt-chua-co', '–'));
+            ds.appendChild(dd);
+        });
+
+        if (laQuanLy) {
+            // Dùng lại đúng các lớp nút trên dòng → bộ bắt click chung xử lý, hộp chi tiết tự đóng trước
+            var chan = document.getElementById('tdtCtNut');
+            chan.replaceChildren();
+            [
+                coNguoiDung(tu) ? ['tdt-tra btn-outline-warning', 'fa-sign-out', 'Trả tủ'] : ['tdt-gan btn-outline-success', 'fa-user-plus', 'Thêm người sử dụng'],
+                ['tdt-ls-tu btn-outline-secondary', 'fa-history', 'Lịch sử'],
+                ['tdt-sua btn-primary', 'fa-pencil', 'Sửa']
+            ].forEach(function (n) {
+                var b = taoEl('button', 'btn btn-sm ' + n[0]);
+                b.type = 'button';
+                b.dataset.id = tu.idTu;
+                b.appendChild(taoEl('i', 'fa ' + n[1] + ' me-1'));
+                b.appendChild(document.createTextNode(n[2]));
+                chan.appendChild(b);
+            });
+            taiLsChiTiet(idTu);
+        }
+        modalCt.show();
+    }
+
+    async function taiLsChiTiet(idTu) {
+        var khung = document.getElementById('tdtCtLs');
+        khung.replaceChildren(oTrongDiv('Đang tải…'));
+        try {
+            var res = await fetch('/FormHR/QuanLyTuDienThoai/LichSu?idTu=' + encodeURIComponent(idTu));
+            if (!res.ok) throw new Error('Máy chủ trả lỗi ' + res.status);
+            var kq = await res.json();
+            if (!kq.thanhCong) throw new Error(kq.thongBao || 'Không tải được lịch sử.');
+            if (ctIdTu !== idTu) return;
+            var d = kq.duLieu;
+            khung.replaceChildren();
+            if (!d.dong.length) { khung.appendChild(oTrongDiv('Chưa có thao tác nào.')); return; }
+            d.dong.slice(0, SO_LS_CT).forEach(function (r) {
+                var muc = taoEl('div', 'tdt-ct-ls-muc');
+                var dau = taoEl('div', 'tdt-ct-ls-dau');
+                var hd = TEN_HD[r.hanhDong] || [r.hanhDong, 'tdt-kq-giu'];
+                dau.appendChild(taoEl('span', 'tdt-kq ' + hd[1], hd[0] + (TEN_NGUON[r.nguon] ? ' · ' + TEN_NGUON[r.nguon] : '')));
+                dau.appendChild(taoEl('span', 'tdt-ls-nguon', ngayGio(r.ngay) + (r.nguoi ? ' · ' + r.nguoi : '')));
+                muc.appendChild(dau);
+                muc.appendChild(veChiTietLs(r, d.boPhan));
+                khung.appendChild(muc);
+            });
+        } catch (ex) {
+            if (ctIdTu === idTu) khung.replaceChildren(oTrongDiv(ex.message));
+        }
+    }
+
+    function oTrongDiv(chu) { return taoEl('div', 'tdt-chua-co py-2', chu); }
+
     // ===== Mã bộ phận =====
 
     var modalMaBp = null;
@@ -1252,6 +1336,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         laQuanLy = document.getElementById('tdtTrang').dataset.laQuanLy === '1';
+        modalCt = new bootstrap.Modal(document.getElementById('tdtModalCt'));
         // Hộp thoại thêm/sửa và in tem chỉ có trong trang của admin
         if (laQuanLy) {
             modal = new bootstrap.Modal(document.getElementById('tdtModal'));
@@ -1272,7 +1357,22 @@
             veBang();
             return;
         }
+        // Bấm vào dòng, trừ nút / ô tích / link bên trong → chi tiết
+        var dong = e.target.closest('#tdtBody tr.tdt-dong');
+        if (dong && !e.target.closest('button, a, input, label, .tdt-o-chon, .tdt-o-thao-tac')) { moChiTiet(parseInt(dong.dataset.id, 10)); return; }
         if (!laQuanLy) return;
+        // Nút trong hộp chi tiết mở hộp thoại khác → đóng hẳn chi tiết rồi mới bấm lại nút đó
+        // (mở modal mới lúc modal cũ đang chạy hiệu ứng đóng thì Bootstrap để sót lớp nền mờ)
+        var nutCt = e.target.closest('#tdtCtNut button');
+        if (nutCt && !nutCt.dataset.sauDong) {
+            document.getElementById('tdtModalCt').addEventListener('hidden.bs.modal', function () {
+                nutCt.dataset.sauDong = '1';
+                nutCt.click();
+                delete nutCt.dataset.sauDong;
+            }, { once: true });
+            modalCt.hide();
+            return;
+        }
         if (e.target.closest('#tdtBtnThem')) { moModal(null); return; }
         if (e.target.closest('#tdtBtnDriver')) { moDriver(); return; }
         if (e.target.closest('#tdtBtnLichSu') || e.target.closest('#tdtLsBoLocTu')) { moLichSu(null); return; }
@@ -1308,6 +1408,12 @@
         if (nutTra) { traTu(nutTra); return; }
         var nutXoa = e.target.closest('.tdt-xoa');
         if (nutXoa) xoa(nutXoa);
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' || !e.target.matches('#tdtBody tr.tdt-dong')) return;
+        e.preventDefault();
+        moChiTiet(parseInt(e.target.dataset.id, 10));
     });
 
     document.addEventListener('submit', function (e) {

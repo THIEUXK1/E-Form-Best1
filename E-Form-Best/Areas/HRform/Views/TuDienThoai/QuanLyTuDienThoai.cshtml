@@ -10,7 +10,7 @@
 
 @* Khoá cuộn trang, chỉ vùng bảng (data-fp-scroll) cuộn; màn ≤ 768px trả lại cuộn trang thường *@
 <link rel="stylesheet" href="~/css/fixed-page-layout.css" />
-<link rel="stylesheet" href="~/css/tu-dien-thoai.css?v=16" />
+<link rel="stylesheet" href="~/css/tu-dien-thoai.css?v=17" />
 
 <div class="tdt-trang" id="tdtTrang" data-la-quan-ly="@(laQuanLy ? "1" : "0")">
     <div class="tdt-dau">
@@ -123,6 +123,30 @@
             </table>
         </div>
         <div class="tdt-chan" id="tdtChan"></div>
+    </div>
+</div>
+
+@* Chi tiết tủ: bấm vào một dòng của bảng là mở, không chuyển trang. Nội dung do tu-dien-thoai.js điền. *@
+<div class="modal fade" id="tdtModalCt" tabindex="-1" aria-hidden="true" aria-labelledby="tdtCtTieuDe">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tdtCtTieuDe"><i class="fa fa-mobile"></i> <span id="tdtCtTenTu"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="tdt-ct-ds" id="tdtCtDs"></dl>
+                @if (laQuanLy)
+                {
+                    <div class="tdt-ct-ls-tieu-de"><i class="fa fa-history"></i> Thao tác gần đây</div>
+                    <div id="tdtCtLs"></div>
+                }
+            </div>
+            @if (laQuanLy)
+            {
+                <div class="modal-footer" id="tdtCtNut"></div>
+            }
+        </div>
     </div>
 </div>
 
@@ -433,6 +457,6 @@
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
     <script src="~/js/tem-nhan.js?v=12"></script>
-    <script src="~/js/tu-dien-thoai.js?v=20"></script>
+    <script src="~/js/tu-dien-thoai.js?v=21"></script>
     <script src="~/js/fixed-page-layout.js" defer></script>
 }
