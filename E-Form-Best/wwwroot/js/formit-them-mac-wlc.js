@@ -25,6 +25,9 @@
     const oRadKetQua = document.getElementById('themMacRadiusKetQua');
     const oRadLoi = document.getElementById('themMacRadiusLoi');
     const btnRadius = document.getElementById('btnGuiThemMacRadius');
+    const btnKiemTraRadius = document.getElementById('btnKiemTraMacRadius');
+    const oRadTaiKhoan = document.getElementById('themMacRadiusTaiKhoan');
+    const oRadMatKhau = document.getElementById('themMacRadiusMatKhau');
     let nutDangChon = null;
     let dangGui = false;
 
@@ -99,6 +102,7 @@
         hienKetQua('');
         hienRadius(oRadKetQua, '');
         hienRadius(oRadLoi, '');
+        if (oRadMatKhau) oRadMatKhau.value = '';
         nutDangChon = null;
     }
 
@@ -146,21 +150,24 @@
 
     // Bảng dưới bình luận: mỗi MAC một dòng, mỗi WLC một cột (đã có / thiếu / chưa tra được).
     // Dựng lại từ trạng thái các nút "+" nên luôn khớp sau mỗi lần kiểm tra / thêm / gỡ.
-    const thanBang = document.getElementById('bangMacWlcThan');
-    const dsCotWlc = thanBang ? Array.from(document.querySelectorAll('#bangMacWlc th[data-ip]')).map(function (th) { return th.dataset.ip; }) : [];
-    function veBang() {
-        if (!thanBang) return;
+    // Vẽ cùng lúc 2 bảng: dưới bình luận và bên phải modal (dòng đang mở modal được tô đậm)
+    const dsThanBang = ['bangMacWlcThan', 'bangMacWlcModalThan'].map(function (id) { return document.getElementById(id); }).filter(Boolean);
+    const dsCotWlc = Array.from(document.querySelectorAll('#bangMacWlc th[data-ip]')).map(function (th) { return th.dataset.ip; });
+    const coCotRadius = !!document.querySelector('#bangMacWlc th.cot-radius');
+    function veBang() { dsThanBang.forEach(veMotBang); }
+    function veMotBang(thanBang) {
         thanBang.textContent = '';
         const dsNut = document.querySelectorAll('.btn-them-mac-wlc');
         if (!dsNut.length) {
             const td = thanBang.insertRow().insertCell();
-            td.colSpan = 1 + dsCotWlc.length;
+            td.colSpan = 1 + dsCotWlc.length + (coCotRadius ? 1 : 0);
             td.className = 'bang-mac-wlc-trong';
             td.textContent = 'Đơn không có MAC hợp lệ.';
             return;
         }
         dsNut.forEach(function (nut) {
             const tr = thanBang.insertRow();
+            if (nut === nutDangChon) tr.className = 'dang-chon';
             // Mã thiết bị ở trên, MAC ngay dòng dưới trong cùng ô -> bảng hẹp, không đẩy vỡ cột bình luận
             const tdTb = tr.insertCell();
             tdTb.className = 'thiet-bi';
@@ -178,6 +185,13 @@
                 td.textContent = co === true ? '✔' : co === false ? '✘' : '?';
                 td.title = co === true ? 'Đã có' : co === false ? 'Thiếu' : 'Chưa tra được';
             });
+            if (coCotRadius) {
+                // Chỉ biết "đã lên" qua E-Form; chưa có trong lịch sử thì để "–", không khẳng định là thiếu
+                const td = tr.insertCell();
+                td.className = nut._radius ? 'co' : 'chua-ro';
+                td.textContent = nut._radius ? '✔' : '–';
+                td.title = nut._radius ? 'Đã lên RADIUS (theo lịch sử đơn)' : 'Chưa thêm lên RADIUS qua E-Form';
+            }
         });
     }
 
@@ -191,6 +205,7 @@
         oMoTa.value = boDau(nut.dataset.moTa);
         hienLoi('');
         hienKetQua('');
+        veBang();
         if (btnRadius) {
             oRadMac.textContent = nut.dataset.mac || '';
             oRadMoTa.value = boDau(nut.dataset.moTa);
@@ -260,14 +275,18 @@
             if (!d.thanhCong || !Array.isArray(d.duLieu)) return;
             d.duLieu.forEach(function (dong) {
                 const nut = document.querySelector('.btn-them-mac-wlc[data-id-chi-tiet="' + dong.idChiTiet + '"][data-vi-tri="' + dong.viTri + '"]');
+                if (nut && dong.radius) nut._radius = true;
                 if (!nut || !dong.wlc.some(function (w) { return w.co !== null; })) return;
                 capNhatNut(nut, dong.wlc.map(function (w) { return { wlc: w.wlc, ip: w.ip, co: w.co }; }));
                 const lanQuet = dong.wlc.map(function (w) { return w.quetLuc; }).filter(Boolean).sort()[0];
                 if (lanQuet) nut.title += '\n(theo bản quét WLC lúc ' + new Date(lanQuet).toLocaleString('vi-VN') + ')';
             });
+            veBang();
             const quetCu = d.duLieu.flatMap(function (dong) { return dong.wlc.map(function (w) { return w.quetLuc; }); }).filter(Boolean).sort()[0];
-            const oQuet = document.getElementById('bangMacWlcQuet');
-            if (oQuet && quetCu) oQuet.textContent = 'theo bản quét lúc ' + new Date(quetCu).toLocaleString('vi-VN');
+            ['bangMacWlcQuet', 'bangMacWlcModalQuet'].forEach(function (id) {
+                const oQuet = document.getElementById(id);
+                if (oQuet && quetCu) oQuet.textContent = 'theo bản quét lúc ' + new Date(quetCu).toLocaleString('vi-VN');
+            });
         } catch (err) {
             console.warn('Không đọc được bản quét MAC trên WLC:', err);
         }
@@ -314,17 +333,20 @@
     if (btnRadius) {
         document.getElementById('formThemMacRadius').addEventListener('submit', function (e) { e.preventDefault(); });
         oRadMoTa.addEventListener('blur', function () { oRadMoTa.value = boDau(oRadMoTa.value).replace(/^_+|_+$/g, ''); });
-        btnRadius.addEventListener('click', async function () {
-            if (!nutDangChon || dangGui) return;
+        // Gửi 1 yêu cầu RADIUS (kiểm tra / thêm): khoá cả 2 nút trong lúc chờ, trả { nut, data } hoặc null khi lỗi mạng
+        async function guiRadius(url, nutBam, chuCho) {
+            if (!nutDangChon || dangGui) return null;
+            if (!oRadTaiKhoan.value.trim()) { hienRadius(oRadLoi, 'Nhập tài khoản domain.'); oRadTaiKhoan.focus(); return null; }
+            if (!oRadMatKhau.value) { hienRadius(oRadLoi, 'Nhập mật khẩu domain.'); oRadMatKhau.focus(); return null; }
             const nut = nutDangChon;
-            const chuGoc = btnRadius.textContent;
+            const chuGoc = nutBam.textContent;
             dangGui = true;
-            btnRadius.disabled = true;
-            btnRadius.textContent = 'Đang thêm...';
+            btnRadius.disabled = btnKiemTraRadius.disabled = true;
+            nutBam.textContent = chuCho;
             hienRadius(oRadLoi, '');
             hienRadius(oRadKetQua, '');
             try {
-                const res = await fetch('/FormIT/ThemMacRadius', {
+                const res = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -335,21 +357,60 @@
                         idChiTiet: Number(nut.dataset.idChiTiet),
                         viTri: Number(nut.dataset.viTri),
                         nhom: oRadNhom.value,
-                        moTa: boDau(oRadMoTa.value)
+                        moTa: boDau(oRadMoTa.value),
+                        taiKhoan: oRadTaiKhoan.value.trim(),
+                        matKhau: oRadMatKhau.value
                     })
                 });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
-                const d = await res.json();
-                if (!d.thanhCong) { hienRadius(oRadLoi, d.thongBao || 'Thêm MAC lên RADIUS thất bại.'); return; }
-                const dsTen = d.duLieu?.usernames?.length ? ' (' + d.duLieu.usernames.join(', ') + ')' : '';
-                hienRadius(oRadKetQua, (d.duLieu?.daTonTai ? '⚠️ ' : '✅ ') + d.thongBao + dsTen, d.duLieu?.daTonTai);
+                return { nut: nut, data: await res.json() };
             } catch (err) {
                 hienRadius(oRadLoi, 'Lỗi kết nối máy chủ (' + err.message + ').');
+                return null;
             } finally {
                 dangGui = false;
-                btnRadius.disabled = false;
-                btnRadius.textContent = chuGoc;
+                btnRadius.disabled = btnKiemTraRadius.disabled = false;
+                nutBam.textContent = chuGoc;
             }
+        }
+
+        btnKiemTraRadius.addEventListener('click', async function () {
+            const kq = await guiRadius('/FormIT/KiemTraMacRadius', btnKiemTraRadius, 'Đang tra...');
+            if (!kq) return;
+            const d = kq.data;
+            if (!d.thanhCong) { hienRadius(oRadLoi, d.thongBao || 'Kiểm tra thất bại.'); oRadMatKhau.value = ''; oRadMatKhau.focus(); return; }
+            const ds = d.duLieu?.lichSu || [];
+            oRadKetQua.textContent = '';
+            oRadKetQua.hidden = false;
+            oRadKetQua.classList.toggle('da-co', ds.length > 0);
+            const tieuDe = document.createElement('b');
+            tieuDe.textContent = (ds.length ? '⚠️ ' : '🆕 ') + d.thongBao;
+            oRadKetQua.appendChild(tieuDe);
+            // Lịch sử MỌI đơn, mới nhất trước; app RADIUS chưa tra cứu được nên MAC thêm tay trên DaloRADIUS sẽ không thấy ở đây
+            ds.forEach(function (l) {
+                const dong = document.createElement('div');
+                dong.className = 'them-mac-radius-ls';
+                dong.textContent = 'Đơn #' + l.idFormIt + ' · ' + (l.time ? new Date(l.time).toLocaleString('vi-VN') : '') + ' · ' + l.tieuDe + ' — ' + (l.mota || '');
+                oRadKetQua.appendChild(dong);
+            });
+            if (!ds.length) {
+                const ghiChu = document.createElement('div');
+                ghiChu.className = 'them-mac-radius-ls';
+                ghiChu.textContent = 'MAC thêm tay trên DaloRADIUS không hiện ở đây; bấm Thêm thì RADIUS tự báo nếu đã có.';
+                oRadKetQua.appendChild(ghiChu);
+            }
+            if (ds.length) { kq.nut._radius = true; veBang(); }
+        });
+
+        btnRadius.addEventListener('click', async function () {
+            const kq = await guiRadius('/FormIT/ThemMacRadius', btnRadius, 'Đang thêm...');
+            if (!kq) return;
+            const d = kq.data;
+            if (!d.thanhCong) { hienRadius(oRadLoi, d.thongBao || 'Thêm MAC lên RADIUS thất bại.'); oRadMatKhau.value = ''; oRadMatKhau.focus(); return; }
+            const dsTen = d.duLieu?.usernames?.length ? ' (' + d.duLieu.usernames.join(', ') + ')' : '';
+            hienRadius(oRadKetQua, (d.duLieu?.daTonTai ? '⚠️ ' : '✅ ') + d.thongBao + dsTen, d.duLieu?.daTonTai);
+            kq.nut._radius = true;
+            veBang();
         });
     }
 

@@ -1,11 +1,22 @@
 /* Modal thêm MAC lên WLC — trang chi tiết đơn Wi-Fi */
 .them-mac-wlc-nen { position: fixed; inset: 0; background: rgba(15, 23, 42, .55); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 16px; }
 .them-mac-wlc-nen[hidden] { display: none; }
-/* Form WLC và form RADIUS (PDA/TV) hiện cạnh nhau, màn hẹp thì xếp dọc */
-.them-mac-wlc-cum { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; gap: 16px; max-height: 100%; overflow-y: auto; }
+/* Form WLC giữa màn hình, form RADIUS (PDA/TV) bên trái nó; màn hẹp thì xếp dọc, RADIUS ở trên */
+.them-mac-wlc-cum { width: 100%; display: grid; grid-template-columns: 1fr minmax(0, 420px) 1fr; align-items: start; gap: 16px; max-height: 100%; overflow-y: auto; }
+.them-mac-wlc-cum > #formThemMacWlc { grid-column: 2; grid-row: 1; }
+.them-mac-wlc-cum > .them-mac-radius { grid-column: 1; grid-row: 1; justify-self: end; }
+.them-mac-wlc-cum > .bang-mac-wlc-modal { grid-column: 3; grid-row: 1; justify-self: start; margin-top: 0; max-width: 420px; box-shadow: 0 20px 40px rgba(0, 0, 0, .25); }
 .them-mac-radius { border-top: 4px solid #7c3aed; }
+.bang-mac-wlc tr.dang-chon td { background: #e0f2fe; }
+@media (max-width: 900px) {
+    .them-mac-wlc-cum { grid-template-columns: minmax(0, 420px); justify-content: center; }
+    .them-mac-wlc-cum > #formThemMacWlc { grid-column: 1; grid-row: 2; }
+    .them-mac-wlc-cum > .them-mac-radius { grid-column: 1; grid-row: 1; justify-self: stretch; }
+    .them-mac-wlc-cum > .bang-mac-wlc-modal { grid-column: 1; grid-row: 3; justify-self: stretch; max-width: none; }
+}
 .them-mac-wlc-nut #btnGuiThemMacRadius { background: #7c3aed; color: #fff; }
-.them-mac-wlc-nut #btnGuiThemMacRadius:disabled { opacity: .6; cursor: wait; }
+.them-mac-wlc-nut #btnGuiThemMacRadius:disabled, #btnKiemTraMacRadius:disabled { opacity: .6; cursor: wait; }
+#btnKiemTraMacRadius { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
 .them-mac-wlc-hop { background: #fff; border-radius: 14px; padding: 20px; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 40px rgba(0, 0, 0, .25); }
 .them-mac-wlc-hop h3 { margin: 0; font-size: 17px; color: #0f172a; }
 .them-mac-wlc-hop label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: #475569; }
@@ -44,9 +55,11 @@
 .bang-mac-wlc td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
 .bang-mac-wlc td.thiet-bi b { display: block; color: #1e293b; word-break: break-all; }
 .bang-mac-wlc td.thiet-bi span { display: block; font-family: monospace; font-size: 12px; color: #0369a1; }
+.bang-mac-wlc th.cot-radius { width: 1%; text-align: center; font-size: 11px; white-space: normal; line-height: 1.25; color: #6d28d9; }
 .bang-mac-wlc th[data-ip] { width: 1%; text-align: center; font-size: 11px; white-space: normal; line-height: 1.25; }
 .bang-mac-wlc td.co, .bang-mac-wlc td.thieu, .bang-mac-wlc td.chua-ro { text-align: center; font-size: 16px; font-weight: 900; }
 .bang-mac-wlc td.co { color: #16a34a; }
 .bang-mac-wlc td.thieu { color: #dc2626; }
 .bang-mac-wlc td.chua-ro { color: #94a3b8; }
 .bang-mac-wlc td.bang-mac-wlc-trong { text-align: center; color: #94a3b8; }
+.them-mac-radius-ls { margin-top: 6px; font-size: 12px; color: #57534e; word-break: break-word; }

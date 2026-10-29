@@ -1,4 +1,6 @@
-﻿using System.Security.Claims;
+﻿using System.DirectoryServices.AccountManagement;
+using System.Runtime.InteropServices;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 using E_Form_Best.Areas.ITForm.Services;
 using E_Form_Best.Context;
@@ -49,10 +51,19 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         .Select((m, i) => new { idChiTiet = ct.Id, viTri = i, mac = WlcMacService.ChuanHoaMac(m) }))
                     .Where(x => x.mac != null).ToList();
                 var trangThai = await _quet.TrangThaiAsync(congTy, dong.Select(x => x.mac!));
+                // App RADIUS không có API tra cứu: chỉ biết MAC đã lên RADIUS qua lịch sử đơn (thêm / báo đã có từ E-Form)
+                var lichSuRadius = await _context.LichSuFormIts
+                    .Where(x => x.IdFormIt == idFormIt && x.TieuDe != null && x.TieuDe.Contains("RADIUS"))
+                    .Select(x => x.Mota)
+                    .ToListAsync();
                 return Json(new
                 {
                     thanhCong = true,
-                    duLieu = dong.Select(x => new { x.idChiTiet, x.viTri, wlc = trangThai[x.mac!] })
+                    duLieu = dong.Select(x => new
+                    {
+                        x.idChiTiet, x.viTri, wlc = trangThai[x.mac!],
+                        radius = lichSuRadius.Any(m => m != null && m.Contains(x.mac!))
+                    })
                 });
             }
             catch (Exception ex)
@@ -178,36 +189,97 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             public int ViTri { get; set; }
             public string? Nhom { get; set; }
             public string? MoTa { get; set; }
+            public string? TaiKhoan { get; set; }
+            public string? MatKhau { get; set; }
+        }
+
+        /// <summary>
+        /// RADIUS gọi bằng API key nên không có bước SSH kiểm mật khẩu như WLC: tự kiểm tài khoản domain với AD
+        /// để lịch sử ghi đúng người làm. Cùng cách đăng nhập domain ở ITFormController (bestpacific.com).
+        /// </summary>
+        private static bool DungTaiKhoanDomain(string taiKhoan, string matKhau)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return false;
+            // "bestpacific240298" -> "v240298"; dạng a@domain để nguyên
+            var ten = taiKhoan.Contains('\\') ? taiKhoan[(taiKhoan.LastIndexOf('\\') + 1)..] : taiKhoan;
+            try
+            {
+#pragma warning disable CA1416 // đã kiểm Windows ở trên
+                using var ctx = new PrincipalContext(ContextType.Domain, "bestpacific.com");
+                return ctx.ValidateCredentials(ten, matKhau);
+#pragma warning restore CA1416
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         /// <summary>
         /// PDA / TV không xác thực qua WLC mà qua RADIUS (MAC auth): form riêng trong cùng modal, không cần tài khoản domain
         /// vì app RADIUS xác thực bằng API key ở máy chủ. MAC vẫn lấy từ đơn theo vị trí dòng như nút WLC.
         /// </summary>
-        [HttpPost("/FormIT/ThemMacRadius")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ThemMacRadius([FromBody] ThemRadiusVao? vao)
+        /// <summary>Kiểm quyền + lấy MAC của dòng thiết bị cho RADIUS (không cần tài khoản domain).</summary>
+        private async Task<(string? Loi, string CongTy, string Mac)> LayMacRadiusAsync(ThemRadiusVao? vao)
         {
-            if (!CoQuyen(User)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thêm MAC lên RADIUS." });
-            if (vao == null) return Json(new { thanhCong = false, thongBao = "Thiếu dữ liệu." });
+            if (!CoQuyen(User)) return ("Bạn không có quyền thêm MAC lên RADIUS.", "", "");
+            if (vao == null) return ("Thiếu dữ liệu.", "", "");
+            var taiKhoan = vao.TaiKhoan?.Trim() ?? "";
+            if (taiKhoan.Length == 0) return ("Nhập tài khoản domain.", "", "");
+            if (!Regex.IsMatch(taiKhoan, @"^[A-Za-z0-9._@\\-]{1,64}$")) return ("Tài khoản domain không hợp lệ.", "", "");
+            if (string.IsNullOrEmpty(vao.MatKhau)) return ("Nhập mật khẩu tài khoản domain.", "", "");
+            if (!DungTaiKhoanDomain(taiKhoan, vao.MatKhau)) return ("Sai tài khoản hoặc mật khẩu domain.", "", "");
 
             var ct = await _context.ItDangKiSuDungWifi3s
                 .Where(x => x.Id == vao.IdChiTiet && x.IdFormIt == vao.IdFormIt)
                 .Select(x => new { x.MacTb, x.IdFormItNavigation!.TenCongTy })
                 .FirstOrDefaultAsync();
-            if (ct == null) return Json(new { thanhCong = false, thongBao = "Không tìm thấy thiết bị trong đơn." });
-
-            var congTy = ct.TenCongTy?.Trim() ?? "";
-            var nhom = _radius.DsNhom(congTy).FirstOrDefault(n => n.Ma == vao.Nhom);
-            if (nhom == null) return Json(new { thanhCong = false, thongBao = $"Chọn loại thiết bị (RADIUS chưa cấu hình cho {congTy} thì không thêm được)." });
+            if (ct == null) return ("Không tìm thấy thiết bị trong đơn.", "", "");
 
             var dsMac = (ct.MacTb ?? "").Split('|', StringSplitOptions.RemoveEmptyEntries);
-            if (vao.ViTri < 0 || vao.ViTri >= dsMac.Length) return Json(new { thanhCong = false, thongBao = "Dòng thiết bị không hợp lệ." });
+            if (vao.ViTri < 0 || vao.ViTri >= dsMac.Length) return ("Dòng thiết bị không hợp lệ.", "", "");
             var mac = WlcMacService.ChuanHoaMac(dsMac[vao.ViTri]);
-            if (mac == null) return Json(new { thanhCong = false, thongBao = $"MAC '{dsMac[vao.ViTri].Trim()}' sai định dạng, sửa đơn trước." });
+            if (mac == null) return ($"MAC '{dsMac[vao.ViTri].Trim()}' sai định dạng, sửa đơn trước.", "", "");
+            return (null, ct.TenCongTy?.Trim() ?? "", mac);
+        }
 
-            var moTa = WlcMacService.ChuanHoaMoTa(vao.MoTa);
-            var nguoiLam = $"{User.FindFirst(ClaimTypes.Name)?.Value} ({User.FindFirst("MaNv")?.Value})";
+        /// <summary>
+        /// App RADIUS chưa có API tra cứu nên "kiểm tra" = tra lịch sử MỌI đơn xem MAC đã từng được đẩy lên RADIUS qua E-Form chưa.
+        /// Không thấy không có nghĩa là RADIUS chưa có (có thể IT thêm tay trên DaloRADIUS) — bấm Thêm thì app tự báo ALREADY_EXISTS.
+        /// </summary>
+        [HttpPost("/FormIT/KiemTraMacRadius")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> KiemTraMacRadius([FromBody] ThemRadiusVao? vao)
+        {
+            var (loi, _, mac) = await LayMacRadiusAsync(vao);
+            if (loi != null) return Json(new { thanhCong = false, thongBao = loi });
+
+            var ds = await _context.LichSuFormIts
+                .Where(x => x.TieuDe != null && x.TieuDe.Contains("RADIUS") && x.Mota != null && x.Mota.Contains(mac))
+                .OrderByDescending(x => x.Time)
+                .Select(x => new { x.IdFormIt, x.TieuDe, x.Mota, x.Time })
+                .Take(5)
+                .ToListAsync();
+            return Json(new
+            {
+                thanhCong = true,
+                thongBao = ds.Count > 0 ? "MAC đã lên RADIUS qua E-Form." : "Chưa thấy MAC này được thêm lên RADIUS qua E-Form.",
+                duLieu = new { mac, coTrenRadius = ds.Count > 0, lichSu = ds }
+            });
+        }
+
+        [HttpPost("/FormIT/ThemMacRadius")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ThemMacRadius([FromBody] ThemRadiusVao? vao)
+        {
+            var (loi, congTy, mac) = await LayMacRadiusAsync(vao);
+            if (loi != null) return Json(new { thanhCong = false, thongBao = loi });
+
+            var nhom = _radius.DsNhom(congTy).FirstOrDefault(n => n.Ma == vao!.Nhom);
+            if (nhom == null) return Json(new { thanhCong = false, thongBao = $"Chọn loại thiết bị (RADIUS chưa cấu hình cho {congTy} thì không thêm được)." });
+
+            var moTa = WlcMacService.ChuanHoaMoTa(vao!.MoTa);
+            var nguoiLam = $"{User.FindFirst(ClaimTypes.Name)?.Value} ({User.FindFirst("MaNv")?.Value}), xác thực domain {vao.TaiKhoan!.Trim()}";
             var k = await _radius.ThemMacAsync(mac, nhom, moTa, $"E-Form don #{vao.IdFormIt} {nhom.LoaiThietBi} - {User.FindFirst("MaNv")?.Value}", HttpContext.RequestAborted);
 
             if (k.XongViec)

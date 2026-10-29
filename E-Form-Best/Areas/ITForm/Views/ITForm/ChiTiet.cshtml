@@ -1100,6 +1100,10 @@
                                             {
                                                 <th data-ip="@w.Ip">@w.Ten</th>
                                             }
+                                            @if (RadiusMac.CoCauHinh(Model.TenCongTy))
+                                            {
+                                                <th class="cot-radius" title="Theo lịch sử đơn (app RADIUS không tra cứu được)">RADIUS (PDA/TV)</th>
+                                            }
                                         </tr>
                                     </thead>
                                     <tbody id="bangMacWlcThan"></tbody>
@@ -1423,15 +1427,45 @@
                     <input id="themMacRadiusMoTa" type="text" maxlength="60" placeholder="vd WHSophie">
                     <small>Tự bỏ dấu như mô tả WLC</small>
                 </label>
+                <label>Tài khoản domain
+                    <input id="themMacRadiusTaiKhoan" type="text" maxlength="64" autocomplete="off" spellcheck="false" required placeholder="vd @(User.FindFirst("MaNv")?.Value)">
+                </label>
+                <label>Mật khẩu domain
+                    <input id="themMacRadiusMatKhau" type="password" autocomplete="new-password" required>
+                    <small>Chỉ dùng để xác thực người làm lần này, không lưu.</small>
+                </label>
                 <div id="themMacRadiusKetQua" class="them-mac-wlc-kq" hidden></div>
                 <div id="themMacRadiusLoi" class="them-mac-wlc-loi" hidden></div>
                 <div class="them-mac-wlc-nut">
+                    <button type="button" id="btnKiemTraMacRadius">Kiểm tra</button>
                     <button type="button" id="btnGuiThemMacRadius">Thêm lên RADIUS</button>
                 </div>
             </form>
         }
+        @* Bảng MAC trên WLC lặp lại bên phải modal để IT xem cả đơn khi thêm; JS vẽ chung với bảng dưới bình luận *@
+        <div class="bang-mac-wlc bang-mac-wlc-modal">
+            <h4><i class="fa fa-wifi"></i> MAC TRÊN WLC <small id="bangMacWlcModalQuet"></small></h4>
+            <div class="bang-mac-wlc-cuon">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Thiết bị / MAC</th>
+                            @foreach (var w in WlcMac.DsWlc(Model.TenCongTy))
+                            {
+                                <th data-ip="@w.Ip">@w.Ten</th>
+                            }
+                            @if (RadiusMac.CoCauHinh(Model.TenCongTy))
+                            {
+                                <th class="cot-radius" title="Theo lịch sử đơn (app RADIUS không tra cứu được)">RADIUS (PDA/TV)</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody id="bangMacWlcModalThan"></tbody>
+                </table>
+            </div>
+        </div>
         </div>
     </div>
-    <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261029e" />
-    <script src="~/js/formit-them-mac-wlc.js?v=20261029e"></script>
+    <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261029k" />
+    <script src="~/js/formit-them-mac-wlc.js?v=20261029l"></script>
 }
