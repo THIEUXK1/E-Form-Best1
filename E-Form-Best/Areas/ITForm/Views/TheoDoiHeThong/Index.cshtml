@@ -6,7 +6,7 @@
     var soSuCoMo = ViewBag.SoSuCoMo as Dictionary<string, int> ?? new();
 }
 
-<link rel="stylesheet" href="/css/theo-doi-he-thong.css?v=202610301500">
+<link rel="stylesheet" href="/css/theo-doi-he-thong.css?v=202610301900">
 
 <div class="tdht-trang">
     <h2 class="tdht-tieu-de"><i class="fa fa-heartbeat"></i> Theo dõi hệ thống</h2>
@@ -22,31 +22,77 @@
             {
                 var icon = string.IsNullOrWhiteSpace(ht.Icon) ? "fa-desktop" : ht.Icon;
                 var soMo = soSuCoMo.GetValueOrDefault(ht.Ten);
-                <button type="button" class="tdht-o @(soMo > 0 ? "tdht-o-loi" : "")" data-ma="@ht.Ten" data-url="@ht.Url">
+                @* Ô là div (không phải button) vì bên trong có nút thao tác nhanh — button không được lồng button *@
+                <div class="tdht-o @(soMo > 0 ? "tdht-o-loi" : "")" role="button" tabindex="0" data-ma="@ht.Ten" data-url="@ht.Url">
                     <i class="fa @icon tdht-icon"></i>
                     <span class="tdht-ten">@ht.Ten</span>
                     <span class="tdht-mo-ta">@ht.MoTa</span>
                     <span class="tdht-nhan-trang-thai @(soMo > 0 ? "loi" : "tot")" data-so-mo="@soMo">
                         @(soMo > 0 ? $"{soMo} sự cố đang mở" : "Bình thường")
                     </span>
-                </button>
+                    <div class="tdht-nut-nhanh">
+                        <button type="button" class="btn btn-sm btn-danger tdht-bao-nhanh">
+                            <i class="fa fa-bolt"></i> Báo sự cố nhanh
+                        </button>
+                        <button type="button" class="btn btn-sm btn-success tdht-dong-nhanh @(soMo > 0 ? "" : "d-none")">
+                            <i class="fa fa-check"></i> Đóng sự cố
+                        </button>
+                    </div>
+                </div>
             }
         </div>
+
+        @* Báo cáo theo kỳ: lọc ngày + hệ thống, xem tại chỗ (AJAX) hoặc tải Excel *@
+        <section class="tdht-bao-cao">
+            <h3 class="tdht-tieu-de-muc"><i class="fa fa-bar-chart"></i> Báo cáo sự cố</h3>
+            <form id="formBaoCao" class="tdht-loc-bao-cao" novalidate>
+                <div>
+                    <label class="form-label">Từ ngày</label>
+                    <input type="date" name="tuNgay" class="form-control form-control-sm">
+                </div>
+                <div>
+                    <label class="form-label">Đến ngày</label>
+                    <input type="date" name="denNgay" class="form-control form-control-sm">
+                </div>
+                <div>
+                    <label class="form-label">Hệ thống</label>
+                    <select name="maHeThong" class="form-select form-select-sm">
+                        <option value="">Tất cả</option>
+                        @foreach (var ht in dsHeThong)
+                        {
+                            <option value="@ht.Ten">@ht.Ten</option>
+                        }
+                    </select>
+                </div>
+                <div class="tdht-nut-ky">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-ky="thang">Tháng này</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-ky="thang-truoc">Tháng trước</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-ky="nam">Năm nay</button>
+                </div>
+                <div class="tdht-nut-bao-cao">
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="fa fa-search"></i> Xem báo cáo</button>
+                    <button type="button" id="btnXuatBaoCao" class="btn btn-sm btn-success"><i class="fa fa-file-excel-o"></i> Xuất Excel</button>
+                </div>
+            </form>
+
+            <div id="ketQuaBaoCao" class="mt-3"></div>
+        </section>
     }
 </div>
 
 <div class="modal fade" id="modalSuCo" tabindex="-1" aria-hidden="true" aria-labelledby="modalSuCoTieuDe">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    @* Dưới 992px hộp chiếm toàn màn hình, 2 khung xếp dọc (form trên, lịch sử dưới) *@
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-lg-down">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header tdht-modal-dau">
                 <h5 class="modal-title" id="modalSuCoTieuDe">
                     <i class="fa fa-exclamation-triangle text-danger"></i> Sự cố — <span id="suCoTenHeThong"></span>
                 </h5>
-                <span id="suCoNhanHeThong" class="tdht-nhan-trang-thai ms-3"></span>
-                <a id="suCoMoHeThong" class="btn btn-sm btn-outline-primary ms-auto me-2 d-none" target="_blank" rel="noopener">
-                    <i class="fa fa-external-link"></i> Mở hệ thống
+                <span id="suCoNhanHeThong" class="tdht-nhan-trang-thai"></span>
+                <a id="suCoMoHeThong" class="btn btn-sm btn-outline-primary ms-auto d-none" target="_blank" rel="noopener">
+                    <i class="fa fa-external-link"></i> <span class="tdht-an-nho">Mở hệ thống</span>
                 </a>
-                <button type="button" class="btn-close ms-0" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                <button type="button" class="btn-close tdht-dong-hop" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <div class="modal-body">
                 <div class="row g-3">
@@ -88,9 +134,9 @@
                                     <label class="form-label">Người chịu trách nhiệm</label>
                                     <input type="text" name="nguoiChiuTrachNhiem" class="form-control" maxlength="100">
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-12">
                                     <label class="form-label">Nguyên nhân</label>
-                                    <input type="text" name="nguyenNhan" class="form-control" maxlength="1000">
+                                    <textarea name="nguyenNhan" class="form-control" rows="2" maxlength="1000"></textarea>
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label">Mô tả</label>
@@ -133,6 +179,33 @@
     </div>
 </div>
 
+@* "Báo sự cố nhanh" trên ô mở thẳng hộp sự cố ở form thêm mới đầy đủ (theo-doi-he-thong.js), không có hộp riêng *@
+
+@* Đóng sự cố từ ô hệ thống: người dùng tự bấm chọn 1 trong các sự cố đang mở *@
+<div class="modal fade" id="modalDongNhanh" tabindex="-1" aria-hidden="true" aria-labelledby="dongNhanhTieuDe">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
+        <form class="modal-content" id="formDongNhanh" novalidate>
+            <div class="modal-header">
+                <h5 class="modal-title" id="dongNhanhTieuDe"><i class="fa fa-check text-success"></i> Đóng sự cố — <span class="tdht-ten-ht"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Bấm chọn sự cố muốn đóng</label>
+                <div id="dsSuCoMo" class="tdht-ds-mo mb-2"></div>
+                <label class="form-label">Nguyên nhân</label>
+                <textarea name="nguyenNhan" class="form-control mb-2" rows="2" maxlength="1000"></textarea>
+                <label class="form-label">Cách khắc phục / ghi chú</label>
+                <textarea name="ghiChu" class="form-control" rows="2" maxlength="1000"></textarea>
+                <div class="tdht-thong-bao-nhanh small mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Huỷ</button>
+                <button type="submit" id="btnXacNhanDong" class="btn btn-success" disabled><i class="fa fa-check"></i> Đóng sự cố</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @section Scripts {
-    <script src="/js/theo-doi-he-thong.js?v=202610301500"></script>
+    <script src="/js/theo-doi-he-thong.js?v=202610301900"></script>
 }

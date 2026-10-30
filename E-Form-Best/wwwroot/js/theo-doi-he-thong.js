@@ -63,12 +63,15 @@
             .attr('data-so-mo', soMo).text(soMo > 0 ? soMo + ' sự cố đang mở' : 'Bình thường');
     }
 
-    function capNhatTrangThaiHeThong(soMo) {
+    function capNhatTrangThaiHeThong(soMo, ma) {
         if (soMo == null) return;
-        var $o = $('.tdht-o[data-ma="' + maHeThong + '"]');
+        ma = ma || maHeThong;
+        var $o = $('.tdht-o').filter(function () { return this.dataset.ma === ma; });
         $o.toggleClass('tdht-o-loi', soMo > 0);
         datNhanHeThong($o.find('.tdht-nhan-trang-thai'), soMo);
-        datNhanHeThong($('#suCoNhanHeThong'), soMo);
+        $o.find('.tdht-dong-nhanh').toggleClass('d-none', soMo === 0);
+        if (ma === maHeThong) datNhanHeThong($('#suCoNhanHeThong'), soMo);
+        taiBaoCao();   // có thêm/sửa/đóng sự cố thì báo cáo bên dưới cũng đổi
     }
 
     function thongBao(text, loi) {
@@ -271,7 +274,16 @@
     }
 
     // ---------- Sự kiện ----------
-    $(document).on('click', '.tdht-o[data-ma]', function () {
+    // Ô là div role=button nên tự xử lý Enter/Space cho người dùng bàn phím
+    $(document).on('keydown', '.tdht-o[data-ma]', function (e) {
+        if (e.target !== this || (e.key !== 'Enter' && e.key !== ' ')) return;
+        e.preventDefault();
+        $(this).trigger('click');
+    });
+
+    $(document).on('click', '.tdht-o[data-ma]', function (e, tuNutBaoNhanh) {
+        // Nút nhanh có xử lý riêng; riêng "Báo sự cố nhanh" chủ động gọi lại đây để mở hộp
+        if (!tuNutBaoNhanh && $(e.target).closest('.tdht-nut-nhanh').length) return;
         maHeThong = this.dataset.ma;
         idMoRong = null;
         $('#suCoTenHeThong').text(maHeThong);
@@ -280,8 +292,239 @@
         datNhanHeThong($('#suCoNhanHeThong'), Number($(this).find('.tdht-nhan-trang-thai').attr('data-so-mo')) || 0);
         moForm(null);
         bootstrap.Modal.getOrCreateInstance($modal[0]).show();
-        taiDanhSach();
+        dsDangTai = taiDanhSach();
     });
+
+    var dsDangTai = null;   // promise tải danh sách lần mở hộp gần nhất (báo cáo dùng để mở thẳng 1 sự cố)
+
+    // ---------- Nút nhanh trên ô: Báo sự cố nhanh / Đóng sự cố ----------
+    var maNhanh = null;       // hệ thống đang thao tác nhanh
+    var maGuiNhanh = null;
+    var dangGuiNhanh = false;
+
+    function thongBaoNhanh($form, text, loi) {
+        $form.find('.tdht-thong-bao-nhanh').removeClass('text-success text-danger')
+            .addClass(loi ? 'text-danger' : 'text-success').text(text || '');
+    }
+
+    /** Gửi form nhanh: khoá nút, lỗi hiện tại chỗ, giữ dữ liệu đã nhập; thành công thì đóng hộp + cập nhật ô. */
+    function guiNhanh($form, url, duLieu, $modalNhanh) {
+        if (dangGuiNhanh) return;
+        dangGuiNhanh = true;
+        var $nut = $form.find('[type=submit]');
+        var nhanCu = $nut.html();
+        $nut.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Đang lưu...');
+        $.ajax({ url: url, method: 'POST', data: duLieu, processData: false, contentType: false })
+            .done(function (res) {
+                if (!res.thanhCong) { thongBaoNhanh($form, res.thongBao || 'Không lưu được.', true); return; }
+                capNhatTrangThaiHeThong(res.duLieu ? res.duLieu.soSuCoMo : null, maNhanh);
+                bootstrap.Modal.getOrCreateInstance($modalNhanh[0]).hide();
+            })
+            .fail(function () { thongBaoNhanh($form, 'Lỗi kết nối máy chủ, dữ liệu chưa được lưu.', true); })
+            .always(function () {
+                dangGuiNhanh = false;
+                $nut.prop('disabled', false).html(nhanCu);
+            });
+    }
+
+    // Báo nhanh = mở hộp sự cố với form thêm mới đầy đủ (kể cả đính kèm/dán ảnh), con trỏ đặt sẵn ở tiêu đề
+    $(document).on('click', '.tdht-bao-nhanh', function () {
+        $(this).closest('.tdht-o').trigger('click', [true]);
+        $modal.one('shown.bs.modal', function () { $form.find('[name=tieuDe]').trigger('focus'); });
+    });
+
+    $(document).on('click', '.tdht-dong-nhanh', function () {
+        maNhanh = $(this).closest('.tdht-o')[0].dataset.ma;
+        maGuiNhanh = taoMaGui();
+        var $f = $('#formDongNhanh');
+        $f[0].reset();
+        thongBaoNhanh($f, '');
+        $('#modalDongNhanh .tdht-ten-ht').text(maNhanh);
+        var khung = document.getElementById('dsSuCoMo');
+        khung.replaceChildren(el('div', 'tdht-dong-phu', 'Đang tải...'));
+        $('#btnXacNhanDong').prop('disabled', true);
+        bootstrap.Modal.getOrCreateInstance($('#modalDongNhanh')[0]).show();
+
+        layJson('/TheoDoiHeThong/SuCo?maHeThong=' + encodeURIComponent(maNhanh)).then(function (res) {
+            if (!res.thanhCong) throw new Error(res.thongBao);
+            var dsMo = res.duLieu.filter(function (x) { return x.trangThai !== 'DA_KHAC_PHUC'; });
+            khung.replaceChildren();
+            if (!dsMo.length) { khung.appendChild(el('div', 'tdht-dong-phu', 'Không còn sự cố nào đang mở.')); return; }
+            // Không chọn sẵn: người dùng phải tự bấm đúng sự cố muốn đóng, tránh đóng nhầm khi có nhiều sự cố
+            dsMo.forEach(function (x) {
+                var nhan = el('label', 'tdht-lua-chon-mo');
+                var radio = el('input', 'form-check-input mt-1');
+                radio.type = 'radio';
+                radio.name = 'idSuCo';
+                radio.value = x.idSuCo;
+                radio.dataset.nguyenNhan = x.nguyenNhan || '';
+                nhan.appendChild(radio);
+                var chu = el('span', 'flex-grow-1');
+                chu.appendChild(el('span', 'tdht-dong-tieu-de d-block', x.tieuDe));
+                chu.appendChild(el('span', 'tdht-dong-phu d-block', 'Từ ' + hienNgay(x.batDauLuc) + ' · ' + (TEN_TRANG_THAI[x.trangThai] || x.trangThai)));
+                if (x.nguoiChiuTrachNhiem) chu.appendChild(el('span', 'tdht-dong-phu d-block', 'Phụ trách: ' + x.nguoiChiuTrachNhiem));
+                nhan.appendChild(chu);
+                khung.appendChild(nhan);
+            });
+        }).catch(function (e) {
+            khung.replaceChildren(el('div', 'text-danger small', e.message || 'Không tải được danh sách.'));
+        });
+    });
+
+    // Đổi sự cố cần đóng thì điền sẵn nguyên nhân đã ghi của sự cố đó
+    $(document).on('change', '#dsSuCoMo [name=idSuCo]', function () {
+        $('#formDongNhanh [name=nguyenNhan]').val(this.dataset.nguyenNhan);
+        $('#btnXacNhanDong').prop('disabled', false);
+    });
+
+    $(document).on('submit', '#formDongNhanh', function (e) {
+        e.preventDefault();
+        var $f = $(this);
+        if (!$f.find('[name=idSuCo]:checked').length) { thongBaoNhanh($f, 'Chọn sự cố cần đóng.', true); return; }
+        var duLieu = new FormData(this);
+        duLieu.append('maGui', maGuiNhanh);
+        guiNhanh($f, '/TheoDoiHeThong/SuCo/Dong', duLieu, $('#modalDongNhanh'));
+    });
+
+    // ---------- Báo cáo theo kỳ ----------
+    var $formBaoCao = $('#formBaoCao');
+
+    function ngayInput(d) {
+        var p = function (n) { return ('0' + n).slice(-2); };
+        return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    }
+
+    function datKy(ky) {
+        var h = new Date(), tu, den = h;
+        if (ky === 'thang-truoc') { tu = new Date(h.getFullYear(), h.getMonth() - 1, 1); den = new Date(h.getFullYear(), h.getMonth(), 0); }
+        else if (ky === 'nam') tu = new Date(h.getFullYear(), 0, 1);
+        else tu = new Date(h.getFullYear(), h.getMonth(), 1);
+        $formBaoCao.find('[name=tuNgay]').val(ngayInput(tu));
+        $formBaoCao.find('[name=denNgay]').val(ngayInput(den));
+    }
+
+    function hienGio(gio) {
+        if (gio == null) return '';
+        if (gio < 1) return Math.round(gio * 60) + ' phút';
+        if (gio < 24) return gio.toFixed(1).replace('.', ',') + ' giờ';
+        var ngay = Math.floor(gio / 24);
+        return ngay + ' ngày ' + Math.round(gio - ngay * 24) + ' giờ';
+    }
+
+    function bangBaoCao(cot, dong, rong) {
+        var bang = el('table', 'table table-sm table-hover tdht-bang');
+        var dau = el('tr');
+        cot.forEach(function (c) { dau.appendChild(el('th', null, c)); });
+        bang.appendChild(el('thead')).appendChild(dau);
+        var than = bang.appendChild(el('tbody'));
+        if (!dong.length) {
+            var td = el('td', 'text-center text-muted', rong || 'Không có dữ liệu.');
+            td.colSpan = cot.length;
+            than.appendChild(el('tr')).appendChild(td);
+        }
+        dong.forEach(function (d) {
+            var tr = el('tr');
+            d.o.forEach(function (o, i) {
+                var td = el('td');
+                td.dataset.nhan = cot[i];   // màn hẹp: CSS biến dòng thành thẻ, hiện tên cột trước giá trị
+                if (o instanceof Node) td.appendChild(o); else td.textContent = o == null ? '' : o;
+                tr.appendChild(td);
+            });
+            if (d.data) Object.keys(d.data).forEach(function (k) { tr.dataset[k] = d.data[k]; });
+            if (d.cls) tr.className = d.cls;
+            than.appendChild(tr);
+        });
+        var boc = el('div', 'table-responsive');
+        boc.appendChild(bang);
+        return boc;
+    }
+
+    function oSo(nhan, giaTri, cls) {
+        var o = el('div', 'tdht-so ' + (cls || ''));
+        o.appendChild(el('div', 'tdht-so-gia-tri', giaTri));
+        o.appendChild(el('div', 'tdht-so-nhan', nhan));
+        return o;
+    }
+
+    function veBaoCao(bc) {
+        var khung = document.getElementById('ketQuaBaoCao');
+        khung.replaceChildren();
+        var tong = bc.heThong.reduce(function (a, h) {
+            a.so += h.soSuCo; a.mo += h.dangMo; a.dong += h.daKhacPhuc; a.gio += h.soGioTrongKy; return a;
+        }, { so: 0, mo: 0, dong: 0, gio: 0 });
+
+        var hang = el('div', 'tdht-hang-so');
+        hang.appendChild(oSo('Sự cố trong kỳ', String(tong.so)));
+        hang.appendChild(oSo('Đang mở', String(tong.mo), tong.mo ? 'loi' : ''));
+        hang.appendChild(oSo('Đã khắc phục', String(tong.dong), 'tot'));
+        hang.appendChild(oSo('Tổng thời gian sự cố', hienGio(tong.gio) || '0 phút'));
+        khung.appendChild(hang);
+
+        khung.appendChild(el('h4', 'tdht-tieu-de-bang', 'Theo hệ thống'));
+        khung.appendChild(bangBaoCao(
+            ['Hệ thống', 'Số sự cố', 'Đã khắc phục', 'Đang mở', 'Thời gian sự cố trong kỳ', 'TB thời gian khắc phục', 'Sự cố dài nhất', 'Sự cố gần nhất'],
+            bc.heThong.map(function (h) {
+                return { o: [h.maHeThong, h.soSuCo, h.daKhacPhuc, h.dangMo, hienGio(h.soGioTrongKy), hienGio(h.soGioKhacPhucTrungBinh),
+                    h.soSuCo ? hienGio(h.soGioDaiNhat) : '', hienNgay(h.suCoGanNhat)], cls: h.dangMo ? 'table-danger' : '' };
+            })));
+
+        khung.appendChild(el('h4', 'tdht-tieu-de-bang', 'Nguyên nhân'));
+        khung.appendChild(bangBaoCao(['Nguyên nhân', 'Số lần', 'Hệ thống'],
+            bc.nguyenNhan.map(function (n) { return { o: [n.nguyenNhan, n.soLan, n.heThong] }; })));
+
+        khung.appendChild(el('h4', 'tdht-tieu-de-bang', 'Chi tiết sự cố (bấm một dòng để mở)'));
+        khung.appendChild(bangBaoCao(
+            ['Hệ thống', 'Tiêu đề', 'Trạng thái', 'Bắt đầu', 'Kết thúc', 'Thời lượng', 'Nguyên nhân', 'Người chịu trách nhiệm'],
+            bc.suCo.map(function (x) {
+                return { o: [x.maHeThong, x.tieuDe, nhanTrangThai(x.trangThai), hienNgay(x.batDauLuc), hienNgay(x.ketThucLuc),
+                    hienGio(x.soGio), x.nguyenNhan, x.nguoiChiuTrachNhiem], data: { ma: x.maHeThong, id: x.idSuCo }, cls: 'tdht-dong-bao-cao' };
+            }), 'Không có sự cố nào trong kỳ.'));
+    }
+
+    var lanTaiBaoCao = 0;   // chỉ vẽ kết quả của lần tải mới nhất khi bấm liên tục
+    function taiBaoCao() {
+        if (!$formBaoCao.length) return;
+        var lan = ++lanTaiBaoCao;
+        var khung = document.getElementById('ketQuaBaoCao');
+        khung.replaceChildren(el('div', 'tdht-trong', 'Đang tải báo cáo...'));
+        layJson('/TheoDoiHeThong/BaoCao/DuLieu?' + $formBaoCao.serialize()).then(function (res) {
+            if (lan !== lanTaiBaoCao) return;
+            if (!res.thanhCong) throw new Error(res.thongBao);
+            veBaoCao(res.duLieu);
+        }).catch(function (e) {
+            if (lan !== lanTaiBaoCao) return;
+            khung.replaceChildren(el('div', 'tdht-trong text-danger', e.message || 'Không tải được báo cáo.'));
+        });
+    }
+
+    $(document).on('submit', '#formBaoCao', function (e) {
+        e.preventDefault();
+        taiBaoCao();
+    });
+
+    $(document).on('click', '#formBaoCao [data-ky]', function () {
+        datKy(this.dataset.ky);
+        taiBaoCao();
+    });
+
+    // Tải file là điều hướng thật được phép (không đổi trang đang xem vì máy chủ trả file đính kèm)
+    $(document).on('click', '#btnXuatBaoCao', function () {
+        window.location.href = '/TheoDoiHeThong/BaoCao/XuatExcel?' + $formBaoCao.serialize();
+    });
+
+    $(document).on('click', '#ketQuaBaoCao .tdht-dong-bao-cao', function () {
+        var id = Number(this.dataset.id);
+        var ma = this.dataset.ma;
+        var $o = $('.tdht-o[data-ma]').filter(function () { return this.dataset.ma === ma; });
+        if (!$o.length) return;
+        $o.first().trigger('click');
+        dsDangTai.then(function () { taiChiTiet(id); });
+    });
+
+    if ($formBaoCao.length) {
+        datKy('thang');
+        taiBaoCao();
+    }
 
     $(document).on('click', '#btnSuCoMoi', function () {
         moForm(null);

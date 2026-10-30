@@ -1,3 +1,4 @@
+using E_Form_Best.Areas.ITForm.Services;
 using E_Form_Best.Context;
 using E_Form_Best.Models.ITForm;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +12,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
     /// Trang "Theo dõi hệ thống": ô vuông các hệ thống nội bộ (MES / WMS / SCM / EHR...), bấm vào mở
     /// hộp theo dõi sự cố của hệ thống đó (KK_HeThongSuCo + nhật ký KK_HeThongSuCoLichSu).
     /// Danh sách hệ thống lấy từ cấu hình "TheoDoiHeThong:HeThong" để thêm/đổi không phải sửa code.
-    /// Chỉ AdminIT và All được xem/ghi.
+    /// Chỉ người có quyền TheoDoiHeThong hoặc All được xem/ghi.
     /// </summary>
     [Area("ITform")]
     public class TheoDoiHeThongController : Controller
@@ -34,7 +35,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             [KkHeThongSuCo.DaKhacPhuc] = "Đã khắc phục",
         };
 
-        private bool CoQuyen() => User.IsInRole("AdminIT") || User.IsInRole("All");
+        // Quyền riêng 'TheoDoiHeThong' (chốt 30/10/2026): AdminIT KHÔNG tự được, phải gán; 'All' vẫn được.
+        // Đổi điều kiện ở đây thì đổi luôn mục menu trong ITForm/_Layout.cshtml.
+        private bool CoQuyen() => User.IsInRole("TheoDoiHeThong") || User.IsInRole("All");
 
         private List<HeThongLink> DsHeThong() => _config.GetSection("TheoDoiHeThong:HeThong").GetChildren()
             .Select(x => new HeThongLink(x["Ten"] ?? "", x["MoTa"], x["Url"], x["Icon"]))
@@ -378,6 +381,115 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Json(new { thanhCong = false, thongBao = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Đóng nhanh sự cố từ ô hệ thống: chuyển DA_KHAC_PHUC, kết thúc = bây giờ, nguyên nhân nhập thì ghi đè.
+        /// Không đi qua LuuSuCo vì action đó ghi đè mọi trường theo form đầy đủ.
+        /// </summary>
+        [HttpPost("/TheoDoiHeThong/SuCo/Dong")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DongSuCo(int idSuCo, string? nguyenNhan, string? ghiChu, Guid? maGui)
+        {
+            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+            if (maGui == null || maGui == Guid.Empty) return Json(new { thanhCong = false, thongBao = "Thiếu mã gửi, tải lại trang rồi thử lại." });
+            nguyenNhan = Gon(nguyenNhan, 1000);
+            ghiChu = Gon(ghiChu, 1000);
+
+            try
+            {
+                var suCo = await _context.KkHeThongSuCos.FirstOrDefaultAsync(x => x.IdSuCo == idSuCo && x.NgayXoa == null);
+                if (suCo == null) return Json(new { thanhCong = false, thongBao = "Không tìm thấy sự cố." });
+                if (suCo.TrangThai == KkHeThongSuCo.DaKhacPhuc)
+                    return Json(new { thanhCong = true, thongBao = "Sự cố đã được đóng trước đó.", duLieu = new { suCo.IdSuCo, soSuCoMo = await SoSuCoMoAsync(suCo.MaHeThong) } });
+
+                var bayGio = DateTime.Now;
+                var nguoi = User.Identity?.Name;
+                var thayDoi = new List<string> { $"Trạng thái: {TenTrangThai.GetValueOrDefault(suCo.TrangThai, suCo.TrangThai)} → {TenTrangThai[KkHeThongSuCo.DaKhacPhuc]}" };
+                if (nguyenNhan != null && nguyenNhan != suCo.NguyenNhan)
+                    thayDoi.Add($"Nguyên nhân: {suCo.NguyenNhan ?? "(trống)"} → {nguyenNhan}");
+
+                suCo.TrangThai = KkHeThongSuCo.DaKhacPhuc;
+                // Giờ bắt đầu bị nhập sai về tương lai thì không để kết thúc trước bắt đầu
+                suCo.KetThucLuc = bayGio < suCo.BatDauLuc ? suCo.BatDauLuc : bayGio;
+                if (nguyenNhan != null) suCo.NguyenNhan = nguyenNhan;
+                suCo.NguoiCapNhat = nguoi;
+                suCo.NgayCapNhat = bayGio;
+                _context.KkHeThongSuCoLichSus.Add(new KkHeThongSuCoLichSu
+                {
+                    IdSuCo = suCo.IdSuCo, ThoiGian = bayGio, NguoiThaoTac = nguoi, HanhDong = KkHeThongSuCoLichSu.CapNhat,
+                    ThayDoi = Gon("Đóng sự cố; " + string.Join("; ", thayDoi), 2000), GhiChu = ghiChu, MaGui = maGui
+                });
+                await _context.SaveChangesAsync();
+                return Json(new { thanhCong = true, thongBao = "Đã đóng sự cố.", duLieu = new { suCo.IdSuCo, soSuCoMo = await SoSuCoMoAsync(suCo.MaHeThong) } });
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException sql && (sql.Number == 2601 || sql.Number == 2627))
+            {
+                return Json(new { thanhCong = true, thongBao = "Đã lưu (bỏ qua lần bấm trùng)." });
+            }
+            catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
+        #region Báo cáo theo kỳ
+
+        /// <summary>Kỳ mặc định: đầu tháng này → hôm nay; đảo ngược thì đổi chỗ; giới hạn 3 năm cho nhẹ truy vấn.</summary>
+        private static (DateTime tu, DateTime den) KyBaoCao(DateTime? tuNgay, DateTime? denNgay)
+        {
+            var homNay = DateTime.Today;
+            var tu = (tuNgay ?? new DateTime(homNay.Year, homNay.Month, 1)).Date;
+            var den = (denNgay ?? homNay).Date;
+            if (den < tu) (tu, den) = (den, tu);
+            if ((den - tu).TotalDays > 366 * 3) tu = den.AddYears(-3);
+            return (tu, den);
+        }
+
+        /// <summary>Rỗng/không truyền = mọi hệ thống trong cấu hình; mã sai = null.</summary>
+        private List<string>? DsMaBaoCao(string? maHeThong)
+        {
+            if (string.IsNullOrWhiteSpace(maHeThong)) return DsHeThong().Select(x => x.Ten).ToList();
+            var ma = MaHopLe(maHeThong);
+            return ma == null ? null : new List<string> { ma };
+        }
+
+        [HttpGet("/TheoDoiHeThong/BaoCao/DuLieu")]
+        public async Task<IActionResult> BaoCaoDuLieu(DateTime? tuNgay, DateTime? denNgay, string? maHeThong,
+            [FromServices] HeThongSuCoBaoCaoService baoCao)
+        {
+            if (!CoQuyen()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem." });
+            var dsMa = DsMaBaoCao(maHeThong);
+            if (dsMa == null) return Json(new { thanhCong = false, thongBao = "Hệ thống không hợp lệ." });
+
+            var (tu, den) = KyBaoCao(tuNgay, denNgay);
+            try
+            {
+                return Json(new { thanhCong = true, duLieu = await baoCao.TaoAsync(dsMa, tu, den, HttpContext.RequestAborted) });
+            }
+            catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
+        [HttpGet("/TheoDoiHeThong/BaoCao/XuatExcel")]
+        public async Task<IActionResult> BaoCaoXuatExcel(DateTime? tuNgay, DateTime? denNgay, string? maHeThong,
+            [FromServices] HeThongSuCoBaoCaoService baoCao)
+        {
+            if (!CoQuyen()) return Forbid();
+            var dsMa = DsMaBaoCao(maHeThong);
+            if (dsMa == null) return NotFound();
+
+            var (tu, den) = KyBaoCao(tuNgay, denNgay);
+            try
+            {
+                var bc = await baoCao.TaoAsync(dsMa, tu, den, HttpContext.RequestAborted);
+                var motHeThong = string.IsNullOrWhiteSpace(maHeThong) ? null : dsMa[0];
+                var file = HeThongSuCoBaoCaoExcel.Tao(bc, motHeThong, User.Identity?.Name);
+                return File(file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"BaoCaoSuCo_{motHeThong ?? "TatCa"}_{tu:yyyyMMdd}-{den:yyyyMMdd}.xlsx");
+            }
+            catch (SqlException ex)
+            {
+                return Content("Không tạo được báo cáo: " + ex.Message);
+            }
+        }
+
+        #endregion
 
         private Task<int> SoSuCoMoAsync(string ma) => _context.KkHeThongSuCos
             .CountAsync(x => x.MaHeThong == ma && x.NgayXoa == null && x.TrangThai != KkHeThongSuCo.DaKhacPhuc);

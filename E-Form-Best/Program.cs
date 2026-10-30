@@ -151,6 +151,8 @@ builder.Services.AddHostedService<AccessPointPingWorker>();
 // Quản lý Switch (/QLSwitch): cùng khuôn AP, chỉ ping. Tắt job bằng Switch__GhiLichSu=false
 builder.Services.AddScoped<SwitchBaoCaoService>();
 builder.Services.AddScoped<ServerBaoCaoService>();
+// Báo cáo sự cố hệ thống nội bộ (/TheoDoiHeThong)
+builder.Services.AddScoped<HeThongSuCoBaoCaoService>();
 builder.Services.AddHostedService<SwitchPingWorker>();
 // Tự đánh giá hiệu suất (/QLCongViec/DanhGia), bảng DG_*
 builder.Services.AddScoped<E_Form_Best.Areas.QLCongViec.Services.DanhGiaService>();

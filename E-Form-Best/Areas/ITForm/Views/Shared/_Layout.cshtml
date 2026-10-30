@@ -581,8 +581,9 @@
                                    || dsSwitchDuocXem.Count > 0 || dsServerDuocXem.Count > 0 || dsSoDoDuocXem.Count > 0;
                     var isHaTangActive = isCameraActive || isApActive || isSwitchActive || isServerActive || isSoDoActive;
 
-                    @* "Theo dõi hệ thống" là mục cấp 1 đứng trên "Hạ tầng mạng"; chỉ AdminIT / All — kiểm lại ở TheoDoiHeThongController *@
-                    if (laAdminItMenu || User.IsInRole("All"))
+                    @* "Theo dõi hệ thống" là mục cấp 1 đứng trên "Hạ tầng mạng"; quyền riêng TheoDoiHeThong / All
+                       (AdminIT không tự thấy) — kiểm lại ở TheoDoiHeThongController *@
+                    if (User.IsInRole("TheoDoiHeThong") || User.IsInRole("All"))
                     {
                         <div class="nav-divider"></div>
                         <a href="/TheoDoiHeThong" class="nav-link-item @(isTheoDoiHeThongActive ? "active" : "")" aria-current="@(isTheoDoiHeThongActive ? "page" : null)">
