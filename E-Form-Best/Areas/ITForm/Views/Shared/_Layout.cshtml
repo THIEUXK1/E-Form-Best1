@@ -21,7 +21,7 @@
                       || currentController.Contains("Order") || currentController == "QLCCDC"
                       || currentController == "QLMayIn" || currentController == "QLCamera" || currentController == "QLAP"
                       || currentController == "QLSwitch" || currentController == "QLServer" || currentController == "SoDo"
-                      || currentController == "BaoCaoDinhKy";
+                      || currentController == "BaoCaoDinhKy" || currentController == "TheoDoiHeThong";
 
     // Các trang thuộc nhóm "Đăng ký đơn" — dùng để tô sáng mục menu, kể cả khi đang ở trang chọn loại đơn
     string[] itSubPages = { "DangKyDon", "DonMail", "TaoIT_Order", "TaoIT_Wifi", "TaoIT_DtBan", "DonDienThoaiBan", "DonTaiKhoanHeThong", "DonTaiKhoanMayTinh", "DonLapDatThietBi", "DonCapQuyenOChung", "DonCapQuyenInternet", "DonThietKeTemIn", "DonCaiDatPhanMem", "DonLapTrinhUngDung", "DonTraThietBi" }; bool isITSubActive = itSubPages.Contains(currentAction);
@@ -42,6 +42,7 @@
     bool isServerActive = currentController == "QLServer";
     bool isSoDoActive = currentController == "SoDo";
     bool isBaoCaoDinhKyActive = currentController == "BaoCaoDinhKy";
+    bool isTheoDoiHeThongActive = currentController == "TheoDoiHeThong";
 
     // Route /QLKiemKe/* được khai bằng attribute routing NGAY TRÊN ITFormController, nên
     // RouteData["controller"] luôn là "ITForm" — không được so với "QLKiemKe", phải so theo action.
@@ -579,6 +580,16 @@
                     var coHaTang = laAdminItMenu || dsCameraDuocXem.Count > 0 || dsApDuocXem.Count > 0
                                    || dsSwitchDuocXem.Count > 0 || dsServerDuocXem.Count > 0 || dsSoDoDuocXem.Count > 0;
                     var isHaTangActive = isCameraActive || isApActive || isSwitchActive || isServerActive || isSoDoActive;
+
+                    @* "Theo dõi hệ thống" là mục cấp 1 đứng trên "Hạ tầng mạng"; chỉ AdminIT / All — kiểm lại ở TheoDoiHeThongController *@
+                    if (laAdminItMenu || User.IsInRole("All"))
+                    {
+                        <div class="nav-divider"></div>
+                        <a href="/TheoDoiHeThong" class="nav-link-item @(isTheoDoiHeThongActive ? "active" : "")" aria-current="@(isTheoDoiHeThongActive ? "page" : null)">
+                            <i class="fa fa-heartbeat nav-ico" style="color:#f87171;"></i>
+                            <span class="lang-text" data-key="system_monitor">@L["Theo dõi hệ thống"]</span>
+                        </a>
+                    }
 
                     if (coHaTang)
                     {

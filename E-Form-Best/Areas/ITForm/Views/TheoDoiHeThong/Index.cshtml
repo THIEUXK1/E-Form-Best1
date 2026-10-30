@@ -1,0 +1,138 @@
+@using E_Form_Best.Areas.ITForm.Controllers
+@{
+    Layout = "~/Areas/ITForm/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Theo dõi hệ thống";
+    var dsHeThong = ViewBag.DsHeThong as List<TheoDoiHeThongController.HeThongLink> ?? new();
+    var soSuCoMo = ViewBag.SoSuCoMo as Dictionary<string, int> ?? new();
+}
+
+<link rel="stylesheet" href="/css/theo-doi-he-thong.css?v=202610301500">
+
+<div class="tdht-trang">
+    <h2 class="tdht-tieu-de"><i class="fa fa-heartbeat"></i> Theo dõi hệ thống</h2>
+
+    @if (dsHeThong.Count == 0)
+    {
+        <div class="tdht-trong">Chưa cấu hình hệ thống nào (appsettings: TheoDoiHeThong:HeThong).</div>
+    }
+    else
+    {
+        <div class="tdht-luoi">
+            @foreach (var ht in dsHeThong)
+            {
+                var icon = string.IsNullOrWhiteSpace(ht.Icon) ? "fa-desktop" : ht.Icon;
+                var soMo = soSuCoMo.GetValueOrDefault(ht.Ten);
+                <button type="button" class="tdht-o @(soMo > 0 ? "tdht-o-loi" : "")" data-ma="@ht.Ten" data-url="@ht.Url">
+                    <i class="fa @icon tdht-icon"></i>
+                    <span class="tdht-ten">@ht.Ten</span>
+                    <span class="tdht-mo-ta">@ht.MoTa</span>
+                    <span class="tdht-nhan-trang-thai @(soMo > 0 ? "loi" : "tot")" data-so-mo="@soMo">
+                        @(soMo > 0 ? $"{soMo} sự cố đang mở" : "Bình thường")
+                    </span>
+                </button>
+            }
+        </div>
+    }
+</div>
+
+<div class="modal fade" id="modalSuCo" tabindex="-1" aria-hidden="true" aria-labelledby="modalSuCoTieuDe">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalSuCoTieuDe">
+                    <i class="fa fa-exclamation-triangle text-danger"></i> Sự cố — <span id="suCoTenHeThong"></span>
+                </h5>
+                <span id="suCoNhanHeThong" class="tdht-nhan-trang-thai ms-3"></span>
+                <a id="suCoMoHeThong" class="btn btn-sm btn-outline-primary ms-auto me-2 d-none" target="_blank" rel="noopener">
+                    <i class="fa fa-external-link"></i> Mở hệ thống
+                </a>
+                <button type="button" class="btn-close ms-0" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    @* Hai bên hiện cùng lúc: trái = form (mặc định thêm mới, bấm sự cố bên phải thì chuyển sang cập nhật),
+                       phải = lịch sử sự cố, sự cố đang chọn mở rộng tại chỗ (bằng chứng + lịch sử xử lý) *@
+                    <div class="col-lg-6">
+                        <div class="tdht-khung">
+                            <div class="d-flex align-items-center mb-2">
+                                <strong id="tieuDeForm">Thêm sự cố mới</strong>
+                                <button type="button" id="btnSuCoMoi" class="btn btn-sm btn-outline-danger ms-auto d-none">
+                                    <i class="fa fa-plus"></i> Thêm sự cố mới
+                                </button>
+                            </div>
+
+                        <form id="formSuCo" novalidate>
+                            <input type="hidden" name="idSuCo">
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <label class="form-label">Tiêu đề <span class="text-danger">*</span></label>
+                                    <input type="text" name="tieuDe" class="form-control" maxlength="200" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Trạng thái hiện tại</label>
+                                    <select name="trangThai" class="form-select">
+                                        <option value="DANG_XU_LY">Đang xử lý</option>
+                                        <option value="THEO_DOI">Đang theo dõi</option>
+                                        <option value="DA_KHAC_PHUC">Đã khắc phục</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Bắt đầu <span class="text-danger">*</span></label>
+                                    <input type="datetime-local" name="batDauLuc" class="form-control" required>
+                                </div>
+                                <div class="col-md-4" id="oKetThuc">
+                                    <label class="form-label">Kết thúc</label>
+                                    <input type="datetime-local" name="ketThucLuc" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Người chịu trách nhiệm</label>
+                                    <input type="text" name="nguoiChiuTrachNhiem" class="form-control" maxlength="100">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Nguyên nhân</label>
+                                    <input type="text" name="nguyenNhan" class="form-control" maxlength="1000">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Mô tả</label>
+                                    <textarea name="moTa" class="form-control" rows="2" maxlength="2000"></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Ghi chú tiến độ <small class="text-muted">(thêm vào lịch sử xử lý)</small></label>
+                                    <textarea name="ghiChu" class="form-control" rows="2" maxlength="1000"></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Ảnh / file bằng chứng <small class="text-muted">(chọn được nhiều file, tối đa 20 file, 30 MB/file)</small></label>
+                                    <input type="file" id="inputFileSuCo" class="form-control" multiple
+                                           accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.log,.csv,.zip,.rar,.7z,.mp4,.mov,.eml,.msg">
+                                    <div id="vungDanFile" class="tdht-vung-dan" tabindex="0">
+                                        <i class="fa fa-clipboard"></i> Copy ảnh/file rồi bấm vào đây và nhấn <kbd>Ctrl</kbd>+<kbd>V</kbd> để dán
+                                        <small class="d-block text-muted">(dán khi đang ở bất kỳ ô nào trong hộp này cũng được)</small>
+                                    </div>
+                                    <div id="dsFileChon" class="tdht-file-chon"></div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 mt-3">
+                                <button type="submit" id="btnLuuSuCo" class="btn btn-primary">
+                                    <i class="fa fa-save"></i> Lưu
+                                </button>
+                                <span id="suCoThongBao" class="small"></span>
+                            </div>
+                        </form>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="tdht-khung">
+                            <div class="mb-2"><strong>Lịch sử sự cố</strong></div>
+                            <div id="dsSuCo" class="tdht-ds-su-co"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="/js/theo-doi-he-thong.js?v=202610301500"></script>
+}
