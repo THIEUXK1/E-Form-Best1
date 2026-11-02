@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 @* Dự án không đăng ký Tag Helper nên "~/" không phân giải được — dùng đường dẫn tuyệt đối + tự đánh version *@
 <link rel="stylesheet" href="/css/fixed-page-layout.css?v=202610270831">
-<link rel="stylesheet" href="/css/mayin-quanly.css?v=20261023a">
+<link rel="stylesheet" href="/css/mayin-quanly.css?v=20261102a">
 
 <div class="main-card" data-fp-card>
 
@@ -104,26 +104,21 @@
         <table class="table table-hover align-middle mb-0 mayin-bang">
             <thead>
                 <tr>
-                    <th style="width:38px;">#</th>
-                    <th>Bộ phận</th>
-                    <th>Model</th>
-                    <th>Serial</th>
-                    <th>Tên máy in</th>
-                    <th>IP</th>
-                    <th>Vị trí</th>
+                    <th>#</th>
+                    <th>Bộ phận<br><span class="mayin-th-phu">Vị trí</span></th>
+                    <th>Model<br><span class="mayin-th-phu">Serial</span></th>
+                    <th>Tên máy in<br><span class="mayin-th-phu">IP</span></th>
                     <th class="mayin-cot-so">Chỉ số</th>
                     <th class="mayin-cot-so">Hôm nay</th>
                     <th class="mayin-cot-so">7 ngày</th>
                     <th class="mayin-cot-so">30 ngày</th>
-                    <th>Mực</th>
-                    <th>Trống</th>
-                    <th class="mayin-trangthai">Trạng thái</th>
-                    <th>Đọc lúc</th>
-                    <th style="width:120px;"></th>
+                    <th>Mực / Trống</th>
+                    <th class="mayin-trangthai">Trạng thái<br><span class="mayin-th-phu">Đọc lúc</span></th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody id="mayinTableBody">
-                <tr><td colspan="16" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>
+                <tr><td colspan="11" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>
             </tbody>
         </table>
     </div>
@@ -246,6 +241,6 @@
 
 @section Scripts {
     <script src="/js/fixed-page-layout.js?v=202610270831" defer></script>
-    <script src="/js/mayin-quanly.js?v=20261023a"></script>
+    <script src="/js/mayin-quanly.js?v=20261102a"></script>
 }
 

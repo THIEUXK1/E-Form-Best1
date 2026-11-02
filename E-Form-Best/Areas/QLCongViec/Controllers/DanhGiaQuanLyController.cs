@@ -186,7 +186,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                 var loi = await _quanLy.LuuHoSoAsync(vao!, MaQuanLy());
                 return loi != null
                     ? Json(new { thanhCong = false, thongBao = loi })
-                    : Json(new { thanhCong = true, thongBao = "Đã lưu hồ sơ và KPI giao." });
+                    : Json(new { thanhCong = true, thongBao = "Đã lưu hồ sơ, KPI giao và tiêu chí năng lực." });
             }
             catch (Exception ex)
             {
@@ -230,6 +230,17 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             var file = await _quanLy.XuatExcelAsync(ma);
             return File(file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 $"DanhGia_{ma}_{DateTime.Now:yyyyMMdd}.xlsx");
+        }
+
+        /// <summary>Cả danh sách đánh giá trong 1 file, mỗi nhân viên 1 sheet như file mẫu Excel 2025.</summary>
+        [HttpGet("/QLCongViec/DanhGia/QuanLy/ExcelTatCa")]
+        public async Task<IActionResult> ExcelTatCa()
+        {
+            if (User?.Identity?.IsAuthenticated != true) return Redirect("/DonXetDuyet/DangNhap");
+            if (!CoQuyen()) return Forbid();
+            var file = await _quanLy.XuatExcelTatCaAsync();
+            return File(file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"DanhGia_TatCa_{DateTime.Now:yyyyMMdd}.xlsx");
         }
 
         #endregion

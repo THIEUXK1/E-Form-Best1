@@ -37,6 +37,13 @@ public partial class DgPhieuKpi
     [Column("diem_quan_ly", TypeName = "decimal(5, 2)")]
     public decimal? DiemQuanLy { get; set; }
 
+    /// <summary>Mẫu Excel 2025: mức 1–5 (5 = Excellent … 1 = Very Poor); điểm dòng = TrongSo × mức / 5. Thay cột % ở trên.</summary>
+    [Column("muc_tu_danh_gia")]
+    public byte? MucTuDanhGia { get; set; }
+
+    [Column("muc_quan_ly")]
+    public byte? MucQuanLy { get; set; }
+
     /// <summary>Tên file trần trên fileserver (thư mục KPI; file cũ trước 16/10/2026 ở DanhGia), không lưu đường dẫn. Ảnh hoặc tài liệu.</summary>
     [Column("anh_minh_chung")]
     [StringLength(260)]

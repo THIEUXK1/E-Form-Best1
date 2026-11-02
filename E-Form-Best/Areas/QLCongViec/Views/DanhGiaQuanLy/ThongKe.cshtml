@@ -42,7 +42,7 @@
         <button type="button" class="tkdg-kpi" data-loc="awaiting_manager" style="--kpi-c:#3b82f6;"><span class="tkdg-kpi-label"><i class="fa fa-user-circle"></i> Chờ quản lý</span><span class="tkdg-kpi-value" id="tkdgChoQl">0</span></button>
         <button type="button" class="tkdg-kpi" data-loc="awaiting_self" style="--kpi-c:#f59e0b;"><span class="tkdg-kpi-label"><i class="fa fa-hourglass-half"></i> Chờ tự đánh giá</span><span class="tkdg-kpi-value" id="tkdgChoTu">0</span></button>
         <button type="button" class="tkdg-kpi" data-loc="not_started" style="--kpi-c:#94a3b8;"><span class="tkdg-kpi-label"><i class="fa fa-circle-o"></i> Chưa đánh giá</span><span class="tkdg-kpi-value" id="tkdgChuaDg">0</span></button>
-        <button type="button" class="tkdg-kpi" data-loc="duoi_chuan" style="--kpi-c:#dc2626;" title="Đã có điểm và chênh lệch so với yêu cầu < 0"><span class="tkdg-kpi-label"><i class="fa fa-exclamation-triangle"></i> Dưới chuẩn</span><span class="tkdg-kpi-value" id="tkdgDuoiChuan">0</span></button>
+        <button type="button" class="tkdg-kpi" data-loc="duoi_chuan" style="--kpi-c:#dc2626;" title="Đã có điểm và tổng dưới chuẩn 60/100"><span class="tkdg-kpi-label"><i class="fa fa-exclamation-triangle"></i> Dưới chuẩn</span><span class="tkdg-kpi-value" id="tkdgDuoiChuan">0</span></button>
     </div>
 
     <div class="tkdg-hang">
@@ -106,9 +106,9 @@
                         <th>Họ tên</th>
                         <th>Phòng ban</th>
                         <th>Nhóm CV / Cấp bậc</th>
-                        <th class="so">KPI</th>
-                        <th class="so">Năng lực</th>
-                        <th class="so">GAP</th>
+                        <th class="so">Part I</th>
+                        <th class="so">Part II</th>
+                        <th class="so">± chuẩn 60</th>
                         <th>Xếp loại</th>
                         <th>Trạng thái</th>
                     </tr>
@@ -123,5 +123,5 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-    <script src="~/js/thong-ke-danh-gia.js?v=2"></script>
+    <script src="~/js/thong-ke-danh-gia.js?v=3"></script>
 }

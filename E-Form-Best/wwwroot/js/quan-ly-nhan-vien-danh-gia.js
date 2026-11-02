@@ -123,9 +123,9 @@
         var gap = so(nv.chenhLech);
         var phanDiem = coDiem
             ? el('div', { class: 'tdg-nv-diem' }, [
-                dong('KPI', fmt(so(nv.diemKpi))),
-                dong('Năng lực', fmt(so(nv.diemNangLuc))),
-                el('div', { class: 'tdg-nv-dong' }, [el('span', { text: 'GAP' }),
+                dong('Part I / Part II', fmt(so(nv.diemKpi)) + ' / ' + fmt(so(nv.diemNangLuc))),
+                dong('Tổng (100)', fmt(so(nv.diemThucTe))),
+                el('div', { class: 'tdg-nv-dong' }, [el('span', { text: 'So với chuẩn 60' }),
                     el('span', { class: 'tdg-gap ' + (gap > 0 ? 'duong' : gap < 0 ? 'am' : 'bang'), text: (gap > 0 ? '+' : '') + fmt(gap) })]),
                 nv.xepLoai ? el('div', { class: 'tdg-xl ' + lopXepLoai(nv.xepLoai), text: nv.xepLoai }) : null
             ])
@@ -143,7 +143,7 @@
             dong('Cấp bậc', nv.capBac + (nv.coHoSo ? '' : ' (mặc định)')
                 + (nv.capBacHrm && nv.capBacHrm !== nv.capBac ? ' • HRM: ' + nv.capBacHrm : '')),
             dong('Nhóm công việc', nv.tenNhomCongViec || 'Chưa gán'),
-            dong('KPI được giao', String(nv.soKpi)),
+            dong('KPI giao / tiêu chí NL', nv.soKpi + ' / ' + nv.soTieuChi),
             phanDiem,
             el('div', { class: 'tdg-nv-nut' }, [
                 el('a', { class: 'btn btn-sm btn-outline-secondary tdg-nut-rong', href: '/QLCongViec/DanhGia/ChiTiet/' + encodeURIComponent(nv.maNv) }, [el('i', { class: 'fa fa-eye' }), ' Xem chi tiết']),
@@ -238,6 +238,8 @@
                 $('qlnvTatCaNhom').checked = !d.idNhomCongViec;
 
                 veDsKpiChon();
+                st.hoSo.dsTc = (d.dsTieuChi || []).map(function (t) { return { id: t.id, ten: t.ten, moTa: t.moTa || '', diemToiDa: t.diemToiDa }; });
+                veDsTieuChi();
                 $('qlnvModalTai').hidden = true;
                 $('qlnvModalNoiDung').hidden = false;
                 $('qlnvLuuHoSo').disabled = false;
@@ -265,6 +267,31 @@
             ]));
         });
         $('qlnvSoKpi').textContent = Object.keys(d.chon).filter(function (id) { return d.chon[id]; }).length;
+    }
+
+    // ---------- Tiêu chí năng lực Part 2 (mẫu Excel 2025: tên, mô tả, điểm tối đa — tổng 50) ----------
+    function veDsTieuChi() {
+        var hop = $('qlnvDsTc');
+        hop.textContent = '';
+        if (!st.hoSo.dsTc.length) hop.appendChild(el('div', { class: 'tdg-empty', text: 'Chưa có tiêu chí. Bấm “Thêm tiêu chí” (vd 15 / 15 / 10 / 10 điểm).' }));
+        st.hoSo.dsTc.forEach(function (t, i) {
+            var moTa = el('textarea', { class: 'form-control', 'data-tc-truong': 'moTa', 'data-tc-i': i, placeholder: 'Mô tả / kiến thức, kỹ năng cần có', maxlength: 8000 });
+            moTa.value = t.moTa || '';
+            hop.appendChild(el('div', { class: 'tdg-hs-tc' }, [
+                el('input', { type: 'text', class: 'form-control form-control-sm', 'data-tc-truong': 'ten', 'data-tc-i': i, value: t.ten || '', maxlength: 300, placeholder: 'Tên tiêu chí / nhiệm vụ' }),
+                moTa,
+                el('input', { type: 'number', class: 'form-control form-control-sm', 'data-tc-truong': 'diemToiDa', 'data-tc-i': i, min: 0.5, max: 50, step: 0.5, value: t.diemToiDa, title: 'Điểm tối đa' }),
+                el('button', { type: 'button', class: 'btn btn-sm btn-outline-danger', 'data-tc-xoa': i, title: 'Bỏ tiêu chí' }, [el('i', { class: 'fa fa-trash' })])
+            ]));
+        });
+        tinhTongTc();
+    }
+
+    function tinhTongTc() {
+        var tong = st.hoSo.dsTc.reduce(function (s, t) { return s + so(t.diemToiDa); }, 0);
+        var o = $('qlnvTongTc');
+        o.textContent = fmt(tong);
+        o.style.color = tong > 50 ? '#b91c1c' : '';
     }
 
     // ---------- Thêm nhanh cấp bậc (ô nhập ngay trong modal — SweetAlert trong modal Bootstrap bị giành focus) ----------
@@ -305,6 +332,9 @@
     function luuHoSo() {
         var d = st.hoSo;
         if (!d) return;
+        var tongTc = d.dsTc.reduce(function (s, t) { return s + so(t.diemToiDa); }, 0);
+        if (d.dsTc.some(function (t) { return !String(t.ten || '').trim(); })) { $('qlnvModalLoi').textContent = 'Tiêu chí năng lực phải có tên.'; return; }
+        if (tongTc > 50) { $('qlnvModalLoi').textContent = 'Tổng điểm tối đa tiêu chí năng lực vượt 50.'; return; }
         var nut = $('qlnvLuuHoSo');
         nut.disabled = true;
         $('qlnvModalLoi').textContent = '';
@@ -312,7 +342,8 @@
             maNv: d.maNv,
             capBac: $('qlnvCapBac').value,
             idNhomCongViec: $('qlnvNhom').value || null,
-            dsKpiGiao: Object.keys(d.chon).filter(function (id) { return d.chon[id]; })
+            dsKpiGiao: Object.keys(d.chon).filter(function (id) { return d.chon[id]; }),
+            dsTieuChi: d.dsTc.map(function (t) { return { idTieuChi: t.id || null, ten: t.ten, moTa: t.moTa, diemToiDa: so(t.diemToiDa) }; })
         })
             .then(function (kq) {
                 st.modal.hide();
@@ -333,6 +364,16 @@
         if (t.closest('#qlnvMoThemCap')) { moThemCap(); return; }
         if (t.closest('#qlnvHuyCap')) { dongThemCap(); return; }
         if (t.closest('#qlnvLuuCap')) { luuCapBac(); return; }
+        if (t.closest('#qlnvThemTc') && st.hoSo) {
+            var conLai = 50 - st.hoSo.dsTc.reduce(function (s, x) { return s + so(x.diemToiDa); }, 0);
+            st.hoSo.dsTc.push({ id: null, ten: '', moTa: '', diemToiDa: conLai > 0 ? Math.min(15, conLai) : 10 });
+            veDsTieuChi();
+            var o = document.querySelector('#qlnvDsTc [data-tc-i="' + (st.hoSo.dsTc.length - 1) + '"][data-tc-truong="ten"]');
+            if (o) o.focus();
+            return;
+        }
+        var xoaTc = t.closest('[data-tc-xoa]');
+        if (xoaTc && st.hoSo) { st.hoSo.dsTc.splice(so(xoaTc.getAttribute('data-tc-xoa')), 1); veDsTieuChi(); return; }
         if (t.closest('#qlnvLuuHoSo')) luuHoSo();
     });
 
@@ -353,7 +394,14 @@
     });
 
     document.addEventListener('input', function (e) {
-        if (e.target.id === 'qlnvTim') veDanhSach();
+        var t = e.target;
+        if (t.id === 'qlnvTim') { veDanhSach(); return; }
+        if (t.matches('[data-tc-truong]') && st.hoSo) {
+            var tc = st.hoSo.dsTc[so(t.getAttribute('data-tc-i'))];
+            if (!tc) return;
+            tc[t.getAttribute('data-tc-truong')] = t.value;
+            if (t.getAttribute('data-tc-truong') === 'diemToiDa') tinhTongTc();
+        }
     });
 
     document.addEventListener('submit', function (e) {

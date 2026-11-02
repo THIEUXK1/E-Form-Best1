@@ -4,7 +4,7 @@
     var maNv = ViewBag.MaNv as string ?? "";
 }
 
-<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=6" />
+<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=7" />
 
 <div id="ctnv" class="tdg tdg-rong" data-ma-nv="@maNv">
     <div class="tdg-toolbar">
@@ -26,10 +26,10 @@
             <section class="tdg-card tdg-ct-tt">
                 <h2 class="tdg-card-title" id="ctnvTen"></h2>
                 <p class="tdg-card-desc" id="ctnvMa"></p>
-                <div class="tdg-nv-dong"><span>Cấp bậc</span><b id="ctnvCapBac"></b></div>
-                <div class="tdg-nv-dong"><span>Nhóm công việc</span><b id="ctnvNhom"></b></div>
+                <div class="tdg-nv-dong"><span>Position</span><b id="ctnvChucVu"></b></div>
+                <div class="tdg-nv-dong"><span>Department</span><b id="ctnvPhongBan"></b></div>
                 <div class="tdg-nv-dong"><span>Trạng thái</span><span id="ctnvTrangThaiPhieu"></span></div>
-                <div class="tdg-nv-dong"><span>GAP</span><span id="ctnvGap"></span></div>
+                <div class="tdg-nv-dong"><span>Tổng (100)</span><b id="ctnvTong"></b></div>
                 <div class="tdg-nv-dong"><span>Xếp loại</span><span id="ctnvXepLoai"></span></div>
                 <div class="d-flex gap-2 flex-wrap mt-3">
                     <a class="btn btn-sm btn-primary tdg-btn-main" style="min-width:0" id="ctnvDanhGia" href="#"><i class="fa fa-pencil-square-o"></i> Đánh giá</a>
@@ -37,21 +37,21 @@
                 </div>
             </section>
             <section class="tdg-card tdg-ct-bieudo">
-                <h2 class="tdg-card-title">Đồ thị phân tích năng lực</h2>
-                <p class="tdg-card-desc">So sánh điểm yêu cầu, tự đánh giá và quản lý đánh giá theo năng lực</p>
+                <h2 class="tdg-card-title">Part 2 — Năng lực</h2>
+                <p class="tdg-card-desc">% điểm tối đa từng tiêu chí: tự đánh giá vs quản lý</p>
                 <div class="tdg-ct-canvas"><canvas id="ctnvRadar"></canvas></div>
             </section>
         </div>
 
         <div class="tdg-ct-hang tdg-ct-dao">
             <section class="tdg-card tdg-ct-bieudo">
-                <h2 class="tdg-card-title">Phân tích KPI</h2>
-                <p class="tdg-card-desc">% hoàn thành: tự đánh giá vs quản lý</p>
+                <h2 class="tdg-card-title">Part 1 — Hiệu suất</h2>
+                <p class="tdg-card-desc">Mức 1–5 theo nhiệm vụ: tự đánh giá vs quản lý</p>
                 <div class="tdg-ct-canvas"><canvas id="ctnvKpiChart"></canvas></div>
             </section>
             <section class="tdg-card tdg-ct-tt">
-                <h2 class="tdg-card-title">Tổng hợp</h2>
-                <p class="tdg-card-desc">Điểm theo từng phiếu</p>
+                <h2 class="tdg-card-title">Summary</h2>
+                <p class="tdg-card-desc">Điểm theo từng phiếu (chuẩn 60/100)</p>
                 <table class="tdg-bang">
                     <thead><tr><th></th><th>Tự ĐG</th><th>Quản lý</th></tr></thead>
                     <tbody id="ctnvTongHop"></tbody>
@@ -60,25 +60,41 @@
         </div>
 
         <section class="tdg-card">
-            <h2 class="tdg-card-title">Chi tiết KPI</h2>
-            <p class="tdg-card-desc">Danh sách KPI, trọng số và % đánh giá</p>
+            <h2 class="tdg-card-title">Part 1 : Work Performance Measurement</h2>
+            <p class="tdg-card-desc">Nhiệm vụ, KPI, kết quả, trọng số và mức đánh giá (điểm = trọng số × mức / 5)</p>
             <div class="table-responsive">
                 <table class="tdg-bang tdg-bang-kpi">
-                    <thead><tr><th>Công việc</th><th>Chỉ số KPI</th><th>Kết quả</th><th>Trọng số</th><th>Tự ĐG (%)</th><th>Quản lý (%)</th><th>Ảnh</th></tr></thead>
+                    <thead><tr><th>Nhiệm vụ</th><th>Key Performance Index</th><th>Result</th><th>Weight</th><th>Tự ĐG (mức / điểm)</th><th>Quản lý (mức / điểm)</th><th>Minh chứng</th></tr></thead>
                     <tbody id="ctnvBangKpi"></tbody>
                 </table>
             </div>
         </section>
 
         <section class="tdg-card">
-            <h2 class="tdg-card-title">Chi tiết tiêu chí</h2>
-            <p class="tdg-card-desc">Các nhóm năng lực — so sánh tự đánh giá và quản lý đánh giá</p>
-            <div id="ctnvNangLuc"></div>
+            <h2 class="tdg-card-title">Part 2 : Competency Measurement</h2>
+            <p class="tdg-card-desc">Tiêu chí năng lực, tóm tắt / ví dụ của nhân viên và điểm</p>
+            <div class="table-responsive">
+                <table class="tdg-bang tdg-bang-kpi">
+                    <thead><tr><th>Tiêu chí</th><th>Summary and some examples</th><th>Tối đa</th><th>Tự ĐG</th><th>Quản lý</th></tr></thead>
+                    <tbody id="ctnvBangTc"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="tdg-card">
+            <h2 class="tdg-card-title">Part 3 : Career and Improvement Plan</h2>
+            <div class="tdg-grid2 mt-2">
+                <div class="tdg-field"><span>Strength — Điểm mạnh</span><div class="tdg-chi-xem" id="ctnvDiemManh"></div></div>
+                <div class="tdg-field"><span>Career path (1 – 3 year) — Lộ trình</span><div class="tdg-chi-xem" id="ctnvLoTrinh"></div></div>
+                <div class="tdg-field"><span>Weakness — Điểm cần cải thiện</span><div class="tdg-chi-xem" id="ctnvDiemYeu"></div></div>
+                <div class="tdg-field"><span>Development plan (1 year) — Kế hoạch</span><div class="tdg-chi-xem" id="ctnvKeHoach"></div></div>
+                <div class="tdg-field tdg-span2"><span>Comment — Nhận xét của quản lý</span><div class="tdg-chi-xem" id="ctnvNhanXet"></div></div>
+            </div>
         </section>
     </div>
 </div>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="~/js/chi-tiet-nhan-vien-danh-gia.js?v=3"></script>
+    <script src="~/js/chi-tiet-nhan-vien-danh-gia.js?v=4"></script>
 }

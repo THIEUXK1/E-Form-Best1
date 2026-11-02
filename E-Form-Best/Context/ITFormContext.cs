@@ -307,6 +307,10 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<DgPhieuKpi> DgPhieuKpis { get; set; }
 
+    public virtual DbSet<DgTieuChiNangLuc> DgTieuChiNangLucs { get; set; }
+
+    public virtual DbSet<DgPhieuTieuChi> DgPhieuTieuChis { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer(GetConnectionStringFromConfig());
 

@@ -40,6 +40,16 @@
         return '<td class="' + (className || '') + '" title="' + s + '">' + s + '</td>';
     }
 
+    // Ô gộp 2 cột thành 2 dòng (bảng 16 cột cũ phải kéo ngang). Mỗi dòng tự cắt "…", rê chuột xem đủ.
+    function dong(html, title, className) {
+        return '<div class="mayin-dong ' + (className || '') + '"' + (title ? ' title="' + title + '"' : '') + '>' + html + '</div>';
+    }
+
+    function dongChu(giaTri, className) {
+        var s = escapeHtml(giaTri);
+        return dong(s || '<span class="text-muted">—</span>', s, className);
+    }
+
     function nhanTrangThai(tt) {
         switch (tt) {
             case 'TamDung': return '<span class="badge rounded-pill bg-warning-subtle text-warning-emphasis">Tạm dừng</span>';
@@ -120,12 +130,12 @@
             trangThai: $('#filterTrangThai').val()
         };
 
-        $('#mayinTableBody').html('<tr><td colspan="16" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>');
+        $('#mayinTableBody').html('<tr><td colspan="11" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>');
 
         $.getJSON('/QLMayIn/GetDanhSach', thamSo)
             .done(function (res) {
                 if (!res.thanhCong) {
-                    $('#mayinTableBody').html('<tr><td colspan="16" class="text-center text-danger py-4">'
+                    $('#mayinTableBody').html('<tr><td colspan="11" class="text-center text-danger py-4">'
                         + escapeHtml(res.thongBao || 'Không tải được dữ liệu') + '</td></tr>');
                     return;
                 }
@@ -140,7 +150,7 @@
                 $('#soTrangIn30').text(dinhDangSo(res.tomTat.trangIn30Ngay));
             })
             .fail(function () {
-                $('#mayinTableBody').html('<tr><td colspan="16" class="text-center text-danger py-4">Lỗi kết nối máy chủ.</td></tr>');
+                $('#mayinTableBody').html('<tr><td colspan="11" class="text-center text-danger py-4">Lỗi kết nối máy chủ.</td></tr>');
             });
     }
 
@@ -185,7 +195,7 @@
     function veBang(duLieu) {
 
         if (!duLieu || duLieu.length === 0) {
-            $('#mayinTableBody').html('<tr><td colspan="16" class="text-center text-muted py-4">Không có máy in nào khớp bộ lọc.</td></tr>');
+            $('#mayinTableBody').html('<tr><td colspan="11" class="text-center text-muted py-4">Không có máy in nào khớp bộ lọc.</td></tr>');
             return;
         }
 
@@ -207,20 +217,19 @@
 
             return '<tr class="js-dong-may" data-id="' + x.idMayIn + '" tabindex="0">'
                 + '<td class="text-muted small">' + (i + 1) + '</td>'
-                + o(x.boPhan, 'small fw-bold')
-                + o(x.model, 'small')
-                + o(x.serial, 'small')
-                + o(x.tenHangDoi, 'small')
-                + '<td class="small">' + ip + '</td>'
-                + o(x.viTri, 'small')
+                + '<td class="small">' + dongChu(x.boPhan, 'fw-bold') + dongChu(x.viTri, 'text-muted') + '</td>'
+                + '<td class="small">' + dongChu(x.model, 'js-model') + dongChu(x.serial, 'text-muted js-serial') + '</td>'
+                + '<td class="small">' + dongChu(x.tenHangDoi) + dong(ip) + '</td>'
                 + '<td class="mayin-cot-so small">' + chiSo + '</td>'
                 + '<td class="mayin-cot-so small"><span class="fw-bold">' + dinhDangSo(x.trangInHomNay) + '</span>' + oTach(x.tachHomNay) + '</td>'
                 + '<td class="mayin-cot-so small">' + dinhDangSo(x.trangIn7Ngay) + oTach(x.tach7Ngay) + '</td>'
                 + '<td class="mayin-cot-so small">' + dinhDangSo(x.trangIn30Ngay) + oTach(x.tach30Ngay) + '</td>'
-                + '<td>' + oNhomVatTu(x.toner, x.vatTu, 'TONER') + '</td>'
-                + '<td>' + oNhomVatTu(x.drum, x.vatTu, 'DRUM') + '</td>'
-                + '<td class="mayin-trangthai">' + nhanTrangThai(x.trangThai) + '</td>'
-                + '<td class="small text-muted" title="' + escapeHtml(x.ketQuaDocCuoi) + '">' + escapeHtml(x.lanDocCuoi || '—') + '</td>'
+                + '<td>'
+                + '<div class="mayin-vt"><span class="mayin-vt-nhan">Mực</span><div class="mayin-vt-o">' + oNhomVatTu(x.toner, x.vatTu, 'TONER') + '</div></div>'
+                + '<div class="mayin-vt"><span class="mayin-vt-nhan">Trống</span><div class="mayin-vt-o">' + oNhomVatTu(x.drum, x.vatTu, 'DRUM') + '</div></div>'
+                + '</td>'
+                + '<td class="mayin-trangthai">' + nhanTrangThai(x.trangThai)
+                + dong(escapeHtml(x.lanDocCuoi || '—'), escapeHtml(x.ketQuaDocCuoi), 'small text-muted js-doc-luc') + '</td>'
                 + '<td class="text-end text-nowrap">'
                 + nutDoc
                 + ' <a href="/QLMayIn/May/' + x.idMayIn + '" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill px-2" title="Mở trang chi tiết ở tab mới"><i class="fa fa-chart-line"></i></a>'
@@ -244,7 +253,7 @@
                     taiDanhSach();
                 } else {
                     // Lỗi hiện tại chỗ, không nhảy alert che mất bảng
-                    $nut.closest('tr').find('td').eq(14)
+                    $nut.closest('tr').find('.js-doc-luc')
                         .html('<span class="text-danger small" title="' + escapeHtml(res.thongBao) + '">Lỗi đọc</span>');
                     $nut.prop('disabled', false).html(htmlCu);
                 }
@@ -394,7 +403,7 @@
         $(document).on('click', '.js-tay', function () {
             var $tr = $(this).closest('tr');
             $('#tayId').val($(this).data('id'));
-            $('#tayThongTin').text($tr.find('td').eq(2).text() + ' — serial ' + $tr.find('td').eq(3).text());
+            $('#tayThongTin').text($tr.find('.js-model').text() + ' — serial ' + $tr.find('.js-serial').text());
             $('#tayNgay').val(new Date().toISOString().substring(0, 10));
             $('#tayCounter').val('');
             $('#tayToner').val('');

@@ -10,11 +10,17 @@
     // Mùa theo lịch miền Bắc: xuân 2-4, hạ 5-7, thu 8-10, đông 11-1
     const MUA = {
         xuan: {
+            // Nền xanh lá non tươi, góc phải trên ửng hồng như cành đào nở; cánh hoa
+            // vẽ tay bay theo gió nhẹ, điểm vài chiếc lộc non xanh nhạt.
+            // Vẫn giữ độ tối vừa đủ để chữ trắng trên trang đọc rõ.
             ten: "Xuân",
             bieuTuong: "🌸",
-            ngay: "radial-gradient(circle at 30% 20%, #2b5f7a, #1f4a63 45%, #10283a)",
-            dem: "radial-gradient(circle at 30% 20%, #1d3f57, #14304a 45%, #08172a)",
-            hat: { ky_tu: ["🌸", "🌷"], mau: "#f9a8d4", toc_do: 0.5 }
+            ngay: "radial-gradient(circle at 80% 12%, rgba(249, 168, 212, 0.55), transparent 42%), radial-gradient(circle at 25% 25%, #5a9a6e, #3a7a57 45%, #17402e)",
+            dem: "radial-gradient(circle at 80% 12%, rgba(244, 114, 182, 0.3), transparent 42%), radial-gradient(circle at 25% 25%, #33694d, #22503b 45%, #0b2318)",
+            hat: {
+                kieu: "canh", ky_tu: ["#fbcfe8", "#f9a8d4", "#fce7f3", "#f472b6", "#fff1f2", "#fbcfe8", "#bbf7d0"],
+                mau: "#f9a8d4", toc_do: 0.45
+            }
         },
         ha: {
             ten: "Hạ",
@@ -47,7 +53,14 @@
         return MUA.dong;
     }
 
+    // Xem trước (chỉ quyền All, ô chọn do view render): ép một chủ đề / ngày-đêm bất kỳ
+    // để duyệt giao diện mà không phải đợi tới ngày. Chỉ giữ trong bộ nhớ trang —
+    // không lưu localStorage, không gửi máy chủ — tải lại trang là về như thật.
+    // null = theo ngày giờ thực tế.
+    let xemTruoc = null; // { chuDe: object|null, ngayDem: "auto"|"ngay"|"dem" }
+
     function banNgay() {
+        if (xemTruoc && xemTruoc.ngayDem !== "auto") return xemTruoc.ngayDem === "ngay";
         const g = new Date().getHours();
         return g >= 6 && g < 18;
     }
@@ -163,7 +176,12 @@
     const LE = [
         {
             ten: "Tết Nguyên đán", bieuTuong: "🧧",
-            hop: (d, al) => (al.thang === 12 && al.ngay >= 23) || (al.thang === 1 && al.ngay <= 5),
+            // Mốc là Mùng 1; đợt Tết dài hơn lễ khác: 20 ngày trước tới 20 ngày sau.
+            // Trước Tết tăng dần (20–16: mức 1, 15–11: mức 2, 10–0: mức 3),
+            // từ Mùng 1 trở đi giữ nguyên mức 3 suốt 20 ngày, không giảm dần.
+            hop: (d, al) => al.thang === 1 && al.ngay === 1,
+            truoc: 20, sau: 20,
+            muc: lech => lech > 15 ? 1 : (lech > 10 ? 2 : 3),
             ngay: "radial-gradient(circle at 30% 20%, #8a1b1b, #5e1212 45%, #2a0808)",
             dem: "radial-gradient(circle at 30% 20%, #611414, #400d0d 45%, #1c0505)",
             hat: { ky_tu: ["🌸", "🧧", "✦"], mau: "#fcd34d", toc_do: 0.5 }
@@ -183,11 +201,15 @@
             hat: { ky_tu: ["⭐", "✦"], mau: "#fde047", toc_do: 0.4 }
         },
         {
+            // Đêm giao thừa: nền tím than nửa đêm, giấy kim tuyến nhiều màu bay, ánh vàng kim
             ten: "Tết Dương lịch", bieuTuong: "🎆",
             hop: d => d.getMonth() === 0 && d.getDate() === 1,
-            ngay: "radial-gradient(circle at 30% 20%, #24486b, #1b3552 45%, #0a1526)",
-            dem: "radial-gradient(circle at 30% 20%, #17314c, #112438 45%, #060d18)",
-            hat: { ky_tu: ["🎆", "✦", "❄"], mau: "#e0f2fe", toc_do: 0.5 }
+            ngay: "radial-gradient(circle at 30% 20%, #3b2a6e, #251a4d 45%, #0d0820)",
+            dem: "radial-gradient(circle at 30% 20%, #2a1d55, #1a1238 45%, #070414)",
+            hat: {
+                kieu: "giay", ky_tu: ["#facc15", "#f472b6", "#60a5fa", "#34d399", "#f8fafc", "#fb923c"],
+                mau: "#facc15", toc_do: 0.7
+            }
         },
         {
             ten: "Quốc tế Phụ nữ", bieuTuong: "🌷",
@@ -247,6 +269,31 @@
         }
     ];
 
+    // Thêm cho đợt CAO ĐIỂM của từng lễ: lời chúc trên băng chữ và bảng màu pháo hoa.
+    // Tách riêng theo tên để bảng LE ở trên vẫn gọn, dễ dò ngày.
+    const CAO_DIEM_LE = {
+        "Tết Nguyên đán": { loiChuc: "Chúc mừng năm mới — An khang thịnh vượng", phao: ["#fcd34d", "#f87171", "#fb923c", "#fde68a"] },
+        "Tết Trung thu": { loiChuc: "Trung thu đoàn viên — Vui vẻ, ấm áp", phao: ["#fbbf24", "#fde68a", "#f97316", "#fff7ed"] },
+        "Giỗ Tổ Hùng Vương": { loiChuc: "Uống nước nhớ nguồn — Giỗ Tổ Hùng Vương 10/3", phao: ["#fde047", "#ef4444", "#ffffff"] },
+        // Năm mới lấy theo ngày đang xem: cuối tháng 12 thì chúc năm sau
+        "Tết Dương lịch": {
+            loiChuc: () => {
+                const d = new Date();
+                return "Chúc mừng năm mới " + (d.getFullYear() + (d.getMonth() === 11 ? 1 : 0)) + "!";
+            },
+            phao: ["#facc15", "#fde68a", "#facc15", "#f472b6", "#60a5fa", "#ffffff"]
+        },
+        "Quốc tế Phụ nữ": { loiChuc: "Chúc mừng ngày Quốc tế Phụ nữ 8/3", phao: ["#f9a8d4", "#f472b6", "#fda4af", "#ffffff"] },
+        "Giải phóng miền Nam & Quốc tế Lao động": { loiChuc: "Mừng ngày Thống nhất 30/4 & Quốc tế Lao động 1/5", phao: ["#fde047", "#ef4444", "#ffffff"] },
+        "Quốc tế Thiếu nhi": { loiChuc: "Chúc mừng ngày Quốc tế Thiếu nhi 1/6", phao: ["#60a5fa", "#f472b6", "#facc15", "#34d399"] },
+        "Quốc khánh": { loiChuc: "Mừng Quốc khánh 2/9", phao: ["#fde047", "#ef4444", "#ffffff"] },
+        "Phụ nữ Việt Nam": { loiChuc: "Chúc mừng ngày Phụ nữ Việt Nam 20/10", phao: ["#fda4af", "#f472b6", "#fecdd3", "#ffffff"] },
+        "Nhà giáo Việt Nam": { loiChuc: "Tri ân ngày Nhà giáo Việt Nam 20/11", phao: ["#bfdbfe", "#93c5fd", "#fde68a", "#ffffff"] },
+        "Quân đội nhân dân": { loiChuc: "Mừng ngày Quân đội nhân dân Việt Nam 22/12", phao: ["#fde047", "#86efac", "#ffffff"] },
+        "Giáng sinh": { loiChuc: "Giáng sinh an lành — Merry Christmas", phao: ["#f87171", "#86efac", "#fde68a", "#e0f2fe"] }
+    };
+    LE.forEach(le => Object.assign(le, CAO_DIEM_LE[le.ten] || {}));
+
     // Hiệu ứng lễ kéo dài trước và sau ngày lễ 7 ngày.
     // Cách kiểm: xét từng ngày trong khoảng ±7 ngày quanh hôm nay, ngày nào
     // khớp luật của lễ thì lễ đó đang trong đợt. Làm vậy thì lễ âm lịch (Tết,
@@ -254,12 +301,37 @@
     // trường hợp vắt qua năm mới (1/1) cũng không phải xử lý thêm.
     const SO_NGAY_KEO_DAI = 7;
 
+    // Đợt lễ chia 3 mức theo khoảng cách tới ngày lễ: đẹp dần khi tới gần, giảm dần khi qua
+    // (7 → 3 → 1 → 0 → 1 → 3 → 7 ngày).
+    //   Mức 1 (lệch 4–7 ngày): nền + hạt rơi như thường.
+    //   Mức 2 (lệch 2–3 ngày): hạt dày hơn, lấp lánh, vầng sáng nhẹ, pháo hoa thưa.
+    //   Mức 3 (đúng ngày & lệch 1 ngày): hạt dày nhất, vầng sáng rõ, pháo hoa dày, băng lời chúc.
+    const MUC_LE = {
+        1: { heSoHat: 1, lapLanh: false, doSang: 0, phao: null, loiChuc: false },
+        2: { heSoHat: 1.3, lapLanh: true, doSang: 0.6, phao: { nghiMin: 160, nghiThem: 200, banDoi: 0 }, loiChuc: false },
+        3: { heSoHat: 1.6, lapLanh: true, doSang: 1, phao: { nghiMin: 50, nghiThem: 110, banDoi: 0.25 }, loiChuc: true }
+    };
+
+    function mucTheoLech(lech) {
+        const k = Math.abs(lech);
+        if (k <= 1) return 3;
+        if (k <= 3) return 2;
+        return 1;
+    }
+
+    // Số ngày lệch từ hôm nay tới lễ đang chạy (0 = đúng ngày); null = đang theo mùa.
+    let lechLeThat = null;
+
     function chuDeHienTai() {
+        if (xemTruoc && xemTruoc.chuDe) return xemTruoc.chuDe;
         const homNay = new Date();
 
-        // Xét từ gần tới xa để lễ sát ngày nhất được ưu tiên khi hai lễ chồng nhau
+        // Xét từ gần tới xa để lễ sát ngày nhất được ưu tiên khi hai lễ chồng nhau.
+        // Quét theo đợt dài nhất (Tết 20 ngày); lễ nào ngắn hơn thì tự loại ở điều kiện dưới.
+        // lech > 0: lễ còn ở phía trước (trước lễ); lech < 0: đã qua lễ.
+        const xaNhat = Math.max(SO_NGAY_KEO_DAI, ...LE.map(x => Math.max(x.truoc || 0, x.sau || 0)));
         const dsLech = [0];
-        for (let i = 1; i <= SO_NGAY_KEO_DAI; i++) dsLech.push(i, -i);
+        for (let i = 1; i <= xaNhat; i++) dsLech.push(i, -i);
 
         for (const lech of dsLech) {
             const d = new Date(homNay.getFullYear(), homNay.getMonth(), homNay.getDate() + lech);
@@ -270,16 +342,36 @@
                 al = { ngay: 0, thang: 0 };
             }
             const le = LE.find(x => {
+                const gioiHan = lech >= 0 ? (x.truoc || SO_NGAY_KEO_DAI) : (x.sau || SO_NGAY_KEO_DAI);
+                if (Math.abs(lech) > gioiHan) return false;
                 try { return x.hop(d, al); } catch (e) { return false; }
             });
-            if (le) return le;
+            if (le) {
+                lechLeThat = lech;
+                return le;
+            }
         }
 
+        lechLeThat = null;
         return muaHienTai();
+    }
+
+    // Mức hiệu ứng lễ 0–3 (0 = đang theo mùa). Gọi SAU chuDeHienTai() để lechLeThat đã đúng.
+    function mucLeHienTai(chuDe) {
+        if (!chuDe.loiChuc) return 0;
+        if (xemTruoc && xemTruoc.muc !== "auto") return +xemTruoc.muc;
+        // Xem trước một lễ: mặc định cho thấy bản đẹp nhất
+        if (xemTruoc && xemTruoc.chuDe) return 3;
+        if (lechLeThat === null) return 0;
+        // Lễ có nhịp riêng (Tết) thì theo nhịp đó, còn lại 7–3–1 đối xứng
+        return chuDe.muc ? chuDe.muc(lechLeThat) : mucTheoLech(lechLeThat);
     }
 
     // ---------- lớp hạt rơi ----------
     let canvas = null, ctx = null, hat = [], khungHinh = null, mauHat = "#ffffff";
+    // "chu" = vẽ ký tự/emoji (mặc định); "giay" = mảnh giấy kim tuyến; "canh" = cánh hoa.
+    // Với "giay"/"canh", ky_tu là danh sách màu.
+    let kieuHat = "chu";
 
     // Trang chủ: hạt phủ toàn màn hình. Các trang có layout: hạt chỉ rơi trong
     // khung menu bên trái, nằm sau chữ và biểu tượng của menu.
@@ -360,8 +452,8 @@
     function sinhHat(cauHinh) {
         const rong = canvas ? canvas.width : window.innerWidth;
         const cao = canvas ? canvas.height : window.innerHeight;
-        // ít hạt thôi cho nhẹ máy; khung càng hẹp thì càng ít
-        const soLuong = rong < 200 ? 10 : (rong < 768 ? 18 : 34);
+        // ít hạt thôi cho nhẹ máy; khung càng hẹp thì càng ít. Gần ngày lễ thì dày hơn.
+        const soLuong = Math.round((rong < 200 ? 10 : (rong < 768 ? 18 : 34)) * (mucDangChay ? mucDangChay.heSoHat : 1));
 
         const cu = docViTriHat(rong, cao);
         hat = cu ? cu.slice(0, soLuong) : [];
@@ -386,11 +478,50 @@
             h.y += h.v;
             h.lech += 0.01;
             h.x += Math.sin(h.lech) * 0.4;
+            // Cánh hoa: gió nhẹ thổi chéo sang phải; bay quá mép phải thì vòng lại mép trái
+            if (kieuHat === "canh") {
+                h.x += 0.35;
+                if (h.x > canvas.width + 20) h.x = -20;
+            }
             if (h.y > canvas.height + 20) {
                 h.y = -20;
                 h.x = Math.random() * canvas.width;
             }
-            ctx.globalAlpha = h.mo;
+            // Gần ngày lễ: hạt lấp lánh (độ mờ dao động nhẹ theo nhịp lắc riêng của từng hạt)
+            ctx.globalAlpha = mucDangChay && mucDangChay.lapLanh ? h.mo * (0.7 + 0.3 * Math.sin(h.lech * 4)) : h.mo;
+
+            // Giấy kim tuyến: kyTu là màu; mảnh giấy xoay và lật (co giãn chiều cao)
+            // cho cảm giác đang bay lượn thay vì rơi thẳng
+            if (kieuHat === "giay") {
+                ctx.globalAlpha = Math.min(1, ctx.globalAlpha + 0.3);
+                ctx.save();
+                ctx.translate(h.x, h.y);
+                ctx.rotate(h.lech * 3);
+                ctx.scale(1, Math.cos(h.lech * 7));
+                ctx.fillStyle = h.kyTu;
+                ctx.fillRect(-h.co * 0.22, -h.co * 0.4, h.co * 0.45, h.co * 0.8);
+                ctx.restore();
+                return;
+            }
+
+            // Cánh hoa đào: hình giọt có khía ở đầu, chao nghiêng (co giãn chiều ngang)
+            if (kieuHat === "canh") {
+                const s = h.co * 0.45;
+                ctx.globalAlpha = Math.min(1, ctx.globalAlpha + 0.25);
+                ctx.save();
+                ctx.translate(h.x, h.y);
+                ctx.rotate(Math.sin(h.lech * 1.5) * 1.2 + h.lech);
+                ctx.scale(0.55 + 0.45 * Math.cos(h.lech * 5), 1);
+                ctx.fillStyle = h.kyTu;
+                ctx.beginPath();
+                ctx.moveTo(0, s);
+                ctx.bezierCurveTo(s * 0.9, s * 0.3, s * 0.6, -s * 0.8, 0, -s * 0.55);
+                ctx.bezierCurveTo(-s * 0.6, -s * 0.8, -s * 0.9, s * 0.3, 0, s);
+                ctx.fill();
+                ctx.restore();
+                return;
+            }
+
             ctx.font = h.co + "px serif";
             // Không đặt màu thì canvas vẽ bằng màu đen mặc định -> nền tối coi
             // như không thấy gì. Ký tự emoji tự có màu riêng, nhưng ký tự
@@ -399,14 +530,161 @@
             ctx.fillText(h.kyTu, h.x, h.y);
         });
         ctx.globalAlpha = 1;
+        if (mucDangChay && mucDangChay.doSang) veVangSang();
+        if (mauPhao) vePhaoHoa();
         khungHinh = requestAnimationFrame(ve);
     }
 
-    function batHat(cauHinh) {
+    // ---------- gần ngày lễ: vầng sáng + pháo hoa ----------
+    // mucDangChay: cấu hình MUC_LE đang vẽ; null = mùa thường
+    let mucDangChay = null, mauPhao = null, nhipSang = 0;
+    let phao = [], tia = [], demPhao = 0;
+    const TRONG_LUC = 0.06;
+
+    // Người dùng bật "giảm chuyển động" ở hệ điều hành thì không bắn pháo hoa
+    const giamChuyenDong = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+    // Vầng sáng màu chủ đề tỏa từ mép trên, "thở" chậm
+    function veVangSang() {
+        nhipSang += 0.012;
+        const w = canvas.width, h = canvas.height;
+        const g = ctx.createRadialGradient(w / 2, -h * 0.15, 0, w / 2, -h * 0.15, h);
+        g.addColorStop(0, mauHat);
+        g.addColorStop(1, mauHat + "00");
+        ctx.globalAlpha = (0.1 + 0.07 * Math.sin(nhipSang)) * mucDangChay.doSang;
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalAlpha = 1;
+    }
+
+    function chonMau() {
+        return mauPhao[Math.floor(Math.random() * mauPhao.length)];
+    }
+
+    function banPhao() {
+        const w = canvas.width, h = canvas.height;
+        const y0 = h + 10;
+        const dinh = h * (0.12 + Math.random() * 0.3);
+        phao.push({
+            x: w * (0.12 + Math.random() * 0.76), y: y0,
+            vx: (Math.random() - 0.5) * 1.2,
+            // vận tốc vừa đủ để tới đỉnh đã chọn: v² = 2·g·quãng đường
+            vy: -Math.sqrt(2 * TRONG_LUC * (y0 - dinh)),
+            mau: chonMau()
+        });
+    }
+
+    function noPhao(p) {
+        const n = Math.round((60 + Math.random() * 40) * (canvas.width < 768 ? 0.6 : 1));
+        const lucNo = 2 + Math.random() * 2.5;
+        for (let i = 0; i < n; i++) {
+            const goc = (Math.PI * 2 * i) / n + Math.random() * 0.1;
+            const tocDo = lucNo * (0.4 + Math.random() * 0.6);
+            tia.push({
+                x: p.x, y: p.y, px: p.x, py: p.y,
+                vx: Math.cos(goc) * tocDo, vy: Math.sin(goc) * tocDo,
+                // phần lớn cùng màu quả pháo, điểm xuyết vài màu khác cho rực
+                mau: Math.random() < 0.75 ? p.mau : chonMau(),
+                song: 1, giam: 0.011 + Math.random() * 0.01
+            });
+        }
+    }
+
+    function vePhaoHoa() {
+        const nhip = mucDangChay.phao;
+        if (--demPhao <= 0) {
+            banPhao();
+            if (Math.random() < nhip.banDoi) banPhao(); // thỉnh thoảng bắn đôi
+            demPhao = nhip.nghiMin + Math.random() * nhip.nghiThem;
+        }
+
+        ctx.globalCompositeOperation = "lighter"; // tia chồng lên nhau thì sáng rực hơn
+        ctx.lineCap = "round";
+
+        for (let i = phao.length - 1; i >= 0; i--) {
+            const p = phao[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += TRONG_LUC;
+            ctx.globalAlpha = 0.9;
+            ctx.strokeStyle = p.mau;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x - p.vx * 3, p.y - p.vy * 3);
+            ctx.stroke();
+            if (p.vy >= -0.6) { // gần tới đỉnh thì nổ
+                noPhao(p);
+                phao.splice(i, 1);
+            }
+        }
+
+        ctx.lineWidth = 2;
+        for (let i = tia.length - 1; i >= 0; i--) {
+            const t = tia[i];
+            t.px = t.x; t.py = t.y;
+            t.vx *= 0.975;
+            t.vy = t.vy * 0.975 + 0.035;
+            t.x += t.vx;
+            t.y += t.vy;
+            t.song -= t.giam;
+            if (t.song <= 0) {
+                tia.splice(i, 1);
+                continue;
+            }
+            ctx.globalAlpha = t.song;
+            ctx.strokeStyle = t.mau;
+            ctx.beginPath();
+            ctx.moveTo(t.px, t.py);
+            ctx.lineTo(t.x, t.y);
+            ctx.stroke();
+        }
+
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1;
+    }
+
+    // Băng chữ lời chúc giữa mép trên trang chủ (không hiện trong menu các layout)
+    function hienLoiChuc(le) {
+        let el = document.getElementById("loiChucLe");
+        if (!le || !document.getElementById("nenTrangChu") || !document.body) {
+            if (el) el.classList.remove("hien");
+            return;
+        }
+        if (!el) {
+            el = document.createElement("div");
+            el.id = "loiChucLe";
+            el.setAttribute("aria-live", "polite");
+            document.body.appendChild(el);
+        }
+        // Emoji tách khỏi phần chữ: chữ tô gradient bằng background-clip sẽ làm emoji mất màu
+        const bieuTuong = () => {
+            const s = document.createElement("span");
+            s.className = "bieu-tuong";
+            s.textContent = le.bieuTuong;
+            return s;
+        };
+        const chu = document.createElement("span");
+        chu.className = "chu";
+        chu.textContent = typeof le.loiChuc === "function" ? le.loiChuc() : le.loiChuc;
+        el.replaceChildren(bieuTuong(), chu, bieuTuong());
+        el.style.setProperty("--mau-loi-chuc", le.hat.mau);
+        requestAnimationFrame(() => el.classList.add("hien"));
+    }
+
+    // le: chủ đề lễ đang chạy (null = mùa); muc: 0–3 theo MUC_LE
+    function batHat(cauHinh, le, muc) {
         // Trang có layout mà chưa dựng xong menu thì thôi, lát nữa gọi lại
         if (!document.getElementById("nenTrangChu") && !document.getElementById("sidebar")) return;
         mauHat = cauHinh.mau || "#ffffff";
+        kieuHat = cauHinh.kieu || "chu";
+        mucDangChay = MUC_LE[muc] || null;
         taoCanvas();
+        // Pháo hoa chỉ ở trang chủ (toàn màn); menu bên trái quá hẹp để bắn
+        mauPhao = mucDangChay && mucDangChay.phao && le && !khungChua() && !giamChuyenDong ? le.phao : null;
+        phao = [];
+        tia = [];
+        demPhao = 30;
         sinhHat(cauHinh);
         if (!khungHinh) ve();
     }
@@ -416,6 +694,10 @@
             cancelAnimationFrame(khungHinh);
             khungHinh = null;
         }
+        mucDangChay = null;
+        mauPhao = null;
+        phao = [];
+        tia = [];
         if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
@@ -455,17 +737,22 @@
     function apDung() {
         const mua = chuDeHienTai();
 
-        if (!bat) {
+        // Đang xem trước thì hiện hiệu ứng dù người dùng đang để tắt
+        if (!bat && !xemTruoc) {
             document.documentElement.removeAttribute("data-hieu-ung-mua");
+            document.documentElement.removeAttribute("data-cao-diem");
             document.documentElement.style.removeProperty("--nen-mua");
             tatHat();
+            hienLoiChuc(null);
             dauChuDeDangChay = null;
             capNhatNut(mua);
             return;
         }
 
         // Cùng chủ đề, cùng ngày/đêm và hạt vẫn đang chạy -> để yên cho liền mạch
-        const dau = mua.ten + (banNgay() ? "|ngay" : "|dem");
+        const muc = mucLeHienTai(mua);
+        const caoDiem = !!(MUC_LE[muc] && MUC_LE[muc].loiChuc);
+        const dau = mua.ten + (banNgay() ? "|ngay" : "|dem") + "|muc" + muc;
         if (dau === dauChuDeDangChay && khungHinh) {
             capNhatNut(mua);
             return;
@@ -474,7 +761,9 @@
 
         document.documentElement.style.setProperty("--nen-mua", banNgay() ? mua.ngay : mua.dem);
         document.documentElement.setAttribute("data-hieu-ung-mua", mua.ten);
-        batHat(mua.hat);
+        document.documentElement.toggleAttribute("data-cao-diem", caoDiem);
+        batHat(mua.hat, muc ? mua : null, muc);
+        hienLoiChuc(caoDiem ? mua : null);
         capNhatNut(mua);
     }
 
@@ -589,6 +878,69 @@
         })();
     })();
 
+    // ---------- xem trước chủ đề (quyền All) ----------
+    // Ô chọn chủ đề: giá trị "" = theo hiện tại, "m:<khóa mùa>", "l:<chỉ số lễ>".
+    function dungODsXemTruoc() {
+        const o = document.getElementById("chonChuDeXemTruoc");
+        if (!o || o.options.length > 1) return;
+
+        const nhom = (nhan, ds) => {
+            const g = document.createElement("optgroup");
+            g.label = nhan;
+            ds.forEach(([giaTri, chuDe]) => {
+                const op = document.createElement("option");
+                op.value = giaTri;
+                op.textContent = chuDe.bieuTuong + " " + chuDe.ten;
+                g.appendChild(op);
+            });
+            o.appendChild(g);
+        };
+        nhom("Mùa", Object.keys(MUA).map(k => ["m:" + k, MUA[k]]));
+        nhom("Ngày lễ", LE.map((le, i) => ["l:" + i, le]));
+    }
+
+    function apDungXemTruoc() {
+        const oChuDe = document.getElementById("chonChuDeXemTruoc");
+        const oNgayDem = document.getElementById("chonNgayDemXemTruoc");
+        const giaTri = oChuDe ? oChuDe.value : "";
+        const ngayDem = oNgayDem ? oNgayDem.value : "auto";
+        const oMuc = document.getElementById("chonMucXemTruoc");
+        const muc = oMuc ? oMuc.value : "auto";
+
+        let chuDe = null;
+        if (giaTri.startsWith("m:")) chuDe = MUA[giaTri.slice(2)] || null;
+        else if (giaTri.startsWith("l:")) chuDe = LE[+giaTri.slice(2)] || null;
+
+        xemTruoc = (chuDe || ngayDem !== "auto" || muc !== "auto") ? { chuDe, ngayDem, muc } : null;
+
+        const nutVe = document.getElementById("btnVeHieuUngHienTai");
+        if (nutVe) nutVe.hidden = !xemTruoc;
+
+        // Ép vẽ lại từ đầu cho chủ đề mới
+        dauChuDeDangChay = null;
+        apDung();
+    }
+
+    function veHienTai() {
+        const oChuDe = document.getElementById("chonChuDeXemTruoc");
+        const oNgayDem = document.getElementById("chonNgayDemXemTruoc");
+        if (oChuDe) oChuDe.value = "";
+        if (oNgayDem) oNgayDem.value = "auto";
+        const oMuc = document.getElementById("chonMucXemTruoc");
+        if (oMuc) oMuc.value = "auto";
+        apDungXemTruoc();
+    }
+
+    document.addEventListener("change", e => {
+        if (e.target.matches("#chonChuDeXemTruoc, #chonNgayDemXemTruoc, #chonMucXemTruoc")) apDungXemTruoc();
+    });
+    document.addEventListener("click", e => {
+        if (e.target.closest("#btnVeHieuUngHienTai")) {
+            e.preventDefault();
+            veHienTai();
+        }
+    });
+
     // Rời trang thì cất vị trí đàn hạt lại cho trang sau dùng tiếp.
     // pagehide bắt được cả điều hướng thường lẫn đóng thẻ; visibilitychange là
     // lưới đỡ cho di động (nơi pagehide có thể không chạy).
@@ -598,6 +950,7 @@
     });
 
     document.addEventListener("DOMContentLoaded", () => {
+        dungODsXemTruoc();
         apDung();
         dongBoTuMayChu();
         // Đổi mùa / chuyển ngày-đêm ngay trong lúc đang mở trang cũng phải bắt được

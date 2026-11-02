@@ -75,56 +75,30 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
         #region API
 
-        /// <summary>Toàn bộ dữ liệu lần tải đầu: hồ sơ, danh mục lọc, phiếu đã lưu, KPI, năng lực theo bộ lọc của phiếu.</summary>
+        /// <summary>Toàn bộ dữ liệu lần tải đầu: đầu phiếu, phiếu đã lưu (gồm Part 3), KPI Part 1, tiêu chí Part 2.</summary>
         [HttpGet("/QLCongViec/DanhGia/DuLieu")]
         public async Task<IActionResult> DuLieu()
         {
             if (ChanNeuKhongHopLe(out var maNv) is { } chan) return chan;
             try
             {
-                var hoSo = await _danhGia.LayHoSoAsync(maNv);
                 var phieu = await _danhGia.LayPhieuTuDanhGiaAsync(maNv);
-                // Đã lưu phiếu thì mở lại đúng bộ lọc lúc chấm, chưa có thì theo hồ sơ
-                var capBac = phieu?.CapBac ?? hoSo.CapBac;
-                var idNhom = phieu != null ? phieu.IdNhomCongViec : hoSo.IdNhomCongViec;
-
                 return Json(new
                 {
                     thanhCong = true,
                     duLieu = new
                     {
-                        hoTen = User.Identity!.Name,
-                        maNv,
-                        phongBan = User.FindFirst("PhongBan")?.Value,
-                        hoSo,
-                        dsCapBac = await _danhGia.DsCapBacAsync(),
-                        dsNhomCongViec = (await _danhGia.DsNhomCongViecAsync()).Select(x => new { id = x.IdNhomCongViec, ten = x.TenNhom }),
-                        boLoc = new { capBac, idNhomCongViec = idNhom },
+                        thongTin = await _danhGia.LayThongTinAsync(maNv),
+                        hoSo = await _danhGia.LayHoSoAsync(maNv),
                         phieu,
                         dsKpi = await _danhGia.LayKpiAsync(maNv, phieu?.IdPhieu),
-                        dsNhomNangLuc = await _danhGia.LayNangLucAsync(capBac, idNhom)
+                        dsTieuChi = await _danhGia.LayTieuChiAsync(maNv, phieu?.IdPhieu)
                     }
                 });
             }
             catch (Exception ex)
             {
                 return Json(new { thanhCong = false, thongBao = "Không tải được dữ liệu đánh giá: " + ex.Message });
-            }
-        }
-
-        [HttpGet("/QLCongViec/DanhGia/NangLuc")]
-        public async Task<IActionResult> NangLuc(string? capBac, Guid? idNhomCongViec)
-        {
-            if (ChanNeuKhongHopLe(out _) is { } chan) return chan;
-            if (string.IsNullOrWhiteSpace(capBac))
-                return Json(new { thanhCong = false, thongBao = "Chưa chọn cấp bậc." });
-            try
-            {
-                return Json(new { thanhCong = true, duLieu = await _danhGia.LayNangLucAsync(capBac.Trim(), idNhomCongViec) });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { thanhCong = false, thongBao = "Không tải được danh sách năng lực: " + ex.Message });
             }
         }
 

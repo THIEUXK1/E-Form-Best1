@@ -1,21 +1,21 @@
-// Trang Tự đánh giá hiệu suất (/QLCongViec/DanhGia/TuDanhGia).
-// 4 bước giống app evaluation cũ: Thông tin → KPI → Năng lực → Hoàn thành.
-// Khác app cũ: lưu nháp mỗi lần bấm "Tiếp tục" ở bước KPI/Năng lực (app cũ chỉ lưu ở bước cuối
-// dù hướng dẫn ghi "lưu tự động"), nên đóng tab giữa chừng không mất phần đã nhập.
+// Trang Tự đánh giá hiệu suất (/QLCongViec/DanhGia/TuDanhGia) theo mẫu "IT_Biểu đánh giá nhân viên 2025.xlsx".
+// 5 bước: Thông tin → Part 1 (KPI, mức 1–5) → Part 2 (tiêu chí năng lực) → Part 3 (kế hoạch) → Hoàn thành.
+// Lưu nháp mỗi lần bấm "Tiếp tục" từ bước 2 trở đi, nên đóng tab giữa chừng không mất phần đã nhập.
 (function () {
     'use strict';
 
-    var SO_BUOC = 4;
-    var DIEM_NHANH = [0, 2, 4, 6, 8, 10];
+    var SO_BUOC = 5;
+    var MUC = [1, 2, 3, 4, 5];
+    var TEN_MUC = { 5: 'Excellent', 4: 'Good', 3: 'Standard', 2: 'Poor', 1: 'Very Poor' };
     // Khớp DuoiFileHopLe ở DanhGiaController
     var DUOI_HOP_LE = '.jpg,.jpeg,.png,.webp,.gif,.bmp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z';
+    var P3 = { diemManh: 'tdgDiemManh', diemYeu: 'tdgDiemYeu', loTrinh: 'tdgLoTrinh', keHoach: 'tdgKeHoach' };
 
     var st = {
         buoc: 1,
         duLieu: null,
-        diem: {},          // idNangLuc -> điểm tự chấm
-        dsNhom: [],        // nhóm năng lực đang hiển thị theo bộ lọc
         dsKpi: [],
+        dsTieuChi: [],
         khoa: false,
         dangLuu: false
     };
@@ -40,6 +40,7 @@
 
     function so(v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; }
     function fmt(n) { return (Math.round(n * 100) / 100).toString(); }
+    function coGiaTri(v) { return v !== null && v !== undefined && v !== ''; }
 
     function goiApi(url, opt) {
         return fetch(url, opt).then(function (res) {
@@ -61,16 +62,12 @@
                 var d = kq.duLieu;
                 st.duLieu = d;
                 st.dsKpi = d.dsKpi || [];
-                st.dsNhom = d.dsNhomNangLuc || [];
-                st.diem = {};
-                if (d.phieu && d.phieu.diemTheoNangLuc) {
-                    Object.keys(d.phieu.diemTheoNangLuc).forEach(function (k) { st.diem[k.toLowerCase()] = so(d.phieu.diemTheoNangLuc[k]); });
-                }
+                st.dsTieuChi = d.dsTieuChi || [];
                 st.khoa = !!(d.phieu && d.phieu.trangThai === 'completed');
                 veThongTin();
-                veBoLoc();
                 veKpi();
-                veNangLuc();
+                veTieuChi();
+                veP3();
                 $('tdgTrangThai').hidden = true;
                 $('tdgNoiDung').hidden = false;
                 chuyenBuoc(1);
@@ -84,28 +81,35 @@
 
     // ---------- Bước 1 ----------
     function veThongTin() {
-        var d = st.duLieu;
-        $('tdgHoTen').value = d.hoTen || '';
-        $('tdgMaNv').value = d.maNv || '';
-        $('tdgPhongBan').value = d.phongBan || '';
-        $('tdgCapBacHoSo').value = d.hoSo.capBac || '';
-        $('tdgNhomHoSo').value = d.hoSo.tenNhomCongViec || 'Chưa cập nhật';
-        $('tdgCanhBao').hidden = !!d.hoSo.dayDu;
+        var t = st.duLieu.thongTin || {};
+        $('tdgHoTen').value = t.hoTen || '';
+        $('tdgMaNv').value = t.maNv || '';
+        $('tdgChucVu').value = t.chucVu || '';
+        $('tdgPhongBan').value = t.phongBan || '';
         $('tdgDaKhoa').hidden = !st.khoa;
     }
 
-    // ---------- Bước 2: KPI ----------
+    // ---------- Bước 2: Part 1 ----------
     function veKpi() {
         var hop = $('tdgDsKpi');
         hop.textContent = '';
         if (!st.dsKpi.length) {
             hop.appendChild(el('div', { class: 'tdg-empty' }, [
-                el('div', { text: 'Chưa có KPI nào được phân công cho bạn.' }),
-                el('small', { text: 'Có thể bấm “Tiếp tục” để sang phần đánh giá năng lực. Liên hệ quản lý để được giao KPI.' })
+                el('div', { text: 'Chưa có nhiệm vụ / KPI nào được phân công cho bạn.' }),
+                el('small', { text: 'Có thể bấm “Tiếp tục” để sang Part 2. Liên hệ quản lý để được giao nhiệm vụ.' })
             ]));
         }
         st.dsKpi.forEach(function (k, i) { hop.appendChild(theKpi(k, i)); });
-        tinhTrongSo();
+        tinhP1();
+    }
+
+    function nutMuc(thuocTinh, id, giaTri, khoa) {
+        var hop = el('div', { class: 'tdg-muc' });
+        MUC.forEach(function (m) {
+            hop.appendChild(el('button', { type: 'button', title: TEN_MUC[m], 'data-muc': m, 'data-muc-cho': id, 'data-muc-loai': thuocTinh,
+                class: m === giaTri ? 'chon' : '', disabled: khoa, text: String(m) }));
+        });
+        return hop;
     }
 
     function theKpi(k, i) {
@@ -113,17 +117,17 @@
         return el('div', { class: 'tdg-kpi', 'data-kpi': id }, [
             el('div', { class: 'tdg-kpi-head' }, [el('span', { text: k.congViec }), el('span', { class: 'tdg-kpi-stt', text: '#' + (i + 1) })]),
             el('div', { class: 'tdg-grid2' }, [
-                el('label', { class: 'tdg-field' }, [el('span', { text: 'Chỉ số hiệu suất (KPI)' }),
+                el('label', { class: 'tdg-field' }, [el('span', { text: 'Key Performance Index — Hiệu suất' }),
                     taoTextarea('chiSoKpi', k.chiSoKpi, k.kpiGoiY)]),
-                el('label', { class: 'tdg-field' }, [el('span', { text: 'Kết quả' }),
+                el('label', { class: 'tdg-field' }, [el('span', { text: 'Result — Kết quả' }),
                     taoTextarea('ketQua', k.ketQua, k.ketQuaGoiY)])
             ]),
-            el('div', { class: 'tdg-kpi-row' }, [
-                el('label', { class: 'tdg-field' }, [el('span', { text: 'Trọng số (quản lý điền)' }),
+            el('div', { class: 'tdg-kpi-row tdg-kpi-row3' }, [
+                el('div', { class: 'tdg-field' }, [el('span', { text: 'Weight — Trọng số' }),
                     el('input', { type: 'number', class: 'form-control', value: fmt(so(k.trongSo)), disabled: true })]),
-                el('label', { class: 'tdg-field' }, [el('span', { text: 'Tự đánh giá (0–120%)' }),
-                    el('input', { type: 'number', class: 'form-control', min: 0, max: 120, step: 1, 'data-truong': 'diemTuDanhGia',
-                        value: k.diemTuDanhGia === null || k.diemTuDanhGia === undefined ? '' : fmt(so(k.diemTuDanhGia)), disabled: st.khoa })]),
+                el('div', { class: 'tdg-field' }, [el('span', { text: 'Self-Evaluation — Mức' }),
+                    nutMuc('tu', id, k.mucTuDanhGia, st.khoa),
+                    el('div', { class: 'tdg-muc-diem', 'data-diem-kpi': id })]),
                 el('div', { class: 'tdg-field' }, [el('span', { text: 'Minh chứng (ảnh / tài liệu)' }), vungAnh(k)])
             ])
         ]);
@@ -164,20 +168,38 @@
         if (k && cu) cu.replaceWith(vungAnh(k));
     }
 
-    function tinhTrongSo() {
-        var tong = st.dsKpi.reduce(function (s, k) { return s + so(k.trongSo); }, 0);
-        $('tdgTongTrongSo').textContent = fmt(tong);
+    function diemP1() {
+        return st.dsKpi.reduce(function (s, k) { return s + so(k.trongSo) * so(k.mucTuDanhGia) / 5; }, 0);
     }
 
-    // Đọc lại giá trị đang nhập trên DOM vào st.dsKpi
+    function tinhP1() {
+        var tong = st.dsKpi.reduce(function (s, k) { return s + so(k.trongSo); }, 0);
+        $('tdgTongTrongSo').textContent = fmt(tong);
+        st.dsKpi.forEach(function (k) {
+            var o = document.querySelector('[data-diem-kpi="' + k.idKpiMau + '"]');
+            if (!o) return;
+            o.textContent = '';
+            o.appendChild(document.createTextNode('Score: '));
+            o.appendChild(el('b', { text: coGiaTri(k.mucTuDanhGia) ? fmt(so(k.trongSo) * k.mucTuDanhGia / 5) : '—' }));
+        });
+        $('tdgDiemP1').textContent = fmt(diemP1());
+    }
+
+    function datMuc(id, m) {
+        var k = st.dsKpi.find(function (x) { return x.idKpiMau === id; });
+        if (!k) return;
+        k.mucTuDanhGia = m;
+        document.querySelectorAll('[data-muc-cho="' + id + '"]').forEach(function (b) { b.classList.toggle('chon', so(b.getAttribute('data-muc')) === m); });
+        tinhP1();
+    }
+
+    // Đọc lại chữ đang nhập trên DOM vào st.dsKpi (mức đã cập nhật ngay khi bấm)
     function docKpi() {
         st.dsKpi.forEach(function (k) {
             var the = document.querySelector('.tdg-kpi[data-kpi="' + k.idKpiMau + '"]');
             if (!the) return;
             k.chiSoKpi = the.querySelector('[data-truong="chiSoKpi"]').value;
             k.ketQua = the.querySelector('[data-truong="ketQua"]').value;
-            var d = the.querySelector('[data-truong="diemTuDanhGia"]').value;
-            k.diemTuDanhGia = d === '' ? null : so(d);
         });
     }
 
@@ -236,156 +258,76 @@
             .catch(function (e) { nut.disabled = false; Swal.fire({ icon: 'error', text: e.message }); });
     }
 
-    // ---------- Bước 3: năng lực ----------
-    function veBoLoc() {
-        var d = st.duLieu;
-        var selCap = $('tdgCapBac');
-        selCap.textContent = '';
-        var dsCap = (d.dsCapBac || []).slice();
-        if (d.boLoc.capBac && dsCap.indexOf(d.boLoc.capBac) < 0) dsCap.push(d.boLoc.capBac);
-        dsCap.forEach(function (c) { selCap.appendChild(el('option', { value: c, text: c })); });
-        selCap.value = d.boLoc.capBac || '';
-
-        var selNhom = $('tdgNhomCongViec');
-        while (selNhom.options.length > 1) selNhom.remove(1);
-        (d.dsNhomCongViec || []).forEach(function (n) { selNhom.appendChild(el('option', { value: n.id, text: n.ten })); });
-        selNhom.value = d.boLoc.idNhomCongViec || '';
-
-        selCap.disabled = selNhom.disabled = st.khoa;
-    }
-
-    function doiBoLoc() {
-        var cap = $('tdgCapBac').value;
-        var nhom = $('tdgNhomCongViec').value;
-        var hop = $('tdgDsNhomNangLuc');
+    // ---------- Bước 3: Part 2 ----------
+    function veTieuChi() {
+        var hop = $('tdgDsTieuChi');
         hop.textContent = '';
-        hop.appendChild(el('div', { class: 'tdg-loading' }, [el('i', { class: 'fa fa-spinner fa-spin' }), ' Đang tải danh sách năng lực...']));
-        var url = '/QLCongViec/DanhGia/NangLuc?capBac=' + encodeURIComponent(cap) + (nhom ? '&idNhomCongViec=' + encodeURIComponent(nhom) : '');
-        goiApi(url, { headers: { 'Accept': 'application/json' } })
-            .then(function (kq) { st.dsNhom = kq.duLieu || []; veNangLuc(); })
-            .catch(function (e) {
-                hop.textContent = '';
-                hop.appendChild(el('div', { class: 'tdg-empty', text: e.message }));
-            });
-    }
-
-    function lopGap(g) { return g > 0 ? 'duong' : (g < 0 ? 'am' : 'bang'); }
-    function chuGap(g) { return 'GAP: ' + (g > 0 ? '+' : '') + fmt(g); }
-
-    function veNangLuc() {
-        var hop = $('tdgDsNhomNangLuc');
-        hop.textContent = '';
-        if (!st.dsNhom.length) {
+        if (!st.dsTieuChi.length) {
             hop.appendChild(el('div', { class: 'tdg-empty' }, [
-                el('div', { text: 'Không có năng lực nào cho bộ lọc hiện tại.' }),
-                el('small', { text: 'Thử đổi cấp bậc hoặc nhóm công việc.' })
+                el('div', { text: 'Chưa có tiêu chí năng lực nào cho bạn.' }),
+                el('small', { text: 'Quản lý đặt tiêu chí ở “Hồ sơ & KPI”. Có thể bấm “Tiếp tục” sang Part 3.' })
             ]));
         }
-        st.dsNhom.forEach(function (g) {
-            var than = el('div', { class: 'tdg-group-body' });
-            g.dsNangLuc.forEach(function (n) { than.appendChild(dongNangLuc(n)); });
-            hop.appendChild(el('div', { class: 'tdg-group', 'data-nhom': g.idNhom }, [
-                el('button', { type: 'button', class: 'tdg-group-head', 'data-mo-nhom': g.idNhom }, [
-                    el('span', null, [g.ten + ' ', el('small', { 'data-tong-nhom': g.idNhom })]),
-                    el('i', { class: 'fa fa-chevron-up' })
-                ]),
-                than
+        st.dsTieuChi.forEach(function (t) {
+            var o = el('input', { type: 'number', class: 'form-control form-control-sm', min: 0, max: t.diemToiDa, step: 0.5,
+                'data-tc-diem': t.idTieuChi, value: coGiaTri(t.diem) ? fmt(so(t.diem)) : '', disabled: st.khoa });
+            var tomTat = el('textarea', { class: 'form-control', 'data-tc-tomtat': t.idTieuChi, maxlength: 8000,
+                placeholder: 'Tóm tắt và một vài ví dụ cụ thể...', disabled: st.khoa });
+            tomTat.value = t.tomTat || '';
+            hop.appendChild(el('div', { class: 'tdg-tc' }, [
+                el('div', { class: 'tdg-tc-head' }, [el('span', { text: t.ten }), el('span', { class: 'tdg-tc-max', text: 'Tối đa ' + fmt(so(t.diemToiDa)) + ' điểm' })]),
+                t.moTa ? el('div', { class: 'tdg-tc-mota', text: t.moTa }) : null,
+                el('label', { class: 'tdg-field' }, [el('span', { text: 'Summary and some examples — Tóm tắt / ví dụ' }), tomTat]),
+                el('div', { class: 'tdg-tc-diem' }, [el('span', { text: 'Self-Evaluation:' }), o, el('span', { class: 'text-muted', text: '/ ' + fmt(so(t.diemToiDa)) })])
             ]));
-            capNhatNhom(g);
         });
-        capNhatTong();
+        $('tdgToiDaP2').textContent = fmt(st.dsTieuChi.reduce(function (s, t) { return s + so(t.diemToiDa); }, 0) || 50);
+        tinhP2();
     }
 
-    function dongNangLuc(n) {
-        var id = n.idNangLuc.toLowerCase();
-        var diem = st.diem[id] || 0;
-        var nhanh = el('div', { class: 'tdg-nhanh' });
-        DIEM_NHANH.forEach(function (v) {
-            nhanh.appendChild(el('button', { type: 'button', 'data-diem-nhanh': v, 'data-nl': id, class: v === diem ? 'chon' : '', disabled: st.khoa, text: String(v) }));
+    function diemP2() { return st.dsTieuChi.reduce(function (s, t) { return s + so(t.diem); }, 0); }
+    function tinhP2() { $('tdgDiemP2').textContent = fmt(diemP2()); }
+
+    function docTieuChi() {
+        st.dsTieuChi.forEach(function (t) {
+            var o = document.querySelector('[data-tc-diem="' + t.idTieuChi + '"]');
+            var tt = document.querySelector('[data-tc-tomtat="' + t.idTieuChi + '"]');
+            if (o) t.diem = o.value === '' ? null : so(o.value);
+            if (tt) t.tomTat = tt.value;
         });
-        var gap = diem - so(n.diemYeuCau);
-        return el('div', { class: 'tdg-nl', 'data-nl-dong': id }, [
-            el('div', { class: 'tdg-nl-info' }, [
-                el('div', { class: 'tdg-nl-ten', title: n.moTa || '' }, [el('b', { text: n.ma }), n.ten]),
-                el('div', { class: 'tdg-nl-meta' }, ['Yêu cầu: ' + fmt(so(n.diemYeuCau)),
-                    el('span', { class: 'tdg-gap ' + lopGap(gap), 'data-gap': id, text: chuGap(gap) })])
-            ]),
-            el('div', { class: 'tdg-nl-diem' }, [
-                el('input', { type: 'number', class: 'form-control form-control-sm', min: 0, max: 10, step: 0.1, value: fmt(diem), 'data-nl': id, disabled: st.khoa }),
-                nhanh
-            ])
-        ]);
     }
 
-    function timNangLuc(id) {
-        for (var i = 0; i < st.dsNhom.length; i++) {
-            var n = st.dsNhom[i].dsNangLuc.find(function (x) { return x.idNangLuc.toLowerCase() === id; });
-            if (n) return { nhom: st.dsNhom[i], nl: n };
-        }
-        return null;
+    // ---------- Bước 4: Part 3 ----------
+    function veP3() {
+        var p = st.duLieu.phieu || {};
+        Object.keys(P3).forEach(function (k) { var o = $(P3[k]); o.value = p[k] || ''; o.disabled = st.khoa; });
     }
 
-    function datDiem(id, v, tuO) {
-        v = Math.max(0, Math.min(10, so(v)));
-        st.diem[id] = v;
-        var dong = document.querySelector('[data-nl-dong="' + id + '"]');
-        var tim = timNangLuc(id);
-        if (!dong || !tim) return;
-        if (!tuO) dong.querySelector('input[data-nl]').value = fmt(v);
-        dong.querySelectorAll('[data-diem-nhanh]').forEach(function (b) { b.classList.toggle('chon', so(b.getAttribute('data-diem-nhanh')) === v); });
-        var gap = v - so(tim.nl.diemYeuCau);
-        var o = dong.querySelector('[data-gap]');
-        o.className = 'tdg-gap ' + lopGap(gap);
-        o.textContent = chuGap(gap);
-        capNhatNhom(tim.nhom);
-        capNhatTong();
-    }
-
-    function capNhatNhom(g) {
-        var thuc = 0, yc = 0;
-        g.dsNangLuc.forEach(function (n) { thuc += st.diem[n.idNangLuc.toLowerCase()] || 0; yc += so(n.diemYeuCau); });
-        var o = document.querySelector('[data-tong-nhom="' + g.idNhom + '"]');
-        if (o) o.textContent = '• ' + g.dsNangLuc.length + ' năng lực • ' + fmt(thuc) + '/' + fmt(yc) + ' • ' + chuGap(thuc - yc);
-    }
-
-    function tongNangLuc() {
-        var thuc = 0, yc = 0, soDaCham = 0;
-        st.dsNhom.forEach(function (g) {
-            g.dsNangLuc.forEach(function (n) {
-                var id = n.idNangLuc.toLowerCase();
-                thuc += st.diem[id] || 0;
-                yc += so(n.diemYeuCau);
-                if (st.diem[id] !== undefined) soDaCham++;
-            });
-        });
-        return { thuc: thuc, yc: yc, soDaCham: soDaCham };
-    }
-
-    function capNhatTong() {
-        var t = tongNangLuc();
-        $('tdgTongNangLuc').textContent = 'Tổng điểm: ' + fmt(t.thuc) + ' / yêu cầu ' + fmt(t.yc) + ' — ' + chuGap(t.thuc - t.yc);
-    }
-
-    // ---------- Bước 4 ----------
-    function xepLoai(gap) {
-        if (gap >= 1) return 'Vượt chuẩn';
-        if (gap >= 0) return 'Đạt chuẩn';
-        if (gap >= -1) return 'Cần cải thiện';
+    // ---------- Bước 5 ----------
+    function xepLoai(chenh) {
+        if (chenh >= 20) return 'Vượt chuẩn';
+        if (chenh >= 0) return 'Đạt chuẩn';
+        if (chenh >= -20) return 'Cần cải thiện';
         return 'Chưa đạt';
     }
 
     function veTomTat() {
-        var t = tongNangLuc();
-        var diemKpi = st.dsKpi.reduce(function (s, k) { return s + so(k.trongSo) * so(k.diemTuDanhGia) / 100; }, 0);
-        var gap = diemKpi + t.thuc - t.yc;
-        $('tdgSoKpi').textContent = st.dsKpi.length;
-        $('tdgSoNangLuc').textContent = t.soDaCham;
-        $('tdgDiemNangLuc').textContent = fmt(t.thuc) + ' / ' + fmt(t.yc);
-        $('tdgGap').textContent = (gap > 0 ? '+' : '') + fmt(gap);
-        $('tdgXepLoai').textContent = xepLoai(gap);
+        var p1 = diemP1(), p2 = diemP2(), tong = p1 + p2;
+        $('tdgTkP1').textContent = fmt(p1) + ' / 50';
+        $('tdgTkP2').textContent = fmt(p2) + ' / 50';
+        $('tdgTkTong').textContent = fmt(tong);
+        $('tdgXepLoai').textContent = xepLoai(tong - 60);
         var p = st.duLieu.phieu;
         $('tdgDaNop').hidden = !(p && p.ngayNop);
         if (p && p.ngayNop) $('tdgNgayNop').textContent = 'lúc ' + new Date(p.ngayNop).toLocaleString('vi-VN');
+
+        var thieu = [];
+        var soKpiThieu = st.dsKpi.filter(function (k) { return !coGiaTri(k.mucTuDanhGia); }).length;
+        var soTcThieu = st.dsTieuChi.filter(function (t) { return !coGiaTri(t.diem); }).length;
+        if (soKpiThieu) thieu.push(soKpiThieu + ' nhiệm vụ Part 1 chưa chọn mức');
+        if (soTcThieu) thieu.push(soTcThieu + ' tiêu chí Part 2 chưa chấm');
+        $('tdgThieu').hidden = !thieu.length || st.khoa;
+        $('tdgThieuChu').textContent = 'Cần hoàn tất trước khi gửi: ' + thieu.join('; ') + '.';
     }
 
     // ---------- Điều hướng bước + lưu ----------
@@ -398,7 +340,7 @@
             li.classList.toggle('dat', n <= b);
             li.classList.toggle('qua', n < b);
         });
-        if (b === 4) veTomTat();
+        if (b === SO_BUOC) veTomTat();
         $('tdgQuayLai').disabled = b === 1;
         var nut = $('tdgTiepTuc');
         nut.textContent = '';
@@ -417,24 +359,18 @@
         else window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    function docTatCa() { docKpi(); docTieuChi(); }
+
     function goiLuu(hoanThanh) {
-        docKpi();
-        var dsNangLuc = [];
-        st.dsNhom.forEach(function (g) {
-            g.dsNangLuc.forEach(function (n) {
-                var id = n.idNangLuc.toLowerCase();
-                if (st.diem[id] !== undefined) dsNangLuc.push({ idNangLuc: n.idNangLuc, diem: st.diem[id] });
-            });
-        });
+        docTatCa();
         var body = {
-            capBac: $('tdgCapBac').value,
-            idNhomCongViec: $('tdgNhomCongViec').value || null,
-            dsNangLuc: dsNangLuc,
             dsKpi: st.dsKpi.map(function (k) {
-                return { idKpiMau: k.idKpiMau, chiSoKpi: k.chiSoKpi, ketQua: k.ketQua, diemTuDanhGia: k.diemTuDanhGia };
+                return { idKpiMau: k.idKpiMau, chiSoKpi: k.chiSoKpi, ketQua: k.ketQua, mucTuDanhGia: coGiaTri(k.mucTuDanhGia) ? k.mucTuDanhGia : null };
             }),
+            dsTieuChi: st.dsTieuChi.map(function (t) { return { idTieuChi: t.idTieuChi, tomTat: t.tomTat, diem: t.diem }; }),
             hoanThanh: !!hoanThanh
         };
+        Object.keys(P3).forEach(function (k) { body[k] = $(P3[k]).value; });
         return goiApi('/QLCongViec/DanhGia/Luu', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token() },
@@ -451,10 +387,10 @@
         // Bước 1 chỉ xem; phiếu đã khoá thì không lưu nữa
         if (b === 1 || st.khoa) { if (b < SO_BUOC) chuyenBuoc(b + 1); return; }
 
-        if (b === 2) {
-            docKpi();
-            var sai = st.dsKpi.some(function (k) { return k.diemTuDanhGia !== null && (k.diemTuDanhGia < 0 || k.diemTuDanhGia > 120); });
-            if (sai) { baoLoi('Tự đánh giá KPI phải trong khoảng 0–120%.'); return; }
+        if (b === 3) {
+            docTieuChi();
+            var sai = st.dsTieuChi.filter(function (t) { return coGiaTri(t.diem) && (t.diem < 0 || t.diem > so(t.diemToiDa)); })[0];
+            if (sai) { baoLoi('Điểm “' + sai.ten + '” phải trong khoảng 0–' + fmt(so(sai.diemToiDa)) + '.'); return; }
         }
 
         var nut = $('tdgTiepTuc');
@@ -490,11 +426,9 @@
     document.addEventListener('click', function (e) {
         var t = e.target;
         if (t.closest('#tdgTiepTuc')) { e.preventDefault(); tiepTuc(); return; }
-        if (t.closest('#tdgQuayLai')) { e.preventDefault(); if (st.buoc > 1 && !st.dangLuu) { docKpi(); chuyenBuoc(st.buoc - 1); } return; }
-        var nhanh = t.closest('[data-diem-nhanh]');
-        if (nhanh && !st.khoa) { datDiem(nhanh.getAttribute('data-nl'), nhanh.getAttribute('data-diem-nhanh')); return; }
-        var moNhom = t.closest('[data-mo-nhom]');
-        if (moNhom) { moNhom.parentNode.classList.toggle('dong'); return; }
+        if (t.closest('#tdgQuayLai')) { e.preventDefault(); if (st.buoc > 1 && !st.dangLuu) { docTatCa(); chuyenBuoc(st.buoc - 1); } return; }
+        var muc = t.closest('#tdg [data-muc]');
+        if (muc && !st.khoa) { datMuc(muc.getAttribute('data-muc-cho'), so(muc.getAttribute('data-muc'))); return; }
         var xoa = t.closest('[data-xoa-anh]');
         if (xoa) { goAnh(xoa); return; }
         var dan = t.closest('[data-dan-file]');
@@ -508,20 +442,16 @@
     });
 
     document.addEventListener('input', function (e) {
-        var o = e.target.closest('input[data-nl]');
-        if (o && !st.khoa) datDiem(o.getAttribute('data-nl'), o.value, true);
+        if (e.target.matches('[data-tc-diem]')) { docTieuChi(); tinhP2(); }
     });
 
     document.addEventListener('change', function (e) {
         var t = e.target;
-        if (t.matches('input[data-nl]')) { datDiem(t.getAttribute('data-nl'), t.value); return; }
         if (t.matches('[data-tai-anh]')) {
             var f = t.files && t.files[0];
             t.value = '';
             taiAnh(t.getAttribute('data-tai-anh'), f);
-            return;
         }
-        if (t.id === 'tdgCapBac' || t.id === 'tdgNhomCongViec') doiBoLoc();
     });
 
     // Ctrl+V khi ô dán đang được chọn (focus)

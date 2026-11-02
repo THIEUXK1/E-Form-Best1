@@ -256,3 +256,30 @@ html.fp-lock .fp-grow[hidden] {
 .tdg-them-cap-goi-y { flex-basis: 100%; color: #64748b; }
 .tdg-them-cap .tdg-loi:empty { display: none; }
 .tdg-them-cap .tdg-loi { flex-basis: 100%; }
+
+/* ---------- Mẫu Excel 2025: Part 1 chấm mức 1–5, Part 2 tiêu chí, Part 3 kế hoạch ---------- */
+.tdg-thang { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.78rem; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 7px 10px; margin-bottom: 10px; }
+.tdg-thang b { color: #0b3c5d; }
+.tdg-muc { display: flex; gap: 4px; flex-wrap: wrap; }
+.tdg-muc button { min-width: 38px; height: 34px; padding: 0 8px; font-size: 0.85rem; font-weight: 700; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #334155; }
+.tdg-muc button.chon { background: #0b3c5d; border-color: #0b3c5d; color: #fff; }
+.tdg-muc button:disabled { opacity: .65; }
+.tdg-muc-diem { font-size: 0.8rem; color: #475569; margin-top: 4px; }
+.tdg-muc-diem b { color: #0b3c5d; }
+.tdg-kpi-row.tdg-kpi-row3 { grid-template-columns: 0.7fr 1.3fr 2fr; }
+.tdg-tc { border: 1px solid #e2e8f0; border-left: 4px solid #8b5cf6; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
+.tdg-tc-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-weight: 700; color: #0b3c5d; margin-bottom: 6px; }
+.tdg-tc-max { font-size: 0.75rem; background: #f5f3ff; color: #6d28d9; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+.tdg-tc-mota { font-size: 0.8rem; color: #64748b; white-space: pre-wrap; margin-bottom: 6px; }
+.tdg-tc-diem { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.tdg-tc-diem input { width: 90px; }
+.tdg-tc textarea, .tdg-p3 textarea { min-height: 90px; font-size: 0.84rem; }
+.tdg-p3 textarea { min-height: 130px; }
+.tdg-tong-phan { display: flex; justify-content: flex-end; gap: 18px; flex-wrap: wrap; color: #475569; font-size: 0.9rem; }
+.tdg-tong-phan b { color: #0b3c5d; }
+.tdg-tong-phan .vuot { color: #b91c1c; }
+.tdg-hs-tc { display: grid; grid-template-columns: 1.3fr 2fr 90px 34px; gap: 6px; align-items: start; margin-bottom: 6px; }
+.tdg-hs-tc textarea { min-height: 38px; font-size: 0.82rem; }
+@media (max-width: 768px) {
+    .tdg-kpi-row.tdg-kpi-row3, .tdg-hs-tc { grid-template-columns: 1fr; }
+}

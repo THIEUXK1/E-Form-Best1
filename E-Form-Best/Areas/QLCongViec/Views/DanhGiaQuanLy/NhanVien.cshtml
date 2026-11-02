@@ -4,7 +4,7 @@
 }
 
 <link rel="stylesheet" href="~/css/fixed-page-layout.css" />
-<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=6" />
+<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=7" />
 
 <div id="qlnv" class="tdg tdg-rong fp-page">
     <div class="tdg-toolbar">
@@ -15,6 +15,7 @@
         <form class="tdg-them" id="qlnvFormThem" autocomplete="off">
             <input type="text" class="form-control" id="qlnvMaThem" placeholder="Mã NV, vd V240298" maxlength="20" />
             <button type="submit" class="btn btn-primary tdg-btn-main" style="min-width:0"><i class="fa fa-user-plus"></i> Thêm</button>
+            <a class="btn btn-outline-success" href="/QLCongViec/DanhGia/QuanLy/ExcelTatCa" title="Mỗi nhân viên 1 sheet theo mẫu Performance Evaluation Form 2025"><i class="fa fa-file-excel-o"></i> Excel tất cả</a>
         </form>
     </div>
 
@@ -45,7 +46,7 @@
     </div>
 </div>
 
-@* Hộp sửa hồ sơ: cấp bậc, nhóm công việc, KPI giao *@
+@* Hộp sửa hồ sơ: cấp bậc, nhóm công việc, KPI giao (Part 1), tiêu chí năng lực (Part 2) *@
 <div class="modal fade" id="qlnvModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
@@ -79,6 +80,11 @@
                         <label class="form-check-label small"><input type="checkbox" class="form-check-input" id="qlnvTatCaNhom" /> Hiện KPI mọi nhóm công việc</label>
                     </div>
                     <div class="tdg-kpi-chon" id="qlnvDsKpi"></div>
+                    <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+                        <b>Tiêu chí năng lực Part 2 — tổng điểm tối đa <span id="qlnvTongTc">0</span> / 50</b>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="qlnvThemTc"><i class="fa fa-plus"></i> Thêm tiêu chí</button>
+                    </div>
+                    <div id="qlnvDsTc"></div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -91,6 +97,6 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/quan-ly-nhan-vien-danh-gia.js?v=5"></script>
+    <script src="~/js/quan-ly-nhan-vien-danh-gia.js?v=6"></script>
     <script src="~/js/fixed-page-layout.js" defer></script>
 }

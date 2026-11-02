@@ -63,7 +63,127 @@
     letter-spacing: 0.3px;
 }
 
+/* Băng lời chúc — chỉ hiện ở đợt CAO ĐIỂM (đúng ngày lễ ±1 ngày), do JS tạo */
+#loiChucLe {
+    position: fixed;
+    top: 32px;
+    left: 50%;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: calc(100vw - 32px);
+    padding: 10px 26px;
+    border-radius: 50px;
+    background: rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 30px -6px var(--mau-loi-chuc, #fff);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -12px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+    #loiChucLe.hien {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+
+    /* Chữ ánh kim chạy ngang theo màu chủ đề */
+    #loiChucLe .chu {
+        background: linear-gradient(90deg, #ffffff, var(--mau-loi-chuc, #fde68a), #ffffff);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: anhKimLoiChuc 3s linear infinite;
+    }
+
+    #loiChucLe .bieu-tuong {
+        font-size: 20px;
+        animation: nayBieuTuong 2s ease-in-out infinite;
+    }
+
+@keyframes anhKimLoiChuc {
+    to { background-position: 200% center; }
+}
+
+@keyframes nayBieuTuong {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-3px) scale(1.12); }
+}
+
+/* Màn nhỏ: nút hai góc trên chiếm chỗ -> đưa băng chúc xuống mép dưới */
+@media (max-width: 1100px) {
+    #loiChucLe {
+        top: auto;
+        bottom: 20px;
+        white-space: normal;
+        text-align: center;
+        font-size: 14px;
+        padding: 8px 18px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #loiChucLe .chu,
+    #loiChucLe .bieu-tuong {
+        animation: none;
+    }
+}
+
+/* Ô xem trước chủ đề (chỉ quyền All) */
+#khungXemTruocHieuUng {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+    #khungXemTruocHieuUng select,
+    #khungXemTruocHieuUng button {
+        padding: 8px 12px;
+        border-radius: 50px;
+        background: rgba(0, 12, 24, 0.6);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: #e2e8f0;
+        font-size: 12px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+    }
+
+    #khungXemTruocHieuUng option,
+    #khungXemTruocHieuUng optgroup {
+        background: #0b1a2b;
+        color: #e2e8f0;
+    }
+
+    #khungXemTruocHieuUng button {
+        border-color: rgba(251, 191, 36, 0.5);
+        color: #fbbf24;
+    }
+
+        #khungXemTruocHieuUng button:hover {
+            background: rgba(251, 191, 36, 0.15);
+        }
+
+    #khungXemTruocHieuUng button[hidden] {
+        display: none;
+    }
+
 @media (max-width: 768px) {
+    #khungXemTruocHieuUng {
+        flex-wrap: wrap;
+    }
+
     #btnHieuUngMua {
         padding: 8px 14px;
         font-size: 12px;

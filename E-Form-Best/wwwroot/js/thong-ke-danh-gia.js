@@ -161,9 +161,9 @@
             data: {
                 labels: dsNhom,
                 datasets: [
-                    { label: 'KPI trung bình', backgroundColor: '#65a30d', data: tbTheo('diemKpi') },
-                    { label: 'Năng lực trung bình', backgroundColor: '#8b5cf6', data: tbTheo('diemNangLuc') },
-                    { label: 'GAP trung bình', backgroundColor: '#f97316', data: tbTheo('chenhLech') }
+                    { label: 'Part I trung bình', backgroundColor: '#65a30d', data: tbTheo('diemKpi') },
+                    { label: 'Part II trung bình', backgroundColor: '#8b5cf6', data: tbTheo('diemNangLuc') },
+                    { label: 'Chênh lệch chuẩn 60 (TB)', backgroundColor: '#f97316', data: tbTheo('chenhLech') }
                 ]
             },
             options: {

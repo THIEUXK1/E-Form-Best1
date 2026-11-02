@@ -6,12 +6,12 @@ using Microsoft.EntityFrameworkCore;
 namespace E_Form_Best.Areas.QLCongViec.Services
 {
     /// <summary>
-    /// Tự đánh giá hiệu suất (chuyển từ app evaluation NestJS/PostgreSQL về E-Form).
-    /// Cách tính giữ như app cũ (evaluation.service.ts saveSelfEvaluation):
-    ///   điểm năng lực = tổng điểm tự chấm; điểm thực tế = điểm KPI + điểm năng lực;
-    ///   chênh lệch = thực tế − tổng điểm yêu cầu của cấp bậc/nhóm công việc → xếp loại.
-    /// Riêng điểm KPI: app cũ luôn gửi 0; ở đây tính Σ(trọng số × % tự đánh giá / 100), trọng số do quản lý
-    /// điền nên khi chưa có trọng số kết quả vẫn là 0 như cũ.
+    /// Tự đánh giá hiệu suất theo mẫu "IT_Biểu đánh giá nhân viên 2025.xlsx" (từ 02/11/2026; trước đó theo app evaluation cũ):
+    ///   Part 1 (50đ): KPI được giao, chấm mức 1–5, điểm dòng = trọng số × mức / 5, tổng trọng số do quản lý đặt = 50.
+    ///   Part 2 (50đ): tiêu chí năng lực riêng từng người (DG_TieuChiNangLuc), chấm 0 → điểm tối đa của tiêu chí.
+    ///   Part 3: điểm mạnh, điểm yếu, lộ trình 1–3 năm, kế hoạch phát triển 1 năm (chữ, không tính điểm).
+    ///   Tổng = Part 1 + Part 2 (thang 100). Chuẩn = mức 3 "As a standard" = 60/100 → chênh lệch = tổng − 60 → xếp loại.
+    /// Cột cũ (diem_tu_danh_gia %, DG_PhieuNangLuc, ma trận cấp bậc) giữ nguyên trong DB, code không ghi nữa.
     /// </summary>
     public class DanhGiaService
     {
@@ -19,8 +19,10 @@ namespace E_Form_Best.Areas.QLCongViec.Services
         public const string LoaiQuanLy = "manager";
         // App cũ dùng 6B khi nhân viên chưa được gán cấp bậc
         public const string CapBacMacDinh = "6B";
-        public const decimal DiemNangLucToiDa = 10m;
-        public const decimal DiemKpiToiDa = 120m;
+        public const decimal DiemMoiPhan = 50m;
+        public const int MucToiDa = 5;
+        public const decimal DiemChuan = 60m;
+        public const int DoDaiChuToiDa = 8000;
 
         private readonly ITFormContext _context;
 
@@ -36,25 +38,17 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             public string CapBac { get; set; } = CapBacMacDinh;
             public Guid? IdNhomCongViec { get; set; }
             public string? TenNhomCongViec { get; set; }
-            // false = chưa được gán cấp bậc hoặc nhóm công việc → giao diện báo dùng mặc định
+            // false = chưa được gán cấp bậc hoặc nhóm công việc
             public bool DayDu { get; set; }
         }
 
-        public class NangLucDto
+        /// <summary>Đầu phiếu như mẫu Excel: Name / Employee ID / Position / Section / Department.</summary>
+        public class ThongTinNhanVien
         {
-            public Guid IdNangLuc { get; set; }
-            public string Ma { get; set; } = "";
-            public string Ten { get; set; } = "";
-            public string? MoTa { get; set; }
-            public decimal DiemYeuCau { get; set; }
-        }
-
-        public class NhomNangLucDto
-        {
-            public Guid IdNhom { get; set; }
-            public string Ma { get; set; } = "";
-            public string Ten { get; set; } = "";
-            public List<NangLucDto> DsNangLuc { get; set; } = new();
+            public string MaNv { get; set; } = "";
+            public string HoTen { get; set; } = "";
+            public string? ChucVu { get; set; }
+            public string? PhongBan { get; set; }
         }
 
         public class KpiDto
@@ -66,9 +60,19 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             public string? ChiSoKpi { get; set; }
             public string? KetQua { get; set; }
             public decimal TrongSo { get; set; }
-            public decimal? DiemTuDanhGia { get; set; }
+            public byte? MucTuDanhGia { get; set; }
             public bool CoAnh { get; set; }
             public bool LaAnh { get; set; }
+        }
+
+        public class TieuChiDto
+        {
+            public Guid IdTieuChi { get; set; }
+            public string Ten { get; set; } = "";
+            public string? MoTa { get; set; }
+            public decimal DiemToiDa { get; set; }
+            public string? TomTat { get; set; }
+            public decimal? Diem { get; set; }
         }
 
         // Minh chứng KPI nhận cả tài liệu: client dựa vào đây để chọn hiện ảnh thu nhỏ hay link tải
@@ -82,23 +86,17 @@ namespace E_Form_Best.Areas.QLCongViec.Services
         {
             public Guid IdPhieu { get; set; }
             public string TrangThai { get; set; } = "";
-            public string? CapBac { get; set; }
-            public Guid? IdNhomCongViec { get; set; }
             public decimal? DiemKpi { get; set; }
             public decimal? DiemNangLuc { get; set; }
-            public decimal? TongYeuCau { get; set; }
             public decimal? DiemThucTe { get; set; }
             public decimal? ChenhLech { get; set; }
             public string? XepLoai { get; set; }
             public DateTime? NgayNop { get; set; }
             public DateTime? NgayCapNhat { get; set; }
-            public Dictionary<Guid, decimal> DiemTheoNangLuc { get; set; } = new();
-        }
-
-        public class DiemNangLucVao
-        {
-            public Guid IdNangLuc { get; set; }
-            public decimal Diem { get; set; }
+            public string? DiemManh { get; set; }
+            public string? DiemYeu { get; set; }
+            public string? LoTrinh { get; set; }
+            public string? KeHoach { get; set; }
         }
 
         public class KpiVao
@@ -106,17 +104,61 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             public Guid IdKpiMau { get; set; }
             public string? ChiSoKpi { get; set; }
             public string? KetQua { get; set; }
-            public decimal? DiemTuDanhGia { get; set; }
+            public byte? MucTuDanhGia { get; set; }
+        }
+
+        public class TieuChiVao
+        {
+            public Guid IdTieuChi { get; set; }
+            public string? TomTat { get; set; }
+            public decimal? Diem { get; set; }
         }
 
         public class LuuTuDanhGiaVao
         {
-            public string? CapBac { get; set; }
-            public Guid? IdNhomCongViec { get; set; }
-            public List<DiemNangLucVao>? DsNangLuc { get; set; }
             public List<KpiVao>? DsKpi { get; set; }
+            public List<TieuChiVao>? DsTieuChi { get; set; }
+            public string? DiemManh { get; set; }
+            public string? DiemYeu { get; set; }
+            public string? LoTrinh { get; set; }
+            public string? KeHoach { get; set; }
             // true = bấm "Hoàn thành" (ghi ngày nộp); false = lưu nháp khi chuyển bước
             public bool HoanThanh { get; set; }
+        }
+
+        #endregion
+
+        #region Tính điểm
+
+        public static decimal DiemKpi(IEnumerable<(decimal TrongSo, byte? Muc)> ds)
+            => Math.Round(ds.Sum(x => x.TrongSo * (x.Muc ?? 0) / MucToiDa), 2);
+
+        public static string XepLoai(decimal chenhLech)
+        {
+            // Mốc theo thang mức của mẫu: ≥ mức 4 (80đ) vượt chuẩn, ≥ mức 3 (60đ) đạt, ≥ mức 2 (40đ) cần cải thiện
+            if (chenhLech >= 20) return "Vượt chuẩn";
+            if (chenhLech >= 0) return "Đạt chuẩn";
+            if (chenhLech >= -20) return "Cần cải thiện";
+            return "Chưa đạt";
+        }
+
+        /// <summary>Ghi điểm tổng hợp vào phiếu (Part 1 + Part 2, so với chuẩn 60).</summary>
+        public static void GanDiem(DgPhieuDanhGia p, decimal diemKpi, decimal diemNangLuc)
+        {
+            var tong = diemKpi + diemNangLuc;
+            p.DiemKpi = diemKpi;
+            p.DiemNangLuc = diemNangLuc;
+            p.TongYeuCau = DiemChuan;
+            p.DiemThucTe = tong;
+            p.ChenhLech = tong - DiemChuan;
+            p.XepLoai = XepLoai(tong - DiemChuan);
+        }
+
+        public static string? CatChu(string? s)
+        {
+            var t = s?.Trim();
+            if (string.IsNullOrEmpty(t)) return null;
+            return t.Length > DoDaiChuToiDa ? t[..DoDaiChuToiDa] : t;
         }
 
         #endregion
@@ -146,6 +188,25 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             return kq;
         }
 
+        /// <summary>Họ tên E-Form (kèm tên HRM khi khác, vd tên tiếng Trung như mẫu Excel), chức vụ + phòng ban theo HRM.</summary>
+        public async Task<ThongTinNhanVien> LayThongTinAsync(string maNv)
+        {
+            var u = await _context.Users.AsNoTracking().Where(x => x.Tk == maNv)
+                .Select(x => new { x.HoTen, x.PhongBan }).FirstOrDefaultAsync();
+            var h = await _context.HrmNhanViens.AsNoTracking().Where(x => x.MaNhanVien == maNv)
+                .Select(x => new { x.HoTen, x.ChucVu, x.PhongBan, x.PhongBanEn }).FirstOrDefaultAsync();
+            var ten = u?.HoTen ?? h?.HoTen ?? maNv;
+            if (u?.HoTen != null && !string.IsNullOrWhiteSpace(h?.HoTen) && !string.Equals(h.HoTen.Trim(), u.HoTen.Trim(), StringComparison.OrdinalIgnoreCase))
+                ten += " " + h.HoTen.Trim();
+            return new ThongTinNhanVien
+            {
+                MaNv = maNv,
+                HoTen = ten,
+                ChucVu = h?.ChucVu,
+                PhongBan = h?.PhongBanEn ?? h?.PhongBan ?? u?.PhongBan
+            };
+        }
+
         public Task<List<string>> DsCapBacAsync()
             => _context.DgMaTranYeuCaus.AsNoTracking()
                 .Select(x => x.CapBac).Distinct().OrderBy(x => x).ToListAsync();
@@ -156,59 +217,17 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                 .Select(x => new DgNhomCongViec { IdNhomCongViec = x.IdNhomCongViec, MaNhom = x.MaNhom, TenNhom = x.TenNhom })
                 .ToListAsync();
 
-        /// <summary>
-        /// Năng lực theo cấp bậc; có nhóm công việc thì lấy năng lực chung + năng lực riêng của nhóm đó
-        /// (giống getCompetencesByGradeAndJobGroup của app cũ). Không tự sinh ma trận khi thiếu cấp bậc —
-        /// app cũ ghi DB ngay trong lệnh GET, ở đây trả rỗng để giao diện báo.
-        /// </summary>
-        public async Task<List<NhomNangLucDto>> LayNangLucAsync(string capBac, Guid? idNhomCongViec)
+        public static PhieuDto? SangDto(DgPhieuDanhGia? p) => p == null ? null : new PhieuDto
         {
-            var dong = await (
-                from mt in _context.DgMaTranYeuCaus
-                join nl in _context.DgNangLucs on mt.IdNangLuc equals nl.IdNangLuc
-                join nh in _context.DgNhomNangLucs on nl.IdNhomNangLuc equals nh.IdNhomNangLuc
-                where mt.CapBac == capBac
-                      && (idNhomCongViec == null || nl.IdNhomCongViec == null || nl.IdNhomCongViec == idNhomCongViec)
-                orderby nh.MaNhom, nl.MaNangLuc
-                select new
-                {
-                    nh.IdNhomNangLuc, MaNhom = nh.MaNhom, TenNhom = nh.TenNhom,
-                    nl.IdNangLuc, nl.MaNangLuc, nl.TenNangLuc, nl.MoTa, mt.DiemYeuCau
-                }).AsNoTracking().ToListAsync();
-
-            return dong
-                .GroupBy(x => new { x.IdNhomNangLuc, x.MaNhom, x.TenNhom })
-                .Select(g => new NhomNangLucDto
-                {
-                    IdNhom = g.Key.IdNhomNangLuc,
-                    Ma = g.Key.MaNhom,
-                    Ten = g.Key.TenNhom,
-                    DsNangLuc = g.Select(x => new NangLucDto
-                    {
-                        IdNangLuc = x.IdNangLuc, Ma = x.MaNangLuc, Ten = x.TenNangLuc, MoTa = x.MoTa, DiemYeuCau = x.DiemYeuCau
-                    }).ToList()
-                }).ToList();
-        }
+            IdPhieu = p.IdPhieu, TrangThai = p.TrangThai,
+            DiemKpi = p.DiemKpi, DiemNangLuc = p.DiemNangLuc, DiemThucTe = p.DiemThucTe,
+            ChenhLech = p.ChenhLech, XepLoai = p.XepLoai, NgayNop = p.NgayNop, NgayCapNhat = p.NgayCapNhat,
+            DiemManh = p.DiemManh, DiemYeu = p.DiemYeu, LoTrinh = p.LoTrinh, KeHoach = p.KeHoach
+        };
 
         public async Task<PhieuDto?> LayPhieuTuDanhGiaAsync(string maNv)
-        {
-            var p = await _context.DgPhieuDanhGias.AsNoTracking()
-                .FirstOrDefaultAsync(x => x.MaNhanVien == maNv && x.Loai == LoaiTuDanhGia);
-            if (p == null) return null;
-
-            var diem = await _context.DgPhieuNangLucs.AsNoTracking()
-                .Where(x => x.IdPhieu == p.IdPhieu)
-                .Select(x => new { x.IdNangLuc, x.DiemThucTe })
-                .ToListAsync();
-
-            return new PhieuDto
-            {
-                IdPhieu = p.IdPhieu, TrangThai = p.TrangThai, CapBac = p.CapBac, IdNhomCongViec = p.IdNhomCongViec,
-                DiemKpi = p.DiemKpi, DiemNangLuc = p.DiemNangLuc, TongYeuCau = p.TongYeuCau, DiemThucTe = p.DiemThucTe,
-                ChenhLech = p.ChenhLech, XepLoai = p.XepLoai, NgayNop = p.NgayNop, NgayCapNhat = p.NgayCapNhat,
-                DiemTheoNangLuc = diem.ToDictionary(x => x.IdNangLuc, x => x.DiemThucTe)
-            };
-        }
+            => SangDto(await _context.DgPhieuDanhGias.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.MaNhanVien == maNv && x.Loai == LoaiTuDanhGia));
 
         /// <summary>KPI được giao (còn hiệu lực), ghép phần đã nhập trong phiếu nếu có.</summary>
         public async Task<List<KpiDto>> LayKpiAsync(string maNv, Guid? idPhieu)
@@ -240,24 +259,38 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                     ChiSoKpi = k != null ? k.ChiSoKpi : m.KpiGoiY,
                     KetQua = k != null ? k.KetQua : m.KetQuaGoiY,
                     TrongSo = k?.TrongSo ?? m.TrongSoBoPhan ?? 0,
-                    DiemTuDanhGia = k?.DiemTuDanhGia,
+                    MucTuDanhGia = k?.MucTuDanhGia,
                     CoAnh = !string.IsNullOrEmpty(k?.AnhMinhChung),
                     LaAnh = LaFileAnh(k?.AnhMinhChung)
                 };
             }).ToList();
         }
 
+        /// <summary>Tiêu chí Part 2 đang dùng của maNv, ghép tóm tắt + điểm trong phiếu idPhieu (nếu có).</summary>
+        public async Task<List<TieuChiDto>> LayTieuChiAsync(string maNv, Guid? idPhieu)
+        {
+            var ds = await _context.DgTieuChiNangLucs.AsNoTracking()
+                .Where(x => x.MaNhanVien == maNv && x.TrangThai == "active")
+                .OrderBy(x => x.ThuTu).ThenBy(x => x.Ten)
+                .Select(x => new TieuChiDto { IdTieuChi = x.IdTieuChi, Ten = x.Ten, MoTa = x.MoTa, DiemToiDa = x.DiemToiDa })
+                .ToListAsync();
+            if (idPhieu == null || ds.Count == 0) return ds;
+
+            var diem = await _context.DgPhieuTieuChis.AsNoTracking()
+                .Where(x => x.IdPhieu == idPhieu)
+                .ToDictionaryAsync(x => x.IdTieuChi);
+            foreach (var t in ds)
+            {
+                if (!diem.TryGetValue(t.IdTieuChi, out var d)) continue;
+                t.TomTat = d.TomTat;
+                t.Diem = d.Diem;
+            }
+            return ds;
+        }
+
         #endregion
 
         #region Ghi
-
-        public static string XepLoai(decimal chenhLech)
-        {
-            if (chenhLech >= 1) return "Vượt chuẩn";
-            if (chenhLech >= 0) return "Đạt chuẩn";
-            if (chenhLech >= -1) return "Cần cải thiện";
-            return "Chưa đạt";
-        }
 
         /// <summary>
         /// Lấy phiếu theo loại (self/manager), chưa có thì tạo. UNIQUE (ma_nhan_vien, loai) ở DB: hai request song song
@@ -292,24 +325,32 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             }
         }
 
+        /// <summary>
+        /// Upsert điểm tiêu chí Part 2 của 1 phiếu theo (phiếu, tiêu chí). ghiTomTat=false (phiếu quản lý) thì không đụng tóm tắt.
+        /// Trả tổng điểm các tiêu chí đang dùng.
+        /// </summary>
+        public async Task<decimal> GhiTieuChiAsync(Guid idPhieu, IReadOnlyDictionary<Guid, DgTieuChiNangLuc> dsTieuChi,
+            IEnumerable<TieuChiVao> vao, bool ghiTomTat, DateTime bayGio)
+        {
+            var cu = await _context.DgPhieuTieuChis.Where(x => x.IdPhieu == idPhieu).ToDictionaryAsync(x => x.IdTieuChi);
+            foreach (var t in vao)
+            {
+                if (!cu.TryGetValue(t.IdTieuChi, out var dong))
+                {
+                    dong = new DgPhieuTieuChi { IdPhieuTieuChi = Guid.NewGuid(), IdPhieu = idPhieu, IdTieuChi = t.IdTieuChi };
+                    _context.DgPhieuTieuChis.Add(dong);
+                    cu[t.IdTieuChi] = dong;
+                }
+                if (ghiTomTat) dong.TomTat = CatChu(t.TomTat);
+                dong.Diem = t.Diem == null ? null : Math.Round(t.Diem.Value, 2);
+                dong.NgayCapNhat = bayGio;
+            }
+            return cu.Values.Where(x => dsTieuChi.ContainsKey(x.IdTieuChi)).Sum(x => x.Diem ?? 0);
+        }
+
         /// <summary>Trả null nếu hợp lệ, ngược lại là thông báo lỗi cho người dùng.</summary>
         public async Task<string?> LuuTuDanhGiaAsync(string maNv, LuuTuDanhGiaVao vao)
         {
-            var capBac = string.IsNullOrWhiteSpace(vao.CapBac) ? CapBacMacDinh : vao.CapBac.Trim();
-            if (vao.IdNhomCongViec != null && !await _context.DgNhomCongViecs.AnyAsync(x => x.IdNhomCongViec == vao.IdNhomCongViec))
-                return "Nhóm công việc không tồn tại.";
-
-            // Chỉ nhận điểm cho năng lực thuộc đúng bộ lọc đang chấm — id lạ gửi lên bị bỏ qua
-            var dsNangLuc = (await LayNangLucAsync(capBac, vao.IdNhomCongViec)).SelectMany(x => x.DsNangLuc).ToDictionary(x => x.IdNangLuc);
-            if (dsNangLuc.Count == 0)
-                return $"Chưa có ma trận năng lực cho cấp bậc {capBac}.";
-
-            var diemVao = (vao.DsNangLuc ?? new())
-                .Where(x => dsNangLuc.ContainsKey(x.IdNangLuc))
-                .GroupBy(x => x.IdNangLuc).Select(g => g.Last()).ToList();
-            if (diemVao.Any(x => x.Diem < 0 || x.Diem > DiemNangLucToiDa))
-                return $"Điểm năng lực phải trong khoảng 0–{DiemNangLucToiDa:0}.";
-
             // KPI: chỉ ghi cho KPI đang được giao, nhân viên không tự thêm KPI ngoài phân công
             var kpiDuocGiao = await _context.DgKpiPhanCongs
                 .Where(x => x.MaNhanVien == maNv && x.TrangThai == "active")
@@ -319,8 +360,27 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             var kpiVao = (vao.DsKpi ?? new())
                 .Where(x => kpiDuocGiao.ContainsKey(x.IdKpiMau))
                 .GroupBy(x => x.IdKpiMau).Select(g => g.Last()).ToList();
-            if (kpiVao.Any(x => x.DiemTuDanhGia is < 0 or > DiemKpiToiDa))
-                return $"Điểm tự đánh giá KPI phải trong khoảng 0–{DiemKpiToiDa:0}%.";
+            if (kpiVao.Any(x => x.MucTuDanhGia is < 1 or > MucToiDa))
+                return $"Mức tự đánh giá KPI phải từ 1 đến {MucToiDa}.";
+
+            // Part 2: chỉ nhận tiêu chí đang dùng của chính người này — id lạ gửi lên bị bỏ qua
+            var dsTieuChi = await _context.DgTieuChiNangLucs
+                .Where(x => x.MaNhanVien == maNv && x.TrangThai == "active")
+                .ToDictionaryAsync(x => x.IdTieuChi);
+            var tcVao = (vao.DsTieuChi ?? new())
+                .Where(x => dsTieuChi.ContainsKey(x.IdTieuChi))
+                .GroupBy(x => x.IdTieuChi).Select(g => g.Last()).ToList();
+            var tcSai = tcVao.FirstOrDefault(x => x.Diem is { } d && (d < 0 || d > dsTieuChi[x.IdTieuChi].DiemToiDa));
+            if (tcSai != null)
+                return $"Điểm \"{dsTieuChi[tcSai.IdTieuChi].Ten}\" phải trong khoảng 0–{dsTieuChi[tcSai.IdTieuChi].DiemToiDa:0.##}.";
+
+            if (vao.HoanThanh)
+            {
+                if (kpiDuocGiao.Keys.Any(id => kpiVao.FirstOrDefault(x => x.IdKpiMau == id)?.MucTuDanhGia == null))
+                    return "Chưa chọn mức tự đánh giá cho đủ các nhiệm vụ ở Part 1.";
+                if (dsTieuChi.Keys.Any(id => tcVao.FirstOrDefault(x => x.IdTieuChi == id)?.Diem == null))
+                    return "Chưa chấm đủ các tiêu chí năng lực ở Part 2.";
+            }
 
             var phieu = await LayHoacTaoPhieuAsync(maNv);
             if (phieu.TrangThai == "completed")
@@ -328,22 +388,6 @@ namespace E_Form_Best.Areas.QLCongViec.Services
 
             var bayGio = DateTime.Now;
             await using var tx = await _context.Database.BeginTransactionAsync();
-
-            // Điểm năng lực: thay toàn bộ bằng bộ điểm vừa gửi (giống app cũ xoá rồi tạo lại item self)
-            await _context.DgPhieuNangLucs.Where(x => x.IdPhieu == phieu.IdPhieu).ExecuteDeleteAsync();
-            foreach (var d in diemVao)
-            {
-                var yeuCau = dsNangLuc[d.IdNangLuc].DiemYeuCau;
-                _context.DgPhieuNangLucs.Add(new DgPhieuNangLuc
-                {
-                    IdPhieuNangLuc = Guid.NewGuid(),
-                    IdPhieu = phieu.IdPhieu,
-                    IdNangLuc = d.IdNangLuc,
-                    DiemThucTe = Math.Round(d.Diem, 2),
-                    DiemYeuCau = yeuCau,
-                    ChenhLech = Math.Round(d.Diem - yeuCau, 2)
-                });
-            }
 
             // KPI: upsert theo (phiếu, KPI mẫu); giữ nguyên trọng số/điểm quản lý/ảnh đã có
             var kpiCu = await _context.DgPhieuKpis.Where(x => x.IdPhieu == phieu.IdPhieu).ToDictionaryAsync(x => x.IdKpiMau);
@@ -369,23 +413,21 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                 }
                 dong.ChiSoKpi = k.ChiSoKpi?.Trim();
                 dong.KetQua = k.KetQua?.Trim();
-                dong.DiemTuDanhGia = k.DiemTuDanhGia;
+                dong.MucTuDanhGia = k.MucTuDanhGia;
                 dong.NgayCapNhat = bayGio;
             }
 
-            decimal diemNangLuc = diemVao.Sum(x => x.Diem);
-            decimal diemKpi = kpiCu.Values.Sum(x => x.TrongSo * (x.DiemTuDanhGia ?? 0) / 100m);
-            decimal tongYeuCau = dsNangLuc.Values.Sum(x => x.DiemYeuCau);
-            decimal thucTe = diemKpi + diemNangLuc;
+            var diemNangLuc = await GhiTieuChiAsync(phieu.IdPhieu, dsTieuChi, tcVao, true, bayGio);
+            var diemKpi = DiemKpi(kpiCu.Values.Where(x => kpiDuocGiao.ContainsKey(x.IdKpiMau)).Select(x => (x.TrongSo, x.MucTuDanhGia)));
 
-            phieu.CapBac = capBac;
-            phieu.IdNhomCongViec = vao.IdNhomCongViec;
-            phieu.DiemNangLuc = diemNangLuc;
-            phieu.DiemKpi = Math.Round(diemKpi, 4);
-            phieu.TongYeuCau = tongYeuCau;
-            phieu.DiemThucTe = Math.Round(thucTe, 4);
-            phieu.ChenhLech = Math.Round(thucTe - tongYeuCau, 4);
-            phieu.XepLoai = XepLoai(thucTe - tongYeuCau);
+            var hoSo = await LayHoSoAsync(maNv);
+            phieu.CapBac = hoSo.CapBac;
+            phieu.IdNhomCongViec = hoSo.IdNhomCongViec;
+            GanDiem(phieu, diemKpi, diemNangLuc);
+            phieu.DiemManh = CatChu(vao.DiemManh);
+            phieu.DiemYeu = CatChu(vao.DiemYeu);
+            phieu.LoTrinh = CatChu(vao.LoTrinh);
+            phieu.KeHoach = CatChu(vao.KeHoach);
             phieu.NgayCapNhat = bayGio;
             if (vao.HoanThanh) phieu.NgayNop = bayGio;
             // Quản lý đã gửi đánh giá từ trước → nhân viên gửi xong là hoàn tất cả hai phiếu

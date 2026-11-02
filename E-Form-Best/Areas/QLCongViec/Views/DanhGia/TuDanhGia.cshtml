@@ -4,94 +4,99 @@
 }
 
 <link rel="stylesheet" href="~/css/fixed-page-layout.css" />
-<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=6" />
+<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=7" />
 
 <div id="tdg" class="tdg fp-page">
     <div class="tdg-head">
         <h1 class="tdg-title"><span class="tdg-title-icon"><i class="fa fa-star-half-o"></i></span> Tự đánh giá hiệu suất</h1>
-        <p class="tdg-sub">Đánh giá năng lực và hiệu suất làm việc của bản thân</p>
+        <p class="tdg-sub">Performance Evaluation Form — Part 1 Hiệu suất (50đ) · Part 2 Năng lực (50đ) · Part 3 Kế hoạch phát triển</p>
     </div>
 
     <div id="tdgTrangThai" class="tdg-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu đánh giá...</div>
 
     <div id="tdgNoiDung" hidden>
-        <div id="tdgCanhBao" class="tdg-alert tdg-alert-warn" hidden>
-            <i class="fa fa-exclamation-triangle"></i>
-            <div>
-                <b>Thông tin chưa đầy đủ</b>
-                <div>Bạn chưa được phân công <b>Cấp bậc</b> và <b>Nhóm công việc</b>. Hệ thống dùng giá trị mặc định
-                    (cấp bậc 6B, mọi nhóm công việc). Vui lòng liên hệ quản lý để cập nhật.</div>
-            </div>
-        </div>
         <div id="tdgDaKhoa" class="tdg-alert tdg-alert-info" hidden>
             <i class="fa fa-lock"></i>
             <div>Phiếu đã được quản lý đánh giá xong — chỉ xem, không sửa được nữa.</div>
         </div>
 
         <ol class="tdg-steps" id="tdgSteps">
-            <li data-buoc="1"><span class="tdg-step-dot"><i class="fa fa-id-card-o"></i></span><span>Thông tin cơ bản</span></li>
-            <li data-buoc="2"><span class="tdg-step-dot"><i class="fa fa-bar-chart"></i></span><span>Đánh giá KPI</span></li>
-            <li data-buoc="3"><span class="tdg-step-dot"><i class="fa fa-check-square-o"></i></span><span>Đánh giá năng lực</span></li>
-            <li data-buoc="4"><span class="tdg-step-dot"><i class="fa fa-flag-checkered"></i></span><span>Hoàn thành</span></li>
+            <li data-buoc="1"><span class="tdg-step-dot"><i class="fa fa-id-card-o"></i></span><span>Thông tin</span></li>
+            <li data-buoc="2"><span class="tdg-step-dot"><i class="fa fa-bar-chart"></i></span><span>Part 1 · Hiệu suất</span></li>
+            <li data-buoc="3"><span class="tdg-step-dot"><i class="fa fa-check-square-o"></i></span><span>Part 2 · Năng lực</span></li>
+            <li data-buoc="4"><span class="tdg-step-dot"><i class="fa fa-road"></i></span><span>Part 3 · Kế hoạch</span></li>
+            <li data-buoc="5"><span class="tdg-step-dot"><i class="fa fa-flag-checkered"></i></span><span>Hoàn thành</span></li>
         </ol>
 
         <div class="tdg-cuon" data-fp-scroll>
-        @* Bước 1: thông tin cơ bản *@
         <section class="tdg-card" data-panel="1">
-            <h2 class="tdg-card-title">Thông tin cơ bản</h2>
-            <p class="tdg-card-desc">Xác nhận thông tin cá nhân trước khi đánh giá</p>
+            <h2 class="tdg-card-title">Thông tin nhân viên</h2>
+            <p class="tdg-card-desc">Xác nhận thông tin trước khi đánh giá</p>
             <div class="tdg-grid2">
-                <label class="tdg-field"><span>Họ và tên</span><input type="text" class="form-control" id="tdgHoTen" disabled /></label>
-                <label class="tdg-field"><span>Mã nhân viên</span><input type="text" class="form-control" id="tdgMaNv" disabled /></label>
-                <label class="tdg-field"><span>Cấp bậc</span><input type="text" class="form-control" id="tdgCapBacHoSo" disabled /></label>
-                <label class="tdg-field"><span>Phòng ban</span><input type="text" class="form-control" id="tdgPhongBan" disabled /></label>
-                <label class="tdg-field tdg-span2"><span>Nhóm công việc</span><input type="text" class="form-control" id="tdgNhomHoSo" disabled /></label>
+                <label class="tdg-field"><span>Name / Họ và tên</span><input type="text" class="form-control" id="tdgHoTen" disabled /></label>
+                <label class="tdg-field"><span>Employee ID / Mã nhân viên</span><input type="text" class="form-control" id="tdgMaNv" disabled /></label>
+                <label class="tdg-field"><span>Position / Chức vụ</span><input type="text" class="form-control" id="tdgChucVu" disabled /></label>
+                <label class="tdg-field"><span>Department / Phòng ban</span><input type="text" class="form-control" id="tdgPhongBan" disabled /></label>
             </div>
             <div class="tdg-guide">
                 <b>Hướng dẫn đánh giá</b>
                 <ul>
-                    <li>Đánh giá trung thực và khách quan</li>
-                    <li>Năng lực chấm thang 0–10; KPI tự đánh giá theo % hoàn thành (0–120%)</li>
-                    <li>Cung cấp ví dụ, ảnh minh chứng cụ thể khi có thể</li>
-                    <li>Dữ liệu được lưu tự động mỗi khi bấm “Tiếp tục”</li>
+                    <li>Part 1: chọn mức 1–5 cho từng nhiệm vụ; điểm = trọng số × mức / 5 (trọng số do quản lý đặt, tổng 50)</li>
+                    <li>Part 2: chấm từng tiêu chí năng lực trong khung điểm tối đa, ghi tóm tắt / ví dụ cụ thể</li>
+                    <li>Part 3: điểm mạnh, điểm cần cải thiện, lộ trình 1–3 năm và kế hoạch phát triển 1 năm</li>
+                    <li>Dữ liệu được lưu mỗi khi bấm “Tiếp tục”; bấm “Hoàn thành” để gửi cho quản lý</li>
                 </ul>
             </div>
         </section>
 
-        @* Bước 2: KPI — JS render từng thẻ vào #tdgDsKpi *@
         <section class="tdg-card" data-panel="2" hidden>
-            <h2 class="tdg-card-title">Key Performance Index (KPI)</h2>
-            <p class="tdg-card-desc">Điền chỉ số hiệu suất, kết quả và % tự đánh giá. Trọng số và đánh giá của quản lý sẽ do quản lý điền sau.</p>
-            <div id="tdgDsKpi"></div>
-            <div class="tdg-kpi-foot">Tổng trọng số: <b id="tdgTongTrongSo">0</b> / 100</div>
-        </section>
-
-        @* Bước 3: năng lực *@
-        <section class="tdg-card" data-panel="3" hidden>
-            <h2 class="tdg-card-title">Đánh giá năng lực chi tiết</h2>
-            <p class="tdg-card-desc">Tự đánh giá từng năng lực theo thang điểm 0–10. GAP = điểm tự chấm − điểm yêu cầu.</p>
-            <div class="tdg-grid2 tdg-filter">
-                <label class="tdg-field"><span>Cấp bậc</span><select class="form-select" id="tdgCapBac"></select></label>
-                <label class="tdg-field"><span>Nhóm công việc</span><select class="form-select" id="tdgNhomCongViec"><option value="">— Tất cả (năng lực chung) —</option></select></label>
+            <h2 class="tdg-card-title">Part 1 : Work Performance Measurement (50 Points) — Hiệu suất</h2>
+            <p class="tdg-card-desc">Điền chỉ số hiệu suất, kết quả và chọn mức tự đánh giá. Có thể đính kèm minh chứng.</p>
+            <div class="tdg-thang">
+                <span><b>5</b> = Higher above the standard (Excellent)</span>
+                <span><b>4</b> = Above the standard (Good)</span>
+                <span><b>3</b> = As a standard / Often present</span>
+                <span><b>2</b> = Below the standard (Poor)</span>
+                <span><b>1</b> = (Very Poor) Very Low the circumstance</span>
             </div>
-            <div id="tdgTongNangLuc" class="tdg-summary-line"></div>
-            <div id="tdgDsNhomNangLuc"></div>
+            <div id="tdgDsKpi"></div>
+            <div class="tdg-tong-phan">
+                <span>Tổng trọng số: <b id="tdgTongTrongSo">0</b> / 50</span>
+                <span>Điểm Part 1 (tự đánh giá): <b id="tdgDiemP1">0</b> / 50</span>
+            </div>
         </section>
 
-        @* Bước 4: tóm tắt *@
-        <section class="tdg-card" data-panel="4" hidden>
+        <section class="tdg-card" data-panel="3" hidden>
+            <h2 class="tdg-card-title">Part 2 : Competency Measurement (50 Points) — Năng lực</h2>
+            <p class="tdg-card-desc">Đánh giá năng lực theo từng tiêu chí, ghi tóm tắt hoặc ví dụ cụ thể.</p>
+            <div id="tdgDsTieuChi"></div>
+            <div class="tdg-tong-phan"><span>Điểm Part 2 (tự đánh giá): <b id="tdgDiemP2">0</b> / <span id="tdgToiDaP2">50</span></span></div>
+        </section>
+
+        <section class="tdg-card tdg-p3" data-panel="4" hidden>
+            <h2 class="tdg-card-title">Part 3 : Career and Improvement Plan — Kế hoạch phát triển / Thăng tiến</h2>
+            <p class="tdg-card-desc">Không tính điểm; quản lý xem và nhận xét.</p>
+            <div class="tdg-grid2">
+                <label class="tdg-field"><span>Strength — Điểm mạnh</span><textarea class="form-control" id="tdgDiemManh" maxlength="8000"></textarea></label>
+                <label class="tdg-field"><span>Career path and duration (1 – 3 year) — Lộ trình</span><textarea class="form-control" id="tdgLoTrinh" maxlength="8000"></textarea></label>
+                <label class="tdg-field"><span>Weakness (Need to improve) — Điểm cần cải thiện</span><textarea class="form-control" id="tdgDiemYeu" maxlength="8000"></textarea></label>
+                <label class="tdg-field"><span>Development plan (1 year) — Kế hoạch phát triển</span><textarea class="form-control" id="tdgKeHoach" maxlength="8000"></textarea></label>
+            </div>
+        </section>
+
+        <section class="tdg-card" data-panel="5" hidden>
             <h2 class="tdg-card-title">Tóm tắt đánh giá</h2>
             <p class="tdg-card-desc">Xem lại trước khi bấm “Hoàn thành” để gửi cho quản lý.</p>
             <div id="tdgDaNop" class="tdg-alert tdg-alert-ok" hidden>
                 <i class="fa fa-check-circle"></i><div><b>Đã gửi bản tự đánh giá</b> <span id="tdgNgayNop"></span> — có thể sửa và gửi lại cho tới khi quản lý đánh giá xong.</div>
             </div>
             <div class="tdg-stats">
-                <div class="tdg-stat" style="--st-c:#2563eb; --st-bg:#eff6ff"><i class="fa fa-list-ol"></i><span>Số KPI</span><b id="tdgSoKpi">0</b></div>
-                <div class="tdg-stat" style="--st-c:#7c3aed; --st-bg:#f5f3ff"><i class="fa fa-check-square-o"></i><span>Năng lực đã chấm</span><b id="tdgSoNangLuc">0</b></div>
-                <div class="tdg-stat" style="--st-c:#0891b2; --st-bg:#ecfeff"><i class="fa fa-balance-scale"></i><span>Điểm năng lực / yêu cầu</span><b id="tdgDiemNangLuc">0</b></div>
-                <div class="tdg-stat" style="--st-c:#b45309; --st-bg:#fffbeb"><i class="fa fa-arrows-v"></i><span>GAP</span><b id="tdgGap">0</b></div>
-                <div class="tdg-stat tdg-span2" style="--st-c:#059669; --st-bg:#ecfdf5"><i class="fa fa-trophy"></i><span>Xếp loại (tạm tính)</span><b id="tdgXepLoai">—</b></div>
+                <div class="tdg-stat" style="--st-c:#2563eb; --st-bg:#eff6ff"><i class="fa fa-bar-chart"></i><span>Part I</span><b id="tdgTkP1">0</b></div>
+                <div class="tdg-stat" style="--st-c:#7c3aed; --st-bg:#f5f3ff"><i class="fa fa-check-square-o"></i><span>Part II</span><b id="tdgTkP2">0</b></div>
+                <div class="tdg-stat" style="--st-c:#0891b2; --st-bg:#ecfeff"><i class="fa fa-calculator"></i><span>Tổng / 100</span><b id="tdgTkTong">0</b></div>
+                <div class="tdg-stat tdg-span2" style="--st-c:#059669; --st-bg:#ecfdf5"><i class="fa fa-trophy"></i><span>Xếp loại (tạm tính, chuẩn 60)</span><b id="tdgXepLoai">—</b></div>
             </div>
+            <div id="tdgThieu" class="tdg-alert tdg-alert-warn mt-3" hidden><i class="fa fa-exclamation-triangle"></i><div id="tdgThieuChu"></div></div>
         </section>
         </div>
 
@@ -104,6 +109,6 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/tu-danh-gia.js?v=3"></script>
+    <script src="~/js/tu-danh-gia.js?v=4"></script>
     <script src="~/js/fixed-page-layout.js" defer></script>
 }

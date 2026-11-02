@@ -81,10 +81,89 @@
 
     .mayin-bang td {
         vertical-align: middle;
-        max-width: 220px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+/* Bảng 16 cột: khoá bề ngang vừa khung để không phải kéo ngang. table-layout: fixed chia cột
+   theo độ rộng tiêu đề bên dưới, chữ dài bị cắt "…" (ô đã có title nên rê chuột xem đủ).
+   Vị trí không đặt độ rộng → ăn phần còn lại. */
+.mayin-bang {
+    table-layout: fixed;
+    width: 100%;
+}
+
+    .mayin-bang thead th {
+        white-space: normal;
+        line-height: 1.2;
+        vertical-align: middle;
+    }
+
+    .mayin-bang > :not(caption) > * > * {
+        padding: 0.4rem 0.35rem;
+    }
+
+    .mayin-bang thead th:nth-child(1) { width: 34px; }
+    .mayin-bang thead th:nth-child(2) { width: 12%; }
+    .mayin-bang thead th:nth-child(3) { width: 12%; }
+    .mayin-bang thead th:nth-child(5) { width: 10%; }
+    .mayin-bang thead th:nth-child(6),
+    .mayin-bang thead th:nth-child(7),
+    .mayin-bang thead th:nth-child(8) { width: 7.5%; }
+    .mayin-bang thead th:nth-child(9) { width: 11%; }
+    .mayin-bang thead th:nth-child(10) { width: 10%; }
+    .mayin-bang thead th:nth-child(11) { width: 108px; }
+
+    /* Tiêu đề dòng 2 của cột gộp (Vị trí, Serial, IP, Đọc lúc) */
+    .mayin-th-phu {
+        font-weight: 400;
+        color: #64748b;
+    }
+
+    /* Mỗi dòng trong ô gộp tự cắt "…" riêng */
+    .mayin-dong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Cột Mực / Trống gộp: nhãn ngắn bên trái, thanh bên phải */
+    .mayin-vt {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+        .mayin-vt + .mayin-vt { margin-top: 3px; }
+
+    .mayin-vt-nhan {
+        flex: 0 0 34px;
+        font-size: 0.68rem;
+        color: #64748b;
+    }
+
+    .mayin-vt-o {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    /* Cột thao tác: 3 nút sát nhau cho lọt 108px */
+    .mayin-bang td:last-child .btn {
+        padding-left: 0.4rem !important;
+        padding-right: 0.4rem !important;
+    }
+
+    /* Cột mực/trống hẹp: thanh co theo ô thay vì giữ cứng 54px làm tràn */
+    .mayin-bang .mayin-thanh {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .mayin-bang .badge {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
 /* Thanh má»±c/trá»ng: Äá»c nhanh má»©c cÃ²n láº¡i mÃ  khÃ´ng cáº§n soi con sá» */
