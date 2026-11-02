@@ -7,7 +7,7 @@ namespace E_Form_Best.Areas.QLCongViec.Services
 {
     /// <summary>
     /// Phía quản lý của module Đánh giá (chuyển từ /manager/employees + /manager/evaluation của app evaluation).
-    /// Danh sách nhân viên = người đã vào hệ thống đánh giá (có hồ sơ / được giao KPI / có phiếu), trừ người đã
+    /// Danh sách nhân viên = người đã vào hệ thống đánh giá (có hồ sơ / được giao KPI / có phiếu) + mọi AdminIT mã V/M/Y, trừ người đã
     /// bị "Ngừng đánh giá". Phiếu quản lý là phiếu loại 'manager' riêng, không ghi đè phiếu tự đánh giá.
     /// Trạng thái: chỉ tính "đã gửi" khi NgayNop có giá trị (app cũ đoán theo việc có điểm hay chưa).
     /// </summary>
@@ -105,6 +105,13 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             var ds = await _context.DgHoSoNhanViens.Where(x => x.NgayNgung == null).Select(x => x.MaNhanVien)
                 .Union(_context.DgKpiPhanCongs.Where(x => x.TrangThai == "active").Select(x => x.MaNhanVien))
                 .Union(_context.DgPhieuDanhGias.Select(x => x.MaNhanVien))
+                // Người có quyền AdminIT đều là nhân viên được đánh giá; chỉ lấy mã NV thật (đầu V/M/Y),
+                // bỏ tài khoản hệ thống/mã số trần. Quyền AdminIT hiện chỉ cấp cá nhân qua User_Quyen.
+                .Union(_context.Users
+                    .Where(u => u.Tk != null
+                        && (u.Tk.StartsWith("V") || u.Tk.StartsWith("M") || u.Tk.StartsWith("Y"))
+                        && u.UserQuyens.Any(q => q.IdQuyenNavigation != null && q.IdQuyenNavigation.TenQuyen == "AdminIT"))
+                    .Select(u => u.Tk!))
                 .ToListAsync();
             return ds.Except(ngung, StringComparer.OrdinalIgnoreCase).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }

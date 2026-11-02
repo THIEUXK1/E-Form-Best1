@@ -61,6 +61,35 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         }
         #endregion
 
+        #region Biểu đồ bộ phận
+        /// <summary>Một bộ phận có web biểu đồ riêng, hiển thị dạng thẻ trên trang "Biểu đồ bộ phận".</summary>
+        public class BieuDoBoPhanLink
+        {
+            public string Ten { get; set; } = "";
+            public string MoTa { get; set; } = "";
+            public string Icon { get; set; } = "";
+            public string Mau { get; set; } = "";
+            public string Url { get; set; } = "";
+        }
+
+        // Biểu đồ do web riêng của từng bộ phận cung cấp, trang này chỉ gom link và mở sang tab mới.
+        // Thêm bộ phận mới chỉ cần bổ sung vào danh sách dưới đây.
+        [HttpGet("/FormCongViec/BieuDoBoPhan")]
+        public IActionResult BieuDoBoPhan()
+        {
+            if (User?.Identity == null || !User.Identity.IsAuthenticated)
+                return Redirect("/DonXetDuyet/DangNhap");
+
+            var danhSachBoPhan = new List<BieuDoBoPhanLink>
+            {
+                new BieuDoBoPhanLink { Ten = "PMC", Icon = "fa-bar-chart", Mau = "#0ea5e9", Url = "http://10.0.60.52:3000/gantt.html", MoTa = "Biểu đồ Gantt kế hoạch sản xuất bộ phận PMC." },
+                new BieuDoBoPhanLink { Ten = "DF", Icon = "fa-cogs", Mau = "#f97316", Url = "http://10.0.60.209:3001/bpdb-machines/gantt", MoTa = "Biểu đồ Gantt máy móc bộ phận DF." }
+            };
+
+            return View(danhSachBoPhan);
+        }
+        #endregion
+
         #region Trang chọn loại đơn Công việc
 
         /// <summary>Một loại đơn Công việc hiển thị dạng thẻ trên trang "Đăng ký đơn".</summary>

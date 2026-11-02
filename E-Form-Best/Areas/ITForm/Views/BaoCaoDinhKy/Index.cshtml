@@ -83,7 +83,7 @@
     <div id="bcPaneThietBi" class="bc-pane d-none">
         <div class="container-fluid pt-3">
             @* Nội dung do wwwroot/js/kiemke-tong-quan.js vẽ *@
-            <div id="tqTongQuan">
+            <div id="tqTongQuan" data-key-trong="@ViewBag.KeyTrongJson">
                 <div class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin me-1"></i> Đang tải số liệu...</div>
             </div>
         </div>
@@ -94,9 +94,9 @@
 </div>
 
 @section Scripts {
-    <script src="/js/dich-offline.js?v=20261016a"></script>
+    <script src="/js/dich-offline.js?v=202611021146"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/js/kiemke-tong-quan.js?v=4"></script>
+    <script src="/js/kiemke-tong-quan.js?v=5"></script>
     <script src="/js/bao-cao-so-sanh.js?v=2"></script>
     <script src="/js/camera-tong-quan.js?v=20261009c"></script>
     <script src="/js/ap-tong-quan.js?v=20261009b"></script>

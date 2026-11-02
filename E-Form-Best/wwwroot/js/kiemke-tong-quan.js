@@ -219,6 +219,11 @@ window.TongQuanKiemKe = (function () {
         const soBoPhan = new Set(ds.map(x => x.congTy + '|' + x.boPhan)).size;
         const soLoai = new Set(ds.map(x => x.loai)).size;
 
+        // License còn trống (BanQuyenKeyTrong): chỉ trang Báo cáo định kỳ gắn data-key-trong, trang Thiết bị không có ô này
+        const keyTrong = $('#tqTongQuan').data('keyTrong');
+        const ctKey = keyTrong ? Object.keys(keyTrong).filter(k => !congTyDangChon || k === congTyDangChon) : [];
+        const tongKey = f => ctKey.reduce((t, k) => t + (keyTrong[k][f] || 0), 0);
+
         $('#tqKpi').html([
             oKpi(soVN(n), 'Tổng thiết bị', `${soBoPhan} bộ phận · ${soLoai} loại`, 'fas fa-boxes', '#4f46e5'),
             oKpi(soVN(hd), 'Đang hoạt động', `${tl(hd, n)}% tổng số`, 'fas fa-check-circle', MAU_TRANG_THAI.hoatDong),
@@ -231,7 +236,9 @@ window.TongQuanKiemKe = (function () {
             oKpi(soVN(coAgent), 'Có agent kết nối', `${tl(coAgent, n)}% · agent báo lỗi: ${soVN(loiAgent)}`, 'fas fa-robot', '#8b5cf6'),
             oKpi(soVN(thieuHost), 'Thiếu Hostname', `Thiếu Serial: ${soVN(thieuSerial)}`, 'fas fa-desktop', '#e34948'),
             oKpi(soVN(canOffice), 'Cần cài Office', `Chưa trả lời: ${soVN(chuaTraLoiOffice)}`, 'fas fa-file-word', '#2a78d6'),
-            oKpi(soVN(c(x => !rong(x.goc.ip))), 'Đã có địa chỉ IP', `Chưa có IP: ${soVN(c(x => rong(x.goc.ip)))}`, 'fas fa-network-wired', '#64748b')
+            oKpi(soVN(c(x => !rong(x.goc.ip))), 'Đã có địa chỉ IP', `Chưa có IP: ${soVN(c(x => rong(x.goc.ip)))}`, 'fas fa-network-wired', '#64748b'),
+            keyTrong ? oKpi(soVN(tongKey('windows')), 'License Windows còn trống',
+                `Office còn: ${soVN(tongKey('office'))}${ctKey.length ? ' · ' + ctKey.join(', ') : ''}`, 'fab fa-windows', '#0078d4') : ''
         ].join(''));
 
         // Thanh tiến độ: nhìn nhanh mức độ "đầy đủ" của dữ liệu

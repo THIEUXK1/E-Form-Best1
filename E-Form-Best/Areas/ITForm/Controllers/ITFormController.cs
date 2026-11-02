@@ -10735,6 +10735,40 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
+        // Tải bộ cài Tool local (HardwareHelper) ở trang ViewCheckMayHienTai. Người cài thường là user thường đang đứng máy,
+        // nên không dựa vào phiên đăng nhập mà bắt nhập tài khoản AdminIT/All: chỉ IT mới phát tool ra máy.
+        // File nằm ngoài wwwroot (KiemKe:CongCu:DuongDan) để không ai tải thẳng qua URL tĩnh được.
+        [IgnoreAntiforgeryToken]
+        [EnableRateLimiting("dang-nhap")]
+        [HttpPost("/QLKiemKe/TaiCongCu")]
+        public async Task<IActionResult> TaiCongCu(string taikhoan, string matkhau)
+        {
+            var chuaDangNhap = ChanNeuChuaDangNhap();
+            if (chuaDangNhap != null) return chuaDangNhap;
+
+            try
+            {
+                var (user, loiXacThuc) = await XacThucTaiKhoanHybrid(taikhoan, matkhau);
+                if (user == null)
+                    return Json(new { thanhCong = false, thongBao = loiXacThuc ?? MatKhauNguoiDung.ThongBaoSai });
+
+                bool coQuyen = await _context.UserQuyens.AnyAsync(uq => uq.IdNguoiDung == user.IdNguoiDung
+                    && (uq.IdQuyenNavigation.TenQuyen == "AdminIT" || uq.IdQuyenNavigation.TenQuyen == "All"));
+                if (!coQuyen)
+                    return Json(new { thanhCong = false, thongBao = "Tài khoản hợp lệ nhưng không có quyền AdminIT hoặc All." });
+
+                string duongDan = _config["KiemKe:CongCu:DuongDan"] ?? "";
+                if (string.IsNullOrWhiteSpace(duongDan) || !System.IO.File.Exists(duongDan))
+                    return Json(new { thanhCong = false, thongBao = "Máy chủ chưa có file cài đặt Tool. Vui lòng báo IT kiểm tra cấu hình KiemKe:CongCu:DuongDan." });
+
+                return PhysicalFile(duongDan, "application/x-msi", Path.GetFileName(duongDan));
+            }
+            catch (Exception ex)
+            {
+                return Json(new { thanhCong = false, thongBao = "Lỗi hệ thống khi tải Tool: " + ex.Message });
+            }
+        }
+
         // Đổi Mã nhân viên -> User còn đang làm việc. Dùng chung cho các endpoint kiểm kê, vì ô "Người dùng hiện tại"
         // mới là người sử dụng thật của thiết bị, còn Tài khoản/Mật khẩu chỉ để xác thực người đang đứng máy kiểm kê.
         private async Task<User?> TimNguoiDungTheoMaNhanVien(string? maNhanVien)

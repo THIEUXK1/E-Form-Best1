@@ -240,6 +240,7 @@
         'Thiếu Hostname': ['Missing hostname', '缺少主机名'],
         'Thiếu Serial': ['Missing serial', '缺少序列号'],
         'Cần cài Office': ['Office needed', '需要安装Office'],
+        'License Windows còn trống': ['Spare Windows licenses', '空闲Windows许可证'],
         'Chưa trả lời': ['Unanswered', '未答复'],
         'Đã có địa chỉ IP': ['Has IP address', '已有IP地址'],
         'chưa kiểm lần nào': ['never checked', '从未检查'],

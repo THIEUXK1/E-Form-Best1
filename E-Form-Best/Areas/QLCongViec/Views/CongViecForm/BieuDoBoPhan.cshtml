@@ -1,0 +1,27 @@
+@model List<E_Form_Best.Areas.QLCongViec.Controllers.CongViecFormController.BieuDoBoPhanLink>
+
+@{
+    ViewData["Title"] = "Biểu đồ bộ phận";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+}
+
+<div class="dkd-wrap">
+    <div class="dkd-header">
+        <h1 class="dkd-title"><i class="fa fa-sitemap"></i> Biểu đồ bộ phận</h1>
+        <p class="dkd-sub">Chọn bộ phận để mở biểu đồ ở tab mới.</p>
+    </div>
+
+    <div class="dkd-grid">
+        @for (int i = 0; i < Model.Count; i++)
+        {
+            var bp = Model[i];
+            <a class="dkd-card" href="@bp.Url" target="_blank" rel="noopener noreferrer" style="--dkd-color:@bp.Mau;">
+                <span class="dkd-stt">@(i + 1)</span>
+                <span class="dkd-icon"><i class="fa @bp.Icon"></i></span>
+                <span class="dkd-name">@bp.Ten</span>
+                <span class="dkd-desc">@bp.MoTa</span>
+                <span class="dkd-go">Mở biểu đồ <i class="fa fa-external-link"></i></span>
+            </a>
+        }
+    </div>
+</div>

@@ -18,6 +18,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // "BaoCaoDinhKy": quyền chỉ xem trang này, cấp cho người ngoài IT mà không phải trao AdminIT
         private bool CoQuyen() => User.IsInRole("AdminIT") || User.IsInRole("All") || User.IsInRole("BaoCaoDinhKy");
 
+        private readonly IConfiguration _configuration;
+
+        public BaoCaoDinhKyController(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
         [HttpGet("/BaoCaoDinhKy")]
         public IActionResult Index(string? loai, string? congTy)
         {
@@ -28,6 +35,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             ViewBag.Loai = DsLoai.FirstOrDefault(x => x.Equals(loai?.Trim(), StringComparison.OrdinalIgnoreCase)) ?? "camera";
             ViewBag.CongTy = congTy?.Trim().ToUpperInvariant() ?? "";
+            // Ô "License còn trống" của tab Thiết bị — cùng nguồn BanQuyenKeyTrong mà mục "Cần mua" đang trừ
+            var keyTrong = _configuration.GetSection("BanQuyenKeyTrong").Get<Dictionary<string, BaoCaoDinhKyService.KeyTrong>>() ?? new();
+            ViewBag.KeyTrongJson = System.Text.Json.JsonSerializer.Serialize(keyTrong,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
             return View();
         }
 
