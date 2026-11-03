@@ -25,6 +25,10 @@ namespace E_Form_Best.Areas.ITForm.Services
         /// <summary>Trạng thái MAC trên 1 WLC. Co: true có / false thiếu / null chưa quét được WLC này lần nào.</summary>
         public record TrangThaiWlc(string Wlc, string Ip, bool? Co, DateTime? QuetLuc);
 
+        /// <summary>Lượt quét cũ nhất trong các WLC (null nếu chưa quét lần nào) — để khởi động lại web không quét lại sớm.</summary>
+        public async Task<DateTime?> LanQuetCuNhatAsync(CancellationToken ct)
+            => await _context.KkWlcQuets.AsNoTracking().MinAsync(x => (DateTime?)x.QuetLuc, ct);
+
         /// <summary>
         /// Ghi kết quả 1 lượt quét của 1 WLC. Lỗi thì chỉ ghi lỗi, giữ nguyên danh sách cũ.
         /// Danh sách rỗng trong khi lần trước còn nhiều MAC thì coi là đọc hỏng, không đánh dấu mất hàng loạt.

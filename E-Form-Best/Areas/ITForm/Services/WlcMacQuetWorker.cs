@@ -1,7 +1,7 @@
 namespace E_Form_Best.Areas.ITForm.Services
 {
     /// <summary>
-    /// Job nền quét danh sách MAC trên mọi WLC đã khai (WlcExec__{CÔNG TY}__...) mỗi WlcExec:Quet:ChuKyPhut (mặc định 30),
+    /// Job nền quét danh sách MAC trên mọi WLC đã khai (WlcExec__{CÔNG TY}__...) mỗi WlcExec:Quet:ChuKyPhut (mặc định 10080 = 1 tuần),
     /// ghi vào KK_WlcQuet / KK_WlcMac để nút "+" ở trang đơn Wi-Fi được đánh dấu sẵn.
     ///
     /// SSH bằng tài khoản dịch vụ WlcExec:Quet:TaiKhoan / MatKhau (chỉ cần quyền đọc trên WLC); bỏ trống thì không chạy.
@@ -25,9 +25,21 @@ namespace E_Form_Best.Areas.ITForm.Services
             if (!(_configuration.GetValue<bool?>("WlcExec:Quet:Bat") ?? true)
                 || string.IsNullOrWhiteSpace(taiKhoan) || string.IsNullOrEmpty(matKhau)) return;
 
-            var chuKy = TimeSpan.FromMinutes(Math.Clamp(_configuration.GetValue<int?>("WlcExec:Quet:ChuKyPhut") ?? 30, 10, 1440));
+            // Mặc định 1 tuần: nút Kiểm tra / Thêm / Gỡ đã ghi ngay vào bản chụp nên không cần quét dày
+            var chuKy = TimeSpan.FromMinutes(Math.Clamp(_configuration.GetValue<int?>("WlcExec:Quet:ChuKyPhut") ?? 10080, 10, 10080));
 
-            try { await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken); }
+            // Lượt đầu: chờ đủ chu kỳ tính từ lần quét trước (deploy / restart không kéo theo quét lại), tối thiểu 60 giây
+            var choDau = TimeSpan.FromSeconds(60);
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var lanTruoc = await scope.ServiceProvider.GetRequiredService<WlcMacQuetService>().LanQuetCuNhatAsync(stoppingToken);
+                if (lanTruoc != null && lanTruoc.Value + chuKy - DateTime.Now > choDau) choDau = lanTruoc.Value + chuKy - DateTime.Now;
+            }
+            catch (TaskCanceledException) { return; }
+            catch (Exception ex) { Console.WriteLine($"[WLC quét Error]: {ex.Message}"); }
+
+            try { await Task.Delay(choDau, stoppingToken); }
             catch (TaskCanceledException) { return; }
 
             while (!stoppingToken.IsCancellationRequested)
