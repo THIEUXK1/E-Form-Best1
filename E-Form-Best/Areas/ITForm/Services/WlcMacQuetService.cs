@@ -7,7 +7,7 @@ namespace E_Form_Best.Areas.ITForm.Services
 {
     /// <summary>
     /// Bản chụp MAC trên các WLC (KK_WlcQuet + KK_WlcMac) để trang chi tiết đơn Wi-Fi đánh dấu sẵn nút "+":
-    /// job WlcMacQuetWorker ghi cả danh sách mỗi chu kỳ, còn tra/thêm/gỡ trên trang ghi ngay từng MAC.
+    /// nút "Kiểm tra trên WLC" ghi cả danh sách mỗi lần bấm, còn tra/thêm/gỡ trên trang ghi ngay từng MAC.
     /// </summary>
     public class WlcMacQuetService
     {
@@ -24,10 +24,6 @@ namespace E_Form_Best.Areas.ITForm.Services
 
         /// <summary>Trạng thái MAC trên 1 WLC. Co: true có / false thiếu / null chưa quét được WLC này lần nào.</summary>
         public record TrangThaiWlc(string Wlc, string Ip, bool? Co, DateTime? QuetLuc);
-
-        /// <summary>Lượt quét cũ nhất trong các WLC (null nếu chưa quét lần nào) — để khởi động lại web không quét lại sớm.</summary>
-        public async Task<DateTime?> LanQuetCuNhatAsync(CancellationToken ct)
-            => await _context.KkWlcQuets.AsNoTracking().MinAsync(x => (DateTime?)x.QuetLuc, ct);
 
         /// <summary>
         /// Ghi kết quả 1 lượt quét của 1 WLC. Lỗi thì chỉ ghi lỗi, giữ nguyên danh sách cũ.

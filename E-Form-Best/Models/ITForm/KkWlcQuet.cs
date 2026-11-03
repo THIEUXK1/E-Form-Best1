@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace E_Form_Best.Models.ITForm;
 
 /// <summary>
-/// Lần quét danh sách MAC gần nhất của từng WLC (WlcMacQuetWorker). ThanhCongLuc NULL = chưa quét được lần nào,
+/// Lần quét danh sách MAC gần nhất của từng WLC (nút "Kiểm tra trên WLC"). ThanhCongLuc NULL = chưa quét được lần nào,
 /// khi đó trang chi tiết đơn Wi-Fi coi WLC là "chưa tra được" chứ không phải "thiếu".
 /// </summary>
 [Table("KK_WlcQuet")]

@@ -49,6 +49,10 @@
 .bang-mac-wlc { box-sizing: border-box; max-width: 100%; min-width: 0; overflow: hidden; margin-top: 20px; background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px 20px; }
 .bang-mac-wlc h4 { margin: 0 0 12px; font-size: 15px; font-weight: 900; color: #1e293b; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .bang-mac-wlc h4 small { font-weight: 500; font-size: 12px; color: #94a3b8; }
+.btn-quet-mac-wlc { margin-left: auto; border: 1px solid #0369a1; background: #fff; color: #0369a1; border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.btn-quet-mac-wlc:hover:not(:disabled) { background: #0369a1; color: #fff; }
+.btn-quet-mac-wlc:disabled { opacity: .6; cursor: wait; }
+.bang-mac-wlc-loi { margin: -4px 0 10px; padding: 6px 10px; border-radius: 8px; background: #fef2f2; color: #b91c1c; font-size: 12px; }
 .bang-mac-wlc-cuon { max-width: 100%; overflow-x: auto; }
 .bang-mac-wlc table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .bang-mac-wlc th { background: #f1f5f9; color: #334155; padding: 8px 10px; text-align: left; white-space: nowrap; }

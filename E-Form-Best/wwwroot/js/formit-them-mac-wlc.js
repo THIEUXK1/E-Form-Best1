@@ -264,34 +264,67 @@
         }
     }
 
-    // Mở trang: đánh dấu sẵn từng nút theo bản quét MAC trên WLC (job nền), không cần mật khẩu.
-    // Lỗi / chưa có bản quét thì để nguyên "+", IT vẫn bấm Kiểm tra tay được.
+    // Mở trang: đánh dấu sẵn từng nút theo bản chụp MAC trên WLC (lần bấm "Kiểm tra trên WLC" / thao tác trước), không cần mật khẩu.
+    // Lỗi / chưa có bản chụp thì để nguyên "+", IT bấm "Kiểm tra trên WLC" hoặc Kiểm tra tay trong modal.
     async function danhDauSan() {
         veBang();
         try {
             const res = await fetch('/FormIT/TrangThaiMacWifi/' + encodeURIComponent(modal.dataset.idForm));
             if (!res.ok) return;
-            const d = await res.json();
-            if (!d.thanhCong || !Array.isArray(d.duLieu)) return;
-            d.duLieu.forEach(function (dong) {
-                const nut = document.querySelector('.btn-them-mac-wlc[data-id-chi-tiet="' + dong.idChiTiet + '"][data-vi-tri="' + dong.viTri + '"]');
-                if (nut && dong.radius) nut._radius = true;
-                if (!nut || !dong.wlc.some(function (w) { return w.co !== null; })) return;
-                capNhatNut(nut, dong.wlc.map(function (w) { return { wlc: w.wlc, ip: w.ip, co: w.co }; }));
-                const lanQuet = dong.wlc.map(function (w) { return w.quetLuc; }).filter(Boolean).sort()[0];
-                if (lanQuet) nut.title += '\n(theo bản quét WLC lúc ' + new Date(lanQuet).toLocaleString('vi-VN') + ')';
-            });
-            veBang();
-            const quetCu = d.duLieu.flatMap(function (dong) { return dong.wlc.map(function (w) { return w.quetLuc; }); }).filter(Boolean).sort()[0];
-            ['bangMacWlcQuet', 'bangMacWlcModalQuet'].forEach(function (id) {
-                const oQuet = document.getElementById(id);
-                if (oQuet && quetCu) oQuet.textContent = 'theo bản quét lúc ' + new Date(quetCu).toLocaleString('vi-VN');
-            });
+            apDungTrangThai(await res.json());
         } catch (err) {
             console.warn('Không đọc được bản quét MAC trên WLC:', err);
         }
     }
+
+    function apDungTrangThai(d) {
+        if (!d.thanhCong || !Array.isArray(d.duLieu)) return;
+        d.duLieu.forEach(function (dong) {
+            const nut = document.querySelector('.btn-them-mac-wlc[data-id-chi-tiet="' + dong.idChiTiet + '"][data-vi-tri="' + dong.viTri + '"]');
+            if (nut && dong.radius) nut._radius = true;
+            if (!nut || !dong.wlc.some(function (w) { return w.co !== null; })) return;
+            capNhatNut(nut, dong.wlc.map(function (w) { return { wlc: w.wlc, ip: w.ip, co: w.co }; }));
+            const lanQuet = dong.wlc.map(function (w) { return w.quetLuc; }).filter(Boolean).sort()[0];
+            if (lanQuet) nut.title += '\n(theo bản quét WLC lúc ' + new Date(lanQuet).toLocaleString('vi-VN') + ')';
+        });
+        veBang();
+        const quetCu = d.duLieu.flatMap(function (dong) { return dong.wlc.map(function (w) { return w.quetLuc; }); }).filter(Boolean).sort()[0];
+        ['bangMacWlcQuet', 'bangMacWlcModalQuet'].forEach(function (id) {
+            const oQuet = document.getElementById(id);
+            if (oQuet && quetCu) oQuet.textContent = 'theo bản quét lúc ' + new Date(quetCu).toLocaleString('vi-VN');
+        });
+    }
     danhDauSan();
+
+    // Nút "Kiểm tra trên WLC": server đọc ngay danh sách MAC trên mọi WLC bằng tài khoản dịch vụ (vài chục giây), rồi vẽ lại bảng
+    const btnQuet = document.getElementById('btnQuetMacWlc');
+    const oQuetLoi = document.getElementById('bangMacWlcLoi');
+    if (btnQuet) btnQuet.addEventListener('click', async function () {
+        if (btnQuet.disabled) return;
+        const chuGoc = btnQuet.innerHTML;
+        btnQuet.disabled = true;
+        btnQuet.textContent = 'Đang đọc WLC...';
+        oQuetLoi.hidden = true;
+        try {
+            const res = await fetch('/FormIT/QuetMacWifi/' + encodeURIComponent(modal.dataset.idForm), {
+                method: 'POST',
+                headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' }
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const d = await res.json();
+            apDungTrangThai(d);
+            if (!d.thanhCong || d.thongBao) {
+                oQuetLoi.textContent = d.thongBao || 'Kiểm tra trên WLC thất bại.';
+                oQuetLoi.hidden = false;
+            }
+        } catch (err) {
+            oQuetLoi.textContent = 'Lỗi kết nối máy chủ (' + err.message + ').';
+            oQuetLoi.hidden = false;
+        } finally {
+            btnQuet.disabled = false;
+            btnQuet.innerHTML = chuGoc;
+        }
+    });
 
     // Gỡ MAC khỏi 1 WLC trong kết quả kiểm tra; xong thì thay khối đó bằng kết quả gỡ, các WLC khác giữ nguyên
     oKetQua.addEventListener('click', async function (e) {

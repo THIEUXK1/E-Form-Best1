@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace E_Form_Best.Models.ITForm;
 
 /// <summary>
-/// MAC đang khai trên 1 WLC, chụp từ WLC (WlcMacQuetWorker) hoặc ghi ngay sau khi thêm/gỡ ở trang đơn Wi-Fi.
+/// MAC đang khai trên 1 WLC, chụp từ WLC (nút "Kiểm tra trên WLC") hoặc ghi ngay sau khi thêm/gỡ ở trang đơn Wi-Fi.
 /// MAC không còn trên WLC thì ghi MatLuc, không xoá dòng.
 /// </summary>
 [Table("KK_WlcMac")]
