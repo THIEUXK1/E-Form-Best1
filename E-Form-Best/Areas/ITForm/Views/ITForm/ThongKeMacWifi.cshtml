@@ -525,7 +525,12 @@
         <div class="chart-header" style="justify-content: space-between; flex-wrap: wrap; gap: 10px;">
             <div><i class="fa fa-filter" style="color: var(--series-unique);"></i> Bộ Lọc &amp; Danh Sách MAC</div>
 
-            <div class="chart-header-toolbar" style="display: flex; align-items: center; gap: 15px;">
+            <div class="chart-header-toolbar" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                @* Ô tìm MAC đặt ngoài .filter-panel: khối lọc có nút Ẩn lọc (nhớ theo localStorage) nên để trong đó sẽ bị ẩn mất *@
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <i class="fa fa-wifi" style="color: #1d5aa8;"></i>
+                    <input type="text" id="txtMac" placeholder="Tìm MAC... (Enter)" onkeydown="if (event.key === 'Enter') loadDanhSachMac(1)" style="padding: 5px 10px; border-radius: 6px; border: 1px solid #cbd5e1; outline: none; width: 200px; font-family: 'Consolas', monospace; font-size: 13px;">
+                </div>
                 <div style="font-size: 13px; font-weight: normal; color: #475569; display: flex; align-items: center; gap: 6px;">
                     Hiển thị:
                     <select id="ddlPageSize" onchange="changePageSize()" style="padding: 5px 8px; border-radius: 6px; border: 1px solid #cbd5e1; outline: none; cursor: pointer; font-family: 'Inter', sans-serif;">
@@ -554,10 +559,6 @@
             <div class="filter-group">
                 <label><i class="fa fa-laptop"></i> Mã Thiết Bị</label>
                 <input type="text" id="txtMaThietBi" placeholder="Nhập mã thiết bị...">
-            </div>
-            <div class="filter-group">
-                <label><i class="fa fa-wifi"></i> Địa Chỉ MAC</label>
-                <input type="text" id="txtMac" placeholder="Nhập MAC...">
             </div>
             <div class="filter-group">
                 <label><i class="fa fa-user"></i> Người Yêu Cầu</label>

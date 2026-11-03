@@ -6119,6 +6119,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             public DateTime? TimeAdmin { get; set; }
         }
 
+        // MAC lưu lẫn kiểu AA:BB / AA-BB / AABB → bỏ dấu phân cách trước khi so để gõ kiểu nào cũng tìm ra
+        private static string ChuanHoaMacTim(string? mac) =>
+            new string((mac ?? "").Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
+
         // 1. Action này trả về giao diện View mới
         [HttpGet("/FormIT/ThongKeMacWifi")]
         public IActionResult ThongKeMacWifi()
@@ -6238,7 +6242,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (!string.IsNullOrEmpty(tenNguoiNv)) filteredQuery = filteredQuery.Where(x => x.TenNguoiNv.Contains(tenNguoiNv, StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrEmpty(boPhan)) filteredQuery = filteredQuery.Where(x => x.BoPhan.Contains(boPhan, StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrEmpty(loaiThietBi)) filteredQuery = filteredQuery.Where(x => x.LoaiThietBi.Contains(loaiThietBi, StringComparison.OrdinalIgnoreCase));
-                if (!string.IsNullOrEmpty(macTb)) filteredQuery = filteredQuery.Where(x => x.MacTb.Contains(macTb, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(macTb)) { var macTim = ChuanHoaMacTim(macTb); filteredQuery = filteredQuery.Where(x => ChuanHoaMacTim(x.MacTb).Contains(macTim)); }
                 if (!string.IsNullOrEmpty(maThietBi)) filteredQuery = filteredQuery.Where(x => x.MaThietBi.Contains(maThietBi, StringComparison.OrdinalIgnoreCase));
 
                 if (fromDate.HasValue) filteredQuery = filteredQuery.Where(x => x.TimeAdmin >= fromDate.Value);
@@ -6334,7 +6338,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (!string.IsNullOrEmpty(tenNguoiNv)) filteredQuery = filteredQuery.Where(x => x.TenNguoiNv.Contains(tenNguoiNv, StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrEmpty(boPhan)) filteredQuery = filteredQuery.Where(x => x.BoPhan.Contains(boPhan, StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrEmpty(loaiThietBi)) filteredQuery = filteredQuery.Where(x => x.LoaiThietBi.Contains(loaiThietBi, StringComparison.OrdinalIgnoreCase));
-                if (!string.IsNullOrEmpty(macTb)) filteredQuery = filteredQuery.Where(x => x.MacTb.Contains(macTb, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(macTb)) { var macTim = ChuanHoaMacTim(macTb); filteredQuery = filteredQuery.Where(x => ChuanHoaMacTim(x.MacTb).Contains(macTim)); }
                 if (!string.IsNullOrEmpty(maThietBi)) filteredQuery = filteredQuery.Where(x => x.MaThietBi.Contains(maThietBi, StringComparison.OrdinalIgnoreCase));
 
                 if (fromDate.HasValue) filteredQuery = filteredQuery.Where(x => x.TimeAdmin >= fromDate.Value);

@@ -131,7 +131,8 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                 _context.Users.Update(user);
                 await _context.SaveChangesAsync();
 
-                return Json(new { success = true });
+                // Trả tên file để trang hồ sơ đổi ảnh tại chỗ, không phải tải lại trang
+                return Json(new { success = true, tenFile = fileName });
             }
             catch (Exception ex)
             {

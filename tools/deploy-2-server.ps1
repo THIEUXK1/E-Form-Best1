@@ -4,6 +4,7 @@
 
 .DESCRIPTION
   Một lệnh làm hết, không phụ thuộc file tạm nào khác:
+    0. Đối chiếu bảng/cột entity với DB prod (tools\kiem-schema-prod.ps1, chỉ SELECT) — thiếu thì DỪNG (bỏ qua: -BoQuaSchema).
     1. Đọc commit đang chạy trên máy chủ (_deploy_info.txt trong thư mục site).
     2. Kiểm ?v= của JS/CSS đã sửa kể từ commit đó; view nào còn ?v cũ thì tự nâng (tắt bằng -KhongTuNangV).
     3. dotnet publish ra thư mục mới trong %TEMP%\efb-deploy (không xoá thư mục cũ — máy dev chặn xoá đệ quy).
@@ -23,7 +24,8 @@ param(
     [switch]$ChiStaging,
     [switch]$KhongTuNangV,
     [string]$SoVoi,      # so ?v với commit này thay vì commit đang chạy trên máy chủ (tên khác $coso: PowerShell không phân biệt hoa thường)
-    [switch]$ChiKiemV    # chỉ chạy bước kiểm ?v= rồi dừng
+    [switch]$ChiKiemV,   # chỉ chạy bước kiểm ?v= rồi dừng
+    [switch]$BoQuaSchema # không đối chiếu entity với DB prod (chỉ dùng khi DB tạm không kết nối được và chắc chắn không có cột mới)
 )
 
 # Lệnh ngoài (ssh/scp/git/dotnet) ghi stderr là chuyện thường: không để PowerShell 5.1 coi là lỗi dừng script
@@ -124,6 +126,14 @@ h1{font-size:20px;margin:0 0 8px}p{margin:0;color:#475569;font-size:15px}</style
 <body><div class="hop"><h1>H&#7879; th&#7889;ng &#273;ang c&#7853;p nh&#7853;t</h1>
 <p>Vui l&ograve;ng ch&#7901; kho&#7843;ng 10 gi&acirc;y, trang s&#7869; t&#7921; t&#7843;i l&#7841;i.</p></div></body></html>
 '@, (New-Object Text.UTF8Encoding $false))
+
+# ---------------- 0. Entity khớp DB prod ----------------
+# Code có cột mới mà prod chưa chạy DDL thì trang lỗi 500 ngay sau deploy → chặn từ đầu, chưa đụng file nào
+if (-not $BoQuaSchema) {
+    Buoc 'Đối chiếu entity với DB prod'
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'kiem-schema-prod.ps1')
+    if ($LASTEXITCODE -ne 0) { Dung 'Entity lệch DB prod (xem danh sách trên) — chạy DDL trước, hoặc -BoQuaSchema nếu chắc chắn.' }
+}
 
 # ---------------- 1. Commit đang chạy trên máy chủ ----------------
 Buoc 'Đọc phiên bản đang chạy trên máy chủ'
