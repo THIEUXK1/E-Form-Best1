@@ -296,35 +296,65 @@
     }
     danhDauSan();
 
-    // Nút "Kiểm tra trên WLC": server đọc ngay danh sách MAC trên mọi WLC bằng tài khoản dịch vụ (vài chục giây), rồi vẽ lại bảng
+    // Nút "Kiểm tra trên WLC": mở ô nhập tài khoản / mật khẩu domain, server dùng tài khoản đó đọc ngay danh sách MAC
+    // trên mọi WLC (vài chục giây), rồi vẽ lại bảng. Tài khoản dùng chung với modal, mật khẩu xoá sau mỗi lần.
     const btnQuet = document.getElementById('btnQuetMacWlc');
+    const formQuet = document.getElementById('formQuetMacWlc');
+    const oQuetTaiKhoan = document.getElementById('quetMacWlcTaiKhoan');
+    const oQuetMatKhau = document.getElementById('quetMacWlcMatKhau');
+    const btnGuiQuet = document.getElementById('btnGuiQuetMacWlc');
     const oQuetLoi = document.getElementById('bangMacWlcLoi');
-    if (btnQuet) btnQuet.addEventListener('click', async function () {
-        if (btnQuet.disabled) return;
-        const chuGoc = btnQuet.innerHTML;
-        btnQuet.disabled = true;
-        btnQuet.textContent = 'Đang đọc WLC...';
-        oQuetLoi.hidden = true;
-        try {
-            const res = await fetch('/FormIT/QuetMacWifi/' + encodeURIComponent(modal.dataset.idForm), {
-                method: 'POST',
-                headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' }
-            });
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const d = await res.json();
-            apDungTrangThai(d);
-            if (!d.thanhCong || d.thongBao) {
-                oQuetLoi.textContent = d.thongBao || 'Kiểm tra trên WLC thất bại.';
-                oQuetLoi.hidden = false;
+    function hienQuetLoi(text) { oQuetLoi.textContent = text || ''; oQuetLoi.hidden = !text; }
+    if (btnQuet && formQuet) {
+        btnQuet.addEventListener('click', function () {
+            if (!oQuetTaiKhoan.value.trim()) oQuetTaiKhoan.value = oTaiKhoan.value.trim();
+            formQuet.hidden = false;
+            hienQuetLoi('');
+            (oQuetTaiKhoan.value.trim() ? oQuetMatKhau : oQuetTaiKhoan).focus();
+        });
+        document.getElementById('btnHuyQuetMacWlc').addEventListener('click', function () {
+            if (btnGuiQuet.disabled) return;
+            formQuet.hidden = true;
+            oQuetMatKhau.value = '';
+            hienQuetLoi('');
+        });
+        formQuet.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            if (btnGuiQuet.disabled) return;
+            const taiKhoan = oQuetTaiKhoan.value.trim();
+            if (!taiKhoan) { hienQuetLoi('Nhập tài khoản domain.'); oQuetTaiKhoan.focus(); return; }
+            if (!oQuetMatKhau.value) { hienQuetLoi('Nhập mật khẩu domain.'); oQuetMatKhau.focus(); return; }
+            const chuGoc = btnGuiQuet.textContent;
+            btnQuet.disabled = btnGuiQuet.disabled = true;
+            btnGuiQuet.textContent = 'Đang đọc WLC...';
+            hienQuetLoi('');
+            let thanhCong = false;
+            try {
+                const res = await fetch('/FormIT/QuetMacWifi/' + encodeURIComponent(modal.dataset.idForm), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: JSON.stringify({ taiKhoan: taiKhoan, matKhau: oQuetMatKhau.value })
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const d = await res.json();
+                apDungTrangThai(d);
+                thanhCong = d.thanhCong && !d.thongBao;
+                if (!thanhCong) hienQuetLoi(d.thongBao || 'Kiểm tra trên WLC thất bại.');
+                if (!oTaiKhoan.value.trim()) oTaiKhoan.value = taiKhoan;
+            } catch (err) {
+                hienQuetLoi('Lỗi kết nối máy chủ (' + err.message + ').');
+            } finally {
+                btnQuet.disabled = btnGuiQuet.disabled = false;
+                btnGuiQuet.textContent = chuGoc;
+                oQuetMatKhau.value = '';
+                // Đọc đủ mọi WLC thì gập ô nhập; lỗi (sai mật khẩu / WLC không trả lời) thì giữ để nhập lại
+                if (thanhCong) formQuet.hidden = true; else oQuetMatKhau.focus();
             }
-        } catch (err) {
-            oQuetLoi.textContent = 'Lỗi kết nối máy chủ (' + err.message + ').';
-            oQuetLoi.hidden = false;
-        } finally {
-            btnQuet.disabled = false;
-            btnQuet.innerHTML = chuGoc;
-        }
-    });
+        });
+    }
 
     // Gỡ MAC khỏi 1 WLC trong kết quả kiểm tra; xong thì thay khối đó bằng kết quả gỡ, các WLC khác giữ nguyên
     oKetQua.addEventListener('click', async function (e) {

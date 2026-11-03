@@ -43,23 +43,27 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         public async Task<IActionResult> TrangThaiMac(int idFormIt)
         {
             if (!CoQuyen(User)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem MAC trên WLC." });
-            return await TraTrangThaiAsync(idFormIt, false);
+            return await TraTrangThaiAsync(idFormIt, null);
         }
 
         /// <summary>
-        /// Nút "Kiểm tra trên WLC" ở bảng MAC: đọc ngay danh sách MAC trên mọi WLC của công ty bằng tài khoản dịch vụ
-        /// WlcExec:Quet:TaiKhoan/MatKhau (thay job quét định kỳ cũ), ghi vào bản chụp rồi trả trạng thái các MAC của đơn.
+        /// Nút "Kiểm tra trên WLC" ở bảng MAC: đọc ngay danh sách MAC trên mọi WLC của công ty bằng tài khoản domain
+        /// IT nhập lúc bấm (không dùng tài khoản dịch vụ, để WLC ghi đúng người tra), ghi vào bản chụp rồi trả trạng thái các MAC của đơn.
         /// Chỉ đọc WLC, không ghi gì lên WLC.
         /// </summary>
         [HttpPost("/FormIT/QuetMacWifi/{idFormIt:int}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> QuetMac(int idFormIt)
+        public async Task<IActionResult> QuetMac(int idFormIt, [FromBody] ThemMacVao? vao)
         {
             if (!CoQuyen(User)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền kiểm tra MAC trên WLC." });
-            return await TraTrangThaiAsync(idFormIt, true);
+            var taiKhoan = vao?.TaiKhoan?.Trim() ?? "";
+            if (taiKhoan.Length == 0) return Json(new { thanhCong = false, thongBao = "Nhập tài khoản domain." });
+            if (!Regex.IsMatch(taiKhoan, @"^[A-Za-z0-9._@\\-]{1,64}$")) return Json(new { thanhCong = false, thongBao = "Tài khoản domain không hợp lệ." });
+            if (string.IsNullOrEmpty(vao!.MatKhau)) return Json(new { thanhCong = false, thongBao = "Nhập mật khẩu tài khoản domain." });
+            return await TraTrangThaiAsync(idFormIt, (taiKhoan, vao.MatKhau));
         }
 
-        private async Task<IActionResult> TraTrangThaiAsync(int idFormIt, bool quetNgay)
+        private async Task<IActionResult> TraTrangThaiAsync(int idFormIt, (string TaiKhoan, string MatKhau)? quetNgay)
         {
             try
             {
@@ -71,12 +75,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (dsCt.Count == 0 || !_wlc.CoCauHinh(congTy)) return Json(new { thanhCong = true, duLieu = Array.Empty<object>() });
 
                 var dsLoi = new List<string>();
-                if (quetNgay)
+                if (quetNgay is var (taiKhoan, matKhau))
                 {
-                    var taiKhoan = _configuration["WlcExec:Quet:TaiKhoan"]?.Trim();
-                    var matKhau = _configuration["WlcExec:Quet:MatKhau"];
-                    if (string.IsNullOrEmpty(taiKhoan) || string.IsNullOrEmpty(matKhau))
-                        return Json(new { thanhCong = false, thongBao = "Chưa cấu hình tài khoản quét WLC (WlcExec__Quet__TaiKhoan / MatKhau)." });
                     if (!await _khoaQuet.WaitAsync(0))
                         return Json(new { thanhCong = false, thongBao = "Đang có lượt kiểm tra WLC khác chạy, thử lại sau ít phút." });
                     try

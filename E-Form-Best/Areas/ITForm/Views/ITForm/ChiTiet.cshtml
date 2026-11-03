@@ -1093,6 +1093,13 @@
                             <h4><i class="fa fa-wifi"></i> MAC TRÊN WLC <small id="bangMacWlcQuet"></small>
                                 <button type="button" id="btnQuetMacWlc" class="btn-quet-mac-wlc" title="Đọc ngay danh sách MAC trên các WLC, xem MAC của đơn này đã có trên con nào"><i class="fa fa-refresh"></i> Kiểm tra trên WLC</button>
                             </h4>
+                            <form id="formQuetMacWlc" class="quet-mac-wlc-tk" autocomplete="off" hidden>
+                                <input id="quetMacWlcTaiKhoan" type="text" maxlength="64" autocomplete="off" spellcheck="false" required placeholder="Tài khoản domain (vd @(User.FindFirst("MaNv")?.Value))">
+                                <input id="quetMacWlcMatKhau" type="password" autocomplete="new-password" required placeholder="Mật khẩu domain">
+                                <button type="submit" id="btnGuiQuetMacWlc" class="btn-quet-mac-wlc">Đọc WLC</button>
+                                <button type="button" id="btnHuyQuetMacWlc" class="btn-huy-quet-mac-wlc">Huỷ</button>
+                                <small>Chỉ dùng để SSH vào WLC lần này, không lưu.</small>
+                            </form>
                             <div id="bangMacWlcLoi" class="bang-mac-wlc-loi" hidden></div>
                             <div class="bang-mac-wlc-cuon">
                                 <table>
@@ -1471,6 +1478,6 @@
         </div>
         </div>
     </div>
-    <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261103a" />
-    <script src="~/js/formit-them-mac-wlc.js?v=20261103a"></script>
+    <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261103b" />
+    <script src="~/js/formit-them-mac-wlc.js?v=20261103b"></script>
 }
