@@ -52,7 +52,7 @@ namespace E_Form_Best.Areas.ITForm.Services
             public int? CounterScan { get; set; }
             public int? CounterTong { get; set; }
 
-            /// <summary>Số tờ in màu tích luỹ; chỉ nhóm máy có /home/api/billing-counter mới trả về.</summary>
+            /// <summary>Số tờ in màu tích luỹ; nhóm /home/api/billing-counter và máy màu CentreWare (prcnt.htm) trả về.</summary>
             public int? CounterInMau { get; set; }
 
             /// <summary>Số tờ in đen trắng tích luỹ; null nghĩa là máy không tách được màu.</summary>
@@ -439,6 +439,10 @@ namespace E_Form_Best.Areas.ITForm.Services
                     case "Total Printed Impressions": ketQua.CounterIn = so; break;
                     case "Total Copied Impressions": ketQua.CounterCopy = so; break;
                     case "Total Scanned Images": ketQua.CounterScan = so; break;
+                    // Chỉ máy màu (ApeosPort-VI C3370...) mới có hai dòng này. Lấy phần IN như
+                    // PRINT_TOTAL_COLOR/BW_IMPRESSION của nhóm /home/api để cột Màu/Đen trắng cùng nghĩa.
+                    case "Color Printed Impressions": ketQua.CounterInMau = so; break;
+                    case "Black Printed Impressions": ketQua.CounterInDenTrang = so; break;
                 }
             }
 

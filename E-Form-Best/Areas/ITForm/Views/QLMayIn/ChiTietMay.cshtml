@@ -7,7 +7,7 @@
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="stylesheet" href="/css/mayin-quanly.css?v=202611021659">
+<link rel="stylesheet" href="/css/mayin-quanly.css?v=202611031700">
 
 @* Thẻ body nằm ở layout nên gắn id máy vào đây rồi JS tự đọc lên *@
 <div id="mayInGoc" data-id-may-in="@idMayIn"></div>
@@ -104,6 +104,60 @@
                 </thead>
                 <tbody id="ctChotThang"></tbody>
             </table>
+        </div>
+    </div>
+
+    @* Ai in gì: kéo từ trang Job History của máy (chỉ dòng CentreWare đời cũ có), job nền kéo mỗi chu kỳ *@
+    <div class="bg-white border rounded-4 p-3 mb-2" id="ctKhoiLichSuIn">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <div class="mayin-khoi-tieude mb-0"><i class="fa fa-user-pen me-1"></i> Ai đã in</div>
+            <span class="small text-muted" id="ctLichSuInMoTa"></span>
+            <div class="ms-auto d-flex flex-wrap align-items-center gap-2">
+                <input type="date" class="form-control form-control-sm" style="width:auto" id="lsiTuNgay" aria-label="Từ ngày">
+                <span class="small text-muted">→</span>
+                <input type="date" class="form-control form-control-sm" style="width:auto" id="lsiDenNgay" aria-label="Đến ngày">
+                <button type="button" class="btn btn-sm btn-light rounded-pill px-3" id="btnXemLichSuIn">
+                    <i class="fa fa-filter me-1"></i> Xem
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" id="btnDongBoLichSuIn"
+                        title="Đọc ngay trang Job History của máy và lưu các lệnh in mới">
+                    <i class="fa fa-arrows-rotate me-1"></i> Đồng bộ từ máy
+                </button>
+            </div>
+        </div>
+        <div class="small mb-2" id="ctLichSuInKetQua"></div>
+        <div class="row g-2">
+            <div class="col-lg-4">
+                <div class="table-responsive" style="max-height:340px; overflow:auto;">
+                    <table class="table table-sm mayin-bang mayin-bang-lsi mayin-bang-lsi-tong mb-0">
+                        <thead>
+                            <tr>
+                                <th>Người in</th>
+                                <th class="mayin-cot-so">Lệnh</th>
+                                <th class="mayin-cot-so">Trang</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ctLichSuInTongHop"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="col-lg-8">
+                <div class="table-responsive" style="max-height:340px; overflow:auto;">
+                    <table class="table table-sm mayin-bang mayin-bang-lsi mayin-bang-lsi-ct mb-0">
+                        <thead>
+                            <tr>
+                                <th>Thời điểm</th>
+                                <th>Người in</th>
+                                <th>Tài liệu</th>
+                                <th>Loại</th>
+                                <th class="mayin-cot-so">Trang</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ctLichSuInChiTiet"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -234,5 +288,5 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/js/mayin-chitiet.js?v=20260921a"></script>
+    <script src="/js/mayin-chitiet.js?v=202611031700"></script>
 }

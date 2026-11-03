@@ -84,6 +84,7 @@ builder.Services.AddHttpClient(MayInApiService.TenHttpClient, client =>
 
 builder.Services.AddScoped<MayInApiService>();
 builder.Services.AddScoped<MayInQuetService>();
+builder.Services.AddScoped<MayInLichSuInService>();
 builder.Services.AddHostedService<MayInPollWorker>();
 
 // --- 2c. GIÁM SÁT CAMERA: chỉ đọc API của hệ thống BPVN Camera ISAPI (cấu hình CameraIsapi__* trong .env) ---

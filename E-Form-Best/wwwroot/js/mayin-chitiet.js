@@ -643,6 +643,104 @@
     }
 
 
+    // ---------- Ai đã in (Job History của máy) ----------
+
+    var nguoiInDangLoc = '';
+
+    var nhanLoai = { 'Print': 'In', 'Copy': 'Copy', 'Scan': 'Scan', 'Fax': 'Fax', 'Report': 'Báo cáo' };
+    var nhanTrangThaiLenh = { 'Completed': 'Xong', 'Canceled': 'Huỷ', 'Error': 'Lỗi', 'Warning': 'Cảnh báo', 'Aborted': 'Dừng' };
+
+    function tenNguoiIn(tk, hoTen) {
+        if (!tk) return '<span class="text-muted">(không rõ)</span>';
+        return hoTen
+            ? escapeHtml(hoTen) + ' <span class="text-muted small">' + escapeHtml(tk) + '</span>'
+            : escapeHtml(tk);
+    }
+
+    function taiLichSuIn() {
+        var $tongHop = $('#ctLichSuInTongHop');
+        var $chiTiet = $('#ctLichSuInChiTiet');
+        $chiTiet.html('<tr><td colspan="6" class="text-muted small">Đang tải...</td></tr>');
+
+        $.getJSON('/QLMayIn/LichSuIn/' + idDangXem, {
+            tuNgay: $('#lsiTuNgay').val(),
+            denNgay: $('#lsiDenNgay').val(),
+            nguoiIn: nguoiInDangLoc
+        })
+            .done(function (res) {
+                if (!res.thanhCong) {
+                    $tongHop.empty();
+                    $chiTiet.html('<tr><td colspan="6" class="text-danger small">' + escapeHtml(res.thongBao) + '</td></tr>');
+                    return;
+                }
+
+                var d = res.duLieu;
+                $('#lsiTuNgay').val(d.tuNgay);
+                $('#lsiDenNgay').val(d.denNgay);
+                $('#ctLichSuInMoTa').text(
+                    (d.lanDongBoCuoi ? '— đồng bộ lần cuối ' + d.lanDongBoCuoi : '— chưa đồng bộ lần nào')
+                    + ' · giờ theo đồng hồ máy in');
+
+                if (!d.tongHop.length) {
+                    $tongHop.html('<tr><td colspan="3" class="text-muted small">Không có lệnh in trong khoảng này</td></tr>');
+                } else {
+                    $tongHop.html(d.tongHop.map(function (x) {
+                        var dangChon = nguoiInDangLoc && x.nguoiIn === nguoiInDangLoc;
+                        return '<tr class="lsi-nguoi' + (dangChon ? ' table-primary' : '') + '" style="cursor:pointer"'
+                            + ' data-nguoi-in="' + escapeHtml(x.nguoiIn || '') + '" title="Lần cuối ' + escapeHtml(x.lanCuoi) + ' — bấm để lọc">'
+                            + '<td>' + tenNguoiIn(x.nguoiIn, x.hoTen) + '</td>'
+                            + '<td class="mayin-cot-so">' + dinhDangSo(x.soLenh) + '</td>'
+                            + '<td class="mayin-cot-so fw-semibold">' + dinhDangSo(x.soTrang) + '</td></tr>';
+                    }).join(''));
+                }
+
+                if (!d.dsLenh.length) {
+                    $chiTiet.html('<tr><td colspan="6" class="text-muted small">Không có lệnh in trong khoảng này</td></tr>');
+                    return;
+                }
+
+                $chiTiet.html(d.dsLenh.map(function (x) {
+                    var xong = !x.trangThai || x.trangThai === 'Completed';
+                    return '<tr>'
+                        + '<td class="text-nowrap">' + escapeHtml(x.thoiDiem) + '</td>'
+                        + '<td title="' + escapeHtml(x.nguoiIn || '') + '">'
+                        + (x.nguoiIn ? escapeHtml(x.hoTen || x.nguoiIn) : '<span class="text-muted">(không rõ)</span>') + '</td>'
+                        + '<td title="' + escapeHtml(x.tenTaiLieu) + '">' + escapeHtml(x.tenTaiLieu || '—') + '</td>'
+                        + '<td>' + escapeHtml(nhanLoai[x.loai] || x.loai || '') + '</td>'
+                        + '<td class="mayin-cot-so">' + dinhDangSo(x.soTrang) + '</td>'
+                        + '<td class="' + (xong ? 'text-success' : 'text-danger') + '">'
+                        + escapeHtml(nhanTrangThaiLenh[x.trangThai] || x.trangThai || '') + '</td></tr>';
+                }).join('')
+                    + (d.biCat ? '<tr><td colspan="6" class="text-muted small">Chỉ hiện 2.000 lệnh mới nhất — thu hẹp khoảng ngày để xem hết</td></tr>' : ''));
+            })
+            .fail(function () {
+                $chiTiet.html('<tr><td colspan="6" class="text-danger small">Lỗi kết nối máy chủ.</td></tr>');
+            });
+    }
+
+    // imLang = true khi tự chạy lúc mở trang: máy không có Job History thì chỉ ghi chú, không báo đỏ
+    function dongBoLichSuIn(imLang) {
+        var $nut = $('#btnDongBoLichSuIn');
+        var $kq = $('#ctLichSuInKetQua');
+        $nut.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Đang đồng bộ...');
+
+        $.post('/QLMayIn/DongBoLichSuIn/' + idDangXem)
+            .done(function (res) {
+                var loiThat = !res.thanhCong && !(imLang && res.duLieu && !res.duLieu.coJobHistory);
+                $kq.removeClass('text-success text-danger text-muted')
+                    .addClass(res.thanhCong ? 'text-success' : (loiThat ? 'text-danger' : 'text-muted'))
+                    .text(res.thongBao);
+                if (res.thanhCong && res.duLieu && res.duLieu.soThemMoi > 0) taiLichSuIn();
+            })
+            .fail(function () {
+                $kq.removeClass('text-success text-muted').addClass('text-danger').text('Lỗi kết nối máy chủ.');
+            })
+            .always(function () {
+                $nut.prop('disabled', false).html('<i class="fa fa-arrows-rotate me-1"></i> Đồng bộ từ máy');
+            });
+    }
+
+
     // ---------- Sửa thông tin / nhập chỉ số tay ----------
 
     var modalMayIn, modalChiSoTay;
@@ -750,6 +848,18 @@
         // Trang chi tiết là nơi xem kỹ một máy nên quét luôn, khỏi bắt bấm thêm một nút.
         // Chờ một nhịp cho phần dữ liệu trong CSDL hiện ra trước, vì quét mất vài giây.
         setTimeout(quetThietBi, 400);
+
+        // Hiện ngay phần đã lưu, rồi kéo thêm lệnh mới từ máy (máy chỉ giữ vài trăm lệnh gần nhất)
+        taiLichSuIn();
+        setTimeout(function () { dongBoLichSuIn(true); }, 800);
+
+        $('#btnXemLichSuIn').on('click', taiLichSuIn);
+        $('#btnDongBoLichSuIn').on('click', function () { dongBoLichSuIn(false); });
+        $(document).on('click', '#ctLichSuInTongHop .lsi-nguoi', function () {
+            var nguoi = this.getAttribute('data-nguoi-in') || '';
+            nguoiInDangLoc = nguoiInDangLoc === nguoi ? '' : nguoi;
+            taiLichSuIn();
+        });
 
         $('#btnDongTab').on('click', dongTab);
         $('#btnDocChiSo').on('click', docChiSo);

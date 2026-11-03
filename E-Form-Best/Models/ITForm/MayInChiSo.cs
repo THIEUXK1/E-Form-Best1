@@ -37,7 +37,8 @@ public partial class MayInChiSo
 
     /// <summary>
     /// Đồng hồ tích luỹ số tờ IN MÀU (PRINT_TOTAL_COLOR_IMPRESSION). Chỉ máy đọc được qua
-    /// /home/api/billing-counter mới có; máy đọc qua CentreWare cũ / PJL và dòng nhập tay để null.
+    /// /home/api/billing-counter hoặc máy màu CentreWare (prcnt.htm) mới có; máy đen trắng, PJL và
+    /// dòng nhập tay để null.
     /// Số tờ in màu trong kỳ = chênh lệch giữa hai lần chốt, giống cách tính <see cref="CounterTong"/>.
     /// </summary>
     [Column("counter_in_mau")]

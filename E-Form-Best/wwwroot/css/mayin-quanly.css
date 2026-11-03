@@ -115,6 +115,16 @@
     .mayin-bang thead th:nth-child(10) { width: 10%; }
     .mayin-bang thead th:nth-child(11) { width: 108px; }
 
+    /* Hai bảng "Ai đã in" dùng chung .mayin-bang nên phải gỡ độ rộng của bảng danh sách 16 cột ở trên */
+    .mayin-bang.mayin-bang-lsi thead th { width: auto; }
+    .mayin-bang.mayin-bang-lsi-tong thead th:nth-child(2) { width: 56px; }
+    .mayin-bang.mayin-bang-lsi-tong thead th:nth-child(3) { width: 64px; }
+    .mayin-bang.mayin-bang-lsi-ct thead th:nth-child(1) { width: 118px; }
+    .mayin-bang.mayin-bang-lsi-ct thead th:nth-child(2) { width: 24%; }
+    .mayin-bang.mayin-bang-lsi-ct thead th:nth-child(4) { width: 64px; }
+    .mayin-bang.mayin-bang-lsi-ct thead th:nth-child(5) { width: 56px; }
+    .mayin-bang.mayin-bang-lsi-ct thead th:nth-child(6) { width: 84px; }
+
     /* Tiêu đề dòng 2 của cột gộp (Vị trí, Serial, IP, Đọc lúc) */
     .mayin-th-phu {
         font-weight: 400;

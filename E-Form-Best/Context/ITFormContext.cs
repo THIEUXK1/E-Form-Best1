@@ -284,6 +284,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<MayInChiSo> MayInChiSos { get; set; }
 
+    public virtual DbSet<MayInLichSuIn> MayInLichSuIns { get; set; }
+
     // Đánh giá hiệu suất (/QLCongViec/DanhGia) — bảng tạo bằng .claude/plans/sql/dg-danh-gia-20261015.sql
     public virtual DbSet<DgNhomNangLuc> DgNhomNangLucs { get; set; }
 

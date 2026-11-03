@@ -53,6 +53,10 @@ namespace E_Form_Best.Areas.ITForm.Services
                     var (tong, thanhCong) = await ChotChiSoAsync(stoppingToken);
                     Console.WriteLine($"[MayIn] Đọc {thanhCong}/{tong} máy lúc {DateTime.Now:dd/MM/yyyy HH:mm}");
 
+                    // Máy chỉ giữ vài trăm lệnh gần nhất nên kéo cùng chu kỳ đọc chỉ số cho khỏi sót
+                    var (soMayCoLog, soLenhMoi) = await DongBoLichSuInAsync(stoppingToken);
+                    Console.WriteLine($"[MayIn] Lịch sử in: thêm {soLenhMoi} lệnh từ {soMayCoLog} máy có Job History");
+
                     await NapLichSuHangNgayAsync(gioNapLichSu, stoppingToken);
                 }
                 catch (TaskCanceledException)
@@ -125,6 +129,43 @@ namespace E_Form_Best.Areas.ITForm.Services
             }
 
             return (dsMay.Count, soNgayThem);
+        }
+
+        /// <summary>Kéo Job History toàn bộ máy. Trả về (số máy có Job History, tổng số lệnh thêm mới).</summary>
+        public async Task<(int SoMayCoLog, int SoLenhMoi)> DongBoLichSuInAsync(CancellationToken ct)
+        {
+            var dsMay = await LayDanhSachMayAsync(ct);
+            var soMayCoLog = 0;
+            var soLenhMoi = 0;
+
+            foreach (var lo in ChiaLo(dsMay, LaySoSongSong()))
+            {
+                var ketQua = await Task.WhenAll(lo.Select(m => DongBoLichSuInMotMayAsync(m.IdMayIn, ct)));
+                soMayCoLog += ketQua.Count(x => x.CoJobHistory);
+                soLenhMoi += ketQua.Sum(x => x.SoThemMoi);
+            }
+
+            return (soMayCoLog, soLenhMoi);
+        }
+
+        private async Task<MayInLichSuInService.KetQuaDongBo> DongBoLichSuInMotMayAsync(int idMayIn, CancellationToken ct)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ITFormContext>();
+            var lichSuInService = scope.ServiceProvider.GetRequiredService<MayInLichSuInService>();
+
+            var may = await context.MayIns.AsNoTracking().FirstOrDefaultAsync(m => m.IdMayIn == idMayIn, ct);
+            if (may is null) return new MayInLichSuInService.KetQuaDongBo();
+
+            try
+            {
+                return await lichSuInService.DongBoAsync(may, ct);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[MayIn] Lỗi kéo lịch sử in máy {idMayIn}: {ex.Message}");
+                return new MayInLichSuInService.KetQuaDongBo();
+            }
         }
 
         private async Task<List<MayIn>> LayDanhSachMayAsync(CancellationToken ct)

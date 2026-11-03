@@ -19,13 +19,16 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         private readonly MayInQuetService _mayInQuetService;
         private readonly IConfiguration _configuration;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly MayInLichSuInService _mayInLichSuInService;
 
         public QLMayInController(ITFormContext context, MayInApiService mayInApiService,
-            MayInQuetService mayInQuetService, IConfiguration configuration, IServiceScopeFactory scopeFactory)
+            MayInQuetService mayInQuetService, IConfiguration configuration, IServiceScopeFactory scopeFactory,
+            MayInLichSuInService mayInLichSuInService)
         {
             _context = context;
             _mayInApiService = mayInApiService;
             _mayInQuetService = mayInQuetService;
+            _mayInLichSuInService = mayInLichSuInService;
             _configuration = configuration;
             _scopeFactory = scopeFactory;
         }
@@ -1513,6 +1516,132 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 thongBao = ketQua.ThongBao,
                 duLieu = new { ketQua.SoMocDocDuoc, ketQua.SoNgayThemMoi }
             });
+        }
+
+        /// <summary>
+        /// Kéo Job History của máy về bảng lịch sử in ngay (job nền cũng kéo mỗi chu kỳ đọc chỉ số).
+        /// Chạy lại vô hại: dòng đã có bị bỏ qua nhờ khoá chống trùng.
+        /// </summary>
+        [HttpPost("/QLMayIn/DongBoLichSuIn/{id:int}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DongBoLichSuIn(int id)
+        {
+            var chan = KiemQuyen();
+            if (chan != null) return chan;
+
+            var may = await _context.MayIns.AsNoTracking().FirstOrDefaultAsync(m => m.IdMayIn == id);
+            if (may is null) return Json(new { thanhCong = false, thongBao = "Không tìm thấy máy in" });
+
+            try
+            {
+                var ketQua = await _mayInLichSuInService.DongBoAsync(may, HttpContext.RequestAborted);
+                return Json(new
+                {
+                    thanhCong = ketQua.ThanhCong,
+                    thongBao = ketQua.ThongBao,
+                    duLieu = new { ketQua.CoJobHistory, ketQua.SoDocDuoc, ketQua.SoThemMoi }
+                });
+            }
+            catch (Exception ex) when (ex is DbUpdateException or Microsoft.Data.SqlClient.SqlException)
+            {
+                return Json(new { thanhCong = false, thongBao = "Lỗi ghi lịch sử in: " + ex.GetBaseException().Message });
+            }
+        }
+
+        /// <summary>
+        /// Lịch sử lệnh in đã đồng bộ của một máy trong khoảng ngày (mặc định 7 ngày gần nhất),
+        /// kèm tổng hợp theo người in. Owner trên máy in là tài khoản Windows nên ghép được họ tên từ User.TK.
+        /// </summary>
+        [HttpGet("/QLMayIn/LichSuIn/{id:int}")]
+        public async Task<IActionResult> LichSuIn(int id, DateTime? tuNgay, DateTime? denNgay, string? nguoiIn)
+        {
+            var chan = KiemQuyen();
+            if (chan != null) return chan;
+
+            var den = (denNgay ?? DateTime.Today).Date.AddDays(1);
+            var tu = (tuNgay ?? DateTime.Today.AddDays(-6)).Date;
+            if (tu >= den) return Json(new { thanhCong = false, thongBao = "Từ ngày phải trước đến ngày" });
+            if ((den - tu).TotalDays > 366) return Json(new { thanhCong = false, thongBao = "Chỉ xem tối đa một năm mỗi lần" });
+
+            try
+            {
+                var truyVan = _context.MayInLichSuIns.AsNoTracking()
+                    .Where(x => x.IdMayIn == id && x.ThoiDiemIn >= tu && x.ThoiDiemIn < den);
+                if (!string.IsNullOrWhiteSpace(nguoiIn)) truyVan = truyVan.Where(x => x.NguoiIn == nguoiIn.Trim());
+
+                var tongHop = await truyVan
+                    .GroupBy(x => x.NguoiIn)
+                    .Select(g => new
+                    {
+                        nguoiIn = g.Key,
+                        soLenh = g.Count(),
+                        soTrang = g.Sum(x => x.SoTrang ?? 0),
+                        lanCuoi = g.Max(x => x.ThoiDiemIn)
+                    })
+                    .OrderByDescending(x => x.soTrang)
+                    .ToListAsync();
+
+                // Bảng chi tiết cắt ở 2000 dòng cho trang khỏi nặng; tổng hợp phía trên vẫn đủ
+                const int toiDaDong = 2000;
+                var dsLenh = await truyVan
+                    .OrderByDescending(x => x.ThoiDiemIn).ThenByDescending(x => x.IdLichSuIn)
+                    .Take(toiDaDong)
+                    .Select(x => new
+                    {
+                        thoiDiem = x.ThoiDiemIn,
+                        x.NguoiIn,
+                        x.TenTaiLieu,
+                        x.Loai,
+                        x.TrangThai,
+                        x.SoTrang,
+                        x.CongNhan
+                    })
+                    .ToListAsync();
+
+                var dsTk = tongHop.Where(x => x.nguoiIn != null).Select(x => x.nguoiIn!).ToList();
+                var hoTenTheoTk = (await _context.Users.AsNoTracking()
+                        .Where(u => u.Tk != null && dsTk.Contains(u.Tk))
+                        .Select(u => new { u.Tk, u.HoTen })
+                        .ToListAsync())
+                    .GroupBy(u => u.Tk!, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.Key, g => g.First().HoTen, StringComparer.OrdinalIgnoreCase);
+
+                string? HoTen(string? tk) => tk != null && hoTenTheoTk.TryGetValue(tk, out var ht) ? ht : null;
+
+                var lanDongBoCuoi = await _context.MayInLichSuIns.AsNoTracking()
+                    .Where(x => x.IdMayIn == id)
+                    .MaxAsync(x => (DateTime?)x.NgayDongBo);
+
+                return Json(new
+                {
+                    thanhCong = true,
+                    thongBao = "",
+                    duLieu = new
+                    {
+                        tuNgay = tu.ToString("yyyy-MM-dd"),
+                        denNgay = den.AddDays(-1).ToString("yyyy-MM-dd"),
+                        lanDongBoCuoi = lanDongBoCuoi?.ToString("dd/MM/yyyy HH:mm"),
+                        biCat = dsLenh.Count >= toiDaDong,
+                        tongHop = tongHop.Select(x => new { x.nguoiIn, hoTen = HoTen(x.nguoiIn), x.soLenh, x.soTrang, lanCuoi = x.lanCuoi.ToString("dd/MM/yyyy HH:mm") }),
+                        dsLenh = dsLenh.Select(x => new
+                        {
+                            thoiDiem = x.thoiDiem.ToString("dd/MM/yyyy HH:mm"),
+                            x.NguoiIn,
+                            hoTen = HoTen(x.NguoiIn),
+                            x.TenTaiLieu,
+                            x.Loai,
+                            x.TrangThai,
+                            x.SoTrang,
+                            x.CongNhan
+                        })
+                    }
+                });
+            }
+            catch (Microsoft.Data.SqlClient.SqlException ex)
+            {
+                // Hay gặp nhất: chưa chạy script tạo bảng MayIn_LichSuIn trên DB
+                return Json(new { thanhCong = false, thongBao = "Lỗi đọc lịch sử in: " + ex.Message });
+            }
         }
 
         /// <summary>Nạp nhật ký lỗi của toàn bộ máy đang bật đọc tự động, chạy tuần tự.</summary>
