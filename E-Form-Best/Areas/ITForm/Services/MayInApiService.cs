@@ -14,21 +14,29 @@ namespace E_Form_Best.Areas.ITForm.Services
     ///   /home/api/billing-counter → đồng hồ đếm in / copy / scan
     ///   /home/api/supplies-info   → % mực (TONER_K) và trống (DRUM_K)
     ///
-    /// Dòng Fuji Xerox đời cũ (DocuPrint 3105/3205, ApeosPort-V/VI/VII) không có các endpoint này
-    /// và SNMP cũng bị tắt, nhưng trang CentreWare vẫn nhúng đồng hồ đếm trong biến JavaScript nên
-    /// vẫn đọc được — xem DocQuaWebCuAsync. Nhóm này không có % mực.
+    /// Dòng Fuji Xerox đời cũ (DocuPrint 3105/3205, ApeosPort-V/VI/VII) không có các endpoint này,
+    /// nhưng trang CentreWare vẫn nhúng đồng hồ đếm trong biến JavaScript nên vẫn đọc được — xem
+    /// DocQuaWebCuAsync. Trang vật tư CentreWare để trống nên % mực của nhóm này lấy qua SNMP
+    /// Printer MIB nếu máy bật SNMP (ApeosPort-VI C3370 có) — xem DocVatTuQuaSnmpAsync.
     /// </summary>
     public class MayInApiService
     {
         public const string TenHttpClient = "MayIn";
 
+        // prtMarkerSuppliesEntry (RFC 3805): .5 loại, .6 mô tả, .8 dung lượng tối đa, .9 mức còn lại
+        private const string PrtVatTu = "1.3.6.1.2.1.43.11.1.1";
+
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ITFormContext _context;
+        private readonly string _snmpCommunity;
 
-        public MayInApiService(IHttpClientFactory httpClientFactory, ITFormContext context)
+        public MayInApiService(IHttpClientFactory httpClientFactory, ITFormContext context, IConfiguration configuration)
         {
             _httpClientFactory = httpClientFactory;
             _context = context;
+            // Máy in để community mặc định "public" (chỉ đọc); trường hợp đổi thì cấu hình MayIn__SnmpCommunity
+            var community = configuration["MayIn:SnmpCommunity"];
+            _snmpCommunity = string.IsNullOrWhiteSpace(community) ? "public" : community;
         }
 
         /// <summary>Một vật tư đo được phần trăm còn lại, ví dụ TONER_C 37%.</summary>
@@ -98,11 +106,19 @@ namespace E_Form_Best.Areas.ITForm.Services
                     // Đa số mở cổng 80, một số máy chỉ bật HTTPS nên phải thử cả hai.
                     var theoWebCu = await DocQuaWebCuAsync(client, $"http://{diaChiIp}", ct)
                                     ?? await DocQuaWebCuAsync(client, $"https://{diaChiIp}", ct);
-                    if (theoWebCu is not null) return theoWebCu;
+                    if (theoWebCu is not null)
+                    {
+                        await DocVatTuQuaSnmpAsync(diaChiIp, theoWebCu, ct);
+                        return theoWebCu;
+                    }
 
                     // Cuối cùng thử PJL cổng 9100 — đường duy nhất còn lại của vài dòng máy nhỏ
                     var theoPjl = await DocQuaPjlAsync(diaChiIp, ct);
-                    if (theoPjl is not null) return theoPjl;
+                    if (theoPjl is not null)
+                    {
+                        await DocVatTuQuaSnmpAsync(diaChiIp, theoPjl, ct);
+                        return theoPjl;
+                    }
 
                     ketQua.ThongBao = "Không đọc được đồng hồ đếm (không có /home/api, trang CentreWare lẫn PJL)";
                     return ketQua;
@@ -401,7 +417,7 @@ namespace E_Form_Best.Areas.ITForm.Services
         ///   http://ip/prcnt.htm → var info=['Total Printed Impressions',96537,'Total Copied Impressions',...]
         ///   http://ip/stgen.htm → var spcs=['DocuPrint 3205 d',[...],'','Machine in Power Saver Mode','i']
         ///
-        /// Trang vật tư (stsply.htm) để mảng dữ liệu rỗng nên nhóm máy này không có % mực.
+        /// Trang vật tư (stsply.htm) để mảng dữ liệu rỗng nên % mực phải lấy qua SNMP (DocVatTuQuaSnmpAsync).
         /// </summary>
         private static async Task<KetQuaDoc?> DocQuaWebCuAsync(HttpClient client, string goc, CancellationToken ct)
         {
@@ -461,7 +477,7 @@ namespace E_Form_Best.Areas.ITForm.Services
         ///   @PJL INFO ID        → "FUJIFILM ApeosPrint C325/328 dw"
         ///   @PJL INFO STATUS    → DISPLAY="Ready"
         ///
-        /// PJL chỉ có số trang in tổng, không tách copy/scan và không có % mực.
+        /// PJL chỉ có số trang in tổng, không tách copy/scan; % mực bổ sung qua SNMP nếu máy bật.
         /// Không phải máy nào cũng bật PJL: có máy nhận lệnh rồi im (chỉ vọng lại dòng lệnh).
         /// </summary>
         private static async Task<KetQuaDoc?> DocQuaPjlAsync(string diaChiIp, CancellationToken ct)
@@ -496,6 +512,72 @@ namespace E_Form_Best.Areas.ITForm.Services
             }
 
             return ketQua;
+        }
+
+        /// <summary>
+        /// Bổ sung % mực / trống qua SNMP Printer MIB cho máy không có /home/api/supplies-info.
+        /// Máy C3370 trả về dạng: loại 3 "Black Toner [K];SN..." max 36000 level 6480 → TONER_K 18%,
+        /// loại 9 "Cyan Drum Cartridge" → DRUM_C. Tên đổi về TONER_x/DRUM_x cho giao diện dùng chung
+        /// với nhóm máy API. Máy tắt SNMP hoặc sai community thì bỏ qua, giữ kết quả đồng hồ đếm.
+        /// </summary>
+        private async Task DocVatTuQuaSnmpAsync(string diaChiIp, KetQuaDoc ketQua, CancellationToken ct)
+        {
+            List<SnmpClient.Bien> ds;
+            try
+            {
+                ds = await SnmpClient.WalkAsync(diaChiIp, _snmpCommunity, PrtVatTu, 2000, 1, 300, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return;
+            }
+
+            // OID dạng <gốc>.<cột>.<hrDeviceIndex>.<chỉ số vật tư> → gom theo hậu tố sau cột
+            var theoCot = new Dictionary<string, Dictionary<int, object?>>();
+            foreach (var b in ds)
+            {
+                var phanSau = b.Oid[(PrtVatTu.Length + 1)..];
+                var cham = phanSau.IndexOf('.');
+                if (cham <= 0 || !int.TryParse(phanSau[..cham], out var cot)) continue;
+                var khoa = phanSau[(cham + 1)..];
+                if (!theoCot.TryGetValue(khoa, out var dong)) theoCot[khoa] = dong = new();
+                dong[cot] = b.GiaTri;
+            }
+
+            foreach (var dong in theoCot.Values)
+            {
+                var loai = SnmpClient.So(dong.GetValueOrDefault(5));
+                var tienTo = loai switch { 3 => "TONER", 9 => "DRUM", _ => null };
+                if (tienTo is null) continue;
+
+                var toiDa = SnmpClient.So(dong.GetValueOrDefault(8));
+                var conLai = SnmpClient.So(dong.GetValueOrDefault(9));
+                // Mức âm là mã đặc biệt (-2 không rõ, -3 còn một ít) — không quy ra phần trăm được
+                if (toiDa is null or <= 0 || conLai is null or < 0) continue;
+                var phanTram = (int)Math.Clamp(conLai.Value * 100 / toiDa.Value, 0, 100);
+
+                var ten = $"{tienTo}_{MaMau(SnmpClient.Chuoi(dong.GetValueOrDefault(6)) ?? "")}";
+                if (ketQua.VatTu.Any(v => v.Ten == ten)) continue;
+                ketQua.VatTu.Add(new VatTuDoc(ten, phanTram));
+
+                if (tienTo == "TONER")
+                    ketQua.TonerPhanTram = Math.Min(ketQua.TonerPhanTram ?? int.MaxValue, phanTram);
+                else
+                    ketQua.DrumPhanTram = Math.Min(ketQua.DrumPhanTram ?? int.MaxValue, phanTram);
+            }
+
+            if (ketQua.VatTu.Count > 0) ketQua.ThongBao += "; mực đọc qua SNMP";
+        }
+
+        /// <summary>Lấy mã màu từ mô tả vật tư; máy đen trắng không ghi màu thì coi là K.</summary>
+        private static string MaMau(string moTa)
+        {
+            var maTrongNgoac = Regex.Match(moTa, @"\[(?<ma>[CMYK])\]", RegexOptions.IgnoreCase);
+            if (maTrongNgoac.Success) return maTrongNgoac.Groups["ma"].Value.ToUpperInvariant();
+            if (moTa.Contains("Cyan", StringComparison.OrdinalIgnoreCase)) return "C";
+            if (moTa.Contains("Magenta", StringComparison.OrdinalIgnoreCase)) return "M";
+            if (moTa.Contains("Yellow", StringComparison.OrdinalIgnoreCase)) return "Y";
+            return "K";
         }
 
         private static async Task<string?> GuiLenhPjlAsync(string diaChiIp, string lenh, CancellationToken ct)
