@@ -616,7 +616,7 @@
                 </div>
                 <div class="mobile-status-box" style="background: white; padding: 20px 35px; border-radius: 24px; text-align: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
                     <div style="font-size: 12px; font-weight: 900; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px;">Trạng thái</div>
-                    <div style="font-size: 22px; font-weight: 900; color: @statusColor">@statusText</div>
+                    <div id="trangThaiDonIT" style="font-size: 22px; font-weight: 900; color: @statusColor">@statusText</div>
                 </div>
             </div>
         </div>
@@ -867,7 +867,7 @@
                         <h4 style="margin: 0 0 25px 0; font-size: 15px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;">
                             <i class="fa fa-tasks"></i> TIẾN TRÌNH XỬ LÝ
                         </h4>
-                        <div style="position: relative; padding-left: 30px; border-left: 2px solid #f1f5f9;">
+                        <div id="khungTienTrinhDon" style="position: relative; padding-left: 30px; border-left: 2px solid #f1f5f9;">
                             <div style="margin-bottom: 25px; position: relative;">
                                 <div style="position: absolute; left: -37px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: #059669; border: 3px solid white; box-shadow: 0 0 0 2px #059669;"></div>
                                 <div style="font-weight: 800; font-size: 15px; color: #1e293b;">Người tạo: @Model.TenNguoiTao</div>
@@ -915,7 +915,7 @@
 
                     @if (!isCancelled && !isFinished)
                     {
-                        <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 25px;">
+                        <div id="khungNutXuLyDon" style="display: flex; flex-direction: column; gap: 15px; margin-top: 25px;">
                             @if (!isApprovedByManager && (User.IsInRole("All") || isDirectDepartmentManager))
                             {
                                 <button id="btnDuyet"
@@ -949,6 +949,24 @@
                                         onmouseout="this.style.transform=''; this.style.boxShadow='0 10px 15px -3px rgba(30, 64, 175, 0.3)'">
                                     <i class="fa fa-star" style="font-size: 20px;"></i> XÁC NHẬN HOÀN TẤT (IT)
                                 </button>
+                            }
+
+                            @* Đơn do Hệ thống E-form tự duyệt nhưng IT thấy vẫn cần quản lý bộ phận đồng ý *@
+                            @if (ViewBag.CoTheYeuCauQuanLy == true)
+                            {
+                                <div id="khungYeuCauQuanLy" data-id-don="@Model.Id" style="background: #fffbeb; border: 2px solid #fcd34d; padding: 18px; border-radius: 18px;">
+                                    <button type="button" id="btnYeuCauQuanLy" style="width: 100%; background: #d97706; color: white; border: none; padding: 16px; border-radius: 14px; font-weight: 900; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                        <i class="fa fa-user-check" style="font-size: 18px;"></i> YÊU CẦU QUẢN LÝ XÁC NHẬN
+                                    </button>
+                                    <div id="oNhapYeuCauQuanLy" hidden style="margin-top: 12px;">
+                                        <textarea id="txtLyDoYeuCauQuanLy" maxlength="500" placeholder="Lý do cần quản lý bộ phận xác nhận..." style="width: 100%; padding: 10px; border: 1px solid #fcd34d; border-radius: 10px; font-size: 14px; min-height: 70px; outline: none; box-sizing: border-box;"></textarea>
+                                        <div id="baoLoiYeuCauQuanLy" hidden style="color: #b91c1c; font-size: 13px; font-weight: 700; margin-top: 6px;"></div>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                                            <button type="button" id="btnGuiYeuCauQuanLy" style="background: #d97706; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 800; font-size: 13px; cursor: pointer;"><i class="fa fa-paper-plane"></i> GỬI CHO QUẢN LÝ</button>
+                                            <button type="button" id="btnBoYeuCauQuanLy" style="background: white; color: #92400e; border: 1.5px solid #d97706; padding: 12px; border-radius: 10px; font-weight: 800; font-size: 13px; cursor: pointer;">BỎ QUA</button>
+                                        </div>
+                                    </div>
+                                </div>
                             }
 
                             @if (User.IsInRole("All") || User.IsInRole("AdminIT") || User.IsInRole("QuanLyDuyetDonIT") || (ViewBag.CurrentUserId != null && (int)ViewBag.CurrentUserId == Model.IdNguoiTao))
@@ -1379,6 +1397,7 @@
 <script src="~/js/formit-chitiet-doi-donvi.js?v=202610241315"></script>
 <script src="~/js/formit-binhluan-dan-anh.js?v=20260917"></script>
 <script src="~/js/formit-nguoi-co-the-duyet.js?v=20261001"></script>
+<script src="~/js/formit-yeu-cau-quan-ly.js?v=20261104"></script>
 
 @if (Model?.ItDangKiSuDungWifi3s?.Any() == true && E_Form_Best.Areas.ITForm.Controllers.WifiMacController.CoQuyen(User) && WlcMac.CoCauHinh(Model.TenCongTy))
 {

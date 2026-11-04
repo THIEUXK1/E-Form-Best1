@@ -4167,6 +4167,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // (phải khớp [Authorize] của DoiDonViDon)
             bool coTheDoiDonVi = User.IsInRole("All") || User.IsInRole("AdminIT");
             ViewBag.CoTheDoiDonVi = coTheDoiDonVi;
+            ViewBag.CoTheYeuCauQuanLy = coTheDoiDonVi && LaDonHeThongTuDuyet(don) && don.IdAdmin == null
+                && don.TrangThai != "HoanTat" && don.TrangThai != "DaHuy"
+                && (don.TenForm == null || !don.TenForm.Contains("[ĐÃ HỦY]"));
             if (coTheDoiDonVi)
             {
                 ViewBag.DsCongTy = await _context.DmCongTies
@@ -5366,6 +5369,97 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // ===================================================================
+        // API: YÊU CẦU QUẢN LÝ BỘ PHẬN XÁC NHẬN (quyền "All" hoặc "AdminIT")
+        // Đơn sửa chữa/hỗ trợ kỹ thuật được "Hệ thống E-form" tự duyệt lúc tạo, nhưng có yêu cầu
+        // IT thấy vẫn cần quản lý đồng ý. Xoá thông tin người duyệt để đơn quay về đúng trạng thái
+        // "chờ quản lý": rời hàng đợi IT, quản lý bộ phận duyệt bằng luồng /FormIT/XuLyDon có sẵn.
+        // ===================================================================
+
+        private const int IdNguoiDuyetHeThong = 8;
+        private const string TieuDeYeuCauQuanLy = "YÊU CẦU QUẢN LÝ XÁC NHẬN";
+
+        private static bool LaDonHeThongTuDuyet(FormIt don) =>
+            don.IdForm == "IT_OrderIT_2" && don.IdNguoiDuyet == IdNguoiDuyetHeThong;
+
+        [HttpPost("/FormIT/YeuCauQuanLyXacNhan")]
+        [Authorize(Roles = "All,AdminIT")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> YeuCauQuanLyXacNhan([FromBody] YeuCauQuanLyXacNhanRequest req)
+        {
+            if (req == null || req.IdFormIt <= 0)
+                return Json(new { thanhCong = false, thongBao = "Dữ liệu không hợp lệ." });
+
+            var lyDo = (req.LyDo ?? "").Trim();
+            if (string.IsNullOrEmpty(lyDo))
+                return Json(new { thanhCong = false, thongBao = "Vui lòng nhập lý do cần quản lý xác nhận." });
+            if (lyDo.Length > 500)
+                return Json(new { thanhCong = false, thongBao = "Lý do tối đa 500 ký tự." });
+
+            var don = await _context.FormIts.AsNoTracking()
+                .FirstOrDefaultAsync(f => f.Id == req.IdFormIt);
+            if (don == null)
+                return Json(new { thanhCong = false, thongBao = "Không tìm thấy đơn." });
+
+            bool daKetThuc = don.IdAdmin != null || don.TrangThai == "HoanTat" || don.TrangThai == "DaHuy"
+                || (don.TenForm != null && don.TenForm.Contains("[ĐÃ HỦY]"));
+            if (daKetThuc)
+                return Json(new { thanhCong = false, thongBao = "Đơn này đã kết thúc hoặc đã hủy." });
+            if (!LaDonHeThongTuDuyet(don))
+                return Json(new { thanhCong = false, thongBao = "Đơn này không còn ở trạng thái do Hệ thống E-form duyệt." });
+
+            var userName = User.Identity?.Name ?? "Quản trị";
+            var maNv = User.FindFirst("MaNv")?.Value ?? "N/A";
+
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    // Chốt idempotency: điều kiện nằm ngay trong UPDATE, hai người bấm cùng lúc
+                    // thì người sau được 0 dòng, không ghi thêm dòng lịch sử
+                    int soDong = await _context.FormIts
+                        .Where(f => f.Id == don.Id && f.IdAdmin == null
+                                 && f.IdForm == "IT_OrderIT_2" && f.IdNguoiDuyet == IdNguoiDuyetHeThong)
+                        .ExecuteUpdateAsync(s => s
+                            .SetProperty(f => f.IdNguoiDuyet, (int?)null)
+                            .SetProperty(f => f.TenNguoiDuyet, (string?)null)
+                            .SetProperty(f => f.TimeNguoiDuyet, (DateTime?)null)
+                            .SetProperty(f => f.TrangThai, "ChoDuyet"));
+
+                    if (soDong == 0)
+                    {
+                        await transaction.RollbackAsync();
+                        return Json(new { thanhCong = false, thongBao = "Đơn này vừa được người khác xử lý." });
+                    }
+
+                    _context.LichSuFormIts.Add(new LichSuFormIt
+                    {
+                        IdFormIt = don.Id,
+                        TieuDe = TieuDeYeuCauQuanLy,
+                        Mota = $"{userName} ({maNv}) yêu cầu quản lý bộ phận {don.BoPhan} xác nhận trước khi IT xử lý.\n" +
+                               $"Lý do: {lyDo}",
+                        Time = DateTime.Now
+                    });
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return Json(new { thanhCong = true, thongBao = "Đã chuyển đơn cho quản lý bộ phận xác nhận." });
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return Json(new { thanhCong = false, thongBao = "Lỗi: " + ex.Message });
+                }
+            }
+        }
+
+        public class YeuCauQuanLyXacNhanRequest
+        {
+            public int IdFormIt { get; set; }
+            public string? LyDo { get; set; }
+        }
+
+        // ===================================================================
         // API: ĐỔI BỘ PHẬN / TÊN CÔNG TY CỦA ĐƠN (quyền "All" hoặc "AdminIT")
         // Đơn bị nhập sai đơn vị sẽ lọt khỏi tầm duyệt của quản lý đúng bộ phận,
         // nên cần một chỗ sửa lại — chỉ mở cho quyền cao nhất và quản trị IT.
@@ -5631,6 +5725,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (form.TrangThai == "HoanTat" || isCancelled)
             {
                 return Json(new { success = false, message = "Đơn này đã kết thúc hoặc đã hủy." });
+            }
+
+            // Trang mở từ trước khi đơn bị trả về quản lý vẫn còn nút hoàn tất, nên phải chặn ở server
+            if (form.IdNguoiDuyet == null && form.TrangThai != "DaDuyet")
+            {
+                return Json(new { success = false, message = "Đơn đang chờ quản lý xác nhận, IT chưa thể hoàn tất." });
             }
 
             // KIỂM TRA RÀNG BUỘC ĐƠN 8
@@ -6568,6 +6668,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         (
                             l.IdFormItNavigation.IdNguoiTao == userId ||
                             l.IdFormItNavigation.IdNguoiDuyet == userId ||
+                            // Đơn IT trả về chờ quản lý xác nhận: đơn chờ thường không rung chuông, nếu không báo thì quản lý không biết để duyệt
+                            (l.TieuDe == TieuDeYeuCauQuanLy && l.IdFormItNavigation.IdNguoiDuyet == null &&
+                             (listTenBoPhan.Contains(l.IdFormItNavigation.BoPhan!) || l.IdFormItNavigation.BoPhan == phongBanSession)) ||
                             // MỚI: Nhìn thấy lịch sử Đơn 8 NẾU Quản lý trực tiếp ĐÃ DUYỆT (IdNguoiDuyet != null) và Quản lý này thuộc Bộ phận liên đới
                             (l.IdFormItNavigation.IdNguoiDuyet != null && l.IdFormItNavigation.IdForm == "IT_CapQuyenOChung_8" &&
                              l.IdFormItNavigation.ItCapQuyenOchung8s.Any(c => c.ItXacNhanCapQuyen8s.Any(x => x.BoPhan != null && validTargetBoPhans.Contains(x.BoPhan))))
@@ -6738,6 +6841,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                         (
                             l.IdFormItNavigation.IdNguoiTao == userId ||
                             l.IdFormItNavigation.IdNguoiDuyet == userId ||
+                            // Đơn IT trả về chờ quản lý xác nhận: đơn chờ thường không rung chuông, nếu không báo thì quản lý không biết để duyệt
+                            (l.TieuDe == TieuDeYeuCauQuanLy && l.IdFormItNavigation.IdNguoiDuyet == null &&
+                             (listTenBoPhan.Contains(l.IdFormItNavigation.BoPhan!) || l.IdFormItNavigation.BoPhan == phongBanSession)) ||
                             // MỚI: Nhận thông báo Đơn 8 NẾU Quản lý trực tiếp ĐÃ DUYỆT (IdNguoiDuyet != null) và Quản lý này thuộc Bộ phận liên đới
                             (l.IdFormItNavigation.IdNguoiDuyet != null && l.IdFormItNavigation.IdForm == "IT_CapQuyenOChung_8" &&
                              l.IdFormItNavigation.ItCapQuyenOchung8s.Any(c => c.ItXacNhanCapQuyen8s.Any(x => x.BoPhan != null && validTargetBoPhans.Contains(x.BoPhan))))
