@@ -422,7 +422,11 @@
                 </div>
             </div>
 
-            <div class="filter-group" style="flex-direction: row; align-items: flex-end; gap: 10px; margin-left: auto;">
+            <div class="filter-group" style="flex-direction: row; align-items: center; gap: 14px; margin-left: auto;">
+                <div id="khungUuTienDonCuaToi" class="form-check form-switch mb-0" style="display: none;" title="Đơn có tên bạn trong Người hỗ trợ được đưa lên đầu danh sách">
+                    <input class="form-check-input" type="checkbox" role="switch" id="chkUuTienDonCuaToi" checked />
+                    <label class="form-check-label" for="chkUuTienDonCuaToi" style="cursor: pointer;">Ưu tiên đơn của tôi</label>
+                </div>
                 <button class="btn-filter-action btn-clear-filter" onclick="clearAllFilters()">
                     <i class="fa fa-refresh"></i> Làm mới
                 </button>
@@ -502,6 +506,7 @@
 </div>
 
 
+<script src="~/js/hoan-tat-don-uu-tien.js?v=1"></script>
 <script>
     let masterData = [];
     let filteredData = [];
@@ -551,6 +556,7 @@
 
             // Xử lý nạp các phần tử Checkbox vào giao diện Dropdown
             populateDropdowns(masterData);
+            UuTienDonCuaToi.hienCongTac(masterData);
 
             // PHỤC HỒI CACHE TRẠNG THÁI TÍCH CHỌN MULTI-SELECT SAU KHI ĐÃ BUILD XONG DOM CHECKBOX
             const savedDeptStr = sessionStorage.getItem("savedDeptIT");
@@ -806,6 +812,8 @@
 
             return true;
         });
+
+        filteredData = UuTienDonCuaToi.sapXep(filteredData);
 
         currentPage = 1;
         renderTable();

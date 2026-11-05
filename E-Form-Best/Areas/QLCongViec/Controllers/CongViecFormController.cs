@@ -1818,7 +1818,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
         // Xây query đơn "Công việc chỉ định" sắp quá hạn (còn dưới 24h hoặc đã trễ) và CHƯA hoàn tất (IdAdmin == null),
         // đã lọc theo đúng phạm vi quyền xem của người dùng hiện tại. Dùng chung cho cả API đếm số lượng và API lấy danh sách chi tiết.
-        private IQueryable<FormCongViec> BuildQuerySapQuaHan(int userId, string tenCongTy, string phongBanSession, List<string> listTenBoPhan, DateTime? nguong = null)
+        private IQueryable<FormCongViec> BuildQuerySapQuaHan(int userId, string tenCongTy, string phongBanSession, List<string> listTenBoPhan, DateTime? nguong = null, bool chiNguoiTrongDon = false)
         {
             // Mặc định 24h (dùng cho chuông thông báo); trang Lịch công việc truyền ngưỡng rộng hơn
             var nguongSapQuaHan = nguong ?? DateTime.Now.AddHours(24);
@@ -1828,6 +1828,15 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                          && f.IdAdmin == null
                          && (f.TenForm == null || !f.TenForm.Contains("[ĐÃ HỦY]"))
                          && f.CvCongViecOrder1s.Any(o => o.ThoiHanHoanThanh != null && o.ThoiHanHoanThanh <= nguongSapQuaHan));
+
+            // Cảnh báo nháy đỏ chỉ dành cho người trực tiếp trong đơn (người lập phiếu + nhân sự thực thi),
+            // kể cả ban quản trị/quản lý bộ phận cũng không nháy đơn của người khác để tránh báo động thừa.
+            if (chiNguoiTrongDon)
+            {
+                return query.Where(f =>
+                    f.IdNguoiTao == userId ||
+                    f.FormCongViecNguoiLienQuans.Any(ct => ct.IdNguoiDung == userId));
+            }
 
             if (User.IsInRole("AdminCV") || User.IsInRole("All") || User.IsInRole("AdminIT"))
             {
@@ -1884,7 +1893,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
             var (userId, tenCongTy, phongBanSession, listTenBoPhan) = LayThongTinPhanQuyenCV();
-            int count = await BuildQuerySapQuaHan(userId, tenCongTy, phongBanSession, listTenBoPhan).CountAsync();
+            int count = await BuildQuerySapQuaHan(userId, tenCongTy, phongBanSession, listTenBoPhan, chiNguoiTrongDon: true).CountAsync();
             return Ok(new { success = true, count });
         }
 
@@ -1897,7 +1906,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
             var (userId, tenCongTy, phongBanSession, listTenBoPhan) = LayThongTinPhanQuyenCV();
 
-            var danhSach = await BuildQuerySapQuaHan(userId, tenCongTy, phongBanSession, listTenBoPhan)
+            var danhSach = await BuildQuerySapQuaHan(userId, tenCongTy, phongBanSession, listTenBoPhan, chiNguoiTrongDon: true)
                 .Select(f => new
                 {
                     f.Id,

@@ -5660,6 +5660,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 query = query.Where(f => f.IdNguoiTao == userId);
             }
 
+            // Khớp người hỗ trợ theo MaNV; dòng IT_NguoiHoTro chưa điền MaNV thì mới so theo tên
+            var maNvHienTai = User.FindFirst("MaNv")?.Value?.Trim() ?? "";
+            var tenHienTai = User.Identity?.Name?.Trim() ?? "";
+
             // --- 4. THỰC THI TRUY VẤN VỚI PROJECTION ---
             var danhSachDon = await query
                 .OrderByDescending(f => f.Id)
@@ -5678,7 +5682,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     NguoiHoTros = item.ItCtNguoiHoTros
                                       .Where(ct => ct.IdItNguoiHoTroNavigation != null)
                                       .Select(ct => ct.IdItNguoiHoTroNavigation!.Ten ?? "N/A")
-                                      .ToList()
+                                      .ToList(),
+                    CoTenToi = item.ItCtNguoiHoTros.Any(ct => ct.IdItNguoiHoTroNavigation != null &&
+                        ((maNvHienTai != "" && ct.IdItNguoiHoTroNavigation.MaNv == maNvHienTai) ||
+                         (tenHienTai != "" && string.IsNullOrEmpty(ct.IdItNguoiHoTroNavigation.MaNv) && ct.IdItNguoiHoTroNavigation.Ten == tenHienTai)))
                 })
                 .ToListAsync();
 
