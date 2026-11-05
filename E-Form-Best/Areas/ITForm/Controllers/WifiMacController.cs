@@ -32,7 +32,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             _configuration = configuration;
         }
 
-        // Mỗi lần quét đọc toàn bộ danh sách MAC trên WLC qua SSH: chỉ cho 1 lượt chạy cùng lúc
+        // Mỗi lần quét đọc toàn bộ danh sách MAC trên WLC: chỉ cho 1 lượt chạy cùng lúc
         private static readonly SemaphoreSlim _khoaQuet = new(1, 1);
 
         /// <summary>
@@ -43,13 +43,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         public async Task<IActionResult> TrangThaiMac(int idFormIt)
         {
             if (!CoQuyen(User)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem MAC trên WLC." });
-            return await TraTrangThaiAsync(idFormIt, null);
+            return await TraTrangThaiAsync(idFormIt, false, null);
         }
 
         /// <summary>
-        /// Nút "Kiểm tra trên WLC" ở bảng MAC: đọc ngay danh sách MAC trên mọi WLC của công ty bằng tài khoản domain
-        /// IT nhập lúc bấm (không dùng tài khoản dịch vụ, để WLC ghi đúng người tra), ghi vào bản chụp rồi trả trạng thái các MAC của đơn.
-        /// Chỉ đọc WLC, không ghi gì lên WLC.
+        /// Nút "Kiểm tra trên WLC" ở bảng MAC: đọc ngay danh sách MAC rồi ghi vào bản chụp và trả trạng thái các MAC của đơn.
+        /// 9800 đọc qua WLC collector, không cần tài khoản; WLC collector không có (5508) đọc qua SSH bằng tài khoản domain IT nhập
+        /// lúc bấm, chưa nhập thì bỏ qua và trả tên WLC đó ở canTaiKhoan để trang hỏi thêm. Chỉ đọc, không ghi gì lên WLC.
         /// </summary>
         [HttpPost("/FormIT/QuetMacWifi/{idFormIt:int}")]
         [ValidateAntiForgeryToken]
@@ -57,13 +57,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             if (!CoQuyen(User)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền kiểm tra MAC trên WLC." });
             var taiKhoan = vao?.TaiKhoan?.Trim() ?? "";
+            if (taiKhoan.Length == 0 && string.IsNullOrEmpty(vao?.MatKhau)) return await TraTrangThaiAsync(idFormIt, true, null);
             if (taiKhoan.Length == 0) return Json(new { thanhCong = false, thongBao = "Nhập tài khoản domain." });
             if (!Regex.IsMatch(taiKhoan, @"^[A-Za-z0-9._@\\-]{1,64}$")) return Json(new { thanhCong = false, thongBao = "Tài khoản domain không hợp lệ." });
             if (string.IsNullOrEmpty(vao!.MatKhau)) return Json(new { thanhCong = false, thongBao = "Nhập mật khẩu tài khoản domain." });
-            return await TraTrangThaiAsync(idFormIt, (taiKhoan, vao.MatKhau));
+            return await TraTrangThaiAsync(idFormIt, true, (taiKhoan, vao.MatKhau));
         }
 
-        private async Task<IActionResult> TraTrangThaiAsync(int idFormIt, (string TaiKhoan, string MatKhau)? quetNgay)
+        private async Task<IActionResult> TraTrangThaiAsync(int idFormIt, bool quetNgay, (string TaiKhoan, string MatKhau)? taiKhoanAd)
         {
             try
             {
@@ -75,7 +76,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 if (dsCt.Count == 0 || !_wlc.CoCauHinh(congTy)) return Json(new { thanhCong = true, duLieu = Array.Empty<object>() });
 
                 var dsLoi = new List<string>();
-                if (quetNgay is var (taiKhoan, matKhau))
+                var dsCanTaiKhoan = new List<string>();
+                if (quetNgay)
                 {
                     if (!await _khoaQuet.WaitAsync(0))
                         return Json(new { thanhCong = false, thongBao = "Đang có lượt kiểm tra WLC khác chạy, thử lại sau ít phút." });
@@ -83,7 +85,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     {
                         foreach (var wlc in _wlc.DsWlc(congTy))
                         {
-                            var (ds, loi) = await _wlc.LayDsMacAsync(wlc, taiKhoan, matKhau, HttpContext.RequestAborted);
+                            var quaCollector = !wlc.LaAireOs && _wlc.CoCollectorMac(congTy);
+                            if (!quaCollector && taiKhoanAd == null) { dsCanTaiKhoan.Add(wlc.Ten); continue; }
+                            var (ds, loi) = quaCollector
+                                ? await _wlc.LayDsMacCollectorAsync(congTy, HttpContext.RequestAborted)
+                                : await _wlc.LayDsMacAsync(wlc, taiKhoanAd!.Value.TaiKhoan, taiKhoanAd.Value.MatKhau, HttpContext.RequestAborted);
                             await _quet.GhiKetQuaQuetAsync(congTy, wlc, ds, loi, HttpContext.RequestAborted);
                             if (loi != null) dsLoi.Add(wlc.Ten + ": " + loi);
                             // Sai mật khẩu: dừng luôn, không thử WLC khác để tránh khoá tài khoản AD
@@ -104,6 +110,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     thanhCong = true,
                     thongBao = dsLoi.Count > 0 ? "Có WLC chưa đọc được — " + string.Join("; ", dsLoi) : null,
+                    canTaiKhoan = dsCanTaiKhoan,
                     duLieu = dong.Select(x => new
                     {
                         x.idChiTiet, x.viTri, wlc = trangThai[x.mac!],

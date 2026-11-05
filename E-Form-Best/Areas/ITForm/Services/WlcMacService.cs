@@ -383,6 +383,46 @@ namespace E_Form_Best.Areas.ITForm.Services
             return (ds, null);
         }
 
+        private record MacUsersRa([property: JsonPropertyName("total")] int Total, [property: JsonPropertyName("mac_users")] List<MacUser>? MacUsers);
+        private record MacUser(
+            [property: JsonPropertyName("mac_address")] string? MacAddress,
+            [property: JsonPropertyName("description")] string? Description,
+            [property: JsonPropertyName("wlan_profile")] string? WlanProfile,
+            [property: JsonPropertyName("aaa_list")] string? AaaList);
+
+        /// <summary>Công ty có WLC collector (cấu hình chung với trang AP) để đọc danh sách MAC 9800 không cần tài khoản domain.</summary>
+        public bool CoCollectorMac(string congTy)
+            => string.Equals(_configuration[$"AccessPointController:{congTy}:Loai"], "WlcApi", StringComparison.OrdinalIgnoreCase)
+               && !string.IsNullOrWhiteSpace(_configuration[$"AccessPointController:{congTy}:Url"])
+               && !string.IsNullOrWhiteSpace(_configuration[$"AccessPointController:{congTy}:ApiKey"]);
+
+        /// <summary>
+        /// Danh sách MAC trên 9800 qua collector (GET /api/wlc/mac-users), cùng nội dung "username {mac} mac ..." trong running-config
+        /// (đo 04/11/2026: 2.490 MAC đều có trong bản chụp SSH). Collector không có dữ liệu WLC AireOS. Lỗi trả (null, thông báo).
+        /// </summary>
+        public async Task<(List<CauHinhMac>? Ds, string? Loi)> LayDsMacCollectorAsync(string congTy, CancellationToken ct = default)
+        {
+            var url = (_configuration[$"AccessPointController:{congTy}:Url"] ?? "").TrimEnd('/') + "/api/wlc/mac-users";
+            using var req = new HttpRequestMessage(HttpMethod.Get, url);
+            req.Headers.TryAddWithoutValidation("X-API-Key", _configuration[$"AccessPointController:{congTy}:ApiKey"]);
+            try
+            {
+                using var res = await _httpFactory.CreateClient(TenHttpClient).SendAsync(req, ct);
+                if (!res.IsSuccessStatusCode) return (null, $"WLC collector trả HTTP {(int)res.StatusCode}.");
+                var ra = await res.Content.ReadFromJsonAsync<MacUsersRa>(ct);
+                // Thiếu danh sách thì báo lỗi chứ không nhận — không thì MAC phía sau bị đánh dấu là đã mất
+                if (ra?.MacUsers == null || ra.MacUsers.Count != ra.Total)
+                    return (null, "WLC collector trả danh sách MAC không đầy đủ.");
+                return (ra.MacUsers.Select(x => new CauHinhMac(x.MacAddress ?? "", x.AaaList, x.WlanProfile, x.Description, $"username {x.MacAddress}")).ToList(), null);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException
+                || (ex is TaskCanceledException && !ct.IsCancellationRequested))
+            {
+                _logger.LogWarning("WLC collector: không đọc được danh sách MAC: {Loi}", ex.Message);
+                return (null, "Không đọc được danh sách MAC từ WLC collector.");
+            }
+        }
+
         public static bool LaLoiSaiMatKhau(string? loi) => loi != null && LaSaiMatKhau(loi);
 
         /// <summary>Gửi 1 lệnh qua app automation; lỗi kết nối/HTTP trả (null, thông báo).</summary>

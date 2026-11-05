@@ -296,8 +296,8 @@
     }
     danhDauSan();
 
-    // Nút "Kiểm tra trên WLC": mở ô nhập tài khoản / mật khẩu domain, server dùng tài khoản đó đọc ngay danh sách MAC
-    // trên mọi WLC (vài chục giây), rồi vẽ lại bảng. Tài khoản dùng chung với modal, mật khẩu xoá sau mỗi lần.
+    // Nút "Kiểm tra trên WLC": đọc ngay danh sách MAC trên WLC có collector (9800) rồi vẽ lại bảng. WLC collector không có (5508)
+    // phải SSH nên mới mở ô nhập tài khoản / mật khẩu domain. Tài khoản dùng chung với modal, mật khẩu xoá sau mỗi lần.
     const btnQuet = document.getElementById('btnQuetMacWlc');
     const formQuet = document.getElementById('formQuetMacWlc');
     const oQuetTaiKhoan = document.getElementById('quetMacWlcTaiKhoan');
@@ -305,12 +305,44 @@
     const btnGuiQuet = document.getElementById('btnGuiQuetMacWlc');
     const oQuetLoi = document.getElementById('bangMacWlcLoi');
     function hienQuetLoi(text) { oQuetLoi.textContent = text || ''; oQuetLoi.hidden = !text; }
+    async function guiQuet(vao) {
+        const res = await fetch('/FormIT/QuetMacWifi/' + encodeURIComponent(modal.dataset.idForm), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+            },
+            body: JSON.stringify(vao)
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const d = await res.json();
+        apDungTrangThai(d);
+        return d;
+    }
     if (btnQuet && formQuet) {
-        btnQuet.addEventListener('click', function () {
-            if (!oQuetTaiKhoan.value.trim()) oQuetTaiKhoan.value = oTaiKhoan.value.trim();
-            formQuet.hidden = false;
+        const oQuetGhiChu = document.getElementById('quetMacWlcGhiChu');
+        btnQuet.addEventListener('click', async function () {
+            if (btnQuet.disabled) return;
+            const oChu = btnQuet.lastChild;
+            const chuGoc = oChu.textContent;
+            btnQuet.disabled = btnGuiQuet.disabled = true;
+            oChu.textContent = ' Đang đọc WLC...';
             hienQuetLoi('');
-            (oQuetTaiKhoan.value.trim() ? oQuetMatKhau : oQuetTaiKhoan).focus();
+            try {
+                const d = await guiQuet({});
+                if (!d.thanhCong || d.thongBao) hienQuetLoi(d.thongBao || 'Kiểm tra trên WLC thất bại.');
+                if (d.canTaiKhoan?.length) {
+                    oQuetGhiChu.textContent = 'Cần để đọc thêm ' + d.canTaiKhoan.join(', ') + ' qua SSH lần này, không lưu.';
+                    if (!oQuetTaiKhoan.value.trim()) oQuetTaiKhoan.value = oTaiKhoan.value.trim();
+                    formQuet.hidden = false;
+                    (oQuetTaiKhoan.value.trim() ? oQuetMatKhau : oQuetTaiKhoan).focus();
+                } else formQuet.hidden = true;
+            } catch (err) {
+                hienQuetLoi('Lỗi kết nối máy chủ (' + err.message + ').');
+            } finally {
+                btnQuet.disabled = btnGuiQuet.disabled = false;
+                oChu.textContent = chuGoc;
+            }
         });
         document.getElementById('btnHuyQuetMacWlc').addEventListener('click', function () {
             if (btnGuiQuet.disabled) return;
@@ -330,17 +362,7 @@
             hienQuetLoi('');
             let thanhCong = false;
             try {
-                const res = await fetch('/FormIT/QuetMacWifi/' + encodeURIComponent(modal.dataset.idForm), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
-                    },
-                    body: JSON.stringify({ taiKhoan: taiKhoan, matKhau: oQuetMatKhau.value })
-                });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const d = await res.json();
-                apDungTrangThai(d);
+                const d = await guiQuet({ taiKhoan: taiKhoan, matKhau: oQuetMatKhau.value });
                 thanhCong = d.thanhCong && !d.thongBao;
                 if (!thanhCong) hienQuetLoi(d.thongBao || 'Kiểm tra trên WLC thất bại.');
                 if (!oTaiKhoan.value.trim()) oTaiKhoan.value = taiKhoan;
